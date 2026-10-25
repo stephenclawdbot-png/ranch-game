@@ -10,7 +10,7 @@ import {
   type RaceInput,
   type RaceReplay,
 } from "@thoroughbred/shared";
-import { say } from "./commentary";
+import { Commentator, finishLine, photoLine } from "./commentary";
 import { commitSeed, sha256Hex, streamSeedBytes } from "./hash";
 import { ENERGY_MAX, MAX_TICKS, SAMPLE_EVERY, TICK_HZ, US_PER_TICK, buildProfile, type Profile } from "./model";
 import { Rng } from "./prng";
@@ -150,12 +150,13 @@ export function runRace(input: RaceInput): RaceReplay {
     if (i !== undefined) e.horseId = entries[i]!.horse.id;
     events.push(e);
   };
-  ev(0, "start", say.start(race.name, n, 0));
+  const say = new Commentator(parseInt(input.seed.slice(0, 4), 16));
+  ev(0, "start", say.line("start", { race: race.name, n }));
   let slowEvents = 0;
   for (let i = 0; i < n; i++) {
     if (profiles[i]!.slowStart && slowEvents < 3) {
       slowEvents++;
-      ev(profiles[i]!.reactTicks, "slow_start", say.slowStart(names[i]!, profiles[i]!.reactTicks, i), i);
+      ev(profiles[i]!.reactTicks, "slow_start", say.line("slowStart", { a: names[i]! }), i);
     }
   }
   let announcedLeader = -1;
@@ -172,8 +173,8 @@ export function runRace(input: RaceInput): RaceReplay {
   const tiringAnnounced = new Array<boolean>(n).fill(false);
   const lastMoveTick = new Array<number>(n).fill(-10_000);
   const lastKickTick = new Array<number>(n).fill(-10_000);
-  const rank = new Array<number>(n).fill(0);
-  const rankHistory: number[][] = [];
+  const rank = new Int32Array(n);
+  const rankHistory: Int32Array[] = [];
 
   // --- frames ----------------------------------------------------------------
   const frames: number[][] = [];
@@ -240,10 +241,10 @@ export function runRace(input: RaceInput): RaceReplay {
         kicking[i] = true;
         const r = rank[i]!;
         const contender = r < Math.max(3, Math.floor(n / 3)) || (tactic === "closer" && r < Math.ceil(n / 2) + 1);
-        if (kickEvents < 5 && contender && E > 300_000 && tick > 40) {
+        if (kickEvents < 5 && contender && E > 150_000 && tick > 40) {
           kickEvents++;
           lastKickTick[i] = tick;
-          ev(tick, "kick", say.kick(names[i]!, tactic, isLeader, tick, i), i);
+          ev(tick, "kick", say.line(isLeader ? "kickLeader" : tactic === "closer" ? "kickCloser" : "kickChaser", { a: names[i]! }), i);
         }
       }
       let target: number;
@@ -319,14 +320,14 @@ export function runRace(input: RaceInput): RaceReplay {
       if (
         boxedTicks[i]! >= 30 &&
         !boxedAnnounced[i] &&
-        boxedEvents < 3 &&
+        boxedEvents < 2 &&
         remaining > 150_000 &&
         !early &&
         rank[i]! < Math.max(4, Math.ceil(n / 2))
       ) {
         boxedAnnounced[i] = true;
         boxedEvents++;
-        ev(tick, "boxed_in", say.boxedIn(names[i]!, tick, i), i);
+        ev(tick, "boxed_in", say.line("boxedIn", { a: names[i]! }), i);
       }
 
       // --- lateral movement ---------------------------------------------------
@@ -423,7 +424,7 @@ export function runRace(input: RaceInput): RaceReplay {
       ) {
         tiringAnnounced[i] = true;
         tiringEvents++;
-        ev(tick, "tiring", say.tiring(names[i]!, tick, i), i);
+        ev(tick, "tiring", say.line("tiring", { a: names[i]! }), i);
       }
     }
 
@@ -454,30 +455,43 @@ export function runRace(input: RaceInput): RaceReplay {
         lastLeadTick = tick;
         const text =
           announcedLeader < 0
-            ? say.earlyLead(names[cand]!, tick, cand)
-            : say.leadChange(names[cand]!, names[announcedLeader]!, tick, cand);
+            ? say.line("earlyLead", { a: names[cand]! })
+            : say.line("leadChange", { a: names[cand]!, b: names[announcedLeader]! });
         ev(tick, "lead_change", text, cand);
         announcedLeader = cand;
       }
       if (!furlongDone && leaderRemaining <= FURLONG_MM) {
         furlongDone = true;
         const sec = order[1];
-        ev(tick, "final_furlong", say.finalFurlong(names[cand]!, sec !== undefined ? names[sec]! : null, tick), cand);
+        ev(tick, "final_furlong", sec !== undefined
+            ? say.line("finalFurlong", { a: names[cand]!, b: names[sec]! })
+            : say.line("finalFurlongAlone", { a: names[cand]! }), cand);
       }
     }
 
     if (tick % 20 === 0) {
       rankHistory.push(rank.slice());
-      const past = rankHistory.length > 5 ? rankHistory[rankHistory.length - 6] : undefined;
-      if (past && tick > 200) {
+      // Compare with the order 10 s ago: big gains are "moves", leaders dropping back are "tiring".
+      const past = rankHistory.length > 10 ? rankHistory[rankHistory.length - 11] : undefined;
+      if (past && tick > 200 && finishedCount === 0) {
         for (let i = 0; i < n; i++) {
-          if (finished[i] || moveEvents >= 7) continue;
           const gained = past[i]! - rank[i]!;
           const rem = L - Math.floor(pos[i]! / SUB);
-          if (gained >= 2 && rank[i]! < 6 && rem > 100_000 && tick - lastMoveTick[i]! > 240 && tick - lastKickTick[i]! > 60) {
+          if (rem < 100_000) continue;
+          if (
+            moveEvents < 7 &&
+            gained >= 2 &&
+            rank[i]! < 6 &&
+            tick - lastMoveTick[i]! > 240 &&
+            tick - lastKickTick[i]! > 60
+          ) {
             moveEvents++;
             lastMoveTick[i] = tick;
-            ev(tick, "move", say.move(names[i]!, lane[i]! >= 2000, tick, i), i);
+            ev(tick, "move", say.line(lane[i]! >= 2000 ? "moveWide" : "moveInside", { a: names[i]! }), i);
+          } else if (tiringEvents < 3 && !tiringAnnounced[i] && past[i]! < 3 && gained <= -3 && rem * 2 < L) {
+            tiringAnnounced[i] = true;
+            tiringEvents++;
+            ev(tick, "tiring", say.line("tiring", { a: names[i]! }), i);
           }
         }
       }
@@ -510,8 +524,8 @@ export function runRace(input: RaceInput): RaceReplay {
   const second = finishRecords[1]!;
   const photoFinish = second.marginMm < PHOTO_FINISH_MM;
   const winTick = finishTick[winner]!;
-  if (photoFinish) ev(winTick, "photo_finish", say.photo(names[winner]!, names[runnerUp]!), winner);
-  ev(winTick, "finish", say.finish(names[winner]!, second.marginLabel, formatRaceTime(finishUs[winner]!), photoFinish), winner);
+  if (photoFinish) ev(winTick, "photo_finish", photoLine(names[winner]!, names[runnerUp]!), winner);
+  ev(winTick, "finish", finishLine(names[winner]!, second.marginLabel, formatRaceTime(finishUs[winner]!), photoFinish), winner);
 
   events.sort((a, b) => a.tick - b.tick); // stable: insertion order within a tick
 
