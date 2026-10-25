@@ -106,3 +106,4 @@
 {"at":"2026-10-25T17:17:22.119Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-jockey-crouch-256","secs":23,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:18:12.517Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-jockey-neutral-256","secs":50,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:18:36.353Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-standing-alt-256","secs":24,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:19:50.787Z","endpoint":"/create-tiles-pro","prefix":"art-src/raw/scene/hd-tiles-b","secs":50,"usage":{"type":"generations","generations":15},"images":0}

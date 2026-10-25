@@ -16,7 +16,7 @@ for r in rows:
     races.setdefault(r["race"], []).append(r)
 X = [np.array([e["f"] for e in rs], dtype=float) for rs in races.values()]
 P = [np.array([e["pos"] for e in rs]) for rs in races.values()]
-scale = np.array([100, 100, 100, 100, 100, 100], dtype=float)
+scale = np.vstack(X).std(0)
 Xs = [x / scale for x in X]
 
 
@@ -39,10 +39,14 @@ def nll_grad(w):
 
 
 w = np.zeros(len(names))
-lr = 0.5
-for it in range(400):
+m1 = np.zeros_like(w)
+m2 = np.zeros_like(w)
+for it in range(1, 301):  # Adam
     nll, g = nll_grad(w)
-    w -= lr * g / len(Xs)
+    g /= len(Xs)
+    m1 = 0.9 * m1 + 0.1 * g
+    m2 = 0.999 * m2 + 0.001 * g * g
+    w -= 0.05 * (m1 / (1 - 0.9**it)) / (np.sqrt(m2 / (1 - 0.999**it)) + 1e-8)
 coef = w / scale
 pts = coef / (coef[0] * 1.05)  # weight per unit, in speed points
 print(f"NLL {nll:.1f}")
