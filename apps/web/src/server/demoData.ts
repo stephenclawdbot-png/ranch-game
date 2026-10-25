@@ -107,7 +107,7 @@ function makeName(rng: Rng, taken: Set<string>): string {
 // Stats, archetypes, appearance
 // ---------------------------------------------------------------------------
 
-type Archetype = "sprinter" | "miler" | "stayer" | "closer" | "frontrunner" | "allrounder" | "firebrand" | "mudlark";
+export type Archetype = "sprinter" | "miler" | "stayer" | "closer" | "frontrunner" | "allrounder" | "firebrand" | "mudlark";
 
 interface ArchetypeDef {
   mods: HorseStats;
@@ -265,6 +265,11 @@ export function defaultPlayerSilks(playerId: string): Silks {
 
 /** One distinct archetype per starter so every stable has a sprinter, a stayer, a closer... */
 const STARTER_ARCHETYPES: readonly Archetype[] = ["sprinter", "miler", "stayer", "closer", "frontrunner", "allrounder"];
+
+/** Archetype of each starter, by horse index (the same shuffle starterHorses makes). */
+export function starterArchetypes(playerId: string): Archetype[] {
+  return createRng(`starters:${playerId}`).shuffle(STARTER_ARCHETYPES);
+}
 
 /**
  * Six starter horses derived only from playerId. Records start empty — the player's

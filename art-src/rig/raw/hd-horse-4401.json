@@ -1,0 +1,76 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<7036 chars>",
+     "format": "png"
+    },
+    "width": 256,
+    "height": 192
+   }
+  ],
+  "image_size": {
+   "width": 256,
+   "height": 192
+  },
+  "description": "<419 chars>",
+  "no_background": true,
+  "seed": 4401
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "79a09d6c-7790-4303-a735-7c592723f5df",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "79a09d6c-7790-4303-a735-7c592723f5df",
+  "status": "completed",
+  "created_at": "2026-10-25T16:58:02.305661+00:00",
+  "last_response": {
+   "seed": 4401,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<22640 chars>",
+     "height": 192
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "ffe7dd33-79dc-4ba1-b51a-01896a536bf8",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<22640 chars>",
+     "height": 192
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:58:08.49121+00:00",
+   "original_image_n_colors": 120,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/rig/raw/hd-horse-4401-0.png",
+  "art-src/rig/raw/hd-horse-4401-1.png"
+ ]
+}

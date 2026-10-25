@@ -7,7 +7,7 @@ const DESC = "detailed side view of a thoroughbred racehorse galloping at full s
 const [mode, ...a] = process.argv.slice(2);
 if (mode === "base") {
   await Promise.all(a.map(async (seed) => {
-    const r = await run("/generate-image-v2", { description: DESC, image_size: { width: 256, height: 160 }, no_background: true, seed: Number(seed) }, `${OUT}/base-${seed}`);
+    const r = await run("/generate-image-v2", { description: DESC, image_size: { width: 224, height: 140 }, no_background: true, seed: Number(seed) }, `${OUT}/base224-${seed}`);
     console.log(seed, r.files, JSON.stringify(r.job?.usage));
   }));
 } else if (mode === "anim") {

@@ -2,3 +2,5 @@
 {"at":"2026-10-25T16:15:42.991Z","endpoint":"/inpaint-v3","prefix":"art-src/rig/raw/jockey-a","secs":66,"usage":{"type":"generations","generations":10},"images":2}
 {"at":"2026-10-25T16:21:05.962Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/normal-horse","secs":34,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T16:21:10.422Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/normal-rider","secs":38,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T16:59:01.440Z","endpoint":"/edit-images-v2","prefix":"art-src/rig/raw/hd-horse-4401","secs":60,"usage":{"type":"generations","generations":10},"images":2}
+{"at":"2026-10-25T16:59:23.435Z","endpoint":"/edit-images-v2","prefix":"art-src/rig/raw/hd-horse-4402","secs":82,"usage":{"type":"generations","generations":10},"images":2}

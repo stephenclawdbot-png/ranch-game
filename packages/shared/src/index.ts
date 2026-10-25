@@ -269,6 +269,71 @@ export const RaceReplaySchema = z.object({
 export type RaceReplay = z.infer<typeof RaceReplaySchema>;
 
 // ---------------------------------------------------------------------------
+// Live broadcast: a race is streamed up to "now" so the outcome is never
+// sent to clients before it happens on the broadcast clock.
+// ---------------------------------------------------------------------------
+
+/** Seconds the broadcast trails the simulation clock (absorbs polling latency). */
+export const BROADCAST_DELAY_S = 2;
+
+/** Everything a viewer needs before frames arrive. Contains no outcome information. */
+export const RaceBroadcastHeaderSchema = z.object({
+  version: z.literal(1),
+  engineVersion: z.string(),
+  race: RaceConfigSchema,
+  seedCommitment: z.string().regex(/^[0-9a-f]{64}$/),
+  tickHz: z.number().int().positive(),
+  sampleEvery: z.number().int().positive(),
+  trackLengthMm: z.number().int().positive(),
+  laneCount: z.number().int().positive(),
+  horses: z.array(ReplayHorseSchema),
+});
+export type RaceBroadcastHeader = z.infer<typeof RaceBroadcastHeaderSchema>;
+
+/**
+ * GET /api/races/:id/live?from=<frameIndex> response.
+ * Frame f is shown at wall time postTimeMs + BROADCAST_DELAY_S*1000 + f*sampleEvery/tickHz*1000.
+ * `frames` holds frames [fromFrame, liveEdgeFrame] only; `events` only those with
+ * tick <= liveEdgeFrame*sampleEvery. `final` is present only once the whole field has
+ * finished on the broadcast clock. Until then, nothing in the payload reveals the result.
+ */
+export const RaceBroadcastChunkSchema = z.object({
+  raceId: z.string(),
+  serverNowMs: z.number().int(),
+  /** Wall-clock ms at which frame 0 is shown (postTimeMs + BROADCAST_DELAY_S*1000). */
+  broadcastStartMs: z.number().int(),
+  header: RaceBroadcastHeaderSchema,
+  fromFrame: z.number().int().min(0),
+  frames: z.array(z.array(z.number().int())),
+  events: z.array(RaceEventSchema),
+  /** Highest frame index the server will reveal right now (-1 before the off). */
+  liveEdgeFrame: z.number().int().min(-1),
+  /** The complete replay (result, seed reveal, all frames): only after the race is over. */
+  final: RaceReplaySchema.nullable(),
+});
+export type RaceBroadcastChunk = z.infer<typeof RaceBroadcastChunkSchema>;
+
+/**
+ * Client-side live feed consumed by <RaceViewer feed={...} />.
+ * Implemented in apps/web (polls the live endpoint); arrays only ever grow.
+ */
+export interface LiveRaceFeed {
+  readonly raceId: string;
+  readonly header: RaceBroadcastHeader;
+  /** Wall-clock ms at which frame 0 is shown. */
+  readonly broadcastStartMs: number;
+  /** Frames received so far (frame i = tick i*sampleEvery). */
+  readonly frames: ReadonlyArray<ReadonlyArray<number>>;
+  readonly events: ReadonlyArray<RaceEvent>;
+  /** Highest frame index currently available (-1 before the off). */
+  readonly liveEdgeFrame: number;
+  /** Set once the race is over; viewer switches to full replay mode. */
+  readonly final: RaceReplay | null;
+  /** Called whenever frames/events/final change. Returns an unsubscribe fn. */
+  subscribe(listener: () => void): () => void;
+}
+
+// ---------------------------------------------------------------------------
 // Constants shared by engine and viewer
 // ---------------------------------------------------------------------------
 
