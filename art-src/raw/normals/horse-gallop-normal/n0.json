@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<12704 chars>",
+   "base64": "<12664 chars>",
    "format": "png"
   },
   "mode": "pro",
@@ -11,7 +11,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "4ed3be1b-f48d-474a-8860-4008ba5eee78",
+  "background_job_id": "bda7dcf7-0c39-4aa7-b820-a5b3c2e07c2b",
   "status": "processing"
  },
  "job": {
@@ -19,9 +19,9 @@
    "type": "generations",
    "generations": 0.5
   },
-  "id": "4ed3be1b-f48d-474a-8860-4008ba5eee78",
+  "id": "bda7dcf7-0c39-4aa7-b820-a5b3c2e07c2b",
   "status": "completed",
-  "created_at": "2026-10-25T17:06:11.436406+00:00",
+  "created_at": "2026-10-25T17:55:14.401246+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -35,193 +35,248 @@
     "kind": "character",
     "parts": [
      {
-      "axis": 40,
+      "axis": 170,
       "name": "tail",
       "round": 0.8,
       "shape": "cylinder",
       "regions": [
-       102,
-       133,
-       130,
-       108,
-       120,
-       122
+       102
       ]
      },
      {
-      "axis": 5,
-      "name": "horse body",
+      "axis": 140,
+      "name": "far hind leg",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
+       133
+      ]
+     },
+     {
+      "name": "hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
        103,
-       105,
-       117,
-       110,
-       115,
-       86,
-       101,
-       106,
-       107,
-       111,
-       119,
-       123,
-       125,
-       126,
-       131,
-       124,
-       127,
-       116,
-       109,
-       128,
-       42,
-       41,
-       49,
-       50,
-       33,
-       34,
-       35,
-       52,
-       57,
-       69,
-       78,
-       70,
-       71,
-       72,
-       73,
-       74,
-       75,
-       76,
-       77,
-       80,
-       81,
-       82,
-       83,
-       84,
-       85,
-       91,
-       92,
-       93,
-       98,
        104,
        68,
-       96,
-       94,
-       95,
-       97,
-       99
+       92,
+       98,
+       110,
+       108,
+       115,
+       86
       ]
      },
      {
       "axis": 80,
-      "name": "white front leg",
+      "name": "hind legs",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       87,
-       89,
-       100,
-       88,
-       90,
-       93
+       127,
+       128,
+       129,
+       120,
+       130,
+       116
       ]
      },
      {
-      "axis": 60,
-      "name": "neck and mane",
+      "axis": 5,
+      "name": "barrel",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       27,
-       40,
-       54,
-       53,
-       63,
-       64,
-       65,
-       62,
-       61,
-       60,
-       59,
-       58,
-       56,
-       55
+       105,
+       117,
+       106,
+       107,
+       111,
+       112,
+       113,
+       109,
+       99,
+       101,
+       79,
+       69,
+       70,
+       71,
+       78,
+       94,
+       96,
+       100,
+       90,
+       80,
+       81,
+       95,
+       88
       ]
      },
      {
       "axis": 70,
-      "name": "front leg right",
+      "name": "front legs",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
+       123,
+       125,
+       131,
+       134,
+       132,
+       119,
+       124,
+       126,
+       122,
        135,
        136,
        137,
-       138,
-       134,
-       132
+       138
       ]
      },
      {
-      "name": "horse head",
+      "axis": 50,
+      "name": "neck",
       "round": 0.9,
-      "shape": "ball",
+      "shape": "cylinder",
+      "regions": [
+       42,
+       27,
+       41,
+       26,
+       20,
+       17,
+       16,
+       43,
+       44,
+       33,
+       34,
+       35,
+       28,
+       21,
+       22,
+       49,
+       50,
+       55,
+       56,
+       57,
+       64,
+       65,
+       59,
+       58
+      ]
+     },
+     {
+      "axis": -35,
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "cylinder",
       "regions": [
        45,
-       66,
-       67,
        47,
        48,
-       44,
-       43,
-       51,
+       52,
        60,
-       12,
-       22,
-       21,
-       28,
-       16,
-       17,
-       20,
-       26
+       63,
+       66,
+       67,
+       74,
+       75,
+       76,
+       77,
+       82,
+       83,
+       84,
+       85,
+       91
       ]
      },
      {
       "axis": 60,
-      "name": "jockey torso",
+      "name": "jockey leg",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       18,
-       19,
-       29,
-       30,
-       31,
-       32,
-       46,
-       15,
-       14,
-       13,
-       36,
+       37,
+       23,
+       24,
        38,
        39
       ]
      },
      {
-      "axis": 30,
+      "name": "stirrup",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0.3,
+       0
+      ],
+      "regions": [
+       36
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey torso",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       12,
+       25,
+       61,
+       13,
+       14,
+       19,
+       72,
+       73,
+       62
+      ]
+     },
+     {
+      "axis": 10,
       "name": "jockey arm",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       25,
-       37,
-       23,
-       24
+       29,
+       18,
+       30,
+       31,
+       32,
+       46
+      ]
+     },
+     {
+      "name": "jockey hand",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       87,
+       93,
+       89,
+       100,
+       90,
+       78
+      ]
+     },
+     {
+      "name": "reins",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.3
+      ],
+      "regions": [
+       54,
+       53,
+       40
       ]
      },
      {
       "name": "jockey head",
-      "round": 0.9,
+      "round": 1,
       "shape": "ball",
       "regions": [
        1,
@@ -234,7 +289,7 @@
        8,
        9,
        10,
-       11
+       15
       ]
      }
     ],
@@ -242,9 +297,9 @@
     "raised": [],
     "backdrop": [],
     "recessed": [
+     99,
      54,
-     79,
-     99
+     40
     ],
     "painted_light": "top-left"
    },
@@ -252,7 +307,7 @@
    "image": {
     "type": "base64",
     "width": 229,
-    "base64": "<43536 chars>",
+    "base64": "<43716 chars>",
     "height": 146
    },
    "action": "Shaping the parts",
@@ -264,10 +319,10 @@
     "type": "generations",
     "generations": 0.5
    },
-   "generation_id": "617d50d9-2545-48fe-9c69-440249eb747f",
+   "generation_id": "04c545f1-0d4d-4517-ad03-a294db85356e",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T17:06:11.616809+00:00"
+   "generation_started_at": "2026-10-25T17:55:14.460968+00:00"
   }
  },
  "files": [

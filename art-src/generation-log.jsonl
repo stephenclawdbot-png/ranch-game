@@ -171,3 +171,4 @@
 {"at":"2026-10-25T17:50:41.154Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/barn-interior","secs":104,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:50:52.327Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/grandstand","secs":115,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:53:02.578Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/stable-yard","secs":94,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:56:03.351Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n0","secs":51,"usage":{"type":"generations","generations":0.5},"images":1}

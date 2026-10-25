@@ -91,6 +91,7 @@ export interface SeasonRow {
   maxActive: number;
   legacyPerPlayer: number;
   releasedTotal: number;
+  tradedTotal: number;
   foalsBred: number;
   packFoals: number;
   bestMean: number;
@@ -141,6 +142,7 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
   const firsts: SimReport["firsts"] = {};
   const bestByGeneration: number[] = [];
   let released = 0;
+  let traded = 0;
   let foalsBred = 0;
   let packFoals = 0;
   let cropUsed = 0;
@@ -271,6 +273,30 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
         else byId.set(res.sire.id, res.sire);
       }
 
+      // Market: breeders (weekly) and active players (fortnightly) buy the best tradeable young
+      // mare/filly another owner has, when it beats their own best mare.
+      const buyEvery = p.archetype === "breeder" ? 7 : p.archetype === "active" ? 14 : 0;
+      if (buyEvery > 0 && p.playDays % buyEvery === 0 && inStalls(p) + nursery(p) + pendingFoals(p) < p.stalls) {
+        const myBest = Math.max(0, ...p.horses.filter((h) => isFemale(h.sex) && h.location === "stable").map((h) => meanPotential(h.genome)));
+        let pick: { seller: SimPlayer; h: HorseState; m: number } | null = null;
+        for (const q of players) {
+          if (q === p || q.archetype === "breeder") continue;
+          for (const h of q.horses) {
+            if (!isFemale(h.sex) || h.location !== "stable" || h.pregnancy || h.binding === "club_bred" || (h.binding === "until_5_starts" && h.record.starts < 5 && h.career.starts < 5)) continue;
+            if (h.care.sessions < CARE_TO_RACING || h.breeding.used >= 3) continue;
+            const m = meanPotential(h.genome);
+            if (m > myBest + 10 && (!pick || m > pick.m)) pick = { seller: q, h, m };
+          }
+        }
+        if (pick) {
+          pick.seller.horses = pick.seller.horses.filter((x) => x.id !== pick!.h.id);
+          const moved = { ...pick.h, ownerId: p.id };
+          p.horses.push(moved);
+          byId.set(moved.id, moved);
+          traded++;
+        }
+      }
+
       // Stall upgrades.
       if (prof.stallEveryDays > 0 && p.playDays % prof.stallEveryDays === 0 && p.stalls < prof.maxStalls) p.stalls++;
 
@@ -352,6 +378,7 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
         maxActive: Math.max(...active),
         legacyPerPlayer: Math.round((owned.filter((h) => h.location === "legacy_farm").length / players.length) * 10) / 10,
         releasedTotal: released,
+        tradedTotal: traded,
         foalsBred,
         packFoals,
         bestMean: means[0] ?? 0,
@@ -370,11 +397,11 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
 export function formatReport(r: SimReport): string {
   const lines = [
     `players ${r.config.players} (+${r.config.joinPermillePerSeason / 10}%/season), mix casual/active/breeder ${r.config.mix.casual}/${r.config.mix.active}/${r.config.mix.breeder}‰, crop cap ${r.config.cropCapPerPlayer}/player/season`,
-    "season players active/pl maxActive legacy/pl released foalsBred packFoals best(gen) top1% popMean maxGen meanCOI‰",
+    "season players active/pl maxActive legacy/pl released traded foalsBred packFoals best(gen) top1% popMean maxGen meanCOI‰",
   ];
   for (const x of r.rows) {
     lines.push(
-      [x.season, x.players, x.activePerPlayer, x.maxActive, x.legacyPerPlayer, x.releasedTotal, x.foalsBred, x.packFoals, `${x.bestMean}(g${x.bestGeneration}) ${gradeOf(x.bestMean)}`, x.top1Mean, x.popMean, x.maxGeneration, x.meanCoi].join("  "),
+      [x.season, x.players, x.activePerPlayer, x.maxActive, x.legacyPerPlayer, x.releasedTotal, x.tradedTotal, x.foalsBred, x.packFoals, `${x.bestMean}(g${x.bestGeneration}) ${gradeOf(x.bestMean)}`, x.top1Mean, x.popMean, x.maxGeneration, x.meanCoi].join("  "),
     );
   }
   lines.push(`first B: ${fmt(r.firsts.B)}; first A: ${fmt(r.firsts.A)}; first S: ${fmt(r.firsts.S)}`);
