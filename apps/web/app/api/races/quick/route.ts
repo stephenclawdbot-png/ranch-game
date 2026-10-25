@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Clients choose only which of their horses runs and how it is ridden, or ask for a Quick Pick
- * (`pick: "auto"`). Never speeds or results. `instant` skips the broadcast (solo races only).
+ * (`pick: "auto"`). Never speeds or results.
  */
 const BodySchema = z
   .object({
@@ -20,7 +20,6 @@ const BodySchema = z
     exclude: z.array(z.number().int().min(0).max(STARTER_COUNT - 1)).max(STARTER_COUNT).optional(),
     horseIndex: z.number().int().min(0).max(STARTER_COUNT - 1).optional(),
     tactic: RunningStyleSchema.optional(),
-    instant: z.boolean().optional(),
     silks: SilksSchema.optional(),
     stableName: StableNameSchema.optional(),
   })

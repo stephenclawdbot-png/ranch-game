@@ -159,7 +159,30 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   rewards (Daily Cup, leagues, titles) require a verified account; those rewards are
   cosmetic.
 
-## 4c. Quick Pick & watch options (user request, Phase 1)
+## 4d. ALL RACES ARE LIVE AND SHARED (user decision, supersedes solo quick races and instant results)
+
+- **The core loop is a shared race card.** A race goes off every 3 minutes across tracks,
+  distances, surfaces and classes. Every viewer sees the same race at the same moment, live.
+- **Entries** are open from when the card is published until 1 minute before the off. The
+  seed commitment is published when entries open. At entry close, the field snapshot is
+  locked.
+- **Fields of 8–12 horses come from different players.** At lock, any gates still empty are
+  filled with house-stable AI horses of the race's class band, so races are always full at
+  launch or off-peak. AI share falls as player numbers grow.
+- **Matchmaking:** race eligibility comes from class and rating bands (maiden, novice,
+  handicap bands, listed, graded). A player can't enter two horses that would make up more
+  than half of a field. One horse can run in only one race at a time, and stable entries
+  apply (see the entries proposal).
+- **Quick Pick** means "enter my best-fit fresh horse into the next suitable race on the
+  card", in one tap.
+- **Watching is optional.** The race runs live regardless. If you're away, the result and
+  replay go to your inbox.
+- **There are no instant results.** Every race is live for everyone. Solo quick races are a
+  stopgap until the database is wired in, then they're removed.
+- **This needs server state** (`packages/db`), plus a real `DATABASE_URL` (Neon) in
+  production, because entries must be shared across serverless instances.
+
+## 4c. Quick Pick & watch options (partly superseded by §4d: no instant results)
 
 - **Quick Pick:** one tap. The server picks the best-suited starter horse, using the
   form-guide rating at its preferred trip and ground, and rides it on its natural style. It

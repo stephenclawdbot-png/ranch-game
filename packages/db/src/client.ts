@@ -68,12 +68,26 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
   }
 
   const location = opts.pglite ?? defaultPgliteLocation();
-  const { PGlite } = await import("@electric-sql/pglite");
-  const { drizzle } = await import("drizzle-orm/pglite");
+  const { PGlite } = await nativeImport<typeof import("@electric-sql/pglite")>("@electric-sql/pglite");
+  const { drizzle } = await nativeImport<typeof import("drizzle-orm/pglite")>("drizzle-orm/pglite");
   const client = location === "memory" ? await PGlite.create() : await PGlite.create(location);
   const db = drizzle({ client, schema }) as unknown as Db;
   if (opts.migrate ?? true) await migrate(db);
   return { db, driver: "pglite", location, close: () => client.close() };
+}
+
+/**
+ * Imports a dependency of this package at runtime, outside any bundler. PGlite locates its
+ * WASM and data files relative to its own module URL, which breaks when a bundler (Next.js
+ * webpack) inlines it; and under pnpm the app itself cannot resolve this package's
+ * dependencies, so `serverExternalPackages` alone does not help. Resolution starts from this
+ * file, so it works in the monorepo (vitest, `next dev`, `next start`).
+ */
+async function nativeImport<T>(specifier: string): Promise<T> {
+  const { createRequire } = await import("node:module");
+  const { pathToFileURL } = await import("node:url");
+  const resolved = createRequire(import.meta.url).resolve(specifier).replace(/\.cjs$/, ".js");
+  return (await import(/* webpackIgnore: true */ /* @vite-ignore */ pathToFileURL(resolved).href)) as T;
 }
 
 // ---------------------------------------------------------------------------
