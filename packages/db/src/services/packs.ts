@@ -10,10 +10,12 @@
  * - the horse needs a free stall (stable row lock).
  */
 import { and, eq, sql } from "drizzle-orm";
-import { commitSeed, newSeed, seededUniform, utcWeekStart } from "../crypto";
+import { commitSeed, newSeed, utcWeekStart } from "../crypto";
 import { DomainError } from "../errors";
 import { foalCrop, packPity, packPulls } from "../schema";
-import { defaultHooks, defaultRollRarity, PACKS, RARITY_ORDER, RULES, seasonNumberAt, type GameHooks, type Rarity } from "../rules";
+import { PACKS, RULES, seasonNumberAt, type GameHooks, type Rarity } from "../rules";
+import { gc } from "../gameCore";
+import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { assertStallFree, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { spendCreditsTx } from "./ledger";
@@ -112,7 +114,6 @@ export interface PullResult {
   duplicate: boolean;
 }
 
-const rank = (r: Rarity) => RARITY_ORDER.indexOf(r);
 
 export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defaultHooks): Promise<PullResult> {
   const pack = PACKS[input.packType];
@@ -171,20 +172,15 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
 
     const p = pity!;
     const pullIndex = p.totalPulls + 1;
+    // The pull itself is game-core's (published odds, pity, foundation genome under the
+    // season ceiling). The account's pre-committed seed is game-core's server seed.
     const seed = p.nextSeed;
-    const u = seededUniform(seed, `${input.packType}:${pullIndex}`)();
-    let rarity = (hooks.rollRarity ?? defaultRollRarity)({ u, pack });
-    let pityApplied: "rare" | "epic" | null = null;
-    if (pack.pity) {
-      if (p.sinceEpic + 1 >= pack.pity.epic && rank(rarity) < rank("epic")) {
-        rarity = "epic";
-        pityApplied = "epic";
-      } else if (p.sinceRare + 1 >= pack.pity.rare && rank(rarity) < rank("rare")) {
-        rarity = "rare";
-        pityApplied = "rare";
-      }
-    }
-    const spec = hooks.packHorse({ seed, rarity, packType: input.packType });
+    const packType = input.packType as gc.PackType;
+    const { pull, pity: next } = gc.pullPack(packType, { pulls: p.totalPulls, sinceRare: p.sinceRare, sinceEpic: p.sinceEpic }, { serverSeed: seed, accountId: input.accountId, season });
+    if (pull.seedCommitment !== p.nextSeedCommitment) throw new Error("pack seed does not match its commitment");
+    const rarity = pull.rarity as Rarity;
+    const pityApplied = pull.pityTriggered === "none" ? null : pull.pityTriggered;
+    const spec = hooks.packHorse({ seed: pull.pullSeed, rarity, packType: input.packType, season, genome: pull.genome, sex: gc.pullSex(pull) });
     const horseId = await insertHorse(tx, {
       stableId: stable.id,
       spec,
@@ -198,8 +194,8 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
       .update(packPity)
       .set({
         totalPulls: pullIndex,
-        sinceRare: rank(rarity) >= rank("rare") ? 0 : p.sinceRare + 1,
-        sinceEpic: rank(rarity) >= rank("epic") ? 0 : p.sinceEpic + 1,
+        sinceRare: next.sinceRare,
+        sinceEpic: next.sinceEpic,
         nextSeed,
         nextSeedCommitment: commitSeed(nextSeed),
         updatedAt: input.now,

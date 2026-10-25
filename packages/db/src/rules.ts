@@ -5,64 +5,65 @@
  * The defaults here are deterministic placeholders so the database layer is usable and
  * testable on its own.
  */
+import * as gc from "@thoroughbred/game-core";
 import { seededUniform } from "./crypto";
 import type { HorseRow, RaceRow } from "./schema";
 
 export const RULES = {
   /** Career clock (§4a amendments): juvenile 0-6, prime 7-28, veteran 29-40, retire at 40. */
-  maxStarts: 40,
-  juvenileUntilStarts: 6,
-  primeUntilStarts: 28,
+  maxStarts: gc.CAREER_MAX_STARTS,
+  juvenileUntilStarts: gc.JUVENILE_MAX_STARTS,
+  primeUntilStarts: gc.PRIME_MAX_STARTS,
   /** Foal growth by counted care sessions: 5 to wean, +7 yearling, +7 racing age. */
-  careToWean: 5,
-  careToYearling: 12,
-  careToRacing: 19,
+  careToWean: gc.CARE_TO_WEAN,
+  careToYearling: gc.CARE_TO_YEARLING,
+  careToRacing: gc.CARE_TO_RACING,
   /** Breeding (§4a / §7). */
-  breedingLifetimeLimit: 4,
-  marePerSeason: 1,
-  stallionPerSeason: 4,
+  breedingLifetimeLimit: gc.BREEDINGS_LIFETIME,
+  marePerSeason: gc.MARE_PER_SEASON,
+  stallionPerSeason: gc.STALLION_PER_SEASON,
   /** Racing horses may breed from this many starts; racing-retired horses always may. */
-  breedingMinStarts: 25,
-  pregnancyMs: 24 * 60 * 60 * 1000,
-  breedingBaseFee: 250,
-  studPlatformBps: 1000,
+  breedingMinStarts: gc.BREED_FROM_STARTS,
+  pregnancyMs: gc.PREGNANCY_MS,
+  breedingBaseFee: gc.BREEDING_BASE_FEE,
+  studPlatformBps: gc.STUD_FEE_BURN_PERMILLE * 10,
   /** Racing. Hard cap of starts per horse per UTC day (by post time). */
-  startsPerDay: 3,
+  startsPerDay: gc.MAX_STARTS_PER_DAY,
   purseSplitBps: [6000, 2000, 1000, 500, 300, 200] as readonly number[],
   insurancePremium: 300,
   insurancePayout: 2_000,
   /** Market (§4b): 5% burned fee, price floor at 70% of appraisal, seller requirements. */
-  marketFeeBps: 500,
-  listingFloorBps: 7000,
+  marketFeeBps: gc.MARKET_FEE_PERMILLE * 10,
+  listingFloorBps: gc.LISTING_FLOOR_PERMILLE * 10,
   maxListingMs: 14 * 24 * 60 * 60 * 1000,
-  sellerMinAccountAgeMs: 7 * 24 * 60 * 60 * 1000,
-  sellerMinRaces: 20,
+  sellerMinAccountAgeMs: gc.SELLER_MIN_AGE_DAYS * 24 * 60 * 60 * 1000,
+  sellerMinRaces: gc.SELLER_MIN_RACES,
   /** Release to the Club pays a few credits. */
   releasePayout: 50,
   /** Accounts / stables. */
-  startingCredits: 5_000,
+  startingCredits: gc.STARTER_GRANT,
   starterHorses: 3,
-  defaultStallSlots: 6,
-  maxStallSlots: 24,
+  defaultStallSlots: gc.BASE_STALLS,
+  maxStallSlots: gc.MAX_STALLS,
   /** Foaling may use one nursery overflow slot beyond the stalls. */
   nurseryOverflowSlots: 1,
   /** Packs (§4b): free Paddock every 3rd play day; weekly purchase limits; global crop. */
-  freePaddockEveryPlayDays: 3,
-  paidPaddockPerWeek: 3,
-  premiumPerWeek: 10,
-  foalCropPerSeason: 10_000,
+  freePaddockEveryPlayDays: gc.FREE_PADDOCK_EVERY_PLAY_DAYS,
+  paidPaddockPerWeek: gc.PADDOCK_CREDIT_BUYS_PER_WEEK,
+  premiumPerWeek: gc.PREMIUM_PER_WEEK,
+  foalCropPerSeason: gc.SEASON_FOAL_CROP_CAP,
   /** Care brings an injury's recovery end forward by this much (vet nurse effect). */
   careHealMs: 12 * 60 * 60 * 1000,
   /** Stable entries (§4f). */
-  entryDailyAllowance: 10,
-  entryBankCap: 20,
-  entryMaxAllowance: 15,
-  entryMaxCap: 30,
-  entryRefillAmount: 5,
+  entryDailyAllowance: gc.ENTRY_DAILY_BASE,
+  entryBankCap: gc.ENTRY_BANK_BASE,
+  entryMaxAllowance: gc.ENTRY_DAILY_MAX,
+  entryMaxCap: gc.ENTRY_BANK_MAX,
+  entryRefillAmount: gc.ENTRY_REFILL_AMOUNT,
   /** Refill only while the bank is below this. */
-  entryRefillBelow: 5,
-  entryRefillPrice: 250,
-  timezoneChangeMs: 30 * 24 * 60 * 60 * 1000,
+  entryRefillBelow: gc.ENTRY_REFILL_BELOW,
+  entryRefillPrice: gc.ENTRY_REFILL_COST,
+  timezoneChangeMs: gc.TZ_CHANGE_MIN_DAYS * 24 * 60 * 60 * 1000,
   /** Live card (§4d): a race every 3 minutes; entries close 60 s before the off. */
   slotMs: 3 * 60 * 1000,
   entriesCloseBeforePostMs: 60 * 1000,
@@ -87,13 +88,13 @@ export interface PackDefinition {
   pity: { rare: number; epic: number } | null;
 }
 
+const oddsOf = (t: gc.PackType) => Object.fromEntries(Object.entries(gc.PACK_ODDS[t]).map(([r, v]) => [r, v / 10_000])) as PackDefinition["odds"];
+
+/** Published odds and pity come from game-core (PACK_ODDS / PACK_PITY); the pull itself is gc.pullPack. */
 export const PACKS: Record<string, PackDefinition> = {
-  paddock: { price: 1_200, odds: { common: 0.75, uncommon: 0.25 }, pity: null },
-  premium: {
-    price: 2_500,
-    odds: { common: 0.5, uncommon: 0.3, rare: 0.15, epic: 0.045, legendary: 0.005 },
-    pity: { rare: 10, epic: 50 },
-  },
+  paddock: { price: gc.PADDOCK_PACK_PRICE, odds: oddsOf("paddock"), pity: null },
+  /** Premium is mocked in Phase 1 (credits). */
+  premium: { price: 2_500, odds: oddsOf("premium"), pity: { rare: 10, epic: 50 } },
 };
 
 export type Stage = "foal" | "weanling" | "yearling" | "juvenile" | "prime" | "veteran";
@@ -146,17 +147,15 @@ export interface RaceEligibilityInput {
 
 export interface GameHooks {
   /** A starter horse for a brand-new stable (deterministic from the seed). */
-  starterHorse(input: { seed: string; index: number }): HorseSpec;
-  /** A pack horse of the given rarity (under the genetic ceiling). */
-  packHorse(input: { seed: string; rarity: Rarity; packType: string }): HorseSpec;
-  /** Inheritance: the foal of `sire` x `dam` from the committed seed. */
-  breedFoal(input: { seed: string; sire: HorseRow; dam: HorseRow; name?: string }): HorseSpec;
+  starterHorse(input: { seed: string; index: number; season?: number }): HorseSpec;
+  /** A pack horse (a foal) of the given rarity; `genome` when game-core already minted it. */
+  packHorse(input: { seed: string; rarity: Rarity; packType: string; season?: number; genome?: unknown; sex?: "colt" | "filly" }): HorseSpec;
+  /** Inheritance: the foal of `sire` x `dam` from the committed seed (coi in permille). */
+  breedFoal(input: { seed: string; sire: HorseRow; dam: HorseRow; name?: string; coi?: number; season?: number }): HorseSpec;
   /** Extra race eligibility (class, rating band, conditions). Return a reason to refuse, or null. */
   raceEligibility?(input: RaceEligibilityInput): string | null;
-  /** Rarity roll from a uniform in [0,1) and the pack's published odds. */
-  rollRarity?(input: { u: number; pack: PackDefinition }): Rarity;
   /** A house (Club AI) horse for a Live field, deterministic from the race seed. */
-  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number }): HorseSpec;
+  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number; season?: number }): HorseSpec;
   /** Appraised market value in credits (listing floor = 70% of it). */
   appraise?(horse: HorseRow): number;
 }
@@ -185,8 +184,8 @@ function placeholderSpec(seed: string, label: string, ceiling: number, careSessi
 
 const RARITY_CEILING: Record<Rarity, number> = { common: 520, uncommon: 560, rare: 600, epic: 640, legendary: 680 };
 
-/** Deterministic placeholder hooks. Replace with game-core in the web app. */
-export const defaultHooks: GameHooks = {
+/** Placeholder hooks with no genetics (tests of pure persistence). Production uses gameCoreHooks. */
+export const placeholderHooks: GameHooks = {
   starterHorse: ({ seed, index }) => placeholderSpec(seed, `starter:${index}`, 520, RULES.careToRacing),
   packHorse: ({ seed, rarity }) => placeholderSpec(seed, `pack:${rarity}`, RARITY_CEILING[rarity], 0),
   breedFoal: ({ seed, sire, dam, name }) => {
@@ -195,15 +194,6 @@ export const defaultHooks: GameHooks = {
   },
 };
 
-export function defaultRollRarity({ u, pack }: { u: number; pack: PackDefinition }): Rarity {
-  let acc = 0;
-  for (const r of RARITY_ORDER) {
-    acc += pack.odds[r] ?? 0;
-    if (u < acc) return r;
-  }
-  // Floating-point tail (u just below 1): the last tier offered.
-  return [...RARITY_ORDER].reverse().find((r) => (pack.odds[r] ?? 0) > 0) ?? "common";
-}
 
 /** Fallback appraisal: rating, career stage and remaining breedings. game-core replaces it. */
 export function defaultAppraise(h: HorseRow): number {

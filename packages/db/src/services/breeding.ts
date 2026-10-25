@@ -11,57 +11,59 @@
  */
 import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
-import { DomainError } from "../errors";
+import { DomainError, type DomainErrorCode } from "../errors";
 import { breedingEvents, horses, lineageEdges, pregnancies, type HorseRow, type PregnancyRow } from "../schema";
-import { bps, defaultHooks, RULES, seasonNumberAt, type GameHooks } from "../rules";
+import { RULES, seasonNumberAt, type GameHooks } from "../rules";
+import { gc, toHorseState } from "../gameCore";
+import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
 import { playerLedgerAccountId, post, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
 
-/** Max pedigree depth stored in the closure table. */
-export const LINEAGE_MAX_DEPTH = 8;
+/** Max pedigree depth stored in the closure table (game-core COI depth). */
+export const LINEAGE_MAX_DEPTH = gc.COI_MAX_DEPTH;
 
-export function canBreed(h: HorseRow): string | null {
-  if (h.careerStatus === "pasture") return "on the Legacy Farm";
-  if (h.breedingCount >= RULES.breedingLifetimeLimit) return "all lifetime breedings used";
-  if (h.careerStatus === "racing" && h.starts < RULES.breedingMinStarts) {
-    return `needs ${RULES.breedingMinStarts} starts or racing retirement`;
-  }
-  return null;
-}
-
-/** Parent/child or full siblings. */
-export function areCloseKin(a: HorseRow, b: HorseRow): boolean {
-  if (a.sireId === b.id || a.damId === b.id || b.sireId === a.id || b.damId === a.id) return true;
-  return a.sireId !== null && a.damId !== null && a.sireId === b.sireId && a.damId === b.damId;
-}
-
-/**
- * Wright's coefficient of inbreeding of a prospective foal, estimated from the closure
- * table: sum over common ancestors A of paths_s * paths_d * (1/2)^(d_s + d_d + 1).
- * Returned in basis points. (game-core has the exact path-based version for previews.)
- */
-export async function estimateCoiBp(ex: Executor, sireId: string, damId: string): Promise<number> {
+/** game-core pedigree index for the horses and every stored ancestor of them. */
+export async function pedigreeIndex(ex: Executor, ids: string[]): Promise<gc.PedigreeIndex> {
+  const anc = await ex.selectDistinct({ id: lineageEdges.ancestorId }).from(lineageEdges).where(inArray(lineageEdges.descendantId, ids));
+  const all = [...new Set([...ids, ...anc.map((a) => a.id)])];
   const rows = await ex
-    .select({ a: lineageEdges.ancestorId, d: lineageEdges.descendantId, depth: lineageEdges.depth, paths: lineageEdges.paths })
-    .from(lineageEdges)
-    .where(inArray(lineageEdges.descendantId, [sireId, damId]));
-  const side = (id: string) => {
-    const m = new Map<string, { depth: number; paths: number }[]>([[id, [{ depth: 0, paths: 1 }]]]);
-    for (const r of rows) if (r.d === id) m.set(r.a, [...(m.get(r.a) ?? []), { depth: r.depth, paths: r.paths }]);
-    return m;
-  };
-  const s = side(sireId);
-  const d = side(damId);
-  let coi = 0;
-  for (const [anc, sPaths] of s) {
-    const dPaths = d.get(anc);
-    if (!dPaths) continue;
-    for (const x of sPaths) for (const y of dPaths) coi += x.paths * y.paths * Math.pow(0.5, x.depth + y.depth + 1);
-  }
-  return Math.round(Math.min(1, coi) * 10_000);
+    .select({ id: horses.id, sireId: horses.sireId, damId: horses.damId, generation: horses.generation })
+    .from(horses)
+    .where(inArray(horses.id, all));
+  return Object.fromEntries(rows.map((r) => [r.id, { sireId: r.sireId, damId: r.damId, generation: r.generation }]));
 }
+
+/** Coefficient of inbreeding of a prospective foal (game-core coiOf), in basis points. */
+export async function estimateCoiBp(ex: Executor, sireId: string, damId: string): Promise<number> {
+  return gc.coiOf(sireId, damId, await pedigreeIndex(ex, [sireId, damId])) * 10;
+}
+
+async function coversBySeason(ex: Executor, horseId: string, role: "sire" | "dam") {
+  const col = role === "sire" ? breedingEvents.sireId : breedingEvents.damId;
+  const rows = await ex
+    .select({ season: breedingEvents.seasonNumber, count: sql<number>`count(*)::int` })
+    .from(breedingEvents)
+    .where(eq(col, horseId))
+    .groupBy(breedingEvents.seasonNumber);
+  return rows.map((r) => ({ season: r.season, count: Number(r.count) }));
+}
+
+const BREED_BLOCK_CODES: Record<gc.BreedBlock, DomainErrorCode> = {
+  self: "SELF_BREEDING",
+  parent_child: "KIN_BREEDING",
+  full_siblings: "KIN_BREEDING",
+  sire_not_male: "BREEDING_NOT_ELIGIBLE",
+  dam_not_female: "BREEDING_NOT_ELIGIBLE",
+  gelding: "BREEDING_NOT_ELIGIBLE",
+  not_racing_age: "BREEDING_NOT_ELIGIBLE",
+  not_breeding_eligible: "BREEDING_NOT_ELIGIBLE",
+  pastured: "BREEDING_NOT_ELIGIBLE",
+  lifetime_limit: "BREEDING_LIMIT",
+  season_limit: "BREEDING_SEASON_LIMIT",
+  dam_in_foal: "HORSE_IN_FOAL",
+};
 
 export interface BreedInput {
   accountId: string;
@@ -106,54 +108,42 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
     if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "you must own the mare");
     const ownSire = sire.ownerStableId === stable.id;
     if (!ownSire && sire.studFee === null) throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
-    if (sire.sex !== "male" || sire.gelded) throw new DomainError("BREEDING_NOT_ELIGIBLE", "sire must be an entire male");
-    if (dam.sex !== "female") throw new DomainError("BREEDING_NOT_ELIGIBLE", "dam must be a mare");
-    for (const h of [sire, dam]) {
-      if (h.breedingCount >= RULES.breedingLifetimeLimit) throw new DomainError("BREEDING_LIMIT", `${h.name} has used all ${RULES.breedingLifetimeLimit} breedings`);
-      const why = canBreed(h);
-      if (why) throw new DomainError("BREEDING_NOT_ELIGIBLE", `${h.name}: ${why}`);
-    }
     if (dam.lockKind) throw new DomainError("HORSE_LOCKED", "the mare is entered in a race or listed");
     if (sire.lockKind === "market") throw new DomainError("HORSE_LOCKED", "the stallion is listed for sale");
-    if (areCloseKin(sire, dam)) throw new DomainError("KIN_BREEDING", "parent/child and full siblings cannot breed");
-    const [carrying] = await tx.select({ id: pregnancies.id }).from(pregnancies).where(and(eq(pregnancies.damId, dam.id), eq(pregnancies.status, "carrying")));
-    if (carrying) throw new DomainError("HORSE_IN_FOAL", "the mare is already in foal");
 
+    // The rules (kinship, sexes, racing age, 25 starts or retired, Legacy Farm, lifetime 4,
+    // mare 1 / stallion 4 per season, mare in foal) are game-core's pairingBlock over states
+    // built from the locked rows and the breeding tables.
     const season = seasonNumberAt(input.now);
-    const [mareThisSeason] = await tx
-      .select({ n: sql<number>`count(*)::int` })
-      .from(breedingEvents)
-      .where(and(eq(breedingEvents.damId, dam.id), eq(breedingEvents.seasonNumber, season)));
-    if (Number(mareThisSeason!.n) >= RULES.marePerSeason) throw new DomainError("BREEDING_SEASON_LIMIT", "a mare can be covered once per season");
-    const [sireThisSeason] = await tx
-      .select({ n: sql<number>`count(*)::int` })
-      .from(breedingEvents)
-      .where(and(eq(breedingEvents.sireId, sire.id), eq(breedingEvents.seasonNumber, season)));
-    if (Number(sireThisSeason!.n) >= RULES.stallionPerSeason) throw new DomainError("BREEDING_SEASON_LIMIT", "the stallion's book is full this season");
+    const [carrying] = await tx.select().from(pregnancies).where(and(eq(pregnancies.damId, dam.id), eq(pregnancies.status, "carrying")));
+    const sireState = toHorseState(sire, { bySeason: await coversBySeason(tx, sire.id, "sire") });
+    const damState = toHorseState(dam, { bySeason: await coversBySeason(tx, dam.id, "dam"), pregnancy: carrying ?? null });
+    const ped = await pedigreeIndex(tx, [sire.id, dam.id]);
+    const block = gc.pairingBlock(sireState, damState, ped, season);
+    if (block) throw new DomainError(BREED_BLOCK_CODES[block], `breeding blocked: ${block}`, { block });
 
     // The foal needs a stall, or the single nursery overflow slot.
     await assertStallFree(tx, lockedStable, { allowOverflow: true });
 
-    // Fees: base fee burned; stud fee to the sire's owner minus a 10% platform burn.
-    const baseFee = input.baseFee ?? RULES.breedingBaseFee;
-    const studFee = ownSire ? 0 : (sire.studFee ?? 0);
+    // Fees (game-core breedingFees): base fee burned; stud fee to the sire's owner minus the 10% burn.
+    const fees = gc.breedingFees(sire.studFee ?? 0, ownSire);
+    const baseFee = input.baseFee ?? fees.baseFee;
+    const burned = fees.burned - fees.baseFee + baseFee;
+    const total = baseFee + fees.studFee;
     const postings: Posting[] = [];
-    const payer = await playerLedgerAccountId(tx, input.accountId);
-    const burn = await systemAccountId(tx, "burn");
-    const total = baseFee + studFee;
     let ledgerTransactionId: string | null = null;
     if (total > 0) {
-      postings.push({ ledgerAccountId: payer, amount: -total });
-      const platform = bps(studFee, RULES.studPlatformBps);
-      if (baseFee + platform > 0) postings.push({ ledgerAccountId: burn, amount: baseFee + platform });
-      if (studFee - platform > 0) {
+      postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -total });
+      if (burned > 0) postings.push({ ledgerAccountId: await systemAccountId(tx, "burn"), amount: burned });
+      if (fees.toStallionOwner > 0) {
         const sireOwner = await accountIdOfStable(tx, sire.ownerStableId!);
-        postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, sireOwner), amount: studFee - platform });
+        postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, sireOwner), amount: fees.toStallionOwner });
       }
       ledgerTransactionId = (await post(tx, { idempotencyKey: `breed:${input.idempotencyKey}`, kind: "breeding_fee", postings })).transactionId;
     }
-
-    const coiBp = await estimateCoiBp(tx, sire.id, dam.id);
+    const studFee = fees.studFee;
+    const coi = gc.coiOf(sire.id, dam.id, ped);
+    const coiBp = coi * 10;
     const [event] = await tx
       .insert(breedingEvents)
       .values({
@@ -176,7 +166,7 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
     const dueAt = new Date(input.now.getTime() + RULES.pregnancyMs);
     const [preg] = await tx
       .insert(pregnancies)
-      .values({ breedingEventId: event!.id, sireId: sire.id, damId: dam.id, conceivedAt: input.now, dueAt, seed, seedCommitment: commitSeed(seed) })
+      .values({ breedingEventId: event!.id, sireId: sire.id, damId: dam.id, conceivedAt: input.now, dueAt, seed, seedCommitment: commitSeed(seed), coi })
       .returning();
     await audit(tx, {
       actor: input.accountId,
@@ -244,7 +234,7 @@ export async function foalTx(
   const parents = await tx.select().from(horses).where(inArray(horses.id, [preg.sireId, preg.damId])).orderBy(asc(horses.id)).for("update");
   const sire = parents.find((h) => h.id === preg.sireId)!;
   const dam = parents.find((h) => h.id === preg.damId)!;
-  const spec = hooks.breedFoal({ seed: preg.seed, sire, dam, name: input.name });
+  const spec = hooks.breedFoal({ seed: preg.seed, sire, dam, name: input.name, coi: preg.coi, season: seasonNumberAt(input.now) });
   const parentBound = sire.bound || dam.bound;
   const foalId = await insertHorse(tx, {
     stableId: dam.ownerStableId,

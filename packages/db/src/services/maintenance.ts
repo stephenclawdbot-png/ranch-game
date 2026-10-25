@@ -8,7 +8,8 @@
  */
 import { and, isNotNull, lte } from "drizzle-orm";
 import { horses } from "../schema";
-import { defaultHooks, type GameHooks } from "../rules";
+import {type GameHooks } from "../rules";
+import { defaultHooks } from "../hooks";
 import type { Db } from "../types";
 import { foal, listDuePregnancies } from "./breeding";
 import { expireListings } from "./market";

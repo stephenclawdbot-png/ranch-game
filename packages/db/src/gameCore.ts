@@ -134,7 +134,7 @@ export function specFromGenome(input: {
   sex: "colt" | "filly";
   careSessions: number;
   season: number;
-  silks?: gc.HorseState extends never ? never : { primary: string; secondary: string; pattern: string; cap: string };
+  silks?: { primary: string; secondary: string; pattern: string; cap: string };
 }): HorseSpec {
   const state = gc.createHorseState({
     id: "spec",

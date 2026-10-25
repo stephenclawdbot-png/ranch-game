@@ -13,7 +13,8 @@
 import { and, eq, lte, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { accounts, fraudEvents, horses, marketListings, raceEntries, races, trades, type ListingRow } from "../schema";
-import { bps, defaultAppraise, defaultHooks, RULES, type GameHooks } from "../rules";
+import {bps, defaultAppraise, RULES, type GameHooks } from "../rules";
+import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStableOf } from "./accounts";
 import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
