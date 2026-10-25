@@ -384,3 +384,37 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 | `packages/game-core` | Pure deterministic rules: genome, inheritance, coat genetics, COI, phenotype and maturity curves, care and growth, training, ratings and handicaps, eligibility, breeding rules and preview, packs (odds, pity, seeded pulls), seasons and calendar, Daily Cup, leagues, achievements. Fully unit- and property-tested. |
 | `packages/db` | Drizzle schema and migrations (Postgres): accounts, stables, horses, genomes, lineage, care log, training plans, races and entries, ratings, ledger (double-entry), market, packs, seasons, leagues, Hall of Fame, audit. PGlite for dev and tests; Neon in production. |
 | `apps/web` | Server actions and API routes, idempotent and authoritative (the client never sends outcomes). Screens: Stable board, Horse, Care, Training planner, Breeding barn and preview, Nursery, Market, Packs, Daily Cup, League and Season, Hall of Fame. |
+
+## 12. Implementation notes / deviations (`packages/game-core`)
+
+Details, numbers and the Monte Carlo results are in `packages/game-core/README.md`.
+
+- **A whole-horse "class" (vigour) locus.** Each stat has its two alleles as designed. On top
+  of that, one extra diploid locus (alleles −150..150) adds to every stat. Without it, the
+  population model stalled at about 760 (in line with `docs/balance.md`). With it, the first
+  A-grade horse appears at about generation 6.
+- **The higher allele is partially dominant:** potential = low + 0.55 × (high − low), which is
+  the mean plus 0.05 × the gap. Minted horses carry hidden high alleles, and that is where the
+  breeding game's upside comes from.
+- **Launch ceiling, per `docs/balance.md`:** mean potential ≤ 600 and no stat above 700. Both
+  rise by 10 per competition season, to +80 at most. The horse grade and rarity are based on
+  the plain mean of the six stats, which keeps breeding balanced rather than all about speed.
+  Speed also gets less hidden-allele headroom, and speed work costs more to train.
+- **Training realisation.** It is stored and shown as 60% → 100%, as designed. It moves the
+  top 20% of a stat (an untrained horse shows 92%). That keeps starters on the stat scale the
+  engine and balance work are calibrated for: about 450–550 current at racing age.
+- **Career clock.** Elapsed time alone only heals injuries, recovers fatigue (worked out when
+  the value is read, never written) and completes pregnancies. Training sessions run only
+  when the player triggers them. There is no upkeep.
+- **Pensioner schedule:** superseded by §4a. There is no forced end of life. Owners pension a
+  horse to the Legacy Farm, and spent studs move there automatically.
+- **Daily Cup:** a time trial that isn't a career start and isn't rated. It leaves the horse
+  untouched: no fatigue and no injury.
+- **Trials** (for yearlings and juveniles) don't count as starts and carry no injury risk.
+- **Handicap weights** go into the race snapshot as a speed and burst stat penalty (5 and 2
+  points per lb). The ride hook (±5%) works the same way. Both should move into the engine
+  later; see the contract proposals in the README.
+- **Pity counters.** `sinceRare` is level 1 and `sinceEpic` is level 2. The Paddock pack (only
+  Common and Uncommon) has its own pity: Uncommon or better within 5.
+- **The seasonal foal-crop cap** applies to pack foals only. Bred foals are limited by the
+  breeding rules and stalls instead.

@@ -132,7 +132,17 @@ export function foalOutlook(sire: HorseState, dam: HorseState, coi: number): { e
   return { expected: mean, sd: Math.sqrt(variance) };
 }
 
+/** Run the whole simulation synchronously. */
 export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
+  const it = populationSteps(cfg);
+  for (;;) {
+    const r = it.next();
+    if (r.done) return r.value;
+  }
+}
+
+/** The simulation as a generator that yields after every simulated day (lets a host stay responsive). */
+export function* populationSteps(cfg: SimConfig = DEFAULT_SIM): Generator<number, SimReport> {
   const rng = new Rng(cfg.seed);
   const epochMs = 1_800_000_000_000 - (1_800_000_000_000 % MS_PER_DAY);
   const clock = { epochMs };
@@ -390,6 +400,7 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
         meanCoi: bred.length ? Math.round(bred.reduce((a, h) => a + h.genome.coi, 0) / bred.length) : 0,
       });
     }
+    yield day;
   }
   return { config: cfg, rows, firsts, bestByGeneration };
 }

@@ -4,7 +4,7 @@
  * 10-season model whose results are recorded in the README.
  */
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SIM, formatReport, runPopulationSim } from "./population";
+import { DEFAULT_SIM, formatReport, populationSteps, type SimReport } from "./population";
 import { MAX_STALLS } from "../economy";
 
 const FULL = process.env.SIM_REPORT === "1";
@@ -12,9 +12,16 @@ const FULL = process.env.SIM_REPORT === "1";
 describe("population Monte Carlo", () => {
   it(
     FULL ? "full report (400 players, 10 seasons)" : "reduced run: bounded population, rising top end",
-    () => {
+    async () => {
       const cfg = FULL ? DEFAULT_SIM : { ...DEFAULT_SIM, players: 120, seasons: 5 };
-      const r = runPopulationSim(cfg);
+      // Drive the generator, yielding to the event loop each simulated day so the test worker stays responsive.
+      const steps = populationSteps(cfg);
+      let r: SimReport | undefined;
+      while (!r) {
+        const n = steps.next();
+        if (n.done) r = n.value;
+        else await new Promise((res) => setTimeout(res, 0));
+      }
       console.log(formatReport(r));
       expect(r.rows.length).toBe(cfg.seasons);
       // Stall cap + one nursery overflow bounds every stable.

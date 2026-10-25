@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { commitSeed } from "../crypto";
 import { isDomainError } from "../errors";
-import { RULES, seasonNumberAt, type GameHooks } from "../rules";
+import { PACKS, RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { stables } from "../schema";
 import { occupancy, recordPlayDay, stableOf, upgradeStalls } from "../services/accounts";
 import { breed, foal } from "../services/breeding";
@@ -135,7 +135,7 @@ describe("packs", () => {
       pullPack(h.db, { accountId: p.accountId, packType: "paddock", idempotencyKey: key1, now: T0 }),
     ]);
     expect(a.horseId).toBe(b.horseId);
-    expect(await getBalance(h.db, p.accountId)).toBe(10_000 - 500);
+    expect(await getBalance(h.db, p.accountId)).toBe(10_000 - PACKS.paddock!.price);
     expect(await count(h.db, "horses", `owner_stable_id = '${p.stableId}'`)).toBe(1);
   });
 

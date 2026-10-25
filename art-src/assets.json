@@ -342,6 +342,21 @@
   "variants": []
  },
  {
+  "id": "race.grandstand-normal",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "race/grandstand-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of grandstand.png | source: /generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
   "id": "race.grandstand",
   "kind": "building",
   "depthBand": "mid",
@@ -2045,7 +2060,7 @@
   "depthBand": "mid",
   "src": "scenes/barn-interior.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "generate-image-v2: <407 chars>",
+  "sourcePrompt": "generate-image-v2 688x288 (HD v2): interior of a cosy wooden racehorse barn: a long aisle of oak stalls with brass name plates, a chestnut horse looking out, saddles and bridles hanging on pegs, hay on the floor, warm lantern light and golden sunbeams through high windows with dust motes, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -2058,7 +2073,7 @@
   "depthBand": "mid",
   "src": "scenes/grandstand.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "generate-image-v2: <439 chars>",
+  "sourcePrompt": "generate-image-v2 688x288 (HD v2): a racecourse finish line at golden hour seen from the track: the red and white winning post in front of a grand Victorian grandstand with green and cream striped roofs, packed cheering crowd, bunting and flags, white running rails, lush green turf track in the foreground, warm low sun, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -2071,7 +2086,7 @@
   "depthBand": "mid",
   "src": "scenes/paddock.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "generate-image-v2: <446 chars>",
+  "sourcePrompt": "generate-image-v2 688x288 (HD v2): a racecourse parade paddock at golden hour: an oval of manicured grass with a white rail, thoroughbred racehorses with jockeys in colourful silks being led around by grooms, spectators along the rail, mature oak trees and a Victorian weighing room building behind, bunting, warm late sunlight, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -2084,7 +2099,7 @@
   "depthBand": "mid",
   "src": "scenes/stable-yard.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "generate-image-v2: <434 chars>",
+  "sourcePrompt": "generate-image-v2 688x288 (HD v2): an English racehorse stable yard at golden hour: a courtyard of red-brick stable blocks with green half-doors, a clock tower over the arch, horses looking out over the stable doors, hay bales, a water trough, cobbled yard, hanging flower baskets, long warm shadows, honey sunlight, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
   "anchor": {
    "x": 0.5,
    "y": 0.5

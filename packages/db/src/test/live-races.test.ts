@@ -210,9 +210,11 @@ describe("stable entry bank", () => {
     expect((await bank(p.accountId, next)).balance).toBe(14);
     expect((await bank(p.accountId, at(2 * DAY))).balance).toBe(20); // capped, not 24
     expect((await bank(p.accountId, at(3 * DAY))).balance).toBe(20);
-    // Days away accrue nothing extra: one grant on return.
+    // Days away are not lost (allowance x days), but never beyond the cap.
     await h.db.update(stables).set({ entryBalance: 0 }).where(eq(stables.id, p.stableId));
-    expect((await bank(p.accountId, at(30 * DAY))).balance).toBe(10);
+    expect((await bank(p.accountId, at(4 * DAY))).balance).toBe(10);
+    await h.db.update(stables).set({ entryBalance: 3 }).where(eq(stables.id, p.stableId));
+    expect((await bank(p.accountId, at(30 * DAY))).balance).toBe(20);
     expect(await count(h.db, "entry_movements", `stable_id = '${p.stableId}' and kind = 'daily' and local_date = '${localDate("UTC", next)}'`)).toBe(1);
   });
 

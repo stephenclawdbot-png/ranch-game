@@ -14,7 +14,7 @@ with nearest filtering at integer scale.
 | `race/horse-idle.png` + `horse-idle-normal.png` | 14 frames × **256×192** | Standing at the start/parade (breathing, ear/tail flicks), ping-pong baked so it loops, ~6 fps. Anchor nose x = 0.98, ground y = 1.0. **Uses the same `palette.json` keys** as the gallop. |
 | `race/horse-gallop-lo.png` + `-lo-normal.png` + `palette-lo.json` | 12 × 118×72 | v1 low-res fallback (same scheme, smaller ramps). |
 
-- **Anchor** (HD): nose tip x = 0.978, ground y = 0.993 (hooves touch row 144 of 146). Frames are
+- **Anchor** (HD): nose tip x = 0.974, ground y = 0.993 (hooves touch row 144 of 146). Frames are
   aligned (x stabilised on the silks, natural vertical bob kept, common ground line).
 - **palette.json roles** (HD): `coat` (9), `mane` (5, mane + tail), `points` (4, lower legs: black on
   bay/buckskin/dark bay, coat-coloured otherwise), `silksPrimary` (5, magenta), `silksSecondary`

@@ -61,7 +61,7 @@ export const RULES = {
   entryRefillAmount: 5,
   /** Refill only while the bank is below this. */
   entryRefillBelow: 5,
-  entryRefillPrice: 300,
+  entryRefillPrice: 250,
   timezoneChangeMs: 30 * 24 * 60 * 60 * 1000,
   /** Live card (§4d): a race every 3 minutes; entries close 60 s before the off. */
   slotMs: 3 * 60 * 1000,
@@ -88,7 +88,7 @@ export interface PackDefinition {
 }
 
 export const PACKS: Record<string, PackDefinition> = {
-  paddock: { price: 500, odds: { common: 0.75, uncommon: 0.25 }, pity: null },
+  paddock: { price: 1_200, odds: { common: 0.75, uncommon: 0.25 }, pity: null },
   premium: {
     price: 2_500,
     odds: { common: 0.5, uncommon: 0.3, rare: 0.15, epic: 0.045, legendary: 0.005 },

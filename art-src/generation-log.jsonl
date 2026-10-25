@@ -195,3 +195,7 @@
 {"at":"2026-10-25T18:10:08.401Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n9","secs":83,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:10:36.816Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n10","secs":28,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:11:16.503Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n11","secs":40,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:12:22.517Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n12","secs":66,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:13:01.164Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n13","secs":39,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:13:09.479Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-grandstand-normal/n0","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T18:13:17.956Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-grandstand-normal/n1","secs":8,"usage":{"type":"generations","generations":0.1},"images":1}

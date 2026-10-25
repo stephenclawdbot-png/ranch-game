@@ -3,8 +3,9 @@
  *
  * - +allowance (10) at the player's LOCAL midnight, granted lazily on the first activity
  *   of each local date. The grant row is unique per (stable, local date), so concurrent
- *   requests or instances can never grant twice; there is no cron and no backfill for days
- *   away (no tick regeneration, no penalty).
+ *   requests or instances can never grant twice; there is no cron. Days away still count
+ *   (allowance x days, up to the cap), so being away costs nothing (same rule as
+ *   game-core `grantFor`).
  * - Unused entries roll over up to the bank cap (20).
  * - Live race 1, feature/graded 2, Story and Daily Cup 0; consumed at entry, refunded only
  *   when a race is abandoned (unique per race + horse), forfeited on scratch.
@@ -75,12 +76,25 @@ async function move(
  */
 export async function ensureDailyEntries(ex: Executor, stable: StableRow, now: Date): Promise<{ granted: number; localDate: string }> {
   const day = localDate(await timezoneOf(ex, stable.accountId), now);
-  const target = Math.min(stable.entryCap, stable.entryBalance + stable.entryAllowance);
-  const delta = Math.max(0, target - stable.entryBalance);
+  const [last] = await ex
+    .select({ d: entryMovements.localDate })
+    .from(entryMovements)
+    .where(and(eq(entryMovements.stableId, stable.id), eq(entryMovements.kind, "daily")))
+    .orderBy(desc(entryMovements.localDate))
+    .limit(1);
+  // Days since the last granted local date (missed days still count, up to the cap: no
+  // penalty for being away). A timezone change can move the date backwards: no grant then.
+  const days = last?.d ? daysBetween(last.d, day) : 1;
+  if (days <= 0) return { granted: 0, localDate: day };
+  const target = Math.max(stable.entryBalance, Math.min(stable.entryCap, stable.entryBalance + days * stable.entryAllowance));
   const before = stable.entryBalance;
   // Even a zero-delta grant is recorded, so the date counts as granted.
-  const after = await move(ex, stable, { kind: "daily", delta, localDate: day });
+  const after = await move(ex, stable, { kind: "daily", delta: target - before, localDate: day });
   return { granted: after === null ? 0 : after - before, localDate: day };
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 /** Consumes `cost` entries for a race entry (caller holds the stable lock). */
