@@ -1,0 +1,82 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<1968 chars>",
+   "format": "png"
+  },
+  "frames": 1,
+  "mode": "lite",
+  "kind": "object"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ce1e86a8-a0b8-4e65-84f0-ca89d1b7a839",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "ce1e86a8-a0b8-4e65-84f0-ca89d1b7a839",
+  "status": "completed",
+  "created_at": "2026-10-25T16:38:44.130067+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "object",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 41,
+    "base64": "<3504 chars>",
+    "height": 32
+   },
+   "action": "Shaping the picture",
+   "frames": 1,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "7a0c2479-cb81-40f9-905f-1dce04c854ca",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:38:44.181319+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/bb-bush-normal-0.png"
+ ]
+}

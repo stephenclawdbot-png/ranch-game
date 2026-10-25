@@ -19,21 +19,31 @@ in vec3 position;
 in vec2 uv;
 in vec4 aInfo;   // x part index, y far side (0/1), z leg index (-1 none, 0 LF, 1 RF, 2 LH, 3 RH), w layer
 in float aSolid; // > 0: code-drawn part with this solid role (no texture)
+in vec2 aVariant; // x slot (0 none, 1 head, 2 mane, 3 tail, 4 build), y variant index
+in vec2 aSrc;     // rest-pose source-pixel position (continuous across parts, for patterns)
 uniform vec4 uBones[${MAX_PARTS * 2}];
 uniform vec2 uCanvas;
 uniform vec2 uOffset;
+uniform vec4 uVariants;   // selected variant per slot (head, mane, tail, build)
 out vec2 vUv;
 out vec2 vRot;
 out vec4 vInfo;
 out float vSolid;
+out vec2 vSrc;
 void main() {
+  int slot = int(aVariant.x + 0.5);
+  if (slot > 0) {
+    float sel = slot == 1 ? uVariants.x : slot == 2 ? uVariants.y : slot == 3 ? uVariants.z : uVariants.w;
+    if (abs(sel - aVariant.y) > 0.5) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+  }
+  vSrc = aSrc;
   int i = int(aInfo.x + 0.5);
   vec4 m = uBones[i * 2];
   vec4 t = uBones[i * 2 + 1];
   vec2 p = vec2(m.x * position.x + m.y * position.y, m.z * position.x + m.w * position.y) + t.xy + uOffset;
   gl_Position = vec4(p.x / uCanvas.x * 2.0 - 1.0, 1.0 - p.y / uCanvas.y * 2.0, 0.0, 1.0);
   vUv = uv;
-  vRot = vec2(m.w, -m.y);
+  vRot = normalize(vec2(m.w, -m.y) + vec2(1e-6, 0.0));
   vInfo = aInfo;
   vSolid = aSolid;
 }
@@ -56,6 +66,8 @@ uniform float uFarShade;
 uniform vec4 uLook;          // x face marking, y coat texture, z silks pattern, w far-limb darkening
 uniform vec4 uLegMarks;      // marking per leg index (0 none 1 coronet 2 sock 3 stocking)
 uniform vec4 uSilksFrame;    // origin.xy, axis.xy (native atlas px)
+uniform vec4 uSeed;          // x per-horse seed (0..1), y sabino amount, z marking jitter
+in vec2 vSrc;
 in vec2 vUv;
 in vec2 vRot;
 in vec4 vInfo;
@@ -75,6 +87,12 @@ float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
+}
+
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
 bool silkHit(int pattern, vec2 texel) {
@@ -125,12 +143,15 @@ void main() {
   float c = vRot.x, s = vRot.y;
   n.xy = vec2(c * n.x + s * n.y, -s * n.x + c * n.y);
 
-  // --- markings -----------------------------------------------------------------------------
+  // --- markings (procedural pixel masks from the per-horse seed) ------------------------------
   int zone = int(aux.r * 255.0 / 85.0 + 0.5);
+  vec2 sp = floor(vSrc);                       // source pixel (rest pose)
+  vec2 seedOff = vec2(uSeed.x * 97.0, uSeed.x * 61.0);
+  float rag = (hash12(sp + seedOff) - 0.5) * uSeed.z; // ragged marking edges, +-px
   if (role == COAT || role == POINTS || role == MUZZLE) {
     if (zone == 1) {
-      float along = aux.g;
-      float across = aux.b * 6.0;
+      float along = aux.g + (hash12(seedOff) - 0.5) * 0.12;
+      float across = aux.b * 6.0 + rag;
       int face = int(uLook.x + 0.5);
       bool m = false;
       if (face == 1) m = along > 0.04 && along < 0.24 && across > 0.4 && across < 2.6;      // star
@@ -143,7 +164,15 @@ void main() {
       float along = aux.g * 2.0;
       float lm = leg == 0 ? uLegMarks.x : leg == 1 ? uLegMarks.y : leg == 2 ? uLegMarks.z : uLegMarks.w;
       float h = lm < 0.5 ? -1.0 : lm < 1.5 ? 0.16 : lm < 2.5 ? 0.55 : 1.25;
+      h += lm > 1.5 ? (hash12(seedOff + float(leg)) - 0.5) * 0.25 + rag * 0.08 : 0.0;
       if (along < h) { role = MARKING; tsrc = 0.7 + 0.3 * tsrc; }
+    }
+    // sabino: irregular white patches rising from the belly and legs, plus a wide face
+    if (uSeed.y > 0.0 && role != MARKING) {
+      float patch = vnoise(sp * 0.16 + seedOff) * 0.65 + vnoise(sp * 0.4 + seedOff.yx) * 0.35;
+      float low = clamp((vSrc.y - 46.0) / 22.0, 0.0, 1.0);
+      float face = zone == 1 ? 0.35 : 0.0;
+      if (patch * 0.7 + low * 0.6 + face + uSeed.y * 0.55 > 1.25) { role = MARKING; tsrc = 0.72 + 0.28 * tsrc; }
     }
   }
   if (role == HOOF && leg >= 0) {
@@ -175,12 +204,12 @@ void main() {
   // coat textures
   int coatTex = int(uLook.y + 0.5);
   if (role == COAT && coatTex == 1) {
-    vec2 q = floor(texel) / vec2(5.0, 4.0);
+    vec2 q = (sp + seedOff) / vec2(5.0, 4.0);
     q.x += mod(floor(q.y), 2.0) * 0.5;
     float r = length((fract(q) - 0.5) * vec2(5.0, 4.0));
     shade += r < 1.1 ? 0.13 : r < 1.8 ? -0.05 : 0.0;
   }
-  if (role == COAT && coatTex == 2 && hash12(floor(texel)) > 0.74) shade += 0.22;
+  if (role == COAT && coatTex == 2 && hash12(sp + seedOff * 1.7) > 0.74) shade += 0.22;
 
   float f = 0.5 + clamp(shade, 0.0, 1.0) * 6.0 + spec * 2.2;
   float base = floor(f);

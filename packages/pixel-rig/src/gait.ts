@@ -201,6 +201,8 @@ export interface SkeletonPart {
   parent: string | null;
   side: "near" | "far";
   copyOf?: string;
+  /** Local part scale from bone morphs (default [1, 1]). */
+  scale?: Vec2;
 }
 
 export interface Skeleton {
@@ -342,15 +344,15 @@ export class GaitRig {
     const surge = moving ? 0.5 * g.bob * Math.sin(TAU * (phase - 0.3)) : 0;
 
     const M = pose.m;
-    const set = (i: number, ang: number, tx: number, ty: number, sx = 1) => {
+    const set = (i: number, ang: number, tx: number, ty: number, sx: number, sy: number) => {
       if (i < 0) return;
       const c = Math.cos(ang);
       const s = Math.sin(ang);
       const o = i * 6;
       M[o] = c * sx;
-      M[o + 1] = -s;
+      M[o + 1] = -s * sy;
       M[o + 2] = s * sx;
-      M[o + 3] = c;
+      M[o + 3] = c * sy;
       M[o + 4] = tx;
       M[o + 5] = ty;
     };
@@ -524,7 +526,8 @@ export class GaitRig {
         x = Math.round(x - f[0]) + f[0];
         y = Math.round(y - f[1]) + f[1];
       }
-      set(i, ang, x, y, i === iRein ? reinLen : 1);
+      const sc = this.skel.parts[i]!.scale ?? [1, 1];
+      set(i, ang, x, y, i === iRein ? reinLen : sc[0], i === iRein ? 1 : sc[1]);
     }
     return pose;
   }

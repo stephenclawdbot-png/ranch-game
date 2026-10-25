@@ -41,6 +41,10 @@ export interface RigPartDef {
   z: number;
   side: "near" | "far";
   copyOf?: string;
+  /** Variant slot ("head" | "mane" | "tail" | "build") this part belongs to, if any. */
+  slot?: string;
+  /** Variant index within the slot (default 0). Parts sharing a name share a bone. */
+  variant?: number;
 }
 
 export interface RigDef {
@@ -126,8 +130,12 @@ export function parseRigDef(json: unknown): RigDef {
       if (!p || typeof p !== "object") return at(path, "expected an object");
       const q = p as Record<string, unknown>;
       if (typeof q.name !== "string" || !q.name) return at(`${path}.name`, "expected a string");
-      if (names.has(q.name)) at(`${path}.name`, `duplicate part "${q.name}"`);
+      const key = `${q.name}~${q.variant ?? 0}`;
+      if (names.has(key)) at(`${path}.name`, `duplicate part "${q.name}" (variant ${q.variant ?? 0})`);
+      names.add(key);
       names.add(q.name);
+      if (q.slot !== undefined && typeof q.slot !== "string") at(`${path}.slot`, "expected a string");
+      if (q.variant !== undefined && (!Number.isInteger(q.variant) || (q.variant as number) < 0)) at(`${path}.variant`, "expected an integer >= 0");
       if (!Array.isArray(q.rect) || q.rect.length !== 4 || !q.rect.every(isNum)) at(`${path}.rect`, "expected [x, y, w, h]");
       else if (isVec2(o.atlas)) {
         const [x, y, w, h] = q.rect as number[];

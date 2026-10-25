@@ -839,7 +839,8 @@ export class HD2DScene {
     this.camPos.into(cam.position);
     cam.lookAt(this.camLook.into(this.v2));
     // Keep the horizontal field of view of a 16:9 frame on narrower screens.
-    const aspectFix = Math.max(1, 16 / 9 / Math.max(0.3, cam.aspect));
+    // (The judge's photo shot only half-compensates so the noses stay big on phones.)
+    const aspectFix = Math.pow(Math.max(1, 16 / 9 / Math.max(0.3, cam.aspect)), shot === "photo" ? 0.45 : 1);
     const vfov = Math.min(70, (2 * Math.atan(Math.tan((this.fov.x * Math.PI) / 360) * aspectFix) * 180) / Math.PI);
     if (Math.abs(cam.fov - vfov) > 1e-3) {
       cam.fov = vfov;

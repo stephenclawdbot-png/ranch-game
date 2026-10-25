@@ -1,0 +1,135 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<4696 chars>",
+   "format": "png"
+  },
+  "frames": 1,
+  "mode": "lite",
+  "kind": "object"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "68632805-d743-49e6-87b9-08ae37d51e2e",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "68632805-d743-49e6-87b9-08ae37d51e2e",
+  "status": "completed",
+  "created_at": "2026-10-25T16:38:36.807106+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "object",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32,
+       33,
+       34,
+       35,
+       36,
+       37,
+       38,
+       39,
+       40,
+       41,
+       42,
+       43,
+       44,
+       45,
+       46,
+       47,
+       48,
+       49,
+       50,
+       51,
+       52,
+       53,
+       54,
+       55,
+       56,
+       57,
+       58,
+       59,
+       60,
+       61,
+       62
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 34,
+    "base64": "<8872 chars>",
+    "height": 110
+   },
+   "action": "Shaping the picture",
+   "frames": 1,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "f1b8c59d-2d0e-4c47-8c66-5702daad7c05",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:38:36.886021+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/bb-tree-poplar-normal-0.png"
+ ]
+}

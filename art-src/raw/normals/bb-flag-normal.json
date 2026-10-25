@@ -1,0 +1,77 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<5240 chars>",
+   "format": "png"
+  },
+  "frames": 8,
+  "mode": "lite",
+  "kind": "object"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f653cc30-7604-4f5f-8d62-db308cffd0e9",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "f653cc30-7604-4f5f-8d62-db308cffd0e9",
+  "status": "completed",
+  "created_at": "2026-10-25T16:39:10.860901+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "object",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 328,
+    "base64": "<18612 chars>",
+    "height": 71
+   },
+   "action": "Shaping the picture",
+   "frames": 8,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "e71a789f-4f5a-4550-aeef-406fd8ccc375",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:39:10.927394+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/bb-flag-normal-0.png"
+ ]
+}

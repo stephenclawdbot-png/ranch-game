@@ -49,3 +49,12 @@
 {"at":"2026-10-25T16:38:23.915Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/starting-gate-normal","secs":8,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T16:38:24.239Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/finish-post-normal","secs":8,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T16:38:35.382Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-tree-oak-b-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:42.127Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-tree-poplar-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:49.445Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-bush-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:56.275Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-bush-b-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:03.239Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-crowd-a-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:09.804Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-grandstand-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:16.352Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-flag-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:22.778Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-turf-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:29.559Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-dirt-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:39:36.343Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-grass-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}

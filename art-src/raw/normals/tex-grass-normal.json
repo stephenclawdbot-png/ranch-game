@@ -1,0 +1,78 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<3408 chars>",
+   "format": "png"
+  },
+  "frames": 1,
+  "mode": "lite",
+  "kind": "topdown"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5795428a-8a84-47aa-95b2-2040a07ef0cf",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "5795428a-8a84-47aa-95b2-2040a07ef0cf",
+  "status": "completed",
+  "created_at": "2026-10-25T16:39:31.018110+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "topdown",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 64,
+    "base64": "<8500 chars>",
+    "height": 64
+   },
+   "action": "Shaping the picture",
+   "frames": 1,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "adfb8e11-caa6-4844-abbe-5ba1fbd6e8c0",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:39:31.073672+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/tex-grass-normal-0.png"
+ ]
+}
