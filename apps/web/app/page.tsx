@@ -21,7 +21,7 @@ export default async function PaddockPage() {
   const nextChange = Math.min(next.postTimeMs, live?.endsAtMs ?? Infinity);
 
   return (
-    <div className="grid gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <AutoRefresh atMs={nextChange} serverNowMs={now} />
       <header>
         <p className="eyebrow">The Paddock</p>

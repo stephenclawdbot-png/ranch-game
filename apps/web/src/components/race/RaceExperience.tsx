@@ -114,7 +114,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <header className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="eyebrow">
@@ -137,7 +137,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
         >
           <div>
             <p className="eyebrow">{settlement.position === 1 ? "Winner!" : "Your runner"}</p>
-            <p className="display text-xl font-semibold">
+            <p className="display text-xl font-semibold text-balance">
               {mine.horse.name} finished {ordinal(settlement.position)} of {card.field.length}
             </p>
             <p className="text-sm text-cream-dim">

@@ -194,7 +194,9 @@ export default function PlayPage() {
             <Swatches label="Body colour" value={silks.primary} onChange={(hex) => setSilks((s) => ({ ...s, primary: hex }))} />
             <Swatches label="Pattern colour" value={silks.secondary} onChange={(hex) => setSilks((s) => ({ ...s, secondary: hex }))} />
           </div>
-          <Swatches label="Cap" value={silks.cap} onChange={(hex) => setSilks((s) => ({ ...s, cap: hex }))} />
+          <div className="lg:w-1/2 lg:pr-3">
+            <Swatches label="Cap" value={silks.cap} onChange={(hex) => setSilks((s) => ({ ...s, cap: hex }))} />
+          </div>
 
           <div className="flex flex-wrap items-center gap-3 border-t border-cream/10 pt-6">
             <button type="submit" className="btn btn-brass" disabled={!valid || state === undefined}>

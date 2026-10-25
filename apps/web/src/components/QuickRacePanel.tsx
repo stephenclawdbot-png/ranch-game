@@ -59,7 +59,7 @@ export function QuickRacePanel() {
   }
 
   return (
-    <div className="panel p-4 sm:p-6" data-testid="quick-race">
+    <div className="panel min-w-0 p-4 sm:p-6" data-testid="quick-race">
       <fieldset>
         <legend className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-cream-dim">1 · Choose your runner</legend>
         <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">

@@ -13,9 +13,9 @@ export default async function RacesPage() {
   const nextChange = Math.min(upcoming[0]?.postTimeMs ?? Infinity, ...recent.filter((r) => r.phase === "live").map((r) => r.endsAtMs ?? Infinity));
 
   return (
-    <div className="grid gap-10">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
       <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={now} />
-      <section id="quick" className="scroll-mt-24">
+      <section id="quick" className="min-w-0 scroll-mt-24">
         <header className="mb-4">
           <p className="eyebrow">Quick race</p>
           <h1 className="display mt-1 text-3xl font-semibold sm:text-4xl">Send one to the gates</h1>
@@ -26,7 +26,7 @@ export default async function RacesPage() {
         <QuickRacePanel />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid min-w-0 gap-6 lg:grid-cols-2">
         <div>
           <header className="mb-3 flex items-baseline justify-between">
             <h2 className="display text-2xl font-semibold">On the card</h2>

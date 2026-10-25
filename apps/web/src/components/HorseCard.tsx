@@ -6,7 +6,8 @@ import { StatBars } from "./StatBars";
 import { SilksIcon } from "./Silks";
 
 export function recordLine(r: HorseRecord): string {
-  return `${r.starts}: ${r.wins}-${r.places}-${r.shows}`;
+  if (r.starts === 0) return "Unraced";
+  return `${r.starts} ${r.starts === 1 ? "start" : "starts"} · ${r.wins} ${r.wins === 1 ? "win" : "wins"}`;
 }
 
 export function HorseCard({ horse, record, index }: { horse: Horse; record: HorseRecord; index: number }) {
@@ -14,7 +15,7 @@ export function HorseCard({ horse, record, index }: { horse: Horse; record: Hors
     <article className="panel group flex flex-col overflow-hidden" data-testid="horse-card">
       <Link href={`/horse/${horse.id}`} className="relative block rounded-t-[1.2rem] focus-visible:outline-offset-[-2px]">
         <div className="relative aspect-[5/4] overflow-hidden bg-gradient-to-b from-turf-800 to-turf-950">
-          <HorsePortrait appearance={horse.appearance} className="absolute inset-x-0 -bottom-3 mx-auto h-[112%] transition-transform duration-500 group-hover:scale-[1.03]" />
+          <HorsePortrait appearance={horse.appearance} className="absolute inset-x-0 bottom-0 mx-auto h-full transition-transform duration-500 group-hover:scale-[1.03]" />
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
             <span className="chip !bg-ink/60 backdrop-blur">{STYLE_LABEL[horse.style]}</span>
           </div>
@@ -40,7 +41,7 @@ export function HorseCard({ horse, record, index }: { horse: Horse; record: Hors
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-cream/8 pt-3">
           <div className="text-xs leading-tight">
             <p className="text-sage">Record</p>
-            <p className="tabular font-medium text-cream" title="starts: wins-seconds-thirds">
+            <p className="tabular font-medium text-cream" title={`${record.wins} wins, ${record.places} seconds, ${record.shows} thirds`}>
               {recordLine(record)} <span className="text-brass">· {formatCredits(record.earnings)} cr</span>
             </p>
           </div>
