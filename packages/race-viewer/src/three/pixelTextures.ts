@@ -59,7 +59,7 @@ export const LOOKS: Record<Weather, Look> = {
     cloud: ["#d9dee6", "#eef1f4", "#ffffff"],
     billboardTint: "#fff4e0",
     grade: { tint: [1.04, 1.0, 0.92], saturation: 1.08, contrast: 1.05 },
-    bloom: 0.35,
+    bloom: 0.14,
     rain: false,
     cloudCount: 14,
   },
@@ -84,7 +84,7 @@ export const LOOKS: Record<Weather, Look> = {
     cloud: ["#b9607a", "#e08a80", "#f6b48a"],
     billboardTint: "#ffd6b8",
     grade: { tint: [1.08, 0.96, 0.9], saturation: 1.12, contrast: 1.06 },
-    bloom: 0.55,
+    bloom: 0.22,
     rain: false,
     cloudCount: 10,
   },
@@ -109,7 +109,7 @@ export const LOOKS: Record<Weather, Look> = {
     cloud: ["#9aa3ac", "#b4bcc3", "#cdd3d8"],
     billboardTint: "#e6eaee",
     grade: { tint: [0.97, 1.0, 1.03], saturation: 0.9, contrast: 1.02 },
-    bloom: 0.15,
+    bloom: 0.07,
     rain: false,
     cloudCount: 22,
   },
@@ -134,7 +134,7 @@ export const LOOKS: Record<Weather, Look> = {
     cloud: ["#4d5660", "#5d6670", "#6e7780"],
     billboardTint: "#c8d0d6",
     grade: { tint: [0.95, 0.99, 1.05], saturation: 0.82, contrast: 1.04 },
-    bloom: 0.1,
+    bloom: 0.05,
     rain: true,
     cloudCount: 26,
   },
@@ -188,19 +188,19 @@ function tileNoise(seed: number, px: number, py = px): (x: number, y: number) =>
  * stripes per tile. Dirt: harrow lines + hoof prints. 128 x 64 px.
  */
 export function surfaceTile(look: Look, surface: Surface, seed = 3): HTMLCanvasElement {
-  const W = surface === "turf" ? 256 : 128;
-  const H = 64;
+  // 128 px = 1.33 m at 96 px/m; broad mowing stripes come from the geometry.
+  const W = 128;
+  const H = 128;
   const [c, ctx, img] = canvas(W, H);
-  const n1 = tileNoise(seed, W / 8, 8);
-  const n2 = tileNoise(seed + 9, W / 4, 16);
+  const n1 = tileNoise(seed, 8, 8);
+  const n2 = tileNoise(seed + 9, 32, 32);
   const r = rng(seed + 1);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const nz = n1((x / W) * (W / 8), (y / H) * 8) * 0.6 + n2((x / W) * (W / 4), (y / H) * 16) * 0.4;
+      const nz = n1((x / W) * 8, (y / H) * 8) * 0.6 + n2((x / W) * 32, (y / H) * 32) * 0.4;
       let v: number;
       if (surface === "turf") {
-        const stripe = x < W / 2 ? 0.62 : 0.38;
-        v = stripe + (nz - 0.5) * 0.45;
+        v = 0.5 + (nz - 0.5) * 0.5;
       } else {
         const harrow = (y % 3 === 0 ? -0.12 : 0) + (y % 7 === 3 ? 0.08 : 0);
         v = 0.5 + (nz - 0.5) * 0.55 + harrow;
@@ -211,7 +211,7 @@ export function surfaceTile(look: Look, surface: Surface, seed = 3): HTMLCanvasE
   }
   // Specks: grass tips / pebbles / hoof prints.
   const ramp = surface === "turf" ? look.turf : look.dirt;
-  for (let i = 0; i < (surface === "turf" ? 220 : 140); i++) {
+  for (let i = 0; i < (surface === "turf" ? 420 : 260); i++) {
     const x = Math.floor(r() * W);
     const y = Math.floor(r() * H);
     if (surface === "turf") {
@@ -228,13 +228,13 @@ export function surfaceTile(look: Look, surface: Surface, seed = 3): HTMLCanvasE
 
 /** Infield / outfield grass. 64 x 64 px. */
 export function grassTile(look: Look, seed = 11): HTMLCanvasElement {
-  const S = 64;
+  const S = 128;
   const [c, ctx, img] = canvas(S, S);
   const n = tileNoise(seed, 8);
-  const m = tileNoise(seed + 3, 32);
+  const m = tileNoise(seed + 3, 64);
   const r = rng(seed);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) put(img, x, y, dither(look.grass, n((x / S) * 8, (y / S) * 8) * 0.6 + m((x / S) * 32, (y / S) * 32) * 0.4, x, y));
-  for (let i = 0; i < 90; i++) put(img, Math.floor(r() * S), Math.floor(r() * S), look.grass[look.grass.length - 1]!);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) put(img, x, y, dither(look.grass, n((x / S) * 8, (y / S) * 8) * 0.6 + m((x / S) * 64, (y / S) * 64) * 0.4, x, y));
+  for (let i = 0; i < 360; i++) put(img, Math.floor(r() * S), Math.floor(r() * S), look.grass[look.grass.length - 1]!);
   ctx.putImageData(img, 0, 0);
   return c;
 }
@@ -503,14 +503,21 @@ export function flagStrip(color: string): HTMLCanvasElement {
   return c;
 }
 
-/** Red/white roundel for the winning post, 16 x 16. */
-export function roundelSprite(): HTMLCanvasElement {
-  const [c, ctx, img] = canvas(16, 16);
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      const d = Math.hypot(x - 7.5, y - 7.5);
-      if (d < 7.6) put(img, x, y, d < 2.3 ? "#d71920" : d < 5 ? "#ffffff" : "#d71920");
-      if (d >= 7.0 && d < 7.9) put(img, x, y, "#7a0c10");
+/** Red/white roundel for the winning post: ~1.2 m at 96 px/m, drawn per pixel. */
+export function roundelSprite(size = 112): HTMLCanvasElement {
+  const [c, ctx, img] = canvas(size, size);
+  const R = size / 2 - 0.5;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.hypot(x - R, y - R) / R;
+      if (d > 1) continue;
+      // Light from the upper left: shade the rim a step darker on the lower right.
+      const shade = (x - R + (y - R)) / (2 * R) > 0.35;
+      let col = d < 0.3 ? "#d71920" : d < 0.66 ? "#f7f4ec" : "#d71920";
+      if (shade) col = d < 0.3 ? "#a8121a" : d < 0.66 ? "#d9d4c8" : "#a8121a";
+      if (d > 0.93) col = "#5e0a0e";
+      if (d > 0.62 && d < 0.66) col = "#7a0c10";
+      put(img, x, y, col);
     }
   }
   ctx.putImageData(img, 0, 0);
@@ -531,30 +538,30 @@ export function blobShadow(): HTMLCanvasElement {
   return c;
 }
 
-const DIGITS: Record<string, string[]> = {
-  "0": ["111", "101", "101", "101", "111"],
-  "1": ["010", "110", "010", "010", "111"],
-  "2": ["111", "001", "111", "100", "111"],
-  "3": ["111", "001", "111", "001", "111"],
-  "4": ["101", "101", "111", "001", "001"],
-  "5": ["111", "100", "111", "001", "111"],
-  "6": ["111", "100", "111", "101", "111"],
-  "7": ["111", "001", "010", "010", "010"],
-  "8": ["111", "101", "111", "101", "111"],
-  "9": ["111", "101", "111", "001", "111"],
-  f: ["011", "010", "111", "010", "010"],
-};
-
-/** Pixel-font sign (e.g. "3f"): white glyphs on a green plate with a border. */
+/**
+ * Furlong-pole sign ("3f") at 96 px/m: crisp pixel text (canvas glyphs thresholded,
+ * no anti-aliasing) on a bordered green plate, ~0.9 x 0.55 m.
+ */
 export function signSprite(text: string, plate = "#0f3b28"): HTMLCanvasElement {
-  const w = text.length * 4 + 3;
-  const [c, ctx, img] = canvas(w, 9);
-  for (let y = 0; y < 9; y++) for (let x = 0; x < w; x++) put(img, x, y, x === 0 || y === 0 || x === w - 1 || y === 8 ? "#f3e7c9" : plate);
-  [...text].forEach((ch, i) => {
-    const g = DIGITS[ch];
-    if (!g) return;
-    g.forEach((row, y) => [...row].forEach((b, x) => b === "1" && put(img, 2 + i * 4 + x, 2 + y, "#ffffff")));
-  });
+  const W = 86;
+  const H = 53;
+  const [c, ctx] = canvas(W, H);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 38px ui-monospace, Menlo, Consolas, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, W / 2, H / 2 + 2);
+  const glyph = ctx.getImageData(0, 0, W, H);
+  const img = ctx.createImageData(W, H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const border = x < 3 || y < 3 || x >= W - 3 || y >= H - 3;
+      const inner = x === 3 || y === 3 || x === W - 4 || y === H - 4;
+      const g = glyph.data[(y * W + x) * 4 + 3]! >= 128;
+      const shadow = !g && x > 0 && y > 0 && glyph.data[((y - 2) * W + (x - 2)) * 4 + 3]! >= 128;
+      put(img, x, y, border ? "#f3e7c9" : inner ? "#082417" : g ? "#ffffff" : shadow ? "#082417" : y < H / 2 ? plate : "#0c3121");
+    }
+  }
   ctx.putImageData(img, 0, 0);
   return c;
 }
@@ -572,10 +579,26 @@ export function railTile(): HTMLCanvasElement {
   return c;
 }
 
-/** Starting stall padding (green with pixel highlights), 16 x 16 tile. */
+/** Starting stall padding at 96 px/m: quilted green vinyl with stitching, 128 x 96 tile. */
 export function gatePanelTile(): HTMLCanvasElement {
-  const [c, ctx, img] = canvas(16, 16);
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(img, x, y, y < 2 ? "#4fb07c" : y > 13 ? "#14482f" : dither(["#1d6b45", "#25804f", "#2e9259"], 0.5 + (x % 8 === 0 ? -0.4 : 0), x, y));
+  const W = 128;
+  const H = 96;
+  const [c, ctx, img] = canvas(W, H);
+  const ramp = ["#123f29", "#1a5a39", "#227048", "#2c8556", "#3d9c69"];
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      // Quilted cells 32 x 24: lighter at the top-left of each pillow.
+      const cx = (x % 32) / 32;
+      const cy = (y % 24) / 24;
+      const pillow = 0.75 - Math.hypot(cx - 0.4, cy - 0.35) * 0.9;
+      let col = dither(ramp, pillow, x, y);
+      if (x % 32 === 0 || y % 24 === 0) col = ramp[0]!;
+      if ((x % 32 === 1 || y % 24 === 1) && (x + y) % 3 === 0) col = "#b9d8c4"; // stitching
+      if (y < 3) col = y === 0 ? "#7fc39a" : "#4fb07c";
+      if (y > H - 4) col = "#0b2a1b";
+      put(img, x, y, col);
+    }
+  }
   ctx.putImageData(img, 0, 0);
   return c;
 }

@@ -100,3 +100,9 @@
 {"at":"2026-10-25T17:14:15.162Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/rig-hd/combo-12101","secs":77,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:14:20.351Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/rig-hd/horse-12103","secs":72,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:14:25.914Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/rig-hd/combo-12102","secs":88,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:15:39.506Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/rig-hd/c12101-horse","secs":61,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:15:45.429Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/rig-hd/c12101-jockey","secs":67,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:16:58.614Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-neutral-stance-256","secs":45,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:17:22.119Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-jockey-crouch-256","secs":23,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:18:12.517Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-jockey-neutral-256","secs":50,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:18:36.353Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-standing-alt-256","secs":24,"usage":{"type":"generations","generations":0.5},"images":1}

@@ -567,8 +567,10 @@ export class HD2DScene {
       pole.position.set(x, 0, 0.3);
       pole.castShadow = true;
       const sign = signSprite(`${i}f`);
-      const plate = new T.Mesh(this.own(new T.PlaneGeometry(sign.width * 0.075, sign.height * 0.075)), this.billboardMat(this.tex(sign), "#ffffff"));
-      plate.position.set(x, 2.3 + (sign.height * 0.075) / 2, 0.36);
+      const sw = sign.width / FOCAL_PX_PER_M;
+      const sh = sign.height / FOCAL_PX_PER_M;
+      const plate = new T.Mesh(this.own(new T.PlaneGeometry(sw, sh)), this.billboardMat(this.tex(sign), "#ffffff"));
+      plate.position.set(x, 2.3 + sh / 2, 0.36);
       this.scene.add(pole, plate);
     }
     // Winning post (far side, by the stands) with roundel; short post on the near side.
@@ -576,7 +578,8 @@ export class HD2DScene {
     const wp = new T.Mesh(this.own(new T.CylinderGeometry(0.09, 0.09, 3.6, 8)), wpMat);
     wp.position.set(L, 1.8, -this.trackW - 0.5);
     wp.castShadow = true;
-    const roundel = new T.Mesh(this.own(new T.PlaneGeometry(1.2, 1.2)), this.billboardMat(this.tex(roundelSprite()), "#ffffff"));
+    const rs = roundelSprite();
+    const roundel = new T.Mesh(this.own(new T.PlaneGeometry(rs.width / FOCAL_PX_PER_M, rs.height / FOCAL_PX_PER_M)), this.billboardMat(this.tex(rs), "#ffffff"));
     roundel.position.set(L, 3.6 + 0.6, -this.trackW - 0.45);
     const np = new T.Mesh(this.own(new T.CylinderGeometry(0.07, 0.07, 1.8, 8)), wpMat);
     np.position.set(L, 0.9, 0.35);
@@ -596,8 +599,9 @@ export class HD2DScene {
       : Math.max(0, ...this.replay.horses.map((h) => h.gate - 1));
     const BACK = -3.4;
     const FRONT = 0.35;
-    const panel = this.tex(gatePanelTile(), { repeat: true });
-    panel.repeat.set(4, 1);
+    const panelCanvas = gatePanelTile();
+    const panel = this.tex(panelCanvas, { repeat: true, mip: true });
+    panel.repeat.set((FRONT - BACK) / (panelCanvas.width / FOCAL_PX_PER_M), 0.95 / (panelCanvas.height / FOCAL_PX_PER_M));
     const panelMat = this.own(new T.MeshLambertMaterial({ map: panel }));
     const frameMat = this.own(new T.MeshLambertMaterial({ color: 0xe9ecea }));
     const doorMat = this.own(new T.MeshLambertMaterial({ color: 0x2a8a5a }));
@@ -776,8 +780,10 @@ export class HD2DScene {
     this.H = Math.max(1, H);
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     let ratio: number;
-    if (this.quality === "low") ratio = Math.min(1, 360 / this.H);
-    else if (this.pixelated) ratio = Math.min(dpr, 450 / this.H);
+    // HD pixel standard: never below ~540 lines internally; desktop renders at device
+    // resolution (all sprites/tiles sample with nearest filtering).
+    if (this.quality === "low") ratio = Math.min(Math.max(dpr, 1), Math.max(1, 540 / this.H));
+    else if (this.pixelated) ratio = Math.max(540 / this.H, Math.min(1, dpr));
     else ratio = Math.min(dpr, 2, Math.sqrt((2560 * 1440) / (this.W * this.H)));
     this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(this.W, this.H, false);
@@ -1003,7 +1009,8 @@ export class HD2DScene {
       cam.updateProjectionMatrix();
     }
     this.focusDist = cam.position.distanceTo(this.v1.set((x0 + x1) / 2, 1.0, (z0 + z1) / 2));
-    this.focusRange = Math.max(4, (z1 - z0) * 0.7 + 3);
+    // Keep the whole group plus the near rail in the sharp band.
+    this.focusRange = Math.max(8, (z1 - z0) * 0.6 + (x1 - x0) * 0.25 + 6);
 
     // --- World animation ---------------------------------------------------------
     this.sky.position.copy(cam.position);
@@ -1096,8 +1103,8 @@ export class HD2DScene {
       this.post.render(this.scene, cam, {
         focusDist: this.focusDist,
         focusRange: this.focusRange,
-        dofAmount: shot === "wide" || shot === "crane" ? 0.4 : 0.65,
-        tiltShift: 0.55,
+        dofAmount: 0.55,
+        tiltShift: 0.12,
         bloom: this.look.bloom,
         tint: g.tint,
         saturation: g.saturation,

@@ -30,7 +30,19 @@ with nearest filtering at integer scale.
 - Known: a few frames have a 1–2 px tail tip that falls in the `points` band; girth detection is
   heuristic (right in 10/12 frames on grey).
 
-### Pixel-rig sources (`art-src/raw/rig/`, not served)
+### Pixel-rig sources HD v2 (`art-src/raw/rig-hd/`, not served) — use these
+
+All **256×192**, transparent, same HD density as the HD gallop (horse ≈ 238 px nose to tail).
+Each has a `*-normal.png` (PixelLab `/normal-map` pro, OpenGL).
+
+| File | What |
+|---|---|
+| `horse-neutral-stance-256.png` | Riderless bay, **neutral extended stance**, four legs straight and separated, racing saddle + white cloth + girth, bridle. Hooves on the bottom row. |
+| `jockey-crouch-256.png` | **Jockey alone** (magenta/cyan key silks, cap, goggles, white breeches, black boots) in racing crouch, positioned to overlay `horse-neutral-stance-256.png` exactly (see `composite-check.png`). |
+| `horse-jockey-neutral-256.png` | The original combined frame both layers were cut from (reference). |
+| `horse-standing-alt-256.png` | Alternative riderless standing bay (different seed). |
+
+### Pixel-rig sources (`art-src/raw/rig/`, not served) — v1 128×96
 
 All 128×96, transparent, same style/scale as the gallop strip (horse ≈ 108 px long).
 Each has a `*-normal.png` (PixelLab `/normal-map` pro, OpenGL).

@@ -51,6 +51,9 @@ export const JOBS = {
       seed: 5602,
     },
   },
+  // --- HD v2 ground tiles (128 px) ---
+  "hd-tiles-a": { ep: "/create-tiles-pro", body: { description: "1). top-down short mowed racecourse turf, fine lush green grass blades, even texture without stripes, warm golden-hour tint 2). top-down racetrack dirt: raked warm brown loamy dirt with faint hoof prints and small pebbles 3). top-down meadow grass: lush deep green grass with clover and a few tiny daisies 4). top-down fine gravel path: light warm grey and beige pebbles", tile_type: "square_topdown", tile_size: 128, tile_view: "top-down", outline_mode: "segmentation", seed: 13001 } },
+  "hd-tiles-b": { ep: "/create-tiles-pro", body: { description: "1). top-down dense dark green box hedge foliage seen from above, small glossy leaves filling the whole tile 2). top-down short mowed racecourse turf, fine lush green grass blades, even texture without stripes 3). top-down racetrack dirt: raked warm brown loamy dirt with faint hoof prints 4). top-down dense dark green box hedge foliage seen from above, small glossy leaves", tile_type: "square_topdown", tile_size: 128, tile_view: "top-down", outline_mode: "segmentation", seed: 13002 } },
   // --- ground tiles (top-down, made seamless later) -----------------------------------
   tiles: {
     ep: "/create-tiles-pro",

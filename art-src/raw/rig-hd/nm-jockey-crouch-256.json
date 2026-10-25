@@ -1,0 +1,180 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<6288 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1b99ee2e-a6da-462a-891d-a3f9b79a23f1",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "1b99ee2e-a6da-462a-891d-a3f9b79a23f1",
+  "status": "completed",
+  "created_at": "2026-10-25T17:17:00.522797+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "name": "back mass",
+      "round": 0.7,
+      "shape": "ball",
+      "regions": [
+       19,
+       28,
+       25,
+       26,
+       29,
+       30,
+       23,
+       24,
+       20,
+       21,
+       1,
+       2,
+       5,
+       8,
+       9,
+       15,
+       3
+      ]
+     },
+     {
+      "axis": -35,
+      "name": "white sweep",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       31,
+       43,
+       46,
+       48
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "cyan centre",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       27,
+       35,
+       34,
+       32,
+       33,
+       36,
+       39,
+       40
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "dark lower part",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       51,
+       50,
+       52,
+       53,
+       54,
+       55,
+       44,
+       45,
+       47,
+       49
+      ]
+     },
+     {
+      "name": "head",
+      "shape": "ball",
+      "regions": [
+       17,
+       11,
+       16,
+       18,
+       12,
+       13,
+       14,
+       6,
+       7,
+       10,
+       4,
+       22,
+       37
+      ]
+     },
+     {
+      "name": "orange tip",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       41,
+       42
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     41,
+     42
+    ],
+    "backdrop": [],
+    "recessed": [
+     4,
+     7,
+     13,
+     22,
+     37,
+     45,
+     54,
+     55
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<12568 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "71275048-a675-49e3-b957-4aa6b374ab3d",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:17:00.609191+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/rig-hd/nm-jockey-crouch-256-0.png"
+ ]
+}

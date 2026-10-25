@@ -57,50 +57,85 @@ interface GallopStrip {
   normal: HTMLImageElement | null;
 }
 
+function loadImg(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((res) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => res(null);
+    i.src = src;
+  });
+}
+
+/** Share of opaque pixels that are exact palette keys (guards against a stale palette). */
+function keyCoverage(data: ImageData, keys: KeyPalette): number {
+  const set = new Set<number>();
+  for (const ramp of [keys.coat, keys.mane, keys.points, keys.silksPrimary, keys.silksSecondary, keys.cap]) {
+    for (const h of ramp ?? []) set.add(Number.parseInt(h.slice(1), 16));
+  }
+  let opaque = 0;
+  let hit = 0;
+  const d = data.data;
+  for (let i = 0; i < d.length; i += 16) {
+    if (d[i + 3]! < 128) continue;
+    opaque++;
+    if (set.has((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!)) hit++;
+  }
+  return opaque ? hit / opaque : 0;
+}
+
+/**
+ * The approved gallop strip: the HD strip (`race/horse-gallop.png`, ~240x150 frames)
+ * first, then the low-res `race/horse-gallop-lo.png`. Each needs a palette whose keys
+ * actually occur in it (`palette-<stem>.json`, else `palette.json`).
+ */
 async function loadGallopStrip(art: ArtSet): Promise<GallopStrip | null> {
-  const entry = art.manifest?.assets.find((a) => a.status === "approved" && a.src && /(^|\/)horse-gallop\.png$/.test(a.src));
-  if (!entry?.src) return null;
   const base = art.base.replace(/\/$/, "");
   const url = (src: string) => (src.startsWith("/") || /^https?:/.test(src) ? src : `${base}/${src}`);
-  try {
-    const palUrl = url(entry.src.replace(/horse-gallop\.png$/, "palette.json"));
-    const [img, pal] = await Promise.all([
-      new Promise<HTMLImageElement>((res, rej) => {
-        const i = new Image();
-        i.onload = () => res(i);
-        i.onerror = rej;
-        i.src = url(entry.src!);
-      }),
-      fetch(palUrl).then((r) => (r.ok ? r.json() : null)),
-    ]);
-    const keys = parseKeyPalette(pal);
-    if (!keys) return null;
-    const nEntry = art.manifest?.assets.find((a) => a.status === "approved" && a.src && /(^|\/)horse-gallop-normal\.png$/.test(a.src));
-    const normal = nEntry?.src
-      ? await new Promise<HTMLImageElement | null>((res) => {
-          const i = new Image();
-          i.onload = () => res(i);
-          i.onerror = () => res(null);
-          i.src = url(nEntry.src!);
-        })
-      : null;
-    const c = document.createElement("canvas");
-    c.width = img.naturalWidth;
-    c.height = img.naturalHeight;
-    const ctx = c.getContext("2d", { willReadFrequently: true })!;
-    ctx.drawImage(img, 0, 0);
-    return {
-      data: ctx.getImageData(0, 0, c.width, c.height),
-      frameCount: entry.frameCount,
-      frameWidth: entry.frameWidth,
-      frameHeight: entry.frameHeight,
-      anchor: { x: Math.round(entry.anchor.x * entry.frameWidth), y: Math.round(entry.anchor.y * entry.frameHeight) },
-      keys,
-      normal,
-    };
-  } catch {
-    return null;
+  const approved = (re: RegExp) => art.manifest?.assets.find((a) => a.status === "approved" && a.src && re.test(a.src));
+  const candidates = [approved(/(^|\/)horse-gallop\.png$/), approved(/(^|\/)horse-gallop-lo\.png$/)]
+    .filter((e): e is NonNullable<typeof e> => !!e)
+    .sort((a, b) => b.frameWidth - a.frameWidth);
+  for (const entry of candidates) {
+    try {
+      const src = entry.src!;
+      const stem = src.split("/").pop()!.replace(/\.png$/, "");
+      const dir = src.slice(0, src.length - stem.length - 4);
+      const img = await loadImg(url(src));
+      if (!img) continue;
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext("2d", { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, c.width, c.height);
+      let keys: KeyPalette | null = null;
+      for (const pal of [`${dir}palette-${stem}.json`, `${dir}${stem}.palette.json`, `${dir}palette.json`]) {
+        const json = await fetch(url(pal))
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        const k = parseKeyPalette(json);
+        if (k && keyCoverage(data, k) > 0.25) {
+          keys = k;
+          break;
+        }
+      }
+      if (!keys) continue;
+      const nEntry = approved(new RegExp(`(^|/)${stem}-normal\\.png$`));
+      const normal = nEntry?.src && nEntry.frameWidth === entry.frameWidth ? await loadImg(url(nEntry.src)) : null;
+      return {
+        data,
+        frameCount: entry.frameCount,
+        frameWidth: entry.frameWidth,
+        frameHeight: entry.frameHeight,
+        anchor: { x: Math.round(entry.anchor.x * entry.frameWidth), y: Math.round(entry.anchor.y * entry.frameHeight) },
+        keys,
+        normal,
+      };
+    } catch {
+      /* try the next strip */
+    }
   }
+  return null;
 }
 
 function stripFactory(three: typeof THREE, strip: GallopStrip): HorseRigFactory {

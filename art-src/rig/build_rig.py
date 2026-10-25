@@ -126,6 +126,33 @@ def drop_specks(m, min_size):
     return out
 
 
+def largest_component(m):
+    """Keep only the largest 8-connected component of a mask."""
+    h, w = m.shape
+    lab = np.zeros((h, w), np.int32)
+    sizes = [0]
+    for y0, x0 in zip(*np.nonzero(m)):
+        if lab[y0, x0]:
+            continue
+        k = len(sizes)
+        stack = [(y0, x0)]
+        lab[y0, x0] = k
+        n = 0
+        while stack:
+            y, x = stack.pop()
+            n += 1
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not lab[yy, xx]:
+                        lab[yy, xx] = k
+                        stack.append((yy, xx))
+        sizes.append(n)
+    if len(sizes) <= 2:
+        return m
+    return lab == int(np.argmax(sizes))
+
+
 def neighbours4(m):
     out = np.zeros_like(m)
     out[1:, :] |= m[:-1, :]
@@ -399,6 +426,8 @@ def main():
         core = (labels[s] == i) & keep[s]
         # drop specks: 8-connected components smaller than 5 px
         core = drop_specks(core, 5)
+        if p.get("vol") in ("leg", "limb"):
+            core = largest_component(core)  # limbs are one piece: no stray bits of the far leg
         # seam pad: grow into neighbouring parts' real pixels (identical at rest)
         grown = core.copy()
         under_all = np.zeros((H, W), bool)

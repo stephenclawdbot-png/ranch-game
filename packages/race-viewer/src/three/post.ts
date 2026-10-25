@@ -45,9 +45,13 @@ void main() {
   vec3 sharp = texture2D(tScene, vUv).rgb;
   float depth = texture2D(tDepth, vUv).x;
   float z = -perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
-  float coc = clamp((abs(z - focusDist) - focusRange) / max(1.0, focusDist * 3.0), 0.0, 1.0);
-  float ts = smoothstep(0.22, 0.0, vUv.y) + smoothstep(0.78, 1.0, vUv.y);
-  coc = clamp(max(coc, ts * tiltShift) * dofAmount, 0.0, 1.0);
+  // The focal band (the field + nearby rails) stays tack-sharp; only the far
+  // background and the nearest foreground soften, gradually.
+  float farC = smoothstep(focusDist + focusRange, focusDist + focusRange + focusDist * 3.0, z);
+  float nearC = smoothstep(focusDist - focusRange, max(0.5, (focusDist - focusRange) * 0.35), z);
+  float coc = clamp(max(farC, nearC * 0.8) * dofAmount, 0.0, 1.0);
+  coc *= coc; // ease in: mid-distance stays crisp
+  coc = max(coc, (smoothstep(0.1, 0.0, vUv.y) + smoothstep(0.92, 1.0, vUv.y)) * tiltShift * dofAmount);
   vec3 blur = texture2D(tBlur, vUv).rgb;
   vec3 col = mix(sharp, blur, coc);
   col += max(blur - bloomThreshold, 0.0) * bloomAmount;
@@ -118,7 +122,7 @@ export class PostFX {
         dofAmount: { value: 1 },
         tiltShift: { value: 0.6 },
         bloomAmount: { value: 0.3 },
-        bloomThreshold: { value: 0.72 },
+        bloomThreshold: { value: 0.82 },
         tint: { value: new T.Vector3(1, 1, 1) },
         saturation: { value: 1 },
         contrast: { value: 1 },

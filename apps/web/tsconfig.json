@@ -19,11 +19,12 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-lead/types/**/*.ts",
+    ".next-live/types/**/*.ts",
     ".next-rig/types/**/*.ts",
     ".next-viewer/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-live/types/**/*.ts"
+    ".next-redesign/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
