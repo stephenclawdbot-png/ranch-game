@@ -482,6 +482,8 @@ export function runRace(input: RaceInput): RaceReplay {
             moveEvents < 7 &&
             gained >= 2 &&
             rank[i]! < 6 &&
+            i !== announcedLeader &&
+            rem * 4 < L * 3 &&
             tick - lastMoveTick[i]! > 240 &&
             tick - lastKickTick[i]! > 60
           ) {
