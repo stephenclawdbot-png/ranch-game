@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<10128 chars>",
+     "format": "png"
+    },
+    "width": 96,
+    "height": 96
+   }
+  ],
+  "image_size": {
+   "width": 96,
+   "height": 96
+  },
+  "description": "change the horse's coat colour to dapple grey: grey coat covered with round lighter dapple rings on the neck, dark grey muzzle, grey mane; keep exactly the same pose, framing, bridle, white star, outline, lighting and pixel art style",
+  "no_background": true,
+  "seed": 7200
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5ad00e6d-7a1c-4e9d-9e6b-3c85858f3928",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "5ad00e6d-7a1c-4e9d-9e6b-3c85858f3928",
+  "status": "completed",
+  "created_at": "2026-10-25T16:44:33.160940+00:00",
+  "last_response": {
+   "seed": 7200,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<11104 chars>",
+     "height": 96
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "068eacfe-3c9b-48c5-8c67-d50ef3860640",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<11104 chars>",
+     "height": 96
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:44:39.364418+00:00",
+   "original_image_n_colors": 112,
+   "quantized_image_n_colors": 47
+  }
+ },
+ "files": [
+  "art-src/raw/portraits/coat-dapple_grey-0.png"
+ ]
+}

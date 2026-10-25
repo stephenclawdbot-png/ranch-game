@@ -39,11 +39,11 @@ export interface RigLighting {
 }
 
 export const DEFAULT_LIGHTING: RigLighting = {
-  ambient: 0.28,
-  lightMix: 0.55,
-  dither: 0.7,
-  rim: 0.3,
-  farShade: 0.24,
+  ambient: 0.22,
+  lightMix: 0.75,
+  dither: 0.5,
+  rim: 0.28,
+  farShade: 0.2,
   outline: true,
   innerLines: true,
 };
@@ -105,6 +105,17 @@ function dataTexture(bytes: Uint8Array, w: number, h: number): THREE.DataTexture
   return configure(new THREE.DataTexture(bytes, w, h, THREE.RGBAFormat, THREE.UnsignedByteType));
 }
 
+/**
+ * Depth group written to the data target; the resolve pass draws a contour line where a
+ * higher group overlaps a lower one (near legs over the body, rider over the horse).
+ */
+export function layerGroup(name: string, side: "near" | "far"): number {
+  if (side === "far") return 1;
+  if (name.startsWith("j")) return 4;
+  if (/^(fore|hind)Near/.test(name)) return 3;
+  return 2;
+}
+
 function legIndexOf(name: string): number {
   const m = /^(foreFar|foreNear|hindFar|hindNear)/.exec(name);
   return m ? LEG_INDEX[m[1]!]! : -1;
@@ -140,7 +151,7 @@ function buildGeometry(def: RigDef, bones: string[]): { parts: THREE.BufferGeome
     for (const [cx, cy] of corners) {
       pos.push(p.origin[0] + cx - p.pivot[0], p.origin[1] + cy - p.pivot[1], 0);
       uv.push((rx + cx) / aw, (ry + cy) / ah);
-      info.push(bone, p.side === "far" ? 1 : 0, legIndexOf(p.name), p.z);
+      info.push(bone, p.side === "far" ? 1 : 0, legIndexOf(p.name), layerGroup(p.name, p.side) * 40);
       solid.push(0);
       variant.push(p.slot ? (SLOT_CODE[p.slot] ?? 0) : 0, p.variant ?? 0);
       src.push(p.origin[0] + cx, p.origin[1] + cy);
@@ -448,7 +459,7 @@ export class PixelHorseRig implements HorseRig {
     this.pose = this.gait.createPose();
     const v = this.look.variants;
     (this.partsMat.uniforms.uVariants!.value as THREE.Vector4).set(v.head, v.mane, v.tail, v.build);
-    (this.partsMat.uniforms.uSeed!.value as THREE.Vector4).set((this.look.seed % 9973) / 9973, this.look.sabino, 1.4, 0);
+    (this.partsMat.uniforms.uSeed!.value as THREE.Vector4).set((this.look.seed % 9973) / 9973, this.look.sabino, 1.4, this.gate);
   }
 
   /** @internal picks up the factory's current assets (PixelLab atlas once it has loaded). */

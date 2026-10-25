@@ -1,0 +1,80 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<334 chars>",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 8105
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "05d27b66-0938-4f52-8f64-cdeb0e8073ea",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "05d27b66-0938-4f52-8f64-cdeb0e8073ea",
+  "status": "completed",
+  "created_at": "2026-10-25T16:50:41.935719+00:00",
+  "last_response": {
+   "seed": 8105,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11816 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14180 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14636 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14524 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "42b126dc-441d-4945-8824-d0f4d5d2a44c",
+   "queue_position": 0,
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x128.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x128.png",
+   "generation_started_at": "2026-10-25T16:50:48.09271+00:00",
+   "estimated_wait_seconds": 0,
+   "original_image_n_colors": 109,
+   "quantized_image_n_colors": 53
+  }
+ },
+ "files": [
+  "art-src/raw/ui/logo-0.png",
+  "art-src/raw/ui/logo-1.png",
+  "art-src/raw/ui/logo-2.png",
+  "art-src/raw/ui/logo-3.png"
+ ]
+}

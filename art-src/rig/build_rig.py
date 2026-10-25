@@ -339,6 +339,16 @@ def main():
         if s == "horse":
             for _ in range(p.get("seam", 2)):
                 grown |= neighbours4(grown) & other
+            # under-child pads: keep the child's real source pixels near the joint, so when the
+            # child swings away the parent still shows the muscle mass there (thigh, elbow)
+            yy0, xx0 = np.mgrid[0:H, 0:W]
+            for q in cut:
+                if q.get("parent") == p["name"] and q.get("underPad"):
+                    (cx, cy), r = q["pivot"], q["underPad"]
+                    disc = ((xx0 + 0.5 - cx) ** 2 + (yy0 + 0.5 - cy) ** 2) <= r * r
+                    if "underPadMaxY" in q:
+                        disc &= (yy0 + 0.5) < q["underPadMaxY"]
+                    grown |= disc & (labels[s] == cut.index(q)) & keep[s]
         # joint pads: discs at the part's pivot and at its children's pivots, filled by propagation
         discs = [(p["pivot"], p.get("padR", 3))]
         for q in cut:

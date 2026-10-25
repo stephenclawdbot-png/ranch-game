@@ -21,8 +21,18 @@ export type RigKind = "pixel-rig" | "pixellab-strip" | "placeholder";
  * Horse sprites, best first: the pixel-rig package (code-driven skeletal rig), then the
  * approved PixelLab gallop strip recoloured per horse, then the code-drawn placeholder.
  */
+/**
+ * The pixel rig is still in development, so it is opt-in: `?rig=1` on the page URL or
+ * NEXT_PUBLIC_PIXEL_RIG=1 at build time. Without it the approved PixelLab strip is used.
+ */
+function pixelRigEnabled(): boolean {
+  if (process.env.NEXT_PUBLIC_PIXEL_RIG === "1") return true;
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("rig") === "1";
+}
+
 export async function createRigFactory(three: typeof THREE, artBaseUrl: string | null, art?: ArtSet): Promise<{ factory: HorseRigFactory; kind: RigKind }> {
-  try {
+  if (pixelRigEnabled()) try {
     const mod = (await import("@thoroughbred/pixel-rig")) as { createHorseRigFactory?: (o?: { artBaseUrl?: string }) => HorseRigFactory };
     if (typeof mod.createHorseRigFactory === "function") {
       const factory = mod.createHorseRigFactory(artBaseUrl ? { artBaseUrl } : undefined);

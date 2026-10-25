@@ -24,6 +24,8 @@ export interface HarnessHandle {
   setPaused(p: boolean): void;
   setDrive(d: number): void;
   stats(): { rigs: number; updateMs: number; frameMs: number; source: string };
+  /** Render `n` consecutive frames (dt apart) of rig `slot` at native res; returns a PNG data URL strip. */
+  captureFrames(slot: number, n: number, dt: number, scale?: number): string;
 }
 
 const APPEARANCES: (HorseAppearance & { label: string; look?: HorseLookOptions })[] = [
@@ -63,14 +65,32 @@ export function startRigHarness(canvas: HTMLCanvasElement, params: URLSearchPara
   scene.background = new THREE.Color("#7f9a73");
   const camera = new THREE.OrthographicCamera(0, W, H, 0, -10, 10);
 
-  const factory = createHorseRigFactory({ artBaseUrl, loadSourceArt: params.get("gen") !== "1" }) as PixelHorseRigFactory;
+  const num = (k: string) => (params.has(k) ? Number(params.get(k)) : undefined);
+  const lighting = Object.fromEntries(
+    Object.entries({
+      lightMix: num("lm"),
+      dither: num("dither"),
+      rim: num("rim"),
+      ambient: num("amb"),
+      farShade: num("far"),
+      outline: params.has("outline") ? params.get("outline") !== "0" : undefined,
+      innerLines: params.has("inner") ? params.get("inner") !== "0" : undefined,
+    }).filter(([, v]) => v !== undefined),
+  );
+  const factory = createHorseRigFactory({ artBaseUrl, loadSourceArt: params.get("gen") !== "1", lighting }) as PixelHorseRigFactory;
+  const neutral = params.get("neutral") === "1";
 
   type Slot = { rig: HorseRig; speed: number; drive: number; phase: number; quad: THREE.Mesh; label?: string; shadow?: THREE.Mesh };
   const slots: Slot[] = [];
   const groundMat = new THREE.MeshBasicMaterial({ color: "#5f7d4c" });
   const shadowMat = new THREE.MeshBasicMaterial({ color: "#1f2a17", transparent: true, opacity: 0.35 });
   const addRig = (app: HorseAppearance & { look?: HorseLookOptions }, x: number, y: number, scale: number, speed: number, drive: number, phase: number, look?: HorseLookOptions) => {
-    const rig = factory.create(app, { ...(app.look ?? {}), ...(look ?? {}) });
+    const rig = factory.create(app, {
+      gate: slots.length + 1,
+      ...(neutral ? { morph: { legLength: 1, neckLength: 1, girth: 1, height: 1, headSize: 1 } } : {}),
+      ...(app.look ?? {}),
+      ...(look ?? {}),
+    });
     const mat = new THREE.MeshBasicMaterial({ map: rig.texture, transparent: true, alphaTest: 0.5 });
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(rig.width * scale, rig.height * scale), mat);
     // (x, y) = top-left of the cell in canvas px (y down)
@@ -90,7 +110,8 @@ export function startRigHarness(canvas: HTMLCanvasElement, params: URLSearchPara
   if (mode === "grid") {
     // 3 x 2 horses at 2x, close-up of the galloping one at 4x
     GRID_SPEEDS.forEach((v, i) => addRig(APPEARANCES[i]!, 8 + (i % 3) * 264, 8 + Math.floor(i / 3) * 200, 2, v, GRID_DRIVE[i]!, i * 0.37));
-    addRig(APPEARANCES[4]!, 8 + 3 * 264, 8, 4, 16, 0.2, 4 * 0.37);
+    const ci = Number(params.get("close") ?? 4);
+    addRig(APPEARANCES[ci % APPEARANCES.length]!, 8 + 3 * 264, 8, 4, Number(params.get("cspeed") ?? 16), Number(params.get("cdrive") ?? 0.2), ci * 0.37);
     // bottom row: more coats at 2x (sabino, roan...) galloping
     [6, 7, 8].forEach((k, i) => addRig(APPEARANCES[k]!, 8 + i * 264, 408, 2, 15 + i, 0.4, 0.21 * i));
   } else if (mode === "strip") {
@@ -189,6 +210,35 @@ export function startRigHarness(canvas: HTMLCanvasElement, params: URLSearchPara
       driveOverride = d < 0 ? null : d;
     },
     stats: () => ({ rigs: slots.length, updateMs, frameMs, source: factory.source }),
+    captureFrames(slot, n, dt, scale = 1) {
+      const s = slots[slot]!;
+      const w = s.rig.width;
+      const h = s.rig.height;
+      const out = document.createElement("canvas");
+      out.width = w * n * scale;
+      out.height = h * scale;
+      const ctx = out.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      const tmp = document.createElement("canvas");
+      tmp.width = w;
+      tmp.height = h;
+      const tctx = tmp.getContext("2d")!;
+      const buf = new Uint8Array(w * h * 4);
+      const rt = (s.rig as unknown as { rt: THREE.WebGLRenderTarget }).rt;
+      let ph = s.phase;
+      let tm = time;
+      for (let k = 0; k < n; k++) {
+        ph += strideFrequency(s.speed) * dt;
+        tm += dt;
+        s.rig.update(renderer, { phase: ph, speedMs: s.speed, drive: s.drive, lightDir: light, time: tm });
+        renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+        const img = tctx.createImageData(w, h);
+        for (let y = 0; y < h; y++) img.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+        tctx.putImageData(img, 0, 0);
+        ctx.drawImage(tmp, k * w * scale, 0, w * scale, h * scale);
+      }
+      return out.toDataURL("image/png");
+    },
   };
   (window as unknown as { __rig?: HarnessHandle; __rigFactory?: PixelHorseRigFactory; __rigs?: PixelHorseRig[] }).__rig = handle;
   (window as unknown as { __rigFactory?: PixelHorseRigFactory }).__rigFactory = factory;

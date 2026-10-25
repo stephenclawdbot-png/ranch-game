@@ -109,7 +109,7 @@ export function resolveLook(appearance: HorseAppearance, opts: HorseLookOptions,
   const morph = {} as Morph;
   for (const k of Object.keys(NEUTRAL_MORPH) as (keyof Morph)[]) {
     const [lo, hi] = MORPH_RANGE[k];
-    morph[k] = q32(clamp(opts.morph?.[k] ?? jitter(), lo, hi));
+    morph[k] = clamp(q32(opts.morph?.[k] ?? jitter()), lo, hi);
   }
   return { variants, morph, seed, sabino: clamp(opts.sabino ?? 0, 0, 1) };
 }
@@ -146,7 +146,9 @@ export function selectSkeleton(def: RigDef, variants: Record<VariantSlot, number
       cands.find((p) => !p.slot || (p.variant ?? 0) === variants[p.slot as VariantSlot]) ??
       cands.find((p) => (p.variant ?? 0) === 0) ??
       cands[0]!;
-    return { name, pivot: [...pick.pivot] as Vec2, parent: pick.parent, side: pick.side, copyOf: pick.copyOf };
+    // far-side limbs read a touch slimmer (perspective + shadow)
+    const slim = pick.side === "far" && /^(fore|hind)Far(Upper|Lower)$/.test(name);
+    return { name, pivot: [...pick.pivot] as Vec2, parent: pick.parent, side: pick.side, copyOf: pick.copyOf, scale: (slim ? [0.8, 1] : [1, 1]) as Vec2 };
   });
   return { parts, joints: Object.fromEntries(Object.entries(def.joints).map(([k, v]) => [k, [...v] as Vec2])), groundY: def.groundY };
 }

@@ -1,0 +1,77 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<10128 chars>",
+     "format": "png"
+    },
+    "width": 96,
+    "height": 96
+   }
+  ],
+  "image_size": {
+   "width": 96,
+   "height": 96
+  },
+  "description": "change the horse's coat colour to buckskin: tan sandy-gold coat with black mane; keep exactly the same pose, framing, bridle, white star, outline, lighting and pixel art style",
+  "no_background": true,
+  "seed": 7200
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4d3c3742-0cd7-4ec7-9b9f-fc06b493fd6c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "4d3c3742-0cd7-4ec7-9b9f-fc06b493fd6c",
+  "status": "completed",
+  "created_at": "2026-10-25T16:43:49.002130+00:00",
+  "last_response": {
+   "seed": 7200,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<10428 chars>",
+     "height": 96
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "02776401-661e-4a32-8bc8-20b92a2a4fba",
+   "queue_position": 0,
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<10428 chars>",
+     "height": 96
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:43:55.172717+00:00",
+   "estimated_wait_seconds": 0,
+   "original_image_n_colors": 108,
+   "quantized_image_n_colors": 60
+  }
+ },
+ "files": [
+  "art-src/raw/portraits/coat-buckskin-0.png"
+ ]
+}

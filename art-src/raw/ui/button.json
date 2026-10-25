@@ -1,0 +1,101 @@
+{
+ "endpoint": "/generate-ui-v2",
+ "request": {
+  "description": "wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art",
+  "image_size": {
+   "width": 96,
+   "height": 32
+  },
+  "color_palette": "oxblood red and brass gold",
+  "seed": 8103
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "410b7e38-cf69-4e77-a332-b39c27cbbe7a",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "410b7e38-cf69-4e77-a332-b39c27cbbe7a",
+  "status": "completed",
+  "created_at": "2026-10-25T16:50:41.950417+00:00",
+  "last_response": {
+   "seed": 8103,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<2348 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<1968 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<2664 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<1620 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.95,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "4e605f5a-01f3-4092-ada4-f5e2b39525bc",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<2348 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<1968 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<2664 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<1620 chars>",
+     "height": 32
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:50:48.158216+00:00",
+   "original_image_n_colors": 319,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/raw/ui/button-0.png",
+  "art-src/raw/ui/button-1.png",
+  "art-src/raw/ui/button-2.png",
+  "art-src/raw/ui/button-3.png"
+ ]
+}

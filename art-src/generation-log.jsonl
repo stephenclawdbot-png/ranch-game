@@ -60,3 +60,16 @@
 {"at":"2026-10-25T16:39:36.343Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-grass-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T16:42:03.993Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/portraits/master","secs":83,"usage":{"type":"generations","generations":10},"images":4}
 {"at":"2026-10-25T16:43:01.182Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-dark_bay","secs":50,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:43:31.790Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-black","secs":61,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:43:48.124Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-palomino","secs":57,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:44:01.556Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-chestnut","secs":60,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:44:32.273Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-grey","secs":60,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:44:53.517Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-buckskin","secs":65,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:45:02.037Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-liver_chestnut","secs":60,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:45:26.343Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-dapple_grey","secs":54,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:45:48.736Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-roan","secs":55,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:51:29.581Z","endpoint":"/generate-ui-v2","prefix":"art-src/raw/ui/button","secs":49,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:51:41.332Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/ui/logo","secs":61,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:51:46.101Z","endpoint":"/generate-ui-v2","prefix":"art-src/raw/ui/button-green","secs":66,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:51:51.557Z","endpoint":"/generate-ui-v2","prefix":"art-src/raw/ui/card","secs":71,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:51:56.858Z","endpoint":"/generate-ui-v2","prefix":"art-src/raw/ui/panel","secs":76,"usage":{"type":"generations","generations":10},"images":4}

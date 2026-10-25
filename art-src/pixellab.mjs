@@ -129,6 +129,7 @@ export async function run(endpoint, request, prefix) {
   // De-duplicate: jobs often return the same picture as `images` and `quantized_images`.
   const imgs = [...new Set(collectImages(payload))];
   const files = imgs.map((b, i) => saveBase64Png(b, `${prefix}-${i}.png`));
+  mkdirSync(dirname(resolve(prefix)), { recursive: true });
   const meta = { endpoint, request: strip(request), response: strip(response), job: job && strip(job), files };
   writeFileSync(`${prefix}.json`, JSON.stringify(meta, null, 1));
   appendFileSync(

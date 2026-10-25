@@ -36,6 +36,8 @@ export interface GaitPreset {
   tailSwing: number;
   /** How far the body is lowered in the gait (px). */
   crouch: number;
+  /** Standing offsets of each hoof (px, + forward) so the legs do not stack up when still. */
+  stand?: Partial<Record<LegId, number>>;
 }
 
 export const IDLE: GaitPreset = {
@@ -51,6 +53,7 @@ export const IDLE: GaitPreset = {
   tailBase: 0.05,
   tailSwing: 0.05,
   crouch: 0,
+  stand: { LF: -2, RF: 1, LH: 3, RH: -1 },
 };
 
 export const WALK: GaitPreset = {
@@ -93,7 +96,7 @@ export const GALLOP: GaitPreset = {
   neckBase: 0.24,
   neckNod: 0.11,
   headBase: -0.2,
-  tailBase: 1.05,
+  tailBase: 0.95,
   tailSwing: 0.14,
   crouch: 2,
 };
@@ -121,6 +124,7 @@ function mixPreset(a: GaitPreset, b: GaitPreset, t: number): GaitPreset {
     tailBase: m(a.tailBase, b.tailBase),
     tailSwing: m(a.tailSwing, b.tailSwing),
     crouch: m(a.crouch, b.crouch),
+    stand: Object.fromEntries(LEGS.map((l) => [l, m(a.stand?.[l] ?? 0, b.stand?.[l] ?? 0)])),
   };
 }
 
@@ -177,13 +181,13 @@ export function sampleLeg(g: GaitPreset, leg: LegId, phase: number): LegSample {
   const u = fract(phase - g.touchdown[leg]);
   if (u < g.duty || g.duty >= 1) {
     const s = g.duty >= 1 ? 0.5 : u / g.duty;
-    return { stance: true, t: s, x: reach * (1 - 2 * s), y: 0 };
+    return { stance: true, t: s, x: reach * (1 - 2 * s) + (g.stand?.[leg] ?? 0), y: 0 };
   }
   const w = (u - g.duty) / (1 - g.duty);
   // Swing: the hoof folds up behind first (fore legs tuck hard), then reaches forward and drops.
   const over = reach * 0.22;
   const fwd = smoothstep(fore ? 0.18 : 0.08, 0.82, w);
-  const x = -reach + (2 * reach + over) * fwd - over * smoothstep(0.82, 1, w);
+  const x = -reach + (2 * reach + over) * fwd - over * smoothstep(0.82, 1, w) + (g.stand?.[leg] ?? 0);
   const peak = fore ? 0.38 : 0.45;
   const k = Math.log(0.5) / Math.log(peak);
   const y = -lift * Math.sin(Math.PI * Math.pow(w, k));
@@ -434,7 +438,8 @@ export class GaitRig {
       sec.tailV = sec.tip = sec.tipV = sec.mane = sec.maneV = 0;
     }
     [sec.tail, sec.tailV] = spring(sec.tail, sec.tailV, tailTarget, 140, 14);
-    const tipTarget = (tailTarget - sec.tail) * 1.6 + (moving ? 0.22 * speedK : 0) + (moving ? 0.07 * speedK * Math.sin(input.time * 17 + 1) : 0);
+    // the tip lags the dock (wave) and droops a little under its own weight
+    const tipTarget = (tailTarget - sec.tail) * 1.8 - (moving ? 0.12 * speedK : 0) + (moving ? 0.08 * speedK * Math.sin(input.time * 17 + 1) : 0);
     [sec.tip, sec.tipV] = spring(sec.tip, sec.tipV, tipTarget, 90, 9);
     const maneTarget = moving ? -0.12 * speedK - nod * 0.6 + 0.04 * speedK * Math.sin(input.time * 19) : 0;
     [sec.mane, sec.maneV] = spring(sec.mane, sec.maneV, maneTarget, 160, 12);

@@ -17,7 +17,7 @@ export const partsVertex = /* glsl */ `
 precision highp float;
 in vec3 position;
 in vec2 uv;
-in vec4 aInfo;   // x part index, y far side (0/1), z leg index (-1 none, 0 LF, 1 RF, 2 LH, 3 RH), w layer
+in vec4 aInfo;   // x part index, y far side (0/1), z leg index (-1 none, 0 LF, 1 RF, 2 LH, 3 RH), w depth group * 40
 in float aSolid; // > 0: code-drawn part with this solid role (no texture)
 in vec2 aVariant; // x slot (0 none, 1 head, 2 mane, 3 tail, 4 build), y variant index
 in vec2 aSrc;     // rest-pose source-pixel position (continuous across parts, for patterns)
@@ -95,6 +95,23 @@ float vnoise(vec2 p) {
   return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
+// 3x5 digits, bit 14 = top-left, row-major
+const int DIGITS[10] = int[10](31599, 11415, 29671, 29647, 23497, 31183, 31215, 29330, 31727, 31695);
+bool digitHit(int d, ivec2 q) {
+  if (q.x < 0 || q.y < 0 || q.x > 2 || q.y > 4) return false;
+  return ((DIGITS[d] >> (14 - (q.y * 3 + q.x))) & 1) == 1;
+}
+/** Saddle-cloth number: source pixel p, right edge at x = 64, top at y = 39. */
+bool clothNumber(int n, ivec2 p) {
+  if (n <= 0) return false;
+  int ones = n % 10;
+  int tens = n / 10;
+  if (digitHit(ones, p - ivec2(62, 39))) return true;
+  if (tens == 1) return p.x == 60 && p.y >= 39 && p.y <= 43;   // narrow 1
+  if (tens > 1) return digitHit(tens, p - ivec2(58, 39));
+  return false;
+}
+
 bool silkHit(int pattern, vec2 texel) {
   vec2 axis = uSilksFrame.zw;
   float len = max(length(axis), 1.0);
@@ -169,16 +186,18 @@ void main() {
     }
     // sabino: irregular white patches rising from the belly and legs, plus a wide face
     if (uSeed.y > 0.0 && role != MARKING) {
-      float patch = vnoise(sp * 0.16 + seedOff) * 0.65 + vnoise(sp * 0.4 + seedOff.yx) * 0.35;
+      float blot = vnoise(sp * 0.16 + seedOff) * 0.65 + vnoise(sp * 0.4 + seedOff.yx) * 0.35;
       float low = clamp((vSrc.y - 46.0) / 22.0, 0.0, 1.0);
       float face = zone == 1 ? 0.35 : 0.0;
-      if (patch * 0.7 + low * 0.6 + face + uSeed.y * 0.55 > 1.25) { role = MARKING; tsrc = 0.72 + 0.28 * tsrc; }
+      if (blot * 0.7 + low * 0.6 + face + uSeed.y * 0.55 > 1.25) { role = MARKING; tsrc = 0.72 + 0.28 * tsrc; }
     }
   }
   if (role == HOOF && leg >= 0) {
     float lm = leg == 0 ? uLegMarks.x : leg == 1 ? uLegMarks.y : leg == 2 ? uLegMarks.z : uLegMarks.w;
     if (lm > 0.5) tsrc = min(1.0, tsrc + 0.45);   // white legs grow pale hooves
   }
+
+  if (role == 15 && clothNumber(int(uSeed.w + 0.5), ivec2(sp))) { role = 6; tsrc = 0.2; }
 
   // --- silks pattern on the torso ------------------------------------------------------------
   int pattern = int(uLook.z + 0.5);
@@ -198,7 +217,9 @@ void main() {
   float sheen = role == COAT ? 0.55 : (role == SILKS1 || role == SILKS2 || role == CAP) ? 0.75 : role == MANE ? 0.35 : 0.2;
   float spec = pow(max(dot(n, H), 0.0), 18.0) * sheen;
 
-  float shade = mix(tsrc, lit, uLightMix) + detail * 0.16 + rim;
+  // Relight around the source's own hand shading: the PixelLab ramp position carries the
+  // pixel-art detail, the normals move it up or down with the real sun.
+  float shade = tsrc + (lit - 0.62) * uLightMix + detail * 0.04 + rim;
   if (far) shade -= uFarShade;
 
   // coat textures
@@ -211,11 +232,11 @@ void main() {
   }
   if (role == COAT && coatTex == 2 && hash12(sp + seedOff * 1.7) > 0.74) shade += 0.22;
 
-  float f = 0.5 + clamp(shade, 0.0, 1.0) * 6.0 + spec * 2.2;
+  // ramp: 0 deep shadow .. 6 highlight, 7 sheen (reached by the brightest source pixels or spec)
+  float f = 0.4 + clamp(shade, 0.0, 1.0) * 6.6 + spec * 2.2;
   float base = floor(f);
   float th = 0.5 + (bayer4(floor(texel)) - 0.5) * uDither;
-  float level = base + ((f - base) > th ? 1.0 : 0.0);
-  level = clamp(level, 0.0, spec > 0.18 ? 7.0 : 6.0);
+  float level = clamp(base + ((f - base) > th ? 1.0 : 0.0), 0.0, 7.0);
 
   fragColor = vec4((float(role) * 16.0 + 8.0) / 255.0, (level * 32.0 + 16.0) / 255.0, vInfo.w / 255.0, 1.0);
 }
@@ -275,7 +296,7 @@ void main() {
   if (uInner > 0.5) {
     for (int k = 0; k < 4; k++) {
       vec4 q = fetchData(p + dirs[k]);
-      if (q.a > 0.5 && (q.b - d.b) * 255.0 > 5.5 && d.b > 0.0) {
+      if (q.a > 0.5 && (q.b - d.b) * 255.0 > 20.0 && d.b > 0.0) {
         level = max(min(level - 2, levelOf(q) - 1), 0);
         break;
       }

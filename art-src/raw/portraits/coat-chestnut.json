@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<10128 chars>",
+     "format": "png"
+    },
+    "width": 96,
+    "height": 96
+   }
+  ],
+  "image_size": {
+   "width": 96,
+   "height": 96
+  },
+  "description": "change the horse's coat colour to chestnut: bright coppery red-orange coat with a matching chestnut mane; keep exactly the same pose, framing, bridle, white star, outline, lighting and pixel art style",
+  "no_background": true,
+  "seed": 7200
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "596f2a45-0d91-419e-9f84-4c9ac5780094",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "596f2a45-0d91-419e-9f84-4c9ac5780094",
+  "status": "completed",
+  "created_at": "2026-10-25T16:43:02.061614+00:00",
+  "last_response": {
+   "seed": 7200,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<8720 chars>",
+     "height": 96
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "65666498-5b60-46d9-94e4-37ab6e88ac9b",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<8720 chars>",
+     "height": 96
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:43:08.303209+00:00",
+   "original_image_n_colors": 109,
+   "quantized_image_n_colors": 31
+  }
+ },
+ "files": [
+  "art-src/raw/portraits/coat-chestnut-0.png"
+ ]
+}
