@@ -87,7 +87,10 @@ export function RaceBoard({
       <div className="mb-2 flex items-end justify-between gap-2">
         <h2 className="t-display-m">{title}</h2>
         {href ? (
-          <Link href={href} className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream">
+          <Link
+            href={href}
+            className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream"
+          >
             {hrefLabel}
           </Link>
         ) : note ? (

@@ -33,7 +33,14 @@ export function PixelMeter({ value, label, max = 1000, cells = 10 }: { value: nu
   const lit = (value / max) * cells;
   const color = GRADE_COLOR[statGrade(value)];
   return (
-    <div className="flex h-3 gap-[2px] bg-[#050b08] p-[2px]" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}>
+    <div
+      className="flex h-3 gap-[2px] bg-[#050b08] p-[2px]"
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
+    >
       {Array.from({ length: cells }, (_, i) => {
         const on = i < Math.floor(lit);
         const part = !on && i < lit;
@@ -44,7 +51,17 @@ export function PixelMeter({ value, label, max = 1000, cells = 10 }: { value: nu
 }
 
 /** Letter grade tile (S–E). */
-export function GradeBadge({ value, grade: g, className, size = "md" }: { value?: number; grade?: Grade | string; className?: string; size?: "sm" | "md" | "lg" }) {
+export function GradeBadge({
+  value,
+  grade: g,
+  className,
+  size = "md",
+}: {
+  value?: number;
+  grade?: Grade | string;
+  className?: string;
+  size?: "sm" | "md" | "lg";
+}) {
   const letter = g ?? statGrade(value ?? 0);
   const dim = size === "lg" ? "h-10 w-10 text-2xl" : size === "sm" ? "h-6 w-6 text-sm" : "h-7 w-7 text-base";
   return (

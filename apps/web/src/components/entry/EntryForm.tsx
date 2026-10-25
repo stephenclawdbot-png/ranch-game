@@ -11,7 +11,11 @@ import { PixelIcon } from "../icons";
 
 const TACTICS: RunningStyle[] = ["front", "stalker", "closer"];
 /** Where the jockey sits in the pack (index in a 7-cell lane, 6 = leader). */
-const TACTIC_POS: Record<RunningStyle, number> = { front: 6, stalker: 4, closer: 0 };
+const TACTIC_POS: Record<RunningStyle, number> = {
+  front: 6,
+  stalker: 4,
+  closer: 0,
+};
 export const PLAN_HINT: Record<RunningStyle, string> = {
   front: "Jump out and lead all the way. Suits quick horses with stamina to hold on.",
   stalker: "Sit just behind the leaders, then pounce in the straight. The balanced ride.",
@@ -34,11 +38,27 @@ export async function enterQuickRace(state: PlayerState, horse: Horse, horseInde
   const res = await fetch("/api/races/quick", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ playerId: state.player.playerId, horseIndex, tactic, silks: state.player.silks, stableName: state.player.stableName }),
+    body: JSON.stringify({
+      playerId: state.player.playerId,
+      horseIndex,
+      tactic,
+      silks: state.player.silks,
+      stableName: state.player.stableName,
+    }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const { raceId, postTimeMs } = (await res.json()) as { raceId: string; postTimeMs: number };
-  addPendingRace({ raceId, horseIndex, horseName: horse.name, tactic, postTimeMs, enteredAtMs: Date.now() });
+  const { raceId, postTimeMs } = (await res.json()) as {
+    raceId: string;
+    postTimeMs: number;
+  };
+  addPendingRace({
+    raceId,
+    horseIndex,
+    horseName: horse.name,
+    tactic,
+    postTimeMs,
+    enteredAtMs: Date.now(),
+  });
   return raceId;
 }
 
@@ -69,7 +89,14 @@ export async function quickPickRace(state: PlayerState, horses: Horse[] | null, 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const out = (await res.json()) as QuickPickResult;
   const name = horses?.[out.pick.horseIndex]?.name ?? out.pick.reason.split(":")[0] ?? "Your horse";
-  addPendingRace({ raceId: out.raceId, horseIndex: out.pick.horseIndex, horseName: name, tactic: out.pick.tactic, postTimeMs: out.postTimeMs, enteredAtMs: Date.now() });
+  addPendingRace({
+    raceId: out.raceId,
+    horseIndex: out.pick.horseIndex,
+    horseName: name,
+    tactic: out.pick.tactic,
+    postTimeMs: out.postTimeMs,
+    enteredAtMs: Date.now(),
+  });
   return out;
 }
 
@@ -178,8 +205,8 @@ export function EntryForm({
         <p className="mb-2 text-sm text-cream-dim">
           {horse ? (
             <>
-              {horse.name} is a natural <strong className="text-cream">{STYLE_LABEL[horse.style].toLowerCase()}</strong>, and riding to {pronoun(horse.sex).his} natural style is
-              usually best.
+              {horse.name} is a natural <strong className="text-cream">{STYLE_LABEL[horse.style].toLowerCase()}</strong>, and riding to{" "}
+              {pronoun(horse.sex).his} natural style is usually best.
             </>
           ) : (
             " "

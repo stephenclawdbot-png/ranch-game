@@ -38,9 +38,21 @@ export function HomeView(props: ClubProps) {
 // ---------------------------------------------------------------------------
 
 const PILLARS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "horseshoe", title: "Own six horses", text: "Sprinters, stayers, closers. Each has a trip, a surface and a style." },
-  { icon: "flag", title: "Race in a minute", text: "Pick a horse and a plan. The gates open ten seconds later." },
-  { icon: "star", title: "Read the form", text: "Every result comes with the why: pace, fit and sectionals." },
+  {
+    icon: "horseshoe",
+    title: "Own six horses",
+    text: "Sprinters, stayers, closers. Each has a trip, a surface and a style.",
+  },
+  {
+    icon: "flag",
+    title: "Story races",
+    text: "Take on the club's rival stables. Watch, or skip to the result.",
+  },
+  {
+    icon: "stopwatch",
+    title: "Live races",
+    text: "A shared race every 3 minutes. Everyone watches the same race.",
+  },
 ];
 
 function Welcome({ next, live, recent }: ClubProps) {
@@ -98,7 +110,7 @@ function ClubNext({ next, live, compact = false }: { next: RaceSummary; live: Ra
       <Link href={`/race/${next.id}`} className="row-link group gap-3 px-3 py-2" data-testid="watch-next">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-cream-dim">
-            Next club race · {formatClock(next.postTimeMs)}
+            Next live race · {formatClock(next.postTimeMs)}
             {compact && (
               <>
                 {" "}
@@ -193,7 +205,7 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
 
       <section aria-labelledby="club-h" className="grid gap-4 lg:grid-cols-2">
         <div>
-          <SectionHeader id="club-h" title="Club racing" href="/races" linkLabel="Today’s card" />
+          <SectionHeader id="club-h" title="Live races" href="/races#live" linkLabel="Live card" />
           <ClubNext next={next} live={live} compact />
         </div>
         <RaceBoard title="Recent results">
@@ -227,7 +239,7 @@ function YourRaces({ state, now }: { state: PlayerState; now: number | null }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-extrabold group-hover:underline">{p.horseName}</span>
-                  <span className="t-meta block">Quick race · {formatClock(p.postTimeMs)} · result hidden until you watch</span>
+                  <span className="t-meta block">Story race · {formatClock(p.postTimeMs)} · result hidden until you open it</span>
                 </span>
               </Link>
             </li>
@@ -243,7 +255,9 @@ function YourRaces({ state, now }: { state: PlayerState; now: number | null }) {
                   {h.raceName} · {h.fieldSize} ran
                 </span>
               </span>
-              <span className={`num shrink-0 ${h.prize > 0 ? "text-positive" : "text-sage"}`}>{h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}</span>
+              <span className={`num shrink-0 ${h.prize > 0 ? "text-positive" : "text-sage"}`}>
+                {h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}
+              </span>
             </Link>
           </li>
         ))}
@@ -267,7 +281,7 @@ function QuickPickHero({ horse, index, firstRace }: { horse: Horse; index: numbe
               <HorsePortrait appearance={horse.appearance} scale={1} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-extrabold text-cream-dim">{firstRace ? "Your first race · likely pick" : "Quick Pick · likely pick"}</p>
+              <p className="text-sm font-extrabold text-cream-dim">{firstRace ? "Story · your first club race" : "Story · next club race"}</p>
               <h2 id="ready-h" className="t-display-l">
                 {horse.name}
               </h2>
@@ -278,7 +292,7 @@ function QuickPickHero({ horse, index, firstRace }: { horse: Horse; index: numbe
             </div>
           </div>
           <p className="mt-3 max-w-prose text-cream-dim">
-            One tap enters your best-suited fresh horse in the next race, ridden to its natural style. {horseSummary(horse)}
+            Quick Pick sends your best-suited fresh horse to the next Story race, ridden to its natural style. {horseSummary(horse)}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <ActionBar>
@@ -286,13 +300,27 @@ function QuickPickHero({ horse, index, firstRace }: { horse: Horse; index: numbe
                 <PixelIcon name="flag" size={32} className="-my-2" /> Enter next race
               </button>
             </ActionBar>
-            <button type="button" className="btn-ghost inline-flex min-h-11 items-center font-bold" onClick={() => entry.open(index, { picker: true })}>
+            <button
+              type="button"
+              className="btn-ghost inline-flex min-h-11 items-center font-bold"
+              onClick={() => entry.open(index, { picker: true })}
+            >
               Choose horse &amp; plan
             </button>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/** Secondary Quick Pick when the primary action is about a race you already entered. */
+function QuickPickAgain() {
+  const entry = useEntry();
+  return (
+    <button type="button" className="btn" onClick={entry.quickPick} data-testid="quick-pick">
+      Enter another race
+    </button>
   );
 }
 
@@ -304,12 +332,15 @@ function YourRace({ race, now }: { race: PendingRace; now: number }) {
       <h2 id="yours-h" className="t-display-l">
         {race.horseName}
       </h2>
-      <p className="t-meta">Quick race · {startsIn > 0 ? `off in ${formatCountdown(startsIn)}` : "live now"}</p>
-      <ActionBar className="mt-4">
-        <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg">
-          <PixelIcon name="play" className="h-4 w-4" /> Watch {race.horseName}
-        </Link>
-      </ActionBar>
+      <p className="t-meta">Story race · {startsIn > 0 ? `off in ${formatCountdown(startsIn)}` : "running now"}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <ActionBar>
+          <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg">
+            <PixelIcon name="play" className="h-4 w-4" /> Watch {race.horseName}
+          </Link>
+        </ActionBar>
+        <QuickPickAgain />
+      </div>
     </section>
   );
 }
@@ -317,18 +348,19 @@ function YourRace({ race, now }: { race: PendingRace; now: number }) {
 function ResultReady({ race, count }: { race: PendingRace; count: number }) {
   return (
     <section className="frame-hero p-4" aria-labelledby="ready-result-h" data-testid="up-next">
-      <p className="text-sm font-extrabold text-cream-dim">
-        ▶ {count > 1 ? `While you were away: ${count} results are ready` : "Result ready"}
-      </p>
+      <p className="text-sm font-extrabold text-cream-dim">▶ {count > 1 ? `While you were away: ${count} results are ready` : "Result ready"}</p>
       <h2 id="ready-result-h" className="t-display-l">
         {race.horseName}&rsquo;s race
       </h2>
-      <p className="t-meta">Quick race at {formatClock(race.postTimeMs)}. We haven&rsquo;t told you how it went.</p>
-      <ActionBar className="mt-4">
-        <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg">
-          <PixelIcon name="play" className="h-4 w-4" /> See the result
-        </Link>
-      </ActionBar>
+      <p className="t-meta">Story race at {formatClock(race.postTimeMs)}. We haven&rsquo;t told you how it went.</p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <ActionBar>
+          <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg">
+            <PixelIcon name="play" className="h-4 w-4" /> See the result
+          </Link>
+        </ActionBar>
+        <QuickPickAgain />
+      </div>
     </section>
   );
 }

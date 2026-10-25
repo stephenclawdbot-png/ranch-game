@@ -25,7 +25,10 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 /** Last three finishing positions, oldest first ("5-2-1"), or "–" if unraced. */
 function formFigures(state: PlayerState, index: number): string {
-  const runs = state.progress.history.filter((h) => h.horseIndex === index).slice(0, 3).reverse();
+  const runs = state.progress.history
+    .filter((h) => h.horseIndex === index)
+    .slice(0, 3)
+    .reverse();
   return runs.length ? runs.map((r) => (r.position > 9 ? "0" : String(r.position))).join("-") : "–";
 }
 
@@ -54,8 +57,8 @@ function Stable({ state }: { state: PlayerState }) {
             {state.player.stableName}
           </h1>
           <p className="t-meta">
-            <span className="num text-cream">{formatCredits(state.progress.credits)}</span> credits · {t.starts} {t.starts === 1 ? "run" : "runs"} · {t.wins}{" "}
-            {t.wins === 1 ? "win" : "wins"}
+            <span className="num text-cream">{formatCredits(state.progress.credits)}</span> credits · {t.starts} {t.starts === 1 ? "run" : "runs"} ·{" "}
+            {t.wins} {t.wins === 1 ? "win" : "wins"}
           </p>
         </div>
       </header>
@@ -74,10 +77,15 @@ function Stable({ state }: { state: PlayerState }) {
           </div>
         </div>
 
-        {error && <p className="px-oxblood p-3 text-sm">Couldn&rsquo;t reach the track ({error}). Your stable is safe on this device; try refreshing.</p>}
+        {error && (
+          <p className="px-oxblood p-3 text-sm">Couldn&rsquo;t reach the track ({error}). Your stable is safe on this device; try refreshing.</p>
+        )}
 
         <div className="surface !p-0">
-          <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_6rem_7.5rem_4rem_6rem] items-center gap-3 border-b-2 border-line px-3 py-2 lg:grid" aria-hidden>
+          <div
+            className="hidden grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_6rem_7.5rem_4rem_6rem] items-center gap-3 border-b-2 border-line px-3 py-2 lg:grid"
+            aria-hidden
+          >
             {["Horse", "Style", "Best trip", "Surface", "Spd · Sta · Brs", "Form", ""].map((c) => (
               <span key={c} className="label">
                 {c}
@@ -103,7 +111,10 @@ function Stable({ state }: { state: PlayerState }) {
       )}
 
       <div className="grid gap-3 border-t-2 border-line pt-4">
-        <Link href="/me" className="inline-flex min-h-11 w-fit items-center gap-2 font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream">
+        <Link
+          href="/me"
+          className="inline-flex min-h-11 w-fit items-center gap-2 font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream"
+        >
           <PixelIcon name="pencil" className="h-4 w-4" /> Edit name &amp; colours
         </Link>
         <StorageNote />
@@ -129,7 +140,8 @@ function RosterRow({ horse, form, recommended, onRace }: { horse: Horse; form: s
             {recommended && <span className="ml-2 align-middle text-xs font-extrabold text-positive">✓ Quick Pick</span>}
           </span>
           <span className="t-meta block lg:hidden">
-            {STYLE_LABEL[horse.style]} · {tripBand(horse.preferredDistanceM).label} {formatDistance(horse.preferredDistanceM)} · {SURFACE_LABEL[horse.preferredSurface]}
+            {STYLE_LABEL[horse.style]} · {tripBand(horse.preferredDistanceM).label} {formatDistance(horse.preferredDistanceM)} ·{" "}
+            {SURFACE_LABEL[horse.preferredSurface]}
           </span>
           <span className="t-meta hidden lg:block">
             {horse.age}yo {SEX_LABEL[horse.sex].toLowerCase()}

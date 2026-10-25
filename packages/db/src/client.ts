@@ -16,8 +16,6 @@
  *
  * Server-only: never import this module from client components.
  */
-import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
 import * as schema from "./schema";
 import { migrate } from "./migrate";
 import type { Db } from "./types";
@@ -86,8 +84,12 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
  * file, so it works in the monorepo (vitest, `next dev`, `next start`).
  */
 async function nativeImport<T>(specifier: string): Promise<T> {
-  const resolved = createRequire(import.meta.url).resolve(specifier).replace(/\.cjs$/, ".js");
-  return (await import(/* webpackIgnore: true */ /* @vite-ignore */ pathToFileURL(resolved).href)) as T;
+  // process.getBuiltinModule hides createRequire from bundlers (webpack rewrites a visible
+  // createRequire(import.meta.url) into its own module map).
+  const nodeModule = process.getBuiltinModule("node:module");
+  const nodeUrl = process.getBuiltinModule("node:url");
+  const resolved = nodeModule.createRequire(import.meta.url).resolve(specifier).replace(/\.cjs$/, ".js");
+  return (await import(/* webpackIgnore: true */ /* @vite-ignore */ nodeUrl.pathToFileURL(resolved).href)) as T;
 }
 
 // ---------------------------------------------------------------------------

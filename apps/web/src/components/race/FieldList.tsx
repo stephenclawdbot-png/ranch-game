@@ -14,16 +14,27 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
           The field
         </h2>
         <span className="text-sm font-bold text-cream-dim">
-          {card.field.length} runners <span aria-hidden className="inline-block group-open:rotate-90">▸</span>
+          {card.field.length} runners{" "}
+          <span aria-hidden className="inline-block group-open:rotate-90">
+            ▸
+          </span>
         </span>
       </summary>
       <table className="w-full border-t-2 border-line text-left text-sm" data-testid="field-table">
         <thead>
           <tr className="label">
-            <th scope="col" className="w-12 py-2 pl-3 font-bold">No.</th>
-            <th scope="col" className="py-2 pl-1 font-bold">Runner</th>
-            <th scope="col" className="hidden py-2 pr-4 font-bold sm:table-cell">Plan</th>
-            <th scope="col" className="hidden py-2 pr-4 font-bold md:table-cell">Best trip</th>
+            <th scope="col" className="w-12 py-2 pl-3 font-bold">
+              No.
+            </th>
+            <th scope="col" className="py-2 pl-1 font-bold">
+              Runner
+            </th>
+            <th scope="col" className="hidden py-2 pr-4 font-bold sm:table-cell">
+              Plan
+            </th>
+            <th scope="col" className="hidden py-2 pr-4 font-bold md:table-cell">
+              Best trip
+            </th>
             <th scope="col" className="whitespace-nowrap py-2 pr-3 text-right font-bold" title="Speed · Stamina · Burst grades">
               Spd · Sta · Brs
             </th>
@@ -34,7 +45,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
             const me = e.horse.id === highlightHorseId;
             const s = e.horse.stats;
             return (
-              <tr key={e.horse.id} className={`border-t-2 border-line ${me ? "bg-surface-2 shadow-[inset_4px_0_0_#d9a441]" : ""}`} data-testid={me ? "my-runner" : undefined}>
+              <tr
+                key={e.horse.id}
+                className={`border-t-2 border-line ${me ? "bg-surface-2 shadow-[inset_4px_0_0_#d9a441]" : ""}`}
+                data-testid={me ? "my-runner" : undefined}
+              >
                 <td className="py-2 pl-3">
                   <Saddlecloth gate={e.gate} />
                 </td>
@@ -54,7 +69,9 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                   </div>
                 </td>
                 <td className="hidden whitespace-nowrap py-2 pr-4 font-semibold text-cream-dim sm:table-cell">{STYLE_SHORT[e.tactic]}</td>
-                <td className="hidden whitespace-nowrap py-2 pr-4 font-semibold text-cream-dim md:table-cell">{formatDistance(e.horse.preferredDistanceM)}</td>
+                <td className="hidden whitespace-nowrap py-2 pr-4 font-semibold text-cream-dim md:table-cell">
+                  {formatDistance(e.horse.preferredDistanceM)}
+                </td>
                 <td className="py-2 pl-2 pr-3">
                   <span className="flex justify-end gap-1" aria-label={`Speed ${s.speed}, stamina ${s.stamina}, burst ${s.burst}`}>
                     <GradeBadge value={s.speed} size="sm" />

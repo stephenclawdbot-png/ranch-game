@@ -76,7 +76,12 @@ export function HorseDetail({ view }: { view: HorseView }) {
       <section className="grid gap-4 md:grid-cols-[auto_1fr] md:gap-6" aria-labelledby="horse-h">
         <div className="surface w-fit !p-0">
           <Stall className="flex items-end justify-center px-6 pt-4 md:px-8">
-            <HorsePortrait appearance={horse.appearance} scale={2} className="md:hidden" title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`} />
+            <HorsePortrait
+              appearance={horse.appearance}
+              scale={2}
+              className="md:hidden"
+              title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`}
+            />
             <HorsePortrait appearance={horse.appearance} scale={3} className="hidden md:block" />
           </Stall>
         </div>
@@ -118,16 +123,16 @@ export function HorseDetail({ view }: { view: HorseView }) {
           <h2 id="apt-h" className="t-display-m">
             Aptitudes
           </h2>
-          <p className="mt-1 text-sm text-cream-dim">How much of {horse.name.split(" ")[0]}&rsquo;s ability shows in each condition. A keeps it all; E loses a lot.</p>
+          <p className="mt-1 text-sm text-cream-dim">
+            How much of {horse.name.split(" ")[0]}&rsquo;s ability shows in each condition. A keeps it all; E loses a lot.
+          </p>
           <dl className="mt-2 divide-y-2 divide-line">
             <AptRow label="Trip" cells={apt.trip} name={tripName} />
             <AptRow label="Surface" cells={apt.surface} name={(k) => SURFACE_LABEL[k]} />
             <AptRow label="Going" cells={apt.going} name={(k) => GOING_LABEL[k]} />
             <AptRow label="Plan" cells={apt.style} name={(k) => STYLE_LABEL[k]} />
           </dl>
-          <p className="caption mt-2">
-            Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}..
-          </p>
+          <p className="caption mt-2">Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}..</p>
         </section>
 
         <section className="surface p-4" aria-labelledby="ability-h">
@@ -151,7 +156,9 @@ export function HorseDetail({ view }: { view: HorseView }) {
             Form
           </h2>
           {history.length === 0 ? (
-            <div className="surface p-4 text-cream-dim">No runs yet. {horse.name.split(" ")[0]}&rsquo;s first start will show here with its replay.</div>
+            <div className="surface p-4 text-cream-dim">
+              No runs yet. {horse.name.split(" ")[0]}&rsquo;s first start will show here with its replay.
+            </div>
           ) : (
             <ul className="surface rows" data-testid="history">
               {history.map((h) => (

@@ -28,7 +28,12 @@ export interface Settlement {
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */
 const STAGES = ["board", "reward", "why", "next"] as const;
 type Stage = (typeof STAGES)[number];
-const DELAY: Record<Stage, number> = { board: 0, reward: 1100, why: 2300, next: 3100 };
+const DELAY: Record<Stage, number> = {
+  board: 0,
+  reward: 1100,
+  why: 2300,
+  next: 3100,
+};
 
 /** One-shot pixel confetti for a win (<= 1.2 s, skipped when motion is calm). */
 function Confetti() {
@@ -39,7 +44,11 @@ function Confetti() {
         <span
           key={i}
           className="absolute bottom-0 h-2 w-2"
-          style={{ left: `${(i * 37) % 100}%`, background: colors[i % colors.length], animation: `float-up 1000ms steps(10) ${(i % 6) * 40}ms 1 both` }}
+          style={{
+            left: `${(i * 37) % 100}%`,
+            background: colors[i % colors.length],
+            animation: `float-up 1000ms steps(10) ${(i % 6) * 40}ms 1 both`,
+          }}
         />
       ))}
     </div>
@@ -105,7 +114,13 @@ export function ResultsSequence({
       </div>
       {mine && settlement && at("reward") && (
         <div className="fade-up">
-          <RewardCounter horseName={mine.horse.name} position={settlement.position} fieldSize={card.field.length} prize={settlement.prize} fresh={settlement.fresh} />
+          <RewardCounter
+            horseName={mine.horse.name}
+            position={settlement.position}
+            fieldSize={card.field.length}
+            prize={settlement.prize}
+            fresh={settlement.fresh}
+          />
         </div>
       )}
       {analysis && subject && at("why") && (
@@ -115,7 +130,18 @@ export function ResultsSequence({
       )}
       {at("next") && (
         <div ref={nextRef} className="fade-up">
-          <NextActions card={card} mine={mine ? { id: mine.horse.id, name: mine.horse.name, tactic: mine.tactic } : null} />
+          <NextActions
+            card={card}
+            mine={
+              mine
+                ? {
+                    id: mine.horse.id,
+                    name: mine.horse.name,
+                    tactic: mine.tactic,
+                  }
+                : null
+            }
+          />
         </div>
       )}
       <FullResults replay={replay} card={card} highlightHorseId={highlightHorseId} />
@@ -124,7 +150,17 @@ export function ResultsSequence({
 }
 
 /** What next: race again (same horse and plan, one tap), try a new plan, or go back to the stable. */
-export function NextActions({ card, mine }: { card: RaceCard; mine: { id: string; name: string; tactic: RaceCard["field"][number]["tactic"] } | null }) {
+export function NextActions({
+  card,
+  mine,
+}: {
+  card: RaceCard;
+  mine: {
+    id: string;
+    name: string;
+    tactic: RaceCard["field"][number]["tactic"];
+  } | null;
+}) {
   const router = useRouter();
   const state = usePlayerState();
   const entry = useEntry();
@@ -138,12 +174,18 @@ export function NextActions({ card, mine }: { card: RaceCard; mine: { id: string
     return (
       <section className="flex flex-wrap items-center gap-3" aria-label="What next">
         <ActionBar>
-          <Link href={state ? "/" : "/play"} className="btn btn-brass btn-lg">
-            <PixelIcon name="flag" size={32} className="-my-2" /> {state ? "Race one of yours" : "Found your stable"}
-          </Link>
+          {state ? (
+            <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick}>
+              <PixelIcon name="flag" size={32} className="-my-2" /> Enter a Story race
+            </button>
+          ) : (
+            <Link href="/play" className="btn btn-brass btn-lg">
+              <PixelIcon name="flag" size={32} className="-my-2" /> Found your stable
+            </Link>
+          )}
         </ActionBar>
-        <Link href="/races" className="btn-ghost inline-flex min-h-11 items-center font-bold">
-          Today&rsquo;s card
+        <Link href="/races#live" className="btn-ghost inline-flex min-h-11 items-center font-bold">
+          Live card
         </Link>
       </section>
     );
@@ -173,8 +215,8 @@ export function NextActions({ card, mine }: { card: RaceCard; mine: { id: string
         <button type="button" className="btn" onClick={() => entry.open(index)}>
           Try a different plan
         </button>
-        <button type="button" className="btn" onClick={() => entry.open(index, { picker: true })}>
-          Another horse
+        <button type="button" className="btn" onClick={entry.quickPick}>
+          Quick Pick
         </button>
         <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
           Back to the stable
@@ -185,7 +227,7 @@ export function NextActions({ card, mine }: { card: RaceCard; mine: { id: string
           {error}
         </p>
       )}
-      {card.kind === "quick" && <p className="caption">Same horse, same plan, a new field. Free to enter.</p>}
+      {card.kind === "quick" && <p className="caption">Race again: same horse, same plan, a new field. Quick Pick: your best-suited fresh horse.</p>}
     </section>
   );
 }

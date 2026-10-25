@@ -7,7 +7,22 @@ import { PixelIcon } from "../icons";
 import { SceneBackdrop } from "../pixel/SceneBackdrop";
 
 export const NAME_RE = /^[\p{L}\p{N} '&.\-]{2,32}$/u;
-const NAME_A = ["Harbourlight", "Ashdown", "Blackthorn", "Kingsfold", "Larkrise", "Moorcroft", "Nettlebed", "Oakwood", "Ravensmoor", "Stonebridge", "Whitecross", "Wildmere", "Foxcote", "Glenmorrow"];
+const NAME_A = [
+  "Harbourlight",
+  "Ashdown",
+  "Blackthorn",
+  "Kingsfold",
+  "Larkrise",
+  "Moorcroft",
+  "Nettlebed",
+  "Oakwood",
+  "Ravensmoor",
+  "Stonebridge",
+  "Whitecross",
+  "Wildmere",
+  "Foxcote",
+  "Glenmorrow",
+];
 const NAME_B = ["Stables", "Racing", "Lodge", "Stud", "House", "Farm", "Yard"];
 
 export function suggestName(): string {

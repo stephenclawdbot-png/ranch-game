@@ -109,11 +109,13 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
       )}
       {error && <p className="mt-2 text-sm font-bold text-negative">Couldn&rsquo;t run the check ({error}).</p>}
       <details className="mt-2">
-        <summary className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4">How sealing works</summary>
+        <summary className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4">
+          How sealing works
+        </summary>
         <div className="mt-2 grid gap-3 text-sm text-cream-dim">
           <p>
-            Each race is decided by a secret seed fixed when the card is drawn. Its fingerprint (a sha256 hash) is published before the off. After
-            the finish the seed is revealed, so anyone can check it matches and that replaying the race gives the same result.
+            Each race is decided by a secret seed fixed when the card is drawn. Its fingerprint (a sha256 hash) is published before the off. After the
+            finish the seed is revealed, so anyone can check it matches and that replaying the race gives the same result.
           </p>
           <Hash label="Fingerprint (published before the off)" value={card.seedCommitment} testId="seed-commitment" />
           {replay && <Hash label="Revealed seed" value={replay.seed} testId="seed-revealed" />}

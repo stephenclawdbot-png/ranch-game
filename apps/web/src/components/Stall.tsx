@@ -8,7 +8,11 @@ export function Stall({ children, className, tone = "wood" }: { children?: React
       : "repeating-linear-gradient(90deg, #1f4d35 0 20px, #1a4330 20px 22px, #24563b 22px 42px, #0f2a1d 42px 44px)";
   return (
     <div className={`relative overflow-hidden ${className ?? ""}`} style={{ background: wall }}>
-      <div aria-hidden className="absolute inset-x-0 top-[14%] h-[10px]" style={{ background: "linear-gradient(#7a4f2c 0 2px, #4a2c18 2px 8px, #2a170c 8px)" }} />
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-[14%] h-[10px]"
+        style={{ background: "linear-gradient(#7a4f2c 0 2px, #4a2c18 2px 8px, #2a170c 8px)" }}
+      />
       <div
         aria-hidden
         className="absolute inset-x-0 bottom-0 h-[14%]"

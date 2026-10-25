@@ -29,8 +29,17 @@ export function ResultBoard({ replay, card, highlightHorseId }: { replay: RaceRe
           const me = f.horseId === highlightHorseId;
           return (
             <li key={f.horseId}>
-              {i === 3 && <p className="caption py-1 pl-1" aria-hidden>…</p>}
-              <div className={`${me ? "is-selected" : "surface-2"} flex items-center gap-3 p-2`} style={{ animation: `fade-up 240ms steps(4) ${i * 160}ms both` }}>
+              {i === 3 && (
+                <p className="caption py-1 pl-1" aria-hidden>
+                  …
+                </p>
+              )}
+              <div
+                className={`${me ? "is-selected" : "surface-2"} flex items-center gap-3 p-2`}
+                style={{
+                  animation: `fade-up 240ms steps(4) ${i * 160}ms both`,
+                }}
+              >
                 <PositionBadge position={f.position} size={f.position === 1 ? "lg" : "md"} />
                 {e && <SilksIcon silks={e.horse.appearance.silks} className="h-9 w-9" />}
                 <div className="min-w-0 flex-1">

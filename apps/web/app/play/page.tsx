@@ -142,7 +142,10 @@ function Welcome() {
       </header>
 
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3" aria-label="Your starter horses">
-        {(horses ? [rec, ...horses.map((_, i) => i).filter((i) => i !== rec)].map((i) => ({ h: horses[i]!, i })) : Array.from({ length: 6 }, (_, i) => ({ h: null, i }))).map(({ h, i }, order) => {
+        {(horses
+          ? [rec, ...horses.map((_, i) => i).filter((i) => i !== rec)].map((i) => ({ h: horses[i]!, i }))
+          : Array.from({ length: 6 }, (_, i) => ({ h: null, i }))
+        ).map(({ h, i }, order) => {
           const isStar = h !== null && i === rec;
           return (
             <li
@@ -192,7 +195,9 @@ function Welcome() {
         </p>
       )}
       <p className="text-sm text-cream-dim">
-        {star ? `${star.name} runs as a ${STYLE_LABEL[star.style].toLowerCase()}: ${pronoun(star.sex).he} ${star.style === "front" ? "tries to lead all the way" : star.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. The gates open ten seconds after you tap.` : ""}
+        {star
+          ? `${star.name} runs as a ${STYLE_LABEL[star.style].toLowerCase()}: ${pronoun(star.sex).he} ${star.style === "front" ? "tries to lead all the way" : star.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. The gates open ten seconds after you tap.`
+          : ""}
       </p>
       <StorageNote />
     </div>

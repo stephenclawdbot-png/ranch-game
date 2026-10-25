@@ -81,7 +81,10 @@ export function SiteNav() {
         </div>
       </header>
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-surface-2 bg-[#0a1b12] pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-surface-2 bg-[#0a1b12] pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
         <ul className="grid h-14 grid-cols-3">
           {TABS.map(({ href, label, icon, match }) => {
             const active = match(pathname);

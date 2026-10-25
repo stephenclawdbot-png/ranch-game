@@ -6,8 +6,8 @@ export function StorageNote({ className }: { className?: string }) {
         i
       </span>
       <span>
-        Your stable is saved in <strong className="text-cream">this browser</strong> on this device. Clearing your browsing data or switching
-        device starts a new stable, so keep this browser for now. Accounts that follow you everywhere are on the way.
+        Your stable is saved in <strong className="text-cream">this browser</strong> on this device. Clearing your browsing data or switching device
+        starts a new stable, so keep this browser for now. Accounts that follow you everywhere are on the way.
       </span>
     </p>
   );

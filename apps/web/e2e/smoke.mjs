@@ -195,6 +195,23 @@ async function main() {
     const bad = await page.request.get(`${BASE_URL}/api/races/${encodeURIComponent(tampered)}`);
     assert(bad.status() === 404, `tampered race id rejected (got ${bad.status()})`);
 
+    // ---------------------------------------------------- Quick Pick (Story mode)
+    log("quick pick: watch later, then skip to result");
+    await page.goto(`${BASE_URL}/`);
+    await page.getByTestId("quick-pick").click();
+    await page.getByTestId("pick-card").waitFor();
+    assert((await page.getByTestId("pick-reason").innerText()).length > 10, "pick card explains the pick");
+    await page.getByTestId("watch-later").click();
+    await page.getByTestId("entered-later").waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByTestId("inbox-race").first().waitFor();
+    await page.getByTestId("quick-pick").click();
+    await page.getByTestId("skip-to-result").click();
+    await page.waitForURL(/\/race\//);
+    await page.getByTestId("result-board").waitFor({ timeout: 60_000 });
+    await page.getByTestId("settlement").waitFor();
+    await shot(page, "desktop-quickpick-result");
+
     // ------------------------------------------------------------------ mobile
     const state = await desktop.storageState();
     const mobile = await browser.newContext({

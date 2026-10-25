@@ -147,9 +147,17 @@ export function analyseRace(
   const handy = early <= Math.max(2, Math.ceil(n / 4));
   const back = early > Math.ceil(n / 2);
   if (pace === "fast") {
-    parts.push(handy ? "They went off fast and racing up with the pace cost energy late on." : "They went off fast, which set it up for horses coming from behind.");
+    parts.push(
+      handy
+        ? "They went off fast and racing up with the pace cost energy late on."
+        : "They went off fast, which set it up for horses coming from behind.",
+    );
   } else if (pace === "slow") {
-    parts.push(back ? "The early pace was slow, so the leaders had plenty left and it was hard to make up ground." : "The early pace was slow, which suited horses near the front.");
+    parts.push(
+      back
+        ? "The early pace was slow, so the leaders had plenty left and it was hard to make up ground."
+        : "The early pace was slow, which suited horses near the front.",
+    );
   } else {
     parts.push("The pace was even, a fair test.");
   }

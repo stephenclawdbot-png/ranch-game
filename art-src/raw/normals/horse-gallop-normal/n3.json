@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<16472 chars>",
+   "base64": "<16308 chars>",
    "format": "png"
   },
   "mode": "pro",
@@ -11,7 +11,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "4148f72b-925d-4283-ae77-da96f15145bc",
+  "background_job_id": "5bd37b37-7751-45eb-a0d6-16ed252774f9",
   "status": "processing"
  },
  "job": {
@@ -19,9 +19,9 @@
    "type": "generations",
    "generations": 0.5
   },
-  "id": "4148f72b-925d-4283-ae77-da96f15145bc",
+  "id": "5bd37b37-7751-45eb-a0d6-16ed252774f9",
   "status": "completed",
-  "created_at": "2026-10-25T17:07:30.744288+00:00",
+  "created_at": "2026-10-25T17:56:50.157006+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -35,207 +35,165 @@
     "kind": "character",
     "parts": [
      {
-      "axis": 60,
-      "name": "tail",
+      "axis": 10,
+      "name": "horse barrel",
+      "round": 0.85,
+      "shape": "cylinder",
+      "regions": [
+       77,
+       91,
+       80,
+       85,
+       92,
+       97,
+       81,
+       83,
+       84
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "horse hind legs",
       "round": 0.8,
       "shape": "cylinder",
       "regions": [
-       69
-      ]
-     },
-     {
-      "axis": 5,
-      "name": "horse body",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
+       101,
        66,
-       78,
-       68,
-       85,
-       45,
-       59,
-       70,
-       77,
-       65,
-       67,
-       87
+       82,
+       90,
+       100,
+       106,
+       110
       ]
      },
      {
       "axis": 90,
-      "name": "foreleg near",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
-       79,
-       83
-      ]
-     },
-     {
-      "axis": 90,
-      "name": "foreleg far",
-      "round": 0.9,
+      "name": "horse front legs",
+      "round": 0.8,
       "shape": "cylinder",
       "regions": [
        72,
-       91
-      ]
-     },
-     {
-      "axis": 90,
-      "name": "hind leg",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
-       88,
-       89
-      ]
-     },
-     {
-      "name": "hooves",
-      "shape": "bevel",
-      "width": 2,
-      "facing": [
-       0,
-       -0.6
-      ],
-      "regions": [
-       93
+       74,
+       49,
+       68,
+       69,
+       78
       ]
      },
      {
       "axis": 50,
-      "name": "neck",
-      "round": 0.9,
+      "name": "horse neck and head",
+      "round": 0.85,
       "shape": "cylinder",
       "regions": [
-       38,
-       39,
+       40,
+       35,
+       47,
+       52,
        54,
        55,
-       31,
-       48,
-       49,
+       42,
+       39,
+       29,
+       34,
+       60,
        53,
-       26
-      ]
-     },
-     {
-      "name": "horse head",
-      "round": 0.8,
-      "shape": "ball",
-      "regions": [
-       27,
-       32,
-       43,
-       40,
-       44,
-       50,
-       51,
-       52,
-       56,
-       57,
        58,
-       60
+       64,
+       70
       ]
      },
      {
-      "name": "reins",
+      "name": "stirrup and rein",
       "shape": "bevel",
-      "width": 1,
+      "width": 2,
       "facing": [
        0,
-       0.5
+       0.3
       ],
       "regions": [
-       36,
-       42,
-       15
+       102,
+       103,
+       105,
+       104
       ]
      },
      {
-      "axis": 70,
-      "name": "jockey torso",
+      "axis": 60,
+      "name": "rider torso",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
        11,
+       17,
+       19,
        12,
        13,
        14,
-       17,
-       19,
-       24,
-       20
+       15,
+       16
       ]
      },
      {
-      "axis": 20,
-      "name": "jockey leg",
+      "axis": 70,
+      "name": "rider leg",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       62,
-       63
+       25,
+       31,
+       32,
+       24
       ]
      },
      {
-      "axis": 120,
-      "name": "jockey arm white",
+      "axis": 70,
+      "name": "rider arm",
       "round": 0.9,
       "shape": "cylinder",
       "regions": [
-       28
-      ]
-     },
-     {
-      "axis": 110,
-      "name": "jockey arm cyan",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
-       21,
-       29,
        30,
-       34,
-       35
+       26,
+       23
       ]
      },
      {
-      "name": "jockey head",
-      "round": 0.9,
+      "name": "rider hands",
       "shape": "ball",
       "regions": [
-       1,
+       22,
+       37,
+       38,
+       50
+      ]
+     },
+     {
+      "name": "helmet",
+      "shape": "ball",
+      "regions": [
        2,
+       1,
+       9,
+       7,
+       8,
        3,
        4,
        5,
-       6,
-       7,
-       8,
-       9
+       6
       ]
      }
     ],
     "detail": 0.15,
-    "raised": [
-     52
-    ],
+    "raised": [],
     "backdrop": [],
-    "recessed": [
-     37,
-     93,
-     16
-    ],
-    "painted_light": "top-left"
+    "recessed": [],
+    "painted_light": "top-right"
    },
    "type": "message_done",
    "image": {
     "type": "base64",
     "width": 229,
-    "base64": "<39620 chars>",
+    "base64": "<39564 chars>",
     "height": 146
    },
    "action": "Shaping the parts",
@@ -247,10 +205,10 @@
     "type": "generations",
     "generations": 0.5
    },
-   "generation_id": "ee041bf9-2a6f-42a0-b0b5-ef4361eee913",
+   "generation_id": "e0493aba-f27f-4e99-b678-fbe4af09de92",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T17:07:30.899649+00:00"
+   "generation_started_at": "2026-10-25T17:56:50.233817+00:00"
   }
  },
  "files": [

@@ -90,7 +90,9 @@ function Profile({ state }: { state: PlayerState }) {
           <p className="mb-1 font-extrabold" id="motion-l">
             Motion
           </p>
-          <p className="mb-2 text-sm text-cream-dim">Calm turns off celebrations, count-ups and other animation. Device setting follows your system&rsquo;s reduce-motion option.</p>
+          <p className="mb-2 text-sm text-cream-dim">
+            Calm turns off celebrations, count-ups and other animation. Device setting follows your system&rsquo;s reduce-motion option.
+          </p>
           <div className="segmented flex-wrap" role="group" aria-labelledby="motion-l">
             {MOTION.map((m) => (
               <button key={m.v} type="button" aria-pressed={settings.motion === m.v} onClick={() => saveSettings({ motion: m.v })}>

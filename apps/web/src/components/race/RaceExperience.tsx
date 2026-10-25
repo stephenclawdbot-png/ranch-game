@@ -154,7 +154,11 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
           <h1 id="race-name" className="min-w-0 flex-1 truncate font-extrabold" data-testid="race-name">
             {config.name}
           </h1>
-          <a href="#fair-h" className="flex shrink-0 items-center gap-1 text-sm font-bold text-cream-dim hover:text-cream" title="This race is sealed: tap for details">
+          <a
+            href="#fair-h"
+            className="flex shrink-0 items-center gap-1 text-sm font-bold text-cream-dim hover:text-cream"
+            title="This race is sealed: tap for details"
+          >
             <PixelIcon name="shield" size={16} /> {replay ? "Sealed ✓" : "Sealed"}
           </a>
         </div>
@@ -183,7 +187,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="t-meta">
-          {card.kind === "quick" ? "Quick race" : "Club card"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
+          {card.kind === "quick" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
         </p>
         <RaceMetaChips race={config} showPurse showClass={false} />
       </div>
@@ -238,7 +242,10 @@ function PreRace({ localPost, now, card }: { localPost: number; now: number | nu
           <div
             key={e.gate}
             className="flex h-10 w-6 items-start justify-center pt-1 sm:h-14 sm:w-9"
-            style={{ background: "linear-gradient(#f3e7c9 0 4px, #1f4d35 4px calc(100% - 4px), #0f2a1d calc(100% - 4px))", boxShadow: e.isPlayer ? "0 0 0 2px #0b0f0c, 0 0 0 4px #d9a441" : "0 0 0 2px #0b0f0c" }}
+            style={{
+              background: "linear-gradient(#f3e7c9 0 4px, #1f4d35 4px calc(100% - 4px), #0f2a1d calc(100% - 4px))",
+              boxShadow: e.isPlayer ? "0 0 0 2px #0b0f0c, 0 0 0 4px #d9a441" : "0 0 0 2px #0b0f0c",
+            }}
           >
             <Saddlecloth gate={e.gate} className="!h-5 !w-5 !text-xs sm:!h-6 sm:!w-6 sm:!text-[0.85rem]" />
           </div>

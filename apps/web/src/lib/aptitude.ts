@@ -18,7 +18,11 @@ export interface Conditions {
 }
 
 /** Same formula as raceRating(): expected strength on the stat scale (650 = plain horse, ideal day). */
-export function conditionRating(horse: Pick<Horse, "stats" | "style" | "preferredDistanceM" | "preferredSurface">, tactic: RunningStyle, race: Conditions): number {
+export function conditionRating(
+  horse: Pick<Horse, "stats" | "style" | "preferredDistanceM" | "preferredSurface">,
+  tactic: RunningStyle,
+  race: Conditions,
+): number {
   const s = horse.stats;
   const D = race.distanceM;
   const adaptGap = 1000 - s.adaptability;
@@ -141,13 +145,19 @@ export function fitCheck(horse: HorseLike, tactic: RunningStyle, race: Condition
       id: "trip",
       label: "Trip",
       level: level(tripLoss),
-      detail: race.distanceM === horse.preferredDistanceM ? `${nf.format(race.distanceM)} m, ideal` : `${nf.format(race.distanceM)} m · best ${nf.format(horse.preferredDistanceM)} m`,
+      detail:
+        race.distanceM === horse.preferredDistanceM
+          ? `${nf.format(race.distanceM)} m, ideal`
+          : `${nf.format(race.distanceM)} m · best ${nf.format(horse.preferredDistanceM)} m`,
     },
     {
       id: "surface",
       label: "Surface",
       level: level(surfLoss),
-      detail: race.surface === horse.preferredSurface ? `${SURF[race.surface]}, favourite` : `${SURF[race.surface]} · prefers ${SURF[horse.preferredSurface]}`,
+      detail:
+        race.surface === horse.preferredSurface
+          ? `${SURF[race.surface]}, favourite`
+          : `${SURF[race.surface]} · prefers ${SURF[horse.preferredSurface]}`,
     },
     { id: "going", label: "Going", level: level(goingLoss), detail: race.going },
     {

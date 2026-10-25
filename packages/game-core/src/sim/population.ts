@@ -21,6 +21,9 @@ import { MS_PER_DAY, SEASON_DAYS, seasonOf, weekIndex } from "../time";
 import { Rng, seedFrom } from "../rng";
 import { gradeOf } from "../genome";
 
+/** How much a breeder values upside (sd of the foal's mean potential) over the expected value. */
+export const BREEDER_UPSIDE = 1.5;
+
 export type Archetype = "casual" | "active" | "breeder";
 
 export interface ArchetypeProfile {
@@ -45,7 +48,7 @@ export interface ArchetypeProfile {
 export const ARCHETYPES: Record<Archetype, ArchetypeProfile> = {
   casual: { playPermille: 450, startsPerDay: 1, maxRacers: 2, paddockBuysPerWeek: 0, stallEveryDays: 0, maxStalls: 6, studCandidates: 5, earlyRetireTopPermille: 0, breedPermille: 300 },
   active: { playPermille: 850, startsPerDay: 1.2, maxRacers: 4, paddockBuysPerWeek: 1, stallEveryDays: 14, maxStalls: 12, studCandidates: 20, earlyRetireTopPermille: 200, breedPermille: 800 },
-  breeder: { playPermille: 970, startsPerDay: 1.5, maxRacers: 5, paddockBuysPerWeek: 3, stallEveryDays: 7, maxStalls: MAX_STALLS, studCandidates: 40, earlyRetireTopPermille: 500, breedPermille: 1000 },
+  breeder: { playPermille: 970, startsPerDay: 1.5, maxRacers: 5, paddockBuysPerWeek: 3, stallEveryDays: 7, maxStalls: MAX_STALLS, studCandidates: 150, earlyRetireTopPermille: 500, breedPermille: 1000 },
 };
 
 export interface SimConfig {
@@ -262,7 +265,7 @@ export function runPopulationSim(cfg: SimConfig = DEFAULT_SIM): SimReport {
           if (kinBlock(live.id, mare.id, ped as PedigreeIndex)) continue;
           const coi = p.archetype === "casual" ? 0 : coiOf(live.id, mare.id, ped as PedigreeIndex);
           const o = foalOutlook(live, mare, coi);
-          const score = o.expected + (p.archetype === "breeder" ? 0.8 * o.sd : 0);
+          const score = o.expected + (p.archetype === "breeder" ? BREEDER_UPSIDE * o.sd : 0);
           if (!best || score > best.score) best = { h: live, score };
         }
         if (!best) continue;

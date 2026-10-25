@@ -20,7 +20,10 @@ interface EntryApi {
   quickPick: () => void;
 }
 
-const EntryContext = createContext<EntryApi>({ open: () => undefined, quickPick: () => undefined });
+const EntryContext = createContext<EntryApi>({
+  open: () => undefined,
+  quickPick: () => undefined,
+});
 
 export function useEntry(): EntryApi {
   return useContext(EntryContext);
@@ -30,8 +33,18 @@ type WatchMode = "watch" | "instant" | "later";
 type RaceInfo = Pick<RaceConfig, "name" | "distanceM" | "surface" | "going" | "raceClass">;
 type Target =
   | { kind: "entry"; index: number; picker: boolean; nonce: number }
-  | { kind: "pick"; status: "choose" | "error"; busy?: WatchMode; error?: string }
-  | { kind: "pick"; status: "later"; result: QuickPickResult; race: RaceInfo | null };
+  | {
+      kind: "pick";
+      status: "choose" | "error";
+      busy?: WatchMode;
+      error?: string;
+    }
+  | {
+      kind: "pick";
+      status: "later";
+      result: QuickPickResult;
+      race: RaceInfo | null;
+    };
 
 /**
  * The entry sheet (modal over any route). Two modes:
@@ -49,7 +62,12 @@ export function EntryProvider({ children }: { children: ReactNode }) {
   const open = useCallback<EntryApi["open"]>(
     (index, opts) => {
       if (!state) return router.push("/play");
-      setTarget({ kind: "entry", index, picker: opts?.picker ?? false, nonce: Date.now() });
+      setTarget({
+        kind: "entry",
+        index,
+        picker: opts?.picker ?? false,
+        nonce: Date.now(),
+      });
     },
     [state, router],
   );
@@ -193,9 +211,18 @@ function PickCard({
           </div>
         </div>
       )}
-      <p className="text-sm text-cream-dim">Next Story race against the club&rsquo;s rival stables. The field and conditions are drawn when you enter.</p>
+      <p className="text-sm text-cream-dim">
+        Next Story race against the club&rsquo;s rival stables. The field and conditions are drawn when you enter.
+      </p>
       <div className="grid gap-2 sm:grid-cols-3">
-        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!busy} onClick={() => onChoose("watch")} data-testid="watch-live" autoFocus>
+        <button
+          type="button"
+          className="btn btn-brass btn-lg"
+          disabled={!horse || !!busy}
+          onClick={() => onChoose("watch")}
+          data-testid="watch-live"
+          autoFocus
+        >
           <PixelIcon name="play" className="h-4 w-4" /> {busy === "watch" ? "Entering…" : "Watch"}
         </button>
         <button type="button" className="btn btn-lg" disabled={!horse || !!busy} onClick={() => onChoose("instant")} data-testid="skip-to-result">
@@ -205,19 +232,32 @@ function PickCard({
           {busy === "later" ? "Entering…" : "Watch later"}
         </button>
       </div>
-      <p className="caption">Watch: gates open in 10 seconds. Skip to result: see how it went right away. Watch later: it waits in Your races, result unseen.</p>
+      <p className="caption">
+        Watch: gates open in 10 seconds. Skip to result: see how it went right away. Watch later: it waits in Your races, result unseen.
+      </p>
     </div>
   );
 }
 
-function EnteredLater({ result, race, horses, onClose }: { result: QuickPickResult; race: RaceInfo | null; horses: ReturnType<typeof usePlayerHorses>["horses"]; onClose: () => void }) {
+function EnteredLater({
+  result,
+  race,
+  horses,
+  onClose,
+}: {
+  result: QuickPickResult;
+  race: RaceInfo | null;
+  horses: ReturnType<typeof usePlayerHorses>["horses"];
+  onClose: () => void;
+}) {
   const horse = horses?.[result.pick.horseIndex];
   return (
     <div className="grid gap-3" data-testid="entered-later">
       <SheetHeader eyebrow="Entered · watch later" title={race?.name ?? "Story race"} onClose={onClose} />
       <p className="text-cream-dim">
         {horse?.name ?? "Your horse"} runs at {formatClock(result.postTimeMs)}
-        {race ? ` (${raceMetaLine(race)})` : ""}. It&rsquo;s in <strong className="text-cream">Your races</strong> on Home, result unseen until you open it.
+        {race ? ` (${raceMetaLine(race)})` : ""}. It&rsquo;s in <strong className="text-cream">Your races</strong> on Home, result unseen until you
+        open it.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn btn-brass btn-lg" onClick={onClose} autoFocus>

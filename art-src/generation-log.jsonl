@@ -172,3 +172,7 @@
 {"at":"2026-10-25T17:50:52.327Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/grandstand","secs":115,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:53:02.578Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/stable-yard","secs":94,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:56:03.351Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n0","secs":51,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:56:20.737Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n1","secs":17,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:56:48.714Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n2","secs":28,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:57:11.495Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n3","secs":23,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:57:45.172Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n4","secs":34,"usage":{"type":"generations","generations":0.5},"images":1}

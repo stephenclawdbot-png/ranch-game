@@ -27,7 +27,19 @@ export function useCountUp(target: number, run: boolean): number {
   return value;
 }
 
-export function RewardCounter({ horseName, position, fieldSize, prize, fresh }: { horseName: string; position: number; fieldSize: number; prize: number; fresh: boolean }) {
+export function RewardCounter({
+  horseName,
+  position,
+  fieldSize,
+  prize,
+  fresh,
+}: {
+  horseName: string;
+  position: number;
+  fieldSize: number;
+  prize: number;
+  fresh: boolean;
+}) {
   const shown = useCountUp(prize, fresh);
   const done = shown === prize;
   return (
