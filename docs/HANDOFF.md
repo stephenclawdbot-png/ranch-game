@@ -34,7 +34,7 @@ Preview and Production.)
 - **Viewer agent: DONE.** TV director, minimap, camera picker, PiP, hudTitle/resultsCard props.
   RaceViewer props `hudTitle=false` and `resultsCard=false`, used by the race page. It should
   also stop probing for art files that don't exist.
-- **Web3 agent: STOPPED early** to save budget. Restart it with the same brief: Robinhood
+- **Web3 agent: DONE.** docs/web3.md (Robinhood Chain: L2 Arbitrum, ids 4663/46630, USDG stablecoin), contracts (70 tests), adapter `@thoroughbred/contracts/adapter`, 4 skills in .claude/skills. Open user questions listed in its section of docs/web3.md.
   Chain research → `docs/web3.md`; `.claude/skills` (solidity-dev, robinhood-chain,
   web3-game-economy, thoroughbred-game-dev); `packages/contracts` (RaceProofRegistry,
   PremiumStore, optional token, Hardhat tests); `packages/chain` adapter with mock mode,
