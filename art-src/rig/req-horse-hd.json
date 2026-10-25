@@ -1,0 +1,8 @@
+{
+  "method": "edit_with_text",
+  "edit_images": [ { "image": { "$file": "art-src/rig/raw/stand-a-0-x2.png" }, "width": 256, "height": 192 } ],
+  "image_size": { "width": 256, "height": 192 },
+  "description": "redraw this exact horse as high-resolution HD pixel art at full native resolution: single-pixel fine detail, crisp 1-pixel dark outline, smooth muscle shading with rich bay coat ramp, detailed head, eye and ears, flowing black mane and tail strands, black lower legs with defined knees, fetlocks and hooves; keep the identical pose, proportions, position, saddle and white saddle cloth; side view facing right; no rider",
+  "no_background": true,
+  "seed": 4401
+}
