@@ -84,7 +84,10 @@ export function startRigHarness(canvas: HTMLCanvasElement, params: URLSearchPara
   const slots: Slot[] = [];
   const groundMat = new THREE.MeshBasicMaterial({ color: "#5f7d4c" });
   const shadowMat = new THREE.MeshBasicMaterial({ color: "#1f2a17", transparent: true, opacity: 0.35 });
-  const addRig = (app: HorseAppearance & { look?: HorseLookOptions }, x: number, y: number, scale: number, speed: number, drive: number, phase: number, look?: HorseLookOptions) => {
+  // Layout is in "1x = 128x96" cell units; HD rigs (density 2) display at half the scale.
+  const K = 2 / factory.density;
+  const addRig = (app: HorseAppearance & { look?: HorseLookOptions }, x: number, y: number, scale0: number, speed: number, drive: number, phase: number, look?: HorseLookOptions) => {
+    const scale = (scale0 * K) / 2;
     const rig = factory.create(app, {
       gate: slots.length + 1,
       ...(neutral ? { morph: { legLength: 1, neckLength: 1, girth: 1, height: 1, headSize: 1 } } : {}),

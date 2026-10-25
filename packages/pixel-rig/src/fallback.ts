@@ -322,6 +322,7 @@ export function generateFallbackRig(): GeneratedAtlas {
       jShoulder: [76, 20],
       jNeck: [79.5, 18.5],
       saddle: [66, 36],
+      cloth: [64, 39],
     },
     silksFrame: { origin: toAtlas([62, 25]), shoulder: toAtlas([78, 17]) },
     textures: { index: "", normal: "", aux: "" },

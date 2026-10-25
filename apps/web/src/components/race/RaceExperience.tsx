@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { RaceReplay } from "@thoroughbred/shared";
+import { useEffect, useRef, useState } from "react";
 import type { RaceCard } from "@/server/races";
 import { useClockSkew, useNow } from "@/lib/clock";
+import { useLiveRaceFeed } from "@/lib/liveRaceFeed";
 import { CLASS_LABEL, formatClock, formatCountdown, formatCredits, ordinal } from "@/lib/format";
-import { getPlayerState, settleRace, usePlayerState } from "@/lib/player";
+import { settleRace, usePlayerState } from "@/lib/player";
 import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { ArrowIcon, PixelIcon } from "../icons";
@@ -20,81 +20,30 @@ import { ResultsTable } from "./ResultsTable";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
-const REVEALED_KEY = "thoroughbred:revealed";
-
-function revealedIds(): string[] {
-  try {
-    const v = JSON.parse(window.localStorage.getItem(REVEALED_KEY) ?? "[]");
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
-function wasRevealed(id: string): boolean {
-  return revealedIds().includes(id);
-}
-function markRevealed(id: string): void {
-  try {
-    const ids = revealedIds().filter((x) => x !== id);
-    window.localStorage.setItem(REVEALED_KEY, JSON.stringify([id, ...ids].slice(0, 50)));
-  } catch {
-    /* storage unavailable: results simply wait for the real-time finish */
-  }
-}
-
-function durationMs(r: RaceReplay): number {
-  return Math.ceil((r.totalTicks * 1000) / r.tickHz);
-}
-
+/**
+ * The race page is a live broadcast: the client only ever holds the race up to "now"
+ * (useLiveRaceFeed polls /api/races/:id/live). The result, seed reveal, settlement and
+ * fairness check appear only once the server sends `final`, i.e. after the finish has
+ * been broadcast. There is no way to skip ahead.
+ */
 export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNowMs: number }) {
   const { config } = card;
-  const skew = useClockSkew(serverNowMs);
+  const ssrSkew = useClockSkew(serverNowMs);
   const now = useNow(200);
   const state = usePlayerState();
+  const { feed, error: feedError } = useLiveRaceFeed(card.id);
+  // The feed measures the server clock on every poll; prefer it over the page-render estimate.
+  const skew = feed ? feed.clockOffsetMs : ssrSkew;
   const localPost = config.postTimeMs - skew;
+  /** The complete replay (result + seed): only present once the race is over on the broadcast clock. */
+  const replay = feed?.final ?? null;
 
-  const [replay, setReplay] = useState<RaceReplay | null>(null);
-  const [replayError, setReplayError] = useState<string | null>(null);
-  const [viewerDone, setViewerDone] = useState(false);
-  // If this browser already saw the finish (e.g. fast-forwarded, then reloaded), show the result straight away.
-  useEffect(() => {
-    if (wasRevealed(card.id) || getPlayerState()?.progress.settled[card.id]) setViewerDone(true);
-  }, [card.id]);
   const [settlement, setSettlement] = useState<{ prize: number; position: number; fresh: boolean } | null>(null);
 
   const mine = state && card.playerId === state.player.playerId ? card.field.find((e) => e.isPlayer) ?? null : null;
   const highlightHorseId = mine?.horse.id;
 
-  // Fetch the replay at (or after) post time. The server answers 425 until then.
-  const started = now !== null && now >= localPost;
-  useEffect(() => {
-    if (!started || replay) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const attempt = async (n: number) => {
-      try {
-        const res = await fetch(`/api/races/${encodeURIComponent(card.id)}/replay`);
-        if (res.status === 425 && n < 20) {
-          timer = setTimeout(() => attempt(n + 1), 400);
-          return;
-        }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as RaceReplay;
-        if (!cancelled) setReplay(data);
-      } catch (e) {
-        if (!cancelled) setReplayError((e as Error).message);
-      }
-    };
-    attempt(0);
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
-  }, [started, replay, card.id]);
-
-  const endsAt = replay ? localPost + durationMs(replay) : null;
-  const phase: Phase =
-    now === null ? "loading" : now < localPost ? "pre" : replay && (viewerDone || (endsAt !== null && now >= endsAt)) ? "result" : "live";
+  const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
 
   // Settle once per raceId (client-side ledger until Milestone C).
   useEffect(() => {
@@ -116,11 +65,6 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
     });
     setSettlement((s) => s ?? { prize: rec.prize, position: rec.position, fresh });
   }, [phase, replay, mine, state, card.id, card.field.length, config]);
-
-  const onFinished = useCallback(() => {
-    markRevealed(card.id);
-    setViewerDone(true);
-  }, [card.id]);
 
   // One stage height for countdown and viewer, so the page doesn't jump at the off.
   // 16:9 like the 480x270 native canvas; taller on phones (>= ~70vw) and never taller
@@ -243,21 +187,14 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
         >
           {phase === "pre" || phase === "loading" ? (
             <PreRace localPost={localPost} now={now} card={card} />
-          ) : replay ? (
+          ) : feed ? (
             <div data-testid="viewer" className="h-full">
-              <RaceViewerClient
-                replay={replay}
-                highlightHorseId={highlightHorseId}
-                onFinished={onFinished}
-                height={stageHeight ?? 420}
-                startAtMs={localPost}
-                autoplay
-              />
+              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} autoplay />
             </div>
           ) : (
             <div className="flex h-full min-h-64 flex-col items-center justify-center gap-2 text-sm text-sage">
-              <PixelIcon name={replayError ? "cross" : "flag"} className="h-8 w-8 animate-bob" />
-              {replayError ? `Couldn't load the race (${replayError}). Refresh to retry.` : "They're under starter's orders…"}
+              <PixelIcon name={feedError ? "cross" : "flag"} className="h-8 w-8 animate-bob" />
+              {feedError ? `Couldn't reach the broadcast (${feedError}). Retrying…` : "They're under starter's orders…"}
             </div>
           )}
           {/* scanlines: a faint broadcast texture over the stage edges only */}

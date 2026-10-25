@@ -1,13 +1,23 @@
 /** Pure HUD helpers derived from a replay + samples. No rendering here. */
 import { HORSE_LENGTH_MM, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
+
+/** The parts of a replay (or a live broadcast) the HUD helpers read. */
+export interface TimelineSource {
+  tickHz: number;
+  trackLengthMm: number;
+  horses: RaceReplay["horses"];
+  events: ReadonlyArray<RaceEvent>;
+  /** Absent while live: gaps are shown in lengths instead of official margins. */
+  result?: RaceReplay["result"] | null;
+}
 import type { HorseSample } from "./sampleReplay";
 
-export function eventTimeSec(replay: RaceReplay, ev: RaceEvent): number {
+export function eventTimeSec(replay: Pick<TimelineSource, "tickHz">, ev: RaceEvent): number {
   return ev.tick / replay.tickHz;
 }
 
 /** Events already "spoken" by time t, newest first, limited to the last `windowSec`. */
-export function commentaryAt(replay: RaceReplay, t: number, windowSec = 6, max = 2): RaceEvent[] {
+export function commentaryAt(replay: Pick<TimelineSource, "tickHz" | "events">, t: number, windowSec = 6, max = 2): RaceEvent[] {
   const out: RaceEvent[] = [];
   for (let i = replay.events.length - 1; i >= 0 && out.length < max; i--) {
     const ev = replay.events[i]!;
@@ -40,15 +50,19 @@ export function lengthsLabel(mm: number): string {
   return `+${Math.round(l)}L`;
 }
 
-export function standingsAt(replay: RaceReplay, samples: HorseSample[]): StandingRow[] {
+export function standingsAt(replay: Pick<TimelineSource, "horses" | "result">, samples: HorseSample[]): StandingRow[] {
   const sorted = [...samples].sort((a, b) => a.position - b.position);
   const leader = sorted[0];
-  const marginByHorse = new Map(replay.result.finishOrder.map((f) => [f.horseId, f.marginLabel]));
+  const marginByHorse = new Map((replay.result?.finishOrder ?? []).map((f) => [f.horseId, f.marginLabel]));
   return sorted.map((s) => {
     const h = replay.horses[s.index]!;
     let gapLabel = "";
     if (s.position > 1 && leader) {
-      gapLabel = s.finished ? (marginByHorse.get(s.horseId) ?? "") : lengthsLabel(Math.max(0, leader.x - s.x));
+      if (s.finished && marginByHorse.has(s.horseId)) gapLabel = marginByHorse.get(s.horseId)!;
+      else if (s.finished && s.finishTimeSec !== null && leader.finishTimeSec !== null)
+        // Live, no official margins yet: estimate from the crossing-time gap (~16 m/s).
+        gapLabel = lengthsLabel(Math.max(0, s.finishTimeSec - leader.finishTimeSec) * 16000);
+      else gapLabel = lengthsLabel(Math.max(0, leader.x - s.x));
     }
     return {
       index: s.index,
@@ -65,7 +79,7 @@ export function standingsAt(replay: RaceReplay, samples: HorseSample[]): Standin
 }
 
 /** Metres left for the leader (0 once the leader is home). */
-export function distanceToGoM(replay: RaceReplay, samples: HorseSample[]): number {
+export function distanceToGoM(replay: Pick<TimelineSource, "trackLengthMm">, samples: HorseSample[]): number {
   let best = 0;
   for (const s of samples) best = Math.max(best, s.x);
   return Math.max(0, (replay.trackLengthMm - best) / 1000);

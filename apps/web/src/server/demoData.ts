@@ -182,8 +182,16 @@ function historicRecord(rng: Rng, age: number, quality: number): HorseRecord {
 // Rival pool
 // ---------------------------------------------------------------------------
 
-export const RIVALS_PER_STABLE = 6;
-const POOL_SEED = "thoroughbred/rival-pool/v1";
+export const RIVALS_PER_STABLE = 8;
+const POOL_SEED = "thoroughbred/rival-pool/v2";
+/**
+ * Quality tiers. Every house stable gets one horse per tier and one horse per archetype (paired
+ * by a per-stable shuffle), so no stable is stacked, every archetype appears at every level across
+ * the pool, and each race class (see races.ts) has enough horses for any distance and surface.
+ * Starters (quality 520-620) sit around the novice/handicap tiers.
+ */
+const RIVAL_TIERS: readonly number[] = [440, 480, 520, 560, 600, 640, 680, 720];
+const TIER_JITTER = 25;
 
 function buildRivalPool(): { horses: Horse[]; names: Set<string> } {
   const rng = createRng(POOL_SEED);
@@ -191,11 +199,13 @@ function buildRivalPool(): { horses: Horse[]; names: Set<string> } {
   const horses: Horse[] = [];
   let n = 0;
   for (const stable of HOUSE_STABLES) {
+    const archetypes = rng.shuffle(ARCHETYPE_IDS);
+    const tiers = rng.shuffle(RIVAL_TIERS);
     for (let i = 0; i < RIVALS_PER_STABLE; i++) {
       n++;
-      const archetype = rng.pick(ARCHETYPE_IDS);
+      const archetype = archetypes[i % archetypes.length]!;
       const def = ARCHETYPES[archetype];
-      const quality = rng.int(390, 700);
+      const quality = tiers[i % tiers.length]! + rng.int(-TIER_JITTER, TIER_JITTER);
       const age = rng.int(2, 7);
       horses.push({
         id: `r-${String(n).padStart(2, "0")}`,

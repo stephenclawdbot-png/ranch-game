@@ -49,6 +49,8 @@ export interface RigPartDef {
 
 export interface RigDef {
   version: 1;
+  /** Source pixels per base pixel (1 = 128x96 sources, 2 = HD 256x192 sources). Default 1. */
+  unit?: number;
   /** Atlas PNG scale relative to native pixels (Scale2x passes, for RotSprite-style rotation). */
   scale: number;
   /** Native atlas size [w, h]. */

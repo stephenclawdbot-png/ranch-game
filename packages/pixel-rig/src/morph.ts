@@ -150,7 +150,12 @@ export function selectSkeleton(def: RigDef, variants: Record<VariantSlot, number
     const slim = pick.side === "far" && /^(fore|hind)Far(Upper|Lower)$/.test(name);
     return { name, pivot: [...pick.pivot] as Vec2, parent: pick.parent, side: pick.side, copyOf: pick.copyOf, scale: (slim ? [0.8, 1] : [1, 1]) as Vec2 };
   });
-  return { parts, joints: Object.fromEntries(Object.entries(def.joints).map(([k, v]) => [k, [...v] as Vec2])), groundY: def.groundY };
+  return {
+    unit: def.unit ?? 1,
+    parts,
+    joints: Object.fromEntries(Object.entries(def.joints).map(([k, v]) => [k, [...v] as Vec2])),
+    groundY: def.groundY,
+  };
 }
 
 const isJockey = (n: string) => n.startsWith("j");
@@ -260,5 +265,5 @@ export function morphSkeleton(skel: Skeleton, m: Morph): Skeleton {
     }
     each([], ["bit", "hand", "foreKnee", "hindHock", "foreFetlock", "hindFetlock"], f);
   }
-  return { parts, joints, groundY: skel.groundY };
+  return { unit: skel.unit, parts, joints, groundY: skel.groundY };
 }

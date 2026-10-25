@@ -24,6 +24,7 @@ in vec2 aSrc;     // rest-pose source-pixel position (continuous across parts, f
 uniform vec4 uBones[${MAX_PARTS * 2}];
 uniform vec2 uCanvas;
 uniform vec2 uOffset;
+uniform float uDefScale;  // render-target px per source px (density / rig unit)
 uniform vec4 uVariants;   // selected variant per slot (head, mane, tail, build)
 out vec2 vUv;
 out vec2 vRot;
@@ -40,7 +41,8 @@ void main() {
   int i = int(aInfo.x + 0.5);
   vec4 m = uBones[i * 2];
   vec4 t = uBones[i * 2 + 1];
-  vec2 p = vec2(m.x * position.x + m.y * position.y, m.z * position.x + m.w * position.y) + t.xy + uOffset;
+  vec2 p = vec2(m.x * position.x + m.y * position.y, m.z * position.x + m.w * position.y) + t.xy;
+  p = p * uDefScale + uOffset;
   gl_Position = vec4(p.x / uCanvas.x * 2.0 - 1.0, 1.0 - p.y / uCanvas.y * 2.0, 0.0, 1.0);
   vUv = uv;
   vRot = normalize(vec2(m.w, -m.y) + vec2(1e-6, 0.0));
@@ -66,7 +68,9 @@ uniform float uFarShade;
 uniform vec4 uLook;          // x face marking, y coat texture, z silks pattern, w far-limb darkening
 uniform vec4 uLegMarks;      // marking per leg index (0 none 1 coronet 2 sock 3 stocking)
 uniform vec4 uSilksFrame;    // origin.xy, axis.xy (native atlas px)
-uniform vec4 uSeed;          // x per-horse seed (0..1), y sabino amount, z marking jitter
+uniform vec4 uSeed;          // x per-horse seed (0..1), y sabino amount, z marking jitter, w gate number
+uniform float uUnit;         // source px per base px (1 or 2)
+uniform vec2 uCloth;         // saddle-cloth number box (top-right digit origin), source px
 in vec2 vSrc;
 in vec2 vUv;
 in vec2 vRot;
@@ -118,7 +122,8 @@ bool silkHit(int pattern, vec2 texel) {
   vec2 a = axis / len;
   vec2 d = texel - uSilksFrame.xy;
   float u = dot(d, a) / len;          // 0 hip .. 1 shoulder
-  float v = d.x * a.y - d.y * a.x;    // px across the torso
+  float v = (d.x * a.y - d.y * a.x) / uUnit;  // base px across the torso
+  len /= uUnit;
   if (pattern == 1) return mod(floor(u * 5.0 + 0.5), 2.0) > 0.5;                     // hoops
   if (pattern == 2) return mod(floor(v * 0.5 + 50.0), 2.0) > 0.5;                    // stripes
   if (pattern == 3) return fract(u * 2.2 + abs(v + 1.0) * 0.16) > 0.55;              // chevron
@@ -163,8 +168,9 @@ void main() {
   // --- markings (procedural pixel masks from the per-horse seed) ------------------------------
   int zone = int(aux.r * 255.0 / 85.0 + 0.5);
   vec2 sp = floor(vSrc);                       // source pixel (rest pose)
+  vec2 bp = (sp + 0.5) / uUnit;                // the same point in base (128x96) pixels
   vec2 seedOff = vec2(uSeed.x * 97.0, uSeed.x * 61.0);
-  float rag = (hash12(sp + seedOff) - 0.5) * uSeed.z; // ragged marking edges, +-px
+  float rag = (hash12(sp + seedOff) - 0.5) * uSeed.z; // ragged marking edges, +-base px
   if (role == COAT || role == POINTS || role == MUZZLE) {
     if (zone == 1) {
       float along = aux.g + (hash12(seedOff) - 0.5) * 0.12;
@@ -186,8 +192,8 @@ void main() {
     }
     // sabino: irregular white patches rising from the belly and legs, plus a wide face
     if (uSeed.y > 0.0 && role != MARKING) {
-      float blot = vnoise(sp * 0.16 + seedOff) * 0.65 + vnoise(sp * 0.4 + seedOff.yx) * 0.35;
-      float low = clamp((vSrc.y - 46.0) / 22.0, 0.0, 1.0);
+      float blot = vnoise(bp * 0.16 + seedOff) * 0.65 + vnoise(bp * 0.4 + seedOff.yx) * 0.35;
+      float low = clamp((bp.y - 46.0) / 22.0, 0.0, 1.0);
       float face = zone == 1 ? 0.35 : 0.0;
       if (blot * 0.7 + low * 0.6 + face + uSeed.y * 0.55 > 1.25) { role = MARKING; tsrc = 0.72 + 0.28 * tsrc; }
     }
@@ -197,7 +203,7 @@ void main() {
     if (lm > 0.5) tsrc = min(1.0, tsrc + 0.45);   // white legs grow pale hooves
   }
 
-  if (role == 15 && clothNumber(int(uSeed.w + 0.5), ivec2(sp))) { role = 6; tsrc = 0.2; }
+  if (role == 15 && clothNumber(int(uSeed.w + 0.5), ivec2(sp) - ivec2(uCloth) + ivec2(64, 39))) { role = 6; tsrc = 0.2; }
 
   // --- silks pattern on the torso ------------------------------------------------------------
   int pattern = int(uLook.z + 0.5);
@@ -225,7 +231,7 @@ void main() {
   // coat textures
   int coatTex = int(uLook.y + 0.5);
   if (role == COAT && coatTex == 1) {
-    vec2 q = (sp + seedOff) / vec2(5.0, 4.0);
+    vec2 q = (bp + seedOff) / vec2(5.0, 4.0);
     q.x += mod(floor(q.y), 2.0) * 0.5;
     float r = length((fract(q) - 0.5) * vec2(5.0, 4.0));
     shade += r < 1.1 ? 0.13 : r < 1.8 ? -0.05 : 0.0;

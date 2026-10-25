@@ -63,22 +63,61 @@ function hermite(p0: number, v0: number, p1: number, v1: number, dt: number, u: 
 
 export type ReplaySampler = (timeSec: number, out?: HorseSample[]) => HorseSample[];
 
+/**
+ * What the sampler needs. A full `RaceReplay` satisfies it; a live broadcast passes its
+ * header plus the frames received so far (the array may grow between calls) and no result.
+ */
+export interface SampleSource {
+  horses: ReadonlyArray<{ horseId: string }>;
+  frames: ReadonlyArray<ReadonlyArray<number>>;
+  tickHz: number;
+  sampleEvery: number;
+  trackLengthMm: number;
+  /** Official result; when absent (live), finishing comes from frames only. */
+  result?: RaceReplay["result"] | null;
+}
+
+/** Interpolated time (s) at which horse h first reached the line, from frames; null if not yet. */
+export function crossingTimeFromFrames(src: SampleSource, h: number): number | null {
+  const frames = src.frames;
+  const L = src.trackLengthMm;
+  const dt = src.sampleEvery / src.tickHz;
+  const o = h * FRAME_STRIDE + FRAME_FIELD.distanceMm;
+  const n = frames.length;
+  if (n === 0 || (frames[n - 1]![o] ?? 0) < L) return null;
+  let lo = 0;
+  let hi = n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if ((frames[mid]![o] ?? 0) >= L) hi = mid;
+    else lo = mid + 1;
+  }
+  if (lo === 0) return 0;
+  const d0 = frames[lo - 1]![o] ?? 0;
+  const d1 = frames[lo]![o] ?? L;
+  const u = d1 > d0 ? (L - d0) / (d1 - d0) : 1;
+  return (lo - 1 + Math.min(1, Math.max(0, u))) * dt;
+}
+
 /** Precomputes lookups once; the returned function is cheap enough to call per frame. */
-export function createReplaySampler(replay: RaceReplay): ReplaySampler {
+export function createReplaySampler(replay: SampleSource): ReplaySampler {
   const n = replay.horses.length;
-  const timing = replayTiming(replay);
+  const frameDt = replay.sampleEvery / replay.tickHz;
+  const result = replay.result ?? null;
   const finish = new Map<string, { pos: number; t: number }>();
-  for (const f of replay.result.finishOrder) finish.set(f.horseId, { pos: f.position, t: f.finishTimeUs / 1e6 });
+  if (result) for (const f of result.finishOrder) finish.set(f.horseId, { pos: f.position, t: f.finishTimeUs / 1e6 });
   const finishPos = replay.horses.map((h) => finish.get(h.horseId)?.pos ?? Number.POSITIVE_INFINITY);
-  const finishT = replay.horses.map((h) => finish.get(h.horseId)?.t ?? null);
+  const finishT: (number | null)[] = replay.horses.map((h) => finish.get(h.horseId)?.t ?? null);
   const frames = replay.frames;
   const order = new Array<number>(n);
 
   return (timeSec, out = []) => {
-    const t = Math.min(Math.max(Number.isFinite(timeSec) ? timeSec : 0, 0), timing.lastFrameTime);
-    const fpos = timing.frameDt > 0 ? t / timing.frameDt : 0;
+    // Live sources grow: the clamp follows the frames received so far.
+    const lastFrameTime = Math.max(0, (frames.length - 1) * frameDt);
+    const t = Math.min(Math.max(Number.isFinite(timeSec) ? timeSec : 0, 0), lastFrameTime);
+    const fpos = frameDt > 0 ? t / frameDt : 0;
     const f0 = Math.min(Math.floor(fpos), Math.max(frames.length - 1, 0));
-    const f1 = Math.min(f0 + 1, frames.length - 1);
+    const f1 = Math.min(f0 + 1, Math.max(frames.length - 1, 0));
     const u = f1 === f0 ? 0 : fpos - f0;
     const a = frames[f0] ?? [];
     const b = frames[f1] ?? a;
@@ -93,11 +132,13 @@ export function createReplaySampler(replay: RaceReplay): ReplaySampler {
       const l1 = b[o + FRAME_FIELD.laneMilli] ?? l0;
       const e0 = a[o + FRAME_FIELD.energy] ?? 0;
       const e1 = b[o + FRAME_FIELD.energy] ?? e0;
+      // Without a result, the crossing time is derived from frames (cached once known).
+      if (!result && finishT[h] === null && (b[o + FRAME_FIELD.distanceMm] ?? 0) >= replay.trackLengthMm) finishT[h] = crossingTimeFromFrames(replay, h);
       const ft = finishT[h] ?? null;
       const s: HorseSample = out[h] ?? ({} as HorseSample);
       s.index = h;
       s.horseId = replay.horses[h]!.horseId;
-      s.x = hermite(d0, v0, d1, v1, timing.frameDt, u);
+      s.x = hermite(d0, v0, d1, v1, frameDt, u);
       s.lane = (l0 + (l1 - l0) * u) / 1000;
       s.speed = v0 + (v1 - v0) * u;
       s.energy = e0 + (e1 - e0) * u;
@@ -110,7 +151,10 @@ export function createReplaySampler(replay: RaceReplay): ReplaySampler {
     order.sort((i, j) => {
       const si = out[i]!;
       const sj = out[j]!;
-      if (si.finished && sj.finished) return finishPos[i]! - finishPos[j]! || i - j;
+      if (si.finished && sj.finished) {
+        if (result) return finishPos[i]! - finishPos[j]! || i - j;
+        return (si.finishTimeSec ?? 0) - (sj.finishTimeSec ?? 0) || i - j;
+      }
       if (si.finished !== sj.finished) return si.finished ? -1 : 1;
       return sj.x - si.x || i - j;
     });

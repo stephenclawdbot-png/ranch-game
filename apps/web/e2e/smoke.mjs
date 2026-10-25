@@ -5,9 +5,10 @@
  *   BASE_URL=http://localhost:3100 SCREENSHOT_DIR=/tmp/shots \
  *   NODE_PATH=/opt/node-tools/node_modules node apps/web/e2e/smoke.mjs
  *
- * Flow: onboard -> stable -> quick race -> post time -> viewer canvas -> results
- * -> verify fairness -> reload -> same winner, credits settled once. Screenshots of
- * every page at desktop and mobile sizes.
+ * Flow: onboard -> stable -> quick race -> post time -> live broadcast (no result in
+ * any response before the finish; reload mid-race resumes live) -> results -> verify
+ * fairness -> reload -> same winner, credits settled once. Screenshots of every page at
+ * desktop and mobile sizes.
  */
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
@@ -33,22 +34,38 @@ async function shot(page, name) {
   log("screenshot", path);
 }
 
-/** Speed the replay up if the viewer exposes speed controls; otherwise just wait. */
-async function trySpeedUp(page) {
-  const candidates = [
-    page.getByRole("button", { name: /^(4|8|16)\s*[x×]$/i }),
-    page.getByRole("button", { name: /speed/i }),
-    page.getByRole("button", { name: /skip|finish/i }),
-  ];
-  for (const loc of candidates) {
-    const n = await loc.count().catch(() => 0);
-    if (n > 0) {
-      await loc.last().click().catch(() => {});
-      log("clicked viewer speed control");
-      return true;
+/**
+ * Records every live-broadcast response and fails if one sent before the official result
+ * carries outcome data (result, seed, final, frames/events beyond the live edge).
+ */
+function watchBroadcast(page, label, state) {
+  page.on("response", async (res) => {
+    const url = res.url();
+    if (!/\/api\/races\/[^/]+\/(live|replay|verify)/.test(url)) return;
+    let body = "";
+    try {
+      body = await res.text();
+    } catch {
+      return;
     }
-  }
-  return false;
+    if (/\/replay|\/verify/.test(url)) {
+      if (res.status() === 200) state.revealedAt ??= Date.now();
+      return;
+    }
+    state.liveResponses++;
+    const chunk = JSON.parse(body);
+    if (chunk.final) {
+      state.finalAt ??= Date.now();
+      return;
+    }
+    state.lastEdge = Math.max(state.lastEdge, chunk.liveEdgeFrame);
+    const problems = [];
+    if (/"(result|seed|totalTicks|finishOrder|finishTimeUs|winningTimeUs)"/.test(body)) problems.push("outcome key present");
+    if (chunk.frames.length && chunk.fromFrame + chunk.frames.length - 1 > chunk.liveEdgeFrame) problems.push("frame beyond edge");
+    const edgeTick = chunk.liveEdgeFrame * chunk.header.sampleEvery;
+    if (chunk.events.some((e) => e.tick > edgeTick)) problems.push("event beyond edge");
+    if (problems.length) state.leaks.push(`${label}: ${problems.join(", ")} (${url})`);
+  });
 }
 
 async function main() {
@@ -108,19 +125,50 @@ async function main() {
     assert((await page.getByTestId("my-runner").count()) === 1, "player's runner highlighted in the field");
     await shot(page, "desktop-race-pre");
 
-    // Before post time the replay must be withheld.
+    // Before post time the replay must be withheld; the live feed has only the header.
     const raceId = decodeURIComponent(new URL(raceUrl).pathname.split("/").pop());
-    const early = await page.request.get(`${BASE_URL}/api/races/${encodeURIComponent(raceId)}/replay`);
+    const api = (suffix) => `${BASE_URL}/api/races/${encodeURIComponent(raceId)}${suffix}`;
+    const early = await page.request.get(api("/replay"));
     assert(early.status() === 425, `replay is 425 before post time (got ${early.status()})`);
+    const pre = await (await page.request.get(api("/live?from=0"))).json();
+    assert(pre.liveEdgeFrame === -1 && pre.final === null && pre.frames.length === 0, "live feed is header-only before the off");
+    assert((await page.request.get(api("/live?from=-1"))).status() === 400, "bad ?from rejected");
+
+    const broadcast = { liveResponses: 0, lastEdge: -1, leaks: [], finalAt: null, revealedAt: null };
+    watchBroadcast(page, "desktop", broadcast);
 
     log("waiting for the off");
     await page.locator('[data-testid="viewer"] canvas').first().waitFor({ timeout: 30_000 });
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(6000);
     await shot(page, "desktop-race-live");
-    await trySpeedUp(page);
+    assert(broadcast.lastEdge > 0, `live frames are streaming (edge ${broadcast.lastEdge})`);
+    assert((await page.getByTestId("results-table").count()) === 0, "no results table while live");
+    assert((await page.getByTestId("seed-revealed").count()) === 0, "seed not revealed while live");
 
-    log("waiting for results");
+    // Mid-race the full replay, verification and card stay closed.
+    const midReplay = await page.request.get(api("/replay"));
+    assert(midReplay.status() === 425, `replay is 425 while live (got ${midReplay.status()})`);
+    const midVerify = await page.request.get(api("/verify"));
+    assert(midVerify.status() === 425, `verify is 425 while live (got ${midVerify.status()})`);
+    const midCard = await (await page.request.get(api(""))).text();
+    assert(midCard.includes('"status":"live"') && !/"(result|winner|endsAtMs|seed)"/.test(midCard), "race card has no outcome while live");
+    const list = await (await page.request.get(`${BASE_URL}/api/races`)).json();
+    for (const r of list.recent) if (r.phase === "live") assert(!r.winner && r.endsAtMs === undefined, `live race ${r.id} in list has no winner/end`);
+
+    log("reloading mid-race");
+    await page.reload();
+    await page.locator('[data-testid="viewer"] canvas').first().waitFor({ timeout: 30_000 });
+    const edgeBefore = broadcast.lastEdge;
+    await page.waitForTimeout(3000);
+    assert(broadcast.lastEdge > edgeBefore, `broadcast resumes live after reload (${edgeBefore} -> ${broadcast.lastEdge})`);
+    assert((await page.getByTestId("results-table").count()) === 0, "still no results after a mid-race reload");
+    await shot(page, "desktop-race-live-reloaded");
+
+    log("waiting for results (real time, no skipping)");
     await page.getByTestId("results-table").waitFor({ timeout: RACE_TIMEOUT_MS });
+    assert(broadcast.finalAt !== null, "results came from the final broadcast chunk");
+    assert(broadcast.leaks.length === 0, `no outcome leaked before the finish:\n  ${broadcast.leaks.join("\n  ")}`);
+    log(`live responses checked: ${broadcast.liveResponses}, none leaked`);
     const winner = (await page.getByTestId("winner-name").innerText()).trim();
     log("winner", winner);
     await page.getByTestId("settlement").waitFor();

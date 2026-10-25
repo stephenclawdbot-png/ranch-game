@@ -226,6 +226,8 @@ export interface SkeletonPart {
 }
 
 export interface Skeleton {
+  /** Source pixels per base pixel: gait distances (reach, lift, bob...) scale with it. */
+  unit?: number;
   parts: SkeletonPart[];
   joints: Record<string, Vec2>;
   groundY: number;
@@ -349,7 +351,8 @@ export class GaitRig {
    */
   compute(input: PoseInput, sec: SecondaryState, pose: Pose = this.createPose(), opts: PoseOptions = {}): Pose {
     const snap = opts.snap ?? true;
-    const step = opts.angleStep ?? (2 * Math.PI) / 96;
+    const U = this.skel.unit ?? 1;
+    const step = opts.angleStep ?? (2 * Math.PI) / (96 * U);
     const g = gaitForSpeed(input.speedMs);
     const phase = fract(input.phase);
     const drive = clamp(input.drive, 0, 1);
@@ -358,10 +361,10 @@ export class GaitRig {
     const moving = g.duty < 1;
 
     // --- body: bob + rock applied as translations (no rotation of the big masses) ----------
-    const breathe = moving ? 0 : 0.5 * Math.sin(input.time * 1.7);
-    const bob = moving ? -g.bob * Math.cos(TAU * (phase - 0.82)) + g.crouch : breathe * 0.6;
+    const breathe = moving ? 0 : 0.5 * U * Math.sin(input.time * 1.7);
+    const bob = moving ? (-g.bob * Math.cos(TAU * (phase - 0.82)) + g.crouch) * U : breathe * 0.6;
     const pitch = g.pitch * Math.cos(TAU * (phase - 0.5)); // + = forehand down
-    const surge = moving ? 0.5 * g.bob * Math.sin(TAU * (phase - 0.3)) : 0;
+    const surge = moving ? 0.5 * g.bob * U * Math.sin(TAU * (phase - 0.3)) : 0;
 
     const M = pose.m;
     const set = (i: number, ang: number, tx: number, ty: number, sx: number, sy: number) => {
@@ -401,7 +404,7 @@ export class GaitRig {
       const i = this.req(name);
       const p = this.piv[i]!;
       const dx = p[0] - bp[0];
-      place(i, 0, p[0] + surge, p[1] + bob + pitch * dx + (name === "chest" ? -0.2 * g.crouch : 0));
+      place(i, 0, p[0] + surge, p[1] + bob + pitch * dx + (name === "chest" ? -0.2 * g.crouch * U : 0));
     }
 
     // --- neck / head / mane ------------------------------------------------------------------
@@ -458,7 +461,8 @@ export class GaitRig {
     for (const leg of this.legs) {
       const body = this.req(leg.body);
       const root = carry(body, [this.piv[body]![0] + leg.rootOff[0], this.piv[body]![1] + leg.rootOff[1]]);
-      const smp = sampleLeg(g, leg.id, phase);
+      const smp0 = sampleLeg(g, leg.id, phase);
+      const smp = { ...smp0, x: smp0.x * U, y: smp0.y * U };
       const rest = this.piv[leg.hoof]!;
       // Hoof target: stance on the ground line, swing along the lifted path.
       const coronetH = ground - rest[1];
@@ -485,8 +489,8 @@ export class GaitRig {
     const absorb = moving ? 0.8 : 0;
     const pump = drive * (moving ? 1 : 0);
     const hip: Vec2 = [
-      hipRest[0] + surge * 0.4 - 0.6 * pump + 0.6 * pump * Math.sin(TAU * (phase - 0.55)),
-      hipRest[1] + bob * (1 - absorb) + 0.7 * g.crouch + 1.3 * pump,
+      hipRest[0] + surge * 0.4 + U * (-0.6 * pump + 0.6 * pump * Math.sin(TAU * (phase - 0.55))),
+      hipRest[1] + bob * (1 - absorb) + U * (0.7 * g.crouch + 1.3 * pump),
     ];
     const kneeRest = this.j.jKnee!;
     const t1 = Math.hypot(kneeRest[0] - hipRest[0], kneeRest[1] - hipRest[1]);
@@ -510,7 +514,7 @@ export class GaitRig {
       const off: Vec2 = [this.piv[i]![0] - this.piv[this.req("jArmNear")]![0], this.piv[i]![1] - this.piv[this.req("jArmNear")]![1]];
       const sh = carry(iTorso, [shRest[0] + off[0], shRest[1] + off[1]]);
       const hand0 = carry(iNeck, [handRest[0] + off[0], handRest[1] + off[1]]);
-      const hand: Vec2 = [hand0[0] + 2.2 * push, hand0[1] + 0.8 * push];
+      const hand: Vec2 = [hand0[0] + 2.2 * push * U, hand0[1] + 0.8 * push * U];
       const restAng = Math.atan2(handRest[1] - shRest[1], handRest[0] - shRest[0]);
       const ang = Math.atan2(hand[1] - sh[1], hand[0] - sh[0]) - restAng;
       // the arm's own pivot sits at the shoulder

@@ -51,10 +51,15 @@ export const DEFAULT_LIGHTING: RigLighting = {
 export interface HorseRigFactoryOptions {
   /** Base URL of the art folder (the rig lives in `${artBaseUrl}/rig/`). Default "/art". */
   artBaseUrl?: string;
-  /** Native render-target size. Default 128 x 96. */
+  /**
+   * Render-target pixels per base pixel. 2 (default) = HD: 256 x 192 targets, matching the
+   * 256x192 PixelLab rig sources 1:1 (nothing is ever downsampled). 1 = the old 128 x 96.
+   */
+  density?: number;
+  /** Native render-target size override. Default 128 x 96 times `density`. */
   width?: number;
   height?: number;
-  /** Source-pixel -> render-target offset. Default [-4, 3] (ground line at y = 89). */
+  /** Base-pixel offset of the rig inside the target. Default [-4, 3]. */
   offset?: Vec2;
   /** Rotation quantum, radians (default 2*pi/96). */
   angleStep?: number;
@@ -235,8 +240,10 @@ const FULLSCREEN = (() => {
 })();
 
 export class PixelHorseRigFactory implements HorseRigFactory {
+  readonly density: number;
   readonly width: number;
   readonly height: number;
+  /** Render-target px offset of the rig. */
   readonly offset: Vec2;
   readonly angleStep: number;
   readonly lighting: RigLighting;
@@ -250,10 +257,12 @@ export class PixelHorseRigFactory implements HorseRigFactory {
   private disposed = false;
 
   constructor(opts: HorseRigFactoryOptions = {}) {
-    this.width = opts.width ?? 128;
-    this.height = opts.height ?? 96;
-    this.offset = opts.offset ?? [-4, 3];
-    this.angleStep = opts.angleStep ?? (2 * Math.PI) / 96;
+    this.density = opts.density ?? 2;
+    this.width = opts.width ?? 128 * this.density;
+    this.height = opts.height ?? 96 * this.density;
+    const off = opts.offset ?? [-4, 3];
+    this.offset = [off[0] * this.density, off[1] * this.density];
+    this.angleStep = opts.angleStep ?? (2 * Math.PI) / (96 * this.density);
     this.lighting = { ...DEFAULT_LIGHTING, ...opts.lighting };
     this.assets = generatedAssets();
     this.scratch = new THREE.WebGLRenderTarget(this.width, this.height, {
@@ -407,6 +416,9 @@ export class PixelHorseRig implements HorseRig {
         uBones: { value: this.bones },
         uCanvas: { value: new THREE.Vector2(this.width, this.height) },
         uOffset: { value: new THREE.Vector2(...factory.offset) },
+        uDefScale: { value: 1 },
+        uUnit: { value: 1 },
+        uCloth: { value: new THREE.Vector2(64, 39) },
         uIndex: { value: null },
         uIndex1x: { value: null },
         uNormal: { value: null },
@@ -489,6 +501,12 @@ export class PixelHorseRig implements HorseRig {
     u.uNormal!.value = a.normal;
     u.uAux!.value = a.aux;
     (u.uAtlas!.value as THREE.Vector2).set(a.def.atlas[0], a.def.atlas[1]);
+    const unit = a.def.unit ?? 1;
+    const defScale = this.factory.density / unit;
+    u.uDefScale!.value = defScale;
+    u.uUnit!.value = unit;
+    const cloth = a.def.joints.cloth ?? [64 * unit, 39 * unit];
+    (u.uCloth!.value as THREE.Vector2).set(cloth[0], cloth[1]);
     const sf = a.def.silksFrame;
     (u.uSilksFrame!.value as THREE.Vector4).set(sf.origin[0], sf.origin[1], sf.shoulder[0] - sf.origin[0], sf.shoulder[1] - sf.origin[1]);
     if (this.partsMesh) this.partsScene.remove(this.partsMesh);
@@ -501,14 +519,14 @@ export class PixelHorseRig implements HorseRig {
     this.partsScene.add(this.partsMesh, this.reinLine);
     this.applyLook();
     const barrel = a.def.parts.find((p) => p.name === "barrel");
-    this.anchor.x = Math.round((barrel?.pivot[0] ?? 64) + this.factory.offset[0]);
-    this.anchor.y = Math.round(a.def.groundY + this.factory.offset[1]);
+    this.anchor.x = Math.round((barrel?.pivot[0] ?? 64 * unit) * defScale + this.factory.offset[0]);
+    this.anchor.y = Math.round(a.def.groundY * defScale + this.factory.offset[1]);
   }
 
   /** Compute the pose for `state` without rendering (also used by tests / tools). */
   computePose(state: HorseRigState): Pose {
     this.syncAssets();
-    return this.gait.compute(state, this.sec, this.pose, { angleStep: this.factory.angleStep });
+    return this.gait.compute(state, this.sec, this.pose, { angleStep: (this.factory.angleStep * this.factory.density) / (this.factory.assets.def.unit ?? 1) });
   }
 
   update(renderer: THREE.WebGLRenderer, state: HorseRigState & HorseRigStateExtras): void {

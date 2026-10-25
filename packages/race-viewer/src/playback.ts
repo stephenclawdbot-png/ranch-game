@@ -211,3 +211,127 @@ export class PlaybackClock {
     this.time = wall;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Live broadcast clock
+// ---------------------------------------------------------------------------
+
+/** What the live clock reads from a LiveRaceFeed (structural, for tests). */
+export interface LiveClockSource {
+  /** Wall-clock ms (client clock) at which frame 0 is shown. */
+  broadcastStartMs: number;
+  /** Highest frame index received (-1 before the off). */
+  liveEdgeFrame: number;
+  frameDt: number;
+}
+
+/**
+ * Live playback: the playhead follows the broadcast clock, may be paused or rewound,
+ * may catch up at up to 4x after a rewind, but can never pass the live edge
+ * (= min(wall clock, last received frame)). No duration / result is known.
+ */
+export class LiveClock {
+  time: number;
+  playing: boolean;
+  /** Following the broadcast clock at the live edge. */
+  live: boolean;
+  rate = 1;
+  /** True while the wall clock has run ahead of the received frames (holding). */
+  buffering = false;
+
+  constructor(
+    private src: LiveClockSource,
+    autoplay = true,
+    nowMs = Date.now(),
+  ) {
+    this.playing = autoplay;
+    this.live = autoplay;
+    this.time = autoplay ? this.edge(nowMs) : Math.min(0, this.edge(nowMs));
+  }
+
+  /** Broadcast-clock time (s); negative before the off. */
+  wallTime(nowMs = Date.now()): number {
+    return (nowMs - this.src.broadcastStartMs) / 1000;
+  }
+
+  /** Time of the last received frame (s); -Infinity before any frame. */
+  dataEdge(): number {
+    return this.src.liveEdgeFrame < 0 ? Number.NEGATIVE_INFINITY : this.src.liveEdgeFrame * this.src.frameDt;
+  }
+
+  /** Furthest the playhead may go right now. */
+  edge(nowMs = Date.now()): number {
+    const w = this.wallTime(nowMs);
+    // Before the off the countdown runs on the wall clock alone.
+    if (w < 0) return w;
+    return Math.max(0, Math.min(w, this.dataEdge()));
+  }
+
+  get ended(): boolean {
+    return false;
+  }
+
+  canGoLive(): boolean {
+    return true;
+  }
+
+  tick(dt: number, nowMs = Date.now()): ClockFrame {
+    dt = Math.max(0, Math.min(dt, 0.25));
+    const edge = this.edge(nowMs);
+    const wall = this.wallTime(nowMs);
+    if (this.live) {
+      this.time = edge;
+      this.rate = 1;
+    } else if (this.playing) {
+      this.time = Math.min(edge, this.time + dt * this.rate);
+      // Caught up: rejoin the live broadcast.
+      if (this.time >= edge - 1e-6 && this.rate >= 1) {
+        this.live = true;
+        this.rate = 1;
+      }
+    } else {
+      this.time = Math.min(this.time, edge);
+    }
+    this.buffering = this.live && wall > 0 && wall - this.dataEdge() > this.src.frameDt * 2.5;
+    return { time: this.time, frozen: false, flash: 0, slowmo: false };
+  }
+
+  play(): void {
+    this.playing = true;
+  }
+
+  pause(): void {
+    this.playing = false;
+    this.live = false;
+  }
+
+  toggle(): void {
+    if (this.playing || this.live) this.pause();
+    else this.play();
+  }
+
+  /** Rewind/scrub: only within what has already been broadcast. */
+  seek(t: number, nowMs = Date.now()): void {
+    const edge = this.edge(nowMs);
+    this.live = false;
+    this.time = Math.max(Math.min(0, edge), Math.min(t, edge));
+  }
+
+  restart(nowMs = Date.now()): void {
+    this.seek(0, nowMs);
+    this.playing = true;
+  }
+
+  /** Faster than 1x only to catch up after a rewind (capped at the edge in tick()). */
+  setRate(r: number): void {
+    if (this.live) return;
+    this.rate = Math.min(4, Math.max(0.5, r));
+  }
+
+  goLive(nowMs = Date.now()): void {
+    this.live = true;
+    this.playing = true;
+    this.rate = 1;
+    this.time = this.edge(nowMs);
+  }
+}

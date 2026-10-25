@@ -25,6 +25,15 @@ const SPEED_PER_100 = 105;
 
 const GOING_ADJ: Record<RaceConfig["going"], number> = { firm: 120, good: 0, soft: -320, heavy: -680 };
 const GOING_HORSE_PEN: Record<RaceConfig["going"], number> = { firm: 0, good: 0, soft: 140, heavy: 300 };
+/** Off-surface cruise penalty (mm/s): fixed part + part scaled by (1000 - adaptability). */
+const SURFACE_PEN_BASE = 40;
+const SURFACE_PEN_ADAPT = 110;
+/** Day-form amplitude (mm/s, triangular): base + permille of the temperament gap. */
+const FORM_AMP_BASE = 300;
+const FORM_AMP_TEMPER = 250;
+/** Cruise bonus (mm/s) and drain (permille) when the tactic matches the horse's natural style. */
+const STYLE_MATCH_CRUISE = 25;
+const STYLE_MATCH_DRAIN = 10;
 
 // --- Tactics ----------------------------------------------------------------
 export const KICK_BASE_M: Record<RunningStyle, number> = { front: 300, stalker: 420, closer: 660 };
@@ -80,17 +89,17 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
 
   // Conditions.
   let cruise = parSpeed(race) + Math.trunc(((s.speed - 650) * SPEED_PER_100) / 100);
-  if (h.preferredSurface !== race.surface) cruise -= 110 + Math.trunc((260 * adaptGap) / 1000);
+  if (h.preferredSurface !== race.surface) cruise -= SURFACE_PEN_BASE + Math.trunc((SURFACE_PEN_ADAPT * adaptGap) / 1000);
   cruise -= Math.trunc((GOING_HORSE_PEN[race.going] * adaptGap) / 1000);
   const distDelta = D - h.preferredDistanceM;
   if (distDelta < 0) cruise -= Math.trunc((-distDelta * (1100 - s.adaptability)) / 6_000);
 
   // Tactic vs natural style.
   const matched = h.style === entry.tactic;
-  cruise += matched ? 40 : -40;
+  cruise += matched ? STYLE_MATCH_CRUISE : -STYLE_MATCH_CRUISE;
 
   // Day form: the main source of upsets. Composed horses are more consistent.
-  let formAmp = 450 + Math.trunc((temperGap * 35) / 100);
+  let formAmp = FORM_AMP_BASE + Math.trunc((temperGap * FORM_AMP_TEMPER) / 1000);
   if (race.weather === "rain") formAmp += Math.trunc(formAmp / 4);
   cruise += form.tri(formAmp);
 
@@ -101,8 +110,8 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   // Stamina barely matters in a sprint and dominates in a staying race.
   const stamMul = 1000 + Math.trunc(((650 - s.stamina) * Math.trunc((Math.max(0, D - 800) * 9) / 20)) / 1000);
   const distMul = distDelta > 0 ? 1000 + Math.trunc((distDelta * (1100 - s.adaptability)) / 3000) : 1000;
-  const durMul = 1000 + Math.trunc((500 - s.durability) / 10);
-  const tacMul = matched ? 980 : 1020;
+  const durMul = 1000 + Math.trunc((600 - s.durability) / 6);
+  const tacMul = matched ? 1000 - STYLE_MATCH_DRAIN : 1000 + STYLE_MATCH_DRAIN;
   let drainMul = stamMul;
   drainMul = Math.trunc((drainMul * distMul) / 1000);
   drainMul = Math.trunc((drainMul * durMul) / 1000);

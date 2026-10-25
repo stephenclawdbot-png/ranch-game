@@ -1,0 +1,269 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16404 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c8e10c25-d599-47d5-8af9-706dcfb3921b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "c8e10c25-d599-47d5-8af9-706dcfb3921b",
+  "status": "completed",
+  "created_at": "2026-10-25T17:07:02.536640+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 40,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       77
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "hind legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       85,
+       80,
+       83
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       74,
+       62,
+       65,
+       75,
+       76,
+       68,
+       73,
+       69
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "white mane",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       37,
+       66,
+       56,
+       70
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "foreleg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       81,
+       54,
+       76
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "chest and neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       71,
+       58,
+       72,
+       78,
+       82,
+       84
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "front hooves and lower legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       86,
+       87,
+       88,
+       89,
+       90
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "lower leg",
+      "shape": "cylinder",
+      "regions": [
+       91
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "far leg",
+      "shape": "cylinder",
+      "regions": [
+       92
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       55,
+       65,
+       33,
+       57
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       39,
+       45,
+       41,
+       46,
+       36,
+       43,
+       44,
+       34,
+       22,
+       13,
+       21,
+       23,
+       29,
+       40,
+       35,
+       48,
+       59,
+       60,
+       61,
+       63,
+       64,
+       51,
+       54,
+       47
+      ]
+     },
+     {
+      "name": "snout",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       52,
+       53
+      ]
+     },
+     {
+      "name": "cyan crest",
+      "shape": "ball",
+      "regions": [
+       16,
+       27,
+       38,
+       30,
+       28,
+       32,
+       42,
+       7,
+       11,
+       12
+      ]
+     },
+     {
+      "name": "magenta crest",
+      "shape": "ball",
+      "regions": [
+       9,
+       24,
+       18,
+       25,
+       2,
+       3,
+       5,
+       14,
+       17,
+       19,
+       10
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     52,
+     53
+    ],
+    "backdrop": [],
+    "recessed": [
+     34,
+     67,
+     69,
+     26,
+     31,
+     4,
+     6,
+     20,
+     15,
+     1
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<41396 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "3cec47b2-2b1a-492f-b171-94cf54b7a034",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:07:02.607173+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n2-0.png"
+ ]
+}
