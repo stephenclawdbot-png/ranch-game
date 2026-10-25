@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/server/races";
+import { shortHash } from "@/lib/format";
 import { PixelIcon } from "../icons";
 
 /** sha256 over the raw seed bytes, exactly as the engine's commitSeed() does — computed locally. */
@@ -29,7 +30,7 @@ function Hash({ label, value, testId }: { label: string; value: string; testId?:
   return (
     <div>
       <p className="label">{label}</p>
-      <p className="px-inset led mt-1 break-all px-2 py-1 text-[1.05rem] leading-[1.15] text-[#9fe0a8]" data-testid={testId}>
+      <p className="inset mt-1 break-all px-2 py-1 font-mono text-xs leading-snug text-cream" data-testid={testId}>
         {value}
       </p>
     </div>
@@ -39,14 +40,20 @@ function Hash({ label, value, testId }: { label: string; value: string; testId?:
 function Check({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2">
-      <PixelIcon name={ok ? "check" : "cross"} className="mt-0.5 h-5 w-5 shrink-0" />
+      <span aria-hidden className={`font-extrabold ${ok ? "text-positive" : "text-negative"}`}>
+        {ok ? "✓" : "✕"}
+      </span>
       <span className="sr-only">{ok ? "✓" : "✕"}</span>
       <span>{children}</span>
     </li>
   );
 }
 
-/** Seed commitment before the off; seed reveal + server re-simulation check afterwards. */
+/**
+ * Race integrity as a quiet seal (no casino language): "Sealed" before the off with the
+ * fingerprint one tap away; after the finish the seed is revealed and the browser can verify.
+ * The seed and result only appear once the official result exists (`replay`).
+ */
 export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceReplay | null }) {
   const [verify, setVerify] = useState<VerifyResponse | null>(null);
   const [localOk, setLocalOk] = useState<boolean | null>(null);
@@ -72,51 +79,47 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
     }
   }
 
+  const verified = verify && verify.commitmentOk && verify.resultHashOk && localOk !== false;
+
   return (
-    <aside className="px-panel h-fit p-4" aria-labelledby="fair-h" data-testid="fairness">
-      <div className="flex items-center gap-2">
-        <PixelIcon name="shield" className="h-6 w-6" />
-        <h2 id="fair-h" className="display text-xl">
-          Provably fair
+    <section className="surface h-fit p-3" aria-labelledby="fair-h" data-testid="fairness">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="fair-h" className="flex items-center gap-2 font-extrabold">
+          <PixelIcon name="shield" size={32} className="-my-1" />
+          {verified ? "Verified race" : replay ? "Sealed race · result revealed" : "Sealed race"}
         </h2>
+        {replay && !verify && (
+          <button type="button" onClick={run} disabled={busy} className="btn btn-sm" data-testid="verify-button">
+            {busy ? "Re-running the race…" : "Verify"}
+          </button>
+        )}
       </div>
-      {!replay ? (
-        <>
-          <p className="mt-2 text-sm leading-relaxed text-cream-dim">
-            The race is decided by a secret seed fixed when the card was drawn. Its fingerprint is published now; the seed itself is
-            revealed after the finish so anyone can check it matches and that replaying the race gives the same result.
-          </p>
-          <div className="mt-4">
-            <Hash label="Seed commitment · sha256" value={card.seedCommitment} testId="seed-commitment" />
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="mt-2 text-sm leading-relaxed text-cream-dim">
-            The seed is now public. Its sha256 must equal the commitment published before the off, and re-running the engine with it must
-            reproduce this exact result.
-          </p>
-          <div className="mt-4 grid gap-3">
-            <Hash label="Seed commitment · published before the off" value={card.seedCommitment} testId="seed-commitment" />
-            <Hash label="Revealed seed" value={replay.seed} testId="seed-revealed" />
-            <Hash label="Result hash" value={replay.result.resultHash} />
-          </div>
-          {verify ? (
-            <ul className="mt-4 grid gap-2 text-sm" data-testid="verify-result">
-              <Check ok={verify.commitmentOk}>Seed hashes to the published commitment</Check>
-              {localOk !== null && <Check ok={localOk}>Your browser hashed the seed itself and got the same commitment</Check>}
-              <Check ok={verify.resultHashOk}>Independent re-simulation reproduces the result</Check>
-              <li className="label pl-7">Engine {verify.engineVersion}</li>
-            </ul>
-          ) : (
-            <button type="button" onClick={run} disabled={busy} className="btn btn-brass mt-4 w-full" data-testid="verify-button">
-              <PixelIcon name="shield" className="h-5 w-5" />
-              {busy ? "Re-running the race…" : "Verify fairness"}
-            </button>
-          )}
-          {error && <p className="mt-2 text-sm text-claret">Verification failed to run ({error}).</p>}
-        </>
+      <p className="mt-1 text-sm text-cream-dim">
+        {replay
+          ? "The secret seed is now public. Verify re-checks it against the fingerprint published before the off and re-runs the race."
+          : `The outcome was locked when entries closed. Fingerprint ${shortHash(card.seedCommitment, 6)}.`}
+      </p>
+      {verify && (
+        <ul className="mt-3 grid gap-1.5 text-sm" data-testid="verify-result">
+          <Check ok={verify.commitmentOk}>The seed matches the fingerprint published before the off</Check>
+          {localOk !== null && <Check ok={localOk}>Your browser hashed the seed itself and got the same fingerprint</Check>}
+          <Check ok={verify.resultHashOk}>Re-running the race gives exactly the same result</Check>
+          <li className="caption pl-5">Engine {verify.engineVersion}</li>
+        </ul>
       )}
-    </aside>
+      {error && <p className="mt-2 text-sm font-bold text-negative">Couldn&rsquo;t run the check ({error}).</p>}
+      <details className="mt-2">
+        <summary className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4">How sealing works</summary>
+        <div className="mt-2 grid gap-3 text-sm text-cream-dim">
+          <p>
+            Each race is decided by a secret seed fixed when the card is drawn. Its fingerprint (a sha256 hash) is published before the off. After
+            the finish the seed is revealed, so anyone can check it matches and that replaying the race gives the same result.
+          </p>
+          <Hash label="Fingerprint (published before the off)" value={card.seedCommitment} testId="seed-commitment" />
+          {replay && <Hash label="Revealed seed" value={replay.seed} testId="seed-revealed" />}
+          {replay && <Hash label="Result hash" value={replay.result.resultHash} />}
+        </div>
+      </details>
+    </section>
   );
 }

@@ -33,16 +33,36 @@ POST = {
 }
 
 
+PROMPTS = json.loads(Path("art-src/meta/prompts.json").read_text()) if Path("art-src/meta/prompts.json").exists() else {}
+
+
 def prompt(stem):
     base = stem[: -len("-normal")] if stem.endswith("-normal") else stem
-    src = SOURCE.get(base)
+    if base.endswith("-lo"):
+        lo = base[: -len("-lo")]
+        return f"v1 64x64 tile ({SOURCE.get(lo)}, /create-tiles-pro)" + (" | /normal-map lite" if stem.endswith("-normal") else "")
+    m = Path("art-src/meta/race") / f"{base}.meta.json"
+    hd = json.loads(m.read_text()) if m.exists() else {}
+    src = hd.get("source") if hd.get("hd") else SOURCE.get(base)
+    if src and not (RAW / f"{src}.json").exists() and base.startswith("tex-"):
+        src = None
     text = None
     if src and (RAW / f"{src}.json").exists():
         d = json.loads((RAW / f"{src}.json").read_text())
         req = d["request"]
-        text = f"{d['endpoint']}: {req.get('description') or req.get('action')}"
-    if base in POST:
+        desc = req.get("description") or req.get("action")
+        if not desc or desc.startswith("<"):
+            desc = PROMPTS.get(src, {}).get("description") or desc
+        text = f"{d['endpoint']}: {desc}"
+    if hd.get("hd"):
+        if hd.get("seamless"):
+            text = f"{text or ''} | post: seamless {hd['seamless']}".strip(" |")
+    elif base in POST:
         text = f"{text or ''} | post: {POST[base]}".strip(" |")
+    if base.startswith("tex-") and not base.endswith("-lo"):
+        text = f"generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-{base[4:]}) | post: flatten.py + quilt2d.py -> seamless 128x128"
+        if stem.endswith("-normal"):
+            return "seamless normal map computed in code from luminance (art-src/tile_normals.py)"
     if stem.endswith("-normal"):
         text = f"/normal-map (OpenGL) of {base}.png" + (f" | source: {text}" if text else "")
     return text

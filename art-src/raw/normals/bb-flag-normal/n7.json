@@ -1,0 +1,107 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<4956 chars>",
+   "format": "png"
+  },
+  "mode": "lite",
+  "kind": "object"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b21c40da-b5a2-4d01-b6d2-99eef1d07464",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "b21c40da-b5a2-4d01-b6d2-99eef1d07464",
+  "status": "completed",
+  "created_at": "2026-10-25T17:45:19.264183+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "object",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32,
+       33,
+       34,
+       35
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 90,
+    "base64": "<8476 chars>",
+    "height": 100
+   },
+   "action": "Shaping the picture",
+   "frames": 1,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "f5b55417-8dd5-46e7-b7af-14bbfb380093",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:45:19.33396+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/bb-flag-normal/n7-0.png"
+ ]
+}

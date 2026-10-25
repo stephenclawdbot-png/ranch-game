@@ -16,14 +16,14 @@ export function suggestName(): string {
   return `${a} ${b}`;
 }
 
-/** The silks on a tack-room stand (barn scene at an integer scale; silks at 6x their 16 px grid). */
+/** The silks on a tack-room stand (barn scene at an integer scale; silks at 4x their 16 px grid). */
 export function SilksStand({ silks, name, caption = "Your colours" }: { silks: SilksT; name: string; caption?: string }) {
   return (
     <div className="surface overflow-hidden !p-0">
       <div className="relative flex h-40 items-end justify-center md:h-52">
         <SceneBackdrop variant="barn" />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/4 bg-[#2a170c]/40" />
-        <Silks silks={silks} className="relative mb-3 h-[120px] w-[96px] drop-shadow-[4px_4px_0_rgba(0,0,0,0.45)]" title="Your racing silks" />
+        <Silks silks={silks} className="relative mb-4 h-[80px] w-[64px] drop-shadow-[4px_4px_0_rgba(0,0,0,0.45)]" title="Your racing silks" />
       </div>
       <div className="paper m-2 px-3 py-2 text-center">
         <p className="text-xs font-extrabold text-[#5c4a2e]">{caption}</p>

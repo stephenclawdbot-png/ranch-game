@@ -55,25 +55,27 @@ Each has a `*-normal.png` (PixelLab `/normal-map` pro, OpenGL).
 | `jockey-crouch-aligned.png` | **Jockey alone** in racing crouch, magenta/cyan key colours, positioned so it overlays `horse-gallop-pose-aligned.png` exactly (see `composite-check.png`). |
 | `horse-jockey-gallop-pose.png` | The original combined frame both layers were cut from. |
 
-## 2. Race scene (READY)
+## 2. Race scene — HD v2 (READY)
 
-All in `race/`, listed in `manifest.json` as `race.<stem>`. Every billboard/prop/texture also has a
-`<stem>-normal.png` (PixelLab `/normal-map` lite, OpenGL, same size/frame layout).
+All in `race/`, listed in `manifest.json` as `race.<stem>` (same stems as v1, so loaders need no
+change). Billboards/props have `<stem>-normal.png` (PixelLab `/normal-map` lite, OpenGL, same
+size/frame layout); ground tiles have **seamless** normals computed in code (`art-src/tile_normals.py`).
 
 | File | Size | Notes |
 |---|---|---|
-| `sky-clear.png`, `sky-dusk.png`, `sky-overcast.png` | 480×270 | Opaque backdrops (golden hour / dusk / rain). |
-| `far-hills.png` | 960×92 | Transparent sky, **seamless-x** (mirror-tiled). Rolling fields, church spire, distant white rail. |
-| `tex-turf.png`, `tex-dirt.png`, `tex-grass.png`, `tex-gravel.png`, `tex-hedge.png` | 64×64 | **Seamless top-down tiles** for the 3D ground planes (verified 4×4). Opaque. |
-| `bb-tree-oak.png` (120×112), `bb-tree-oak-b.png` (115×113), `bb-tree-poplar.png` (34×110), `bb-bush.png` (41×32), `bb-bush-b.png` (43×33) | | Billboards, trimmed to bbox, anchor bottom-centre = ground. Lit from the right. |
-| `bb-crowd-a.png`, `bb-crowd-b.png` | 192×64 | Crowd behind a white rail (b has bunting, cheering). |
-| `bb-grandstand.png` (= `grandstand.png`) | 320×160 | Victorian two-tier stand, green/cream striped roofs, clock tower, bunting, seated crowd. |
-| `bb-flag.png` | 8 frames × 41×71 | Racing-green/brass pennant waving loop, 8 fps, pole at anchor x≈0.05 (see `bb-flag.meta.json`). |
-| `finish-post.png` (32×112), `furlong-pole.png` (19×72), `starting-gate.png` (256×128) | | Props, bottom = ground. Gate has numbered stalls 1–8. |
-| `crowd.png` (192×64), `rail-near.png` / `rail-far.png` (192×32), `hedge-near.png` (137×48), `track-turf.png` / `track-dirt.png` (128×48) | | 2D parallax strips, **seamless-x**. |
+| `sky-clear.png`, `sky-dusk.png`, `sky-overcast.png` | 688×384 | Opaque backdrops (PixelLab max for 16:9; 960×540 isn't possible natively — stretch on the sky dome / mirror-repeat, don't upscale non-integer). |
+| `far-hills.png` | 1376×86 | Transparent sky, **seamless-x** (mirror-tiled). Rolling fields, church spire, distant white rail. |
+| `tex-turf.png`, `tex-dirt.png`, `tex-grass.png`, `tex-gravel.png`, `tex-hedge.png` | **128×128** | **Seamless top-down tiles** (gradient-flattened + min-cut quilted, verified 4×4). Opaque. v1 64 px kept as `tex-*-lo.png`. |
+| `bb-tree-oak.png` (240×226), `bb-tree-oak-b.png` (236×208), `bb-tree-poplar.png` (70×240), `bb-bush.png` (54×47), `bb-bush-b.png` (72×49) | | Billboards, trimmed to bbox, anchor bottom-centre = ground. Lit from the right. |
+| `bb-crowd-a.png`, `bb-crowd-b.png` | 384×128 | Crowd behind a white rail (b: cheering, bunting). |
+| `bb-grandstand.png` (= `grandstand.png`) | 640×319 | Victorian two-tier stand, striped roofs, clock tower, bunting, packed seats. |
+| `bb-flag.png` | 8 frames × 90×100 | Pennant waving loop, 8 fps, pole at anchor x≈0.056. |
+| `finish-post.png` (49×202), `furlong-pole.png` (32×142), `starting-gate.png` (512×211) | | Props, bottom = ground. Gate stalls numbered 1–8. |
+| `crowd.png` (320×128), `rail-near.png` / `rail-far.png` (336×64), `hedge-near.png` (320×96), `track-turf.png` / `track-dirt.png` (256×96) | | 2D strips, **seamless-x** (min-cut quilted). |
 
-Mock composed scene (2D layers + 4 recoloured horses):
-`/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/mock-scene-3x.png`
+Mock HD scene (960×540, 4 recoloured HD horses):
+`/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/mock-scene-hd.png`
+(v1: `.../scratchpad/prev/mock-scene-3x.png`)
 
 ## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 

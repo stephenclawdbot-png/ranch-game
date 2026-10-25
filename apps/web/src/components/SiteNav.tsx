@@ -26,9 +26,11 @@ export function SiteNav() {
     state === undefined ? (
       <span className="h-11 w-24" aria-hidden />
     ) : state === null ? (
-      <Link href="/play" className="btn btn-sm">
-        Found a stable
-      </Link>
+      pathname.startsWith("/play") ? null : (
+        <Link href="/play" className="btn btn-sm hidden md:inline-flex">
+          Found a stable
+        </Link>
+      )
     ) : (
       <div className="flex items-center gap-1">
         <span className="flex items-center gap-1.5 px-2" title="Stable credits">

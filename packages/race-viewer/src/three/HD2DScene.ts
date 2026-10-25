@@ -917,7 +917,7 @@ export class HD2DScene {
         if (!group.includes(ref)) group.push(ref);
         elev = 10;
         yaw = 16;
-        fillX = 0.72;
+        fillX = 0.8;
         fillY = 0.5;
         fov = 28;
         leadPad = 3;
@@ -995,7 +995,7 @@ export class HD2DScene {
     // Compose: aim above the group so it sits in the lower-middle and the horizon/stands
     // show in the upper third (shift in NDC = composeShift).
     // (Kept small: the HUD covers the top ~25% and the controls the bottom ~12%.)
-    const composeShift = shot === "photo" ? 0.06 : 0.16;
+    const composeShift = shot === "photo" ? 0.06 : shot === "low" ? 0.3 : 0.16;
     at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);

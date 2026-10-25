@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { Stall } from "@/components/Stall";
+import { enterQuickRace } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
@@ -106,8 +107,24 @@ function Welcome() {
   const entry = useEntry();
   const { horses } = usePlayerHorses(state?.player.playerId, state?.player.silks);
   const rec = useMemo(() => (horses ? recommendIndex(horses) : 0), [horses]);
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!state) return null;
   const star = horses?.[rec];
+
+  // First race in one tap: the natural plan is preselected (explained below); "Change the plan" opens the sheet.
+  async function raceNow() {
+    if (!state || !star) return;
+    setBusy(true);
+    setError(null);
+    try {
+      router.push(`/race/${await enterQuickRace(state, star, rec, star.style)}`);
+    } catch (e) {
+      setError(`Couldn't enter the race (${(e as Error).message}). Please try again.`);
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="mx-auto grid max-w-4xl gap-5">
@@ -157,17 +174,25 @@ function Welcome() {
       {star && (
         <div className="flex flex-wrap items-center gap-3">
           <ActionBar>
-            <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(rec)} data-testid="race-now">
-              <PixelIcon name="flag" size={32} className="-my-2" /> Race {star.name} now
+            <button type="button" className="btn btn-brass btn-lg" onClick={raceNow} disabled={busy} data-testid="race-now">
+              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Going to the gates…" : `Race ${star.name} now`}
             </button>
           </ActionBar>
+          <button type="button" className="btn" onClick={() => entry.open(rec)}>
+            Change the plan
+          </button>
           <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
             Walk into the stable
           </Link>
         </div>
       )}
+      {error && (
+        <p className="font-bold text-negative" role="alert">
+          {error}
+        </p>
+      )}
       <p className="text-sm text-cream-dim">
-        {star ? `${star.name} runs as a ${STYLE_LABEL[star.style].toLowerCase()}: ${pronoun(star.sex).he} ${star.style === "front" ? "tries to lead all the way" : star.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. The plan is set for you; change it on the next screen if you like.` : ""}
+        {star ? `${star.name} runs as a ${STYLE_LABEL[star.style].toLowerCase()}: ${pronoun(star.sex).he} ${star.style === "front" ? "tries to lead all the way" : star.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. The gates open ten seconds after you tap.` : ""}
       </p>
       <StorageNote />
     </div>

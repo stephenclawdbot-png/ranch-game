@@ -87,6 +87,12 @@ export async function stableOf(ex: Executor, accountId: string): Promise<StableR
 }
 
 /** Locks and returns the account's stable (serialises every acquisition for that stable). */
+export async function accountIdOfStable(ex: Executor, stableId: string): Promise<string> {
+  const [s] = await ex.select({ accountId: stables.accountId }).from(stables).where(eq(stables.id, stableId));
+  if (!s) throw new DomainError("NOT_FOUND", "stable not found");
+  return s.accountId;
+}
+
 export async function lockStableOf(ex: Executor, accountId: string): Promise<StableRow> {
   const [s] = await ex.select().from(stables).where(eq(stables.accountId, accountId)).for("update");
   if (!s) throw new DomainError("NOT_FOUND", "stable not found");

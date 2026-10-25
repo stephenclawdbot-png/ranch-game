@@ -18,12 +18,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".next-lead/types/**/*.ts",
-    ".next-rig/types/**/*.ts",
-    ".next-viewer/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-redesign/types/**/*.ts"
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules",

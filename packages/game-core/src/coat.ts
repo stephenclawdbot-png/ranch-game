@@ -231,3 +231,9 @@ export function appearanceOf(genome: Genome, progress: { racingAge: boolean; sta
   if (coat.maneColor) out.maneColor = coat.maneColor;
   return out;
 }
+
+/** Adult coat name for a coat genotype (greys shown as "Grey"), used by the breeding preview. */
+export function adultCoatName(c: CoatGenes): string {
+  if (count(c.grey, "G") > 0) return "Grey";
+  return colouredCoat(c).coatName;
+}

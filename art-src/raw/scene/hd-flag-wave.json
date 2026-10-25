@@ -1,0 +1,119 @@
+{
+ "endpoint": "/animate-pixminimax",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<4076 chars>",
+   "format": "png"
+  },
+  "description": "the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly",
+  "frame_count": 8,
+  "seed": 14304,
+  "direction": "east",
+  "view": "side",
+  "subject_description": "a green and gold pennant flag on a white pole",
+  "initial_pose": "flag flying out to the right",
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e5ed445f-076c-497d-92a9-c5f1ebdf7809",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 1
+  },
+  "id": "e5ed445f-076c-497d-92a9-c5f1ebdf7809",
+  "status": "completed",
+  "created_at": "2026-10-25T17:39:37.553055+00:00",
+  "last_response": {
+   "seed": 14304,
+   "type": "done",
+   "action": "smoothing frames",
+   "images": [
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<4076 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5272 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5148 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5420 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5308 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5148 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5108 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<5120 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 96,
+     "base64": "<4324 chars>",
+     "height": 144
+    }
+   ],
+   "status": "initializing",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 1
+   },
+   "generation_id": "e6ed1e8c-060c-4ca6-9feb-062df482deba",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-25T17:39:37.664983+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hd-flag-wave-0.png",
+  "art-src/raw/scene/hd-flag-wave-1.png",
+  "art-src/raw/scene/hd-flag-wave-2.png",
+  "art-src/raw/scene/hd-flag-wave-3.png",
+  "art-src/raw/scene/hd-flag-wave-4.png",
+  "art-src/raw/scene/hd-flag-wave-5.png",
+  "art-src/raw/scene/hd-flag-wave-6.png",
+  "art-src/raw/scene/hd-flag-wave-7.png",
+  "art-src/raw/scene/hd-flag-wave-8.png"
+ ]
+}

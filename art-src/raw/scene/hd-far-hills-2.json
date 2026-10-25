@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<579 chars>",
+  "image_size": {
+   "width": 688,
+   "height": 224
+  },
+  "seed": 14105,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "facb1a84-17a0-4751-bf2f-f35d5d15bc40",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "facb1a84-17a0-4751-bf2f-f35d5d15bc40",
+  "status": "completed",
+  "created_at": "2026-10-25T17:40:52.178896+00:00",
+  "last_response": {
+   "seed": 14105,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<43808 chars>",
+     "height": 224
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "24b49004-7851-452d-bf46-3339c600b723",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "general_no_background_341x341_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_341x341_5.png",
+   "generation_started_at": "2026-10-25T17:40:58.63567+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 36
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hd-far-hills-2-0.png"
+ ]
+}

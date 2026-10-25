@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<64644 chars>",
+     "format": "png"
+    },
+    "width": 240,
+    "height": 240
+   }
+  ],
+  "image_size": {
+   "width": 240,
+   "height": 240
+  },
+  "description": "remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
+  "no_background": true,
+  "seed": 14301
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e8e851e3-122c-43b0-85ed-104883f05f76",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e8e851e3-122c-43b0-85ed-104883f05f76",
+  "status": "completed",
+  "created_at": "2026-10-25T17:38:47.131204+00:00",
+  "last_response": {
+   "seed": 14301,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 240,
+     "base64": "<37588 chars>",
+     "height": 240
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "812248c8-b709-4646-81b4-f3cddbe2f1d3",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 240,
+     "base64": "<37588 chars>",
+     "height": 240
+    }
+   ],
+   "generation_started_at": "2026-10-25T17:38:53.620652+00:00",
+   "original_image_n_colors": 113,
+   "quantized_image_n_colors": 14
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hd-oak-clean-0.png"
+ ]
+}

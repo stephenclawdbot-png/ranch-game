@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseView } from "@/server/repository";
-import { GOINGS, STYLES, SURFACES, TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
+import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
 import { COAT_LABEL, GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { horseRecord, usePlayerState } from "@/lib/player";
 import { HorsePortrait } from "../HorsePortrait";
@@ -126,7 +126,7 @@ export function HorseDetail({ view }: { view: HorseView }) {
             <AptRow label="Plan" cells={apt.style} name={(k) => STYLE_LABEL[k]} />
           </dl>
           <p className="caption mt-2">
-            Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}. {SURFACES.length} surfaces, {GOINGS.length} goings, {STYLES.length} plans.
+            Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}..
           </p>
         </section>
 

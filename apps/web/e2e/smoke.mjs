@@ -81,6 +81,7 @@ async function main() {
     log("onboarding at", BASE_URL);
     await page.goto(`${BASE_URL}/play`);
     await page.getByLabel("Stable name").fill("Larkrise Lodge");
+    await page.getByText("Customise colours").click(); // colours are pre-rolled; customising is optional
     await page.getByRole("button", { name: "Hoops" }).click();
     await shot(page, "desktop-play");
     await page.getByRole("button", { name: /register/i }).click();
@@ -118,9 +119,9 @@ async function main() {
     await page.waitForURL(/\/race\//);
     const raceUrl = page.url();
     log("race url", raceUrl);
-    await page.getByTestId("seed-commitment").waitFor();
+    await page.getByTestId("seed-commitment").waitFor({ state: "attached" }); // behind "How sealing works"
     await page.getByTestId("countdown").waitFor();
-    const commitment = (await page.getByTestId("seed-commitment").innerText()).trim();
+    const commitment = (await page.getByTestId("seed-commitment").textContent()).trim();
     assert(/^[0-9a-f]{64}$/.test(commitment), "seed commitment shown before post");
     assert((await page.getByTestId("my-runner").count()) === 1, "player's runner highlighted in the field");
     await shot(page, "desktop-race-pre");
@@ -165,7 +166,7 @@ async function main() {
     await shot(page, "desktop-race-live-reloaded");
 
     log("waiting for results (real time, no skipping)");
-    await page.getByTestId("results-table").waitFor({ timeout: RACE_TIMEOUT_MS });
+    await page.getByTestId("results-table").waitFor({ state: "attached", timeout: RACE_TIMEOUT_MS }); // full table is collapsed
     assert(broadcast.finalAt !== null, "results came from the final broadcast chunk");
     assert(broadcast.leaks.length === 0, `no outcome leaked before the finish:\n  ${broadcast.leaks.join("\n  ")}`);
     log(`live responses checked: ${broadcast.liveResponses}, none leaked`);
@@ -179,12 +180,12 @@ async function main() {
     await page.getByTestId("verify-result").waitFor();
     const verifyText = await page.getByTestId("verify-result").innerText();
     assert((verifyText.match(/✓/g) ?? []).length >= 2 && !verifyText.includes("✕"), `fairness checks pass (${verifyText})`);
-    assert((await page.getByTestId("seed-commitment").innerText()).trim() === commitment, "commitment unchanged after reveal");
+    assert((await page.getByTestId("seed-commitment").textContent()).trim() === commitment, "commitment unchanged after reveal");
     await shot(page, "desktop-race-result");
 
     log("reloading");
     await page.reload();
-    await page.getByTestId("results-table").waitFor({ timeout: 30_000 });
+    await page.getByTestId("results-table").waitFor({ state: "attached", timeout: 30_000 });
     const winner2 = (await page.getByTestId("winner-name").innerText()).trim();
     assert(winner2 === winner, `same winner after reload (${winner} vs ${winner2})`);
     const creditsReload = await page.getByTestId("credits").first().innerText();
@@ -213,7 +214,7 @@ async function main() {
       ["mobile-race-result", new URL(raceUrl).pathname, "results-table"],
     ]) {
       await m.goto(`${BASE_URL}${path}`);
-      await m.getByTestId(ready).first().waitFor({ timeout: 30_000 });
+      await m.getByTestId(ready).first().waitFor({ state: "attached", timeout: 30_000 });
       await m.waitForTimeout(600);
       const overflow = await m.evaluate(() => document.documentElement.scrollWidth - 390);
       assert(overflow <= 0, `${path} has no horizontal scroll on mobile (overflow ${overflow}px)`);

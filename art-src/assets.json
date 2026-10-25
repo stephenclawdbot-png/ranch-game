@@ -5,7 +5,7 @@
   "depthBand": "far",
   "src": "race/bb-bush-b-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -20,7 +20,7 @@
   "depthBand": "far",
   "src": "race/bb-bush-b.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -33,7 +33,7 @@
   "depthBand": "far",
   "src": "race/bb-bush-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -48,7 +48,7 @@
   "depthBand": "far",
   "src": "race/bb-bush.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -61,7 +61,7 @@
   "depthBand": "mid",
   "src": "race/bb-crowd-a-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: <423 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -76,7 +76,7 @@
   "depthBand": "mid",
   "src": "race/bb-crowd-a.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <423 chars>",
+  "sourcePrompt": "/generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -89,7 +89,7 @@
   "depthBand": "mid",
   "src": "race/bb-crowd-b-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: <383 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -104,7 +104,7 @@
   "depthBand": "mid",
   "src": "race/bb-crowd-b.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <383 chars>",
+  "sourcePrompt": "/generate-image-v2: a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -117,9 +117,9 @@
   "depthBand": "mid",
   "src": "race/bb-flag-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /animate-pixminimax: the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly",
   "anchor": {
-   "x": 0.073,
+   "x": 0.056,
    "y": 1
   },
   "frameCount": 8,
@@ -134,9 +134,9 @@
   "depthBand": "mid",
   "src": "race/bb-flag.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+  "sourcePrompt": "/animate-pixminimax: the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly",
   "anchor": {
-   "x": 0.073,
+   "x": 0.056,
    "y": 1
   },
   "frameCount": 8,
@@ -149,7 +149,7 @@
   "depthBand": "mid",
   "src": "race/bb-grandstand-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: <473 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -164,7 +164,7 @@
   "depthBand": "mid",
   "src": "race/bb-grandstand.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <473 chars>",
+  "sourcePrompt": "/generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -177,7 +177,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-oak-b-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /generate-image-v2: <343 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /edit-images-v2: remove the white fence and the grass ground patch at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -192,7 +192,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-oak-b.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <343 chars>",
+  "sourcePrompt": "/edit-images-v2: remove the white fence and the grass ground patch at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -205,7 +205,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-oak-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /generate-image-v2: <343 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /edit-images-v2: remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -220,7 +220,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-oak.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <343 chars>",
+  "sourcePrompt": "/edit-images-v2: remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -233,7 +233,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-poplar-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: <330 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -248,7 +248,7 @@
   "depthBand": "far",
   "src": "race/bb-tree-poplar.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <330 chars>",
+  "sourcePrompt": "/generate-image-v2: a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -261,7 +261,7 @@
   "depthBand": "mid",
   "src": "race/crowd.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <423 chars> | post: made seamless: roll + /inpaint-v3 of the centre band (art-src/seamless.py)",
+  "sourcePrompt": "/generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -276,7 +276,7 @@
   "depthBand": "far",
   "src": "race/far-hills.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/generate-image-v2: <535 chars> | post: sky cut to alpha, mirror-tiled to 960 px (art-src/process_scene.py)",
+  "sourcePrompt": "/generate-image-v2: wide side view panorama strip of distant English countryside: low rolling hills along the bottom half only with hedgerows, patchwork green and golden fields and clumps of dark green trees, a small church spire, hazy blue-green aerial perspective, golden-hour light; the entire upper half of the image is empty plain flat pale cream sky with nothing in it, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (mirror)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -291,7 +291,7 @@
   "depthBand": "track",
   "src": "race/finish-post-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /edit-images-v2: remove the small wooden bench rails at the bottom; keep only the round red and white target disc and the red and white striped pole going straight down to the bottom edge",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -306,7 +306,7 @@
   "depthBand": "track",
   "src": "race/finish-post.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "sourcePrompt": "/edit-images-v2: remove the small wooden bench rails at the bottom; keep only the round red and white target disc and the red and white striped pole going straight down to the bottom edge",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -319,7 +319,7 @@
   "depthBand": "track",
   "src": "race/furlong-pole-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: a racecourse furlong marker: a slim white post with red bands and a small round red and white disc on top, no base, the post reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -334,7 +334,7 @@
   "depthBand": "track",
   "src": "race/furlong-pole.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "sourcePrompt": "/generate-image-v2: a racecourse furlong marker: a slim white post with red bands and a small round red and white disc on top, no base, the post reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -347,7 +347,7 @@
   "depthBand": "mid",
   "src": "race/grandstand.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <473 chars>",
+  "sourcePrompt": "/generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -360,7 +360,7 @@
   "depthBand": "near",
   "src": "race/hedge-near.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <348 chars> | post: made seamless by min-cut quilting (art-src/quilt.py)",
+  "sourcePrompt": "/generate-image-v2: side view of a neatly trimmed dark green box hedge strip with small red and white flowers along its base, a long straight horizontal strip seen up close, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -375,7 +375,7 @@
   "depthBand": "mid",
   "src": "race/rail-far.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+  "sourcePrompt": "/generate-image-v2: side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -390,7 +390,7 @@
   "depthBand": "near",
   "src": "race/rail-near.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+  "sourcePrompt": "/generate-image-v2: side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -405,7 +405,7 @@
   "depthBand": "sky",
   "src": "race/sky-clear.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/generate-image-v2: <413 chars>",
+  "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: clear golden-hour summer sky, deep blue at the top fading to warm honey and peach near the bottom horizon, a few soft fluffy cumulus clouds lit gold from the low sun on the right, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0,
    "y": 0
@@ -418,7 +418,7 @@
   "depthBand": "sky",
   "src": "race/sky-dusk.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/generate-image-v2: <413 chars>",
+  "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: dusk sky, violet and indigo at the top fading through magenta to bright orange at the bottom horizon, long thin streaky clouds lit orange and pink, first stars faintly at the top, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0,
    "y": 0
@@ -431,7 +431,7 @@
   "depthBand": "sky",
   "src": "race/sky-overcast.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/generate-image-v2: <374 chars>",
+  "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: overcast rainy English sky, layered heavy grey clouds, slate blue-grey at the top, lighter silver grey near the horizon, soft diffuse light, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0,
    "y": 0
@@ -444,7 +444,7 @@
   "depthBand": "track",
   "src": "race/starting-gate-normal.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: <327 chars>",
+  "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: a horse racing starting gate seen from the side, long metal frame of green and white padded stalls numbered 1 to 8 on wheels, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -459,7 +459,7 @@
   "depthBand": "track",
   "src": "race/starting-gate.png",
   "optimizationTier": "standard",
-  "sourcePrompt": "/generate-image-v2: <327 chars>",
+  "sourcePrompt": "/generate-image-v2: a horse racing starting gate seen from the side, long metal frame of green and white padded stalls numbered 1 to 8 on wheels, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -467,12 +467,42 @@
   "variants": []
  },
  {
+  "id": "race.tex-dirt-lo-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-dirt-lo-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-dirt-lo",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-dirt-lo.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
   "id": "race.tex-dirt-normal",
   "kind": "track_layer",
   "depthBand": "track",
   "src": "race/tex-dirt-normal.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/normal-map (OpenGL) of tex-dirt.png | source: /create-tiles-pro: <402 chars>",
+  "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -487,7 +517,37 @@
   "depthBand": "track",
   "src": "race/tex-dirt.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-dirt) | post: flatten.py + quilt2d.py -> seamless 128x128",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-grass-lo-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-grass-lo-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-grass-lo",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-grass-lo.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -502,7 +562,7 @@
   "depthBand": "track",
   "src": "race/tex-grass-normal.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/normal-map (OpenGL) of tex-grass.png | source: /create-tiles-pro: <402 chars>",
+  "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -517,7 +577,37 @@
   "depthBand": "track",
   "src": "race/tex-grass.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-grass) | post: flatten.py + quilt2d.py -> seamless 128x128",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-gravel-lo-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-gravel-lo-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-gravel-lo",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-gravel-lo.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -532,7 +622,7 @@
   "depthBand": "track",
   "src": "race/tex-gravel-normal.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/normal-map (OpenGL) of tex-gravel.png | source: /create-tiles-pro: <402 chars>",
+  "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -547,7 +637,37 @@
   "depthBand": "track",
   "src": "race/tex-gravel.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-gravel) | post: flatten.py + quilt2d.py -> seamless 128x128",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-hedge-lo-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-hedge-lo-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro) | /normal-map lite",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-hedge-lo",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-hedge-lo.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -562,7 +682,7 @@
   "depthBand": "track",
   "src": "race/tex-hedge-normal.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/normal-map (OpenGL) of tex-hedge.png | source: /create-tiles-pro: <423 chars>",
+  "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -577,7 +697,37 @@
   "depthBand": "track",
   "src": "race/tex-hedge.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <423 chars>",
+  "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-hedge) | post: flatten.py + quilt2d.py -> seamless 128x128",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-turf-lo-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-turf-lo-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro) | /normal-map lite",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-turf-lo",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-turf-lo.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -592,7 +742,7 @@
   "depthBand": "track",
   "src": "race/tex-turf-normal.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/normal-map (OpenGL) of tex-turf.png | source: /create-tiles-pro: <423 chars>",
+  "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -607,7 +757,7 @@
   "depthBand": "track",
   "src": "race/tex-turf.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <423 chars>",
+  "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-turf) | post: flatten.py + quilt2d.py -> seamless 128x128",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -622,7 +772,7 @@
   "depthBand": "track",
   "src": "race/track-dirt.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <402 chars> | post: tiled from tex-dirt",
+  "sourcePrompt": "post: seamless x",
   "anchor": {
    "x": 0.5,
    "y": 1
@@ -637,7 +787,7 @@
   "depthBand": "track",
   "src": "race/track-turf.png",
   "optimizationTier": "background",
-  "sourcePrompt": "/create-tiles-pro: <423 chars> | post: tiled from tex-turf",
+  "sourcePrompt": "post: seamless x",
   "anchor": {
    "x": 0.5,
    "y": 1

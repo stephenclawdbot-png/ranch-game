@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<21220 chars>",
+   "base64": "<61500 chars>",
    "format": "png"
   },
   "frames": 1,
@@ -12,7 +12,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "217e427a-ff52-4135-943c-2b69895128bf",
+  "background_job_id": "cdf91999-4ccc-4285-9773-e20c3e789df2",
   "status": "processing"
  },
  "job": {
@@ -20,9 +20,9 @@
    "type": "generations",
    "generations": 0.1
   },
-  "id": "217e427a-ff52-4135-943c-2b69895128bf",
+  "id": "cdf91999-4ccc-4285-9773-e20c3e789df2",
   "status": "completed",
-  "created_at": "2026-10-25T16:38:30.055188+00:00",
+  "created_at": "2026-10-25T17:43:32.176965+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -187,7 +187,37 @@
        146,
        147,
        148,
-       149
+       149,
+       150,
+       151,
+       152,
+       153,
+       154,
+       155,
+       156,
+       157,
+       158,
+       159,
+       160,
+       161,
+       162,
+       163,
+       164,
+       165,
+       166,
+       167,
+       168,
+       169,
+       170,
+       171,
+       172,
+       173,
+       174,
+       175,
+       176,
+       177,
+       178,
+       179
       ]
      }
     ],
@@ -197,9 +227,9 @@
    "type": "message_done",
    "image": {
     "type": "base64",
-    "width": 115,
-    "base64": "<28904 chars>",
-    "height": 113
+    "width": 236,
+    "base64": "<105780 chars>",
+    "height": 208
    },
    "action": "Shaping the picture",
    "frames": 1,
@@ -210,10 +240,10 @@
     "type": "generations",
     "generations": 0.1
    },
-   "generation_id": "5a531013-ea8c-4f78-a872-383208e9f444",
+   "generation_id": "ee4a191a-ddf7-44c4-add1-fadbc338beed",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T16:38:30.153114+00:00"
+   "generation_started_at": "2026-10-25T17:43:32.261038+00:00"
   }
  },
  "files": [

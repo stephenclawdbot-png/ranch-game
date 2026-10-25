@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<21468 chars>",
+   "base64": "<37296 chars>",
    "format": "png"
   },
   "frames": 1,
@@ -12,7 +12,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "4a4a1647-d3a2-40ce-b8eb-ee979d3d88df",
+  "background_job_id": "6439b826-9149-4612-a009-52659eb560f8",
   "status": "processing"
  },
  "job": {
@@ -20,9 +20,9 @@
    "type": "generations",
    "generations": 0.1
   },
-  "id": "4a4a1647-d3a2-40ce-b8eb-ee979d3d88df",
+  "id": "6439b826-9149-4612-a009-52659eb560f8",
   "status": "completed",
-  "created_at": "2026-10-25T16:38:18.239253+00:00",
+  "created_at": "2026-10-25T17:43:25.355675+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -193,7 +193,10 @@
        152,
        153,
        154,
-       155
+       155,
+       156,
+       157,
+       158
       ]
      }
     ],
@@ -203,9 +206,9 @@
    "type": "message_done",
    "image": {
     "type": "base64",
-    "width": 120,
-    "base64": "<29904 chars>",
-    "height": 112
+    "width": 240,
+    "base64": "<119108 chars>",
+    "height": 226
    },
    "action": "Shaping the picture",
    "frames": 1,
@@ -216,10 +219,10 @@
     "type": "generations",
     "generations": 0.1
    },
-   "generation_id": "124ef5cc-49c2-4b70-9063-694c513cb120",
+   "generation_id": "7a5350df-23d4-46f2-a30b-bafce1a58c87",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T16:38:18.297364+00:00"
+   "generation_started_at": "2026-10-25T17:43:25.429789+00:00"
   }
  },
  "files": [

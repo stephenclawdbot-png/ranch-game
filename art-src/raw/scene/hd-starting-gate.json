@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<396 chars>",
+  "image_size": {
+   "width": 512,
+   "height": 256
+  },
+  "seed": 14211,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "20de9d8d-a4ae-4ea4-89f5-e494586f27a6",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "20de9d8d-a4ae-4ea4-89f5-e494586f27a6",
+  "status": "completed",
+  "created_at": "2026-10-25T17:34:36.021502+00:00",
+  "last_response": {
+   "seed": 14211,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 512,
+     "base64": "<78740 chars>",
+     "height": 256
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "107b8dfb-c7b3-42b2-a76c-58475e0e6a48",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "general_no_background_341x341_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_341x341_5.png",
+   "generation_started_at": "2026-10-25T17:34:42.414945+00:00",
+   "original_image_n_colors": 60,
+   "quantized_image_n_colors": 41
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hd-starting-gate-0.png"
+ ]
+}

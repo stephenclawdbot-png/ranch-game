@@ -197,9 +197,9 @@ export const InjurySchema = z.object({
   severity: InjurySeveritySchema,
   /** When it happened (ms). Healing progresses with real time from here. */
   atMs: z.number().int(),
-  /** Healing units required (1 unit = 1 real day at base vet level). */
+  /** Healing hours required (1 real hour heals 1 hour at vet level 0; more with a better vet). */
   unitsRequired: NonNegInt,
-  /** Extra units earned from care sessions / vet treatment during recovery. */
+  /** Extra healing hours earned from care sessions / vet treatment during recovery. */
   bonusUnits: NonNegInt,
   /** Vet facility level at the time (speeds healing). */
   vetLevel: z.number().int().min(0).max(3),
@@ -220,6 +220,8 @@ export const PregnancySchema = z.object({
   sireId: z.string(),
   coveredAtMs: z.number().int(),
   dueAtMs: z.number().int(),
+  /** COI of the foal (permille), computed from the pedigree at covering. */
+  coi: Permille,
   /** 64-hex seed used to produce the foal genome (committed at covering). */
   foalSeed: z.string().regex(/^[0-9a-f]{64}$/),
 });

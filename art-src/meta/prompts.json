@@ -1,0 +1,210 @@
+{
+ "scene/hd-sky-clear": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: clear golden-hour summer sky, deep blue at the top fading to warm honey and peach near the bottom horizon, a few soft fluffy cumulus clouds lit gold from the low sun on the right, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-sky-dusk": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: dusk sky, violet and indigo at the top fading through magenta to bright orange at the bottom horizon, long thin streaky clouds lit orange and pink, first stars faintly at the top, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-sky-overcast": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: overcast rainy English sky, layered heavy grey clouds, slate blue-grey at the top, lighter silver grey near the horizon, soft diffuse light, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-far-hills": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view distant landscape panorama: rolling English countryside hills with hedgerows, patchwork green and golden fields and clusters of dark green trees, a church spire far away, soft aerial perspective with hazy blue-green distance, golden-hour light, the hills fill the lower two thirds, plain flat pale cream sky above the hills with no clouds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-far-hills-2": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide side view panorama strip of distant English countryside: low rolling hills along the bottom half only with hedgerows, patchwork green and golden fields and clumps of dark green trees, a small church spire, hazy blue-green aerial perspective, golden-hour light; the entire upper half of the image is empty plain flat pale cream sky with nothing in it, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-far-hills-3": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide side view panorama strip of distant English countryside: low rolling hills along the bottom half only with hedgerows, patchwork green and golden fields and clumps of dark green trees, a small church spire, hazy blue-green aerial perspective, golden-hour light; the entire upper half of the image is empty plain flat pale cream sky with nothing in it, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-oak": {
+  "endpoint": "/generate-image-v2",
+  "description": "a single large mature English oak tree, full round canopy of deep green leaves lit gold on the right side, thick gnarled brown trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-oak-b": {
+  "endpoint": "/generate-image-v2",
+  "description": "a single broad English oak tree with a wide spreading canopy of clustered deep green leaves lit gold on the right, thick brown trunk with roots, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-poplar": {
+  "endpoint": "/generate-image-v2",
+  "description": "a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-bush": {
+  "endpoint": "/generate-image-v2",
+  "description": "a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-crowd-a": {
+  "endpoint": "/generate-image-v2",
+  "description": "a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-crowd-b": {
+  "endpoint": "/generate-image-v2",
+  "description": "a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-grandstand": {
+  "endpoint": "/generate-image-v2",
+  "description": "a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-flag": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse flag on a white pole, a long pennant flag in racing green with a brass gold stripe flying out to the right in the wind, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-finish-post": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse winning post: a tall red and white striped pole topped with a large round red and white target disc, no base, the pole reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-furlong-pole": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse furlong marker: a slim white post with red bands and a small round red and white disc on top, no base, the post reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-starting-gate": {
+  "endpoint": "/generate-image-v2",
+  "description": "a horse racing starting gate seen from the side, long metal frame of green and white padded stalls numbered 1 to 8 on wheels, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-rail": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hd-hedge": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view of a neatly trimmed dark green box hedge strip with small red and white flowers along its base, a long straight horizontal strip seen up close, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/sky-clear": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: clear golden-hour summer sky, deep blue at the top fading to warm honey and peach near the bottom horizon, a few soft fluffy cumulus clouds lit gold from the low sun on the right, pixel art banding gradient, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/sky-dusk": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: dusk sky, violet and indigo at the top fading through magenta to bright orange at the bottom horizon, long thin streaky clouds lit orange and pink, first stars faintly at the top, pixel art banding gradient, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/sky-overcast": {
+  "endpoint": "/generate-image-v2",
+  "description": "wide sky backdrop only, no ground: overcast rainy English sky, layered heavy grey clouds, slate blue-grey at the top, lighter silver grey near the horizon, soft diffuse light, pixel art banding gradient, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/far-hills": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view distant landscape strip: rolling English countryside hills with hedgerows, patchwork fields and clusters of dark green trees, a church spire far away, soft aerial perspective with hazy blue-green distance, golden-hour light from the right, transparent sky above, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/far-hills-opaque": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view distant landscape panorama: rolling English countryside hills with hedgerows, patchwork green and golden fields and clusters of dark green trees, a church spire far away, soft aerial perspective with hazy blue-green distance, golden-hour light from the right, the hills fill the lower two thirds, plain flat pale cream sky above the hills with no clouds, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-tree-oak": {
+  "endpoint": "/generate-image-v2",
+  "description": "a single large mature English oak tree, full round canopy of deep green leaves lit gold on the right side, thick brown trunk, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-tree-poplar": {
+  "endpoint": "/generate-image-v2",
+  "description": "a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-bush": {
+  "endpoint": "/generate-image-v2",
+  "description": "a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-crowd-a": {
+  "endpoint": "/generate-image-v2",
+  "description": "a dense crowd of racegoers standing behind a rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-crowd-b": {
+  "endpoint": "/generate-image-v2",
+  "description": "a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-flag": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse flag on a white pole, a long pennant flag in racing green with a brass gold stripe waving in the wind, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/bb-grandstand": {
+  "endpoint": "/generate-image-v2",
+  "description": "a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd silhouettes in the seats, clock tower in the middle, warm golden-hour light, side view, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/finish-post": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse winning post: a tall white pole topped with a round red and white disc sign, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/furlong-pole": {
+  "endpoint": "/generate-image-v2",
+  "description": "a racecourse furlong marker pole: a slim white post with a red band and a small round red and white disc on top, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/starting-gate": {
+  "endpoint": "/generate-image-v2",
+  "description": "a horse racing starting gate seen from the side, long metal frame of green and white padded stalls on wheels, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/finish-post-clean": {
+  "endpoint": "/edit-images-v2",
+  "description": "remove the grass base block and the arrow; keep the red and white target disc and the red and white striped pole going straight down to the bottom edge, nothing else"
+ },
+ "scene/furlong-pole-clean": {
+  "endpoint": "/edit-images-v2",
+  "description": "remove the grass base and the small post; keep only the round red and white disc and the white pole with red bands going straight down to the bottom edge"
+ },
+ "scene/flag-wave": {
+  "endpoint": "/animate-pixminimax",
+  "description": "the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly"
+ },
+ "scene/hd-oak-clean": {
+  "endpoint": "/edit-images-v2",
+  "description": "remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background"
+ },
+ "scene/hd-oak-b-clean": {
+  "endpoint": "/edit-images-v2",
+  "description": "remove the white fence and the grass ground patch at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background"
+ },
+ "scene/hd-finish-post-clean": {
+  "endpoint": "/edit-images-v2",
+  "description": "remove the small wooden bench rails at the bottom; keep only the round red and white target disc and the red and white striped pole going straight down to the bottom edge"
+ },
+ "scene/hd-flag-wave": {
+  "endpoint": "/animate-pixminimax",
+  "description": "the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly"
+ },
+ "scene/rail-white": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hedge-near": {
+  "endpoint": "/generate-image-v2",
+  "description": "side view of a neatly trimmed dark green box hedge strip with small red and white flowers along its base, a long straight horizontal strip seen up close, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/tiles2": {
+  "endpoint": "/create-tiles-pro",
+  "description": "1). top-down short mowed racecourse turf, even fine green grass blades, uniform texture without stripes 2). top-down short mowed racecourse turf, even fine green grass blades, uniform texture without stripes 3). top-down dense dark green box hedge foliage seen from above, small glossy leaves filling the whole tile 4). top-down dense dark green box hedge foliage seen from above, small glossy leaves filling the whole tile"
+ },
+ "scene/hd-tiles-a": {
+  "endpoint": "/create-tiles-pro",
+  "description": "1). top-down short mowed racecourse turf, fine lush green grass blades, even texture without stripes, warm golden-hour tint 2). top-down racetrack dirt: raked warm brown loamy dirt with faint hoof prints and small pebbles 3). top-down meadow grass: lush deep green grass with clover and a few tiny daisies 4). top-down fine gravel path: light warm grey and beige pebbles"
+ },
+ "scene/hd-tiles-b": {
+  "endpoint": "/create-tiles-pro",
+  "description": "1). top-down dense dark green box hedge foliage seen from above, small glossy leaves filling the whole tile 2). top-down short mowed racecourse turf, fine lush green grass blades, even texture without stripes 3). top-down racetrack dirt: raked warm brown loamy dirt with faint hoof prints 4). top-down dense dark green box hedge foliage seen from above, small glossy leaves"
+ },
+ "scene/hdtex-turf": {
+  "endpoint": "/generate-image-v2",
+  "description": "seamless top-down ground texture filling the whole image: short mowed racecourse turf, dense fine grass blades in several greens with subtle warm highlights, very even, no objects, no stripes, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hdtex-dirt": {
+  "endpoint": "/generate-image-v2",
+  "description": "seamless top-down ground texture filling the whole image: raked racetrack dirt, warm brown loam with fine rake lines, faint hoof prints and tiny pebbles, even, no objects, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hdtex-grass": {
+  "endpoint": "/generate-image-v2",
+  "description": "seamless top-down ground texture filling the whole image: lush meadow grass, deep greens with clover leaves and a few tiny white daisies, even, no objects, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hdtex-gravel": {
+  "endpoint": "/generate-image-v2",
+  "description": "seamless top-down ground texture filling the whole image: fine gravel path, small rounded pebbles in warm grey, beige and cream, even, no objects, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/hdtex-hedge": {
+  "endpoint": "/generate-image-v2",
+  "description": "seamless top-down texture filling the whole image: dense clipped box hedge foliage seen from above, many small glossy dark green leaves with lighter tips, even, no objects, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails"
+ },
+ "scene/tiles": {
+  "endpoint": "/create-tiles-pro",
+  "description": "1). top-down racecourse turf: lush mowed green grass with subtle lighter mowing stripes 2). top-down racetrack dirt: raked brown loamy dirt with hoof prints and small pebbles 3). top-down meadow grass: lush deep green grass with clover and tiny daisies 4). top-down fine gravel path: light warm grey and beige pebbles 5). top-down trimmed dark green box hedge leaves seen from above, dense small leaves"
+ }
+}

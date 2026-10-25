@@ -1,8 +1,10 @@
 {
+ "hd": true,
  "frameCount": 8,
  "fps": 8,
  "anchor": {
-  "x": 0.073,
+  "x": 0.056,
   "y": 1
- }
+ },
+ "source": "scene/hd-flag-wave"
 }

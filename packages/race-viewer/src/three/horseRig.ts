@@ -109,7 +109,9 @@ async function loadGallopStrip(art: ArtSet): Promise<GallopStrip | null> {
       ctx.drawImage(img, 0, 0);
       const data = ctx.getImageData(0, 0, c.width, c.height);
       let keys: KeyPalette | null = null;
-      for (const pal of [`${dir}palette-${stem}.json`, `${dir}${stem}.palette.json`, `${dir}palette.json`]) {
+      const suffix = stem.replace(/^horse-gallop-?/, "");
+      const palettes = [`${dir}palette-${stem}.json`, `${dir}${stem}.palette.json`, ...(suffix ? [`${dir}palette-${suffix}.json`] : []), `${dir}palette.json`];
+      for (const pal of palettes) {
         const json = await fetch(url(pal))
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);

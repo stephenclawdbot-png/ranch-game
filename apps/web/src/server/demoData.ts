@@ -120,9 +120,9 @@ interface ArchetypeDef {
  * (see tools/balance/archetypes.report.ts): they differ in WHERE they are good, not how good.
  */
 export const ARCHETYPES: Record<Archetype, ArchetypeDef> = {
-  sprinter: { mods: { speed: 80, stamina: -190, burst: 120, durability: -20, adaptability: -40, temperament: -30 }, distances: [1000, 1200], styles: ["front", "front", "stalker"] },
-  miler: { mods: { speed: 80, stamina: 20, burst: 40, durability: -40, adaptability: -40, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
-  stayer: { mods: { speed: -40, stamina: 210, burst: -40, durability: 90, adaptability: 20, temperament: 60 }, distances: [2000, 2400], styles: ["closer", "stalker"] },
+  sprinter: { mods: { speed: 105, stamina: -140, burst: 120, durability: -20, adaptability: -40, temperament: -30 }, distances: [1000, 1200], styles: ["front", "front", "stalker"] },
+  miler: { mods: { speed: 90, stamina: 20, burst: 40, durability: -40, adaptability: -40, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
+  stayer: { mods: { speed: -55, stamina: 210, burst: -40, durability: 90, adaptability: 20, temperament: 60 }, distances: [2000, 2400], styles: ["closer", "stalker"] },
   closer: { mods: { speed: 60, stamina: 60, burst: 180, durability: 0, adaptability: -20, temperament: -40 }, distances: [1600, 2000], styles: ["closer"] },
   frontrunner: { mods: { speed: 130, stamina: 80, burst: -150, durability: 20, adaptability: -10, temperament: -60 }, distances: [1200, 1400, 1600], styles: ["front"] },
   allrounder: { mods: { speed: 55, stamina: 10, burst: -30, durability: 40, adaptability: 150, temperament: 60 }, distances: [1400, 1600, 2000], styles: ["stalker", "closer", "front"] },
@@ -192,7 +192,7 @@ const POOL_SEED = "thoroughbred/rival-pool/v2";
  * Quality tiers. Every house stable gets one horse per tier and one horse per archetype (paired
  * by a per-stable shuffle), so no stable is stacked, every archetype appears at every level across
  * the pool, and each race class (see races.ts) has enough horses for any distance and surface.
- * Starters (quality 520-620) sit around the novice/handicap tiers.
+ * Starters (quality 500-570, stats capped at 700) sit at the maiden/novice tiers.
  */
 const RIVAL_TIERS: readonly number[] = [460, 495, 530, 565, 600, 640, 680, 720];
 const TIER_JITTER = 25;

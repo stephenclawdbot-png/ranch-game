@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<1120 chars>",
+   "base64": "<1960 chars>",
    "format": "png"
   },
   "frames": 1,
@@ -12,7 +12,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "6ba69ca4-6d3c-4e93-8ffe-c9f8be5aff6f",
+  "background_job_id": "829e7245-407c-4d99-8fa9-41525bacfdc3",
   "status": "processing"
  },
  "job": {
@@ -20,9 +20,9 @@
    "type": "generations",
    "generations": 0.1
   },
-  "id": "6ba69ca4-6d3c-4e93-8ffe-c9f8be5aff6f",
+  "id": "829e7245-407c-4d99-8fa9-41525bacfdc3",
   "status": "completed",
-  "created_at": "2026-10-25T16:38:17.874904+00:00",
+  "created_at": "2026-10-25T17:44:21.718146+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -52,7 +52,21 @@
        11,
        12,
        13,
-       14
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28
       ]
      }
     ],
@@ -62,9 +76,9 @@
    "type": "message_done",
    "image": {
     "type": "base64",
-    "width": 19,
-    "base64": "<1716 chars>",
-    "height": 72
+    "width": 32,
+    "base64": "<5344 chars>",
+    "height": 142
    },
    "action": "Shaping the picture",
    "frames": 1,
@@ -75,10 +89,10 @@
     "type": "generations",
     "generations": 0.1
    },
-   "generation_id": "3f584d67-a96f-4dfa-a529-cb43db89feba",
+   "generation_id": "826f0028-25e2-4ae3-9302-acbc030aece5",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T16:38:17.958982+00:00"
+   "generation_started_at": "2026-10-25T17:44:21.772532+00:00"
   }
  },
  "files": [

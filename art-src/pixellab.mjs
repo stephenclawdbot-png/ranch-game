@@ -106,7 +106,7 @@ export function collectImages(obj, out = []) {
 /** Strip base64 payloads from a request/response so it can be logged. */
 export function strip(obj) {
   return JSON.parse(
-    JSON.stringify(obj, (k, v) => (typeof v === "string" && v.length > 300 ? `<${v.length} chars>` : v)),
+    JSON.stringify(obj, (k, v) => (typeof v === "string" && v.length > 300 && !/\s/.test(v) ? `<${v.length} chars>` : v)),
   );
 }
 

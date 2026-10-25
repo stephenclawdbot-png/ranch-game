@@ -31,7 +31,13 @@ export type DomainErrorCode =
   | "LISTING_NOT_ACTIVE"
   | "LISTING_EXPIRED"
   | "CANNOT_BUY_OWN"
-  | "PERMANENT_STATE";
+  | "PERMANENT_STATE"
+  | "HORSE_BOUND"
+  | "PACK_LIMIT"
+  | "CROP_SOLD_OUT"
+  | "LINKED_ACCOUNTS"
+  | "SELLER_REQUIREMENTS"
+  | "PRICE_BELOW_FLOOR";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -100,6 +106,8 @@ const CONSTRAINT_CODES: Record<string, DomainErrorCode> = {
   market_listings_horse_active_uq: "HORSE_LOCKED",
   race_entries_race_horse_uq: "HORSE_LOCKED",
   horses_mandatory_retirement: "HORSE_RETIRED",
+  foal_crop_bounds: "CROP_SOLD_OUT",
+  stables_slots: "INVALID_INPUT",
 };
 
 /** Translates rule-encoding constraint violations into DomainErrors; returns other errors unchanged. */
@@ -109,6 +117,12 @@ export function translateDbError(e: unknown): unknown {
   if (!pg) return e;
   const mapped = pg.constraint ? CONSTRAINT_CODES[pg.constraint] : undefined;
   if (mapped) return new DomainError(mapped, pg.message, { constraint: pg.constraint });
-  if (pg.code === "P0001" || pg.code === "23001") return new DomainError("PERMANENT_STATE", pg.message);
+  if (pg.code === "23001") {
+    const msg = pg.message ?? "";
+    if (/bound|starts before/.test(msg)) return new DomainError("HORSE_BOUND", msg);
+    if (/in foal/.test(msg)) return new DomainError("HORSE_IN_FOAL", msg);
+    if (/entered in a race/.test(msg)) return new DomainError("HORSE_LOCKED", msg);
+    return new DomainError("PERMANENT_STATE", msg);
+  }
   return e;
 }

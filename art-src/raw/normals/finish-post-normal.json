@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<3036 chars>",
+   "base64": "<3736 chars>",
    "format": "png"
   },
   "frames": 1,
@@ -12,7 +12,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "b01250a9-7967-42a2-bc89-beafd2e175fb",
+  "background_job_id": "782f4bcb-deab-4c2c-8278-34574f3d955b",
   "status": "processing"
  },
  "job": {
@@ -20,9 +20,9 @@
    "type": "generations",
    "generations": 0.1
   },
-  "id": "b01250a9-7967-42a2-bc89-beafd2e175fb",
+  "id": "782f4bcb-deab-4c2c-8278-34574f3d955b",
   "status": "completed",
-  "created_at": "2026-10-25T16:38:18.296603+00:00",
+  "created_at": "2026-10-25T17:44:15.243002+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -57,7 +57,64 @@
        16,
        17,
        18,
-       19
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32,
+       33,
+       34,
+       35,
+       36,
+       37,
+       38,
+       39,
+       40,
+       41,
+       42,
+       43,
+       44,
+       45,
+       46,
+       47,
+       48,
+       49,
+       50,
+       51,
+       52,
+       53,
+       54,
+       55,
+       56,
+       57,
+       58,
+       59,
+       60,
+       61,
+       62,
+       63,
+       64,
+       65,
+       66,
+       67,
+       68,
+       69,
+       70,
+       71,
+       72,
+       73,
+       74,
+       75,
+       76
       ]
      }
     ],
@@ -67,9 +124,9 @@
    "type": "message_done",
    "image": {
     "type": "base64",
-    "width": 32,
-    "base64": "<4764 chars>",
-    "height": 112
+    "width": 49,
+    "base64": "<11312 chars>",
+    "height": 202
    },
    "action": "Shaping the picture",
    "frames": 1,
@@ -80,10 +137,10 @@
     "type": "generations",
     "generations": 0.1
    },
-   "generation_id": "495c2ea5-a152-454c-8864-d6e6fd96dbbc",
+   "generation_id": "f3992bba-cf07-4021-93ea-d59a0ecb019f",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T16:38:18.372284+00:00"
+   "generation_started_at": "2026-10-25T17:44:15.299063+00:00"
   }
  },
  "files": [

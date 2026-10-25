@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<34744 chars>",
+   "base64": "<104120 chars>",
    "format": "png"
   },
   "frames": 1,
@@ -12,7 +12,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "8ade78c1-48fb-40e9-bd44-827a703bb602",
+  "background_job_id": "c198ca9c-9900-4f40-9a80-7c67a682184c",
   "status": "processing"
  },
  "job": {
@@ -20,9 +20,9 @@
    "type": "generations",
    "generations": 0.1
   },
-  "id": "8ade78c1-48fb-40e9-bd44-827a703bb602",
+  "id": "c198ca9c-9900-4f40-9a80-7c67a682184c",
   "status": "completed",
-  "created_at": "2026-10-25T16:38:17.756430+00:00",
+  "created_at": "2026-10-25T17:44:06.953761+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -39,10 +39,15 @@
       "name": "island 1",
       "shape": "flat",
       "regions": [
+       3
+      ]
+     },
+     {
+      "name": "island 2",
+      "shape": "flat",
+      "regions": [
        1,
        2,
-       3,
-       4,
        5,
        6,
        7,
@@ -176,7 +181,20 @@
        135,
        136,
        137,
-       138
+       138,
+       139,
+       140,
+       141,
+       142,
+       143,
+       144,
+       145,
+       146,
+       147,
+       148,
+       149,
+       150,
+       151
       ]
      }
     ],
@@ -186,9 +204,9 @@
    "type": "message_done",
    "image": {
     "type": "base64",
-    "width": 192,
-    "base64": "<43704 chars>",
-    "height": 64
+    "width": 384,
+    "base64": "<143144 chars>",
+    "height": 128
    },
    "action": "Shaping the picture",
    "frames": 1,
@@ -199,10 +217,10 @@
     "type": "generations",
     "generations": 0.1
    },
-   "generation_id": "bbc1a87e-d0ec-4bc9-9845-bd27b81decb2",
+   "generation_id": "cd3aa492-2c6a-4af9-887f-15e6c0e8bb78",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T16:38:17.813099+00:00"
+   "generation_started_at": "2026-10-25T17:44:07.050118+00:00"
   }
  },
  "files": [

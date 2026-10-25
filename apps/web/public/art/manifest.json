@@ -217,7 +217,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-bush-b-normal.png"
   },
@@ -228,8 +228,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 43,
-   "frameHeight": 33,
+   "frameWidth": 72,
+   "frameHeight": 49,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -238,7 +238,7 @@
    "depthBand": "far",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-bush-b.png"
   },
@@ -261,7 +261,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-bush-normal.png"
   },
@@ -272,8 +272,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 41,
-   "frameHeight": 32,
+   "frameWidth": 54,
+   "frameHeight": 47,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -282,7 +282,7 @@
    "depthBand": "far",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-bush.png"
   },
@@ -305,7 +305,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: <423 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-crowd-a-normal.png"
   },
@@ -316,8 +316,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 192,
-   "frameHeight": 64,
+   "frameWidth": 384,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -326,7 +326,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <423 chars>",
+   "sourcePrompt": "/generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-crowd-a.png"
   },
@@ -349,7 +349,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: <383 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-crowd-b-normal.png"
   },
@@ -360,8 +360,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 192,
-   "frameHeight": 64,
+   "frameWidth": 384,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -370,7 +370,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <383 chars>",
+   "sourcePrompt": "/generate-image-v2: a dense crowd of excited racegoers seen from the front, side view strip, people cheering with raised arms, top hats, colourful hats and dresses, union jack bunting, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-crowd-b.png"
   },
@@ -385,7 +385,7 @@
    "frameHeight": 71,
    "fps": 8,
    "anchor": {
-    "x": 0.073,
+    "x": 0.056,
     "y": 1
    },
    "depthBand": "mid",
@@ -393,7 +393,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /animate-pixminimax: the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly",
    "optimizationTier": "standard",
    "src": "race/bb-flag-normal.png",
    "animations": {
@@ -411,17 +411,17 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 8,
-   "frameWidth": 41,
-   "frameHeight": 71,
+   "frameWidth": 90,
+   "frameHeight": 100,
    "fps": 8,
    "anchor": {
-    "x": 0.073,
+    "x": 0.056,
     "y": 1
    },
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+   "sourcePrompt": "/animate-pixminimax: the pennant flag ripples and flutters in a steady breeze, waves travelling along the cloth from the pole to the tip; the pole stays perfectly still; loops seamlessly",
    "optimizationTier": "standard",
    "src": "race/bb-flag.png",
    "animations": {
@@ -451,7 +451,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: <473 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-grandstand-normal.png"
   },
@@ -462,8 +462,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 320,
-   "frameHeight": 160,
+   "frameWidth": 640,
+   "frameHeight": 319,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -472,7 +472,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <473 chars>",
+   "sourcePrompt": "/generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-grandstand.png"
   },
@@ -483,8 +483,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 115,
-   "frameHeight": 113,
+   "frameWidth": 236,
+   "frameHeight": 208,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -495,7 +495,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /generate-image-v2: <343 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /edit-images-v2: remove the white fence and the grass ground patch at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
    "optimizationTier": "standard",
    "src": "race/bb-tree-oak-b-normal.png"
   },
@@ -506,8 +506,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 115,
-   "frameHeight": 113,
+   "frameWidth": 236,
+   "frameHeight": 208,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -516,7 +516,7 @@
    "depthBand": "far",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <343 chars>",
+   "sourcePrompt": "/edit-images-v2: remove the white fence and the grass ground patch at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
    "optimizationTier": "standard",
    "src": "race/bb-tree-oak-b.png"
   },
@@ -527,8 +527,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 120,
-   "frameHeight": 112,
+   "frameWidth": 240,
+   "frameHeight": 226,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -539,7 +539,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /generate-image-v2: <343 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /edit-images-v2: remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
    "optimizationTier": "standard",
    "src": "race/bb-tree-oak-normal.png"
   },
@@ -550,8 +550,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 120,
-   "frameHeight": 112,
+   "frameWidth": 240,
+   "frameHeight": 226,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -560,7 +560,7 @@
    "depthBand": "far",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <343 chars>",
+   "sourcePrompt": "/edit-images-v2: remove the white fence and the grass at the base; keep the oak tree exactly as drawn, trunk and roots ending on a flat ground line, transparent background",
    "optimizationTier": "standard",
    "src": "race/bb-tree-oak.png"
   },
@@ -571,8 +571,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 34,
-   "frameHeight": 110,
+   "frameWidth": 70,
+   "frameHeight": 240,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -583,7 +583,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: <330 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-tree-poplar-normal.png"
   },
@@ -594,8 +594,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 34,
-   "frameHeight": 110,
+   "frameWidth": 70,
+   "frameHeight": 240,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -604,7 +604,7 @@
    "depthBand": "far",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <330 chars>",
+   "sourcePrompt": "/generate-image-v2: a single tall slender Lombardy poplar tree, narrow columnar dark green canopy lit gold on the right, thin trunk, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/bb-tree-poplar.png"
   },
@@ -615,8 +615,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 192,
-   "frameHeight": 64,
+   "frameWidth": 320,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -627,7 +627,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/generate-image-v2: <423 chars> | post: made seamless: roll + /inpaint-v3 of the centre band (art-src/seamless.py)",
+   "sourcePrompt": "/generate-image-v2: a dense crowd of racegoers standing behind a white rail seen from the front, side view strip, men in suits and flat caps, women in colourful summer dresses and big hats, some waving arms and holding race cards, warm golden-hour light, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
    "optimizationTier": "standard",
    "src": "race/crowd.png"
   },
@@ -638,8 +638,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 960,
-   "frameHeight": 92,
+   "frameWidth": 1376,
+   "frameHeight": 86,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -650,7 +650,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/generate-image-v2: <535 chars> | post: sky cut to alpha, mirror-tiled to 960 px (art-src/process_scene.py)",
+   "sourcePrompt": "/generate-image-v2: wide side view panorama strip of distant English countryside: low rolling hills along the bottom half only with hedgerows, patchwork green and golden fields and clumps of dark green trees, a small church spire, hazy blue-green aerial perspective, golden-hour light; the entire upper half of the image is empty plain flat pale cream sky with nothing in it, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (mirror)",
    "optimizationTier": "background",
    "src": "race/far-hills.png"
   },
@@ -673,7 +673,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /edit-images-v2: remove the small wooden bench rails at the bottom; keep only the round red and white target disc and the red and white striped pole going straight down to the bottom edge",
    "optimizationTier": "standard",
    "src": "race/finish-post-normal.png"
   },
@@ -684,8 +684,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 32,
-   "frameHeight": 112,
+   "frameWidth": 49,
+   "frameHeight": 202,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -694,7 +694,7 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "sourcePrompt": "/edit-images-v2: remove the small wooden bench rails at the bottom; keep only the round red and white target disc and the red and white striped pole going straight down to the bottom edge",
    "optimizationTier": "standard",
    "src": "race/finish-post.png"
   },
@@ -717,7 +717,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: a racecourse furlong marker: a slim white post with red bands and a small round red and white disc on top, no base, the post reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/furlong-pole-normal.png"
   },
@@ -728,8 +728,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 19,
-   "frameHeight": 72,
+   "frameWidth": 32,
+   "frameHeight": 142,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -738,7 +738,7 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "sourcePrompt": "/generate-image-v2: a racecourse furlong marker: a slim white post with red bands and a small round red and white disc on top, no base, the post reaches the bottom edge, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/furlong-pole.png"
   },
@@ -749,8 +749,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 320,
-   "frameHeight": 160,
+   "frameWidth": 640,
+   "frameHeight": 319,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -759,7 +759,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <473 chars>",
+   "sourcePrompt": "/generate-image-v2: a classic English racecourse grandstand building seen from the track side: two tiers of seating, green and cream striped awning roofs, white iron columns, bunting flags along the roof, crowd in the seats, clock tower in the middle, warm golden-hour light, side view, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/grandstand.png"
   },
@@ -770,8 +770,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 137,
-   "frameHeight": 48,
+   "frameWidth": 320,
+   "frameHeight": 96,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -782,7 +782,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/generate-image-v2: <348 chars> | post: made seamless by min-cut quilting (art-src/quilt.py)",
+   "sourcePrompt": "/generate-image-v2: side view of a neatly trimmed dark green box hedge strip with small red and white flowers along its base, a long straight horizontal strip seen up close, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
    "optimizationTier": "standard",
    "src": "race/hedge-near.png"
   },
@@ -793,8 +793,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 192,
-   "frameHeight": 32,
+   "frameWidth": 336,
+   "frameHeight": 64,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -805,7 +805,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+   "sourcePrompt": "/generate-image-v2: side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
    "optimizationTier": "standard",
    "src": "race/rail-far.png"
   },
@@ -816,8 +816,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 192,
-   "frameHeight": 32,
+   "frameWidth": 336,
+   "frameHeight": 64,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -828,7 +828,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+   "sourcePrompt": "/generate-image-v2: side view of a white plastic racecourse running rail, two horizontal round rails on white posts, a long straight horizontal strip, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails | post: seamless x (quilt)",
    "optimizationTier": "standard",
    "src": "race/rail-near.png"
   },
@@ -839,8 +839,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 480,
-   "frameHeight": 270,
+   "frameWidth": 688,
+   "frameHeight": 384,
    "fps": 0,
    "anchor": {
     "x": 0,
@@ -849,7 +849,7 @@
    "depthBand": "sky",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <413 chars>",
+   "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: clear golden-hour summer sky, deep blue at the top fading to warm honey and peach near the bottom horizon, a few soft fluffy cumulus clouds lit gold from the low sun on the right, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "background",
    "src": "race/sky-clear.png"
   },
@@ -860,8 +860,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 480,
-   "frameHeight": 270,
+   "frameWidth": 688,
+   "frameHeight": 384,
    "fps": 0,
    "anchor": {
     "x": 0,
@@ -870,7 +870,7 @@
    "depthBand": "sky",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <413 chars>",
+   "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: dusk sky, violet and indigo at the top fading through magenta to bright orange at the bottom horizon, long thin streaky clouds lit orange and pink, first stars faintly at the top, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "background",
    "src": "race/sky-dusk.png"
   },
@@ -881,8 +881,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 480,
-   "frameHeight": 270,
+   "frameWidth": 688,
+   "frameHeight": 384,
    "fps": 0,
    "anchor": {
     "x": 0,
@@ -891,7 +891,7 @@
    "depthBand": "sky",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <374 chars>",
+   "sourcePrompt": "/generate-image-v2: wide sky backdrop only, no ground: overcast rainy English sky, layered heavy grey clouds, slate blue-grey at the top, lighter silver grey near the horizon, soft diffuse light, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "background",
    "src": "race/sky-overcast.png"
   },
@@ -914,7 +914,7 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: <327 chars>",
+   "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: a horse racing starting gate seen from the side, long metal frame of green and white padded stalls numbered 1 to 8 on wheels, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/starting-gate-normal.png"
   },
@@ -925,8 +925,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 256,
-   "frameHeight": 128,
+   "frameWidth": 512,
+   "frameHeight": 211,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -935,12 +935,12 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "/generate-image-v2: <327 chars>",
+   "sourcePrompt": "/generate-image-v2: a horse racing starting gate seen from the side, long metal frame of green and white padded stalls numbered 1 to 8 on wheels, side view game sprite, HD pixel art with fine detail and many small pixels, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
    "optimizationTier": "standard",
    "src": "race/starting-gate.png"
   },
   {
-   "id": "race.tex-dirt-normal",
+   "id": "race.tex-dirt-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -958,7 +958,53 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of tex-dirt.png | source: /create-tiles-pro: <402 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+   "optimizationTier": "background",
+   "src": "race/tex-dirt-lo-normal.png"
+  },
+  {
+   "id": "race.tex-dirt-lo",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
+   "optimizationTier": "background",
+   "src": "race/tex-dirt-lo.png"
+  },
+  {
+   "id": "race.tex-dirt-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
    "optimizationTier": "background",
    "src": "race/tex-dirt-normal.png"
   },
@@ -969,8 +1015,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 64,
-   "frameHeight": 64,
+   "frameWidth": 128,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -981,12 +1027,12 @@
    "variants": [
     "seamless-2d"
    ],
-   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-dirt) | post: flatten.py + quilt2d.py -> seamless 128x128",
    "optimizationTier": "background",
    "src": "race/tex-dirt.png"
   },
   {
-   "id": "race.tex-grass-normal",
+   "id": "race.tex-grass-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -1004,7 +1050,53 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of tex-grass.png | source: /create-tiles-pro: <402 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+   "optimizationTier": "background",
+   "src": "race/tex-grass-lo-normal.png"
+  },
+  {
+   "id": "race.tex-grass-lo",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
+   "optimizationTier": "background",
+   "src": "race/tex-grass-lo.png"
+  },
+  {
+   "id": "race.tex-grass-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
    "optimizationTier": "background",
    "src": "race/tex-grass-normal.png"
   },
@@ -1015,8 +1107,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 64,
-   "frameHeight": 64,
+   "frameWidth": 128,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -1027,12 +1119,12 @@
    "variants": [
     "seamless-2d"
    ],
-   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-grass) | post: flatten.py + quilt2d.py -> seamless 128x128",
    "optimizationTier": "background",
    "src": "race/tex-grass.png"
   },
   {
-   "id": "race.tex-gravel-normal",
+   "id": "race.tex-gravel-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -1050,7 +1142,53 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of tex-gravel.png | source: /create-tiles-pro: <402 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro) | /normal-map lite",
+   "optimizationTier": "background",
+   "src": "race/tex-gravel-lo-normal.png"
+  },
+  {
+   "id": "race.tex-gravel-lo",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "v1 64x64 tile (scene/tiles, /create-tiles-pro)",
+   "optimizationTier": "background",
+   "src": "race/tex-gravel-lo.png"
+  },
+  {
+   "id": "race.tex-gravel-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
    "optimizationTier": "background",
    "src": "race/tex-gravel-normal.png"
   },
@@ -1061,8 +1199,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 64,
-   "frameHeight": 64,
+   "frameWidth": 128,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -1073,12 +1211,12 @@
    "variants": [
     "seamless-2d"
    ],
-   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-gravel) | post: flatten.py + quilt2d.py -> seamless 128x128",
    "optimizationTier": "background",
    "src": "race/tex-gravel.png"
   },
   {
-   "id": "race.tex-hedge-normal",
+   "id": "race.tex-hedge-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -1096,7 +1234,53 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of tex-hedge.png | source: /create-tiles-pro: <423 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro) | /normal-map lite",
+   "optimizationTier": "background",
+   "src": "race/tex-hedge-lo-normal.png"
+  },
+  {
+   "id": "race.tex-hedge-lo",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro)",
+   "optimizationTier": "background",
+   "src": "race/tex-hedge-lo.png"
+  },
+  {
+   "id": "race.tex-hedge-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
    "optimizationTier": "background",
    "src": "race/tex-hedge-normal.png"
   },
@@ -1107,8 +1291,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 64,
-   "frameHeight": 64,
+   "frameWidth": 128,
+   "frameHeight": 128,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -1119,12 +1303,12 @@
    "variants": [
     "seamless-2d"
    ],
-   "sourcePrompt": "/create-tiles-pro: <423 chars>",
+   "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-hedge) | post: flatten.py + quilt2d.py -> seamless 128x128",
    "optimizationTier": "background",
    "src": "race/tex-hedge.png"
   },
   {
-   "id": "race.tex-turf-normal",
+   "id": "race.tex-turf-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -1142,12 +1326,12 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map (OpenGL) of tex-turf.png | source: /create-tiles-pro: <423 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro) | /normal-map lite",
    "optimizationTier": "background",
-   "src": "race/tex-turf-normal.png"
+   "src": "race/tex-turf-lo-normal.png"
   },
   {
-   "id": "race.tex-turf",
+   "id": "race.tex-turf-lo",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -1165,7 +1349,53 @@
    "variants": [
     "seamless-2d"
    ],
-   "sourcePrompt": "/create-tiles-pro: <423 chars>",
+   "sourcePrompt": "v1 64x64 tile (scene/tiles2, /create-tiles-pro)",
+   "optimizationTier": "background",
+   "src": "race/tex-turf-lo.png"
+  },
+  {
+   "id": "race.tex-turf-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "seamless normal map computed in code from luminance (art-src/tile_normals.py)",
+   "optimizationTier": "background",
+   "src": "race/tex-turf-normal.png"
+  },
+  {
+   "id": "race.tex-turf",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "generate-image-v2 176x176 (art-src/gen-scene.mjs hdtex-turf) | post: flatten.py + quilt2d.py -> seamless 128x128",
    "optimizationTier": "background",
    "src": "race/tex-turf.png"
   },
@@ -1176,8 +1406,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 128,
-   "frameHeight": 48,
+   "frameWidth": 256,
+   "frameHeight": 96,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -1188,7 +1418,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/create-tiles-pro: <402 chars> | post: tiled from tex-dirt",
+   "sourcePrompt": "post: seamless x",
    "optimizationTier": "background",
    "src": "race/track-dirt.png"
   },
@@ -1199,8 +1429,8 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 128,
-   "frameHeight": 48,
+   "frameWidth": 256,
+   "frameHeight": 96,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -1211,7 +1441,7 @@
    "variants": [
     "seamless-x"
    ],
-   "sourcePrompt": "/create-tiles-pro: <423 chars> | post: tiled from tex-turf",
+   "sourcePrompt": "post: seamless x",
    "optimizationTier": "background",
    "src": "race/track-turf.png"
   },

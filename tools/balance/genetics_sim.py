@@ -12,7 +12,9 @@ Model (per stat, 0-1000 scale, potentials not current stats):
   * Breeders keep the top SELECT fraction of each generation (by mean potential) and pair best with
     best; every horse can breed at most BREED_LIMIT times (one foal each).
 Prints the best horse and the top-1% mean per generation, plus the generation where a horse first
-reaches "A" (mean >= 750) and "S" (mean >= 850).
+reaches B (mean >= 700), A (mean >= 800, docs/game-design.md) and S (mean >= 900).
+NICK stands in for allele segregation variance in the two-allele genome; with only a rare +-30
+mutation (MUT) and no segregation variance the frontier stalls (+~5 per generation).
 """
 import numpy as np
 
@@ -41,7 +43,7 @@ for g in range(GENS + 1):
     order = np.argsort(-means)
     top1 = means[order[: max(1, len(pop) // 100)]].mean()
     print(f"{g:3d}  {means[order[0]]:9.0f}  {top1:10.0f}  {means.mean():8.0f}  {pop.max():8.0f}")
-    for label, thr in (("A (mean>=750)", 750), ("S (mean>=850)", 850)):
+    for label, thr in (("B", 700), ("A", 800), ("S", 900)):
         if label not in first and means.max() >= thr:
             first[label] = g
     parents = pop[order[: int(len(pop) * SELECT)]]
