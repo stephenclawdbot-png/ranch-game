@@ -26,7 +26,7 @@ export function SiteNav() {
     state === undefined ? (
       <span className="h-11 w-24" aria-hidden />
     ) : state === null ? (
-      pathname.startsWith("/play") ? null : (
+      pathname.startsWith("/play") || pathname === "/" ? null : (
         <Link href="/play" className="btn btn-sm hidden md:inline-flex">
           Found a stable
         </Link>
