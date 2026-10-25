@@ -29,8 +29,8 @@ const GOING_HORSE_PEN: Record<RaceConfig["going"], number> = { firm: 0, good: 0,
 const SURFACE_PEN_BASE = 40;
 const SURFACE_PEN_ADAPT = 110;
 /** Day-form amplitude (mm/s, triangular): base + permille of the temperament gap. */
-const FORM_AMP_BASE = 300;
-const FORM_AMP_TEMPER = 250;
+const FORM_AMP_BASE = 220;
+const FORM_AMP_TEMPER = 200;
 /** Cruise bonus (mm/s) and drain (permille) when the tactic matches the horse's natural style. */
 const STYLE_MATCH_CRUISE = 15;
 const STYLE_MATCH_DRAIN = 6;

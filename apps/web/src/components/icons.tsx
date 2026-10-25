@@ -141,6 +141,20 @@ export const ICONS = {
     "GgCcGgGgCcGg",
     "GGGGGGGGGGGG",
   ],
+  home: [
+    "..KK....KK..",
+    ".KCCK..KCCK.",
+    "KKCcKKKKCcKK",
+    "KCCCCCCCCCcK",
+    "KKCcKKKKCcKK",
+    ".KCcK..KCcK.",
+    "KKCcKKKKCcKK",
+    "KCCCCCCCCCcK",
+    "KKCcKKKKCcKK",
+    ".KCcK..KCcK.",
+    "GgCcGgGgCcGg",
+    "GGGGGGGGGGGG",
+  ],
   stable: [
     ".....KK.....",
     "....KCCK....",
@@ -377,7 +391,7 @@ export function Crest({ className }: P) {
   const art = useArt(ART_SLOTS.logo);
   if (art) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={artUrl(art)} alt="" aria-hidden className={`pixelated object-contain ${className ?? ""}`} draggable={false} />;
+    return <img src={artUrl(art)} alt="" aria-hidden className={`downscaled object-contain ${className ?? ""}`} draggable={false} />;
   }
   return <PixelGrid rows={CREST_ROWS} palette={PAL} className={className} />;
 }

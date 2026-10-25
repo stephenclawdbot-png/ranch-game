@@ -8,84 +8,79 @@ import { Crest, PixelIcon, type IconName } from "./icons";
 import { SilksIcon } from "./Silks";
 
 const TABS: { href: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
-  { href: "/", label: "Paddock", icon: "paddock", match: (p) => p === "/" },
+  { href: "/", label: "Home", icon: "home", match: (p) => p === "/" },
   { href: "/stable", label: "Stable", icon: "stable", match: (p) => p.startsWith("/stable") || p.startsWith("/horse") },
   { href: "/races", label: "Races", icon: "flag", match: (p) => p.startsWith("/races") || p.startsWith("/race/") },
 ];
 
-/** Brass pixel trim under the top bar: a 2-row stepped stripe. */
-function Trim() {
-  return (
-    <div aria-hidden className="h-[6px] w-full" style={{ background: "linear-gradient(#d9a441 0 2px, #9a6b22 2px 4px, #050906 4px 6px)" }} />
-  );
-}
-
+/**
+ * Top bar (crest, purse, your silks -> profile & settings) and the navigation:
+ * a flat bottom tab bar on phones (brass notch on the active tab, not a filled button),
+ * text tabs in the top bar on desktop.
+ */
 export function SiteNav() {
   const pathname = usePathname() ?? "/";
   const state = usePlayerState();
 
-  const purse =
+  const right =
     state === undefined ? (
-      <span className="h-10 w-28" aria-hidden />
+      <span className="h-11 w-24" aria-hidden />
     ) : state === null ? (
-      <Link href="/play" className="btn btn-brass btn-sm">
-        Found your stable
+      <Link href="/play" className="btn btn-sm">
+        Found a stable
       </Link>
     ) : (
-      <Link
-        href="/stable"
-        className="chip !gap-2 !py-1 !pl-1 !pr-2.5 hover:brightness-110"
-        aria-label={`${state.player.stableName}: ${formatCredits(state.progress.credits)} credits`}
-      >
-        <SilksIcon silks={state.player.silks} className="h-7 w-7" />
-        <span className="hidden max-w-[10rem] truncate font-sans text-sm text-cream-dim lg:inline">{state.player.stableName}</span>
-        <span className="num flex items-center gap-1.5 text-lg leading-none text-brass-bright" data-testid="credits">
-          <PixelIcon name="coin" className="h-5 w-5" />
-          {formatCredits(state.progress.credits)}
+      <div className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5 px-2" title="Stable credits">
+          <PixelIcon name="coin" size={16} />
+          <span className="num text-base text-cream" data-testid="credits" aria-label={`${formatCredits(state.progress.credits)} credits`}>
+            {formatCredits(state.progress.credits)}
+          </span>
         </span>
-      </Link>
+        <Link
+          href="/me"
+          className={`flex h-11 w-11 items-center justify-center ${pathname.startsWith("/me") ? "bg-surface-2" : "hover:bg-surface-2"}`}
+          aria-label={`${state.player.stableName}: profile and settings`}
+          aria-current={pathname.startsWith("/me") ? "page" : undefined}
+        >
+          <SilksIcon silks={state.player.silks} className="h-8 w-8" />
+        </Link>
+      </div>
     );
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#0c2117]/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-3 sm:px-6 md:h-16">
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="Thoroughbred home">
-            <Crest className="h-9 w-9 transition-transform group-hover:-translate-y-0.5 md:h-10 md:w-10" />
-            <span className="leading-none">
-              <span className="display block text-[1.15rem] tracking-wide text-cream md:text-[1.35rem]">THOROUGHBRED</span>
-              <span className="mt-0.5 block font-[family-name:var(--font-pixel)] text-[8px] uppercase tracking-[0.3em] text-brass">Racing Club</span>
-            </span>
+      <a href="#main" className="sr-only z-50 bg-brass px-3 py-2 font-bold text-ink focus:not-sr-only focus:fixed focus:left-2 focus:top-2">
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b-2 border-surface-2 bg-[#0a1b12]">
+        <div className="mx-auto flex h-12 max-w-[75rem] items-center gap-3 px-4 md:h-14 md:px-6">
+          <Link href="/" className="flex min-h-11 items-center gap-2" aria-label="Thoroughbred home">
+            <Crest className="h-8 w-9" />
+            <span className="display text-2xl leading-none text-cream max-[359px]:hidden">Thoroughbred</span>
           </Link>
-          <nav className="ml-4 hidden items-end gap-1 self-end md:flex" aria-label="Main">
-            {TABS.map(({ href, label, icon, match }) => {
+          <nav className="ml-6 hidden h-full items-stretch gap-1 md:flex" aria-label="Main">
+            {TABS.map(({ href, label, match }) => {
               const active = match(pathname);
               return (
                 <Link
                   key={href}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`display flex items-center gap-2 px-4 pb-2.5 pt-2 text-[1.05rem] transition-colors ${
-                    active ? "bg-[#d9a441] text-[#241505] [text-shadow:none]" : "text-sage hover:bg-[#163a28] hover:text-cream"
-                  }`}
-                  style={{
-                    clipPath: "polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% 100%, 0 100%)",
-                  }}
+                  className={`relative flex items-center px-4 text-base font-extrabold ${active ? "text-cream" : "text-cream-dim hover:text-cream"}`}
                 >
-                  <PixelIcon name={icon} className="h-5 w-5" />
                   {label}
+                  {active && <span aria-hidden className="absolute inset-x-3 bottom-0 h-[3px] bg-brass" />}
                 </Link>
               );
             })}
           </nav>
-          <div className="ml-auto">{purse}</div>
+          <div className="ml-auto">{right}</div>
         </div>
-        <Trim />
       </header>
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-        <div aria-hidden className="h-[6px]" style={{ background: "linear-gradient(#050906 0 2px, #9a6b22 2px 4px, #d9a441 4px 6px)" }} />
-        <ul className="grid grid-cols-3 gap-1.5 bg-[#0c2117] px-2 pb-[calc(env(safe-area-inset-bottom)+6px)] pt-1.5">
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-surface-2 bg-[#0a1b12] pb-[env(safe-area-inset-bottom)] md:hidden">
+        <ul className="grid h-14 grid-cols-3">
           {TABS.map(({ href, label, icon, match }) => {
             const active = match(pathname);
             return (
@@ -93,9 +88,10 @@ export function SiteNav() {
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`btn !flex h-[3.6rem] w-full !flex-col !gap-0.5 !px-1 !text-[0.8rem] ${active ? "btn-brass" : ""}`}
+                  className={`relative flex h-full flex-col items-center justify-center gap-0.5 text-xs font-extrabold ${active ? "text-cream" : "text-cream-dim"}`}
                 >
-                  <PixelIcon name={icon} className={`h-6 w-6 ${active ? "animate-bob" : ""}`} />
+                  {active && <span aria-hidden className="absolute left-1/2 top-[-2px] h-1 w-8 -translate-x-1/2 bg-brass" />}
+                  <PixelIcon name={icon} size={32} className={`-my-1 ${active ? "" : "opacity-70 grayscale-[35%]"}`} />
                   {label}
                 </Link>
               </li>

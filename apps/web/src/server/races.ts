@@ -311,6 +311,9 @@ const QUICK_TEMPLATES: readonly { distanceM: number; raceClass: RaceClass }[] = 
   { distanceM: 2000, raceClass: "handicap" },
 ];
 
+/** Weight of a quick-race template by |race distance - preferred distance| (m). */
+const QUICK_TRIP_WEIGHT: Readonly<Record<number, number>> = { 0: 4, 200: 3, 400: 1 };
+
 function b64urlEncode(s: string): string {
   return Buffer.from(s, "utf8").toString("base64url");
 }
@@ -348,10 +351,11 @@ export function createQuickRace(req: QuickRaceRequest, nowMs: number, nonce = ra
   if (!isValidPlayerId(req.playerId)) throw new Error("invalid playerId");
   const horse = starterHorses(req.playerId)[req.horseIndex];
   if (!horse) throw new Error("invalid horseIndex");
-  // Bias the draw towards the horse's preferred trip so a fresh stable stays competitive.
+  // The race secretary usually finds a race near the horse's preferred trip (3 in 4: weighted
+  // 4/3/1 for an exact / 200 m / 400 m match), otherwise any race: off-trip runs still happen.
   const rng = createRng(`quick-config:${req.playerId}:${nonce}`);
-  const near = QUICK_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => Math.abs(t.distanceM - horse.preferredDistanceM) <= 400);
-  const c = near.length > 0 && rng.chance(2, 3) ? rng.pick(near).i : rng.int(0, QUICK_TEMPLATES.length - 1);
+  const near = QUICK_TEMPLATES.map((t, i) => [i, QUICK_TRIP_WEIGHT[Math.abs(t.distanceM - horse.preferredDistanceM)] ?? 0] as const).filter(([, w]) => w > 0);
+  const c = near.length > 0 && rng.chance(3, 4) ? rng.weighted(near) : rng.int(0, QUICK_TEMPLATES.length - 1);
   const postTimeMs = Math.ceil((nowMs + QUICK_POST_DELAY_MS) / 1000) * 1000;
   const payload: QuickPayload = {
     v: 1,
