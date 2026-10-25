@@ -59,3 +59,4 @@
 {"at":"2026-10-25T16:39:29.559Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-dirt-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T16:39:36.343Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-grass-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T16:42:03.993Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/portraits/master","secs":83,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:43:01.182Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits/coat-dark_bay","secs":50,"usage":{"type":"generations","generations":10},"images":1}
