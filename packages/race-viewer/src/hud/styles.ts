@@ -74,6 +74,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-togo{font-size:10px}
 .rv-narrow .rv-st{font-size:10.5px;padding:3px 6px 3px 3px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:5px 8px}
+.rv-ticker-low{position:absolute;left:8px;right:8px;bottom:50px;display:flex;pointer-events:none}
 .rv-narrow .rv-controls{gap:4px;padding:12px 6px 6px}
 .rv-narrow .rv-btn{min-width:34px;height:34px;padding:0 7px;font-size:11.5px}
 .rv-narrow .rv-elapsed{display:none}
@@ -92,7 +93,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-count-v{font-size:24px}
 .rv-narrow .rv-center-top{padding-top:96px}
 .rv-narrow .rv-badge{bottom:52px}
-.rv-narrow .rv-debug{bottom:50px}
+.rv-narrow .rv-debug{bottom:auto;top:92px;font-size:9px}
 `;
 
 let injected = false;

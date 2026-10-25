@@ -14,7 +14,7 @@ import { PlaybackClock } from "./playback";
 import { replayTiming } from "./sampleReplay";
 import { commentaryAt, distanceToGoM, standingsAt, type StandingRow } from "./timeline";
 import type { CameraMode, QualitySetting, RenderQuality } from "./types";
-import { Controls, Countdown, PhotoStamp, ResultsCard, TopHud } from "./hud/Hud";
+import { Controls, Countdown, PhotoStamp, ResultsCard, Ticker, TopHud } from "./hud/Hud";
 import { injectViewerCss } from "./hud/styles";
 import type { RaceScene } from "./scene/RaceScene";
 
@@ -344,9 +344,14 @@ export function RaceViewer(props: RaceViewerProps) {
             toGoM={h.toGoM}
             standings={h.standings}
             maxStandings={maxStandings}
-            commentary={h.frozen || showResults ? null : h.commentary}
+            commentary={h.frozen || showResults || narrow ? null : h.commentary}
             highlightHorseId={hasHighlight ? highlightHorseId : undefined}
           />
+        )}
+        {h && narrow && h.commentary && !h.frozen && !showResults && (
+          <div className="rv-ticker-low">
+            <Ticker key={`${h.commentary.tick}-${h.commentary.type}`} event={h.commentary} />
+          </div>
         )}
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}

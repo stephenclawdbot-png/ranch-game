@@ -71,11 +71,15 @@ export function TopHud({ replay, raceTime, toGoM, standings, maxStandings, comme
           ))}
         </div>
       )}
-      {commentary && (
-        <div key={`${commentary.tick}-${commentary.type}`} className="rv-ticker" aria-live="polite">
-          {commentary.text}
-        </div>
-      )}
+      {commentary && <Ticker event={commentary} />}
+    </div>
+  );
+}
+
+export function Ticker({ event }: { event: RaceEvent }) {
+  return (
+    <div key={`${event.tick}-${event.type}`} className="rv-ticker" aria-live="polite">
+      {event.text}
     </div>
   );
 }
