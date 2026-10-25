@@ -3019,6 +3019,90 @@
    "sourcePrompt": "generate-ui-v2: square game UI window panel frame: deep racing green #0f2a1d flat fill with a thick polished brass gold #d9a441 trim border, ornate brass corner rivets, thin dark ink outline, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
    "optimizationTier": "standard",
    "src": "ui/panel-9slice.png"
+  },
+  {
+   "id": "scenes.barn-interior",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 200,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2: <407 chars>",
+   "optimizationTier": "standard",
+   "src": "scenes/barn-interior.png"
+  },
+  {
+   "id": "scenes.grandstand",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 200,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2: <439 chars>",
+   "optimizationTier": "standard",
+   "src": "scenes/grandstand.png"
+  },
+  {
+   "id": "scenes.paddock",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 200,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2: <446 chars>",
+   "optimizationTier": "standard",
+   "src": "scenes/paddock.png"
+  },
+  {
+   "id": "scenes.stable-yard",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 200,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2: <434 chars>",
+   "optimizationTier": "standard",
+   "src": "scenes/stable-yard.png"
   }
  ]
 }

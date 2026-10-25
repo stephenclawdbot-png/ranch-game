@@ -1888,5 +1888,57 @@
   "variants": [
    "slice:18,18,18,18"
   ]
+ },
+ {
+  "id": "scenes.barn-interior",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "scenes/barn-interior.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-image-v2: <407 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "scenes.grandstand",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "scenes/grandstand.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-image-v2: <439 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "scenes.paddock",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "scenes/paddock.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-image-v2: <446 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "scenes.stable-yard",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "scenes/stable-yard.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-image-v2: <434 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
  }
 ]

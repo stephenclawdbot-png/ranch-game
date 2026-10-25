@@ -18,10 +18,11 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-lead/types/**/*.ts",
     ".next-rig/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-lead/types/**/*.ts"
+    ".next-viewer/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

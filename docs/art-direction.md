@@ -75,7 +75,29 @@ parts, textures and normals. Our own code produces the final pixels:
 5. The rig's render target is used as a **billboard texture** in the Three.js world. It casts a
    shadow and is lit consistently with the world.
 
-## Native scale
+## HD pixel standard (v2, supersedes the native scale below)
+
+User feedback: "still not HD pixel". The first drop was low-density: a 118×72 horse,
+64 px tiles, and heavy depth-of-field blur. HD pixel art means **more native pixels and
+consistent pixel density**, not bigger chunky pixels.
+
+- **Horse and jockey:** frames of about **240×150 native** (PixelLab maximum is 256), with
+  the horse about 220 px nose to tail. Smooth 12–16 frame gallop. The rig sources are
+  256×192.
+- **Pixel density:** every world asset is authored so that one texel covers about the same
+  screen area when it sits in the focal plane. That's about **96 px per metre** for horses
+  and props near the action. There's no mixing of chunky and fine pixels in the same plane.
+- **Textures:** ground tiles at **128×128**. Billboards (trees, stand, crowd) at about **2×**
+  the first drop. Sky and hills authored at 960×540.
+- **Rendering:**
+  - Internal resolution of at least **960×540**; on desktop, render at device resolution
+    with nearest sampling.
+  - Depth of field is subtle: the focal band (the field of horses) stays tack-sharp, with
+    blur only on the far background and nearest foreground.
+  - No blurring of sprites. Bloom is gentle, and text is always crisp.
+- **UI:** pixel icons at 24–32 px native, displayed at 1× or 2×; portraits at 128×128.
+
+## Native scale (v1, superseded)
 
 - The race canvas is designed at **480×270 native pixels** (16:9) and shown at 3–4× on
   desktop. Background layers are 270 px tall or less.

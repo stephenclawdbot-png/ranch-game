@@ -56,8 +56,9 @@ export interface HD2DSceneOptions {
   rigKind: RigKind;
 }
 
-const LANE_W = 1.3;
-const RAIL_GAP = 1.0;
+/** Visual lane width (cosmetic; wider than real so lanes separate on screen). */
+const LANE_W = 2.2;
+const RAIL_GAP = 1.2;
 /** World metres per sprite pixel (horse billboards). */
 const WUPP = 0.025;
 const PULLUP_TAU = 2.6;
@@ -161,6 +162,7 @@ export class HD2DScene {
   private v2: THREE.Vector3;
   private buf: THREE.Vector2;
   private focusDist = 15;
+  private focusRange = 4;
 
   constructor(T: typeof THREE, replay: RaceReplay, opts: HD2DSceneOptions) {
     this.T = T;
@@ -335,8 +337,8 @@ export class HD2DScene {
     const hImg = art.images.get("tex-hedge");
     const hTex = this.tex(hImg ?? hedgeTile(this.look), { repeat: true, mip: true });
     hTex.repeat.set(len / 2.56, 1);
-    const hedge = new T.Mesh(this.own(new T.BoxGeometry(len, 1.0, 0.9)), this.own(new T.MeshLambertMaterial({ map: hTex })));
-    hedge.position.set(cx, 0.5, 7.2);
+    const hedge = new T.Mesh(this.own(new T.BoxGeometry(len, 0.75, 0.8)), this.own(new T.MeshLambertMaterial({ map: hTex })));
+    hedge.position.set(cx, 0.375, 3.4);
     hedge.castShadow = true;
     hedge.receiveShadow = true;
     this.scene.add(hedge);
@@ -765,65 +767,132 @@ export class HD2DScene {
     const fieldZ = zSum / this.runners.length;
 
     // --- Camera direction -------------------------------------------------------
+    // Broadcast framing: pick the horses that must be on screen, then solve the camera
+    // distance (at a fixed elevation / yaw) that fits them into part of the frame.
     let mode = f.camera;
     if (mode === "mine" && this.highlight < 0) mode = "leader";
-    const focus = mode === "mine" ? this.runners[this.highlight]! : lead;
+    const mine = this.highlight >= 0 ? this.runners[this.highlight]! : null;
+    const focus = mode === "mine" && mine ? mine : lead;
     const toGo = L - lead.x;
     const photo = this.replay.result.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
     let shot: Shot;
-    if (raceT < 1.2) shot = "crane";
+    if (raceT < 1.0) shot = "crane";
     else if (photo) shot = "photo";
     else if (tS > this.winnerTime + 0.9 && mode !== "mine") shot = "post";
     else if (mode === "wide") shot = "wide";
-    else if (toGo < furlong * 0.85 && toGo > 0) shot = "low";
+    else if (toGo < 150 && toGo > 0) shot = "low";
     else shot = "follow";
     const cut = shot !== this.shot && (shot === "photo" || this.shot === "photo");
     this.shot = shot;
-    const pos = this.v1;
-    const at = this.v2;
-    let fov = 34;
+
+    const byX = [...this.runners].sort((a, b) => b.x - a.x);
+    let group: Runner[];
+    let elev = 17;
+    let yaw = -6;
+    let fillX = 0.78;
+    let fillY = 0.62;
+    let fov = 30;
+    let lookY = 0.9;
     let vel = focus.speed;
+    let leadPad = 2;
     switch (shot) {
       case "crane": {
-        const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.8));
-        pos.set(2 + 6 * k, 15 - 10 * k, 24 - 8 * k);
-        at.set(0.5 + 2 * k, 0.6, -this.trackW * 0.42);
+        // Over the stalls, descending into the race camera as the gates open.
+        const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
+        group = byX;
+        elev = 36 - 18 * k;
+        yaw = 22 - 26 * k;
+        fillX = 0.7;
+        fillY = 0.62;
+        fov = 32;
         vel = 0;
-        fov = 36;
         break;
       }
-      case "follow":
-        pos.set(focus.x - 1.4, 2.6, 14);
-        at.set(focus.x - 0.6, 1.75, fieldZ * 0.6 + focus.z * 0.4);
-        fov = 25;
-        break;
-      case "wide": {
-        const cx = (lead.x + last.x) / 2;
-        const spread = lead.x - last.x;
-        pos.set(cx - 2, 4.2 + spread * 0.05, 17 + spread * 0.5);
-        at.set(cx + 1, 1.4, -this.trackW * 0.4);
+      case "wide":
+        group = byX;
+        elev = 24;
+        yaw = -4;
+        fillX = 0.86;
+        fillY = 0.6;
         fov = 30;
+        leadPad = 4;
         break;
-      }
-      case "low":
-        pos.set(focus.x + 8.5, 1.9, 12);
-        at.set(focus.x - 0.8, 1.2, focus.z * 0.6 + fieldZ * 0.4);
+      case "low": {
+        // Final ~150 m: tighter on the leading group, lower and slightly ahead.
+        const ref = mode === "mine" && mine ? mine : lead;
+        group = byX.filter((r) => Math.abs(r.x - ref.x) < 12).slice(0, 5);
+        if (!group.includes(ref)) group.push(ref);
+        elev = 12;
+        yaw = 16;
+        fillX = 0.72;
+        fillY = 0.6;
         fov = 28;
+        leadPad = 3;
         break;
+      }
       case "photo":
-        // The judge's camera: on the line, looking straight across the track.
-        pos.set(L, 2.2, 15);
-        at.set(L, 1.0, -this.trackW * 0.38);
+        group = byX.filter((r) => Math.abs(r.x - L) < 10);
+        if (group.length < 2) group = byX.slice(0, 2);
+        elev = 14;
+        yaw = 0;
+        fillX = 0.6;
+        fillY = 0.62;
+        fov = 28;
         vel = 0;
-        fov = 30;
+        leadPad = 0;
         break;
       case "post":
-        pos.set(L + 4, 3.2, 17);
-        at.set(L - 3, 0.9, -this.trackW * 0.45);
+        group = byX.filter((r) => r.x > L - 40);
+        if (group.length < 3) group = byX.slice(0, 3);
+        elev = 18;
+        yaw = 10;
+        fov = 32;
         vel = 0;
-        fov = 36;
         break;
+      default: {
+        if (mode === "mine" && mine) {
+          // My horse plus its three nearest rivals.
+          group = [mine, ...byX.filter((r) => r !== mine).sort((a, b) => Math.abs(a.x - mine.x) - Math.abs(b.x - mine.x)).slice(0, 3)];
+        } else {
+          // The leading group: leader back to at least the 6th horse, or the whole
+          // field when it is within ~30 lengths.
+          const spread = byX[0]!.x - byX[byX.length - 1]!.x;
+          group = spread < 72 ? byX : byX.slice(0, Math.min(byX.length, 6));
+        }
+        elev = 17;
+        yaw = -6;
+        fov = 30;
+        break;
+      }
     }
+    // Bounding box of the group (bodies extend ~2.6 m back from the nose).
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let z0 = Infinity;
+    let z1 = -Infinity;
+    for (const r of group) {
+      x0 = Math.min(x0, r.x - 2.7);
+      x1 = Math.max(x1, r.x + 0.3);
+      z0 = Math.min(z0, r.z);
+      z1 = Math.max(z1, r.z);
+    }
+    if (shot === "crane") {
+      x0 = Math.min(x0, -3.6);
+      x1 = Math.max(x1, 0.6);
+      z0 = Math.min(z0, this.laneZ(-0.5));
+      z1 = Math.max(z1, this.laneZ(-0.5));
+    }
+    // Never zoom out beyond ~70 m of track: keep the front of the group.
+    if (x1 - x0 > 70) x0 = x1 - 70;
+    if (shot === "photo") {
+      x0 = Math.min(x0, L - 2.5);
+      x1 = Math.max(x1, L + 2.5);
+    }
+    const at = this.v2.set((x0 + x1) / 2 + leadPad * 0.5, lookY, (z0 + z1) / 2);
+    const D = this.fitDistance(x0, x1, z0, z1, at, elev, yaw, fov, fillX, fillY);
+    const e = (elev * Math.PI) / 180;
+    const a = (yaw * Math.PI) / 180;
+    const pos = this.v1.set(at.x + Math.sin(a) * Math.cos(e) * D, at.y + Math.sin(e) * D, at.z + Math.cos(a) * Math.cos(e) * D);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
@@ -838,15 +907,13 @@ export class HD2DScene {
     const cam = this.camera;
     this.camPos.into(cam.position);
     cam.lookAt(this.camLook.into(this.v2));
-    // Keep the horizontal field of view of a 16:9 frame on narrower screens.
-    // (The judge's photo shot only half-compensates so the noses stay big on phones.)
-    const aspectFix = Math.pow(Math.max(1, 16 / 9 / Math.max(0.3, cam.aspect)), shot === "photo" ? 0.45 : 1);
-    const vfov = Math.min(70, (2 * Math.atan(Math.tan((this.fov.x * Math.PI) / 360) * aspectFix) * 180) / Math.PI);
+    const vfov = this.vfovFor(this.fov.x);
     if (Math.abs(cam.fov - vfov) > 1e-3) {
       cam.fov = vfov;
       cam.updateProjectionMatrix();
     }
-    this.focusDist = cam.position.distanceTo(this.v1.set(focus.x - 1.2, 1.2, focus.z));
+    this.focusDist = cam.position.distanceTo(this.v1.set((x0 + x1) / 2, 1.0, (z0 + z1) / 2));
+    this.focusRange = Math.max(4, (z1 - z0) * 0.7 + 3);
 
     // --- World animation ---------------------------------------------------------
     this.sky.position.copy(cam.position);
@@ -887,7 +954,12 @@ export class HD2DScene {
       // Axis-locked billboard, limited yaw so side-view sprites never turn edge-on.
       const yaw = Math.atan2(cam.position.x - r.x, cam.position.z - r.z);
       const ry = Math.max(-0.62, Math.min(0.62, yaw));
+      // Lean the sprite back towards an elevated camera so it isn't squashed.
+      const horiz = Math.hypot(cam.position.x - r.x, cam.position.z - r.z);
+      const tilt = Math.min(0.55, Math.max(0, Math.atan2(cam.position.y - 1.0, horiz) * 0.75));
+      r.group.rotation.order = "YXZ";
       r.group.rotation.y = ry;
+      r.group.rotation.x = -tilt;
       // Body centre follows the yawed sprite plane.
       r.bodyX = r.x - 1.25 * Math.cos(ry);
       r.bodyZ = r.z + 1.25 * Math.sin(ry);
@@ -933,8 +1005,8 @@ export class HD2DScene {
     if (this.post) {
       this.post.render(this.scene, cam, {
         focusDist: this.focusDist,
-        focusRange: shot === "wide" ? 12 : 3.5,
-        dofAmount: shot === "wide" || shot === "crane" ? 0.45 : 0.8,
+        focusRange: this.focusRange,
+        dofAmount: shot === "wide" || shot === "crane" ? 0.4 : 0.65,
         tiltShift: 0.55,
         bloom: this.look.bloom,
         tint: g.tint,
@@ -948,6 +1020,56 @@ export class HD2DScene {
       this.renderer.render(this.scene, cam);
     }
     void T;
+  }
+
+  /** Vertical FOV that keeps a 16:9 frame's horizontal field of view on narrow screens. */
+  private vfovFor(fov: number): number {
+    const aspectFix = Math.max(1, 16 / 9 / Math.max(0.3, this.camera.aspect));
+    return Math.min(70, (2 * Math.atan(Math.tan((fov * Math.PI) / 360) * aspectFix) * 180) / Math.PI);
+  }
+
+  /**
+   * Camera distance from `at` (looking back along elevation/yaw) so that the box
+   * x0..x1, y 0..2.6, z0..z1 fits within fillX / fillY of the frame (NDC half-extents).
+   */
+  private fitDistance(x0: number, x1: number, z0: number, z1: number, at: THREE.Vector3, elevDeg: number, yawDeg: number, fov: number, fillX: number, fillY: number): number {
+    const e = (elevDeg * Math.PI) / 180;
+    const a = (yawDeg * Math.PI) / 180;
+    // d: unit vector from the target towards the camera; f = -d (view direction).
+    const dx = Math.sin(a) * Math.cos(e);
+    const dy = Math.sin(e);
+    const dz = Math.cos(a) * Math.cos(e);
+    // right = f x up, up' = right x f
+    const fx = -dx;
+    const fy = -dy;
+    const fz = -dz;
+    let rx = fy * 0 - fz * 1;
+    let ry = 0;
+    let rz = fx * 1 - fy * 0;
+    const rl = Math.hypot(rx, ry, rz) || 1;
+    rx /= rl;
+    ry /= rl;
+    rz /= rl;
+    const ux = ry * fz - rz * fy;
+    const uy = rz * fx - rx * fz;
+    const uz = rx * fy - ry * fx;
+    const tanV = Math.tan(((this.vfovFor(fov) * Math.PI) / 180) / 2);
+    const tanH = tanV * this.camera.aspect;
+    let D = 10;
+    for (const x of [x0, x1]) {
+      for (const y of [0, 2.6]) {
+        for (const z of [z0 - 0.6, z1 + 0.6]) {
+          const qx = x - at.x;
+          const qy = y - at.y;
+          const qz = z - at.z;
+          const qf = qx * fx + qy * fy + qz * fz;
+          const qr = Math.abs(qx * rx + qy * ry + qz * rz);
+          const qu = Math.abs(qx * ux + qy * uy + qz * uz);
+          D = Math.max(D, qr / (fillX * tanH) - qf, qu / (fillY * tanV) - qf);
+        }
+      }
+    }
+    return Math.min(D, 160);
   }
 
   private hoofStrike(r: Runner, x: number): void {
