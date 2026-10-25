@@ -1,0 +1,219 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16764 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "814aa397-a03f-411b-824e-d37f1f6f63a3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "814aa397-a03f-411b-824e-d37f1f6f63a3",
+  "status": "completed",
+  "created_at": "2026-10-25T17:11:07.045654+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       76,
+       78,
+       23
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       93,
+       89,
+       94,
+       95,
+       96,
+       91,
+       92
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       79,
+       81,
+       80,
+       82,
+       84,
+       85,
+       86,
+       87,
+       68,
+       53,
+       55,
+       90,
+       47,
+       88
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "white plume",
+      "shape": "cylinder",
+      "regions": [
+       69,
+       70,
+       71,
+       72,
+       30
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "right arm",
+      "shape": "cylinder",
+      "regions": [
+       34,
+       36,
+       39,
+       37,
+       42,
+       41,
+       43,
+       44,
+       45,
+       46,
+       49,
+       50,
+       51,
+       56,
+       57,
+       58,
+       60,
+       61,
+       63,
+       64,
+       65,
+       66,
+       74,
+       22,
+       33,
+       38,
+       40,
+       52,
+       62
+      ]
+     },
+     {
+      "name": "head",
+      "shape": "ball",
+      "regions": [
+       31,
+       14,
+       25,
+       27,
+       28,
+       35,
+       13,
+       7,
+       15,
+       17,
+       18,
+       29,
+       48,
+       20,
+       26,
+       32,
+       8,
+       9,
+       10,
+       5,
+       16,
+       21,
+       24,
+       12
+      ]
+     },
+     {
+      "name": "mane",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       11,
+       19,
+       3,
+       2,
+       4,
+       6,
+       1,
+       54
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     13
+    ],
+    "backdrop": [],
+    "recessed": [
+     7,
+     15,
+     18,
+     29,
+     10,
+     32
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<41064 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "1bcfdbc2-3f17-4dea-affe-c01faa55e56b",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:11:07.119277+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n10-0.png"
+ ]
+}

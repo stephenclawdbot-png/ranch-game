@@ -95,3 +95,5 @@
 {"at":"2026-10-25T17:10:04.622Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n7","secs":23,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:10:38.042Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n8","secs":33,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:11:05.906Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n9","secs":28,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:11:34.794Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n10","secs":29,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:12:03.963Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n11","secs":29,"usage":{"type":"generations","generations":0.5},"images":1}

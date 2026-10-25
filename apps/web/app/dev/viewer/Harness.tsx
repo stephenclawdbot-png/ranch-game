@@ -1,7 +1,7 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { RaceViewer, type CameraMode } from "@thoroughbred/race-viewer";
-import { SpriteSheet, fakeReplay } from "@thoroughbred/race-viewer/dev";
+import { SpriteSheet, fakeLiveFeed, fakeReplay } from "@thoroughbred/race-viewer/dev";
 import type { Surface, Weather } from "@thoroughbred/shared";
 
 export interface HarnessParams {
@@ -22,6 +22,8 @@ export interface HarnessParams {
   paused?: string;
   gallop?: string;
   drive?: string;
+  /** Live broadcast demo: seconds until the off (e.g. live=5; negative = already running). */
+  live?: string;
   /** "none" = skip /art (code-drawn art only). */
   art?: string;
   /** Low internal resolution, nearest upscale. */
@@ -44,6 +46,12 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
   );
   const startAtMs = useMemo(() => (params.start !== undefined ? Date.now() + num(params.start, 5) * 1000 : undefined), [params.start]);
 
+  const feed = useMemo(
+    () => (params.live !== undefined ? fakeLiveFeed(replay, Date.now() + num(params.live, 5) * 1000) : undefined),
+    [replay, params.live],
+  );
+  useEffect(() => () => feed?.stop(), [feed]);
+
   if (params.studio) {
     return (
       <main style={{ padding: 16 }}>
@@ -54,7 +62,7 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
   return (
     <main style={{ padding: "16px", maxWidth: 1280, margin: "0 auto" }}>
       <RaceViewer
-        replay={replay}
+        {...(feed ? { feed } : { replay })}
         debug
         startAtMs={startAtMs}
         initialTimeSec={params.t !== undefined ? num(params.t, 0) : undefined}

@@ -27,6 +27,9 @@ const horsePalette = pal
   ? [...pal.coat, ...pal.mane, ...(pal.points ?? []), ...pal.silksPrimary, ...pal.silksSecondary, ...pal.cap]
   : [];
 const gallopMeta = readJson("race/horse-gallop.meta.json");
+const loMeta = readJson("race/horse-gallop-lo.meta.json");
+const lp = readJson("race/palette-lo.json");
+const loPalette = lp ? [...lp.coat, ...lp.mane, ...(lp.points ?? []), ...lp.silksPrimary, ...lp.silksSecondary, ...lp.cap] : [];
 const extraMeta = (f) => readJson(f) ?? {};
 
 /** @type {Array<Record<string, any>>} */
@@ -36,13 +39,25 @@ const R = [
     id: "horse.body.gallop", kind: "horse_body", depthBand: "track", src: "race/horse-gallop.png",
     frameCount: 12, fps: 14, anchor: gallopMeta?.anchor ?? NOSE, palette: horsePalette, variants: COATS,
     optimizationTier: "hero", animations: { gallop: { from: 0, to: 11, loop: true } },
-    sourcePrompt: "generate-image-v2: side view thoroughbred racehorse galloping facing right, bay coat, black points, jockey crouched, flat magenta silks body, cyan sleeves, magenta cap, white saddle cloth (seed 2201) -> animate-with-text-v3 'racehorse galloping at full speed, one complete gallop stride cycle...' 12 frames (seed 32) -> role-quantised palette (art-src/process_gallop.py)",
+    sourcePrompt: "HD v2: generate-image-v2 224x140 'detailed side view of a thoroughbred racehorse galloping at full stretch facing right... bay coat, black points, jockey crouched, flat magenta silks body, cyan sleeves, magenta cap, white saddle cloth' (seed 11004) -> padded 256x168 -> animate-with-text-v3 12 frames (seed 32) -> role-quantised palette (art-src/process_gallop.py --hd)",
   },
   {
     id: "horse.body.gallop.normal", kind: "horse_body", depthBand: "track", src: "race/horse-gallop-normal.png",
     frameCount: 12, fps: 14, anchor: gallopMeta?.anchor ?? NOSE, variants: ["normal-opengl"], optimizationTier: "hero",
     animations: { gallop: { from: 0, to: 11, loop: true } },
-    sourcePrompt: "/normal-map mode=pro kind=character frames=12 on race/horse-gallop.png (OpenGL convention, green up)",
+    sourcePrompt: "/normal-map mode=pro kind=character per frame of race/horse-gallop.png (OpenGL convention, green up)",
+  },
+  {
+    id: "horse.body.gallop.lo", kind: "horse_body", depthBand: "track", src: "race/horse-gallop-lo.png",
+    frameCount: 12, fps: 14, anchor: loMeta?.anchor ?? NOSE, palette: loPalette, variants: COATS,
+    optimizationTier: "standard", animations: { gallop: { from: 0, to: 11, loop: true } },
+    sourcePrompt: "v1 fallback 118x72: generate-image-v2 128x96 (seed 2201) -> animate-with-text-v3 12 frames (seed 32) -> role palette (race/palette-lo.json)",
+  },
+  {
+    id: "horse.body.gallop.lo.normal", kind: "horse_body", depthBand: "track", src: "race/horse-gallop-lo-normal.png",
+    frameCount: 12, fps: 14, anchor: loMeta?.anchor ?? NOSE, variants: ["normal-opengl"], optimizationTier: "standard",
+    animations: { gallop: { from: 0, to: 11, loop: true } },
+    sourcePrompt: "/normal-map mode=pro kind=character frames=12 on race/horse-gallop-lo.png",
   },
   { id: "horse.body.canter", kind: "horse_body", depthBand: "track", src: "race/horse-canter.png", fpsFrom: "race/horse-canter.meta.json", fps: 10, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-canter.meta.json" },
   { id: "horse.body.idle", kind: "horse_body", depthBand: "track", src: "race/horse-idle.png", fps: 6, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-idle.meta.json" },

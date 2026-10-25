@@ -8,6 +8,108 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 12,
+   "frameWidth": 229,
+   "frameHeight": 146,
+   "fps": 14,
+   "anchor": {
+    "x": 0.978,
+    "y": 0.993
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#742b1e",
+    "#843216",
+    "#6a4a3b",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242329",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cb",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cc",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "HD v2: generate-image-v2 224x140 'detailed side view of a thoroughbred racehorse galloping at full stretch facing right... bay coat, black points, jockey crouched, flat magenta silks body, cyan sleeves, magenta cap, white saddle cloth' (seed 11004) -> padded 256x168 -> animate-with-text-v3 12 frames (seed 32) -> role-quantised palette (art-src/process_gallop.py --hd)",
+   "optimizationTier": "hero",
+   "src": "race/horse-gallop.png",
+   "animations": {
+    "gallop": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.gallop.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 229,
+   "frameHeight": 146,
+   "fps": 14,
+   "anchor": {
+    "x": 0.978,
+    "y": 0.993
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-gallop.png (OpenGL convention, green up)",
+   "optimizationTier": "hero",
+   "src": "race/horse-gallop-normal.png",
+   "animations": {
+    "gallop": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.gallop.lo",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
    "frameWidth": 118,
    "frameHeight": 72,
    "fps": 14,
@@ -55,9 +157,9 @@
     "buckskin",
     "roan"
    ],
-   "sourcePrompt": "generate-image-v2: side view thoroughbred racehorse galloping facing right, bay coat, black points, jockey crouched, flat magenta silks body, cyan sleeves, magenta cap, white saddle cloth (seed 2201) -> animate-with-text-v3 'racehorse galloping at full speed, one complete gallop stride cycle...' 12 frames (seed 32) -> role-quantised palette (art-src/process_gallop.py)",
-   "optimizationTier": "hero",
-   "src": "race/horse-gallop.png",
+   "sourcePrompt": "v1 fallback 118x72: generate-image-v2 128x96 (seed 2201) -> animate-with-text-v3 12 frames (seed 32) -> role palette (race/palette-lo.json)",
+   "optimizationTier": "standard",
+   "src": "race/horse-gallop-lo.png",
    "animations": {
     "gallop": {
      "from": 0,
@@ -67,7 +169,7 @@
    }
   },
   {
-   "id": "horse.body.gallop.normal",
+   "id": "horse.body.gallop.lo.normal",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
@@ -85,9 +187,9 @@
    "variants": [
     "normal-opengl"
    ],
-   "sourcePrompt": "/normal-map mode=pro kind=character frames=12 on race/horse-gallop.png (OpenGL convention, green up)",
-   "optimizationTier": "hero",
-   "src": "race/horse-gallop-normal.png",
+   "sourcePrompt": "/normal-map mode=pro kind=character frames=12 on race/horse-gallop-lo.png",
+   "optimizationTier": "standard",
+   "src": "race/horse-gallop-lo-normal.png",
    "animations": {
     "gallop": {
      "from": 0,

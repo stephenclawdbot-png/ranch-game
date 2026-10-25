@@ -52,6 +52,7 @@ export const VIEWER_CSS = `
 .rv-count-v{font-family:var(--rv-f-num);font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
 .rv-photo{font-family:var(--rv-f-display);font-size:46px;font-weight:700;letter-spacing:.25em;padding:6px 8px 6px 20px;border:4px solid var(--rv-cream);color:var(--rv-cream);transform:rotate(-5deg);text-shadow:3px 3px 0 var(--rv-ink);background:rgba(122,31,31,.55);box-shadow:4px 4px 0 var(--rv-ink);animation:rv-stamp .25s steps(4)}
 @keyframes rv-stamp{from{transform:rotate(-5deg) scale(1.6);opacity:0}}
+.rv-badge-buffer{right:auto!important;left:12px;background:#8a958e!important}
 .rv-badge{position:absolute;right:12px;bottom:62px;font:10px var(--rv-f-pixel);text-transform:uppercase;padding:5px 8px 4px;background:var(--rv-brass);color:var(--rv-ink);border:2px solid var(--rv-ink);pointer-events:none}
 .rv-modal{position:absolute;left:0;right:0;top:0;bottom:52px;display:grid;place-items:center;padding:10px;background:rgba(8,21,14,.5);animation:rv-in .3s steps(3)}
 .rv-card{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--rv-green);border:3px solid var(--rv-ink);box-shadow:inset 2px 2px 0 rgba(242,200,106,.5),inset -2px -2px 0 rgba(0,0,0,.45),5px 5px 0 rgba(0,0,0,.45)}
