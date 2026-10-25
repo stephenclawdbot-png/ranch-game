@@ -169,12 +169,23 @@ export type RigLook = z.infer<typeof RigLookSchema>;
 
 /**
  * Stage, derived from career activity (see lifecycle.stageOf):
- *   foal (0-4 care) -> weanling (5-11) -> yearling (12-18) -> juvenile (0-8 starts)
- *   -> prime (9-35) -> veteran (36-50) -> stud (racing retired, breedings left)
- *   -> pasture (permanent Legend state; never death).
+ *   foal (0-4 care) -> weanling (5-11) -> yearling (12-18) -> juvenile (0-6 starts)
+ *   -> prime (7-28) -> veteran (29-40) -> stud (racing retired, breedings left)
+ *   -> pasture (permanent Legend state on the Legacy Farm; never death).
  */
 export const GameStageSchema = z.enum(["foal", "weanling", "yearling", "juvenile", "prime", "veteran", "stud", "pasture"]);
 export type GameStage = z.infer<typeof GameStageSchema>;
+
+/** Where the horse lives. Only "stable" uses a stall; "nursery" is the foaling overflow slot. */
+export const HorseLocationSchema = z.enum(["stable", "nursery", "legacy_farm", "club"]);
+export type HorseLocation = z.infer<typeof HorseLocationSchema>;
+
+/**
+ * Trade binding (§4b): starter and free-pack horses are "club_bred" (never tradeable);
+ * their foals are "until_5_starts" (tradeable once they have 5 starts); everything else "free".
+ */
+export const BindingSchema = z.enum(["free", "club_bred", "until_5_starts"]);
+export type Binding = z.infer<typeof BindingSchema>;
 
 export const RetireReasonSchema = z.enum(["choice", "max_starts", "injury"]);
 export type RetireReason = z.infer<typeof RetireReasonSchema>;
@@ -223,6 +234,8 @@ export const HorseStateSchema = z.object({
   damId: z.string().nullable(),
   generation: NonNegInt,
   genome: GenomeSchema,
+  location: HorseLocationSchema,
+  binding: BindingSchema,
   bornAtMs: z.number().int(),
   /** Competition season in which the horse was born/minted (display, pack ceilings). */
   bornSeason: z.number().int().min(1),
@@ -252,7 +265,7 @@ export const HorseStateSchema = z.object({
     sessionsThisWeek: NonNegInt,
   }),
   career: z.object({
-    starts: z.number().int().min(0).max(50),
+    starts: z.number().int().min(0).max(40),
     racingRetired: z.object({ reason: RetireReasonSchema, atStarts: NonNegInt }).nullable(),
     pastured: z.boolean(),
     insured: z.boolean(),
@@ -293,6 +306,20 @@ export type TrainingPlan = z.infer<typeof TrainingPlanSchema>;
 
 export const RideIntensitySchema = z.enum(["conservative", "normal", "all_out"]);
 export type RideIntensity = z.infer<typeof RideIntensitySchema>;
+
+/** Max influence of a manual ride (permille of speed), §4a amendments: about ±3-5%. */
+export const RIDE_MODIFIER_MAX_PERMILLE = 50;
+
+/**
+ * Race plan chosen at entry. The auto-jockey follows it. `rideModifierPermille` is the hook
+ * for the future Ride mode: a bounded, optional performance modifier (±50 permille max).
+ */
+export const RacePlanSchema = z.object({
+  tactic: RunningStyleSchema,
+  intensity: RideIntensitySchema,
+  rideModifierPermille: z.number().int().min(-RIDE_MODIFIER_MAX_PERMILLE).max(RIDE_MODIFIER_MAX_PERMILLE).optional(),
+});
+export type RacePlan = z.infer<typeof RacePlanSchema>;
 
 // ---------------------------------------------------------------------------
 // Racing structure
