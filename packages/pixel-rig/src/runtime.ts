@@ -41,7 +41,7 @@ export interface RigLighting {
 export const DEFAULT_LIGHTING: RigLighting = {
   ambient: 0.22,
   lightMix: 0.75,
-  dither: 0.5,
+  dither: 0.38,
   rim: 0.28,
   farShade: 0.2,
   outline: true,

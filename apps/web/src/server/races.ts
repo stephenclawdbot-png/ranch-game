@@ -197,6 +197,42 @@ export function raceRating(horse: Horse, tactic: RunningStyle, race: Pick<RaceCo
   return Math.round(r);
 }
 
+/**
+ * Class windows over the rival pool ranked by rating for the race's conditions (0 = best,
+ * 1 = worst). Graded races take the best horses for the trip and ground, maidens the weakest;
+ * windows overlap so horses move between classes as conditions change. Handicaps take a
+ * middle slice, so their fields are tightly matched.
+ */
+export const CLASS_WINDOW: Record<RaceClass, readonly [number, number]> = {
+  graded: [0, 0.28],
+  listed: [0.14, 0.46],
+  handicap: [0.3, 0.64],
+  novice: [0.46, 0.84],
+  maiden: [0.62, 1],
+};
+
+/** Rivals ranked best-first by rating for these conditions (ties broken by id, so it is stable). */
+function rankedPool(race: Pick<RaceConfig, "distanceM" | "surface" | "going">): Horse[] {
+  return RIVAL_POOL.map((h) => ({ h, r: raceRating(h, h.style, race) }))
+    .sort((a, b) => b.r - a.r || (a.h.id < b.h.id ? -1 : 1))
+    .map((x) => x.h);
+}
+
+/** `size` rivals drawn from the class window for these conditions. */
+export function classField(rng: Rng, race: Pick<RaceConfig, "distanceM" | "surface" | "going" | "raceClass">, size: number): Horse[] {
+  const ranked = rankedPool(race);
+  const n = ranked.length;
+  const [lo, hi] = CLASS_WINDOW[race.raceClass];
+  let from = Math.floor(lo * n);
+  let to = Math.ceil(hi * n);
+  // Always leave room to draw a full field.
+  if (to - from < size) {
+    to = Math.min(n, from + size);
+    from = Math.max(0, to - size);
+  }
+  return rng.shuffle(ranked.slice(from, to)).slice(0, size);
+}
+
 // ---------------------------------------------------------------------------
 // Scheduled races
 // ---------------------------------------------------------------------------
@@ -222,7 +258,7 @@ function scheduledCard(slot: number): Omit<RaceCard, "status" | "seedCommitment"
 
   const fieldRng = createRng(`field:${id}`);
   const size = fieldRng.int(8, 12);
-  const horses = fieldRng.shuffle(RIVAL_POOL).slice(0, size);
+  const horses = classField(fieldRng, config, size);
   const gates = fieldRng.shuffle(Array.from({ length: size }, (_, i) => i + 1));
   const field = horses.map((horse, i) => ({
     gate: gates[i]!,
@@ -369,7 +405,7 @@ function quickCard(id: string, q: QuickPayload): Omit<RaceCard, "status" | "seed
   const silks = (q.s && decodeSilks(q.s)) || defaultPlayerSilks(q.p);
   const playerHorse = starterHorses(q.p, silks)[q.h]!;
   const size = rng.int(8, 12);
-  const rivals = rng.shuffle(RIVAL_POOL).slice(0, size - 1);
+  const rivals = classField(rng, config, size - 1);
   const gates = rng.shuffle(Array.from({ length: size }, (_, i) => i + 1));
   const field: FieldEntry[] = [
     { gate: gates[0]!, tactic: q.t, horse: playerHorse, stableName: q.sn ?? "Your stable", isPlayer: true },

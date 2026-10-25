@@ -1,0 +1,236 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<15708 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "cfa47cb6-b090-4ecb-b7bb-1db038b74974",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "cfa47cb6-b090-4ecb-b7bb-1db038b74974",
+  "status": "completed",
+  "created_at": "2026-10-25T17:08:04.639022+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 70,
+      "name": "tail",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       78
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       72,
+       82,
+       87,
+       96,
+       92
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "left hind leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       63,
+       53,
+       60,
+       70
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       68,
+       41,
+       42,
+       46,
+       55,
+       61,
+       54,
+       57,
+       56,
+       75,
+       67,
+       66
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "chest and foreleg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       90,
+       93,
+       94,
+       95,
+       97,
+       98,
+       79,
+       80,
+       83,
+       76
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       37,
+       43,
+       47,
+       50,
+       52,
+       51,
+       48,
+       45,
+       49,
+       58,
+       59,
+       62,
+       65,
+       20,
+       21,
+       8,
+       14,
+       15,
+       16,
+       19,
+       22,
+       25,
+       28,
+       29,
+       35,
+       36
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider cape",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       1,
+       9,
+       27,
+       30,
+       31,
+       33
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       32,
+       34,
+       40,
+       18,
+       26,
+       39,
+       44
+      ]
+     },
+     {
+      "name": "rider helmet",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       4,
+       2,
+       3,
+       10,
+       23,
+       24,
+       17,
+       11,
+       12,
+       13,
+       5,
+       6,
+       7
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     4,
+     2,
+     3
+    ],
+    "backdrop": [],
+    "recessed": [
+     64,
+     71,
+     73,
+     74,
+     81,
+     85
+    ],
+    "painted_light": "top-right"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<40236 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "fd201866-b524-4d38-be74-78a553aa51b6",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:08:04.69669+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n4-0.png"
+ ]
+}

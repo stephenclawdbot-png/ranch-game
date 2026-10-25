@@ -100,6 +100,32 @@ def colour_class(img, name):
     raise ValueError(name)
 
 
+def drop_specks(m, min_size):
+    """Remove 8-connected components smaller than min_size pixels."""
+    h, w = m.shape
+    seen = np.zeros_like(m)
+    out = m.copy()
+    for y0, x0 in zip(*np.nonzero(m)):
+        if seen[y0, x0]:
+            continue
+        stack = [(y0, x0)]
+        comp = []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            comp.append((y, x))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not seen[yy, xx]:
+                        seen[yy, xx] = True
+                        stack.append((yy, xx))
+        if len(comp) < min_size:
+            for y, x in comp:
+                out[y, x] = False
+    return out
+
+
 def neighbours4(m):
     out = np.zeros_like(m)
     out[1:, :] |= m[:-1, :]
@@ -371,12 +397,19 @@ def main():
             continue
         s = p["src"]
         core = (labels[s] == i) & keep[s]
+        # drop specks: 8-connected components smaller than 5 px
+        core = drop_specks(core, 5)
         # seam pad: grow into neighbouring parts' real pixels (identical at rest)
         grown = core.copy()
+        under_all = np.zeros((H, W), bool)
         other = keep[s] & ~core
         if s == "horse":
+            # only into pixels of roles this part already has (coat into coat: never the
+            # tail's hair into the rump, or the mane into the neck)
+            own_roles = np.unique(roles[s][core])
+            other_ok = other & np.isin(roles[s], own_roles)
             for _ in range(p.get("seam", 2)):
-                grown |= neighbours4(grown) & other
+                grown |= neighbours4(grown) & other_ok
             # under-child pads: keep the child's real source pixels near the joint, so when the
             # child swings away the parent still shows the muscle mass there (thigh, elbow)
             yy0, xx0 = np.mgrid[0:H, 0:W]
@@ -386,7 +419,9 @@ def main():
                     disc = ((xx0 + 0.5 - cx) ** 2 + (yy0 + 0.5 - cy) ** 2) <= r * r
                     if "underPadMaxY" in q:
                         disc &= (yy0 + 0.5) < q["underPadMaxY"]
-                    grown |= disc & (labels[s] == cut.index(q)) & keep[s]
+                    under = disc & (labels[s] == cut.index(q)) & keep[s] & ~grown
+                    grown |= under
+                    under_all |= under
         # joint pads: discs at the part's pivot and at its children's pivots, filled by propagation
         discs = [(p["pivot"], p.get("padR", 3))]
         for q in cut:
@@ -398,6 +433,11 @@ def main():
             fill_region |= ((xx + 0.5 - cx) ** 2 + (yy + 0.5 - cy) ** 2) <= r * r
         data_role = roles[s].copy()
         data_t = tval[s].copy()
+        if under_all.any():
+            # under-child pads show only when the child swings away: soften the child's
+            # contour lines there so no hard outline of the resting leg is left behind
+            sm = box_blur(np.where(keep[s], tval[s], 0), 2) / np.maximum(box_blur(keep[s].astype(float), 2), 1e-3)
+            data_t = np.where(under_all, np.maximum(sm, 0.4), data_t)
         data_d = detail[s].copy()
         data_n = nrm[s].copy()
         data_h = hgt[s].copy()

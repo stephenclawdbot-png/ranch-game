@@ -20,9 +20,10 @@
     "**/*.tsx",
     ".next-lead/types/**/*.ts",
     ".next-rig/types/**/*.ts",
+    ".next-viewer/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-viewer/types/**/*.ts"
+    ".next-live/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -9,18 +9,19 @@ import { FRAME_STRIDE } from "@thoroughbred/shared";
 import { simulateRace } from "../../packages/racing-engine/src/index";
 import { makeInput, seedFor, typicalField, type EntryOpts } from "../../packages/racing-engine/src/test-fixtures";
 import { median, mean, pct } from "../../apps/web/src/server/balance/sim";
-import { writeReport } from "./out";
+import { writeReport, yieldNow } from "./out";
 
 const N = Number(process.env.BAL_N ?? 150);
 const STYLES: RunningStyle[] = ["front", "stalker", "closer"];
 
-function run(name: string, mk: (s: number, d: number) => EntryOpts[], d: number) {
+async function run(name: string, mk: (s: number, d: number) => EntryOpts[], d: number) {
   const margins: number[] = [];
   const tac: Record<RunningStyle, number> = { front: 0, stalker: 0, closer: 0 };
   let photo = 0;
   let comeback = 0;
   let spread = 0;
   for (let s = 0; s < N; s++) {
+    if (s % 40 === 0) await yieldNow();
     const field = mk(s, d);
     const entries = field.map((e, i) => ({ ...e, gate: ((i + s) % field.length) + 1 }));
     const input = makeInput(entries, { distanceM: d, seed: seedFor(500_000 + s) });
@@ -58,16 +59,16 @@ function run(name: string, mk: (s: number, d: number) => EntryOpts[], d: number)
   return row;
 }
 
-it("engine feel", () => {
+it("engine feel", async () => {
   const rows = [];
   const equal = (_s: number, d: number): EntryOpts[] => Array.from({ length: 10 }, (_, k) => ({ stats: 650, style: STYLES[k % 3]!, preferredDistanceM: d }));
   const typical = (_s: number, d: number) => typicalField(10, d);
   const wide = (s: number, d: number): EntryOpts[] =>
     Array.from({ length: 10 }, (_, k) => ({ stats: 450 + Math.round((((k * 7 + s) % 10) * 300) / 9), style: STYLES[k % 3]!, preferredDistanceM: d }));
   for (const d of [1000, 1600, 2400]) {
-    rows.push(run("equal650", equal, d));
-    rows.push(run("typical", typical, d));
-    rows.push(run("wide450-750", wide, d));
+    rows.push(await run("equal650", equal, d));
+    rows.push(await run("typical", typical, d));
+    rows.push(await run("wide450-750", wide, d));
   }
   const lines = [
     `# Engine feel, 10 runners, N=${N} per row`,

@@ -1,0 +1,243 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16480 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "43ee4e37-0caf-4bcc-b799-a39b5954d37c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "43ee4e37-0caf-4bcc-b799-a39b5954d37c",
+  "status": "completed",
+  "created_at": "2026-10-25T17:08:38.446131+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 90,
+      "name": "far legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       83,
+       90,
+       79,
+       82,
+       80,
+       81,
+       97,
+       98,
+       65,
+       92,
+       93,
+       94,
+       95,
+       96
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "tail",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       71,
+       63,
+       74,
+       78,
+       85,
+       86
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       69,
+       64,
+       75,
+       66,
+       50,
+       48,
+       77,
+       84,
+       72,
+       56,
+       68,
+       62,
+       70,
+       76,
+       67,
+       73,
+       88,
+       87,
+       89,
+       91
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       37,
+       41,
+       51,
+       30,
+       45,
+       40,
+       36
+      ]
+     },
+     {
+      "name": "head",
+      "shape": "ball",
+      "regions": [
+       33,
+       39,
+       38,
+       25,
+       42,
+       43,
+       47,
+       46,
+       52,
+       53,
+       54,
+       55,
+       57,
+       58,
+       59,
+       31,
+       32
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       60,
+       61,
+       49,
+       44
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       7,
+       6,
+       19,
+       27,
+       13,
+       23,
+       29,
+       34,
+       35,
+       22,
+       14,
+       12,
+       8
+      ]
+     },
+     {
+      "name": "white cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       26,
+       21
+      ]
+     },
+     {
+      "name": "rider head",
+      "shape": "ball",
+      "regions": [
+       2,
+       3,
+       1,
+       4,
+       5,
+       9,
+       10,
+       11,
+       15,
+       16,
+       17,
+       18,
+       20,
+       24,
+       28
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     36,
+     97,
+     65,
+     67
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<40064 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "d5b0df1e-9c64-4d99-9dc5-69aa52edb2fe",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:08:38.534124+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n5-0.png"
+ ]
+}

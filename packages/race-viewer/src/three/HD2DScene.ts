@@ -9,7 +9,7 @@
  */
 import type * as THREE from "three";
 import { FURLONG_MM, type RaceReplay } from "@thoroughbred/shared";
-import { createReplaySampler, replayTiming, type HorseSample, type ReplaySampler } from "../sampleReplay";
+import { createReplaySampler, type HorseSample, type ReplaySampler } from "../sampleReplay";
 import { Spring } from "../scene/camera";
 import { legPhase, strideLengthM } from "../scene/horse/gait";
 import type { CameraMode, RenderQuality } from "../types";
@@ -37,6 +37,23 @@ import {
 } from "./pixelTextures";
 import { PostFX } from "./post";
 import { PixelParticles, PixelRain } from "./vfx";
+
+/**
+ * Race data the scene renders. A finished `RaceReplay` satisfies it; a live broadcast
+ * passes its header with the frames/events received so far and no result (the scene
+ * never reads a result it doesn't have; `setFinal` hands it over at the end).
+ */
+export interface SceneRaceData {
+  race: RaceReplay["race"];
+  horses: RaceReplay["horses"];
+  tickHz: number;
+  sampleEvery: number;
+  trackLengthMm: number;
+  laneCount: number;
+  readonly frames: ReadonlyArray<ReadonlyArray<number>>;
+  readonly events: ReadonlyArray<RaceReplay["events"][number]>;
+  result?: RaceReplay["result"] | null;
+}
 
 export interface SceneFrame {
   time: number;
@@ -75,6 +92,7 @@ const x0Track = (_L: number) => -TRACK_PRE;
 
 interface Runner {
   index: number;
+  horseId: string;
   rig: HorseRig;
   group: THREE.Group;
   plane: THREE.Mesh;
@@ -128,9 +146,12 @@ export class HD2DScene {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private post: PostFX | null = null;
-  private replay: RaceReplay;
+  private replay: SceneRaceData;
+  private kickScan = 0;
+  private kicks = new Map<string, number>();
   private sampler: ReplaySampler;
   private samples: HorseSample[] = [];
+  private scratch: HorseSample[] = [];
   private look: Look;
   private runners: Runner[] = [];
   private disposables: { dispose(): void }[] = [];
@@ -162,7 +183,9 @@ export class HD2DScene {
   private L: number;
   private trackW: number;
   private laneCount: number;
-  private winnerTime: number;
+  /** Official winner time once the result is known, else the first frame-derived crossing. */
+  private winnerTime = Number.POSITIVE_INFINITY;
+  private photoFinish = false;
   private confettiDone = false;
   private W = 1;
   private H = 1;
@@ -172,7 +195,7 @@ export class HD2DScene {
   private focusDist = 15;
   private focusRange = 4;
 
-  constructor(T: typeof THREE, replay: RaceReplay, opts: HD2DSceneOptions) {
+  constructor(T: typeof THREE, replay: SceneRaceData, opts: HD2DSceneOptions) {
     this.T = T;
     this.replay = replay;
     this.quality = opts.quality;
@@ -183,7 +206,7 @@ export class HD2DScene {
     this.L = replay.trackLengthMm / 1000;
     this.laneCount = Math.max(2, replay.laneCount);
     this.trackW = RAIL_GAP * 2 + (this.laneCount - 1) * LANE_W;
-    this.winnerTime = replayTiming(replay).winnerTime;
+    this.applyResult();
     this.highlight = replay.horses.findIndex((h) => h.horseId === opts.highlightHorseId);
     this.v1 = new T.Vector3();
     this.v2 = new T.Vector3();
@@ -567,8 +590,10 @@ export class HD2DScene {
 
   private buildGate(): void {
     const T = this.T;
-    const start = this.sampler(0);
-    const maxLane = Math.max(0, ...start.map((s) => Math.round(s.lane)));
+    // Starting lanes: frame 0 if we have it (live: maybe not yet), else gate order.
+    const maxLane = this.replay.frames.length
+      ? Math.max(0, ...this.sampler(0).map((s) => Math.round(s.lane)))
+      : Math.max(0, ...this.replay.horses.map((h) => h.gate - 1));
     const BACK = -3.4;
     const FRONT = 0.35;
     const panel = this.tex(gatePanelTile(), { repeat: true });
@@ -624,10 +649,6 @@ export class HD2DScene {
 
   private buildHorses(opts: HD2DSceneOptions): void {
     const T = this.T;
-    const timing = replayTiming(this.replay);
-    const finishBy = new Map(this.replay.result.finishOrder.map((f) => [f.horseId, f.finishTimeUs / 1e6]));
-    const kicks = new Map<string, number>();
-    for (const ev of this.replay.events) if (ev.type === "kick" && ev.horseId && !kicks.has(ev.horseId)) kicks.set(ev.horseId, ev.tick / this.replay.tickHz);
     const shadowTex = this.tex(blobShadow());
     const shadowGeo = this.own(new T.PlaneGeometry(1, 1));
     this.replay.horses.forEach((h, i) => {
@@ -667,10 +688,9 @@ export class HD2DScene {
       shadow.rotation.x = -Math.PI / 2;
       shadow.renderOrder = 1;
       this.scene.add(shadow);
-      const ft = finishBy.get(h.horseId) ?? null;
-      const fs = ft !== null ? this.sampler(Math.max(0, Math.min(ft - 0.05, timing.lastFrameTime)))[i]!.speed / 1000 : 0;
       this.runners.push({
         index: i,
+        horseId: h.horseId,
         rig,
         group,
         plane,
@@ -684,9 +704,9 @@ export class HD2DScene {
         bodyZ: 0,
         speed: 0,
         drive: 0,
-        finishT: ft,
-        finishSpeed: Math.max(fs, 8),
-        kickT: kicks.get(h.horseId) ?? null,
+        finishT: null,
+        finishSpeed: 8,
+        kickT: null,
         prevLeg: [0, 0],
         rand: rng(i * 7919 + 1),
       });
@@ -798,8 +818,23 @@ export class HD2DScene {
     let lead: Runner | null = null;
     let last: Runner | null = null;
     let zSum = 0;
+    // New kick events (live: events grow).
+    const evs = this.replay.events;
+    for (; this.kickScan < evs.length; this.kickScan++) {
+      const ev = evs[this.kickScan]!;
+      if (ev.type === "kick" && ev.horseId && !this.kicks.has(ev.horseId)) this.kicks.set(ev.horseId, ev.tick / this.replay.tickHz);
+    }
     for (const r of this.runners) {
       const s = this.samples[r.index]!;
+      // Finish time: official when the result is known, else frame-derived (sampler).
+      if (r.finishT === null && s.finishTimeSec !== null) {
+        r.finishT = s.finishTimeSec;
+        const before = this.sampler(Math.max(0, r.finishT - 0.05), this.scratch)[r.index]!;
+        r.finishSpeed = Math.max(8, before.speed / 1000);
+        this.samples = this.sampler(tS, this.samples);
+      }
+      if (r.kickT === null) r.kickT = this.kicks.get(r.horseId) ?? null;
+      if (!this.replay.result && r.finishT !== null) this.winnerTime = Math.min(this.winnerTime, r.finishT);
       if (r.finishT !== null && tS > r.finishT) {
         const e = Math.exp(-(tS - r.finishT) / PULLUP_TAU);
         r.x = L + r.finishSpeed * PULLUP_TAU * (1 - e);
@@ -808,7 +843,7 @@ export class HD2DScene {
         r.x = s.x / 1000;
         r.speed = raceT < 0 ? 0 : s.speed / 1000;
       }
-      r.z = this.laneZ(s.lane);
+      r.z = this.laneZ(this.replay.frames.length ? s.lane : this.replay.horses[r.index]!.gate - 1);
       zSum += r.z;
       if (!lead || r.x > lead.x) lead = r;
       if (!last || r.x < last.x) last = r;
@@ -824,7 +859,7 @@ export class HD2DScene {
     const mine = this.highlight >= 0 ? this.runners[this.highlight]! : null;
     const focus = mode === "mine" && mine ? mine : lead;
     const toGo = L - lead.x;
-    const photo = this.replay.result.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
+    const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
     let shot: Shot;
     if (raceT < 1.0) shot = "crane";
     else if (photo) shot = "photo";
@@ -1075,6 +1110,26 @@ export class HD2DScene {
       this.renderer.render(this.scene, cam);
     }
     void T;
+  }
+
+  private applyResult(): void {
+    const res = this.replay.result ?? null;
+    this.winnerTime = res ? res.winningTimeUs / 1e6 : Number.POSITIVE_INFINITY;
+    this.photoFinish = res ? res.photoFinish : false;
+  }
+
+  /** The race is over: switch to the official replay (same horses, same scene). */
+  setFinal(final: RaceReplay): void {
+    this.replay = final;
+    this.sampler = createReplaySampler(final);
+    this.applyResult();
+    for (const r of this.runners) {
+      r.finishT = null;
+      r.kickT = null;
+    }
+    this.kickScan = 0;
+    this.kicks.clear();
+    this.lastTime = Number.NaN;
   }
 
   /** Vertical FOV that keeps a 16:9 frame's horizontal field of view on narrow screens. */

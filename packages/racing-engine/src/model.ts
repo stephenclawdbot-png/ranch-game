@@ -32,8 +32,8 @@ const SURFACE_PEN_ADAPT = 110;
 const FORM_AMP_BASE = 300;
 const FORM_AMP_TEMPER = 250;
 /** Cruise bonus (mm/s) and drain (permille) when the tactic matches the horse's natural style. */
-const STYLE_MATCH_CRUISE = 25;
-const STYLE_MATCH_DRAIN = 10;
+const STYLE_MATCH_CRUISE = 15;
+const STYLE_MATCH_DRAIN = 6;
 
 // --- Tactics ----------------------------------------------------------------
 export const KICK_BASE_M: Record<RunningStyle, number> = { front: 300, stalker: 420, closer: 660 };

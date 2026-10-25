@@ -12,3 +12,8 @@ export function writeReport(name: string, data: unknown, lines: string[]): void 
   writeFileSync(`${OUT_DIR}${name}.${TAG}.txt`, text + "\n");
   console.log(`\n${text}\n`);
 }
+
+/** Let vitest's worker RPC breathe during long synchronous Monte Carlo loops. */
+export function yieldNow(): Promise<void> {
+  return new Promise((r) => setImmediate(r));
+}

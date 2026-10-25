@@ -8,17 +8,26 @@
  * winner and finishing order from replay.result.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import type { RaceEvent, RaceReplay } from "@thoroughbred/shared";
-import { PlaybackClock } from "./playback";
+import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
+import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
 import { replayTiming } from "./sampleReplay";
-import { commentaryAt, distanceToGoM, standingsAt, type StandingRow } from "./timeline";
+import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
 import type { CameraMode, QualitySetting, RenderQuality } from "./types";
 import { Controls, Countdown, PhotoStamp, ResultsCard, Ticker, TopHud } from "./hud/Hud";
 import { injectViewerCss } from "./hud/styles";
-import type { HD2DScene as HD2DSceneT } from "./three/HD2DScene";
+import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 
 export interface RaceViewerProps {
-  replay: RaceReplay;
+  /** A finished race (full controls). Provide exactly one of `replay` or `feed`. */
+  replay?: RaceReplay;
+  /**
+   * A live broadcast. While live the viewer only knows the header and the frames/events
+   * received so far: pause and rewind work, but nothing can move past the live edge.
+   * When `feed.final` arrives and the playhead reaches the end, it runs the
+   * photo-finish/results flow and switches to full replay controls.
+   * The playhead compares `feed.broadcastStartMs` with `Date.now() + (feed.serverOffsetMs ?? 0)`.
+   */
+  feed?: LiveRaceFeed;
   /**
    * Wall-clock post time (ms since epoch). Playback syncs to it:
    * elapsed = (Date.now() - startAtMs) / 1000. Before it: gate-loading countdown.
@@ -50,6 +59,10 @@ export interface RaceViewerProps {
 }
 
 interface HudState {
+  mode: "live" | "replay";
+  /** Furthest scrubbable time (live: the live edge; replay: duration). */
+  scrubMax: number;
+  buffering: boolean;
   time: number;
   playing: boolean;
   live: boolean;
@@ -75,9 +88,46 @@ function autoQuality(width: number): RenderQuality {
   return "high";
 }
 
+type Clock = PlaybackClock | LiveClock;
+
+/** The live feed as scene/timeline data: header + growing frames/events, no result. */
+function liveData(feed: LiveRaceFeed): SceneRaceData & TimelineSource {
+  const h = feed.header;
+  return {
+    race: h.race,
+    horses: h.horses,
+    tickHz: h.tickHz,
+    sampleEvery: h.sampleEvery,
+    trackLengthMm: h.trackLengthMm,
+    laneCount: h.laneCount,
+    get frames() {
+      return feed.frames;
+    },
+    get events() {
+      return feed.events;
+    },
+    result: null,
+  };
+}
+
+function liveClockSource(feed: LiveRaceFeed) {
+  const offset = (feed as LiveRaceFeed & { serverOffsetMs?: number }).serverOffsetMs ?? 0;
+  const frameDt = feed.header.sampleEvery / feed.header.tickHz;
+  return {
+    get broadcastStartMs() {
+      return feed.broadcastStartMs - offset;
+    },
+    get liveEdgeFrame() {
+      return feed.liveEdgeFrame;
+    },
+    frameDt,
+  };
+}
+
 export function RaceViewer(props: RaceViewerProps) {
   const {
     replay,
+    feed,
     startAtMs,
     autoplay = true,
     highlightHorseId,
@@ -95,8 +145,17 @@ export function RaceViewer(props: RaceViewerProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HD2DSceneT | null>(null);
-  const clockRef = useRef<PlaybackClock | null>(null);
-  const hasHighlight = !!highlightHorseId && replay.horses.some((h) => h.horseId === highlightHorseId);
+  const clockRef = useRef<Clock | null>(null);
+  // A finished race is known up front for `replay` (or a feed that is already final).
+  const initialFinal = useMemo(() => replay ?? feed?.final ?? null, [replay, feed]);
+  const [final, setFinal] = useState<RaceReplay | null>(initialFinal);
+  const finalRef = useRef<RaceReplay | null>(initialFinal);
+  const [replayBadge, setReplayBadge] = useState(false);
+  const live = useMemo(() => (feed ? liveData(feed) : null), [feed]);
+  const info = final ?? live;
+  if (!info) throw new Error("RaceViewer needs a `replay` or a `feed`");
+  const horses = info.horses;
+  const hasHighlight = !!highlightHorseId && horses.some((h) => h.horseId === highlightHorseId);
   const [camera, setCamera] = useState<CameraMode>(initialCamera ?? (hasHighlight ? "leader" : "leader"));
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
@@ -112,16 +171,24 @@ export function RaceViewer(props: RaceViewerProps) {
   const [debugText, setDebugText] = useState("");
   const qualityRef = useRef<RenderQuality>("high");
   const frameFlags = useRef({ frozen: false, slowmo: false });
-  const duration = useMemo(() => replayTiming(replay).duration, [replay]);
+  const duration = useMemo(() => (final ? replayTiming(final).duration : 0), [final]);
 
   useEffect(() => injectViewerCss(), []);
 
-  // Playback clock: rebuilt when the replay or its timing inputs change.
+  // Playback clock: rebuilt when the race source or its timing inputs change.
   useEffect(() => {
-    clockRef.current = new PlaybackClock(replay, { startAtMs, autoplay, initialTimeSec });
+    finalRef.current = initialFinal;
+    setFinal(initialFinal);
+    setReplayBadge(false);
+    if (initialFinal) {
+      const start = feed ? feed.broadcastStartMs - ((feed as LiveRaceFeed & { serverOffsetMs?: number }).serverOffsetMs ?? 0) : startAtMs;
+      clockRef.current = new PlaybackClock(initialFinal, { startAtMs: start, autoplay, initialTimeSec });
+    } else if (feed) {
+      clockRef.current = new LiveClock(liveClockSource(feed), autoplay);
+    }
     finishedFired.current = false;
     setDismissed(false);
-  }, [replay, startAtMs, autoplay, initialTimeSec]);
+  }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec]);
 
   const publish = useCallback(() => {
     const clock = clockRef.current;
@@ -129,7 +196,13 @@ export function RaceViewer(props: RaceViewerProps) {
     if (!clock) return;
     const samples = scene ? [...scene.lastSamples] : [];
     const t = clock.time;
+    const src: TimelineSource | null = finalRef.current ?? live;
+    if (!src) return;
+    const isLive = clock instanceof LiveClock;
     setHud({
+      mode: isLive ? "live" : "replay",
+      scrubMax: isLive ? Math.max(0, clock.edge()) : clock.duration,
+      buffering: isLive ? clock.buffering : false,
       time: t,
       playing: clock.playing || clock.live,
       live: clock.live,
@@ -138,11 +211,11 @@ export function RaceViewer(props: RaceViewerProps) {
       frozen: frameFlags.current.frozen,
       slowmo: frameFlags.current.slowmo,
       canGoLive: clock.canGoLive(),
-      toGoM: samples.length ? distanceToGoM(replay, samples) : replay.trackLengthMm / 1000,
-      standings: samples.length ? standingsAt(replay, samples) : [],
-      commentary: t >= 0 ? (commentaryAt(replay, Math.min(t, duration + 4), 6, 1)[0] ?? null) : null,
+      toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
+      standings: samples.length ? standingsAt(src, samples) : [],
+      commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), 6, 1)[0] ?? null) : null,
     });
-  }, [replay, duration]);
+  }, [live]);
 
   // Three.js HD-2D scene. StrictMode-safe: the async init checks `disposed` after every await.
   useEffect(() => {
@@ -171,7 +244,7 @@ export function RaceViewer(props: RaceViewerProps) {
       qualityRef.current = q;
       let scene: HD2DSceneT;
       try {
-        scene = new HD2DScene(T, replay, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind });
+        scene = new HD2DScene(T, (initialFinal ?? live)!, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind });
       } catch (err) {
         rigs.factory.dispose();
         throw err;
@@ -198,11 +271,24 @@ export function RaceViewer(props: RaceViewerProps) {
         if (!clock) return;
         const t0 = performance.now();
         const dt = deltaMS / 1000;
+        // Live -> final: once the result exists and the playhead has reached the end of
+        // the broadcast, hand the scene the official replay and run the finish flow.
+        if (clock instanceof LiveClock && feed?.final && clock.time >= clock.dataEdge() - feed.header.sampleEvery / feed.header.tickHz - 1e-6) {
+          const fin = feed.final;
+          scene.setFinal(fin);
+          finalRef.current = fin;
+          setFinal(fin);
+          const slowFrom = fin.result.photoFinish ? timeLeaderReaches(fin, 14) : null;
+          const t0 = slowFrom !== null ? Math.max(0, slowFrom - 1.5) : clock.time;
+          clockRef.current = new PlaybackClock(fin, { autoplay: true, initialTimeSec: t0 });
+          setReplayBadge(slowFrom !== null);
+          return;
+        }
         const fr = clock.tick(dt);
         scene.render({ time: fr.time, realDt: dt, camera: cameraRef.current, frozen: fr.frozen, flash: fr.flash });
         const work = performance.now() - t0;
 
-        if (clock.ended && !finishedFired.current) {
+        if (clock instanceof PlaybackClock && clock.ended && !finishedFired.current) {
           finishedFired.current = true;
           onFinishedRef.current?.();
         }
@@ -271,7 +357,15 @@ export function RaceViewer(props: RaceViewerProps) {
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replay, highlightHorseId, artBaseUrl, pixelated]);
+  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated]);
+
+  // Live feed updates: frames/events grow; the render loop reads them directly.
+  useEffect(() => {
+    if (!feed) return;
+    return feed.subscribe(() => {
+      if (!clockRef.current) return;
+    });
+  }, [feed]);
 
   // Explicit quality changes after mount.
   useEffect(() => {
@@ -280,7 +374,7 @@ export function RaceViewer(props: RaceViewerProps) {
     sceneRef.current.setQuality(quality);
   }, [quality, ready]);
 
-  const act = (fn: (c: PlaybackClock) => void) => {
+  const act = (fn: (c: Clock) => void) => {
     const c = clockRef.current;
     if (!c) return;
     fn(c);
@@ -292,7 +386,7 @@ export function RaceViewer(props: RaceViewerProps) {
     act((c) => c.restart());
   };
   const onSeek = (t: number) => {
-    if (t < duration) setDismissed(false);
+    if (!final || t < duration) setDismissed(false);
     act((c) => c.seek(t));
   };
   const onScrubStart = () => {
@@ -305,7 +399,7 @@ export function RaceViewer(props: RaceViewerProps) {
     const c = clockRef.current;
     const s = scrubbing.current;
     scrubbing.current = null;
-    if (c && s?.wasPlaying && !c.ended) {
+    if (c && s?.wasPlaying && !(c instanceof PlaybackClock && c.ended)) {
       c.playing = true;
       publish();
     }
@@ -327,7 +421,8 @@ export function RaceViewer(props: RaceViewerProps) {
   const narrow = width > 0 && width < NARROW_PX;
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
-  const showResults = !!h && h.ended && !dismissed && !h.frozen;
+  const showResults = !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;
+  const isLive = h?.mode === "live";
   const maxStandings = narrow ? 3 : width < 900 ? 6 : 16;
 
   return (
@@ -337,7 +432,9 @@ export function RaceViewer(props: RaceViewerProps) {
         {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
         {h && (
           <TopHud
-            replay={replay}
+            race={info.race}
+            winningTimeUs={final && h.mode === "replay" ? final.result.winningTimeUs : null}
+            trackLengthM={info.trackLengthMm / 1000}
             raceTime={h.time}
             toGoM={h.toGoM}
             standings={h.standings}
@@ -354,22 +451,25 @@ export function RaceViewer(props: RaceViewerProps) {
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}
         {h?.slowmo && !h.frozen && <div className="rv-badge">SLOW-MO</div>}
+        {h && replayBadge && h.mode === "replay" && !h.ended && !h.slowmo && !h.frozen && <div className="rv-badge">PHOTO REPLAY</div>}
+        {h?.buffering && <div className="rv-badge rv-badge-buffer">BUFFERING</div>}
         {debug && debugText && (
           <div className="rv-debug" data-rv-debug="">
             {debugText}
           </div>
         )}
-        {showResults && <ResultsCard replay={replay} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} />}
+        {showResults && final && <ResultsCard replay={final} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} />}
         {h && (
           <Controls
             narrow={narrow}
             playing={h.playing}
             rate={h.rate}
             time={h.time}
-            duration={duration}
+            duration={h.scrubMax}
+            liveMode={isLive}
             camera={camera}
             hasHighlight={hasHighlight}
-            showLive={startAtMs !== undefined}
+            showLive={startAtMs !== undefined || isLive}
             live={h.live}
             canGoLive={h.canGoLive}
             onToggle={onToggle}

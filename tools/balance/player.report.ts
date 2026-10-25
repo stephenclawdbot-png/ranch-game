@@ -5,7 +5,7 @@
 import { it } from "vitest";
 import { CLASS_PURSE, QUICK_POST_DELAY_MS } from "../../apps/web/src/server/races";
 import { TACTICS, feel, feelLines, groupBy, mean, median, pct, runQuick, simNonce, simPlayerId, type QuickSample } from "../../apps/web/src/server/balance/sim";
-import { writeReport } from "./out";
+import { writeReport, yieldNow } from "./out";
 
 const PLAYERS = Number(process.env.BAL_PLAYERS ?? 30);
 const RACES = Number(process.env.BAL_RACES ?? 10); // per horse per tactic
@@ -25,10 +25,11 @@ function summary(xs: readonly QuickSample[]) {
 const fmt = (s: ReturnType<typeof summary>) =>
   `n=${String(s.n).padStart(5)} win ${pct(s.win).padStart(6)} top3 ${pct(s.top3).padStart(6)} pos ${s.avgPos.toFixed(2)} prize ${s.avgPrize.toFixed(0).padStart(5)}`;
 
-it("player experience", () => {
+it("player experience", async () => {
   const samples: QuickSample[] = [];
   const byKey = new Map<string, QuickSample>();
   for (let p = 0; p < PLAYERS; p++) {
+    await yieldNow();
     const pid = simPlayerId(p);
     for (let h = 0; h < 6; h++)
       for (const t of TACTICS)

@@ -1,0 +1,228 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16800 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4364d3cd-1027-4769-b992-6c27ab53d986",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "4364d3cd-1027-4769-b992-6c27ab53d986",
+  "status": "completed",
+  "created_at": "2026-10-25T17:09:42.904322+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 10,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       71
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "far legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       78
+      ]
+     },
+     {
+      "name": "haunch",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       72
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "near leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       87
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       74,
+       75,
+       77,
+       69,
+       80,
+       82,
+       58,
+       61,
+       65,
+       81,
+       84,
+       90,
+       91,
+       92
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "front leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       88
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       33,
+       27,
+       40,
+       44,
+       50,
+       54,
+       52,
+       53,
+       41,
+       37,
+       43,
+       48,
+       49,
+       46,
+       47
+      ]
+     },
+     {
+      "name": "crest",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       7,
+       8,
+       9,
+       10,
+       14,
+       15,
+       21,
+       22,
+       30,
+       31,
+       36
+      ]
+     },
+     {
+      "name": "white hook",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.6,
+       0.4
+      ],
+      "regions": [
+       28
+      ]
+     },
+     {
+      "name": "left claw",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       63
+      ]
+     },
+     {
+      "name": "right claw",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       64
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     28,
+     63,
+     64
+    ],
+    "backdrop": [],
+    "recessed": [
+     23,
+     51,
+     16,
+     39,
+     56,
+     4,
+     11,
+     45,
+     62
+    ],
+    "painted_light": "right"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<40604 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "f6bf773a-795e-4a7d-9e17-c5175d40063e",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:09:42.979512+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n7-0.png"
+ ]
+}

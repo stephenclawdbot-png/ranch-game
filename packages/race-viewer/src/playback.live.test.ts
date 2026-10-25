@@ -61,7 +61,8 @@ describe("LiveClock", () => {
 
 describe("live sampling (no result)", () => {
   it("orders finishers by frame-derived crossing time, never reading result", () => {
-    const full = fakeReplay({ horses: 6, seed: 4, distanceM: 1000 });
+    // No photo: 10 Hz frames cannot resolve a nose (that is what final.result is for).
+    const full = fakeReplay({ horses: 6, seed: 4, distanceM: 1000, photoFinish: false });
     const live = { horses: full.horses, frames: full.frames, tickHz: full.tickHz, sampleEvery: full.sampleEvery, trackLengthMm: full.trackLengthMm, events: full.events, result: null };
     const sample = createReplaySampler(live);
     const end = (full.frames.length - 1) * (full.sampleEvery / full.tickHz);

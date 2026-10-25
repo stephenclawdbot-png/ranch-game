@@ -6,12 +6,12 @@ import type { RaceClass } from "@thoroughbred/shared";
 import { RIVAL_POOL, ownerStableName } from "../../apps/web/src/server/demoData";
 import { getRaceInput, raceRating } from "../../apps/web/src/server/races";
 import { feel, feelLines, groupBy, mean, pct, runScheduled, type RaceStats } from "../../apps/web/src/server/balance/sim";
-import { writeReport } from "./out";
+import { writeReport, yieldNow } from "./out";
 
 const SLOTS = Number(process.env.BAL_SLOTS ?? 2400); // 2400 slots = 5 days of the 3-minute schedule
 const CLASSES: RaceClass[] = ["maiden", "novice", "handicap", "listed", "graded"];
 
-it("scheduled races", () => {
+it("scheduled races", async () => {
   const lines: string[] = [];
   const data: Record<string, unknown> = { slots: SLOTS };
 
@@ -25,6 +25,7 @@ it("scheduled races", () => {
   const races: RaceStats[] = [];
   const fieldRatings = new Map<RaceClass, number[]>();
   for (let slot = 0; slot < SLOTS; slot++) {
+    if (slot % 50 === 0) await yieldNow();
     const st = runScheduled(slot);
     races.push(st);
     const input = getRaceInput(`s-${slot}`);

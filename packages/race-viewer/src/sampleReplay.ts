@@ -93,9 +93,13 @@ export function crossingTimeFromFrames(src: SampleSource, h: number): number | n
     else lo = mid + 1;
   }
   if (lo === 0) return 0;
-  const d0 = frames[lo - 1]![o] ?? 0;
+  // Distances are clamped at the line after finishing, so extrapolate from the
+  // last pre-line frame's speed instead of interpolating to the clamped value.
+  const prev = frames[lo - 1]!;
+  const d0 = prev[o] ?? 0;
+  const v0 = prev[h * FRAME_STRIDE + FRAME_FIELD.speedMmS] ?? 0;
   const d1 = frames[lo]![o] ?? L;
-  const u = d1 > d0 ? (L - d0) / (d1 - d0) : 1;
+  const u = v0 > 0 ? (L - d0) / (v0 * dt) : d1 > d0 ? (L - d0) / (d1 - d0) : 1;
   return (lo - 1 + Math.min(1, Math.max(0, u))) * dt;
 }
 
@@ -108,10 +112,11 @@ export function createReplaySampler(replay: SampleSource): ReplaySampler {
   if (result) for (const f of result.finishOrder) finish.set(f.horseId, { pos: f.position, t: f.finishTimeUs / 1e6 });
   const finishPos = replay.horses.map((h) => finish.get(h.horseId)?.pos ?? Number.POSITIVE_INFINITY);
   const finishT: (number | null)[] = replay.horses.map((h) => finish.get(h.horseId)?.t ?? null);
-  const frames = replay.frames;
   const order = new Array<number>(n);
 
   return (timeSec, out = []) => {
+    // Read by property each call: a live source may replace or grow its array.
+    const frames = replay.frames;
     // Live sources grow: the clamp follows the frames received so far.
     const lastFrameTime = Math.max(0, (frames.length - 1) * frameDt);
     const t = Math.min(Math.max(Number.isFinite(timeSec) ? timeSec : 0, 0), lastFrameTime);

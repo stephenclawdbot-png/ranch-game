@@ -268,7 +268,7 @@ export function runRace(input: RaceInput): RaceReplay {
         else target = clamp(vel[lead]! + Math.floor((gapLead - 7200) / 8), cr - 250, cr + 260);
       } else {
         if (early) target = cr - 320;
-        else target = gapLead > 12 * HORSE_LENGTH_MM ? cr - 40 : cr - 220;
+        else target = gapLead > 12 * HORSE_LENGTH_MM ? cr - 40 : cr - 180;
       }
       target += segNoise[i]!;
 

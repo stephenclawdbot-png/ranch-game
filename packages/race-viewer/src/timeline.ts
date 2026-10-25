@@ -61,7 +61,7 @@ export function standingsAt(replay: Pick<TimelineSource, "horses" | "result">, s
       if (s.finished && marginByHorse.has(s.horseId)) gapLabel = marginByHorse.get(s.horseId)!;
       else if (s.finished && s.finishTimeSec !== null && leader.finishTimeSec !== null)
         // Live, no official margins yet: estimate from the crossing-time gap (~16 m/s).
-        gapLabel = lengthsLabel(Math.max(0, s.finishTimeSec - leader.finishTimeSec) * 16000);
+        gapLabel = s.finishTimeSec - leader.finishTimeSec < 0.03 ? "photo" : lengthsLabel(Math.max(0, s.finishTimeSec - leader.finishTimeSec) * 16000);
       else gapLabel = lengthsLabel(Math.max(0, leader.x - s.x));
     }
     return {
