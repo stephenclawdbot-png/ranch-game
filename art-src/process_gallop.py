@@ -159,7 +159,7 @@ def classify(img):
             capx0 = np.nonzero(role == "cap")[1].min()
             mane = role == "mane"
             coat = role == "coat"
-            reach = max(2, int(round(3 * k)))
+            reach = max(3, int(round(6 * k)))
             left = np.zeros((H, W), bool)
             right = np.zeros((H, W), bool)
             for d in range(1, reach + 1):

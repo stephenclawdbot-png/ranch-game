@@ -37,7 +37,7 @@ function assertNoLeak(chunk: RaceBroadcastChunk, r: ReturnType<typeof quick>) {
     expect(json).not.toContain(`"${key}"`);
   }
   // No frame beyond the edge.
-  expect(chunk.fromFrame + chunk.frames.length - 1).toBeLessThanOrEqual(chunk.liveEdgeFrame);
+  if (chunk.frames.length > 0) expect(chunk.fromFrame + chunk.frames.length - 1).toBeLessThanOrEqual(chunk.liveEdgeFrame);
   expect(chunk.liveEdgeFrame).toBeLessThan(r.last);
   // No event beyond the edge.
   const edgeTick = chunk.liveEdgeFrame * replay.sampleEvery;

@@ -63,7 +63,7 @@ it("engine feel", () => {
   const equal = (_s: number, d: number): EntryOpts[] => Array.from({ length: 10 }, (_, k) => ({ stats: 650, style: STYLES[k % 3]!, preferredDistanceM: d }));
   const typical = (_s: number, d: number) => typicalField(10, d);
   const wide = (s: number, d: number): EntryOpts[] =>
-    Array.from({ length: 10 }, (_, k) => ({ stats: 450 + (((k * 7 + s) % 10) * 300) / 9, style: STYLES[k % 3]!, preferredDistanceM: d }));
+    Array.from({ length: 10 }, (_, k) => ({ stats: 450 + Math.round((((k * 7 + s) % 10) * 300) / 9), style: STYLES[k % 3]!, preferredDistanceM: d }));
   for (const d of [1000, 1600, 2400]) {
     rows.push(run("equal650", equal, d));
     rows.push(run("typical", typical, d));

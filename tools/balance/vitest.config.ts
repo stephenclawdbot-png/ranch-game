@@ -8,7 +8,12 @@ import { defineConfig } from "vitest/config";
  * Output: console tables + tools/balance/out/<report>.json
  */
 export default defineConfig({
-  resolve: { alias: { "@": fileURLToPath(new URL("../../apps/web/src", import.meta.url)) } },
+  resolve: {
+    alias: {
+      "@thoroughbred/shared": fileURLToPath(new URL("../../packages/shared/src/index.ts", import.meta.url)),
+      "@": fileURLToPath(new URL("../../apps/web/src", import.meta.url)),
+    },
+  },
   test: {
     root: fileURLToPath(new URL(".", import.meta.url)),
     include: ["*.report.ts"],
