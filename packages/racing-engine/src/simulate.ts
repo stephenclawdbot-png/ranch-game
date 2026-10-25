@@ -33,9 +33,9 @@ const BASE_BUDGET = 960_000; // energy used by running the whole race exactly at
 const DRAIN_OVER_S2 = 1150 * 1150; // excess speed at which drain doubles, squared
 const DRAIN_UNDER_K = 900; // permille drain saved per 1000 mm/s below cruise
 const DRAIN_MIN = 420;
-const TIRE_E = 200_000;
+const TIRE_E = 60_000; // below this, achievable speed falls linearly towards the horse's floor
 const WIDE_COST_DIV = 1_000_000; // 1 permille of speed per lane out from the rail
-const KICK_RESERVE = 30_000;
+const KICK_RESERVE = 20_000;
 const SEG_TICKS = 40;
 const PURPOSE_FORM = 1;
 const PURPOSE_PACE = 2;
@@ -415,7 +415,7 @@ export function runRace(input: RaceInput): RaceReplay {
       if (
         !tiringAnnounced[i] &&
         tiringEvents < 3 &&
-        energy[i]! < 120_000 &&
+        energy[i]! < 70_000 &&
         rank[i]! < 4 &&
         remaining < 900_000 &&
         remaining > 60_000 &&
