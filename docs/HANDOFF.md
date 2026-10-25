@@ -31,7 +31,7 @@ Preview and Production.)
 - **DB agent** (`packages/db`): schema, services, PGlite/Neon, deploy-time migrations,
   shared race card (entries, field lock with AI fill, settlement), stable entries. Check its
   report or the repo state.
-- **Viewer agent:** TV-style camera director, track minimap and camera picker, plus the
+- **Viewer agent: DONE.** TV director, minimap, camera picker, PiP, hudTitle/resultsCard props.
   RaceViewer props `hudTitle=false` and `resultsCard=false`, used by the race page. It should
   also stop probing for art files that don't exist.
 - **Web3 agent: STOPPED early** to save budget. Restart it with the same brief: Robinhood
