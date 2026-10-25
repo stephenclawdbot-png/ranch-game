@@ -268,6 +268,8 @@ export const horses = pgTable(
     /** Condition snapshots, permille (0..1000). None of these decay with elapsed time. */
     fitness: integer("fitness").notNull().default(500),
     fatigue: integer("fatigue").notNull().default(0),
+    /** Instant `fatigue` refers to; game-core recovers fatigue lazily on read (fatigueAt). */
+    fatigueAt: ts("fatigue_at"),
     freshness: integer("freshness").notNull().default(1000),
     form: integer("form").notNull().default(500),
     morale: integer("morale").notNull().default(500),
@@ -527,6 +529,8 @@ export const pregnancies = pgTable(
     /** Secret until foaling, then revealed. */
     seed: text("seed").notNull(),
     seedRevealed: boolean("seed_revealed").notNull().default(false),
+    /** Foal coefficient of inbreeding, permille (game-core Pregnancy.coi). */
+    coi: integer("coi").notNull().default(0),
     foalId: uuid("foal_id").references(() => horses.id),
     foaledAt: ts("foaled_at"),
     createdAt: createdAt(),
