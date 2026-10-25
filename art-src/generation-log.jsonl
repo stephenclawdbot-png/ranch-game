@@ -163,3 +163,5 @@
 {"at":"2026-10-25T17:45:12.152Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-flag-normal/n5","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T17:45:17.993Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-flag-normal/n6","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
 {"at":"2026-10-25T17:45:23.831Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-flag-normal/n7","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T17:45:49.886Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/portraits-128/coat-roan","secs":72,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:47:54.003Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/paddock","secs":99,"usage":{"type":"generations","generations":25},"images":1}

@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a racecourse parade paddock at golden hour: an oval of manicured grass with a white rail, thoroughbred racehorses with jockeys in colourful silks being led around by grooms, spectators along the rail, mature oak trees and a Victorian weighing room building behind, bunting, warm late sunlight, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9102,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<20400 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 480,
+    "height": 128
+   },
+   "usage_description": "match this pixel art style, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c1ee4470-5aa7-4f69-b1a9-d2f5aadc23e7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "c1ee4470-5aa7-4f69-b1a9-d2f5aadc23e7",
+  "status": "completed",
+  "created_at": "2026-10-25T17:46:16.733082+00:00",
+  "last_response": {
+   "seed": 9102,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<199440 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "856606ba-b715-4353-a8fa-387e546f7af7",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-25T17:46:23.669683+00:00",
+   "original_image_n_colors": 129,
+   "quantized_image_n_colors": 62
+  }
+ },
+ "files": [
+  "art-src/raw/pages-hd/paddock-0.png"
+ ]
+}

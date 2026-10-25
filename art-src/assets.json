@@ -802,7 +802,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-bay.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars>",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars>",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -817,7 +817,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-black.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to black",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to black",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -832,7 +832,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-buckskin.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to buckskin",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to buckskin",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -847,7 +847,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-chestnut.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to chestnut",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to chestnut",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -862,7 +862,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-dapple_grey.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dapple_grey",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to dapple_grey",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -877,7 +877,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-dark_bay.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dark_bay",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to dark_bay",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -892,7 +892,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-grey.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to grey",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to grey",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -907,7 +907,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-liver_chestnut.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to liver_chestnut",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to liver_chestnut",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -922,7 +922,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-palomino.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to palomino",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to palomino",
   "anchor": {
    "x": 0.5,
    "y": 0.5
@@ -937,7 +937,7 @@
   "depthBand": "overlay",
   "src": "portraits/horse-roan.png",
   "optimizationTier": "hero",
-  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to roan",
+  "sourcePrompt": "generate-image-v2 128x128: <449 chars> | coat via edit-images-v2: change coat to roan",
   "anchor": {
    "x": 0.5,
    "y": 0.5

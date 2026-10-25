@@ -34,4 +34,13 @@ describe.skipIf(!existsSync(MANIFEST))("public art manifest", () => {
       expect(h, `${a.id} height`).toBe(a.frameHeight);
     }
   });
+
+  it("every normal map matches its sprite's size", () => {
+    for (const a of raw.assets as Array<{ id: string; src: string }>) {
+      if (!a.src.endsWith("-normal.png")) continue;
+      const base = join(ART, a.src.replace(/-normal\.png$/, ".png"));
+      if (!existsSync(base)) continue;
+      expect(pngSize(join(ART, a.src)), `${a.id}`).toEqual(pngSize(base));
+    }
+  });
 });

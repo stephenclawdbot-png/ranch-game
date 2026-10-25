@@ -1,10 +1,11 @@
 // Page backdrops (scenes/*.png), 480x200 native, opaque.
 //   node art-src/gen-pages.mjs <job> [...]
 import { run, b64img } from "./pixellab.mjs";
-const OUT = "art-src/raw/pages";
+const OUT = process.env.PAGES_HD !== "0" ? "art-src/raw/pages-hd" : "art-src/raw/pages";
 const STYLE = "high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background";
 const style = { style_image: { image: b64img("art-src/raw/scene/far-hills-opaque-0.png"), size: { width: 480, height: 128 }, usage_description: "match this pixel art style, palette and golden-hour lighting" } };
-const J = (d, seed, extra = {}) => ({ description: `${d}, ${STYLE}`, image_size: { width: 480, height: 200 }, no_background: false, seed, ...extra });
+const HD = process.env.PAGES_HD !== "0"; // HD v2: 688x288 (v1 drop: 480x200)
+const J = (d, seed, extra = {}) => ({ description: `${d}, ${STYLE}${HD ? ", HD pixel art with fine detail and many small pixels" : ""}`, image_size: HD ? { width: 688, height: 288 } : { width: 480, height: 200 }, no_background: false, seed, ...extra });
 const JOBS = {
   "stable-yard": J("an English racehorse stable yard at golden hour: a courtyard of red-brick stable blocks with green half-doors, a clock tower over the arch, horses looking out over the stable doors, hay bales, a water trough, cobbled yard, hanging flower baskets, long warm shadows, honey sunlight", 9101, style),
   paddock: J("a racecourse parade paddock at golden hour: an oval of manicured grass with a white rail, thoroughbred racehorses with jockeys in colourful silks being led around by grooms, spectators along the rail, mature oak trees and a Victorian weighing room building behind, bunting, warm late sunlight", 9102, style),

@@ -77,6 +77,35 @@ Mock HD scene (960×540, 4 recoloured HD horses):
 `/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/mock-scene-hd.png`
 (v1: `.../scratchpad/prev/mock-scene-3x.png`)
 
+## 3. Portraits (READY, HD v2)
+
+`portraits/horse-<coat>.png` for every `CoatSchema` coat (bay, dark_bay, chestnut, liver_chestnut,
+black, grey, dapple_grey, palomino, buckskin, roan): **128×128**, transparent, head-and-neck
+facing left, leather halter, small white star. Identical framing across coats (bbox 17,6–113,121),
+so they can be swapped in place. Made from one bay master (`/generate-image-v2`) + per-coat
+`/edit-images-v2`.
+
+## 4. UI kit (READY)
+
+`ui/ui.json` holds the 9-slice insets and the icon list.
+
+| File | Size | 9-slice (t,r,b,l) | Notes |
+|---|---|---|---|
+| `ui/panel-9slice.png` | 64×64 | 18,18,18,18 | Racing-green panel, brass frame, oxblood corner plates with rivets. |
+| `ui/card-9slice.png` | 72×72 | 24,24,24,24 | Cream parchment card, oxblood frame, brass scroll corners. |
+| `ui/button.png`, `-hover.png`, `-pressed.png` | 48×25 | 8,12,8,12 | Oxblood button with brass bevel (hover = brighter, pressed = darker, content 1 px down). |
+| `ui/button-green.png`, `-hover`, `-pressed` | 56×30 | 9,14,9,14 | Racing-green variant. |
+| `ui/logo.png` | 110×93 | | Emblem: brass horseshoe + green shield + galloping horse + laurels + blank oxblood ribbon (put "Thoroughbred" text over the ribbon in the pixel font). |
+| `ui/icon-<name>.png` | 32×32 each, 64 icons | | One consistent sheet. Asked-for: `coin`, `trophy`, `horseshoe` (gold, clover), `horseshoe-iron`, `stopwatch`, `flag`, `star`, `rosette`, `saddle`, `calendar`, `badge-gold/silver/bronze`. Plus 50 extras (cap-checked, silks-sash, binoculars, racecard, bell, money-sack, hay, apple, carrots, stable-door, tote, trophy-silver, ...). Full list in `ui.json`. |
+
+CSS: `border-image: url(/art/ui/panel-9slice.png) 18 fill / 36px / 0 round; image-rendering: pixelated;`
+(border width = inset × display scale).
+
+## 5. Page scenes (READY)
+
+`scenes/stable-yard.png`, `scenes/paddock.png`, `scenes/grandstand.png`, `scenes/barn-interior.png`
+— opaque, golden hour (barn: lantern-lit interior). See the size column in `manifest.json`.
+
 ## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 
 Code-animated HD-2D horse + jockey (`@thoroughbred/pixel-rig`), cut from **256×192** PixelLab

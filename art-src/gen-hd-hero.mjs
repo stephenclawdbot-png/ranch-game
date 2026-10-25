@@ -19,3 +19,9 @@ if (mode === "base") {
   }, `${OUT}/anim-${name}`);
   console.log(name, r.files.length, JSON.stringify(r.job?.usage));
 }
+// (appended) extra states: node art-src/gen-hd-hero.mjs state <first.png> <seed> <name> <frames> "<action>"
+if (mode === "state") {
+  const [base, seed, name, frames, action] = a;
+  const r = await run("/animate-with-text-v3", { first_frame: b64img(base), action, frame_count: Number(frames), seed: Number(seed), no_background: true }, `${OUT}/anim-${name}`);
+  console.log(name, r.files.length, JSON.stringify(r.job?.usage));
+}

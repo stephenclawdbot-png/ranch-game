@@ -44,6 +44,9 @@ function useCoverScale(ref: React.RefObject<HTMLElement | null>, nativeH: number
   return scale;
 }
 
+/** Blank (white) rows at the bottom of a scene PNG, in art pixels. */
+const SCENE_CROP_BOTTOM: Record<string, number> = { "scenes/grandstand.png": 10 };
+
 const FALLBACK_SKY = "linear-gradient(180deg, #2d5a78 0 22%, #4f86a0 22% 40%, #86b4b8 40% 56%, #d9c48a 56% 68%, #3e6e52 68%)";
 
 /**
@@ -70,7 +73,8 @@ export function SceneBackdrop({ variant, className }: { variant: SceneVariant; c
             ["--depth" as string]: 10,
             backgroundImage: `url(${artUrl(art)})`,
             backgroundSize: `${art.w * scale}px ${art.h * scale}px`,
-            backgroundPosition: "center bottom",
+            // Hide blank rows some PixelLab scenes carry along the bottom edge.
+            backgroundPosition: `center calc(100% + ${(SCENE_CROP_BOTTOM[art.path] ?? 0) * scale}px)`,
             backgroundRepeat: "repeat-x",
           }}
         />
