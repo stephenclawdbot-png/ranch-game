@@ -3,7 +3,7 @@
  "request": {
   "image": {
    "type": "base64",
-   "base64": "<16764 chars>",
+   "base64": "<16512 chars>",
    "format": "png"
   },
   "mode": "pro",
@@ -11,7 +11,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "814aa397-a03f-411b-824e-d37f1f6f63a3",
+  "background_job_id": "e6613a08-809a-427b-86cd-de6e21341c6d",
   "status": "processing"
  },
  "job": {
@@ -19,9 +19,9 @@
    "type": "generations",
    "generations": 0.5
   },
-  "id": "814aa397-a03f-411b-824e-d37f1f6f63a3",
+  "id": "e6613a08-809a-427b-86cd-de6e21341c6d",
   "status": "completed",
-  "created_at": "2026-10-25T17:11:07.045654+00:00",
+  "created_at": "2026-10-25T18:00:08.026826+00:00",
   "last_response": {
    "look": {
     "strength": 1,
@@ -36,133 +36,137 @@
     "parts": [
      {
       "axis": 0,
-      "name": "tail",
-      "round": 0.8,
+      "name": "trailing dark back",
+      "round": 0.6,
       "shape": "cylinder",
       "regions": [
-       76,
-       78,
-       23
-      ]
-     },
-     {
-      "axis": 90,
-      "name": "far legs",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
-       93,
-       89,
-       94,
-       95,
-       96,
-       91,
-       92
-      ]
-     },
-     {
-      "axis": 0,
-      "name": "body",
-      "round": 0.9,
-      "shape": "cylinder",
-      "regions": [
-       79,
-       81,
-       80,
-       82,
-       84,
        85,
-       86,
-       87,
-       68,
-       53,
-       55,
-       90,
+       88,
        47,
-       88
-      ]
-     },
-     {
-      "axis": 60,
-      "name": "white plume",
-      "shape": "cylinder",
-      "regions": [
-       69,
-       70,
-       71,
-       72,
-       30
-      ]
-     },
-     {
-      "axis": 40,
-      "name": "right arm",
-      "shape": "cylinder",
-      "regions": [
-       34,
-       36,
-       39,
-       37,
-       42,
-       41,
-       43,
-       44,
-       45,
-       46,
-       49,
-       50,
-       51,
-       56,
-       57,
-       58,
-       60,
-       61,
-       63,
-       64,
-       65,
-       66,
-       74,
-       22,
-       33,
-       38,
-       40,
-       52,
        62
       ]
      },
      {
-      "name": "head",
-      "shape": "ball",
+      "axis": 0,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
       "regions": [
-       31,
-       14,
-       25,
-       27,
-       28,
-       35,
-       13,
-       7,
-       15,
-       17,
-       18,
-       29,
-       48,
-       20,
-       26,
-       32,
-       8,
-       9,
-       10,
-       5,
-       16,
-       21,
-       24,
-       12
+       93,
+       91,
+       92,
+       98,
+       94,
+       96,
+       101,
+       102,
+       100,
+       89,
+       78,
+       79,
+       80,
+       74,
+       55,
+       54,
+       56,
+       64,
+       76
       ]
      },
      {
-      "name": "mane",
+      "name": "haunch",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       90
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "hind legs",
       "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       105,
+       97,
+       99,
+       103,
+       104,
+       106,
+       107,
+       108,
+       109,
+       110,
+       111,
+       112,
+       113,
+       114,
+       115,
+       116,
+       117,
+       118,
+       119,
+       120
+      ]
+     },
+     {
+      "name": "orange mane",
+      "round": 0.7,
+      "shape": "ball",
+      "regions": [
+       29,
+       37,
+       48,
+       58,
+       44,
+       45,
+       50,
+       40,
+       22,
+       39,
+       33,
+       38,
+       41,
+       49,
+       51,
+       34,
+       36,
+       43,
+       46,
+       59,
+       60,
+       17,
+       18,
+       63
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "white foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       75,
+       70,
+       71,
+       72,
+       82,
+       83,
+       86,
+       87,
+       84,
+       81,
+       67,
+       68,
+       66,
+       69,
+       65,
+       57
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
       "shape": "ball",
       "regions": [
        11,
@@ -171,23 +175,59 @@
        2,
        4,
        6,
+       20,
        1,
-       54
+       5,
+       7,
+       8,
+       9,
+       10,
+       12,
+       13,
+       14,
+       15,
+       21,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       31,
+       32,
+       35,
+       42
+      ]
+     },
+     {
+      "name": "white crest",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.5,
+       0.5
+      ],
+      "regions": [
+       30
       ]
      }
     ],
     "detail": 0.15,
     "raised": [
-     13
+     17,
+     60,
+     9
     ],
     "backdrop": [],
     "recessed": [
-     7,
-     15,
+     77,
+     85,
      18,
-     29,
+     7,
      10,
-     32
+     52,
+     53,
+     63
     ],
     "painted_light": "top-left"
    },
@@ -195,7 +235,7 @@
    "image": {
     "type": "base64",
     "width": 229,
-    "base64": "<41064 chars>",
+    "base64": "<41512 chars>",
     "height": 146
    },
    "action": "Shaping the parts",
@@ -207,10 +247,10 @@
     "type": "generations",
     "generations": 0.5
    },
-   "generation_id": "1bcfdbc2-3f17-4dea-affe-c01faa55e56b",
+   "generation_id": "98652b18-2380-41f6-9812-ac89a944b1e4",
    "billing_charged": true,
    "generation_mode": "normal_map",
-   "generation_started_at": "2026-10-25T17:11:07.119277+00:00"
+   "generation_started_at": "2026-10-25T18:00:08.201652+00:00"
   }
  },
  "files": [

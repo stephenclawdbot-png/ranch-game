@@ -95,19 +95,30 @@ const OVERALL_DEN = 6;
 // ---------------------------------------------------------------------------
 
 /** Expressed value of an allele pair (no inbreeding depression). */
-export function locusValue(pair: AllelePair): number {
+export function locusValue(pair: readonly [number, number]): number {
   const lo = Math.min(pair[0], pair[1]);
   const hi = Math.max(pair[0], pair[1]);
   return lo + Math.floor(((hi - lo) * DOMINANCE_PERMILLE + 500) / 1000);
 }
 
+export const VIGOUR_MIN = -150;
+export const VIGOUR_MAX = 150;
+
+/** Expressed vigour (class) effect, added to every stat. Same partial dominance as stat loci. */
+export function vigourValue(pair: readonly [number, number]): number {
+  return locusValue([pair[0], pair[1]]);
+}
+
+/** Expressed stat from its locus value, the vigour effect and inbreeding depression. */
+export function expressStat(locus: number, vigour: number, stat: StatKey, coi: number): number {
+  const v = Math.max(0, Math.min(1000, locus + vigour));
+  if (coi > 0 && INBREEDING_AFFECTED.includes(stat)) return Math.max(0, v - Math.floor((v * coi * INBREEDING_DEPRESSION_PERMILLE) / 1_000_000));
+  return v;
+}
+
 /** Genetic potential of one stat, 0..1000. */
 export function potentialOf(genome: Genome, stat: StatKey): number {
-  const v = locusValue(genome.stats[stat]);
-  if (genome.coi > 0 && INBREEDING_AFFECTED.includes(stat)) {
-    return Math.max(0, v - Math.floor((v * genome.coi * INBREEDING_DEPRESSION_PERMILLE) / 1_000_000));
-  }
-  return v;
+  return expressStat(locusValue(genome.stats[stat]), vigourValue(genome.vigour), stat, genome.coi);
 }
 
 export function potentials(genome: Genome): StatRecord<number> {
@@ -407,6 +418,11 @@ function mintQuirks(rng: Rng): QuirkGenes {
   };
 }
 
+/** Minted vigour alleles: mean, spread and the chance of one hidden high (70..150) allele. */
+export const MINT_VIGOUR_MEAN = -10;
+export const MINT_VIGOUR_SD = 45;
+export const MINT_VIGOUR_GEM_PERMILLE = 100;
+
 /** Typical gap (sd of |hi − p|) between a minted locus's high allele and its expressed value. */
 export const MINT_HET_SD = 150;
 
@@ -493,8 +509,14 @@ export function generateFoundationGenome(seed: string, opts: MintOptions): Genom
     }
   }
 
+  // Vigour (class) locus: mostly modest, occasionally a hidden high allele.
+  const vig = (): number => clampInt(Math.round(rng.normal() * MINT_VIGOUR_SD) + MINT_VIGOUR_MEAN, VIGOUR_MIN, VIGOUR_MAX);
+  const vigour: [number, number] = rng.chance(MINT_VIGOUR_GEM_PERMILLE) ? [rng.range(70, VIGOUR_MAX), vig()] : [vig(), vig()];
+  if (rng.chance(500)) vigour.reverse();
+  const vEff = vigourValue(vigour);
+
   const stats = {} as Genome["stats"];
-  for (const k of STAT_KEYS) stats[k] = allelesFor(rng, p[k], alleleCap(opts.season, k), rng.chance(GEM_LOCUS_PERMILLE));
+  for (const k of STAT_KEYS) stats[k] = allelesFor(rng, clampInt(p[k] - vEff, 0, 1000), alleleCap(opts.season, k), rng.chance(GEM_LOCUS_PERMILLE));
 
   const distance: [DistanceAllele, DistanceAllele] = [pickBlended(rng, breed, (q) => q.distance), pickBlended(rng, breed, (q) => q.distance)];
   const turf = Math.round(breedBlend(breed, (q) => q.turf));
@@ -509,6 +531,7 @@ export function generateFoundationGenome(seed: string, opts: MintOptions): Genom
   return {
     version: GENOME_VERSION,
     stats,
+    vigour,
     distance,
     distanceMod: [rng.range(-100, 100), rng.range(-100, 100)],
     surface,

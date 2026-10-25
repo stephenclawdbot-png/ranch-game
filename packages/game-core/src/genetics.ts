@@ -50,6 +50,15 @@ function mutate(rng: Rng, v: number, rate: number, neg: number): number {
   return clampInt(rng.chance(neg) ? v - step : v + step, 0, 1000);
 }
 
+/** Vigour mutations are smaller (±1..10): the class locus moves every stat at once. */
+export const VIGOUR_MUTATION_MAX = 10;
+
+function mutateVigour(rng: Rng, v: number, rate: number, neg: number): number {
+  if (!rng.chance(rate)) return v;
+  const step = rng.range(1, VIGOUR_MUTATION_MAX);
+  return clampInt(rng.chance(neg) ? v - step : v + step, -150, 150);
+}
+
 /** Produce a foal genome from two parents. Deterministic in (sire, dam, seed, coi). */
 export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOptions = {}): Genome {
   const rng = new Rng(`${seed}|inherit`);
@@ -61,6 +70,9 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
     const p = pair(rng, sire.stats[k], dam.stats[k]);
     stats[k] = [mutate(rng, p[0], ratePermille, negPermille), mutate(rng, p[1], ratePermille, negPermille)] as AllelePair;
   }
+
+  const vp = pair(rng, sire.vigour, dam.vigour);
+  const vigour: [number, number] = [mutateVigour(rng, vp[0], ratePermille, negPermille), mutateVigour(rng, vp[1], ratePermille, negPermille)];
 
   const drift = (v: number, lo: number, hi: number, amp: number) => (rng.chance(DRIFT_PERMILLE) ? clampInt(v + rng.range(-amp, amp), lo, hi) : v);
 
@@ -86,6 +98,7 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
   return {
     version: GENOME_VERSION,
     stats,
+    vigour,
     distance: pair(rng, sire.distance, dam.distance),
     distanceMod: [drift(distanceMod[0], -150, 150, 25), drift(distanceMod[1], -150, 150, 25)],
     surface: pair(rng, sire.surface, dam.surface),

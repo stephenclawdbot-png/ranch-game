@@ -12,9 +12,9 @@ import type { RunningStyle, Surface } from "@thoroughbred/shared";
 import { BREEDINGS_LIFETIME, BREED_FROM_STARTS, PREGNANCY_MS, createHorseState, isFemale, isMale, isRacingAge, normaliseLocation, stageOf } from "./lifecycle";
 import { coiOf, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
 import {
-  INBREEDING_AFFECTED,
-  INBREEDING_DEPRESSION_PERMILLE,
   OVERALL_WEIGHTS,
+  expressStat,
+  vigourValue,
   distanceBand,
   gradeOf,
   locusValue,
@@ -218,12 +218,9 @@ function toPermille<T extends string>(d: Dist<T>): Partial<Record<T, number>> {
   return out;
 }
 
-/** Locus values of the 4 combos with inbreeding depression applied for affected stats. */
-function statOutcomes(sire: Genome, dam: Genome, k: StatKey, coi: number): number[] {
-  return combos(sire.stats[k], dam.stats[k]).map((pair) => {
-    const v = locusValue(pair);
-    return INBREEDING_AFFECTED.includes(k) && coi > 0 ? Math.max(0, v - Math.floor((v * coi * INBREEDING_DEPRESSION_PERMILLE) / 1_000_000)) : v;
-  });
+/** Expressed values for one stat over (vigour combo × locus combo), each with probability 1/16. */
+function statOutcomes(sire: Genome, dam: Genome, k: StatKey, vig: number, coi: number): number[] {
+  return combos(sire.stats[k], dam.stats[k]).map((pair) => expressStat(locusValue(pair), vig, k, coi));
 }
 
 /**
@@ -235,26 +232,30 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
   const blocked = pairingBlock(sire, dam, ped, season);
   const sg = sire.genome;
   const dg = dam.genome;
+  const vigours = combos(sg.vigour, dg.vigour).map((p) => vigourValue(p));
 
   const stats = {} as StatRecord<StatPreview>;
-  const outcomes = {} as StatRecord<number[]>;
   for (const k of STAT_KEYS) {
-    const vals = statOutcomes(sg, dg, k, coi);
-    outcomes[k] = vals;
+    const vals = vigours.flatMap((v) => statOutcomes(sg, dg, k, v, coi));
     const grades = new Map<Grade, number>();
-    for (const v of vals) addTo(grades, gradeOf(v), 0.25);
-    stats[k] = { min: Math.min(...vals), max: Math.max(...vals), expected: Math.round(vals.reduce((a, b) => a + b, 0) / 4), grades: toPermille(grades) };
+    for (const v of vals) addTo(grades, gradeOf(v), 1 / vals.length);
+    stats[k] = { min: Math.min(...vals), max: Math.max(...vals), expected: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length), grades: toPermille(grades) };
   }
 
-  // Exact overall distribution over the 4^6 combinations (weighted sum, integer arithmetic).
-  let sums: Map<number, number> = new Map([[0, 1]]);
-  for (const k of STAT_KEYS) {
-    const next = new Map<number, number>();
-    for (const [s, p] of sums) for (const v of outcomes[k]) addTo(next, s + v * OVERALL_WEIGHTS[k], p * 0.25);
-    sums = next;
-  }
+  // Exact overall distribution: for each vigour combo, convolve the 6 stats' 4 outcomes each.
+  const total = new Map<number, number>();
   const den = STAT_KEYS.reduce((a, k) => a + OVERALL_WEIGHTS[k], 0);
-  const overallList = [...sums.entries()].map(([s, p]) => [Math.round(s / den), p] as const).sort((a, b) => a[0] - b[0]);
+  for (const vig of vigours) {
+    let sums: Map<number, number> = new Map([[0, 0.25]]);
+    for (const k of STAT_KEYS) {
+      const next = new Map<number, number>();
+      const outs = statOutcomes(sg, dg, k, vig, coi);
+      for (const [s, p] of sums) for (const v of outs) addTo(next, s + v * OVERALL_WEIGHTS[k], p * 0.25);
+      sums = next;
+    }
+    for (const [s, p] of sums) addTo(total, Math.round(s / den), p);
+  }
+  const overallList = [...total.entries()].sort((a, b) => a[0] - b[0]);
   const pct = (q: number) => {
     let c = 0;
     for (const [v, p] of overallList) {

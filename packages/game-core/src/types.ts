@@ -131,6 +131,12 @@ export const GenomeSchema = z.object({
   version: z.literal(GENOME_VERSION),
   /** Diploid stat loci. Potential = blend of the two alleles with partial dominance of the higher one. */
   stats: statRecordSchema(AllelePairSchema),
+  /**
+   * Whole-horse "class" (vigour) locus: two alleles −150..150; the blended value is added to
+   * every stat potential. It is the single biggest source of segregation variance — a foal can
+   * inherit both parents' best class alleles and step up across the board.
+   */
+  vigour: z.tuple([z.number().int().min(-150).max(150), z.number().int().min(-150).max(150)]),
   distance: z.tuple([DistanceAlleleSchema, DistanceAlleleSchema]),
   /** Small polygenic shift of the preferred trip, metres per allele (-150..150). */
   distanceMod: z.tuple([z.number().int().min(-150).max(150), z.number().int().min(-150).max(150)]),

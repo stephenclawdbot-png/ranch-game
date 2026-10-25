@@ -61,8 +61,15 @@ export const horseOriginEnum = pgEnum("horse_origin", ["starter", "bred", "pack"
 export const horseLockEnum = pgEnum("horse_lock", ["race", "market"]);
 export const seasonStatusEnum = pgEnum("season_status", ["upcoming", "active", "closed"]);
 export const pregnancyStatusEnum = pgEnum("pregnancy_status", ["carrying", "foaled", "lost"]);
+/**
+ * quick = Story-mode solo race (free); scheduled = Live card race (1 entry);
+ * feature / final = Live feature & championship races (2 entries); daily_cup (free); trial.
+ */
 export const raceKindEnum = pgEnum("race_kind", ["quick", "scheduled", "daily_cup", "feature", "final", "trial"]);
-export const raceStatusEnum = pgEnum("race_status", ["open", "closed", "settled", "cancelled"]);
+/** open (entries) -> locked (field snapshot at entry close) -> settled; cancelled = abandoned. */
+export const raceStatusEnum = pgEnum("race_status", ["open", "locked", "settled", "cancelled"]);
+export const entryStatusEnum = pgEnum("entry_status", ["entered", "scratched"]);
+export const entryMovementKindEnum = pgEnum("entry_movement_kind", ["daily", "refill", "race", "refund", "adjustment"]);
 export const ledgerAccountKindEnum = pgEnum("ledger_account_kind", [
   "player", // a stable's spendable credits (never negative)
   "mint", // system source of new credits: purses, grants, rewards (may go negative)
@@ -89,6 +96,10 @@ export const accounts = pgTable(
     displayName: text("display_name"),
     email: text("email"),
     walletAddress: text("wallet_address"),
+    /** IANA timezone from the device at signup; drives the local-midnight entry allowance. */
+    timezone: text("timezone").notNull().default("UTC"),
+    /** Last timezone change (at most one change per 30 days). */
+    timezoneChangedAt: ts("timezone_changed_at"),
     /** Verified email: required to sell on the market and for ranked rewards. */
     emailVerifiedAt: ts("email_verified_at"),
     isSystem: boolean("is_system").notNull().default(false),
@@ -179,9 +190,19 @@ export const stables = pgTable(
     licenceLevel: integer("licence_level").notNull().default(1),
     /** Facility levels, e.g. { trainer: 1, vet: 0, stalls: 0 }. */
     facilities: jsonb("facilities").notNull().default({}),
+    /**
+     * Live-racing entry bank (game-design §4f). Changes only with an entry_movements row,
+     * in the same transaction. +allowance at local midnight (lazy, once per local date),
+     * rollover up to the cap.
+     */
+    entryBalance: integer("entry_balance").notNull().default(0),
+    entryAllowance: integer("entry_allowance").notNull().default(10),
+    entryCap: integer("entry_cap").notNull().default(20),
     createdAt: createdAt(),
   },
   (t) => [
+    check("stables_entry_balance", sql`${t.entryBalance} >= 0`),
+    check("stables_entry_tiers", sql`${t.entryAllowance} between 1 and 15 and ${t.entryCap} between ${t.entryAllowance} and 30`),
     uniqueIndex("stables_account_uq").on(t.accountId),
     check("stables_name_len", sql`char_length(${t.name}) between 1 and 40`),
     /** 6 stalls at start, facilities add more, hard maximum 24 (game-design §4b). */
@@ -538,7 +559,17 @@ export const races = pgTable(
     postTime: ts("post_time").notNull(),
     entriesCloseAt: ts("entries_close_at").notNull(),
     status: raceStatusEnum("status").notNull().default("open"),
+    /** Live card slot ("live:<slot index>"): one race per slot, however many instances publish. */
+    slotKey: text("slot_key"),
     maxRunners: integer("max_runners").notNull().default(12),
+    /** Field size the lock fills to with house horses (8-12). */
+    targetRunners: integer("target_runners").notNull().default(10),
+    /** Stable entries consumed per entry (Live 1, feature/graded 2, Story & Daily Cup 0). */
+    entryCost: integer("entry_cost").notNull().default(0),
+    /** Locked field (runners, gates, snapshots) produced at entry close; seed excluded. */
+    field: jsonb("field"),
+    fieldHash: text("field_hash"),
+    lockedAt: ts("locked_at"),
     purse: credits("purse").notNull().default(0),
     entryFee: credits("entry_fee").notNull().default(0),
     /** sha256(seed) published when entries open. */
@@ -551,6 +582,8 @@ export const races = pgTable(
   (t) => [
     index("races_post_time_idx").on(t.postTime),
     index("races_status_idx").on(t.status, t.postTime),
+    uniqueIndex("races_slot_uq").on(t.slotKey),
+    check("races_target", sql`${t.targetRunners} between 2 and ${t.maxRunners} and ${t.entryCost} between 0 and 2`),
     check("races_close_before_post", sql`${t.entriesCloseAt} <= ${t.postTime}`),
     check("races_runners", sql`${t.maxRunners} between 2 and 16`),
     check("races_money", sql`${t.purse} >= 0 and ${t.entryFee} >= 0`),
@@ -569,7 +602,12 @@ export const raceEntries = pgTable(
       .references(() => horses.id),
     /** Entering stable; null for house horses. */
     stableId: uuid("stable_id").references(() => stables.id),
-    gate: integer("gate").notNull(),
+    status: entryStatusEnum("status").notNull().default("entered"),
+    isHouse: boolean("is_house").notNull().default(false),
+    /** Stable entries consumed (refunded only if the race is abandoned). */
+    entryCost: integer("entry_cost").notNull().default(0),
+    /** Drawn from the race seed when the field locks. */
+    gate: integer("gate"),
     tactic: text("tactic").notNull(),
     /** Immutable copy of the horse at entry (stats, rating, fitness, genome-derived traits). */
     snapshot: jsonb("snapshot").notNull(),
@@ -580,12 +618,14 @@ export const raceEntries = pgTable(
     ratingBefore: integer("rating_before").notNull(),
     ratingAfter: integer("rating_after"),
     enteredAt: createdAt(),
+    scratchedAt: ts("scratched_at"),
   },
   (t) => [
     uniqueIndex("race_entries_race_horse_uq").on(t.raceId, t.horseId),
     uniqueIndex("race_entries_race_gate_uq").on(t.raceId, t.gate),
     index("race_entries_horse_idx").on(t.horseId, t.enteredAt),
-    check("race_entries_gate", sql`${t.gate} between 1 and 16`),
+    index("race_entries_stable_idx").on(t.stableId, t.enteredAt),
+    check("race_entries_gate", sql`${t.gate} is null or ${t.gate} between 1 and 16`),
   ],
 );
 
@@ -602,6 +642,55 @@ export const raceResults = pgTable("race_results", {
   ledgerTransactionId: uuid("ledger_transaction_id").references(() => ledgerTransactions.id),
   settledAt: createdAt(),
 });
+
+/** Append-only log of entry-bank changes; grants are unique per (stable, local date, kind). */
+export const entryMovements = pgTable(
+  "entry_movements",
+  {
+    id: id(),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    kind: entryMovementKindEnum("kind").notNull(),
+    delta: integer("delta").notNull(),
+    balanceAfter: integer("balance_after").notNull(),
+    /** Player-local calendar date for daily / refill grants. */
+    localDate: date("local_date", { mode: "string" }),
+    raceId: uuid("race_id").references(() => races.id),
+    horseId: uuid("horse_id").references(() => horses.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("entry_movements_grant_uq")
+      .on(t.stableId, t.localDate, t.kind)
+      .where(sql`${t.kind} in ('daily', 'refill')`),
+    uniqueIndex("entry_movements_refund_uq")
+      .on(t.raceId, t.horseId)
+      .where(sql`${t.kind} = 'refund'`),
+    index("entry_movements_stable_idx").on(t.stableId, t.createdAt),
+    check("entry_movements_balance", sql`${t.balanceAfter} >= 0`),
+  ],
+);
+
+/** Player inbox: race results while away, foalings, sales ... Idempotent per (account, dedupe key). */
+export const inboxItems = pgTable(
+  "inbox_items",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    kind: text("kind").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+    title: text("title").notNull(),
+    data: jsonb("data"),
+    raceId: uuid("race_id").references(() => races.id),
+    horseId: uuid("horse_id").references(() => horses.id),
+    readAt: ts("read_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("inbox_items_dedupe_uq").on(t.accountId, t.dedupeKey), index("inbox_items_account_idx").on(t.accountId, t.createdAt)],
+);
 
 /** One Daily Cup run per player per UTC day. */
 export const dailyCupEntries = pgTable(

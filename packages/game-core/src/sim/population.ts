@@ -11,7 +11,7 @@
  */
 import type { HorseState, PedigreeIndex, PityState, StatKey } from "../types";
 import { STAT_KEYS } from "../types";
-import { meanPotential, potentials, locusValue, INBREEDING_AFFECTED, INBREEDING_DEPRESSION_PERMILLE } from "../genome";
+import { meanPotential, potentials, locusValue, expressStat, vigourValue } from "../genome";
 import { coiOf, kinBlock } from "../genetics";
 import { CARE_TO_RACING, CAREER_MAX_STARTS, BREED_FROM_STARTS, createHorseState, isFemale, normaliseLocation, pensionHorse, recordCare, retireFromRacing, settleIdle, stageOf } from "../lifecycle";
 import { breedingEligibility, cover, deliverFoal } from "../breeding";
@@ -118,15 +118,13 @@ const GRADE_FLOOR = { B: 700, A: 800, S: 900 } as const;
 
 /** Expected foal mean potential and its standard deviation (independent loci, exact per locus). */
 export function foalOutlook(sire: HorseState, dam: HorseState, coi: number): { expected: number; sd: number } {
-  let mean = 0;
-  let variance = 0;
+  const vigs = [0, 1].flatMap((i) => [0, 1].map((j) => vigourValue([sire.genome.vigour[i]!, dam.genome.vigour[j]!])));
+  const vMean = vigs.reduce((a, b) => a + b, 0) / 4;
+  let mean = vMean;
+  let variance = vigs.reduce((s, v) => s + (v - vMean) * (v - vMean), 0) / 4;
   for (const k of STAT_KEYS) {
     const vals: number[] = [];
-    for (const a of sire.genome.stats[k]) for (const b of dam.genome.stats[k]) {
-      let v = locusValue([a, b]);
-      if (coi > 0 && INBREEDING_AFFECTED.includes(k as StatKey)) v -= Math.floor((v * coi * INBREEDING_DEPRESSION_PERMILLE) / 1_000_000);
-      vals.push(v);
-    }
+    for (const a of sire.genome.stats[k]) for (const b of dam.genome.stats[k]) vals.push(expressStat(locusValue([a, b]), 0, k as StatKey, coi));
     const m = (vals[0]! + vals[1]! + vals[2]! + vals[3]!) / 4;
     mean += m / 6;
     variance += vals.reduce((s, v) => s + (v - m) * (v - m), 0) / 4 / 36;
