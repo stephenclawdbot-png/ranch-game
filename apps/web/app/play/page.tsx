@@ -125,13 +125,13 @@ function Welcome() {
       </header>
 
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3" aria-label="Your starter horses">
-        {(horses ?? Array.from({ length: 6 }, () => null)).map((h, i) => {
+        {(horses ? [rec, ...horses.map((_, i) => i).filter((i) => i !== rec)].map((i) => ({ h: horses[i]!, i })) : Array.from({ length: 6 }, (_, i) => ({ h: null, i }))).map(({ h, i }, order) => {
           const isStar = h !== null && i === rec;
           return (
             <li
               key={h?.id ?? i}
               className={`${isStar ? "surface is-selected" : "surface"} overflow-hidden !p-0`}
-              style={h ? { animation: `stall-open 360ms steps(6) ${i * 140}ms both` } : undefined}
+              style={h ? { animation: `stall-open 360ms steps(6) ${order * 140}ms both` } : undefined}
             >
               {h ? (
                 <Link href={`/horse/${h.id}`} className="block">

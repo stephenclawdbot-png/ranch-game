@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Horse, RunningStyle } from "@thoroughbred/shared";
+import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatDistance } from "@/lib/format";
 import { addPendingRace, horseRecord, type PlayerState } from "@/lib/player";
 import { HorsePortrait } from "../HorsePortrait";
@@ -147,7 +148,7 @@ export function EntryForm({
         <p className="mb-2 text-sm text-cream-dim">
           {horse ? (
             <>
-              {horse.name} is a natural <strong className="text-cream">{STYLE_LABEL[horse.style].toLowerCase()}</strong>. Riding to {horse.name.split(" ")[0]}&rsquo;s style is
+              {horse.name} is a natural <strong className="text-cream">{STYLE_LABEL[horse.style].toLowerCase()}</strong>, and riding to {pronoun(horse.sex).his} natural style is
               usually best.
             </>
           ) : (
@@ -184,7 +185,7 @@ export function EntryForm({
       <p className="flex items-start gap-2 text-sm text-cream-dim">
         <PixelIcon name="shield" size={16} className="mt-0.5" />
         <span>
-          Quick race against the club&rsquo;s horses, usually near {horse ? `${horse.name.split(" ")[0]}’s best trip` : "your horse's best trip"}. Free to
+          Quick race against the club&rsquo;s horses, usually near {horse ? `${pronoun(horse.sex).his} best trip` : "your horse's best trip"}. Free to
           enter. The result is sealed the moment you enter, and the gates open 10 seconds later.
         </span>
       </p>

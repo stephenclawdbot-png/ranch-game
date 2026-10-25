@@ -981,6 +981,7 @@ export class HD2DScene {
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
     const maxSpan = (shot === "wide" ? 80 : 30) * Math.pow(narrowK, 1.5);
     if (shot !== "photo" && shot !== "crane") elev += (1 - narrowK) * 16;
+    fillY *= 0.85 + 0.15 * narrowK;
     if (x1 - x0 > maxSpan) x0 = x1 - maxSpan;
     if (shot === "photo") {
       x0 = Math.min(x0, L - 2.5);
@@ -993,7 +994,8 @@ export class HD2DScene {
     const pos = this.v1.set(at.x + Math.sin(a) * Math.cos(e) * D, at.y + Math.sin(e) * D, at.z + Math.cos(a) * Math.cos(e) * D);
     // Compose: aim above the group so it sits in the lower-middle and the horizon/stands
     // show in the upper third (shift in NDC = composeShift).
-    const composeShift = shot === "photo" ? 0.1 : 0.32;
+    // (Kept small: the HUD covers the top ~25% and the controls the bottom ~12%.)
+    const composeShift = shot === "photo" ? 0.06 : 0.16;
     at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);

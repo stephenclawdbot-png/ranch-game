@@ -177,12 +177,12 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
           {(horses ?? Array.from({ length: 6 }, () => null)).map((h, i) => {
             const racing = pending.some((p) => p.horseIndex === i && now !== null && p.postTimeMs > now - 90_000);
             return (
-              <li key={h?.id ?? i} className="shrink-0">
+              <li key={h?.id ?? i} className="shrink-0 md:shrink">
                 {h ? (
-                  <Link href={`/horse/${h.id}`} className="surface flex w-36 items-center gap-2 p-1.5 hover:brightness-110 md:w-auto">
+                  <Link href={`/horse/${h.id}`} className="surface flex h-full w-44 items-center gap-2 p-1.5 hover:brightness-110 md:w-auto">
                     <HorsePortrait appearance={h.appearance} scale="thumb" />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-extrabold">{h.name}</span>
+                      <span className="block text-sm font-extrabold leading-tight">{h.name}</span>
                       <span className="flex items-center gap-1.5 text-xs font-bold text-cream-dim">
                         <span aria-hidden className={`h-2 w-2 ${racing ? "bg-brass" : "bg-positive"}`} />
                         {racing ? "Racing" : "Ready"}

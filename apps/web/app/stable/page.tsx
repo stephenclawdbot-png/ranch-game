@@ -77,7 +77,7 @@ function Stable({ state }: { state: PlayerState }) {
         {error && <p className="px-oxblood p-3 text-sm">Couldn&rsquo;t reach the track ({error}). Your stable is safe on this device; try refreshing.</p>}
 
         <div className="surface !p-0">
-          <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_7rem_6rem_7.5rem_4rem_6rem] items-center gap-3 border-b-2 border-line px-3 py-2 lg:grid" aria-hidden>
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_6rem_7.5rem_4rem_6rem] items-center gap-3 border-b-2 border-line px-3 py-2 lg:grid" aria-hidden>
             {["Horse", "Style", "Best trip", "Surface", "Spd · Sta · Brs", "Form", ""].map((c) => (
               <span key={c} className="label">
                 {c}
@@ -86,12 +86,9 @@ function Stable({ state }: { state: PlayerState }) {
           </div>
           <ul className="rows">
             {rows
-              ? rows.map(({ h, i, apt }) => {
-                  const trip = apt.trip.find((c) => c.best)!;
-                  return (
-                    <RosterRow key={h.id} horse={h} tripGrade={trip.grade} form={formFigures(state, i)} recommended={i === best} onRace={() => entry.open(i)} />
-                  );
-                })
+              ? rows.map(({ h, i }) => (
+                  <RosterRow key={h.id} horse={h} form={formFigures(state, i)} recommended={i === best} onRace={() => entry.open(i)} />
+                ))
               : Array.from({ length: 6 }, (_, i) => <li key={i} className="h-[4.5rem] opacity-50" />)}
           </ul>
         </div>
@@ -115,11 +112,11 @@ function Stable({ state }: { state: PlayerState }) {
   );
 }
 
-function RosterRow({ horse, tripGrade, form, recommended, onRace }: { horse: Horse; tripGrade: string; form: string; recommended: boolean; onRace: () => void }) {
+function RosterRow({ horse, form, recommended, onRace }: { horse: Horse; form: string; recommended: boolean; onRace: () => void }) {
   const s = horse.stats;
   return (
     <li
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2 lg:grid-cols-[minmax(0,1.6fr)_7rem_7rem_6rem_7.5rem_4rem_6rem]"
+      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2 lg:grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_6rem_7.5rem_4rem_6rem]"
       data-testid="horse-card"
     >
       <Link href={`/horse/${horse.id}`} className="group flex min-w-0 items-center gap-3">
@@ -132,7 +129,7 @@ function RosterRow({ horse, tripGrade, form, recommended, onRace }: { horse: Hor
             {recommended && <span className="ml-2 align-middle text-xs font-extrabold text-positive">✓ Ready</span>}
           </span>
           <span className="t-meta block lg:hidden">
-            {STYLE_LABEL[horse.style]} · {formatDistance(horse.preferredDistanceM)} · {SURFACE_LABEL[horse.preferredSurface]}
+            {STYLE_LABEL[horse.style]} · {tripBand(horse.preferredDistanceM).label} {formatDistance(horse.preferredDistanceM)} · {SURFACE_LABEL[horse.preferredSurface]}
           </span>
           <span className="t-meta hidden lg:block">
             {horse.age}yo {SEX_LABEL[horse.sex].toLowerCase()}
@@ -140,8 +137,7 @@ function RosterRow({ horse, tripGrade, form, recommended, onRace }: { horse: Hor
         </span>
       </Link>
       <span className="hidden text-sm font-bold text-cream-dim lg:block">{STYLE_LABEL[horse.style]}</span>
-      <span className="hidden items-center gap-2 text-sm font-bold text-cream lg:flex">
-        <GradeBadge grade={tripGrade} size="sm" />
+      <span className="hidden whitespace-nowrap text-sm font-bold text-cream lg:block">
         {tripBand(horse.preferredDistanceM).label} <span className="text-cream-dim">{formatDistance(horse.preferredDistanceM)}</span>
       </span>
       <span className="hidden text-sm font-bold text-cream-dim lg:block">{SURFACE_LABEL[horse.preferredSurface]}</span>
@@ -157,10 +153,8 @@ function RosterRow({ horse, tripGrade, form, recommended, onRace }: { horse: Hor
         Race
       </button>
       <span className="col-span-2 flex items-center gap-2 pl-[3.75rem] text-xs font-bold text-sage lg:hidden">
-        <span className="flex items-center gap-1" aria-label={`Trip grade ${tripGrade}; speed ${s.speed}, stamina ${s.stamina}, burst ${s.burst}`}>
-          <span>Trip</span>
-          <GradeBadge grade={tripGrade} size="sm" />
-          <span className="ml-1">Spd</span>
+        <span className="flex items-center gap-1" aria-label={`Speed ${s.speed}, stamina ${s.stamina}, burst ${s.burst}`}>
+          <span>Spd</span>
           <GradeBadge value={s.speed} size="sm" />
           <span className="ml-1">Sta</span>
           <GradeBadge value={s.stamina} size="sm" />
