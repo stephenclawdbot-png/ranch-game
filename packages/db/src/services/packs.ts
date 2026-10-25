@@ -176,11 +176,11 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
     // season ceiling). The account's pre-committed seed is game-core's server seed.
     const seed = p.nextSeed;
     const packType = input.packType as gc.PackType;
-    const { pull, pity: next } = gc.pullPack(packType, { pulls: p.totalPulls, sinceRare: p.sinceRare, sinceEpic: p.sinceEpic }, { serverSeed: seed, accountId: input.accountId, season });
-    if (pull.seedCommitment !== p.nextSeedCommitment) throw new Error("pack seed does not match its commitment");
-    const rarity = pull.rarity as Rarity;
-    const pityApplied = pull.pityTriggered === "none" ? null : pull.pityTriggered;
-    const spec = hooks.packHorse({ seed: pull.pullSeed, rarity, packType: input.packType, season, genome: pull.genome, sex: gc.pullSex(pull) });
+    const { pull: gcPull, pity: next } = gc.pullPack(packType, { pulls: p.totalPulls, sinceRare: p.sinceRare, sinceEpic: p.sinceEpic }, { serverSeed: seed, accountId: input.accountId, season });
+    if (gcPull.seedCommitment !== p.nextSeedCommitment) throw new Error("pack seed does not match its commitment");
+    const rarity = gcPull.rarity as Rarity;
+    const pityApplied = gcPull.pityTriggered === "none" ? null : gcPull.pityTriggered;
+    const spec = hooks.packHorse({ seed: gcPull.pullSeed, rarity, packType: input.packType, season, genome: gcPull.genome, sex: gc.pullSex(gcPull) });
     const horseId = await insertHorse(tx, {
       stableId: stable.id,
       spec,

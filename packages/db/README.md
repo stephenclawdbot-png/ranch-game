@@ -90,13 +90,45 @@ backfill, and drop the old shape in a later release.
 - **Maintenance:** `runMaintenance` heals injuries, foals due mares and expires listings.
   Nothing else ever changes with elapsed time.
 
-Rules maths comes from `@thoroughbred/game-core` through `GameHooks`:
+### Rules come from game-core
 
-- `starterHorse`, `packHorse`, `breedFoal` and `houseHorse`;
-- `raceEligibility`, `rollRarity` and `appraise`;
-- `engineHorse` and `cardSlot`.
+The game rules come from `@thoroughbred/game-core`. These services handle locking,
+idempotency and persistence, and inside their transactions they call game-core on the locked
+rows. `src/gameCore.ts` is the bridge:
 
-The defaults are deterministic placeholders.
+- `toHorseState(row)` builds a game-core `HorseState` from a row.
+- `statePatch(state)` writes a state back into columns.
+- `gameCoreHooks` is the default `GameHooks`.
+
+What each service takes from game-core:
+
+| Service | game-core |
+|---|---|
+| `breed` | `pairingBlock` (kin, sexes, 25 starts or retired, Legacy Farm, lifetime and season limits, in foal), `breedingFees`, `coiOf` over a `PedigreeIndex` loaded from the lineage closure |
+| `foal` | `inherit` with the pregnancy's COI |
+| `pullPack` | `pullPack` (published odds, pity, foundation genome); the account's pre-committed seed is the server seed |
+| `listHorse` / `buyListing` | `listBlock`, `listingFloor`, `appraise`, `marketFee` |
+| `recordCare` | `recordCare` (feed quality, bond, healing bonus) |
+| insurance | `insurancePremium`, `insurancePayout` |
+| entry bank | `grantFor`, `refill`, `refundEntries`, `dailyAllowance` / `bankCap`, `canChangeTimezone` |
+| `settleRace` | accepts each runner's post-race game-core `state` (from `settleField`) |
+| constants (`RULES`) | taken from game-core |
+
+The database's own bookkeeping stays authoritative for counters and ownership: starts,
+record, breeding count, owner, career status and locks.
+
+Where a row has no valid genome (legacy rows), each service falls back to its own simple
+rule.
+
+Hooks (pass your own to override): `starterHorse`, `packHorse`, `breedFoal`, `houseHorse`,
+`raceEligibility` and `appraise`. Field hooks: `engineHorse`, `cardSlot`.
+
+Known differences from game-core, both deliberate:
+
+- **Local midnight.** Here it uses the account's IANA timezone, so DST is handled. game-core's
+  `localDate` takes a fixed offset; the bank maths is the same.
+- **Half the field.** Here the owner-share limit is half of the field the lock fills to
+  (`targetRunners`, 8–12). game-core's `ownerShareOk` uses half of `maxRunners`.
 
 Errors are `DomainError` with a stable `code`. `httpStatusFor(code)` maps a code to an HTTP
 status.

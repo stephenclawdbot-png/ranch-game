@@ -481,7 +481,7 @@ export function RaceViewer(props: RaceViewerProps) {
         )}
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}
-        {h && !showResults && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} />}
+        {h && !showResults && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
         {h?.pip && pip && (
           <div className="rv-pip" style={{ right: pip.right, bottom: pip.bottom, width: pip.w, height: pip.h }}>
             <span>My horse</span>

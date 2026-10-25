@@ -1345,7 +1345,7 @@ export class HD2DScene {
     } else {
       const dust = mixHex(this.look.dirt[3]!, "#ffffff", 0.2);
       for (let i = 0; i < 2; i++) {
-        this.particles.emit("dust", x - r.rand() * 0.3, 0.1 + r.rand() * 0.1, z, (-0.8 - r.rand() * 1.6) * power, (0.35 + r.rand() * 0.5) * power, (r.rand() - 0.5) * 0.4, dust, 0.07 + r.rand() * 0.05, 0.8 + r.rand() * 0.5, 0.6);
+        this.particles.emit("dust", x - r.rand() * 0.3, 0.1 + r.rand() * 0.1, z, (-0.8 - r.rand() * 1.6) * power, (0.35 + r.rand() * 0.5) * power, (r.rand() - 0.5) * 0.4, dust, 0.035 + r.rand() * 0.03, 0.7 + r.rand() * 0.4, 0.45);
       }
       if (r.rand() < 0.5) this.particles.emit("clod", x, 0.05, z, -2 * power, 1.4 * power, 0, this.look.dirt[0]!, 0.06, 0.7);
     }

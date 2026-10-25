@@ -308,7 +308,7 @@ export interface MinimapDot {
  * distance (lane = slight vertical offset), furlong ticks, the finish post, the
  * leader and my horse marked. Drawn on a canvas, crisp at any DPR.
  */
-export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: number[] }) {
+export function Minimap({ dots, furlongs, trackLengthM }: { dots: MinimapDot[]; furlongs: number[]; trackLengthM: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
@@ -327,37 +327,69 @@ export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: numb
     ctx.clearRect(0, 0, w, h);
     const padL = 10 * u;
     const padR = 16 * u;
-    const x = (p: number) => Math.round(padL + Math.min(1, Math.max(0, p)) * (w - padL - padR));
+    const span = w - padL - padR;
     // Backing panel so the strip reads over any shot.
-    ctx.fillStyle = "rgba(11,15,12,0.78)";
+    ctx.fillStyle = "rgba(11,15,12,0.8)";
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = "rgba(242,200,106,0.35)";
-    ctx.fillRect(0, 0, w, u);
-    const top = Math.round(h * 0.3);
-    const bot = Math.round(h * 0.82);
-    // Track band + rails.
-    ctx.fillStyle = "rgba(31,77,53,0.92)";
-    ctx.fillRect(x(0), top, x(1) - x(0), bot - top);
-    ctx.fillStyle = "#f3e7c9";
-    ctx.fillRect(x(0), top, x(1) - x(0), u);
-    ctx.fillRect(x(0), bot - u, x(1) - x(0), u);
-    // Furlong ticks.
-    ctx.fillStyle = "rgba(243,231,201,0.55)";
-    for (const f of furlongs) ctx.fillRect(x(f), top, u, Math.round((bot - top) * 0.35));
-    // Finish post: red/white pole + flag.
-    const fx = x(1);
-    for (let k = 0; k < 6; k++) {
-      ctx.fillStyle = k % 2 ? "#d71920" : "#ffffff";
-      ctx.fillRect(fx, Math.round(top - 3 * u + ((bot - top + 3 * u) * k) / 6), 2 * u, Math.ceil((bot - top + 3 * u) / 6));
-    }
+    // --- Top: the whole race (thin), with a bracket around the field. --------------
+    const ty = Math.round(h * 0.16);
+    const xr = (p: number) => Math.round(padL + Math.min(1, Math.max(0, p)) * span);
+    ctx.fillStyle = "rgba(243,231,201,0.35)";
+    ctx.fillRect(xr(0), ty, span, u);
+    for (const f of furlongs) ctx.fillRect(xr(f), ty - u, u, 3 * u);
     ctx.fillStyle = "#d71920";
-    ctx.fillRect(fx + 2 * u, top - 3 * u, 5 * u, 3 * u);
-    // Runners: back to front, mine last (on top).
-    const r = Math.max(4 * u, Math.round(h * 0.17));
+    ctx.fillRect(xr(1), ty - 2 * u, 2 * u, 5 * u);
+    let pMin = 1;
+    let pMax = 0;
+    for (const d of dots) {
+      pMin = Math.min(pMin, d.p);
+      pMax = Math.max(pMax, d.p);
+    }
+    if (dots.length) {
+      ctx.fillStyle = "#f2c86a";
+      ctx.fillRect(xr(pMin), ty - u, Math.max(2 * u, xr(pMax) - xr(pMin)), 3 * u);
+      const me = dots.find((d) => d.me);
+      if (me) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(xr(me.p) - u, ty - 2 * u, 2 * u, 5 * u);
+      }
+    }
+    // --- Bottom: the field zoomed to its own extent (running order at a glance). ---
+    const top = Math.round(h * 0.36);
+    const bot = h - 3 * u;
+    ctx.fillStyle = "rgba(31,77,53,0.95)";
+    ctx.fillRect(padL, top, span, bot - top);
+    ctx.fillStyle = "#f3e7c9";
+    ctx.fillRect(padL, top, span, u);
+    ctx.fillRect(padL, bot - u, span, u);
+    // Window: the field plus margins, at least ~40 m wide so a tight bunch isn't overblown.
+    const minWin = 40 / Math.max(1, trackLengthM);
+    let lo = pMin - (pMax - pMin) * 0.06 - 4 / Math.max(1, trackLengthM);
+    let hi = pMax + (pMax - pMin) * 0.06 + 4 / Math.max(1, trackLengthM);
+    if (hi - lo < minWin) {
+      const c = (hi + lo) / 2;
+      lo = c - minWin / 2;
+      hi = c + minWin / 2;
+    }
+    const xf = (p: number) => Math.round(padL + ((p - lo) / (hi - lo)) * span);
+    // Furlong poles / finish post inside the window.
+    for (const f of furlongs) {
+      if (f > lo && f < hi) {
+        ctx.fillStyle = "rgba(243,231,201,0.5)";
+        ctx.fillRect(xf(f), top, u, bot - top);
+      }
+    }
+    if (1 > lo && 1 < hi) {
+      for (let k = 0; k < 6; k++) {
+        ctx.fillStyle = k % 2 ? "#d71920" : "#ffffff";
+        ctx.fillRect(xf(1), Math.round(top + ((bot - top) * k) / 6), 2 * u, Math.ceil((bot - top) / 6));
+      }
+    }
+    const r = Math.max(4 * u, Math.round((bot - top) * 0.22));
     const order = [...dots].sort((a, b) => Number(a.me) - Number(b.me) || a.p - b.p);
     for (const d of order) {
-      const cx = x(d.p);
-      const cy = Math.round(top + (bot - top) * (0.22 + 0.56 * d.lane));
+      const cx = xf(d.p);
+      const cy = Math.round(top + (bot - top) * (0.25 + 0.5 * d.lane));
       ctx.fillStyle = "#0b0f0c";
       ctx.fillRect(cx - r - u, cy - r - u, 2 * r + 2 * u, 2 * r + 2 * u);
       ctx.fillStyle = d.primary;
@@ -368,16 +400,15 @@ export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: numb
         ctx.strokeStyle = "#f2c86a";
         ctx.lineWidth = 2 * u;
         ctx.strokeRect(cx - r - 2.5 * u, cy - r - 2.5 * u, 2 * r + 5 * u, 2 * r + 5 * u);
-        ctx.fillStyle = "#f2c86a";
-        ctx.beginPath();
-        ctx.moveTo(cx - 3 * u, top - 6 * u);
-        ctx.lineTo(cx + 3 * u, top - 6 * u);
-        ctx.lineTo(cx, top - 2 * u);
-        ctx.fill();
       }
       if (d.leader) {
+        // Leader: a small cream pennant ahead of the dot.
         ctx.fillStyle = "#f3e7c9";
-        ctx.fillRect(cx + r + 2 * u, cy - u, 3 * u, 2 * u);
+        ctx.beginPath();
+        ctx.moveTo(cx + r + 2 * u, cy - r);
+        ctx.lineTo(cx + r + 7 * u, cy - r + 2.5 * u);
+        ctx.lineTo(cx + r + 2 * u, cy - r + 5 * u);
+        ctx.fill();
       }
     }
   });

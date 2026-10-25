@@ -7,6 +7,7 @@ import { DomainError } from "../errors";
 import { accountLinks, accountPlayDays, accounts, fraudEvents, horses, pregnancies, stables, type StableRow } from "../schema";
 import {RULES, stageFor, type GameHooks, type HorseSpec } from "../rules";
 import { defaultHooks } from "../hooks";
+import { seasonNumberAt } from "../rules";
 import type { Db, Executor } from "../types";
 import { ensureDailyEntries, isValidTimezone } from "./entries";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
@@ -64,7 +65,7 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
     const horseIds: string[] = [];
     const count = Math.min(input.starterHorses ?? RULES.starterHorses, RULES.defaultStallSlots);
     for (let i = 0; i < count; i++) {
-      const spec = hooks.starterHorse({ seed, index: i });
+      const spec = hooks.starterHorse({ seed, index: i, season: seasonNumberAt(now) });
       horseIds.push(await insertHorse(tx, { stableId: stable!.id, spec, origin: "starter", bound: true, now }));
     }
     await audit(tx, {

@@ -18,6 +18,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { accounts, entryMovements, stables, type StableRow } from "../schema";
 import { RULES } from "../rules";
+import { dayNumber, entryBankOf, gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { lockStableOf } from "./accounts";
 import { spendCreditsTx } from "./ledger";
@@ -82,19 +83,16 @@ export async function ensureDailyEntries(ex: Executor, stable: StableRow, now: D
     .where(and(eq(entryMovements.stableId, stable.id), eq(entryMovements.kind, "daily")))
     .orderBy(desc(entryMovements.localDate))
     .limit(1);
-  // Days since the last granted local date (missed days still count, up to the cap: no
-  // penalty for being away). A timezone change can move the date backwards: no grant then.
-  const days = last?.d ? daysBetween(last.d, day) : 1;
-  if (days <= 0) return { granted: 0, localDate: day };
-  const target = Math.max(stable.entryBalance, Math.min(stable.entryCap, stable.entryBalance + days * stable.entryAllowance));
+  // game-core grantFor: one day's allowance on the first grant, then allowance x days since
+  // the last grant (missed days are not lost), capped; never for the same or an earlier
+  // local date (a timezone change can move the date backwards).
+  const bank = entryBankOf(stable, last?.d ? dayNumber(last.d) : null, null);
+  const next = gc.grantFor(bank, dayNumber(day));
+  if (next === bank) return { granted: 0, localDate: day };
   const before = stable.entryBalance;
   // Even a zero-delta grant is recorded, so the date counts as granted.
-  const after = await move(ex, stable, { kind: "daily", delta: target - before, localDate: day });
+  const after = await move(ex, stable, { kind: "daily", delta: next.balance - before, localDate: day });
   return { granted: after === null ? 0 : after - before, localDate: day };
-}
-
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 /** Consumes `cost` entries for a race entry (caller holds the stable lock). */
@@ -107,7 +105,10 @@ export async function consumeEntries(ex: Executor, stable: StableRow, cost: numb
 export async function refundEntries(ex: Executor, stableId: string, cost: number, raceId: string, horseId: string): Promise<void> {
   if (cost <= 0) return;
   const [stable] = await ex.select().from(stables).where(eq(stables.id, stableId)).for("update");
-  if (stable) await move(ex, stable, { kind: "refund", delta: cost, raceId, horseId });
+  if (!stable) return;
+  // game-core refundEntries: never above the cap (unless already above it).
+  const next = gc.refundEntries(entryBankOf(stable, null, null), cost);
+  if (next.balance > stable.entryBalance) await move(ex, stable, { kind: "refund", delta: next.balance - stable.entryBalance, raceId, horseId });
 }
 
 export interface EntryBank {
@@ -150,17 +151,21 @@ export async function refillEntries(db: Db, input: { accountId: string; now: Dat
   return runTx(db, async (tx) => {
     const stable = await lockStableOf(tx, input.accountId);
     const { localDate: day } = await ensureDailyEntries(tx, stable, input.now);
-    if (stable.entryBalance >= RULES.entryRefillBelow) {
-      throw new DomainError("ENTRY_REFILL_UNAVAILABLE", `refills are only available below ${RULES.entryRefillBelow} entries`);
+    const bank = entryBankOf(stable, null, (await refillUsed(tx, stable.id, day)) ? dayNumber(day) : null);
+    const next = gc.refill(bank, dayNumber(day));
+    if (!next) {
+      throw new DomainError(
+        "ENTRY_REFILL_UNAVAILABLE",
+        bank.lastRefillDay !== null ? "one refill per day" : `refills are only available below ${RULES.entryRefillBelow} entries`,
+      );
     }
-    if (await refillUsed(tx, stable.id, day)) throw new DomainError("ENTRY_REFILL_UNAVAILABLE", "one refill per day");
     await spendCreditsTx(tx, {
       accountId: input.accountId,
       amount: RULES.entryRefillPrice,
       idempotencyKey: `entry-refill:${stable.id}:${day}`,
       kind: "entry_refill",
     });
-    const after = await move(tx, stable, { kind: "refill", delta: RULES.entryRefillAmount, localDate: day });
+    const after = await move(tx, stable, { kind: "refill", delta: next.balance - stable.entryBalance, localDate: day });
     if (after === null) throw new DomainError("ENTRY_REFILL_UNAVAILABLE", "one refill per day");
     return { balance: after };
   });
@@ -168,15 +173,15 @@ export async function refillEntries(db: Db, input: { accountId: string; now: Dat
 
 /** Facility tier for entries: allowance 10 + tier (max 15), cap 20 + 2 x tier (max 30). */
 export async function upgradeEntryTier(db: Db, input: { accountId: string; tier: number; cost: number; idempotencyKey: string }): Promise<StableRow> {
-  if (!Number.isInteger(input.tier) || input.tier < 0 || input.tier > 5) throw new DomainError("INVALID_INPUT", "tier must be 0-5");
+  if (!Number.isInteger(input.tier) || input.tier < 0 || input.tier > gc.ENTRY_FACILITY_TIERS) throw new DomainError("INVALID_INPUT", "tier must be 0-5");
   return runTx(db, async (tx) => {
     const stable = await lockStableOf(tx, input.accountId);
     if (input.cost > 0) await spendCreditsTx(tx, { accountId: input.accountId, amount: input.cost, idempotencyKey: input.idempotencyKey, kind: "facility" });
     const [s] = await tx
       .update(stables)
       .set({
-        entryAllowance: Math.min(RULES.entryMaxAllowance, RULES.entryDailyAllowance + input.tier),
-        entryCap: Math.min(RULES.entryMaxCap, RULES.entryBankCap + 2 * input.tier),
+        entryAllowance: gc.dailyAllowance(input.tier),
+        entryCap: gc.bankCap(input.tier),
       })
       .where(eq(stables.id, stable.id))
       .returning();
@@ -192,7 +197,7 @@ export async function setTimezone(db: Db, input: { accountId: string; timezone: 
     if (!a) throw new DomainError("NOT_FOUND", "account not found");
     if (a.timezone === input.timezone) return;
     const since = a.timezoneChangedAt ?? a.createdAt;
-    if (input.now.getTime() - since.getTime() < RULES.timezoneChangeMs) {
+    if (!gc.canChangeTimezone(since.getTime(), input.now.getTime())) {
       throw new DomainError("TIMEZONE_LOCKED", "the timezone can change once every 30 days", { nextChangeAt: new Date(since.getTime() + RULES.timezoneChangeMs) });
     }
     await tx.update(accounts).set({ timezone: input.timezone, timezoneChangedAt: input.now }).where(eq(accounts.id, a.id));

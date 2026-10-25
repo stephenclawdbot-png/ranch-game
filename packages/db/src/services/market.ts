@@ -11,7 +11,8 @@
  * - There are no direct credit transfers between players.
  */
 import { and, eq, lte, sql } from "drizzle-orm";
-import { DomainError } from "../errors";
+import { DomainError, type DomainErrorCode } from "../errors";
+import { gc, isGenome, toHorseState } from "../gameCore";
 import { accounts, fraudEvents, horses, marketListings, raceEntries, races, trades, type ListingRow } from "../schema";
 import {bps, defaultAppraise, RULES, type GameHooks } from "../rules";
 import { defaultHooks } from "../hooks";
@@ -20,6 +21,19 @@ import { accountIdOfStable, areLinked, assertStallFree, lockStableOf } from "./a
 import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
+
+const LIST_BLOCK_CODES: Record<gc.ListBlock, DomainErrorCode> = {
+  account_too_new: "SELLER_REQUIREMENTS",
+  not_enough_races: "SELLER_REQUIREMENTS",
+  email_unverified: "SELLER_REQUIREMENTS",
+  club_bred: "HORSE_BOUND",
+  bound_until_5_starts: "HORSE_BOUND",
+  not_in_stable: "NOT_ELIGIBLE",
+  entered_in_race: "HORSE_LOCKED",
+  in_foal: "HORSE_IN_FOAL",
+  below_floor: "PRICE_BELOW_FLOOR",
+  locked: "HORSE_LOCKED",
+};
 
 export async function settledRacesForStable(ex: Executor, stableId: string): Promise<number> {
   const [r] = await ex
@@ -61,7 +75,19 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : "already listed");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
     const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
-    const floor = bps(appraisal, RULES.listingFloorBps);
+    if (isGenome(horse.genome)) {
+      // game-core's market rules on the locked state (binding, location, floor, seller).
+      const [acc] = await tx.select().from(accounts).where(eq(accounts.id, input.accountId));
+      const block = gc.listBlock(
+        toHorseState(horse),
+        { createdAtMs: acc!.createdAt.getTime(), racesRun: await settledRacesForStable(tx, stableId), emailVerified: !!acc!.emailVerifiedAt },
+        input.price,
+        input.now.getTime(),
+        { enteredInRace: horse.lockKind === "race", locked: horse.lockKind === "market" },
+      );
+      if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)) });
+    }
+    const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
     if (input.price < floor) throw new DomainError("PRICE_BELOW_FLOOR", `minimum price is ${floor}`, { floor, appraisal });
     const [listing] = await tx
       .insert(marketListings)
@@ -112,7 +138,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
     if (horse.ownerStableId !== listing.sellerStableId || horse.lockKind !== "market" || horse.lockRef !== listing.id) {
       throw new DomainError("LISTING_NOT_ACTIVE", "listing is no longer valid");
     }
-    const fee = bps(listing.price, RULES.marketFeeBps);
+    const fee = gc.marketFee(listing.price);
     const { transactionId } = await post(tx, {
       idempotencyKey: `trade:${listing.id}`,
       kind: "market_sale",

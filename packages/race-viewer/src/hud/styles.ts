@@ -53,7 +53,7 @@ export const VIEWER_CSS = `
 .rv-photo{font-family:var(--rv-f-display);font-size:46px;font-weight:700;letter-spacing:.25em;padding:6px 8px 6px 20px;border:4px solid var(--rv-cream);color:var(--rv-cream);transform:rotate(-5deg);text-shadow:3px 3px 0 var(--rv-ink);background:rgba(122,31,31,.55);box-shadow:4px 4px 0 var(--rv-ink);animation:rv-stamp .25s steps(4)}
 @keyframes rv-stamp{from{transform:rotate(-5deg) scale(1.6);opacity:0}}
 .rv-badge-buffer{right:auto!important;left:12px;background:#8a958e!important}
-.rv-minimap{position:absolute;left:10px;right:10px;bottom:54px;height:30px;width:calc(100% - 20px);border:2px solid var(--rv-ink);pointer-events:none;image-rendering:pixelated}
+.rv-minimap{position:absolute;left:10px;right:10px;bottom:54px;height:36px;width:calc(100% - 20px);border:2px solid var(--rv-ink);pointer-events:none;image-rendering:pixelated}
 .rv-pip{position:absolute;pointer-events:none;border:3px solid var(--rv-ink);box-shadow:inset 0 0 0 2px var(--rv-brass),3px 3px 0 rgba(0,0,0,.45);margin:-3px}
 .rv-pip span{position:absolute;left:4px;top:4px;font:9px var(--rv-f-pixel);text-transform:uppercase;background:var(--rv-brass);color:var(--rv-ink);padding:2px 4px}
 .rv-badge{position:absolute;right:12px;bottom:92px;font:10px var(--rv-f-pixel);text-transform:uppercase;padding:5px 8px 4px;background:var(--rv-brass);color:var(--rv-ink);border:2px solid var(--rv-ink);pointer-events:none}
@@ -81,7 +81,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-st{font-size:11px;padding:2px 6px 2px 2px}
 .rv-narrow .rv-st-pos{font-size:15px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:4px 8px 4px 6px}
-.rv-ticker-low{position:absolute;left:8px;right:8px;bottom:80px;display:flex;pointer-events:none}
+.rv-ticker-low{position:absolute;left:8px;right:8px;bottom:86px;display:flex;pointer-events:none}
 .rv-narrow .rv-controls{gap:4px;padding:12px 6px 6px}
 .rv-narrow .rv-btn{min-width:34px;height:34px;padding:0 7px;font-size:10px}
 .rv-narrow .rv-elapsed{display:none}
@@ -101,7 +101,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-count-v{font-size:30px}
 .rv-narrow .rv-center-top{padding-top:96px}
 .rv-narrow .rv-badge{bottom:72px}
-.rv-narrow .rv-minimap{bottom:48px;height:24px;left:6px;right:6px;width:calc(100% - 12px)}
+.rv-narrow .rv-minimap{bottom:48px;height:30px;left:6px;right:6px;width:calc(100% - 12px)}
 .rv-narrow .rv-debug{bottom:auto;top:92px;font-size:9px}
 `;
 

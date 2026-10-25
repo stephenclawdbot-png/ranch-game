@@ -8,6 +8,7 @@ import { utcDay } from "../crypto";
 import { DomainError } from "../errors";
 import { careLog, horses, pregnancies, trainingPlans, type HorseRow } from "../schema";
 import { RULES, stageFor } from "../rules";
+import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { recordPlayDay, stableOf } from "./accounts";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
@@ -75,6 +76,32 @@ export async function recordCare(db: Db, input: CareInput): Promise<CareResult> 
     if (!inserted[0]) throw new DomainError("ALREADY_CARED_TODAY", "this horse has already been cared for today");
     const careSessions = horse.careSessions + 1;
     const stage = stageFor(careSessions, horse.starts);
+    // game-core care (feed quality for the horse's needs, bond, healing bonus) when the horse
+    // has a real genome; the counted-session rule itself is the unique (horse, day) index.
+    if (isGenome(horse.genome)) {
+      const state = { ...toHorseState(horse), care: { ...toHorseState(horse).care, lastCareDay: null } };
+      const requested = typeof input.actions.feed === "string" ? input.actions.feed : null;
+      const feed = (gc.FEEDS as readonly string[]).includes(requested ?? "") ? (requested as gc.Feed) : gc.recommendedFeed(state, input.now.getTime());
+      const res = gc.recordCare(state, feed, input.now.getTime());
+      const patch = statePatch(res.state, input.now.getTime());
+      const [updated] = await tx
+        .update(horses)
+        .set({
+          careSessions,
+          stage,
+          careQuality: patch.careQuality,
+          bond: patch.bond,
+          injury: patch.injury,
+          injuredUntil: patch.injuredUntil,
+          stats: patch.stats ?? horse.stats,
+          dynamics: { ...(horse.dynamics as Record<string, unknown>), lastCareDay: res.state.care.lastCareDay },
+          updatedAt: input.now,
+        })
+        .where(eq(horses.id, horse.id))
+        .returning();
+      await recordPlayDay(tx, input.accountId, input.now);
+      return { horse: updated!, stageChanged: stage !== horse.stage };
+    }
     // Care speeds recovery (never slows it).
     let injuredUntil = horse.injuredUntil;
     if (injuredUntil && injuredUntil > input.now) {
@@ -201,7 +228,8 @@ export async function buyInsurance(db: Db, input: { accountId: string; horseId: 
     const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
     if (horse.insured) return;
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "only racing horses can be insured");
-    await spendCreditsTx(tx, { accountId: input.accountId, amount: RULES.insurancePremium, idempotencyKey: `insurance:${horse.id}`, kind: "insurance_premium", sink: "treasury" });
+    const premium = isGenome(horse.genome) ? gc.insurancePremium(toHorseState(horse)) : RULES.insurancePremium;
+    await spendCreditsTx(tx, { accountId: input.accountId, amount: premium, idempotencyKey: `insurance:${horse.id}`, kind: "insurance_premium", sink: "treasury" });
     await tx.update(horses).set({ insured: true }).where(eq(horses.id, horse.id));
   });
 }

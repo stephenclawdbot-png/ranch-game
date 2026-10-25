@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { createDb, type DbHandle } from "../client";
 import { accounts, horses, raceEntries, races, type HorseRow } from "../schema";
 import { createAccount, insertHorse } from "../services/accounts";
+import { gc, specFromGenome, toHorseState } from "../gameCore";
 import { createRace } from "../services/races";
 import type { Db } from "../types";
 
@@ -32,9 +33,12 @@ export async function makeHorse(
   stableId: string | null,
   overrides: Partial<HorseRow> & { sex?: "male" | "female" } = {},
 ): Promise<HorseRow> {
+  const name = overrides.name ?? `Horse ${++n}`;
+  const genome = gc.generateFoundationGenome(gc.seedFrom("db-test", n, name), { season: 1 });
+  const spec = specFromGenome({ genome, name, sex: (overrides.sex ?? "male") === "female" ? "filly" : "colt", careSessions: 19, season: 1 });
   const id = await insertHorse(db, {
     stableId,
-    spec: { name: overrides.name ?? `Horse ${++n}`, sex: overrides.sex ?? "male", genome: {}, appearance: {}, stats: {}, careSessions: 19 },
+    spec: { ...spec, rating: 0 },
     origin: "admin",
     sireId: overrides.sireId ?? null,
     damId: overrides.damId ?? null,
@@ -105,4 +109,9 @@ export async function expectDbError(p: Promise<unknown>, re: RegExp): Promise<vo
     return;
   }
   throw new Error(`expected rejection matching ${re}`);
+}
+
+/** game-core listing floor for a horse (minimum legal listing price). */
+export async function floorPrice(db: Db, horseId: string): Promise<number> {
+  return gc.listingFloor(toHorseState(await getHorseRow(db, horseId)));
 }

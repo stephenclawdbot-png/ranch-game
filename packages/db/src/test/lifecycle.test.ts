@@ -11,6 +11,7 @@ import { getBalance, ledgerHealth } from "../services/ledger";
 import { runMaintenance } from "../services/maintenance";
 import { createRace, enterRace, getRaceForSimulation, settleRace, type RunnerOutcome } from "../services/races";
 import { commitSeed } from "../crypto";
+import { gc, toHorseState } from "../gameCore";
 import { at, count, DAY, expectDbError, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
 
 let h: DbHandle;
@@ -129,13 +130,14 @@ describe("racing", () => {
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: veteran.id, tactic: "front", now: T0 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: unlucky.id, tactic: "front", now: T0 });
     const before = await getBalance(h.db, p.accountId);
+    const unluckyBefore = await getHorseRow(h.db, unlucky.id);
     const r = await runRace(race.id, at(11 * MIN), [veteran.id, unlucky.id], {
       [unlucky.id]: { injury: { severity: "career_ending", recoveryMs: 30 * DAY } },
     });
     expect(r.retired.sort()).toEqual([veteran.id, unlucky.id].sort());
     expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 40, careerStatus: "retired", retirementReason: "max_starts" });
     expect(await getHorseRow(h.db, unlucky.id)).toMatchObject({ careerStatus: "retired", retirementReason: "injury" });
-    expect(await getBalance(h.db, p.accountId)).toBe(before + RULES.insurancePayout);
+    expect(await getBalance(h.db, p.accountId)).toBe(before + gc.insurancePayout(toHorseState(unluckyBefore)));
     // The CHECK refuses a racing horse at 40 starts.
     const other = await makeHorse(h.db, p.stableId, { starts: 39 });
     await expectDbError(h.db.update(horses).set({ starts: 40 }).where(eq(horses.id, other.id)), /horses_mandatory_retirement/);

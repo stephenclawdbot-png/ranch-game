@@ -14,7 +14,8 @@ import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
-import {bps, RULES, stageFor, type GameHooks } from "../rules";
+import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
+import { gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
@@ -322,9 +323,9 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
     .for("update", { skipLocked: true });
   const chosen = seededShuffle(pool, race.seed, "house-pick").slice(0, needed);
   // Not enough: breed the house stable deterministically from the race seed.
-  const make = hooks.houseHorse ?? defaultHouseHorse;
+  const make = hooks.houseHorse ?? defaultHooks.houseHorse ?? defaultHouseHorse;
   for (let i = chosen.length; i < needed; i++) {
-    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: bandRating(c) });
+    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: bandRating(c), season: race.seasonNumber ?? seasonNumberAt(now) });
     const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", now });
     chosen.push((await lockHorse(tx, id))!);
   }
@@ -332,7 +333,7 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
 }
 
 function defaultHouseHorse(input: { seed: string; index: number; raceClass: string; rating: number }) {
-  const spec = defaultHooks.starterHorse({ seed: input.seed, index: 1000 + input.index });
+  const spec = placeholderHooks.starterHorse({ seed: input.seed, index: 1000 + input.index });
   return { ...spec, rating: input.rating };
 }
 
@@ -438,6 +439,12 @@ export interface RunnerOutcome {
   /** Merged into horses.dynamics (recent runs, realisation ...). */
   dynamics?: Record<string, unknown>;
   stats?: unknown;
+  /**
+   * The horse's game-core state after the run (career.settleField / applyRun). When given,
+   * rating, condition, fatigue, injury, quirks, stats and dynamics are taken from it;
+   * starts, record, prizes and retirement remain the database's own bookkeeping.
+   */
+  state?: HorseState;
 }
 
 export interface SettleInput {
@@ -501,7 +508,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       const r = byHorse.get(e.horseId)!;
       const h = await lockHorse(tx, e.horseId);
       const starts = Math.min(RULES.maxStarts, h.starts + 1);
-      const careerEnding = r.injury?.severity === "career_ending";
+      const fromState = r.state ? statePatch(r.state, input.now.getTime()) : null;
+      const careerEnding = r.injury?.severity === "career_ending" || r.state?.injury?.severity === "career_ending";
       const mustRetire = h.careerStatus === "racing" && (starts >= RULES.maxStarts || careerEnding);
       const quirks = [...new Set([...((h.quirks as string[]) ?? []), ...(r.quirksRevealed ?? [])])];
       if (mustRetire) retired.push(h.id);
@@ -522,6 +530,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
           ...(r.injury
             ? { injury: { severity: r.injury.severity, raceId: race.id, ...(r.injury.detail ?? {}) }, injuredUntil: new Date(input.now.getTime() + r.injury.recoveryMs) }
             : {}),
+          ...(fromState ?? {}),
           ...(mustRetire
             ? { careerStatus: "retired" as const, retirementReason: careerEnding ? ("injury" as const) : ("max_starts" as const), retiredAt: input.now }
             : {}),
@@ -534,12 +543,13 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
         .set({ finishPosition: r.position, finishTimeUs: r.finishTimeUs ?? null, prize: prizes[h.id] ?? 0, ratingAfter: r.ratingAfter ?? h.rating })
         .where(eq(raceEntries.id, e.id));
       if (careerEnding && h.insured && e.stableId) {
+        const payout = isGenome(h.genome) ? gc.insurancePayout(toHorseState(h)) : RULES.insurancePayout;
         await post(tx, {
           idempotencyKey: `insurance-payout:${h.id}`,
           kind: "insurance_payout",
           postings: [
-            { ledgerAccountId: await systemAccountId(tx, "mint"), amount: -RULES.insurancePayout },
-            { ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: RULES.insurancePayout },
+            { ledgerAccountId: await systemAccountId(tx, "mint"), amount: -payout },
+            { ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: payout },
           ],
         });
       }

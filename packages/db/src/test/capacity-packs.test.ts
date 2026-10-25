@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { commitSeed } from "../crypto";
 import { isDomainError } from "../errors";
-import { PACKS, RULES, seasonNumberAt, type GameHooks } from "../rules";
+import { PACKS, RULES, seasonNumberAt } from "../rules";
 import { stables } from "../schema";
 import { occupancy, recordPlayDay, stableOf, upgradeStalls } from "../services/accounts";
 import { breed, foal } from "../services/breeding";
@@ -11,8 +11,7 @@ import { moveToLegacyFarm, releaseToClub } from "../services/horses";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { buyListing, listHorse } from "../services/market";
 import { foalCropStatus, getPackState, pullPack, setFoalCropCap } from "../services/packs";
-import { defaultHooks } from "../rules";
-import { at, count, DAY, getHorseRow, makeHorse, makeSeller, memoryDb, newPlayer, settledAll, T0 } from "./helpers";
+import { at, count, DAY, floorPrice, getHorseRow, makeHorse, makeSeller, memoryDb, newPlayer, settledAll, T0 } from "./helpers";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -56,9 +55,9 @@ describe("stall capacity", () => {
     const listings = [];
     for (let i = 0; i < 3; i++) {
       const horse = await makeHorse(h.db, seller.stableId);
-      listings.push(await listHorse(h.db, { accountId: seller.accountId, horseId: horse.id, price: 1_000, now: T0 }));
+      listings.push(await listHorse(h.db, { accountId: seller.accountId, horseId: horse.id, price: await floorPrice(h.db, horse.id), now: T0 }));
     }
-    const buyer = await newPlayer(h.db, { credits: 10_000 });
+    const buyer = await newPlayer(h.db, { credits: 100_000 });
     for (let i = 0; i < 5; i++) await makeHorse(h.db, buyer.stableId);
     const res = await settledAll(listings.map((l) => buyListing(h.db, { accountId: buyer.accountId, listingId: l.id, now: T0 })));
     expect(res.ok).toHaveLength(1);
@@ -109,22 +108,27 @@ describe("packs", () => {
     expect(horse).toMatchObject({ origin: "pack", stage: "foal", careSessions: 0, bound: false });
   });
 
-  it("pity: Rare within 10, Epic within 50 (even if the roll is always Common)", async () => {
+  it("pity (game-core rules): never 10 Premium pulls without a Rare, never 50 without an Epic", async () => {
     const p = await newPlayer(h.db, { credits: 1_000_000 });
     await h.db.update(stables).set({ stallSlots: 24 }).where(eq(stables.id, p.stableId));
-    const unlucky: GameHooks = { ...defaultHooks, rollRarity: () => "common" };
     const rarities: string[] = [];
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 60; i++) {
       const week = Math.floor(i / RULES.premiumPerWeek);
-      const r = await pullPack(h.db, { accountId: p.accountId, packType: "premium", idempotencyKey: k(), now: at(week * 7 * DAY) }, unlucky);
+      const r = await pullPack(h.db, { accountId: p.accountId, packType: "premium", idempotencyKey: k(), now: at(week * 7 * DAY) });
       rarities.push(r.rarity);
+      expect(commitSeed(r.seedReveal)).toBe(r.seedCommitment);
       // Keep stalls free: release each pack foal to the Club.
       await releaseToClub(h.db, { accountId: p.accountId, horseId: r.horseId, now: at(week * 7 * DAY) });
     }
-    expect(rarities[9]).toBe("rare");
-    expect(rarities[19]).toBe("rare");
-    expect(rarities[49]).toBe("epic");
-    expect(rarities.filter((r) => r === "common")).toHaveLength(50 - 5);
+    const rank = (r: string) => ["common", "uncommon", "rare", "epic", "legendary"].indexOf(r);
+    let sinceRare = 0;
+    let sinceEpic = 0;
+    for (const r of rarities) {
+      sinceRare = rank(r) >= 2 ? 0 : sinceRare + 1;
+      sinceEpic = rank(r) >= 3 ? 0 : sinceEpic + 1;
+      expect(sinceRare).toBeLessThan(10);
+      expect(sinceEpic).toBeLessThan(50);
+    }
   });
 
   it("is idempotent per key (no double charge, no second horse)", async () => {

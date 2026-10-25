@@ -96,7 +96,7 @@ export class PixelParticles {
     const p = this.take();
     if (!p) return;
     const [r, g, b] = hexToRgb(color);
-    Object.assign(p, { alive: true, kind, x, y, z, vx, vy, vz, life: 0, max: life, size, grow: kind === "dust" ? size * 0.5 : 0, r: r / 255, g: g / 255, b: b / 255, a: alpha, phase: Math.random() * 6.28 });
+    Object.assign(p, { alive: true, kind, x, y, z, vx, vy, vz, life: 0, max: life, size, grow: kind === "dust" ? size * 0.3 : 0, r: r / 255, g: g / 255, b: b / 255, a: alpha, phase: Math.random() * 6.28 });
   }
 
   update(dt: number): void {

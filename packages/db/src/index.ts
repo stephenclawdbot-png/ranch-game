@@ -10,6 +10,8 @@ export { migrate, type MigrateResult } from "./migrate";
 export { DomainError, isDomainError, httpStatusFor, translateDbError, type DomainErrorCode } from "./errors";
 export { commitSeed, hashToken, newDeviceToken, newSeed, utcDay, utcWeekStart } from "./crypto";
 export * from "./rules";
+export { defaultHooks } from "./hooks";
+export { gameCoreHooks, toHorseState, statePatch, specFromGenome, isGenome, isInjury, dayNumber, entryBankOf, type HorseDynamics } from "./gameCore";
 export * from "./services/tx";
 export * from "./services/ledger";
 export * from "./services/accounts";
