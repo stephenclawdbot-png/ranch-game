@@ -28,7 +28,7 @@ Preview and Production.)
 
 ## In flight when budget ran low
 
-- **DB agent** (`packages/db`): schema, services, PGlite/Neon, deploy-time migrations,
+- **DB agent: DONE.** packages/db (56 tests): schema+triggers, Neon/PGlite client, build-time migrations, services (accounts, entry bank, live card enter/lock/settle, breeding, packs, market, daily cup...). See packages/db README + "What the web app needs" in its report: POST /api/account cookie auth, card flow, cron /api/cron/race-card.
   shared race card (entries, field lock with AI fill, settlement), stable entries. Check its
   report or the repo state.
 - **Viewer agent: DONE.** TV director, minimap, camera picker, PiP, hudTitle/resultsCard props.
