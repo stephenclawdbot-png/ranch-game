@@ -13,7 +13,7 @@
 import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
-import { horses, inboxItems, raceEntries, raceResults, races, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
+import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, defaultHooks, RULES, stageFor, type GameHooks } from "../rules";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
@@ -590,6 +590,9 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
     if (race.status === "cancelled") return;
     if (race.status === "settled") throw new DomainError("RACE_CLOSED", "race already settled");
     const entries = await listRaceEntries(tx, race.id);
+    // Lock order: race → stables → horses.
+    const stableIds = [...new Set(entries.map((e) => e.stableId).filter((x): x is string => !!x))].sort();
+    for (const id of stableIds) await tx.select({ id: stables.id }).from(stables).where(eq(stables.id, id)).for("update");
     for (const e of [...entries].sort((a, b) => (a.horseId < b.horseId ? -1 : 1))) {
       const h = await lockHorse(tx, e.horseId);
       if (h.lockKind === "race" && h.lockRef === race.id) {

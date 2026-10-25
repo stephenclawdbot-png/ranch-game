@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { conditionReport, fatigueAt, freshnessBonus, healingHours, hoursToHeal, injuryRisk, isHealed, morale, rollInjury, tiredPenalty, withFatigue, FRESHNESS_PEAK_BONUS } from "./condition";
 import { DAY, HOUR, T0, makeHorse } from "./test-helpers";
-import type { Going, RideIntensity } from "@thoroughbred/shared";
+import type { Going } from "@thoroughbred/shared";
+import type { RideIntensity } from "./types";
 import { seedFrom } from "./rng";
 
 const base = makeHorse("cond", { starts: 10 });
