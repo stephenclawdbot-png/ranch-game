@@ -308,15 +308,31 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-export function PixelIcon({ name, className, title }: { name: IconName; className?: string; title?: string }) {
+/**
+ * Pixel icon. Uses the PixelLab icon (32 px native) when it exists, else the code-drawn 12x12 map.
+ * Pass `size` (CSS px) to lock the icon to the art grid: 16 / 32 / 64 show the 32 px PNGs at an
+ * exact half / 1x / 2x (crisp on 2x screens); other sizes are smoothed rather than unevenly pixelated.
+ */
+export function PixelIcon({ name, className, title, size }: { name: IconName; className?: string; title?: string; size?: number }) {
   const art = useArt(ART_SLOTS.icon(name));
+  const style = size ? { width: size, height: size } : undefined;
   if (art && name !== "arrow" && name !== "play") {
+    const crisp = !size || size % art.w === 0 || size * 2 === art.w;
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={artUrl(art)} alt={title ?? ""} aria-hidden={title ? undefined : true} className={`pixelated object-contain ${className ?? ""}`} draggable={false} />
+      <img
+        src={artUrl(art)}
+        alt={title ?? ""}
+        aria-hidden={title ? undefined : true}
+        width={size}
+        height={size}
+        style={style}
+        className={`${crisp ? "pixelated" : "downscaled"} shrink-0 object-contain ${className ?? ""}`}
+        draggable={false}
+      />
     );
   }
-  return <PixelGrid rows={ICONS[name]} palette={PAL} className={className} title={title} />;
+  return <PixelGrid rows={ICONS[name]} palette={PAL} className={`shrink-0 ${className ?? ""}`} style={style} title={title} />;
 }
 
 type P = { className?: string };

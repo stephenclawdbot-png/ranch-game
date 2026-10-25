@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<343 chars>",
+  "image_size": {
+   "width": 176,
+   "height": 176
+  },
+  "seed": 13105,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d818ee0d-b61c-4d7b-a7e3-1145320fdcf7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "d818ee0d-b61c-4d7b-a7e3-1145320fdcf7",
+  "status": "completed",
+  "created_at": "2026-10-25T17:22:04.314589+00:00",
+  "last_response": {
+   "seed": 13105,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 176,
+     "base64": "<67824 chars>",
+     "height": 176
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "98087c59-0ad0-4c98-bcea-b40ece05608f",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x192_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x192_5.png",
+   "generation_started_at": "2026-10-25T17:22:10.466032+00:00",
+   "original_image_n_colors": 123,
+   "quantized_image_n_colors": 35
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hdtex-hedge-0.png"
+ ]
+}

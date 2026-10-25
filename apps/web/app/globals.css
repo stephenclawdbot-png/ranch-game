@@ -1,14 +1,28 @@
 @import "tailwindcss";
 
 /*
- * Thoroughbred — pixel-art game UI ("racing club" palette).
- * Racing green #0f2a1d · cream #f3e7c9 · brass #d9a441 · oxblood #7a1f1f · ink #0b0f0c.
- * Frames are 9-slice pixel borders (code-drawn SVG, 12x12 units, slice 4) rendered crisp
- * at integer unit sizes; PixelLab frames replace them via --frame-* when they land.
+ * Thoroughbred — pixel-art game UI, "racing club" palette (see docs/design-research.md §11).
+ *
+ *  - Three surface tiers: page (bg) < surface-1 (panel) < surface-2 (raised). Wells use inset.
+ *  - Brass means "act" or "yours": primary buttons, your horse/row, selection. Nothing else.
+ *  - At most one hero frame (.frame-hero, ornate brass) per screen.
+ *  - Type: Pixelify Sans (display, >= 24px only), Jersey 10 (scoreboard numerals >= 30px),
+ *    Nunito for everything you read (16px body).
+ *  - Motion is event-driven and one-shot. Reduced motion: media query OR html[data-motion=reduce].
  */
 
 @theme {
   --color-ink: #0b0f0c;
+  --color-bg: #08150e;
+  --color-surface-1: #0f2a1d;
+  --color-surface-2: #163a28;
+  --color-inset: #0b1f15;
+  --color-line: #1f4d35;
+  --color-line-strong: #5a9b70;
+  --color-paper: #f3e7c9;
+  --color-paper-ink: #1d140a;
+
+  /* legacy names (kept so every existing class keeps working) */
   --color-turf-950: #08150e;
   --color-turf-900: #0f2a1d;
   --color-turf-850: #10291c;
@@ -16,6 +30,7 @@
   --color-turf-700: #1f4d35;
   --color-turf-600: #2c6645;
   --color-turf-500: #3f8558;
+
   --color-cream: #f3e7c9;
   --color-cream-dim: #cdbf9c;
   --color-sage: #8fa592;
@@ -23,36 +38,46 @@
   --color-brass-bright: #f2c86a;
   --color-brass-deep: #9a6b22;
   --color-oxblood: #7a1f1f;
-  --color-claret: #e0705f;
+  --color-claret: #ff8a7a;
   --color-live: #e5483a;
   --color-win: #f2c86a;
   --color-sky: #7fc3ee;
+  --color-positive: #9fe0a8;
+  --color-warn: #f2c86a;
+  --color-negative: #ff8a7a;
 
   --font-display: var(--font-pixelify), "Courier New", monospace;
-  --font-pixel: var(--font-silkscreen), var(--font-pixelify), monospace;
-  --font-led: var(--font-vt323), var(--font-pixelify), monospace;
-  --font-num: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-score: var(--font-jersey), var(--font-pixelify), monospace;
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-vt323), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* legacy aliases: Silkscreen and VT323 are gone */
+  --font-num: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-led: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-pixel: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  --animate-bob: bob 1.2s steps(2, jump-none) infinite;
+  /* one-shot hop (never loops) */
+  --animate-bob: bob 280ms steps(2, jump-none) 1;
 }
 
 :root {
   color-scheme: dark;
-  /* unit = one art pixel on screen */
+  /* one art pixel on screen */
   --u: 2px;
-  --frame-panel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23f2c86a' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230a1a12' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%239a6b22' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%2310291c' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-panel-quiet: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%232f5c42' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230d2117' d='M2 2h8v1h-8zM2 3h8v1h-8zM2 4h8v1h-8zM2 5h8v1h-8zM2 6h8v1h-8zM2 7h8v1h-8zM2 8h8v1h-8zM2 9h8v1h-8z'/%3E%3Cpath fill='%2316301f' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3C/svg%3E");
-  --frame-inset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%2307110c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23050b08' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230a1912' d='M2 2h8v1h-8zM2 3h8v1h-8zM2 4h8v1h-8zM2 5h8v1h-8zM2 6h8v1h-8zM2 7h8v1h-8zM2 8h8v1h-8zM2 9h8v1h-8z'/%3E%3Cpath fill='%232a5038' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3C/svg%3E");
-  --frame-cream: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23fff8e2' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%23e9d9b0' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%23b8a274' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%23f3e7c9' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-screen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM3 3h6v1h-6zM11 3h1v1h-1zM0 4h1v1h-1zM3 4h6v1h-6zM11 4h1v1h-1zM0 5h1v1h-1zM3 5h6v1h-6zM11 5h1v1h-1zM0 6h1v1h-1zM3 6h6v1h-6zM11 6h1v1h-1zM0 7h1v1h-1zM3 7h6v1h-6zM11 7h1v1h-1zM0 8h1v1h-1zM3 8h6v1h-6zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%235f6b66' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M2 2h7v1h-7zM2 3h1v1h-1zM2 4h1v1h-1zM2 5h1v1h-1zM2 6h1v1h-1zM2 7h1v1h-1zM2 8h1v1h-1z'/%3E%3Cpath fill='%237a5418' d='M9 2h1v1h-1zM9 3h1v1h-1zM9 4h1v1h-1zM9 5h1v1h-1zM9 6h1v1h-1zM9 7h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%231d2421' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3C/svg%3E");
-  --frame-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M1 0h10v1h-10zM0 1h1v1h-1zM11 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM0 10h1v1h-1zM11 10h1v1h-1zM1 11h10v1h-10z'/%3E%3Cpath fill='%23fff8e2' d='M1 1h9v1h-9zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%23b8a274' d='M10 1h1v1h-1zM10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM1 10h10v1h-10z'/%3E%3Cpath fill='%23f3e7c9' d='M2 2h8v1h-8zM2 3h8v1h-8zM2 4h8v1h-8zM2 5h8v1h-8zM2 6h8v1h-8zM2 7h8v1h-8zM2 8h8v1h-8zM2 9h8v1h-8z'/%3E%3C/svg%3E");
-  --frame-oxblood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23d0533f' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%235e1717' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%234d1010' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%237a1f1f' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-brass: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23fff1c1' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%23e7b552' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%239a6b22' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%23d9a441' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-green: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%234f9a68' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%2324563b' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%23123222' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%231f4d35' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23fff1c1' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M2 2h9v1h-9zM2 3h1v1h-1zM9 3h2v1h-2zM2 4h1v1h-1zM9 4h2v1h-2zM2 5h1v1h-1zM9 5h2v1h-2zM2 6h1v1h-1zM9 6h2v1h-2zM2 7h1v1h-1zM9 7h2v1h-2zM2 8h1v1h-1zM9 8h2v1h-2zM2 9h9v1h-9zM2 10h8v1h-8z'/%3E%3Cpath fill='%231d4430' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
-  --frame-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%23000000' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%2326332c' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230b0f0c' d='M2 2h8v1h-8zM2 3h8v1h-8zM2 4h8v1h-8zM2 5h8v1h-8zM2 6h8v1h-8zM2 7h8v1h-8zM2 8h8v1h-8zM2 9h8v1h-8z'/%3E%3Cpath fill='%23151c18' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3C/svg%3E");
+  --tabbar-h: 56px;
+  --actionbar-h: 76px;
+  --fr-surface: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%231d4a33' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230f2a1d' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%230b2117' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-raised: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%232c6645' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23163a28' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%2310291c' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-inset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23040a06' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b1f15' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%231a4430' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-field: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%235a9b70' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%2306110b' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b1f15' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-btn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23040906' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%233f8558' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%231f4d35' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23123222' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-btn-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23040906' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%234f9a68' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%2324563b' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23163a28' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-brass: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%231a0f03' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff1c1' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%239a6b22' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-brass-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%231a0f03' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff6d8' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23e7b552' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23a87726' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-oxblood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23c0473a' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%237a1f1f' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%234d1010' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23f2c86a' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%231d4430' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff8e2' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23f3e7c9' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23b8a274' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23000000' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%2326332c' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b0f0c' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23151c18' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --frame-hero: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23f2c86a' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230a1a12' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%239a6b22' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%2310291c' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
 }
 @media (min-width: 768px) {
   :root {
@@ -60,33 +85,40 @@
   }
 }
 
+/* --------------------------------------------------------------- base + settings */
 html {
-  background: #08150e;
+  background: var(--color-bg);
   -webkit-text-size-adjust: 100%;
+  font-size: 100%;
+}
+html[data-text="90"] {
+  font-size: 90%;
+}
+html[data-text="115"] {
+  font-size: 115%;
+}
+html[data-text="130"] {
+  font-size: 130%;
 }
 
 body {
   min-height: 100dvh;
   color: var(--color-cream);
+  background: var(--color-bg);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.5;
-  /* 2x2 ordered-dither checker over a stepped (banded) vertical gradient. */
-  background-color: #0b2016;
-  background-image:
-    repeating-conic-gradient(rgba(0, 0, 0, 0.16) 0 25%, transparent 0 50%),
-    linear-gradient(
-      180deg,
-      #133626 0 12%,
-      #11301f 12% 26%,
-      #0f2a1d 26% 44%,
-      #0d2419 44% 64%,
-      #0b1f15 64% 82%,
-      #091a12 82%
-    );
-  background-size: 4px 4px, 100% 100%;
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+}
+/* A calm glow at the top of the page (fixed pseudo-element: no background-attachment on iOS). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 22rem;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, #0f2a1d 0%, rgba(15, 42, 29, 0.55) 45%, rgba(8, 21, 14, 0) 100%);
 }
 
 ::selection {
@@ -107,100 +139,183 @@ body {
     image-rendering: pixelated;
   }
 }
+/* Below native size, pixel art is downsampled smoothly (no dropped pixels). */
+.downscaled {
+  image-rendering: auto;
+}
 
 @layer components {
-  /* ---------------------------------------------------------------- frames */
+  /* ------------------------------------------------------------ surfaces */
+  .surface,
   .px-panel,
-  .panel {
-    position: relative;
-    border: calc(var(--u) * 4) solid transparent;
-    border-image: var(--frame-panel) 4 / calc(var(--u) * 4) stretch;
-    background:
-      repeating-conic-gradient(rgba(255, 255, 255, 0.018) 0 25%, transparent 0 50%) 0 0 / 4px 4px padding-box,
-      linear-gradient(180deg, #13321f, #10291c 40%) padding-box;
-    filter: drop-shadow(0 var(--u) 0 #050906) drop-shadow(0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.35));
-  }
+  .panel,
   .px-panel-quiet,
   .panel-quiet {
     position: relative;
-    border: calc(var(--u) * 4) solid transparent;
-    border-image: var(--frame-panel-quiet) 4 / calc(var(--u) * 4) stretch;
-    background: #0d2117 padding-box;
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-surface) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-surface-1) padding-box;
   }
+  .surface-2 {
+    position: relative;
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-raised) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-surface-2) padding-box;
+  }
+  .inset,
   .px-inset {
     position: relative;
-    border: calc(var(--u) * 3) solid transparent;
-    border-image: var(--frame-inset) 4 / calc(var(--u) * 4) stretch;
-    background: #0a1912 padding-box;
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-inset) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-inset) padding-box;
   }
+  /* The ornate brass frame: at most one per screen. */
+  .frame-hero {
+    position: relative;
+    border: calc(var(--u) * 4) solid transparent;
+    border-image: var(--frame-hero) 4 / calc(var(--u) * 4) stretch;
+    background: var(--color-surface-1) padding-box;
+    filter: drop-shadow(0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.35));
+  }
+  /* Cream "race card" paper. */
+  .paper,
   .px-plate {
     position: relative;
-    color: #1d140a;
-    border: calc(var(--u) * 3) solid transparent;
-    border-image: var(--frame-cream) 4 / calc(var(--u) * 4) stretch;
-    background: #f3e7c9 padding-box;
+    color: var(--color-paper-ink);
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-paper) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-paper) padding-box;
   }
   .px-tile {
-    border: 3px solid transparent;
-    border-image: var(--frame-tile) 4 / 4px stretch;
-    background: #f3e7c9 padding-box;
+    border: 2px solid transparent;
+    border-image: var(--fr-paper) 2 / 2px stretch;
+    background: var(--color-paper) padding-box;
+  }
+  /* Semi-opaque ink plate for text over scenes / the broadcast. */
+  .plate-ink {
+    background: rgba(8, 21, 14, 0.86);
+    box-shadow: 0 0 0 1px rgba(243, 231, 201, 0.14);
   }
   .px-screen {
     position: relative;
-    border: calc(var(--u) * 4) solid transparent;
-    border-image: var(--frame-screen) 4 / calc(var(--u) * 4) stretch;
-    background: #0b0f0c padding-box;
-    filter: drop-shadow(0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.55));
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-ink) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-ink) padding-box;
   }
   .px-oxblood {
-    border: calc(var(--u) * 3) solid transparent;
-    border-image: var(--frame-oxblood) 4 / calc(var(--u) * 4) stretch;
-    background: #7a1f1f padding-box;
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-oxblood) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-oxblood) padding-box;
+    color: var(--color-cream);
   }
+  /* Selected / yours: a one-art-pixel brass ring. */
+  .is-selected,
   .px-select {
-    border-image: var(--frame-select) 4 / calc(var(--u) * 4) stretch !important;
+    border-image: var(--fr-select) 2 / calc(var(--u) * 2) stretch !important;
     background: #1d4430 padding-box !important;
   }
+  .field {
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-field) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-inset) padding-box;
+    color: var(--color-cream);
+    min-height: 3rem;
+    padding: 0 0.6rem;
+    font-size: 1rem;
+  }
+  .field:focus {
+    outline: none;
+  }
+  .field:focus-visible {
+    outline: 3px solid var(--color-brass-bright);
+    outline-offset: 2px;
+  }
 
-  /* ------------------------------------------------------------ typography */
+  /* ---------------------------------------------------------- typography */
   .display {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: 0.01em;
-    line-height: 1.05;
-    text-shadow: 0 var(--u) 0 rgba(0, 0, 0, 0.55);
+    line-height: 1.1;
   }
-  .eyebrow {
-    font-family: var(--font-pixel);
-    font-size: 10px;
-    line-height: 1.4;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-brass);
+  .t-display-xl {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 2.5rem;
+    line-height: 1.1;
   }
-  .label {
-    font-family: var(--font-pixel);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-sage);
+  .t-display-l {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 2rem;
+    line-height: 1.125;
   }
-  .num {
-    font-family: var(--font-num);
+  .t-display-m {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.17;
+  }
+  @media (min-width: 768px) {
+    .t-display-xl {
+      font-size: 3.5rem;
+      line-height: 1.07;
+    }
+  }
+  .score {
+    font-family: var(--font-score);
     font-weight: 400;
     font-variant-numeric: tabular-nums;
-    font-size-adjust: ex-height 0.56;
+    line-height: 1;
     letter-spacing: 0.02em;
   }
+  .t-title {
+    font-weight: 800;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+  .t-meta {
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-cream-dim);
+  }
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    letter-spacing: 0.02em;
+    color: var(--color-cream-dim);
+  }
+  .label {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    letter-spacing: 0.04em;
+    color: var(--color-sage);
+  }
+  .caption {
+    font-weight: 600;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--color-sage);
+  }
+  /* Small numbers: sans, tabular. (Jersey 10 is only for big numerals: .score) */
+  .num,
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+  .num {
+    font-weight: 800;
+  }
   .led {
-    font-family: var(--font-led);
+    font-family: var(--font-score);
     letter-spacing: 0.04em;
   }
 
-  /* --------------------------------------------------------------- buttons */
+  /* ------------------------------------------------------------- buttons */
   .btn {
     position: relative;
     display: inline-flex;
@@ -208,171 +323,270 @@ body {
     justify-content: center;
     gap: 0.5rem;
     min-height: 2.75rem;
-    padding: 0 0.9rem;
-    font-family: var(--font-display);
+    min-width: 2.75rem;
+    padding: 0 0.85rem;
+    font-family: var(--font-sans);
     font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-weight: 800;
+    line-height: 1.2;
     white-space: nowrap;
-    border: 8px solid transparent;
-    border-image: var(--frame-green) 4 / 8px stretch;
+    border: calc(var(--u) * 2) solid transparent;
+    border-image: var(--fr-btn) 2 / calc(var(--u) * 2) stretch;
     background: #1f4d35 padding-box;
     color: var(--color-cream);
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.28);
-    filter: drop-shadow(0 3px 0 #050906);
-    transition: transform 60ms steps(1), filter 60ms steps(1);
+    transition: transform 60ms steps(1);
     cursor: pointer;
     user-select: none;
+    text-decoration: none;
   }
   .btn:hover:not(:disabled) {
+    border-image-source: var(--fr-btn-hover);
     background: #24563b padding-box;
   }
   .btn:active:not(:disabled) {
-    transform: translateY(3px);
-    filter: drop-shadow(0 0 0 #050906);
-    box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.28);
+    transform: translateY(2px);
   }
-  .btn:disabled {
-    opacity: 0.5;
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.55;
     cursor: not-allowed;
-    filter: grayscale(0.4);
   }
   .btn-brass {
     color: #241505;
-    border-image: var(--frame-brass) 4 / 8px stretch;
+    border-image-source: var(--fr-brass);
     background: #d9a441 padding-box;
-    text-shadow: 0 1px 0 rgba(255, 241, 193, 0.6);
   }
   .btn-brass:hover:not(:disabled) {
+    border-image-source: var(--fr-brass-hover);
     background: #e7b552 padding-box;
   }
-  .btn-ghost {
-    /* green "secondary" button */
-  }
   .btn-oxblood {
-    border-image: var(--frame-oxblood) 4 / 8px stretch;
+    border-image-source: var(--fr-oxblood);
     background: #7a1f1f padding-box;
   }
+  .btn-oxblood:hover:not(:disabled) {
+    border-image-source: var(--fr-oxblood);
+    background: #8a2626 padding-box;
+  }
+  .btn-ghost {
+    border: 0;
+    border-image: none;
+    background: transparent;
+    color: var(--color-cream);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-color: rgba(243, 231, 201, 0.4);
+    padding: 0 0.5rem;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-image: none;
+    background: transparent;
+    text-decoration-color: var(--color-cream);
+  }
   .btn-sm {
-    min-height: 2.25rem;
-    font-size: 0.875rem;
-    padding: 0 0.55rem;
+    min-height: 2.75rem;
+    font-size: 0.9375rem;
+    padding: 0 0.65rem;
   }
   .btn-lg {
     min-height: 3.25rem;
-    font-size: 1.15rem;
+    font-size: 1.0625rem;
     padding: 0 1.25rem;
   }
+  .btn-block {
+    display: flex;
+    width: 100%;
+  }
 
-  /* ------------------------------------------------------------ chips/tags */
+  /* --------------------------------------------------------------- chips */
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 1px 6px;
-    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.8125rem;
     font-weight: 700;
+    line-height: 1.25rem;
     color: var(--color-cream-dim);
-    border: 4px solid transparent;
-    border-image: var(--frame-panel-quiet) 4 / 4px stretch;
-    background: #0d2117 padding-box;
+    background: var(--color-surface-2);
     white-space: nowrap;
-    line-height: 1.35;
   }
   .chip-brass {
     color: #241505;
-    border-image: var(--frame-brass) 4 / 4px stretch;
-    background: #d9a441 padding-box;
+    background: var(--color-brass);
   }
   .chip-cream {
-    color: #241505;
-    border-image: var(--frame-tile) 4 / 4px stretch;
-    background: #f3e7c9 padding-box;
+    color: var(--color-paper-ink);
+    background: var(--color-paper);
   }
   .chip-live {
-    color: #fff1e8;
-    border-image: var(--frame-oxblood) 4 / 4px stretch;
-    background: #7a1f1f padding-box;
+    color: var(--color-cream);
+    background: var(--color-oxblood);
+    box-shadow: 0 0 0 1px #c0473a;
+  }
+  .chip-ink {
+    color: var(--color-cream);
+    background: rgba(8, 21, 14, 0.86);
+  }
+  /* "YOU" marker: brass caret + tag (never colour alone). */
+  .you-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.25rem;
+    color: #241505;
+    background: var(--color-brass);
+  }
+  .you-tag::before {
+    content: "▸";
   }
 
-  /* pixel divider: dashed brass line, 1 art-pixel tall */
   .rule,
   .px-rule {
-    height: var(--u);
-    background: repeating-linear-gradient(90deg, rgba(217, 164, 65, 0.55) 0 calc(var(--u) * 3), transparent 0 calc(var(--u) * 5));
+    height: 2px;
+    background: var(--color-line);
   }
 
-  /* translucent ink plate behind hero text so it reads over busy scenes */
   .hero-plate {
     width: fit-content;
     max-width: 100%;
     padding: 6px 10px 8px;
-    background: rgba(8, 21, 14, 0.74);
-    box-shadow: 0 0 0 2px rgba(5, 9, 6, 0.55), 0 var(--u) 0 2px rgba(0, 0, 0, 0.35);
+    background: rgba(8, 21, 14, 0.86);
   }
 
-  /* hover bob for cards/tiles */
-  .bob-hover:hover {
-    animation: bob 0.5s steps(2, jump-none) infinite alternate;
+  /* Row lists: dividers instead of frames. */
+  .rows > * + * {
+    border-top: 2px solid var(--color-line);
+  }
+  .row-link {
+    display: flex;
+    align-items: center;
+    min-height: 3.5rem;
+    transition: background-color 80ms steps(1);
+  }
+  .row-link:hover {
+    background: var(--color-surface-2);
   }
 
-  /* --------------------------------------------------------------- 3D tilt */
-  .tilt {
-    --rx: 0deg;
-    --ry: 0deg;
-    --px: 0;
-    --py: 0;
-    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
-    transform-style: preserve-3d;
-    transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
-    will-change: transform;
+  /* Segmented control */
+  .segmented {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--color-inset);
+    box-shadow: 0 0 0 2px #050d08;
   }
-  .tilt[data-active="true"] {
-    transition: transform 60ms linear;
+  .segmented > button,
+  .segmented > a {
+    min-height: 2.75rem;
+    padding: 0 0.85rem;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--color-cream-dim);
   }
+  .segmented > [aria-pressed="true"],
+  .segmented > [aria-current="true"],
+  .segmented > [aria-selected="true"] {
+    background: var(--color-surface-2);
+    color: var(--color-cream);
+    box-shadow: inset 0 -3px 0 var(--color-brass);
+  }
+
+  /* ------------------------------------------------------- action bar */
+  /* Mobile: sticky in the thumb zone above the tab bar. Desktop: an inline primary button. */
+  .action-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    z-index: 35;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0, rgba(8, 21, 14, 0.92) 14px, #08150e 100%);
+  }
+  .action-bar > .btn {
+    width: 100%;
+    min-height: 3.25rem;
+  }
+  @media (min-width: 768px) {
+    .action-bar {
+      position: static;
+      padding: 0;
+      background: none;
+    }
+    .action-bar > .btn {
+      width: auto;
+    }
+  }
+
+  /* ------------------------------------------------------------ sheet */
+  dialog.sheet {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 40rem;
+    max-height: 92dvh;
+    padding: 0;
+    color: var(--color-cream);
+    background: var(--color-surface-1);
+    border: 0;
+    box-shadow: 0 -2px 0 #2c6645, 0 -6px 0 #050d08;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  dialog.sheet::backdrop {
+    background: rgba(4, 10, 6, 0.72);
+  }
+  dialog.sheet[open] {
+    animation: sheet-up 180ms steps(4) both;
+  }
+  @media (min-width: 768px) {
+    dialog.sheet {
+      margin: auto;
+      max-height: 86dvh;
+      border: calc(var(--u) * 2) solid transparent;
+      border-image: var(--fr-surface) 2 / calc(var(--u) * 2) stretch;
+      background: var(--color-surface-1) padding-box;
+      box-shadow: none;
+    }
+  }
+
+  /* Legacy no-ops: tilt/parallax/sheen are retired (no idle motion). */
+  .tilt,
   .parallax {
-    transform: translate3d(calc(var(--px) * var(--depth, 6) * 1px), calc(var(--py) * var(--depth, 6) * 1px), 0);
-    transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transform: none;
   }
   .sheen {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
+    display: none;
   }
-  .sheen::after {
-    content: "";
-    position: absolute;
-    top: -20%;
-    bottom: -20%;
-    width: 30%;
-    left: -40%;
-    transform: skewX(-18deg);
-    background: repeating-linear-gradient(90deg, rgba(255, 248, 226, 0) 0 4px, rgba(255, 248, 226, 0.13) 4px 8px, rgba(255, 248, 226, 0) 8px 12px);
-    opacity: 0;
-  }
-  .group:hover .sheen::after,
-  .sheen-play::after {
-    animation: sheen 900ms steps(12) 1 forwards;
+}
+
+/* When a screen has a sticky action bar, leave room for it on mobile. */
+@media (max-width: 767px) {
+  body:has(.action-bar) main {
+    padding-bottom: calc(var(--tabbar-h) + var(--actionbar-h) + env(safe-area-inset-bottom) + 24px);
   }
 }
 
 /* ------------------------------------------------------------------ motion */
 @keyframes bob {
-  from {
+  0%,
+  100% {
     transform: translateY(0);
   }
-  to {
+  50% {
     transform: translateY(calc(var(--u) * -1));
   }
 }
-@keyframes sheen {
-  0% {
-    left: -40%;
-    opacity: 1;
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0.4;
   }
-  100% {
-    left: 120%;
+  to {
+    transform: none;
     opacity: 1;
   }
 }
@@ -383,39 +597,55 @@ body {
 }
 @keyframes digit-drop {
   0% {
-    transform: translateY(-40%);
+    transform: translateY(-30%);
     opacity: 0;
-  }
-  60% {
-    transform: translateY(6%);
-    opacity: 1;
   }
   100% {
     transform: none;
+    opacity: 1;
   }
 }
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-@keyframes reveal-card {
+@keyframes stall-open {
   0% {
     opacity: 0;
-    transform: perspective(700px) rotateY(80deg) translateY(10px);
-  }
-  70% {
-    opacity: 1;
-    transform: perspective(700px) rotateY(-8deg);
+    clip-path: inset(0 50% 0 50%);
   }
   100% {
     opacity: 1;
-    transform: perspective(700px) rotateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes reveal-card {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
   }
 }
 @keyframes float-up {
@@ -431,57 +661,70 @@ body {
     opacity: 0;
   }
 }
-
-.gallop-across {
-  animation: gallop-across 7s linear infinite;
-}
-@keyframes gallop-across {
-  from {
-    transform: translateX(-260px);
+@keyframes coin-hop {
+  0% {
+    transform: translateY(0);
   }
-  to {
-    transform: translateX(calc(100vw + 40px));
+  40% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: none;
   }
 }
 
+/* LIVE indicator: a static red square (colour + the word LIVE, never colour alone). */
 .live-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   background: var(--color-live);
   box-shadow: 0 0 0 2px #2a0707;
-  animation: blink 1s steps(1) infinite;
 }
 .digit {
   display: inline-block;
-  animation: digit-drop 260ms steps(4) both;
+  animation: digit-drop 120ms steps(2) both;
 }
 .fade-up {
-  animation: fade-up 420ms steps(6) both;
+  animation: fade-up 240ms steps(4) both;
+}
+.pop {
+  animation: pop 320ms steps(5) both;
+}
+.coin-hop {
+  animation: coin-hop 360ms steps(4) 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-motion="full"]) *,
+  html:not([data-motion="full"]) *::before,
+  html:not([data-motion="full"]) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .tilt,
-  .parallax {
-    transform: none !important;
-  }
-  .gallop-across {
-    animation: none !important;
-    transform: translateX(40%);
-    left: 30% !important;
-  }
+}
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* Grid children may shrink below their nowrap/truncated content (prevents mobile overflow). */
 @layer base {
   .grid > * {
     min-width: 0;
+  }
+  summary {
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
   }
 }

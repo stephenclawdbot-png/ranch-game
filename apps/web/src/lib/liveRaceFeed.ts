@@ -39,6 +39,8 @@ export class LiveFeedHttpError extends Error {
 const MAX_BACKOFF_MS = 15_000;
 /** Ignore smaller corrections once playing so the picture doesn't jump. */
 const MIN_OFFSET_CHANGE_MS = 150;
+/** Never poll more often than this while live (the server edge only moves 10 frames/s). */
+const MIN_POLL_GAP_MS = 250;
 
 function eventKey(e: RaceEvent): string {
   return `${e.tick}|${e.type}|${e.horseId ?? ""}|${e.text}`;
@@ -90,6 +92,8 @@ export class PollingLiveRaceFeed implements LiveRaceFeed {
   private inflight: AbortController | null = null;
   private closed = false;
   private failures = 0;
+  /** Local time the last poll request started (cadence is measured from here, not from the response). */
+  private lastRequestAt = 0;
   private readonly doFetch: typeof fetch;
   private readonly now: () => number;
   private readonly isHidden: () => boolean;
@@ -229,7 +233,12 @@ export class PollingLiveRaceFeed implements LiveRaceFeed {
       const untilPost = this.header.race.postTimeMs - this.serverNow();
       return Math.max(250, Math.min(10_000, untilPost > this.pollMs ? untilPost : this.pollMs));
     }
-    return this.pollMs;
+    // Steady cadence from the previous request start, and earlier still if the buffered
+    // frames will run out on the broadcast clock within ~1 s (slow network / busy tab).
+    const sinceRequest = this.now() - this.lastRequestAt;
+    const frameMs = (this.header.sampleEvery * 1000) / this.header.tickHz;
+    const dataRunsOutIn = this.broadcastStartMs + (this.liveEdgeFrame + 1) * frameMs - this.now();
+    return Math.max(MIN_POLL_GAP_MS, Math.min(this.pollMs - sinceRequest, dataRunsOutIn - 1000));
   }
 
   private schedule(delayMs: number): void {
@@ -245,6 +254,7 @@ export class PollingLiveRaceFeed implements LiveRaceFeed {
     if (this.closed || this.final || this.inflight) return;
     const ctrl = new AbortController();
     this.inflight = ctrl;
+    this.lastRequestAt = this.now();
     try {
       const res = await fetchChunk(this.doFetch, this.now, this.raceId, this.frames.length, ctrl.signal);
       if (this.closed) return;

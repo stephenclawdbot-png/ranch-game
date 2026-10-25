@@ -191,10 +191,11 @@ export function raceRating(horse: Horse, tactic: RunningStyle, race: Pick<RaceCo
   const tacMul = matched ? 994 : 1006;
   const drain = (stamMul * distMul * durMul * tacMul) / 1e9;
   const drainRef = (1000 * 1000 * (1000 + (600 - 650) / 6) * 994) / 1e9; // a plain 650 horse, ideal conditions
-  // Convert to speed points. Weights measured with tools/balance/stats.report.ts: 1 permille of
-  // drain ~ 0.75 speed points; burst is worth more in sprints; temperament ~ 0.22.
-  const burstW = 0.4 - (D - 1000) / 7000;
-  const r = 650 + cruise / 1.05 - 0.75 * (drain - drainRef) + burstW * (s.burst - 650) + 0.22 * (s.temperament - 650);
+  // Convert to speed points. Weights from tools/balance/stats.report.ts (controlled fields) and
+  // tools/balance/fit_rating.py (Plackett-Luce fit on random fields): 1 permille of drain ~ 0.85
+  // speed points; burst is worth more in sprints; temperament ~ 0.2.
+  const burstW = Math.max(0.05, 0.3 - (D - 1000) / 6000);
+  const r = 650 + cruise / 1.05 - 0.85 * (drain - drainRef) + burstW * (s.burst - 650) + 0.2 * (s.temperament - 650);
   return Math.round(r);
 }
 
@@ -205,11 +206,11 @@ export function raceRating(horse: Horse, tactic: RunningStyle, race: Pick<RaceCo
  * middle slice, so their fields are tightly matched.
  */
 export const CLASS_WINDOW: Record<RaceClass, readonly [number, number]> = {
-  graded: [0, 0.28],
-  listed: [0.14, 0.46],
-  handicap: [0.3, 0.64],
-  novice: [0.46, 0.84],
-  maiden: [0.62, 1],
+  graded: [0, 0.3],
+  listed: [0.08, 0.5],
+  handicap: [0.3, 0.6],
+  novice: [0.3, 0.85],
+  maiden: [0.45, 1],
 };
 
 /** Rivals ranked best-first by rating for these conditions (ties broken by id, so it is stable). */

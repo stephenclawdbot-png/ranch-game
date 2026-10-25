@@ -8,6 +8,14 @@ export interface ArtFile {
   h: number;
 }
 
+/** Code icon names whose PixelLab art has a different file name. */
+const ICON_ALIASES: Record<string, string[]> = {
+  stable: ["ui/icon-stable-door.png"],
+  paddock: ["ui/icon-club-crest.png"],
+  home: ["ui/icon-club-crest.png"],
+  shield: ["ui/icon-shield.png"],
+};
+
 /**
  * Logical UI art slots -> candidate files under `public/art/` (first existing wins).
  * Every slot has a code-drawn pixel fallback, so a missing file never breaks a page.
@@ -21,7 +29,7 @@ export const ART_SLOTS = {
     barn: ["scenes/barn-interior.png", "scenes/barn.png"],
   },
   portrait: (coat: string) => [`portraits/horse-${coat}.png`, `portraits/${coat}.png`],
-  icon: (name: string) => [`ui/icon-${name}.png`, `ui/icons/${name}.png`, `ui/${name}.png`],
+  icon: (name: string) => [...(ICON_ALIASES[name] ?? []), `ui/icon-${name}.png`, `ui/icons/${name}.png`, `ui/${name}.png`],
 } as const;
 
 export type SceneName = keyof typeof ART_SLOTS.scene;

@@ -25,7 +25,7 @@ export interface RaceViewerProps {
    * received so far: pause and rewind work, but nothing can move past the live edge.
    * When `feed.final` arrives and the playhead reaches the end, it runs the
    * photo-finish/results flow and switches to full replay controls.
-   * The playhead compares `feed.broadcastStartMs` with `Date.now() + (feed.serverOffsetMs ?? 0)`.
+   * `feed.broadcastStartMs` must already be in this browser's clock (server skew removed).
    */
   feed?: LiveRaceFeed;
   /**
@@ -111,11 +111,10 @@ function liveData(feed: LiveRaceFeed): SceneRaceData & TimelineSource {
 }
 
 function liveClockSource(feed: LiveRaceFeed) {
-  const offset = (feed as LiveRaceFeed & { serverOffsetMs?: number }).serverOffsetMs ?? 0;
   const frameDt = feed.header.sampleEvery / feed.header.tickHz;
   return {
     get broadcastStartMs() {
-      return feed.broadcastStartMs - offset;
+      return feed.broadcastStartMs;
     },
     get liveEdgeFrame() {
       return feed.liveEdgeFrame;
@@ -181,7 +180,7 @@ export function RaceViewer(props: RaceViewerProps) {
     setFinal(initialFinal);
     setReplayBadge(false);
     if (initialFinal) {
-      const start = feed ? feed.broadcastStartMs - ((feed as LiveRaceFeed & { serverOffsetMs?: number }).serverOffsetMs ?? 0) : startAtMs;
+      const start = feed ? feed.broadcastStartMs : startAtMs;
       clockRef.current = new PlaybackClock(initialFinal, { startAtMs: start, autoplay, initialTimeSec });
     } else if (feed) {
       clockRef.current = new LiveClock(liveClockSource(feed), autoplay);

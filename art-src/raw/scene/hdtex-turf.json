@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<363 chars>",
+  "image_size": {
+   "width": 176,
+   "height": 176
+  },
+  "seed": 13101,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "88f7b479-4c16-4c87-85dd-8b64f9b37dcb",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "88f7b479-4c16-4c87-85dd-8b64f9b37dcb",
+  "status": "completed",
+  "created_at": "2026-10-25T17:20:47.162998+00:00",
+  "last_response": {
+   "seed": 13101,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 176,
+     "base64": "<66988 chars>",
+     "height": 176
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "00edb658-c626-4c6f-96b4-14cde52eee4e",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x192_4.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x192_4.png",
+   "generation_started_at": "2026-10-25T17:20:53.33844+00:00",
+   "original_image_n_colors": 122,
+   "quantized_image_n_colors": 17
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hdtex-turf-0.png"
+ ]
+}

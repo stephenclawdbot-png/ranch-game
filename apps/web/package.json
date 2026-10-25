@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@thoroughbred/art-pipeline": "workspace:*",
+    "@thoroughbred/db": "workspace:*",
+    "@thoroughbred/game-core": "workspace:*",
     "@thoroughbred/pixel-rig": "workspace:*",
     "@thoroughbred/race-viewer": "workspace:*",
     "@thoroughbred/racing-engine": "workspace:*",

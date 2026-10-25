@@ -107,3 +107,11 @@
 {"at":"2026-10-25T17:18:12.517Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-jockey-neutral-256","secs":50,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:18:36.353Z","endpoint":"/normal-map","prefix":"art-src/raw/rig-hd/nm-horse-standing-alt-256","secs":24,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T17:19:50.787Z","endpoint":"/create-tiles-pro","prefix":"art-src/raw/scene/hd-tiles-b","secs":50,"usage":{"type":"generations","generations":15},"images":0}
+{"at":"2026-10-25T17:20:13.028Z","endpoint":"/create-tiles-pro","prefix":"art-src/raw/scene/hd-tiles-a","secs":73,"usage":{"type":"generations","generations":15},"images":0}
+{"at":"2026-10-25T17:21:57.198Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-grass","secs":71,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:22:02.389Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-dirt","secs":76,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:22:02.660Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-turf","secs":77,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:22:53.014Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-hedge","secs":50,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:23:10.073Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-gravel","secs":67,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:25:20.145Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-oak","secs":61,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:25:30.100Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-oak-b","secs":71,"usage":{"type":"generations","generations":10},"images":1}

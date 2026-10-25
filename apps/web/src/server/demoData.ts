@@ -115,15 +115,19 @@ interface ArchetypeDef {
   styles: readonly RunningStyle[];
 }
 
-const ARCHETYPES: Record<Archetype, ArchetypeDef> = {
-  sprinter: { mods: { speed: 170, stamina: -190, burst: 120, durability: -20, adaptability: -40, temperament: -30 }, distances: [1000, 1200], styles: ["front", "front", "stalker"] },
-  miler: { mods: { speed: 60, stamina: 20, burst: 40, durability: 10, adaptability: 0, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
-  stayer: { mods: { speed: -110, stamina: 210, burst: -40, durability: 90, adaptability: 20, temperament: 60 }, distances: [2000, 2400], styles: ["closer", "stalker"] },
-  closer: { mods: { speed: -20, stamina: 60, burst: 180, durability: 0, adaptability: -20, temperament: -40 }, distances: [1600, 2000], styles: ["closer"] },
+/**
+ * Stat modifiers per archetype. Balanced so each archetype rates about the same at its own trips
+ * (see tools/balance/archetypes.report.ts): they differ in WHERE they are good, not how good.
+ */
+export const ARCHETYPES: Record<Archetype, ArchetypeDef> = {
+  sprinter: { mods: { speed: 80, stamina: -190, burst: 120, durability: -20, adaptability: -40, temperament: -30 }, distances: [1000, 1200], styles: ["front", "front", "stalker"] },
+  miler: { mods: { speed: 75, stamina: 20, burst: 40, durability: 10, adaptability: 0, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
+  stayer: { mods: { speed: -40, stamina: 210, burst: -40, durability: 90, adaptability: 20, temperament: 60 }, distances: [2000, 2400], styles: ["closer", "stalker"] },
+  closer: { mods: { speed: 60, stamina: 60, burst: 180, durability: 0, adaptability: -20, temperament: -40 }, distances: [1600, 2000], styles: ["closer"] },
   frontrunner: { mods: { speed: 130, stamina: 80, burst: -150, durability: 20, adaptability: -10, temperament: -60 }, distances: [1200, 1400, 1600], styles: ["front"] },
-  allrounder: { mods: { speed: 10, stamina: 10, burst: 10, durability: 40, adaptability: 150, temperament: 60 }, distances: [1400, 1600, 2000], styles: ["stalker", "closer", "front"] },
-  firebrand: { mods: { speed: 210, stamina: -40, burst: 90, durability: -110, adaptability: -60, temperament: -230 }, distances: [1200, 1400, 1600], styles: ["front", "stalker"] },
-  mudlark: { mods: { speed: -40, stamina: 90, burst: -10, durability: 170, adaptability: 120, temperament: 40 }, distances: [1600, 2000, 2400], styles: ["stalker", "closer"] },
+  allrounder: { mods: { speed: 50, stamina: 10, burst: 10, durability: 40, adaptability: 150, temperament: 60 }, distances: [1400, 1600, 2000], styles: ["stalker", "closer", "front"] },
+  firebrand: { mods: { speed: 140, stamina: -40, burst: 90, durability: -110, adaptability: -60, temperament: -230 }, distances: [1200, 1400, 1600], styles: ["front", "stalker"] },
+  mudlark: { mods: { speed: 20, stamina: 90, burst: -10, durability: 170, adaptability: 120, temperament: 40 }, distances: [1600, 2000, 2400], styles: ["stalker", "closer"] },
 };
 const ARCHETYPE_IDS = Object.keys(ARCHETYPES) as Archetype[];
 

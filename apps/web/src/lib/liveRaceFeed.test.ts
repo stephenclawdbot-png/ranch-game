@@ -8,16 +8,21 @@ const T0 = Date.UTC(2026, 9, 25, 15, 0, 0);
 /** The server's clock runs 5 s ahead of this "browser". */
 const SKEW = 5000;
 
-function setup(opts: { maxFrames?: number; hidden?: boolean } = {}) {
+function setup(opts: { maxFrames?: number; hidden?: boolean; latencyMs?: number } = {}) {
   const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 0, tactic: "front" }, T0, `feed${Math.random().toString(36).slice(2, 8)}`);
   const replay = computeReplay(raceId);
   const requests: string[] = [];
+  const requestTimes: number[] = [];
   let hidden = opts.hidden ?? false;
   const fakeFetch = vi.fn(async (url: string | URL | Request) => {
     const u = new URL(String(url), "http://x");
     requests.push(u.pathname + u.search);
+    requestTimes.push(Date.now());
     const from = Number(u.searchParams.get("from"));
+    // Server answers at the midpoint of the round trip.
+    if (opts.latencyMs) await new Promise((r) => setTimeout(r, opts.latencyMs! / 2));
     const chunk = sliceBroadcast(replay, from, Date.now() + SKEW, opts.maxFrames);
+    if (opts.latencyMs) await new Promise((r) => setTimeout(r, opts.latencyMs! / 2));
     return new Response(JSON.stringify(chunk), { status: 200 });
   }) as unknown as typeof fetch;
   return {
@@ -25,6 +30,7 @@ function setup(opts: { maxFrames?: number; hidden?: boolean } = {}) {
     postTimeMs,
     replay,
     requests,
+    requestTimes,
     fakeFetch,
     setHidden: (h: boolean) => (hidden = h),
     open: () => openLiveRaceFeed(raceId, { fetch: fakeFetch, isHidden: () => hidden }),
@@ -126,6 +132,26 @@ describe("live race feed", () => {
     expect(feed.frames).toHaveLength(s.replay.frames.length);
     await vi.advanceTimersByTimeAsync(10_000);
     expect(s.requests).toHaveLength(1);
+  });
+
+  it("keeps a steady cadence and never runs out of frames when responses are slow", async () => {
+    const s = setup({ latencyMs: 900 });
+    vi.setSystemTime(s.postTimeMs - SKEW + 5_000);
+    const opening = s.open();
+    await vi.advanceTimersByTimeAsync(900);
+    const feed = await opening;
+    expect(feed.clockOffsetMs).toBe(SKEW);
+    const frameMs = (s.replay.sampleEvery * 1000) / s.replay.tickHz;
+    let starved = 0;
+    for (let i = 0; i < 100; i++) {
+      await vi.advanceTimersByTimeAsync(100);
+      const shownFrame = Math.floor((Date.now() - feed.broadcastStartMs) / frameMs);
+      if (shownFrame > feed.liveEdgeFrame) starved++;
+    }
+    expect(starved).toBe(0);
+    const gaps = s.requestTimes.slice(2).map((t, i) => t - s.requestTimes[i + 1]!);
+    expect(Math.max(...gaps)).toBeLessThanOrEqual(1250);
+    feed.close();
   });
 
   it("close() aborts and stops polling", async () => {

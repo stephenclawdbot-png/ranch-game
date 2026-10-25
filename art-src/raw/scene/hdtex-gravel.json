@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<317 chars>",
+  "image_size": {
+   "width": 176,
+   "height": 176
+  },
+  "seed": 13104,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f375caee-eda5-48cd-a953-1d61fb147a76",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "f375caee-eda5-48cd-a953-1d61fb147a76",
+  "status": "completed",
+  "created_at": "2026-10-25T17:22:04.284038+00:00",
+  "last_response": {
+   "seed": 13104,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 176,
+     "base64": "<97928 chars>",
+     "height": 176
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "9c496eaf-7529-42e4-acbc-a36bd5b6faa7",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x192_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x192_5.png",
+   "generation_started_at": "2026-10-25T17:22:10.423847+00:00",
+   "original_image_n_colors": 16948,
+   "quantized_image_n_colors": 51
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hdtex-gravel-0.png"
+ ]
+}

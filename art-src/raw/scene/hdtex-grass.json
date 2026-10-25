@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<326 chars>",
+  "image_size": {
+   "width": 176,
+   "height": 176
+  },
+  "seed": 13103,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4711b026-51a0-4315-9033-0a8385730bb6",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "4711b026-51a0-4315-9033-0a8385730bb6",
+  "status": "completed",
+  "created_at": "2026-10-25T17:20:47.477403+00:00",
+  "last_response": {
+   "seed": 13103,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 176,
+     "base64": "<72004 chars>",
+     "height": 176
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "005ddf62-e864-44f6-a80b-73586dae7d14",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x192_1.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x192_1.png",
+   "generation_started_at": "2026-10-25T17:20:53.621592+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 30
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hdtex-grass-0.png"
+ ]
+}

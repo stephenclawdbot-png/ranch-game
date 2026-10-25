@@ -891,10 +891,10 @@ export class HD2DScene {
         // Over the stalls, descending into the race camera as the gates open.
         const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
         group = byX;
-        // Front-quarter view of the stalls (lanes spread across the frame), swinging
-        // round to the side-on race camera as the gates open.
-        elev = 24 - 10 * k;
-        yaw = 52 - 58 * k;
+        // Behind-the-stalls three-quarter view (open backs, lanes spread across the
+        // frame, the straight ahead), swinging round to the race camera at the off.
+        elev = 26 - 12 * k;
+        yaw = -50 + 44 * k;
         fillX = 0.8;
         fillY = 0.62;
         fov = 32;

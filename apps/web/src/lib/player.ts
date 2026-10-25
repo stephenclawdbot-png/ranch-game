@@ -42,6 +42,20 @@ export interface Progress {
   history: RaceHistoryEntry[];
   /** raceId -> settled-at ms. The idempotency key for settlement. */
   settled: Record<string, number>;
+  /**
+   * Races this player entered whose result they have not seen yet (raceId -> entry).
+   * Lets Home show "Watch your race" / "Result ready" without spoiling the result.
+   */
+  pending?: Record<string, PendingRace>;
+}
+
+export interface PendingRace {
+  raceId: string;
+  horseIndex: number;
+  horseName: string;
+  tactic: string;
+  postTimeMs: number;
+  enteredAtMs: number;
 }
 
 export interface PlayerState {
@@ -160,9 +174,41 @@ export function settleRace(entry: RaceHistoryEntry): boolean {
       horses: { ...s.progress.horses, [key]: record },
       history: [entry, ...s.progress.history].slice(0, 100),
       settled: { ...s.progress.settled, [entry.raceId]: Date.now() },
+      pending: withoutKey(s.progress.pending, entry.raceId),
     },
   });
   return true;
+}
+
+function withoutKey<T>(rec: Record<string, T> | undefined, key: string): Record<string, T> {
+  const out = { ...(rec ?? {}) };
+  delete out[key];
+  return out;
+}
+
+/** Remembers a race the player just entered (no result yet). Keeps the newest few. */
+export function addPendingRace(entry: PendingRace): void {
+  const s = read();
+  if (!s) return;
+  const all = Object.values({ ...(s.progress.pending ?? {}), [entry.raceId]: entry })
+    .sort((a, b) => b.enteredAtMs - a.enteredAtMs)
+    .slice(0, 5);
+  write({ ...s, progress: { ...s.progress, pending: Object.fromEntries(all.map((p) => [p.raceId, p])) } });
+}
+
+/** Forgets a pending race (e.g. the player opened it and saw the result). */
+export function clearPendingRace(raceId: string): void {
+  const s = read();
+  if (!s?.progress.pending?.[raceId]) return;
+  write({ ...s, progress: { ...s.progress, pending: withoutKey(s.progress.pending, raceId) } });
+}
+
+/** Unseen races, newest first. A race already settled is never pending. */
+export function pendingRaces(state: PlayerState | null | undefined): PendingRace[] {
+  if (!state) return [];
+  return Object.values(state.progress.pending ?? {})
+    .filter((p) => !state.progress.settled[p.raceId])
+    .sort((a, b) => b.postTimeMs - a.postTimeMs);
 }
 
 export function totals(state: PlayerState | null | undefined): { starts: number; wins: number; earnings: number } {

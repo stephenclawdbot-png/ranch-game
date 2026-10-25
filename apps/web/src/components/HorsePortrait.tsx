@@ -14,7 +14,7 @@ function noise(x: number, y: number): number {
 }
 
 /** Code-drawn pixel portrait (48x48), used until the PixelLab portrait for this coat exists. */
-function PixelHead({ appearance, className, title }: { appearance: HorseAppearance; className?: string; title?: string }) {
+function PixelHead({ appearance, className, title, style }: { appearance: HorseAppearance; className?: string; title?: string; style?: React.CSSProperties }) {
   const c = resolveHorseColors(appearance);
   const ink = "#0b0f0c";
   const marks = appearance.face !== "none" ? FACE_MARKS[appearance.face] : null;
@@ -42,6 +42,7 @@ function PixelHead({ appearance, className, title }: { appearance: HorseAppearan
       rows={HEAD_ROWS}
       palette={ramp}
       className={className}
+      style={style}
       title={title}
       testId="horse-portrait"
       pixel={(x, y, ch) => {
@@ -60,39 +61,55 @@ function PixelHead({ appearance, className, title }: { appearance: HorseAppearan
   );
 }
 
+/** Portrait scales: a thumbnail is half the native art (exact 1:1 device pixels on 2x screens). */
+export type PortraitScale = "thumb" | 1 | 2 | 3;
+
+/** Native portrait size in art pixels (PixelLab portraits; the code fallback is drawn to fit). */
+export function usePortraitNative(coat: HorseAppearance["coat"]): number {
+  const art = useArt(ART_SLOTS.portrait(coat));
+  return art?.w ?? 96;
+}
+
 /**
  * Horse head-and-neck portrait (facing left). Uses the PixelLab portrait for the coat
  * when it exists (nearest-neighbour, pixelated), otherwise a code-drawn pixel head.
- * The image is sized by its container (`className`), keeping its aspect ratio.
+ * Pass `scale` to lock it to an integer multiple of the native art (one pixel density per
+ * screen); otherwise it is sized by its container (`className`).
  */
 export function HorsePortrait({
   appearance,
   className,
   title,
+  scale,
 }: {
   appearance: HorseAppearance;
   className?: string;
   /** @deprecated kept for call-site compatibility; portraits never draw a vector backdrop now. */
   backdrop?: boolean;
   title?: string;
+  scale?: PortraitScale;
 }) {
   const art = useArt(ART_SLOTS.portrait(appearance.coat));
+  const native = art?.w ?? 96;
+  const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
+  const style = px ? { width: px, height: px } : undefined;
   if (art) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={artUrl(art)}
-        width={art.w}
-        height={art.h}
+        width={px ?? art.w}
+        height={px ?? art.h}
+        style={style}
         alt={title ?? ""}
         aria-hidden={title ? undefined : true}
-        className={`pixelated object-contain object-bottom ${className ?? ""}`}
+        className={`${scale === "thumb" ? "downscaled" : "pixelated"} shrink-0 object-contain object-bottom ${className ?? ""}`}
         data-testid="horse-portrait"
         draggable={false}
       />
     );
   }
-  return <PixelHead appearance={appearance} className={className} title={title} />;
+  return <PixelHead appearance={appearance} className={`shrink-0 ${className ?? ""}`} title={title} style={style} />;
 }
 
 export { HEAD_SIZE };
