@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<22864 chars>",
+   "format": "png"
+  },
+  "action": "horse standing still at the start, idle breathing, gently shifting weight, ears flicking and tail swishing slightly, jockey sitting still, subtle seamless loop, stays in place",
+  "frame_count": 8,
+  "seed": 42,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "415e8ee7-681f-45c8-a821-611ac87b3f07",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "415e8ee7-681f-45c8-a821-611ac87b3f07",
+  "status": "completed",
+  "created_at": "2026-10-25T17:46:16.756024+00:00",
+  "last_response": {
+   "seed": 42,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.028842635545465678
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<22864 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28692 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28496 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29456 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29268 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28840 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28964 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29620 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29288 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "e1dc9d3a-551f-4d69-92b2-89f44a551f3c",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-25T17:46:33.228775+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/hd/anim-idle-0.png",
+  "art-src/raw/hd/anim-idle-1.png",
+  "art-src/raw/hd/anim-idle-2.png",
+  "art-src/raw/hd/anim-idle-3.png",
+  "art-src/raw/hd/anim-idle-4.png",
+  "art-src/raw/hd/anim-idle-5.png",
+  "art-src/raw/hd/anim-idle-6.png",
+  "art-src/raw/hd/anim-idle-7.png",
+  "art-src/raw/hd/anim-idle-8.png"
+ ]
+}

@@ -7,6 +7,7 @@ import {
   SLOT_MS,
   TooEarlyError,
   createQuickRace,
+  quickPick,
   currentSlot,
   decodeQuickRaceId,
   getRace,
@@ -142,5 +143,32 @@ describe("quick races", () => {
     const card = await repo.getRace(raceId, NOW);
     const seed = getRaceInput(raceId).seed;
     expect(JSON.stringify(card)).not.toContain(seed);
+  });
+});
+
+describe("quick pick and instant results", () => {
+  it("picks a valid horse on its natural style and rotates away from excluded horses", () => {
+    const horses = starterHorses(PLAYER);
+    const a = quickPick(PLAYER);
+    expect(a.tactic).toBe(horses[a.horseIndex]!.style);
+    expect(a.reason).toContain(horses[a.horseIndex]!.name);
+    const b = quickPick(PLAYER, [a.horseIndex]);
+    expect(b.horseIndex).not.toBe(a.horseIndex);
+    // Excluding everyone falls back to the whole stable rather than failing.
+    expect(quickPick(PLAYER, horses.map((_, i) => i)).horseIndex).toBe(a.horseIndex);
+  });
+
+  it("instant quick races are finished as soon as they are created", () => {
+    const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 0, tactic: "front", instant: true }, NOW, "instant001");
+    expect(postTimeMs).toBeLessThan(NOW);
+    expect(decodeQuickRaceId(raceId)?.i).toBe(1);
+    expect(getRace(raceId, NOW).status).toBe("finished");
+    expect(getReplay(raceId, NOW).result.finishOrder.length).toBeGreaterThan(1);
+  });
+
+  it("a normal quick race is still upcoming, then live", () => {
+    const { raceId } = createQuickRace({ playerId: PLAYER, horseIndex: 0, tactic: "front" }, NOW, "normal0001");
+    expect(getRace(raceId, NOW).status).toBe("upcoming");
+    expect(() => getReplay(raceId, NOW)).toThrow(TooEarlyError);
   });
 });

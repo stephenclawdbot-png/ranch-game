@@ -43,30 +43,52 @@ export const DOMINANCE_PERMILLE = 600;
 export const INBREEDING_DEPRESSION_PERMILLE = 800;
 export const INBREEDING_AFFECTED: readonly StatKey[] = ["durability", "temperament"];
 
-/** Launch ceiling on expressed potential per stat for minted horses (packs, starters, gifts). */
-export const LAUNCH_CEILING = 600;
-/** Each competition season raises the mint ceiling a little so late joiners are not stuck... */
+/**
+ * Launch ceilings for minted horses (packs, starters, gifts, Club runners), per docs/balance.md:
+ * mean potential ≤ 600 (C grade) and no single stat above 700. Each competition season raises
+ * both by 10 so late joiners are not stuck, up to +80. Bred horses are never capped below 1000.
+ */
+export const LAUNCH_MEAN_CEILING = 600;
+export const LAUNCH_STAT_CEILING = 700;
 export const CEILING_STEP_PER_SEASON = 10;
-/** ...up to this hard cap. Bred horses are never capped below 1000. */
-export const CEILING_MAX = 680;
-/** Minted alleles may exceed the expressed ceiling by this much (hidden breeding value). */
-export const ALLELE_HEADROOM = 200;
-/** Chance per minted stat allele (permille) of a hidden "gem" allele above the expressed ceiling. */
-export const GEM_ALLELE_PERMILLE = 40;
+export const CEILING_MAX_STEPS = 8;
+/** Kept for readability in docs: the launch mean ceiling. */
+export const LAUNCH_CEILING = LAUNCH_MEAN_CEILING;
+/**
+ * Minted alleles may exceed the per-stat ceiling by this much (hidden breeding value). Speed gets
+ * less headroom: it is the most valuable stat in the engine (balance.md), so the breeding
+ * frontier should not run away on speed alone.
+ */
+export const ALLELE_HEADROOM: StatRecord<number> = { speed: 100, stamina: 150, burst: 150, durability: 150, adaptability: 150, temperament: 150 };
+/** Chance per minted stat locus (permille) that one allele is a hidden "gem" above what it shows. */
+export const GEM_LOCUS_PERMILLE = 80;
 
-/** Mint ceiling on expressed potential per stat for a competition season. */
+function seasonSteps(season: number): number {
+  return Math.min(CEILING_MAX_STEPS, Math.max(0, Math.floor(season) - 1));
+}
+
+/** Mint ceiling on the MEAN potential for a competition season. */
+export function meanCeiling(season: number): number {
+  return LAUNCH_MEAN_CEILING + CEILING_STEP_PER_SEASON * seasonSteps(season);
+}
+
+/** Mint ceiling on any single stat potential for a competition season. */
 export function potentialCeiling(season: number): number {
-  return Math.min(CEILING_MAX, LAUNCH_CEILING + CEILING_STEP_PER_SEASON * Math.max(0, Math.floor(season) - 1));
+  return LAUNCH_STAT_CEILING + CEILING_STEP_PER_SEASON * seasonSteps(season);
 }
 
-/** Highest allele a minted horse may carry in a season. */
-export function alleleCap(season: number): number {
-  return Math.min(1000, potentialCeiling(season) + ALLELE_HEADROOM);
+/** Highest allele a minted horse may carry for a stat in a season. */
+export function alleleCap(season: number, stat: StatKey = "stamina"): number {
+  return Math.min(1000, potentialCeiling(season) + ALLELE_HEADROOM[stat]);
 }
 
-/** Weights of the overall potential (the horse's headline grade). */
-export const OVERALL_WEIGHTS: StatRecord<number> = { speed: 4, stamina: 3, burst: 3, durability: 2, adaptability: 2, temperament: 2 };
-const OVERALL_DEN = 16;
+/**
+ * Weights of the overall potential (the horse's headline grade). Equal weights = the plain mean
+ * of the six stats, as in docs/balance.md: a balanced horse is the breeding goal, which
+ * counters speed's dominance in the engine.
+ */
+export const OVERALL_WEIGHTS: StatRecord<number> = { speed: 1, stamina: 1, burst: 1, durability: 1, adaptability: 1, temperament: 1 };
+const OVERALL_DEN = 6;
 
 // ---------------------------------------------------------------------------
 // Potentials and grades
@@ -385,6 +407,9 @@ function mintQuirks(rng: Rng): QuirkGenes {
   };
 }
 
+/** Lowest minted stat potential. */
+export const MINT_STAT_FLOOR = 150;
+
 /** Natural (pre-tier) rarity distribution for minted horses with no target tier. */
 export const NATURAL_RARITY_WEIGHTS: Record<Rarity, number> = { common: 600, uncommon: 280, rare: 90, epic: 25, legendary: 5 };
 
@@ -423,51 +448,50 @@ function allelesFor(rng: Rng, p: number, cap: number, gem: boolean): AllelePair 
 /**
  * Mint a foundation horse genome (starters, packs, gifts, AI fields).
  *
- * Guarantees: every stat potential <= potentialCeiling(season); every allele <= alleleCap(season);
- * rarityOf(result) === target rarity (when the tier band fits under the ceiling); deterministic in `seed`.
+ * Guarantees: every stat potential <= potentialCeiling(season) (700 at launch); mean potential
+ * <= meanCeiling(season) (600 at launch); every allele <= alleleCap(season, stat);
+ * rarityOf(result) === target rarity; deterministic in `seed`.
  */
 export function generateFoundationGenome(seed: string, opts: MintOptions): Genome {
   const rng = new Rng(`${seed}|mint`);
   const ceiling = potentialCeiling(opts.season);
-  const cap = alleleCap(opts.season);
+  const meanCap = meanCeiling(opts.season);
   const rarity = opts.rarity ?? pickWeighted(rng, NATURAL_RARITY_WEIGHTS);
   const breed = mintBreedShares(rng, opts.breed);
 
-  // Target mean potential inside the tier band (and under the ceiling).
+  // Target mean potential inside the tier band (and under the mean ceiling).
   const [bandLo, bandHiRaw] = RARITY_MINT_BANDS[rarity];
-  const bandHi = Math.min(bandHiRaw, ceiling + 1);
-  const target = bandLo + 2 + rng.int(Math.max(1, bandHi - bandLo - 4));
+  const bandHi = Math.min(bandHiRaw, meanCap + 1);
+  const target = bandLo + 1 + rng.int(Math.max(1, bandHi - bandLo - 2));
 
-  // Breed-shaped stat profile around the target.
+  // Breed-shaped stat profile around the target: a niche, not a flat line.
   const means = {} as StatRecord<number>;
   let meanOfMeans = 0;
   for (const k of STAT_KEYS) {
     means[k] = breedBlend(breed, (p) => p.statMean[k]);
     meanOfMeans += means[k] / STAT_KEYS.length;
   }
-  const headroom = Math.max(0, ceiling - target);
-  const spread = Math.min(70, headroom + 10);
   const p = {} as StatRecord<number>;
   for (const k of STAT_KEYS) {
-    const dev = (means[k] - meanOfMeans) * 0.8 + rng.normal() * 30;
-    p[k] = clampInt(target + Math.max(-spread, Math.min(spread, dev)), 120, ceiling);
+    const dev = (means[k] - meanOfMeans) * 1.2 + rng.normal() * 45;
+    p[k] = clampInt(target + Math.max(-140, Math.min(140, dev)), MINT_STAT_FLOOR, ceiling);
   }
-  // Re-centre so the mean hits the target exactly (respecting [120, ceiling]).
-  for (let iter = 0; iter < 12; iter++) {
-    const sum = STAT_KEYS.reduce((s, k) => s + p[k], 0);
-    let diff = target * STAT_KEYS.length - sum;
+  // Re-centre so the mean hits the target exactly (respecting [floor, ceiling]).
+  for (let iter = 0; iter < 20; iter++) {
+    let diff = target * STAT_KEYS.length - STAT_KEYS.reduce((sum, k) => sum + p[k], 0);
     if (diff === 0) break;
     for (const k of STAT_KEYS) {
       if (diff === 0) break;
-      const step = diff > 0 ? Math.min(diff, ceiling - p[k]) : Math.max(diff, 120 - p[k]);
-      const share = diff > 0 ? Math.min(step, Math.ceil(diff / 2)) : Math.max(step, Math.floor(diff / 2));
-      p[k] += share;
-      diff -= share;
+      const room = diff > 0 ? ceiling - p[k] : MINT_STAT_FLOOR - p[k];
+      const want = diff > 0 ? Math.ceil(diff / 3) : Math.floor(diff / 3);
+      const step = diff > 0 ? Math.min(room, want) : Math.max(room, want);
+      p[k] += step;
+      diff -= step;
     }
   }
 
   const stats = {} as Genome["stats"];
-  for (const k of STAT_KEYS) stats[k] = allelesFor(rng, p[k], cap, rng.chance(GEM_ALLELE_PERMILLE * 2));
+  for (const k of STAT_KEYS) stats[k] = allelesFor(rng, p[k], alleleCap(opts.season, k), rng.chance(GEM_LOCUS_PERMILLE));
 
   const distance: [DistanceAllele, DistanceAllele] = [pickBlended(rng, breed, (q) => q.distance), pickBlended(rng, breed, (q) => q.distance)];
   const turf = Math.round(breedBlend(breed, (q) => q.turf));

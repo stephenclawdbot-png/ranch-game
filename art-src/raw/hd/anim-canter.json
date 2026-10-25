@@ -1,0 +1,133 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<15552 chars>",
+   "format": "png"
+  },
+  "action": "racehorse cantering at a relaxed collected canter, one complete three-beat canter stride, slower and more upright than a gallop, head bobbing gently, jockey sitting quietly, seamless loop, stays in place",
+  "frame_count": 12,
+  "seed": 41,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1c8e0c46-810c-4ae7-9bac-873260e11d76",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "1c8e0c46-810c-4ae7-9bac-873260e11d76",
+  "status": "completed",
+  "created_at": "2026-10-25T17:46:22.916226+00:00",
+  "last_response": {
+   "seed": 41,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.03518309849500656
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<15552 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21260 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19908 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19292 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18460 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19660 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18812 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19844 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19540 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20088 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19068 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20348 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19792 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.9473684210526315,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "1ef59b8e-f098-4536-9676-949ab780ccc7",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-25T17:46:42.834636+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/hd/anim-canter-0.png",
+  "art-src/raw/hd/anim-canter-1.png",
+  "art-src/raw/hd/anim-canter-2.png",
+  "art-src/raw/hd/anim-canter-3.png",
+  "art-src/raw/hd/anim-canter-4.png",
+  "art-src/raw/hd/anim-canter-5.png",
+  "art-src/raw/hd/anim-canter-6.png",
+  "art-src/raw/hd/anim-canter-7.png",
+  "art-src/raw/hd/anim-canter-8.png",
+  "art-src/raw/hd/anim-canter-9.png",
+  "art-src/raw/hd/anim-canter-10.png",
+  "art-src/raw/hd/anim-canter-11.png",
+  "art-src/raw/hd/anim-canter-12.png"
+ ]
+}

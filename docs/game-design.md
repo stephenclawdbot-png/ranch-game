@@ -159,6 +159,27 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   rewards (Daily Cup, leagues, titles) require a verified account; those rewards are
   cosmetic.
 
+## 4c. Quick Pick & watch options (user request, Phase 1)
+
+- **Quick Pick:** one tap. The server picks the best-suited starter horse, using the
+  form-guide rating at its preferred trip and ground, and rides it on its natural style. It
+  rotates away from horses the client reports as recently run. The response includes a short
+  reason, which is shown on a pick card.
+  - API: `POST /api/races/quick { playerId, pick: "auto", exclude?: number[], instant? }`
+  - The response includes `pick: { horseIndex, tactic, reason }`.
+- **Watch options:** for a quick race, the player chooses one of:
+  - **Watch live:** the normal broadcast.
+  - **Watch later:** the result and replay go to the inbox (client-side for now).
+  - **Instant result** (`instant: true`): the race is back-dated past the broadcast window,
+    so it's final immediately. This is only for solo quick races against AI. Shared
+    scheduled races always stay live.
+- **Assistant Trainer (later, with the database):** optionally spends leftover daily entries
+  on Quick Picks under safe rules (fresh horses only, never high injury risk), with a daily
+  summary.
+- **Note:** quick races are settled on the client until the database lands. With the
+  database, each race consumes an entry when it's created and is settled on the server
+  regardless of whether anyone watches, so cherry-picking results is impossible.
+
 ## 4. Life cycle & growth (original calendar model; ageing replaced by §4a)
 
 **One season is 4 real weeks.** Age advances one year per season, at the season rollover.

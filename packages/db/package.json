@@ -5,8 +5,17 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc -p .", "test": "vitest run", "generate": "drizzle-kit generate" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "generate": "drizzle-kit generate && node scripts/bundle-migrations.mjs",
+    "generate:custom": "drizzle-kit generate --custom && node scripts/bundle-migrations.mjs",
+    "bundle-migrations": "node scripts/bundle-migrations.mjs",
+    "migrate": "node scripts/migrate.mjs"
+  },
   "dependencies": {
     "@thoroughbred/shared": "workspace:*",
     "@thoroughbred/game-core": "workspace:*",
@@ -15,5 +24,7 @@
     "@neondatabase/serverless": "1.2.0",
     "zod": "4.6.7"
   },
-  "devDependencies": { "drizzle-kit": "0.31.11" }
+  "devDependencies": {
+    "drizzle-kit": "0.31.11"
+  }
 }

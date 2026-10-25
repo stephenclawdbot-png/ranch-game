@@ -18,8 +18,11 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-redesign/types/**/*.ts",
+    ".next-viewer/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-db/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

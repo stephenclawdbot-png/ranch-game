@@ -34,8 +34,8 @@ export const PEAK_WINDOW: Record<MaturityType, [number, number]> = { early: [6, 
 /** Per-stat shift of the peak window (speed and burst mature first, stamina and temperament later). */
 export const STAT_PEAK_SHIFT: StatRecord<number> = { speed: -2, stamina: 3, burst: -2, durability: 0, adaptability: 3, temperament: 2 };
 /** Maturity (permille) at racing age, 0 starts. */
-export const JUVENILE_BASE: StatRecord<number> = { speed: 820, stamina: 680, burst: 820, durability: 740, adaptability: 680, temperament: 700 };
-export const TYPE_BASE_SHIFT: Record<MaturityType, number> = { early: 50, normal: 0, late: -60 };
+export const JUVENILE_BASE: StatRecord<number> = { speed: 900, stamina: 820, burst: 900, durability: 860, adaptability: 820, temperament: 840 };
+export const TYPE_BASE_SHIFT: Record<MaturityType, number> = { early: 40, normal: 0, late: -50 };
 /** Maturity at 40 starts as a share of peak (speed fades first). */
 export const CAREER_END_LEVEL: StatRecord<number> = { speed: 860, stamina: 930, burst: 880, durability: 930, adaptability: 1000, temperament: 1000 };
 export const TYPE_END_SHIFT: Record<MaturityType, number> = { early: -40, normal: 0, late: 20 };
@@ -63,14 +63,27 @@ export function maturityOf(state: HorseState, stat: StatKey): number {
   return maturityAt(stat, maturityType(state.genome), state.care.sessions, state.career.starts);
 }
 
-/** Current (resting, unmodified) stats: potential × maturity × realisation (+care bonus). */
+/**
+ * How much of the current stat training realisation governs (permille). Realisation is stored
+ * and shown on the design's 60%→100% scale; it moves the top 20% of the stat, so an untrained
+ * racing-age horse shows ~92% of its matured potential. This keeps launch horses on the stat
+ * scale the engine and docs/balance.md are calibrated for (starters ≈ 450–550 current).
+ */
+export const TRAINING_WEIGHT_PERMILLE = 200;
+
+/** Effective training factor (permille) for a realisation value (+ care bonus). */
+export function trainingFactor(realisation: number, careBonusPermille = 0): number {
+  const r = Math.min(1000, realisation + careBonusPermille);
+  return 1000 - Math.floor(((1000 - r) * TRAINING_WEIGHT_PERMILLE) / 1000);
+}
+
+/** Current (resting, unmodified) stats: potential × maturity × training factor (incl. care bonus). */
 export function currentStats(state: HorseState): StatRecord<number> {
   const pot = potentials(state.genome);
   const cb = careBonus(state);
   const out = {} as StatRecord<number>;
   for (const k of STAT_KEYS) {
-    const real = Math.min(1000, state.training.realisation[k] + cb);
-    out[k] = clampInt((pot[k] * maturityOf(state, k) * real) / 1_000_000, 0, 1000);
+    out[k] = clampInt((pot[k] * maturityOf(state, k) * trainingFactor(state.training.realisation[k], cb)) / 1_000_000, 0, 1000);
   }
   // Versatile (heterozygous surface) types adapt a little better.
   if (preferredSurface(state.genome) === "synthetic") out.adaptability = Math.min(1000, out.adaptability + SURFACE_HET_ADAPT_BONUS);

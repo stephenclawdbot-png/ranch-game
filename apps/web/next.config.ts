@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     "@thoroughbred/game-core",
     "@thoroughbred/db",
   ],
+  // Database drivers load native/WASM assets at runtime (PGlite's postgres.wasm + data
+  // bundle, Neon's WebSocket client); keep them out of the server bundle and require them
+  // from node_modules instead.
+  serverExternalPackages: ["@electric-sql/pglite", "@neondatabase/serverless"],
 };
 
 export default nextConfig;

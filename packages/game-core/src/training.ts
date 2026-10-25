@@ -29,9 +29,12 @@ export interface WorkoutSpec {
   label: string;
 }
 
-/** Training session cost (credits) is an economy sink; see economy.ts for the full table. */
+/**
+ * Training session cost (credits) is an economy sink. Speed work costs more: speed is the most
+ * valuable stat in the engine (docs/balance.md), so it is priced up rather than made free to chase.
+ */
 export const WORKOUTS: Record<Workout, WorkoutSpec> = {
-  speed_work: { gains: { speed: 30, burst: 12 }, fatigue: 260, fitness: 60, hard: true, cost: 60, light: false, label: "Speed work" },
+  speed_work: { gains: { speed: 30, burst: 12 }, fatigue: 260, fitness: 60, hard: true, cost: 90, light: false, label: "Speed work" },
   stamina_gallops: { gains: { stamina: 30, durability: 10 }, fatigue: 240, fitness: 80, hard: true, cost: 60, light: false, label: "Stamina gallops" },
   gate_practice: { gains: { temperament: 24, burst: 10 }, fatigue: 90, fitness: 15, hard: false, cost: 40, light: true, label: "Gate practice" },
   swimming: { gains: { stamina: 14, durability: 14 }, fatigue: 70, fitness: 50, hard: false, cost: 50, light: true, label: "Swimming" },

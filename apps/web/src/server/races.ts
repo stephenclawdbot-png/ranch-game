@@ -297,8 +297,13 @@ const QuickPayloadSchema = z.object({
   /** Player silks ("pattern.rrggbb.rrggbb.rrggbb") and stable name, so the card shows the player's colours. */
   s: z.string().max(40).optional(),
   sn: StableNameSchema.optional(),
+  /** Instant result: the race is already over when created (solo quick races only, nothing to spoil). */
+  i: z.literal(1).optional(),
 });
 type QuickPayload = z.infer<typeof QuickPayloadSchema>;
+
+/** Instant quick races are back-dated past the longest possible broadcast, so `final` is available at once. */
+export const QUICK_INSTANT_BACKDATE_MS = 10 * 60_000;
 
 /**
  * Templates for quick races. `c` in the race id indexes this list. Quick races are where a new
@@ -346,9 +351,45 @@ export interface QuickRaceRequest {
   tactic: RunningStyle;
   silks?: Silks;
   stableName?: string;
+  /** Skip the broadcast and go straight to the result. */
+  instant?: boolean;
 }
 
-/** Creates a signed quick-race id. Post time is now + 10 s. */
+export interface QuickPick {
+  horseIndex: number;
+  tactic: RunningStyle;
+  /** Short reason shown on the pick card. */
+  reason: string;
+}
+
+/**
+ * Quick Pick: the best-suited starter horse on its natural style, judged by the form-guide
+ * rating at its preferred trip and ground. `exclude` lets the client skip horses it has run
+ * recently, so one horse isn't picked every time.
+ */
+export function quickPick(playerId: string, exclude: readonly number[] = []): QuickPick {
+  if (!isValidPlayerId(playerId)) throw new Error("invalid playerId");
+  const horses = starterHorses(playerId);
+  const pool = horses.map((h, i) => ({ h, i })).filter(({ i }) => !exclude.includes(i));
+  const candidates = pool.length > 0 ? pool : horses.map((h, i) => ({ h, i }));
+  let best = candidates[0]!;
+  let bestRating = -Infinity;
+  for (const c of candidates) {
+    const rating = raceRating(c.h, c.h.style, { distanceM: c.h.preferredDistanceM, surface: c.h.preferredSurface, going: "good" });
+    if (rating > bestRating) {
+      bestRating = rating;
+      best = c;
+    }
+  }
+  const styleLabel = { front: "front-runner", stalker: "stalker", closer: "closer" }[best.h.style];
+  return {
+    horseIndex: best.i,
+    tactic: best.h.style,
+    reason: `${best.h.name}: best fit at ${best.h.preferredDistanceM.toLocaleString("en-GB")} m on ${best.h.preferredSurface}, ridden as a natural ${styleLabel}`,
+  };
+}
+
+/** Creates a signed quick-race id. Post time is now + 10 s, or already over for instant races. */
 export function createQuickRace(req: QuickRaceRequest, nowMs: number, nonce = randomNonce()): { raceId: string; postTimeMs: number } {
   if (!isValidPlayerId(req.playerId)) throw new Error("invalid playerId");
   const horse = starterHorses(req.playerId)[req.horseIndex];
@@ -358,7 +399,9 @@ export function createQuickRace(req: QuickRaceRequest, nowMs: number, nonce = ra
   const rng = createRng(`quick-config:${req.playerId}:${nonce}`);
   const near = QUICK_TEMPLATES.map((t, i) => [i, QUICK_TRIP_WEIGHT[Math.abs(t.distanceM - horse.preferredDistanceM)] ?? 0] as const).filter(([, w]) => w > 0);
   const c = near.length > 0 && rng.chance(3, 4) ? rng.weighted(near) : rng.int(0, QUICK_TEMPLATES.length - 1);
-  const postTimeMs = Math.ceil((nowMs + QUICK_POST_DELAY_MS) / 1000) * 1000;
+  const postTimeMs = req.instant
+    ? Math.floor((nowMs - QUICK_INSTANT_BACKDATE_MS) / 1000) * 1000
+    : Math.ceil((nowMs + QUICK_POST_DELAY_MS) / 1000) * 1000;
   const payload: QuickPayload = {
     v: 1,
     p: req.playerId,
@@ -369,6 +412,7 @@ export function createQuickRace(req: QuickRaceRequest, nowMs: number, nonce = ra
     c,
     ...(req.silks ? { s: encodeSilks(req.silks) } : {}),
     ...(req.stableName ? { sn: req.stableName } : {}),
+    ...(req.instant ? { i: 1 as const } : {}),
   };
   const body = b64urlEncode(JSON.stringify(payload));
   return { raceId: `${body}.${sign(body)}`, postTimeMs };

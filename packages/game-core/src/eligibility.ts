@@ -65,12 +65,30 @@ export type EligibilityBlock =
   | "juvenile_class"
   | "not_juvenile"
   | "entries_closed"
-  | "field_full";
+  | "field_full"
+  | "stable_daily_limit";
+
+/**
+ * Optional per-stable daily entry budget (proposal under discussion: 10 entries/day, daily
+ * reset, refills for credits; the Daily Cup is free). Pass `entriesLeftToday` to enforce it;
+ * leave it undefined for no budget.
+ */
+export interface StableEntryContext {
+  entriesLeftToday?: number;
+}
+
+export const STABLE_DAILY_ENTRIES = 10;
+
+/** Entries left today for a stable: base budget + refills bought − entries used (never negative). */
+export function stableEntriesLeft(usedToday: number, refillsBought = 0, refillSize = 5): number {
+  return Math.max(0, STABLE_DAILY_ENTRIES + refillsBought * refillSize - usedToday);
+}
 
 /** Whether a horse may enter a race slot now. Returns null when eligible. */
-export function entryBlock(state: HorseState, slot: RaceSlot, nowMs: number, entriesSoFar = 0): EligibilityBlock | null {
+export function entryBlock(state: HorseState, slot: RaceSlot, nowMs: number, entriesSoFar = 0, stable: StableEntryContext = {}): EligibilityBlock | null {
   if (nowMs >= slot.entryCloseMs) return "entries_closed";
   if (entriesSoFar >= slot.maxRunners) return "field_full";
+  if (stable.entriesLeftToday !== undefined && stable.entriesLeftToday <= 0 && slot.tier !== "daily_cup") return "stable_daily_limit";
   const rule = TIER_RULES[slot.tier];
   const stage = stageOf(state);
   if (slot.tier === "trial") {
