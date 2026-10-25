@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 /** Presentational HUD pieces. All state comes from RaceViewer; nothing here touches Pixi. */
 import { formatRaceTime, type RaceConfig, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 import type { StandingRow } from "../timeline";
@@ -110,9 +111,10 @@ export interface ControlsProps {
 }
 
 const CAMERAS: { id: CameraMode; label: string; short: string; title: string }[] = [
-  { id: "leader", label: "Leader", short: "Lead", title: "Follow leader" },
-  { id: "mine", label: "My horse", short: "Mine", title: "Follow my horse" },
-  { id: "wide", label: "Wide", short: "Wide", title: "Wide shot" },
+  { id: "director", label: "Director", short: "TV", title: "Broadcast director (auto cuts)" },
+  { id: "mine", label: "My horse", short: "Mine", title: "Lock on my horse" },
+  { id: "leader", label: "Leader", short: "Lead", title: "Lock on the leader" },
+  { id: "wide", label: "Wide", short: "Wide", title: "Whole field" },
 ];
 
 function PlayIcon({ playing }: { playing: boolean }) {
@@ -285,4 +287,92 @@ export function ResultsCard({ replay, highlightHorseId, onClose, onReplay }: Res
       </div>
     </div>
   );
+}
+
+export interface MinimapDot {
+  id: string;
+  /** 0..1 along the race. */
+  p: number;
+  /** 0..1 across the track (0 = rail). */
+  lane: number;
+  primary: string;
+  secondary: string;
+  me: boolean;
+  leader: boolean;
+}
+
+/**
+ * Race minimap: a compact progress strip with every runner as a silks dot at its
+ * distance (lane = slight vertical offset), furlong ticks, the finish post, the
+ * leader and my horse marked. Drawn on a canvas, crisp at any DPR.
+ */
+export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: number[] }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(c.clientWidth * dpr));
+    const h = Math.max(1, Math.round(c.clientHeight * dpr));
+    if (c.width !== w || c.height !== h) {
+      c.width = w;
+      c.height = h;
+    }
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    const u = Math.max(1, Math.round(dpr));
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, w, h);
+    const padL = 8 * u;
+    const padR = 14 * u;
+    const x = (p: number) => Math.round(padL + Math.min(1, Math.max(0, p)) * (w - padL - padR));
+    const top = Math.round(h * 0.28);
+    const bot = Math.round(h * 0.86);
+    // Track band + rails.
+    ctx.fillStyle = "rgba(31,77,53,0.92)";
+    ctx.fillRect(x(0), top, x(1) - x(0), bot - top);
+    ctx.fillStyle = "#f3e7c9";
+    ctx.fillRect(x(0), top, x(1) - x(0), u);
+    ctx.fillRect(x(0), bot - u, x(1) - x(0), u);
+    // Furlong ticks.
+    ctx.fillStyle = "rgba(243,231,201,0.55)";
+    for (const f of furlongs) ctx.fillRect(x(f), top, u, Math.round((bot - top) * 0.35));
+    // Finish post: red/white pole + flag.
+    const fx = x(1);
+    for (let k = 0; k < 6; k++) {
+      ctx.fillStyle = k % 2 ? "#d71920" : "#ffffff";
+      ctx.fillRect(fx, Math.round(top - 3 * u + ((bot - top + 3 * u) * k) / 6), 2 * u, Math.ceil((bot - top + 3 * u) / 6));
+    }
+    ctx.fillStyle = "#d71920";
+    ctx.fillRect(fx + 2 * u, top - 3 * u, 5 * u, 3 * u);
+    // Runners: back to front, mine last (on top).
+    const r = Math.max(3 * u, Math.round(h * 0.13));
+    const order = [...dots].sort((a, b) => Number(a.me) - Number(b.me) || a.p - b.p);
+    for (const d of order) {
+      const cx = x(d.p);
+      const cy = Math.round(top + (bot - top) * (0.22 + 0.56 * d.lane));
+      ctx.fillStyle = "#0b0f0c";
+      ctx.fillRect(cx - r - u, cy - r - u, 2 * r + 2 * u, 2 * r + 2 * u);
+      ctx.fillStyle = d.primary;
+      ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+      ctx.fillStyle = d.secondary;
+      ctx.fillRect(cx - r, cy, 2 * r, r);
+      if (d.me) {
+        ctx.strokeStyle = "#f2c86a";
+        ctx.lineWidth = 2 * u;
+        ctx.strokeRect(cx - r - 2.5 * u, cy - r - 2.5 * u, 2 * r + 5 * u, 2 * r + 5 * u);
+        ctx.fillStyle = "#f2c86a";
+        ctx.beginPath();
+        ctx.moveTo(cx - 3 * u, top - 6 * u);
+        ctx.lineTo(cx + 3 * u, top - 6 * u);
+        ctx.lineTo(cx, top - 2 * u);
+        ctx.fill();
+      }
+      if (d.leader) {
+        ctx.fillStyle = "#f3e7c9";
+        ctx.fillRect(cx + r + 2 * u, cy - u, 3 * u, 2 * u);
+      }
+    }
+  });
+  return <canvas ref={ref} className="rv-minimap" aria-label="Race positions" />;
 }

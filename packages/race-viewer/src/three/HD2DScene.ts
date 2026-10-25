@@ -12,7 +12,7 @@ import { FURLONG_MM, type RaceReplay } from "@thoroughbred/shared";
 import { createReplaySampler, type HorseSample, type ReplaySampler } from "../sampleReplay";
 import { Spring } from "../scene/camera";
 import { legPhase, strideLengthM } from "../scene/horse/gait";
-import type { CameraMode, RenderQuality } from "../types";
+import { pipRect, type CameraMode, type RenderQuality } from "../types";
 import type { ArtSet } from "./art";
 import type { HorseRig, HorseRigFactory, LitHorseRig, RigKind } from "./horseRig";
 import { hexToRgb, mixHex, rng } from "./color";
@@ -137,7 +137,7 @@ class Spring3 {
   }
 }
 
-type Shot = "crane" | "follow" | "wide" | "low" | "photo" | "post";
+import { Director, SHOT_REACH, type ShotType } from "../director";
 
 export class HD2DScene {
   readonly canvas: HTMLCanvasElement;
@@ -173,7 +173,17 @@ export class HD2DScene {
   private camPos: Spring3;
   private camLook: Spring3;
   private fov: Spring;
-  private shot: Shot = "crane";
+  private director = new Director();
+  private dirEventScan = 0;
+  private shotType: ShotType = "gate";
+  private shotSubject: string | null = null;
+  private pipCam: THREE.PerspectiveCamera | null = null;
+  private pipPos: Spring3;
+  private pipLook: Spring3;
+  private pv1: THREE.Vector3;
+  private pv2: THREE.Vector3;
+  private pipActive = false;
+  private pipWasActive = false;
   private lastTime = Number.NaN;
   private animTime = 0;
   private firstFrame = true;
@@ -270,6 +280,11 @@ export class HD2DScene {
 
     const start = new T.Vector3(0, 14, 26);
     this.camPos = new Spring3(start, 2.2);
+    this.pv1 = new T.Vector3();
+    this.pv2 = new T.Vector3();
+    this.pipPos = new Spring3(start, 2.6);
+    this.pipLook = new Spring3(start, 3);
+    if (opts.quality === "high" && this.highlight >= 0) this.pipCam = new T.PerspectiveCamera(22, 16 / 9, 0.3, 2400);
     this.camLook = new Spring3(new T.Vector3(2, 0, -this.trackW / 2), 2.6);
     this.fov = new Spring(34, 2);
   }
@@ -799,7 +814,7 @@ export class HD2DScene {
   }
 
   get cameraInfo(): { x: number; zoom: number; shot: string } {
-    return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shot };
+    return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shotSubject ? `${this.shotType}:${this.shotSubject}` : this.shotType };
   }
 
   render(f: SceneFrame): void {
@@ -808,6 +823,12 @@ export class HD2DScene {
     const tS = Math.max(0, raceT);
     let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
     const seek = Math.abs(simDt) > 0.6 || simDt < -1e-9;
+    if (seek || Number.isNaN(this.lastTime)) {
+      this.director.reset(raceT);
+      this.dirEventScan = 0;
+      const tickNow = Math.max(0, raceT) * this.replay.tickHz;
+      while (this.dirEventScan < this.replay.events.length && this.replay.events[this.dirEventScan]!.tick < tickNow) this.dirEventScan++;
+    }
     if (seek) {
       simDt = 0;
       this.particles.clear();
@@ -858,155 +879,56 @@ export class HD2DScene {
     const fieldZ = zSum / this.runners.length;
 
     // --- Camera direction -------------------------------------------------------
-    // Broadcast framing: pick the horses that must be on screen, then solve the camera
-    // distance (at a fixed elevation / yaw) that fits them into part of the frame.
-    let mode = f.camera;
-    if (mode === "mine" && this.highlight < 0) mode = "leader";
+    // A TV director picks the shot (hard cuts); each shot frames its subject with a
+    // fixed lens/angle and the camera moves smoothly within it.
     const mine = this.highlight >= 0 ? this.runners[this.highlight]! : null;
-    const focus = mode === "mine" && mine ? mine : lead;
-    const toGo = L - lead.x;
-    const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
-    let shot: Shot;
-    if (raceT < 1.0) shot = "crane";
-    else if (photo) shot = "photo";
-    else if (tS > this.winnerTime + 0.9 && mode !== "mine") shot = "post";
-    else if (mode === "wide") shot = "wide";
-    else if (toGo < 150 && toGo > 0) shot = "low";
-    else shot = "follow";
-    const cut = shot !== this.shot && (shot === "photo" || this.shot === "photo");
-    this.shot = shot;
-
+    let mode = f.camera;
+    if (mode === "mine" && !mine) mode = "director";
     const byX = [...this.runners].sort((a, b) => b.x - a.x);
-    let group: Runner[];
-    let elev = 17;
-    let yaw = -6;
-    let fillX = 0.86;
-    let fillY = 0.55;
-    let fov = 30;
-    let lookY = 0.9;
-    let vel = focus.speed;
-    let leadPad = 2;
-    switch (shot) {
-      case "crane": {
-        // Over the stalls, descending into the race camera as the gates open.
-        const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
-        group = byX;
-        // Behind-the-stalls three-quarter view (open backs, lanes spread across the
-        // frame, the straight ahead), swinging round to the race camera at the off.
-        elev = 26 - 12 * k;
-        yaw = -50 + 44 * k;
-        fillX = 0.8;
-        fillY = 0.62;
-        fov = 32;
-        vel = 0;
-        break;
-      }
-      case "wide":
-        group = byX;
-        elev = 20;
-        yaw = -4;
-        fillX = 0.86;
-        fillY = 0.55;
-        fov = 30;
-        leadPad = 4;
-        break;
-      case "low": {
-        // Final ~150 m: tighter on the leading group, lower and slightly ahead.
-        const ref = mode === "mine" && mine ? mine : lead;
-        group = byX.filter((r) => Math.abs(r.x - ref.x) < 12).slice(0, 5);
-        if (!group.includes(ref)) group.push(ref);
-        elev = 10;
-        yaw = 16;
-        fillX = 0.8;
-        fillY = 0.5;
-        fov = 28;
-        leadPad = 3;
-        break;
-      }
-      case "photo":
-        group = byX.filter((r) => Math.abs(r.x - L) < 5);
-        if (group.length < 2) group = byX.slice(0, 2);
-        elev = 12;
-        yaw = 0;
-        fillX = 0.8;
-        fillY = 0.62;
-        fov = 28;
-        vel = 0;
-        leadPad = 0;
-        break;
-      case "post":
-        group = byX.filter((r) => r.x > L - 40);
-        if (group.length < 3) group = byX.slice(0, 3);
-        elev = 18;
-        yaw = 10;
-        fov = 32;
-        vel = 0;
-        break;
-      default: {
-        if (mode === "mine" && mine) {
-          // My horse plus its three nearest rivals.
-          group = [mine, ...byX.filter((r) => r !== mine).sort((a, b) => Math.abs(a.x - mine.x) - Math.abs(b.x - mine.x)).slice(0, 3)];
-        } else {
-          // The leading group: leader back to at least the 6th horse, or the whole
-          // field when it is within ~30 lengths.
-          const spread = byX[0]!.x - byX[byX.length - 1]!.x;
-          group = spread < 16 ? byX : byX.slice(0, Math.min(byX.length, 6));
-        }
-        elev = 14;
-        yaw = -6;
-        fov = 30;
-        break;
-      }
+    // Events that have just happened (for motivated cuts).
+    const newEvents: { type: string; horseId?: string }[] = [];
+    for (; this.dirEventScan < evs.length && evs[this.dirEventScan]!.tick / this.replay.tickHz <= tS; this.dirEventScan++) newEvents.push(evs[this.dirEventScan]!);
+    const dirInput = {
+      t: raceT,
+      runners: this.runners.map((r) => ({ id: r.horseId, x: r.x })),
+      trackLengthM: L,
+      winnerTime: this.winnerTime,
+      photoFinish: this.photoFinish,
+      newEvents,
+      highlightId: mine?.horseId ?? null,
+    };
+    let shotType: ShotType;
+    let subjectId: string | null;
+    let cut: boolean;
+    if (mode === "director") {
+      const r = this.director.update(dirInput);
+      shotType = r.shot.type;
+      subjectId = r.shot.subject;
+      cut = r.cut;
+    } else {
+      const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
+      shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "wide" : tS > this.winnerTime + 0.9 && mode !== "mine" ? "post" : "close";
+      subjectId = mode === "mine" ? mine!.horseId : null;
+      cut = shotType !== this.shotType || subjectId !== this.shotSubject;
+      // Keep tracking smooth when a locked camera merely changes subject.
+      if (cut && (shotType === "close" || shotType === "wide") && (this.shotType === "close" || this.shotType === "wide")) cut = false;
     }
-    // Bounding box of the group (bodies extend ~2.6 m back from the nose).
-    let x0 = Infinity;
-    let x1 = -Infinity;
-    let z0 = Infinity;
-    let z1 = -Infinity;
-    for (const r of group) {
-      x0 = Math.min(x0, r.x - 2.7);
-      x1 = Math.max(x1, r.x + 0.3);
-      z0 = Math.min(z0, r.z);
-      z1 = Math.max(z1, r.z);
-    }
-    if (shot === "crane") {
-      x0 = Math.min(x0, -3.6);
-      x1 = Math.max(x1, 0.6);
-      z0 = Math.min(z0, this.laneZ(-0.5));
-      z1 = Math.max(z1, this.laneZ(-0.5));
-    }
-    // Max zoom-out: never frame more than ~40 m of track (wide: 80 m); keep the front.
-    // Narrow screens frame less track (and look down a little more, using their extra
-    // height to separate the lanes) so horses stay readable.
-    const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
-    const maxSpan = (shot === "wide" ? 80 : 30) * Math.pow(narrowK, 1.5);
-    if (shot !== "photo" && shot !== "crane") elev += (1 - narrowK) * 16;
-    fillY *= 0.85 + 0.15 * narrowK;
-    if (x1 - x0 > maxSpan) x0 = x1 - maxSpan;
-    if (shot === "photo") {
-      x0 = Math.min(x0, L - 2.5);
-      x1 = Math.max(x1, L + 2.5);
-    }
-    const at = this.v2.set((x0 + x1) / 2 + leadPad * 0.5, lookY, (z0 + z1) / 2);
-    const D = this.fitDistance(x0, x1, z0, z1, at, elev, yaw, fov, fillX, fillY);
-    const e = (elev * Math.PI) / 180;
-    const a = (yaw * Math.PI) / 180;
-    const pos = this.v1.set(at.x + Math.sin(a) * Math.cos(e) * D, at.y + Math.sin(e) * D, at.z + Math.cos(a) * Math.cos(e) * D);
-    // Compose: aim above the group so it sits in the lower-middle and the horizon/stands
-    // show in the upper third (shift in NDC = composeShift).
-    // (Kept small: the HUD covers the top ~25% and the controls the bottom ~12%.)
-    const composeShift = shot === "photo" ? 0.06 : shot === "low" ? 0.3 : 0.16;
-    at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
+    this.shotType = shotType;
+    this.shotSubject = subjectId;
+    const subject = (subjectId ? this.runners.find((r) => r.horseId === subjectId) : null) ?? lead;
+    const pos = this.v1;
+    const at = this.v2;
+    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
-      this.fov.snap(fov);
+      this.fov.snap(sc.fov);
       this.firstFrame = false;
     } else {
-      const ff = f.frozen ? 0 : vel * (simDt > 0 && realDt > 0 ? simDt / realDt : 0);
+      const ff = f.frozen ? 0 : sc.vel * (simDt > 0 && realDt > 0 ? simDt / realDt : 0);
       this.camPos.step(pos, realDt, ff);
       this.camLook.step(at, realDt, ff);
-      this.fov.step(fov, realDt);
+      this.fov.step(sc.fov, realDt);
     }
     const cam = this.camera;
     this.camPos.into(cam.position);
@@ -1016,9 +938,33 @@ export class HD2DScene {
       cam.fov = vfov;
       cam.updateProjectionMatrix();
     }
-    this.focusDist = cam.position.distanceTo(this.v1.set((x0 + x1) / 2, 1.0, (z0 + z1) / 2));
-    // Keep the whole group plus the near rail in the sharp band.
-    this.focusRange = Math.max(8, (z1 - z0) * 0.6 + (x1 - x0) * 0.25 + 6);
+    this.focusDist = cam.position.distanceTo(this.v1.set((sc.x0 + sc.x1) / 2, 1.0, (sc.z0 + sc.z1) / 2));
+    // Keep the framed horses plus the near rail in the sharp band.
+    this.focusRange = Math.max(5, (sc.z1 - sc.z0) * 0.6 + (sc.x1 - sc.x0) * 0.25 + 4);
+    const shot = shotType;
+    const focus = subject;
+
+    // Picture-in-picture: my horse, when the director isn't showing it (desktop/high only).
+    this.pipActive = false;
+    if (this.pipCam && mine && mode === "director" && raceT > 1 && tS < this.winnerTime + 0.9 && this.quality === "high" && !this.director.shows(mine.horseId, dirInput)) {
+      const pc = this.shotCamera("close", mine, byX, raceT, this.pv1, this.pv2);
+      if (!this.pipWasActive) {
+        this.pipPos.snap(this.pv1);
+        this.pipLook.snap(this.pv2);
+      } else {
+        const ff = mine.speed * (simDt > 0 && realDt > 0 ? simDt / realDt : 0);
+        this.pipPos.step(this.pv1, realDt, ff);
+        this.pipLook.step(this.pv2, realDt, ff);
+      }
+      this.pipPos.into(this.pipCam.position);
+      this.pipCam.lookAt(this.pipLook.into(this.pv2));
+      if (Math.abs(this.pipCam.fov - pc.fov) > 1e-3) {
+        this.pipCam.fov = pc.fov;
+        this.pipCam.updateProjectionMatrix();
+      }
+      this.pipActive = true;
+    }
+    this.pipWasActive = this.pipActive;
 
     // --- World animation ---------------------------------------------------------
     this.sky.position.copy(cam.position);
@@ -1124,8 +1070,34 @@ export class HD2DScene {
       this.renderer.setRenderTarget(null);
       this.renderer.render(this.scene, cam);
     }
+    // Picture-in-picture: a second, direct render of the same scene into a scissored inset.
+    const rect = this.pipActive && this.pipCam ? pipRect(this.W, this.H) : null;
+    this.pipShown = !!rect;
+    if (rect && this.pipCam) {
+      const r = this.renderer;
+      const x = this.W - rect.right - rect.w;
+      const y = rect.bottom;
+      if (Math.abs(this.pipCam.aspect - rect.w / rect.h) > 1e-3) {
+        this.pipCam.aspect = rect.w / rect.h;
+        this.pipCam.updateProjectionMatrix();
+      }
+      r.setRenderTarget(null);
+      r.setScissorTest(true);
+      r.setScissor(x, y, rect.w, rect.h);
+      r.setViewport(x, y, rect.w, rect.h);
+      const auto = r.autoClear;
+      r.autoClear = false;
+      r.clear(true, true, false);
+      r.render(this.scene, this.pipCam);
+      r.autoClear = auto;
+      r.setScissorTest(false);
+      r.setViewport(0, 0, this.W, this.H);
+    }
     void T;
   }
+
+  /** True when the PiP inset was drawn this frame (the HUD frames it). */
+  pipShown = false;
 
   private applyResult(): void {
     const res = this.replay.result ?? null;
@@ -1145,6 +1117,168 @@ export class HD2DScene {
     this.kickScan = 0;
     this.kicks.clear();
     this.lastTime = Number.NaN;
+  }
+
+  /**
+   * Camera for one shot type around `sub`: writes the target position/aim into `pos` /
+   * `at` and returns the lens, tracking velocity and the framed box.
+   */
+  private shotCamera(type: ShotType, sub: Runner, byX: Runner[], raceT: number, pos: THREE.Vector3, at: THREE.Vector3) {
+    const L = this.L;
+    let group: Runner[] = [sub];
+    let elev = 8;
+    let yaw = -4;
+    let fillX = 0.9;
+    let fillY = 0.62;
+    let fov = 22;
+    let vel = sub.speed;
+    let leadPad = 1;
+    let maxSpan = 10;
+    let composeShift = 0.12;
+    const near = (reach: number, max: number) => {
+      const g = byX.filter((r) => Math.abs(r.x - sub.x) <= reach).sort((a, b) => Math.abs(a.x - sub.x) - Math.abs(b.x - sub.x)).slice(0, max);
+      return g.includes(sub) ? g : [sub, ...g.slice(0, max - 1)];
+    };
+    switch (type) {
+      case "gate": {
+        const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
+        group = byX;
+        elev = 26 - 14 * k;
+        yaw = -50 + 46 * k;
+        fillX = 0.8;
+        fillY = 0.62;
+        fov = 32;
+        vel = 0;
+        maxSpan = 1e9;
+        composeShift = 0.16;
+        break;
+      }
+      case "close":
+        // Side-on tracking, 2-4 horses filling the frame.
+        group = near(SHOT_REACH.close, 4);
+        elev = 7;
+        yaw = -4;
+        fillX = 0.9;
+        fillY = 0.62;
+        fov = 22;
+        maxSpan = 9;
+        break;
+      case "pack":
+        group = near(SHOT_REACH.pack, 7);
+        elev = 12;
+        yaw = -6;
+        fillX = 0.9;
+        fillY = 0.58;
+        fov = 26;
+        maxSpan = 24;
+        composeShift = 0.14;
+        break;
+      case "headon":
+        // Three-quarter front: ahead of the leaders looking back down the track
+        // (side-view sprites turn at most ~35 deg, so a true head-on would look flat).
+        group = near(SHOT_REACH.headon, 5);
+        elev = 6;
+        yaw = 50;
+        fillX = 0.75;
+        fillY = 0.6;
+        fov = 24;
+        leadPad = 2;
+        maxSpan = 12;
+        break;
+      case "aerial":
+        group = byX;
+        elev = 52;
+        yaw = -8;
+        fillX = 0.88;
+        fillY = 0.55;
+        fov = 34;
+        maxSpan = 1e9;
+        composeShift = 0.08;
+        break;
+      case "wide":
+        group = byX;
+        elev = 20;
+        yaw = -4;
+        fillX = 0.86;
+        fillY = 0.55;
+        fov = 30;
+        leadPad = 4;
+        maxSpan = 80;
+        composeShift = 0.16;
+        break;
+      case "rail": {
+        // Low rail cam: just inside the inner rail at hoof-to-hip height, the rail posts
+        // whipping past in the foreground.
+        const g = near(SHOT_REACH.rail, 4);
+        let zz = 0;
+        for (const r of g) zz += r.z;
+        zz /= g.length;
+        pos.set(sub.x - 3.0, 1.35, 1.9);
+        at.set(sub.x + 1.5, 1.05, zz);
+        return { fov: 44, vel: sub.speed, x0: sub.x - 6, x1: sub.x + 1, z0: zz - 1, z1: zz + 1 };
+      }
+      case "judge":
+        group = byX.filter((r) => Math.abs(r.x - L) < 5);
+        if (group.length < 2) group = byX.slice(0, 2);
+        elev = 12;
+        yaw = 0;
+        fillX = 0.8;
+        fillY = 0.62;
+        fov = 28;
+        vel = 0;
+        leadPad = 0;
+        maxSpan = 1e9;
+        composeShift = 0.06;
+        break;
+      case "post":
+        group = byX.filter((r) => r.x > L - 40);
+        if (group.length < 3) group = byX.slice(0, 3);
+        elev = 14;
+        yaw = 10;
+        fov = 30;
+        vel = 0;
+        maxSpan = 30;
+        break;
+    }
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let z0 = Infinity;
+    let z1 = -Infinity;
+    for (const r of group) {
+      x0 = Math.min(x0, r.x - 2.7);
+      x1 = Math.max(x1, r.x + 0.3);
+      z0 = Math.min(z0, r.z);
+      z1 = Math.max(z1, r.z);
+    }
+    if (type === "gate") {
+      x0 = Math.min(x0, -3.6);
+      x1 = Math.max(x1, 0.6);
+      z0 = Math.min(z0, this.laneZ(-0.5));
+      z1 = Math.max(z1, this.laneZ(-0.5));
+    }
+    // Narrow screens: less track, a little more elevation to separate the lanes.
+    const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
+    maxSpan *= Math.pow(narrowK, type === "close" ? 0.5 : 1.5);
+    if (type !== "judge" && type !== "gate" && type !== "aerial") elev += (1 - narrowK) * 12;
+    fillY *= 0.85 + 0.15 * narrowK;
+    if (x1 - x0 > maxSpan) {
+      // Keep the subject in the frame, trimmed towards the front of the group.
+      const keepFront = Math.min(x1, Math.max(sub.x + 0.3, x0 + maxSpan));
+      x1 = keepFront;
+      x0 = x1 - maxSpan;
+    }
+    if (type === "judge") {
+      x0 = Math.min(x0, L - 2.5);
+      x1 = Math.max(x1, L + 2.5);
+    }
+    at.set((x0 + x1) / 2 + leadPad * 0.5, 0.9, (z0 + z1) / 2);
+    const D = this.fitDistance(x0, x1, z0, z1, at, elev, yaw, fov, fillX, fillY);
+    const e = (elev * Math.PI) / 180;
+    const a = (yaw * Math.PI) / 180;
+    pos.set(at.x + Math.sin(a) * Math.cos(e) * D, at.y + Math.sin(e) * D, at.z + Math.cos(a) * Math.cos(e) * D);
+    // Aim above the group so it sits in the HUD-free band, horizon in the upper third.
+    at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
+    return { fov, vel, x0, x1, z0, z1 };
   }
 
   /** Vertical FOV that keeps a 16:9 frame's horizontal field of view on narrow screens. */

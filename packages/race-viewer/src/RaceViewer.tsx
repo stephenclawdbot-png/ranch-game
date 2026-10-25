@@ -12,8 +12,9 @@ import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
 import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
 import { replayTiming } from "./sampleReplay";
 import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
-import type { CameraMode, QualitySetting, RenderQuality } from "./types";
-import { Controls, Countdown, PhotoStamp, ResultsCard, Ticker, TopHud } from "./hud/Hud";
+import { pipRect, type CameraMode, type QualitySetting, type RenderQuality } from "./types";
+import { FURLONG_MM } from "@thoroughbred/shared";
+import { Controls, Countdown, Minimap, PhotoStamp, ResultsCard, Ticker, TopHud, type MinimapDot } from "./hud/Hud";
 import { injectViewerCss } from "./hud/styles";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 
@@ -63,6 +64,8 @@ interface HudState {
   /** Furthest scrubbable time (live: the live edge; replay: duration). */
   scrubMax: number;
   buffering: boolean;
+  dots: MinimapDot[];
+  pip: boolean;
   time: number;
   playing: boolean;
   live: boolean;
@@ -155,7 +158,7 @@ export function RaceViewer(props: RaceViewerProps) {
   if (!info) throw new Error("RaceViewer needs a `replay` or a `feed`");
   const horses = info.horses;
   const hasHighlight = !!highlightHorseId && horses.some((h) => h.horseId === highlightHorseId);
-  const [camera, setCamera] = useState<CameraMode>(initialCamera ?? (hasHighlight ? "leader" : "leader"));
+  const [camera, setCamera] = useState<CameraMode>(initialCamera ?? "director");
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
   const onFinishedRef = useRef(onFinished);
@@ -198,7 +201,24 @@ export function RaceViewer(props: RaceViewerProps) {
     const src: TimelineSource | null = finalRef.current ?? live;
     if (!src) return;
     const isLive = clock instanceof LiveClock;
+    const laneMax = Math.max(1, ("laneCount" in src ? (src as { laneCount: number }).laneCount : 8) - 1);
+    let leadIdx = -1;
+    for (const s of samples) if (leadIdx < 0 || s.x > samples[leadIdx]!.x) leadIdx = samples.indexOf(s);
+    const dots: MinimapDot[] = samples.map((s, i) => {
+      const hz = src.horses[s.index]!;
+      return {
+        id: s.horseId,
+        p: s.x / src.trackLengthMm,
+        lane: Math.min(1, Math.max(0, s.lane / laneMax)),
+        primary: hz.appearance.silks.primary,
+        secondary: hz.appearance.silks.secondary,
+        me: s.horseId === highlightHorseId,
+        leader: i === leadIdx && t > 0,
+      };
+    });
     setHud({
+      dots,
+      pip: !!scene?.pipShown,
       mode: isLive ? "live" : "replay",
       scrubMax: isLive ? Math.max(0, clock.edge()) : clock.duration,
       buffering: isLive ? clock.buffering : false,
@@ -214,7 +234,7 @@ export function RaceViewer(props: RaceViewerProps) {
       standings: samples.length ? standingsAt(src, samples) : [],
       commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), 6, 1)[0] ?? null) : null,
     });
-  }, [live]);
+  }, [live, highlightHorseId]);
 
   // Three.js HD-2D scene. StrictMode-safe: the async init checks `disposed` after every await.
   useEffect(() => {
@@ -417,6 +437,13 @@ export function RaceViewer(props: RaceViewerProps) {
   const h = hud;
   const showResults = !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;
   const isLive = h?.mode === "live";
+  const pip = pipRect(width, stageRef.current?.clientHeight ?? 0);
+  const furlongs = useMemo(() => {
+    const L = info.trackLengthMm;
+    const out: number[] = [];
+    for (let i = 1; L - i * FURLONG_MM > 0; i++) out.push((L - i * FURLONG_MM) / L);
+    return out;
+  }, [info.trackLengthMm]);
   const maxStandings = narrow ? 3 : width < 900 ? 6 : 16;
 
   return (
@@ -444,6 +471,12 @@ export function RaceViewer(props: RaceViewerProps) {
         )}
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}
+        {h && !showResults && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} />}
+        {h?.pip && pip && (
+          <div className="rv-pip" style={{ right: pip.right, bottom: pip.bottom, width: pip.w, height: pip.h }}>
+            <span>My horse</span>
+          </div>
+        )}
         {h?.slowmo && !h.frozen && <div className="rv-badge">SLOW-MO</div>}
         {h && replayBadge && h.mode === "replay" && !h.ended && !h.slowmo && !h.frozen && <div className="rv-badge">PHOTO REPLAY</div>}
         {h?.buffering && <div className="rv-badge rv-badge-buffer">BUFFERING</div>}

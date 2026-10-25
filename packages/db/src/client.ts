@@ -2,8 +2,9 @@
  * Database client factory.
  *
  * - `DATABASE_URL` set   → Neon serverless (WebSocket Pool: real interactive transactions
- *                          and row locks). Migrations auto-apply on first use unless
- *                          `DB_AUTO_MIGRATE=0` (advisory-locked, safe across cold starts).
+ *                          and row locks). On Vercel, migrations run at build time
+ *                          (scripts/migrate.mjs, DATABASE_URL_UNPOOLED); elsewhere they
+ *                          auto-apply on first use. `DB_AUTO_MIGRATE=1|0` overrides.
  * - `DATABASE_URL` unset → embedded PGlite (Postgres 17 in WASM), migrations always applied:
  *                          zero-setup local dev, tests and preview deploys.
  *                          `PGLITE_DIR` = a directory to persist to, or "memory".
@@ -11,8 +12,8 @@
  *                          when NODE_ENV=development, in-memory otherwise.
  *
  * On Vercel, in-memory PGlite lives inside one function instance: it resets on every cold
- * start and is NOT shared between instances. Fine for previews and demos; production needs
- * a real DATABASE_URL (Neon via the Vercel Marketplace).
+ * start and is NOT shared between instances, so shared Live races cannot work on it.
+ * Production refuses to start without DATABASE_URL (see assertEmbeddedAllowed).
  *
  * Server-only: never import this module from client components.
  */
@@ -82,7 +83,10 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
     }
     const pool = new Pool({ connectionString: url });
     const db = drizzle({ client: pool, schema }) as unknown as Db;
-    if (opts.migrate ?? env("DB_AUTO_MIGRATE") !== "0") await migrate(db);
+    // On Vercel the build applies migrations (scripts/migrate.mjs via DATABASE_URL_UNPOOLED);
+    // elsewhere migrate on first use. DB_AUTO_MIGRATE=1/0 forces either way.
+    const auto = env("DB_AUTO_MIGRATE") === "1" || (env("DB_AUTO_MIGRATE") !== "0" && !env("VERCEL"));
+    if (opts.migrate ?? auto) await migrate(db);
     return { db, driver: "neon", location: null, close: () => pool.end() };
   }
 

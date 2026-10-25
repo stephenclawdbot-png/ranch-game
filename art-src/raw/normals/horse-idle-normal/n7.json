@@ -1,0 +1,298 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<21544 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9ea2cb1f-2987-46f5-99ae-f48f765afd32",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "9ea2cb1f-2987-46f5-99ae-f48f765afd32",
+  "status": "completed",
+  "created_at": "2026-10-25T18:07:28.106166+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 100,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       137,
+       113,
+       122,
+       136,
+       135,
+       118,
+       117,
+       140,
+       142
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far legs",
+      "shape": "cylinder",
+      "regions": [
+       147,
+       148,
+       151,
+       153,
+       154
+      ]
+     },
+     {
+      "name": "far hooves",
+      "shape": "ball",
+      "regions": [
+       149,
+       150,
+       152,
+       155,
+       156,
+       145,
+       146
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near foreleg",
+      "shape": "cylinder",
+      "regions": [
+       141,
+       144
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near foreleg lower",
+      "shape": "cylinder",
+      "regions": [
+       139
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       123,
+       124,
+       127,
+       128,
+       114,
+       125,
+       138
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "chest and hindquarter",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       126
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       109
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider left leg",
+      "shape": "cylinder",
+      "regions": [
+       107
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "rider right leg",
+      "shape": "cylinder",
+      "regions": [
+       111
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       57
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "cyan scarf",
+      "shape": "cylinder",
+      "regions": [
+       36,
+       35,
+       44,
+       43,
+       52,
+       58,
+       64,
+       71
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       59
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "mane",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       84,
+       41,
+       25,
+       85,
+       72
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       49,
+       60,
+       55,
+       56,
+       61,
+       62,
+       63,
+       77,
+       78,
+       66,
+       67,
+       68,
+       69,
+       73,
+       83,
+       90,
+       91,
+       92,
+       93,
+       94,
+       95,
+       96,
+       97
+      ]
+     },
+     {
+      "name": "helmet",
+      "shape": "ball",
+      "regions": [
+       18,
+       33,
+       34,
+       37
+      ]
+     },
+     {
+      "name": "plume",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       5,
+       7,
+       9,
+       13,
+       14,
+       15,
+       20,
+       22,
+       28
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     63
+    ],
+    "backdrop": [],
+    "recessed": [
+     72,
+     74,
+     76,
+     81,
+     85,
+     86,
+     102,
+     96,
+     65,
+     112
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<62800 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "31d18fad-327b-409b-8fd6-f47634bcf880",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T18:07:28.180643+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-idle-normal/n7-0.png"
+ ]
+}

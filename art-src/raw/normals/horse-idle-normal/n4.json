@@ -1,0 +1,210 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<20780 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "123892cb-f962-47da-a01e-095d26a93be9",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "123892cb-f962-47da-a01e-095d26a93be9",
+  "status": "completed",
+  "created_at": "2026-10-25T18:04:45.942829+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       115
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       136
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "chest and front legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       118
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "tail",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       131,
+       129,
+       125,
+       120
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       65,
+       40
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       51,
+       67,
+       82,
+       83,
+       59,
+       60,
+       61,
+       63,
+       64
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       56,
+       99,
+       103
+      ]
+     },
+     {
+      "name": "rider breeches",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       101
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "left arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       36,
+       35,
+       57
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "right arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       53,
+       44,
+       43,
+       62,
+       72
+      ]
+     },
+     {
+      "name": "helmet",
+      "round": 1,
+      "shape": "ball",
+      "regions": [
+       20,
+       2,
+       9,
+       13,
+       21,
+       28,
+       1,
+       8
+      ]
+     },
+     {
+      "name": "face",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       22,
+       24,
+       25,
+       14
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     101,
+     46
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<62412 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "96d68749-e3ac-4be7-ad2c-65a0607f5043",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T18:04:46.008764+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-idle-normal/n4-0.png"
+ ]
+}

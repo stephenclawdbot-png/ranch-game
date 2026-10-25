@@ -1,0 +1,278 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<21156 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "7d6fe8f8-645c-48a3-a19b-e466d80b7935",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "7d6fe8f8-645c-48a3-a19b-e466d80b7935",
+  "status": "completed",
+  "created_at": "2026-10-25T18:04:06.827794+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 85,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       131
+      ]
+     },
+     {
+      "box": [
+       60,
+       102,
+       110,
+       191
+      ],
+      "axis": 90,
+      "name": "hind legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       135,
+       133,
+       132,
+       134,
+       136,
+       139,
+       142,
+       144,
+       145
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       117,
+       100,
+       88,
+       107,
+       118,
+       121,
+       123
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "forequarter",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       120,
+       119,
+       112,
+       113,
+       124,
+       125,
+       126,
+       128,
+       129,
+       130
+      ]
+     },
+     {
+      "box": [
+       135,
+       102,
+       174,
+       191
+      ],
+      "axis": 90,
+      "name": "front legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       135,
+       137,
+       138,
+       140,
+       141,
+       143,
+       146,
+       147
+      ]
+     },
+     {
+      "name": "saddle",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0.3
+      ],
+      "regions": [
+       51,
+       98,
+       102,
+       99,
+       89,
+       73,
+       101,
+       108,
+       127,
+       81
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       61,
+       63,
+       59,
+       60,
+       39,
+       40,
+       46,
+       62,
+       67
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "mane",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       50,
+       68,
+       92,
+       90
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       48,
+       77,
+       78,
+       54,
+       55,
+       64,
+       53,
+       65,
+       70,
+       74,
+       75,
+       76,
+       69,
+       85,
+       87,
+       94,
+       95,
+       97,
+       96,
+       104,
+       83,
+       84,
+       86
+      ]
+     },
+     {
+      "name": "rider gear",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       19,
+       37,
+       31,
+       32,
+       20,
+       21,
+       13,
+       3,
+       7,
+       14,
+       26,
+       34,
+       33,
+       43,
+       44,
+       52,
+       38,
+       56,
+       57,
+       58,
+       22,
+       23,
+       24,
+       15,
+       16,
+       17,
+       27,
+       28
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     65,
+     70
+    ],
+    "backdrop": [],
+    "recessed": [
+     41,
+     42,
+     47
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<61692 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "7f55fbc6-c809-4820-a670-c827c72d9e60",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T18:04:06.900439+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-idle-normal/n3-0.png"
+ ]
+}

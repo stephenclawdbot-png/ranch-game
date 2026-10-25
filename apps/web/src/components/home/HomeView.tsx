@@ -291,9 +291,8 @@ function QuickPickHero({ horse, index, firstRace }: { horse: Horse; index: numbe
               </p>
             </div>
           </div>
-          <p className="mt-3 max-w-prose text-cream-dim">
-            Quick Pick sends your best-suited fresh horse to the next Story race, ridden to its natural style. {horseSummary(horse)}
-          </p>
+          <p className="mt-3 max-w-prose text-cream-dim">{horseSummary(horse)}</p>
+          <p className="caption mt-1">Quick Pick sends your best-suited fresh horse, ridden to its natural style.</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <ActionBar>
               <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">

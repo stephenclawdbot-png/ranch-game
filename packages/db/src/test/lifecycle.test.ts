@@ -9,7 +9,8 @@ import { enterDailyCup } from "../services/competition";
 import { moveToLegacyFarm, recordCare, retireHorse } from "../services/horses";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { runMaintenance } from "../services/maintenance";
-import { createRace, enterRace, getRaceForSimulation, settleRace } from "../services/races";
+import { createRace, enterRace, getRaceForSimulation, settleRace, type RunnerOutcome } from "../services/races";
+import { commitSeed } from "../crypto";
 import { at, count, DAY, expectDbError, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
 
 let h: DbHandle;
@@ -21,7 +22,7 @@ afterAll(async () => {
 });
 
 let raceN = 0;
-function quickRace(offsetMs = 0, extra: { purse?: number; entryFee?: number; maxRunners?: number } = {}) {
+function quickRace(offsetMs = 0, extra: { purse?: number; entryFee?: number; maxRunners?: number; targetRunners?: number } = {}) {
   return createRace(h.db, {
     kind: "quick",
     name: `Race ${++raceN}`,
@@ -29,7 +30,21 @@ function quickRace(offsetMs = 0, extra: { purse?: number; entryFee?: number; max
     conditions: { distanceM: 1200, surface: "turf" },
     postTime: at(offsetMs + 10 * MIN),
     entriesCloseAt: at(offsetMs + 9 * MIN),
+    targetRunners: 2,
     ...extra,
+  });
+}
+
+/** Locks + settles with `first` horses in the given order, the rest of the field after. */
+async function runRace(raceId: string, now: Date, first: string[], extra: Record<string, Partial<RunnerOutcome>> = {}) {
+  const { field } = await getRaceForSimulation(h.db, raceId, now);
+  const order = [...first, ...field.runners.map((r) => r.horseId).filter((id) => !first.includes(id))];
+  return settleRace(h.db, {
+    raceId,
+    now,
+    resultHash: "0".repeat(64),
+    result: { order },
+    runners: order.map((horseId, i) => ({ horseId, position: i + 1, ...(extra[horseId] ?? {}) })),
   });
 }
 
@@ -37,55 +52,54 @@ describe("racing", () => {
   it("entering locks the horse; settlement is idempotent (purse paid once) and unlocks", async () => {
     const p = await newPlayer(h.db, { credits: 1_000 });
     const a = await makeHorse(h.db, p.stableId);
-    const rival = await makeHorse(h.db, null);
     const race = await quickRace(0, { purse: 10_000, entryFee: 100 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
-    await enterRace(h.db, { accountId: null, raceId: race.id, horseId: rival.id, tactic: "closer", now: T0 });
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ lockKind: "race", lockRef: race.id });
     expect(await getBalance(h.db, p.accountId)).toBe(900);
 
     await expect(getRaceForSimulation(h.db, race.id, at(5 * MIN))).rejects.toMatchObject({ code: "TOO_EARLY" });
     const sim = await getRaceForSimulation(h.db, race.id, at(10 * MIN));
-    expect(sim.entries).toHaveLength(2);
+    expect(sim.field.runners).toHaveLength(2); // filled with one house horse
+    expect(commitSeed(sim.race.seed)).toBe(race.seedCommitment);
+    const rival = sim.field.runners.find((r) => r.isHouse)!.horseId;
     const outcome = {
       raceId: race.id,
       now: at(11 * MIN),
       resultHash: "f".repeat(64),
-      result: { order: [a.id, rival.id] },
+      result: { order: [a.id, rival] },
       runners: [
         { horseId: a.id, position: 1, finishTimeUs: 70_000_000, ratingAfter: 12 },
-        { horseId: rival.id, position: 2, finishTimeUs: 70_500_000 },
+        { horseId: rival, position: 2, finishTimeUs: 70_500_000 },
       ],
     };
     const results = await Promise.all([settleRace(h.db, outcome), settleRace(h.db, outcome), settleRace(h.db, outcome)]);
     expect(results.filter((r) => !r.alreadySettled)).toHaveLength(1);
     expect(await getBalance(h.db, p.accountId)).toBe(900 + 6_000);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 1, wins: 1, earnings: 6_000, rating: 12, lockKind: null });
+    expect((await getHorseRow(h.db, rival)).lockKind).toBeNull();
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);
+    expect(await count(h.db, "inbox_items", `account_id = '${p.accountId}' and race_id = '${race.id}'`)).toBe(1);
     expect((await ledgerHealth(h.db)).totalPostings).toBe(0);
   });
 
   it("hard cap: 3 starts per horse per day, enforced under concurrency", async () => {
     const p = await newPlayer(h.db);
     const horse = await makeHorse(h.db, p.stableId);
-    // Settle 2 earlier races today.
     for (let i = 0; i < 2; i++) {
       const r = await quickRace(i * 20 * MIN);
       await enterRace(h.db, { accountId: p.accountId, raceId: r.id, horseId: horse.id, tactic: "front", now: at(i * 20 * MIN) });
-      await settleRace(h.db, { raceId: r.id, now: at(i * 20 * MIN + 11 * MIN), resultHash: "0".repeat(64), result: {}, runners: [{ horseId: horse.id, position: 1 }] });
+      await runRace(r.id, at(i * 20 * MIN + 11 * MIN), [horse.id]);
     }
-    // Two more races open at once; only one more start is allowed today.
     const r3 = await quickRace(60 * MIN);
     const r4 = await quickRace(60 * MIN);
     const res = await settledAll([r3, r4].map((r) => enterRace(h.db, { accountId: p.accountId, raceId: r.id, horseId: horse.id, tactic: "front", now: at(50 * MIN) })));
     expect(res.ok).toHaveLength(1);
     expect(res.errors.every((e) => isDomainError(e, "HORSE_LOCKED") || isDomainError(e, "RACE_LIMIT"))).toBe(true);
-    await settleRace(h.db, { raceId: res.ok[0]!.raceId, now: at(71 * MIN), resultHash: "0".repeat(64), result: {}, runners: [{ horseId: horse.id, position: 2 }] });
+    await runRace(res.ok[0]!.raceId, at(71 * MIN), [horse.id]);
     const r5 = await quickRace(90 * MIN);
     await expect(enterRace(h.db, { accountId: p.accountId, raceId: r5.id, horseId: horse.id, tactic: "front", now: at(80 * MIN) })).rejects.toMatchObject({
       code: "RACE_LIMIT",
     });
-    // Next day is fine.
     const r6 = await quickRace(DAY);
     await expect(enterRace(h.db, { accountId: p.accountId, raceId: r6.id, horseId: horse.id, tactic: "front", now: at(DAY) })).resolves.toBeDefined();
   });
@@ -115,15 +129,8 @@ describe("racing", () => {
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: veteran.id, tactic: "front", now: T0 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: unlucky.id, tactic: "front", now: T0 });
     const before = await getBalance(h.db, p.accountId);
-    const r = await settleRace(h.db, {
-      raceId: race.id,
-      now: at(11 * MIN),
-      resultHash: "1".repeat(64),
-      result: {},
-      runners: [
-        { horseId: veteran.id, position: 1 },
-        { horseId: unlucky.id, position: 2, injury: { severity: "career_ending", recoveryMs: 30 * DAY } },
-      ],
+    const r = await runRace(race.id, at(11 * MIN), [veteran.id, unlucky.id], {
+      [unlucky.id]: { injury: { severity: "career_ending", recoveryMs: 30 * DAY } },
     });
     expect(r.retired.sort()).toEqual([veteran.id, unlucky.id].sort());
     expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 40, careerStatus: "retired", retirementReason: "max_starts" });

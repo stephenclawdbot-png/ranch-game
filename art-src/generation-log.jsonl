@@ -186,3 +186,9 @@
 {"at":"2026-10-25T18:02:21.577Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n0","secs":72,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:03:16.702Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n1","secs":55,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:04:05.330Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n2","secs":49,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:04:44.440Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n3","secs":39,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:05:07.254Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n4","secs":23,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:06:24.814Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n5","secs":78,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:07:26.574Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n6","secs":62,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:08:00.584Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n7","secs":34,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:08:45.448Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n8","secs":45,"usage":{"type":"generations","generations":0.5},"images":1}
