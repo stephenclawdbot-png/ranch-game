@@ -1,5 +1,5 @@
 /**
- * Hard rules the persistence layer enforces (game-design §4a, §7, §8), plus the pluggable
+ * Hard rules the persistence layer enforces (game-design §4a + amendments, §4b, §7, §8), plus the pluggable
  * game hooks. Pure rule maths (genetics, ratings, injury risk, pack odds) belongs to
  * @thoroughbred/game-core; the web app passes game-core implementations in `GameHooks`.
  * The defaults here are deterministic placeholders so the database layer is usable and
@@ -9,10 +9,10 @@ import { seededUniform } from "./crypto";
 import type { HorseRow, RaceRow } from "./schema";
 
 export const RULES = {
-  /** Career clock. */
-  maxStarts: 50,
-  juvenileUntilStarts: 8,
-  primeUntilStarts: 35,
+  /** Career clock (§4a amendments): juvenile 0-6, prime 7-28, veteran 29-40, retire at 40. */
+  maxStarts: 40,
+  juvenileUntilStarts: 6,
+  primeUntilStarts: 28,
   /** Foal growth by counted care sessions: 5 to wean, +7 yearling, +7 racing age. */
   careToWean: 5,
   careToYearling: 12,
@@ -22,22 +22,35 @@ export const RULES = {
   marePerSeason: 1,
   stallionPerSeason: 4,
   /** Racing horses may breed from this many starts; racing-retired horses always may. */
-  breedingMinStarts: 30,
+  breedingMinStarts: 25,
   pregnancyMs: 24 * 60 * 60 * 1000,
   breedingBaseFee: 250,
   studPlatformBps: 1000,
-  /** Racing. */
-  runsPerDay: 3,
+  /** Racing. Hard cap of starts per horse per UTC day (by post time). */
+  startsPerDay: 3,
   purseSplitBps: [6000, 2000, 1000, 500, 300, 200] as readonly number[],
   insurancePremium: 300,
   insurancePayout: 2_000,
-  /** Market. */
+  /** Market (§4b): 5% burned fee, price floor at 70% of appraisal, seller requirements. */
   marketFeeBps: 500,
+  listingFloorBps: 7000,
   maxListingMs: 14 * 24 * 60 * 60 * 1000,
+  sellerMinAccountAgeMs: 7 * 24 * 60 * 60 * 1000,
+  sellerMinRaces: 20,
+  /** Release to the Club pays a few credits. */
+  releasePayout: 50,
   /** Accounts / stables. */
   startingCredits: 5_000,
   starterHorses: 3,
   defaultStallSlots: 6,
+  maxStallSlots: 24,
+  /** Foaling may use one nursery overflow slot beyond the stalls. */
+  nurseryOverflowSlots: 1,
+  /** Packs (§4b): free Paddock every 3rd play day; weekly purchase limits; global crop. */
+  freePaddockEveryPlayDays: 3,
+  paidPaddockPerWeek: 3,
+  premiumPerWeek: 10,
+  foalCropPerSeason: 10_000,
   /** Care brings an injury's recovery end forward by this much (vet nurse effect). */
   careHealMs: 12 * 60 * 60 * 1000,
   /** Competition seasons: 4 real weeks from this epoch (a Monday). */
@@ -103,7 +116,7 @@ export interface HorseSpec {
   stats: unknown;
   maturityType?: "early" | "normal" | "late";
   rating?: number;
-  /** Nursery progress at creation (starters and pack horses arrive at racing age = 19). */
+  /** Nursery progress at creation (starters arrive at racing age = 19; pack horses are foals = 0). */
   careSessions?: number;
 }
 
@@ -124,6 +137,8 @@ export interface GameHooks {
   raceEligibility?(input: RaceEligibilityInput): string | null;
   /** Rarity roll from a uniform in [0,1) and the pack's published odds. */
   rollRarity?(input: { u: number; pack: PackDefinition }): Rarity;
+  /** Appraised market value in credits (listing floor = 70% of it). */
+  appraise?(horse: HorseRow): number;
 }
 
 const NAMES_A = ["Copper", "Velvet", "Amber", "Harbour", "Quiet", "Northern", "Saffron", "Moonlit", "Brass", "Willow"];
@@ -153,7 +168,7 @@ const RARITY_CEILING: Record<Rarity, number> = { common: 520, uncommon: 560, rar
 /** Deterministic placeholder hooks. Replace with game-core in the web app. */
 export const defaultHooks: GameHooks = {
   starterHorse: ({ seed, index }) => placeholderSpec(seed, `starter:${index}`, 520, RULES.careToRacing),
-  packHorse: ({ seed, rarity }) => placeholderSpec(seed, `pack:${rarity}`, RARITY_CEILING[rarity], RULES.careToRacing),
+  packHorse: ({ seed, rarity }) => placeholderSpec(seed, `pack:${rarity}`, RARITY_CEILING[rarity], 0),
   breedFoal: ({ seed, sire, dam, name }) => {
     const spec = placeholderSpec(seed, `foal:${sire.id}:${dam.id}`, 640, 0, name);
     return { ...spec, careSessions: 0 };
@@ -168,4 +183,12 @@ export function defaultRollRarity({ u, pack }: { u: number; pack: PackDefinition
   }
   // Floating-point tail (u just below 1): the last tier offered.
   return [...RARITY_ORDER].reverse().find((r) => (pack.odds[r] ?? 0) > 0) ?? "common";
+}
+
+/** Fallback appraisal: rating, career stage and remaining breedings. game-core replaces it. */
+export function defaultAppraise(h: HorseRow): number {
+  const base = 400 + h.rating * 40;
+  const careerLeft = h.careerStatus === "racing" ? (RULES.maxStarts - h.starts) / RULES.maxStarts : 0;
+  const breedLeft = (RULES.breedingLifetimeLimit - h.breedingCount) / RULES.breedingLifetimeLimit;
+  return Math.max(100, Math.round(base * (0.5 + careerLeft) + 300 * breedLeft));
 }
