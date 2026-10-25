@@ -57,6 +57,13 @@ export interface RaceViewerProps {
   artBaseUrl?: string | null;
   /** Render at a low internal resolution, upscaled with nearest filtering. */
   pixelated?: boolean;
+  /** Show the race name / chips inside the stage (default true). */
+  hudTitle?: boolean;
+  /**
+   * Show the in-canvas results card after the finish (default true). When false the
+   * viewer holds the finish shot and unlocks replay controls; onFinished still fires.
+   */
+  resultsCard?: boolean;
 }
 
 interface HudState {
@@ -142,6 +149,8 @@ export function RaceViewer(props: RaceViewerProps) {
     initialCamera,
     artBaseUrl = "/art",
     pixelated = false,
+    hudTitle = true,
+    resultsCard = true,
   } = props;
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -435,7 +444,7 @@ export function RaceViewer(props: RaceViewerProps) {
   const narrow = width > 0 && width < NARROW_PX;
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
-  const showResults = !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;
+  const showResults = resultsCard && !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;
   const isLive = h?.mode === "live";
   const pip = pipRect(width, stageRef.current?.clientHeight ?? 0);
   const furlongs = useMemo(() => {
@@ -454,6 +463,7 @@ export function RaceViewer(props: RaceViewerProps) {
         {h && (
           <TopHud
             race={info.race}
+            showTitle={hudTitle}
             winningTimeUs={final && h.mode === "replay" ? final.result.winningTimeUs : null}
             trackLengthM={info.trackLengthMm / 1000}
             raceTime={h.time}

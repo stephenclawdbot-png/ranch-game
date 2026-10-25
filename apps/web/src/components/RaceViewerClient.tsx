@@ -1,8 +1,16 @@
 "use client";
 import dynamic from "next/dynamic";
+import type { RaceViewerProps } from "@thoroughbred/race-viewer";
 
 /** The race viewer, client-only (it needs WebGL/canvas). */
-export const RaceViewerClient = dynamic(() => import("@thoroughbred/race-viewer").then((m) => m.RaceViewer), {
+export const RaceViewerClient = dynamic(
+  () =>
+    import("@thoroughbred/race-viewer").then((m) => {
+      // The race page shows the title strip and its own staged results sequence.
+      const Viewer = (props: RaceViewerProps) => <m.RaceViewer hudTitle={false} resultsCard={false} {...props} />;
+      return Viewer;
+    }),
+  {
   ssr: false,
   loading: () => (
     <div className="flex h-full min-h-64 w-full flex-col items-center justify-center gap-3 text-sage">
@@ -14,4 +22,5 @@ export const RaceViewerClient = dynamic(() => import("@thoroughbred/race-viewer"
       <span className="eyebrow">Loading the track</span>
     </div>
   ),
-});
+  },
+);

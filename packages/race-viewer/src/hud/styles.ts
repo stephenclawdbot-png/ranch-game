@@ -53,10 +53,10 @@ export const VIEWER_CSS = `
 .rv-photo{font-family:var(--rv-f-display);font-size:46px;font-weight:700;letter-spacing:.25em;padding:6px 8px 6px 20px;border:4px solid var(--rv-cream);color:var(--rv-cream);transform:rotate(-5deg);text-shadow:3px 3px 0 var(--rv-ink);background:rgba(122,31,31,.55);box-shadow:4px 4px 0 var(--rv-ink);animation:rv-stamp .25s steps(4)}
 @keyframes rv-stamp{from{transform:rotate(-5deg) scale(1.6);opacity:0}}
 .rv-badge-buffer{right:auto!important;left:12px;background:#8a958e!important}
-.rv-minimap{position:absolute;left:10px;right:10px;bottom:54px;height:24px;width:calc(100% - 20px);pointer-events:none;image-rendering:pixelated}
+.rv-minimap{position:absolute;left:10px;right:10px;bottom:54px;height:30px;width:calc(100% - 20px);border:2px solid var(--rv-ink);pointer-events:none;image-rendering:pixelated}
 .rv-pip{position:absolute;pointer-events:none;border:3px solid var(--rv-ink);box-shadow:inset 0 0 0 2px var(--rv-brass),3px 3px 0 rgba(0,0,0,.45);margin:-3px}
 .rv-pip span{position:absolute;left:4px;top:4px;font:9px var(--rv-f-pixel);text-transform:uppercase;background:var(--rv-brass);color:var(--rv-ink);padding:2px 4px}
-.rv-badge{position:absolute;right:12px;bottom:84px;font:10px var(--rv-f-pixel);text-transform:uppercase;padding:5px 8px 4px;background:var(--rv-brass);color:var(--rv-ink);border:2px solid var(--rv-ink);pointer-events:none}
+.rv-badge{position:absolute;right:12px;bottom:92px;font:10px var(--rv-f-pixel);text-transform:uppercase;padding:5px 8px 4px;background:var(--rv-brass);color:var(--rv-ink);border:2px solid var(--rv-ink);pointer-events:none}
 .rv-modal{position:absolute;left:0;right:0;top:0;bottom:52px;display:grid;place-items:center;padding:10px;background:rgba(8,21,14,.5);animation:rv-in .3s steps(3)}
 .rv-card{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--rv-green);border:3px solid var(--rv-ink);box-shadow:inset 2px 2px 0 rgba(242,200,106,.5),inset -2px -2px 0 rgba(0,0,0,.45),5px 5px 0 rgba(0,0,0,.45)}
 .rv-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:12px 12px 8px 14px;position:sticky;top:0;background:var(--rv-green);border-bottom:2px solid var(--rv-ink)}
@@ -72,7 +72,7 @@ export const VIEWER_CSS = `
 .rv-res tr.rv-me td{background:rgba(217,164,65,.2)}
 .rv-res tr.rv-win td:first-child{color:var(--rv-brass2)}
 .rv-card-f{display:flex;gap:8px;justify-content:flex-end;padding:10px 12px 12px}
-.rv-debug{position:absolute;right:8px;bottom:84px;font:600 10.5px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 6px;background:rgba(0,0,0,.65);color:#9fe39f;pointer-events:none;white-space:pre}
+.rv-debug{position:absolute;right:8px;top:96px;font:600 10.5px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 6px;background:rgba(0,0,0,.65);color:#9fe39f;pointer-events:none;white-space:pre}
 .rv-narrow .rv-hud{padding:8px 9px 14px;gap:5px}
 .rv-narrow .rv-name{font-size:15px}
 .rv-narrow .rv-chip{font-size:9px;padding:3px 5px 2px}
@@ -81,7 +81,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-st{font-size:11px;padding:2px 6px 2px 2px}
 .rv-narrow .rv-st-pos{font-size:15px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:4px 8px 4px 6px}
-.rv-ticker-low{position:absolute;left:8px;right:8px;bottom:74px;display:flex;pointer-events:none}
+.rv-ticker-low{position:absolute;left:8px;right:8px;bottom:80px;display:flex;pointer-events:none}
 .rv-narrow .rv-controls{gap:4px;padding:12px 6px 6px}
 .rv-narrow .rv-btn{min-width:34px;height:34px;padding:0 7px;font-size:10px}
 .rv-narrow .rv-elapsed{display:none}
@@ -101,7 +101,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-count-v{font-size:30px}
 .rv-narrow .rv-center-top{padding-top:96px}
 .rv-narrow .rv-badge{bottom:72px}
-.rv-narrow .rv-minimap{bottom:48px;height:20px;left:6px;right:6px;width:calc(100% - 12px)}
+.rv-narrow .rv-minimap{bottom:48px;height:24px;left:6px;right:6px;width:calc(100% - 12px)}
 .rv-narrow .rv-debug{bottom:auto;top:92px;font-size:9px}
 `;
 

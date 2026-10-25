@@ -8,5 +8,5 @@ export type QualitySetting = "auto" | RenderQuality;
 export function pipRect(stageW: number, stageH: number): { right: number; bottom: number; w: number; h: number } | null {
   if (stageW < 700 || stageH < 380) return null;
   const w = Math.round(Math.min(stageW * 0.24, 320));
-  return { right: 12, bottom: 96, w, h: Math.round((w * 9) / 16) };
+  return { right: 12, bottom: 100, w, h: Math.round((w * 9) / 16) };
 }

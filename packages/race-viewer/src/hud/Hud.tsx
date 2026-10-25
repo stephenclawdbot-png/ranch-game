@@ -27,6 +27,8 @@ export function Swatch({ primary, secondary }: { primary: string; secondary: str
 
 export interface TopHudProps {
   race: RaceConfig;
+  /** Race name + chips (hidden when the page shows them itself). */
+  showTitle?: boolean;
   /** Official winning time once known (replay mode); null while live. */
   winningTimeUs: number | null;
   trackLengthM: number;
@@ -38,7 +40,7 @@ export interface TopHudProps {
   highlightHorseId?: string;
 }
 
-export function TopHud({ race, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
+export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
   const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
   const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
   let rows = standings.slice(0, maxStandings);
@@ -47,7 +49,7 @@ export function TopHud({ race, winningTimeUs, raceTime, toGoM, standings, maxSta
   return (
     <div className="rv-hud">
       <div className="rv-row">
-        <div className="rv-title">
+        <div className="rv-title" style={showTitle ? undefined : { visibility: "hidden" }}>
           <div className="rv-name">{race.name}</div>
           <div className="rv-chips">
             <span className="rv-chip">{race.distanceM.toLocaleString("en-US")}m</span>
@@ -323,11 +325,16 @@ export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: numb
     const u = Math.max(1, Math.round(dpr));
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, w, h);
-    const padL = 8 * u;
-    const padR = 14 * u;
+    const padL = 10 * u;
+    const padR = 16 * u;
     const x = (p: number) => Math.round(padL + Math.min(1, Math.max(0, p)) * (w - padL - padR));
-    const top = Math.round(h * 0.28);
-    const bot = Math.round(h * 0.86);
+    // Backing panel so the strip reads over any shot.
+    ctx.fillStyle = "rgba(11,15,12,0.78)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(242,200,106,0.35)";
+    ctx.fillRect(0, 0, w, u);
+    const top = Math.round(h * 0.3);
+    const bot = Math.round(h * 0.82);
     // Track band + rails.
     ctx.fillStyle = "rgba(31,77,53,0.92)";
     ctx.fillRect(x(0), top, x(1) - x(0), bot - top);
@@ -346,7 +353,7 @@ export function Minimap({ dots, furlongs }: { dots: MinimapDot[]; furlongs: numb
     ctx.fillStyle = "#d71920";
     ctx.fillRect(fx + 2 * u, top - 3 * u, 5 * u, 3 * u);
     // Runners: back to front, mine last (on top).
-    const r = Math.max(3 * u, Math.round(h * 0.13));
+    const r = Math.max(4 * u, Math.round(h * 0.17));
     const order = [...dots].sort((a, b) => Number(a.me) - Number(b.me) || a.p - b.p);
     for (const d of order) {
       const cx = x(d.p);
