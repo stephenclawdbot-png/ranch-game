@@ -219,3 +219,13 @@ export function totals(state: PlayerState | null | undefined): { starts: number;
     earnings: recs.reduce((a, r) => a + r.earnings, 0),
   };
 }
+
+/** Horse indexes raced (or entered) within `windowMs`: Quick Pick rotates away from them. */
+export function recentlyRun(state: PlayerState | null | undefined, nowMs: number, windowMs = 3_600_000): number[] {
+  if (!state) return [];
+  const since = nowMs - windowMs;
+  const out = new Set<number>();
+  for (const h of state.progress.history) if (h.postTimeMs >= since) out.add(h.horseIndex);
+  for (const p of Object.values(state.progress.pending ?? {})) if (p.postTimeMs >= since) out.add(p.horseIndex);
+  return [...out].sort((a, b) => a - b);
+}

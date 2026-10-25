@@ -170,3 +170,4 @@
 {"at":"2026-10-25T17:48:56.919Z","endpoint":"/animate-with-text-v3","prefix":"art-src/raw/hd/anim-canter","secs":162,"usage":{"type":"generations","generations":8},"images":13}
 {"at":"2026-10-25T17:50:41.154Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/barn-interior","secs":104,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:50:52.327Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/grandstand","secs":115,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:53:02.578Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/pages-hd/stable-yard","secs":94,"usage":{"type":"generations","generations":25},"images":1}

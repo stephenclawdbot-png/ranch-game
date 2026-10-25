@@ -207,16 +207,21 @@ export function horseSummary(horse: HorseLike & Pick<Horse, "name" | "sex">): st
   return `Best at ${tripWord} on ${SURF[horse.preferredSurface]}. ${strong} are ${his} strengths. ${weakLine}`;
 }
 
-/** The horse to suggest first: highest rating in its own ideal conditions (ties -> fewer starts). */
-export function recommendIndex(horses: readonly HorseLike[], starts: (i: number) => number = () => 0): number {
-  let best = 0;
+/**
+ * The horse to suggest first: highest rating in its own ideal conditions, skipping horses in
+ * `exclude` (run recently) unless that leaves none. Mirrors the server's Quick Pick.
+ */
+export function recommendIndex(horses: readonly HorseLike[], exclude: readonly number[] = []): number {
+  let pool = horses.map((h, i) => ({ h, i })).filter(({ i }) => !exclude.includes(i));
+  if (pool.length === 0) pool = horses.map((h, i) => ({ h, i }));
+  let best = pool[0]?.i ?? 0;
   let bestScore = -Infinity;
-  horses.forEach((h, i) => {
-    const score = aptitudes(h).ideal - starts(i) * 2;
+  for (const { h, i } of pool) {
+    const score = aptitudes(h).ideal;
     if (score > bestScore) {
       bestScore = score;
       best = i;
     }
-  });
+  }
   return best;
 }

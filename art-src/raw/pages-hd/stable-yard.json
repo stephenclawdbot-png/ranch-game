@@ -7,7 +7,7 @@
    "height": 288
   },
   "no_background": false,
-  "seed": 9101,
+  "seed": 9105,
   "style_image": {
    "image": {
     "type": "base64",
@@ -23,7 +23,7 @@
  },
  "response": {
   "usage": null,
-  "background_job_id": "8eaacb84-1670-4f6a-854e-f98a10239d08",
+  "background_job_id": "1e63f68f-f729-4c58-9cbe-c6fb07c0ce51",
   "status": "processing"
  },
  "job": {
@@ -31,18 +31,18 @@
    "type": "generations",
    "generations": 25
   },
-  "id": "8eaacb84-1670-4f6a-854e-f98a10239d08",
+  "id": "1e63f68f-f729-4c58-9cbe-c6fb07c0ce51",
   "status": "completed",
-  "created_at": "2026-10-25T17:46:16.701296+00:00",
+  "created_at": "2026-10-25T17:51:30.436232+00:00",
   "last_response": {
-   "seed": 9101,
+   "seed": 9105,
    "type": "message_done",
    "action": "Touching up pixels",
    "images": [
     {
      "type": "base64",
      "width": 688,
-     "base64": "<190436 chars>",
+     "base64": "<183628 chars>",
      "height": 288
     }
    ],
@@ -52,14 +52,14 @@
     "type": "generations",
     "generations": 25
    },
-   "generation_id": "031fd671-0002-4a31-ba8c-368dcb71e76b",
+   "generation_id": "b67f145d-b59e-4a4b-aaa3-1a02bbabf918",
    "usage_cost_usd": 0.15,
    "billing_charged": true,
    "style_reference": "user style image",
    "style_selection": null,
    "style_reference_path": null,
-   "generation_started_at": "2026-10-25T17:46:23.134174+00:00",
-   "original_image_n_colors": 125,
+   "generation_started_at": "2026-10-25T17:51:36.820998+00:00",
+   "original_image_n_colors": 128,
    "quantized_image_n_colors": 64
   }
  },

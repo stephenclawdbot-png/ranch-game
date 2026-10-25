@@ -407,6 +407,9 @@ function mintQuirks(rng: Rng): QuirkGenes {
   };
 }
 
+/** Typical gap (sd of |hi − p|) between a minted locus's high allele and its expressed value. */
+export const MINT_HET_SD = 100;
+
 /** Lowest minted stat potential. */
 export const MINT_STAT_FLOOR = 150;
 
@@ -421,12 +424,12 @@ export const NATURAL_RARITY_WEIGHTS: Record<Rarity, number> = { common: 600, unc
 function allelesFor(rng: Rng, p: number, cap: number, gem: boolean): AllelePair {
   const h = DOMINANCE_PERMILLE;
   let a: number;
-  if (gem) {
-    const lo = p + 40;
-    const hi = Math.min(cap, p + Math.floor(((p - 60) * (1000 - h)) / h));
-    a = hi >= lo ? rng.range(lo, hi) - p : Math.max(0, Math.round(Math.abs(rng.normal()) * 60));
+  // The low allele must stay >= 60, which bounds how far above p the high allele can sit.
+  const maxA = Math.max(0, Math.min(cap - p, Math.floor(((p - 60) * (1000 - h)) / h)));
+  if (gem && maxA > 60) {
+    a = rng.range(Math.floor(maxA / 2), maxA);
   } else {
-    a = Math.max(0, Math.round(Math.abs(rng.normal()) * 55));
+    a = Math.min(maxA, Math.round(Math.abs(rng.normal()) * MINT_HET_SD));
   }
   let hiA = Math.min(cap, p + a);
   a = hiA - p;
