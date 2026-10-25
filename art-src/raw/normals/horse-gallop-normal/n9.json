@@ -1,0 +1,244 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16772 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "0d36b354-8681-496c-a3a5-d752b4ac1e8c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "0d36b354-8681-496c-a3a5-d752b4ac1e8c",
+  "status": "completed",
+  "created_at": "2026-10-25T17:10:39.174004+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       71,
+       72
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "hind leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       86
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "rear body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       75,
+       81,
+       78,
+       82,
+       85
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       73,
+       76,
+       84,
+       74,
+       83,
+       77,
+       79,
+       54
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "back fan",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       40,
+       56,
+       57,
+       46,
+       45,
+       48,
+       50,
+       62,
+       63,
+       64,
+       68,
+       41,
+       51,
+       52
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "shoulder and mane",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       35,
+       44,
+       43,
+       49,
+       36,
+       37,
+       39,
+       53,
+       55,
+       21
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "foreleg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       65,
+       66,
+       60,
+       67,
+       69,
+       61
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "raised arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       23,
+       42,
+       47
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       26,
+       14,
+       19,
+       33,
+       20,
+       28,
+       29,
+       34,
+       11,
+       22,
+       31,
+       17
+      ]
+     },
+     {
+      "name": "crest",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       5,
+       13,
+       6,
+       9,
+       10,
+       15,
+       1,
+       2,
+       3,
+       4,
+       7,
+       8,
+       12,
+       16,
+       18,
+       24,
+       25,
+       27,
+       30
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     1,
+     2,
+     12,
+     17,
+     22,
+     31
+    ],
+    "backdrop": [],
+    "recessed": [
+     7,
+     16,
+     21,
+     24,
+     25,
+     27,
+     30,
+     32
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 229,
+    "base64": "<40444 chars>",
+    "height": 146
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "3b12e3a8-4a78-4a6d-94a5-f0a72ac519be",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:10:39.227868+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal/n9-0.png"
+ ]
+}

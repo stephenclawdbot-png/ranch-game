@@ -1,6 +1,6 @@
 "use client";
 /** Presentational HUD pieces. All state comes from RaceViewer; nothing here touches Pixi. */
-import { formatRaceTime, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
+import { formatRaceTime, type RaceConfig, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 import type { StandingRow } from "../timeline";
 import type { CameraMode } from "../types";
 import { PLAYBACK_RATES } from "../playback";
@@ -25,7 +25,10 @@ export function Swatch({ primary, secondary }: { primary: string; secondary: str
 }
 
 export interface TopHudProps {
-  replay: RaceReplay;
+  race: RaceConfig;
+  /** Official winning time once known (replay mode); null while live. */
+  winningTimeUs: number | null;
+  trackLengthM: number;
   raceTime: number;
   toGoM: number;
   standings: StandingRow[];
@@ -34,10 +37,9 @@ export interface TopHudProps {
   highlightHorseId?: string;
 }
 
-export function TopHud({ replay, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
-  const { race, result } = replay;
-  const winnerHome = raceTime >= result.winningTimeUs / 1e6;
-  const clock = winnerHome ? formatRaceTime(result.winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
+export function TopHud({ race, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
+  const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
+  const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
   let rows = standings.slice(0, maxStandings);
   const me = standings.find((s) => s.horseId === highlightHorseId);
   if (me && !rows.includes(me)) rows = [...rows.slice(0, Math.max(1, maxStandings - 1)), me];
@@ -94,6 +96,8 @@ export interface ControlsProps {
   hasHighlight: boolean;
   showLive: boolean;
   live: boolean;
+  /** Live broadcast: no total duration, no fast-forward past the edge. */
+  liveMode?: boolean;
   canGoLive: boolean;
   onToggle(): void;
   onRestart(): void;
@@ -134,10 +138,11 @@ function RestartIcon() {
 }
 
 export function Controls(p: ControlsProps) {
-  const nextRate = PLAYBACK_RATES[(PLAYBACK_RATES.indexOf(p.rate as (typeof PLAYBACK_RATES)[number]) + 1) % PLAYBACK_RATES.length]!;
   const cams = CAMERAS.filter((c) => c.id !== "mine" || p.hasHighlight);
   const nextCam = cams[(cams.findIndex((c) => c.id === p.camera) + 1) % cams.length]!;
   const t = Math.max(0, Math.min(p.time, p.duration));
+  // Live: speeds only to catch up after a rewind (never shown at the live edge).
+  const rates = p.liveMode ? (p.live ? [] : PLAYBACK_RATES.filter((r) => r >= 1)) : [...PLAYBACK_RATES];
   return (
     <div className="rv-controls" onPointerDown={(e) => e.stopPropagation()}>
       <button type="button" className="rv-btn" onClick={p.onToggle} aria-label={p.playing ? "Pause" : "Play"} title={p.playing ? "Pause (space)" : "Play (space)"}>
@@ -151,7 +156,7 @@ export function Controls(p: ControlsProps) {
           className="rv-range"
           type="range"
           min={0}
-          max={p.duration}
+          max={Math.max(0.01, p.duration)}
           step={0.05}
           value={t}
           aria-label="Race position"
@@ -160,17 +165,15 @@ export function Controls(p: ControlsProps) {
           onPointerCancel={p.onScrubEnd}
           onChange={(e) => p.onSeek(Number(e.currentTarget.value))}
         />
-        <span className="rv-elapsed">
-          {clockLabel(t)} / {clockLabel(p.duration)}
-        </span>
+        <span className="rv-elapsed">{p.liveMode ? clockLabel(t) : `${clockLabel(t)} / ${clockLabel(p.duration)}`}</span>
       </div>
-      {p.narrow ? (
-        <button type="button" className="rv-btn" onClick={() => p.onRate(nextRate)} aria-label={`Speed ${p.rate}x`} title="Playback speed">
+      {rates.length === 0 ? null : p.narrow ? (
+        <button type="button" className="rv-btn" onClick={() => p.onRate(rates[(rates.indexOf(p.rate as never) + 1) % rates.length] ?? 1)} aria-label={`Speed ${p.rate}x`} title="Playback speed">
           {p.rate}×
         </button>
       ) : (
         <div className="rv-seg" role="group" aria-label="Playback speed">
-          {PLAYBACK_RATES.map((r) => (
+          {rates.map((r) => (
             <button type="button" key={r} className="rv-btn" aria-pressed={p.rate === r} onClick={() => p.onRate(r)}>
               {r}×
             </button>

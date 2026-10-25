@@ -359,13 +359,8 @@ export function RaceViewer(props: RaceViewerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated]);
 
-  // Live feed updates: frames/events grow; the render loop reads them directly.
-  useEffect(() => {
-    if (!feed) return;
-    return feed.subscribe(() => {
-      if (!clockRef.current) return;
-    });
-  }, [feed]);
+  // (Live feed updates need no subscription here: the render loop reads the growing
+  // frames/events/liveEdgeFrame directly every frame and polls for `final`.)
 
   // Explicit quality changes after mount.
   useEffect(() => {
