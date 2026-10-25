@@ -143,6 +143,22 @@ export function gaitForSpeed(speedMs: number): GaitPreset {
   };
 }
 
+/**
+ * Strides per second for a ground speed (m/s): walk ~0.9 Hz, canter ~1.8 Hz, racing gallop
+ * ~2.3-2.4 Hz. Viewers advance `phase += strideFrequency(speed) * dt` (or distance / stride).
+ */
+export function strideFrequency(speedMs: number): number {
+  const v = Math.max(0, speedMs);
+  if (v < 2) return 0.9;
+  if (v < 8) return lerp(0.9, 1.8, (v - 2) / 6);
+  return lerp(1.8, 2.4, clamp((v - 8) / 10, 0, 1));
+}
+
+/** Stride length (m) implied by `strideFrequency`. */
+export function strideLength(speedMs: number): number {
+  return Math.max(0.5, speedMs / strideFrequency(speedMs));
+}
+
 export interface LegSample {
   /** true while the hoof is on the ground. */
   stance: boolean;

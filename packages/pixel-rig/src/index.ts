@@ -62,6 +62,8 @@ export {
   GALLOP,
   LEGS,
   gaitForSpeed,
+  strideFrequency,
+  strideLength,
   sampleLeg,
   solveTwoBone,
   createSecondaryState,
