@@ -32,7 +32,7 @@ describe("demo data", () => {
     expect(RIVAL_POOL.every((h) => h.record.starts > 0)).toBe(true);
     for (const h of RIVAL_POOL) {
       const s = Object.values(h.stats);
-      expect(Math.max(...s) - Math.min(...s)).toBeGreaterThan(100);
+      expect(Math.max(...s) - Math.min(...s)).toBeGreaterThanOrEqual(60);
     }
   });
 

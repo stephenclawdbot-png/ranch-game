@@ -83,7 +83,7 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   if (h.preferredSurface !== race.surface) cruise -= 110 + Math.trunc((260 * adaptGap) / 1000);
   cruise -= Math.trunc((GOING_HORSE_PEN[race.going] * adaptGap) / 1000);
   const distDelta = D - h.preferredDistanceM;
-  if (distDelta < 0) cruise -= Math.trunc((-distDelta * (1100 - s.adaptability)) / 12_000);
+  if (distDelta < 0) cruise -= Math.trunc((-distDelta * (1100 - s.adaptability)) / 6_000);
 
   // Tactic vs natural style.
   const matched = h.style === entry.tactic;
@@ -98,7 +98,8 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   const floor = Math.trunc((cruise * (840 + Math.trunc(s.durability / 20))) / 1000);
 
   // Energy economy.
-  const stamMul = 1000 + Math.trunc(((650 - s.stamina) * (300 + Math.trunc(D / 5))) / 1000);
+  // Stamina barely matters in a sprint and dominates in a staying race.
+  const stamMul = 1000 + Math.trunc(((650 - s.stamina) * Math.trunc(((D - 500) * 2) / 5)) / 1000);
   const distMul = distDelta > 0 ? 1000 + Math.trunc((distDelta * (1100 - s.adaptability)) / 3000) : 1000;
   const durMul = 1000 + Math.trunc((500 - s.durability) / 10);
   const tacMul = matched ? 980 : 1020;
