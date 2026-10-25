@@ -195,7 +195,7 @@ def main():
     # ---- 1. label every source pixel -----------------------------------------------------
     labels = {"horse": np.full((H, W), -1, np.int32), "rider": np.full((H, W), -1, np.int32)}
     parts = rig["parts"]
-    cut = [p for p in parts if "copyOf" not in p]
+    cut = [p for p in parts if "copyOf" not in p and "derive" not in p]
     for i, p in enumerate(cut):
         img = images[p["src"]]
         m = poly_mask(p["poly"], H, W) & (img[..., 3] > 0) & (labels[p["src"]] < 0)
@@ -383,7 +383,33 @@ def main():
             "name": p["name"], "mask": m[sl], "role": data_role[sl], "t": data_t[sl], "d": data_d[sl],
             "n": data_n[sl], "h": data_h[sl], "aux": data_a[sl], "origin": [int(x0), int(y0)],
         }
+        tile["key"] = p["name"]
         tiles.append(tile)
+
+    # derived variants: re-use a cut part's pixels with a code operation (thin, crop)
+    for p in parts:
+        if "derive" not in p:
+            continue
+        base = next(t for t in tiles if t["key"] == p["derive"])
+        m = base["mask"].copy()
+        op = p.get("op", {})
+        if "thin" in op:
+            for _ in range(op["thin"]):
+                up = np.zeros_like(m)
+                up[1:, :] = m[:-1, :]
+                m &= up  # drop the top row of every column (thinner, pulled mane)
+        if "maxY" in op:
+            ys = np.arange(m.shape[0])[:, None] + base["origin"][1]
+            m &= ys < op["maxY"]
+        ys, xs = np.nonzero(m)
+        y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        sl = (slice(y0, y1), slice(x0, x1))
+        t = {k: (v[sl] if isinstance(v, np.ndarray) else v) for k, v in base.items()}
+        t["mask"] = m[sl]
+        t["origin"] = [int(base["origin"][0] + x0), int(base["origin"][1] + y0)]
+        t["key"] = f'{p["name"]}~{p["variant"]}'
+        t["name"] = p["name"]
+        tiles.append(t)
 
     # shelf pack, 1px gutter, atlas width 128
     AW = 128
@@ -432,23 +458,25 @@ def main():
     Image.fromarray(up_nrm, "RGBA").save(os.path.join(OUT, "horse-parts-normal.png"), optimize=True)
     Image.fromarray(up_aux, "RGBA").save(os.path.join(OUT, "horse-parts-aux.png"), optimize=True)
 
-    by_name = {t["name"]: t for t in tiles}
+    by_name = {t["key"]: t for t in tiles}
     out_parts = []
     for p in parts:
         if p.get("discard"):
             continue
-        base = by_name[p.get("copyOf", p["name"])]
-        srcp = next(q for q in cut if q["name"] == p.get("copyOf", p["name"]))
+        key = p.get("copyOf") or (f'{p["name"]}~{p["variant"]}' if "derive" in p else p["name"])
+        base = by_name[key]
+        srcp = next(q for q in cut if q["name"] == p.get("copyOf", p.get("derive", p["name"])))
         off = p.get("offset", [0, 0])
         out_parts.append({
             "name": p["name"],
             "rect": base["rect"],
             "origin": [base["origin"][0] + off[0], base["origin"][1] + off[1]],
             "pivot": [srcp["pivot"][0] + off[0], srcp["pivot"][1] + off[1]],
-            "parent": p.get("parent"),
-            "z": p["z"],
+            "parent": p.get("parent", srcp.get("parent")),
+            "z": p.get("z", srcp.get("z")),
             "side": p.get("side", "near"),
             **({"copyOf": p["copyOf"]} if "copyOf" in p else {}),
+            **({"slot": p["slot"], "variant": p.get("variant", 0)} if "slot" in p else {}),
         })
     out_parts.sort(key=lambda q: q["z"])
     torso = by_name["jTorso"]

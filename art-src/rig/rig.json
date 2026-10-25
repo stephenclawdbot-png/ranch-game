@@ -20,14 +20,14 @@
     "limb": 2
   },
   "parts": [
-    { "name": "tail", "src": "horse", "filter": "dark", "vol": "tail", "role": "mane", "parent": "hindquarter", "pivot": [37, 38], "z": 46,
+    { "name": "tail", "slot": "tail", "src": "horse", "filter": "dark", "vol": "tail", "role": "mane", "parent": "hindquarter", "pivot": [37, 38], "z": 46,
       "poly": [[24, 31], [39.5, 31], [39.5, 47], [38, 52.5], [22, 52.5]] },
-    { "name": "tailTip", "src": "horse", "filter": "dark", "vol": "tail", "role": "mane", "parent": "tail", "pivot": [33, 52], "z": 45,
+    { "name": "tailTip", "slot": "tail", "src": "horse", "filter": "dark", "vol": "tail", "role": "mane", "parent": "tail", "pivot": [33, 52], "z": 45,
       "poly": [[22, 52.5], [38, 52.5], [36.5, 58], [35, 62], [34.5, 64], [34.5, 76], [22, 76]] },
-    { "name": "head", "src": "horse", "vol": "head", "role": "coat", "parent": "neck", "pivot": [101, 25], "z": 52,
+    { "name": "head", "slot": "head", "src": "horse", "vol": "head", "role": "coat", "parent": "neck", "pivot": [101, 25], "z": 52,
       "poly": [[99.5, 10], [124, 10], [124, 42], [102.5, 42], [101.5, 33], [100.5, 20]],
       "rules": [ { "poly": [[111, 29], [124, 29], [124, 42], [108, 42]], "if": "darkish", "role": "muzzle" } ] },
-    { "name": "mane", "src": "horse", "filter": "dark", "vol": "mane", "role": "mane", "parent": "neck", "pivot": [84, 32], "z": 51,
+    { "name": "mane", "slot": "mane", "src": "horse", "filter": "dark", "vol": "mane", "role": "mane", "parent": "neck", "pivot": [84, 32], "z": 51,
       "poly": [[77.5, 29.5], [85, 24.5], [92, 18.5], [99, 13.5], [101, 15.5], [100.5, 19.5], [96, 22.5], [91, 27], [87, 30.5], [84, 34], [77.5, 34.5]] },
     { "name": "neck", "src": "horse", "vol": "body", "role": "coat", "parent": "chest", "pivot": [87, 40], "z": 50,
       "poly": [[77.5, 27], [99.5, 10], [100.5, 20], [101.5, 33], [102.5, 42], [97, 42], [94.5, 45.5], [78.5, 36.5]] },
@@ -82,7 +82,11 @@
     { "name": "hindFarUpper", "copyOf": "hindNearUpper", "side": "far", "parent": "hindquarter", "offset": [5, -1], "z": 6 },
     { "name": "hindFarLower", "copyOf": "hindNearLower", "side": "far", "parent": "hindFarUpper", "offset": [5, -1], "z": 5 },
     { "name": "hindFarHoof", "copyOf": "hindNearHoof", "side": "far", "parent": "hindFarLower", "offset": [5, -1], "z": 7 },
-    { "name": "jArmFar", "copyOf": "jArmNear", "side": "far", "parent": "jTorso", "offset": [2, -1], "z": 20 }
+    { "name": "jArmFar", "copyOf": "jArmNear", "side": "far", "parent": "jTorso", "offset": [2, -1], "z": 20 },
+
+    { "name": "mane", "slot": "mane", "variant": 1, "derive": "mane", "op": { "thin": 1 }, "$comment": "pulled (thinned) mane" },
+    { "name": "tail", "slot": "tail", "variant": 1, "derive": "tail", "op": {} , "$comment": "docked/banged tail: full top + cropped tip" },
+    { "name": "tailTip", "slot": "tail", "variant": 1, "derive": "tailTip", "op": { "maxY": 63 } }
   ],
   "joints": {
     "foreKnee": [85, 68.5],

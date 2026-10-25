@@ -329,14 +329,14 @@ function PreRace({ localPost, now, card }: { localPost: number; now: number | nu
         ))}
       </div>
       <div className="relative -mt-10 sm:-mt-16">
-        <p className="eyebrow !text-brass-bright [text-shadow:0_2px_0_#000]">{loading ? "Gates loading" : "Going down to post"}</p>
+        <p className="eyebrow mx-auto w-fit bg-[#08150e]/85 px-1.5 py-0.5 !text-brass-bright">{loading ? "Gates loading" : "Going down to post"}</p>
         <p
           className="px-screen mt-2 inline-block px-3 py-1 text-6xl leading-none text-brass-bright [text-shadow:0_4px_0_#000] sm:px-5 sm:text-8xl"
           data-testid="countdown"
         >
           <Digits text={text} />
         </p>
-        <p className="mt-2 text-sm font-semibold text-cream [text-shadow:0_2px_0_#000]">
+        <p className="mx-auto mt-2 w-fit bg-[#08150e]/85 px-2 py-0.5 text-sm font-semibold text-cream">
           {card.field.length} runners · off at {formatClock(card.config.postTimeMs)}
         </p>
       </div>

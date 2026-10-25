@@ -17,7 +17,6 @@
     "@thoroughbred/art-pipeline": "workspace:*",
     "@thoroughbred/pixel-rig": "workspace:*",
     "@thoroughbred/shared": "workspace:*",
-    "pixi.js": "8.22.0",
     "three": "0.180.0"
   },
   "peerDependencies": {

@@ -14,7 +14,6 @@ export interface ArtFile {
  */
 export const ART_SLOTS = {
   logo: ["ui/logo.png", "ui/logo-emblem.png", "ui/emblem.png", "ui/crest.png"],
-  panel: ["ui/panel-9slice.png", "ui/panel.png", "ui/frame-panel.png"],
   scene: {
     paddock: ["scenes/paddock.png", "scenes/paddock-day.png"],
     stable: ["scenes/stable-yard.png", "scenes/stable.png", "scenes/barn-exterior.png"],

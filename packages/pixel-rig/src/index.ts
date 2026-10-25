@@ -38,4 +38,33 @@ export interface HorseRigFactory {
   dispose(): void;
 }
 
-export declare function createHorseRigFactory(opts?: { artBaseUrl?: string }): HorseRigFactory;
+import { PixelHorseRigFactory, type HorseRigFactoryOptions } from "./runtime";
+
+/**
+ * Create the rig factory. `artBaseUrl` (default "/art") is where `rig/horse-rig.json` and its
+ * atlases live; if they are missing the factory keeps using code-generated parts.
+ * Extra options (render-target size, lighting tweaks...) are documented in README.md.
+ */
+export function createHorseRigFactory(opts?: { artBaseUrl?: string } & HorseRigFactoryOptions): HorseRigFactory {
+  return new PixelHorseRigFactory(opts);
+}
+
+export { PixelHorseRigFactory, PixelHorseRig, DEFAULT_LIGHTING } from "./runtime";
+export type { HorseRigFactoryOptions, HorseRigStateExtras, RigLighting } from "./runtime";
+export * from "./morph";
+export * from "./ramp";
+export * from "./rigdef";
+export {
+  GaitRig,
+  IDLE,
+  WALK,
+  CANTER,
+  GALLOP,
+  LEGS,
+  gaitForSpeed,
+  sampleLeg,
+  solveTwoBone,
+  createSecondaryState,
+} from "./gait";
+export type { GaitPreset, LegId, LegSample, Pose, PoseInput, Skeleton, SkeletonPart, SecondaryState } from "./gait";
+export { generateFallbackRig } from "./fallback";

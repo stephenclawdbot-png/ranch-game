@@ -37,3 +37,23 @@ Each has a `*-normal.png` (PixelLab `/normal-map` pro, OpenGL).
 | `horse-gallop-pose-aligned.png` | Riderless horse in mid-gallop pose (legs gathered). |
 | `jockey-crouch-aligned.png` | **Jockey alone** in racing crouch, magenta/cyan key colours, positioned so it overlays `horse-gallop-pose-aligned.png` exactly (see `composite-check.png`). |
 | `horse-jockey-gallop-pose.png` | The original combined frame both layers were cut from. |
+
+## 2. Race scene (READY)
+
+All in `race/`, listed in `manifest.json` as `race.<stem>`. Every billboard/prop/texture also has a
+`<stem>-normal.png` (PixelLab `/normal-map` lite, OpenGL, same size/frame layout).
+
+| File | Size | Notes |
+|---|---|---|
+| `sky-clear.png`, `sky-dusk.png`, `sky-overcast.png` | 480×270 | Opaque backdrops (golden hour / dusk / rain). |
+| `far-hills.png` | 960×92 | Transparent sky, **seamless-x** (mirror-tiled). Rolling fields, church spire, distant white rail. |
+| `tex-turf.png`, `tex-dirt.png`, `tex-grass.png`, `tex-gravel.png`, `tex-hedge.png` | 64×64 | **Seamless top-down tiles** for the 3D ground planes (verified 4×4). Opaque. |
+| `bb-tree-oak.png` (120×112), `bb-tree-oak-b.png` (115×113), `bb-tree-poplar.png` (34×110), `bb-bush.png` (41×32), `bb-bush-b.png` (43×33) | | Billboards, trimmed to bbox, anchor bottom-centre = ground. Lit from the right. |
+| `bb-crowd-a.png`, `bb-crowd-b.png` | 192×64 | Crowd behind a white rail (b has bunting, cheering). |
+| `bb-grandstand.png` (= `grandstand.png`) | 320×160 | Victorian two-tier stand, green/cream striped roofs, clock tower, bunting, seated crowd. |
+| `bb-flag.png` | 8 frames × 41×71 | Racing-green/brass pennant waving loop, 8 fps, pole at anchor x≈0.05 (see `bb-flag.meta.json`). |
+| `finish-post.png` (32×112), `furlong-pole.png` (19×72), `starting-gate.png` (256×128) | | Props, bottom = ground. Gate has numbered stalls 1–8. |
+| `crowd.png` (192×64), `rail-near.png` / `rail-far.png` (192×32), `hedge-near.png` (137×48), `track-turf.png` / `track-dirt.png` (128×48) | | 2D parallax strips, **seamless-x**. |
+
+Mock composed scene (2D layers + 4 recoloured horses):
+`/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/mock-scene-3x.png`

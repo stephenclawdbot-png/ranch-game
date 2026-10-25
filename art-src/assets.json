@@ -1,1 +1,649 @@
-[]
+[
+ {
+  "id": "race.bb-bush-b-normal",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-bush-b-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-bush-b",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-bush-b.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-bush-normal",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-bush-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-bush",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-bush.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-crowd-a-normal",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/bb-crowd-a-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-crowd-a",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/bb-crowd-a.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-crowd-b-normal",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/bb-crowd-b-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: <383 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-crowd-b",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/bb-crowd-b.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <383 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-flag-normal",
+  "kind": "prop",
+  "depthBand": "mid",
+  "src": "race/bb-flag-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+  "anchor": {
+   "x": 0.073,
+   "y": 1
+  },
+  "frameCount": 8,
+  "fps": 8,
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-flag",
+  "kind": "prop",
+  "depthBand": "mid",
+  "src": "race/bb-flag.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+  "anchor": {
+   "x": 0.073,
+   "y": 1
+  },
+  "frameCount": 8,
+  "fps": 8,
+  "variants": []
+ },
+ {
+  "id": "race.bb-grandstand-normal",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "race/bb-grandstand-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: <473 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-grandstand",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "race/bb-grandstand.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <473 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-tree-oak-b-normal",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-oak-b-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /generate-image-v2: <343 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-tree-oak-b",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-oak-b.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <343 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-tree-oak-normal",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-oak-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /generate-image-v2: <343 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-tree-oak",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-oak.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <343 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.bb-tree-poplar-normal",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-poplar-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: <330 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.bb-tree-poplar",
+  "kind": "prop",
+  "depthBand": "far",
+  "src": "race/bb-tree-poplar.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <330 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.crowd",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/crowd.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <423 chars> | post: made seamless: roll + /inpaint-v3 of the centre band (art-src/seamless.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.far-hills",
+  "kind": "track_layer",
+  "depthBand": "far",
+  "src": "race/far-hills.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/generate-image-v2: <535 chars> | post: sky cut to alpha, mirror-tiled to 960 px (art-src/process_scene.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.finish-post-normal",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/finish-post-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.finish-post",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/finish-post.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.furlong-pole-normal",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/furlong-pole-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.furlong-pole",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/furlong-pole.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.grandstand",
+  "kind": "building",
+  "depthBand": "mid",
+  "src": "race/grandstand.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <473 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.hedge-near",
+  "kind": "track_layer",
+  "depthBand": "near",
+  "src": "race/hedge-near.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <348 chars> | post: made seamless by min-cut quilting (art-src/quilt.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.rail-far",
+  "kind": "track_layer",
+  "depthBand": "mid",
+  "src": "race/rail-far.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.rail-near",
+  "kind": "track_layer",
+  "depthBand": "near",
+  "src": "race/rail-near.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.sky-clear",
+  "kind": "track_layer",
+  "depthBand": "sky",
+  "src": "race/sky-clear.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/generate-image-v2: <413 chars>",
+  "anchor": {
+   "x": 0,
+   "y": 0
+  },
+  "variants": []
+ },
+ {
+  "id": "race.sky-dusk",
+  "kind": "track_layer",
+  "depthBand": "sky",
+  "src": "race/sky-dusk.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/generate-image-v2: <413 chars>",
+  "anchor": {
+   "x": 0,
+   "y": 0
+  },
+  "variants": []
+ },
+ {
+  "id": "race.sky-overcast",
+  "kind": "track_layer",
+  "depthBand": "sky",
+  "src": "race/sky-overcast.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/generate-image-v2: <374 chars>",
+  "anchor": {
+   "x": 0,
+   "y": 0
+  },
+  "variants": []
+ },
+ {
+  "id": "race.starting-gate-normal",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/starting-gate-normal.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: <327 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.starting-gate",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/starting-gate.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: <327 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.tex-dirt-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-dirt-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/normal-map (OpenGL) of tex-dirt.png | source: /create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-dirt",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-dirt.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-grass-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-grass-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/normal-map (OpenGL) of tex-grass.png | source: /create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-grass",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-grass.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-gravel-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-gravel-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/normal-map (OpenGL) of tex-gravel.png | source: /create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-gravel",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-gravel.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <402 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-hedge-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-hedge-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/normal-map (OpenGL) of tex-hedge.png | source: /create-tiles-pro: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-hedge",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-hedge.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.tex-turf-normal",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-turf-normal.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/normal-map (OpenGL) of tex-turf.png | source: /create-tiles-pro: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "normal-opengl"
+  ]
+ },
+ {
+  "id": "race.tex-turf",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/tex-turf.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <423 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-2d"
+  ]
+ },
+ {
+  "id": "race.track-dirt",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/track-dirt.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <402 chars> | post: tiled from tex-dirt",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ },
+ {
+  "id": "race.track-turf",
+  "kind": "track_layer",
+  "depthBand": "track",
+  "src": "race/track-turf.png",
+  "optimizationTier": "background",
+  "sourcePrompt": "/create-tiles-pro: <423 chars> | post: tiled from tex-turf",
+  "anchor": {
+   "x": 0.5,
+   "y": 1
+  },
+  "variants": [
+   "seamless-x"
+  ]
+ }
+]

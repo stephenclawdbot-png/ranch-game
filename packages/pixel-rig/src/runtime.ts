@@ -5,7 +5,17 @@
 import * as THREE from "three";
 import type { HorseAppearance } from "@thoroughbred/shared";
 import { generateFallbackRig } from "./fallback";
-import { GaitRig, createSecondaryState, type Pose, type SecondaryState, type Skeleton } from "./gait";
+import { GaitRig, createSecondaryState, type Pose, type SecondaryState } from "./gait";
+import {
+  boneNames,
+  countVariants,
+  morphSkeleton,
+  resolveLook,
+  selectSkeleton,
+  type HorseLookOptions,
+  type ResolvedLook,
+  type VariantSlot,
+} from "./morph";
 import { buildHorsePalette, paletteToBytes, RAMP_STEPS } from "./ramp";
 import { parseRigDef, ROLE_COUNT, ROLE_ID, type RigDef, type Vec2 } from "./rigdef";
 import { MAX_PARTS, partsFragment, partsVertex, resolveFragment, resolveVertex } from "./shaders";
@@ -70,8 +80,8 @@ interface Assets {
   version: number;
   source: "pixellab" | "generated";
   def: RigDef;
-  skeleton: Skeleton;
-  gait: GaitRig;
+  bones: string[];
+  variantCounts: Record<VariantSlot, number>;
   index: THREE.Texture;
   index1x: THREE.Texture;
   normal: THREE.Texture;
@@ -100,22 +110,24 @@ function legIndexOf(name: string): number {
   return m ? LEG_INDEX[m[1]!]! : -1;
 }
 
-/** Skeleton = the definition's parts (draw order) + the code-drawn rein. */
-function buildSkeleton(def: RigDef): Skeleton {
-  const parts = def.parts.map((p) => ({ name: p.name, pivot: p.pivot, parent: p.parent, side: p.side, copyOf: p.copyOf }));
-  parts.push({ name: "rein", pivot: def.joints.hand ?? [86, 29.5], parent: "jArmNear", side: "near", copyOf: undefined });
-  return { parts, joints: def.joints, groundY: def.groundY };
-}
+const SLOT_CODE: Record<string, number> = { head: 1, mane: 2, tail: 3, build: 4 };
 
-function buildGeometry(def: RigDef): { parts: THREE.BufferGeometry; rein: THREE.BufferGeometry } {
-  if (def.parts.length + 1 > MAX_PARTS) throw new Error(`pixel-rig: at most ${MAX_PARTS - 1} parts`);
+/**
+ * One shared geometry per rig definition: a quad per atlas part (every variant included; the
+ * vertex shader hides the variants a horse does not use), skinned by bone index.
+ */
+function buildGeometry(def: RigDef, bones: string[]): { parts: THREE.BufferGeometry; rein: THREE.BufferGeometry } {
+  if (bones.length > MAX_PARTS) throw new Error(`pixel-rig: at most ${MAX_PARTS} bones`);
   const [aw, ah] = def.atlas;
   const pos: number[] = [];
   const uv: number[] = [];
   const info: number[] = [];
   const solid: number[] = [];
+  const variant: number[] = [];
+  const src: number[] = [];
   const idx: number[] = [];
-  def.parts.forEach((p, bone) => {
+  def.parts.forEach((p) => {
+    const bone = bones.indexOf(p.name);
     const [rx, ry, rw, rh] = p.rect;
     if (rw <= 0 || rh <= 0) return;
     const base = pos.length / 3;
@@ -130,6 +142,8 @@ function buildGeometry(def: RigDef): { parts: THREE.BufferGeometry; rein: THREE.
       uv.push((rx + cx) / aw, (ry + cy) / ah);
       info.push(bone, p.side === "far" ? 1 : 0, legIndexOf(p.name), p.z);
       solid.push(0);
+      variant.push(p.slot ? (SLOT_CODE[p.slot] ?? 0) : 0, p.variant ?? 0);
+      src.push(p.origin[0] + cx, p.origin[1] + cy);
     }
     idx.push(base, base + 2, base + 1, base, base + 3, base + 2);
   });
@@ -138,15 +152,19 @@ function buildGeometry(def: RigDef): { parts: THREE.BufferGeometry; rein: THREE.
   g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   g.setAttribute("aInfo", new THREE.Float32BufferAttribute(info, 4));
   g.setAttribute("aSolid", new THREE.Float32BufferAttribute(solid, 1));
+  g.setAttribute("aVariant", new THREE.Float32BufferAttribute(variant, 2));
+  g.setAttribute("aSrc", new THREE.Float32BufferAttribute(src, 2));
   g.setIndex(idx);
   g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
   // Rein: a 1-px GL line from the hand (bone origin) along +x, scaled to the bit by its bone.
-  const reinBone = def.parts.length;
+  const reinBone = bones.indexOf("rein");
   const r = new THREE.BufferGeometry();
   r.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3));
   r.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 0, 0], 2));
   r.setAttribute("aInfo", new THREE.Float32BufferAttribute([reinBone, 0, -1, 0, reinBone, 0, -1, 0], 4));
   r.setAttribute("aSolid", new THREE.Float32BufferAttribute([ROLE_ID.tack, ROLE_ID.tack], 1));
+  r.setAttribute("aVariant", new THREE.Float32BufferAttribute([0, 0, 0, 0], 2));
+  r.setAttribute("aSrc", new THREE.Float32BufferAttribute([0, 0, 0, 0], 2));
   r.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
   return { parts: g, rein: r };
 }
@@ -158,9 +176,9 @@ function makeAssets(
   tex: { index: THREE.Texture; index1x: THREE.Texture; normal: THREE.Texture; aux: THREE.Texture },
   source: Assets["source"],
 ): Assets {
-  const skeleton = buildSkeleton(def);
-  const { parts, rein } = buildGeometry(def);
-  return { version: ++assetCounter, source, def, skeleton, gait: new GaitRig(skeleton), ...tex, parts, rein };
+  const bones = boneNames(def);
+  const { parts, rein } = buildGeometry(def, bones);
+  return { version: ++assetCounter, source, def, bones, variantCounts: countVariants(def), ...tex, parts, rein };
 }
 
 function generatedAssets(): Assets {
@@ -261,8 +279,17 @@ export class PixelHorseRigFactory implements HorseRigFactory {
     return this.loading;
   }
 
-  create(appearance: HorseAppearance, opts: { gate?: number } = {}): PixelHorseRig {
-    const rig = new PixelHorseRig(this, appearance, opts.gate ?? 0);
+  /** How many variants each slot (head / mane / tail / build) has in the current atlas. */
+  variantCounts(): Record<VariantSlot, number> {
+    return { ...this.assets.variantCounts };
+  }
+
+  /**
+   * One rig per horse. Optional look knobs (variants, morph, seed, sabino) default
+   * deterministically from a hash of the appearance.
+   */
+  create(appearance: HorseAppearance, opts: HorseLookOptions = {}): PixelHorseRig {
+    const rig = new PixelHorseRig(this, appearance, opts);
     this.rigs.add(rig);
     return rig;
   }
@@ -301,14 +328,23 @@ export class PixelHorseRig implements HorseRig {
   private readonly palette: THREE.DataTexture;
   private readonly sec: SecondaryState = createSecondaryState();
   private pose!: Pose;
+  private gait!: GaitRig;
+  private appearance: HorseAppearance;
+  private lookOpts: HorseLookOptions;
+  /** The resolved per-horse look (variants, proportions, seed). */
+  look!: ResolvedLook;
+  readonly gate: number;
   private assetsVersion = -1;
   private disposed = false;
 
   constructor(
     private readonly factory: PixelHorseRigFactory,
     appearance: HorseAppearance,
-    readonly gate: number,
+    opts: HorseLookOptions = {},
   ) {
+    this.gate = opts.gate ?? 0;
+    this.appearance = appearance;
+    this.lookOpts = opts;
     this.width = factory.width;
     this.height = factory.height;
     this.rt = new THREE.WebGLRenderTarget(this.width, this.height, {
@@ -320,7 +356,7 @@ export class PixelHorseRig implements HorseRig {
       colorSpace: THREE.SRGBColorSpace,
     });
     this.texture = this.rt.texture;
-    this.texture.name = `pixel-rig gate ${gate}`;
+    this.texture.name = `pixel-rig gate ${this.gate}`;
     this.anchor = { x: 0, y: 0 };
     this.palette = new THREE.DataTexture(
       new Uint8Array(RAMP_STEPS * ROLE_COUNT * 4),
@@ -358,6 +394,8 @@ export class PixelHorseRig implements HorseRig {
         uLook: { value: new THREE.Vector4() },
         uLegMarks: { value: new THREE.Vector4() },
         uSilksFrame: { value: new THREE.Vector4() },
+        uVariants: { value: new THREE.Vector4() },
+        uSeed: { value: new THREE.Vector4() },
       },
     });
     this.resolveMat = new THREE.RawShaderMaterial({
@@ -383,8 +421,14 @@ export class PixelHorseRig implements HorseRig {
     this.syncAssets();
   }
 
-  /** Recolour this rig for another horse (cheap: rewrites the 8x16 palette texture). */
-  setAppearance(appearance: HorseAppearance) {
+  /**
+   * Re-skin this rig for another horse: palette (8x16 texture), markings, and, when `opts` is
+   * given, variants / proportions / seed.
+   */
+  setAppearance(appearance: HorseAppearance, opts?: HorseLookOptions) {
+    this.appearance = appearance;
+    if (opts) this.lookOpts = opts;
+    if (this.assetsVersion >= 0) this.applyLook();
     const pal = buildHorsePalette(appearance);
     paletteToBytes(pal, this.palette.image.data as Uint8Array);
     this.palette.needsUpdate = true;
@@ -393,6 +437,18 @@ export class PixelHorseRig implements HorseRig {
     const [fl, fr, hl, hr] = appearance.legs;
     (u.uLegMarks!.value as THREE.Vector4).set(LEG_CODE[fl]!, LEG_CODE[fr]!, LEG_CODE[hl]!, LEG_CODE[hr]!);
     (u.uLook!.value as THREE.Vector4).set(FACE_CODE[appearance.face] ?? 0, pal.coatTexture, PATTERN_CODE[appearance.silks.pattern] ?? 0, 0);
+  }
+
+  /** Resolve variants / morph / seed against the current atlas and rebuild the skeleton. */
+  private applyLook() {
+    const a = this.factory.assets;
+    this.look = resolveLook(this.appearance, this.lookOpts, a.variantCounts);
+    const skel = morphSkeleton(selectSkeleton(a.def, this.look.variants), this.look.morph);
+    this.gait = new GaitRig(skel);
+    this.pose = this.gait.createPose();
+    const v = this.look.variants;
+    (this.partsMat.uniforms.uVariants!.value as THREE.Vector4).set(v.head, v.mane, v.tail, v.build);
+    (this.partsMat.uniforms.uSeed!.value as THREE.Vector4).set((this.look.seed % 9973) / 9973, this.look.sabino, 1.4, 0);
   }
 
   /** @internal picks up the factory's current assets (PixelLab atlas once it has loaded). */
@@ -416,7 +472,7 @@ export class PixelHorseRig implements HorseRig {
     this.reinLine.frustumCulled = false;
     this.reinLine.renderOrder = 1;
     this.partsScene.add(this.partsMesh, this.reinLine);
-    this.pose = a.gait.createPose();
+    this.applyLook();
     const barrel = a.def.parts.find((p) => p.name === "barrel");
     this.anchor.x = Math.round((barrel?.pivot[0] ?? 64) + this.factory.offset[0]);
     this.anchor.y = Math.round(a.def.groundY + this.factory.offset[1]);
@@ -425,13 +481,13 @@ export class PixelHorseRig implements HorseRig {
   /** Compute the pose for `state` without rendering (also used by tests / tools). */
   computePose(state: HorseRigState): Pose {
     this.syncAssets();
-    return this.factory.assets.gait.compute(state, this.sec, this.pose, { angleStep: this.factory.angleStep });
+    return this.gait.compute(state, this.sec, this.pose, { angleStep: this.factory.angleStep });
   }
 
   update(renderer: THREE.WebGLRenderer, state: HorseRigState & HorseRigStateExtras): void {
     if (this.disposed) return;
     const pose = this.computePose(state);
-    const n = this.factory.assets.skeleton.parts.length;
+    const n = this.gait.n;
     const b = this.bones;
     const m = pose.m;
     for (let i = 0; i < n; i++) {

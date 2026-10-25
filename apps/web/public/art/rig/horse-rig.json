@@ -74,8 +74,8 @@
   {
    "name": "hindFarHoof",
    "rect": [
-    91,
-    51,
+    45,
+    69,
     7,
     6
    ],
@@ -137,8 +137,8 @@
   {
    "name": "foreFarHoof",
    "rect": [
-    82,
-    51,
+    36,
+    69,
     8,
     7
    ],
@@ -158,7 +158,7 @@
   {
    "name": "jArmFar",
    "rect": [
-    1,
+    54,
     51,
     15,
     15
@@ -254,7 +254,31 @@
    ],
    "parent": "tail",
    "z": 45,
-   "side": "near"
+   "side": "near",
+   "slot": "tail",
+   "variant": 0
+  },
+  {
+   "name": "tailTip",
+   "rect": [
+    100,
+    51,
+    11,
+    14
+   ],
+   "origin": [
+    29,
+    49
+   ],
+   "pivot": [
+    33,
+    52
+   ],
+   "parent": "tail",
+   "z": 45,
+   "side": "near",
+   "slot": "tail",
+   "variant": 1
   },
   {
    "name": "tail",
@@ -274,7 +298,31 @@
    ],
    "parent": "hindquarter",
    "z": 46,
-   "side": "near"
+   "side": "near",
+   "slot": "tail",
+   "variant": 0
+  },
+  {
+   "name": "tail",
+   "rect": [
+    91,
+    29,
+    12,
+    20
+   ],
+   "origin": [
+    29,
+    35
+   ],
+   "pivot": [
+    37,
+    38
+   ],
+   "parent": "hindquarter",
+   "z": 46,
+   "side": "near",
+   "slot": "tail",
+   "variant": 1
   },
   {
    "name": "neck",
@@ -299,8 +347,8 @@
   {
    "name": "mane",
    "rect": [
-    91,
-    29,
+    1,
+    51,
     26,
     17
    ],
@@ -314,7 +362,31 @@
    ],
    "parent": "neck",
    "z": 51,
-   "side": "near"
+   "side": "near",
+   "slot": "mane",
+   "variant": 0
+  },
+  {
+   "name": "mane",
+   "rect": [
+    28,
+    51,
+    25,
+    16
+   ],
+   "origin": [
+    76,
+    20
+   ],
+   "pivot": [
+    84,
+    32
+   ],
+   "parent": "neck",
+   "z": 51,
+   "side": "near",
+   "slot": "mane",
+   "variant": 1
   },
   {
    "name": "head",
@@ -334,7 +406,9 @@
    ],
    "parent": "neck",
    "z": 52,
-   "side": "near"
+   "side": "near",
+   "slot": "head",
+   "variant": 0
   },
   {
    "name": "hindNearLower",
@@ -359,8 +433,8 @@
   {
    "name": "hindNearHoof",
    "rect": [
-    91,
-    51,
+    45,
+    69,
     7,
     6
    ],
@@ -419,8 +493,8 @@
   {
    "name": "foreNearHoof",
    "rect": [
-    82,
-    51,
+    36,
+    69,
     8,
     7
    ],
@@ -459,7 +533,7 @@
   {
    "name": "jShin",
    "rect": [
-    35,
+    88,
     51,
     11,
     14
@@ -479,7 +553,7 @@
   {
    "name": "jThigh",
    "rect": [
-    17,
+    70,
     51,
     17,
     15
@@ -499,8 +573,8 @@
   {
    "name": "jTorso",
    "rect": [
-    47,
-    51,
+    1,
+    69,
     22,
     12
    ],
@@ -519,8 +593,8 @@
   {
    "name": "jHead",
    "rect": [
-    70,
-    51,
+    24,
+    69,
     11,
     11
    ],
@@ -539,7 +613,7 @@
   {
    "name": "jArmNear",
    "rect": [
-    1,
+    54,
     51,
     15,
     15
@@ -605,12 +679,12 @@
  },
  "silksFrame": {
   "origin": [
-   49,
-   61
+   3,
+   79
   ],
   "shoulder": [
-   65,
-   53
+   19,
+   71
   ]
  },
  "textures": {

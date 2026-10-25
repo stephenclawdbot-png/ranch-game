@@ -95,6 +95,1023 @@
      "loop": true
     }
    }
+  },
+  {
+   "id": "race.bb-bush-b-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 43,
+   "frameHeight": 33,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-bush-b.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "optimizationTier": "standard",
+   "src": "race/bb-bush-b-normal.png"
+  },
+  {
+   "id": "race.bb-bush-b",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 43,
+   "frameHeight": 33,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "optimizationTier": "standard",
+   "src": "race/bb-bush-b.png"
+  },
+  {
+   "id": "race.bb-bush-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 41,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-bush.png | source: /generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "optimizationTier": "standard",
+   "src": "race/bb-bush-normal.png"
+  },
+  {
+   "id": "race.bb-bush",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 41,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a round leafy green bush with a few small white and pink flowers, side view game sprite, transparent background, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, white rails",
+   "optimizationTier": "standard",
+   "src": "race/bb-bush.png"
+  },
+  {
+   "id": "race.bb-crowd-a-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-a.png | source: /generate-image-v2: <423 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-crowd-a-normal.png"
+  },
+  {
+   "id": "race.bb-crowd-a",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <423 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-crowd-a.png"
+  },
+  {
+   "id": "race.bb-crowd-b-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-crowd-b.png | source: /generate-image-v2: <383 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-crowd-b-normal.png"
+  },
+  {
+   "id": "race.bb-crowd-b",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <383 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-crowd-b.png"
+  },
+  {
+   "id": "race.bb-flag-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 41,
+   "frameHeight": 71,
+   "fps": 8,
+   "anchor": {
+    "x": 0.073,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-flag.png | source: /generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+   "optimizationTier": "standard",
+   "src": "race/bb-flag-normal.png",
+   "animations": {
+    "bb-flag-normal": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "race.bb-flag",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 41,
+   "frameHeight": 71,
+   "fps": 8,
+   "anchor": {
+    "x": 0.073,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <333 chars> | post: animated with /animate-pixminimax (8 frames), pole pinned",
+   "optimizationTier": "standard",
+   "src": "race/bb-flag.png",
+   "animations": {
+    "bb-flag": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "race.bb-grandstand-normal",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 320,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-grandstand.png | source: /generate-image-v2: <473 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-grandstand-normal.png"
+  },
+  {
+   "id": "race.bb-grandstand",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 320,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <473 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-grandstand.png"
+  },
+  {
+   "id": "race.bb-tree-oak-b-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 115,
+   "frameHeight": 113,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak-b.png | source: /generate-image-v2: <343 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-oak-b-normal.png"
+  },
+  {
+   "id": "race.bb-tree-oak-b",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 115,
+   "frameHeight": 113,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <343 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-oak-b.png"
+  },
+  {
+   "id": "race.bb-tree-oak-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 120,
+   "frameHeight": 112,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-oak.png | source: /generate-image-v2: <343 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-oak-normal.png"
+  },
+  {
+   "id": "race.bb-tree-oak",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 120,
+   "frameHeight": 112,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <343 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-oak.png"
+  },
+  {
+   "id": "race.bb-tree-poplar-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 34,
+   "frameHeight": 110,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of bb-tree-poplar.png | source: /generate-image-v2: <330 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-poplar-normal.png"
+  },
+  {
+   "id": "race.bb-tree-poplar",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 34,
+   "frameHeight": 110,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <330 chars>",
+   "optimizationTier": "standard",
+   "src": "race/bb-tree-poplar.png"
+  },
+  {
+   "id": "race.crowd",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: <423 chars> | post: made seamless: roll + /inpaint-v3 of the centre band (art-src/seamless.py)",
+   "optimizationTier": "standard",
+   "src": "race/crowd.png"
+  },
+  {
+   "id": "race.far-hills",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 960,
+   "frameHeight": 92,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: <535 chars> | post: sky cut to alpha, mirror-tiled to 960 px (art-src/process_scene.py)",
+   "optimizationTier": "background",
+   "src": "race/far-hills.png"
+  },
+  {
+   "id": "race.finish-post-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 112,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of finish-post.png | source: /generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "optimizationTier": "standard",
+   "src": "race/finish-post-normal.png"
+  },
+  {
+   "id": "race.finish-post",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 112,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <307 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "optimizationTier": "standard",
+   "src": "race/finish-post.png"
+  },
+  {
+   "id": "race.furlong-pole-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 19,
+   "frameHeight": 72,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of furlong-pole.png | source: /generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "optimizationTier": "standard",
+   "src": "race/furlong-pole-normal.png"
+  },
+  {
+   "id": "race.furlong-pole",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 19,
+   "frameHeight": 72,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <330 chars> | post: cleaned with /edit-images-v2 (base removed)",
+   "optimizationTier": "standard",
+   "src": "race/furlong-pole.png"
+  },
+  {
+   "id": "race.grandstand",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 320,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <473 chars>",
+   "optimizationTier": "standard",
+   "src": "race/grandstand.png"
+  },
+  {
+   "id": "race.hedge-near",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 137,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "near",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: <348 chars> | post: made seamless by min-cut quilting (art-src/quilt.py)",
+   "optimizationTier": "standard",
+   "src": "race/hedge-near.png"
+  },
+  {
+   "id": "race.rail-far",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+   "optimizationTier": "standard",
+   "src": "race/rail-far.png"
+  },
+  {
+   "id": "race.rail-near",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 192,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "near",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: <325 chars> | post: made seamless: roll + /inpaint-v3",
+   "optimizationTier": "standard",
+   "src": "race/rail-near.png"
+  },
+  {
+   "id": "race.sky-clear",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 270,
+   "fps": 0,
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "depthBand": "sky",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <413 chars>",
+   "optimizationTier": "background",
+   "src": "race/sky-clear.png"
+  },
+  {
+   "id": "race.sky-dusk",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 270,
+   "fps": 0,
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "depthBand": "sky",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <413 chars>",
+   "optimizationTier": "background",
+   "src": "race/sky-dusk.png"
+  },
+  {
+   "id": "race.sky-overcast",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 480,
+   "frameHeight": 270,
+   "fps": 0,
+   "anchor": {
+    "x": 0,
+    "y": 0
+   },
+   "depthBand": "sky",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <374 chars>",
+   "optimizationTier": "background",
+   "src": "race/sky-overcast.png"
+  },
+  {
+   "id": "race.starting-gate-normal",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 256,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of starting-gate.png | source: /generate-image-v2: <327 chars>",
+   "optimizationTier": "standard",
+   "src": "race/starting-gate-normal.png"
+  },
+  {
+   "id": "race.starting-gate",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 256,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: <327 chars>",
+   "optimizationTier": "standard",
+   "src": "race/starting-gate.png"
+  },
+  {
+   "id": "race.tex-dirt-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of tex-dirt.png | source: /create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-dirt-normal.png"
+  },
+  {
+   "id": "race.tex-dirt",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-dirt.png"
+  },
+  {
+   "id": "race.tex-grass-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of tex-grass.png | source: /create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-grass-normal.png"
+  },
+  {
+   "id": "race.tex-grass",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-grass.png"
+  },
+  {
+   "id": "race.tex-gravel-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of tex-gravel.png | source: /create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-gravel-normal.png"
+  },
+  {
+   "id": "race.tex-gravel",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <402 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-gravel.png"
+  },
+  {
+   "id": "race.tex-hedge-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of tex-hedge.png | source: /create-tiles-pro: <423 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-hedge-normal.png"
+  },
+  {
+   "id": "race.tex-hedge",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <423 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-hedge.png"
+  },
+  {
+   "id": "race.tex-turf-normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map (OpenGL) of tex-turf.png | source: /create-tiles-pro: <423 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-turf-normal.png"
+  },
+  {
+   "id": "race.tex-turf",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-2d"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <423 chars>",
+   "optimizationTier": "background",
+   "src": "race/tex-turf.png"
+  },
+  {
+   "id": "race.track-dirt",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <402 chars> | post: tiled from tex-dirt",
+   "optimizationTier": "background",
+   "src": "race/track-dirt.png"
+  },
+  {
+   "id": "race.track-turf",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/create-tiles-pro: <423 chars> | post: tiled from tex-turf",
+   "optimizationTier": "background",
+   "src": "race/track-turf.png"
   }
  ]
 }

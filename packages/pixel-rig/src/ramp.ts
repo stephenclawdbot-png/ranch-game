@@ -215,7 +215,8 @@ export function buildHorsePalette(appearance: HorseAppearance): HorsePalette {
  * Pack a palette as RGBA8 bytes, RAMP_STEPS wide x ROLE_COUNT tall (row = role id), sRGB.
  * This is the per-horse palette texture the shader indexes.
  */
-export function paletteToBytes(p: HorsePalette, out = new Uint8Array(RAMP_STEPS * ROLE_COUNT * 4)): Uint8Array {
+export function paletteToBytes<T extends Uint8Array>(p: HorsePalette, out?: T): Uint8Array {
+  out ??= new Uint8Array(RAMP_STEPS * ROLE_COUNT * 4) as T;
   for (const [role, ramp] of Object.entries(p.ramps) as [Role, string[]][]) {
     const row = ROLE_ID[role];
     ramp.forEach((hex, i) => {
