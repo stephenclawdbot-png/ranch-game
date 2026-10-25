@@ -13,12 +13,9 @@ export interface Settings {
   motion: MotionPref;
 }
 
-const KEY = "thoroughbred:settings";
+import { SETTINGS_KEY as KEY } from "./settingsBoot";
 const EVENT = "thoroughbred:settings";
 const DEFAULTS: Settings = { text: "100", motion: "system" };
-
-/** Inline script (runs in <head>): applies saved settings before the first paint. */
-export const SETTINGS_BOOT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem(${JSON.stringify(KEY)})||"{}");var d=document.documentElement;if(s.text&&s.text!=="100")d.dataset.text=s.text;if(s.motion&&s.motion!=="system")d.dataset.motion=s.motion;}catch(e){}`;
 
 let cacheRaw: string | null | undefined;
 let cache: Settings = DEFAULTS;

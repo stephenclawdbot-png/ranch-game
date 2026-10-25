@@ -120,6 +120,45 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 - **No time-based fees.** Capacity is limited by stall slots (licence and facilities).
   Costs come from activity only: training, entries, vet, breeding.
 
+### 4a amendments (user-approved)
+
+- **Career length:** 40 starts. Juvenile 0–6, prime 7–28, veteran 29–40. Mandatory racing
+  retirement at 40. Breeding is available from start 25 or after retirement.
+- **Rest:** freshness recovers in real time. A horse can race again whenever the owner
+  chooses, but racing it tired lowers performance and raises injury risk. Hard cap: 3 starts
+  per horse per day.
+- **Ride mode is core, and always optional.** Every race offers "Ride". If the player
+  doesn't ride, the auto-jockey follows the race plan. A ride's influence is capped at about
+  ±3–5%. Build it after the Phase 1 integration.
+
+## 4b. Population control & anti-multi-account (user-approved)
+
+- **Stall cap is the primary control.** A stable starts with 6 stalls; facilities add more,
+  up to 24. A player can never own more horses than stalls, so foaling uses a nursery
+  overflow slot and the foal is never lost. The active population is therefore at most
+  players × stalls.
+- **Packs produce foals,** which need 19 care days before they can race.
+- **Pack limits:**
+  - Paddock Pack: 1 free every 3rd play day, plus up to 3 bought with credits per week.
+  - Premium Pack: up to 10 per week per account.
+  - A **seasonal global foal crop cap** (e.g. 10,000), with the remaining count shown
+    publicly.
+- **Ways out of the active pool:** racing retirement at 40 starts. Pensioned and Legend
+  horses move to the **Legacy Farm**, which needs no stall. Any horse can be **released to
+  the Club** for a few credits.
+- **Bound horses:** starter horses and free-pack horses are "Club-bred". They can't be sold,
+  traded or transferred. Their foals are tradeable only after 5 starts.
+- **Market friction:**
+  - a 5% fee, burned;
+  - a listing price floor of about 70% of the appraised value;
+  - no direct credit transfers;
+  - to sell, an account needs to be at least 7 days old, have at least 20 races and a
+    verified email.
+- **Linked accounts:** device, fingerprint, IP pattern or wallet links are flagged. Trades
+  between linked accounts are blocked, and their leaderboard results are reviewed. Ranked
+  rewards (Daily Cup, leagues, titles) require a verified account; those rewards are
+  cosmetic.
+
 ## 4. Life cycle & growth (original calendar model; ageing replaced by §4a)
 
 **One season is 4 real weeks.** Age advances one year per season, at the season rollover.

@@ -124,3 +124,4 @@
 {"at":"2026-10-25T17:27:22.395Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-crowd-b","secs":70,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:27:44.617Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-bush","secs":92,"usage":{"type":"generations","generations":10},"images":9}
 {"at":"2026-10-25T17:29:16.019Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-grandstand","secs":184,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:34:34.047Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-crowd-a","secs":502,"usage":{"type":"generations","generations":10},"images":1}

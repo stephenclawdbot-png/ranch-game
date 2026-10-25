@@ -144,6 +144,11 @@ export const GenomeSchema = z.object({
   variants: VariantGenesSchema,
   quirks: QuirkGenesSchema,
   breed: BreedSharesSchema,
+  /**
+   * Coefficient of inbreeding at conception, permille (0 for foundation horses). Inbreeding
+   * depression lowers durability and temperament potential (see genome.potentialOf).
+   */
+  coi: Permille,
   /** Per-horse uint32 for marking placement and the pixel-rig `seed` (not inherited). */
   markingSeed: z.number().int().min(0).max(0xffffffff),
 });

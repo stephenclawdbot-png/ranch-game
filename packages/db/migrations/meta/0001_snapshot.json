@@ -1,6 +1,6 @@
 {
-  "id": "6f7ae9a9-be03-458c-8095-34aeeb82e65b",
-  "prevId": "b7c877e8-0826-49d4-aff4-dd224ab01c63",
+  "id": "02d79058-4873-4b72-acda-0b188a5c7ba5",
+  "prevId": "85dbf9c3-341d-4458-b14b-389841dab00b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1200,26 +1200,12 @@
           "notNull": true,
           "default": 0
         },
-        "realisation": {
-          "name": "realisation",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 600
-        },
         "fitness": {
           "name": "fitness",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 50
-        },
-        "freshness": {
-          "name": "freshness",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 100
+          "default": 500
         },
         "fatigue": {
           "name": "fatigue",
@@ -1228,19 +1214,26 @@
           "notNull": true,
           "default": 0
         },
+        "freshness": {
+          "name": "freshness",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1000
+        },
         "form": {
           "name": "form",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 50
+          "default": 500
         },
         "morale": {
           "name": "morale",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 50
+          "default": 500
         },
         "bond": {
           "name": "bond",
@@ -1249,12 +1242,26 @@
           "notNull": true,
           "default": 0
         },
+        "dynamics": {
+          "name": "dynamics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
         "quirks": {
           "name": "quirks",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
+        },
+        "scanned": {
+          "name": "scanned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "injury": {
           "name": "injury",
@@ -1495,9 +1502,9 @@
           "name": "horses_lock_consistent",
           "value": "(\"horses\".\"lock_kind\" is null) = (\"horses\".\"lock_ref\" is null)"
         },
-        "horses_fitness": {
-          "name": "horses_fitness",
-          "value": "\"horses\".\"fitness\" between 0 and 100 and \"horses\".\"freshness\" between 0 and 100"
+        "horses_rating": {
+          "name": "horses_rating",
+          "value": "\"horses\".\"rating\" between 0 and 140"
         },
         "horses_stud_fee": {
           "name": "horses_stud_fee",
@@ -1513,7 +1520,7 @@
         },
         "horses_meters": {
           "name": "horses_meters",
-          "value": "\"horses\".\"fatigue\" between 0 and 100 and \"horses\".\"form\" between 0 and 100 and \"horses\".\"morale\" between 0 and 100 and \"horses\".\"bond\" between 0 and 100"
+          "value": "least(\"horses\".\"fitness\", \"horses\".\"fatigue\", \"horses\".\"freshness\", \"horses\".\"form\", \"horses\".\"morale\", \"horses\".\"bond\", \"horses\".\"care_quality\") >= 0 and greatest(\"horses\".\"fitness\", \"horses\".\"fatigue\", \"horses\".\"freshness\", \"horses\".\"form\", \"horses\".\"morale\", \"horses\".\"bond\", \"horses\".\"care_quality\") <= 1000"
         },
         "horses_retirement_consistent": {
           "name": "horses_retirement_consistent",
@@ -3884,8 +3891,8 @@
       "name": "retirement_reason",
       "schema": "public",
       "values": [
-        "voluntary",
-        "mandatory_50",
+        "choice",
+        "max_starts",
         "injury"
       ]
     },

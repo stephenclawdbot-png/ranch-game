@@ -55,7 +55,7 @@ export const careerStatusEnum = pgEnum("career_status", [
   "retired", // racing retired: stud or broodmare career while breedings remain
   "pasture", // Pasture / Legend: permanent, irreversible, never deleted
 ]);
-export const retirementReasonEnum = pgEnum("retirement_reason", ["voluntary", "mandatory_50", "injury"]);
+export const retirementReasonEnum = pgEnum("retirement_reason", ["choice", "max_starts", "injury"]);
 export const maturityTypeEnum = pgEnum("maturity_type", ["early", "normal", "late"]);
 export const horseOriginEnum = pgEnum("horse_origin", ["starter", "bred", "pack", "gift", "house", "admin"]);
 export const horseLockEnum = pgEnum("horse_lock", ["race", "market"]);
@@ -184,19 +184,25 @@ export const horses = pgTable(
     pasturedAt: ts("pastured_at"),
     /** Counted care sessions (nursery growth is driven by these). */
     careSessions: integer("care_sessions").notNull().default(0),
-    /** Accumulated care quality bonus, permille of potential (0..50 = up to +5%). */
+    /** Rolling care quality, permille. */
     careQuality: integer("care_quality").notNull().default(0),
-    /** Training realisation permille (600 → 1000). */
-    realisation: integer("realisation").notNull().default(600),
-    fitness: integer("fitness").notNull().default(50),
-    freshness: integer("freshness").notNull().default(100),
+    /** Condition snapshots, permille (0..1000). None of these decay with elapsed time. */
+    fitness: integer("fitness").notNull().default(500),
     fatigue: integer("fatigue").notNull().default(0),
-    form: integer("form").notNull().default(50),
-    morale: integer("morale").notNull().default(50),
-    /** Owner bond. Never decays from absence. */
+    freshness: integer("freshness").notNull().default(1000),
+    form: integer("form").notNull().default(500),
+    morale: integer("morale").notNull().default(500),
+    /** Owner bond, permille. Never decays from absence. */
     bond: integer("bond").notNull().default(0),
-    /** Revealed genetic quirks, e.g. ["loves_mud"]. Hidden ones live in the genome. */
+    /**
+     * game-core dynamics that need no constraints: per-stat training realisation, fatigue
+     * timestamp, last hard work, training week counters, recent runs, rated-run counts.
+     */
+    dynamics: jsonb("dynamics").notNull().default({}),
+    /** Revealed genetic quirks, e.g. ["mudlark"]. Hidden ones live in the genome. */
     quirks: jsonb("quirks").notNull().default([]),
+    /** Pedigree Scan bought (potential ranges narrowed). */
+    scanned: boolean("scanned").notNull().default(false),
     /** Current injury { kind, severity, careerEnding } or null. Heals in real time. */
     injury: jsonb("injury"),
     /** Real-time recovery end; care and the vet facility can bring it forward. */
@@ -226,11 +232,14 @@ export const horses = pgTable(
     check("horses_not_own_parent", sql`${t.sireId} is distinct from ${t.id} and ${t.damId} is distinct from ${t.id}`),
     check("horses_distinct_parents", sql`${t.sireId} is null or ${t.damId} is null or ${t.sireId} <> ${t.damId}`),
     check("horses_lock_consistent", sql`(${t.lockKind} is null) = (${t.lockRef} is null)`),
-    check("horses_fitness", sql`${t.fitness} between 0 and 100 and ${t.freshness} between 0 and 100`),
+    check("horses_rating", sql`${t.rating} between 0 and 140`),
     check("horses_stud_fee", sql`${t.studFee} is null or ${t.studFee} >= 0`),
     check("horses_name_len", sql`char_length(${t.name}) between 1 and 32`),
     check("horses_starts", sql`${t.starts} between 0 and 50 and ${t.wins} + ${t.places} + ${t.shows} <= ${t.starts}`),
-    check("horses_meters", sql`${t.fatigue} between 0 and 100 and ${t.form} between 0 and 100 and ${t.morale} between 0 and 100 and ${t.bond} between 0 and 100`),
+    check(
+      "horses_meters",
+      sql`least(${t.fitness}, ${t.fatigue}, ${t.freshness}, ${t.form}, ${t.morale}, ${t.bond}, ${t.careQuality}) >= 0 and greatest(${t.fitness}, ${t.fatigue}, ${t.freshness}, ${t.form}, ${t.morale}, ${t.bond}, ${t.careQuality}) <= 1000`,
+    ),
     check(
       "horses_retirement_consistent",
       sql`(${t.careerStatus} = 'racing') = (${t.retirementReason} is null) and (${t.careerStatus} = 'racing') = (${t.retiredAt} is null)`,

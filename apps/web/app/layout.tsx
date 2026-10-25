@@ -4,7 +4,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { EntryProvider } from "@/components/entry/EntryProvider";
 import { ArtProvider } from "@/components/pixel/ArtProvider";
 import { listArt } from "@/lib/art.server";
-import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings";
+import { SETTINGS_BOOT_SCRIPT } from "@/lib/settingsBoot";
 import "./globals.css";
 
 // Three faces only: pixel display (titles, >= 24 px), scoreboard numerals, and a readable sans.

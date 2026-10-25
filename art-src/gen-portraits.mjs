@@ -2,7 +2,8 @@
 //   node art-src/gen-portraits.mjs master          -> raw/portraits/master-N.png
 //   node art-src/gen-portraits.mjs coats <master.png> [coat ...]
 import { run, b64img } from "./pixellab.mjs";
-const OUT = "art-src/raw/portraits";
+const SIZE = Number(process.env.PORTRAIT_SIZE ?? 128); // v1 drop used 96
+const OUT = SIZE === 96 ? "art-src/raw/portraits" : `art-src/raw/portraits-${SIZE}`;
 const COAT_TEXT = {
   bay: "bay: rich reddish-brown coat with black mane",
   dark_bay: "dark bay: very dark chocolate brown coat, almost black, with black mane",
@@ -18,8 +19,8 @@ const COAT_TEXT = {
 const [mode, master, ...only] = process.argv.slice(2);
 if (mode === "master") {
   const r = await run("/generate-image-v2", {
-    description: "portrait of a thoroughbred racehorse head and neck, three-quarter side view facing left, bay coat (rich reddish brown) with black mane, small white star on the forehead, alert ears pricked forward, bright intelligent eye, brown leather bridle, noble expression, character portrait bust cropped at the base of the neck, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background",
-    image_size: { width: 96, height: 96 }, no_background: true, seed: 7101,
+    description: "detailed HD portrait of a thoroughbred racehorse head and neck, three-quarter side view facing left, bay coat (rich reddish brown) with black mane, small white star on the forehead, alert ears pricked forward, bright intelligent eye, brown leather bridle, noble expression, character portrait bust cropped at the base of the neck, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background",
+    image_size: { width: SIZE, height: SIZE }, no_background: true, seed: 7101,
   }, `${OUT}/master`);
   console.log(r.files);
 } else {
@@ -28,8 +29,8 @@ if (mode === "master") {
     try {
       const r = await run("/edit-images-v2", {
         method: "edit_with_text",
-        edit_images: [{ image: b64img(master), width: 96, height: 96 }],
-        image_size: { width: 96, height: 96 },
+        edit_images: [{ image: b64img(master), width: SIZE, height: SIZE }],
+        image_size: { width: SIZE, height: SIZE },
         description: `change the horse's coat colour to ${COAT_TEXT[coat]}; keep exactly the same pose, framing, bridle, white star, outline, lighting and pixel art style`,
         no_background: true, seed: 7200,
       }, `${OUT}/coat-${coat}`);

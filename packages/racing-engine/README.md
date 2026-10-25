@@ -36,14 +36,17 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
 - 20 Hz ticks, and a frame every 2 ticks. Frame 0 is the standing start. The run ends on the first
   even tick after the last horse finishes. A 10-minute cap throws.
 - Any change to the output must bump `ENGINE_VERSION` and update the golden test.
+- 1.1.0 (balance pass, see `docs/balance.md`): narrower day form, smaller tactic-match bonus, softer
+  off-surface penalty, durability worth a little more, closers sit a little closer mid-race.
 
 ## Model summary
 
 - **Pace:** the par cruise speed falls with distance and is adjusted for going. Each horse's cruise
-  comes from its speed, surface, going and distance fit (`adaptability` softens the penalties), plus a
-  small bonus when the tactic matches its natural style. A per-race "day form" draw, narrower for
-  calm horses (`temperament`), adds to that. Per-segment noise then varies the pace every 2 s, and
-  rain widens both.
+  comes from its speed, surface, going and distance fit (`adaptability` softens the penalties; off its
+  surface a horse loses 40 + 110 × (1 − adaptability) mm/s), plus a small bonus (±15 mm/s, ±0.6% drain)
+  when the tactic matches its natural style. A per-race "day form" draw (triangular, ±220 mm/s plus
+  up to ±200 for a nervous horse, i.e. ~1% of speed), narrower for calm horses (`temperament`), adds
+  to that. Per-segment noise then varies the pace every 2 s, and rain widens both.
 - **Gate:** the reaction delay comes from temperament. A slow start is more likely in a nervous horse.
 - **Tactics:** `front` goes hard early and duels for the lead. `stalker` tracks 2–4 lengths off the
   leader. `closer` saves energy at the back, and once more than ~12 lengths behind it eases off less.

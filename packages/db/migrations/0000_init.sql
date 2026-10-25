@@ -10,7 +10,7 @@ CREATE TYPE "public"."pregnancy_status" AS ENUM('carrying', 'foaled', 'lost');--
 CREATE TYPE "public"."race_kind" AS ENUM('quick', 'scheduled', 'daily_cup', 'feature', 'final', 'trial');--> statement-breakpoint
 CREATE TYPE "public"."race_status" AS ENUM('open', 'closed', 'settled', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."rarity" AS ENUM('common', 'uncommon', 'rare', 'epic', 'legendary');--> statement-breakpoint
-CREATE TYPE "public"."retirement_reason" AS ENUM('voluntary', 'mandatory_50', 'injury');--> statement-breakpoint
+CREATE TYPE "public"."retirement_reason" AS ENUM('choice', 'max_starts', 'injury');--> statement-breakpoint
 CREATE TYPE "public"."season_status" AS ENUM('upcoming', 'active', 'closed');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -127,14 +127,15 @@ CREATE TABLE "horses" (
 	"pastured_at" timestamp with time zone,
 	"care_sessions" integer DEFAULT 0 NOT NULL,
 	"care_quality" integer DEFAULT 0 NOT NULL,
-	"realisation" integer DEFAULT 600 NOT NULL,
-	"fitness" integer DEFAULT 50 NOT NULL,
-	"freshness" integer DEFAULT 100 NOT NULL,
+	"fitness" integer DEFAULT 500 NOT NULL,
 	"fatigue" integer DEFAULT 0 NOT NULL,
-	"form" integer DEFAULT 50 NOT NULL,
-	"morale" integer DEFAULT 50 NOT NULL,
+	"freshness" integer DEFAULT 1000 NOT NULL,
+	"form" integer DEFAULT 500 NOT NULL,
+	"morale" integer DEFAULT 500 NOT NULL,
 	"bond" integer DEFAULT 0 NOT NULL,
+	"dynamics" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"quirks" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"scanned" boolean DEFAULT false NOT NULL,
 	"injury" jsonb,
 	"injured_until" timestamp with time zone,
 	"insured" boolean DEFAULT false NOT NULL,
@@ -153,11 +154,11 @@ CREATE TABLE "horses" (
 	CONSTRAINT "horses_not_own_parent" CHECK ("horses"."sire_id" is distinct from "horses"."id" and "horses"."dam_id" is distinct from "horses"."id"),
 	CONSTRAINT "horses_distinct_parents" CHECK ("horses"."sire_id" is null or "horses"."dam_id" is null or "horses"."sire_id" <> "horses"."dam_id"),
 	CONSTRAINT "horses_lock_consistent" CHECK (("horses"."lock_kind" is null) = ("horses"."lock_ref" is null)),
-	CONSTRAINT "horses_fitness" CHECK ("horses"."fitness" between 0 and 100 and "horses"."freshness" between 0 and 100),
+	CONSTRAINT "horses_rating" CHECK ("horses"."rating" between 0 and 140),
 	CONSTRAINT "horses_stud_fee" CHECK ("horses"."stud_fee" is null or "horses"."stud_fee" >= 0),
 	CONSTRAINT "horses_name_len" CHECK (char_length("horses"."name") between 1 and 32),
 	CONSTRAINT "horses_starts" CHECK ("horses"."starts" between 0 and 50 and "horses"."wins" + "horses"."places" + "horses"."shows" <= "horses"."starts"),
-	CONSTRAINT "horses_meters" CHECK ("horses"."fatigue" between 0 and 100 and "horses"."form" between 0 and 100 and "horses"."morale" between 0 and 100 and "horses"."bond" between 0 and 100),
+	CONSTRAINT "horses_meters" CHECK (least("horses"."fitness", "horses"."fatigue", "horses"."freshness", "horses"."form", "horses"."morale", "horses"."bond", "horses"."care_quality") >= 0 and greatest("horses"."fitness", "horses"."fatigue", "horses"."freshness", "horses"."form", "horses"."morale", "horses"."bond", "horses"."care_quality") <= 1000),
 	CONSTRAINT "horses_retirement_consistent" CHECK (("horses"."career_status" = 'racing') = ("horses"."retirement_reason" is null) and ("horses"."career_status" = 'racing') = ("horses"."retired_at" is null)),
 	CONSTRAINT "horses_pasture_consistent" CHECK (("horses"."career_status" = 'pasture') = ("horses"."pastured_at" is not null)),
 	CONSTRAINT "horses_mandatory_retirement" CHECK ("horses"."starts" < 50 or "horses"."career_status" <> 'racing')
