@@ -1,0 +1,33 @@
+{
+ "endpoint": "/create-image-pixen",
+ "request": {
+  "description": "<363 chars>",
+  "image_size": {
+   "width": 128,
+   "height": 96
+  },
+  "view": "side",
+  "direction": "east",
+  "outline": "selective outline",
+  "detail": "highly detailed",
+  "no_background": true,
+  "seed": 1101
+ },
+ "response": {
+  "usage": {
+   "type": "generations",
+   "generations": 1
+  },
+  "image": {
+   "type": "base64",
+   "base64": "<7592 chars>",
+   "format": "png"
+  },
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": null,
+ "files": [
+  "raw/hero/pixen-a-0.png"
+ ]
+}

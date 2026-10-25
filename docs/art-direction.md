@@ -51,6 +51,30 @@ The target is **HD-2D**: hand-quality pixel-art sprites living inside a true 3D 
   - procedural pixel VFX: dust, turf clods, rain and confetti, all drawn as pixel quads.
   - Never smooth vector shapes.
 
+## Pixel rig pipeline: PixelLab as source, code makes it HD-2D
+
+We don't rely on a template gallop. PixelLab provides **source material**: base sprites,
+parts, textures and normals. Our own code produces the final pixels:
+
+1. **Part rig.** A side-view PixelLab horse and jockey are cut into parts (head, neck,
+   barrel, hindquarter, upper and lower legs near and far, tail, mane, jockey torso, arms and
+   head). Cut masks and pivots are defined in code (JSON). Hidden areas are filled with
+   PixelLab inpainting. A **code-driven skeletal gallop** with gait phases, speed-matched
+   stride, head nod, tail flow and a jockey push in the final furlong animates the parts.
+   That gives unlimited smooth frames at any speed.
+2. **Pixel-snapped rendering.** Each horse rig renders into its own **low-res render target**
+   (native sprite resolution), with nearest filtering and part rotations snapped to the pixel
+   grid, so motion stays crisp pixel art (RotSprite-like, never blurry).
+3. **3D lighting on pixels.** Every part carries a normal map and a height map: from PixelLab
+   `/normal-map`, plus normals derived in code by inflating the silhouette distance field.
+   A shader lights each pixel from the scene's sun, with rim light and coat sheen, then
+   **quantises the result to the horse's palette ramp** with ordered (Bayer) dithering. The
+   result is real 3D light that still reads as hand-shaded pixel art.
+4. **Code passes.** A one-pixel selective outline (darker hue of the neighbour ramp, not
+   black), palette clamping, recolouring per coat and silks, and pixel VFX.
+5. The rig's render target is used as a **billboard texture** in the Three.js world. It casts a
+   shadow and is lit consistently with the world.
+
 ## Native scale
 
 - The race canvas is designed at **480×270 native pixels** (16:9) and shown at 3–4× on

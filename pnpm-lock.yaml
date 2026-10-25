@@ -23,6 +23,9 @@ importers:
       '@thoroughbred/art-pipeline':
         specifier: workspace:*
         version: link:../../packages/art-pipeline
+      '@thoroughbred/pixel-rig':
+        specifier: workspace:*
+        version: link:../../packages/pixel-rig
       '@thoroughbred/race-viewer':
         specifier: workspace:*
         version: link:../../packages/race-viewer
@@ -67,11 +70,30 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
+  packages/pixel-rig:
+    dependencies:
+      '@thoroughbred/art-pipeline':
+        specifier: workspace:*
+        version: link:../art-pipeline
+      '@thoroughbred/shared':
+        specifier: workspace:*
+        version: link:../shared
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@types/three':
+        specifier: 0.180.0
+        version: 0.180.0
+
   packages/race-viewer:
     dependencies:
       '@thoroughbred/art-pipeline':
         specifier: workspace:*
         version: link:../art-pipeline
+      '@thoroughbred/pixel-rig':
+        specifier: workspace:*
+        version: link:../pixel-rig
       '@thoroughbred/shared':
         specifier: workspace:*
         version: link:../shared

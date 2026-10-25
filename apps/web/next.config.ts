@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     "@thoroughbred/racing-engine",
     "@thoroughbred/race-viewer",
     "@thoroughbred/art-pipeline",
+    "@thoroughbred/pixel-rig",
   ],
 };
 
