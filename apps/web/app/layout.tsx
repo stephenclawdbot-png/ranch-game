@@ -1,35 +1,45 @@
 import type { Metadata, Viewport } from "next";
-import { Jersey_10, Nunito, Pixelify_Sans, Silkscreen, VT323 } from "next/font/google";
+import { Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
 import { SiteNav } from "@/components/SiteNav";
+import { EntryProvider } from "@/components/entry/EntryProvider";
 import { ArtProvider } from "@/components/pixel/ArtProvider";
 import { listArt } from "@/lib/art.server";
+import { SETTINGS_BOOT_SCRIPT } from "@/lib/settings";
 import "./globals.css";
 
-const pixelify = Pixelify_Sans({ subsets: ["latin"], variable: "--font-pixelify", display: "swap" });
-const silkscreen = Silkscreen({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-silkscreen", display: "swap" });
-const vt323 = VT323({ subsets: ["latin"], weight: "400", variable: "--font-vt323", display: "swap" });
+// Three faces only: pixel display (titles, >= 24 px), scoreboard numerals, and a readable sans.
+const pixelify = Pixelify_Sans({ subsets: ["latin"], weight: ["600"], variable: "--font-pixelify", display: "swap" });
 const jersey = Jersey_10({ subsets: ["latin"], weight: "400", variable: "--font-jersey", display: "swap" });
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
+const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"], variable: "--font-nunito", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Thoroughbred", template: "%s · Thoroughbred" },
-  description: "Run a racing stable. Deterministic, replayable horse racing.",
+  description: "Run a racing stable. Six horses, a race in a minute, every result sealed and replayable.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f2a1d",
+  themeColor: "#0a1b12",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const art = listArt();
   return (
-    <html lang="en" className={`${pixelify.variable} ${silkscreen.variable} ${vt323.variable} ${jersey.variable} ${nunito.variable}`}>
+    <html lang="en" className={`${pixelify.variable} ${jersey.variable} ${nunito.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Applies saved text size / motion settings before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />
+      </head>
       <body>
         <ArtProvider files={art}>
-          <SiteNav />
-          <main className="relative z-10 mx-auto w-full max-w-6xl px-3 pb-28 pt-4 sm:px-6 md:pb-16 md:pt-6">{children}</main>
+          <EntryProvider>
+            <SiteNav />
+            <main id="main" className="relative mx-auto w-full max-w-[75rem] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-8">
+              {children}
+            </main>
+          </EntryProvider>
         </ArtProvider>
       </body>
     </html>
