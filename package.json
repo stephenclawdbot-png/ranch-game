@@ -1,0 +1,17 @@
+{
+  "name": "thoroughbred",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "pnpm --filter @thoroughbred/web dev",
+    "build": "pnpm --filter @thoroughbred/web build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "3.2.7",
+    "@types/node": "22.20.5"
+  }
+}
