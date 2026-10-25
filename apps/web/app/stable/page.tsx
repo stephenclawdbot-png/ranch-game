@@ -13,7 +13,7 @@ import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { aptitudes, recommendIndex, tripBand } from "@/lib/aptitude";
 import { SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
-import { horseRecord, totals, type PlayerState } from "@/lib/player";
+import { horseRecord, recentlyRun, totals, type PlayerState } from "@/lib/player";
 import { usePlayerHorses } from "@/lib/useStable";
 
 type SortKey = "rating" | "trip" | "wins";
@@ -43,7 +43,7 @@ function Stable({ state }: { state: PlayerState }) {
     if (sort === "wins") list.sort((a, b) => b.rec.wins - a.rec.wins || b.rec.earnings - a.rec.earnings);
     return list;
   }, [horses, sort, state]);
-  const best = horses ? recommendIndex(horses, (i) => horseRecord(state, i).starts) : 0;
+  const best = horses ? recommendIndex(horses, recentlyRun(state, Date.now())) : 0;
 
   return (
     <div className="grid gap-5">
@@ -96,8 +96,8 @@ function Stable({ state }: { state: PlayerState }) {
 
       {horses && (
         <ActionBar>
-          <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(best)} data-testid="race-best">
-            <PixelIcon name="flag" size={32} className="-my-2" /> Race {horses[best]!.name}
+          <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
+            <PixelIcon name="flag" size={32} className="-my-2" /> Enter next race
           </button>
         </ActionBar>
       )}
@@ -126,7 +126,7 @@ function RosterRow({ horse, form, recommended, onRace }: { horse: Horse; form: s
         <span className="min-w-0">
           <span className="t-title block group-hover:underline">
             {horse.name}
-            {recommended && <span className="ml-2 align-middle text-xs font-extrabold text-positive">✓ Ready</span>}
+            {recommended && <span className="ml-2 align-middle text-xs font-extrabold text-positive">✓ Quick Pick</span>}
           </span>
           <span className="t-meta block lg:hidden">
             {STYLE_LABEL[horse.style]} · {tripBand(horse.preferredDistanceM).label} {formatDistance(horse.preferredDistanceM)} · {SURFACE_LABEL[horse.preferredSurface]}

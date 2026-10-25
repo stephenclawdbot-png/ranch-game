@@ -49,10 +49,11 @@ export interface QuickPickResult {
 }
 
 /**
- * Quick Pick: the server picks the best-suited fresh horse (rotating away from horses run in
- * the last hour) and rides it to its natural style, entering the next race.
+ * Quick Pick (Story mode): the server picks the best-suited fresh horse (rotating away from
+ * horses run in the last hour), rides it to its natural style and enters the next Story race.
+ * `instant` (Story only) creates a race that is already run, so the page opens on the result.
  */
-export async function quickPickRace(state: PlayerState, horses: Horse[] | null): Promise<QuickPickResult> {
+export async function quickPickRace(state: PlayerState, horses: Horse[] | null, opts: { instant?: boolean } = {}): Promise<QuickPickResult> {
   const res = await fetch("/api/races/quick", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -60,6 +61,7 @@ export async function quickPickRace(state: PlayerState, horses: Horse[] | null):
       playerId: state.player.playerId,
       pick: "auto",
       exclude: recentlyRun(state, Date.now()),
+      ...(opts.instant ? { instant: true } : {}),
       silks: state.player.silks,
       stableName: state.player.stableName,
     }),

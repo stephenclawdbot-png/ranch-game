@@ -38,7 +38,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Dominance of the higher allele, permille (500 = additive, 1000 = complete dominance). */
-export const DOMINANCE_PERMILLE = 600;
+export const DOMINANCE_PERMILLE = 550;
 /** Inbreeding depression on durability and temperament: potential x (1 - k * COI). */
 export const INBREEDING_DEPRESSION_PERMILLE = 800;
 export const INBREEDING_AFFECTED: readonly StatKey[] = ["durability", "temperament"];
@@ -59,9 +59,9 @@ export const LAUNCH_CEILING = LAUNCH_MEAN_CEILING;
  * less headroom: it is the most valuable stat in the engine (balance.md), so the breeding
  * frontier should not run away on speed alone.
  */
-export const ALLELE_HEADROOM: StatRecord<number> = { speed: 100, stamina: 150, burst: 150, durability: 150, adaptability: 150, temperament: 150 };
+export const ALLELE_HEADROOM: StatRecord<number> = { speed: 200, stamina: 250, burst: 250, durability: 250, adaptability: 250, temperament: 250 };
 /** Chance per minted stat locus (permille) that one allele is a hidden "gem" above what it shows. */
-export const GEM_LOCUS_PERMILLE = 80;
+export const GEM_LOCUS_PERMILLE = 150;
 
 function seasonSteps(season: number): number {
   return Math.min(CEILING_MAX_STEPS, Math.max(0, Math.floor(season) - 1));
@@ -408,7 +408,7 @@ function mintQuirks(rng: Rng): QuirkGenes {
 }
 
 /** Typical gap (sd of |hi − p|) between a minted locus's high allele and its expressed value. */
-export const MINT_HET_SD = 100;
+export const MINT_HET_SD = 150;
 
 /** Lowest minted stat potential. */
 export const MINT_STAT_FLOOR = 150;

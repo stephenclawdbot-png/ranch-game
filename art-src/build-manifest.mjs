@@ -61,6 +61,7 @@ const R = [
   },
   { id: "horse.body.canter", kind: "horse_body", depthBand: "track", src: "race/horse-canter.png", fpsFrom: "race/horse-canter.meta.json", fps: 10, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-canter.meta.json" },
   { id: "horse.body.idle", kind: "horse_body", depthBand: "track", src: "race/horse-idle.png", fps: 6, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-idle.meta.json" },
+  { id: "horse.body.idle.normal", kind: "horse_body", depthBand: "track", src: "race/horse-idle-normal.png", fps: 6, anchor: NOSE, variants: ["normal-opengl"], optimizationTier: "hero", sourcePromptFrom: "race/horse-idle.meta.json", sourcePrompt: "/normal-map mode=pro kind=character per frame of race/horse-idle.png (OpenGL)" },
 ];
 
 // Generic single-image entries registered by later batches (see art-src/assets.json).
@@ -90,7 +91,7 @@ for (const r of R) {
     depthBand: r.depthBand,
     palette: r.palette ?? [],
     variants: r.variants ?? [],
-    sourcePrompt: meta.sourcePrompt ?? r.sourcePrompt ?? null,
+    sourcePrompt: (r.variants?.includes("normal-opengl") ? r.sourcePrompt : meta.sourcePrompt) ?? r.sourcePrompt ?? meta.sourcePrompt ?? null,
     optimizationTier: r.optimizationTier ?? "standard",
     src: r.src,
   };

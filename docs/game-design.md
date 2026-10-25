@@ -159,6 +159,24 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   rewards (Daily Cup, leagues, titles) require a verified account; those rewards are
   cosmetic.
 
+## 4f. Stable entries (Live racing budget). Final; the user delegated the logic.
+
+- **Daily allowance:** +10 entries at the player's **local midnight**. The timezone is
+  captured from the device at signup and can change at most once every 30 days.
+- **Rollover:** unused entries carry over, up to a **bank cap of 20**. There's no tick
+  regeneration, no wasted regeneration and no penalty for missing a day.
+- **Cost:** 1 entry per Live race; 2 for Feature and Graded races. **Story mode races and
+  the Daily Cup are free.** An entry is consumed when the horse is entered. It's refunded only
+  if the race is abandoned; scratching the horse yourself forfeits the entry.
+- **Refill:** once per local day, +5 entries for credits (a credit sink). Only available when
+  the bank is below 5.
+- **Facility upgrades:** +1 daily allowance per tier (up to 15) and a higher bank cap (up to
+  30).
+- **Implementation:** the allowance is granted lazily on first activity after local
+  midnight. This is idempotent per (stable, local date), so there's no cron dependency. The
+  entry budget is an account on the stable that never goes negative; changes are
+  transactional.
+
 ## 4e. Two modes: Story (single-player) and Live (multiplayer). User decision; refines §4d.
 
 - **Story mode.** A single-player career campaign (Rival Stars-like). Solo races against

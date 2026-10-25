@@ -11,6 +11,7 @@ with nearest filtering at integer scale.
 | `race/horse-gallop.png` | 12 frames × **229×146**, horizontal strip (2748×146) | **HD v2.** Bay horse + jockey (goggles, magenta/cyan key silks), facing right, transparent, seamless loop (11 -> 0). Horse ≈ 215 px nose to tail. 12–16 fps. 47 colours. |
 | `race/horse-gallop-normal.png` | same layout | PixelLab `/normal-map` pro per frame, OpenGL convention (R = right, G = up, B = toward viewer), alpha matches sprite. |
 | `race/palette.json` | | Recolour keys for the HD strip. Every role is an ordered ramp dark -> light of **exact** source colours. |
+| `race/horse-idle.png` + `horse-idle-normal.png` | 14 frames × **256×192** | Standing at the start/parade (breathing, ear/tail flicks), ping-pong baked so it loops, ~6 fps. Anchor nose x = 0.98, ground y = 1.0. **Uses the same `palette.json` keys** as the gallop. |
 | `race/horse-gallop-lo.png` + `-lo-normal.png` + `palette-lo.json` | 12 × 118×72 | v1 low-res fallback (same scheme, smaller ramps). |
 
 - **Anchor** (HD): nose tip x = 0.978, ground y = 0.993 (hooves touch row 144 of 146). Frames are
@@ -27,8 +28,10 @@ with nearest filtering at integer scale.
 - Previews: HD recolour test (6 coats × silks × 4 frames):
   `/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/recolour-test-hd.png`
   (v1: `.../scratchpad/prev/recolour-test.png`)
-- Known: a few frames have a 1–2 px tail tip that falls in the `points` band; girth detection is
-  heuristic (right in 10/12 frames on grey).
+- No canter strip: PixelLab's "canter" came out as another gallop, so it was not shipped — play
+  the gallop at ~8–10 fps for a canter.
+- Known: girth/boot detection is heuristic; on light coats a few frames may show a 1–2 px
+  coat-coloured fleck on the girth.
 
 ### Pixel-rig sources HD v2 (`art-src/raw/rig-hd/`, not served) — use these
 
@@ -104,7 +107,7 @@ CSS: `border-image: url(/art/ui/panel-9slice.png) 18 fill / 36px / 0 round; imag
 ## 5. Page scenes (READY)
 
 `scenes/stable-yard.png`, `scenes/paddock.png`, `scenes/grandstand.png`, `scenes/barn-interior.png`
-— opaque, golden hour (barn: lantern-lit interior). See the size column in `manifest.json`.
+— opaque, **688×288** (HD v2), golden hour (barn: lantern-lit interior).
 
 ## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 
