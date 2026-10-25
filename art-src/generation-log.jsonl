@@ -115,3 +115,7 @@
 {"at":"2026-10-25T17:23:10.073Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hdtex-gravel","secs":67,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:25:20.145Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-oak","secs":61,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:25:30.100Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-oak-b","secs":71,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:26:01.522Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-sky-overcast","secs":103,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:26:05.908Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-sky-dusk","secs":107,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:26:07.243Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-sky-clear","secs":109,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-25T17:26:12.066Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-far-hills","secs":113,"usage":{"type":"generations","generations":25},"images":1}

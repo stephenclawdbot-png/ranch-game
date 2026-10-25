@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<438 chars>",
+  "image_size": {
+   "width": 688,
+   "height": 384
+  },
+  "seed": 14101,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "adfc541f-c164-4cf9-9df0-64760b26dc55",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "adfc541f-c164-4cf9-9df0-64760b26dc55",
+  "status": "completed",
+  "created_at": "2026-10-25T17:24:20.790920+00:00",
+  "last_response": {
+   "seed": 14101,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<64412 chars>",
+     "height": 384
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "ec8b4f06-1494-456c-a510-57b26082c986",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "general_no_background_512x512_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_512x512_5.png",
+   "generation_started_at": "2026-10-25T17:24:27.472561+00:00",
+   "original_image_n_colors": 125,
+   "quantized_image_n_colors": 30
+  }
+ },
+ "files": [
+  "art-src/raw/scene/hd-sky-clear-0.png"
+ ]
+}
