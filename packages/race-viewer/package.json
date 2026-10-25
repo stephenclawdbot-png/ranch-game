@@ -14,15 +14,17 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@thoroughbred/shared": "workspace:*",
     "@thoroughbred/art-pipeline": "workspace:*",
-    "pixi.js": "8.22.0"
+    "@thoroughbred/shared": "workspace:*",
+    "pixi.js": "8.22.0",
+    "three": "0.180.0"
   },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "devDependencies": {
-    "react": "19.1.10",
-    "@types/react": "19.1.17"
+    "@types/react": "19.1.17",
+    "@types/three": "0.180.0",
+    "react": "19.1.10"
   }
 }
