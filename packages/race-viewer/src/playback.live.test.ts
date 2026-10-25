@@ -17,6 +17,7 @@ describe("LiveClock", () => {
     // Wall clock is at 3 s but only frame 10 (1.0 s) has arrived: hold at the data edge.
     s.liveEdgeFrame = 10;
     expect(c.tick(0.016, T0 + 3000).time).toBeCloseTo(1.0);
+    for (let i = 0; i < 50; i++) c.tick(0.016, T0 + 3000);
     expect(c.buffering).toBe(true);
     s.liveEdgeFrame = 30;
     expect(c.tick(0.016, T0 + 3000).time).toBeCloseTo(3.0);

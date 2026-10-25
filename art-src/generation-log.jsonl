@@ -121,3 +121,5 @@
 {"at":"2026-10-25T17:26:12.066Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-far-hills","secs":113,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:27:06.374Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-poplar","secs":54,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:27:17.440Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-flag","secs":65,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T17:27:22.395Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-crowd-b","secs":70,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:27:44.617Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-bush","secs":92,"usage":{"type":"generations","generations":10},"images":9}

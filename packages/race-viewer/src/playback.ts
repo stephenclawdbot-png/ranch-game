@@ -238,6 +238,7 @@ export class LiveClock {
   rate = 1;
   /** True while the wall clock has run ahead of the received frames (holding). */
   buffering = false;
+  private starvedFor = 0;
 
   constructor(
     private src: LiveClockSource,
@@ -292,7 +293,10 @@ export class LiveClock {
     } else {
       this.time = Math.min(this.time, edge);
     }
-    this.buffering = this.live && wall > 0 && wall - this.dataEdge() > this.src.frameDt * 2.5;
+    // Only flag buffering when holding persists (polling jitter is normal).
+    const starved = this.live && wall > 0 && wall - this.dataEdge() > 0.5;
+    this.starvedFor = starved ? this.starvedFor + dt : 0;
+    this.buffering = this.starvedFor > 0.6;
     return { time: this.time, frozen: false, flash: 0, slowmo: false };
   }
 

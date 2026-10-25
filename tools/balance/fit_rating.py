@@ -10,11 +10,11 @@ import pathlib
 import numpy as np
 
 rows = json.loads((pathlib.Path(__file__).parent / "out" / "fit-data.json").read_text())
-names = ["cruise_mm_s", "drain_permille", "burst", "burst_x_(D-1600)/1000", "temperament", "durability"]
+names = ["cruise_mm_s", "drain_permille", "burst", "burst_x_(D-1600)/1000", "temperament", "durability", "drain_excess^2/100"]
 races = {}
 for r in rows:
     races.setdefault(r["race"], []).append(r)
-X = [np.array([e["f"] for e in rs], dtype=float) for rs in races.values()]
+X = [np.array([e["f"] + [max(0.0, e["f"][1]) ** 2 / 100] for e in rs], dtype=float) for rs in races.values()]
 P = [np.array([e["pos"] for e in rs]) for rs in races.values()]
 scale = np.vstack(X).std(0)
 Xs = [x / scale for x in X]
@@ -61,5 +61,5 @@ def fav_rate(weights):
     return hits / len(X)
 
 
-current = np.array([1 / 1.05, -0.75, 0.4 - 0.6 / 7, -1 / 7, 0.22, 0.0])  # burst weight at 1600 + slope
+current = np.array([1 / 1.05, -0.85, 0.2, -1 / 6, 0.2, 0.0, 0.0])  # races.ts weights (burst at 1600 + slope)
 print(f"favourite wins: fitted {fav_rate(coef):.3f}, current weights {fav_rate(current):.3f}")

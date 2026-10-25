@@ -78,7 +78,49 @@ and exciting, but always with published rules, odds and pity. The thrill is *fin
 - **The look comes from genes** via the pixel rig: coat, markings, morphs and part variants.
   There's zero art generation per horse.
 
-## 4. Life cycle & growth (time model)
+## 4a. Career clock (user decision, supersedes the calendar ageing in §4)
+
+**Horses age by career activity, not by calendar time.** An inactive player's horses never
+age, decline or die. Seasons exist only for competitions: leagues, finals, titles.
+
+- **Foal → racing age:** 19 counted care sessions (5 / 7 / 7), as in §4.
+- **Career stages by starts:**
+
+  | Starts | Stage |
+  |---|---|
+  | 0–8 | Juvenile (maiden and novice races, trials) |
+  | 9–35 | Prime |
+  | 36–50 | Veteran (gradual decline, speed fades first) |
+  | 50 | Mandatory racing retirement |
+
+  The owner may retire a horse earlier. The horse page shows "Career: n / 50 starts".
+- **Maturity gene:** early, normal or late peaker. It shifts each stat's maturity curve over
+  the starts axis, so an early type peaks at about starts 8–20 and a late type at about
+  starts 20–40.
+- **Stud and broodmare career:** 4 breedings total, at most 1 per mare per season. Breeding
+  is only available after racing retirement, or from start 30 onwards for horses still
+  racing. The stud stage ends when all breedings are used, or when the owner pensions the
+  horse.
+- **Pasture / Legend:** a permanent retired state. The horse stays in the stable and the
+  Hall of Fame. There is no death.
+- **Injury:**
+  - Risk comes from durability, fatigue, how often the horse races, going, and riding
+    risk.
+  - **The risk is shown before entry.**
+  - Recovery takes real days, and care plus the vet facility speed it up. Healing while
+    away is fine.
+  - A rare career-ending injury forces racing retirement only, and the horse can still go
+    to stud. It is never fatal, and insurance can be bought with credits.
+- **Other dynamic variables:**
+  - form and morale (recent results, bond, freshness);
+  - fatigue and freshness;
+  - genetic quirks, revealed through racing (loves mud, gate-shy, finds a kick, hates a
+    crowd);
+  - bond, which never decays from absence.
+- **No time-based fees.** Capacity is limited by stall slots (licence and facilities).
+  Costs come from activity only: training, entries, vet, breeding.
+
+## 4. Life cycle & growth (original calendar model; ageing replaced by §4a)
 
 **One season is 4 real weeks.** Age advances one year per season, at the season rollover.
 

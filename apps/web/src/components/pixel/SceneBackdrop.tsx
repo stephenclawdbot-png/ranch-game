@@ -4,8 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ART_SLOTS, artUrl } from "@/lib/art";
 import { useArt } from "./ArtProvider";
 import { SCENE_H, SCENE_W, drawLayer, type LayerName, type SceneVariant } from "./scenes";
-import { useTilt } from "./useTilt";
-import { GallopSprite } from "./GallopSprite";
 import type { HorseAppearance } from "@thoroughbred/shared";
 
 const LAYERS: { name: LayerName; depth: number }[] = [
@@ -67,7 +65,7 @@ export function SceneBackdrop({ variant, className }: { variant: SceneVariant; c
     <div ref={box} className={`absolute inset-0 overflow-hidden ${className ?? ""}`} style={{ background: FALLBACK_SKY }} aria-hidden>
       {art ? (
         <div
-          className="parallax pixelated absolute -inset-x-6 -inset-y-3"
+          className="pixelated absolute inset-0"
           style={{
             ["--depth" as string]: 10,
             backgroundImage: `url(${artUrl(art)})`,
@@ -81,7 +79,7 @@ export function SceneBackdrop({ variant, className }: { variant: SceneVariant; c
           urls[name] ? (
             <div
               key={name}
-              className="parallax pixelated absolute -inset-x-8 -bottom-2 top-[-8px]"
+              className="pixelated absolute inset-0"
               style={{
                 ["--depth" as string]: depth,
                 backgroundImage: `url(${urls[name]})`,
@@ -97,52 +95,33 @@ export function SceneBackdrop({ variant, className }: { variant: SceneVariant; c
   );
 }
 
-/** Page header: framed scene with a 3D tilt, parallax layers and a title plate. */
+/**
+ * A scene window: pixel backdrop at an integer scale, no tilt and no idle motion.
+ * `hero` gives it the ornate brass frame (use at most one hero per screen).
+ */
 export function SceneHero({
   variant,
   children,
   className,
-  height = "min-h-[13.5rem] sm:min-h-[16rem] md:min-h-[18rem]",
-  runner,
-  overlay = true,
+  height = "min-h-[9rem] sm:min-h-[11rem]",
+  hero = false,
 }: {
-  /** false: the scene is a clean window and children render on a panel strip beneath it. */
-  overlay?: boolean;
-  /** A horse galloping across the scene (PixelLab gallop strip, recoloured). */
-  runner?: HorseAppearance;
   variant: SceneVariant;
   children?: ReactNode;
   className?: string;
   height?: string;
+  hero?: boolean;
+  /** @deprecated idle runners were removed (no endless motion). */
+  runner?: HorseAppearance;
+  /** @deprecated children always render on a plate beneath the scene. */
+  overlay?: boolean;
 }) {
-  const ref = useTilt<HTMLDivElement>(2.5);
   return (
-    <section ref={ref} className={`tilt px-panel overflow-hidden !p-0 ${className ?? ""}`}>
-      <div className={`relative flex flex-col justify-end ${height}`}>
+    <section className={`${hero ? "frame-hero" : "surface"} overflow-hidden !p-0 ${className ?? ""}`}>
+      <div className={`relative ${height}`}>
         <SceneBackdrop variant={variant} />
-        {runner && (
-          <div aria-hidden className="parallax pointer-events-none absolute inset-x-0 bottom-[3%] h-36" style={{ ["--depth" as string]: 14 }}>
-            <div className="gallop-across absolute bottom-0 left-0">
-              <GallopSprite appearance={runner} scale={2} className="drop-shadow-[0_6px_0_rgba(0,0,0,0.25)]" />
-            </div>
-          </div>
-        )}
-        {/* stepped shade so text reads over the scene */}
-        {overlay && <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[78%]"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(8,21,14,0) 0 12%, rgba(8,21,14,.3) 12% 34%, rgba(8,21,14,.58) 34% 58%, rgba(8,21,14,.8) 58%)",
-          }}
-        />}
-        {overlay && (
-          <div className="parallax relative flex flex-col justify-end p-3 pt-16 sm:p-5 sm:pt-20" style={{ ["--depth" as string]: -6 }}>
-            {children}
-          </div>
-        )}
       </div>
-      {!overlay && <div className="relative border-t-[3px] border-[#050906] p-3 sm:p-4">{children}</div>}
+      {children && <div className="relative p-4">{children}</div>}
     </section>
   );
 }

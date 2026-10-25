@@ -116,7 +116,7 @@ export function analyseRace(
   });
   const segNames: Segment[] = ["early", "middle", "late"];
   const sectionals: Sectional[] = segNames.map((segment, s) => {
-    const times = segs.map((x) => x[s]);
+    const times = segs.map((x) => x[s]!);
     const mine = times[h]!;
     const rank = 1 + times.filter((t) => t < mine).length;
     const lo = Math.min(...times);

@@ -976,7 +976,9 @@ export class HD2DScene {
       z1 = Math.max(z1, this.laneZ(-0.5));
     }
     // Max zoom-out: never frame more than ~40 m of track (wide: 80 m); keep the front.
-    const maxSpan = shot === "wide" ? 80 : 30;
+    // Narrow screens frame less track so horses stay readable.
+    const narrowK = Math.min(1, Math.max(0.55, this.camera.aspect / (16 / 9)));
+    const maxSpan = (shot === "wide" ? 80 : 30) * narrowK;
     if (x1 - x0 > maxSpan) x0 = x1 - maxSpan;
     if (shot === "photo") {
       x0 = Math.min(x0, L - 2.5);

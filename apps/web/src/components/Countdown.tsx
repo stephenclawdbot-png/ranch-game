@@ -5,7 +5,7 @@ import { useNow } from "@/lib/clock";
 /** Each changed character drops in (pixel-step animation), like a flip board. */
 export function Digits({ text, className }: { text: string; className?: string }) {
   return (
-    <span className={`num inline-flex ${className ?? ""}`} aria-label={text}>
+    <span className={`score inline-flex ${className ?? ""}`} aria-label={text}>
       {[...text].map((ch, i) => (
         <span key={`${i}-${ch}`} className={ch === ":" ? "px-[0.04em] opacity-80" : "digit"} aria-hidden>
           {ch}
