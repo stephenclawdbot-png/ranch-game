@@ -26,7 +26,7 @@ const DEFAULT_SILKS: SilksT = { pattern: "hoops", primary: "#0f5a3a", secondary:
 
 function Swatches({ label, value, onChange }: { label: string; value: string; onChange: (hex: string) => void }) {
   return (
-    <fieldset>
+    <fieldset className="min-w-0">
       <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-cream-dim">{label}</legend>
       <div className="grid grid-cols-8 gap-2">
         {SILK_COLORS.map((c) => {
@@ -167,7 +167,7 @@ export default function PlayPage() {
             </p>
           </div>
 
-          <fieldset>
+          <fieldset className="min-w-0">
             <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-cream-dim">Pattern</legend>
             <div className="grid grid-cols-4 gap-2">
               {SILK_PATTERNS.map((p) => {

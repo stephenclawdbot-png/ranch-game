@@ -60,7 +60,7 @@ export function QuickRacePanel() {
 
   return (
     <div className="panel min-w-0 p-4 sm:p-6" data-testid="quick-race">
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-cream-dim">1 · Choose your runner</legend>
         <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
           {(horses ?? Array.from({ length: 6 }, () => null)).map((h, i) => {
@@ -97,7 +97,7 @@ export function QuickRacePanel() {
         </div>
       </fieldset>
 
-      <fieldset className="mt-5">
+      <fieldset className="mt-5 min-w-0">
         <legend className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-cream-dim">2 · Riding instructions</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {TACTICS.map((t) => {

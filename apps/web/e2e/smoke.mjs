@@ -166,7 +166,7 @@ async function main() {
       await m.goto(`${BASE_URL}${path}`);
       await m.getByTestId(ready).first().waitFor({ timeout: 30_000 });
       await m.waitForTimeout(600);
-      const overflow = await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      const overflow = await m.evaluate(() => document.documentElement.scrollWidth - 390);
       assert(overflow <= 0, `${path} has no horizontal scroll on mobile (overflow ${overflow}px)`);
       await shot(m, name);
     }
