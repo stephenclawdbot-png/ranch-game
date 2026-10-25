@@ -70,6 +70,7 @@ describe("markings and look", () => {
           expect(Math.round(look.morph[k] * 32)).toBeCloseTo(look.morph[k] * 32, 9);
         }
       }),
+      { numRuns: 3000 },
     );
   });
 

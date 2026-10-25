@@ -32,7 +32,7 @@ function run(seed: number, highlight: string | null, photoFinish = true) {
 
 describe("broadcast director", () => {
   it("opens on the gate, establishes with an aerial, uses the rail cam in the final furlong and the judge cam for a photo", () => {
-    const { cuts, timing } = run(7, null);
+    const { cuts, timing } = run(7, "h9");
     const types = cuts.map((c) => c.type);
     expect(types[0]).toBe("close");
     expect(types).toContain("aerial");

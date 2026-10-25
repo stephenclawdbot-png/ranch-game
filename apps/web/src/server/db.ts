@@ -15,14 +15,20 @@
  *     through settleRace() (idempotent by race id) instead of the client-side `settled` map.
  *  3. Horses: HorseRepository.getStable() reads listStableHorses() for DB-backed players;
  *     DemoRepository stays for the stateless demo until the switch.
- *  4. Races: createRace() / enterRace() / getRaceForSimulation() → simulateRace() →
- *     settleRace(); the cron backstop calls runMaintenance() + settles overdue races.
+ *  4. Live races (§4d): tickRaceCard() publishes the 3-minute card and locks closed
+ *     fields; enterRace()/scratchEntry() while open (entry bank §4f applies);
+ *     getRaceForSimulation() at post time → simulateRace() → settleRace() once the
+ *     broadcast is over. Call tickRaceCard() lazily on card/race reads (throttled) and from
+ *     a cron backstop: GET /api/cron/race-card every minute (vercel.json "crons", check
+ *     `Authorization: Bearer ${CRON_SECRET}`), which also settles `dueForSettlement` and
+ *     runs runMaintenance() (healing, foaling, listing expiry).
  *  5. Map DomainError.code to HTTP with httpStatusFor().
  *
- * Environments: without DATABASE_URL an embedded PGlite is used (persisted under
- * node_modules/.cache in `next dev`, in-memory elsewhere). On Vercel that in-memory database
- * is per function instance and resets on cold start: previews only. Production needs
- * DATABASE_URL (Neon via the Vercel Marketplace); migrations auto-apply on first use.
+ * Environments: with DATABASE_URL (Vercel Preview + Production, Neon) the Neon serverless
+ * driver is used and migrations run in `pnpm build` (DATABASE_URL_UNPOOLED). Without it,
+ * `next dev` and tests use an embedded PGlite (persisted under node_modules/.cache in dev).
+ * A production server without DATABASE_URL refuses to start (set ALLOW_EMBEDDED_DB=1 for a
+ * local `next start`).
  */
 import { getDb, getDbHandle, type Db, type DbHandle } from "@thoroughbred/db";
 

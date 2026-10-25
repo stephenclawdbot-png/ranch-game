@@ -126,18 +126,19 @@ export class Director {
       return { type: "close", subject: null };
     }
 
-    // Never leave the player's horse unseen for too long.
-    if (hl && t - this.lastSawHighlight > MAX_UNSEEN_S - 1) {
-      this.pendingFocus = null;
-      return { type: "close", subject: hl };
-    }
-
-    // Establishing aerial early; an optional second one mid-race.
+    // Establishing aerial early (shows everyone, the player's horse included); an
+    // optional second one mid-race.
     if (this.aerials === 0 && progress > 0.15 && progress < 0.3) {
       this.aerials++;
       return { type: "aerial", subject: null };
     }
     if (cur.type === "aerial" && held < LENGTH.aerial) return keep;
+
+    // Never leave the player's horse unseen for too long.
+    if (hl && t - this.lastSawHighlight > MAX_UNSEEN_S - 1) {
+      this.pendingFocus = null;
+      return { type: "close", subject: hl };
+    }
 
     // Motivated cut: someone makes a move.
     if (this.pendingFocus) {
