@@ -1,0 +1,328 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<20476 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ab194384-75ce-4941-82ee-805b923d16bf",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "ab194384-75ce-4941-82ee-805b923d16bf",
+  "status": "completed",
+  "created_at": "2026-10-25T18:03:18.510633+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 90,
+      "name": "far hind leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       130
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       107
+      ]
+     },
+     {
+      "box": [
+       59,
+       102,
+       115,
+       191
+      ],
+      "axis": 90,
+      "name": "near hind leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       134,
+       131,
+       132,
+       133,
+       135,
+       136,
+       138,
+       141,
+       143,
+       144
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       115,
+       116,
+       119,
+       121,
+       104
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "chest and shoulder",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       118,
+       122,
+       123,
+       124,
+       126,
+       127,
+       129,
+       110,
+       111,
+       117
+      ]
+     },
+     {
+      "box": [
+       115,
+       102,
+       173,
+       191
+      ],
+      "axis": 90,
+      "name": "front legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       134,
+       137,
+       139,
+       140,
+       142,
+       145,
+       146
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       59,
+       77
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       53,
+       67,
+       66,
+       80,
+       73,
+       74,
+       82,
+       58,
+       60,
+       61,
+       62,
+       64,
+       65,
+       71,
+       72,
+       78,
+       89,
+       90,
+       40,
+       42
+      ]
+     },
+     {
+      "name": "horse ears",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       12,
+       13,
+       16,
+       17,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       34,
+       50,
+       52
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.3,
+       0.2
+      ],
+      "regions": [
+       101,
+       109,
+       114,
+       96,
+       97,
+       102,
+       105,
+       120,
+       125
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       56,
+       103
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "jockey silks",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       18,
+       23,
+       30,
+       31,
+       35
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey near arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       33,
+       32
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "jockey reins arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       45,
+       47,
+       36,
+       46,
+       22
+      ]
+     },
+     {
+      "name": "hand",
+      "shape": "ball",
+      "regions": [
+       57
+      ]
+     },
+     {
+      "name": "jockey head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       14,
+       15,
+       19,
+       20,
+       21
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     73,
+     74,
+     82
+    ],
+    "backdrop": [],
+    "recessed": [
+     38,
+     95,
+     90,
+     84,
+     105,
+     125,
+     128
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<61620 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "e758f37d-470c-4915-84a8-447a2802558d",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T18:03:19.323907+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-idle-normal/n2-0.png"
+ ]
+}

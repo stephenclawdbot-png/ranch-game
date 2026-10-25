@@ -51,6 +51,25 @@ export function defaultPgliteLocation(): string {
   return "memory";
 }
 
+/**
+ * Live races are shared across serverless instances, so a deployed production app must not
+ * silently fall back to a per-instance embedded database.
+ * Throws when DATABASE_URL is missing and VERCEL_ENV=production, or NODE_ENV=production
+ * outside Vercel previews, unless PGLITE_DIR or ALLOW_EMBEDDED_DB=1 opts in (local
+ * `next start`).
+ */
+export function assertEmbeddedAllowed(): void {
+  const vercelEnv = env("VERCEL_ENV");
+  const optIn = env("ALLOW_EMBEDDED_DB") === "1" || !!env("PGLITE_DIR");
+  if (vercelEnv === "production" || (env("NODE_ENV") === "production" && vercelEnv !== "preview" && !optIn)) {
+    throw new Error(
+      "DATABASE_URL is not set. Production needs a shared Postgres (Neon via the Vercel Marketplace): " +
+        "races, entries and the ledger must be shared by every server instance. For a local production build, " +
+        "set ALLOW_EMBEDDED_DB=1 (or PGLITE_DIR) to use the embedded PGlite database.",
+    );
+  }
+}
+
 export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
   const url = opts.url === undefined ? env("DATABASE_URL") : opts.url ?? undefined;
   if (url) {
@@ -67,6 +86,7 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
     return { db, driver: "neon", location: null, close: () => pool.end() };
   }
 
+  if (opts.url === undefined && opts.pglite === undefined) assertEmbeddedAllowed();
   const location = opts.pglite ?? defaultPgliteLocation();
   const { PGlite } = await nativeImport<typeof import("@electric-sql/pglite")>("@electric-sql/pglite");
   const { drizzle } = await nativeImport<typeof import("drizzle-orm/pglite")>("drizzle-orm/pglite");

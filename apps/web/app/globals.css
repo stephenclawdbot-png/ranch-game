@@ -175,7 +175,8 @@ body::before {
     border: calc(var(--u) * 4) solid transparent;
     border-image: var(--frame-hero) 4 / calc(var(--u) * 4) stretch;
     background: var(--color-surface-1) padding-box;
-    filter: drop-shadow(0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.35));
+    /* no `filter` here: it would trap the fixed .action-bar inside the hero */
+    box-shadow: 0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.35);
   }
   /* Cream "race card" paper. */
   .paper,

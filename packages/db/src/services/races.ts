@@ -1,36 +1,64 @@
 /**
- * Races: create (seed committed), enter (locks the horse), simulate input (seed revealed
- * only at post time), settle (idempotent by race id), cancel.
+ * Races (game-design §4d): every Live race is shared and live.
  *
- * The racing engine runs in the web app: it loads `getRaceForSimulation`, simulates, and
- * hands the outcome to `settleRace`. Settlement is safe to call any number of times, from
- * any instance (first read after post time, cron backstop): the race row lock plus the
- * ledger idempotency key make it happen exactly once.
+ *   publish (card.ts, seed committed)  →  enterRace (open until post − 60 s)
+ *   →  lockField at entry close (snapshot, house horses fill to 8–12, gate draw from seed)
+ *   →  getRaceForSimulation at post time (seed revealed)  →  engine (web app)
+ *   →  settleRace after the broadcast (idempotent: purses, ratings, records, unlock, inbox).
+ *
+ * Every transition takes the race row lock first, so concurrent serverless instances
+ * (lazy-on-read plus the cron backstop) serialise: the first does the work, the rest read
+ * the stored outcome. Lock order everywhere: race → stable → horse(s).
  */
-import { and, asc, eq, sql } from "drizzle-orm";
-import { commitSeed, newSeed } from "../crypto";
+import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
-import { horses, raceEntries, raceResults, races, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
+import { horses, inboxItems, raceEntries, raceResults, races, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, defaultHooks, RULES, stageFor, type GameHooks } from "../rules";
-import type { Db, Executor } from "../types";
-import { accountIdOfStable, recordPlayDay, stableOf } from "./accounts";
+import type { Db, Executor, Tx } from "../types";
+import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
+import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { isCarrying, lockHorse, startsOnDay } from "./horses";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
 
 export type RaceKind = RaceRow["kind"];
 
+/** Stable entries a race costs: Live 1, feature / final / graded 2, Story & Daily Cup free. */
+export function entryCostFor(kind: RaceKind, raceClass: string): number {
+  if (kind === "quick" || kind === "daily_cup" || kind === "trial") return 0;
+  if (kind === "feature" || kind === "final" || raceClass === "graded") return 2;
+  return 1;
+}
+
+export interface RaceConditions {
+  distanceM?: number;
+  surface?: string;
+  going?: string;
+  weather?: string;
+  /** Official-rating band for handicaps etc. (inclusive). */
+  minRating?: number;
+  maxRating?: number;
+  /** Maiden: 0 wins; novice: at most 2. */
+  maxWins?: number;
+  [k: string]: unknown;
+}
+
 export interface CreateRaceInput {
   kind: RaceKind;
   name: string;
   raceClass: string;
-  conditions: Record<string, unknown>;
+  conditions: RaceConditions;
   postTime: Date;
   entriesCloseAt: Date;
   purse?: number;
   entryFee?: number;
   maxRunners?: number;
+  targetRunners?: number;
+  /** Defaults to entryCostFor(kind, raceClass). */
+  entryCost?: number;
   seasonNumber?: number | null;
+  slotKey?: string | null;
   /** Optional externally derived seed (e.g. HMAC(secret, raceId)); random by default. */
   seed?: string;
 }
@@ -38,30 +66,35 @@ export interface CreateRaceInput {
 /** Public view: never includes the secret seed. */
 export type PublicRace = Omit<RaceRow, "seed">;
 
-function publicRace(r: RaceRow): PublicRace {
+export function publicRace(r: RaceRow): PublicRace {
   const { seed: _seed, ...rest } = r;
   return rest;
 }
 
-export async function createRace(db: Executor, input: CreateRaceInput): Promise<PublicRace> {
+export function raceValues(input: CreateRaceInput) {
   const seed = input.seed ?? newSeed();
-  const [row] = await db
-    .insert(races)
-    .values({
-      kind: input.kind,
-      name: input.name,
-      raceClass: input.raceClass,
-      conditions: input.conditions,
-      postTime: input.postTime,
-      entriesCloseAt: input.entriesCloseAt,
-      purse: input.purse ?? 0,
-      entryFee: input.entryFee ?? 0,
-      maxRunners: input.maxRunners ?? 12,
-      seasonNumber: input.seasonNumber ?? null,
-      seed,
-      seedCommitment: commitSeed(seed),
-    })
-    .returning();
+  const maxRunners = input.maxRunners ?? RULES.maxField;
+  return {
+    kind: input.kind,
+    name: input.name,
+    raceClass: input.raceClass,
+    conditions: input.conditions,
+    postTime: input.postTime,
+    entriesCloseAt: input.entriesCloseAt,
+    purse: input.purse ?? 0,
+    entryFee: input.entryFee ?? 0,
+    maxRunners,
+    targetRunners: Math.min(maxRunners, input.targetRunners ?? Math.min(maxRunners, 10)),
+    entryCost: input.entryCost ?? entryCostFor(input.kind, input.raceClass),
+    seasonNumber: input.seasonNumber ?? null,
+    slotKey: input.slotKey ?? null,
+    seed,
+    seedCommitment: commitSeed(seed),
+  };
+}
+
+export async function createRace(db: Executor, input: CreateRaceInput): Promise<PublicRace> {
+  const [row] = await db.insert(races).values(raceValues(input)).returning();
   return publicRace(row!);
 }
 
@@ -70,8 +103,13 @@ export async function getRace(ex: Executor, raceId: string): Promise<PublicRace 
   return r ? publicRace(r) : null;
 }
 
+/** Active (non-scratched) entries, by gate then entry time. */
 export async function listRaceEntries(ex: Executor, raceId: string): Promise<RaceEntryRow[]> {
-  return ex.select().from(raceEntries).where(eq(raceEntries.raceId, raceId)).orderBy(asc(raceEntries.gate));
+  return ex
+    .select()
+    .from(raceEntries)
+    .where(and(eq(raceEntries.raceId, raceId), eq(raceEntries.status, "entered")))
+    .orderBy(asc(raceEntries.gate), asc(raceEntries.enteredAt), asc(raceEntries.id));
 }
 
 /** Immutable snapshot stored with the entry (what the engine races). */
@@ -103,7 +141,7 @@ export function horseSnapshot(h: HorseRow): Record<string, unknown> {
   };
 }
 
-/** Hard racing eligibility. Returns a DomainError to throw, or null. */
+/** Hard racing eligibility (career, age, lock, injury). Returns a DomainError to throw, or null. */
 export function racingBlock(h: HorseRow, race: RaceRow, now: Date): DomainError | null {
   if (h.careerStatus !== "racing") return new DomainError("HORSE_RETIRED", "retired horses cannot race");
   if (h.starts >= RULES.maxStarts) return new DomainError("HORSE_RETIRED", "career complete");
@@ -115,86 +153,275 @@ export function racingBlock(h: HorseRow, race: RaceRow, now: Date): DomainError 
   return null;
 }
 
+/** Class / rating band eligibility from the race conditions (§6). Returns a reason or null. */
+export function classEligibility(h: HorseRow, race: Pick<RaceRow, "raceClass" | "conditions">): string | null {
+  const c = (race.conditions ?? {}) as RaceConditions;
+  if (c.maxWins !== undefined && h.wins > c.maxWins) return c.maxWins === 0 ? "maiden races are for horses without a win" : `at most ${c.maxWins} wins`;
+  if (c.minRating !== undefined && h.rating < c.minRating) return `rating ${h.rating} is below the band (${c.minRating}+)`;
+  if (c.maxRating !== undefined && h.rating > c.maxRating) return `rating ${h.rating} is above the band (≤ ${c.maxRating})`;
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Entering & scratching
+// ---------------------------------------------------------------------------
+
 export interface EnterRaceInput {
-  /** Null = a Club/house horse filling the field (horse must have no owner). */
-  accountId: string | null;
+  accountId: string;
   raceId: string;
   horseId: string;
   tactic: string;
   now: Date;
 }
 
+/**
+ * Enters a horse (transactional, idempotent: entering the same horse again returns the
+ * existing entry without charging twice).
+ */
 export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks = defaultHooks): Promise<RaceEntryRow> {
   return runTx(db, async (tx) => {
-    // Race row lock serialises entries for this race (field size, gate numbers).
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
     if (!race) throw new DomainError("NOT_FOUND", "race not found");
+    const stable = await lockStableOf(tx, input.accountId);
+    const horse = await lockHorse(tx, input.horseId);
+    if (horse.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your horse");
+
+    const [existing] = await tx.select().from(raceEntries).where(and(eq(raceEntries.raceId, race.id), eq(raceEntries.horseId, horse.id)));
+    if (existing?.status === "entered") return existing;
+    if (existing) throw new DomainError("RACE_CLOSED", "a scratched horse cannot re-enter the same race");
     if (race.status !== "open" || input.now >= race.entriesCloseAt) throw new DomainError("RACE_CLOSED", "entries are closed");
 
-    const stable = input.accountId ? await stableOf(tx, input.accountId) : null;
-    const horse = await lockHorse(tx, input.horseId);
-    if ((stable?.id ?? null) !== horse.ownerStableId) throw new DomainError("NOT_OWNER", "not your horse");
     const block = racingBlock(horse, race, input.now);
     if (block) throw block;
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal do not race");
-    // Hard cap: starts per horse per day (horse row lock makes the count race-free).
     if ((await startsOnDay(tx, horse.id, race.postTime)) >= RULES.startsPerDay) {
       throw new DomainError("RACE_LIMIT", `at most ${RULES.startsPerDay} starts per horse per day`);
     }
-    const reason = hooks.raceEligibility?.({ horse, race, now: input.now });
+    const reason = hooks.raceEligibility ? hooks.raceEligibility({ horse, race, now: input.now }) : classEligibility(horse, race);
     if (reason) throw new DomainError("NOT_ELIGIBLE", reason);
 
-    const [field] = await tx
-      .select({ n: sql<number>`count(*)::int`, maxGate: sql<number>`coalesce(max(${raceEntries.gate}), 0)::int` })
-      .from(raceEntries)
-      .where(eq(raceEntries.raceId, race.id));
-    if (Number(field!.n) >= race.maxRunners) throw new DomainError("RACE_FULL", "the field is full");
+    const active = await listRaceEntries(tx, race.id);
+    if (active.length >= race.maxRunners) throw new DomainError("RACE_FULL", "the field is full");
+    const mine = active.filter((e) => e.stableId === stable.id).length;
+    if (race.kind !== "quick" && mine + 1 > Math.floor(race.targetRunners / 2)) {
+      throw new DomainError("NOT_ELIGIBLE", "one stable may not make up more than half of the field");
+    }
 
-    if (race.entryFee > 0 && input.accountId) {
-      await spendCreditsTx(tx, {
-        accountId: input.accountId,
-        amount: race.entryFee,
-        idempotencyKey: `entry-fee:${race.id}:${horse.id}`,
-        kind: "entry_fee",
-      });
+    await ensureDailyEntries(tx, stable, input.now);
+    await consumeEntries(tx, stable, race.entryCost, race.id, horse.id);
+    if (race.entryFee > 0) {
+      await spendCreditsTx(tx, { accountId: input.accountId, amount: race.entryFee, idempotencyKey: `entry-fee:${race.id}:${horse.id}`, kind: "entry_fee" });
     }
     const [entry] = await tx
       .insert(raceEntries)
       .values({
         raceId: race.id,
         horseId: horse.id,
-        stableId: stable?.id ?? null,
-        gate: Number(field!.maxGate) + 1,
+        stableId: stable.id,
         tactic: input.tactic,
         snapshot: horseSnapshot(horse),
         ratingBefore: horse.rating,
+        entryCost: race.entryCost,
+        enteredAt: input.now,
       })
       .returning();
     await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
-    if (input.accountId) {
-      await recordPlayDay(tx, input.accountId, input.now);
-      await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id } });
-    }
+    await recordPlayDay(tx, input.accountId, input.now);
+    await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost } });
     return entry!;
   });
 }
 
-export interface SimulationInput {
-  race: RaceRow;
-  entries: RaceEntryRow[];
+/** Owner scratch while entries are open: unlocks the horse; the entry (and any fee) is forfeited. */
+export async function scratchEntry(db: Db, input: { accountId: string; raceId: string; horseId: string; now: Date }): Promise<void> {
+  await runTx(db, async (tx) => {
+    const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
+    if (!race) throw new DomainError("NOT_FOUND", "race not found");
+    if (race.status !== "open" || input.now >= race.entriesCloseAt) throw new DomainError("RACE_CLOSED", "the field is locked");
+    const stable = await lockStableOf(tx, input.accountId);
+    const horse = await lockHorse(tx, input.horseId);
+    const [entry] = await tx.select().from(raceEntries).where(and(eq(raceEntries.raceId, race.id), eq(raceEntries.horseId, horse.id)));
+    if (!entry || entry.stableId !== stable.id) throw new DomainError("NOT_FOUND", "no such entry");
+    if (entry.status === "scratched") return;
+    await tx.update(raceEntries).set({ status: "scratched", scratchedAt: input.now }).where(eq(raceEntries.id, entry.id));
+    if (horse.lockKind === "race" && horse.lockRef === race.id) {
+      await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: input.now }).where(eq(horses.id, horse.id));
+    }
+    await audit(tx, { actor: input.accountId, action: "race.scratch", entityType: "race", entityId: race.id, data: { horseId: horse.id } });
+  });
 }
 
-/** Everything the engine needs, including the revealed seed. Throws TOO_EARLY before post time. */
-export async function getRaceForSimulation(db: Db, raceId: string, now: Date): Promise<SimulationInput> {
+// ---------------------------------------------------------------------------
+// Field lock (entry close)
+// ---------------------------------------------------------------------------
+
+export interface FieldRunner {
+  gate: number;
+  tactic: string;
+  horseId: string;
+  stableId: string | null;
+  isHouse: boolean;
+  /** Entry snapshot, or the engine-ready horse when hooks.engineHorse is provided. */
+  horse: unknown;
+}
+
+export interface LockedField {
+  raceId: string;
+  seedCommitment: string;
+  lockedAt: string;
+  runners: FieldRunner[];
+  /** sha256 of the canonical runner list; published so the field is provably fixed. */
+  fieldHash: string;
+}
+
+export interface FieldHooks extends Partial<GameHooks> {
+  /** Maps an entry snapshot to the engine's Horse (shared HorseSchema). */
+  engineHorse?(input: { snapshot: Record<string, unknown>; race: RaceRow; isHouse: boolean }): unknown;
+}
+
+const TACTICS = ["front", "stalker", "closer"] as const;
+
+function seededShuffle<T>(xs: T[], seed: string, label: string): T[] {
+  const u = seededUniform(seed, label);
+  const out = [...xs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(u() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+function bandRating(c: RaceConditions): number {
+  const lo = c.minRating ?? 0;
+  const hi = c.maxRating ?? Math.max(lo, 40);
+  return Math.round((lo + hi) / 2);
+}
+
+async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: FieldHooks, now: Date): Promise<HorseRow[]> {
+  if (needed <= 0) return [];
+  const c = race.conditions as RaceConditions;
+  // Free house horses of the class band. SKIP LOCKED: concurrent locks of different races
+  // never grab the same horse.
+  const pool = await tx
+    .select()
+    .from(horses)
+    .where(
+      and(
+        isNull(horses.ownerStableId),
+        eq(horses.origin, "house"),
+        eq(horses.careerStatus, "racing"),
+        isNull(horses.lockKind),
+        sql`${horses.rating} between ${c.minRating ?? 0} and ${c.maxRating ?? 140}`,
+        c.maxWins !== undefined ? sql`${horses.wins} <= ${c.maxWins}` : sql`true`,
+        sql`(${horses.injuredUntil} is null or ${horses.injuredUntil} <= ${now})`,
+      ),
+    )
+    .orderBy(asc(horses.id))
+    .limit(needed * 4)
+    .for("update", { skipLocked: true });
+  const chosen = seededShuffle(pool, race.seed, "house-pick").slice(0, needed);
+  // Not enough: breed the house stable deterministically from the race seed.
+  const make = hooks.houseHorse ?? defaultHouseHorse;
+  for (let i = chosen.length; i < needed; i++) {
+    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: bandRating(c) });
+    const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", now });
+    chosen.push((await lockHorse(tx, id))!);
+  }
+  return chosen;
+}
+
+function defaultHouseHorse(input: { seed: string; index: number; raceClass: string; rating: number }) {
+  const spec = defaultHooks.starterHorse({ seed: input.seed, index: 1000 + input.index });
+  return { ...spec, rating: input.rating };
+}
+
+async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks): Promise<LockedField> {
+  const [race] = await tx.select().from(races).where(eq(races.id, raceId)).for("update");
+  if (!race) throw new DomainError("NOT_FOUND", "race not found");
+  if (race.field) return race.field as LockedField; // already locked: idempotent
+  if (race.status === "cancelled") throw new DomainError("RACE_CLOSED", "race was abandoned");
+  if (now < race.entriesCloseAt) throw new DomainError("TOO_EARLY", "entries are still open");
+
+  const entries = await listRaceEntries(tx, race.id);
+  const players = entries.filter((e) => !e.isHouse);
+  const target = Math.max(players.length, Math.min(race.maxRunners, race.targetRunners));
+  const house = await pickHouseHorses(tx, race, target - players.length, hooks, now);
+
+  type Pending = { horseId: string; stableId: string | null; isHouse: boolean; tactic: string; snapshot: Record<string, unknown>; entryId?: string };
+  const pending: Pending[] = players.map((e) => ({ horseId: e.horseId, stableId: e.stableId, isHouse: false, tactic: e.tactic, snapshot: e.snapshot as Record<string, unknown>, entryId: e.id }));
+  const u = seededUniform(race.seed, "house-tactic");
+  for (const h of house) pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: TACTICS[Math.floor(u() * 3)]!, snapshot: horseSnapshot(h) });
+
+  // Gate draw from the committed seed (deterministic, verifiable after the reveal).
+  const drawn = seededShuffle(
+    [...pending].sort((a, b) => (a.horseId < b.horseId ? -1 : 1)),
+    race.seed,
+    "gate-draw",
+  );
+  const runners: FieldRunner[] = [];
+  for (let i = 0; i < drawn.length; i++) {
+    const p = drawn[i]!;
+    const gate = i + 1;
+    if (p.entryId) {
+      await tx.update(raceEntries).set({ gate }).where(eq(raceEntries.id, p.entryId));
+    } else {
+      const h = house.find((x) => x.id === p.horseId)!;
+      await tx.insert(raceEntries).values({
+        raceId: race.id,
+        horseId: p.horseId,
+        stableId: null,
+        isHouse: true,
+        gate,
+        tactic: p.tactic,
+        snapshot: p.snapshot,
+        ratingBefore: h.rating,
+        enteredAt: now,
+      });
+      await tx.update(horses).set({ lockKind: "race", lockRef: race.id }).where(eq(horses.id, p.horseId));
+    }
+    runners.push({
+      gate,
+      tactic: p.tactic,
+      horseId: p.horseId,
+      stableId: p.stableId,
+      isHouse: p.isHouse,
+      horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse }) : p.snapshot,
+    });
+  }
+  const fieldHash = sha256Hex(JSON.stringify(runners.map((r) => [r.gate, r.horseId, r.tactic, r.horse])));
+  const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, fieldHash };
+  await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
+  await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash } });
+  return field;
+}
+
+/**
+ * Locks the field at entry close: snapshot, house horses fill empty gates (deterministic
+ * from the race seed), gates drawn from the seed. Idempotent and safe under concurrency
+ * (race row lock; the stored field is returned to every later caller).
+ */
+export async function lockField(db: Db, raceId: string, now: Date, hooks: FieldHooks = {}): Promise<LockedField> {
+  return runTx(db, (tx) => lockFieldTx(tx, raceId, now, hooks));
+}
+
+export interface SimulationInput {
+  /** Includes the revealed seed. */
+  race: RaceRow;
+  field: LockedField;
+}
+
+/** Field + revealed seed for the engine. Locks lazily if needed; TOO_EARLY before post time. */
+export async function getRaceForSimulation(db: Db, raceId: string, now: Date, hooks: FieldHooks = {}): Promise<SimulationInput> {
   const [race] = await db.select().from(races).where(eq(races.id, raceId));
   if (!race) throw new DomainError("NOT_FOUND", "race not found");
   if (now < race.postTime) throw new DomainError("TOO_EARLY", "the seed is revealed at post time");
-  if (race.status === "open") {
-    await db.update(races).set({ status: "closed" }).where(and(eq(races.id, race.id), eq(races.status, "open")));
-    race.status = "closed";
-  }
-  return { race, entries: await listRaceEntries(db, race.id) };
+  const field = (race.field as LockedField | null) ?? (await lockField(db, raceId, now, hooks));
+  return { race: { ...race, status: race.status === "open" ? "locked" : race.status }, field };
 }
+
+// ---------------------------------------------------------------------------
+// Settlement
+// ---------------------------------------------------------------------------
 
 export interface RunnerOutcome {
   horseId: string;
@@ -232,29 +459,32 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
   return runTx(db, async (tx) => {
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
     if (!race) throw new DomainError("NOT_FOUND", "race not found");
-    const entries = await listRaceEntries(tx, race.id);
     if (race.status === "settled") {
-      return { alreadySettled: true, prizes: Object.fromEntries(entries.map((e) => [e.horseId, e.prize])), retired: [] };
+      const done = await listRaceEntries(tx, race.id);
+      return { alreadySettled: true, prizes: Object.fromEntries(done.map((e) => [e.horseId, e.prize])), retired: [] };
     }
-    if (race.status === "cancelled") throw new DomainError("RACE_CLOSED", "race was cancelled");
+    if (race.status === "cancelled") throw new DomainError("RACE_CLOSED", "race was abandoned");
     if (input.now < race.postTime) throw new DomainError("TOO_EARLY", "race has not run yet");
+    if (!race.field) await lockFieldTx(tx, race.id, input.now, {});
+    const entries = await listRaceEntries(tx, race.id);
 
     const byHorse = new Map(input.runners.map((r) => [r.horseId, r]));
     if (byHorse.size !== entries.length || entries.some((e) => !byHorse.has(e.horseId))) {
-      throw new DomainError("INVALID_INPUT", "outcome must cover exactly the race entries");
+      throw new DomainError("INVALID_INPUT", "outcome must cover exactly the locked field");
     }
 
-    // Purses: minted to each placed, owned runner's stable account, in one ledger transaction.
+    // Purses: minted to each placed player runner's owner, in one ledger transaction.
     const prizes: Record<string, number> = {};
+    const owners = new Map<string, string>();
+    for (const e of entries) if (e.stableId && !owners.has(e.stableId)) owners.set(e.stableId, await accountIdOfStable(tx, e.stableId));
     const postings: Posting[] = [];
     let minted = 0;
     for (const e of entries) {
       const r = byHorse.get(e.horseId)!;
-      const share = RULES.purseSplitBps[r.position - 1] ?? 0;
-      const prize = bps(race.purse, share);
+      const prize = bps(race.purse, RULES.purseSplitBps[r.position - 1] ?? 0);
       prizes[e.horseId] = prize;
       if (prize > 0 && e.stableId) {
-        postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, await accountIdOfStable(tx, e.stableId)), amount: prize });
+        postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: prize });
         minted += prize;
       }
     }
@@ -265,7 +495,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     }
 
     const retired: string[] = [];
-    for (const e of entries) {
+    const ordered = [...entries].sort((a, b) => (a.horseId < b.horseId ? -1 : 1)); // lock order
+    for (const e of ordered) {
       const r = byHorse.get(e.horseId)!;
       const h = await lockHorse(tx, e.horseId);
       const starts = Math.min(RULES.maxStarts, h.starts + 1);
@@ -301,18 +532,31 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
         .update(raceEntries)
         .set({ finishPosition: r.position, finishTimeUs: r.finishTimeUs ?? null, prize: prizes[h.id] ?? 0, ratingAfter: r.ratingAfter ?? h.rating })
         .where(eq(raceEntries.id, e.id));
-      // Insurance pays out on a career-ending injury.
       if (careerEnding && h.insured && e.stableId) {
-        const ownerAccountId = await accountIdOfStable(tx, e.stableId);
-        const mint = await systemAccountId(tx, "mint");
         await post(tx, {
           idempotencyKey: `insurance-payout:${h.id}`,
           kind: "insurance_payout",
           postings: [
-            { ledgerAccountId: mint, amount: -RULES.insurancePayout },
-            { ledgerAccountId: await playerLedgerAccountId(tx, ownerAccountId), amount: RULES.insurancePayout },
+            { ledgerAccountId: await systemAccountId(tx, "mint"), amount: -RULES.insurancePayout },
+            { ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: RULES.insurancePayout },
           ],
         });
+      }
+      // Inbox: the result waits for owners who were away.
+      if (e.stableId) {
+        await tx
+          .insert(inboxItems)
+          .values({
+            accountId: owners.get(e.stableId)!,
+            kind: "race_result",
+            dedupeKey: `race:${race.id}:${h.id}`,
+            title: `${h.name} finished ${ordinal(r.position)} in the ${race.name}`,
+            data: { position: r.position, fieldSize: entries.length, prize: prizes[h.id] ?? 0, retired: mustRetire, injury: r.injury?.severity ?? null },
+            raceId: race.id,
+            horseId: h.id,
+            createdAt: input.now,
+          })
+          .onConflictDoNothing();
       }
     }
 
@@ -332,26 +576,34 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
   });
 }
 
-/** Cancels an unsettled race: refunds entry fees and unlocks horses. Idempotent. */
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]!);
+}
+
+/** Abandons an unsettled race: refunds stable entries and fees, unlocks horses. Idempotent. */
 export async function cancelRace(db: Db, input: { raceId: string; now: Date; reason: string }): Promise<void> {
   await runTx(db, async (tx) => {
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
     if (!race) throw new DomainError("NOT_FOUND", "race not found");
     if (race.status === "cancelled") return;
     if (race.status === "settled") throw new DomainError("RACE_CLOSED", "race already settled");
-    for (const e of await listRaceEntries(tx, race.id)) {
+    const entries = await listRaceEntries(tx, race.id);
+    for (const e of [...entries].sort((a, b) => (a.horseId < b.horseId ? -1 : 1))) {
       const h = await lockHorse(tx, e.horseId);
       if (h.lockKind === "race" && h.lockRef === race.id) {
         await tx.update(horses).set({ lockKind: null, lockRef: null }).where(eq(horses.id, h.id));
       }
-      if (race.entryFee > 0 && e.stableId) {
-        const ownerAccountId = await accountIdOfStable(tx, e.stableId);
+      if (!e.stableId) continue;
+      await refundEntries(tx, e.stableId, e.entryCost, race.id, e.horseId);
+      if (race.entryFee > 0) {
         await post(tx, {
           idempotencyKey: `entry-refund:${race.id}:${e.horseId}`,
           kind: "entry_fee_refund",
           postings: [
             { ledgerAccountId: await systemAccountId(tx, "burn"), amount: -race.entryFee },
-            { ledgerAccountId: await playerLedgerAccountId(tx, ownerAccountId), amount: race.entryFee },
+            { ledgerAccountId: await playerLedgerAccountId(tx, await accountIdOfStable(tx, e.stableId)), amount: race.entryFee },
           ],
         });
       }
@@ -365,3 +617,14 @@ export async function getRaceResult(ex: Executor, raceId: string) {
   const [r] = await ex.select().from(raceResults).where(eq(raceResults.raceId, raceId));
   return r ?? null;
 }
+
+/** A stable's active entries (for "your horse runs at 14:03"). */
+export async function listStableEntries(ex: Executor, stableId: string) {
+  return ex
+    .select({ entry: raceEntries, race: { id: races.id, name: races.name, postTime: races.postTime, status: races.status } })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(eq(raceEntries.stableId, stableId), eq(raceEntries.status, "entered"), ne(races.status, "settled"), ne(races.status, "cancelled")))
+    .orderBy(asc(races.postTime));
+}
+

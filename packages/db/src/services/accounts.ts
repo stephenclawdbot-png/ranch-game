@@ -7,6 +7,7 @@ import { DomainError } from "../errors";
 import { accountLinks, accountPlayDays, accounts, fraudEvents, horses, pregnancies, stables, type StableRow } from "../schema";
 import { defaultHooks, RULES, stageFor, type GameHooks, type HorseSpec } from "../rules";
 import type { Db, Executor } from "../types";
+import { ensureDailyEntries, isValidTimezone } from "./entries";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
 
@@ -18,6 +19,8 @@ export interface CreateAccountInput {
   startingCredits?: number;
   /** Defaults to RULES.starterHorses (bound, Club-bred, racing age). */
   starterHorses?: number;
+  /** IANA timezone from the device (falls back to UTC if missing or unknown). */
+  timezone?: string;
   now?: Date;
 }
 
@@ -38,7 +41,13 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
   return runTx(db, async (tx) => {
     const [account] = await tx
       .insert(accounts)
-      .values({ tokenHash: hashToken(token), displayName: input.displayName ?? null, createdAt: now, lastSeenAt: now })
+      .values({
+        tokenHash: hashToken(token),
+        displayName: input.displayName ?? null,
+        timezone: input.timezone && isValidTimezone(input.timezone) ? input.timezone : "UTC",
+        createdAt: now,
+        lastSeenAt: now,
+      })
       .returning({ id: accounts.id });
     const [stable] = await tx
       .insert(stables)
@@ -48,6 +57,8 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
     if (credits > 0) {
       await grantCreditsTx(tx, { accountId: account!.id, amount: credits, idempotencyKey: `starter-grant:${account!.id}`, kind: "starter_grant" });
     }
+    // Day one's Live entry allowance.
+    await ensureDailyEntries(tx, (await lockStable(tx, stable!.id))!, now);
     const seed = newSeed();
     const horseIds: string[] = [];
     const count = Math.min(input.starterHorses ?? RULES.starterHorses, RULES.defaultStallSlots);

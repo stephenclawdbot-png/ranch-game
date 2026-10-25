@@ -129,4 +129,5 @@ function rotl(x: number, k: number): number {
 }
 
 export const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
-export const clampInt = (v: number, lo: number, hi: number): number => clamp(Math.round(v), lo, hi);
+/** Rounded and clamped; never returns -0 (keeps values JSON round-trip exact). */
+export const clampInt = (v: number, lo: number, hi: number): number => clamp(Math.round(v), lo, hi) + 0;

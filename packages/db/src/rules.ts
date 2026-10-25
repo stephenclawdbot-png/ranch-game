@@ -155,6 +155,8 @@ export interface GameHooks {
   raceEligibility?(input: RaceEligibilityInput): string | null;
   /** Rarity roll from a uniform in [0,1) and the pack's published odds. */
   rollRarity?(input: { u: number; pack: PackDefinition }): Rarity;
+  /** A house (Club AI) horse for a Live field, deterministic from the race seed. */
+  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number }): HorseSpec;
   /** Appraised market value in credits (listing floor = 70% of it). */
   appraise?(horse: HorseRow): number;
 }
