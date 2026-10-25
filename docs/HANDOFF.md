@@ -69,3 +69,37 @@ Preview and Production.)
 - The Daily Cup doesn't count as a career start.
 - The foal-crop cap applies to pack foals only.
 - Stable entries use a daily refill at local midnight, with rollover capped at 20.
+
+## For other agents and teammates working on this repo
+
+- **Latest code** is on the branch `claude/thoroughbred-demo`, which is ahead of `main`.
+  Branch from it, or merge it in, before starting. `main` only receives tested milestones.
+- **Read first:**
+  - `docs/game-design.md`: the user's design decisions. §4a–4f are final.
+  - `docs/architecture.md`: canonical. The old MVP architecture doc was removed on purpose.
+  - `docs/roadmap.md`
+  - `docs/art-direction.md`
+  - `docs/design-research.md`
+  - `docs/balance.md`
+- **Rules that must not break:**
+  - The race engine is deterministic: integer maths only. Any output change needs an
+    `ENGINE_VERSION` bump and new golden values.
+  - Live races never reveal the outcome before the finish is broadcast. There are leak
+    tests in `apps/web/src/server/live.test.ts`.
+  - Credits are never cashed out. No prize money and no gambling mechanics.
+  - Inactivity never harms a horse.
+  - Art follows the HD pixel standard v2: nearest filtering and integer scales only.
+  - Web3 is optional and `WEB3_ENABLED=false` by default. It targets Robinhood Chain
+    (EVM), not Solana.
+- **Ownership** (to avoid conflicts):
+  - `packages/shared` is the contract. Change it deliberately and tell its consumers.
+  - `packages/db` and the race-viewer camera may still be changing (see "In flight"
+    above).
+- **Secrets:**
+  - The PixelLab key lives only in `~/.config/pixellab/key` on the dev box. Never commit
+    keys.
+  - Neon env vars are managed by Vercel.
+- **Checks before pushing:**
+  - `pnpm -r typecheck`
+  - `pnpm -r test`
+  - `cd apps/web && npx next build`
