@@ -38,7 +38,7 @@ Preview and Production.)
   Chain research → `docs/web3.md`; `.claude/skills` (solidity-dev, robinhood-chain,
   web3-game-economy, thoroughbred-game-dev); `packages/contracts` (RaceProofRegistry,
   PremiumStore, optional token, Hardhat tests); `packages/chain` adapter with mock mode,
-  `WEB3_ENABLED=false`. The Hardhat toolchain is installed and verified. Check what it
+  `WEB3_ENABLED=false`. The Hardhat toolchain is installed and verified. It found that viem 2.57 includes `robinhood` (chain id 4663) and `robinhoodTestnet` (46630). Check what it
   already wrote first.
 
 ## Next steps (in order)
