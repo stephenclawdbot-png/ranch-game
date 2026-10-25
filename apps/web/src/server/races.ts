@@ -24,6 +24,7 @@ import {
   starterHorses,
 } from "./demoData";
 import { createRng, type Rng } from "./prng";
+import { broadcastEndsAtMs, isBroadcastOver } from "./live";
 
 // ---------------------------------------------------------------------------
 // Constants & errors
@@ -58,8 +59,12 @@ export class RaceNotFoundError extends Error {
 }
 
 export class TooEarlyError extends Error {
-  constructor(public readonly postTimeMs: number) {
-    super("race has not started yet");
+  /** "live": the race is running on the broadcast clock; never carries a finish time. */
+  constructor(
+    public readonly postTimeMs: number,
+    public readonly phase: "upcoming" | "live" = "upcoming",
+  ) {
+    super(phase === "live" ? "race is still running" : "race has not started yet");
     this.name = "TooEarlyError";
   }
 }
@@ -85,8 +90,8 @@ export interface RaceCard {
   /** Sorted by gate. Never includes the seed. */
   field: FieldEntry[];
   seedCommitment: string;
-  /** "finished" once post time has passed and the result can be revealed. */
-  status: "upcoming" | "finished";
+  /** "live" from post time until the finish has been broadcast; "finished" once the result can be revealed. */
+  status: "upcoming" | "live" | "finished";
   /** For quick races: the entering player's id. */
   playerId: string | null;
   engineVersion: string;
@@ -103,9 +108,9 @@ export interface RaceSummary {
   purse: number;
   postTimeMs: number;
   fieldSize: number;
-  /** live = post time passed but the replay is still running in real time. */
+  /** live = post time passed but the finish has not been broadcast yet. */
   phase: "upcoming" | "live" | "finished";
-  /** When the race finishes in real time (known once post time has passed). */
+  /** When the result became official. Only present once finished (it would reveal the final time while live). */
   endsAtMs?: number;
   /** Only present once the race has finished in real time (no spoilers for live viewers). */
   winner?: { horseId: string; name: string; stableName: string; timeUs: number };
@@ -118,7 +123,7 @@ export interface RaceSummary {
 const PLACES = ["Harbour", "Copperfield", "Saltmarsh", "Wrenfield", "Blackwater", "Kingsmead", "Fenwick", "Ashby", "Ravenhill", "Oakhurst", "Larkhill", "Thornbury"];
 const SPONSORS = ["Copperfield", "Midsummer", "Coronation", "Lantern", "Meridian", "Sovereign", "Brassmoor", "Juniper", "Wexford", "Gilded Spur", "Old Bell", "Nightjar"];
 
-const CLASS_PURSE: Record<RaceClass, number> = { maiden: 2000, novice: 3000, handicap: 4500, listed: 8000, graded: 15000 };
+export const CLASS_PURSE: Record<RaceClass, number> = { maiden: 2000, novice: 3000, handicap: 4500, listed: 8000, graded: 15000 };
 
 function goingFor(rng: Rng, surface: Surface, weather: Weather): Going {
   if (surface === "synthetic") return rng.pick(["good", "good", "firm"] as const);
@@ -154,6 +159,42 @@ function makeConditions(rng: Rng, distanceM: number, raceClass: RaceClass) {
   const weather = rng.weighted<Weather>([["clear", 5], ["overcast", 3], ["rain", 2], ["dusk", 2]]);
   const going = goingFor(rng, surface, weather);
   return { surface, weather, going, name: raceName(rng, raceClass, distanceM), purse: purseFor(raceClass, distanceM) };
+}
+
+// ---------------------------------------------------------------------------
+// Ratings (form guide)
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-race rating on the stat scale (a plain 650 horse in ideal conditions rates 650):
+ * how strong this horse should be under these conditions with this tactic. It mirrors the
+ * engine's deterministic profile terms; day form, traffic and pace noise are left out, so it is
+ * an expectation, not a prediction. Used to pick the favourite, build class-graded fields and
+ * in the balance tests. The simulation itself never reads it.
+ */
+export function raceRating(horse: Horse, tactic: RunningStyle, race: Pick<RaceConfig, "distanceM" | "surface" | "going">): number {
+  const s = horse.stats;
+  const D = race.distanceM;
+  const adaptGap = 1000 - s.adaptability;
+  // Speed-equivalent weight of each stat (per point, speed = 1). Measured: tools/balance/stats.report.ts.
+  const staminaW = Math.min(1.4, Math.max(0.1, (D - 900) / 1000));
+  let r =
+    650 +
+    (s.speed - 650) +
+    (s.stamina - 650) * staminaW +
+    (s.burst - 650) * 0.35 +
+    (s.durability - 650) * 0.2 +
+    (s.temperament - 650) * 0.1;
+  // Condition penalties, converted from cruise mm/s to speed points (1.05 mm/s per point).
+  let penMmS = 0;
+  if (horse.preferredSurface !== race.surface) penMmS += 110 + (260 * adaptGap) / 1000;
+  penMmS += ({ firm: 0, good: 0, soft: 140, heavy: 300 }[race.going] * adaptGap) / 1000;
+  const distDelta = D - horse.preferredDistanceM;
+  if (distDelta < 0) penMmS += (-distDelta * (1100 - s.adaptability)) / 6000;
+  else penMmS += (distDelta * (1100 - s.adaptability)) / 6000; // stamina drain past the preferred trip
+  penMmS += horse.style === tactic ? -40 : 40;
+  r -= penMmS / 1.05;
+  return Math.round(r);
 }
 
 // ---------------------------------------------------------------------------
@@ -372,7 +413,7 @@ export function getRace(id: string, nowMs: number): RaceCard {
   return {
     ...base,
     seedCommitment: commitSeed(raceSeed(id)),
-    status: nowMs >= base.config.postTimeMs ? "finished" : "upcoming",
+    status: nowMs < base.config.postTimeMs ? "upcoming" : isBroadcastOver(computeReplay(id), nowMs) ? "finished" : "live",
   };
 }
 
@@ -407,17 +448,26 @@ class Lru<V> {
 
 const replayCache = new Lru<RaceReplay>(256);
 
-/** Full replay including the revealed seed. Throws TooEarlyError before post time. */
-export function getReplay(id: string, nowMs: number): RaceReplay {
+/**
+ * The complete simulated race, regardless of the clock. SERVER-ONLY: it contains the seed and
+ * result. Serve it only through getReplay() or live.ts (sliceBroadcast), which enforce the clock.
+ */
+export function computeReplay(id: string): RaceReplay {
   const cached = replayCache.get(id);
-  if (cached) {
-    if (nowMs < cached.race.postTimeMs) throw new TooEarlyError(cached.race.postTimeMs);
-    return cached;
-  }
-  const input = getRaceInput(id);
-  if (nowMs < input.race.postTimeMs) throw new TooEarlyError(input.race.postTimeMs);
-  const replay = simulateRace(input);
+  if (cached) return cached;
+  const replay = simulateRace(getRaceInput(id));
   replayCache.set(id, replay);
+  return replay;
+}
+
+/**
+ * Full replay including the revealed seed — only once the finish has been broadcast.
+ * Throws TooEarlyError before post time ("upcoming") and while the race is running ("live").
+ */
+export function getReplay(id: string, nowMs: number): RaceReplay {
+  const replay = computeReplay(id);
+  if (nowMs < replay.race.postTimeMs) throw new TooEarlyError(replay.race.postTimeMs);
+  if (!isBroadcastOver(replay, nowMs)) throw new TooEarlyError(replay.race.postTimeMs, "live");
   return replay;
 }
 
@@ -469,9 +519,10 @@ function summarize(id: string, nowMs: number): RaceSummary {
     phase: "upcoming",
   };
   if (nowMs < config.postTimeMs) return summary;
-  const replay = getReplay(id, nowMs);
-  const endsAtMs = config.postTimeMs + replayDurationMs(replay);
-  if (nowMs < endsAtMs) return { ...summary, phase: "live", endsAtMs };
+  const replay = computeReplay(id);
+  // While live: no end time and no winner (either would reveal the outcome).
+  if (!isBroadcastOver(replay, nowMs)) return { ...summary, phase: "live" };
+  const endsAtMs = broadcastEndsAtMs(replay);
   const first = replay.result.finishOrder[0];
   const entry = first && card.field.find((e) => e.horse.id === first.horseId);
   return {

@@ -34,6 +34,7 @@ RAMP_SIZES = {
     "white": 4,
     "tack": 3,
     "ink": 2,
+    "accent": 3,
 }
 
 
@@ -77,13 +78,17 @@ def classify(img):
     a = img[..., 3] > 0
     h, s, v = hsv(img)
     role = np.full((H, W), "", dtype=object)
-    magenta = a & (h >= 285) & (h <= 350) & (s > 0.55) & (v > 0.25)
+    magenta = a & (h >= 285) & (h <= 350) & (((s > 0.55) & (v > 0.25)) | ((s > 0.38) & (v > 0.6)))
     cyan = a & (h >= 165) & (h <= 205) & (s > 0.55) & (v > 0.12)
     neutral = a & (s < 0.16)
     ink = a & (v < 0.10)
-    warm = a & ~magenta & ~cyan & ~neutral & ~ink
+    warm = a & ~magenta & ~cyan & ~neutral & ~ink & ((h < 55) | (h >= 345))
+    other = a & ~magenta & ~cyan & ~neutral & ~ink & ~warm
+    accent = other & (v >= 0.25)  # goggles, odd blues: fixed
+    neutral = neutral | (other & (v < 0.25))  # blue-black shading in mane/legs/tack
 
     role[warm] = "coat"
+    role[accent] = "accent"
     role[cyan] = "silksSecondary"
     role[magenta] = "silksPrimary"
     role[neutral & (v >= 0.10) & (v < 0.45)] = "mane"
@@ -117,7 +122,8 @@ def classify(img):
         role[capmask] = "cap"
         cy, cx = np.nonzero(capmask)
         # Skin: light warm pixels just below/right of the cap (face, hands are covered by gloves).
-        y0, y1, x0, x1 = cy.min(), cy.max() + 9, cx.min() - 2, cx.max() + 5
+        k = H / 104  # boxes were tuned on the 104 px tall low-res canvas
+        y0, y1, x0, x1 = cy.min(), cy.max() + int(round(9 * k)), cx.min() - int(round(2 * k)), cx.max() + int(round(5 * k))
         box = np.zeros((H, W), bool)
         box[y0:y1, max(0, x0):x1] = True
         skin = box & warm & (v > 0.55) & (s < 0.72)
@@ -143,8 +149,28 @@ def classify(img):
         top = 0
         if (role == "cap").any():
             top = np.nonzero(role == "cap")[0].min()
-        box[top : yy.max() + 4, max(0, xx.min() - 3) : xx.max() + 5] = True
+        k = H / 104
+        box[top : yy.max() + 4, max(0, xx.min() - 3) : xx.max() + int(round(5 * k))] = True
+        # boots + girth: just behind the cloth's front edge, from the knee down to the belly
+        box[yy.min() : yy.max() + int(0.16 * H), xx.max() - 2 : xx.max() + int(round(9 * k))] = True
         role[box & (role == "mane")] = "tack"
+        # girth anywhere under the jockey: a thin dark vertical band with coat on both sides
+        if (role == "cap").any():
+            capx0 = np.nonzero(role == "cap")[1].min()
+            mane = role == "mane"
+            coat = role == "coat"
+            reach = max(2, int(round(3 * k)))
+            left = np.zeros((H, W), bool)
+            right = np.zeros((H, W), bool)
+            for d in range(1, reach + 1):
+                left[:, d:] |= coat[:, :-d]
+                right[:, :-d] |= coat[:, d:]
+            cols = np.arange(W)[None, :]
+            rows_ = np.arange(H)[:, None]
+            ys_all = np.nonzero(a)[0]
+            leg_top = ys_all.max() - int(round((ys_all.max() - ys_all.min()) * LEG_BAND))
+            girth = mane & left & right & (cols < capx0) & (cols > xx.min()) & (rows_ < leg_top + int(4 * k))
+            role[girth] = "tack"
     # Points: dark (bay) lower legs -> separate ramp so non-bay coats get body-coloured legs.
     ys = np.nonzero(a)[0]
     ground = ys.max()
@@ -188,6 +214,8 @@ def main():
     prefix, first, count, out_name = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
     debug = sys.argv[sys.argv.index("--debug") + 1] if "--debug" in sys.argv else None
     out_dir = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else Path("apps/web/public/art/race")
+    if "--hd" in sys.argv:
+        RAMP_SIZES.update({"coat": 9, "mane": 5, "points": 4, "silksPrimary": 5, "silksSecondary": 5, "cap": 4, "skin": 4, "white": 5, "tack": 4, "ink": 2, "accent": 3})
     frames = [np.array(Image.open(f"{prefix}-{i}.png").convert("RGBA")) for i in range(first, first + count)]
     roles = [classify(f) for f in frames]
 
@@ -259,7 +287,7 @@ def main():
         "silksPrimary": [to_hex(c) for c in ramps["silksPrimary"]],
         "silksSecondary": [to_hex(c) for c in ramps["silksSecondary"]],
         "cap": [to_hex(c) for c in ramps["cap"]],
-        "fixed": {r: [to_hex(c) for c in ramps[r]] for r in ("skin", "white", "tack", "ink")},
+        "fixed": {r: [to_hex(c) for c in ramps[r]] for r in ("skin", "white", "tack", "ink", "accent")},
     }
     # nose anchor: rightmost opaque pixel of frame 0 at ground level
     groundY = max(np.nonzero(c[..., 3])[0].max() for c in crop)
@@ -281,7 +309,7 @@ def main():
         dbg.mkdir(parents=True, exist_ok=True)
         cmap = {
             "coat": (170, 90, 40), "mane": (60, 60, 60), "points": (0, 160, 0), "silksPrimary": (255, 0, 200), "silksSecondary": (0, 230, 230),
-            "cap": (255, 230, 0), "skin": (255, 190, 150), "white": (255, 255, 255), "tack": (40, 40, 160), "ink": (0, 0, 0),
+            "cap": (255, 230, 0), "skin": (255, 190, 150), "white": (255, 255, 255), "tack": (40, 40, 160), "ink": (0, 0, 0), "accent": (255, 0, 0),
         }
         rows = []
         for ro in roles:

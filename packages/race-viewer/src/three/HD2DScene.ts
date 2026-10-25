@@ -632,6 +632,9 @@ export class HD2DScene {
     const shadowGeo = this.own(new T.PlaneGeometry(1, 1));
     this.replay.horses.forEach((h, i) => {
       const rig = opts.rigs.create(h.appearance, { gate: h.gate });
+      // HD strips (>= 200 px frames) sit at the focal density; low-res strips are scaled
+      // so the horse is still life-size (nose-to-tail ~93% of the frame).
+      const WUPP = rig.width >= 200 ? 1 / FOCAL_PX_PER_M : HORSE_LEN_M / (rig.width * 0.93);
       const w = rig.width * WUPP;
       const hh = rig.height * WUPP;
       const geo = this.own(new T.PlaneGeometry(w, hh));
@@ -836,8 +839,8 @@ export class HD2DScene {
     let group: Runner[];
     let elev = 17;
     let yaw = -6;
-    let fillX = 0.78;
-    let fillY = 0.62;
+    let fillX = 0.86;
+    let fillY = 0.55;
     let fov = 30;
     let lookY = 0.9;
     let vel = focus.speed;
@@ -847,9 +850,9 @@ export class HD2DScene {
         // Over the stalls, descending into the race camera as the gates open.
         const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
         group = byX;
-        elev = 36 - 18 * k;
+        elev = 30 - 16 * k;
         yaw = 22 - 26 * k;
-        fillX = 0.7;
+        fillX = 0.8;
         fillY = 0.62;
         fov = 32;
         vel = 0;
@@ -857,10 +860,10 @@ export class HD2DScene {
       }
       case "wide":
         group = byX;
-        elev = 24;
+        elev = 20;
         yaw = -4;
         fillX = 0.86;
-        fillY = 0.6;
+        fillY = 0.55;
         fov = 30;
         leadPad = 4;
         break;
@@ -869,20 +872,20 @@ export class HD2DScene {
         const ref = mode === "mine" && mine ? mine : lead;
         group = byX.filter((r) => Math.abs(r.x - ref.x) < 12).slice(0, 5);
         if (!group.includes(ref)) group.push(ref);
-        elev = 12;
+        elev = 10;
         yaw = 16;
         fillX = 0.72;
-        fillY = 0.6;
+        fillY = 0.5;
         fov = 28;
         leadPad = 3;
         break;
       }
       case "photo":
-        group = byX.filter((r) => Math.abs(r.x - L) < 10);
+        group = byX.filter((r) => Math.abs(r.x - L) < 5);
         if (group.length < 2) group = byX.slice(0, 2);
-        elev = 14;
+        elev = 12;
         yaw = 0;
-        fillX = 0.6;
+        fillX = 0.8;
         fillY = 0.62;
         fov = 28;
         vel = 0;
@@ -904,9 +907,9 @@ export class HD2DScene {
           // The leading group: leader back to at least the 6th horse, or the whole
           // field when it is within ~30 lengths.
           const spread = byX[0]!.x - byX[byX.length - 1]!.x;
-          group = spread < 72 ? byX : byX.slice(0, Math.min(byX.length, 6));
+          group = spread < 16 ? byX : byX.slice(0, Math.min(byX.length, 6));
         }
-        elev = 17;
+        elev = 14;
         yaw = -6;
         fov = 30;
         break;
@@ -929,8 +932,9 @@ export class HD2DScene {
       z0 = Math.min(z0, this.laneZ(-0.5));
       z1 = Math.max(z1, this.laneZ(-0.5));
     }
-    // Never zoom out beyond ~70 m of track: keep the front of the group.
-    if (x1 - x0 > 70) x0 = x1 - 70;
+    // Max zoom-out: never frame more than ~40 m of track (wide: 80 m); keep the front.
+    const maxSpan = shot === "wide" ? 80 : 30;
+    if (x1 - x0 > maxSpan) x0 = x1 - maxSpan;
     if (shot === "photo") {
       x0 = Math.min(x0, L - 2.5);
       x1 = Math.max(x1, L + 2.5);
@@ -940,6 +944,10 @@ export class HD2DScene {
     const e = (elev * Math.PI) / 180;
     const a = (yaw * Math.PI) / 180;
     const pos = this.v1.set(at.x + Math.sin(a) * Math.cos(e) * D, at.y + Math.sin(e) * D, at.z + Math.cos(a) * Math.cos(e) * D);
+    // Compose: aim above the group so it sits in the lower-middle and the horizon/stands
+    // show in the upper third (shift in NDC = composeShift).
+    const composeShift = shot === "photo" ? 0.1 : 0.32;
+    at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);

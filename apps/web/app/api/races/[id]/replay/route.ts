@@ -4,7 +4,7 @@ import { handleRaceError, json } from "@/server/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 425 before post time; afterwards the deterministic replay (seed revealed), cacheable forever. */
+/** 425 before post time and while the race is live on the broadcast clock; afterwards the deterministic replay (seed revealed), cacheable forever. */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   try {

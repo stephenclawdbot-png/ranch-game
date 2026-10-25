@@ -5,9 +5,11 @@
  * data + signed race ids). Milestone B swaps in a Postgres implementation without
  * touching pages or API routes.
  */
-import type { Horse, RaceReplay } from "@thoroughbred/shared";
+import type { Horse, RaceBroadcastChunk, RaceReplay } from "@thoroughbred/shared";
 import { houseStable, parsePlayerHorseId, rivalById, starterHorses, isValidPlayerId } from "./demoData";
+import { sliceBroadcast } from "./live";
 import {
+  computeReplay,
   createQuickRace,
   getRace,
   getReplay,
@@ -37,8 +39,10 @@ export interface RaceRepository {
   listRaces(nowMs: number): Promise<{ upcoming: RaceSummary[]; recent: RaceSummary[] }>;
   /** Throws RaceNotFoundError. */
   getRace(id: string, nowMs: number): Promise<RaceCard>;
-  /** Throws RaceNotFoundError or TooEarlyError. */
+  /** Throws RaceNotFoundError or TooEarlyError (before post time, and while the race is live). */
   getReplay(id: string, nowMs: number): Promise<RaceReplay>;
+  /** Live broadcast slice from `fromFrame`; never reveals the outcome before the finish is broadcast. Throws RaceNotFoundError. */
+  getLiveChunk(id: string, fromFrame: number, nowMs: number): Promise<RaceBroadcastChunk>;
   createQuickRace(req: QuickRaceRequest, nowMs: number): Promise<{ raceId: string; postTimeMs: number; seedCommitment: string }>;
   verifyRace(id: string, nowMs: number, claimed?: { commitment?: string; resultHash?: string }): Promise<VerifyResult>;
 }
@@ -72,6 +76,10 @@ export class DemoRepository implements HorseRepository, RaceRepository {
 
   async getReplay(id: string, nowMs: number) {
     return getReplay(id, nowMs);
+  }
+
+  async getLiveChunk(id: string, fromFrame: number, nowMs: number) {
+    return sliceBroadcast(computeReplay(id), fromFrame, nowMs);
   }
 
   async createQuickRace(req: QuickRaceRequest, nowMs: number) {

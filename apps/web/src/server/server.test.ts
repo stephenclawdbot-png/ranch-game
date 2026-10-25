@@ -116,23 +116,23 @@ describe("quick races", () => {
     const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 1, tactic: "stalker" }, NOW, "early00001");
     expect(() => getReplay(raceId, postTimeMs - 1)).toThrow(TooEarlyError);
     expect(getRace(raceId, postTimeMs - 1).status).toBe("upcoming");
-    expect(getRace(raceId, postTimeMs).status).toBe("finished");
+    expect(getRace(raceId, postTimeMs).status).toBe("live");
   });
 
   it("same race id gives an identical replay every time, and it verifies", () => {
     const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 3, tactic: "front" }, NOW, "same000001");
-    const a = getReplay(raceId, postTimeMs);
+    const a = getReplay(raceId, postTimeMs + 600_000);
     // Fresh repository + uncached path produce the same bytes.
     const input = getRaceInput(raceId);
     expect(input.seed).toBe(a.seed);
     expect(commitSeed(a.seed)).toBe(a.seedCommitment);
     expect(getRace(raceId, NOW).seedCommitment).toBe(a.seedCommitment);
-    const b = JSON.parse(JSON.stringify(getReplay(raceId, postTimeMs + 60_000)));
+    const b = JSON.parse(JSON.stringify(getReplay(raceId, postTimeMs + 660_000)));
     expect(b).toEqual(JSON.parse(JSON.stringify(a)));
-    const v = verifyRace(raceId, postTimeMs, { commitment: a.seedCommitment, resultHash: a.result.resultHash });
+    const v = verifyRace(raceId, postTimeMs + 600_000, { commitment: a.seedCommitment, resultHash: a.result.resultHash });
     expect(v.commitmentOk).toBe(true);
     expect(v.resultHashOk).toBe(true);
-    const wrong = verifyRace(raceId, postTimeMs, { commitment: "0".repeat(64) });
+    const wrong = verifyRace(raceId, postTimeMs + 600_000, { commitment: "0".repeat(64) });
     expect(wrong.commitmentOk).toBe(false);
   });
 

@@ -13,7 +13,8 @@ export default async function RacesPage() {
   const repo = raceRepository();
   const { upcoming, recent } = await repo.listRaces(now);
   const feature = upcoming[0] ? await repo.getRace(upcoming[0].id, now).catch(() => null) : null;
-  const nextChange = Math.min(upcoming[0]?.postTimeMs ?? Infinity, ...recent.filter((r) => r.phase === "live").map((r) => r.endsAtMs ?? Infinity));
+  // A live race has no public end time (it would reveal the result): re-check every 10 s while one runs.
+  const nextChange = Math.min(upcoming[0]?.postTimeMs ?? Infinity, recent.some((r) => r.phase === "live") ? now + 10_000 : Infinity);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:gap-8">

@@ -4,3 +4,7 @@
 {"at":"2026-10-25T16:21:10.422Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/normal-rider","secs":38,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T16:59:01.440Z","endpoint":"/edit-images-v2","prefix":"art-src/rig/raw/hd-horse-4401","secs":60,"usage":{"type":"generations","generations":10},"images":2}
 {"at":"2026-10-25T16:59:23.435Z","endpoint":"/edit-images-v2","prefix":"art-src/rig/raw/hd-horse-4402","secs":82,"usage":{"type":"generations","generations":10},"images":2}
+{"at":"2026-10-25T17:00:47.431Z","endpoint":"/inpaint-v3","prefix":"art-src/rig/raw/hd-jockey","secs":60,"usage":{"type":"generations","generations":10},"images":2}
+{"at":"2026-10-25T17:01:25.065Z","endpoint":"/inpaint-v3","prefix":"art-src/rig/raw/hd-jockey79","secs":98,"usage":{"type":"generations","generations":10},"images":2}
+{"at":"2026-10-25T17:02:15.238Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/hd-normal-stand","secs":39,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T17:02:21.862Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/hd-normal-rider","secs":45,"usage":{"type":"generations","generations":0.5},"images":1}

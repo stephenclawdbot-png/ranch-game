@@ -19,7 +19,8 @@ export default async function PaddockPage() {
   const live = recent.find((r) => r.phase === "live");
   const next = upcoming[0]!;
   const nextCard = await repo.getRace(next.id, now);
-  const nextChange = Math.min(next.postTimeMs, live?.endsAtMs ?? Infinity);
+  // A live race has no public end time (it would reveal the result): re-check every 10 s.
+  const nextChange = Math.min(next.postTimeMs, live ? now + 10_000 : Infinity);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:gap-7">

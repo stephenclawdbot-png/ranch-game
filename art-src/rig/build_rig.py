@@ -81,6 +81,8 @@ def colour_class(img, name):
     h, s, lum = hsv(img)
     if name == "dark":
         return lum < 62
+    if name == "hair":
+        return (lum < 45) | ((lum < 115) & (s < 0.5))
     if name == "darkish":
         return lum < 90
     if name == "brown":
@@ -179,12 +181,48 @@ def upscale(layers, key, times):
     return layers
 
 
+def apply_unit(rig):
+    """rig.json coordinates are authored in base (128x96) space; scale them to the source
+    density (`unit` = source px per base px). `polyHD` / `pivotHD` override in source px."""
+    u = rig.get("unit", 1)
+    if u == 1:
+        return rig
+    sc = lambda pt: [pt[0] * u, pt[1] * u]
+    for p in rig["parts"]:
+        if "poly" in p:
+            p["poly"] = p.pop("polyHD", None) or [sc(q) for q in p["poly"]]
+        if "pivot" in p:
+            p["pivot"] = p.pop("pivotHD", None) or sc(p["pivot"])
+        if "offset" in p:
+            p["offset"] = sc(p["offset"])
+        for r in p.get("rules", []):
+            if "poly" in r:
+                r["poly"] = [sc(q) for q in r["poly"]]
+        for k in ("underPad", "underPadMaxY", "padR"):
+            if k in p:
+                p[k] = p[k] * u
+        p["seam"] = p.get("seam", 2) * u
+        if "op" in p and "maxY" in p["op"]:
+            p["op"]["maxY"] *= u
+    rig["joints"] = {k: sc(v) for k, v in rig["joints"].items()}
+    rig["joints"].update(rig.get("jointsHD", {}))
+    rig["face"] = {k: v * u for k, v in rig["face"].items()}
+    rig["silksFrame"] = rig.get("silksFrameHD") or {k: sc(v) for k, v in rig["silksFrame"].items()}
+    rig["groundY"] = rig["groundY"] * u
+    rig["canvas"] = [rig["canvas"][0] * u, rig["canvas"][1] * u]
+    rig["volumes"] = {k: v * u for k, v in rig["volumes"].items()}
+    return rig
+
+
 def main():
     debug_dir = None
     if "--debug" in sys.argv:
         debug_dir = sys.argv[sys.argv.index("--debug") + 1]
         os.makedirs(debug_dir, exist_ok=True)
-    rig = json.load(open(RIG))
+    rig_path = sys.argv[sys.argv.index("--rig") + 1] if "--rig" in sys.argv else RIG
+    rig = json.load(open(rig_path))
+    rig = apply_unit(rig)
+    U = rig.get("unit", 1)
     W, H = rig["canvas"]
     src = {k: load(v) for k, v in rig["sources"].items()}
     horse, rider = src["horse"], src["rider"]
@@ -313,7 +351,7 @@ def main():
         xf = xs.max()
         for x in xs:
             along = (y - face["foreheadY"]) / (face["noseY"] - face["foreheadY"])
-            aux["horse"][y, x] = (1, np.clip(along, 0, 1), np.clip((xf - x) / 6.0, 0, 1))
+            aux["horse"][y, x] = (1, np.clip(along, 0, 1), np.clip((xf - x) / U / 6.0, 0, 1))
     J = rig["joints"]
     for leg, (knee, hoofTop) in {
         "fore": (J["foreKnee"][1], next(p for p in cut if p["name"] == "foreNearHoof")["pivot"][1]),
@@ -365,7 +403,7 @@ def main():
         data_h = hgt[s].copy()
         data_a = aux[s].copy()
         cur = grown.copy()
-        for _ in range(3):
+        for _ in range(int(3 * U)):
             cand = fill_region & ~cur & neighbours4(cur)
             if not cand.any():
                 break
@@ -422,7 +460,7 @@ def main():
         tiles.append(t)
 
     # shelf pack, 1px gutter, atlas width 128
-    AW = 128
+    AW = 128 * U
     x = y = 1
     shelf = 0
     for t in sorted(tiles, key=lambda t: -t["mask"].shape[0]):
@@ -497,6 +535,7 @@ def main():
 
     meta = {
         "version": 1,
+        "unit": U,
         "scale": SCALE,
         "atlas": [AW, AH],
         "canvas": rig["canvas"],

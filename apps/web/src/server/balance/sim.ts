@@ -158,3 +158,29 @@ export function groupBy<T, K>(xs: readonly T[], key: (x: T) => K): Map<K, T[]> {
   }
   return m;
 }
+
+export function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)] ?? 0;
+}
+
+export function feel(races: readonly { favouriteWon: boolean; photo: boolean; winMarginMm: number; comeback: boolean; winnerTactic: RunningStyle; winnerRatingRank: number; fieldSize: number }[]) {
+  return {
+    favouriteWin: mean(races.map((r) => (r.favouriteWon ? 1 : 0))),
+    top3RatedWin: mean(races.map((r) => (r.winnerRatingRank <= 3 ? 1 : 0))),
+    upset: mean(races.map((r) => (r.winnerRatingRank > r.fieldSize / 2 ? 1 : 0))),
+    photo: mean(races.map((r) => (r.photo ? 1 : 0))),
+    avgMarginL: mean(races.map((r) => r.winMarginMm)) / 2400,
+    medianMarginL: median(races.map((r) => r.winMarginMm)) / 2400,
+    comeback: mean(races.map((r) => (r.comeback ? 1 : 0))),
+    winnerTactic: Object.fromEntries(TACTICS.map((t) => [t, mean(races.map((r) => (r.winnerTactic === t ? 1 : 0)))])),
+  };
+}
+export function feelLines(races: Parameters<typeof feel>[0]): string[] {
+  const f = feel(races);
+  return [
+    `favourite (top-rated) wins ${pct(f.favouriteWin)}, a top-3-rated horse wins ${pct(f.top3RatedWin)}, upset (bottom-half rated wins) ${pct(f.upset)}`,
+    `photo finish ${pct(f.photo)}, winning margin mean ${f.avgMarginL.toFixed(2)} L, median ${f.medianMarginL.toFixed(2)} L`,
+    `comeback (winner 5th+ at 75% of trip) ${pct(f.comeback)}; winner tactic ${TACTICS.map((t) => `${t} ${pct(f.winnerTactic[t]!)}`).join(", ")}`,
+  ];
+}

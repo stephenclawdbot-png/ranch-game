@@ -1,0 +1,260 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<24072 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character",
+  "convention": "opengl"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9864db29-1c20-4a3a-86c5-b15ca4e13b14",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "9864db29-1c20-4a3a-86c5-b15ca4e13b14",
+  "status": "completed",
+  "created_at": "2026-10-25T17:01:38.035337+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 100,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       54,
+       74,
+       75
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far foreleg",
+      "shape": "cylinder",
+      "regions": [
+       76
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far hind leg",
+      "shape": "cylinder",
+      "regions": [
+       77,
+       71,
+       72,
+       78
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       28,
+       30,
+       31,
+       39,
+       41,
+       44,
+       46,
+       56,
+       59,
+       60
+      ]
+     },
+     {
+      "name": "saddle",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       34,
+       36,
+       37,
+       38,
+       40,
+       42
+      ]
+     },
+     {
+      "name": "haunch",
+      "shape": "ball",
+      "regions": [
+       55
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near hind leg",
+      "shape": "cylinder",
+      "regions": [
+       50,
+       63,
+       67,
+       73
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "mane",
+      "round": 0.5,
+      "shape": "cylinder",
+      "regions": [
+       17
+      ]
+     },
+     {
+      "axis": 50,
+      "name": "neck",
+      "shape": "cylinder",
+      "regions": [
+       18,
+       21,
+       33,
+       35
+      ]
+     },
+     {
+      "name": "chest",
+      "shape": "ball",
+      "regions": [
+       32,
+       43,
+       45,
+       47,
+       48,
+       49,
+       51,
+       52,
+       53
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near foreleg",
+      "shape": "cylinder",
+      "regions": [
+       57,
+       58,
+       61,
+       62,
+       64,
+       65,
+       66,
+       68,
+       69,
+       70,
+       79
+      ]
+     },
+     {
+      "name": "head",
+      "shape": "ball",
+      "regions": [
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       22,
+       23
+      ]
+     },
+     {
+      "name": "ears",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ]
+     },
+     {
+      "name": "muzzle",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       19,
+       20,
+       24,
+       25,
+       26,
+       27,
+       29
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     27,
+     29
+    ],
+    "backdrop": [],
+    "recessed": [
+     23,
+     26,
+     56,
+     58,
+     62,
+     69
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<35592 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "1ee314fe-9929-4feb-acc6-5c631f9acffd",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T17:01:38.106989+00:00"
+  }
+ },
+ "files": [
+  "art-src/rig/raw/hd-normal-stand-0.png"
+ ]
+}
