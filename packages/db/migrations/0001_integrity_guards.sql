@@ -9,7 +9,8 @@
 --   * horses are never deleted (no death, no deletion);
 --   * Pasture / Legend is permanent; racing retirement is final; the career clock
 --     (starts) and breeding_count never go backwards;
---   * ownership cannot change while a horse is race-locked or carrying a foal.
+--   * ownership cannot change while a horse is race-locked or carrying a foal, and
+--     bound (Club-bred) horses / foals below their trade threshold never change stables.
 
 CREATE FUNCTION ledger_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -84,6 +85,16 @@ BEGIN
     RAISE EXCEPTION 'career starts and breeding count never decrease' USING ERRCODE = 'restrict_violation';
   END IF;
   IF NEW.owner_stable_id IS DISTINCT FROM OLD.owner_stable_id THEN
+    -- Stable-to-stable transfers (sales); release to the Club (owner -> null) is always allowed.
+    IF OLD.owner_stable_id IS NOT NULL AND NEW.owner_stable_id IS NOT NULL THEN
+      IF OLD.bound THEN
+        RAISE EXCEPTION 'Club-bred (bound) horses cannot be transferred' USING ERRCODE = 'restrict_violation';
+      END IF;
+      IF OLD.starts < OLD.trade_min_starts THEN
+        RAISE EXCEPTION 'horse needs % starts before it can be transferred', OLD.trade_min_starts
+          USING ERRCODE = 'restrict_violation';
+      END IF;
+    END IF;
     IF OLD.lock_kind = 'race' THEN
       RAISE EXCEPTION 'cannot transfer a horse entered in a race' USING ERRCODE = 'restrict_violation';
     END IF;

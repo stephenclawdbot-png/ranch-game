@@ -53,7 +53,7 @@ export const horseStageEnum = pgEnum("horse_stage", ["foal", "weanling", "yearli
 export const careerStatusEnum = pgEnum("career_status", [
   "racing", // in training / racing (or still in the nursery)
   "retired", // racing retired: stud or broodmare career while breedings remain
-  "pasture", // Pasture / Legend: permanent, irreversible, never deleted
+  "pasture", // Pasture / Legend on the Legacy Farm: permanent, needs no stall, never deleted
 ]);
 export const retirementReasonEnum = pgEnum("retirement_reason", ["choice", "max_starts", "injury"]);
 export const maturityTypeEnum = pgEnum("maturity_type", ["early", "normal", "late"]);
@@ -89,8 +89,8 @@ export const accounts = pgTable(
     displayName: text("display_name"),
     email: text("email"),
     walletAddress: text("wallet_address"),
-    /** Accounts sharing a link group (same person / device cluster) get trades flagged. */
-    linkGroup: uuid("link_group"),
+    /** Verified email: required to sell on the market and for ranked rewards. */
+    emailVerifiedAt: ts("email_verified_at"),
     isSystem: boolean("is_system").notNull().default(false),
     createdAt: createdAt(),
     lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
@@ -100,6 +100,60 @@ export const accounts = pgTable(
     uniqueIndex("accounts_email_uq").on(sql`lower(${t.email})`),
     uniqueIndex("accounts_wallet_uq").on(t.walletAddress),
   ],
+);
+
+export const accountLinkKindEnum = pgEnum("account_link_kind", ["device", "fingerprint", "ip_hash", "wallet", "email"]);
+
+/**
+ * Identity signals per account (hashed; never raw IPs or fingerprints). Two accounts that
+ * share any (kind, value_hash) are linked: trades between them are blocked and their
+ * ranked results are reviewed.
+ */
+export const accountLinks = pgTable(
+  "account_links",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    kind: accountLinkKindEnum("kind").notNull(),
+    valueHash: text("value_hash").notNull(),
+    firstSeenAt: createdAt(),
+    lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("account_links_account_signal_uq").on(t.accountId, t.kind, t.valueHash),
+    index("account_links_signal_idx").on(t.kind, t.valueHash),
+  ],
+);
+
+/** Anti-fraud events for review (blocked linked trades, suspicious patterns ...). */
+export const fraudEvents = pgTable(
+  "fraud_events",
+  {
+    id: id(),
+    accountId: uuid("account_id").references(() => accounts.id),
+    relatedAccountId: uuid("related_account_id").references(() => accounts.id),
+    kind: text("kind").notNull(),
+    severity: integer("severity").notNull().default(1),
+    data: jsonb("data"),
+    reviewedAt: ts("reviewed_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("fraud_events_account_idx").on(t.accountId, t.createdAt), index("fraud_events_kind_idx").on(t.kind, t.createdAt)],
+);
+
+/** Distinct UTC days on which the account played (drives "free Paddock Pack every 3rd play day"). */
+export const accountPlayDays = pgTable(
+  "account_play_days",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    day: date("day", { mode: "string" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.day] })],
 );
 
 export const stables = pgTable(
@@ -113,10 +167,13 @@ export const stables = pgTable(
     /** Silks: { primary, secondary, pattern, cap } (shared SilksSchema). */
     silks: jsonb("silks").notNull(),
     /**
-     * Stall capacity (licence base + facility upgrades). There are no time-based fees:
-     * capacity is the stable-size limit. Occupancy = horses not at pasture + foals on the
-     * way (carrying pregnancies of the stable's mares). Enforced under a stable row lock on
-     * every acquisition (pack, market buy, breeding, grants); foaling never fails.
+     * Stall capacity (licence base + facility upgrades, 6 → 24). There are no time-based fees:
+     * capacity is the stable-size limit. Occupancy = owned horses not on the Legacy Farm
+     * (career_status 'pasture') + foals on the way (carrying pregnancies of the stable's
+     * mares). Every acquisition (pack, market buy, grant) needs occupancy < slots, checked
+     * under a stable row lock. Covering a mare may use the single nursery overflow slot
+     * (occupancy < slots + 1), and foaling never fails: the foal always arrives, at worst
+     * in overflow, which blocks further acquisitions until a stall is freed.
      */
     stallSlots: integer("stall_slots").notNull().default(6),
     licenceLevel: integer("licence_level").notNull().default(1),
@@ -127,7 +184,8 @@ export const stables = pgTable(
   (t) => [
     uniqueIndex("stables_account_uq").on(t.accountId),
     check("stables_name_len", sql`char_length(${t.name}) between 1 and 40`),
-    check("stables_slots", sql`${t.stallSlots} between 1 and 200`),
+    /** 6 stalls at start, facilities add more, hard maximum 24 (game-design §4b). */
+    check("stables_slots", sql`${t.stallSlots} between 1 and 24`),
   ],
 );
 
@@ -211,10 +269,20 @@ export const horses = pgTable(
     breedingCount: integer("breeding_count").notNull().default(0),
     /** Public stud fee in credits; null = not standing at stud. */
     studFee: credits("stud_fee"),
+    /**
+     * Club-bred (starter / free-pack) horses can never be sold, traded or transferred
+     * (release to the Club is allowed).
+     */
+    bound: boolean("bound").notNull().default(false),
+    /** Starts required before the horse may change hands (5 for foals of bound parents). */
+    tradeMinStarts: integer("trade_min_starts").notNull().default(0),
+    /** Released to the Club (owner becomes null). Released horses leave the player's stalls. */
+    releasedAt: ts("released_at"),
+    releasedFromStableId: uuid("released_from_stable_id").references(() => stables.id),
     /** Exclusive lock: in a race field or listed on the market. */
     lockKind: horseLockEnum("lock_kind"),
     lockRef: uuid("lock_ref"),
-    /** Career starts: the career clock (max 50). */
+    /** Career starts: the career clock (max 40). */
     starts: integer("starts").notNull().default(0),
     wins: integer("wins").notNull().default(0),
     places: integer("places").notNull().default(0),
@@ -235,7 +303,7 @@ export const horses = pgTable(
     check("horses_rating", sql`${t.rating} between 0 and 140`),
     check("horses_stud_fee", sql`${t.studFee} is null or ${t.studFee} >= 0`),
     check("horses_name_len", sql`char_length(${t.name}) between 1 and 32`),
-    check("horses_starts", sql`${t.starts} between 0 and 50 and ${t.wins} + ${t.places} + ${t.shows} <= ${t.starts}`),
+    check("horses_starts", sql`${t.starts} between 0 and 40 and ${t.wins} + ${t.places} + ${t.shows} <= ${t.starts}`),
     check(
       "horses_meters",
       sql`least(${t.fitness}, ${t.fatigue}, ${t.freshness}, ${t.form}, ${t.morale}, ${t.bond}, ${t.careQuality}) >= 0 and greatest(${t.fitness}, ${t.fatigue}, ${t.freshness}, ${t.form}, ${t.morale}, ${t.bond}, ${t.careQuality}) <= 1000`,
@@ -245,7 +313,7 @@ export const horses = pgTable(
       sql`(${t.careerStatus} = 'racing') = (${t.retirementReason} is null) and (${t.careerStatus} = 'racing') = (${t.retiredAt} is null)`,
     ),
     check("horses_pasture_consistent", sql`(${t.careerStatus} = 'pasture') = (${t.pasturedAt} is not null)`),
-    check("horses_mandatory_retirement", sql`${t.starts} < 50 or ${t.careerStatus} <> 'racing'`),
+    check("horses_mandatory_retirement", sql`${t.starts} < 40 or ${t.careerStatus} <> 'racing'`),
     index("horses_owner_status_idx").on(t.ownerStableId, t.careerStatus),
   ],
 );
@@ -617,6 +685,8 @@ export const marketListings = pgTable(
       .notNull()
       .references(() => stables.id),
     price: credits("price").notNull(),
+    /** Appraised value at listing time; price must be >= 70% of it (anti-dumping floor). */
+    appraisal: credits("appraisal").notNull(),
     status: listingStatusEnum("status").notNull().default("active"),
     createdAt: createdAt(),
     expiresAt: ts("expires_at").notNull(),
@@ -704,14 +774,35 @@ export const packPulls = pgTable(
     pityApplied: text("pity_applied"),
     horseId: uuid("horse_id").references(() => horses.id),
     price: credits("price").notNull().default(0),
+    /** Free Paddock Pack (play-day entitlement); its horse is bound (Club-bred). */
+    free: boolean("free").notNull().default(false),
+    /** Monday (UTC) of the pull's week, for the weekly purchase limits. */
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    seasonNumber: integer("season_number").notNull(),
     ledgerTransactionId: uuid("ledger_transaction_id").references(() => ledgerTransactions.id),
     idempotencyKey: text("idempotency_key").notNull(),
     createdAt: createdAt(),
   },
   (t) => [
     uniqueIndex("pack_pulls_idem_uq").on(t.idempotencyKey),
+    index("pack_pulls_week_idx").on(t.accountId, t.packType, t.weekStart),
     uniqueIndex("pack_pulls_account_index_uq").on(t.accountId, t.packType, t.pullIndex),
   ],
+);
+
+/**
+ * Seasonal global foal crop: every pack horse consumes one unit. Incremented with a single
+ * guarded UPDATE (produced < cap), so concurrent pulls can never oversell the crop.
+ */
+export const foalCrop = pgTable(
+  "foal_crop",
+  {
+    seasonNumber: integer("season_number").primaryKey(),
+    cap: integer("cap").notNull(),
+    produced: integer("produced").notNull().default(0),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [check("foal_crop_bounds", sql`${t.produced} between 0 and ${t.cap}`)],
 );
 
 // ---------------------------------------------------------------------------

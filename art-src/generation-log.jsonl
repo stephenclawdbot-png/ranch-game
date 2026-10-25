@@ -126,3 +126,7 @@
 {"at":"2026-10-25T17:29:16.019Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-grandstand","secs":184,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-25T17:34:34.047Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-crowd-a","secs":502,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T17:35:34.819Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-finish-post","secs":61,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:35:50.934Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-furlong-pole","secs":77,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T17:35:56.099Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-rail","secs":82,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:36:01.775Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/scene/hd-hedge","secs":87,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T17:36:42.517Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/portraits-128/master","secs":87,"usage":{"type":"generations","generations":10},"images":4}

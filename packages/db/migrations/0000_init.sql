@@ -1,3 +1,4 @@
+CREATE TYPE "public"."account_link_kind" AS ENUM('device', 'fingerprint', 'ip_hash', 'wallet', 'email');--> statement-breakpoint
 CREATE TYPE "public"."career_status" AS ENUM('racing', 'retired', 'pasture');--> statement-breakpoint
 CREATE TYPE "public"."horse_lock" AS ENUM('race', 'market');--> statement-breakpoint
 CREATE TYPE "public"."horse_origin" AS ENUM('starter', 'bred', 'pack', 'gift', 'house', 'admin');--> statement-breakpoint
@@ -12,13 +13,29 @@ CREATE TYPE "public"."race_status" AS ENUM('open', 'closed', 'settled', 'cancell
 CREATE TYPE "public"."rarity" AS ENUM('common', 'uncommon', 'rare', 'epic', 'legendary');--> statement-breakpoint
 CREATE TYPE "public"."retirement_reason" AS ENUM('choice', 'max_starts', 'injury');--> statement-breakpoint
 CREATE TYPE "public"."season_status" AS ENUM('upcoming', 'active', 'closed');--> statement-breakpoint
+CREATE TABLE "account_links" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"account_id" uuid NOT NULL,
+	"kind" "account_link_kind" NOT NULL,
+	"value_hash" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"last_seen_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "account_play_days" (
+	"account_id" uuid NOT NULL,
+	"day" date NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "account_play_days_account_id_day_pk" PRIMARY KEY("account_id","day")
+);
+--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"token_hash" text NOT NULL,
 	"display_name" text,
 	"email" text,
 	"wallet_address" text,
-	"link_group" uuid,
+	"email_verified_at" timestamp with time zone,
 	"is_system" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"last_seen_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -91,6 +108,25 @@ CREATE TABLE "economy_config" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "foal_crop" (
+	"season_number" integer PRIMARY KEY NOT NULL,
+	"cap" integer NOT NULL,
+	"produced" integer DEFAULT 0 NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "foal_crop_bounds" CHECK ("foal_crop"."produced" between 0 and "foal_crop"."cap")
+);
+--> statement-breakpoint
+CREATE TABLE "fraud_events" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"account_id" uuid,
+	"related_account_id" uuid,
+	"kind" text NOT NULL,
+	"severity" integer DEFAULT 1 NOT NULL,
+	"data" jsonb,
+	"reviewed_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "hall_of_fame" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"entry_key" text NOT NULL,
@@ -141,6 +177,10 @@ CREATE TABLE "horses" (
 	"insured" boolean DEFAULT false NOT NULL,
 	"breeding_count" integer DEFAULT 0 NOT NULL,
 	"stud_fee" bigint,
+	"bound" boolean DEFAULT false NOT NULL,
+	"trade_min_starts" integer DEFAULT 0 NOT NULL,
+	"released_at" timestamp with time zone,
+	"released_from_stable_id" uuid,
 	"lock_kind" "horse_lock",
 	"lock_ref" uuid,
 	"starts" integer DEFAULT 0 NOT NULL,
@@ -157,11 +197,11 @@ CREATE TABLE "horses" (
 	CONSTRAINT "horses_rating" CHECK ("horses"."rating" between 0 and 140),
 	CONSTRAINT "horses_stud_fee" CHECK ("horses"."stud_fee" is null or "horses"."stud_fee" >= 0),
 	CONSTRAINT "horses_name_len" CHECK (char_length("horses"."name") between 1 and 32),
-	CONSTRAINT "horses_starts" CHECK ("horses"."starts" between 0 and 50 and "horses"."wins" + "horses"."places" + "horses"."shows" <= "horses"."starts"),
+	CONSTRAINT "horses_starts" CHECK ("horses"."starts" between 0 and 40 and "horses"."wins" + "horses"."places" + "horses"."shows" <= "horses"."starts"),
 	CONSTRAINT "horses_meters" CHECK (least("horses"."fitness", "horses"."fatigue", "horses"."freshness", "horses"."form", "horses"."morale", "horses"."bond", "horses"."care_quality") >= 0 and greatest("horses"."fitness", "horses"."fatigue", "horses"."freshness", "horses"."form", "horses"."morale", "horses"."bond", "horses"."care_quality") <= 1000),
 	CONSTRAINT "horses_retirement_consistent" CHECK (("horses"."career_status" = 'racing') = ("horses"."retirement_reason" is null) and ("horses"."career_status" = 'racing') = ("horses"."retired_at" is null)),
 	CONSTRAINT "horses_pasture_consistent" CHECK (("horses"."career_status" = 'pasture') = ("horses"."pastured_at" is not null)),
-	CONSTRAINT "horses_mandatory_retirement" CHECK ("horses"."starts" < 50 or "horses"."career_status" <> 'racing')
+	CONSTRAINT "horses_mandatory_retirement" CHECK ("horses"."starts" < 40 or "horses"."career_status" <> 'racing')
 );
 --> statement-breakpoint
 CREATE TABLE "league_members" (
@@ -230,6 +270,7 @@ CREATE TABLE "market_listings" (
 	"horse_id" uuid NOT NULL,
 	"seller_stable_id" uuid NOT NULL,
 	"price" bigint NOT NULL,
+	"appraisal" bigint NOT NULL,
 	"status" "listing_status" DEFAULT 'active' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"expires_at" timestamp with time zone NOT NULL,
@@ -261,6 +302,9 @@ CREATE TABLE "pack_pulls" (
 	"pity_applied" text,
 	"horse_id" uuid,
 	"price" bigint DEFAULT 0 NOT NULL,
+	"free" boolean DEFAULT false NOT NULL,
+	"week_start" date NOT NULL,
+	"season_number" integer NOT NULL,
 	"ledger_transaction_id" uuid,
 	"idempotency_key" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -353,7 +397,7 @@ CREATE TABLE "stables" (
 	"facilities" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "stables_name_len" CHECK (char_length("stables"."name") between 1 and 40),
-	CONSTRAINT "stables_slots" CHECK ("stables"."stall_slots" between 1 and 200)
+	CONSTRAINT "stables_slots" CHECK ("stables"."stall_slots" between 1 and 24)
 );
 --> statement-breakpoint
 CREATE TABLE "trades" (
@@ -382,6 +426,8 @@ CREATE TABLE "training_plans" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "account_links" ADD CONSTRAINT "account_links_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "account_play_days" ADD CONSTRAINT "account_play_days_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "achievements" ADD CONSTRAINT "achievements_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "achievements" ADD CONSTRAINT "achievements_horse_id_horses_id_fk" FOREIGN KEY ("horse_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_actor_account_id_accounts_id_fk" FOREIGN KEY ("actor_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -396,11 +442,14 @@ ALTER TABLE "care_log" ADD CONSTRAINT "care_log_account_id_accounts_id_fk" FOREI
 ALTER TABLE "daily_cup_entries" ADD CONSTRAINT "daily_cup_entries_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daily_cup_entries" ADD CONSTRAINT "daily_cup_entries_horse_id_horses_id_fk" FOREIGN KEY ("horse_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daily_cup_entries" ADD CONSTRAINT "daily_cup_entries_race_id_races_id_fk" FOREIGN KEY ("race_id") REFERENCES "public"."races"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fraud_events" ADD CONSTRAINT "fraud_events_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fraud_events" ADD CONSTRAINT "fraud_events_related_account_id_accounts_id_fk" FOREIGN KEY ("related_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hall_of_fame" ADD CONSTRAINT "hall_of_fame_horse_id_horses_id_fk" FOREIGN KEY ("horse_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hall_of_fame" ADD CONSTRAINT "hall_of_fame_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "horses" ADD CONSTRAINT "horses_owner_stable_id_stables_id_fk" FOREIGN KEY ("owner_stable_id") REFERENCES "public"."stables"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "horses" ADD CONSTRAINT "horses_sire_id_horses_id_fk" FOREIGN KEY ("sire_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "horses" ADD CONSTRAINT "horses_dam_id_horses_id_fk" FOREIGN KEY ("dam_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "horses" ADD CONSTRAINT "horses_released_from_stable_id_stables_id_fk" FOREIGN KEY ("released_from_stable_id") REFERENCES "public"."stables"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "league_members" ADD CONSTRAINT "league_members_league_id_leagues_id_fk" FOREIGN KEY ("league_id") REFERENCES "public"."leagues"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "league_members" ADD CONSTRAINT "league_members_account_id_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ledger_accounts" ADD CONSTRAINT "ledger_accounts_owner_account_id_accounts_id_fk" FOREIGN KEY ("owner_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -431,6 +480,8 @@ ALTER TABLE "trades" ADD CONSTRAINT "trades_buyer_stable_id_stables_id_fk" FOREI
 ALTER TABLE "trades" ADD CONSTRAINT "trades_ledger_transaction_id_ledger_transactions_id_fk" FOREIGN KEY ("ledger_transaction_id") REFERENCES "public"."ledger_transactions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "training_plans" ADD CONSTRAINT "training_plans_horse_id_horses_id_fk" FOREIGN KEY ("horse_id") REFERENCES "public"."horses"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "training_plans" ADD CONSTRAINT "training_plans_created_by_accounts_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "account_links_account_signal_uq" ON "account_links" USING btree ("account_id","kind","value_hash");--> statement-breakpoint
+CREATE INDEX "account_links_signal_idx" ON "account_links" USING btree ("kind","value_hash");--> statement-breakpoint
 CREATE UNIQUE INDEX "accounts_token_hash_uq" ON "accounts" USING btree ("token_hash");--> statement-breakpoint
 CREATE UNIQUE INDEX "accounts_email_uq" ON "accounts" USING btree (lower("email"));--> statement-breakpoint
 CREATE UNIQUE INDEX "accounts_wallet_uq" ON "accounts" USING btree ("wallet_address");--> statement-breakpoint
@@ -444,6 +495,8 @@ CREATE UNIQUE INDEX "care_log_horse_day_uq" ON "care_log" USING btree ("horse_id
 CREATE INDEX "care_log_account_idx" ON "care_log" USING btree ("account_id","day");--> statement-breakpoint
 CREATE UNIQUE INDEX "daily_cup_account_day_uq" ON "daily_cup_entries" USING btree ("account_id","day");--> statement-breakpoint
 CREATE INDEX "daily_cup_board_idx" ON "daily_cup_entries" USING btree ("day","points","finish_time_us");--> statement-breakpoint
+CREATE INDEX "fraud_events_account_idx" ON "fraud_events" USING btree ("account_id","created_at");--> statement-breakpoint
+CREATE INDEX "fraud_events_kind_idx" ON "fraud_events" USING btree ("kind","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "hall_of_fame_key_uq" ON "hall_of_fame" USING btree ("entry_key");--> statement-breakpoint
 CREATE INDEX "hall_of_fame_category_idx" ON "hall_of_fame" USING btree ("category","created_at");--> statement-breakpoint
 CREATE INDEX "horses_owner_idx" ON "horses" USING btree ("owner_stable_id");--> statement-breakpoint
@@ -465,6 +518,7 @@ CREATE UNIQUE INDEX "market_listings_horse_active_uq" ON "market_listings" USING
 CREATE INDEX "market_listings_status_idx" ON "market_listings" USING btree ("status","expires_at");--> statement-breakpoint
 CREATE INDEX "market_listings_seller_idx" ON "market_listings" USING btree ("seller_stable_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "pack_pulls_idem_uq" ON "pack_pulls" USING btree ("idempotency_key");--> statement-breakpoint
+CREATE INDEX "pack_pulls_week_idx" ON "pack_pulls" USING btree ("account_id","pack_type","week_start");--> statement-breakpoint
 CREATE UNIQUE INDEX "pack_pulls_account_index_uq" ON "pack_pulls" USING btree ("account_id","pack_type","pull_index");--> statement-breakpoint
 CREATE UNIQUE INDEX "pregnancies_event_uq" ON "pregnancies" USING btree ("breeding_event_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "pregnancies_foal_uq" ON "pregnancies" USING btree ("foal_id");--> statement-breakpoint

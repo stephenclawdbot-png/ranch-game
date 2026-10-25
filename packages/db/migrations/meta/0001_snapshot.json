@@ -1,9 +1,179 @@
 {
-  "id": "02d79058-4873-4b72-acda-0b188a5c7ba5",
-  "prevId": "85dbf9c3-341d-4458-b14b-389841dab00b",
+  "id": "dd85f0c4-6049-4d82-ba4b-8e04d37a9f4c",
+  "prevId": "ef9d82a3-4ef8-43e6-9430-82171bedf012",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.account_links": {
+      "name": "account_links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "account_link_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value_hash": {
+          "name": "value_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "account_links_account_signal_uq": {
+          "name": "account_links_account_signal_uq",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "account_links_signal_idx": {
+          "name": "account_links_signal_idx",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "account_links_account_id_accounts_id_fk": {
+          "name": "account_links_account_id_accounts_id_fk",
+          "tableFrom": "account_links",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "tableTo": "accounts",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.account_play_days": {
+      "name": "account_play_days",
+      "schema": "",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_play_days_account_id_accounts_id_fk": {
+          "name": "account_play_days_account_id_accounts_id_fk",
+          "tableFrom": "account_play_days",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "tableTo": "accounts",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "account_play_days_account_id_day_pk": {
+          "name": "account_play_days_account_id_day_pk",
+          "columns": [
+            "account_id",
+            "day"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.accounts": {
       "name": "accounts",
       "schema": "",
@@ -39,9 +209,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "link_group": {
-          "name": "link_group",
-          "type": "uuid",
+        "email_verified_at": {
+          "name": "email_verified_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -910,6 +1080,184 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.foal_crop": {
+      "name": "foal_crop",
+      "schema": "",
+      "columns": {
+        "season_number": {
+          "name": "season_number",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cap": {
+          "name": "cap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "produced": {
+          "name": "produced",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "foal_crop_bounds": {
+          "name": "foal_crop_bounds",
+          "value": "\"foal_crop\".\"produced\" between 0 and \"foal_crop\".\"cap\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fraud_events": {
+      "name": "fraud_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "related_account_id": {
+          "name": "related_account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "fraud_events_account_idx": {
+          "name": "fraud_events_account_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "fraud_events_kind_idx": {
+          "name": "fraud_events_kind_idx",
+          "columns": [
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "fraud_events_account_id_accounts_id_fk": {
+          "name": "fraud_events_account_id_accounts_id_fk",
+          "tableFrom": "fraud_events",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "tableTo": "accounts",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "fraud_events_related_account_id_accounts_id_fk": {
+          "name": "fraud_events_related_account_id_accounts_id_fk",
+          "tableFrom": "fraud_events",
+          "columnsFrom": [
+            "related_account_id"
+          ],
+          "tableTo": "accounts",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.hall_of_fame": {
       "name": "hall_of_fame",
       "schema": "",
@@ -1295,6 +1643,32 @@
           "primaryKey": false,
           "notNull": false
         },
+        "bound": {
+          "name": "bound",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "trade_min_starts": {
+          "name": "trade_min_starts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "released_from_stable_id": {
+          "name": "released_from_stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "lock_kind": {
           "name": "lock_kind",
           "type": "horse_lock",
@@ -1480,6 +1854,19 @@
           ],
           "onUpdate": "no action",
           "onDelete": "no action"
+        },
+        "horses_released_from_stable_id_stables_id_fk": {
+          "name": "horses_released_from_stable_id_stables_id_fk",
+          "tableFrom": "horses",
+          "columnsFrom": [
+            "released_from_stable_id"
+          ],
+          "tableTo": "stables",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1516,7 +1903,7 @@
         },
         "horses_starts": {
           "name": "horses_starts",
-          "value": "\"horses\".\"starts\" between 0 and 50 and \"horses\".\"wins\" + \"horses\".\"places\" + \"horses\".\"shows\" <= \"horses\".\"starts\""
+          "value": "\"horses\".\"starts\" between 0 and 40 and \"horses\".\"wins\" + \"horses\".\"places\" + \"horses\".\"shows\" <= \"horses\".\"starts\""
         },
         "horses_meters": {
           "name": "horses_meters",
@@ -1532,7 +1919,7 @@
         },
         "horses_mandatory_retirement": {
           "name": "horses_mandatory_retirement",
-          "value": "\"horses\".\"starts\" < 50 or \"horses\".\"career_status\" <> 'racing'"
+          "value": "\"horses\".\"starts\" < 40 or \"horses\".\"career_status\" <> 'racing'"
         }
       },
       "isRLSEnabled": false
@@ -2216,6 +2603,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "appraisal": {
+          "name": "appraisal",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "status": {
           "name": "status",
           "type": "listing_status",
@@ -2495,6 +2888,25 @@
           "notNull": true,
           "default": 0
         },
+        "free": {
+          "name": "free",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "week_start": {
+          "name": "week_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "season_number": {
+          "name": "season_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "ledger_transaction_id": {
           "name": "ledger_transaction_id",
           "type": "uuid",
@@ -2527,6 +2939,33 @@
             }
           ],
           "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "pack_pulls_week_idx": {
+          "name": "pack_pulls_week_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pack_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "week_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "with": {},
           "method": "btree",
           "concurrently": false
@@ -3462,7 +3901,7 @@
         },
         "stables_slots": {
           "name": "stables_slots",
-          "value": "\"stables\".\"stall_slots\" between 1 and 200"
+          "value": "\"stables\".\"stall_slots\" between 1 and 24"
         }
       },
       "isRLSEnabled": false
@@ -3766,6 +4205,17 @@
     }
   },
   "enums": {
+    "public.account_link_kind": {
+      "name": "account_link_kind",
+      "schema": "public",
+      "values": [
+        "device",
+        "fingerprint",
+        "ip_hash",
+        "wallet",
+        "email"
+      ]
+    },
     "public.career_status": {
       "name": "career_status",
       "schema": "public",
