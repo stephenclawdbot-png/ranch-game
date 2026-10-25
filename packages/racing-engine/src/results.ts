@@ -30,7 +30,8 @@ export function splitPurse(purse: number, runners: number): number[] {
   let paid = 0;
   for (let p = 0; p < runners; p++) {
     const pct = PRIZE_SPLIT_PCT[p] ?? 0;
-    const prize = Math.floor((purse * pct) / 100);
+    // Split into hundreds + remainder so the product never leaves the safe-integer range.
+    const prize = Math.floor(purse / 100) * pct + Math.floor(((purse % 100) * pct) / 100);
     prizes.push(prize);
     paid += prize;
   }

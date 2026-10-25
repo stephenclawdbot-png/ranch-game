@@ -125,10 +125,10 @@ const BODY: Pt[] = [
   [-200, -160], // croup
   [-224, -157],
   [-240, -146], // tail root
-  [-247, -128], // buttock
-  [-244, -110],
-  [-230, -98],
-  [-206, -98], // stifle / flank
+  [-250, -128], // buttock
+  [-247, -110],
+  [-232, -96],
+  [-206, -97], // stifle / flank
   [-180, -96],
   [-152, -92], // belly
   [-124, -93], // girth
@@ -239,18 +239,18 @@ function buildBody(p: Palette, coat: HorseColors["texture"], seed: number): Grap
 }
 
 const NECK: Pt[] = [
-  [-126, -156],
-  [-106, -167],
-  [-86, -176],
-  [-66, -182],
-  [-47, -186], // poll
-  [-38, -172],
-  [-40, -156], // throat latch
-  [-52, -147],
-  [-66, -135],
-  [-78, -120],
-  [-90, -108],
-  [-106, -116],
+  [-128, -157],
+  [-106, -170],
+  [-86, -179],
+  [-66, -184],
+  [-47, -187], // poll
+  [-37, -172],
+  [-38, -156], // throat latch
+  [-48, -146],
+  [-61, -133],
+  [-74, -117],
+  [-88, -103],
+  [-108, -112],
 ];
 
 const HEAD: Pt[] = [
@@ -338,7 +338,7 @@ function buildHead(p: Palette, face: string, seed: number): Container {
   const g = new Graphics();
   const o = HEAD_PIVOT;
   // Far ear (behind).
-  g.poly(rel([[-46, -181], [-55, -197], [-50, -182]], o)).fill(p.shade);
+  g.poly(rel([[-46, -181], [-55, -197], [-50, -182]], o).flat()).fill(p.shade);
   smoothClosed(g, rel(HEAD, o)).fill(p.body);
   // Jowl highlight + face plane shading.
   g.ellipse(-34 - o[0], -152 - o[1], 9, 11).fill({ color: p.highlight, alpha: 0.28 });
@@ -366,7 +366,7 @@ function buildHead(p: Palette, face: string, seed: number): Container {
   smoothOpen(g, rel([[-35, -169], [-31, -171], [-27, -169]], o)).stroke({ width: 0.9, color: p.shade, alpha: 0.7 });
   // Near ear, pinned slightly back at speed.
   smoothClosed(g, rel([[-40, -181], [-44, -192], [-52, -199], [-50, -188], [-47, -181]], o)).fill(p.body);
-  g.poly(rel([[-44, -184], [-50, -196], [-47, -184]], o)).fill({ color: p.shade, alpha: 0.7 });
+  g.poly(rel([[-44, -184], [-50, -196], [-47, -184]], o).flat()).fill({ color: p.shade, alpha: 0.7 });
   // Bridle: crown, browband, noseband, cheekpiece, bit.
   const strap = { width: 1.8, color: 0x1b1412 };
   smoothOpen(g, rel([[-43, -182], [-41, -168], [-38, -156]], o)).stroke(strap);
@@ -476,18 +476,18 @@ function buildUpper(spec: LegSpec, p: Palette, marking: LegMarking): Graphics {
   const lp = legPaint(marking, p);
   if (spec.kind === "fore") {
     const shape: Pt[] = [
-      [-16, -18],
-      [13, -18],
-      [14, 4],
-      [11, 22],
-      [6, 44],
+      [-17, -18],
+      [15, -18],
+      [16.5, 4],
+      [13, 22],
+      [7.5, 42],
       [6.5, L - 6],
       [5, L + 3],
       [-5, L + 3],
       [-6, L - 8],
-      [-6, 36],
-      [-9, 14],
-      [-13, 0],
+      [-7, 36],
+      [-11, 14],
+      [-15, 0],
     ];
     smoothClosed(g, shape).fill(p.body);
     smoothClosed(g, [[-13, -10], [-12, 8], [-7, 30], [-6, L - 4], [-2, L - 4], [-3, 30], [-6, 8], [-8, -10]]).fill({ color: p.shade, alpha: 0.6 });
@@ -498,18 +498,18 @@ function buildUpper(spec: LegSpec, p: Palette, marking: LegMarking): Graphics {
   } else {
     // Gaskin with the lower thigh: thick at the top, hock at the bottom back.
     const shape: Pt[] = [
-      [-25, -24],
-      [17, -22],
-      [16, 4],
-      [10, 26],
-      [5, 44],
+      [-27, -24],
+      [19, -22],
+      [18.5, 4],
+      [12, 26],
+      [6, 44],
       [5, L - 4],
       [3, L + 4],
       [-8, L + 3],
       [-10, L - 6],
-      [-10, 40],
-      [-18, 20],
-      [-26, 0],
+      [-11, 40],
+      [-21, 20],
+      [-29, 0],
     ];
     smoothClosed(g, shape).fill(p.body);
     smoothClosed(g, [[-20, -6], [-14, 20], [-9, 40], [-9, L - 4], [-5, L - 4], [-6, 40], [-9, 20], [-13, -6]]).fill({ color: p.shade, alpha: 0.6 });
@@ -772,18 +772,18 @@ class ProceduralHorse implements HorseVisual {
     // Saddle cloth with number, saddle, girth.
     const tack = new Graphics();
     const [cloth, numColor] = SADDLE_CLOTHS[(horse.gate - 1) % SADDLE_CLOTHS.length]!;
-    tack.roundRect(-174 - T0[0], -158 - T0[1], 40, 28, 4).fill(cloth);
-    tack.roundRect(-174 - T0[0], -158 - T0[1], 40, 28, 4).stroke({ width: 1, color: darken(cloth, 0.35), alpha: 0.7 });
-    tack.rect(-174 - T0[0], -158 - T0[1], 40, 4).fill({ color: 0x000000, alpha: 0.15 });
+    tack.roundRect(-168 - T0[0], -158 - T0[1], 31, 21, 3).fill(cloth);
+    tack.roundRect(-168 - T0[0], -158 - T0[1], 31, 21, 3).stroke({ width: 1, color: darken(cloth, 0.35), alpha: 0.7 });
+    tack.rect(-168 - T0[0], -158 - T0[1], 31, 3).fill({ color: 0x000000, alpha: 0.15 });
     tack.rect(-138 - T0[0], -158 - T0[1], 6, 66).fill(0x2a211b);
     smoothClosed(tack, rel([[-170, -158], [-160, -165], [-140, -166], [-130, -160], [-140, -156], [-160, -156]], T0)).fill(0x2b1d14);
     const num = new Text({
       text: String(horse.gate),
-      style: { fontFamily: "Arial, Helvetica, sans-serif", fontWeight: "800", fontSize: 18, fill: numColor },
+      style: { fontFamily: "Arial, Helvetica, sans-serif", fontWeight: "800", fontSize: 13, fill: numColor },
       resolution: 3,
     });
     num.anchor.set(0.5);
-    num.position.set(-158 - T0[0], -143 - T0[1]);
+    num.position.set(-154 - T0[0], -146.5 - T0[1]);
     this.torso.addChild(tailRoot, body, this.neck, tack, num);
 
     this.rider = buildRider(colors.silks, opts.silksTexture);
@@ -856,7 +856,7 @@ class ProceduralHorse implements HorseVisual {
     const r = this.rider;
     const [sx, sy] = tx(SADDLE[0] - T0[0], SADDLE[1] - T0[1]);
     const settle = rise * 0.55;
-    r.root.position.set(sx + 5, sy + 7 + settle - (1 - g) * 12);
+    r.root.position.set(sx + 6, sy + 13 + settle - (1 - g) * 12);
     r.root.rotation = -pitch * 0.55 + (1 - g) * -0.08;
     const pump = pose.drive * Math.sin(tau * (pose.phase - 0.2));
     r.arm.rotation = pump * 0.32 + motion.neck * 0.6;

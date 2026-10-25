@@ -25,10 +25,16 @@ interface P {
 }
 
 export class HoofParticles {
-  readonly view = new Container();
   private pool: P[] = [];
+  /** Emission multiplier (lower on low quality). */
+  density = 1;
 
+  /**
+   * Sprites are added straight into `parent` (the depth-sorted field layer) so
+   * dust sorts between horses.
+   */
   constructor(
+    parent: Container,
     private surface: Surface,
     private dot: Texture,
     private clod: Texture,
@@ -40,7 +46,7 @@ export class HoofParticles {
       const sprite = new Sprite(dot);
       sprite.anchor.set(0.5);
       sprite.visible = false;
-      this.view.addChild(sprite);
+      parent.addChild(sprite);
       this.pool.push({ sprite, alive: false, x: 0, t: 0, h: 0, vx: 0, vh: 0, life: 0, max: 1, size: 0.3, grow: 0, gravity: 0, alpha: 1, spin: 0 });
     }
   }
@@ -53,7 +59,7 @@ export class HoofParticles {
   /** A hoof strike at world x / depth t, horse moving at `speed` m/s. */
   strike(x: number, t: number, speed: number, rand: () => number): void {
     const power = Math.min(1, speed / 15);
-    if (power < 0.25) return;
+    if (power < 0.25 || rand() > this.density) return;
     if (this.surface === "turf") {
       const n = rand() < 0.55 ? 1 : 2;
       for (let i = 0; i < n; i++) {
@@ -126,6 +132,7 @@ export class HoofParticles {
       const k = proj.k(p.t);
       const s = p.sprite;
       s.visible = true;
+      s.zIndex = p.t * 1000 - 0.5;
       s.position.set(proj.x(p.x, p.t), proj.y(p.t) - Math.max(0, p.h) * k);
       const px = p.size * k;
       s.width = px;
@@ -133,6 +140,11 @@ export class HoofParticles {
       s.rotation += p.spin * dt;
       s.alpha = p.alpha * (1 - p.life / p.max);
     }
+  }
+
+  destroy(): void {
+    for (const p of this.pool) p.sprite.destroy();
+    this.pool = [];
   }
 
   clear(): void {
@@ -147,6 +159,10 @@ export class Rain {
   readonly view = new Container();
   private drops: { s: Sprite; x: number; y: number; v: number; len: number }[] = [];
 
+  destroy(): void {
+    this.view.destroy({ children: true });
+  }
+
   constructor(streak: Texture, count: number) {
     for (let i = 0; i < count; i++) {
       const s = new Sprite(streak);
@@ -156,6 +172,10 @@ export class Rain {
       this.view.addChild(s);
       this.drops.push({ s, x: Math.random(), y: Math.random(), v: 0.9 + Math.random() * 0.6, len: 0.04 + Math.random() * 0.05 });
     }
+  }
+
+  setCount(n: number): void {
+    this.drops.forEach((d, i) => (d.s.visible = i < n));
   }
 
   update(dt: number, W: number, H: number, camVel: number): void {

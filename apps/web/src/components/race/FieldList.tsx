@@ -40,7 +40,7 @@ export function FieldList({ card, highlightHorseId }: { card: RaceCard; highligh
                       {e.gate}
                     </span>
                   </td>
-                  <td className="py-2.5 pl-2">
+                  <td className="w-full max-w-0 py-2.5 pl-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <SilksIcon silks={e.horse.appearance.silks} className="h-8 w-8" />
                       <div className="min-w-0">
@@ -57,7 +57,7 @@ export function FieldList({ card, highlightHorseId }: { card: RaceCard; highligh
                   </td>
                   <td className="hidden py-2.5 text-cream-dim sm:table-cell">{STYLE_SHORT[e.tactic]}</td>
                   <td className="hidden py-2.5 tabular text-cream-dim md:table-cell">{formatDistance(e.horse.preferredDistanceM)}</td>
-                  <td className="py-2.5 pr-4 text-right font-mono text-xs tracking-wider text-cream">
+                  <td className="whitespace-nowrap py-2.5 pr-4 pl-2 text-right font-mono text-xs tracking-wider text-cream">
                     {statGrade(e.horse.stats.speed)}·{statGrade(e.horse.stats.stamina)}·{statGrade(e.horse.stats.burst)}
                   </td>
                 </tr>

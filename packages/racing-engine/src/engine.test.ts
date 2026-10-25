@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RaceReplaySchema } from "@thoroughbred/shared";
+import { sha256 } from "@noble/hashes/sha2";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
 import { ENGINE_VERSION, commitSeed, deriveSeed, marginLabel, simulateRace, splitPurse, verifyReplay } from "./index";
 import { checkFrames, makeInput, seedFor, typicalField } from "./test-fixtures";
 
@@ -39,11 +41,19 @@ describe("determinism", () => {
   });
 
   it("golden result (cross-version reproducibility guard)", () => {
+    // If this fails, simulation output changed: bump ENGINE_VERSION (old replays will no longer
+    // verify against the new engine) and update these literals deliberately.
     const r = simulateRace(makeInput(typicalField(8, 1600), { seed: seedFor(2024) }));
     expect(ENGINE_VERSION).toBe("1.0.0");
-    expect(r.result.finishOrder[0]!.horseId).toBe("GOLDEN_WINNER");
-    expect(r.result.winningTimeUs).toBe(-1);
-    expect(r.result.resultHash).toBe("GOLDEN_HASH");
+    expect(r.result.finishOrder[0]!.horseId).toBe("h4");
+    expect(r.result.winningTimeUs).toBe(97_381_783);
+    expect(r.result.finishOrder.map((f) => f.horseId).join(",")).toBe("h4,h8,h6,h3,h5,h7,h2,h1");
+    expect(r.totalTicks).toBe(1992);
+    expect(r.result.resultHash).toBe("7ede1e3883cea4820d3b183c17f9c2bc6a981545db98b3a02653c3d769b98eb8");
+    // Frames + commentary digest: catches any change to the race picture, not just the result.
+    expect(bytesToHex(sha256(utf8ToBytes(JSON.stringify([r.frames, r.events]))))).toBe(
+      "f610f94e0376cd857cf297937605a2812ea94eb75a8e3ce7cbfbf8485818cf2d",
+    );
   });
 });
 
@@ -204,6 +214,8 @@ describe("result helpers", () => {
     expect(splitPurse(999, 6)).toEqual([554, 199, 119, 69, 39, 19]);
     expect(splitPurse(1000, 2).reduce((a, b) => a + b, 0)).toBe(1000);
     expect(splitPurse(0, 4)).toEqual([0, 0, 0, 0]);
+    const big = Number.MAX_SAFE_INTEGER - 1;
+    expect(splitPurse(big, 6).reduce((a, b) => a + b, 0)).toBe(big);
   });
 });
 
@@ -219,5 +231,29 @@ describe("performance", () => {
     }
     times.sort((a, b) => a - b);
     expect(times[2]!).toBeLessThan(60);
+  });
+});
+
+describe("portability", () => {
+  it("engine sources use no wall clock, randomness, float transcendental or host-specific APIs", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const dir = new URL(".", import.meta.url);
+    const forbidden = [
+      /Math\.random/,
+      /Date\.now|new Date/,
+      /performance\.now/,
+      /Math\.(sin|cos|tan|exp|expm1|log|log2|log10|pow|sqrt|cbrt|hypot|atan2?|fround)\b/,
+      /\*\*/,
+      /\bprocess\./,
+      /\brequire\(/,
+      /\b(window|document)\./,
+      /from "node:/,
+    ];
+    const files = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "test-fixtures.ts");
+    expect(files.length).toBeGreaterThan(3);
+    for (const f of files) {
+      const src = readFileSync(new URL(f, dir), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+      for (const re of forbidden) expect(re.test(src), `${f} matches ${re}`).toBe(false);
+    }
   });
 });

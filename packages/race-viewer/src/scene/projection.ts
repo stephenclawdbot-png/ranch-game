@@ -6,7 +6,7 @@
  * [S_FAR, S_NEAR]; screen x and object size use it, so far lanes scroll slower
  * and look smaller, which gives finish lines and stripes a true perspective slant.
  */
-export const S_FAR = 0.8;
+export const S_FAR = 0.82;
 export const S_NEAR = 1.0;
 
 export class Projection {
@@ -72,4 +72,15 @@ export class Projection {
   layerZoom(factor: number): number {
     return 1 + (this.zoom - 1) * Math.min(1, factor);
   }
+}
+
+/** Depth band the racing lanes occupy (inside the rails). */
+export const LANE_T0 = 0.07;
+export const LANE_T1 = 0.93;
+
+/** Depth t (0 = inner rail, 1 = outer rail) of a lateral position in lanes from the rail. */
+export function laneDepth(lane: number, laneCount: number): number {
+  const u = laneCount > 1 ? lane / (laneCount - 1) : 0.5;
+  const c = u < -0.05 ? -0.05 : u > 1.05 ? 1.05 : u;
+  return LANE_T0 + (LANE_T1 - LANE_T0) * c;
 }

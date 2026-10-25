@@ -53,7 +53,7 @@ export function ResultsTable({ replay, card, highlightHorseId }: { replay: RaceR
                       {f.position}
                     </span>
                   </td>
-                  <td className="py-2.5 pl-2">
+                  <td className="w-full max-w-0 py-2.5 pl-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       {e && <SilksIcon silks={e.horse.appearance.silks} className="h-8 w-8" />}
                       <div className="min-w-0">
