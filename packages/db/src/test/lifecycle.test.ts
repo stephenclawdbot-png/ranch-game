@@ -75,8 +75,8 @@ describe("racing", () => {
     };
     const results = await Promise.all([settleRace(h.db, outcome), settleRace(h.db, outcome), settleRace(h.db, outcome)]);
     expect(results.filter((r) => !r.alreadySettled)).toHaveLength(1);
-    expect(await getBalance(h.db, p.accountId)).toBe(900 + 6_000);
-    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 1, wins: 1, earnings: 6_000, rating: 12, lockKind: null });
+    expect(await getBalance(h.db, p.accountId)).toBe(900 + 5_500);
+    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 1, wins: 1, earnings: 5_500, rating: 12, lockKind: null });
     expect((await getHorseRow(h.db, rival)).lockKind).toBeNull();
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);
     expect(await count(h.db, "inbox_items", `account_id = '${p.accountId}' and race_id = '${race.id}'`)).toBe(1);

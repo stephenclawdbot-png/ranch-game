@@ -140,6 +140,8 @@ export function horseSnapshot(h: HorseRow): Record<string, unknown> {
     quirks: h.quirks,
     dynamics: h.dynamics,
     record: { starts: h.starts, wins: h.wins, places: h.places, shows: h.shows, earnings: h.earnings },
+    /** game-core state at entry (JSON): the web app builds the engine snapshot from it at lock. */
+    state: isGenome(h.genome) ? toHorseState(h) : null,
   };
 }
 
@@ -174,6 +176,11 @@ export interface EnterRaceInput {
   horseId: string;
   tactic: string;
   now: Date;
+  /**
+   * Extra entry data stored with the snapshot (e.g. the race plan, the owner's silks and
+   * stable name for the race card). Never overrides snapshot fields.
+   */
+  meta?: Record<string, unknown>;
 }
 
 /**
@@ -221,7 +228,7 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
         horseId: horse.id,
         stableId: stable.id,
         tactic: input.tactic,
-        snapshot: horseSnapshot(horse),
+        snapshot: { ...(input.meta ?? {}), ...horseSnapshot(horse) },
         ratingBefore: horse.rating,
         entryCost: race.entryCost,
         enteredAt: input.now,
@@ -635,7 +642,7 @@ export async function getRaceResult(ex: Executor, raceId: string) {
 /** A stable's active entries (for "your horse runs at 14:03"). */
 export async function listStableEntries(ex: Executor, stableId: string) {
   return ex
-    .select({ entry: raceEntries, race: { id: races.id, name: races.name, postTime: races.postTime, status: races.status } })
+    .select({ entry: raceEntries, race: { id: races.id, name: races.name, kind: races.kind, postTime: races.postTime, status: races.status } })
     .from(raceEntries)
     .innerJoin(races, eq(races.id, raceEntries.raceId))
     .where(and(eq(raceEntries.stableId, stableId), eq(raceEntries.status, "entered"), ne(races.status, "settled"), ne(races.status, "cancelled")))

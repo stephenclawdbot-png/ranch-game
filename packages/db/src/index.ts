@@ -24,3 +24,4 @@ export * from "./services/packs";
 export * from "./services/market";
 export * from "./services/competition";
 export * from "./services/maintenance";
+export * from "./services/player";
