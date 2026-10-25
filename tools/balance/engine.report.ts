@@ -8,7 +8,7 @@ import type { RunningStyle } from "@thoroughbred/shared";
 import { FRAME_STRIDE } from "@thoroughbred/shared";
 import { simulateRace } from "../../packages/racing-engine/src/index";
 import { makeInput, seedFor, typicalField, type EntryOpts } from "../../packages/racing-engine/src/test-fixtures";
-import { median, mean, pct } from "../../apps/web/src/server/balance/sim";
+import { median, mean, pct } from "./legacy/sim";
 import { writeReport, yieldNow } from "./out";
 
 const N = Number(process.env.BAL_N ?? 150);

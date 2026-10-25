@@ -1,231 +1,232 @@
 /**
- * Client-side player identity + progression for the Milestone A demo.
- *
- * MILESTONE C: this whole module becomes the server-side credits ledger
- * (double-entry, idempotent settlement keyed by raceId). Until then the browser
- * keeps the player's profile, credits, per-horse record and race history in
- * localStorage, and races are settled once per raceId when the player views the
- * finished result. Nothing here is trusted by the server.
+ * The signed-in player, as the server knows it (GET /api/me). The browser holds only an
+ * httpOnly session cookie; credits, horses, entries and results all live in Postgres and are
+ * settled on the server. A copy of the last response is cached in localStorage purely so pages
+ * paint instantly; it is never trusted and is replaced by the server's answer on every load.
  */
-import { useSyncExternalStore } from "react";
-import type { HorseRecord, Silks, Surface } from "@thoroughbred/shared";
+import { useEffect, useSyncExternalStore } from "react";
+import type { Silks } from "@thoroughbred/shared";
+import type { ApiError, PlayerView, StableHorse } from "./types";
+import { conditionRating } from "./aptitude";
 
-export const STARTING_CREDITS = 5_000;
-const KEY = "thoroughbred:v1";
-const CHANGE_EVENT = "thoroughbred:state";
+export type PlayerState = PlayerView;
 
-export interface PlayerProfile {
-  playerId: string;
-  stableName: string;
-  silks: Silks;
-  createdAtMs: number;
+const CACHE_KEY = "thoroughbred:cache:v2";
+/** The pre-database demo kept the whole stable here; only its name and silks are imported. */
+const LEGACY_KEY = "thoroughbred:v1";
+
+type Snapshot = PlayerView | null | undefined;
+let current: Snapshot = undefined;
+let loaded = false;
+let inflight: Promise<PlayerView | null> | null = null;
+const listeners = new Set<() => void>();
+
+function emit(): void {
+  for (const l of [...listeners]) l();
 }
 
-export interface RaceHistoryEntry {
-  raceId: string;
-  raceName: string;
-  horseIndex: number;
-  horseName: string;
-  position: number;
-  fieldSize: number;
-  prize: number;
-  postTimeMs: number;
-  distanceM: number;
-  surface: Surface;
-}
-
-export interface Progress {
-  credits: number;
-  /** Keyed by horse index ("0".."5"). */
-  horses: Record<string, HorseRecord>;
-  /** Newest first. */
-  history: RaceHistoryEntry[];
-  /** raceId -> settled-at ms. The idempotency key for settlement. */
-  settled: Record<string, number>;
-  /**
-   * Races this player entered whose result they have not seen yet (raceId -> entry).
-   * Lets Home show "Watch your race" / "Result ready" without spoiling the result.
-   */
-  pending?: Record<string, PendingRace>;
-}
-
-export interface PendingRace {
-  raceId: string;
-  horseIndex: number;
-  horseName: string;
-  tactic: string;
-  postTimeMs: number;
-  enteredAtMs: number;
-}
-
-export interface PlayerState {
-  v: 1;
-  player: PlayerProfile;
-  progress: Progress;
-}
-
-const EMPTY_RECORD: HorseRecord = { starts: 0, wins: 0, places: 0, shows: 0, earnings: 0 };
-
-export function newPlayerId(): string {
-  const bytes = new Uint8Array(10);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => (b % 36).toString(36)).join("") + Date.now().toString(36).slice(-6);
-}
-
-// ---------------------------------------------------------------------------
-// Store (useSyncExternalStore over localStorage)
-// ---------------------------------------------------------------------------
-
-let cacheRaw: string | null | undefined;
-let cacheValue: PlayerState | null = null;
-
-function read(): PlayerState | null {
-  let raw: string | null = null;
+function readCache(): Snapshot {
   try {
-    raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    if (!raw) return undefined;
+    const v = JSON.parse(raw) as PlayerView;
+    return v && typeof v.accountId === "string" && Array.isArray(v.horses) ? v : undefined;
   } catch {
-    raw = null;
+    return undefined;
   }
-  if (raw === cacheRaw) return cacheValue;
-  cacheRaw = raw;
-  try {
-    const parsed = raw ? (JSON.parse(raw) as PlayerState) : null;
-    cacheValue = parsed && parsed.v === 1 && parsed.player?.playerId ? parsed : null;
-  } catch {
-    cacheValue = null;
-  }
-  return cacheValue;
 }
 
-function write(state: PlayerState | null): void {
+function writeCache(v: PlayerView | null): void {
   try {
-    if (state) window.localStorage.setItem(KEY, JSON.stringify(state));
-    else window.localStorage.removeItem(KEY);
+    if (v) window.localStorage.setItem(CACHE_KEY, JSON.stringify(v));
+    else window.localStorage.removeItem(CACHE_KEY);
   } catch {
-    /* storage full or blocked: the demo keeps running without persistence */
+    /* storage blocked: the cache is only a convenience */
   }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+/** Replaces the player state (e.g. from a mutation response that carries `player`). */
+export function setPlayer(v: PlayerView | null): void {
+  current = v;
+  loaded = true;
+  writeCache(v);
+  emit();
+}
+
+/** Fetches the player from the server (deduplicated). */
+export function refreshPlayer(): Promise<PlayerView | null> {
+  inflight ??= fetch("/api/me", { cache: "no-store" })
+    .then(async (r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const { player } = (await r.json()) as { player: PlayerView | null };
+      setPlayer(player);
+      return player;
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
 }
 
 function subscribe(cb: () => void): () => void {
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) cb();
-  };
-  window.addEventListener(CHANGE_EVENT, cb);
-  window.addEventListener("storage", onStorage);
+  listeners.add(cb);
+  if (current === undefined && !loaded) {
+    const cached = readCache();
+    if (cached) {
+      current = cached;
+      queueMicrotask(emit);
+    }
+  }
+  if (!loaded && !inflight) refreshPlayer().catch(() => undefined);
+  const onFocus = () => refreshPlayer().catch(() => undefined);
+  window.addEventListener("focus", onFocus);
   return () => {
-    window.removeEventListener(CHANGE_EVENT, cb);
-    window.removeEventListener("storage", onStorage);
+    listeners.delete(cb);
+    window.removeEventListener("focus", onFocus);
   };
-}
-
-/** undefined while hydrating (unknown), null when no player exists yet. */
-export function usePlayerState(): PlayerState | null | undefined {
-  return useSyncExternalStore<PlayerState | null | undefined>(subscribe, read, () => undefined);
-}
-
-export function getPlayerState(): PlayerState | null {
-  return typeof window === "undefined" ? null : read();
-}
-
-export function createPlayer(profile: Omit<PlayerProfile, "createdAtMs">): PlayerState {
-  const state: PlayerState = {
-    v: 1,
-    player: { ...profile, createdAtMs: Date.now() },
-    progress: { credits: STARTING_CREDITS, horses: {}, history: [], settled: {} },
-  };
-  write(state);
-  return state;
-}
-
-export function updateProfile(patch: Partial<Pick<PlayerProfile, "stableName" | "silks">>): void {
-  const s = read();
-  if (s) write({ ...s, player: { ...s.player, ...patch } });
-}
-
-export function resetPlayer(): void {
-  write(null);
-}
-
-export function horseRecord(state: PlayerState | null | undefined, index: number): HorseRecord {
-  return state?.progress.horses[String(index)] ?? EMPTY_RECORD;
 }
 
 /**
- * Applies a finished race to the local ledger exactly once per raceId.
- * Returns true if this call settled it, false if it was already settled.
+ * undefined while unknown (first load), null when this browser has no stable yet.
+ * `pollMs` refreshes periodically while mounted (e.g. while a race is pending).
  */
-export function settleRace(entry: RaceHistoryEntry): boolean {
-  const s = read();
-  if (!s || s.progress.settled[entry.raceId]) return false;
-  const key = String(entry.horseIndex);
-  const prev = s.progress.horses[key] ?? EMPTY_RECORD;
-  const record: HorseRecord = {
-    starts: prev.starts + 1,
-    wins: prev.wins + (entry.position === 1 ? 1 : 0),
-    places: prev.places + (entry.position === 2 ? 1 : 0),
-    shows: prev.shows + (entry.position === 3 ? 1 : 0),
-    earnings: prev.earnings + entry.prize,
-  };
-  write({
-    ...s,
-    progress: {
-      credits: s.progress.credits + entry.prize,
-      horses: { ...s.progress.horses, [key]: record },
-      history: [entry, ...s.progress.history].slice(0, 100),
-      settled: { ...s.progress.settled, [entry.raceId]: Date.now() },
-      pending: withoutKey(s.progress.pending, entry.raceId),
-    },
-  });
-  return true;
+export function usePlayerState(opts: { pollMs?: number } = {}): PlayerState | null | undefined {
+  const state = useSyncExternalStore<Snapshot>(subscribe, () => current, () => undefined);
+  const { pollMs } = opts;
+  useEffect(() => {
+    if (!pollMs) return;
+    const t = setInterval(() => refreshPlayer().catch(() => undefined), pollMs);
+    return () => clearInterval(t);
+  }, [pollMs]);
+  return state;
 }
 
-function withoutKey<T>(rec: Record<string, T> | undefined, key: string): Record<string, T> {
-  const out = { ...(rec ?? {}) };
-  delete out[key];
-  return out;
+export function getPlayerState(): PlayerState | null | undefined {
+  return current;
 }
 
-/** Remembers a race the player just entered (no result yet). Keeps the newest few. */
-export function addPendingRace(entry: PendingRace): void {
-  const s = read();
-  if (!s) return;
-  const all = Object.values({ ...(s.progress.pending ?? {}), [entry.raceId]: entry })
-    .sort((a, b) => b.enteredAtMs - a.enteredAtMs)
-    .slice(0, 5);
-  write({ ...s, progress: { ...s.progress, pending: Object.fromEntries(all.map((p) => [p.raceId, p])) } });
+// ---------------------------------------------------------------------------
+// API calls
+// ---------------------------------------------------------------------------
+
+export class ApiFailure extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "ApiFailure";
+  }
 }
 
-/** Forgets a pending race (e.g. the player opened it and saw the result). */
-export function clearPendingRace(raceId: string): void {
-  const s = read();
-  if (!s?.progress.pending?.[raceId]) return;
-  write({ ...s, progress: { ...s.progress, pending: withoutKey(s.progress.pending, raceId) } });
+/** POST/PATCH/DELETE JSON; throws ApiFailure with the server's friendly message. Applies `player` from the response. */
+export async function api<T>(url: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: init.method ?? "POST",
+      headers: init.body !== undefined ? { "content-type": "application/json" } : undefined,
+      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiFailure(0, "network", "Couldn't reach the track. Check your connection and try again.");
+  }
+  const data = (await res.json().catch(() => ({}))) as Partial<ApiError> & { player?: PlayerView | null };
+  if (!res.ok) throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? `Something went wrong (HTTP ${res.status}).`, data.details);
+  if (data.player !== undefined) setPlayer(data.player);
+  return data as T;
 }
 
-/** Unseen races, newest first. A race already settled is never pending. */
-export function pendingRaces(state: PlayerState | null | undefined): PendingRace[] {
-  if (!state) return [];
-  return Object.values(state.progress.pending ?? {})
-    .filter((p) => !state.progress.settled[p.raceId])
-    .sort((a, b) => b.postTimeMs - a.postTimeMs);
+function deviceTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
 }
+
+/** Founds the stable: account + starter horses + credits + today's entries, on the server. */
+export async function createStable(input: { stableName: string; silks: Silks }): Promise<PlayerView> {
+  const out = await api<{ player: PlayerView }>("/api/account", { body: { ...input, timezone: deviceTimezone() } });
+  clearLegacyProfile();
+  return out.player;
+}
+
+export async function updateProfile(patch: { stableName?: string; silks?: Silks }): Promise<void> {
+  await api("/api/account", { method: "PATCH", body: patch });
+}
+
+/** Forgets this browser's stable (clears the session cookie and the cache). */
+export async function signOut(): Promise<void> {
+  await api("/api/account/session", { method: "DELETE" });
+  setPlayer(null);
+}
+
+// ---------------------------------------------------------------------------
+// One-time import from the localStorage demo
+// ---------------------------------------------------------------------------
+
+export interface LegacyProfile {
+  stableName: string;
+  silks: Silks;
+}
+
+/** The stable name and silks of a demo stable kept in this browser, if any. */
+export function legacyProfile(): LegacyProfile | null {
+  try {
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    if (!raw) return null;
+    const p = (JSON.parse(raw) as { player?: { stableName?: unknown; silks?: Silks } }).player;
+    if (!p || typeof p.stableName !== "string" || !p.silks || typeof p.silks.primary !== "string") return null;
+    return { stableName: p.stableName, silks: p.silks };
+  } catch {
+    return null;
+  }
+}
+
+export function clearLegacyProfile(): void {
+  try {
+    window.localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Derived helpers
+// ---------------------------------------------------------------------------
 
 export function totals(state: PlayerState | null | undefined): { starts: number; wins: number; earnings: number } {
-  const recs = Object.values(state?.progress.horses ?? {});
+  const hs = state?.horses ?? [];
   return {
-    starts: recs.reduce((a, r) => a + r.starts, 0),
-    wins: recs.reduce((a, r) => a + r.wins, 0),
-    earnings: recs.reduce((a, r) => a + r.earnings, 0),
+    starts: hs.reduce((a, h) => a + h.horse.record.starts, 0),
+    wins: hs.reduce((a, h) => a + h.horse.record.wins, 0),
+    earnings: hs.reduce((a, h) => a + h.horse.record.earnings, 0),
   };
 }
 
-/** Horse indexes raced (or entered) within `windowMs`: Quick Pick rotates away from them. */
-export function recentlyRun(state: PlayerState | null | undefined, nowMs: number, windowMs = 3_600_000): number[] {
-  if (!state) return [];
-  const since = nowMs - windowMs;
-  const out = new Set<number>();
-  for (const h of state.progress.history) if (h.postTimeMs >= since) out.add(h.horseIndex);
-  for (const p of Object.values(state.progress.pending ?? {})) if (p.postTimeMs >= since) out.add(p.horseIndex);
-  return [...out].sort((a, b) => a - b);
+/** Horses that can race right now, best Quick Pick candidates first (fresh, not raced today). */
+export function readyHorses(state: PlayerState | null | undefined) {
+  return (state?.horses ?? []).filter((h) => h.block === null);
+}
+
+/**
+ * The horse Quick Pick (Story) will choose: the strongest at its own best conditions, rotating
+ * away from horses that already ran today and resting tired ones. Mirrors the server's pick.
+ */
+export function recommendHorse(state: PlayerState | null | undefined): StableHorse | null {
+  let best: StableHorse | null = null;
+  let bestScore = -Infinity;
+  for (const h of readyHorses(state)) {
+    const x = h.horse;
+    const score = conditionRating(x, x.style, { distanceM: x.preferredDistanceM, surface: x.preferredSurface, going: "good" }) - h.ranToday * 40 - (h.condition === "tired" ? 60 : 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = h;
+    }
+  }
+  return best;
 }

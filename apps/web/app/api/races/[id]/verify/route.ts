@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { raceRepository } from "@/server/repository";
-import { errorJson, handleRaceError, json } from "@/server/http";
+import { db } from "@/server/db";
+import { verifyRace } from "@/server/game";
+import { errorJson, handleError, json } from "@/server/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ const Hex64 = z.string().regex(/^[0-9a-f]{64}$/);
 const QuerySchema = z.object({ commitment: Hex64.optional(), resultHash: Hex64.optional() });
 
 /**
- * Re-simulates the race server-side from the revealed seed.
+ * Re-simulates the race server-side from the locked field and the revealed seed.
  * Optional ?commitment=&resultHash= let the client check the values it saw earlier.
  */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -21,9 +22,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   });
   if (!q.success) return errorJson(400, "bad_query");
   try {
-    const result = await raceRepository().verifyRace(decodeURIComponent(id), Date.now(), q.data);
-    return json(result);
+    return json(await verifyRace(await db(), decodeURIComponent(id), new Date(), q.data));
   } catch (err) {
-    return handleRaceError(err);
+    return handleError(err);
   }
 }

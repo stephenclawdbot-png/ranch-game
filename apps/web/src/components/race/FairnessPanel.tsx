@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
-import type { RaceCard } from "@/server/races";
+import type { RaceCard } from "@/lib/types";
 import { shortHash } from "@/lib/format";
 import { PixelIcon } from "../icons";
 

@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { QUICK_POST_DELAY_MS } from "./races";
 import { STARTER_STAT_CAP, starterHorses } from "./demoData";
-import { TACTICS, feel, groupBy, mean, runQuick, simNonce, simPlayerId, type QuickSample } from "./balance/sim";
+import { TACTICS, feel, groupBy, mean, runQuick, simNonce, simPlayerId, type QuickSample } from "./sim";
 
 const PLAYERS = 10;
 const NATURAL_RACES = 12; // per horse

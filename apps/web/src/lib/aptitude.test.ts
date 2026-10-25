@@ -1,21 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { RIVAL_POOL, starterHorses } from "@/server/demoData";
-import { raceRating } from "@/server/races";
+import * as gc from "@thoroughbred/game-core";
+import type { Horse } from "@thoroughbred/shared";
 import { aptitudes, conditionRating, fitCheck, horseSummary, recommendIndex } from "./aptitude";
 
+const SILKS = { pattern: "hoops", primary: "#112233", secondary: "#445566", cap: "#778899" } as const;
+/** A starter stable as the database creates it (game-core createStarterStable -> shared Horse). */
+function starters(seed: string): Horse[] {
+  return gc.createStarterStable({ ownerId: "p", seed, nowMs: 0, season: 1 }).map((s) => gc.toSharedHorse(s, 0, SILKS));
+}
+
 describe("aptitude", () => {
-  it("conditionRating mirrors the server's raceRating exactly", () => {
-    const horses = [...RIVAL_POOL, ...starterHorses("abc123def456ghij")];
-    for (const h of horses)
-      for (const tactic of ["front", "stalker", "closer"] as const)
-        for (const distanceM of [1000, 1600, 2400])
-          for (const surface of ["turf", "dirt", "synthetic"] as const)
-            for (const going of ["firm", "soft", "heavy"] as const)
-              expect(conditionRating(h, tactic, { distanceM, surface, going })).toBe(raceRating(h, tactic, { distanceM, surface, going }));
+  it("rates a horse best in its own conditions on its natural style", () => {
+    for (const h of [...starters("apt-a"), ...starters("apt-b")]) {
+      const ideal = conditionRating(h, h.style, { distanceM: h.preferredDistanceM, surface: h.preferredSurface, going: "good" });
+      for (const t of ["front", "stalker", "closer"] as const) if (t !== h.style) expect(conditionRating(h, t, { distanceM: h.preferredDistanceM, surface: h.preferredSurface, going: "good" })).toBeLessThan(ideal);
+      expect(conditionRating(h, h.style, { distanceM: h.preferredDistanceM, surface: h.preferredSurface, going: "heavy" })).toBeLessThanOrEqual(ideal);
+    }
   });
 
   it("grades the horse's own conditions as its best", () => {
-    for (const h of starterHorses("abc123def456ghij")) {
+    for (const h of starters("apt-c")) {
       const a = aptitudes(h);
       expect(a.surface.find((c) => c.key === h.preferredSurface)?.best).toBe(true);
       expect(a.style.find((c) => c.key === h.style)?.grade).toBe("A");
@@ -28,7 +32,7 @@ describe("aptitude", () => {
   });
 
   it("recommends a horse deterministically", () => {
-    const hs = starterHorses("abc123def456ghij");
+    const hs = starters("apt-d");
     const i = recommendIndex(hs);
     expect(i).toBeGreaterThanOrEqual(0);
     expect(recommendIndex(hs)).toBe(i);

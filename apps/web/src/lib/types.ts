@@ -179,6 +179,8 @@ export interface HorseDetailView {
 export interface MyRaceResult {
   raceId: string;
   settled: boolean;
+  /** True the first time the owner sees this result (its inbox item was unread): stage the reveal. */
+  firstView: boolean;
   runners: { horseId: string; horseName: string; position: number; prize: number; storyReward: number; firstWin: boolean; ratingBefore: number; ratingAfter: number | null }[];
 }
 

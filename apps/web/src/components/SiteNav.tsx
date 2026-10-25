@@ -33,19 +33,29 @@ export function SiteNav() {
       )
     ) : (
       <div className="flex items-center gap-1">
+        <span
+          className="flex items-center gap-1 px-1 sm:gap-1.5 sm:px-2"
+          title={`Stable entries for Live races: ${state.entries.balance} left (bank holds up to ${state.entries.cap}; +${state.entries.allowance} at local midnight)`}
+        >
+          <PixelIcon name="flag" size={16} />
+          <span className="num text-base text-cream" data-testid="entries" aria-label={`${state.entries.balance} of ${state.entries.cap} stable entries left`}>
+            {state.entries.balance}
+            <span className="text-cream-dim">/{state.entries.cap}</span>
+          </span>
+        </span>
         <span className="flex items-center gap-1.5 px-2" title="Stable credits">
           <PixelIcon name="coin" size={16} />
-          <span className="num text-base text-cream" data-testid="credits" aria-label={`${formatCredits(state.progress.credits)} credits`}>
-            {formatCredits(state.progress.credits)}
+          <span className="num text-base text-cream" data-testid="credits" aria-label={`${formatCredits(state.credits)} credits`}>
+            {formatCredits(state.credits)}
           </span>
         </span>
         <Link
           href="/me"
           className={`flex h-11 w-11 items-center justify-center ${pathname.startsWith("/me") ? "bg-surface-2" : "hover:bg-surface-2"}`}
-          aria-label={`${state.player.stableName}: profile and settings`}
+          aria-label={`${state.stableName}: profile and settings`}
           aria-current={pathname.startsWith("/me") ? "page" : undefined}
         >
-          <SilksIcon silks={state.player.silks} className="h-8 w-8" />
+          <SilksIcon silks={state.silks} className="h-8 w-8" />
         </Link>
       </div>
     );

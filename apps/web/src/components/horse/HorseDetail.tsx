@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
-import type { HorseView } from "@/server/repository";
+import type { HorseDetailView } from "@/lib/types";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
 import { COAT_LABEL, GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
-import { horseRecord, usePlayerState } from "@/lib/player";
+import { riskText } from "../entry/EntryForm";
 import { HorsePortrait } from "../HorsePortrait";
 import { SilksIcon } from "../Silks";
 import { Stall } from "../Stall";
@@ -52,16 +52,15 @@ function AptRow<K extends string>({ label, cells, name }: { label: string; cells
   );
 }
 
-export function HorseDetail({ view }: { view: HorseView }) {
-  const state = usePlayerState();
+export function HorseDetail({ view }: { view: HorseDetailView }) {
   const entry = useEntry();
   const [numbers, setNumbers] = useState(false);
-  const isMine = view.kind === "player" && state?.player.playerId === view.horse.ownerId;
-  const index = isMine ? Number(view.horse.id.split("-").pop()) : -1;
-  const horse = isMine && state ? { ...view.horse, appearance: { ...view.horse.appearance, silks: state.player.silks } } : view.horse;
-  const record: HorseRecord = isMine ? horseRecord(state, index) : horse.record;
-  const stableName = isMine ? state!.player.stableName : (view.stableName ?? "Private owner");
-  const history = isMine ? (state?.progress.history ?? []).filter((h) => h.horseIndex === index) : [];
+  const isMine = view.mine;
+  const horse = view.horse;
+  const record: HorseRecord = horse.record;
+  const stableName = view.stableName;
+  const history = view.runs;
+  const st = view.status;
   const apt = aptitudes(horse);
   const tripName = (id: string) => TRIP_BANDS.find((b) => b.id === id)!.label;
 
@@ -106,13 +105,32 @@ export function HorseDetail({ view }: { view: HorseView }) {
           </ul>
           <p className="max-w-prose text-lg">{horseSummary(horse)}</p>
           <p className="t-meta">{recordText(record)}</p>
+          {st && (
+            <ul className="flex flex-wrap gap-1.5 text-sm" aria-label="Condition" data-testid="horse-status">
+              <li className="chip text-cream">
+                Career {st.starts}/{st.maxStarts} starts
+              </li>
+              <li className="chip text-cream">OR {st.rating}</li>
+              <li className={`chip ${st.condition === "tired" ? "text-negative" : "text-cream"}`}>
+                {st.condition === "tired" ? "Tired" : st.condition === "fresh" ? "Fresh" : "Ready"} · freshness {Math.round(st.freshness / 10)}%
+              </li>
+              {st.injury && (
+                <li className="chip text-negative">
+                  Injured ({st.injury.severity.replace("_", " ")}){st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                </li>
+              )}
+              <li className={`chip ${st.risk.label === "low" ? "text-cream" : "text-negative"}`} title={st.risk.factors.join(" · ")}>
+                Injury risk {riskText(st.risk)}
+              </li>
+            </ul>
+          )}
           {isMine ? (
             <ActionBar className="md:mt-2">
-              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(index)} data-testid="enter-a-race">
-                <PixelIcon name="flag" size={32} className="-my-2" /> Race {horse.name}
+              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} disabled={!!st?.block} data-testid="enter-a-race">
+                <PixelIcon name="flag" size={32} className="-my-2" /> {st?.block ? st.block : `Race ${horse.name}`}
               </button>
             </ActionBar>
-          ) : view.kind === "rival" ? (
+          ) : view.kind === "house" ? (
             <p className="text-sm text-cream-dim">A club horse. You&rsquo;ll meet it on the card.</p>
           ) : null}
         </div>
@@ -150,7 +168,7 @@ export function HorseDetail({ view }: { view: HorseView }) {
         </section>
       </div>
 
-      {isMine && (
+      {(isMine || history.length > 0) && (
         <section aria-labelledby="history-h">
           <h2 id="history-h" className="t-display-m mb-2">
             Form
@@ -168,7 +186,7 @@ export function HorseDetail({ view }: { view: HorseView }) {
                     <div className="min-w-0 flex-1">
                       <p className="font-extrabold group-hover:underline">{h.raceName}</p>
                       <p className="t-meta">
-                        {formatDistance(h.distanceM)} · {SURFACE_LABEL[h.surface]} · {h.fieldSize} ran ·{" "}
+                        {h.kind === "live" ? "Live" : "Story"} · {formatDistance(h.distanceM)} · {SURFACE_LABEL[h.surface]} · {h.fieldSize} ran ·{" "}
                         {new Date(h.postTimeMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       </p>
                     </div>

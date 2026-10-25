@@ -20,9 +20,7 @@ export function JoinNudge({ compact = false }: { compact?: boolean }) {
       <Crest className={compact ? "h-12 w-14" : "h-16 w-[4.75rem]"} />
       <div>
         <h2 className="t-display-m">No stable yet</h2>
-        <p className="mx-auto mt-1 max-w-md text-cream-dim">
-          Found a stable to get six horses. It takes one tap, and your first race is a minute away.
-        </p>
+        <p className="mx-auto mt-1 max-w-md text-cream-dim">Found a stable to get your first horses. It takes one tap, and your first race is a minute away.</p>
       </div>
       {compact ? (
         <Link href="/play" className="btn btn-brass btn-lg">

@@ -11,16 +11,17 @@ import {
   liveEdgeFrame,
   sliceBroadcast,
 } from "./live";
-import { TooEarlyError, computeReplay, createQuickRace, currentSlot, getRace, getReplay, listScheduled, slotPostTime, verifyRace } from "./races";
-import { DemoRepository } from "./repository";
-import { handleRaceError } from "./http";
+import { TooEarlyError } from "./errors";
+import { handleError } from "./http";
+import { fixtureReplay } from "./testing";
 
-const PLAYER = "abc123def456ghij";
 const NOW = Date.UTC(2026, 9, 25, 15, 0, 0);
 
+/** A fixture race whose post time is 10 s after NOW (the old quick-race timing). */
 function quick(nonce: string) {
-  const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 2, tactic: "closer" }, NOW, nonce);
-  const replay = computeReplay(raceId);
+  const postTimeMs = NOW + 10_000;
+  const replay = fixtureReplay(nonce, postTimeMs);
+  const raceId = replay.race.id;
   const frameMs = (replay.sampleEvery * 1000) / replay.tickHz;
   const revealStart = broadcastStartMs(postTimeMs) - LIVE_LOOKAHEAD_MS;
   return { raceId, postTimeMs, replay, frameMs, revealStart, last: replay.frames.length - 1, endsAt: broadcastEndsAtMs(replay) };
@@ -157,69 +158,16 @@ describe("sliceBroadcast", () => {
   });
 });
 
-describe("full replay, card, list and verify respect the broadcast clock", () => {
-  it("getReplay/verify: 425 before the off and while live, served once the finish is broadcast", () => {
-    const r = quick("gate000001");
-    expect(() => getReplay(r.raceId, r.postTimeMs - 1)).toThrow(TooEarlyError);
-    const mid = r.postTimeMs + 5000;
-    let err: unknown;
-    try {
-      getReplay(r.raceId, mid);
-    } catch (e) {
-      err = e;
-    }
-    expect(err).toBeInstanceOf(TooEarlyError);
-    expect((err as TooEarlyError).phase).toBe("live");
-    expect(() => getReplay(r.raceId, r.endsAt - 1)).toThrow(TooEarlyError);
-    expect(() => verifyRace(r.raceId, r.endsAt - 1)).toThrow(TooEarlyError);
-    expect(getReplay(r.raceId, r.endsAt).result.resultHash).toBe(r.replay.result.resultHash);
-    expect(verifyRace(r.raceId, r.endsAt).resultHashOk).toBe(true);
-  });
-
+describe("errors", () => {
   it("the 425 while live carries no end time", async () => {
-    const res = handleRaceError(new TooEarlyError(123, "live")) as NextResponse;
+    const res = handleError(new TooEarlyError(123, "live")) as NextResponse;
     expect(res.status).toBe(425);
     const body = await res.json();
-    expect(body).toEqual({ error: "race_live", postTimeMs: 123 });
+    expect(body.error).toBe("race_live");
+    expect(body.postTimeMs).toBe(123);
+    expect(Object.keys(body).sort()).toEqual(["error", "message", "postTimeMs"]);
     expect(res.headers.get("Retry-After")).toBe("5");
   });
-
-  it("race card status follows the broadcast and never carries outcome fields", () => {
-    const r = quick("card000001");
-    expect(getRace(r.raceId, r.postTimeMs - 1).status).toBe("upcoming");
-    const live = getRace(r.raceId, r.postTimeMs + 5000);
-    expect(live.status).toBe("live");
-    expect(getRace(r.raceId, r.endsAt - 1).status).toBe("live");
-    expect(getRace(r.raceId, r.endsAt).status).toBe("finished");
-    const json = JSON.stringify(live);
-    expect(json).not.toContain(r.replay.seed);
-    for (const key of ["result", "endsAtMs", "winner", "totalTicks", "finishTimeUs"]) expect(json).not.toContain(`"${key}"`);
-  });
-
-  it("race lists: live races have no winner and no end time; finished ones do", () => {
-    const k = currentSlot(NOW);
-    // Find a moment where slot k is live.
-    const replay = computeReplay(`s-${k}`);
-    const midLive = slotPostTime(k) + 10_000;
-    expect(isBroadcastOver(replay, midLive)).toBe(false);
-    const { recent } = listScheduled(midLive);
-    const live = recent.find((x) => x.id === `s-${k}`)!;
-    expect(live.phase).toBe("live");
-    expect(live.winner).toBeUndefined();
-    expect(live.endsAtMs).toBeUndefined();
-    expect(JSON.stringify(live)).not.toMatch(/winner|endsAtMs|timeUs/);
-
-    const done = listScheduled(broadcastEndsAtMs(replay)).recent.find((x) => x.id === `s-${k}`)!;
-    expect(done.phase).toBe("finished");
-    expect(done.winner?.horseId).toBe(replay.result.finishOrder[0]!.horseId);
-  });
-
-  it("repository serves live chunks and 404s unknown races", async () => {
-    const repo = new DemoRepository();
-    const r = quick("repo000001");
-    const chunk = await repo.getLiveChunk(r.raceId, 0, r.postTimeMs + 4000);
-    assertNoLeak(chunk, r);
-    expect(chunk.frames.length).toBeGreaterThan(0);
-    await expect(repo.getLiveChunk("s-abc", 0, NOW)).rejects.toThrow();
-  });
 });
+
+// The database-backed card, list, replay and verify paths keep the same guarantees; see game.test.ts.

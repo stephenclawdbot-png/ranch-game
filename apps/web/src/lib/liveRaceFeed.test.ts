@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { broadcastEndsAtMs, broadcastStartMs, sliceBroadcast } from "@/server/live";
-import { computeReplay, createQuickRace } from "@/server/races";
+import { fixtureReplay } from "@/server/testing";
 import { openLiveRaceFeed } from "./liveRaceFeed";
 
-const PLAYER = "abc123def456ghij";
 const T0 = Date.UTC(2026, 9, 25, 15, 0, 0);
 /** The server's clock runs 5 s ahead of this "browser". */
 const SKEW = 5000;
 
 function setup(opts: { maxFrames?: number; hidden?: boolean; latencyMs?: number } = {}) {
-  const { raceId, postTimeMs } = createQuickRace({ playerId: PLAYER, horseIndex: 0, tactic: "front" }, T0, `feed${Math.random().toString(36).slice(2, 8)}`);
-  const replay = computeReplay(raceId);
+  const postTimeMs = T0 + 10_000;
+  const replay = fixtureReplay(`feed${Math.random().toString(36).slice(2, 8)}`, postTimeMs);
+  const raceId = replay.race.id;
   const requests: string[] = [];
   const requestTimes: number[] = [];
   let hidden = opts.hidden ?? false;

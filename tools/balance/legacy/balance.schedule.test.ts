@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { RaceClass } from "@thoroughbred/shared";
 import { HOUSE_STABLES, RIVAL_POOL, starterHorses } from "./demoData";
 import { getRaceInput, raceRating } from "./races";
-import { feel, groupBy, mean, runScheduled, simPlayerId, type RaceStats } from "./balance/sim";
+import { feel, groupBy, mean, runScheduled, simPlayerId, type RaceStats } from "./sim";
 
 const SLOTS = 480; // one day of the 3-minute schedule
 const CLASSES: RaceClass[] = ["maiden", "novice", "handicap", "listed", "graded"];

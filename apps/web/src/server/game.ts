@@ -881,8 +881,8 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
       ratingAfter: e.ratingAfter,
     });
   }
-  await markInboxRead(db, { accountId: session.accountId, raceId, now });
-  return { raceId, settled: fresh.status === "settled", runners };
+  const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;
+  return { raceId, settled: fresh.status === "settled", firstView, runners };
 }
 
 export async function horseDetail(db: Db, horseId: string, session: Session | null, now: Date): Promise<HorseDetailView | null> {

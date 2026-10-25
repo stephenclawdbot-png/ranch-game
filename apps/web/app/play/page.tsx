@@ -6,21 +6,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { Stall } from "@/components/Stall";
-import { enterQuickRace } from "@/components/entry/EntryForm";
+import { enterStoryRace } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
-import { horseSummary, pronoun, recommendIndex } from "@/lib/aptitude";
+import { horseSummary, pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
-import { STARTING_CREDITS, createPlayer, newPlayerId, usePlayerState } from "@/lib/player";
+import { ErrorNote } from "@/components/ui/ErrorNote";
+import { createStable, legacyProfile, recommendHorse, usePlayerState } from "@/lib/player";
 import { randomSilks } from "@/lib/silks";
-import { usePlayerHorses } from "@/lib/useStable";
 
 /**
  * Onboarding in one tap: the name and silks are pre-rolled (dice to reroll, colours optional),
- * then six horses arrive with the best one flagged "Ready to race" and a single "Race now".
+ * then the starter horses arrive with the best one flagged "Ready to race" and a single "Race now".
  */
 export default function PlayPage() {
   const router = useRouter();
@@ -28,6 +28,9 @@ export default function PlayPage() {
   const [name, setName] = useState("");
   const [silks, setSilks] = useState<SilksT | null>(null);
   const [stage, setStage] = useState<"form" | "welcome">("form");
+  const [imported, setImported] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const decided = useRef(false);
 
   useEffect(() => {
@@ -36,20 +39,31 @@ export default function PlayPage() {
     // An existing stable edits its colours under Profile; this page is for founding one.
     if (state) router.replace("/me");
     else {
-      setName(suggestName());
-      setSilks(randomSilks());
+      // One-time import: a stable from the old in-browser demo keeps its name and colours.
+      const legacy = legacyProfile();
+      setImported(!!legacy && NAME_RE.test(legacy.stableName.trim()));
+      setName(legacy && NAME_RE.test(legacy.stableName.trim()) ? legacy.stableName.trim() : suggestName());
+      setSilks(legacy?.silks ?? randomSilks());
     }
   }, [state, router]);
 
   if (stage === "welcome" && state) return <Welcome />;
-  if (state !== null || !silks) return <div className="min-h-[60vh]" aria-busy />;
+  if ((state !== null && stage === "form" && !busy) || !silks) return <div className="min-h-[60vh]" aria-busy />;
 
   const valid = NAME_RE.test(name.trim());
-  function register() {
-    if (!valid || !silks) return;
-    createPlayer({ playerId: newPlayerId(), stableName: name.trim(), silks });
-    setStage("welcome");
-    window.scrollTo({ top: 0 });
+  async function register() {
+    if (!valid || !silks || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await createStable({ stableName: name.trim(), silks });
+      setStage("welcome");
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -63,7 +77,11 @@ export default function PlayPage() {
       <div className="grid content-start gap-5">
         <header>
           <h1 className="t-display-xl">Found your stable</h1>
-          <p className="mt-1 text-lg text-cream-dim">We&rsquo;ve picked a name and colours. Keep them or roll again, then meet your six horses.</p>
+          <p className="mt-1 text-lg text-cream-dim">
+            {imported
+              ? "We found your stable from the demo on this browser: its name and colours come with you. Your horses and credits start fresh on the Club's servers."
+              : "We’ve picked a name and colours. Keep them or roll again, then meet your horses."}
+          </p>
         </header>
         <div className="md:hidden">
           <SilksStand silks={silks} name={name} />
@@ -86,11 +104,12 @@ export default function PlayPage() {
           </div>
         </details>
         <ActionBar>
-          <button type="submit" className="btn btn-brass btn-lg" disabled={!valid}>
-            <PixelIcon name="horseshoe" size={32} className="-my-2" /> Register &amp; get my horses
+          <button type="submit" className="btn btn-brass btn-lg" disabled={!valid || busy}>
+            <PixelIcon name="horseshoe" size={32} className="-my-2" /> {busy ? "Registering…" : "Register & get my horses"}
           </button>
         </ActionBar>
-        <p className="text-sm text-sage">Free. No email, no wallet. Your stable is kept in this browser.</p>
+        {error !== null && <ErrorNote error={error} />}
+        <p className="text-sm text-sage">Free. No email, no wallet. Your stable is linked to this browser.</p>
       </div>
       <aside className="hidden md:block" aria-label="Preview">
         <div className="sticky top-24">
@@ -105,83 +124,78 @@ export default function PlayPage() {
 function Welcome() {
   const state = usePlayerState();
   const entry = useEntry();
-  const { horses } = usePlayerHorses(state?.player.playerId, state?.player.silks);
-  const rec = useMemo(() => (horses ? recommendIndex(horses) : 0), [horses]);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const star = useMemo(() => recommendHorse(state), [state]);
   if (!state) return null;
-  const star = horses?.[rec];
+  const horses = state.horses;
+  const h = star?.horse;
 
   // First race in one tap: the natural plan is preselected (explained below); "Change the plan" opens the sheet.
   async function raceNow() {
-    if (!state || !star) return;
+    if (!star) return;
     setBusy(true);
     setError(null);
     try {
-      router.push(`/race/${await enterQuickRace(state, star, rec, star.style)}`);
+      const { raceId } = await enterStoryRace(star.id, { tactic: star.horse.style, intensity: "normal" });
+      router.push(`/race/${raceId}`);
     } catch (e) {
-      setError(`Couldn't enter the race (${(e as Error).message}). Please try again.`);
+      setError(e);
       setBusy(false);
     }
   }
 
+  const ordered = star ? [star, ...horses.filter((x) => x.id !== star.id)] : horses;
   return (
     <div className="mx-auto grid max-w-4xl gap-5">
       <header>
-        <p className="eyebrow">Registered with the club · {formatCredits(STARTING_CREDITS)} credits in the account</p>
-        <h1 className="t-display-xl">{state.player.stableName}</h1>
+        <p className="eyebrow">Registered with the club · {formatCredits(state.credits)} credits · {state.entries.balance} Live entries today</p>
+        <h1 className="t-display-xl">{state.stableName}</h1>
         <p className="mt-1 text-lg text-cream-dim">
-          Six horses have arrived.{" "}
-          {star && (
+          {horses.length} horses have arrived.{" "}
+          {h && (
             <>
-              <strong className="text-cream">{star.name}</strong> is fit and ready to race. {horseSummary(star)}
+              <strong className="text-cream">{h.name}</strong> is fit and ready to race. {horseSummary(h)}
             </>
           )}
         </p>
       </header>
 
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3" aria-label="Your starter horses">
-        {(horses
-          ? [rec, ...horses.map((_, i) => i).filter((i) => i !== rec)].map((i) => ({ h: horses[i]!, i }))
-          : Array.from({ length: 6 }, (_, i) => ({ h: null, i }))
-        ).map(({ h, i }, order) => {
-          const isStar = h !== null && i === rec;
+        {ordered.map((s, order) => {
+          const isStar = s.id === star?.id;
           return (
             <li
-              key={h?.id ?? i}
+              key={s.id}
               className={`${isStar ? "surface is-selected" : "surface"} overflow-hidden !p-0`}
-              style={h ? { animation: `stall-open 360ms steps(6) ${order * 140}ms both` } : undefined}
+              style={{ animation: `stall-open 360ms steps(6) ${order * 140}ms both` }}
             >
-              {h ? (
-                <Link href={`/horse/${h.id}`} className="block">
-                  <Stall className="flex h-[7.5rem] items-end justify-center">
-                    <HorsePortrait appearance={h.appearance} scale={1} className="relative" />
-                    {isStar && <span className="chip chip-brass absolute left-1 top-1 text-xs">Ready to race</span>}
-                  </Stall>
-                  <div className="p-2">
-                    <p className="font-extrabold leading-tight">{h.name}</p>
-                    <p className="text-sm text-cream-dim">
-                      {STYLE_LABEL[h.style]} · {formatDistance(h.preferredDistanceM)} · {SURFACE_LABEL[h.preferredSurface]}
-                    </p>
-                  </div>
-                </Link>
-              ) : (
-                <div className="h-[11rem] bg-surface-2 opacity-60" />
-              )}
+              <Link href={`/horse/${s.id}`} className="block">
+                <Stall className="flex h-[7.5rem] items-end justify-center">
+                  <HorsePortrait appearance={s.horse.appearance} scale={1} className="relative" />
+                  {isStar && <span className="chip chip-brass absolute left-1 top-1 text-xs">Ready to race</span>}
+                </Stall>
+                <div className="p-2">
+                  <p className="font-extrabold leading-tight">{s.horse.name}</p>
+                  <p className="text-sm text-cream-dim">
+                    {STYLE_LABEL[s.horse.style]} · {formatDistance(s.horse.preferredDistanceM)} · {SURFACE_LABEL[s.horse.preferredSurface]}
+                  </p>
+                </div>
+              </Link>
             </li>
           );
         })}
       </ul>
 
-      {star && (
+      {h && star && (
         <div className="flex flex-wrap items-center gap-3">
           <ActionBar>
             <button type="button" className="btn btn-brass btn-lg" onClick={raceNow} disabled={busy} data-testid="race-now">
-              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Going to the gates…" : `Race ${star.name} now`}
+              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Going to the gates…" : `Race ${h.name} now`}
             </button>
           </ActionBar>
-          <button type="button" className="btn" onClick={() => entry.open(rec)}>
+          <button type="button" className="btn" onClick={() => entry.open(star.id)}>
             Change the plan
           </button>
           <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
@@ -189,14 +203,10 @@ function Welcome() {
           </Link>
         </div>
       )}
-      {error && (
-        <p className="font-bold text-negative" role="alert">
-          {error}
-        </p>
-      )}
+      {error !== null && <ErrorNote error={error} />}
       <p className="text-sm text-cream-dim">
-        {star
-          ? `${star.name} runs as a ${STYLE_LABEL[star.style].toLowerCase()}: ${pronoun(star.sex).he} ${star.style === "front" ? "tries to lead all the way" : star.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. The gates open ten seconds after you tap.`
+        {h
+          ? `${h.name} runs as a ${STYLE_LABEL[h.style].toLowerCase()}: ${pronoun(h.sex).he} ${h.style === "front" ? "tries to lead all the way" : h.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. Your first race is a free Story race against the Club; the gates open ten seconds after you tap.`
           : ""}
       </p>
       <StorageNote />

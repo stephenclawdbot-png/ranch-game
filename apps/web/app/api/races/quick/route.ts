@@ -1,45 +1,38 @@
 import { z } from "zod";
-import { RunningStyleSchema, SilksSchema } from "@thoroughbred/shared";
-import { raceRepository } from "@/server/repository";
-import { PLAYER_ID_RE, STARTER_COUNT } from "@/server/demoData";
-import { StableNameSchema, quickPick } from "@/server/races";
-import { errorJson, json } from "@/server/http";
+import { db } from "@/server/db";
+import { createStoryRace, playerView } from "@/server/game";
+import { errorJson, handleError, json, readJson } from "@/server/http";
+import { HorseIdSchema, PlanSchema } from "@/server/planSchema";
+import { requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Clients choose only which of their horses runs and how it is ridden, or ask for a Quick Pick
- * (`pick: "auto"`). Never speeds or results.
+ * Story mode (§4e): a solo race against the Club's house horses. The client chooses only the
+ * horse and the plan (or `pick: "auto"` for Quick Pick). The race is simulated and settled on
+ * the server right here (capped Story rewards in the ledger); watching only shows it.
+ * `instant` back-dates the race so the result is visible at once (Story only).
  */
 const BodySchema = z
   .object({
-    playerId: z.string().regex(PLAYER_ID_RE),
     pick: z.literal("auto").optional(),
-    /** Quick Pick: horses run recently, to rotate the stable. */
-    exclude: z.array(z.number().int().min(0).max(STARTER_COUNT - 1)).max(STARTER_COUNT).optional(),
-    horseIndex: z.number().int().min(0).max(STARTER_COUNT - 1).optional(),
-    tactic: RunningStyleSchema.optional(),
-    /** Story mode only: these solo races may skip straight to the result. Live races never can. */
+    horseId: HorseIdSchema.optional(),
+    plan: PlanSchema.optional(),
     instant: z.boolean().optional(),
-    silks: SilksSchema.optional(),
-    stableName: StableNameSchema.optional(),
   })
-  .refine((b) => b.pick === "auto" || (b.horseIndex !== undefined && b.tactic !== undefined), {
-    message: "horseIndex and tactic are required unless pick is \"auto\"",
-  });
+  .refine((b) => b.pick === "auto" || b.horseId !== undefined, { message: 'horseId is required unless pick is "auto"' });
 
 export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorJson(400, "invalid_json");
-  }
-  const parsed = BodySchema.safeParse(body);
+  const parsed = BodySchema.safeParse(await readJson(req));
   if (!parsed.success) return errorJson(400, "invalid_body", { issues: parsed.error.issues.map((i) => i.path.join(".") + ": " + i.message) });
-  const { pick, exclude, horseIndex, tactic, ...rest } = parsed.data;
-  const chosen = pick === "auto" ? quickPick(rest.playerId, exclude) : { horseIndex: horseIndex!, tactic: tactic!, reason: null };
-  const created = await raceRepository().createQuickRace({ ...rest, horseIndex: chosen.horseIndex, tactic: chosen.tactic }, Date.now());
-  return json({ ...created, pick: pick === "auto" ? chosen : undefined }, { status: 201 });
+  try {
+    const database = await db();
+    const session = await requireSession(database);
+    const now = new Date();
+    const created = await createStoryRace(database, session, { horseId: parsed.data.pick === "auto" ? undefined : parsed.data.horseId, plan: parsed.data.plan, instant: parsed.data.instant }, now);
+    return json({ ...created, player: await playerView(database, session, now) }, { status: 201 });
+  } catch (err) {
+    return handleError(err);
+  }
 }

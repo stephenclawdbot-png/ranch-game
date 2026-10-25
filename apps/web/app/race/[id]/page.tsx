@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RaceExperience } from "@/components/race/RaceExperience";
-import { raceRepository } from "@/server/repository";
-import { RaceNotFoundError, type RaceCard } from "@/server/races";
+import type { RaceCard } from "@/lib/types";
+import { db } from "@/server/db";
+import { RaceNotFoundError } from "@/server/errors";
+import { raceCard } from "@/server/game";
+import { getSession } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 
 async function load(id: string): Promise<RaceCard | null> {
   try {
-    return await raceRepository().getRace(decodeURIComponent(id), Date.now());
+    const database = await db();
+    const session = await getSession(database);
+    return await raceCard(database, decodeURIComponent(id), new Date(), session?.stable.id ?? null);
   } catch (err) {
     if (err instanceof RaceNotFoundError) return null;
     throw err;

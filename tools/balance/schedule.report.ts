@@ -3,9 +3,9 @@
  */
 import { it } from "vitest";
 import type { RaceClass } from "@thoroughbred/shared";
-import { RIVAL_POOL, ownerStableName } from "../../apps/web/src/server/demoData";
-import { getRaceInput, raceRating } from "../../apps/web/src/server/races";
-import { feel, feelLines, groupBy, mean, pct, runScheduled, type RaceStats } from "../../apps/web/src/server/balance/sim";
+import { RIVAL_POOL, ownerStableName } from "./legacy/demoData";
+import { getRaceInput, raceRating } from "./legacy/races";
+import { feel, feelLines, groupBy, mean, pct, runScheduled, type RaceStats } from "./legacy/sim";
 import { writeReport, yieldNow } from "./out";
 
 const SLOTS = Number(process.env.BAL_SLOTS ?? 2400); // 2400 slots = 5 days of the 3-minute schedule

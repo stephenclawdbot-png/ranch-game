@@ -2,8 +2,8 @@
  * Aptitudes: letter grades (A–E) for how well a horse suits a trip, a surface, the going and a
  * riding plan — the key decision aid on the roster, the horse page and the entry sheet.
  *
- * `conditionRating` mirrors the server's form-guide rating (`raceRating` in src/server/races.ts,
- * itself mirroring the engine's deterministic terms; a test keeps them in sync). Grades are the
+ * `conditionRating` is the form-guide rating (formerly mirrored by the demo's raceRating, now in
+ * tools/balance/legacy), mirroring the engine's deterministic terms. Grades are the
  * rating points lost against the horse's best case, so "why" is always the same maths the race
  * uses — never a separate opinion.
  */

@@ -7,9 +7,9 @@
  */
 import type { Horse, RaceConfig, RaceInput, RaceReplay, RunningStyle } from "@thoroughbred/shared";
 import { FRAME_STRIDE, PHOTO_FINISH_MM } from "@thoroughbred/shared";
-import { simulateRace } from "../engine";
-import { starterArchetypes, starterHorses, type Archetype } from "../demoData";
-import { createQuickRace, getRaceInput, raceRating } from "../races";
+import { simulateRace } from "../../../packages/racing-engine/src/index";
+import { starterArchetypes, starterHorses, type Archetype } from "./demoData";
+import { createQuickRace, getRaceInput, raceRating } from "./races";
 
 export const TACTICS: readonly RunningStyle[] = ["front", "stalker", "closer"];
 /** A fixed "now" so quick-race ids (post times) are reproducible. */

@@ -3,8 +3,8 @@
  * createQuickRace -> getRaceInput -> simulateRace, for many simulated players.
  */
 import { it } from "vitest";
-import { CLASS_PURSE, QUICK_POST_DELAY_MS } from "../../apps/web/src/server/races";
-import { TACTICS, feel, feelLines, groupBy, mean, median, pct, runQuick, simNonce, simPlayerId, type QuickSample } from "../../apps/web/src/server/balance/sim";
+import { CLASS_PURSE, QUICK_POST_DELAY_MS } from "./legacy/races";
+import { TACTICS, feel, feelLines, groupBy, mean, median, pct, runQuick, simNonce, simPlayerId, type QuickSample } from "./legacy/sim";
 import { writeReport, yieldNow } from "./out";
 
 const PLAYERS = Number(process.env.BAL_PLAYERS ?? 30);

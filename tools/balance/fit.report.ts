@@ -8,9 +8,9 @@ import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Going, Horse, RaceInput, RunningStyle, Surface } from "@thoroughbred/shared";
 import { simulateRace } from "../../packages/racing-engine/src/index";
-import { RIVAL_POOL, starterHorses } from "../../apps/web/src/server/demoData";
-import { createRng } from "../../apps/web/src/server/prng";
-import { simPlayerId } from "../../apps/web/src/server/balance/sim";
+import { RIVAL_POOL, starterHorses } from "./legacy/demoData";
+import { createRng } from "./legacy/prng";
+import { simPlayerId } from "./legacy/sim";
 import { yieldNow } from "./out";
 
 const RACES = Number(process.env.BAL_FIT_RACES ?? 3000);

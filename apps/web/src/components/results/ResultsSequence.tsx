@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
-import type { RaceCard } from "@/server/races";
+import type { RaceCard } from "@/lib/types";
 import { analyseRace } from "@/lib/raceAnalysis";
 import { usePlayerState } from "@/lib/player";
 import { prefersCalm } from "@/lib/settings";
-import { usePlayerHorses } from "@/lib/useStable";
-import { enterQuickRace } from "../entry/EntryForm";
+import { enterStoryRace } from "../entry/EntryForm";
+import { ErrorNote } from "../ui/ErrorNote";
 import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
@@ -19,10 +19,15 @@ import { RewardCounter } from "./RewardCounter";
 import { WhyCard } from "./WhyCard";
 
 export interface Settlement {
+  /** Credits this result paid (purse + Story reward), settled on the server. */
   prize: number;
   position: number;
-  /** True when this page view settled it (credits just landed): runs the count-up. */
+  /** True the first time the owner sees this result: stage the reveal and run the count-up. */
   fresh: boolean;
+  storyReward?: number;
+  firstWin?: boolean;
+  ratingBefore?: number;
+  ratingAfter?: number | null;
 }
 
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */
@@ -113,7 +118,7 @@ export function ResultsSequence({
         <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
       </div>
       {mine && settlement && at("reward") && (
-        <div className="fade-up">
+        <div className="fade-up grid gap-1">
           <RewardCounter
             horseName={mine.horse.name}
             position={settlement.position}
@@ -121,6 +126,16 @@ export function ResultsSequence({
             prize={settlement.prize}
             fresh={settlement.fresh}
           />
+          <p className="caption px-1" data-testid="settlement-detail">
+            {card.kind === "story"
+              ? settlement.firstWin
+                ? `Story reward: first win in this race, +${settlement.storyReward}.`
+                : `Story reward +${settlement.storyReward ?? 0} (full rewards are for a first win; replays pay a little).`
+              : "Purse paid by the Club, settled on the server."}
+            {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
+              ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
+              : ""}
+          </p>
         </div>
       )}
       {analysis && subject && at("why") && (
@@ -164,11 +179,9 @@ export function NextActions({
   const router = useRouter();
   const state = usePlayerState();
   const entry = useEntry();
-  const { horses } = usePlayerHorses(state?.player.playerId, state?.player.silks);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const index = mine ? Number(mine.id.split("-").pop()) : -1;
-  const horse = index >= 0 ? horses?.[index] : undefined;
+  const [error, setError] = useState<unknown>(null);
+  const horse = mine ? state?.horses.find((h) => h.id === mine.id) : undefined;
 
   if (!mine || !state) {
     return (
@@ -192,14 +205,14 @@ export function NextActions({
   }
 
   async function again() {
-    if (!state || !horse) return;
+    if (!horse) return;
     setBusy(true);
     setError(null);
     try {
-      const raceId = await enterQuickRace(state, horse, index, mine!.tactic);
+      const { raceId } = await enterStoryRace(horse.id, { tactic: mine!.tactic, intensity: "normal" });
       router.push(`/race/${raceId}`);
     } catch (e) {
-      setError(`Couldn't enter (${(e as Error).message}).`);
+      setError(e);
       setBusy(false);
     }
   }
@@ -208,26 +221,30 @@ export function NextActions({
     <section className="grid gap-2" aria-label="What next">
       <div className="flex flex-wrap items-center gap-3">
         <ActionBar>
-          <button type="button" className="btn btn-brass btn-lg" onClick={again} disabled={!horse || busy} data-testid="race-again">
-            <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Entering…" : `Race ${mine.name} again`}
-          </button>
+          {card.kind === "story" ? (
+            <button type="button" className="btn btn-brass btn-lg" onClick={again} disabled={!horse || !!horse.block || busy} data-testid="race-again">
+              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Entering…" : horse?.block ? horse.block : `Race ${mine.name} again`}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPickLive} data-testid="live-quick-pick">
+              <PixelIcon name="flag" size={32} className="-my-2" /> Enter next Live race
+            </button>
+          )}
         </ActionBar>
-        <button type="button" className="btn" onClick={() => entry.open(index)}>
-          Try a different plan
-        </button>
+        {card.kind === "story" && (
+          <button type="button" className="btn" onClick={() => entry.open(mine.id)}>
+            Try a different plan
+          </button>
+        )}
         <button type="button" className="btn" onClick={entry.quickPick}>
-          Quick Pick
+          {card.kind === "story" ? "Quick Pick" : "Story race"}
         </button>
         <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
           Back to the stable
         </Link>
       </div>
-      {error && (
-        <p className="text-sm font-bold text-negative" role="alert">
-          {error}
-        </p>
-      )}
-      {card.kind === "quick" && <p className="caption">Race again: same horse, same plan, a new field. Quick Pick: your best-suited fresh horse.</p>}
+      {error !== null && <ErrorNote error={error} />}
+      {card.kind === "story" && <p className="caption">Race again: same horse, same plan, a new field. Quick Pick: your best-suited fresh horse.</p>}
     </section>
   );
 }

@@ -7,7 +7,8 @@ import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
-import { resetPlayer, updateProfile, type PlayerState } from "@/lib/player";
+import { ErrorNote } from "@/components/ui/ErrorNote";
+import { signOut, updateProfile, type PlayerState } from "@/lib/player";
 import { saveSettings, useSettings, type MotionPref, type TextSize } from "@/lib/settings";
 
 const TEXT_SIZES: { v: TextSize; label: string }[] = [
@@ -23,11 +24,13 @@ const MOTION: { v: MotionPref; label: string }[] = [
 ];
 
 function Profile({ state }: { state: PlayerState }) {
-  const [name, setName] = useState(state.player.stableName);
-  const [silks, setSilks] = useState<SilksT>(state.player.silks);
+  const [name, setName] = useState(state.stableName);
+  const [silks, setSilks] = useState<SilksT>(state.silks);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const settings = useSettings();
-  const dirty = name.trim() !== state.player.stableName || JSON.stringify(silks) !== JSON.stringify(state.player.silks);
+  const dirty = name.trim() !== state.stableName || JSON.stringify(silks) !== JSON.stringify(state.silks);
   const valid = NAME_RE.test(name.trim());
 
   useEffect(() => {
@@ -52,15 +55,24 @@ function Profile({ state }: { state: PlayerState }) {
             <button
               type="button"
               className="btn btn-brass btn-lg"
-              disabled={!dirty || !valid}
-              onClick={() => {
-                updateProfile({ stableName: name.trim(), silks });
-                setSaved(true);
+              disabled={!dirty || !valid || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  await updateProfile({ stableName: name.trim(), silks });
+                  setSaved(true);
+                } catch (e) {
+                  setError(e);
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
-              <PixelIcon name="check" className="h-5 w-5" /> {saved && !dirty ? "Saved" : "Save colours"}
+              <PixelIcon name="check" className="h-5 w-5" /> {busy ? "Saving…" : saved && !dirty ? "Saved" : "Save colours"}
             </button>
           </ActionBar>
+          {error !== null && <ErrorNote error={error} />}
           <p className="sr-only" role="status">
             {saved && !dirty ? "Saved" : ""}
           </p>
@@ -113,9 +125,8 @@ function Profile({ state }: { state: PlayerState }) {
             type="button"
             className="btn btn-oxblood"
             onClick={() => {
-              if (window.confirm("Start over with a new stable? Your horses, credits and race history on this device will be cleared.")) {
-                resetPlayer();
-                window.location.assign("/play");
+              if (window.confirm("Start over with a new stable? This browser forgets your current stable for good: there is no way back to it yet.")) {
+                void signOut().then(() => window.location.assign("/play"));
               }
             }}
           >

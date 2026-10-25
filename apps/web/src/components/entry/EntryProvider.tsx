@@ -3,26 +3,32 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { RaceConfig } from "@thoroughbred/shared";
-import { recommendIndex } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatDistance } from "@/lib/format";
-import { recentlyRun, usePlayerState } from "@/lib/player";
-import { usePlayerHorses } from "@/lib/useStable";
+import { api, recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
+import type { RacePlan, RaceSummary, RiskView } from "@/lib/types";
+import { Countdown } from "../Countdown";
 import { HorsePortrait } from "../HorsePortrait";
 import { raceMetaLine } from "../RaceMeta";
 import { PixelIcon } from "../icons";
-import { EntryForm, quickPickRace, type QuickPickResult } from "./EntryForm";
+import { ErrorNote } from "../ui/ErrorNote";
+import { EntryForm, HorsePicker, PlanPicker, quickPickRace, type QuickPickResult } from "./EntryForm";
 
 interface EntryApi {
-  /** Opens the entry sheet for horse `index` (no player yet -> onboarding). */
-  open: (index: number, opts?: { picker?: boolean }) => void;
-  /** Quick Pick: shows the pick card (best-suited fresh horse); the race is entered on the watch choice. */
+  /** Story entry sheet for a horse (no stable yet -> onboarding). */
+  open: (horseId?: string | null, opts?: { picker?: boolean }) => void;
+  /** Story Quick Pick: the pick card (best-suited fresh horse), then watch / skip / later. */
   quickPick: () => void;
+  /** Live entry sheet for a card race. */
+  enterLive: (raceId: string) => void;
+  /** Live Quick Pick: best-fit fresh horse into the next suitable race on the card, one tap. */
+  quickPickLive: () => void;
 }
 
 const EntryContext = createContext<EntryApi>({
   open: () => undefined,
   quickPick: () => undefined,
+  enterLive: () => undefined,
+  quickPickLive: () => undefined,
 });
 
 export function useEntry(): EntryApi {
@@ -30,79 +36,85 @@ export function useEntry(): EntryApi {
 }
 
 type WatchMode = "watch" | "instant" | "later";
-type RaceInfo = Pick<RaceConfig, "name" | "distanceM" | "surface" | "going" | "raceClass">;
+
+export interface LivePickResult {
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  horseName: string;
+  postTimeMs: number;
+  reason: string;
+}
+
 type Target =
-  | { kind: "entry"; index: number; picker: boolean; nonce: number }
-  | {
-      kind: "pick";
-      status: "choose" | "error";
-      busy?: WatchMode;
-      error?: string;
-    }
-  | {
-      kind: "pick";
-      status: "later";
-      result: QuickPickResult;
-      race: RaceInfo | null;
-    };
+  | { kind: "entry"; horseId: string | null; picker: boolean; nonce: number }
+  | { kind: "pick"; status: "choose" | "error"; busy?: WatchMode; error?: unknown }
+  | { kind: "pick"; status: "later"; result: QuickPickResult }
+  | { kind: "live"; raceId: string; nonce: number }
+  | { kind: "livePick"; status: "busy" | "error"; error?: unknown }
+  | { kind: "livePick"; status: "done"; result: LivePickResult };
 
 /**
- * The entry sheet (modal over any route). Two modes:
- * - entry: one horse, a plan preselected to its natural style, and "Go to the gates";
- * - pick: the Quick Pick card (who and why), then "Watch" / "Skip to result" / "Watch later".
+ * The entry sheet (modal over any route). Modes:
+ * - entry: a Story race for one horse, plan preselected to its natural style;
+ * - pick: the Story Quick Pick card, then "Watch" / "Skip to result" / "Watch later";
+ * - live: enter a horse in a shared Live card race (eligibility and injury risk per horse);
+ * - livePick: Live Quick Pick, entered in one tap, with where and when it runs.
  * Native <dialog>: focus is trapped, Esc closes and focus returns to the opener.
  */
 export function EntryProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const state = usePlayerState();
-  const { horses } = usePlayerHorses(state?.player.playerId, state?.player.silks);
   const dialog = useRef<HTMLDialogElement>(null);
   const [target, setTarget] = useState<Target | null>(null);
 
   const open = useCallback<EntryApi["open"]>(
-    (index, opts) => {
+    (horseId, opts) => {
       if (!state) return router.push("/play");
-      setTarget({
-        kind: "entry",
-        index,
-        picker: opts?.picker ?? false,
-        nonce: Date.now(),
-      });
+      setTarget({ kind: "entry", horseId: horseId ?? null, picker: opts?.picker ?? !horseId, nonce: Date.now() });
     },
     [state, router],
   );
 
-  // Quick Pick opens the pick card first (who and why, computed with the same rule as the
-  // server); the race is created when the player chooses how to watch it.
   const quickPick = useCallback(() => {
     if (!state) return router.push("/play");
     setTarget({ kind: "pick", status: "choose" });
   }, [state, router]);
 
+  const enterLive = useCallback(
+    (raceId: string) => {
+      if (!state) return router.push("/play");
+      setTarget({ kind: "live", raceId, nonce: Date.now() });
+    },
+    [state, router],
+  );
+
+  const quickPickLive = useCallback(() => {
+    if (!state) return router.push("/play");
+    setTarget({ kind: "livePick", status: "busy" });
+    api<{ pick: LivePickResult }>("/api/races/live-pick")
+      .then(({ pick }) => {
+        setTarget({ kind: "livePick", status: "done", result: pick });
+        router.refresh();
+      })
+      .catch((error: unknown) => setTarget({ kind: "livePick", status: "error", error }));
+  }, [state, router]);
+
   const enterPicked = useCallback(
     (mode: WatchMode) => {
-      if (!state) return;
       setTarget({ kind: "pick", status: "choose", busy: mode });
-      quickPickRace(state, horses, { instant: mode === "instant" })
-        .then(async (result) => {
+      quickPickRace({ instant: mode === "instant" })
+        .then((result) => {
           if (mode !== "later") {
             dialog.current?.close();
             router.push(`/race/${result.raceId}`);
             return;
           }
-          // Show which race it went into (today a Story race; the same card works for a shared race).
-          let race: RaceInfo | null = null;
-          try {
-            const r = await fetch(`/api/races/${encodeURIComponent(result.raceId)}`);
-            if (r.ok) race = ((await r.json()) as { race: { config: RaceConfig } }).race.config;
-          } catch {
-            /* the card still works without the race details */
-          }
-          setTarget({ kind: "pick", status: "later", result, race });
+          setTarget({ kind: "pick", status: "later", result });
         })
-        .catch((e: Error) => setTarget({ kind: "pick", status: "error", error: e.message }));
+        .catch((error: unknown) => setTarget({ kind: "pick", status: "error", error }));
     },
-    [state, horses, router],
+    [router],
   );
 
   useEffect(() => {
@@ -113,7 +125,7 @@ export function EntryProvider({ children }: { children: ReactNode }) {
   const close = () => dialog.current?.close();
 
   return (
-    <EntryContext.Provider value={{ open, quickPick }}>
+    <EntryContext.Provider value={{ open, quickPick, enterLive, quickPickLive }}>
       {children}
       <dialog
         ref={dialog}
@@ -131,26 +143,25 @@ export function EntryProvider({ children }: { children: ReactNode }) {
             {target.kind === "entry" ? (
               <>
                 <SheetHeader
-                  eyebrow="Quick race"
-                  title={target.picker || !horses?.[target.index] ? "Enter a race" : `Race ${horses[target.index]!.name}`}
+                  eyebrow="Story race"
+                  title={target.picker ? "Enter a Story race" : `Race ${state.horses.find((h) => h.id === target.horseId)?.horse.name ?? "your horse"}`}
                   onClose={close}
                 />
-                <EntryForm key={target.nonce} state={state} horses={horses} initialIndex={target.index} showPicker={target.picker} autoFocusSubmit />
+                <EntryForm key={target.nonce} state={state} initialHorseId={target.horseId} showPicker={target.picker} autoFocusSubmit />
               </>
+            ) : target.kind === "live" ? (
+              <LiveEntry key={target.nonce} state={state} raceId={target.raceId} onClose={close} />
+            ) : target.kind === "livePick" ? (
+              <LivePickCard target={target} state={state} onClose={close} onRetry={quickPickLive} />
             ) : target.status === "later" ? (
-              <EnteredLater result={target.result} race={target.race} horses={horses} onClose={close} />
+              <EnteredLater result={target.result} onClose={close} />
             ) : target.status === "error" ? (
               <>
                 <SheetHeader eyebrow="Quick Pick" title="Couldn’t enter" onClose={close} />
-                <div className="grid gap-3">
-                  <p className="text-cream-dim">Couldn&rsquo;t reach the track ({target.error}). Your stable is safe on this device.</p>
-                  <button type="button" className="btn btn-brass btn-lg" onClick={quickPick}>
-                    Try again
-                  </button>
-                </div>
+                <ErrorNote error={target.error} onRetry={quickPick} />
               </>
             ) : (
-              <PickCard state={state} horses={horses} busy={target.busy} onChoose={enterPicked} onClose={close} />
+              <PickCard state={state} busy={target.busy} onChoose={enterPicked} onClose={close} />
             )}
           </div>
         )}
@@ -175,27 +186,15 @@ function SheetHeader({ eyebrow, title, onClose }: { eyebrow: string; title: stri
   );
 }
 
-/** The pick card: who Quick Pick chose and why, then how to watch (Story races can skip to the result). */
-function PickCard({
-  state,
-  horses,
-  busy,
-  onChoose,
-  onClose,
-}: {
-  state: NonNullable<ReturnType<typeof usePlayerState>>;
-  horses: ReturnType<typeof usePlayerHorses>["horses"];
-  busy?: WatchMode;
-  onChoose: (mode: WatchMode) => void;
-  onClose: () => void;
-}) {
-  const exclude = recentlyRun(state, Date.now());
-  const index = horses ? recommendIndex(horses, exclude) : -1;
-  const horse = horses?.[index];
+/** The Story pick card: who Quick Pick chose and why, then how to watch (Story races can skip to the result). */
+function PickCard({ state, busy, onChoose, onClose }: { state: PlayerState; busy?: WatchMode; onChoose: (mode: WatchMode) => void; onClose: () => void }) {
+  const s = recommendHorse(state);
+  const horse = s?.horse;
+  const othersRan = state.horses.some((h) => h.id !== s?.id && h.ranToday > 0);
   return (
     <div className="grid gap-4" data-testid="pick-card">
-      <SheetHeader eyebrow="Story · Quick Pick" title={horse ? `${horse.name} runs next` : "Picking your horse…"} onClose={onClose} />
-      {horse && (
+      <SheetHeader eyebrow="Story · Quick Pick" title={horse ? `${horse.name} runs next` : "No horse ready"} onClose={onClose} />
+      {horse ? (
         <div className="surface-2 -mt-1 flex items-center gap-3 p-2">
           <span className="bg-inset">
             <HorsePortrait appearance={horse.appearance} scale={1} />
@@ -203,26 +202,19 @@ function PickCard({
           <div className="min-w-0">
             <p className="text-cream" data-testid="pick-reason">
               Best fit at {formatDistance(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}
-              {exclude.length > 0 ? ", and fresh (your other horses ran in the last hour)" : ""}.
+              {s?.ranToday === 0 ? (othersRan ? ", and fresh (your other horses have raced today)" : ", and fresh") : ""}.
             </p>
             <p className="mt-1 text-sm font-bold text-cream-dim">
-              Plan: <span className="chip text-cream">{STYLE_LABEL[horse.style]}</span> (natural)
+              Plan: <span className="chip text-cream">{STYLE_LABEL[horse.style]}</span> (natural) · normal ride
             </p>
           </div>
         </div>
+      ) : (
+        <p className="text-cream-dim">None of your horses can race right now (injured, entered elsewhere, or already raced 3 times today). Check the stable.</p>
       )}
-      <p className="text-sm text-cream-dim">
-        Next Story race against the club&rsquo;s rival stables. The field and conditions are drawn when you enter.
-      </p>
+      <p className="text-sm text-cream-dim">Next Story race against the Club&rsquo;s rival stables. Free: no stable entries used. The field and conditions are drawn when you enter.</p>
       <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          className="btn btn-brass btn-lg"
-          disabled={!horse || !!busy}
-          onClick={() => onChoose("watch")}
-          data-testid="watch-live"
-          autoFocus
-        >
+        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!busy} onClick={() => onChoose("watch")} data-testid="watch-live" autoFocus>
           <PixelIcon name="play" className="h-4 w-4" /> {busy === "watch" ? "Entering…" : "Watch"}
         </button>
         <button type="button" className="btn btn-lg" disabled={!horse || !!busy} onClick={() => onChoose("instant")} data-testid="skip-to-result">
@@ -239,25 +231,13 @@ function PickCard({
   );
 }
 
-function EnteredLater({
-  result,
-  race,
-  horses,
-  onClose,
-}: {
-  result: QuickPickResult;
-  race: RaceInfo | null;
-  horses: ReturnType<typeof usePlayerHorses>["horses"];
-  onClose: () => void;
-}) {
-  const horse = horses?.[result.pick.horseIndex];
+function EnteredLater({ result, onClose }: { result: QuickPickResult; onClose: () => void }) {
   return (
     <div className="grid gap-3" data-testid="entered-later">
-      <SheetHeader eyebrow="Entered · watch later" title={race?.name ?? "Story race"} onClose={onClose} />
+      <SheetHeader eyebrow="Entered · watch later" title={`${result.pick.horseName}’s Story race`} onClose={onClose} />
       <p className="text-cream-dim">
-        {horse?.name ?? "Your horse"} runs at {formatClock(result.postTimeMs)}
-        {race ? ` (${raceMetaLine(race)})` : ""}. It&rsquo;s in <strong className="text-cream">Your races</strong> on Home, result unseen until you
-        open it.
+        {result.pick.horseName} runs at {formatClock(result.postTimeMs)}. It&rsquo;s in <strong className="text-cream">Your races</strong> on Home, result unseen
+        until you open it.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn btn-brass btn-lg" onClick={onClose} autoFocus>
@@ -266,6 +246,171 @@ function EnteredLater({
         <Link href={`/race/${result.raceId}`} className="btn btn-lg" onClick={onClose}>
           Watch it now
         </Link>
+      </div>
+    </div>
+  );
+}
+
+interface EntryOptionView {
+  horseId: string;
+  reason: string | null;
+  fitLoss: number;
+  risk: Record<RacePlan["intensity"], RiskView | null>;
+}
+
+/** Live entry: pick an eligible horse and a plan for a shared card race; shows cost, close time and risk. */
+function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: string; onClose: () => void }) {
+  const router = useRouter();
+  const [data, setData] = useState<{ race: RaceSummary; options: EntryOptionView[] } | null>(null);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [horseId, setHorseId] = useState<string | null>(null);
+  const [plan, setPlan] = useState<RacePlan>({ tactic: "stalker", intensity: "normal" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [entered, setEntered] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/races/${encodeURIComponent(raceId)}/options`, { cache: "no-store" })
+      .then(async (r) => {
+        const body = await r.json();
+        if (!r.ok) throw new Error(body.message ?? `HTTP ${r.status}`);
+        return body as { race: RaceSummary; options: EntryOptionView[] };
+      })
+      .then((d) => {
+        setData(d);
+        const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss - b.fitLoss)[0];
+        if (best) {
+          setHorseId(best.horseId);
+          const h = state.horses.find((x) => x.id === best.horseId);
+          if (h) setPlan({ tactic: h.horse.style, intensity: "normal" });
+        }
+      })
+      .catch(setLoadError);
+  }, [raceId, state.horses]);
+
+  const racing = state.horses.filter((h) => h.careerStatus === "racing");
+  const reasons = Object.fromEntries((data?.options ?? []).map((o) => [o.horseId, o.reason]));
+  const horse = racing.find((h) => h.id === horseId);
+  const option = data?.options.find((o) => o.horseId === horseId);
+
+  async function go() {
+    if (!horse) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan } });
+      setEntered(horse.horse.name);
+      router.refresh();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const race = data?.race;
+  if (entered && race) {
+    return (
+      <div className="grid gap-3" data-testid="live-entered">
+        <SheetHeader eyebrow="Entered · Live" title={race.name} onClose={onClose} />
+        <p className="text-cream-dim">
+          {entered} is in. The field locks at {formatClock(race.entriesCloseAtMs)} and goes off at {formatClock(race.postTimeMs)}, live for everyone. If you&rsquo;re
+          away, the result waits in Your races.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Link href={`/race/${raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
+            <PixelIcon name="play" className="h-4 w-4" /> Go to the race
+          </Link>
+          <button type="button" className="btn btn-lg" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-5" data-testid="live-entry">
+      <SheetHeader eyebrow="Live race" title={race?.name ?? "Enter a Live race"} onClose={onClose} />
+      {race && (
+        <p className="-mt-3 text-sm text-cream-dim">
+          {raceMetaLine(race)} · off {formatClock(race.postTimeMs)} · entries close in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" className="text-cream" /> ·{" "}
+          {race.entryCost} {race.entryCost === 1 ? "entry" : "entries"} ({state.entries.balance} left)
+        </p>
+      )}
+      {loadError !== null && <ErrorNote error={loadError} />}
+      {data && <HorsePicker horses={racing} selectedId={horseId} onSelect={(id) => {
+        setHorseId(id);
+        const h = racing.find((x) => x.id === id);
+        if (h) setPlan((p) => ({ ...p, tactic: h.horse.style }));
+      }} reasons={reasons} />}
+      {data && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={(i) => option?.risk[i] ?? null} />}
+      {error !== null && <ErrorNote error={error} onRetry={go} />}
+      <div className="grid [&>.btn]:w-full">
+        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data} onClick={go} data-testid="enter-live">
+          <PixelIcon name="flag" size={32} className="-my-2" />
+          {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LivePickCard({
+  target,
+  state,
+  onClose,
+  onRetry,
+}: {
+  target: Extract<Target, { kind: "livePick" }>;
+  state: PlayerState;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  if (target.status === "busy") {
+    return (
+      <div className="grid gap-3" aria-busy>
+        <SheetHeader eyebrow="Live · Quick Pick" title="Finding the next suitable race…" onClose={onClose} />
+      </div>
+    );
+  }
+  if (target.status === "error") {
+    return (
+      <div className="grid gap-3">
+        <SheetHeader eyebrow="Live · Quick Pick" title="Couldn’t enter" onClose={onClose} />
+        <ErrorNote error={target.error} onRetry={onRetry} />
+      </div>
+    );
+  }
+  if (target.status !== "done") return null;
+  const r = target.result;
+  const s = state.horses.find((h) => h.id === r.horseId);
+  return (
+    <div className="grid gap-3" data-testid="live-pick">
+      <SheetHeader eyebrow="Live · entered" title={r.raceName} onClose={onClose} />
+      <div className="surface-2 flex items-center gap-3 p-2">
+        {s && (
+          <span className="bg-inset">
+            <HorsePortrait appearance={s.horse.appearance} scale={1} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-cream" data-testid="live-pick-reason">
+            {r.reason}.
+          </p>
+          <p className="mt-1 text-sm text-cream-dim">
+            Off at {formatClock(r.postTimeMs)} (in <Countdown targetMs={r.postTimeMs} doneLabel="now" className="text-cream" />). {state.entries.balance} stable{" "}
+            {state.entries.balance === 1 ? "entry" : "entries"} left today.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Link href={`/race/${r.raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
+          <PixelIcon name="play" className="h-4 w-4" /> Go to the race
+        </Link>
+        <button type="button" className="btn btn-lg" onClick={onClose}>
+          Done
+        </button>
       </div>
     </div>
   );

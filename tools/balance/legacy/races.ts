@@ -1,3 +1,4 @@
+/** LEGACY (tools/balance only): the pre-database stateless demo. The web app no longer imports this. */
 /**
  * Race scheduling, stateless quick-race ids, seeds and replays.
  *
@@ -14,7 +15,7 @@ import type { Horse, RaceClass, RaceConfig, RaceInput, RaceReplay, RunningStyle,
 import { RunningStyleSchema } from "@thoroughbred/shared";
 import { z } from "zod";
 import { decodeSilks, encodeSilks } from "@/lib/silks";
-import { commitSeed, deriveSeed, simulateRace, verifyReplay, ENGINE_VERSION } from "./engine";
+import { commitSeed, deriveSeed, simulateRace, verifyReplay, ENGINE_VERSION } from "../../../packages/racing-engine/src/index";
 import {
   RIVAL_POOL,
   STARTER_COUNT,
@@ -24,7 +25,7 @@ import {
   starterHorses,
 } from "./demoData";
 import { createRng, type Rng } from "./prng";
-import { broadcastEndsAtMs, isBroadcastOver } from "./live";
+import { broadcastEndsAtMs, isBroadcastOver } from "../../../apps/web/src/server/live";
 
 // ---------------------------------------------------------------------------
 // Constants & errors

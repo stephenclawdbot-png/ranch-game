@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SilksSchema } from "@thoroughbred/shared";
-import { createAccount, updateStableProfile } from "@thoroughbred/db";
+import { createAccount, stableOf, updateStableProfile } from "@thoroughbred/db";
 import { db } from "@/server/db";
 import { playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
@@ -31,18 +31,13 @@ export async function POST(req: Request) {
     if (existing) return json({ created: false, player: await playerView(database, existing, new Date()) });
     const now = new Date();
     const acc = await createAccount(database, { stableName: parsed.data.stableName, silks: parsed.data.silks, timezone: parsed.data.timezone, now });
-    const session = { accountId: acc.accountId, stable: (await getSessionFor(database, acc.token))! };
+    const session = { accountId: acc.accountId, stable: await stableOf(database, acc.accountId) };
     const res = json({ created: true, player: await playerView(database, session, now) }, { status: 201 });
     setSessionCookie(res, acc.token);
     return res;
   } catch (err) {
     return handleError(err);
   }
-}
-
-async function getSessionFor(database: Awaited<ReturnType<typeof db>>, token: string) {
-  const { authenticate } = await import("@thoroughbred/db");
-  return (await authenticate(database, token))?.stable ?? null;
 }
 
 const PatchSchema = z.object({ stableName: StableNameSchema.optional(), silks: SilksSchema.optional() });

@@ -5,8 +5,8 @@
  */
 import { it } from "vitest";
 import type { Horse, HorseStats } from "@thoroughbred/shared";
-import { ARCHETYPES, type Archetype } from "../../apps/web/src/server/demoData";
-import { DISTANCES_M, raceRating } from "../../apps/web/src/server/races";
+import { ARCHETYPES, type Archetype } from "./legacy/demoData";
+import { DISTANCES_M, raceRating } from "./legacy/races";
 import { writeReport } from "./out";
 
 it("archetype map", () => {

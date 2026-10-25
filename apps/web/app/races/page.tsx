@@ -1,45 +1,40 @@
 import type { Metadata } from "next";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
-import { RaceBoard, RecentRaceRow, UpcomingRaceRow } from "@/components/RaceList";
-import { raceRepository } from "@/server/repository";
+import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingRaceRow } from "@/components/RaceList";
+import { db } from "@/server/db";
+import { raceList } from "@/server/game";
+import { getSession } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Races" };
 
 export default async function RacesPage() {
-  const now = Date.now();
-  const { upcoming, recent } = await raceRepository().listRaces(now);
-  // A live race has no public end time (it would reveal the result): re-check every 10 s while one runs.
-  const nextChange = Math.min(upcoming[0]?.postTimeMs ?? Infinity, recent.some((r) => r.phase === "live") ? now + 10_000 : Infinity);
+  const now = new Date();
+  const nowMs = now.getTime();
+  const database = await db();
+  const session = await getSession(database);
+  const { upcoming, recent } = await raceList(database, now, session?.stable.id ?? null, { upcoming: 8 });
+  // Refresh when the next field locks or goes off; every 10 s while one is live (no public end time).
+  const marks = upcoming.flatMap((r) => [r.entriesCloseAtMs, r.postTimeMs]).filter((t) => t > nowMs);
+  const nextChange = Math.min(...marks, recent.some((r) => r.phase === "live") ? nowMs + 10_000 : Infinity);
 
   return (
     <div className="grid gap-8">
-      <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={now} />
-      <section id="quick" className="grid scroll-mt-20 gap-3" aria-labelledby="quick-h">
+      <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={nowMs} />
+      <section id="live" className="grid scroll-mt-20 gap-3" aria-labelledby="live-h">
         <div>
-          <p className="eyebrow">Story · club races</p>
-          <h1 id="quick-h" className="t-display-xl">
+          <p className="eyebrow">Live · the shared race card</p>
+          <h1 id="live-h" className="t-display-xl">
             Races
           </h1>
           <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-            Story races pit your horses against the club&rsquo;s rival stables, whenever you like.
+            A race every 3 minutes, live for everyone at once. Enter your horses until a minute before the off; the Club fills empty gates.
           </p>
         </div>
-        <QuickRacePanel />
-      </section>
-
-      <section id="live" className="grid scroll-mt-20 gap-3" aria-labelledby="live-h">
-        <div>
-          <h2 id="live-h" className="t-display-l">
-            Live races
-          </h2>
-          <p className="mt-1 max-w-2xl text-cream-dim">
-            A shared race every 3 minutes, live for everyone at once. Watch any of them; entering your own horses opens soon.
-          </p>
-        </div>
+        <LivePickBar />
         <div className="grid gap-6 lg:grid-cols-2">
-          <RaceBoard title="Coming up" note="Watch any of them">
+          <RaceBoard title="Coming up" note="Entries close 1 minute before the off">
             {upcoming.map((r) => (
               <UpcomingRaceRow key={r.id} race={r} />
             ))}
@@ -50,6 +45,19 @@ export default async function RacesPage() {
             ))}
           </RaceBoard>
         </div>
+      </section>
+
+      <section id="story" className="grid scroll-mt-20 gap-3" aria-labelledby="story-h">
+        <div>
+          <p className="eyebrow">Story · club races</p>
+          <h2 id="story-h" className="t-display-l">
+            Story races
+          </h2>
+          <p className="mt-1 max-w-2xl text-cream-dim">
+            Solo races against the Club&rsquo;s rival stables, whenever you like. Free to enter: no stable entries used. Watch, or skip to the result.
+          </p>
+        </div>
+        <QuickRacePanel />
       </section>
     </div>
   );

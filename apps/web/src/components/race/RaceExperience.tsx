@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { RaceCard } from "@/server/races";
+import type { MyRaceResult, RaceCard } from "@/lib/types";
 import { fitCheck } from "@/lib/aptitude";
 import { useClockSkew, useNow } from "@/lib/clock";
 import { useLiveRaceFeed } from "@/lib/liveRaceFeed";
 import { CLASS_LABEL, STYLE_LABEL, formatClock, formatCountdown, ordinal } from "@/lib/format";
-import { settleRace, usePlayerState } from "@/lib/player";
+import { refreshPlayer, usePlayerState } from "@/lib/player";
+import { useEntry } from "../entry/EntryProvider";
 import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
@@ -32,43 +34,53 @@ type Phase = "loading" | "pre" | "live" | "result";
  */
 export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNowMs: number }) {
   const { config } = card;
+  const router = useRouter();
+  const entry = useEntry();
   const ssrSkew = useClockSkew(serverNowMs);
   const now = useNow(200);
   const state = usePlayerState();
-  const { feed, error: feedError } = useLiveRaceFeed(card.id);
+  // The broadcast exists once the field is locked (gates drawn); while entries are open the
+  // page shows the field so far and refreshes itself when entries close.
+  const { feed, error: feedError } = useLiveRaceFeed(card.id, card.fieldLocked);
   // The feed measures the server clock on every poll; prefer it over the page-render estimate.
   const skew = feed ? feed.clockOffsetMs : ssrSkew;
   const localPost = config.postTimeMs - skew;
+  const localClose = card.entriesCloseAtMs - skew;
   /** The complete replay (result + seed): only present once the race is over on the broadcast clock. */
   const replay = feed?.final ?? null;
 
   const [settlement, setSettlement] = useState<Settlement | null>(null);
 
-  const mine = state && card.playerId === state.player.playerId ? (card.field.find((e) => e.isPlayer) ?? null) : null;
+  const mine = card.field.find((e) => e.mine) ?? null;
   const highlightHorseId = mine?.horse.id;
 
   const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
 
-  // Settle once per raceId (client-side ledger until Milestone C).
+  // Entries open: refresh the server-rendered card when they close (the field locks then).
   useEffect(() => {
-    if (phase !== "result" || !replay || !mine || !state) return;
-    const rec = replay.result.finishOrder.find((f) => f.horseId === mine.horse.id);
-    if (!rec) return;
-    const index = Number(mine.horse.id.split("-").pop());
-    const fresh = settleRace({
-      raceId: card.id,
-      raceName: config.name,
-      horseIndex: index,
-      horseName: mine.horse.name,
-      position: rec.position,
-      fieldSize: card.field.length,
-      prize: rec.prize,
-      postTimeMs: config.postTimeMs,
-      distanceM: config.distanceM,
-      surface: config.surface,
-    });
-    setSettlement((s) => s ?? { prize: rec.prize, position: rec.position, fresh });
-  }, [phase, replay, mine, state, card.id, card.field.length, config]);
+    if (card.fieldLocked || now === null) return;
+    const t = setTimeout(() => router.refresh(), Math.max(1000, localClose - Date.now() + 1500));
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.fieldLocked, localClose, router, now === null]);
+
+  // Your result comes from the server (settled there, once); this only shows it.
+  useEffect(() => {
+    if (phase !== "result" || !replay || !mine || settlement) return;
+    let cancelled = false;
+    fetch(`/api/races/${encodeURIComponent(card.id)}/me`, { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<MyRaceResult>) : null))
+      .then((res) => {
+        const r = res?.runners.find((x) => x.horseId === mine.horse.id) ?? res?.runners[0];
+        if (cancelled || !res || !r) return;
+        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter });
+        void refreshPlayer().catch(() => undefined);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, replay, mine, settlement, card.id]);
 
   // Tab title: countdown before the off, LIVE while running (no result in the title, ever before the finish).
   const baseTitle = useRef<string | null>(null);
@@ -171,7 +183,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
           aria-label={`${config.name}: ${phase === "pre" ? "pre-race" : phase === "live" ? "race in progress" : "replay"}. The field and results are listed below.`}
         >
           {phase === "pre" || phase === "loading" ? (
-            <PreRace localPost={localPost} now={now} card={card} />
+            <PreRace localPost={localPost} localClose={localClose} now={now} card={card} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
               <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} autoplay />
@@ -187,9 +199,14 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="t-meta">
-          {card.kind === "quick" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
+          {card.kind === "story" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
         </p>
-        <RaceMetaChips race={config} showPurse showClass={false} />
+        <RaceMetaChips race={config} showPurse={card.kind === "live"} showClass={false} />
+        {card.status === "open" && state && card.kind === "live" && (
+          <button type="button" className="btn btn-sm" onClick={() => entry.enterLive(card.id)} data-testid="enter-this-race">
+            Enter a horse
+          </button>
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -207,7 +224,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
                     {mine.horse.name}
                   </h2>
                   <p className="t-meta mb-2">
-                    Gate {mine.gate} · riding as a {STYLE_LABEL[mine.tactic].toLowerCase()}
+                    {mine.gate ? `Gate ${mine.gate}` : "Gate drawn when entries close"} · riding as a {STYLE_LABEL[mine.tactic].toLowerCase()}
                   </p>
                   <FitList fits={fitCheck(mine.horse, mine.tactic, config)} showDetail />
                 </section>
@@ -219,8 +236,8 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
         <div className="grid content-start gap-4">
           <FairnessPanel card={card} replay={phase === "result" ? replay : null} />
           {phase !== "result" && (
-            <Link href={mine ? "/stable" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">
-              ‹ {mine ? "Back to the stable" : "Today’s card"}
+            <Link href={mine ? "/" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">
+              ‹ {mine ? "Back home" : "Today’s card"}
             </Link>
           )}
         </div>
@@ -229,35 +246,40 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
   );
 }
 
-function PreRace({ localPost, now, card }: { localPost: number; now: number | null; card: RaceCard }) {
+function PreRace({ localPost, localClose, now, card }: { localPost: number; localClose: number; now: number | null; card: RaceCard }) {
   const remaining = now === null ? null : localPost - now;
+  const entriesOpen = !card.fieldLocked && (now === null || now < localClose);
   const loading = remaining !== null && remaining < 10_000;
   const text = remaining === null ? "–:––" : formatCountdown(remaining);
+  const closeText = now === null ? "–:––" : formatCountdown(Math.max(0, localClose - now));
   return (
     <div className="relative flex h-full min-h-52 w-full flex-col items-center justify-center overflow-hidden px-4 text-center">
       <SceneBackdrop variant="grandstand" />
-      {/* Starting stalls, one per runner, with saddlecloth numbers */}
+      {/* Starting stalls, one per runner, with saddlecloth numbers (empty until the field locks) */}
       <div className="absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1" aria-hidden>
-        {card.field.map((e) => (
+        {(card.fieldLocked ? card.field : Array.from({ length: card.targetRunners }, (_, i) => card.field[i] ?? null)).map((e, i) => (
           <div
-            key={e.gate}
+            key={e ? `${e.horse.id}` : `empty-${i}`}
             className="flex h-10 w-6 items-start justify-center pt-1 sm:h-14 sm:w-9"
             style={{
               background: "linear-gradient(#f3e7c9 0 4px, #1f4d35 4px calc(100% - 4px), #0f2a1d calc(100% - 4px))",
-              boxShadow: e.isPlayer ? "0 0 0 2px #0b0f0c, 0 0 0 4px #d9a441" : "0 0 0 2px #0b0f0c",
+              boxShadow: e?.mine ? "0 0 0 2px #0b0f0c, 0 0 0 4px #d9a441" : "0 0 0 2px #0b0f0c",
+              opacity: e ? 1 : 0.45,
             }}
           >
-            <Saddlecloth gate={e.gate} className="!h-5 !w-5 !text-xs sm:!h-6 sm:!w-6 sm:!text-[0.85rem]" />
+            {e && e.gate > 0 && <Saddlecloth gate={e.gate} className="!h-5 !w-5 !text-xs sm:!h-6 sm:!w-6 sm:!text-[0.85rem]" />}
           </div>
         ))}
       </div>
       <div className="plate-ink relative -mt-8 px-4 py-2 sm:-mt-14">
-        <p className="text-sm font-bold text-cream">{loading ? "Gates loading" : "Going down to post"}</p>
+        <p className="text-sm font-bold text-cream">{entriesOpen ? "Entries open" : loading ? "Gates loading" : "Going down to post"}</p>
         <p className="score text-[3.75rem] leading-none text-cream" data-testid="countdown">
-          <Digits text={text} />
+          <Digits text={entriesOpen ? closeText : text} />
         </p>
         <p className="text-sm font-semibold text-cream-dim">
-          {card.field.length} runners · off at {formatClock(card.config.postTimeMs)}
+          {entriesOpen
+            ? `${card.field.length} entered · entries close ${formatClock(card.entriesCloseAtMs)} · off ${formatClock(card.config.postTimeMs)}`
+            : `${card.field.length} runners · off at ${formatClock(card.config.postTimeMs)}`}
         </p>
       </div>
     </div>

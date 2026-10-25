@@ -1,3 +1,4 @@
+/** LEGACY (tools/balance only): the pre-database stateless demo. The web app no longer imports this. */
 /**
  * Deterministic demo data: house stables, the rival pool and per-player starter horses.
  *

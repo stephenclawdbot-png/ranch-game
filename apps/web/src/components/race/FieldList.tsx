@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RaceCard } from "@/server/races";
+import type { RaceCard } from "@/lib/types";
 import { STYLE_SHORT, formatDistance } from "@/lib/format";
 import { SilksIcon } from "../Silks";
 import { GradeBadge } from "../StatBars";
@@ -14,7 +14,7 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
           The field
         </h2>
         <span className="text-sm font-bold text-cream-dim">
-          {card.field.length} runners{" "}
+          {card.fieldLocked ? `${card.field.length} runners` : `${card.field.length} entered · the Club fills the field to ${card.targetRunners}`}{" "}
           <span aria-hidden className="inline-block group-open:rotate-90">
             ▸
           </span>
@@ -41,6 +41,13 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
           </tr>
         </thead>
         <tbody>
+          {card.field.length === 0 && (
+            <tr className="border-t-2 border-line">
+              <td colSpan={5} className="px-3 py-3 text-cream-dim">
+                No entries yet. Empty gates are filled by the Club&rsquo;s horses when entries close.
+              </td>
+            </tr>
+          )}
           {card.field.map((e) => {
             const me = e.horse.id === highlightHorseId;
             const s = e.horse.stats;
@@ -51,7 +58,7 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                 data-testid={me ? "my-runner" : undefined}
               >
                 <td className="py-2 pl-3">
-                  <Saddlecloth gate={e.gate} />
+                  {e.gate > 0 ? <Saddlecloth gate={e.gate} /> : <span className="text-cream-dim">–</span>}
                 </td>
                 <td className="w-full max-w-0 py-2 pl-1">
                   <div className="flex min-w-0 items-center gap-2">
