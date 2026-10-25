@@ -53,6 +53,24 @@ export const RULES = {
   foalCropPerSeason: 10_000,
   /** Care brings an injury's recovery end forward by this much (vet nurse effect). */
   careHealMs: 12 * 60 * 60 * 1000,
+  /** Stable entries (§4f). */
+  entryDailyAllowance: 10,
+  entryBankCap: 20,
+  entryMaxAllowance: 15,
+  entryMaxCap: 30,
+  entryRefillAmount: 5,
+  /** Refill only while the bank is below this. */
+  entryRefillBelow: 5,
+  entryRefillPrice: 300,
+  timezoneChangeMs: 30 * 24 * 60 * 60 * 1000,
+  /** Live card (§4d): a race every 3 minutes; entries close 60 s before the off. */
+  slotMs: 3 * 60 * 1000,
+  entriesCloseBeforePostMs: 60 * 1000,
+  cardHorizonMs: 30 * 60 * 1000,
+  minField: 8,
+  maxField: 12,
+  /** Settle once the broadcast is surely over (races run < 150 s). */
+  settleAfterPostMs: 150 * 1000,
   /** Competition seasons: 4 real weeks from this epoch (a Monday). */
   seasonEpochMs: Date.UTC(2026, 0, 5),
   seasonMs: 28 * 24 * 60 * 60 * 1000,

@@ -183,3 +183,4 @@
 {"at":"2026-10-25T18:00:06.560Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n9","secs":39,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:00:35.568Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n10","secs":29,"usage":{"type":"generations","generations":0.5},"images":1}
 {"at":"2026-10-25T18:01:09.145Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-gallop-normal/n11","secs":34,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T18:02:21.577Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/horse-idle-normal/n0","secs":72,"usage":{"type":"generations","generations":0.5},"images":1}

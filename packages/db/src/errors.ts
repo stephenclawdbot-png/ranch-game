@@ -37,7 +37,10 @@ export type DomainErrorCode =
   | "CROP_SOLD_OUT"
   | "LINKED_ACCOUNTS"
   | "SELLER_REQUIREMENTS"
-  | "PRICE_BELOW_FLOOR";
+  | "PRICE_BELOW_FLOOR"
+  | "INSUFFICIENT_ENTRIES"
+  | "ENTRY_REFILL_UNAVAILABLE"
+  | "TIMEZONE_LOCKED";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -108,6 +111,7 @@ const CONSTRAINT_CODES: Record<string, DomainErrorCode> = {
   horses_mandatory_retirement: "HORSE_RETIRED",
   foal_crop_bounds: "CROP_SOLD_OUT",
   stables_slots: "INVALID_INPUT",
+  stables_entry_balance: "INSUFFICIENT_ENTRIES",
 };
 
 /** Translates rule-encoding constraint violations into DomainErrors; returns other errors unchanged. */

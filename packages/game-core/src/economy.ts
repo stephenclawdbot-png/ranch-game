@@ -2,7 +2,7 @@
  * Economy (Phase 1: Stable Credits only, never cashable). Configurable faucet/sink constants,
  * stall capacity and facilities, appraisal and market rules (§8, §4b).
  *
- * No time-based fees: there is no upkeep. Capacity is limited by stall slots; every cost comes
+ * No time-based fees: there is no upkeep (§4a). Capacity is limited by stall slots; every cost comes
  * from an activity the player chose (training, entries, vet, breeding, packs, scans, upgrades).
  */
 import type { HorseState, RaceTier } from "./types";
@@ -14,6 +14,7 @@ import { overallOf } from "./genome";
 import { BREEDING_BASE_FEE } from "./breeding";
 import { PADDOCK_PACK_PRICE } from "./packs";
 import { MS_PER_DAY } from "./time";
+import { ENTRY_REFILL_COST } from "./entries";
 
 // ---------------------------------------------------------------------------
 // Faucets
@@ -209,14 +210,46 @@ export function insurancePayout(state: HorseState): number {
 }
 
 // ---------------------------------------------------------------------------
+// Story mode rewards (§4e): full reward on the first win of a story race, minimal on replays,
+// and a credit cap per chapter so story races can't be farmed.
+// ---------------------------------------------------------------------------
+
+export const STORY_CHAPTERS = ["club", "county", "national", "classics"] as const;
+export type StoryChapter = (typeof STORY_CHAPTERS)[number];
+export const STORY_FIRST_WIN_REWARD: Record<StoryChapter, number> = { club: 400, county: 700, national: 1100, classics: 1800 };
+/** Any replay / non-first-win finish pays this. */
+export const STORY_REPLAY_REWARD = 20;
+/** Lifetime credits a chapter can pay out (first wins + replays). */
+export const STORY_CHAPTER_CAP: Record<StoryChapter, number> = { club: 4000, county: 7000, national: 11_000, classics: 18_000 };
+
+export interface StoryRewardInput {
+  chapter: StoryChapter;
+  won: boolean;
+  /** This story race was already won before. */
+  alreadyWon: boolean;
+  /** Credits already paid out by this chapter. */
+  chapterEarned: number;
+}
+
+/** Credits for a story race result, after the first-win rule and the chapter cap. */
+export function storyReward(i: StoryRewardInput): number {
+  const raw = i.won && !i.alreadyWon ? STORY_FIRST_WIN_REWARD[i.chapter] : STORY_REPLAY_REWARD;
+  return Math.max(0, Math.min(raw, STORY_CHAPTER_CAP[i.chapter] - i.chapterEarned));
+}
+
+// ---------------------------------------------------------------------------
 // Weekly flow model for an "active player" (the balance target: spend ≈ earn)
 // ---------------------------------------------------------------------------
 
 export interface ActivityProfile {
-  /** Rated starts per week across the stable, by tier. */
+  /** Live (shared card) rated starts per week, by tier. Limited by stable entries (~10–15/day). */
   startsByTier: Partial<Record<RaceTier, number>>;
   /** Average field size (the purse is split over the top 6; average prize = purse / field). */
   fieldSize: number;
+  /** Story first wins per week (and their chapter), plus replays. */
+  storyFirstWinsPerWeek: number;
+  storyChapter: StoryChapter;
+  storyReplaysPerWeek: number;
   dailyGoalsPerWeek: number;
   dailyCupsPerWeek: number;
   trainingSessionsPerWeek: number;
@@ -226,7 +259,9 @@ export interface ActivityProfile {
   avgStudFee: number;
   paddockBuysPerWeek: number;
   scansPerWeek: number;
-  /** Facility / stall spend amortised per week. */
+  entryRefillsPerWeek: number;
+  insurancePerWeek: number;
+  /** Facility / stall / entry-tier spend amortised per week. */
   facilitySpendPerWeek: number;
 }
 
@@ -237,53 +272,68 @@ export interface WeeklyFlow {
   spent: number;
   /** spent / earned, permille. Target ≈ 1000 (±150). */
   ratioPermille: number;
+  /** Live entries the profile needs per day (cost 2 for graded). */
+  entriesPerDay: number;
 }
+
+const GRADED: readonly RaceTier[] = ["g1", "g2", "g3"];
 
 /** Expected weekly credits in/out for a profile. Prize expectation uses the full-purse split. */
 export function weeklyFlow(p: ActivityProfile): WeeklyFlow {
   let purses = 0;
   let entry = 0;
+  let entries = 0;
   for (const [tier, n] of Object.entries(p.startsByTier) as [RaceTier, number][]) {
     const paid = Math.min(6, p.fieldSize);
     const share = [55, 20, 12, 7, 4, 2].slice(0, paid).reduce((a, b) => a + b, 0) / 100;
     purses += (n * PURSE_BY_TIER[tier] * share) / p.fieldSize;
     entry += n * ENTRY_FEE_BY_TIER[tier];
+    entries += n * (GRADED.includes(tier) ? 2 : 1);
   }
   const avgSession = Math.round((WORKOUTS.speed_work.cost + WORKOUTS.stamina_gallops.cost + WORKOUTS.race_prep.cost + WORKOUTS.swimming.cost + WORKOUTS.gate_practice.cost) / 5);
   const faucets = {
     purses: Math.round(purses),
+    story: Math.round(p.storyFirstWinsPerWeek * STORY_FIRST_WIN_REWARD[p.storyChapter] + p.storyReplaysPerWeek * STORY_REPLAY_REWARD),
     dailyGoals: p.dailyGoalsPerWeek * DAILY_GOAL_CREDITS,
     dailyCup: p.dailyCupsPerWeek * DAILY_CUP_CREDITS,
   };
   const sinks = {
-    training: p.trainingSessionsPerWeek * avgSession,
+    training: Math.round(p.trainingSessionsPerWeek * avgSession),
     entryFees: entry,
-    vet: p.vetTreatmentsPerWeek * VET_TREATMENT_COST,
+    vet: Math.round(p.vetTreatmentsPerWeek * VET_TREATMENT_COST),
     breeding: Math.round(p.coveringsPerWeek * (BREEDING_BASE_FEE + p.avgStudFee)),
-    packs: p.paddockBuysPerWeek * PADDOCK_PACK_PRICE,
-    scans: p.scansPerWeek * PEDIGREE_SCAN_COST,
+    packs: Math.round(p.paddockBuysPerWeek * PADDOCK_PACK_PRICE),
+    scans: Math.round(p.scansPerWeek * PEDIGREE_SCAN_COST),
+    entryRefills: Math.round(p.entryRefillsPerWeek * ENTRY_REFILL_COST),
+    insurance: Math.round(p.insurancePerWeek * 300),
     facilities: p.facilitySpendPerWeek,
   };
   const earned = Object.values(faucets).reduce((a, b) => a + b, 0);
   const spent = Object.values(sinks).reduce((a, b) => a + b, 0);
-  return { faucets, sinks, earned, spent, ratioPermille: earned > 0 ? Math.round((spent * 1000) / earned) : 0 };
+  return { faucets, sinks, earned, spent, ratioPermille: earned > 0 ? Math.round((spent * 1000) / earned) : 0, entriesPerDay: Math.round((entries / 7) * 10) / 10 };
 }
 
 /**
- * Reference "active player" (≈ 30–45 min/day): 4 racing horses × ~1 start/day, all daily goals,
- * daily cup, a full training plan for each, a covering every ~2 weeks, 2 bought paddock packs a
- * week, an occasional scan and steady facility saving.
+ * Reference "active player" (≈ 45 min/day): ~11 Live entries a day (inside the 10/day + bank +
+ * one refill budget), a story first win a week, all daily goals and the Daily Cup, a full
+ * training plan for ~6 horses, a covering most weeks, 2 bought paddock packs, a scan, the odd
+ * refill and steady facility saving.
  */
 export const ACTIVE_PLAYER: ActivityProfile = {
-  startsByTier: { maiden: 4, novice: 4, quick: 6, hcp_0_55: 8, hcp_50_75: 6, hcp_70_95: 2 },
+  startsByTier: { maiden: 8, novice: 10, quick: 12, hcp_0_55: 20, hcp_50_75: 15, hcp_70_95: 6, listed: 2, g3: 2 },
   fieldSize: 10,
+  storyFirstWinsPerWeek: 1,
+  storyChapter: "county",
+  storyReplaysPerWeek: 10,
   dailyGoalsPerWeek: 21,
   dailyCupsPerWeek: 7,
-  trainingSessionsPerWeek: 12,
+  trainingSessionsPerWeek: 18,
   vetTreatmentsPerWeek: 0.5,
-  coveringsPerWeek: 0.5,
+  coveringsPerWeek: 0.75,
   avgStudFee: 800,
-  paddockBuysPerWeek: 1.5,
-  scansPerWeek: 0.5,
-  facilitySpendPerWeek: 1200,
+  paddockBuysPerWeek: 2,
+  scansPerWeek: 1,
+  entryRefillsPerWeek: 3,
+  insurancePerWeek: 1,
+  facilitySpendPerWeek: 2500,
 };

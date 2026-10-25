@@ -19,6 +19,7 @@ export * from "./breeding";
 export * from "./packs";
 export * from "./ledger";
 export * from "./economy";
+export * from "./entries";
 export * from "./seasons";
 export * from "./field";
 export * from "./dailyCup";
