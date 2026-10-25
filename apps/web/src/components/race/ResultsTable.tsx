@@ -57,8 +57,8 @@ export function ResultsTable({ replay, card, highlightHorseId }: { replay: RaceR
                     <div className="flex min-w-0 items-center gap-2.5">
                       {e && <SilksIcon silks={e.horse.appearance.silks} className="h-8 w-8" />}
                       <div className="min-w-0">
-                        <Link href={`/horse/${f.horseId}`} className="block truncate font-semibold text-cream hover:text-brass-bright" data-testid={f.position === 1 ? "winner-name" : undefined}>
-                          {e?.horse.name ?? f.horseId}
+                        <Link href={`/horse/${f.horseId}`} className="block truncate font-semibold text-cream hover:text-brass-bright">
+                          <span data-testid={f.position === 1 ? "winner-name" : undefined}>{e?.horse.name ?? f.horseId}</span>
                           {me && <span className="ml-2 hidden align-middle text-[0.6rem] font-bold uppercase tracking-wider text-brass sm:inline">Yours</span>}
                         </Link>
                         <p className="truncate text-xs text-sage">

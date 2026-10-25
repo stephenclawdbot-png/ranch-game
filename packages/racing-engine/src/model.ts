@@ -21,7 +21,7 @@ const PAR_AT_1000 = 16_920;
 /** Par slows by PAR_SLOPE mm/s for every 1000 m of extra distance. */
 const PAR_SLOPE = 800;
 /** Cruise speed gained per stat point of speed above 650 (mm/s per 100 points). */
-const SPEED_PER_100 = 95;
+const SPEED_PER_100 = 105;
 
 const GOING_ADJ: Record<RaceConfig["going"], number> = { firm: 120, good: 0, soft: -320, heavy: -680 };
 const GOING_HORSE_PEN: Record<RaceConfig["going"], number> = { firm: 0, good: 0, soft: 140, heavy: 300 };
@@ -99,7 +99,7 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
 
   // Energy economy.
   // Stamina barely matters in a sprint and dominates in a staying race.
-  const stamMul = 1000 + Math.trunc(((650 - s.stamina) * Math.trunc(((D - 500) * 2) / 5)) / 1000);
+  const stamMul = 1000 + Math.trunc(((650 - s.stamina) * Math.trunc((Math.max(0, D - 800) * 9) / 20)) / 1000);
   const distMul = distDelta > 0 ? 1000 + Math.trunc((distDelta * (1100 - s.adaptability)) / 3000) : 1000;
   const durMul = 1000 + Math.trunc((500 - s.durability) / 10);
   const tacMul = matched ? 980 : 1020;
