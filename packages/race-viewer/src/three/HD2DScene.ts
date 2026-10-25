@@ -59,11 +59,19 @@ export interface HD2DSceneOptions {
 /** Visual lane width (cosmetic; wider than real so lanes separate on screen). */
 const LANE_W = 2.2;
 const RAIL_GAP = 1.2;
-/** World metres per sprite pixel (horse billboards). */
-const WUPP = 0.025;
+/**
+ * Pixel density (HD pixel standard v2): texels per metre by depth plane, so one texel
+ * covers about the same screen area across a plane. Focal plane = horses, props, ground.
+ */
+const FOCAL_PX_PER_M = 96;
+const MID_PX_PER_M = 32;
+const BG_PX_PER_M = 10;
+/** Nose-to-tail length of a racehorse (m); low-density strips are scaled to it. */
+const HORSE_LEN_M = 2.4;
 const PULLUP_TAU = 2.6;
 const TRACK_PRE = 180;
 const TRACK_POST = 340;
+const x0Track = (_L: number) => -TRACK_PRE;
 
 interface Runner {
   index: number;
@@ -303,30 +311,27 @@ export class HD2DScene {
     const L = this.L;
     const len = L + TRACK_PRE + TRACK_POST;
     const cx = (L - TRACK_PRE + L + TRACK_POST) / 2;
-    // Outfield / infield grass.
+    // Outfield / infield grass (tiles at focal density, mipmapped for distance).
     const grassImg = art.images.get("tex-grass");
-    const gTex = this.tex(grassImg ?? grassTile(this.look), { repeat: true, mip: true });
+    const gCanvas = grassImg ?? grassTile(this.look);
+    const gTex = this.tex(gCanvas, { repeat: true, mip: true });
+    const gTile = gCanvas.width / FOCAL_PX_PER_M;
     const gW = len + 1600;
     const gD = 1700;
-    gTex.repeat.set(gW / 3.2, gD / 3.2);
+    gTex.repeat.set(gW / gTile, gD / gTile);
     const grass = new T.Mesh(this.own(new T.PlaneGeometry(gW, gD)), this.own(new T.MeshLambertMaterial({ map: gTex })));
     grass.rotation.x = -Math.PI / 2;
     grass.position.set(cx, 0, -gD / 2 + 80);
     grass.receiveShadow = true;
     this.scene.add(grass);
-    // Racing surface.
+    // Racing surface: fine tile + broad mowing stripes / harrow bands as vertex colours.
     const stem = surface === "turf" ? "tex-turf" : "tex-dirt";
     const sImg = art.images.get(stem);
-    const sTex = this.tex(sImg ?? surfaceTile(this.look, surface), { repeat: true, mip: true });
-    const tileW = sImg ? 4 : surface === "turf" ? 10.24 : 5.12;
-    const tileD = sImg ? 4 : 2.56;
-    const tw = this.trackW + 0.6;
-    sTex.repeat.set(len / tileW, tw / tileD);
-    const track = new T.Mesh(this.own(new T.PlaneGeometry(len, tw)), this.own(new T.MeshLambertMaterial({ map: sTex })));
-    track.rotation.x = -Math.PI / 2;
-    track.position.set(cx, 0.006, -this.trackW / 2);
-    track.receiveShadow = true;
-    this.scene.add(track);
+    const sCanvas = sImg ?? surfaceTile(this.look, surface);
+    const sTex = this.tex(sCanvas, { repeat: true, mip: true });
+    const tile = sCanvas.width / FOCAL_PX_PER_M;
+    const tileD = sCanvas.height / FOCAL_PX_PER_M;
+    this.scene.add(this.stripedStrip(sTex, x0Track(L), len, tile, tileD, surface === "turf" ? 6 : 3, surface === "turf" ? 0.84 : 0.95));
     // Finish line across the track.
     const line = new T.Mesh(this.own(new T.PlaneGeometry(0.2, this.trackW)), this.own(new T.MeshLambertMaterial({ color: 0xf6f6f0 })));
     line.rotation.x = -Math.PI / 2;
@@ -336,12 +341,54 @@ export class HD2DScene {
     // Infield hedge in the foreground (camera side).
     const hImg = art.images.get("tex-hedge");
     const hTex = this.tex(hImg ?? hedgeTile(this.look), { repeat: true, mip: true });
-    hTex.repeat.set(len / 2.56, 1);
+    const hImgW = (hImg ?? { width: 64 }).width / FOCAL_PX_PER_M;
+    hTex.repeat.set(len / hImgW, 0.75 / hImgW);
     const hedge = new T.Mesh(this.own(new T.BoxGeometry(len, 0.75, 0.8)), this.own(new T.MeshLambertMaterial({ map: hTex })));
     hedge.position.set(cx, 0.375, 3.4);
     hedge.castShadow = true;
     hedge.receiveShadow = true;
     this.scene.add(hedge);
+  }
+
+  /** Track surface as quads of alternating tint (hard-edged stripes), UVs in world metres. */
+  private stripedStrip(map: THREE.Texture, x0: number, len: number, tileW: number, tileD: number, stripe: number, dark: number): THREE.Mesh {
+    const T = this.T;
+    const n = Math.ceil(len / stripe);
+    const zA = 0.3;
+    const zB = -this.trackW - 0.3;
+    const pos = new Float32Array(n * 4 * 3);
+    const uv = new Float32Array(n * 4 * 2);
+    const col = new Float32Array(n * 4 * 3);
+    const idx: number[] = [];
+    map.repeat.set(1, 1);
+    for (let i = 0; i < n; i++) {
+      const xa = x0 + i * stripe;
+      const xb = Math.min(x0 + len, xa + stripe);
+      const c = i % 2 ? dark : 1;
+      const v = [
+        [xa, zA],
+        [xb, zA],
+        [xb, zB],
+        [xa, zB],
+      ];
+      v.forEach(([x, z], k) => {
+        const o = i * 4 + k;
+        pos.set([x!, 0.006, z!], o * 3);
+        uv.set([x! / tileW, -z! / tileD], o * 2);
+        col.set([c, c, c], o * 3);
+      });
+      const b = i * 4;
+      idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
+    }
+    const g = this.own(new T.BufferGeometry());
+    g.setAttribute("position", new T.BufferAttribute(pos, 3));
+    g.setAttribute("uv", new T.BufferAttribute(uv, 2));
+    g.setAttribute("color", new T.BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    const mesh = new T.Mesh(g, this.own(new T.MeshLambertMaterial({ map, vertexColors: true })));
+    mesh.receiveShadow = true;
+    return mesh;
   }
 
   private billboardMat(map: THREE.Texture, tint = this.look.billboardTint): THREE.MeshBasicMaterial {
@@ -367,9 +414,10 @@ export class HD2DScene {
     const standImg = art.images.get("bb-grandstand");
     this.crowdTex = standImg ? [this.tex(standImg, { repeat: true })] : [0, 1].map((f) => this.tex(grandstandSprite(this.look, f), { repeat: true }));
     for (const t of this.crowdTex) t.wrapT = T.ClampToEdgeWrapping;
-    const modW = 34;
-    const mods = 6;
-    const standH = standImg ? (modW * standImg.height) / standImg.width : 17;
+    const standSrc = standImg ?? { width: 256, height: 128 };
+    const modW = standSrc.width / BG_PX_PER_M;
+    const mods = Math.max(3, Math.round(200 / modW));
+    const standH = standSrc.height / BG_PX_PER_M;
     for (const t of this.crowdTex) t.repeat.set(mods, 1);
     this.stand = new T.Mesh(this.own(new T.PlaneGeometry(modW * mods, standH)), this.billboardMat(this.crowdTex[0]!));
     this.stand.position.set(L - 50, standH / 2, far - 30);
@@ -418,9 +466,8 @@ export class HD2DScene {
       const img = art.images.get(stem);
       const canvas = img ?? treeSprite(this.look, kind, 51 + kind);
       const map = this.tex(canvas);
-      const pxPerM = kind === 2 ? 14 : 5.2;
-      const w = canvas.width / pxPerM;
-      const h = canvas.height / pxPerM;
+      const w = canvas.width / BG_PX_PER_M;
+      const h = canvas.height / BG_PX_PER_M;
       const geo = this.own(new T.PlaneGeometry(w, h));
       geo.translate(0, h / 2, 0);
       const count = kind === 2 ? 90 : 55;
