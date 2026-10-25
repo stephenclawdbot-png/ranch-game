@@ -176,24 +176,25 @@ export function raceRating(horse: Horse, tactic: RunningStyle, race: Pick<RaceCo
   const s = horse.stats;
   const D = race.distanceM;
   const adaptGap = 1000 - s.adaptability;
-  // Speed-equivalent weight of each stat (per point, speed = 1). Measured: tools/balance/stats.report.ts.
-  const staminaW = Math.min(1.4, Math.max(0.1, (D - 900) / 1000));
-  let r =
-    650 +
-    (s.speed - 650) +
-    (s.stamina - 650) * staminaW +
-    (s.burst - 650) * 0.35 +
-    (s.durability - 650) * 0.2 +
-    (s.temperament - 650) * 0.1;
-  // Condition penalties, converted from cruise mm/s to speed points (1.05 mm/s per point).
-  let penMmS = 0;
-  if (horse.preferredSurface !== race.surface) penMmS += 110 + (260 * adaptGap) / 1000;
-  penMmS += ({ firm: 0, good: 0, soft: 140, heavy: 300 }[race.going] * adaptGap) / 1000;
+  const matched = horse.style === tactic;
+  // Cruise-speed terms, mirroring packages/racing-engine/src/model.ts (mm/s).
+  let cruise = ((s.speed - 650) * 105) / 100;
+  if (horse.preferredSurface !== race.surface) cruise -= 40 + (110 * adaptGap) / 1000;
+  cruise -= ({ firm: 0, good: 0, soft: 140, heavy: 300 }[race.going] * adaptGap) / 1000;
   const distDelta = D - horse.preferredDistanceM;
-  if (distDelta < 0) penMmS += (-distDelta * (1100 - s.adaptability)) / 6000;
-  else penMmS += (distDelta * (1100 - s.adaptability)) / 6000; // stamina drain past the preferred trip
-  penMmS += horse.style === tactic ? -40 : 40;
-  r -= penMmS / 1.05;
+  if (distDelta < 0) cruise += (distDelta * (1100 - s.adaptability)) / 6000;
+  cruise += matched ? 15 : -15;
+  // Energy drain multiplier (permille), same terms as the engine.
+  const stamMul = 1000 + ((650 - s.stamina) * ((Math.max(0, D - 800) * 9) / 20)) / 1000;
+  const distMul = distDelta > 0 ? 1000 + (distDelta * (1100 - s.adaptability)) / 3000 : 1000;
+  const durMul = 1000 + (600 - s.durability) / 6;
+  const tacMul = matched ? 994 : 1006;
+  const drain = (stamMul * distMul * durMul * tacMul) / 1e9;
+  const drainRef = (1000 * 1000 * (1000 + (600 - 650) / 6) * 994) / 1e9; // a plain 650 horse, ideal conditions
+  // Convert to speed points. Weights measured with tools/balance/stats.report.ts: 1 permille of
+  // drain ~ 0.75 speed points; burst is worth more in sprints; temperament ~ 0.22.
+  const burstW = 0.4 - (D - 1000) / 7000;
+  const r = 650 + cruise / 1.05 - 0.75 * (drain - drainRef) + burstW * (s.burst - 650) + 0.22 * (s.temperament - 650);
   return Math.round(r);
 }
 
@@ -296,20 +297,17 @@ const QuickPayloadSchema = z.object({
 });
 type QuickPayload = z.infer<typeof QuickPayloadSchema>;
 
-/** Templates for quick races. `c` in the race id indexes this list. */
+/**
+ * Templates for quick races. `c` in the race id indexes this list. Quick races are where a new
+ * stable races, so they are mostly maiden and novice company (where modest starters can win),
+ * with a handicap now and then as a stretch target that pays more.
+ */
 const QUICK_TEMPLATES: readonly { distanceM: number; raceClass: RaceClass }[] = [
-  { distanceM: 1000, raceClass: "maiden" },
-  { distanceM: 1200, raceClass: "novice" },
+  ...DISTANCES_M.map((distanceM) => ({ distanceM, raceClass: "maiden" as const })),
+  ...DISTANCES_M.map((distanceM) => ({ distanceM, raceClass: "novice" as const })),
   { distanceM: 1200, raceClass: "handicap" },
-  { distanceM: 1400, raceClass: "maiden" },
-  { distanceM: 1400, raceClass: "novice" },
   { distanceM: 1600, raceClass: "handicap" },
-  { distanceM: 1600, raceClass: "novice" },
   { distanceM: 2000, raceClass: "handicap" },
-  { distanceM: 2000, raceClass: "maiden" },
-  { distanceM: 2400, raceClass: "novice" },
-  { distanceM: 2400, raceClass: "handicap" },
-  { distanceM: 1000, raceClass: "listed" },
 ];
 
 function b64urlEncode(s: string): string {

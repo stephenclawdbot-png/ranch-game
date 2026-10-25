@@ -63,12 +63,13 @@ All in `race/`, listed in `manifest.json` as `race.<stem>`. Every billboard/prop
 Mock composed scene (2D layers + 4 recoloured horses):
 `/tmp/claude-0/-home-user-ranch-game/3b0ae554-9522-55a6-a3b2-6050bd308c89/scratchpad/prev/mock-scene-3x.png`
 
-## pixel-rig (USABLE, being polished) — owner: pixel-rig agent
+## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 
-Code-animated HD-2D horse + jockey (`@thoroughbred/pixel-rig`), cut from PixelLab sources
-(`art-src/rig/raw/stand-a-0.png` + jockey inpainted on it) into a part atlas in `rig/`
-(`horse-rig.json`, `horse-parts.png` (4x RotSprite atlas), `horse-parts@1x.png`,
+Code-animated HD-2D horse + jockey (`@thoroughbred/pixel-rig`), cut from **256×192** PixelLab
+sources (`art-src/rig/raw/hd-stand.png` + jockey inpainted on it, `/normal-map` pro) into a part
+atlas in `rig/` (`horse-rig.json`, `horse-parts.png` (4x RotSprite atlas), `horse-parts@1x.png`,
 `horse-parts-normal.png`, `horse-parts-aux.png`). Rebuild: `python3 -I art-src/rig/build_rig.py`.
+Full docs: `packages/pixel-rig/README.md`.
 
 ```ts
 import { createHorseRigFactory, strideFrequency } from "@thoroughbred/pixel-rig";
@@ -82,13 +83,17 @@ rig.update(renderer, { phase, speedMs, drive, lightDir /* world, towards sun */,
 billboardMaterial.map = rig.texture;   // NearestFilter, no mipmaps, transparent background, alphaTest 0.5
 ```
 
-- **Texture**: `rig.width × rig.height` = **128 × 96** native px. Colour space **sRGB**
-  (SRGB8_ALPHA8 target, sampled as linear like any sRGB map). Alpha is 0/1.
-- **Anchor**: `rig.anchor` = ground contact under the barrel in texture px **from the top-left**
-  (currently x = 64, y = 89). Billboard: place so that UV (x/128, 1 - y/96) sits on the ground.
-  The horse faces +x (east/right); the near (visible) side is the horse's right.
-- Lighting is already done in the texture (sun → normals → palette ramp + dither + outline), so
-  use an unlit material (MeshBasicMaterial / custom) for the billboard; tint for fog is fine.
-- Cost: ~2 draw calls per rig per update (16 rigs ≈ 32 small draws). Call `rig.dispose()` /
-  `factory.dispose()`.
+- **Texture**: `rig.width × rig.height` = **256 × 192** native px (HD density 2; the sources are
+  rendered 1:1, nothing is downsampled; horse ≈ 190 px standing, ≈ 215 px galloping with the
+  tail out → 96 px/m puts it at ~2.2 m). Colour space **sRGB** (SRGB8_ALPHA8 target, sampled as
+  linear like any sRGB map). Alpha is 0/1.
+- **Anchor**: `rig.anchor` = ground contact under the barrel in texture px **from the top-left**:
+  **x = 128, y = 179**. Billboard: UV (x/256, 1 - y/192) sits on the ground. The horse faces +x
+  (east/right); the near (visible) side is the horse's right.
+- Lighting, palette quantisation, dithering and the outline are already in the texture: draw it
+  unlit (MeshBasicMaterial / custom); fog tint is fine.
+- Cost: 2 small draw calls per rig per update; CPU pose ~0.01 ms per rig. `rig.dispose()` /
+  `factory.dispose()`. Saddle cloths show the gate number.
+- Verified: `/dev/viewer?rig=1` and `/race/<id>?rig=1` with zero WebGL errors/warnings from the
+  rig (swiftshader / ANGLE in headless Chromium; no real GPU in this container).
 - Harness: `/dev/rig` (`?mode=grid|strip|morph|bench`), dev server port 3103.

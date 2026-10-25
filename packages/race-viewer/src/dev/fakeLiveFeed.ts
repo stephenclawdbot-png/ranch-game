@@ -2,13 +2,13 @@
  * DEV ONLY: a LiveRaceFeed driven by a full replay, mimicking the server's broadcast
  * (frames up to the live edge, polled every `pollMs`; `final` once the field is home).
  */
-import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
+import { BROADCAST_DELAY_S, type LiveRaceFeed, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 
 export interface FakeLiveFeed extends LiveRaceFeed {
   stop(): void;
 }
 
-export function fakeLiveFeed(replay: RaceReplay, broadcastStartMs: number, pollMs = 500): FakeLiveFeed {
+export function fakeLiveFeed(replay: RaceReplay, broadcastStartMs: number, pollMs = 1000): FakeLiveFeed {
   const listeners = new Set<() => void>();
   const frameDt = replay.sampleEvery / replay.tickHz;
   const lastFrame = replay.frames.length - 1;
@@ -20,7 +20,9 @@ export function fakeLiveFeed(replay: RaceReplay, broadcastStartMs: number, pollM
   };
   const poll = () => {
     const t = (Date.now() - broadcastStartMs) / 1000;
-    const edge = Math.min(lastFrame, Math.floor(t / frameDt));
+    // The server reveals frames up to the simulation clock, which runs
+    // BROADCAST_DELAY_S ahead of the display clock (so polling never starves playback).
+    const edge = Math.min(lastFrame, Math.floor((t + BROADCAST_DELAY_S) / frameDt));
     if (edge > state.liveEdgeFrame) {
       // Arrays only ever grow (new array identity each poll, like a real client).
       state.frames = [...state.frames, ...replay.frames.slice(state.liveEdgeFrame + 1, edge + 1).map((f) => [...f])];

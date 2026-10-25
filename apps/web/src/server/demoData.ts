@@ -129,11 +129,11 @@ const ARCHETYPE_IDS = Object.keys(ARCHETYPES) as Archetype[];
 
 const STAT_KEYS: readonly (keyof HorseStats)[] = ["speed", "stamina", "burst", "durability", "adaptability", "temperament"];
 
-function makeStats(rng: Rng, quality: number, archetype: Archetype): HorseStats {
+function makeStats(rng: Rng, quality: number, archetype: Archetype, cap = 990): HorseStats {
   const mods = ARCHETYPES[archetype].mods;
   const out = {} as HorseStats;
   for (const key of STAT_KEYS) {
-    out[key] = clamp(quality + mods[key] + rng.int(-70, 70), 80, 990);
+    out[key] = clamp(quality + mods[key] + rng.int(-70, 70), 80, cap);
   }
   return out;
 }
@@ -273,6 +273,10 @@ export function defaultPlayerSilks(playerId: string): Silks {
   return { pattern: rng.pick(SILK_PATTERNS).id, primary, secondary, cap: secondary };
 }
 
+/** Starter base quality range and per-stat ceiling (~70% of the 1000 scale: a "C grade" at best). */
+export const STARTER_QUALITY: readonly [number, number] = [500, 570];
+export const STARTER_STAT_CAP = 700;
+
 /** One distinct archetype per starter so every stable has a sprinter, a stayer, a closer... */
 const STARTER_ARCHETYPES: readonly Archetype[] = ["sprinter", "miler", "stayer", "closer", "frontrunner", "allrounder"];
 
@@ -304,8 +308,9 @@ export function starterHorses(playerId: string, silks?: Silks): Horse[] {
       ownerId: playerId,
       sireId: null,
       damId: null,
-      // Starters are solid but not stars: comparable to a mid-pool rival.
-      stats: makeStats(rng, rng.int(520, 620), archetype),
+      // Starters are modest (progression starts from the ground up): maiden/novice level,
+      // with an archetype niche rather than raw power, and no stat above STARTER_STAT_CAP.
+      stats: makeStats(rng, rng.int(STARTER_QUALITY[0], STARTER_QUALITY[1]), archetype, STARTER_STAT_CAP),
       preferredDistanceM: rng.pick(def.distances),
       preferredSurface: preferredSurface(rng, archetype),
       style: rng.pick(def.styles),
