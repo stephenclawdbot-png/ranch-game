@@ -1,1 +1,13 @@
-{ "compilerOptions": { "target": "es2022", "module": "commonjs", "esModuleInterop": true, "strict": true, "skipLibCheck": true, "resolveJsonModule": true }, "include": ["hardhat.config.ts", "scripts", "test", "typechain-types"] }
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["hardhat.config.ts", "scripts", "test", "adapter", "typechain-types", "artifacts/**/*.d.ts"]
+}

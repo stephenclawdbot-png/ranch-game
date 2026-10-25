@@ -6,7 +6,9 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "typecheck": "tsc -p . --noEmit"
+    "typecheck": "hardhat compile --quiet && tsc -p . --noEmit",
+    "coverage": "SOLIDITY_COVERAGE=true hardhat coverage",
+    "deploy:robinhood": "hardhat run scripts/deploy.ts --network robinhood"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.17",
@@ -26,5 +28,10 @@
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
     "viem": "2.57.11"
+  },
+  "description": "Robinhood Chain (EVM) contracts + server chain adapter for Project Thoroughbred. Web3 is optional and off by default.",
+  "exports": {
+    "./adapter": "./adapter/index.ts",
+    "./package.json": "./package.json"
   }
 }
