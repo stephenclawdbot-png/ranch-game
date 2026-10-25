@@ -9,6 +9,7 @@ import {
   WEATHER_LOOKS,
   cloudTexture,
   grandstandTexture,
+  softDotTexture,
   hillsTexture,
   skyTexture,
   skylineTexture,
@@ -30,6 +31,8 @@ export class Backdrop {
   readonly view = new Container();
   readonly look: WeatherLook;
   private sky: Sprite;
+  private sun = new Graphics();
+  private sunGlow: Sprite | null = null;
   private clouds: TilingSprite;
   private hills: TilingSprite;
   private skyline: TilingSprite;
@@ -56,14 +59,21 @@ export class Backdrop {
     this.standTo = finishX * MID + 26;
     const trees = [0, 1, 2].map((i) => t(treeTexture(look, 51 + i)));
     const r = rng(61);
-    const step = quality === "high" ? 7 : 12;
+    const step = quality === "high" ? 4.5 : 7;
     for (let L = -40; L < finishX * MID + 80; L += step + r() * step) {
       if (L > this.standFrom - 6 && L < this.standTo + 4) continue;
       const s = new Sprite(trees[Math.floor(r() * trees.length)]!);
       s.anchor.set(0.5, 1);
       this.props.push({ sprite: s, layerX: L, heightH: 0.13 + r() * 0.09 });
     }
-    this.view.addChild(this.sky, this.clouds, this.hills, this.skyline);
+    this.view.addChild(this.sky);
+    if (look.sun) {
+      this.sunGlow = new Sprite(t(softDotTexture()));
+      this.sunGlow.anchor.set(0.5);
+      this.sunGlow.tint = hex(look.sun.glowHex);
+      this.view.addChild(this.sunGlow, this.sun);
+    }
+    this.view.addChild(this.clouds, this.hills, this.skyline);
     for (const p of this.props) this.view.addChild(p.sprite);
     this.view.addChild(this.standShadow, this.stand, this.flags, this.apron);
     this.clouds.alpha = look.cloudAlpha;
@@ -79,6 +89,17 @@ export class Backdrop {
     const base = this.apronTop(p);
     this.sky.width = W;
     this.sky.height = Math.max(base + 4, H * 0.62);
+    if (this.look.sun && this.sunGlow) {
+      const s = this.look.sun;
+      // Barely drifts with the camera (very far away).
+      const sx = W * s.x - ((p.camX * 0.01 * p.ppm) % (W * 0.2));
+      const sy = this.sky.height * s.y;
+      const r = Math.max(10, H * 0.035) * (s.r / 26);
+      this.sun.clear().circle(sx, sy, r).fill(hex(s.disc));
+      this.sunGlow.position.set(sx, sy);
+      this.sunGlow.width = this.sunGlow.height = r * 9;
+      this.sunGlow.alpha = 0.55;
+    }
 
     const strip = (s: TilingSprite, factor: number, heightPx: number, bottom: number, drift = 0) => {
       const tex = s.texture;
@@ -132,6 +153,7 @@ export class Backdrop {
 
     // Flags on the stand roof.
     this.flags.clear();
+    const poleColor = 0x6d747a;
     if (this.stand.visible) {
       const roofY = base - standH + 2 + standH * (26 / 300);
       let i = 0;
@@ -139,7 +161,7 @@ export class Backdrop {
         const fx = p.layerX(L, MID);
         if (fx < -40 || fx > W + 40) continue;
         const pole = standH * 0.2;
-        this.flags.rect(fx - 0.8, roofY - pole, 1.6, pole).fill(0xdedede);
+        this.flags.rect(fx - 1, roofY - pole, 2, pole + 2).fill(poleColor);
         const fw = pole * 0.62;
         const fh = pole * 0.36;
         const top = roofY - pole;

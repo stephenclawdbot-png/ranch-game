@@ -146,11 +146,11 @@ export class TrackFurniture {
     // Winning post: red/white pole with the roundel.
     const sxF = p.x(L, tr);
     if (sxF > -80 && sxF < p.W + 80) {
-      const h = 4.4 * k;
-      const w = Math.max(2, 0.16 * k);
+      const h = 3.5 * k;
+      const w = Math.max(2, 0.14 * k);
       g.rect(sxF - w / 2, base - h, w, h).fill(0xffffff);
       for (let s = 0; s < 11; s += 2) g.rect(sxF - w / 2, base - h + (h * s) / 11, w, h / 11).fill(0xd71920);
-      const R = 0.55 * k;
+      const R = 0.42 * k;
       g.circle(sxF, base - h - R * 0.6, R).fill(0xd71920);
       g.circle(sxF, base - h - R * 0.6, R * 0.62).fill(0xffffff);
       g.circle(sxF, base - h - R * 0.6, R * 0.2).fill(0xd71920);
@@ -251,20 +251,15 @@ export class StartingGate {
         );
       }
     });
-    // Roof beam across all stalls (front edge), with stall numbers.
+    // Open-topped stalls (a side-on camera looks into them): only a thin head-height
+    // tube runs along the front of the stalls.
     const t0 = this.boundaries[0]!;
     const t1 = this.boundaries[this.boundaries.length - 1]!;
-    const beam = (x: number, tt: number, h: number) => [p.x(x, tt), p.y(tt) - h * p.k(tt)];
+    const pipe = (tt: number) => Math.max(1, 0.07 * p.k(tt));
     this.roofG
-      .poly([...beam(BACK, t0, 2.95), ...beam(FRONT, t0, 2.95), ...beam(FRONT, t1, 2.95), ...beam(BACK, t1, 2.95)])
-      .fill({ color: 0x174f34, alpha: 0.9 });
-    this.roofG.poly([...beam(FRONT, t0, 2.95), ...beam(FRONT, t1, 2.95), ...beam(FRONT, t1, 2.55), ...beam(FRONT, t0, 2.55)]).fill(0x2f9a63);
-    this.laneDepths.forEach((t, i) => {
-      const txt = this.numbers[i]!;
-      const k = p.k(t);
-      txt.position.set(p.x(FRONT, t), p.y(t) - 2.75 * k);
-      txt.scale.set((0.3 * k) / 26);
-    });
+      .poly([p.x(FRONT, t0), p.y(t0) - 2.55 * p.k(t0), p.x(FRONT, t1), p.y(t1) - 2.55 * p.k(t1), p.x(FRONT, t1), p.y(t1) - 2.55 * p.k(t1) + pipe(t1), p.x(FRONT, t0), p.y(t0) - 2.55 * p.k(t0) + pipe(t0)])
+      .fill({ color: 0xe9ecea, alpha: 0.9 });
+    for (const txt of this.numbers) txt.visible = false;
   }
 
   destroy(): void {

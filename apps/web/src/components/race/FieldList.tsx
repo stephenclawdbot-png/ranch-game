@@ -19,8 +19,8 @@ export function FieldList({ card, highlightHorseId }: { card: RaceCard; highligh
             <tr>
               <th scope="col" className="w-12 py-2.5 pl-4 font-semibold">Gate</th>
               <th scope="col" className="py-2.5 pl-2 font-semibold">Runner</th>
-              <th scope="col" className="hidden py-2.5 font-semibold sm:table-cell">Ride</th>
-              <th scope="col" className="hidden py-2.5 font-semibold md:table-cell">Trip</th>
+              <th scope="col" className="hidden py-2.5 pr-4 font-semibold sm:table-cell">Ride</th>
+              <th scope="col" className="hidden py-2.5 pr-4 font-semibold md:table-cell">Trip</th>
               <th scope="col" className="py-2.5 pr-4 text-right font-semibold" title="Speed / Stamina / Burst grades">
                 Spd·Sta·Brs
               </th>
@@ -55,8 +55,8 @@ export function FieldList({ card, highlightHorseId }: { card: RaceCard; highligh
                       </div>
                     </div>
                   </td>
-                  <td className="hidden py-2.5 text-cream-dim sm:table-cell">{STYLE_SHORT[e.tactic]}</td>
-                  <td className="hidden py-2.5 tabular text-cream-dim md:table-cell">{formatDistance(e.horse.preferredDistanceM)}</td>
+                  <td className="hidden whitespace-nowrap py-2.5 pr-4 text-cream-dim sm:table-cell">{STYLE_SHORT[e.tactic]}</td>
+                  <td className="hidden whitespace-nowrap py-2.5 pr-4 tabular text-cream-dim md:table-cell">{formatDistance(e.horse.preferredDistanceM)}</td>
                   <td className="whitespace-nowrap py-2.5 pr-4 pl-2 text-right font-mono text-xs tracking-wider text-cream">
                     {statGrade(e.horse.stats.speed)}·{statGrade(e.horse.stats.stamina)}·{statGrade(e.horse.stats.burst)}
                   </td>

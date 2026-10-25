@@ -8,7 +8,7 @@ import { rng } from "./draw";
 
 export interface WeatherLook {
   skyStops: [number, string][];
-  sun: { x: number; y: number; r: number; color: string; glow: string } | null;
+  sun: { x: number; y: number; r: number; color: string; glow: string; disc: string; glowHex: string } | null;
   cloud: string;
   cloudAlpha: number;
   farHills: string;
@@ -34,7 +34,7 @@ export const WEATHER_LOOKS: Record<Weather, WeatherLook> = {
       [0.55, "#79aee3"],
       [1, "#d4ecf7"],
     ],
-    sun: { x: 0.8, y: 0.16, r: 26, color: "rgba(255,252,235,1)", glow: "rgba(255,244,210,0.55)" },
+    sun: { x: 0.8, y: 0.34, r: 26, color: "rgba(255,252,235,1)", glow: "rgba(255,244,210,0.55)", disc: "#fffbea", glowHex: "#fff1c4" },
     cloud: "#ffffff",
     cloudAlpha: 0.85,
     farHills: "#93b4c9",
@@ -101,7 +101,7 @@ export const WEATHER_LOOKS: Record<Weather, WeatherLook> = {
       [0.75, "#e0705a"],
       [1, "#f7b35e"],
     ],
-    sun: { x: 0.18, y: 0.42, r: 34, color: "rgba(255,214,140,1)", glow: "rgba(255,150,80,0.6)" },
+    sun: { x: 0.18, y: 0.62, r: 34, color: "rgba(255,214,140,1)", glow: "rgba(255,150,80,0.6)", disc: "#ffd98c", glowHex: "#ff9a50" },
     cloud: "#f2a07a",
     cloudAlpha: 0.6,
     farHills: "#6a4a74",
@@ -130,7 +130,8 @@ function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContex
 
 function toTexture(c: HTMLCanvasElement, repeat = false): Texture {
   return new Texture({
-    source: new CanvasSource({ resource: c, addressMode: repeat ? "repeat" : "clamp-to-edge", scaleMode: "linear" }),
+    // Tiling strips repeat horizontally only; wrapping vertically bleeds the bottom row into the top edge.
+    source: new CanvasSource({ resource: c, addressModeU: repeat ? "repeat" : "clamp-to-edge", addressModeV: "clamp-to-edge", scaleMode: "linear" }),
   });
 }
 
@@ -147,19 +148,6 @@ export function skyTexture(look: WeatherLook): Texture {
   for (const [o, col] of look.skyStops) g.addColorStop(o, col);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 512);
-  if (look.sun) {
-    const sx = look.sun.x * 512;
-    const sy = look.sun.y * 512;
-    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 220);
-    glow.addColorStop(0, look.sun.glow);
-    glow.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, 512, 512);
-    ctx.fillStyle = look.sun.color;
-    ctx.beginPath();
-    ctx.arc(sx, sy, look.sun.r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
   return toTexture(c);
 }
 

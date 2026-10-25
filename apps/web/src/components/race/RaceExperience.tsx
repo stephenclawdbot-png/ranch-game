@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/server/races";
 import { useClockSkew, useNow } from "@/lib/clock";
 import { CLASS_LABEL, formatClock, formatCountdown, formatCredits, ordinal } from "@/lib/format";
-import { settleRace, usePlayerState } from "@/lib/player";
+import { getPlayerState, settleRace, usePlayerState } from "@/lib/player";
 import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { ArrowIcon } from "../icons";
@@ -15,6 +15,28 @@ import { FieldList } from "./FieldList";
 import { ResultsTable } from "./ResultsTable";
 
 type Phase = "loading" | "pre" | "live" | "result";
+
+const REVEALED_KEY = "thoroughbred:revealed";
+
+function revealedIds(): string[] {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(REVEALED_KEY) ?? "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function wasRevealed(id: string): boolean {
+  return revealedIds().includes(id);
+}
+function markRevealed(id: string): void {
+  try {
+    const ids = revealedIds().filter((x) => x !== id);
+    window.localStorage.setItem(REVEALED_KEY, JSON.stringify([id, ...ids].slice(0, 50)));
+  } catch {
+    /* storage unavailable: results simply wait for the real-time finish */
+  }
+}
 
 function durationMs(r: RaceReplay): number {
   return Math.ceil((r.totalTicks * 1000) / r.tickHz);
@@ -30,10 +52,11 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
   const [replay, setReplay] = useState<RaceReplay | null>(null);
   const [replayError, setReplayError] = useState<string | null>(null);
   const [viewerDone, setViewerDone] = useState(false);
+  // If this browser already saw the finish (e.g. fast-forwarded, then reloaded), show the result straight away.
+  useEffect(() => {
+    if (wasRevealed(card.id) || getPlayerState()?.progress.settled[card.id]) setViewerDone(true);
+  }, [card.id]);
   const [settlement, setSettlement] = useState<{ prize: number; position: number; fresh: boolean } | null>(null);
-  /** Did this page see the race before the off? Then it watches live; otherwise it opens on the result. */
-  const arrivedAt = useRef<number | null>(null);
-  if (arrivedAt.current === null && now !== null) arrivedAt.current = now;
 
   const mine = state && card.playerId === state.player.playerId ? card.field.find((e) => e.isPlayer) ?? null : null;
   const highlightHorseId = mine?.horse.id;
@@ -68,7 +91,6 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
   const endsAt = replay ? localPost + durationMs(replay) : null;
   const phase: Phase =
     now === null ? "loading" : now < localPost ? "pre" : replay && (viewerDone || (endsAt !== null && now >= endsAt)) ? "result" : "live";
-  const watchedLive = arrivedAt.current !== null && endsAt !== null && arrivedAt.current < endsAt;
 
   // Settle once per raceId (client-side ledger until Milestone C).
   useEffect(() => {
@@ -91,7 +113,23 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
     setSettlement((s) => s ?? { prize: rec.prize, position: rec.position, fresh });
   }, [phase, replay, mine, state, card.id, card.field.length, config]);
 
-  const onFinished = useCallback(() => setViewerDone(true), []);
+  const onFinished = useCallback(() => {
+    markRevealed(card.id);
+    setViewerDone(true);
+  }, [card.id]);
+
+  // One stage height for countdown and viewer, so the page doesn't jump at the off.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageHeight, setStageHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const measure = () => setStageHeight(Math.round(Math.min(540, Math.max(300, el.clientWidth * 0.52))));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const statusPill =
     phase === "pre" ? (
@@ -108,10 +146,6 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
       <span className="chip opacity-0">…</span>
     );
 
-  const viewerProps = useMemo(
-    () => (watchedLive ? { startAtMs: localPost, autoplay: true } : { autoplay: false }),
-    [watchedLive, localPost],
-  );
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -158,15 +192,27 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
       )}
 
       <section aria-label="Race" className="grid gap-4">
-        <div className="relative overflow-hidden rounded-2xl border border-brass/15 bg-turf-900" data-testid="race-stage">
+        <div
+          ref={stageRef}
+          className="relative h-[clamp(300px,calc((min(100vw,72rem)-3rem)*0.52),540px)] overflow-hidden rounded-2xl border border-brass/15 bg-turf-900"
+          style={{ height: stageHeight ?? undefined }}
+          data-testid="race-stage"
+        >
           {phase === "pre" || phase === "loading" ? (
             <PreRace localPost={localPost} now={now} card={card} />
           ) : replay ? (
             <div data-testid="viewer">
-              <RaceViewerClient replay={replay} highlightHorseId={highlightHorseId} onFinished={onFinished} {...viewerProps} />
+              <RaceViewerClient
+                replay={replay}
+                highlightHorseId={highlightHorseId}
+                onFinished={onFinished}
+                height={stageHeight ?? 420}
+                startAtMs={localPost}
+                autoplay
+              />
             </div>
           ) : (
-            <div className="flex aspect-[16/9] items-center justify-center text-sm text-sage">
+            <div className="flex h-full min-h-64 items-center justify-center text-sm text-sage">
               {replayError ? `Couldn't load the race (${replayError}). Refresh to retry.` : "They're under starter's orders…"}
             </div>
           )}
@@ -191,7 +237,7 @@ function PreRace({ localPost, now, card }: { localPost: number; now: number | nu
   const remaining = now === null ? null : localPost - now;
   const loading = remaining !== null && remaining < 10_000;
   return (
-    <div className="relative flex aspect-[16/9] min-h-64 w-full flex-col items-center justify-center overflow-hidden px-6 text-center">
+    <div className="relative flex h-full min-h-64 w-full flex-col items-center justify-center overflow-hidden px-6 text-center">
       {/* Turf stripes */}
       <div
         className="absolute inset-0 opacity-60"

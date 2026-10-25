@@ -25,7 +25,7 @@ export class Projection {
   setSize(W: number, H: number): void {
     this.W = W;
     this.H = H;
-    this.ppm = Math.min(H / 12.5, W / 18.5);
+    this.ppm = Math.min(H / 9.8, W / 10.5);
     this.farY = H * 0.545;
     this.nearY = H * 0.865;
     this.pivotY = (this.farY + this.nearY) / 2;

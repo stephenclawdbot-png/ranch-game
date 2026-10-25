@@ -220,16 +220,16 @@ export default function PlayPage() {
         </div>
 
         <aside className="order-1 md:sticky md:top-24 md:order-2" aria-label="Preview">
-          <div className="panel overflow-hidden">
-            <div className="relative flex items-center justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(201,162,74,0.18),transparent_65%)] px-6 pb-4 pt-7">
-              <Silks silks={silks} className="h-32 w-32 drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] md:h-44 md:w-44" title="Your racing silks" />
+          <div className="panel flex items-center overflow-hidden md:block">
+            <div className="relative flex shrink-0 items-center justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(201,162,74,0.18),transparent_65%)] px-4 py-3 md:px-6 md:pb-4 md:pt-7">
+              <Silks silks={silks} className="h-20 w-20 drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] md:h-44 md:w-44" title="Your racing silks" />
             </div>
-            <div className="border-t border-brass/15 px-5 py-4 text-center">
+            <div className="min-w-0 py-4 pr-5 md:border-t md:border-brass/15 md:px-5 md:text-center">
               <p className="eyebrow !text-[0.6rem]">Registered colours</p>
               <p className="display mt-1 truncate text-xl font-semibold" data-testid="preview-name">
                 {name.trim() || "Your stable"}
               </p>
-              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-sage">
+              <div className="mt-2 flex items-center gap-2 text-xs text-sage md:mt-3 md:justify-center">
                 <Crest className="h-4 w-4" /> Thoroughbred Racing Club
               </div>
             </div>

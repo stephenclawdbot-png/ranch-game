@@ -157,6 +157,7 @@ async function main() {
     });
     const m = await mobile.newPage();
     m.on("pageerror", (e) => errors.push(`mobile pageerror: ${e.message}`));
+    m.on("console", (msg) => msg.type() === "error" && errors.push(`mobile console: ${msg.text()}`));
     for (const [name, path, ready] of [
       ["mobile-paddock", "/", "next-race"],
       ["mobile-stable", "/stable", "horse-card"],
@@ -178,7 +179,8 @@ async function main() {
     await m.getByLabel("Stable name").waitFor();
     await shot(m, "mobile-play");
 
-    const fatal = errors.filter((e) => !/Download the React DevTools|favicon/i.test(e));
+    // caret-color is injected by Playwright screenshots into focused inputs, not an app bug.
+    const fatal = errors.filter((e) => !/Download the React DevTools|favicon|caret-color/i.test(e));
     if (fatal.length) log("browser errors:\n  " + fatal.join("\n  "));
     log("PASS");
   } finally {
