@@ -15,6 +15,13 @@
       "when": 1792951490663,
       "tag": "0001_integrity_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792952266839,
+      "tag": "0002_gamecore_sync",
+      "breakpoints": true
     }
   ]
 }
