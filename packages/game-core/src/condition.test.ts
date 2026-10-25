@@ -83,3 +83,16 @@ describe("injury risk (shown before entry)", () => {
     expect(hoursToHeal({ ...inj, bonusUnits: 24 }, T0)).toBe(48);
   });
 });
+
+import { treatInjury } from "./condition";
+import { pedigreeScan } from "./phenotype";
+describe("vet and scan helpers", () => {
+  it("vet treatment adds 24 h of healing; scan is idempotent", () => {
+    const h = { ...base, injury: { severity: "minor" as const, atMs: T0, unitsRequired: 72, bonusUnits: 0, vetLevel: 0, source: "x" } };
+    expect(treatInjury(h).injury!.bonusUnits).toBe(24);
+    expect(treatInjury(base)).toBe(base);
+    const s = pedigreeScan(base);
+    expect(s.reveal.scanned).toBe(true);
+    expect(pedigreeScan(s)).toBe(s);
+  });
+});

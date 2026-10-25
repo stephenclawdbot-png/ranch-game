@@ -80,3 +80,11 @@ describe("eligibility", () => {
     expect(TIER_RULES.trial.rated).toBe(false);
   });
 });
+
+import { ownerShareOk } from "./eligibility";
+describe("matchmaking", () => {
+  it("an owner can fill at most half a field", () => {
+    expect(ownerShareOk(5, 12)).toBe(true);
+    expect(ownerShareOk(6, 12)).toBe(false);
+  });
+});

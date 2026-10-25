@@ -267,3 +267,8 @@ export function raceSnapshot(state: HorseState, ctx: SnapshotContext): Snapshot 
 export function toSharedHorse(state: HorseState, nowMs: number, silks: Silks): Horse {
   return raceSnapshot(state, { nowMs, silks }).horse;
 }
+
+/** Pedigree Scan (charge PEDIGREE_SCAN_COST credits): narrows every revealed range for good. */
+export function pedigreeScan(state: HorseState): HorseState {
+  return state.reveal.scanned ? state : { ...state, reveal: { ...state.reveal, scanned: true } };
+}

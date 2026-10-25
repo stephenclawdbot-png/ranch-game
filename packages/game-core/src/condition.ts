@@ -208,3 +208,9 @@ export function hoursToHeal(injury: Injury, nowMs: number): number {
 /** Care session during recovery: +12 h; vet treatment: +24 h. */
 export const CARE_HEAL_BONUS_H = 12;
 export const VET_HEAL_BONUS_H = 24;
+
+/** Vet treatment during recovery (charge VET_TREATMENT_COST credits): +24 h of healing. */
+export function treatInjury<T extends { injury: Injury | null }>(state: T): T {
+  if (!state.injury) return state;
+  return { ...state, injury: { ...state.injury, bonusUnits: state.injury.bonusUnits + VET_HEAL_BONUS_H } };
+}

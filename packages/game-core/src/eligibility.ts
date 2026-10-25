@@ -130,3 +130,11 @@ export function eligibleTiers(state: HorseState, nowMs: number): RaceTier[] {
   });
   return TIER_ORDER.filter((t) => entryBlock(state, fake(t), nowMs) === null);
 }
+
+/**
+ * Matchmaking (§4d): one owner may not make up more than half of a field. Returns true when
+ * one more entry from this owner is allowed.
+ */
+export function ownerShareOk(ownerEntriesInRace: number, maxRunners: number): boolean {
+  return ownerEntriesInRace + 1 <= Math.floor(maxRunners / 2);
+}
