@@ -1112,6 +1112,1913 @@
    "sourcePrompt": "/create-tiles-pro: <423 chars> | post: tiled from tex-turf",
    "optimizationTier": "background",
    "src": "race/track-turf.png"
+  },
+  {
+   "id": "portrait.horse-bay",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "bay"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars>",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-bay.png"
+  },
+  {
+   "id": "portrait.horse-black",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "black"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to black",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-black.png"
+  },
+  {
+   "id": "portrait.horse-buckskin",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "buckskin"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to buckskin",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-buckskin.png"
+  },
+  {
+   "id": "portrait.horse-chestnut",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "chestnut"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to chestnut",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-chestnut.png"
+  },
+  {
+   "id": "portrait.horse-dapple_grey",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "dapple_grey"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dapple_grey",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-dapple_grey.png"
+  },
+  {
+   "id": "portrait.horse-dark_bay",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "dark_bay"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dark_bay",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-dark_bay.png"
+  },
+  {
+   "id": "portrait.horse-grey",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "grey"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to grey",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-grey.png"
+  },
+  {
+   "id": "portrait.horse-liver_chestnut",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "liver_chestnut"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to liver_chestnut",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-liver_chestnut.png"
+  },
+  {
+   "id": "portrait.horse-palomino",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "palomino"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to palomino",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-palomino.png"
+  },
+  {
+   "id": "portrait.horse-roan",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "roan"
+   ],
+   "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to roan",
+   "optimizationTier": "hero",
+   "src": "portraits/horse-roan.png"
+  },
+  {
+   "id": "ui.button-green-hover",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 56,
+   "frameHeight": 30,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:9,14,9,14"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button-green-hover.png"
+  },
+  {
+   "id": "ui.button-green-pressed",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 56,
+   "frameHeight": 30,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:9,14,9,14"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button-green-pressed.png"
+  },
+  {
+   "id": "ui.button-green",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 56,
+   "frameHeight": 30,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:9,14,9,14"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button-green.png"
+  },
+  {
+   "id": "ui.button-hover",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 25,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:8,12,8,12"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button-hover.png"
+  },
+  {
+   "id": "ui.button-pressed",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 25,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:8,12,8,12"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button-pressed.png"
+  },
+  {
+   "id": "ui.button",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 25,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:8,12,8,12"
+   ],
+   "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/button.png"
+  },
+  {
+   "id": "ui.card-9slice",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 72,
+   "frameHeight": 72,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:24,24,24,24"
+   ],
+   "sourcePrompt": "generate-ui-v2: square game UI card frame: warm cream #f3e7c9 parchment paper fill with a thin oxblood red #7a1f1f double border line and small brass corner ornaments, subtle paper texture, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/card-9slice.png"
+  },
+  {
+   "id": "ui.icon-apple",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: apple",
+   "optimizationTier": "standard",
+   "src": "ui/icon-apple.png"
+  },
+  {
+   "id": "ui.icon-badge-bronze",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-bronze",
+   "optimizationTier": "standard",
+   "src": "ui/icon-badge-bronze.png"
+  },
+  {
+   "id": "ui.icon-badge-gold",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-gold",
+   "optimizationTier": "standard",
+   "src": "ui/icon-badge-gold.png"
+  },
+  {
+   "id": "ui.icon-badge-silver",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-silver",
+   "optimizationTier": "standard",
+   "src": "ui/icon-badge-silver.png"
+  },
+  {
+   "id": "ui.icon-bell",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: bell",
+   "optimizationTier": "standard",
+   "src": "ui/icon-bell.png"
+  },
+  {
+   "id": "ui.icon-binoculars-leather",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: binoculars-leather",
+   "optimizationTier": "standard",
+   "src": "ui/icon-binoculars-leather.png"
+  },
+  {
+   "id": "ui.icon-binoculars",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: binoculars",
+   "optimizationTier": "standard",
+   "src": "ui/icon-binoculars.png"
+  },
+  {
+   "id": "ui.icon-body-brush",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: body-brush",
+   "optimizationTier": "standard",
+   "src": "ui/icon-body-brush.png"
+  },
+  {
+   "id": "ui.icon-boots",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: boots",
+   "optimizationTier": "standard",
+   "src": "ui/icon-boots.png"
+  },
+  {
+   "id": "ui.icon-bridle",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: bridle",
+   "optimizationTier": "standard",
+   "src": "ui/icon-bridle.png"
+  },
+  {
+   "id": "ui.icon-calendar-day",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: calendar-day",
+   "optimizationTier": "standard",
+   "src": "ui/icon-calendar-day.png"
+  },
+  {
+   "id": "ui.icon-calendar",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: calendar",
+   "optimizationTier": "standard",
+   "src": "ui/icon-calendar.png"
+  },
+  {
+   "id": "ui.icon-cap-checked",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: cap-checked",
+   "optimizationTier": "standard",
+   "src": "ui/icon-cap-checked.png"
+  },
+  {
+   "id": "ui.icon-cap-green",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: cap-green",
+   "optimizationTier": "standard",
+   "src": "ui/icon-cap-green.png"
+  },
+  {
+   "id": "ui.icon-carrots",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: carrots",
+   "optimizationTier": "standard",
+   "src": "ui/icon-carrots.png"
+  },
+  {
+   "id": "ui.icon-chips",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: chips",
+   "optimizationTier": "standard",
+   "src": "ui/icon-chips.png"
+  },
+  {
+   "id": "ui.icon-club-crest",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: club-crest",
+   "optimizationTier": "standard",
+   "src": "ui/icon-club-crest.png"
+  },
+  {
+   "id": "ui.icon-coin",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: coin",
+   "optimizationTier": "standard",
+   "src": "ui/icon-coin.png"
+  },
+  {
+   "id": "ui.icon-crest-shield",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: crest-shield",
+   "optimizationTier": "standard",
+   "src": "ui/icon-crest-shield.png"
+  },
+  {
+   "id": "ui.icon-feed-bucket",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: feed-bucket",
+   "optimizationTier": "standard",
+   "src": "ui/icon-feed-bucket.png"
+  },
+  {
+   "id": "ui.icon-flag",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: flag",
+   "optimizationTier": "standard",
+   "src": "ui/icon-flag.png"
+  },
+  {
+   "id": "ui.icon-garland",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: garland",
+   "optimizationTier": "standard",
+   "src": "ui/icon-garland.png"
+  },
+  {
+   "id": "ui.icon-gate",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: gate",
+   "optimizationTier": "standard",
+   "src": "ui/icon-gate.png"
+  },
+  {
+   "id": "ui.icon-goggles",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: goggles",
+   "optimizationTier": "standard",
+   "src": "ui/icon-goggles.png"
+  },
+  {
+   "id": "ui.icon-grooming-brush",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: grooming-brush",
+   "optimizationTier": "standard",
+   "src": "ui/icon-grooming-brush.png"
+  },
+  {
+   "id": "ui.icon-hay",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: hay",
+   "optimizationTier": "standard",
+   "src": "ui/icon-hay.png"
+  },
+  {
+   "id": "ui.icon-horse-head",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horse-head",
+   "optimizationTier": "standard",
+   "src": "ui/icon-horse-head.png"
+  },
+  {
+   "id": "ui.icon-horseshoe-iron",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe-iron",
+   "optimizationTier": "standard",
+   "src": "ui/icon-horseshoe-iron.png"
+  },
+  {
+   "id": "ui.icon-horseshoe-pair",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe-pair",
+   "optimizationTier": "standard",
+   "src": "ui/icon-horseshoe-pair.png"
+  },
+  {
+   "id": "ui.icon-horseshoe",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe",
+   "optimizationTier": "standard",
+   "src": "ui/icon-horseshoe.png"
+  },
+  {
+   "id": "ui.icon-jug",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: jug",
+   "optimizationTier": "standard",
+   "src": "ui/icon-jug.png"
+  },
+  {
+   "id": "ui.icon-lantern",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: lantern",
+   "optimizationTier": "standard",
+   "src": "ui/icon-lantern.png"
+  },
+  {
+   "id": "ui.icon-laurel",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: laurel",
+   "optimizationTier": "standard",
+   "src": "ui/icon-laurel.png"
+  },
+  {
+   "id": "ui.icon-medallion",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: medallion",
+   "optimizationTier": "standard",
+   "src": "ui/icon-medallion.png"
+  },
+  {
+   "id": "ui.icon-megaphone",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: megaphone",
+   "optimizationTier": "standard",
+   "src": "ui/icon-megaphone.png"
+  },
+  {
+   "id": "ui.icon-money-sack",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: money-sack",
+   "optimizationTier": "standard",
+   "src": "ui/icon-money-sack.png"
+  },
+  {
+   "id": "ui.icon-papers",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: papers",
+   "optimizationTier": "standard",
+   "src": "ui/icon-papers.png"
+  },
+  {
+   "id": "ui.icon-plaque",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: plaque",
+   "optimizationTier": "standard",
+   "src": "ui/icon-plaque.png"
+  },
+  {
+   "id": "ui.icon-pocket-watch",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: pocket-watch",
+   "optimizationTier": "standard",
+   "src": "ui/icon-pocket-watch.png"
+  },
+  {
+   "id": "ui.icon-racecard",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: racecard",
+   "optimizationTier": "standard",
+   "src": "ui/icon-racecard.png"
+  },
+  {
+   "id": "ui.icon-rosette-green",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: rosette-green",
+   "optimizationTier": "standard",
+   "src": "ui/icon-rosette-green.png"
+  },
+  {
+   "id": "ui.icon-rosette",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: rosette",
+   "optimizationTier": "standard",
+   "src": "ui/icon-rosette.png"
+  },
+  {
+   "id": "ui.icon-saddle-cloth",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: saddle-cloth",
+   "optimizationTier": "standard",
+   "src": "ui/icon-saddle-cloth.png"
+  },
+  {
+   "id": "ui.icon-saddle",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: saddle",
+   "optimizationTier": "standard",
+   "src": "ui/icon-saddle.png"
+  },
+  {
+   "id": "ui.icon-shield",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: shield",
+   "optimizationTier": "standard",
+   "src": "ui/icon-shield.png"
+  },
+  {
+   "id": "ui.icon-silks-checked",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: silks-checked",
+   "optimizationTier": "standard",
+   "src": "ui/icon-silks-checked.png"
+  },
+  {
+   "id": "ui.icon-silks-sash",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: silks-sash",
+   "optimizationTier": "standard",
+   "src": "ui/icon-silks-sash.png"
+  },
+  {
+   "id": "ui.icon-spurs",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: spurs",
+   "optimizationTier": "standard",
+   "src": "ui/icon-spurs.png"
+  },
+  {
+   "id": "ui.icon-stable-door",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stable-door",
+   "optimizationTier": "standard",
+   "src": "ui/icon-stable-door.png"
+  },
+  {
+   "id": "ui.icon-stall-number",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stall-number",
+   "optimizationTier": "standard",
+   "src": "ui/icon-stall-number.png"
+  },
+  {
+   "id": "ui.icon-star",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: star",
+   "optimizationTier": "standard",
+   "src": "ui/icon-star.png"
+  },
+  {
+   "id": "ui.icon-stirrup",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stirrup",
+   "optimizationTier": "standard",
+   "src": "ui/icon-stirrup.png"
+  },
+  {
+   "id": "ui.icon-stopwatch",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stopwatch",
+   "optimizationTier": "standard",
+   "src": "ui/icon-stopwatch.png"
+  },
+  {
+   "id": "ui.icon-tankard",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tankard",
+   "optimizationTier": "standard",
+   "src": "ui/icon-tankard.png"
+  },
+  {
+   "id": "ui.icon-ticket",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: ticket",
+   "optimizationTier": "standard",
+   "src": "ui/icon-ticket.png"
+  },
+  {
+   "id": "ui.icon-tonic",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tonic",
+   "optimizationTier": "standard",
+   "src": "ui/icon-tonic.png"
+  },
+  {
+   "id": "ui.icon-tote",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tote",
+   "optimizationTier": "standard",
+   "src": "ui/icon-tote.png"
+  },
+  {
+   "id": "ui.icon-trophy-silver",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trophy-silver",
+   "optimizationTier": "standard",
+   "src": "ui/icon-trophy-silver.png"
+  },
+  {
+   "id": "ui.icon-trophy",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trophy",
+   "optimizationTier": "standard",
+   "src": "ui/icon-trophy.png"
+  },
+  {
+   "id": "ui.icon-trunk",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trunk",
+   "optimizationTier": "standard",
+   "src": "ui/icon-trunk.png"
+  },
+  {
+   "id": "ui.icon-water-bucket",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: water-bucket",
+   "optimizationTier": "standard",
+   "src": "ui/icon-water-bucket.png"
+  },
+  {
+   "id": "ui.icon-whip",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: whip",
+   "optimizationTier": "standard",
+   "src": "ui/icon-whip.png"
+  },
+  {
+   "id": "ui.icon-whistle",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: whistle",
+   "optimizationTier": "standard",
+   "src": "ui/icon-whistle.png"
+  },
+  {
+   "id": "ui.icon-winner-drape",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 32,
+   "frameHeight": 32,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "32px"
+   ],
+   "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: winner-drape",
+   "optimizationTier": "standard",
+   "src": "ui/icon-winner-drape.png"
+  },
+  {
+   "id": "ui.logo",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 110,
+   "frameHeight": 93,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2: game logo emblem crest, brass horseshoe framing a racing-green shield with a galloping cream thoroughbred, laurels, blank oxblood ribbon (seed 8105)",
+   "optimizationTier": "standard",
+   "src": "ui/logo.png"
+  },
+  {
+   "id": "ui.panel-9slice",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "slice:18,18,18,18"
+   ],
+   "sourcePrompt": "generate-ui-v2: square game UI window panel frame: deep racing green #0f2a1d flat fill with a thick polished brass gold #d9a441 trim border, ornate brass corner rivets, thin dark ink outline, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+   "optimizationTier": "standard",
+   "src": "ui/panel-9slice.png"
   }
  ]
 }

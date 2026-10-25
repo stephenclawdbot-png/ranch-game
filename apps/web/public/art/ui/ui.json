@@ -1,0 +1,122 @@
+{
+ "_note": "9-slice insets in native px (CSS border-image-slice / Pixi NineSliceSprite). Render at integer scale with image-rendering: pixelated.",
+ "slices": {
+  "button-green-hover.png": {
+   "top": 9,
+   "right": 14,
+   "bottom": 9,
+   "left": 14
+  },
+  "button-green-pressed.png": {
+   "top": 9,
+   "right": 14,
+   "bottom": 9,
+   "left": 14
+  },
+  "button-green.png": {
+   "top": 9,
+   "right": 14,
+   "bottom": 9,
+   "left": 14
+  },
+  "button-hover.png": {
+   "top": 8,
+   "right": 12,
+   "bottom": 8,
+   "left": 12
+  },
+  "button-pressed.png": {
+   "top": 8,
+   "right": 12,
+   "bottom": 8,
+   "left": 12
+  },
+  "button.png": {
+   "top": 8,
+   "right": 12,
+   "bottom": 8,
+   "left": 12
+  },
+  "card-9slice.png": {
+   "top": 24,
+   "right": 24,
+   "bottom": 24,
+   "left": 24
+  },
+  "panel-9slice.png": {
+   "top": 18,
+   "right": 18,
+   "bottom": 18,
+   "left": 18
+  }
+ },
+ "icons": {
+  "size": 32,
+  "names": [
+   "coin",
+   "trophy",
+   "horseshoe-pair",
+   "stopwatch",
+   "flag",
+   "star",
+   "rosette",
+   "saddle",
+   "calendar",
+   "badge-gold",
+   "badge-silver",
+   "badge-bronze",
+   "horse-head",
+   "ticket",
+   "binoculars",
+   "whip",
+   "cap-checked",
+   "cap-green",
+   "binoculars-leather",
+   "goggles",
+   "carrots",
+   "apple",
+   "feed-bucket",
+   "water-bucket",
+   "hay",
+   "grooming-brush",
+   "body-brush",
+   "tonic",
+   "laurel",
+   "stall-number",
+   "saddle-cloth",
+   "stirrup",
+   "spurs",
+   "boots",
+   "silks-checked",
+   "silks-sash",
+   "racecard",
+   "papers",
+   "bell",
+   "megaphone",
+   "pocket-watch",
+   "whistle",
+   "lantern",
+   "stable-door",
+   "garland",
+   "plaque",
+   "money-sack",
+   "medallion",
+   "winner-drape",
+   "rosette-green",
+   "calendar-day",
+   "crest-shield",
+   "horseshoe",
+   "trunk",
+   "horseshoe-iron",
+   "tote",
+   "club-crest",
+   "jug",
+   "tankard",
+   "shield",
+   "bridle",
+   "chips",
+   "gate",
+   "trophy-silver"
+  ]
+ }
+}

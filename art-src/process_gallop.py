@@ -273,7 +273,8 @@ def main():
         "colours": int(len(np.unique(strip[strip[..., 3] > 0][:, :3], axis=0))),
     }
     print(json.dumps(meta, indent=1))
-    Path(out_dir / f"{out_name}.meta.json").write_text(json.dumps(meta, indent=1))
+    Path("art-src/meta/race").mkdir(parents=True, exist_ok=True)
+    Path(f"art-src/meta/race/{out_name}.meta.json").write_text(json.dumps(meta, indent=1))
 
     if debug:
         dbg = Path(debug)

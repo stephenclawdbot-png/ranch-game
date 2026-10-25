@@ -13,7 +13,11 @@ function pngSize(file) {
   const b = readFileSync(file);
   return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
 }
-const readJson = (f) => (existsSync(join(ROOT, f)) ? JSON.parse(readFileSync(join(ROOT, f), "utf8")) : null);
+const META = join(ROOT, "..", "..", "..", "..", "art-src", "meta");
+const readJson = (f) => {
+  const p = f.endsWith(".meta.json") ? join(META, f) : join(ROOT, f);
+  return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null;
+};
 
 const COATS = ["bay", "dark_bay", "chestnut", "liver_chestnut", "black", "grey", "dapple_grey", "palomino", "buckskin", "roan"];
 const NOSE = { x: 0.94, y: 0.97 };
@@ -78,6 +82,13 @@ for (const r of R) {
   const anim = r.animations ?? (frameCount > 1 ? { [r.id.split(".").pop()]: { from: 0, to: frameCount - 1, loop: true } } : undefined);
   if (anim) e.animations = anim;
   assets.push(e);
+}
+// Keep entries other agents added (e.g. rig/*) that this script does not own.
+const MINE = /^(race|portraits|ui|scenes)\//;
+const prev = readJson("manifest.json");
+const ids = new Set(assets.map((a) => a.id));
+for (const a of prev?.assets ?? []) {
+  if (!ids.has(a.id) && !(a.src && MINE.test(a.src))) assets.push(a);
 }
 writeFileSync(join(ROOT, "manifest.json"), JSON.stringify({ version: 1, assets }, null, 1) + "\n");
 console.log(`manifest.json: ${assets.length} assets`);

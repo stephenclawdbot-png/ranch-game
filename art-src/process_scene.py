@@ -17,6 +17,7 @@ from PIL import Image
 RAW = Path("art-src/raw")
 OUT = Path("apps/web/public/art/race")
 OUT.mkdir(parents=True, exist_ok=True)
+Path("art-src/meta/race").mkdir(parents=True, exist_ok=True)
 
 
 def load(p):
@@ -26,7 +27,7 @@ def load(p):
 def save(a, name, **meta):
     Image.fromarray(a.astype(np.uint8)).save(OUT / f"{name}.png", optimize=True)
     if meta:
-        (OUT / f"{name}.meta.json").write_text(json.dumps(meta, indent=1))
+        (Path("art-src/meta/race") / f"{name}.meta.json").write_text(json.dumps(meta, indent=1))
     print(name, a.shape[1], "x", a.shape[0])
 
 

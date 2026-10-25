@@ -70,7 +70,7 @@ def race_kind(stem):
 
 
 def meta(p):
-    m = p.with_suffix(".meta.json")
+    m = Path("art-src/meta") / p.relative_to(ART).with_suffix(".meta.json")
     return json.loads(m.read_text()) if m.exists() else {}
 
 

@@ -281,6 +281,22 @@ export class PixelHorseRigFactory implements HorseRigFactory {
           );
   }
 
+  /** Set when a rig program failed to compile: rigs stop drawing (no follow-on GL errors). */
+  broken = false;
+  verified = false;
+
+  /** @internal After the first draw, make sure both rig programs linked on this GPU. */
+  verify(renderer: THREE.WebGLRenderer, materials: THREE.Material[]) {
+    this.verified = true;
+    for (const m of materials) {
+      const prog = (renderer.properties.get(m) as { currentProgram?: { diagnostics?: { runnable: boolean } } }).currentProgram;
+      if (prog?.diagnostics && !prog.diagnostics.runnable) {
+        this.broken = true;
+        console.error("[pixel-rig] shader failed to compile on this GPU; horse rigs disabled", prog.diagnostics);
+      }
+    }
+  }
+
   /** Which art the rigs use right now. */
   get source(): "pixellab" | "generated" {
     return this.assets.source;
@@ -496,7 +512,7 @@ export class PixelHorseRig implements HorseRig {
   }
 
   update(renderer: THREE.WebGLRenderer, state: HorseRigState & HorseRigStateExtras): void {
-    if (this.disposed) return;
+    if (this.disposed || !renderer || this.factory.broken) return;
     const pose = this.computePose(state);
     const n = this.gait.n;
     const b = this.bones;
@@ -534,6 +550,7 @@ export class PixelHorseRig implements HorseRig {
     renderer.clear(true, false, false);
     renderer.render(this.resolveScene, this.factory.camera);
     renderer.setRenderTarget(prevTarget);
+    if (!this.factory.verified) this.factory.verify(renderer, [this.partsMat, this.resolveMat]);
     renderer.setClearColor(_clear, prevAlpha);
     renderer.autoClear = prevAuto;
   }

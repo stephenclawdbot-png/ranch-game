@@ -645,5 +645,1248 @@
   "variants": [
    "seamless-x"
   ]
+ },
+ {
+  "id": "portrait.horse-bay",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-bay.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars>",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "bay"
+  ]
+ },
+ {
+  "id": "portrait.horse-black",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-black.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to black",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "black"
+  ]
+ },
+ {
+  "id": "portrait.horse-buckskin",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-buckskin.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to buckskin",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "buckskin"
+  ]
+ },
+ {
+  "id": "portrait.horse-chestnut",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-chestnut.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to chestnut",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "chestnut"
+  ]
+ },
+ {
+  "id": "portrait.horse-dapple_grey",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-dapple_grey.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dapple_grey",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "dapple_grey"
+  ]
+ },
+ {
+  "id": "portrait.horse-dark_bay",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-dark_bay.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to dark_bay",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "dark_bay"
+  ]
+ },
+ {
+  "id": "portrait.horse-grey",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-grey.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to grey",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "grey"
+  ]
+ },
+ {
+  "id": "portrait.horse-liver_chestnut",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-liver_chestnut.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to liver_chestnut",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "liver_chestnut"
+  ]
+ },
+ {
+  "id": "portrait.horse-palomino",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-palomino.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to palomino",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "palomino"
+  ]
+ },
+ {
+  "id": "portrait.horse-roan",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "portraits/horse-roan.png",
+  "optimizationTier": "hero",
+  "sourcePrompt": "generate-image-v2: <437 chars> | coat via edit-images-v2: change coat to roan",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "roan"
+  ]
+ },
+ {
+  "id": "ui.button-green-hover",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button-green-hover.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:9,14,9,14"
+  ]
+ },
+ {
+  "id": "ui.button-green-pressed",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button-green-pressed.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:9,14,9,14"
+  ]
+ },
+ {
+  "id": "ui.button-green",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button-green.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, deep racing green #1d4a32 with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:9,14,9,14"
+  ]
+ },
+ {
+  "id": "ui.button-hover",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button-hover.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:8,12,8,12"
+  ]
+ },
+ {
+  "id": "ui.button-pressed",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button-pressed.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:8,12,8,12"
+  ]
+ },
+ {
+  "id": "ui.button",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/button.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: wide rectangular game UI button, oxblood red #7a1f1f with a brass gold #d9a441 bevelled border, soft top highlight and darker bottom edge, no text, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:8,12,8,12"
+  ]
+ },
+ {
+  "id": "ui.card-9slice",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/card-9slice.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: square game UI card frame: warm cream #f3e7c9 parchment paper fill with a thin oxblood red #7a1f1f double border line and small brass corner ornaments, subtle paper texture, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:24,24,24,24"
+  ]
+ },
+ {
+  "id": "ui.icon-apple",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-apple.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: apple",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-badge-bronze",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-badge-bronze.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-bronze",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-badge-gold",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-badge-gold.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-gold",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-badge-silver",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-badge-silver.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: badge-silver",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-bell",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-bell.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: bell",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-binoculars-leather",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-binoculars-leather.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: binoculars-leather",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-binoculars",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-binoculars.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: binoculars",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-body-brush",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-body-brush.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: body-brush",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-boots",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-boots.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: boots",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-bridle",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-bridle.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: bridle",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-calendar-day",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-calendar-day.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: calendar-day",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-calendar",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-calendar.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: calendar",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-cap-checked",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-cap-checked.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: cap-checked",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-cap-green",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-cap-green.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: cap-green",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-carrots",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-carrots.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: carrots",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-chips",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-chips.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: chips",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-club-crest",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-club-crest.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: club-crest",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-coin",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-coin.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: coin",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-crest-shield",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-crest-shield.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: crest-shield",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-feed-bucket",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-feed-bucket.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: feed-bucket",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-flag",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-flag.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: flag",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-garland",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-garland.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: garland",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-gate",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-gate.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: gate",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-goggles",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-goggles.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: goggles",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-grooming-brush",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-grooming-brush.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: grooming-brush",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-hay",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-hay.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: hay",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-horse-head",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-horse-head.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horse-head",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-horseshoe-iron",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-horseshoe-iron.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe-iron",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-horseshoe-pair",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-horseshoe-pair.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe-pair",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-horseshoe",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-horseshoe.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: horseshoe",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-jug",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-jug.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: jug",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-lantern",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-lantern.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: lantern",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-laurel",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-laurel.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: laurel",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-medallion",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-medallion.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: medallion",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-megaphone",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-megaphone.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: megaphone",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-money-sack",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-money-sack.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: money-sack",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-papers",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-papers.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: papers",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-plaque",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-plaque.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: plaque",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-pocket-watch",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-pocket-watch.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: pocket-watch",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-racecard",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-racecard.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: racecard",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-rosette-green",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-rosette-green.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: rosette-green",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-rosette",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-rosette.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: rosette",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-saddle-cloth",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-saddle-cloth.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: saddle-cloth",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-saddle",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-saddle.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: saddle",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-shield",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-shield.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: shield",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-silks-checked",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-silks-checked.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: silks-checked",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-silks-sash",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-silks-sash.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: silks-sash",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-spurs",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-spurs.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: spurs",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-stable-door",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-stable-door.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stable-door",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-stall-number",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-stall-number.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stall-number",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-star",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-star.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: star",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-stirrup",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-stirrup.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stirrup",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-stopwatch",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-stopwatch.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: stopwatch",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-tankard",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-tankard.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tankard",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-ticket",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-ticket.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: ticket",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-tonic",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-tonic.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tonic",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-tote",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-tote.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: tote",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-trophy-silver",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-trophy-silver.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trophy-silver",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-trophy",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-trophy.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trophy",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-trunk",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-trunk.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: trunk",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-water-bucket",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-water-bucket.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: water-bucket",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-whip",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-whip.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: whip",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-whistle",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-whistle.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: whistle",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.icon-winner-drape",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/icon-winner-drape.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "create-1-direction-object (size 32, sidescroller, 64-slot sheet) item: winner-drape",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "32px"
+  ]
+ },
+ {
+  "id": "ui.logo",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/logo.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-image-v2: game logo emblem crest, brass horseshoe framing a racing-green shield with a galloping cream thoroughbred, laurels, blank oxblood ribbon (seed 8105)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "ui.panel-9slice",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/panel-9slice.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "generate-ui-v2: square game UI window panel frame: deep racing green #0f2a1d flat fill with a thick polished brass gold #d9a441 trim border, ornate brass corner rivets, thin dark ink outline, empty centre, symmetrical, pixel art | rebuilt as clean 9-slice (art-src/make9.py)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": [
+   "slice:18,18,18,18"
+  ]
  }
 ]
