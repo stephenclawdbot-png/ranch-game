@@ -1,0 +1,72 @@
+/** Pure HUD helpers derived from a replay + samples. No rendering here. */
+import { HORSE_LENGTH_MM, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
+import type { HorseSample } from "./sampleReplay";
+
+export function eventTimeSec(replay: RaceReplay, ev: RaceEvent): number {
+  return ev.tick / replay.tickHz;
+}
+
+/** Events already "spoken" by time t, newest first, limited to the last `windowSec`. */
+export function commentaryAt(replay: RaceReplay, t: number, windowSec = 6, max = 2): RaceEvent[] {
+  const out: RaceEvent[] = [];
+  for (let i = replay.events.length - 1; i >= 0 && out.length < max; i--) {
+    const ev = replay.events[i]!;
+    const et = eventTimeSec(replay, ev);
+    if (et > t) continue;
+    if (t - et > windowSec) break;
+    out.push(ev);
+  }
+  return out;
+}
+
+export interface StandingRow {
+  index: number;
+  horseId: string;
+  name: string;
+  gate: number;
+  position: number;
+  finished: boolean;
+  /** "+1.5L" behind the leader, a result margin once finished, "" for the leader. */
+  gapLabel: string;
+  primary: string;
+  secondary: string;
+}
+
+export function lengthsLabel(mm: number): string {
+  const l = mm / HORSE_LENGTH_MM;
+  if (l < 0.05) return "nose";
+  if (l < 0.25) return "head";
+  if (l < 10) return `+${(Math.round(l * 2) / 2).toFixed(1).replace(/\.0$/, "")}L`;
+  return `+${Math.round(l)}L`;
+}
+
+export function standingsAt(replay: RaceReplay, samples: HorseSample[]): StandingRow[] {
+  const sorted = [...samples].sort((a, b) => a.position - b.position);
+  const leader = sorted[0];
+  const marginByHorse = new Map(replay.result.finishOrder.map((f) => [f.horseId, f.marginLabel]));
+  return sorted.map((s) => {
+    const h = replay.horses[s.index]!;
+    let gapLabel = "";
+    if (s.position > 1 && leader) {
+      gapLabel = s.finished ? (marginByHorse.get(s.horseId) ?? "") : lengthsLabel(Math.max(0, leader.x - s.x));
+    }
+    return {
+      index: s.index,
+      horseId: s.horseId,
+      name: h.name,
+      gate: h.gate,
+      position: s.position,
+      finished: s.finished,
+      gapLabel,
+      primary: h.appearance.silks.primary,
+      secondary: h.appearance.silks.secondary,
+    };
+  });
+}
+
+/** Metres left for the leader (0 once the leader is home). */
+export function distanceToGoM(replay: RaceReplay, samples: HorseSample[]): number {
+  let best = 0;
+  for (const s of samples) best = Math.max(best, s.x);
+  return Math.max(0, (replay.trackLengthMm - best) / 1000);
+}
