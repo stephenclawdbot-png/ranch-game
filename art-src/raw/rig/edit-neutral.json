@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<6792 chars>",
+     "format": "png"
+    },
+    "width": 128,
+    "height": 96
+   }
+  ],
+  "image_size": {
+   "width": 128,
+   "height": 96
+  },
+  "description": "the same horse standing in a neutral extended stance: all four legs straight and vertical, forelegs apart and hind legs apart so there is a clear gap between every leg, hooves on one ground line, neck forward, tail hanging relaxed; keep the exact same colours, saddle, saddle cloth, outline and size",
+  "no_background": true,
+  "seed": 3305
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "02982bb6-1a3a-4581-bd49-0af5b616f947",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "02982bb6-1a3a-4581-bd49-0af5b616f947",
+  "status": "completed",
+  "created_at": "2026-10-25T16:16:20.962921+00:00",
+  "last_response": {
+   "seed": 3305,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5984 chars>",
+     "height": 96
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "f37df2f0-f671-4bb7-a2c8-9df466935acc",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5984 chars>",
+     "height": 96
+    }
+   ],
+   "generation_started_at": "2026-10-25T16:16:27.135504+00:00",
+   "original_image_n_colors": 99,
+   "quantized_image_n_colors": 48
+  }
+ },
+ "files": [
+  "raw/rig/edit-neutral-0.png"
+ ]
+}

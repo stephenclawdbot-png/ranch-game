@@ -1,0 +1,200 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<6312 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b2ca9574-2c56-42bb-afed-6563f47ac9b7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "b2ca9574-2c56-42bb-afed-6563f47ac9b7",
+  "status": "completed",
+  "created_at": "2026-10-25T16:17:10.836052+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 15,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       24
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far hind leg",
+      "shape": "cylinder",
+      "regions": [
+       40
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far front leg",
+      "shape": "cylinder",
+      "regions": [
+       41
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near hind leg",
+      "shape": "cylinder",
+      "regions": [
+       39,
+       36,
+       35
+      ]
+     },
+     {
+      "name": "hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       20,
+       31,
+       13,
+       27
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       19,
+       10,
+       32,
+       29,
+       28,
+       26,
+       25,
+       30
+      ]
+     },
+     {
+      "name": "saddle",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       21,
+       23,
+       22,
+       15,
+       14,
+       18
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near front leg",
+      "shape": "cylinder",
+      "regions": [
+       38,
+       33,
+       37,
+       34
+      ]
+     },
+     {
+      "axis": 50,
+      "name": "neck",
+      "shape": "cylinder",
+      "regions": [
+       16,
+       11,
+       7
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "head",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       9,
+       12,
+       17,
+       6,
+       8,
+       4,
+       5
+      ]
+     },
+     {
+      "name": "ears",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     1,
+     2,
+     3
+    ],
+    "backdrop": [],
+    "recessed": [
+     17,
+     30,
+     35
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 128,
+    "base64": "<10660 chars>",
+    "height": 96
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "92045a4d-5a13-4f02-8a8b-ea621747b037",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:17:10.892296+00:00"
+  }
+ },
+ "files": [
+  "raw/rig/normal-horse-2-0.png"
+ ]
+}

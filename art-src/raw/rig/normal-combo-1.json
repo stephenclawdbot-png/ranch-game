@@ -1,0 +1,225 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<6940 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e612a566-c8d2-490b-a511-85e3d2a076f9",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "e612a566-c8d2-490b-a511-85e3d2a076f9",
+  "status": "completed",
+  "created_at": "2026-10-25T16:17:38.671235+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 80,
+      "name": "tail",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       42
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "hind leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       45
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far front leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       47
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       33,
+       34,
+       37,
+       41,
+       43,
+       30,
+       27,
+       22,
+       38,
+       39,
+       40,
+       44
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       31,
+       28,
+       29,
+       32,
+       36
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       20,
+       24
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       12,
+       13,
+       21,
+       25,
+       26
+      ]
+     },
+     {
+      "name": "ears",
+      "round": 0.5,
+      "shape": "ball",
+      "regions": [
+       3,
+       7,
+       8
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "jockey leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       14,
+       15
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "jockey silks",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       4
+      ]
+     },
+     {
+      "axis": -50,
+      "name": "jockey arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       10,
+       9,
+       11,
+       16,
+       17
+      ]
+     },
+     {
+      "name": "jockey hand",
+      "shape": "ball",
+      "regions": [
+       18
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       5,
+       6
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near front leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       46
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     19,
+     23
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 128,
+    "base64": "<12056 chars>",
+    "height": 96
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "d78ac9b3-959b-4311-817f-effc0986b726",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:17:38.71568+00:00"
+  }
+ },
+ "files": [
+  "raw/rig/normal-combo-1-0.png"
+ ]
+}

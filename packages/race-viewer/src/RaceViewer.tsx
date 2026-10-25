@@ -2,21 +2,20 @@
 /**
  * <RaceViewer> — plays back a stored RaceReplay as an HD 2.5D race.
  *
- * Pixi is imported dynamically inside an effect, so this module is safe to import
+ * Three.js is imported dynamically inside an effect, so this module is safe to import
  * from server components / SSR (it renders an empty stage until the client mounts).
  * The viewer never decides anything: positions come from replay frames, the
  * winner and finishing order from replay.result.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { RaceEvent, RaceReplay } from "@thoroughbred/shared";
-import type { AssetManifest } from "@thoroughbred/art-pipeline";
 import { PlaybackClock } from "./playback";
 import { replayTiming } from "./sampleReplay";
 import { commentaryAt, distanceToGoM, standingsAt, type StandingRow } from "./timeline";
 import type { CameraMode, QualitySetting, RenderQuality } from "./types";
 import { Controls, Countdown, PhotoStamp, ResultsCard, Ticker, TopHud } from "./hud/Hud";
 import { injectViewerCss } from "./hud/styles";
-import type { RaceScene } from "./scene/RaceScene";
+import type { HD2DScene as HD2DSceneT } from "./three/HD2DScene";
 
 export interface RaceViewerProps {
   replay: RaceReplay;
@@ -41,8 +40,13 @@ export interface RaceViewerProps {
   /** Optional extras (dev / art swap); not required by the page contract. */
   initialTimeSec?: number;
   initialCamera?: CameraMode;
-  /** Asset manifest: approved sprite sheets replace the procedural art. */
-  manifest?: AssetManifest;
+  /**
+   * Public art root holding manifest.json (default "/art"). Missing / 404 art falls
+   * back to code-drawn pixel art. Pass null to skip the fetch.
+   */
+  artBaseUrl?: string | null;
+  /** Render at a low internal resolution, upscaled with nearest filtering. */
+  pixelated?: boolean;
 }
 
 interface HudState {
@@ -84,12 +88,13 @@ export function RaceViewer(props: RaceViewerProps) {
     debug = false,
     initialTimeSec,
     initialCamera,
-    manifest,
+    artBaseUrl = "/art",
+    pixelated = false,
   } = props;
 
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<RaceScene | null>(null);
+  const sceneRef = useRef<HD2DSceneT | null>(null);
   const clockRef = useRef<PlaybackClock | null>(null);
   const hasHighlight = !!highlightHorseId && replay.horses.some((h) => h.horseId === highlightHorseId);
   const [camera, setCamera] = useState<CameraMode>(initialCamera ?? (hasHighlight ? "leader" : "leader"));
@@ -100,6 +105,7 @@ export function RaceViewer(props: RaceViewerProps) {
   const finishedFired = useRef(false);
   const scrubbing = useRef<{ wasPlaying: boolean } | null>(null);
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [width, setWidth] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [hud, setHud] = useState<HudState | null>(null);
@@ -138,39 +144,42 @@ export function RaceViewer(props: RaceViewerProps) {
     });
   }, [replay, duration]);
 
-  // Pixi app + scene. StrictMode-safe: the async init checks `disposed` after every await.
+  // Three.js HD-2D scene. StrictMode-safe: the async init checks `disposed` after every await.
   useEffect(() => {
     let disposed = false;
     let cleanup = () => {};
     (async () => {
-      const [PIXI, { RaceScene }] = await Promise.all([import("pixi.js"), import("./scene/RaceScene")]);
+      const [T, { HD2DScene }, { createRigFactory }, { loadArt }] = await Promise.all([
+        import("three"),
+        import("./three/HD2DScene"),
+        import("./three/horseRig"),
+        import("./three/art"),
+      ]);
       const stage = stageRef.current;
       const host = canvasHostRef.current;
       if (disposed || !stage || !host) return;
+      const art = await loadArt(artBaseUrl);
+      if (disposed) return;
+      const rigs = await createRigFactory(T, artBaseUrl, art);
+      if (disposed) {
+        rigs.factory.dispose();
+        return;
+      }
       const w0 = Math.max(1, stage.clientWidth);
       const h0 = Math.max(1, stage.clientHeight);
       const q: RenderQuality = quality === "auto" ? autoQuality(w0) : quality;
       qualityRef.current = q;
-      const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const app = new PIXI.Application();
-      await app.init({
-        width: w0,
-        height: h0,
-        antialias: q === "high",
-        resolution: q === "high" ? Math.min(dpr, 2) : Math.min(dpr, 1.5),
-        autoDensity: true,
-        background: "#0f1d15",
-        preference: "webgl",
-        powerPreference: "high-performance",
-      });
-      if (disposed) {
-        app.destroy(true, { children: true });
-        return;
+      let scene: HD2DSceneT;
+      try {
+        scene = new HD2DScene(T, replay, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind });
+      } catch (err) {
+        rigs.factory.dispose();
+        throw err;
       }
-      host.appendChild(app.canvas);
-      const scene = new RaceScene(app, replay, { quality: q, highlightHorseId, manifest });
+      host.appendChild(scene.canvas);
       scene.resize(w0, h0);
       sceneRef.current = scene;
+      const artNote = `${rigs.kind}${art.manifest ? ` +${art.images.size} art` : " (code art)"}`;
 
       let hudAcc = 1;
       let dbgAcc = 0;
@@ -179,11 +188,16 @@ export function RaceViewer(props: RaceViewerProps) {
       let dtSum = 0;
       let warm = 0;
       let slowFrames = 0;
-      const onTick = (tk: { deltaMS: number }) => {
+      let raf = 0;
+      let last = performance.now();
+      const frame = (now: number) => {
+        raf = requestAnimationFrame(frame);
+        const deltaMS = Math.min(250, Math.max(0, now - last));
+        last = now;
         const clock = clockRef.current;
         if (!clock) return;
         const t0 = performance.now();
-        const dt = tk.deltaMS / 1000;
+        const dt = deltaMS / 1000;
         const fr = clock.tick(dt);
         scene.render({ time: fr.time, realDt: dt, camera: cameraRef.current, frozen: fr.frozen, flash: fr.flash });
         const work = performance.now() - t0;
@@ -204,49 +218,34 @@ export function RaceViewer(props: RaceViewerProps) {
         // Perf: auto-downgrade when the device can't hold ~40 fps.
         frames++;
         workMs += work;
-        dtSum += tk.deltaMS;
+        dtSum += deltaMS;
         warm += dt;
         if (quality === "auto" && qualityRef.current === "high" && warm > 2) {
-          slowFrames = tk.deltaMS > 25 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
+          slowFrames = deltaMS > 25 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
           if (slowFrames > 90) {
             qualityRef.current = "low";
             scene.setQuality("low");
-            app.renderer.resolution = 1;
-            app.renderer.resize(stage.clientWidth, stage.clientHeight, 1);
           }
         }
         dbgAcc += dt;
         if (debug && dbgAcc >= 0.5) {
           const cam = scene.cameraInfo;
           setDebugText(
-            `${Math.round((1000 * frames) / dtSum)} fps  ${(workMs / frames).toFixed(1)} ms js  ${(renderMs / frames).toFixed(1)} ms draw\n` +
-              `${qualityRef.current} @${app.renderer.resolution.toFixed(2)}x  t=${fr.time.toFixed(2)}s\n` +
-              `cam ${cam.x.toFixed(1)}m  z${cam.zoom.toFixed(2)}`,
+            `${Math.round((1000 * frames) / Math.max(1, dtSum))} fps  ${(workMs / frames).toFixed(1)} ms cpu\n` +
+              `${qualityRef.current}  ${artNote}  t=${fr.time.toFixed(2)}s\n` +
+              `cam ${cam.shot} x=${cam.x.toFixed(1)}m`,
           );
           dbgAcc = 0;
           frames = 0;
           workMs = 0;
-          renderMs = 0;
           dtSum = 0;
         }
       };
-      app.ticker.add(onTick);
-      // Bracket Pixi's own render (UPDATE_PRIORITY.LOW = -25) to measure GPU-submit time.
-      let renderStart = 0;
-      let renderMs = 0;
-      const preRender = () => {
-        renderStart = performance.now();
-      };
-      const postRender = () => {
-        renderMs += performance.now() - renderStart;
-      };
-      app.ticker.add(preRender, undefined, -24);
-      app.ticker.add(postRender, undefined, -26);
+      raf = requestAnimationFrame(frame);
 
       const ro = new ResizeObserver(() => {
         const w = Math.max(1, stage.clientWidth);
         const h = Math.max(1, stage.clientHeight);
-        app.renderer.resize(w, h);
         scene.resize(w, h);
         setWidth(w);
       });
@@ -255,16 +254,15 @@ export function RaceViewer(props: RaceViewerProps) {
       setReady(true);
 
       cleanup = () => {
+        cancelAnimationFrame(raf);
         ro.disconnect();
-        app.ticker.remove(onTick);
-        app.ticker.remove(preRender);
-        app.ticker.remove(postRender);
         sceneRef.current = null;
         scene.destroy();
-        app.destroy(true, { children: true });
+        scene.canvas.remove();
       };
     })().catch((err) => {
       console.error("[RaceViewer] failed to start renderer", err);
+      setFailed(true);
     });
     return () => {
       disposed = true;
@@ -273,7 +271,7 @@ export function RaceViewer(props: RaceViewerProps) {
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replay, highlightHorseId, manifest]);
+  }, [replay, highlightHorseId, artBaseUrl, pixelated]);
 
   // Explicit quality changes after mount.
   useEffect(() => {
@@ -336,7 +334,7 @@ export function RaceViewer(props: RaceViewerProps) {
     <div className={`rv-root${narrow ? " rv-narrow" : ""}${className ? ` ${className}` : ""}`} tabIndex={0} onKeyDown={onKey} data-race-viewer="">
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
-        {!ready && <div className="rv-loading">Loading race…</div>}
+        {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
         {h && (
           <TopHud
             replay={replay}

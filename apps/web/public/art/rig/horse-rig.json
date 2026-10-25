@@ -1,0 +1,628 @@
+{
+ "version": 1,
+ "scale": 4,
+ "atlas": [
+  128,
+  128
+ ],
+ "canvas": [
+  128,
+  96
+ ],
+ "groundY": 86,
+ "roles": [
+  "none",
+  "coat",
+  "points",
+  "mane",
+  "hoof",
+  "muzzle",
+  "ink",
+  "marking",
+  "silksPrimary",
+  "silksSecondary",
+  "cap",
+  "skin",
+  "breeches",
+  "boots",
+  "tack",
+  "saddlecloth"
+ ],
+ "parts": [
+  {
+   "name": "hindFarLower",
+   "rect": [
+    108,
+    1,
+    7,
+    22
+   ],
+   "origin": [
+    39,
+    62
+   ],
+   "pivot": [
+    42.5,
+    65.5
+   ],
+   "parent": "hindFarUpper",
+   "z": 5,
+   "side": "far",
+   "copyOf": "hindNearLower"
+  },
+  {
+   "name": "hindFarUpper",
+   "rect": [
+    14,
+    29,
+    18,
+    21
+   ],
+   "origin": [
+    39,
+    48
+   ],
+   "pivot": [
+    50,
+    52
+   ],
+   "parent": "hindquarter",
+   "z": 6,
+   "side": "far",
+   "copyOf": "hindNearUpper"
+  },
+  {
+   "name": "hindFarHoof",
+   "rect": [
+    91,
+    51,
+    7,
+    6
+   ],
+   "origin": [
+    39,
+    79
+   ],
+   "pivot": [
+    42,
+    81.5
+   ],
+   "parent": "hindFarLower",
+   "z": 7,
+   "side": "far",
+   "copyOf": "hindNearHoof"
+  },
+  {
+   "name": "foreFarLower",
+   "rect": [
+    65,
+    29,
+    9,
+    20
+   ],
+   "origin": [
+    77,
+    65
+   ],
+   "pivot": [
+    81,
+    67.5
+   ],
+   "parent": "foreFarUpper",
+   "z": 9,
+   "side": "far",
+   "copyOf": "foreNearLower"
+  },
+  {
+   "name": "foreFarUpper",
+   "rect": [
+    75,
+    29,
+    15,
+    20
+   ],
+   "origin": [
+    74,
+    50
+   ],
+   "pivot": [
+    81,
+    52.5
+   ],
+   "parent": "chest",
+   "z": 10,
+   "side": "far",
+   "copyOf": "foreNearUpper"
+  },
+  {
+   "name": "foreFarHoof",
+   "rect": [
+    82,
+    51,
+    8,
+    7
+   ],
+   "origin": [
+    78,
+    78
+   ],
+   "pivot": [
+    82.5,
+    81.5
+   ],
+   "parent": "foreFarLower",
+   "z": 11,
+   "side": "far",
+   "copyOf": "foreNearHoof"
+  },
+  {
+   "name": "jArmFar",
+   "rect": [
+    1,
+    51,
+    15,
+    15
+   ],
+   "origin": [
+    75,
+    16
+   ],
+   "pivot": [
+    78,
+    19
+   ],
+   "parent": "jTorso",
+   "z": 20,
+   "side": "far",
+   "copyOf": "jArmNear"
+  },
+  {
+   "name": "hindquarter",
+   "rect": [
+    61,
+    1,
+    25,
+    23
+   ],
+   "origin": [
+    34,
+    33
+   ],
+   "pivot": [
+    55,
+    42
+   ],
+   "parent": "barrel",
+   "z": 40,
+   "side": "near"
+  },
+  {
+   "name": "barrel",
+   "rect": [
+    30,
+    1,
+    30,
+    24
+   ],
+   "origin": [
+    52,
+    33
+   ],
+   "pivot": [
+    68,
+    45
+   ],
+   "parent": null,
+   "z": 42,
+   "side": "near"
+  },
+  {
+   "name": "chest",
+   "rect": [
+    33,
+    29,
+    18,
+    21
+   ],
+   "origin": [
+    76,
+    35
+   ],
+   "pivot": [
+    79,
+    42
+   ],
+   "parent": "barrel",
+   "z": 44,
+   "side": "near"
+  },
+  {
+   "name": "tailTip",
+   "rect": [
+    1,
+    29,
+    12,
+    21
+   ],
+   "origin": [
+    28,
+    49
+   ],
+   "pivot": [
+    33,
+    52
+   ],
+   "parent": "tail",
+   "z": 45,
+   "side": "near"
+  },
+  {
+   "name": "tail",
+   "rect": [
+    52,
+    29,
+    12,
+    20
+   ],
+   "origin": [
+    29,
+    35
+   ],
+   "pivot": [
+    37,
+    38
+   ],
+   "parent": "hindquarter",
+   "z": 46,
+   "side": "near"
+  },
+  {
+   "name": "neck",
+   "rect": [
+    1,
+    1,
+    28,
+    27
+   ],
+   "origin": [
+    76,
+    19
+   ],
+   "pivot": [
+    87,
+    40
+   ],
+   "parent": "chest",
+   "z": 50,
+   "side": "near"
+  },
+  {
+   "name": "mane",
+   "rect": [
+    91,
+    29,
+    26,
+    17
+   ],
+   "origin": [
+    76,
+    19
+   ],
+   "pivot": [
+    84,
+    32
+   ],
+   "parent": "neck",
+   "z": 51,
+   "side": "near"
+  },
+  {
+   "name": "head",
+   "rect": [
+    87,
+    1,
+    20,
+    22
+   ],
+   "origin": [
+    98,
+    15
+   ],
+   "pivot": [
+    101,
+    25
+   ],
+   "parent": "neck",
+   "z": 52,
+   "side": "near"
+  },
+  {
+   "name": "hindNearLower",
+   "rect": [
+    108,
+    1,
+    7,
+    22
+   ],
+   "origin": [
+    34,
+    63
+   ],
+   "pivot": [
+    37.5,
+    66.5
+   ],
+   "parent": "hindNearUpper",
+   "z": 60,
+   "side": "near"
+  },
+  {
+   "name": "hindNearHoof",
+   "rect": [
+    91,
+    51,
+    7,
+    6
+   ],
+   "origin": [
+    34,
+    80
+   ],
+   "pivot": [
+    37,
+    82.5
+   ],
+   "parent": "hindNearLower",
+   "z": 61,
+   "side": "near"
+  },
+  {
+   "name": "hindNearUpper",
+   "rect": [
+    14,
+    29,
+    18,
+    21
+   ],
+   "origin": [
+    34,
+    49
+   ],
+   "pivot": [
+    45,
+    53
+   ],
+   "parent": "hindquarter",
+   "z": 62,
+   "side": "near"
+  },
+  {
+   "name": "foreNearLower",
+   "rect": [
+    65,
+    29,
+    9,
+    20
+   ],
+   "origin": [
+    81,
+    66
+   ],
+   "pivot": [
+    85,
+    68.5
+   ],
+   "parent": "foreNearUpper",
+   "z": 63,
+   "side": "near"
+  },
+  {
+   "name": "foreNearHoof",
+   "rect": [
+    82,
+    51,
+    8,
+    7
+   ],
+   "origin": [
+    82,
+    79
+   ],
+   "pivot": [
+    86.5,
+    82.5
+   ],
+   "parent": "foreNearLower",
+   "z": 64,
+   "side": "near"
+  },
+  {
+   "name": "foreNearUpper",
+   "rect": [
+    75,
+    29,
+    15,
+    20
+   ],
+   "origin": [
+    78,
+    51
+   ],
+   "pivot": [
+    85,
+    53.5
+   ],
+   "parent": "chest",
+   "z": 65,
+   "side": "near"
+  },
+  {
+   "name": "jShin",
+   "rect": [
+    35,
+    51,
+    11,
+    14
+   ],
+   "origin": [
+    66,
+    33
+   ],
+   "pivot": [
+    74.5,
+    34
+   ],
+   "parent": null,
+   "z": 79,
+   "side": "near"
+  },
+  {
+   "name": "jThigh",
+   "rect": [
+    17,
+    51,
+    17,
+    15
+   ],
+   "origin": [
+    59,
+    22
+   ],
+   "pivot": [
+    62,
+    26
+   ],
+   "parent": null,
+   "z": 80,
+   "side": "near"
+  },
+  {
+   "name": "jTorso",
+   "rect": [
+    47,
+    51,
+    22,
+    12
+   ],
+   "origin": [
+    60,
+    15
+   ],
+   "pivot": [
+    63,
+    24
+   ],
+   "parent": null,
+   "z": 82,
+   "side": "near"
+  },
+  {
+   "name": "jHead",
+   "rect": [
+    70,
+    51,
+    11,
+    11
+   ],
+   "origin": [
+    76,
+    11
+   ],
+   "pivot": [
+    79.5,
+    18.5
+   ],
+   "parent": "jTorso",
+   "z": 84,
+   "side": "near"
+  },
+  {
+   "name": "jArmNear",
+   "rect": [
+    1,
+    51,
+    15,
+    15
+   ],
+   "origin": [
+    73,
+    17
+   ],
+   "pivot": [
+    76,
+    20
+   ],
+   "parent": "jTorso",
+   "z": 86,
+   "side": "near"
+  }
+ ],
+ "joints": {
+  "foreKnee": [
+   85,
+   68.5
+  ],
+  "foreFetlock": [
+   86,
+   81
+  ],
+  "hindHock": [
+   37.5,
+   66.5
+  ],
+  "hindFetlock": [
+   36.5,
+   81
+  ],
+  "bit": [
+   113,
+   33
+  ],
+  "hand": [
+   86,
+   29.5
+  ],
+  "jKnee": [
+   74.5,
+   34
+  ],
+  "jAnkle": [
+   68.5,
+   44
+  ],
+  "jShoulder": [
+   76,
+   20
+  ],
+  "jNeck": [
+   79.5,
+   18.5
+  ],
+  "saddle": [
+   66,
+   36
+  ]
+ },
+ "silksFrame": {
+  "origin": [
+   49,
+   61
+  ],
+  "shoulder": [
+   65,
+   53
+  ]
+ },
+ "textures": {
+  "index": "horse-parts.png",
+  "normal": "horse-parts-normal.png",
+  "aux": "horse-parts-aux.png",
+  "index1x": "horse-parts@1x.png"
+ },
+ "source": {
+  "horse": "art-src/rig/raw/stand-a-0.png",
+  "rider": "art-src/rig/raw/jockey-a-0.png",
+  "horseNormal": "art-src/rig/raw/normal-horse-0.png",
+  "riderNormal": "art-src/rig/raw/normal-rider-0.png"
+ }
+}

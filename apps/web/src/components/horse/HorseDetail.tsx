@@ -6,10 +6,13 @@ import type { HorseView } from "@/server/repository";
 import { COAT_LABEL, SEX_LABEL, STYLE_BLURB, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance, furlongs, ordinal } from "@/lib/format";
 import { horseRecord, usePlayerState } from "@/lib/player";
 import { HorsePortrait } from "../HorsePortrait";
+import { StatTile } from "../PaddockStable";
 import { SilksIcon } from "../Silks";
+import { Stall } from "../Stall";
 import { StatBars } from "../StatBars";
 import { StatRadar } from "../StatRadar";
-import { ArrowIcon } from "../icons";
+import { ArrowIcon, PixelIcon } from "../icons";
+import { useTilt } from "../pixel/useTilt";
 
 const FACE_LABEL = { none: "No face markings", star: "Star", snip: "Snip", stripe: "Stripe", blaze: "Blaze", bald: "Bald face" } as const;
 const LEG_LABEL: Record<LegMarking, string> = { none: "", coronet: "coronet", sock: "sock", stocking: "stocking" };
@@ -20,8 +23,18 @@ function legsText(legs: readonly LegMarking[]): string {
   return marked.length ? marked.join(", ") : "No leg markings";
 }
 
+function SectionTitle({ id, icon, children }: { id: string; icon: Parameters<typeof PixelIcon>[0]["name"]; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="display flex items-center gap-2 text-xl">
+      <PixelIcon name={icon} className="h-5 w-5" />
+      {children}
+    </h2>
+  );
+}
+
 export function HorseDetail({ view }: { view: HorseView }) {
   const state = usePlayerState();
+  const tilt = useTilt<HTMLDivElement>(4);
   const isMine = view.kind === "player" && state?.player.playerId === view.horse.ownerId;
   const index = isMine ? Number(view.horse.id.split("-").pop()) : -1;
   const horse = isMine && state ? { ...view.horse, appearance: { ...view.horse.appearance, silks: state.player.silks } } : view.horse;
@@ -31,25 +44,33 @@ export function HorseDetail({ view }: { view: HorseView }) {
   const strike = record.starts > 0 ? Math.round((record.wins / record.starts) * 100) : null;
 
   return (
-    <div className="grid gap-6">
-      <nav className="text-xs text-sage" aria-label="Breadcrumb">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+      <nav className="label flex items-center gap-1.5" aria-label="Breadcrumb">
         <Link href={isMine ? "/stable" : "/races"} className="hover:text-cream">
           {isMine ? "Your stable" : "Races"}
-        </Link>{" "}
-        / <span className="text-cream-dim">{horse.name}</span>
+        </Link>
+        <span>›</span>
+        <span className="truncate text-cream-dim">{horse.name}</span>
       </nav>
 
-      <section className="panel grid overflow-hidden md:grid-cols-[minmax(0,26rem)_1fr]">
-        <div className="relative aspect-square bg-gradient-to-br from-turf-700 via-turf-850 to-ink md:aspect-auto md:min-h-[24rem]">
-          <HorsePortrait appearance={horse.appearance} className="absolute inset-0 h-full w-full" title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`} />
+      <section className="px-panel grid overflow-hidden !p-0 md:grid-cols-[minmax(0,25rem)_1fr]">
+        <div ref={tilt} className="tilt relative">
+          <Stall className="aspect-square md:aspect-auto md:h-full md:min-h-[24rem]">
+            <div className="parallax absolute inset-x-0 bottom-[7%] top-[8%] flex justify-center" style={{ ["--depth" as string]: 14 }}>
+              <HorsePortrait appearance={horse.appearance} className="h-full w-auto drop-shadow-[6px_6px_0_rgba(0,0,0,0.35)]" title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`} />
+            </div>
+            <div className="parallax absolute left-3 top-3" style={{ ["--depth" as string]: 20 }}>
+              <span className="chip chip-cream">{STYLE_LABEL[horse.style]}</span>
+            </div>
+          </Stall>
         </div>
-        <div className="flex flex-col gap-5 p-5 sm:p-7">
+        <div className="flex flex-col gap-4 p-4 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <SilksIcon silks={horse.appearance.silks} className="h-7 w-7" />
+              <SilksIcon silks={horse.appearance.silks} className="h-8 w-8" />
               <p className="eyebrow">{stableName}</p>
             </div>
-            <h1 className="display mt-2 text-4xl font-semibold leading-tight sm:text-5xl" data-testid="horse-name">
+            <h1 className="display mt-2 text-[2.2rem] sm:text-5xl" data-testid="horse-name">
               {horse.name}
             </h1>
             <p className="mt-1 text-cream-dim">
@@ -57,25 +78,18 @@ export function HorseDetail({ view }: { view: HorseView }) {
               {view.trainer && <span className="text-sage"> · trained by {view.trainer}</span>}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              ["Style", STYLE_LABEL[horse.style]],
-              ["Best trip", `${formatDistance(horse.preferredDistanceM)}`],
-              ["Surface", SURFACE_LABEL[horse.preferredSurface]],
-            ].map(([k, v]) => (
-              <div key={k} className="panel-quiet px-3 py-2.5">
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sage">{k}</p>
-                <p className="mt-0.5 truncate font-semibold">{v}</p>
-              </div>
-            ))}
-          </div>
+          <dl className="grid grid-cols-3 gap-1.5">
+            <StatTile icon="star" label="Style" value={STYLE_LABEL[horse.style]} />
+            <StatTile icon="flag" label="Best trip" value={formatDistance(horse.preferredDistanceM)} />
+            <StatTile icon="horseshoe" label="Surface" value={SURFACE_LABEL[horse.preferredSurface]} />
+          </dl>
           <p className="text-sm leading-relaxed text-cream-dim">
             {STYLE_BLURB[horse.style]} Happiest over {furlongs(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}.
           </p>
           <div className="mt-auto flex flex-wrap items-center gap-3">
             {isMine ? (
-              <Link href={`/races?horse=${index}#quick`} className="btn btn-brass" data-testid="enter-a-race">
-                Enter a race <ArrowIcon className="h-4 w-4" />
+              <Link href={`/races?horse=${index}#quick`} className="btn btn-brass btn-lg" data-testid="enter-a-race">
+                <PixelIcon name="flag" className="h-5 w-5" /> Enter a race <ArrowIcon className="h-3 w-3" />
               </Link>
             ) : view.kind === "rival" ? (
               <p className="text-sm text-sage">A house horse. Meet it on the club card.</p>
@@ -84,51 +98,50 @@ export function HorseDetail({ view }: { view: HorseView }) {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="panel p-5 sm:p-6" aria-labelledby="ability-h">
-          <h2 id="ability-h" className="display text-xl font-semibold">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="px-panel p-4 sm:p-5" aria-labelledby="ability-h">
+          <SectionTitle id="ability-h" icon="star">
             Ability
-          </h2>
-          <div className="mt-4 grid items-center gap-6 sm:grid-cols-[1fr_1fr]">
-            <StatRadar stats={horse.stats} className="mx-auto w-full max-w-xs" />
+          </SectionTitle>
+          <div className="mt-3 grid items-start gap-5 sm:grid-cols-[13rem_1fr]">
+            <StatRadar stats={horse.stats} />
             <StatBars stats={horse.stats} />
           </div>
         </section>
 
-        <div className="grid gap-6">
-          <section className="panel p-5 sm:p-6" aria-labelledby="record-h">
-            <h2 id="record-h" className="display text-xl font-semibold">
+        <div className="grid gap-5">
+          <section className="px-panel p-4 sm:p-5" aria-labelledby="record-h">
+            <SectionTitle id="record-h" icon="trophy">
               Race record
-            </h2>
-            <dl className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {[
-                ["Starts", record.starts],
-                ["Wins", record.wins],
-                ["2nds", record.places],
-                ["3rds", record.shows],
-                ["Earned", formatCredits(record.earnings)],
-              ].map(([k, v]) => (
-                <div key={k as string} className="panel-quiet px-3 py-2.5">
-                  <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sage">{k}</dt>
-                  <dd className="display tabular text-xl font-semibold">{v}</dd>
-                </div>
+            </SectionTitle>
+            <dl className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+              {(
+                [
+                  ["Starts", record.starts, "flag"],
+                  ["Wins", record.wins, "trophy"],
+                  ["2nds", record.places, "rosette"],
+                  ["3rds", record.shows, "star"],
+                  ["Earned", formatCredits(record.earnings), "coin"],
+                ] as const
+              ).map(([k, v, icon]) => (
+                <StatTile key={k} icon={icon} label={k} value={String(v)} />
               ))}
             </dl>
-            <p className="mt-3 text-xs text-sage">{strike === null ? "Yet to race." : `Strike rate ${strike}%.`}</p>
+            <p className="label mt-2">{strike === null ? "Yet to race." : `Strike rate ${strike}%`}</p>
           </section>
 
-          <section className="panel p-5 sm:p-6" aria-labelledby="pedigree-h">
-            <h2 id="pedigree-h" className="display text-xl font-semibold">
+          <section className="px-panel p-4 sm:p-5" aria-labelledby="pedigree-h">
+            <SectionTitle id="pedigree-h" icon="horseshoe">
               Pedigree &amp; markings
-            </h2>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            </SectionTitle>
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
               {[
                 ["Sire", horse.sireId ?? "Foundation stock"],
                 ["Dam", horse.damId ?? "Foundation stock"],
               ].map(([k, v]) => (
-                <div key={k} className="panel-quiet px-3 py-2.5">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sage">{k}</p>
-                  <p className="display mt-0.5 italic text-cream-dim">{v}</p>
+                <div key={k} className="px-plate px-2 py-1">
+                  <p className="font-[family-name:var(--font-pixel)] text-[10px] uppercase tracking-wider text-[#7a5a2e]">{k}</p>
+                  <p className="display truncate text-base !text-[#1d140a] [text-shadow:none]">{v}</p>
                 </div>
               ))}
             </div>
@@ -141,38 +154,31 @@ export function HorseDetail({ view }: { view: HorseView }) {
 
       {isMine && (
         <section aria-labelledby="history-h">
-          <h2 id="history-h" className="display mb-3 text-2xl font-semibold">
-            Race history
+          <h2 id="history-h" className="display mb-2 flex items-center gap-2 text-2xl">
+            <PixelIcon name="stopwatch" className="h-6 w-6" /> Race history
           </h2>
           {history.length === 0 ? (
-            <div className="panel-quiet p-5 text-sm text-cream-dim">
+            <div className="px-panel-quiet p-4 text-sm text-cream-dim">
               No runs yet.{" "}
-              <Link href={`/races?horse=${index}#quick`} className="text-brass-bright underline underline-offset-4">
+              <Link href={`/races?horse=${index}#quick`} className="font-semibold text-brass-bright underline underline-offset-4">
                 Send {horse.name} to the gates
               </Link>
               .
             </div>
           ) : (
-            <ul className="panel divide-y divide-cream/5 p-1.5" data-testid="history">
+            <ul className="px-panel divide-y-2 divide-dashed divide-[#1f4d35] !p-0" data-testid="history">
               {history.map((h) => (
                 <li key={h.raceId}>
-                  <Link href={`/race/${h.raceId}`} className="flex items-center gap-4 rounded-xl px-3 py-3 hover:bg-cream/[0.03]">
-                    <span
-                      className={`display flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                        h.position === 1 ? "bg-gradient-to-b from-brass-bright to-brass text-ink" : "border border-cream/15 text-cream-dim"
-                      }`}
-                    >
-                      {ordinal(h.position)}
-                    </span>
+                  <Link href={`/race/${h.raceId}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-[#163a28]">
+                    <PositionBadge position={h.position} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{h.raceName}</p>
+                      <p className="display truncate text-[1.05rem]">{h.raceName}</p>
                       <p className="text-xs text-sage">
-                        {formatDistance(h.distanceM)} · {SURFACE_LABEL[h.surface]} · {h.fieldSize} ran · {new Date(h.postTimeMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        {formatDistance(h.distanceM)} · {SURFACE_LABEL[h.surface]} · {h.fieldSize} ran ·{" "}
+                        {new Date(h.postTimeMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       </p>
                     </div>
-                    <span className={`tabular text-sm ${h.prize > 0 ? "font-semibold text-brass-bright" : "text-sage"}`}>
-                      {h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}
-                    </span>
+                    <span className={`num text-base ${h.prize > 0 ? "text-brass-bright" : "text-sage"}`}>{h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}</span>
                   </Link>
                 </li>
               ))}
@@ -181,5 +187,29 @@ export function HorseDetail({ view }: { view: HorseView }) {
         </section>
       )}
     </div>
+  );
+}
+
+const MEDAL: Record<number, { bg: string; fg: string; edge: string }> = {
+  1: { bg: "#f2c86a", fg: "#2a1a05", edge: "#9a6b22" },
+  2: { bg: "#d5dde0", fg: "#1c2427", edge: "#7d888b" },
+  3: { bg: "#d08a4e", fg: "#2a1405", edge: "#7a4a2a" },
+};
+
+/** Square pixel position badge (gold/silver/bronze for the podium). */
+export function PositionBadge({ position, size = "md" }: { position: number; size?: "sm" | "md" }) {
+  const m = MEDAL[position];
+  const dim = size === "sm" ? "h-7 w-7 text-sm" : "h-9 w-9 text-base";
+  return (
+    <span
+      className={`num flex shrink-0 items-center justify-center ${dim}`}
+      style={{
+        background: m?.bg ?? "#0a1912",
+        color: m?.fg ?? "#cdbf9c",
+        boxShadow: `inset 0 -3px 0 ${m?.edge ?? "#050b08"}, 0 0 0 2px #0b0f0c`,
+      }}
+    >
+      {ordinal(position)}
+    </span>
   );
 }

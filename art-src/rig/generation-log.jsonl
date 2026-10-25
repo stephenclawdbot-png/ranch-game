@@ -1,0 +1,4 @@
+{"at":"2026-10-25T16:13:44.760Z","endpoint":"/generate-image-v2","prefix":"art-src/rig/raw/stand-a","secs":97,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-25T16:15:42.991Z","endpoint":"/inpaint-v3","prefix":"art-src/rig/raw/jockey-a","secs":66,"usage":{"type":"generations","generations":10},"images":2}
+{"at":"2026-10-25T16:21:05.962Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/normal-horse","secs":34,"usage":{"type":"generations","generations":0.5},"images":1}
+{"at":"2026-10-25T16:21:10.422Z","endpoint":"/normal-map","prefix":"art-src/rig/raw/normal-rider","secs":38,"usage":{"type":"generations","generations":0.5},"images":1}

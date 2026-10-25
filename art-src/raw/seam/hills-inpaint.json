@@ -1,0 +1,77 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "rolling English countryside hills, patchwork fields, hedgerows and trees continuing seamlessly, flat pale cream sky above",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<21176 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 480,
+    "height": 128
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<728 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 480,
+    "height": 128
+   }
+  },
+  "no_background": false,
+  "seed": 777
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "00c1df2d-d288-4132-b876-c70cb7b767af",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 15
+  },
+  "id": "00c1df2d-d288-4132-b876-c70cb7b767af",
+  "status": "completed",
+  "created_at": "2026-10-25T16:34:13.742677+00:00",
+  "last_response": {
+   "seed": 777,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 480,
+    "base64": "<22696 chars>",
+    "height": 128
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 15
+   },
+   "generation_id": "070ce11c-ef4e-4eef-a334-2ffd66fe9721",
+   "usage_cost_usd": 0.115,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 480,
+    "base64": "<22696 chars>",
+    "height": 128
+   },
+   "generation_started_at": "2026-10-25T16:34:20.067009+00:00",
+   "original_image_n_colors": 54,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/raw/seam/hills-inpaint-0.png"
+ ]
+}

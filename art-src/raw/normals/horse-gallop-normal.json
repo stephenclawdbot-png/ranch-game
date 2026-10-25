@@ -1,0 +1,238 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<44688 chars>",
+   "format": "png"
+  },
+  "frames": 12,
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "992421b0-11b9-41e2-829a-1e9b6147f6c6",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "992421b0-11b9-41e2-829a-1e9b6147f6c6",
+  "status": "completed",
+  "created_at": "2026-10-25T16:21:12.245515+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": -20,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       40
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "far legs",
+      "shape": "cylinder",
+      "regions": [
+       59,
+       60
+      ]
+     },
+     {
+      "name": "hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       30,
+       41,
+       45,
+       46,
+       47,
+       48
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       43,
+       32,
+       33,
+       50,
+       44,
+       38,
+       53,
+       54,
+       55
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       31
+      ]
+     },
+     {
+      "name": "whip",
+      "shape": "bevel",
+      "width": 1,
+      "facing": [
+       0,
+       0.5
+      ],
+      "regions": [
+       16
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey breeches",
+      "shape": "cylinder",
+      "regions": [
+       37
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "shape": "cylinder",
+      "regions": [
+       21,
+       22,
+       26,
+       27,
+       34
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       9,
+       15,
+       20,
+       23,
+       24,
+       25,
+       28,
+       29,
+       35,
+       36,
+       39
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "near front leg",
+      "shape": "cylinder",
+      "regions": [
+       49,
+       51,
+       52,
+       56,
+       57,
+       58,
+       61
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "jockey sleeve",
+      "shape": "cylinder",
+      "regions": [
+       6,
+       10
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "jockey cyan sleeve",
+      "shape": "cylinder",
+      "regions": [
+       11,
+       12,
+       13,
+       17,
+       18,
+       19
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       7,
+       8,
+       14
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     14,
+     22,
+     39,
+     42,
+     49,
+     52,
+     56,
+     58
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 1416,
+    "base64": "<130860 chars>",
+    "height": 72
+   },
+   "action": "Shaping the parts",
+   "frames": 12,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "9eb70a8a-a25a-4218-a0c3-350466d0b5a0",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:21:12.324464+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-gallop-normal-0.png"
+ ]
+}

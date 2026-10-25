@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { RaceViewer, type CameraMode } from "@thoroughbred/race-viewer";
-import { HorseStudio, fakeReplay } from "@thoroughbred/race-viewer/dev";
+import { SpriteSheet, fakeReplay } from "@thoroughbred/race-viewer/dev";
 import type { Surface, Weather } from "@thoroughbred/shared";
 
 export interface HarnessParams {
@@ -22,6 +22,10 @@ export interface HarnessParams {
   paused?: string;
   gallop?: string;
   drive?: string;
+  /** "none" = skip /art (code-drawn art only). */
+  art?: string;
+  /** Low internal resolution, nearest upscale. */
+  pixel?: string;
 }
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -43,12 +47,7 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
   if (params.studio) {
     return (
       <main style={{ padding: 16 }}>
-        <HorseStudio
-          horses={replay.horses}
-          phase={params.phase !== undefined ? num(params.phase, 0) : undefined}
-          gallop={num(params.gallop, 1)}
-          drive={num(params.drive, 0)}
-        />
+        <SpriteSheet horses={replay.horses} artBaseUrl={params.art === "none" ? null : "/art"} />
       </main>
     );
   }
@@ -63,6 +62,8 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         quality={(params.quality as "auto" | "high" | "low") ?? "auto"}
         initialCamera={params.camera as CameraMode | undefined}
         highlightHorseId={params.highlight ?? "h3"}
+        pixelated={params.pixel !== undefined}
+        artBaseUrl={params.art === "none" ? null : "/art"}
       />
     </main>
   );

@@ -1,0 +1,147 @@
+{
+ "endpoint": "/animate-pixminimax",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<7432 chars>",
+   "format": "png"
+  },
+  "description": "gallops at full racing speed on the spot: one complete four-beat gallop stride, hind legs drive under the body, forelegs reach forward, all legs gather under the belly, then extend again; head and neck nod with the stride; jockey stays low and still; ends in the starting pose so it loops",
+  "frame_count": 12,
+  "seed": 42,
+  "direction": "east",
+  "view": "side",
+  "subject_description": "a bay thoroughbred racehorse with a jockey in magenta and cyan silks crouched in racing position",
+  "initial_pose": "mid-gallop",
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d23d46e1-ec38-484a-bf5a-d77931b043d5",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 1
+  },
+  "id": "d23d46e1-ec38-484a-bf5a-d77931b043d5",
+  "status": "completed",
+  "created_at": "2026-10-25T16:08:52.502731+00:00",
+  "last_response": {
+   "seed": 42,
+   "type": "done",
+   "action": "smoothing frames",
+   "images": [
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7432 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7236 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7140 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7064 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7000 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7100 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7328 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7512 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7104 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7272 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7048 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<7068 chars>",
+     "height": 104
+    },
+    {
+     "type": "base64",
+     "width": 144,
+     "base64": "<6704 chars>",
+     "height": 104
+    }
+   ],
+   "status": "initializing",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 1
+   },
+   "generation_id": "a568a1a1-bf39-4474-90c4-955a4adf3261",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-25T16:08:52.565678+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "raw/hero/anim-mmB-0.png",
+  "raw/hero/anim-mmB-1.png",
+  "raw/hero/anim-mmB-2.png",
+  "raw/hero/anim-mmB-3.png",
+  "raw/hero/anim-mmB-4.png",
+  "raw/hero/anim-mmB-5.png",
+  "raw/hero/anim-mmB-6.png",
+  "raw/hero/anim-mmB-7.png",
+  "raw/hero/anim-mmB-8.png",
+  "raw/hero/anim-mmB-9.png",
+  "raw/hero/anim-mmB-10.png",
+  "raw/hero/anim-mmB-11.png",
+  "raw/hero/anim-mmB-12.png"
+ ]
+}

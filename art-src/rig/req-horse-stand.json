@@ -1,0 +1,8 @@
+{
+  "description": "side view of a bay thoroughbred racehorse standing still, facing right, full body profile, rich reddish brown coat, black mane, black tail hanging, black lower legs, all four legs straight and clearly separated with gaps between them, near foreleg slightly forward, near hind leg slightly back, white saddle cloth with a small black racing saddle, no rider, game sprite, high-res pixel art, selective dark outline, golden-hour lighting",
+  "image_size": { "width": 128, "height": 96 },
+  "no_background": true,
+  "seed": 3301,
+  "style_image": { "image": { "$file": "art-src/raw/hero/v2-a-0.png" }, "size": { "width": 128, "height": 96 } },
+  "style_options": { "color_palette": true, "outline": true, "detail": true, "shading": true }
+}

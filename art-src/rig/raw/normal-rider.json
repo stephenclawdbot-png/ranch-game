@@ -1,0 +1,247 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<6780 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character",
+  "convention": "opengl"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "41affaa2-72c6-4718-97c7-0a60edbd8421",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "41affaa2-72c6-4718-97c7-0a60edbd8421",
+  "status": "completed",
+  "created_at": "2026-10-25T16:20:33.073567+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 90,
+      "name": "far hind leg",
+      "shape": "cylinder",
+      "regions": [
+       50,
+       47
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near hind leg",
+      "shape": "cylinder",
+      "regions": [
+       49
+      ]
+     },
+     {
+      "axis": 100,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       40
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       27,
+       28,
+       19,
+       20,
+       35,
+       36,
+       37,
+       39,
+       41,
+       43,
+       38
+      ]
+     },
+     {
+      "name": "horse shoulder and chest",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       32,
+       22,
+       25,
+       26,
+       33,
+       34
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       11,
+       17,
+       10
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       12,
+       13,
+       18,
+       23
+      ]
+     },
+     {
+      "name": "horse ear",
+      "shape": "ball",
+      "regions": [
+       7
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near foreleg",
+      "shape": "cylinder",
+      "regions": [
+       44,
+       45,
+       46,
+       48,
+       51,
+       42
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0
+      ],
+      "regions": [
+       14,
+       29,
+       31,
+       21
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey leg",
+      "shape": "cylinder",
+      "regions": [
+       30,
+       24
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       4,
+       8,
+       15
+      ]
+     },
+     {
+      "axis": -40,
+      "name": "cyan arm",
+      "shape": "cylinder",
+      "regions": [
+       9
+      ]
+     },
+     {
+      "name": "jockey hand",
+      "shape": "ball",
+      "regions": [
+       16
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       6,
+       5
+      ]
+     },
+     {
+      "name": "cap crown",
+      "shape": "ball",
+      "regions": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "cap brim",
+      "shape": "bevel",
+      "width": 1,
+      "facing": [
+       0,
+       0.8
+      ],
+      "regions": [
+       3
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 128,
+    "base64": "<12120 chars>",
+    "height": 96
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "997aa133-55a1-4757-9b50-57a531da4242",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:20:33.151305+00:00"
+  }
+ },
+ "files": [
+  "art-src/rig/raw/normal-rider-0.png"
+ ]
+}

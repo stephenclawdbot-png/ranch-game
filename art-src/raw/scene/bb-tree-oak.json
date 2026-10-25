@@ -1,0 +1,127 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<343 chars>",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "seed": 5301,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "edf25b32-ce34-4dbb-baf4-458f2dfbcb70",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "edf25b32-ce34-4dbb-baf4-458f2dfbcb70",
+  "status": "completed",
+  "created_at": "2026-10-25T16:24:32.952794+00:00",
+  "last_response": {
+   "seed": 5301,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<21504 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<21636 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<21888 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<24660 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "e0999d37-db2a-42c6-b6ae-e11ea97dd7fa",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "Rustic wooden cabin, thatched roof",
+   "style_selection": {
+    "style_reference_id": "2b92a296-f95b-4e11-950d-e7975ea027bf",
+    "style_reference_name": "Rustic wooden cabin, thatched roof",
+    "style_catalog_revision": 402,
+    "style_reference_frames": [
+     {
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "sha256": "047d265d0fd208140f62a52329c0bc9979dd1a9fdb188b77ddd36a814cda4436",
+      "direction": null,
+      "content_box": [
+       16,
+       7,
+       111,
+       101
+      ]
+     }
+    ],
+    "style_reference_intent": {
+     "camera": "eye-level side camera",
+     "facing": null,
+     "framing": "full-body",
+     "inferred": [
+      "sidescroller game sprite"
+     ],
+     "asset_kind": "mature oak tree",
+     "asset_family": "vegetation",
+     "rendering_traits": [
+      "large",
+      "deep green leaves",
+      "lit gold on the right side",
+      "thick brown trunk",
+      "high-res",
+      "pixel art",
+      "crisp hand-pixelled look",
+      "selective dark outlines",
+      "rich shading",
+      "warm golden-hour English racecourse palette"
+     ]
+    },
+    "style_reference_reason": "This house sprite matches the 'warm, earthy tones' and '16-bit era' rustic aesthetic requested for the oak tree, making its rendering style an excellent transferable fit for scenery.",
+    "style_reference_direction": null,
+    "style_reference_cropped_to": null,
+    "style_reference_description": "<304 chars>",
+    "style_reference_missing_traits": [
+     "vegetation type",
+     "side view"
+    ]
+   },
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-25T16:24:39.921597+00:00",
+   "original_image_n_colors": 111,
+   "quantized_image_n_colors": 52
+  }
+ },
+ "files": [
+  "art-src/raw/scene/bb-tree-oak-0.png",
+  "art-src/raw/scene/bb-tree-oak-1.png",
+  "art-src/raw/scene/bb-tree-oak-2.png",
+  "art-src/raw/scene/bb-tree-oak-3.png"
+ ]
+}

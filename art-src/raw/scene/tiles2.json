@@ -1,0 +1,97 @@
+{
+ "endpoint": "/create-tiles-pro",
+ "request": {
+  "description": "<423 chars>",
+  "tile_type": "square_topdown",
+  "tile_size": 64,
+  "tile_view": "top-down",
+  "outline_mode": "segmentation",
+  "seed": 5602
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "23e7bc85-b54f-4bd9-b5af-1676850b87c7",
+  "tile_id": "c1af998e-227b-43cf-a6ea-8194ad38a66e",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 15
+  },
+  "id": "23e7bc85-b54f-4bd9-b5af-1676850b87c7",
+  "status": "completed",
+  "created_at": "2026-10-25T16:29:09.354678+00:00",
+  "last_response": {
+   "seed": 5602,
+   "type": "done",
+   "action": "Touching up pixels",
+   "tile_id": "c1af998e-227b-43cf-a6ea-8194ad38a66e",
+   "progress": 0.85,
+   "tile_name": "1). top-down short mowed racecourse turf, even fin",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 15
+   },
+   "generation_id": "aeadcb1e-aaa7-4404-bb97-c2b77101feeb",
+   "usage_cost_usd": 0.115,
+   "billing_charged": true,
+   "tile_description": "<423 chars>",
+   "saved_to_database": true,
+   "generation_started_at": "2026-10-25T16:29:11.554996+00:00",
+   "original_image_n_colors": 96,
+   "experiment_art_direction": {
+    "side": [
+     "#3B2B1F",
+     "#2A1F16",
+     "#1C140D"
+    ],
+    "palette": [
+     {
+      "hex": "#A6D96E",
+      "role": "surface 0"
+     },
+     {
+      "hex": "#82C259",
+      "role": "surface 1"
+     },
+     {
+      "hex": "#63A847",
+      "role": "surface 2"
+     },
+     {
+      "hex": "#4D8C37",
+      "role": "surface 3"
+     },
+     {
+      "hex": "#3D702A",
+      "role": "surface 4"
+     },
+     {
+      "hex": "#3B2B1F",
+      "role": "side 0"
+     },
+     {
+      "hex": "#2A1F16",
+      "role": "side 1"
+     },
+     {
+      "hex": "#1C140D",
+      "role": "side 2"
+     }
+    ],
+    "surface": [
+     "#A6D96E",
+     "#82C259",
+     "#63A847",
+     "#4D8C37",
+     "#3D702A"
+    ],
+    "art_direction": "<487 chars>"
+   },
+   "quantized_image_n_colors": 29
+  }
+ },
+ "files": []
+}

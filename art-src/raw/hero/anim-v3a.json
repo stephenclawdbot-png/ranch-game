@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<7320 chars>",
+   "format": "png"
+  },
+  "action": "racehorse galloping at full speed, one complete gallop stride cycle, legs reach and gather, jockey stays crouched, seamless loop, stays in place",
+  "frame_count": 8,
+  "seed": 31,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "eed1aac2-e882-4d07-ae9f-c1481fb825a0",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "eed1aac2-e882-4d07-ae9f-c1481fb825a0",
+  "status": "completed",
+  "created_at": "2026-10-25T16:08:52.482943+00:00",
+  "last_response": {
+   "seed": 31,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.02844083590639962
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<7320 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7828 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7396 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7240 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7176 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7320 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7624 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7740 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<7444 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "b8f9f898-a419-44b5-8242-ae20755f6551",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-25T16:09:08.224367+00:00"
+  }
+ },
+ "files": [
+  "raw/hero/anim-v3a-0.png",
+  "raw/hero/anim-v3a-1.png",
+  "raw/hero/anim-v3a-2.png",
+  "raw/hero/anim-v3a-3.png",
+  "raw/hero/anim-v3a-4.png",
+  "raw/hero/anim-v3a-5.png",
+  "raw/hero/anim-v3a-6.png",
+  "raw/hero/anim-v3a-7.png",
+  "raw/hero/anim-v3a-8.png"
+ ]
+}

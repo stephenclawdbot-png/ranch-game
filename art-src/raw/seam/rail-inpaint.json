@@ -1,0 +1,77 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "white racecourse running rail with two horizontal round rails on white posts, continuing straight",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2108 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 192,
+    "height": 32
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "iVBORw0KGgoAAAANSUhEUgAAAMAAAAAgCAIAAADL+uDSAAAAdUlEQVR4nO3SwQnAMBADwVz679kpYg3GZKYAocfO82NrrS07M7Nl50bv6QPcTUAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiCSD75KA0BhV4kQAAAAAElFTkSuQmCC",
+    "format": "png"
+   },
+   "size": {
+    "width": 192,
+    "height": 32
+   }
+  },
+  "no_background": true,
+  "seed": 777
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6f433b3a-c01f-46b9-9531-beb8303dfe6b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "6f433b3a-c01f-46b9-9531-beb8303dfe6b",
+  "status": "completed",
+  "created_at": "2026-10-25T16:34:13.452231+00:00",
+  "last_response": {
+   "seed": 777,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 192,
+    "base64": "<1920 chars>",
+    "height": 32
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "46b2eee2-3c92-4b10-bd95-b00c36d157c9",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 192,
+    "base64": "<1920 chars>",
+    "height": 32
+   },
+   "generation_started_at": "2026-10-25T16:34:19.709601+00:00",
+   "original_image_n_colors": 306,
+   "quantized_image_n_colors": 43
+  }
+ },
+ "files": [
+  "art-src/raw/seam/rail-inpaint-0.png"
+ ]
+}

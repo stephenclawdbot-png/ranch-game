@@ -1,0 +1,78 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<330 chars>",
+  "image_size": {
+   "width": 64,
+   "height": 144
+  },
+  "seed": 5302,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "909a8d80-1e25-430a-9ab5-b8247fbcd748",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "909a8d80-1e25-430a-9ab5-b8247fbcd748",
+  "status": "completed",
+  "created_at": "2026-10-25T16:31:08.447146+00:00",
+  "last_response": {
+   "seed": 5302,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3696 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4940 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6456 chars>",
+     "height": 144
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5324 chars>",
+     "height": 144
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "42efa286-e079-4481-bd73-512fda4c6aee",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_96x96.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_96x96.png",
+   "generation_started_at": "2026-10-25T16:31:15.241377+00:00",
+   "original_image_n_colors": 83,
+   "quantized_image_n_colors": 44
+  }
+ },
+ "files": [
+  "art-src/raw/scene/bb-tree-poplar-0.png",
+  "art-src/raw/scene/bb-tree-poplar-1.png",
+  "art-src/raw/scene/bb-tree-poplar-2.png",
+  "art-src/raw/scene/bb-tree-poplar-3.png"
+ ]
+}

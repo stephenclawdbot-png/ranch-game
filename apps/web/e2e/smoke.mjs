@@ -68,7 +68,7 @@ async function main() {
     await shot(page, "desktop-play");
     await page.getByRole("button", { name: /register/i }).click();
     await page.getByRole("heading", { name: "Larkrise Lodge" }).waitFor();
-    await page.locator('[aria-label="Your starter horses"] svg').first().waitFor();
+    await page.locator('[aria-label="Your starter horses"] [data-testid="horse-portrait"]').first().waitFor();
     await page.waitForTimeout(800);
     await shot(page, "desktop-welcome");
 

@@ -1,0 +1,988 @@
+/**
+ * HD-2D race scene (Three.js): a real 3D racecourse with code-drawn pixel textures,
+ * pixel-art billboards for horses / trees / stands, warm sun + hemisphere fill + fog,
+ * a directed camera and a screen-space lens (DOF, bloom, grade).
+ *
+ * World units are metres. x runs along the track (start at 0, finish at trackLength),
+ * y is up, z is across: the inner rail is at z = 0 (nearest the camera) and lanes run
+ * away from the camera towards -z. The grandstand stands beyond the outer rail.
+ */
+import type * as THREE from "three";
+import { FURLONG_MM, type RaceReplay } from "@thoroughbred/shared";
+import { createReplaySampler, replayTiming, type HorseSample, type ReplaySampler } from "../sampleReplay";
+import { Spring } from "../scene/camera";
+import { legPhase, strideLengthM } from "../scene/horse/gait";
+import type { CameraMode, RenderQuality } from "../types";
+import type { ArtSet } from "./art";
+import type { HorseRig, HorseRigFactory, LitHorseRig, RigKind } from "./horseRig";
+import { hexToRgb, mixHex, rng } from "./color";
+import {
+  LOOKS,
+  blobShadow,
+  cloudSprite,
+  flagStrip,
+  gatePanelTile,
+  grandstandSprite,
+  railCrowdSprite,
+  grassTile,
+  hedgeTile,
+  hillsStrip,
+  roundelSprite,
+  signSprite,
+  skyStrip,
+  sunSprite,
+  surfaceTile,
+  treeSprite,
+  type Look,
+} from "./pixelTextures";
+import { PostFX } from "./post";
+import { PixelParticles, PixelRain } from "./vfx";
+
+export interface SceneFrame {
+  time: number;
+  realDt: number;
+  camera: CameraMode;
+  frozen: boolean;
+  flash: number;
+}
+
+export interface HD2DSceneOptions {
+  quality: RenderQuality;
+  highlightHorseId?: string;
+  /** Render at a low internal resolution and upscale with nearest filtering. */
+  pixelated?: boolean;
+  art: ArtSet;
+  rigs: HorseRigFactory;
+  rigKind: RigKind;
+}
+
+const LANE_W = 1.3;
+const RAIL_GAP = 1.0;
+/** World metres per sprite pixel (horse billboards). */
+const WUPP = 0.025;
+const PULLUP_TAU = 2.6;
+const TRACK_PRE = 180;
+const TRACK_POST = 340;
+
+interface Runner {
+  index: number;
+  rig: HorseRig;
+  group: THREE.Group;
+  plane: THREE.Mesh;
+  mat: THREE.Material;
+  shadow: THREE.Mesh;
+  phase: number;
+  lastX: number;
+  x: number;
+  z: number;
+  bodyX: number;
+  bodyZ: number;
+  speed: number;
+  drive: number;
+  finishT: number | null;
+  finishSpeed: number;
+  kickT: number | null;
+  prevLeg: [number, number];
+  rand: () => number;
+}
+
+class Spring3 {
+  x: Spring;
+  y: Spring;
+  z: Spring;
+  constructor(v: THREE.Vector3, omega: number) {
+    this.x = new Spring(v.x, omega);
+    this.y = new Spring(v.y, omega);
+    this.z = new Spring(v.z, omega);
+  }
+  step(t: THREE.Vector3, dt: number, velX = 0): void {
+    this.x.step(t.x, dt, velX);
+    this.y.step(t.y, dt);
+    this.z.step(t.z, dt);
+  }
+  snap(t: THREE.Vector3): void {
+    this.x.snap(t.x);
+    this.y.snap(t.y);
+    this.z.snap(t.z);
+  }
+  into(v: THREE.Vector3): THREE.Vector3 {
+    return v.set(this.x.x, this.y.x, this.z.x);
+  }
+}
+
+type Shot = "crane" | "follow" | "wide" | "low" | "photo" | "post";
+
+export class HD2DScene {
+  readonly canvas: HTMLCanvasElement;
+  private T: typeof THREE;
+  private renderer: THREE.WebGLRenderer;
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private post: PostFX | null = null;
+  private replay: RaceReplay;
+  private sampler: ReplaySampler;
+  private samples: HorseSample[] = [];
+  private look: Look;
+  private runners: Runner[] = [];
+  private disposables: { dispose(): void }[] = [];
+  private rigs: HorseRigFactory;
+  private particles: PixelParticles;
+  private rain: PixelRain | null = null;
+  private sky: THREE.Mesh;
+  private sun: THREE.Sprite | null = null;
+  private sunLight: THREE.DirectionalLight;
+  private sunDir: THREE.Vector3;
+  private crowdTex: THREE.Texture[] = [];
+  private stand: THREE.Mesh | null = null;
+  private flagTex: THREE.Texture[] = [];
+  private railCrowdTex: THREE.Texture[] = [];
+  private railCrowd: THREE.Mesh | null = null;
+  private doors: THREE.Group[] = [];
+  private marker: THREE.Sprite | null = null;
+  private ring: THREE.Mesh | null = null;
+  private camPos: Spring3;
+  private camLook: Spring3;
+  private fov: Spring;
+  private shot: Shot = "crane";
+  private lastTime = Number.NaN;
+  private animTime = 0;
+  private firstFrame = true;
+  private quality: RenderQuality;
+  private pixelated: boolean;
+  private highlight: number;
+  private L: number;
+  private trackW: number;
+  private laneCount: number;
+  private winnerTime: number;
+  private confettiDone = false;
+  private W = 1;
+  private H = 1;
+  private v1: THREE.Vector3;
+  private v2: THREE.Vector3;
+  private buf: THREE.Vector2;
+  private focusDist = 15;
+
+  constructor(T: typeof THREE, replay: RaceReplay, opts: HD2DSceneOptions) {
+    this.T = T;
+    this.replay = replay;
+    this.quality = opts.quality;
+    this.pixelated = !!opts.pixelated;
+    this.rigs = opts.rigs;
+    this.sampler = createReplaySampler(replay);
+    this.look = LOOKS[replay.race.weather] ?? LOOKS.clear;
+    this.L = replay.trackLengthMm / 1000;
+    this.laneCount = Math.max(2, replay.laneCount);
+    this.trackW = RAIL_GAP * 2 + (this.laneCount - 1) * LANE_W;
+    this.winnerTime = replayTiming(replay).winnerTime;
+    this.highlight = replay.horses.findIndex((h) => h.horseId === opts.highlightHorseId);
+    this.v1 = new T.Vector3();
+    this.v2 = new T.Vector3();
+    this.buf = new T.Vector2();
+
+    const renderer = new T.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: false, stencil: false });
+    renderer.outputColorSpace = T.SRGBColorSpace;
+    renderer.toneMapping = T.NoToneMapping;
+    renderer.shadowMap.enabled = opts.quality === "high";
+    renderer.shadowMap.type = T.PCFShadowMap;
+    this.renderer = renderer;
+    this.canvas = renderer.domElement;
+    this.canvas.style.display = "block";
+    this.canvas.style.width = "100%";
+    this.canvas.style.height = "100%";
+
+    const scene = new T.Scene();
+    this.scene = scene;
+    scene.fog = new T.Fog(this.look.fog, this.look.fogNear, this.look.fogFar);
+    scene.background = new T.Color(this.look.fog);
+    this.camera = new T.PerspectiveCamera(34, 16 / 9, 0.3, 2400);
+
+    // --- Light -----------------------------------------------------------------
+    this.sunDir = new T.Vector3(...this.look.sunDir).normalize();
+    this.sunLight = new T.DirectionalLight(this.look.sunColor, this.look.sunIntensity);
+    this.sunLight.castShadow = opts.quality === "high";
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    const sc = this.sunLight.shadow.camera;
+    sc.left = -40;
+    sc.right = 40;
+    sc.top = 30;
+    sc.bottom = -30;
+    sc.near = 1;
+    sc.far = 200;
+    this.sunLight.shadow.bias = -0.0008;
+    scene.add(this.sunLight, this.sunLight.target);
+    scene.add(new T.HemisphereLight(this.look.hemiSky, this.look.hemiGround, this.look.hemiIntensity));
+
+    this.sky = this.buildSky(opts.art);
+    this.buildGround(opts.art, replay.race.surface);
+    this.buildBackdrop(opts.art);
+    this.buildRails();
+    this.buildPoles();
+    this.buildGate();
+    this.buildHorses(opts);
+    this.buildMarker();
+
+    this.particles = new PixelParticles(T, opts.quality === "high" ? 900 : 300);
+    this.particles.density = opts.quality === "high" ? 1 : 0.4;
+    scene.add(this.particles.points);
+    this.disposables.push(this.particles);
+    if (this.look.rain) {
+      this.rain = new PixelRain(T, opts.quality === "high" ? 900 : 350);
+      scene.add(this.rain.lines);
+      this.disposables.push(this.rain);
+    }
+    if (opts.quality === "high") {
+      this.post = new PostFX(T, renderer);
+      this.disposables.push(this.post);
+    }
+
+    const start = new T.Vector3(0, 14, 26);
+    this.camPos = new Spring3(start, 2.2);
+    this.camLook = new Spring3(new T.Vector3(2, 0, -this.trackW / 2), 2.6);
+    this.fov = new Spring(34, 2);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Construction helpers
+  // ---------------------------------------------------------------------------
+
+  private tex(src: HTMLCanvasElement | HTMLImageElement, opts: { repeat?: boolean; mip?: boolean } = {}): THREE.Texture {
+    const T = this.T;
+    const t = src instanceof HTMLCanvasElement ? new T.CanvasTexture(src) : new T.Texture(src);
+    t.colorSpace = T.SRGBColorSpace;
+    t.magFilter = T.NearestFilter;
+    t.minFilter = opts.mip ? T.NearestMipmapLinearFilter : T.NearestFilter;
+    t.generateMipmaps = !!opts.mip;
+    if (opts.mip) t.anisotropy = 4;
+    if (opts.repeat) {
+      t.wrapS = T.RepeatWrapping;
+      t.wrapT = T.RepeatWrapping;
+    }
+    t.needsUpdate = true;
+    this.disposables.push(t);
+    return t;
+  }
+
+  private own<G extends { dispose(): void }>(g: G): G {
+    this.disposables.push(g);
+    return g;
+  }
+
+  private buildSky(art: ArtSet): THREE.Mesh {
+    const T = this.T;
+    const weather = this.replay.race.weather;
+    const artSky = art.images.get(weather === "dusk" ? "sky-dusk" : weather === "clear" ? "sky-clear" : "sky-overcast");
+    const map = this.tex(artSky ?? skyStrip(this.look));
+    if (!artSky) map.magFilter = T.NearestFilter;
+    const sky = new T.Mesh(this.own(new T.SphereGeometry(1800, 24, 24)), this.own(new T.MeshBasicMaterial({ map, side: T.BackSide, fog: false, depthWrite: false })));
+    sky.renderOrder = -10;
+    this.scene.add(sky);
+    if (this.look.sunDisc) {
+      this.sun = new T.Sprite(this.own(new T.SpriteMaterial({ map: this.tex(sunSprite(this.look)), fog: false, depthWrite: false, transparent: true })));
+      this.sun.scale.set(150, 150, 1);
+      this.sun.renderOrder = -9;
+      this.scene.add(this.sun);
+    }
+    // Pixel clouds, far away (so they barely parallax).
+    const r = rng(77);
+    const cloudTex = [0, 1, 2].map((i) => this.tex(cloudSprite(this.look, 100 + i)));
+    for (let i = 0; i < this.look.cloudCount; i++) {
+      const s = new T.Sprite(this.own(new T.SpriteMaterial({ map: cloudTex[i % 3]!, fog: false, depthWrite: false, transparent: true, alphaTest: 0.5 })));
+      const w = 180 + r() * 160;
+      s.scale.set(w, w * 0.42, 1);
+      s.position.set(-700 + r() * (this.L + 1400), 140 + r() * 260, -1100 - r() * 300);
+      s.renderOrder = -8;
+      this.scene.add(s);
+    }
+    return sky;
+  }
+
+  private buildGround(art: ArtSet, surface: RaceReplay["race"]["surface"]): void {
+    const T = this.T;
+    const L = this.L;
+    const len = L + TRACK_PRE + TRACK_POST;
+    const cx = (L - TRACK_PRE + L + TRACK_POST) / 2;
+    // Outfield / infield grass.
+    const grassImg = art.images.get("tex-grass");
+    const gTex = this.tex(grassImg ?? grassTile(this.look), { repeat: true, mip: true });
+    const gW = len + 1600;
+    const gD = 1700;
+    gTex.repeat.set(gW / 3.2, gD / 3.2);
+    const grass = new T.Mesh(this.own(new T.PlaneGeometry(gW, gD)), this.own(new T.MeshLambertMaterial({ map: gTex })));
+    grass.rotation.x = -Math.PI / 2;
+    grass.position.set(cx, 0, -gD / 2 + 80);
+    grass.receiveShadow = true;
+    this.scene.add(grass);
+    // Racing surface.
+    const stem = surface === "turf" ? "tex-turf" : "tex-dirt";
+    const sImg = art.images.get(stem);
+    const sTex = this.tex(sImg ?? surfaceTile(this.look, surface), { repeat: true, mip: true });
+    const tileW = sImg ? 4 : surface === "turf" ? 10.24 : 5.12;
+    const tileD = sImg ? 4 : 2.56;
+    const tw = this.trackW + 0.6;
+    sTex.repeat.set(len / tileW, tw / tileD);
+    const track = new T.Mesh(this.own(new T.PlaneGeometry(len, tw)), this.own(new T.MeshLambertMaterial({ map: sTex })));
+    track.rotation.x = -Math.PI / 2;
+    track.position.set(cx, 0.006, -this.trackW / 2);
+    track.receiveShadow = true;
+    this.scene.add(track);
+    // Finish line across the track.
+    const line = new T.Mesh(this.own(new T.PlaneGeometry(0.2, this.trackW)), this.own(new T.MeshLambertMaterial({ color: 0xf6f6f0 })));
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(L, 0.012, -this.trackW / 2);
+    line.receiveShadow = true;
+    this.scene.add(line);
+    // Infield hedge in the foreground (camera side).
+    const hImg = art.images.get("tex-hedge");
+    const hTex = this.tex(hImg ?? hedgeTile(this.look), { repeat: true, mip: true });
+    hTex.repeat.set(len / 2.56, 1);
+    const hedge = new T.Mesh(this.own(new T.BoxGeometry(len, 1.0, 0.9)), this.own(new T.MeshLambertMaterial({ map: hTex })));
+    hedge.position.set(cx, 0.5, 7.2);
+    hedge.castShadow = true;
+    hedge.receiveShadow = true;
+    this.scene.add(hedge);
+  }
+
+  private billboardMat(map: THREE.Texture, tint = this.look.billboardTint): THREE.MeshBasicMaterial {
+    return this.own(new this.T.MeshBasicMaterial({ map, alphaTest: 0.5, color: tint, side: this.T.DoubleSide }));
+  }
+
+  private buildBackdrop(art: ArtSet): void {
+    const T = this.T;
+    const L = this.L;
+    const far = -this.trackW;
+    // Distant hills: a long plane well beyond the fog (own haze baked in).
+    const hImg = art.images.get("far-hills");
+    const hTex = this.tex(hImg ?? hillsStrip(this.look), { repeat: true });
+    hTex.wrapT = T.ClampToEdgeWrapping;
+    const hw = L + 5000;
+    hTex.repeat.set(hw / 760, 1);
+    const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, 150)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false })));
+    hills.position.set(L / 2, 58, -1000);
+    hills.renderOrder = -7;
+    this.scene.add(hills);
+
+    // Grandstand along the home straight beyond the outer rail, with crowd animation.
+    const standImg = art.images.get("bb-grandstand");
+    this.crowdTex = standImg ? [this.tex(standImg, { repeat: true })] : [0, 1].map((f) => this.tex(grandstandSprite(this.look, f), { repeat: true }));
+    for (const t of this.crowdTex) t.wrapT = T.ClampToEdgeWrapping;
+    const modW = 34;
+    const mods = 6;
+    const standH = standImg ? (modW * standImg.height) / standImg.width : 17;
+    for (const t of this.crowdTex) t.repeat.set(mods, 1);
+    this.stand = new T.Mesh(this.own(new T.PlaneGeometry(modW * mods, standH)), this.billboardMat(this.crowdTex[0]!));
+    this.stand.position.set(L - 50, standH / 2, far - 30);
+    this.stand.receiveShadow = false;
+    this.scene.add(this.stand);
+    // Bunting flags on the roof.
+    const flagColors = ["#c8102e", "#f2c230", "#1d3f8f", "#ffffff", "#0f6b3a"];
+    this.flagTex = flagColors.map((c) => {
+      const t = this.tex(flagStrip(c));
+      t.repeat.set(1 / 4, 1);
+      return t;
+    });
+    const flagGeo = this.own(new T.PlaneGeometry(1.8, 1.5));
+    const poleGeo = this.own(new T.BoxGeometry(0.08, 2.4, 0.08));
+    const poleMat = this.own(new T.MeshLambertMaterial({ color: 0x8b8f93 }));
+    for (let i = 0; i < 16; i++) {
+      const x = L - 50 - (modW * mods) / 2 + 6 + i * ((modW * mods - 12) / 15);
+      const pole = new T.Mesh(poleGeo, poleMat);
+      pole.position.set(x, standH + 1.0, far - 30.2);
+      const flag = new T.Mesh(flagGeo, this.billboardMat(this.flagTex[i % this.flagTex.length]!, "#ffffff"));
+      flag.position.set(x + 0.95, standH + 1.6, far - 30.2);
+      this.scene.add(pole, flag);
+    }
+
+    // Spectators along the outer rail through the last ~200 m, with a lawn apron.
+    this.railCrowdTex = [0, 1].map((f) => {
+      const t = this.tex(railCrowdSprite(this.look, f), { repeat: true });
+      t.wrapT = T.ClampToEdgeWrapping;
+      return t;
+    });
+    const crowdLen = 230;
+    for (const t of this.railCrowdTex) t.repeat.set(crowdLen / 10.7, 1);
+    this.railCrowd = new T.Mesh(this.own(new T.PlaneGeometry(crowdLen, 2.0)), this.billboardMat(this.railCrowdTex[0]!));
+    this.railCrowd.position.set(L - crowdLen / 2 + 30, 1.0, far - 2.6);
+    this.scene.add(this.railCrowd);
+
+    // Trees: instanced pixel billboards beyond the outer rail and around the stand.
+    const kinds: [string, number][] = [
+      ["bb-tree-oak", 0],
+      ["bb-tree-poplar", 1],
+      ["bb-bush", 2],
+    ];
+    const r = rng(61);
+    const dummy = new T.Object3D();
+    kinds.forEach(([stem, kind]) => {
+      const img = art.images.get(stem);
+      const canvas = img ?? treeSprite(this.look, kind, 51 + kind);
+      const map = this.tex(canvas);
+      const pxPerM = kind === 2 ? 14 : 5.2;
+      const w = canvas.width / pxPerM;
+      const h = canvas.height / pxPerM;
+      const geo = this.own(new T.PlaneGeometry(w, h));
+      geo.translate(0, h / 2, 0);
+      const count = kind === 2 ? 90 : 55;
+      const mesh = new T.InstancedMesh(geo, this.billboardMat(map), count);
+      let n = 0;
+      for (let i = 0; i < count; i++) {
+        const x = -TRACK_PRE - 60 + r() * (L + TRACK_PRE + TRACK_POST + 120);
+        const behindStand = x > L - 50 - 110 && x < L - 50 + 110;
+        let z = kind === 2 ? far - 8 - r() * 14 : far - (behindStand ? 46 : 30) - r() * 120;
+        if (kind === 2 && behindStand) z = far - 40 - r() * 20;
+        const s = 0.75 + r() * 0.6;
+        dummy.position.set(x, 0, z);
+        dummy.scale.set(s, s, 1);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(n++, dummy.matrix);
+      }
+      mesh.count = n;
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+    });
+  }
+
+  private buildRails(): void {
+    const T = this.T;
+    const L = this.L;
+    const x0 = -TRACK_PRE + 20;
+    const x1 = L + TRACK_POST - 20;
+    const white = this.own(new T.MeshLambertMaterial({ color: 0xf4f4ef }));
+    const spacing = 2.5;
+    const per = Math.floor((x1 - x0) / spacing) + 1;
+    const postGeo = this.own(new T.BoxGeometry(0.09, 1.05, 0.09));
+    postGeo.translate(0, 0.525, 0);
+    const posts = new T.InstancedMesh(postGeo, white, per * 2);
+    const dummy = new T.Object3D();
+    let n = 0;
+    for (const z of [0, -this.trackW]) {
+      for (let i = 0; i < per; i++) {
+        dummy.position.set(x0 + i * spacing, 0, z);
+        dummy.updateMatrix();
+        posts.setMatrixAt(n++, dummy.matrix);
+      }
+      const bar = new T.Mesh(this.own(new T.BoxGeometry(x1 - x0, 0.1, 0.16)), white);
+      bar.position.set((x0 + x1) / 2, 1.06, z + (z === 0 ? 0.05 : -0.05));
+      bar.castShadow = true;
+      this.scene.add(bar);
+    }
+    posts.castShadow = true;
+    posts.frustumCulled = false;
+    this.scene.add(posts);
+  }
+
+  private stripes(colors: string[], bands: number): THREE.Texture {
+    const c = document.createElement("canvas");
+    c.width = 2;
+    c.height = bands;
+    const ctx = c.getContext("2d")!;
+    for (let i = 0; i < bands; i++) {
+      ctx.fillStyle = colors[i % colors.length]!;
+      ctx.fillRect(0, i, 2, 1);
+    }
+    return this.tex(c);
+  }
+
+  private buildPoles(): void {
+    const T = this.T;
+    const L = this.L;
+    const furlong = FURLONG_MM / 1000;
+    const poleMat = this.own(new T.MeshLambertMaterial({ map: this.stripes(["#f4f4f2", "#c8102e"], 8) }));
+    const poleGeo = this.own(new T.CylinderGeometry(0.06, 0.06, 2.3, 6));
+    poleGeo.translate(0, 1.15, 0);
+    for (let i = 1; L - i * furlong > 1; i++) {
+      const x = L - i * furlong;
+      const pole = new T.Mesh(poleGeo, poleMat);
+      pole.position.set(x, 0, 0.3);
+      pole.castShadow = true;
+      const sign = signSprite(`${i}f`);
+      const plate = new T.Mesh(this.own(new T.PlaneGeometry(sign.width * 0.075, sign.height * 0.075)), this.billboardMat(this.tex(sign), "#ffffff"));
+      plate.position.set(x, 2.3 + (sign.height * 0.075) / 2, 0.36);
+      this.scene.add(pole, plate);
+    }
+    // Winning post (far side, by the stands) with roundel; short post on the near side.
+    const wpMat = this.own(new T.MeshLambertMaterial({ map: this.stripes(["#ffffff", "#d71920"], 12) }));
+    const wp = new T.Mesh(this.own(new T.CylinderGeometry(0.09, 0.09, 3.6, 8)), wpMat);
+    wp.position.set(L, 1.8, -this.trackW - 0.5);
+    wp.castShadow = true;
+    const roundel = new T.Mesh(this.own(new T.PlaneGeometry(1.2, 1.2)), this.billboardMat(this.tex(roundelSprite()), "#ffffff"));
+    roundel.position.set(L, 3.6 + 0.6, -this.trackW - 0.45);
+    const np = new T.Mesh(this.own(new T.CylinderGeometry(0.07, 0.07, 1.8, 8)), wpMat);
+    np.position.set(L, 0.9, 0.35);
+    np.castShadow = true;
+    this.scene.add(wp, roundel, np);
+  }
+
+  private laneZ(lane: number): number {
+    return -(RAIL_GAP + lane * LANE_W);
+  }
+
+  private buildGate(): void {
+    const T = this.T;
+    const start = this.sampler(0);
+    const maxLane = Math.max(0, ...start.map((s) => Math.round(s.lane)));
+    const BACK = -3.4;
+    const FRONT = 0.35;
+    const panel = this.tex(gatePanelTile(), { repeat: true });
+    panel.repeat.set(4, 1);
+    const panelMat = this.own(new T.MeshLambertMaterial({ map: panel }));
+    const frameMat = this.own(new T.MeshLambertMaterial({ color: 0xe9ecea }));
+    const doorMat = this.own(new T.MeshLambertMaterial({ color: 0x2a8a5a }));
+    const g = new T.Group();
+    const zs: number[] = [];
+    for (let l = -0.5; l <= maxLane + 0.5; l += 1) zs.push(this.laneZ(l));
+    const panelGeo = this.own(new T.BoxGeometry(FRONT - BACK, 0.95, 0.12));
+    const postGeo = this.own(new T.BoxGeometry(0.09, 2.5, 0.09));
+    const barGeo = this.own(new T.BoxGeometry(FRONT - BACK, 0.08, 0.08));
+    for (const z of zs) {
+      const p = new T.Mesh(panelGeo, panelMat);
+      p.position.set((BACK + FRONT) / 2, 0.95, z);
+      const a = new T.Mesh(postGeo, frameMat);
+      a.position.set(BACK, 1.25, z);
+      const b = new T.Mesh(postGeo, frameMat);
+      b.position.set(FRONT, 1.25, z);
+      const top = new T.Mesh(barGeo, frameMat);
+      top.position.set((BACK + FRONT) / 2, 2.45, z);
+      for (const m of [p, a, b, top]) m.castShadow = true;
+      g.add(p, a, b, top);
+    }
+    // Cross beams over the stalls.
+    const span = Math.abs(zs[zs.length - 1]! - zs[0]!);
+    for (const x of [BACK, FRONT]) {
+      const beam = new T.Mesh(this.own(new T.BoxGeometry(0.12, 0.14, span)), frameMat);
+      beam.position.set(x, 2.5, (zs[0]! + zs[zs.length - 1]!) / 2);
+      beam.castShadow = true;
+      g.add(beam);
+    }
+    // Front doors: two leaves per stall, hinged on the partitions.
+    const leafW = LANE_W / 2 - 0.04;
+    const leafGeo = this.own(new T.BoxGeometry(0.05, 1.35, leafW));
+    for (let i = 0; i < zs.length - 1; i++) {
+      for (const side of [0, 1]) {
+        const hinge = new T.Group();
+        const hz = side === 0 ? zs[i]! : zs[i + 1]!;
+        hinge.position.set(FRONT + 0.05, 0, hz);
+        const leaf = new T.Mesh(leafGeo, doorMat);
+        leaf.position.set(0, 1.0, side === 0 ? -leafW / 2 - 0.02 : leafW / 2 + 0.02);
+        leaf.castShadow = true;
+        hinge.add(leaf);
+        hinge.userData.side = side;
+        this.doors.push(hinge);
+        g.add(hinge);
+      }
+    }
+    this.scene.add(g);
+  }
+
+  private buildHorses(opts: HD2DSceneOptions): void {
+    const T = this.T;
+    const timing = replayTiming(this.replay);
+    const finishBy = new Map(this.replay.result.finishOrder.map((f) => [f.horseId, f.finishTimeUs / 1e6]));
+    const kicks = new Map<string, number>();
+    for (const ev of this.replay.events) if (ev.type === "kick" && ev.horseId && !kicks.has(ev.horseId)) kicks.set(ev.horseId, ev.tick / this.replay.tickHz);
+    const shadowTex = this.tex(blobShadow());
+    const shadowGeo = this.own(new T.PlaneGeometry(1, 1));
+    this.replay.horses.forEach((h, i) => {
+      const rig = opts.rigs.create(h.appearance, { gate: h.gate });
+      const w = rig.width * WUPP;
+      const hh = rig.height * WUPP;
+      const geo = this.own(new T.PlaneGeometry(w, hh));
+      // Put the rig's ground-contact anchor at the group origin.
+      // Anchor pixel (y down from the top) -> group origin on the ground.
+      geo.translate((rig.width / 2 - rig.anchor.x) * WUPP, (rig.anchor.y - rig.height / 2) * WUPP, 0);
+      // Strip rigs with a normal map are lit by the scene's sun + sky (rim light on the
+      // gallop); rigs that light themselves (pixel-rig) use an unlit material.
+      const normalMap = (rig as LitHorseRig).normalMap;
+      const mat = normalMap
+        ? this.own(
+            new T.MeshStandardMaterial({
+              map: rig.texture,
+              normalMap,
+              normalScale: new T.Vector2(1, 1),
+              alphaTest: 0.5,
+              roughness: 0.75,
+              metalness: 0,
+              emissive: new T.Color(this.look.billboardTint),
+              emissiveMap: rig.texture,
+              emissiveIntensity: 0.35,
+            }),
+          )
+        : this.own(new T.MeshBasicMaterial({ map: rig.texture, alphaTest: 0.5, color: this.look.billboardTint }));
+      const plane = new T.Mesh(geo, mat);
+      const group = new T.Group();
+      group.add(plane);
+      this.scene.add(group);
+      const shadow = new T.Mesh(shadowGeo, this.own(new T.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 1 })));
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.renderOrder = 1;
+      this.scene.add(shadow);
+      const ft = finishBy.get(h.horseId) ?? null;
+      const fs = ft !== null ? this.sampler(Math.max(0, Math.min(ft - 0.05, timing.lastFrameTime)))[i]!.speed / 1000 : 0;
+      this.runners.push({
+        index: i,
+        rig,
+        group,
+        plane,
+        mat,
+        shadow,
+        phase: rng(i * 977 + 13)(),
+        lastX: Number.NaN,
+        x: 0,
+        z: 0,
+        bodyX: 0,
+        bodyZ: 0,
+        speed: 0,
+        drive: 0,
+        finishT: ft,
+        finishSpeed: Math.max(fs, 8),
+        kickT: kicks.get(h.horseId) ?? null,
+        prevLeg: [0, 0],
+        rand: rng(i * 7919 + 1),
+      });
+    });
+  }
+
+  private buildMarker(): void {
+    if (this.highlight < 0) return;
+    const T = this.T;
+    // Pixel chevron.
+    const c = document.createElement("canvas");
+    c.width = 11;
+    c.height = 9;
+    const ctx = c.getContext("2d")!;
+    const rows = ["11111111111", "12222222221", "01222222210", "00122222100", "00012221000", "00001210000", "00000100000"];
+    rows.forEach((row, y) =>
+      [...row].forEach((v, x) => {
+        if (v === "0") return;
+        ctx.fillStyle = v === "1" ? "#3a2604" : y < 2 ? "#ffe08a" : "#d9a441";
+        ctx.fillRect(x, y + 1, 1, 1);
+      }),
+    );
+    this.marker = new T.Sprite(this.own(new T.SpriteMaterial({ map: this.tex(c), depthTest: false, transparent: true, fog: false })));
+    this.marker.scale.set(0.62, 0.5, 1);
+    this.marker.renderOrder = 20;
+    this.scene.add(this.marker);
+    // Ground ring.
+    const rc = document.createElement("canvas");
+    rc.width = 40;
+    rc.height = 14;
+    const rctx = rc.getContext("2d")!;
+    for (let y = 0; y < 14; y++) {
+      for (let x = 0; x < 40; x++) {
+        const d = Math.hypot((x - 19.5) / 20, (y - 6.5) / 7);
+        if (d > 0.78 && d < 1) {
+          rctx.fillStyle = "#f2c230";
+          rctx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+    this.ring = new T.Mesh(this.own(new T.PlaneGeometry(3.2, 1.2)), this.own(new T.MeshBasicMaterial({ map: this.tex(rc), transparent: true, depthWrite: false })));
+    this.ring.rotation.x = -Math.PI / 2;
+    this.ring.renderOrder = 2;
+    this.scene.add(this.ring);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Runtime
+  // ---------------------------------------------------------------------------
+
+  setQuality(q: RenderQuality): void {
+    if (q === this.quality) return;
+    this.quality = q;
+    this.particles.density = q === "high" ? 1 : 0.4;
+    this.renderer.shadowMap.enabled = q === "high";
+    this.sunLight.castShadow = q === "high";
+    if (q === "low" && this.post) {
+      this.post.dispose();
+      this.disposables = this.disposables.filter((d) => d !== this.post);
+      this.post = null;
+    }
+    this.resize(this.W, this.H);
+  }
+
+  resize(W: number, H: number): void {
+    this.W = Math.max(1, W);
+    this.H = Math.max(1, H);
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    let ratio: number;
+    if (this.quality === "low") ratio = Math.min(1, 360 / this.H);
+    else if (this.pixelated) ratio = Math.min(dpr, 450 / this.H);
+    else ratio = Math.min(dpr, 2, Math.sqrt((2560 * 1440) / (this.W * this.H)));
+    this.renderer.setPixelRatio(ratio);
+    this.renderer.setSize(this.W, this.H, false);
+    this.canvas.style.imageRendering = ratio < dpr * 0.75 ? "pixelated" : "auto";
+    this.camera.aspect = this.W / this.H;
+    this.camera.updateProjectionMatrix();
+    const buf = this.renderer.getDrawingBufferSize(this.buf);
+    this.post?.setSize(buf.x, buf.y);
+  }
+
+  get lastSamples(): readonly HorseSample[] {
+    return this.samples;
+  }
+
+  get cameraInfo(): { x: number; zoom: number; shot: string } {
+    return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shot };
+  }
+
+  render(f: SceneFrame): void {
+    const T = this.T;
+    const raceT = f.time;
+    const tS = Math.max(0, raceT);
+    let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
+    const seek = Math.abs(simDt) > 0.6 || simDt < -1e-9;
+    if (seek) {
+      simDt = 0;
+      this.particles.clear();
+      if (raceT < this.winnerTime) this.confettiDone = false;
+    }
+    if (f.frozen) simDt = 0;
+    this.lastTime = raceT;
+    this.animTime += simDt;
+    const realDt = Math.min(0.1, Math.max(0, f.realDt));
+    const L = this.L;
+    const furlong = FURLONG_MM / 1000;
+
+    this.samples = this.sampler(tS, this.samples);
+    let lead: Runner | null = null;
+    let last: Runner | null = null;
+    let zSum = 0;
+    for (const r of this.runners) {
+      const s = this.samples[r.index]!;
+      if (r.finishT !== null && tS > r.finishT) {
+        const e = Math.exp(-(tS - r.finishT) / PULLUP_TAU);
+        r.x = L + r.finishSpeed * PULLUP_TAU * (1 - e);
+        r.speed = r.finishSpeed * e;
+      } else {
+        r.x = s.x / 1000;
+        r.speed = raceT < 0 ? 0 : s.speed / 1000;
+      }
+      r.z = this.laneZ(s.lane);
+      zSum += r.z;
+      if (!lead || r.x > lead.x) lead = r;
+      if (!last || r.x < last.x) last = r;
+    }
+    if (!lead || !last) return;
+    const fieldZ = zSum / this.runners.length;
+
+    // --- Camera direction -------------------------------------------------------
+    let mode = f.camera;
+    if (mode === "mine" && this.highlight < 0) mode = "leader";
+    const focus = mode === "mine" ? this.runners[this.highlight]! : lead;
+    const toGo = L - lead.x;
+    const photo = this.replay.result.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
+    let shot: Shot;
+    if (raceT < 1.2) shot = "crane";
+    else if (photo) shot = "photo";
+    else if (tS > this.winnerTime + 0.9 && mode !== "mine") shot = "post";
+    else if (mode === "wide") shot = "wide";
+    else if (toGo < furlong * 0.85 && toGo > 0) shot = "low";
+    else shot = "follow";
+    const cut = shot !== this.shot && (shot === "photo" || this.shot === "photo");
+    this.shot = shot;
+    const pos = this.v1;
+    const at = this.v2;
+    let fov = 34;
+    let vel = focus.speed;
+    switch (shot) {
+      case "crane": {
+        const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.8));
+        pos.set(2 + 6 * k, 15 - 10 * k, 24 - 8 * k);
+        at.set(0.5 + 2 * k, 0.6, -this.trackW * 0.42);
+        vel = 0;
+        fov = 36;
+        break;
+      }
+      case "follow":
+        pos.set(focus.x - 1.4, 2.6, 14);
+        at.set(focus.x - 0.6, 1.75, fieldZ * 0.6 + focus.z * 0.4);
+        fov = 25;
+        break;
+      case "wide": {
+        const cx = (lead.x + last.x) / 2;
+        const spread = lead.x - last.x;
+        pos.set(cx - 2, 4.2 + spread * 0.05, 17 + spread * 0.5);
+        at.set(cx + 1, 1.4, -this.trackW * 0.4);
+        fov = 30;
+        break;
+      }
+      case "low":
+        pos.set(focus.x + 8.5, 1.9, 12);
+        at.set(focus.x - 0.8, 1.2, focus.z * 0.6 + fieldZ * 0.4);
+        fov = 28;
+        break;
+      case "photo":
+        // The judge's camera: on the line, looking straight across the track.
+        pos.set(L, 2.2, 15);
+        at.set(L, 1.0, -this.trackW * 0.38);
+        vel = 0;
+        fov = 30;
+        break;
+      case "post":
+        pos.set(L + 4, 3.2, 17);
+        at.set(L - 3, 0.9, -this.trackW * 0.45);
+        vel = 0;
+        fov = 36;
+        break;
+    }
+    if (this.firstFrame || seek || cut) {
+      this.camPos.snap(pos);
+      this.camLook.snap(at);
+      this.fov.snap(fov);
+      this.firstFrame = false;
+    } else {
+      const ff = f.frozen ? 0 : vel * (simDt > 0 && realDt > 0 ? simDt / realDt : 0);
+      this.camPos.step(pos, realDt, ff);
+      this.camLook.step(at, realDt, ff);
+      this.fov.step(fov, realDt);
+    }
+    const cam = this.camera;
+    this.camPos.into(cam.position);
+    cam.lookAt(this.camLook.into(this.v2));
+    // Keep the horizontal field of view of a 16:9 frame on narrower screens.
+    const aspectFix = Math.max(1, 16 / 9 / Math.max(0.3, cam.aspect));
+    const vfov = Math.min(70, (2 * Math.atan(Math.tan((this.fov.x * Math.PI) / 360) * aspectFix) * 180) / Math.PI);
+    if (Math.abs(cam.fov - vfov) > 1e-3) {
+      cam.fov = vfov;
+      cam.updateProjectionMatrix();
+    }
+    this.focusDist = cam.position.distanceTo(this.v1.set(focus.x - 1.2, 1.2, focus.z));
+
+    // --- World animation ---------------------------------------------------------
+    this.sky.position.copy(cam.position);
+    if (this.sun) this.sun.position.copy(cam.position).addScaledVector(this.sunDir, 1500);
+    this.sunLight.target.position.set(focus.x, 0, -this.trackW / 2);
+    this.sunLight.position.copy(this.sunLight.target.position).addScaledVector(this.sunDir, 80);
+    if (this.crowdTex.length > 1 && this.stand) {
+      const m = this.stand.material as THREE.MeshBasicMaterial;
+      const next = this.crowdTex[Math.floor(this.animTime * 3) % 2]!;
+      if (m.map !== next) {
+        m.map = next;
+      }
+    }
+    if (this.railCrowd && this.railCrowdTex.length > 1) {
+      const excite = tS > this.winnerTime - 8 ? 6 : 1.5;
+      (this.railCrowd.material as THREE.MeshBasicMaterial).map = this.railCrowdTex[Math.floor(this.animTime * excite) % 2]!;
+    }
+    const ff = Math.floor(this.animTime * 8 + 0.0001);
+    this.flagTex.forEach((t, i) => (t.offset.x = ((ff + i) % 4) / 4));
+    const open = Math.min(1, Math.max(0, raceT / 0.3));
+    for (const d of this.doors) d.rotation.y = (d.userData.side === 0 ? 1 : -1) * open * 1.45;
+
+    // --- Horses ------------------------------------------------------------------
+    const lightDir = this.sunDir;
+    for (const r of this.runners) {
+      const stride = strideLengthM(Math.max(r.speed, 6));
+      if (seek || Number.isNaN(r.lastX)) r.lastX = r.x;
+      const dx = r.x - r.lastX;
+      r.lastX = r.x;
+      if (dx > 0 && dx < 5) r.phase += dx / stride;
+      const finished = r.finishT !== null && tS >= r.finishT;
+      const kicked = r.kickT !== null && tS >= r.kickT;
+      let driveT = 0;
+      if (!finished && raceT > 0) driveT = L - r.x < furlong ? (kicked ? 1 : 0.7) : kicked ? 0.55 : 0;
+      r.drive += (driveT - r.drive) * (1 - Math.exp(-4 * simDt));
+      r.rig.update(this.renderer, { phase: r.phase, speedMs: r.speed, drive: r.drive, lightDir, time: this.animTime });
+      r.group.position.set(r.x, 0, r.z);
+      // Axis-locked billboard, limited yaw so side-view sprites never turn edge-on.
+      const yaw = Math.atan2(cam.position.x - r.x, cam.position.z - r.z);
+      const ry = Math.max(-0.62, Math.min(0.62, yaw));
+      r.group.rotation.y = ry;
+      // Body centre follows the yawed sprite plane.
+      r.bodyX = r.x - 1.25 * Math.cos(ry);
+      r.bodyZ = r.z + 1.25 * Math.sin(ry);
+      // Contact shadow: under the barrel, nudged away from the sun.
+      r.shadow.position.set(r.bodyX - this.sunDir.x * 0.5, 0.014, r.bodyZ - this.sunDir.z * 0.35);
+      r.shadow.rotation.z = ry;
+      r.shadow.scale.set(2.7, 0.95, 1);
+      // Hoof strikes -> pixel dust / turf.
+      if (simDt > 0 && r.speed > 4) {
+        const legs: ["FR" | "HR", number][] = [
+          ["FR", -0.35],
+          ["HR", -2.0],
+        ];
+        legs.forEach(([leg, off], li) => {
+          const ph = legPhase(r.phase, leg);
+          if (ph < r.prevLeg[li]!) this.hoofStrike(r, r.x + off);
+          r.prevLeg[li] = ph;
+        });
+      }
+    }
+
+    // Confetti as the winner hits the line.
+    if (!this.confettiDone && tS >= this.winnerTime && simDt > 0) {
+      this.confettiDone = true;
+      const cols = ["#d9a441", "#f3e7c9", "#c8102e", "#1d3f8f", "#2e9259", "#ffffff"];
+      for (let i = 0; i < 260; i++) {
+        this.particles.emit("confetti", L - 4 + Math.random() * 10, 5 + Math.random() * 5, -this.trackW * Math.random(), (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, cols[i % cols.length]!, 0.09, 5 + Math.random() * 3);
+      }
+    }
+    this.particles.update(simDt);
+    const buf = this.renderer.getDrawingBufferSize(this.buf);
+    this.particles.setPxScale(buf.y / (2 * Math.tan((cam.fov * Math.PI) / 360)));
+    if (this.rain) this.rain.update(f.frozen ? 0 : realDt, cam.position.x, cam.position.z - 12);
+
+    if (this.marker && this.ring && this.highlight >= 0) {
+      const r = this.runners[this.highlight]!;
+      this.marker.position.set(r.bodyX + 0.3, 2.7 + Math.sin(performance.now() / 250) * 0.06, r.bodyZ);
+      this.ring.position.set(r.bodyX, 0.016, r.bodyZ);
+    }
+
+    // --- Draw ----------------------------------------------------------------------
+    const g = this.look.grade;
+    if (this.post) {
+      this.post.render(this.scene, cam, {
+        focusDist: this.focusDist,
+        focusRange: shot === "wide" ? 12 : 3.5,
+        dofAmount: shot === "wide" || shot === "crane" ? 0.45 : 0.8,
+        tiltShift: 0.55,
+        bloom: this.look.bloom,
+        tint: g.tint,
+        saturation: g.saturation,
+        contrast: g.contrast,
+        vignette: 0.42,
+        flash: Math.min(1, f.flash) * 0.85,
+      });
+    } else {
+      this.renderer.setRenderTarget(null);
+      this.renderer.render(this.scene, cam);
+    }
+    void T;
+  }
+
+  private hoofStrike(r: Runner, x: number): void {
+    const turf = this.replay.race.surface === "turf";
+    const power = Math.min(1, r.speed / 15);
+    const z = r.z + (r.rand() - 0.5) * 0.3;
+    if (turf) {
+      const n = r.rand() < 0.5 ? 1 : 2;
+      for (let i = 0; i < n; i++) {
+        const col = r.rand() < 0.5 ? this.look.turf[1]! : "#4a3220";
+        this.particles.emit("clod", x, 0.05, z, (-1.5 - r.rand() * 3) * power, (1.6 + r.rand() * 2.2) * power, (r.rand() - 0.5) * 0.6, col, 0.07, 0.9);
+      }
+      this.particles.emit("dust", x, 0.08, z, -1, 0.4, 0, this.look.turf[3]!, 0.06, 0.45, 0.4);
+    } else {
+      const dust = mixHex(this.look.dirt[3]!, "#ffffff", 0.2);
+      for (let i = 0; i < 2; i++) {
+        this.particles.emit("dust", x - r.rand() * 0.3, 0.1 + r.rand() * 0.1, z, (-0.8 - r.rand() * 1.6) * power, (0.35 + r.rand() * 0.5) * power, (r.rand() - 0.5) * 0.4, dust, 0.07 + r.rand() * 0.05, 0.8 + r.rand() * 0.5, 0.6);
+      }
+      if (r.rand() < 0.5) this.particles.emit("clod", x, 0.05, z, -2 * power, 1.4 * power, 0, this.look.dirt[0]!, 0.06, 0.7);
+    }
+  }
+
+  destroy(): void {
+    for (const r of this.runners) r.rig.dispose();
+    this.rigs.dispose();
+    for (const d of this.disposables) {
+      try {
+        d.dispose();
+      } catch {
+        /* already gone */
+      }
+    }
+    this.disposables = [];
+    this.scene.clear();
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    void hexToRgb;
+  }
+}

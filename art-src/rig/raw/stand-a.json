@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "<435 chars>",
+  "image_size": {
+   "width": 128,
+   "height": 96
+  },
+  "no_background": true,
+  "seed": 3301,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7244 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 96
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e4d36d06-3eba-4888-89bb-9806fcdc9a40",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e4d36d06-3eba-4888-89bb-9806fcdc9a40",
+  "status": "completed",
+  "created_at": "2026-10-25T16:12:08.428688+00:00",
+  "last_response": {
+   "seed": 3301,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5584 chars>",
+     "height": 96
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5812 chars>",
+     "height": 96
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5640 chars>",
+     "height": 96
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<5880 chars>",
+     "height": 96
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "e62bc62d-ba52-42af-ab4b-1f0e0b38e588",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-25T16:12:14.589921+00:00",
+   "original_image_n_colors": 99,
+   "quantized_image_n_colors": 51
+  }
+ },
+ "files": [
+  "art-src/rig/raw/stand-a-0.png",
+  "art-src/rig/raw/stand-a-1.png",
+  "art-src/rig/raw/stand-a-2.png",
+  "art-src/rig/raw/stand-a-3.png"
+ ]
+}

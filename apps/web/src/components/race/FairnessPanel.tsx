@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/server/races";
-import { ShieldIcon } from "../icons";
+import { PixelIcon } from "../icons";
 
 /** sha256 over the raw seed bytes, exactly as the engine's commitSeed() does — computed locally. */
 async function browserCommitment(seedHex: string): Promise<string | null> {
@@ -28,8 +28,8 @@ interface VerifyResponse {
 function Hash({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
     <div>
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-sage">{label}</p>
-      <p className="mt-1 break-all rounded-lg bg-ink/50 px-2.5 py-2 font-mono text-[0.7rem] leading-relaxed text-cream-dim" data-testid={testId}>
+      <p className="label">{label}</p>
+      <p className="px-inset led mt-1 break-all px-2 py-1 text-[1.05rem] leading-[1.15] text-[#9fe0a8]" data-testid={testId}>
         {value}
       </p>
     </div>
@@ -39,12 +39,8 @@ function Hash({ label, value, testId }: { label: string; value: string; testId?:
 function Check({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2">
-      <span
-        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${ok ? "bg-emerald-500/20 text-emerald-300" : "bg-claret/25 text-[#f3a197]"}`}
-        aria-hidden
-      >
-        {ok ? "✓" : "✕"}
-      </span>
+      <PixelIcon name={ok ? "check" : "cross"} className="mt-0.5 h-5 w-5 shrink-0" />
+      <span className="sr-only">{ok ? "✓" : "✕"}</span>
       <span>{children}</span>
     </li>
   );
@@ -77,10 +73,10 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
   }
 
   return (
-    <aside className="panel h-fit p-5" aria-labelledby="fair-h" data-testid="fairness">
+    <aside className="px-panel h-fit p-4" aria-labelledby="fair-h" data-testid="fairness">
       <div className="flex items-center gap-2">
-        <ShieldIcon className="h-5 w-5 text-brass" />
-        <h2 id="fair-h" className="display text-lg font-semibold">
+        <PixelIcon name="shield" className="h-6 w-6" />
+        <h2 id="fair-h" className="display text-xl">
           Provably fair
         </h2>
       </div>
@@ -110,11 +106,11 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
               <Check ok={verify.commitmentOk}>Seed hashes to the published commitment</Check>
               {localOk !== null && <Check ok={localOk}>Your browser hashed the seed itself and got the same commitment</Check>}
               <Check ok={verify.resultHashOk}>Independent re-simulation reproduces the result</Check>
-              <li className="pl-7 text-xs text-sage">Engine {verify.engineVersion}</li>
+              <li className="label pl-7">Engine {verify.engineVersion}</li>
             </ul>
           ) : (
-            <button type="button" onClick={run} disabled={busy} className="btn btn-ghost mt-4 w-full" data-testid="verify-button">
-              <ShieldIcon className="h-4 w-4" />
+            <button type="button" onClick={run} disabled={busy} className="btn btn-brass mt-4 w-full" data-testid="verify-button">
+              <PixelIcon name="shield" className="h-5 w-5" />
               {busy ? "Re-running the race…" : "Verify fairness"}
             </button>
           )}

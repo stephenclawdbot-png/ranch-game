@@ -1,0 +1,100 @@
+{
+ "version": 1,
+ "assets": [
+  {
+   "id": "horse.body.gallop",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 118,
+   "frameHeight": 72,
+   "fps": 14,
+   "anchor": {
+    "x": 0.932,
+    "y": 0.986
+   },
+   "depthBand": "track",
+   "palette": [
+    "#391314",
+    "#5d1f17",
+    "#772e1c",
+    "#863119",
+    "#913b1a",
+    "#b04a18",
+    "#e2833a",
+    "#010103",
+    "#050608",
+    "#161316",
+    "#292929",
+    "#030405",
+    "#0b0b0d",
+    "#2a2a29",
+    "#640e38",
+    "#820078",
+    "#9f0694",
+    "#b90fb2",
+    "#075060",
+    "#0297a0",
+    "#00cdd1",
+    "#08ebe4",
+    "#620d38",
+    "#810075",
+    "#b80eb1"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "generate-image-v2: side view thoroughbred racehorse galloping facing right, bay coat, black points, jockey crouched, flat magenta silks body, cyan sleeves, magenta cap, white saddle cloth (seed 2201) -> animate-with-text-v3 'racehorse galloping at full speed, one complete gallop stride cycle...' 12 frames (seed 32) -> role-quantised palette (art-src/process_gallop.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-gallop.png",
+   "animations": {
+    "gallop": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.gallop.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 118,
+   "frameHeight": 72,
+   "fps": 14,
+   "anchor": {
+    "x": 0.932,
+    "y": 0.986
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character frames=12 on race/horse-gallop.png (OpenGL convention, green up)",
+   "optimizationTier": "hero",
+   "src": "race/horse-gallop-normal.png",
+   "animations": {
+    "gallop": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  }
+ ]
+}

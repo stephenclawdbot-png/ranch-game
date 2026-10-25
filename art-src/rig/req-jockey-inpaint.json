@@ -1,0 +1,8 @@
+{
+  "description": "a jockey riding in racing crouch, seated high over the withers with very short stirrups, knees bent, back flat and low, hands holding the reins forward on the horse's neck, flat bright magenta silks body, flat cyan sleeves, magenta cap, white breeches, black boots, side view facing right, high-res pixel art, selective dark outline",
+  "inpainting_image": { "image": { "$file": "art-src/rig/raw/stand-a-0.png" }, "size": { "width": 128, "height": 96 } },
+  "mask_image": { "image": { "$file": "art-src/rig/raw/jockey-mask.png" }, "size": { "width": 128, "height": 96 } },
+  "no_background": true,
+  "crop_to_mask": true,
+  "seed": 77
+}

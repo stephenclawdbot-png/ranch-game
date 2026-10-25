@@ -1,0 +1,77 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "neatly trimmed dark green box hedge continuing seamlessly with small red and white flowers at the base",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<16252 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 185,
+    "height": 48
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "iVBORw0KGgoAAAANSUhEUgAAALkAAAAwCAIAAADCcEwbAAAAnElEQVR4nO3SsQnAMBAEQb/771luYQOBEJ4p4Lhg5/mZtdaWnZnZsnOR9/QBrqEVKq1QaYVKK1RaodIKlVaotEKlFSqtUGmFSitUWqHSCpVWqLRCpRUqrVBphUorVFqh0gqVVqi0QqUVKq1QaYVKK1RaodIKlVaotEKlFSqtUGmFSitUWqHSCpVWqLRCpRUqrVBphUorVFqh0grVB/CvA2A3j4nRAAAAAElFTkSuQmCC",
+    "format": "png"
+   },
+   "size": {
+    "width": 185,
+    "height": 48
+   }
+  },
+  "no_background": true,
+  "seed": 777
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c49fe489-78cb-4b20-9cdc-7b1c048f5754",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "c49fe489-78cb-4b20-9cdc-7b1c048f5754",
+  "status": "completed",
+  "created_at": "2026-10-25T16:34:13.578894+00:00",
+  "last_response": {
+   "seed": 777,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 185,
+    "base64": "<17448 chars>",
+    "height": 48
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "32361f1a-bc6f-44fa-a926-718e91400447",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 185,
+    "base64": "<17448 chars>",
+    "height": 48
+   },
+   "generation_started_at": "2026-10-25T16:34:19.843535+00:00",
+   "original_image_n_colors": 720,
+   "quantized_image_n_colors": 38
+  }
+ },
+ "files": [
+  "art-src/raw/seam/hedge-inpaint-0.png"
+ ]
+}
