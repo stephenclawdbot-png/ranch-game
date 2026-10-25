@@ -4,9 +4,9 @@
   "#401115",
   "#561511",
   "#682213",
-  "#742b1e",
+  "#7c0a66",
   "#843216",
-  "#6a4a3b",
+  "#6a4a3c",
   "#a44519",
   "#ed8f39"
  ],
@@ -14,7 +14,7 @@
   "#02010c",
   "#010113",
   "#110f1e",
-  "#242329",
+  "#242229",
   "#4c4747"
  ],
  "points": [
@@ -28,7 +28,7 @@
   "#90097b",
   "#ab1495",
   "#c112a7",
-  "#f344cb"
+  "#f344cc"
  ],
  "silksSecondary": [
   "#025f7f",
@@ -40,7 +40,7 @@
  "cap": [
   "#84096f",
   "#ae1397",
-  "#f344cc",
+  "#f344cd",
   "#fb72a8"
  ],
  "fixed": {
@@ -58,10 +58,10 @@
    "#e4e3e5"
   ],
   "tack": [
-   "#0c0b18",
+   "#0c0c19",
    "#1e1c26",
    "#2e2a2e",
-   "#504b4b"
+   "#504b4c"
   ],
   "ink": [
    "#02010e",
@@ -73,5 +73,5 @@
    "#2164c2"
   ]
  },
- "_note": "Exact source colours per role, ordered dark->light. Recolour by ramp index. fixed.* roles are never recoloured. Frame 229x146 x12 (HD v2)."
+ "_note": "Exact source colours per role, ordered dark->light. Recolour by ramp index. fixed.* roles are never recoloured. Shared by horse-gallop.png (229x146 x12) and horse-idle.png (256x192 x14)."
 }

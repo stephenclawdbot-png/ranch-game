@@ -7,14 +7,13 @@ import type { RaceSummary } from "@/server/races";
 import { horseSummary, recommendIndex } from "@/lib/aptitude";
 import { useNow } from "@/lib/clock";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCountdown, formatCredits, formatDistance, ordinal } from "@/lib/format";
-import { horseRecord, pendingRaces, type PendingRace, type PlayerState, usePlayerState } from "@/lib/player";
+import { pendingRaces, recentlyRun, type PendingRace, type PlayerState, usePlayerState } from "@/lib/player";
 import { usePlayerHorses } from "@/lib/useStable";
 import { Countdown } from "../Countdown";
 import { HorsePortrait } from "../HorsePortrait";
 import { RaceBoard, RecentRaceRow } from "../RaceList";
 import { raceMetaLine } from "../RaceMeta";
 import { useEntry } from "../entry/EntryProvider";
-import { PLAN_HINT } from "../entry/EntryForm";
 import { PixelIcon, type IconName } from "../icons";
 import { SceneBackdrop } from "../pixel/SceneBackdrop";
 import { ActionBar } from "../ui/ActionBar";
@@ -142,40 +141,34 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
   // Your own race: running or about to start -> watch it; finished but unseen -> see result (no spoilers).
   const upcomingMine = now === null ? undefined : pending.find((p) => p.postTimeMs > now - 90_000);
   const unseen = pending.filter((p) => p !== upcomingMine);
-  const rec = useMemo(() => (horses ? recommendIndex(horses, (i) => horseRecord(state, i).starts) : 0), [horses, state]);
-  const history = state.progress.history.slice(0, 3);
+  const exclude = useMemo(() => recentlyRun(state, now ?? 0), [state, now]);
+  const rec = useMemo(() => (horses ? recommendIndex(horses, exclude) : 0), [horses, exclude]);
 
   return (
     <div className="grid gap-8">
       <div>
         <p className="eyebrow">{state.player.stableName}</p>
-        <h1 className="t-display-xl">{history.length === 0 ? "Your first race" : "Up next"}</h1>
+        <h1 className="t-display-xl">Up next</h1>
       </div>
-
-      {unseen.length > 0 && !upcomingMine && (
-        <p className="surface-2 flex flex-wrap items-center gap-2 px-3 py-2 text-sm" role="status">
-          <PixelIcon name="stopwatch" size={16} />
-          <span>
-            While you were away: <strong>{unseen.length === 1 ? "1 result is ready" : `${unseen.length} results are ready`}</strong>. No spoilers until you watch.
-          </span>
-        </p>
-      )}
 
       {upcomingMine ? (
         <YourRace race={upcomingMine} now={now ?? 0} />
       ) : unseen[0] ? (
-        <ResultReady race={unseen[0]} />
+        <ResultReady race={unseen[0]} count={unseen.length} />
       ) : horses ? (
-        <ReadyHorse horse={horses[rec]!} index={rec} />
+        <QuickPickHero horse={horses[rec]!} index={rec} firstRace={state.progress.history.length === 0} />
       ) : (
         <div className="frame-hero h-64 opacity-60" aria-busy />
       )}
+
+      <YourRaces state={state} now={now} />
 
       <section aria-labelledby="pulse-h">
         <SectionHeader id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable" />
         <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-6 md:px-0" data-testid="stable-pulse">
           {(horses ?? Array.from({ length: 6 }, () => null)).map((h, i) => {
             const racing = pending.some((p) => p.horseIndex === i && now !== null && p.postTimeMs > now - 90_000);
+            const rested = !racing && exclude.includes(i);
             return (
               <li key={h?.id ?? i} className="shrink-0 md:shrink">
                 {h ? (
@@ -184,41 +177,19 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
                     <span className="min-w-0">
                       <span className="block text-sm font-extrabold leading-tight">{h.name}</span>
                       <span className="flex items-center gap-1.5 text-xs font-bold text-cream-dim">
-                        <span aria-hidden className={`h-2 w-2 ${racing ? "bg-brass" : "bg-positive"}`} />
-                        {racing ? "Racing" : "Ready"}
+                        <span aria-hidden className={`h-2 w-2 ${racing ? "bg-brass" : rested ? "bg-sage" : "bg-positive"}`} />
+                        {racing ? "Racing" : rested ? "Ran recently" : "Fresh"}
                       </span>
                     </span>
                   </Link>
                 ) : (
-                  <span className="surface block h-[3.75rem] w-36 opacity-60 md:w-auto" />
+                  <span className="surface block h-[3.75rem] w-44 opacity-60 md:w-auto" />
                 )}
               </li>
             );
           })}
         </ul>
       </section>
-
-      {history.length > 0 && (
-        <section aria-labelledby="runs-h">
-          <SectionHeader id="runs-h" title="Your latest runs" />
-          <ul className="surface rows">
-            {history.map((h) => (
-              <li key={h.raceId}>
-                <Link href={`/race/${h.raceId}`} className="row-link group gap-3 px-3 py-2">
-                  <span className="num w-10 shrink-0 text-lg text-cream">{ordinal(h.position)}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-extrabold group-hover:underline">{h.horseName}</span>
-                    <span className="t-meta block truncate">
-                      {h.raceName} · {h.fieldSize} ran
-                    </span>
-                  </span>
-                  <span className={`num shrink-0 ${h.prize > 0 ? "text-positive" : "text-sage"}`}>{h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <section aria-labelledby="club-h" className="grid gap-4 lg:grid-cols-2">
         <div>
@@ -235,7 +206,54 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
   );
 }
 
-function ReadyHorse({ horse, index }: { horse: Horse; index: number }) {
+/** Your races inbox: unseen races first (live / result ready, never the result), then recent runs. */
+function YourRaces({ state, now }: { state: PlayerState; now: number | null }) {
+  const pending = pendingRaces(state);
+  const history = state.progress.history.slice(0, 5);
+  if (pending.length === 0 && history.length === 0) return null;
+  return (
+    <section aria-labelledby="inbox-h">
+      <SectionHeader id="inbox-h" title="Your races" />
+      <ul className="surface rows" data-testid="your-races">
+        {pending.map((p) => {
+          const startsIn = now === null ? 0 : p.postTimeMs - now;
+          const status = startsIn > 0 ? `Off in ${formatCountdown(startsIn)}` : startsIn > -90_000 ? "Live" : "▶ Result ready";
+          return (
+            <li key={p.raceId}>
+              <Link href={`/race/${p.raceId}`} className="row-link group gap-3 px-3 py-2" data-testid="inbox-race">
+                <span className={`chip shrink-0 ${status === "Live" ? "chip-live" : "text-cream"}`}>
+                  {status === "Live" && <span className="live-dot !h-1.5 !w-1.5" />}
+                  {status}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-extrabold group-hover:underline">{p.horseName}</span>
+                  <span className="t-meta block">Quick race · {formatClock(p.postTimeMs)} · result hidden until you watch</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+        {history.map((h) => (
+          <li key={h.raceId}>
+            <Link href={`/race/${h.raceId}`} className="row-link group gap-3 px-3 py-2">
+              <span className="num w-10 shrink-0 text-lg text-cream">{ordinal(h.position)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-extrabold group-hover:underline">{h.horseName}</span>
+                <span className="t-meta block truncate">
+                  {h.raceName} · {h.fieldSize} ran
+                </span>
+              </span>
+              <span className={`num shrink-0 ${h.prize > 0 ? "text-positive" : "text-sage"}`}>{h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The default next action: Quick Pick enters your best-suited fresh horse in the next race. */
+function QuickPickHero({ horse, index, firstRace }: { horse: Horse; index: number; firstRace: boolean }) {
   const entry = useEntry();
   return (
     <section className="frame-hero p-3 sm:p-4" aria-labelledby="ready-h" data-testid="up-next">
@@ -249,30 +267,28 @@ function ReadyHorse({ horse, index }: { horse: Horse; index: number }) {
               <HorsePortrait appearance={horse.appearance} scale={1} />
             </div>
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-sm font-extrabold text-positive">
-                <span aria-hidden>✓</span> Ready to race
-              </p>
+              <p className="text-sm font-extrabold text-cream-dim">{firstRace ? "Your first race · likely pick" : "Quick Pick · likely pick"}</p>
               <h2 id="ready-h" className="t-display-l">
                 {horse.name}
               </h2>
               <p className="t-meta">
-                {STYLE_LABEL[horse.style]} · best {formatDistance(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}
+                <span className="text-positive">✓ Fresh</span> · {STYLE_LABEL[horse.style]} · best {formatDistance(horse.preferredDistanceM)} on{" "}
+                {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}
               </p>
             </div>
           </div>
-          <p className="mt-3 max-w-prose text-cream-dim">{horseSummary(horse)}</p>
-          <p className="mt-2 text-sm text-cream-dim">
-            <strong className="text-cream">Natural plan, {STYLE_LABEL[horse.style].toLowerCase()}:</strong> {PLAN_HINT[horse.style]}
+          <p className="mt-3 max-w-prose text-cream-dim">
+            One tap enters your best-suited fresh horse in the next race, ridden to its natural style. {horseSummary(horse)}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <ActionBar>
-              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(index)} data-testid="race-now">
-                <PixelIcon name="flag" size={32} className="-my-2" /> Race {horse.name}
+              <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
+                <PixelIcon name="flag" size={32} className="-my-2" /> Enter next race
               </button>
             </ActionBar>
-            <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
-              Choose another horse
-            </Link>
+            <button type="button" className="btn-ghost inline-flex min-h-11 items-center font-bold" onClick={() => entry.open(index, { picker: true })}>
+              Choose horse &amp; plan
+            </button>
           </div>
         </div>
       </div>
@@ -298,10 +314,12 @@ function YourRace({ race, now }: { race: PendingRace; now: number }) {
   );
 }
 
-function ResultReady({ race }: { race: PendingRace }) {
+function ResultReady({ race, count }: { race: PendingRace; count: number }) {
   return (
     <section className="frame-hero p-4" aria-labelledby="ready-result-h" data-testid="up-next">
-      <p className="text-sm font-extrabold text-cream-dim">▶ Result ready</p>
+      <p className="text-sm font-extrabold text-cream-dim">
+        ▶ {count > 1 ? `While you were away: ${count} results are ready` : "Result ready"}
+      </p>
       <h2 id="ready-result-h" className="t-display-l">
         {race.horseName}&rsquo;s race
       </h2>

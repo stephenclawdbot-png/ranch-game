@@ -120,6 +120,15 @@ def classify(img):
                 np.arange(W)[None, :] >= np.percentile(xs, 60)
             )
         role[capmask] = "cap"
+        # stray magenta-ish blobs away from the jockey (crimson shading on the horse's neck/chest)
+        k_ = H / 104
+        by0, by1, bx0, bx1 = body[1], body[2], body[3], body[4]
+        pad = int(round(3 * k_))
+        for c in comps:
+            if c[5] == body[5] or capmask[lab == c[5]].any():
+                continue
+            if c[1] > by1 + pad or c[3] > bx1 + pad or c[4] < bx0 - pad or c[2] < by0 - pad:
+                role[lab == c[5]] = "coat"
         cy, cx = np.nonzero(capmask)
         # Skin: light warm pixels just below/right of the cap (face, hands are covered by gloves).
         k = H / 104  # boxes were tuned on the 104 px tall low-res canvas

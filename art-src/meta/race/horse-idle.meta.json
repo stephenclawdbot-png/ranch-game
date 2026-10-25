@@ -4,7 +4,7 @@
  "frameCount": 14,
  "groundY": 191,
  "anchor": {
-  "x": 0.984,
+  "x": 0.98,
   "y": 1.0
  },
  "palette": {
@@ -13,9 +13,9 @@
    "#401115",
    "#561511",
    "#682213",
-   "#742b1e",
+   "#7c0a66",
    "#843216",
-   "#6a4a3b",
+   "#6a4a3c",
    "#a44519",
    "#ed8f39"
   ],
@@ -23,7 +23,7 @@
    "#02010c",
    "#010113",
    "#110f1e",
-   "#242329",
+   "#242229",
    "#4c4747"
   ],
   "points": [
@@ -37,7 +37,7 @@
    "#90097b",
    "#ab1495",
    "#c112a7",
-   "#f344cb"
+   "#f344cc"
   ],
   "silksSecondary": [
    "#025f7f",
@@ -49,7 +49,7 @@
   "cap": [
    "#84096f",
    "#ae1397",
-   "#f344cc",
+   "#f344cd",
    "#fb72a8"
   ],
   "fixed": {
@@ -67,10 +67,10 @@
     "#e4e3e5"
    ],
    "tack": [
-    "#0c0b18",
+    "#0c0c19",
     "#1e1c26",
     "#2e2a2e",
-    "#504b4b"
+    "#504b4c"
    ],
    "ink": [
     "#02010e",
@@ -83,5 +83,7 @@
    ]
   }
  },
- "colours": 45
+ "colours": 45,
+ "fps": 6,
+ "sourcePrompt": "HD v2: art-src/raw/rig-hd/horse-jockey-neutral-256.png -> animate-with-text-v3 8 frames (seed 42) \"horse standing still at the start, idle breathing...\" -> mapped onto the gallop palette.json ramps, baked ping-pong (14 frames)"
 }
