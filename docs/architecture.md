@@ -11,7 +11,7 @@ flowchart TB
     UI[Stable / Horse / Races / Market / Season UI]
     RV["Race Viewer<br/>PixiJS HD 2.5D renderer"]
     ART["Art manifest loader<br/>sprite atlas or procedural placeholder"]
-    WAL[Optional wallet link]
+    WAL["Optional wallet<br/>(off unless WEB3_ENABLED)"]
     RV --> ART
   end
 
@@ -30,7 +30,8 @@ flowchart TB
 
   DB[("Neon Postgres<br/>source of truth")]
   BLOB[("Vercel Blob / static<br/>approved sprite atlases")]
-  SOL["Solana adapter<br/>mock, then devnet"]
+  CHAIN["ChainAdapter (server only)<br/>Mock by default, or EVM via viem"]
+  RH[("Robinhood Chain (EVM L2)<br/>RaceProofRegistry, PremiumStore")]
   PXL["PixelLab adapter<br/>offline build-time only"]
 
   UI -->|HTTPS| API
@@ -41,7 +42,10 @@ flowchart TB
   CRON --> API
   ENG & GEN & TRN & ECO & MKT --> REPO
   REPO --> DB
-  ECO --> SOL
+  ECO --> CHAIN
+  ENG -.->|proof roots| CHAIN
+  CHAIN -.->|optional| RH
+  WAL -.->|USDG purchase tx| RH
   PXL -.->|approved assets + manifest| BLOB
 ```
 
@@ -53,6 +57,7 @@ checkpoints, in sync with the post-time clock. Live races need no WebSockets.
 ```mermaid
 flowchart LR
   A[Entries open] --> B["Seed commitment published<br/>sha256(seed)"]
+  B -.-> BA["Optional: commitment Merkle root<br/>anchored on Robinhood Chain"]
   B --> C[Entry lock]
   C --> D["Immutable snapshot<br/>horses + track + weather"]
   D --> E["Final seed = H(server seed + external entropy)<br/>demo: HMAC(secret, raceId)"]
@@ -62,6 +67,7 @@ flowchart LR
   H --> I[Replay viewer]
   H --> J["Settlement: credits ledger<br/>(idempotent, once)"]
   H --> K[Leaderboard / records]
+  H -.->|"only after the broadcast ends"| HA["Optional: result + seed Merkle root<br/>anchored on Robinhood Chain"]
 ```
 
 ## 3. Race request sequence
@@ -100,8 +106,8 @@ flowchart BT
   viewer --> art
   web["apps/web<br/>Next.js pages + /api"] --> engine & viewer & art & shared
   econ["packages/economy (Milestone C)"] --> shared
-  sol["packages/solana (Milestone E)"] --> shared
-  web -.-> econ & sol
+  chain["packages/contracts/adapter<br/>Robinhood Chain, optional (Phase 6)"]
+  web -.-> econ & chain
 ```
 
 ## 5. Horse lifecycle
@@ -117,14 +123,19 @@ flowchart LR
 
 ## 6. Economy
 
+Stable Credits live only in the Postgres double-entry ledger. They are **never on-chain and
+never cashed out**. The optional web3 layer (`docs/web3.md`) is a one-way checkout for
+premium entitlements, plus public fairness anchors.
+
 ```mermaid
 flowchart LR
-  Player -->|Play races| Credits[Stable Credits]
-  Credits -->|Training / upkeep / entry| Sink[Credit sinks]
-  Wallet -->|Deposit, devnet first| Token[SPL token ledger]
-  Token -->|Buy horses / stud fees| Market[Marketplace escrow]
-  Market -->|Net proceeds| Seller[Player seller]
-  Market -->|Fee| Studio[Studio treasury]
+  Player -->|Play races / goals| Credits["Stable Credits<br/>(Postgres ledger only)"]
+  Credits -->|Training / entries / breeding / packs| Sink[Credit sinks]
+  Credits -->|Market, 5% fee burned| Market[Credits-only marketplace escrow]
+  Wallet -.->|"Optional: USDG purchase (EIP-712 voucher)"| Store[PremiumStore on Robinhood Chain]
+  Store -.->|Purchased event, verified by server| Ent["Premium entitlements<br/>(packs, season pass, cosmetics)"]
+  Store -.->|Withdraw| Treasury[Studio treasury multisig]
+  Ent --> Player
 ```
 
 ## 7. Delivery pipeline and agent workstreams
@@ -141,7 +152,7 @@ flowchart TB
   MA --> MB["B: metagame (training, genetics, lifecycle, Postgres)"]
   MB --> MC["C: credits ledger + marketplace"]
   MC --> MD["D: PixelLab art swap via manifest"]
-  MD --> ME["E: Solana devnet adapter"]
+  MD --> ME["E: optional web3: Robinhood Chain testnet<br/>(proof anchors + premium store)"]
   ME --> MF[F: launch readiness]
 ```
 
@@ -156,6 +167,7 @@ because each module only talks through `packages/shared`:
 | Race visuals | `@thoroughbred/race-viewer` | `<RaceViewer replay startAtMs? />` |
 | Art slots | `@thoroughbred/art-pipeline` | `AssetManifest`, `PixelLabAdapter` |
 | Types / validation | `@thoroughbred/shared` | Zod schemas + TS types |
+| Optional chain (server only) | `@thoroughbred/contracts/adapter` | `createChainAdapter()`: `verifyPurchase`, `publishProofBatch`, `getBalances` (Mock unless `WEB3_ENABLED=true`) |
 
 Persistence is behind `RaceRepository` / `HorseRepository` in `apps/web/src/server`.
 The stateless demo repository can be replaced with Postgres without changing pages.
@@ -170,3 +182,21 @@ The stateless demo repository can be replaced with Postgres without changing pag
   nobody looks at.
 - **Live viewing is synchronized playback** of stored checkpoints against `postTimeMs`.
 - **PixelLab runs at build time only.** It never runs per request or per frame.
+
+## 10. Optional web3: Robinhood Chain (EVM)
+
+The chain is Robinhood Chain, an Arbitrum-based L2: mainnet 4663, testnet 46630. **It's off by
+default** (`WEB3_ENABLED` unset), and the game never needs it. The full design, threat model
+and rollout gates are in `docs/web3.md`.
+
+- **What's on-chain:**
+  - `RaceProofRegistry`: write-once Merkle roots of seed commitments (at entry open) and
+    of results plus revealed seeds (after the broadcast ends). Anyone can verify with
+    `verifyRace`.
+  - `PremiumStore`: one-way USDG checkout using server-signed EIP-712 vouchers and
+    single-use order ids.
+- **What isn't on-chain:** Stable Credits, horses, the market, the ledger. Postgres stays
+  the source of truth.
+- **Server adapter:** `packages/contracts/adapter`. `MockChainAdapter` (default) and
+  `EvmChainAdapter` (viem) share one `ChainAdapter` interface. Keys come from Vercel env
+  and are never sent to the client.

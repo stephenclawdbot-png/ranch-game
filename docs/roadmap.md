@@ -60,11 +60,41 @@ surface, deep underneath, and it never punishes absence. See `docs/game-design.m
 - Friend rivalries.
 - Telemetry dashboards.
 
-## Phase 6: Optional web3
+## Phase 6: Optional web3 (Robinhood Chain)
 
-- USDC or token as a premium currency, with credits never cashed out.
-- On-chain fairness proofs.
-- Legal review first.
+Off by default (`WEB3_ENABLED=false`); the game never depends on it. Details, threat model
+and gates: `docs/web3.md`.
+
+- [x] Research Robinhood Chain: an Arbitrum-based EVM L2; mainnet 4663 has been live since
+  2026-07-01; testnet is 46630; the stablecoin is USDG.
+- [x] Contracts (`packages/contracts`):
+  - `RaceProofRegistry` (fairness Merkle roots);
+  - `PremiumStore` (USDG checkout with EIP-712 vouchers);
+  - optional `ThoroughbredToken`, not deployed;
+  - 70 tests.
+- [x] Server `ChainAdapter`: mock by default, EVM via viem; Merkle batching shared with
+  Solidity.
+- [ ] Testnet: deploy, anchor proofs in shadow mode, `/verify` page, store dogfood with
+  testnet USDG.
+- [ ] Web integration:
+  - checkout and confirm routes;
+  - pending orders, with fulfilment idempotent through the ledger;
+  - a purchase backstop cron;
+  - SIWE wallet link feeding the linked-account flags.
+- [ ] Hardening: static analysis, fuzzing, a Safe multisig admin, KMS for server keys,
+  monitoring.
+- [ ] External audit.
+- [ ] **Legal review first**, before any mainnet money: loot boxes per market, consumer
+  law, VAT, sanctions, Robinhood ToS.
+- [ ] Mainnet in this order:
+  1. fairness proofs only;
+  2. a store beta (cosmetics and season pass);
+  3. premium packs per cleared market.
+- Rules:
+  - USDG (or another stablecoin) is a premium currency only;
+  - **credits are never cashed out**;
+  - no prize money and no play-to-earn;
+  - a token only after a legal opinion and a user decision.
 
 **Targets:**
 - More than 70% of new players start a first race.
