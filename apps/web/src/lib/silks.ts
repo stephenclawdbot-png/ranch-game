@@ -46,3 +46,33 @@ export function decodeSilks(raw: string): Silks | null {
   if (![silks.primary, silks.secondary, silks.cap].every((h) => HEX.test(h))) return null;
   return silks;
 }
+
+/** WCAG relative luminance of a #rrggbb colour. */
+export function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+}
+
+/** Contrast ratio between two colours (1..21). */
+export function contrastRatio(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Pre-rolled silks for onboarding: a patterned design whose two colours read apart (>= 2:1). */
+export function randomSilks(rand: () => number = Math.random): Silks {
+  const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)]!;
+  const patterns = SILK_PATTERNS.filter((p) => p.id !== "solid");
+  for (let i = 0; i < 50; i++) {
+    const primary = pick(SILK_COLORS).hex;
+    const secondary = pick(SILK_COLORS).hex;
+    if (primary !== secondary && contrastRatio(primary, secondary) >= 2.5) {
+      return { pattern: pick(patterns).id, primary, secondary, cap: rand() < 0.5 ? secondary : primary };
+    }
+  }
+  return { pattern: "hoops", primary: "#0f5a3a", secondary: "#e2b33c", cap: "#e2b33c" };
+}

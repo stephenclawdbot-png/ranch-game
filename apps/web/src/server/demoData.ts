@@ -121,11 +121,11 @@ interface ArchetypeDef {
  */
 export const ARCHETYPES: Record<Archetype, ArchetypeDef> = {
   sprinter: { mods: { speed: 80, stamina: -190, burst: 120, durability: -20, adaptability: -40, temperament: -30 }, distances: [1000, 1200], styles: ["front", "front", "stalker"] },
-  miler: { mods: { speed: 75, stamina: 20, burst: 40, durability: 10, adaptability: 0, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
+  miler: { mods: { speed: 80, stamina: 20, burst: 40, durability: -40, adaptability: -40, temperament: 30 }, distances: [1400, 1600], styles: ["stalker", "stalker", "front"] },
   stayer: { mods: { speed: -40, stamina: 210, burst: -40, durability: 90, adaptability: 20, temperament: 60 }, distances: [2000, 2400], styles: ["closer", "stalker"] },
   closer: { mods: { speed: 60, stamina: 60, burst: 180, durability: 0, adaptability: -20, temperament: -40 }, distances: [1600, 2000], styles: ["closer"] },
   frontrunner: { mods: { speed: 130, stamina: 80, burst: -150, durability: 20, adaptability: -10, temperament: -60 }, distances: [1200, 1400, 1600], styles: ["front"] },
-  allrounder: { mods: { speed: 50, stamina: 10, burst: 10, durability: 40, adaptability: 150, temperament: 60 }, distances: [1400, 1600, 2000], styles: ["stalker", "closer", "front"] },
+  allrounder: { mods: { speed: 55, stamina: 10, burst: -30, durability: 40, adaptability: 150, temperament: 60 }, distances: [1400, 1600, 2000], styles: ["stalker", "closer", "front"] },
   firebrand: { mods: { speed: 140, stamina: -40, burst: 90, durability: -110, adaptability: -60, temperament: -230 }, distances: [1200, 1400, 1600], styles: ["front", "stalker"] },
   mudlark: { mods: { speed: 20, stamina: 90, burst: -10, durability: 170, adaptability: 120, temperament: 40 }, distances: [1600, 2000, 2400], styles: ["stalker", "closer"] },
 };
@@ -194,7 +194,7 @@ const POOL_SEED = "thoroughbred/rival-pool/v2";
  * the pool, and each race class (see races.ts) has enough horses for any distance and surface.
  * Starters (quality 520-620) sit around the novice/handicap tiers.
  */
-const RIVAL_TIERS: readonly number[] = [440, 480, 520, 560, 600, 640, 680, 720];
+const RIVAL_TIERS: readonly number[] = [460, 495, 530, 565, 600, 640, 680, 720];
 const TIER_JITTER = 25;
 
 function buildRivalPool(): { horses: Horse[]; names: Set<string> } {

@@ -149,9 +149,11 @@ function raceName(rng: Rng, raceClass: RaceClass, distanceM: number): string {
   }
 }
 
-function purseFor(raceClass: RaceClass, distanceM: number): number {
-  // Longer races pay a little more; always a round number.
-  return Math.round((CLASS_PURSE[raceClass] * (900 + distanceM / 8)) / 1000 / 100) * 100;
+export function purseFor(raceClass: RaceClass, distanceM: number): number {
+  // Longer races pay more, roughly in proportion to the time they take (race + gate + results),
+  // so credits per minute do not favour sprints: x0.78 at 1000 m, x1.0 at 1600 m, x1.3 at 2400 m.
+  // Always a round number.
+  return Math.round((CLASS_PURSE[raceClass] * (400 + (distanceM * 3) / 8)) / 1000 / 100) * 100;
 }
 
 function makeConditions(rng: Rng, distanceM: number, raceClass: RaceClass) {

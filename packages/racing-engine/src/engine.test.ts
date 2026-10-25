@@ -44,15 +44,15 @@ describe("determinism", () => {
     // If this fails, simulation output changed: bump ENGINE_VERSION (old replays will no longer
     // verify against the new engine) and update these literals deliberately.
     const r = simulateRace(makeInput(typicalField(8, 1600), { seed: seedFor(2024) }));
-    expect(ENGINE_VERSION).toBe("1.0.0");
-    expect(r.result.finishOrder[0]!.horseId).toBe("h4");
-    expect(r.result.winningTimeUs).toBe(97_381_783);
-    expect(r.result.finishOrder.map((f) => f.horseId).join(",")).toBe("h4,h8,h6,h3,h5,h7,h2,h1");
-    expect(r.totalTicks).toBe(1992);
-    expect(r.result.resultHash).toBe("7ede1e3883cea4820d3b183c17f9c2bc6a981545db98b3a02653c3d769b98eb8");
+    expect(ENGINE_VERSION).toBe("1.1.0");
+    expect(r.result.finishOrder[0]!.horseId).toBe("h8");
+    expect(r.result.winningTimeUs).toBe(98_029_606);
+    expect(r.result.finishOrder.map((f) => f.horseId).join(",")).toBe("h8,h5,h4,h3,h7,h6,h2,h1");
+    expect(r.totalTicks).toBe(1978);
+    expect(r.result.resultHash).toBe("cd67447eb44b1a18d38831c977d072941db2f128b7df15080ca64d4a07d65133");
     // Frames + commentary digest: catches any change to the race picture, not just the result.
     expect(bytesToHex(sha256(utf8ToBytes(JSON.stringify([r.frames, r.events]))))).toBe(
-      "f610f94e0376cd857cf297937605a2812ea94eb75a8e3ce7cbfbf8485818cf2d",
+      "ec6ed62fdb55318e4967760353ea9ee0d24c01f9f053c2b1375399f538015912",
     );
   });
 });

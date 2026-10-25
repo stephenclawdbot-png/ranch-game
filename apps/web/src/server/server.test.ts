@@ -23,11 +23,11 @@ const NOW = Date.UTC(2026, 9, 25, 15, 0, 0);
 
 describe("demo data", () => {
   it("rival pool is deterministic, valid and spread across house stables", () => {
-    expect(RIVAL_POOL).toHaveLength(48);
+    expect(RIVAL_POOL).toHaveLength(64);
     expect(HOUSE_STABLES).toHaveLength(8);
     for (const h of RIVAL_POOL) expect(HorseSchema.safeParse(h).success).toBe(true);
-    expect(new Set(RIVAL_POOL.map((h) => h.name)).size).toBe(48);
-    expect(new Set(RIVAL_POOL.map((h) => h.id)).size).toBe(48);
+    expect(new Set(RIVAL_POOL.map((h) => h.name)).size).toBe(64);
+    expect(new Set(RIVAL_POOL.map((h) => h.id)).size).toBe(64);
     // Rivals have historic records; stats have trade-offs (nobody maxed everywhere).
     expect(RIVAL_POOL.every((h) => h.record.starts > 0)).toBe(true);
     for (const h of RIVAL_POOL) {

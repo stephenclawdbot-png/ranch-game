@@ -124,7 +124,16 @@ it("player experience", async () => {
   lines.push(`avg credits/race ${perRace.toFixed(0)} -> ${((perRace * 3600) / cycleS).toFixed(0)} credits/h (natural tactic, random horse)`);
   lines.push(`best archetype in its niche: ${bestPerRace.toFixed(0)} credits/race -> ${((bestPerRace * 3600) / cycleS).toFixed(0)} credits/h if a player could farm it`);
   lines.push(`class purse table: ${JSON.stringify(CLASS_PURSE)}`);
-  data.economy = { avgRaceS, cycleS, perRace, perHour: (perRace * 3600) / cycleS, bestPerRace };
+  const byDist: Record<string, number> = {};
+  for (const [d, xs] of [...groupBy(natural, (s) => s.config.distanceM)].sort((a, b) => a[0] - b[0])) {
+    const cyc = QUICK_POST_DELAY_MS / 1000 + mean(xs.map((x) => x.durationMs)) / 1000 + UI_OVERHEAD_S;
+    byDist[d] = (summary(xs).avgPrize * 3600) / cyc;
+    lines.push(`  ${d} m: race ${(mean(xs.map((x) => x.durationMs)) / 1000).toFixed(0)} s, ${summary(xs).avgPrize.toFixed(0)} credits/race -> ${byDist[d]!.toFixed(0)} credits/h`);
+  }
+  const byClassEcon: Record<string, number> = {};
+  for (const [c, xs] of groupBy(natural, (s) => s.config.raceClass)) byClassEcon[c] = summary(xs).avgPrize;
+  lines.push(`  expected credits/race by class: ${Object.entries(byClassEcon).map(([c, v]) => `${c} ${v.toFixed(0)}`).join(", ")}`);
+  data.economy = { avgRaceS, cycleS, perRace, perHour: (perRace * 3600) / cycleS, bestPerRace, byDist, byClassEcon };
 
   // Fairness/feel in quick races (one record per race).
   const races = natural;

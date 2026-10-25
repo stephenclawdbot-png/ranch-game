@@ -16,7 +16,7 @@ import { ENERGY_MAX, MAX_TICKS, SAMPLE_EVERY, TICK_HZ, US_PER_TICK, buildProfile
 import { Rng } from "./prng";
 import { marginLabel, splitPurse } from "./results";
 
-export const ENGINE_VERSION = "1.0.0";
+export const ENGINE_VERSION = "1.1.0";
 
 // Positions are tracked in "sub-mm" units: mm * TICK_HZ. Advancing one tick at speed v (mm/s)
 // adds exactly v units, so no rounding ever accumulates.
