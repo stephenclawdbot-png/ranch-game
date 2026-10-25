@@ -1,0 +1,83 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<3488 chars>",
+   "format": "png"
+  },
+  "frames": 1,
+  "mode": "lite",
+  "kind": "topdown"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d2953f46-1488-475f-b56d-345ff40851e7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.1
+  },
+  "id": "d2953f46-1488-475f-b56d-345ff40851e7",
+  "status": "completed",
+  "created_at": "2026-10-25T16:38:18.253140+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "lite",
+   "plan": {
+    "kind": "topdown",
+    "parts": [
+     {
+      "name": "island 1",
+      "shape": "flat",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10
+      ]
+     }
+    ],
+    "backdrop": [],
+    "recessed": []
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 64,
+    "base64": "<11784 chars>",
+    "height": 64
+   },
+   "action": "Shaping the picture",
+   "frames": 1,
+   "progress": 0.5,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.1
+   },
+   "generation_id": "ad2835b4-0a4b-4eca-a128-86af351743ba",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-25T16:38:18.321475+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/tex-gravel-normal-0.png"
+ ]
+}

@@ -38,3 +38,14 @@
 {"at":"2026-10-25T16:35:07.359Z","endpoint":"/inpaint-v3","prefix":"art-src/raw/seam/rail-inpaint","secs":55,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T16:35:07.931Z","endpoint":"/inpaint-v3","prefix":"art-src/raw/seam/crowd-inpaint","secs":56,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-25T16:35:20.464Z","endpoint":"/inpaint-v3","prefix":"art-src/raw/seam/hedge-inpaint","secs":68,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:37:17.938Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/scene/finish-post-clean","secs":55,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:37:18.357Z","endpoint":"/edit-images-v2","prefix":"art-src/raw/scene/furlong-pole-clean","secs":55,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-25T16:37:23.543Z","endpoint":"/animate-pixminimax","prefix":"art-src/raw/scene/flag-wave","secs":60,"usage":{"type":"generations","generations":1},"images":9}
+{"at":"2026-10-25T16:38:23.213Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/furlong-pole-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:23.341Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-hedge-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:23.433Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-crowd-b-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:23.647Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/tex-gravel-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:23.786Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-tree-oak-normal","secs":7,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:23.915Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/starting-gate-normal","secs":8,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:24.239Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/finish-post-normal","secs":8,"usage":{"type":"generations","generations":0.1},"images":1}
+{"at":"2026-10-25T16:38:35.382Z","endpoint":"/normal-map","prefix":"art-src/raw/normals/bb-tree-oak-b-normal","secs":6,"usage":{"type":"generations","generations":0.1},"images":1}
