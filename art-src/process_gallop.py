@@ -171,12 +171,30 @@ def classify(img):
             leg_top = ys_all.max() - int(round((ys_all.max() - ys_all.min()) * LEG_BAND))
             girth = mane & left & right & (cols < capx0) & (cols > xx.min()) & (rows_ < leg_top + int(4 * k))
             role[girth] = "tack"
+    # Below the saddle cloth nothing can be silks: dark crimson belly shading is coat.
+    belly = None
+    if white.any():
+        cloth_bottom = yy.max()
+        rows_ = np.arange(H)[:, None]
+        for r in ("silksPrimary", "cap", "silksSecondary"):
+            role[(role == r) & (rows_ > cloth_bottom + int(round(2 * H / 104)))] = "coat"
+        belly = cloth_bottom + int(round(0.1 * H))
     # Points: dark (bay) lower legs -> separate ramp so non-bay coats get body-coloured legs.
+    # Each dark blob that starts below the belly line is a leg; blobs reaching above it are
+    # mane/tail. (Falls back to a plain height band.)
     ys = np.nonzero(a)[0]
     ground = ys.max()
     band = int(round((ground - ys.min()) * LEG_BAND))
-    rows = np.arange(H)[:, None] >= ground - band
-    role[(role == "mane") & rows] = "points"
+    if belly is None:
+        belly = ground - band
+    lab3, n3 = components(role == "mane")
+    for i in range(1, n3 + 1):
+        m = lab3 == i
+        top_y = np.nonzero(m)[0].min()
+        if top_y > belly:
+            role[m] = "points"
+        elif top_y > ground - band:
+            role[m] = "points"
     return role
 
 
@@ -236,6 +254,16 @@ def main():
             fixed.append(c)
         ramps[r] = np.array(fixed)
 
+    # --palette-from <meta.json>: map onto an existing strip's ramps so ONE palette.json
+    # recolours several strips (e.g. idle uses the gallop's keys).
+    if "--palette-from" in sys.argv:
+        src = json.loads(Path(sys.argv[sys.argv.index("--palette-from") + 1]).read_text())["palette"]
+        h2 = lambda h: np.array([int(h[i : i + 2], 16) for i in (1, 3, 5)])
+        for r in RAMP_SIZES:
+            hexes = src.get(r) or src["fixed"].get(r) or []
+            if hexes:
+                ramps[r] = np.array([h2(x) for x in hexes])
+
     out_frames = []
     for f, ro in zip(frames, roles):
         o = np.zeros_like(f)
@@ -275,6 +303,8 @@ def main():
     y0, y1 = max(0, ys.min() - 2), min(H, ys.max() + 2)
     x0, x1 = max(0, xs.min() - 2), min(W, xs.max() + 3)
     crop = [s[y0:y1, x0:x1] for s in shifted]
+    if "--pingpong" in sys.argv:
+        crop = crop + crop[-2:0:-1]
     fw, fh = x1 - x0, y1 - y0
     strip = np.concatenate(crop, axis=1)
     out_dir.mkdir(parents=True, exist_ok=True)

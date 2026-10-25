@@ -20,6 +20,8 @@ const BodySchema = z
     exclude: z.array(z.number().int().min(0).max(STARTER_COUNT - 1)).max(STARTER_COUNT).optional(),
     horseIndex: z.number().int().min(0).max(STARTER_COUNT - 1).optional(),
     tactic: RunningStyleSchema.optional(),
+    /** Story mode only: these solo races may skip straight to the result. Live races never can. */
+    instant: z.boolean().optional(),
     silks: SilksSchema.optional(),
     stableName: StableNameSchema.optional(),
   })

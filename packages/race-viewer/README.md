@@ -18,7 +18,8 @@ import { RaceViewer } from "@thoroughbred/race-viewer";
 
 | Prop | Default | Notes |
 |---|---|---|
-| `replay` | (required) | `RaceReplay` from `@thoroughbred/shared` |
+| `replay` | — | A finished `RaceReplay` (full controls). Pass exactly one of `replay` / `feed`. |
+| `feed` | — | A `LiveRaceFeed` (live broadcast). See **Live mode** below. |
 | `startAtMs` | none | `elapsed = (Date.now() - startAtMs) / 1000`. A negative value shows the gate-loading countdown. When the race is already over, the viewer opens on the result card. Shows a **Live** button. |
 | `autoplay` | `true` | Without `startAtMs`, play starts with a ~1.6 s pre-roll at the gates. |
 | `highlightHorseId` | none | Gold pixel marker and ground ring, highlighted standings and result row. |
@@ -36,6 +37,29 @@ The other exports are `CameraMode` (`"leader" | "mine" | "wide"`), `sampleReplay
 `@thoroughbred/race-viewer/dev`. The main entry doesn't import three.js: it loads with
 `import()` inside an effect, so the component is safe under SSR. Init is StrictMode-safe,
 and everything is disposed on unmount.
+
+## Live mode (`feed`)
+
+- The scene is built from `feed.header` plus the frames and events received so far. It
+  never reads a result while live. Before the first frame, horses are placed by gate
+  order.
+- The playhead is `(Date.now() - feed.broadcastStartMs) / 1000` (the feed supplies
+  `broadcastStartMs` in the browser's clock), capped at the last received frame. Before 0
+  it shows the gate countdown. While the playhead is holding for late data it shows a
+  BUFFERING pip after 0.6 s.
+- Controls while live:
+  - pause, rewind and scrub over the broadcast so far (the bar shows elapsed time only,
+    no total);
+  - **LIVE** jumps back to the edge;
+  - speeds of 1×, 2× and 4× appear only when you are behind the edge (to catch up),
+    and nothing can pass it.
+- Live standings come from frames only. Finishers are ordered by crossing time from the
+  frames, and gaps under 30 ms read "photo".
+- When `feed.final` arrives and the playhead is at the end, the scene switches to the
+  official replay in place. On a photo finish it replays the finish in slow-mo with the
+  PHOTO freeze. Then the results card shows and full replay controls unlock.
+- `fakeLiveFeed(replay, startMs)` in `/dev` simulates the server. Use `?live=-30` on the
+  harness to open 30 s into a live race.
 
 ## How it works
 
@@ -60,6 +84,12 @@ and everything is disposed on unmount.
   Lighting is a warm directional sun with shadow maps on high quality, a hemisphere fill
   and fog. Weather presets cover clear golden hour, dusk, overcast and rain (with 1px rain
   streaks).
+- **Pixel density (HD pixel standard v2)**: 96 px/m in the focal plane (horses, ground
+  tiles, signs, gate padding, roundel), 32 px/m mid-plane, 10 px/m for background
+  billboards. The HD horse strip (`race/horse-gallop.png`, ~230 px frames) is used at
+  96 px/m, with `horse-gallop-lo.png` scaled to life size as a fallback (a palette whose
+  keys don't occur in the strip is rejected). Internal resolution is at least 540 lines.
+  The DOF only softens the far background and nearest foreground.
 - **Pixel art drawn in code** (`three/pixelTextures.ts`): every fallback texture is
   painted per pixel from small palette ramps with Bayer dithering, never smooth
   gradients. PixelLab files listed in the manifest (`race/tex-*`, `race/bb-*`,
@@ -74,7 +104,18 @@ and everything is disposed on unmount.
      `race/palette.json` (coat ramp from `COAT_PALETTES`, silks, cap, silks pattern
      painted on the primary keys) and lit with `horse-gallop-normal.png`;
   3. a code-drawn keyed placeholder that goes through the same recolour path.
-- **Camera**: critically damped springs with feed-forward velocity. The shots are: a
+- **Camera**: broadcast framing. The camera picks the horses that must be on screen,
+  then solves its distance at a set elevation and yaw so they fill a target part of the
+  frame:
+  - **Leader** (default): the leader back to at least the 6th horse, or the whole field
+    while it is tight; at most ~30 m of track.
+  - **My horse**: my horse plus its three nearest rivals.
+  - **Wide**: every horse.
+
+  The final ~150 m is tighter and lower, a photo finish cuts to the judge's camera, and
+  the gates get a three-quarter view from behind the stalls. Narrow screens frame less
+  track at a higher angle. Visual lanes are 2.2 m wide (cosmetic). Critically damped
+  springs with feed-forward velocity. The shots are: a
   crane down onto the gates; a telephoto dolly alongside the leader or my horse; a wide
   shot that fits the whole field; a low angle ahead of the leader in the final furlong;
   a cut to the judge's camera on the line for photo finishes; and a hold on the post while

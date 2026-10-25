@@ -5,10 +5,9 @@ import { useEffect, useState } from "react";
 import type { Horse, RunningStyle } from "@thoroughbred/shared";
 import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatDistance } from "@/lib/format";
-import { addPendingRace, horseRecord, type PlayerState } from "@/lib/player";
+import { addPendingRace, horseRecord, recentlyRun, type PlayerState } from "@/lib/player";
 import { HorsePortrait } from "../HorsePortrait";
 import { PixelIcon } from "../icons";
-import { ActionBar } from "../ui/ActionBar";
 
 const TACTICS: RunningStyle[] = ["front", "stalker", "closer"];
 /** Where the jockey sits in the pack (index in a 7-cell lane, 6 = leader). */
@@ -43,6 +42,35 @@ export async function enterQuickRace(state: PlayerState, horse: Horse, horseInde
   return raceId;
 }
 
+export interface QuickPickResult {
+  raceId: string;
+  postTimeMs: number;
+  pick: { horseIndex: number; tactic: RunningStyle; reason: string };
+}
+
+/**
+ * Quick Pick: the server picks the best-suited fresh horse (rotating away from horses run in
+ * the last hour) and rides it to its natural style, entering the next race.
+ */
+export async function quickPickRace(state: PlayerState, horses: Horse[] | null): Promise<QuickPickResult> {
+  const res = await fetch("/api/races/quick", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      playerId: state.player.playerId,
+      pick: "auto",
+      exclude: recentlyRun(state, Date.now()),
+      silks: state.player.silks,
+      stableName: state.player.stableName,
+    }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const out = (await res.json()) as QuickPickResult;
+  const name = horses?.[out.pick.horseIndex]?.name ?? out.pick.reason.split(":")[0] ?? "Your horse";
+  addPendingRace({ raceId: out.raceId, horseIndex: out.pick.horseIndex, horseName: name, tactic: out.pick.tactic, postTimeMs: out.postTimeMs, enteredAtMs: Date.now() });
+  return out;
+}
+
 /**
  * Quick-race entry: choose a runner (optional) and a riding plan, then go to the gates.
  * The plan defaults to the horse's natural style, so a new player can enter with one tap.
@@ -59,7 +87,7 @@ export function EntryForm({
   horses: Horse[] | null;
   initialIndex?: number;
   showPicker?: boolean;
-  /** Inline on a page (the submit becomes the screen's sticky action) vs. inside the sheet. */
+  /** Inline on a page, where Quick Pick is the primary action: the submit is a secondary button. */
   inline?: boolean;
   autoFocusSubmit?: boolean;
 }) {
@@ -93,7 +121,7 @@ export function EntryForm({
   const submit = (
     <button
       type="button"
-      className="btn btn-brass btn-lg"
+      className={inline ? "btn btn-lg" : "btn btn-brass btn-lg"}
       disabled={!horse || busy}
       onClick={go}
       data-testid="enter-race"
@@ -195,7 +223,7 @@ export function EntryForm({
           {error}
         </p>
       )}
-      {inline ? <ActionBar>{submit}</ActionBar> : <div className="grid [&>.btn]:w-full">{submit}</div>}
+      {inline ? <div>{submit}</div> : <div className="grid [&>.btn]:w-full">{submit}</div>}
     </div>
   );
 }

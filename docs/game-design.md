@@ -159,7 +159,27 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   rewards (Daily Cup, leagues, titles) require a verified account; those rewards are
   cosmetic.
 
-## 4d. ALL RACES ARE LIVE AND SHARED (user decision, supersedes solo quick races and instant results)
+## 4e. Two modes: Story (single-player) and Live (multiplayer). User decision; refines §4d.
+
+- **Story mode.** A single-player career campaign (Rival Stars-like). Solo races against
+  **named AI rival stables** with personalities, organised in chapters (Club → County →
+  National → Classics).
+  - **Watching:** watch, speed up, or **skip to the result** (instant). It's solo, so nothing
+    is spoiled.
+  - **Rewards:**
+    - story unlocks, cosmetics, a gift foal;
+    - **licences** that unlock Live race classes;
+    - credits capped per chapter: full reward the first time a story race is won, minimal
+      on replays, so story races can't be farmed.
+  - **Shared with Live:** the same stable horses run, using freshness and career starts.
+    Story races don't consume daily Live entries.
+  - **On-ramp:** new players start here. Chapter 1 unlocks Live maiden races.
+- **Live racing.** Everything in §4d: a shared 3-minute card, always live, with ratings,
+  leagues, the Daily Cup and the Season Final.
+- **Phase 1:** the existing solo quick races (`/api/races/quick`, `instant` allowed) are the
+  base of Story mode. Chapters, named rivals and licences come in Phase 3.
+
+## 4d. ALL LIVE RACES ARE LIVE AND SHARED (user decision; solo races live on as Story mode, §4e)
 
 - **The core loop is a shared race card.** A race goes off every 3 minutes across tracks,
   distances, surfaces and classes. Every viewer sees the same race at the same moment, live.

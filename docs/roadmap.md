@@ -15,6 +15,7 @@ surface, deep underneath, and it never punishes absence. See `docs/game-design.m
 - [~] Balance pass (`docs/balance.md`)
 - [~] Game rules (`packages/game-core`): genetics, career clock (40 starts), rest cap, care and growth, training, ratings and handicaps, breeding (4 per horse), packs (foal-only, limits, pity), stalls and Legacy Farm, ledger, seasons, Daily Cup, leagues
 - [~] Server persistence (`packages/db`): PGlite in dev and previews, Neon in production
+- [ ] Two modes: Story (solo vs AI rivals, skip allowed; base = solo quick races) and Live (shared 3-min card, always live; needs DB)
 - [ ] Integration: web screens for care, training, breeding, nursery, market, packs, Daily Cup, league, Hall of Fame
 - [ ] Playtest with 10–20 people, plus basic telemetry
 
@@ -42,7 +43,7 @@ surface, deep underneath, and it never punishes absence. See `docs/game-design.m
 - Staff with traits.
 - Bond.
 - Licence tiers (Club, County, National, Classics).
-- Named AI rival stables with a story.
+- **Story mode chapters:** named AI rival stables, licences unlocking Live classes, capped story rewards.
 
 ## Phase 4: Breeding economy
 

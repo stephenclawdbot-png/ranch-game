@@ -158,14 +158,14 @@ export function gradeFloor(g: Grade): number {
 // ---------------------------------------------------------------------------
 
 /** Lower bound of mean potential per rarity tier. */
-export const RARITY_FLOORS: Record<Rarity, number> = { common: 0, uncommon: 430, rare: 480, epic: 525, legendary: 565 };
+export const RARITY_FLOORS: Record<Rarity, number> = { common: 0, uncommon: 510, rare: 540, epic: 565, legendary: 585 };
 /** Upper bound used when minting a tier (exclusive), before the season ceiling. */
 export const RARITY_MINT_BANDS: Record<Rarity, [number, number]> = {
-  common: [370, 430],
-  uncommon: [430, 480],
-  rare: [480, 525],
-  epic: [525, 565],
-  legendary: [565, 1001],
+  common: [470, 510],
+  uncommon: [510, 540],
+  rare: [540, 565],
+  epic: [565, 585],
+  legendary: [585, 1001],
 };
 
 export function rarityOf(genome: Genome): Rarity {
