@@ -56,13 +56,18 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
 
   const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
 
-  // Entries open: refresh the server-rendered card when they close (the field locks then).
+  // Entries open: refresh the server-rendered card when they close (the field locks then),
+  // and keep checking every few seconds until the locked field arrives.
   useEffect(() => {
-    if (card.fieldLocked || now === null) return;
-    const t = setTimeout(() => router.refresh(), Math.max(1000, localClose - Date.now() + 1500));
+    if (card.fieldLocked) return;
+    let t: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      router.refresh();
+      t = setTimeout(tick, 3000);
+    };
+    t = setTimeout(tick, Math.max(1000, localClose - Date.now() + 1500));
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.fieldLocked, localClose, router, now === null]);
+  }, [card.fieldLocked, localClose, router]);
 
   // Your result comes from the server (settled there, once); this only shows it.
   useEffect(() => {

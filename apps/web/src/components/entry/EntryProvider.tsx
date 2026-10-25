@@ -278,7 +278,9 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       })
       .then((d) => {
         setData(d);
-        const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss - b.fitLoss)[0];
+        // Preselect the best fit among eligible horses, resting tired ones (as Quick Pick does).
+        const tiredPenalty = (id: string) => (state.horses.find((x) => x.id === id)?.condition === "tired" ? 1000 : 0);
+        const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss + tiredPenalty(a.horseId) - (b.fitLoss + tiredPenalty(b.horseId)))[0];
         if (best) {
           setHorseId(best.horseId);
           const h = state.horses.find((x) => x.id === best.horseId);

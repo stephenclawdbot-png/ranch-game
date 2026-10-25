@@ -314,7 +314,12 @@ function phaseOf(race: PublicRace, now: Date, replay: RaceReplay | null): RaceCa
 export async function raceCard(db: Db, id: string, now: Date, viewerStableId: string | null): Promise<RaceCard> {
   if (!isRaceId(id)) throw new RaceNotFoundError(id);
   await driveCard(db, now);
-  const race = await loadRace(db, id);
+  let race = await loadRace(db, id);
+  // Entries have closed but the (throttled) tick hasn't locked this field yet: lock it now.
+  if (!race.field && now >= race.entriesCloseAt && race.status === "open") {
+    await lockField(db, id, now, raceHooks);
+    race = await loadRace(db, id);
+  }
   const entries = await listRaceEntries(db, id);
   const byHorse = new Map(entries.map((e) => [e.horseId, e]));
   const field = race.field as LockedField | null;
@@ -828,6 +833,11 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     postTimeMs: race.postTime.getTime(),
     status: race.status,
   }));
+  // Story results pay a capped Story reward instead of a purse: show it with the result.
+  const rewards = new Map<string, number>();
+  for (const i of inbox) {
+    if (i.readAt && i.raceId && !rewards.has(i.raceId)) rewards.set(i.raceId, (await storyRewardFor(db, i.raceId))?.amount ?? 0);
+  }
   const inboxView: InboxView[] = inbox.map((i) => ({
     id: i.id,
     kind: i.kind,
@@ -836,7 +846,9 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     title: i.readAt ? i.title : null,
     createdAtMs: i.createdAt.getTime(),
     read: !!i.readAt,
-    data: i.readAt ? ((i.data ?? null) as Record<string, unknown> | null) : null,
+    data: i.readAt
+      ? { ...((i.data ?? {}) as Record<string, unknown>), prize: Number((i.data as { prize?: number } | null)?.prize ?? 0) + (rewards.get(i.raceId ?? "") ?? 0) }
+      : null,
   }));
   return {
     accountId: session.accountId,

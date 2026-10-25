@@ -66,7 +66,8 @@ backfill, and drop the old shape in a later release.
 - **Live races (§4d):**
   - `ensureRaceCard` and `tickRaceCard` publish and drive the 3-minute card, with
     `defaultCardSlot` as the calendar.
-  - `enterRace` and `scratchEntry` handle entries.
+  - `enterRace` and `scratchEntry` handle entries. `enterRace({ meta })` stores extra entry data
+    (plan, silks, stable name) with the snapshot, which also carries the horse's game-core `state`.
   - `lockField` runs at entry close. It's idempotent, fills the field with house horses
     and draws gates from the seed.
   - Then `getRaceForSimulation`, `settleRace` (idempotent; writes the inbox) and
@@ -87,6 +88,11 @@ backfill, and drop the old shape in a later release.
   - `ensureSeason`, `enterDailyCup` (once per day) and `dailyCupBoard`.
   - `joinWeeklyLeague` and `addLeaguePoints`.
   - `awardAchievement`, `induct` (Hall of Fame), and `getConfig` / `setConfig`.
+- **Player (web app reads):** `listInbox`, `markInboxRead`, `listHorseRuns`, `listStableRuns`,
+  `stableEntriesInRace`, `listCardRaces` (slot races in a window with entry counts),
+  `getStable`, `updateStableProfile`, and Story rewards: `grantStoryReward` (game-core
+  `storyReward`, first win / replay, chapter cap; serialised per account, one grant per race)
+  and `storyRewardFor`.
 - **Maintenance:** `runMaintenance` heals injuries, foals due mares and expires listings.
   Nothing else ever changes with elapsed time.
 

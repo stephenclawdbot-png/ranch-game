@@ -75,10 +75,14 @@ pnpm dev              # http://localhost:3000. Uses embedded PGlite when DATABAS
 pnpm -r test          # all package tests
 pnpm -r typecheck
 cd apps/web && npx next build
+# browser e2e against a running server (Playwright from NODE_PATH):
+BASE_URL=http://localhost:3000 NODE_PATH=/opt/node-tools/node_modules node apps/web/e2e/smoke.mjs
 ```
 
-- **Environment:** see `apps/web/.env.example`. Use `RACE_SEED_SECRET` in production.
-  Vercel provides `DATABASE_URL` from Neon. The web3 variables are off by default.
+- **Environment:** see `apps/web/.env.example`. Vercel provides `DATABASE_URL` from Neon; set
+  `CRON_SECRET` for the Live-card cron backstop (`/api/cron/race-card`, see `apps/web/vercel.json`).
+  The web3 variables are off by default. The local dev database lives in
+  `apps/web/node_modules/.cache/thoroughbred-pglite` (delete it to start fresh).
 - **Dev pages:**
   - `/dev/viewer`: the race viewer harness. Query params: `horses`, `t`, `camera`,
     `weather`, `live`.

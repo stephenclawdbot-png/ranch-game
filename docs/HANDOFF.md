@@ -41,15 +41,57 @@ Preview and Production.)
   `WEB3_ENABLED=false`. The Hardhat toolchain is installed and verified. It found that viem 2.57 includes `robinhood` (chain id 4663) and `robinhoodTestnet` (46630). Check what it
   already wrote first.
 
+## Core integration: DONE (web app runs on the database end-to-end)
+
+`apps/web` no longer keeps any game state in the browser. Everything below is in Postgres
+(`packages/db`) and settled on the server; the browser holds only an httpOnly session cookie.
+
+- **Accounts:** `POST /api/account` → `createAccount` (device timezone) → httpOnly, SameSite=Lax
+  cookie `tb_session` (Secure in production). `src/server/session.ts` resolves it with
+  `authenticate()` on every request. `/play` imports the stable name + silks once from the old
+  localStorage demo (`thoroughbred:v1`), then removes that key. `src/lib/player.ts` is now a
+  server-backed store (`GET /api/me`) with a localStorage paint cache only.
+- **Stable:** credits (`getBalance`), horses (`listStableHorses` → game-core `toSharedHorse`,
+  with condition, career starts, injury and pre-entry injury risk), entry bank (`getEntryBank`,
+  shown in the header as entries left / cap, refill offer when out).
+- **Live card (§4d):** `src/server/game.ts`. `tickRaceCard` runs lazily on reads (throttled per
+  instance) and from the cron; at entry close `lockField` fills the field with house horses and the
+  `engineHorse` hook turns every entry snapshot into the engine Horse with game-core
+  `raceSnapshot` (plan intensity, quirks, condition folded in), so the field hash covers exactly
+  what races. At post time `getRaceForSimulation` → `simulateRace`; `live.ts` slices the broadcast
+  (unchanged no-leak guarantees; header-only before the off, built from the locked field);
+  `settleRace` runs once the broadcast is over (purses, game-core `settleField` ratings/careers/
+  injuries, inbox). Quick Pick Live = best-fit fresh eligible horse (game-core `entryBlock` +
+  rating band + form-guide fit) into the next suitable race.
+- **Story (§4e):** `POST /api/races/quick` creates a `quick` race against house horses, enters,
+  locks, simulates and settles it in the same request (capped `storyReward` via the ledger,
+  idempotent per race). Watching only shows it; `instant` back-dates it. Free (no entries).
+- **Inbox:** `inbox_items` on Home ("Your races": entered / live / result ready — unread results
+  never show the position — then seen results). Viewing a result marks it read.
+- **Cron:** `GET /api/cron/race-card` (Bearer `CRON_SECRET`) in `apps/web/vercel.json` at
+  `17 4 * * *` (once a day: the Hobby plan only allows daily crons). Lazy driving on reads is the
+  primary path; on Pro, change the schedule to `* * * * *` for a per-minute backstop.
+  **Set `CRON_SECRET` in Vercel (Production + Preview)**; without it the route answers 503.
+- **Removed:** the stateless demo (`repository.ts`, signed quick-race ids, deterministic schedule,
+  `demoData.ts` starters, client-side settlement, `/api/stable/[playerId]`, `useStable`). The old
+  demo code and its balance regression bands moved to `tools/balance/legacy` (reports still run).
+- **APIs:** `POST/PATCH /api/account`, `DELETE /api/account/session`, `GET /api/me`,
+  `POST /api/entries/refill`, `GET /api/races`, `GET /api/races/:id` (+ `/live`, `/replay`,
+  `/verify`, `/options`, `/me`), `POST /api/races/:id/enter` `{horseId, plan}`,
+  `POST /api/races/:id/scratch`, `POST /api/races/quick` (Story), `POST /api/races/live-pick`,
+  `POST /api/inbox/read`, `GET /api/horses/:id`, `GET /api/cron/race-card`.
+- **Deviations (flag to the user):** the DB purse split now equals the engine's (55/20/12/7/4/2)
+  so the result board and the ledger agree; handicap weights are not applied to Live fields yet
+  (the lock hook sees one runner at a time); Story races use the "club" chapter for every race
+  until chapters land (story key = class + distance).
+- **Tests:** `apps/web/src/server/game.test.ts` (PGlite: accounts, Story settle-once, Live
+  enter → lock → no-leak broadcast → settle after broadcast → inbox), `packages/db` player
+  services; e2e `apps/web/e2e/smoke.mjs` covers the full flow in a browser.
+
 ## Next steps (in order)
 
-1. **Core integration:**
-   - accounts (anonymous cookie);
-   - a DB-backed stable that replaces localStorage;
-   - Story races settled on the server;
-   - the Live shared race card (enter, Quick Pick into the next suitable race, AI fill, live
-     broadcast, settlement);
-   - inbox and stable entries (§4f).
+1. ~~Core integration~~ (done, above). Verify on the Vercel preview with Neon once `CRON_SECRET`
+   is set.
 2. **Feature screens:**
    - care, nursery, training, injuries and career;
    - breeding preview, packs, market, Legacy Farm and release to the Club;

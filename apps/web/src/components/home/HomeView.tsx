@@ -116,7 +116,7 @@ function ClubNext({ next, live, compact = false }: { next: RaceSummary; live: Ra
             {next.name}
           </p>
           <p className="t-meta">
-            {raceMetaLine(next)} · {next.fieldSize} entered
+            {raceMetaLine(next)} · {next.phase === "open" ? `${next.fieldSize} entered` : `${next.fieldSize} runners`}
           </p>
         </div>
         <span className="flex shrink-0 items-center gap-1 text-sm font-extrabold text-cream">

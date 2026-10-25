@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { db } from "@/server/db";
 import { driveCard } from "@/server/game";
 import { errorJson, json } from "@/server/http";
@@ -14,8 +15,14 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return errorJson(503, "cron_not_configured", { message: "Set CRON_SECRET to enable the cron route." });
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) return errorJson(401, "unauthorized", { message: "Bad cron secret." });
+  if (!sameSecret(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return errorJson(401, "unauthorized", { message: "Bad cron secret." });
   const started = Date.now();
   const report = await driveCard(await db(), new Date(), { force: true, maintenance: true });
   return json({ ok: true, ms: Date.now() - started, locked: report?.locked ?? 0, settled: report?.settled.length ?? 0 });
+}
+
+/** Constant-time comparison (hashes first so lengths never leak). */
+function sameSecret(a: string, b: string): boolean {
+  const h = (s: string) => createHash("sha256").update(s).digest();
+  return timingSafeEqual(h(a), h(b));
 }

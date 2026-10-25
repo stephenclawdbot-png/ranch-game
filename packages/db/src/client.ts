@@ -94,6 +94,12 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
   const location = opts.pglite ?? defaultPgliteLocation();
   const { PGlite } = await nativeImport<typeof import("@electric-sql/pglite")>("@electric-sql/pglite");
   const { drizzle } = await nativeImport<typeof import("drizzle-orm/pglite")>("drizzle-orm/pglite");
+  if (location !== "memory" && !location.includes("://")) {
+    // PGlite creates the data directory itself but not its parents (e.g. node_modules/.cache).
+    const fs = process.getBuiltinModule("node:fs");
+    const path = process.getBuiltinModule("node:path");
+    fs.mkdirSync(path.dirname(location), { recursive: true });
+  }
   const client = location === "memory" ? await PGlite.create() : await PGlite.create(location);
   const db = drizzle({ client, schema }) as unknown as Db;
   if (opts.migrate ?? true) await migrate(db);

@@ -69,7 +69,7 @@ export function SiteNav() {
         <div className="mx-auto flex h-12 max-w-[75rem] items-center gap-3 px-4 md:h-14 md:px-6">
           <Link href="/" className="flex min-h-11 items-center gap-2" aria-label="Thoroughbred home">
             <Crest className="h-8 w-9" />
-            <span className="display text-2xl leading-none text-cream max-[359px]:hidden">Thoroughbred</span>
+            <span className="display text-2xl leading-none text-cream max-[439px]:hidden">Thoroughbred</span>
           </Link>
           <nav className="ml-6 hidden h-full items-stretch gap-1 md:flex" aria-label="Main">
             {TABS.map(({ href, label, match }) => {
