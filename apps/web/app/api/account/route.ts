@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SilksSchema } from "@thoroughbred/shared";
-import { createAccount, linkTester, redeemInvite, stableOf, updateStableProfile } from "@thoroughbred/db";
+import { createAccount, linkTester, recordReferral, redeemInvite, stableOf, updateStableProfile } from "@thoroughbred/db";
 import { db } from "@/server/db";
 import { playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
@@ -16,7 +16,7 @@ const CreateSchema = z.object({
   silks: SilksSchema,
   /** IANA timezone from the device: the daily entry allowance lands at local midnight. */
   timezone: z.string().max(64).optional(),
-  /** Closed playtest (PLAYTEST_MODE=1): the invite code. */
+  /** Closed playtest (PLAYTEST_MODE=1): the invite code. Outside the playtest: an optional referral code. */
   inviteCode: z.string().max(40).optional(),
 });
 
@@ -42,6 +42,14 @@ export async function POST(req: Request) {
     }
     const acc = await createAccount(database, { stableName: parsed.data.stableName, silks: parsed.data.silks, timezone: parsed.data.timezone, now });
     if (testerId) await linkTester(database, { testerId, accountId: acc.accountId, stableName: parsed.data.stableName, now });
+    // Affiliate tree (beta money): inviter = the code's owner (root/admin codes -> the owner account).
+    if (parsed.data.inviteCode?.trim()) {
+      try {
+        await recordReferral(database, { accountId: acc.accountId, code: parsed.data.inviteCode, now });
+      } catch (err) {
+        console.error("referral", err);
+      }
+    }
     await trackEvent(database, acc.accountId, "signup", { playtest: playtest.enabled });
     const session = { accountId: acc.accountId, stable: await stableOf(database, acc.accountId) };
     const res = json({ created: true, player: await playerView(database, session, now) }, { status: 201 });

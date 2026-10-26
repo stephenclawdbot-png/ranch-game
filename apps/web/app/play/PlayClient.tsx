@@ -34,6 +34,12 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const decided = useRef(false);
   /** Closed playtest: the checked invite code (null until accepted). */
   const [invite, setInvite] = useState<string | null>(null);
+  /** Outside the playtest, a referral link (?invite=CODE) still records who invited you. */
+  const [referral, setReferral] = useState<string | null>(null);
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("invite");
+    if (code && /^[A-Za-z0-9-]{4,40}$/.test(code)) setReferral(code);
+  }, []);
 
   useEffect(() => {
     if (state === undefined || decided.current) return;
@@ -59,7 +65,8 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     setBusy(true);
     setError(null);
     try {
-      await createStable({ stableName: name.trim(), silks, ...(invite ? { inviteCode: invite } : {}) });
+      const code = invite ?? referral;
+      await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}) });
       setStage("welcome");
       window.scrollTo({ top: 0 });
     } catch (e) {
