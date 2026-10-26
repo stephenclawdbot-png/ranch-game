@@ -90,7 +90,7 @@ export async function poolView(ctx: CheckoutCtx, session: Session | null, now: D
     chainId: chain.chainId,
     pool: chain.pool,
     store: chain.store,
-    poolBps: store?.poolBps ?? 3000,
+    poolBps: store?.poolBps ?? 1000,
     balanceWei: st.balanceWei.toString(),
     availableWei: st.availableWei.toString(),
     outstandingWei: st.outstandingWei.toString(),

@@ -516,7 +516,7 @@ material connection (FTC Endorsement Guides).
 |---|---|---|---|---|
 | Premium foal binding | `db/services/packs.ts` (`bound: !!input.free`) | tradeable | **account-bound** (beta); later tradeable only after 5 starts and never pool-scoring | Closes ETH → credits (red line) |
 | Pool scoring exclusion | `betaMoney.poolScores` | the pulled horse only | the horse **plus its offspring**, and horses bought within 14 days of selling a premium foal | Leak: whales 16% → 25% of prizes |
-| `poolBps` | PremiumStore (deploy) | 3,000 | **1,000** (contract minimum) + a fixed funded budget (~$40/week beta); at most 2,000 | Decouples prizes from purchases; 64% sits unallocated anyway |
+| `poolBps` | PremiumStore (deploy) | 3,000 | **1,000** (contract minimum) + a fixed funded budget (~$40/week beta); at most 2,000 | Decouples prizes from purchases; 64% sits unallocated anyway. **Owner chose this (2026-10-26): deploy default 1,000 + weekly top-up; done** |
 | Pool applies to every SKU | design | yes | packs only (deterministic SKUs carry no prize link), or one uniform minimum | Prizes not funded by sales of chance items |
 | `budgetBps` | `DEFAULT_POOL_RULES` | 2,500 | 2,500 weekly + a **final distribution** epoch at 100% at beta end | Avoid stranded ETH |
 | `capUsdCents` | `DEFAULT_POOL_RULES` | 2,000 | **1,000** | Never binds in the beta (rank 1 gets $3.5–4.8); protects at scale |

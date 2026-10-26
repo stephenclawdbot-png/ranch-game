@@ -13,7 +13,7 @@
  *   DEPLOY_PUBLISHER_ADDRESS    game server key that posts proof roots
  *   DEPLOY_STORE_SIGNER_ADDRESS game server key that signs Order vouchers / EthQuotes
  *   DEPLOY_POOL_POSTER_ADDRESS  optional: key allowed to post Prize Pool epoch roots (the admin always can be granted later)
- *   DEPLOY_POOL_BPS             Prize Pool share of ETH sales in basis points (default 3000 = 30%)
+ *   DEPLOY_POOL_BPS             Prize Pool share of ETH sales in basis points (default 1000 = 10%, the contract minimum; owner decision 2026-10-26: 10-20% plus a fixed weekly top-up)
  *   DEPLOY_POOL_MAX_CLAIM_WEI   per-account cap per epoch in wei (default 0.01 ETH)
  *   PAYMENT_TOKEN_ADDRESS       stablecoin; defaults to Paxos USDG on Robinhood testnet
  *   DEPLOY_GAME_TOKEN=true      also deploy the optional ThoroughbredToken (off by default)
@@ -58,7 +58,7 @@ export interface DeployOptions {
   gameToken?: { name: string; symbol: string; cap: bigint };
   /** Write deployments/<chainId>.json. */
   writeManifest?: boolean;
-  /** Prize Pool share of ETH sales (bps, 1000..5000). Default 3000. */
+  /** Prize Pool share of ETH sales (bps, 1000..5000). Default 1000. */
   poolBps?: number;
   /** PrizePool per-account cap per epoch (wei). Default 0.01 ETH. */
   poolMaxClaimWei?: bigint;
@@ -101,7 +101,7 @@ export async function deployThoroughbred(hre: HardhatRuntimeEnvironment, opts: D
   log(`RaceProofRegistry ${registry.address}`);
   const pool = await hre.viem.deployContract("PrizePool", [deployer, opts.poolMaxClaimWei ?? 10n ** 16n]);
   log(`PrizePool ${pool.address}`);
-  const store = await hre.viem.deployContract("PremiumStore", [deployer, treasury, storeSigner, pool.address, opts.poolBps ?? 3000]);
+  const store = await hre.viem.deployContract("PremiumStore", [deployer, treasury, storeSigner, pool.address, opts.poolBps ?? 1000]);
   log(`PremiumStore ${store.address}`);
 
   const wait = async (hash: Hex) => {

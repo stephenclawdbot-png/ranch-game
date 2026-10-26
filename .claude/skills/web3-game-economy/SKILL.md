@@ -13,7 +13,7 @@ defaults.
 ## Closed-beta exception (user decision, 2026-10-26)
 
 For the closed beta (~50 invited testers) the user approved **real ETH purchases of Premium
-Packs on Robinhood Chain**, a **Prize Pool** (30 % of every sale, paid weekly by skill rank,
+Packs on Robinhood Chain**, a **Prize Pool** (a fixed ~$40/week owner top-up plus 10 % of every sale since 2026-10-26, was 30 %; paid weekly by skill rank,
 claimable on-chain) and **2-level affiliate commissions** (10 % / 3 %, from the treasury's
 share). This overrides rules 2 and 3 below *for that scope only*; everything else stands, in
 particular: **Stable Credits are never cashed out**, nothing bought turns back into credits,

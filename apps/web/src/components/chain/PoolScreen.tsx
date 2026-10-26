@@ -109,7 +109,7 @@ export function PoolScreen() {
       <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Prize Pool" />
       <header className="grid gap-1">
         <p className="t-meta">
-          {v.poolBps / 100}% of every Premium Pack sale goes into a contract on Robinhood Chain. Each week it pays the best active players by skill. Nobody can withdraw it, not even us:
+          A weekly budget from the Club plus {v.poolBps / 100}% of every Premium Pack sale goes into a contract on Robinhood Chain. Each week it pays the best active players by skill. Nobody can withdraw it, not even us:
           ETH leaves only when a player claims their share.
         </p>
         {!v.enabled && <p className="surface-2 p-2 text-sm font-bold">Closed beta: the pool opens when ETH checkout is switched on.</p>}

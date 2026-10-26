@@ -19,7 +19,7 @@ describe("scripts/deploy.ts (against the local Hardhat network)", () => {
     expect(r.gameToken).to.equal(undefined); // the token is opt-in
     const pool = await hre.viem.getContractAt("PrizePool", r.prizePool);
     expect(getAddress(await store.read.prizePool())).to.equal(getAddress(r.prizePool));
-    expect(await store.read.poolBps()).to.equal(3000);
+    expect(await store.read.poolBps()).to.equal(1000);
     expect(await pool.read.hasRole([keccak256(toBytes("FUNDER_ROLE")), store.address])).to.equal(true);
     expect(await pool.read.hasRole([keccak256(toBytes("POSTER_ROLE")), r.deployer])).to.equal(true);
   });

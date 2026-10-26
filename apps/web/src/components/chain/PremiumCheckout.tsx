@@ -4,8 +4,8 @@
  *   "Buy for $4.99 (≈ 0.0016 ETH)" -> server quote (exact wei, valid 5 min, countdown,
  *   auto re-quote when it expires) -> the wallet pays exactly that -> the server verifies the
  *   payment on-chain and grants the pulls -> reveal. Pending orders resume after a reload.
- * 30% of every sale goes to the on-chain Prize Pool. Nothing bought here turns back into
- * money or Stable Credits.
+ * A share of each sale (poolBps) goes to the on-chain Prize Pool, but the checkout never sells
+ * that: prizes need no purchase, and the pool is mostly a fixed weekly budget from the Club.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -207,7 +207,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
     <div className="inset grid gap-3 p-3" data-testid="premium-checkout">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="label">Buy with ETH · Robinhood Chain</span>
-        <span className="caption">30% of every sale funds the weekly Prize Pool</span>
+        <span className="caption">No purchase needed to play or win prizes</span>
       </div>
 
       {!wallet?.address ? (

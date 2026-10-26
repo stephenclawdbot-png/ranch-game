@@ -1,7 +1,7 @@
 # Web3 on Robinhood Chain (optional layer)
 
 **Status (2026-10-26):** closed-beta money is built: PrizePool + PremiumStore (native ETH,
-30 % to the pool, 2-level affiliates), deploy from the owner's wallet on `/admin/chain`, ETH
+10 % to the pool plus a fixed weekly top-up, 2-level affiliates), deploy from the owner's wallet on `/admin/chain`, ETH
 checkout, Prize Pool epochs and claims, `/invite`. Tested locally end to end on Hardhat.
 **Nothing is deployed.** `WEB3_ENABLED` is off by default, and **the game works fully without
 a chain.** Start with §0.
@@ -21,7 +21,8 @@ Agent skills: `.claude/skills/{solidity-dev,robinhood-chain,web3-game-economy}`.
 
 > **User decision (overrides "web3 off for beta" and, for the closed beta only, the earlier
 > "no prize money / money flows one way" rules):** ~50 invited testers buy Premium Packs with
-> real **ETH on Robinhood Chain**. **30 % of every sale funds an on-chain Prize Pool** paid out
+> real **ETH on Robinhood Chain**. **A fixed weekly budget (~$40, the owner's `fund()` top-up) plus 10 % of every
+> sale (owner decision 2026-10-26, was 30 %; adjustable 10–50 % on `/admin/chain`) fund an on-chain Prize Pool** paid out
 > weekly by skill rank; the rest goes to the owner's treasury, minus a **2-level affiliate
 > commission** (10 % / 3 %) when the buyer was invited. **Stable Credits remain never
 > convertible.** The owner's fear, "players drain the pot and leave", is answered by the
@@ -32,7 +33,7 @@ Agent skills: `.claude/skills/{solidity-dev,robinhood-chain,web3-game-economy}`.
 ```mermaid
 flowchart LR
   B[Buyer wallet] -- "purchaseWithEth (exact wei, signed quote)" --> S[PremiumStore]
-  S -- "30% (poolBps, 10-50%)" --> P[PrizePool]
+  S -- "10% (poolBps, 10-50%)" --> P[PrizePool]
   S -- "10% L1 / 3% L2 (only if invited, eligible)" --> R[Referrer wallets]
   S -- "rest (≈57-70%)" --> T[Treasury]
   P -- "claim (vested, Merkle proof)" --> W[Winner wallets]
@@ -123,8 +124,8 @@ flowchart LR
 2. Open `/admin` → sign in → `/admin/chain`. Connect **your** wallet holding a little ETH on
    Robinhood Chain (testnet ETH from the Alchemy faucet first). Choose the network, the
    treasury (a different address from your affiliate wallet), the server signer (pre-filled),
-   pool share (30 %), per-player cap ($25), whether the server may post roots. Press Deploy
-   and confirm ~7 transactions. Nothing else needs funding (the pool fills from sales).
+   pool share (10 %), per-player cap ($25), whether the server may post roots. Press Deploy
+   and confirm ~7 transactions. Then top the pool up weekly (~$40) with **Top up pool**: sales alone are too small to pay prizes.
 3. Copy the shown block (`WEB3_ENABLED=true`, `CHAIN_ID`, `PREMIUM_STORE_ADDRESS`,
    `PRIZE_POOL_ADDRESS`) into Vercel env (**Preview first**), redeploy.
 4. In the game, on your own stable: Profile → verify your wallet; then `/admin/chain` → "Make

@@ -34,7 +34,7 @@ export function ChainAdmin() {
   const [net, setNet] = useState<number>(ROBINHOOD_TESTNET);
   const [treasury, setTreasury] = useState("");
   const [signer, setSigner] = useState("");
-  const [poolPct, setPoolPct] = useState(30);
+  const [poolPct, setPoolPct] = useState(10); // owner: 10-20 % + a fixed weekly top-up
   const [capUsd, setCapUsd] = useState(25);
   const [poster, setPoster] = useState(false);
   const [mainnetOk, setMainnetOk] = useState(false);
@@ -264,7 +264,7 @@ export function ChainAdmin() {
                   type="button"
                   className="btn btn-sm"
                   onClick={() => {
-                    const pct = Number(prompt("Prize Pool share of future sales (10-50 %)", String((data.store?.poolBps ?? 3000) / 100)));
+                    const pct = Number(prompt("Prize Pool share of future sales (10-50 %)", String((data.store?.poolBps ?? 1000) / 100)));
                     if (pct >= 10 && pct <= 50) void ownerTx("Pool share updated", (wc) => wc.writeContract({ address: cfg.store!, abi: premiumStoreAbi, functionName: "setPoolBps", args: [Math.round(pct * 100)], account: w.address!, chain: wc.chain }));
                   }}
                 >
