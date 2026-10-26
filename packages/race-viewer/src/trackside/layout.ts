@@ -340,13 +340,18 @@ export function sizeLimits(W: number): { minLen: number; maxLen: number } {
 export function cameraTarget(c: CameraInput): CameraTarget {
   const { W, H, sprite } = c;
   const insets = safeInsets(W, H);
-  const la = c.lookahead ?? 0.6;
+  const la = c.lookahead ?? 1.2;
   let xmin = Infinity;
   let xmax = -Infinity;
   let lmax = 0;
   let speed = 0;
+  for (const r of c.runners) speed += r.speed;
+  const mean = speed / Math.max(1, c.runners.length);
+  speed = 0;
   for (const r of c.runners) {
-    const ahead = r.x + r.speed * la;
+    // Look ahead on the spread only (relative to the field): the centre spring already
+    // feeds the field's speed forward.
+    const ahead = r.x + (r.speed - mean) * la;
     xmin = Math.min(xmin, r.x, ahead);
     xmax = Math.max(xmax, r.x, ahead);
     lmax = Math.max(lmax, r.lane);

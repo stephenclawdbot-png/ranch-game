@@ -113,14 +113,17 @@ void main() {
   float wx = uCxMod + rel;
   vec2 uv = vec2(wx, lane * uLaneW) * uTexPerM / uTexSize;
   vec3 c = vec3(0.0);
+  // Motion blur taps only while the camera is moving (one tap at rest).
+  int taps = uBlurM > 0.01 ? 5 : 1;
   for (int i = 0; i < 5; i++) {
-    float o = (float(i) * 0.25 - 0.5) * uBlurM;
+    if (i >= taps) break;
+    float o = taps == 1 ? 0.0 : (float(i) * 0.25 - 0.5) * uBlurM;
     vec3 t = texture2D(uTex, uv + vec2(o * uTexPerM / uTexSize.x, 0.0)).rgb;
     float band = mod(floor((wx + o) / 4.0), 2.0);
     t *= 1.0 + uStripes * (band * 2.0 - 1.0);
     c += t;
   }
-  c *= 0.2;
+  c /= float(taps);
   // winning line across the track
   float fl = abs((fx - uView.x * 0.5) - uFinishPx * ls);
   if (fl < max(1.0, 0.06 * uPpm * ls) && lane < uRailL && lane > -1.2) c = mix(c, vec3(0.96, 0.94, 0.88), 0.92);
