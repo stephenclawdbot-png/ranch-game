@@ -114,6 +114,34 @@ scripts pass against a local production build (`next start` with PGlite).
   - `/beta` shows only the manual bonus rules (bug bounty, best feedback). The seeded
     participation, weekly and cup rules stay in the table, unused, for the Prize Pool to
     replace.
+- **QA bug list.** The release agent found and fixed all of these:
+  1. **PixelLab art missing on Vercel.** Functions can't read `public/`, so `listArt()` came
+     back empty and every portrait, scene and icon fell back to code drawing (the flat
+     side-view head). Fix: a build-time `src/lib/art.index.json` (`scripts/art-index.mjs`,
+     run by `pnpm build`), with a test that it stays in sync and that every coat maps to a
+     3/4 portrait.
+  2. The feedback dialog was trapped under the mobile tab bar (the header's stacking
+     context). It now renders in a portal.
+  3. Phone content hid behind the sticky action bar plus the tab bar, e.g. the "Care today"
+     tile. Fix: `main:has([data-action-bar])` bottom padding.
+  4. The race stage on phones was short and the director cut to tiny-horse aerials. Fix:
+     the stage is now up to `min(82vw, 48vh)` and `Director.compact` avoids aerials on
+     phones.
+  5. The horse page showed raw sire and dam UUIDs. It now shows names with links.
+  6. Foals were described as "0-year-old" and their strengths were graded from a growing
+     foal's low stats. Both are reworded.
+  7. Foals showed a disabled "Race" button in the roster. It now says "Care".
+  8. A double period in the trip-bands caption.
+  9. Selling was impossible because of the email requirement with no email flow (now
+     configurable).
+  10. The stud book was empty (house stallions added).
+  11. The vet level was ignored at settlement.
+  12. The site description said "Six horses" (starters are 3).
+  13. A smoke e2e locator became ambiguous when two of your horses ran in one race.
+  14. The test-seller fixture couldn't run on a local production build (now
+      `ALLOW_TEST_FIXTURES=1`, never on Vercel).
+  15. The `/pool` prefetch from `/beta` was a 404 (prefetch is off until the page ships).
+  16. Non-testers saw the beta rules list.
 - **Known issues / follow-ups:**
   - `/pool` and `/invite` are linked from the Club sub-nav. They 404 until the web3 agent
     ships them.
