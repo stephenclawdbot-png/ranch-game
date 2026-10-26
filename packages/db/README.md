@@ -88,6 +88,27 @@ backfill, and drop the old shape in a later release.
   - `ensureSeason`, `enterDailyCup` (once per day) and `dailyCupBoard`.
   - `joinWeeklyLeague` and `addLeaguePoints`.
   - `awardAchievement`, `induct` (Hall of Fame), and `getConfig` / `setConfig`.
+- **Story (§4e, `services/story.ts`):** `storyState` (licence level + chapter races won),
+  `recordStoryResult` (first win per chapter race as an achievement row, licence raised under
+  the stable lock via game-core `licenceAfter`, never lowered; `stables.licence_level`),
+  `storyRaceFinishes` (rival head-to-heads), `storyChapterEarnings`.
+- **Daily Cup (`services/dailyCup.ts`):** `cupDaySecret` (random per-day secret stored once in
+  `economy_config`; game-core `dailyCupDay` derives seed, field and conditions), `runCupEntry`
+  (one transaction: one run per account per UTC day, horse checks, run, participation credits
+  idempotent per day), `cupDayEntries`, `cupEntryById`, `cupRunsOf`.
+- **Leagues (`services/leagues.ts`):** points derived from settled Live runs (game-core
+  `racePoints` + `tierBonus`, weekly cap), `ensureLeagueMembership` (tier = last week's tier +
+  movement), `settleLeagueWeeks` (idempotent, game-core `settleLeague`: absent owners never
+  relegated), `leagueTable` / `leagueOf` / `leagueHistory`, `seasonStandings`.
+- **Hall of Fame (`services/hall.ts`):** `recordTimes`, `championHorses`, `famousBloodlines`,
+  `hallEntries`, `inductHallOfFame` (game-core `hallOfFameReasons`, idempotent),
+  `ownerStats` / `syncAchievements` (game-core `ACHIEVEMENTS`), `rivalsOf` (game-core
+  `detectRivalries`).
+- **Live card calendar (`services/card.ts`):** `defaultCardSlot` runs every surface (synthetic
+  included) and 1,000–3,200 m. 12 of every 20 slots are maiden/novice races that cycle through
+  all 12 (surface, trip zone) pairs, so every new horse has a suitable race within the hour;
+  `specialSlotAt` puts the game-core `featureCalendar` (Weekend Feature, qualifiers, Season
+  Final) on the card.
 - **Player (web app reads):** `listInbox`, `markInboxRead`, `listHorseRuns`, `listStableRuns`,
   `stableEntriesInRace`, `listCardRaces` (slot races in a window with entry counts),
   `getStable`, `updateStableProfile`, and Story rewards: `grantStoryReward` (game-core
