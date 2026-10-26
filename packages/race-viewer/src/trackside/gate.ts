@@ -6,7 +6,10 @@
  * field breaks out; the gate then stays put and slides out of frame as the camera
  * follows the field.
  *
- * Art (art-src/finish-stall.py from a PixelLab generation, 80 px/m — see below):
+ * Art (art-src/finish-stall.py from a PixelLab generation, 92 px/m): a LOW, OPEN bay —
+ * no truss, no number board, no solid side boarding; posts + top rail + bars + a low rail
+ * on a wheeled base, about as tall as a horse and visible straight through, so every
+ * runner's head and jockey show above and through the bay in front of it.
  *   starting-stall.png        the bay frame, front post + gate cut out  -> behind the horse
  *   starting-stall-front.png  the front post                            -> in front, static
  *   starting-stall-door.png   the padded front gate                     -> in front, swings
@@ -162,7 +165,7 @@ export class StallGate {
     const doorK = 1 - (1 - OPEN_MIN) * ease;
     for (const b of this.bays) {
       const di = depthOrder.indexOf(b.runner);
-      const ls = laneScale(b.lane);
+      const ls = laneScale(b.lane, lay.k);
       const ppl = lay.ppm * ls;
       const q = (ppl * B) / GATE_PX_PER_M;
       b.lod = this.pickLod(this.frame, q, b.lod);
@@ -174,7 +177,8 @@ export class StallGate {
       const sx = (lay.W / 2 + (squeezeX(lay, lay.W / 2 + (b.x - lay.cx) * lay.ppm) - lay.W / 2) * ls) * B;
       const feet = laneY(lay, b.lane) * B;
       const frameW = Math.round(fl.w * k);
-      const frameX = Math.round(sx - PLANE_FRAC * (fl.w * fl.s) * k);
+      // Door plane in LOD texels from the left edge (k is already buffer px per LOD texel).
+      const frameX = Math.round(sx - PLANE_FRAC * fl.w * k);
       if (frameX > Wb + 8 || frameX + frameW < -8) {
         b.frame.visible = b.post.visible = b.door.visible = false;
         continue;
