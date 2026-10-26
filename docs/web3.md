@@ -25,7 +25,8 @@ Agent skills: `.claude/skills/{solidity-dev,robinhood-chain,web3-game-economy}`.
 > sale (owner decision 2026-10-26, was 30 %; adjustable 10–50 % on `/admin/chain`) fund an on-chain Prize Pool** paid out
 > weekly by skill rank; the rest goes to the owner's treasury, minus a **2-level affiliate
 > commission** (10 % / 3 %) when the buyer was invited. **Stable Credits remain never
-> convertible.** The owner's fear, "players drain the pot and leave", is answered by the
+> convertible** (to money). Owner decision 2026-10-26: premium foals stay tradeable for credits in the
+> beta, against the audit's advice (`docs/economy/AUDIT.md` risk 1); flag it in legal review. The owner's fear, "players drain the pot and leave", is answered by the
 > contract itself (see "Why the pot can't be drained").
 
 ### Money flow

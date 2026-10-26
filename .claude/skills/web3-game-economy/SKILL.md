@@ -16,8 +16,14 @@ For the closed beta (~50 invited testers) the user approved **real ETH purchases
 Packs on Robinhood Chain**, a **Prize Pool** (a fixed ~$40/week owner top-up plus 10 % of every sale since 2026-10-26, was 30 %; paid weekly by skill rank,
 claimable on-chain) and **2-level affiliate commissions** (10 % / 3 %, from the treasury's
 share). This overrides rules 2 and 3 below *for that scope only*; everything else stands, in
-particular: **Stable Credits are never cashed out**, nothing bought turns back into credits,
-paid-pack horses don't score for the pool, nobody needs to buy anything to win or to earn.
+particular: **Stable Credits are never cashed out**, paid-pack horses don't score for the pool, nobody needs to buy anything to win or to earn.
+
+**Owner decision (2026-10-26), against the audit's advice:** Premium foals stay **tradeable** on the
+credits market in the beta (no binding, no extra limits beyond the general 3× appraisal price ceiling
+and 72 h resale lock that apply to every horse). So in this scope an ETH-bought foal *can* be sold for
+Stable Credits; the pulled horse itself still doesn't score for the pool, its offspring do. The
+audit (`docs/economy/AUDIT.md` risk 1) flags this as the main gambling / pay-to-win exposure. Don't
+re-litigate it; do flag it in legal review before any real-money launch.
 Design, safeguards and open legal points: `docs/web3.md` §0. Code: `packages/contracts`
 (`PrizePool`, `PremiumStore.purchaseWithEth`), `apps/web/src/server/chain`,
 `packages/db` `services/betaMoney.ts` + `services/affiliates.ts`.
