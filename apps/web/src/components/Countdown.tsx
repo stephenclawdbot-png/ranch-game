@@ -18,7 +18,11 @@ export function Digits({ text, className }: { text: string; className?: string }
 /** Live m:ss countdown to `targetMs` (server clock); `skewMs` = server - client. */
 export function Countdown({ targetMs, skewMs = 0, className, doneLabel = "Off", animate = false }: { targetMs: number; skewMs?: number; className?: string; doneLabel?: string; animate?: boolean }) {
   const now = useNow(250);
-  const remaining = now === null ? null : targetMs - (now + skewMs);
+  // First paint (SSR + hydration) uses the render-time clock instead of a "–:––" flash; the
+  // pages are dynamic, so it is at most a request old, and the span suppresses the mismatch.
+  // Digits (animate) nests spans, which suppressHydrationWarning doesn't cover: keep the dash there.
+  const at = now ?? (animate ? null : Date.now());
+  const remaining = at === null ? null : targetMs - (at + skewMs);
   const text = remaining === null ? "–:––" : remaining <= 0 ? doneLabel : formatCountdown(remaining);
   return (
     <span className={`tabular ${className ?? ""}`} suppressHydrationWarning>
