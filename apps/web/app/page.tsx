@@ -3,6 +3,7 @@ import { HomeView } from "@/components/home/HomeView";
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
 import { getSession } from "@/server/session";
+import { playtestConfig } from "@/server/playtest";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function HomePage() {
   return (
     <>
       <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={now.getTime()} />
-      <HomeView next={next} live={live} recent={recent} />
+      <HomeView next={next} live={live} recent={recent} inviteOnly={playtestConfig().enabled} />
     </>
   );
 }

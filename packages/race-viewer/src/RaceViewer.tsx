@@ -182,6 +182,7 @@ export function RaceViewer(props: RaceViewerProps) {
   const [debugText, setDebugText] = useState("");
   const qualityRef = useRef<RenderQuality>("high");
   const frameFlags = useRef({ frozen: false, slowmo: false });
+  const narrowRef = useRef(false);
   const duration = useMemo(() => (final ? replayTiming(final).duration : 0), [final]);
 
   useEffect(() => injectViewerCss(), []);
@@ -241,7 +242,7 @@ export function RaceViewer(props: RaceViewerProps) {
       canGoLive: clock.canGoLive(),
       toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
       standings: samples.length ? standingsAt(src, samples) : [],
-      commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), 6, 1)[0] ?? null) : null,
+      commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), narrowRef.current ? 3.5 : 6, 1)[0] ?? null) : null,
     });
   }, [live, highlightHorseId]);
 
@@ -293,6 +294,8 @@ export function RaceViewer(props: RaceViewerProps) {
       let slowFrames = 0;
       // Frame-time monitor (debug): rolling window of frame intervals.
       const ft = new Float32Array(240);
+      const wk = new Float32Array(2000);
+      let wkN = 0;
       let ftN = 0;
       let ftMax = 0;
       let raf = 0;
@@ -340,6 +343,7 @@ export function RaceViewer(props: RaceViewerProps) {
         workMs += work;
         dtSum += deltaMS;
         ft[ftN++ % ft.length] = deltaMS;
+        wk[wkN++ % wk.length] = work;
         if (ftN > 30) ftMax = Math.max(ftMax, deltaMS);
         warm += dt;
         if (quality === "auto" && qualityRef.current === "high" && warm > 2) {
@@ -355,7 +359,10 @@ export function RaceViewer(props: RaceViewerProps) {
           const win = Array.from(ft.subarray(0, Math.min(ftN, ft.length))).sort((a, b) => a - b);
           const median = win[win.length >> 1] ?? 0;
           const p99 = win[Math.floor(win.length * 0.99)] ?? 0;
-          (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: ftN, camMaxStep: scene.maxCamStep };
+          (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: ftN, camMaxStep: scene.maxCamStep, ...(() => {
+            const w = Array.from(wk.subarray(0, Math.min(wkN, wk.length))).sort((a, b) => a - b);
+            return { workMedian: w[w.length >> 1] ?? 0, workP99: w[Math.floor(w.length * 0.99)] ?? 0, workMax: w[w.length - 1] ?? 0, over2x: w.filter((x) => x > 2 * (w[w.length >> 1] ?? 0)).length };
+          })() };
           setDebugText(
             `frame med ${median.toFixed(1)} p99 ${p99.toFixed(1)} max ${ftMax.toFixed(1)} ms\n` +
             `${Math.round((1000 * frames) / Math.max(1, dtSum))} fps  ${(workMs / frames).toFixed(1)} ms cpu\n` +
@@ -455,6 +462,7 @@ export function RaceViewer(props: RaceViewerProps) {
   };
 
   const narrow = width > 0 && width < NARROW_PX;
+  narrowRef.current = narrow;
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
   const showResults = resultsCard && !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;

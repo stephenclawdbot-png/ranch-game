@@ -85,7 +85,10 @@ export async function linkVerifiedWallet(db: Db, input: { accountId: string; add
       .where(and(sql`lower(${testers.walletAddress}) = ${address.toLowerCase()}`, sql`${testers.walletVerifiedAt} is not null`));
     let mine = (await tx.select().from(testers).where(eq(testers.accountId, input.accountId)).for("update"))[0];
     if (taken && taken.id !== mine?.id) {
-      throw new DomainError("LINKED_ACCOUNTS", "That wallet is already linked to another stable. One wallet per player.");
+      // A tester left without an account by the playtest reset keeps its wallet; the person
+      // who proves they own it (this SIWE signature) takes it to their new tester row.
+      if (taken.accountId !== null) throw new DomainError("LINKED_ACCOUNTS", "That wallet is already linked to another stable. One wallet per player.");
+      await tx.update(testers).set({ walletAddress: null, walletVerifiedAt: null }).where(eq(testers.id, taken.id));
     }
     if (mine?.walletVerifiedAt && mine.walletAddress && mine.walletAddress.toLowerCase() !== address.toLowerCase()) {
       throw new DomainError("NOT_ELIGIBLE", "Your stable already has a verified wallet. Ask the organiser to change it.");

@@ -22,6 +22,8 @@ interface ClubProps {
   next: RaceSummary | null;
   live: RaceSummary | null;
   recent: RaceSummary[];
+  /** Closed playtest: founding a stable needs an invite code. */
+  inviteOnly?: boolean;
 }
 
 /** A race you're in counts as "yours to watch" from entry until a few minutes after the off. */
@@ -48,16 +50,20 @@ const PILLARS: { icon: IconName; title: string; text: string }[] = [
   { icon: "stopwatch", title: "Live races", text: "A shared race every 3 minutes. Everyone watches the same race." },
 ];
 
-function Welcome({ next, live, recent }: ClubProps) {
+function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
   return (
     <div className="grid gap-8">
       <section className="grid gap-4 md:grid-cols-[1fr_22rem] md:items-end">
         <div>
           <h1 className="t-display-xl">Run a racing stable.</h1>
-          <p className="mt-2 max-w-xl text-lg text-cream-dim">Your first horses are waiting. Your first race is about a minute away.</p>
+          <p className="mt-2 max-w-xl text-lg text-cream-dim">
+            {inviteOnly
+              ? "We're in a small closed playtest. Got an invite? Your first horses are waiting. Everyone can watch the live races."
+              : "Your first horses are waiting. Your first race is about a minute away."}
+          </p>
           <ActionBar className="md:mt-5">
             <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
-              <PixelIcon name="horseshoe" size={32} className="-my-2" /> Found your stable · free
+              <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable · free"}
             </Link>
           </ActionBar>
         </div>

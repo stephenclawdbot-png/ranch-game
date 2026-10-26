@@ -214,6 +214,10 @@ export function horseSummary(horse: HorseLike & Pick<Horse, "name" | "sex">): st
         : weak[0] === "temperament"
           ? `Temperament ${statGrade(weak[1])}: ${he} can be keen and erratic.`
           : `${STAT_NAME[weak[0]]} ${statGrade(weak[1])} is ${his} weak spot.`;
+  // Still growing (all low grades): describe the trip and ground only; the stats aren't fair yet.
+  if (statGrade(s1![1]) === statGrade(weak[1])) {
+    return `Bred for ${tripWord} on ${SURF[horse.preferredSurface]}. ${he.charAt(0).toUpperCase()}${he.slice(1)}'s still growing: ${his} abilities show as ${he} matures.`;
+  }
   return `Best at ${tripWord} on ${SURF[horse.preferredSurface]}. ${strong} are ${his} strengths. ${weakLine}`;
 }
 

@@ -35,6 +35,30 @@ final user decisions; §12 lists deviations made during implementation.
 
 ---
 
+## Screens and routes
+
+Mobile has a five-tab bottom bar (Home · Stable · Races · Club · Market) and desktop has the
+same five in the top bar. Each area's index screens share a one-row sub-nav, and detail
+screens are the second and last level. The top bar holds the purse, the entry bank, a
+**Feedback** button and your silks (→ `/me`).
+
+| Area | Routes |
+|---|---|
+| Home | `/`: the hero action (your race live or a result ready, otherwise Quick Pick), your races, **Today** tiles (Daily Cup, gift foal, care, free pack, mare ready to foal, next Story race) from `GET /api/home`, your horses, Live card |
+| Stable | `/stable` (roster) · `/horse/:id` (+ `/care`, `/training`, `/career`; actions: plan a cover, stand at stud, sell) · `/nursery` · `/breeding` (`#studs` = stud book, incl. Club house stallions) · `/facilities` |
+| Races | `/races` (Live card + Story) · `/race/:id` (broadcast, results, verify) · `/story` (chapters, rivals, licences) |
+| Club | `/league` (`/club` redirects here) · `/cup` (+ `/cup/run/:id`) · `/hall` · `/pool` and `/invite` (beta money, web3 agent) · `/beta` (playtesters) |
+| Market | `/market` (`#buy`, `#sell`, `#mine`) · `/packs` (+ `/packs/pulls/:id` proof) |
+| Other | `/play` (found a stable; invite gate in playtest mode) · `/me` · `/admin` (playtest admin, `ADMIN_SECRET`) · `/dev/viewer`, `/dev/rig` |
+
+**Closed playtest:** with `PLAYTEST_MODE=1`, founding a stable needs an invite code. Codes are
+generated in `/admin`, and an invite link is `/play?invite=CODE`. Feedback, first-party
+telemetry and tester records live in our own database. `/admin` covers metrics (day-1 and
+day-7 retention, funnel, daily actives, races per day), invites, testers, the feedback inbox,
+the manual payout ledger and the **reset** tool. The reset wipes game progress and keeps
+testers, wallets, invite codes, feedback, telemetry and rewards. The env vars are listed in
+`apps/web/.env.example`.
+
 ## Repository map
 
 ```
@@ -77,6 +101,8 @@ pnpm -r typecheck
 cd apps/web && npx next build
 # browser e2e against a running server (Playwright from NODE_PATH):
 BASE_URL=http://localhost:3000 NODE_PATH=/opt/node-tools/node_modules node apps/web/e2e/smoke.mjs
+# also: e2e/economy.mjs, e2e/horse-life.mjs, e2e/competition.mjs, and e2e/playtest.mjs (needs a
+# server with PLAYTEST_MODE=1 ADMIN_SECRET=...; it resets that server's local database)
 ```
 
 - **Environment:** see `apps/web/.env.example`. Vercel provides `DATABASE_URL` from Neon; set

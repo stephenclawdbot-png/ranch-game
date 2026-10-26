@@ -7,6 +7,119 @@ Preview URL: https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.a
 (Vercel project `ranch-game`, team `meowdotfun`; Neon is connected with `DATABASE_URL` for
 Preview and Production.)
 
+## Release: Phase 1 wiring + closed playtest (release agent)
+
+**Status:** every Phase-1 feature is wired into one product, and the closed-playtest layer is
+in. `pnpm -r typecheck`, `pnpm -r test` and the production build are green. All five e2e
+scripts pass against a local production build (`next start` with PGlite).
+
+- **Navigation:** five destinations: Home · Stable · Races · Club · Market. Phones get a
+  bottom tab bar; desktop gets text tabs in the top bar. Each area's index screens share a
+  one-row sub-nav (`SECTIONS` in `src/components/SiteNav.tsx`):
+  - Stable: Horses / Nursery / Breeding / Facilities;
+  - Races: Race card / Story;
+  - Club: League / Daily Cup / Hall of Fame / Prize Pool / Invite;
+  - Market: Horses for sale / Packs.
+
+  Detail pages are the second and last level. `/club` redirects to `/league`. The top bar has
+  a Feedback button.
+- **Home "Today" tiles:** `GET /api/home` (`src/server/home.ts`) drives them, in this order:
+  Daily Cup (countdown, entrants, your rank or "Take your Cup Run (+80)"), the gift foal,
+  "Care today: n horses", free Paddock Pack, mare ready to foal, next Story chapter race
+  (and a mare in foal). The hero action is unchanged.
+- **Horse page:** "Plan a cover" (eligible mare), "Stand at stud", "Sell" (tradeable),
+  pedigree names with links, and a "Plan a cover with…" card for horses standing at stud.
+  The nursery empty state links to Packs and Breeding. A foal's roster row shows "Care"
+  instead of a disabled "Race".
+- **Gaps fixed:**
+  - **Seller policy:** `sellerPolicy()` in `packages/db/src/rules.ts` is env-configurable:
+    - `MARKET_REQUIRE_VERIFIED_EMAIL` (default **off**: there is no email flow);
+    - `MARKET_SELLER_MIN_ACCOUNT_DAYS` (7);
+    - `MARKET_SELLER_MIN_RACES` (20).
+
+    The UI lists only the requirements that apply.
+  - **Club house stallions at stud:** `services/houseStuds.ts`:
+    - there are always 4 available;
+    - genomes are deterministic (serial n) at the season's launch ceiling (common, uncommon
+      or rare), with fees of 250, 400 or 700;
+    - they are owned by the Club and racing-retired, so they never fill Live fields;
+    - the normal breeding rules apply (4 per lifetime). Exhausted stallions go to the Legacy
+      Farm and the next serial replaces them;
+    - fees go through the ledger: the base fee and 10% of the stud fee are burned, and the
+      rest goes to the `treasury` system account.
+  - **Vet level:** race settlement now passes each owner's vet facility level (it was `0`).
+  - **Day-2 gift foal (§10):** `services/onboarding.ts`, granted on `/api/me` from the
+    account's second UTC day:
+    - it is a bound game-core `createGiftFoal`;
+    - it is idempotent through the inbox dedupe key `gift-foal` and the stable lock;
+    - it uses a free stall or the nursery overflow slot, and waits when neither is free;
+    - the grant is audited.
+  - `tsconfig.json`: the `.next-*` include is removed. Note that `NEXT_DIST_DIR=... next
+    build` re-adds it, so revert it after local QA builds.
+- **Closed playtest** (the lead's brief). Migration **0003_playtest** (additive):
+  - **Tables:** `invite_codes`, `testers`, `tester_rewards`, `feedback`, `telemetry_events`,
+    `beta_reward_rules`, `beta_rewards`. Services are in `packages/db/src/services/playtest.ts`.
+  - **Invite gate:** with `PLAYTEST_MODE=1`, `POST /api/account` needs `inviteCode`.
+    - `/play` shows an invite-only screen; `?invite=CODE` prefills and checks the code.
+    - The tester cap is `PLAYTEST_TESTER_CAP` (60).
+    - Code validation lives in `redeemInvite` / `checkInvite`. The web3 agent extends it for
+      referral codes.
+  - **Feedback:** a top-bar button on every page opens a dialog (category, optional rating,
+    message). It attaches the route, viewport, user agent and recent client errors.
+    `POST /api/feedback` allows 10 per sender per hour.
+  - **Telemetry:** first-party, stored in our database, with routes only. Events:
+    session_start, page_view, race_watched (client, `POST /api/events`), plus signup,
+    race_entered (live, story or cup), care, train, breed, foal, pack_pull and market_*
+    (server).
+  - **`/beta` (testers):**
+    - progress (days played, feedback, accepted bugs);
+    - wallet address, EVM-validated and stored on `testers` so it survives the reset;
+    - tester bonuses and their payouts, with tx links to `ROBINHOOD_EXPLORER_URL`;
+    - a link to `/pool`.
+
+    The weekly prize computation is the web3 agent's on-chain Prize Pool. Only the manual
+    fallback payout ledger is here.
+  - **`/admin`** (`ADMIN_SECRET`, sent in the `x-admin-secret` header or through the login
+    form, which sets the httpOnly `tb_admin` cookie):
+    - tabs come from the registry `src/components/admin/sections.tsx`;
+    - Metrics: day-1 and day-7 retention, funnel, daily actives, sessions, races per day;
+    - Invites: bulk generate, copyable links;
+    - Testers;
+    - Feedback: filter, resolve, "accept as bug" creates a pending bounty;
+    - Payouts (manual): rules, approve, void, paid with a tx hash, CSV, budget against
+      `BETA_BUDGET_USD`;
+    - Reset: type `RESET PLAYTEST` to confirm; it is idempotent. It wipes `RESET_TABLES`
+      and keeps testers, wallets, codes, feedback, telemetry and rewards. Testers re-join
+      with their own code.
+- **Env to set on Vercel:**
+  - `PLAYTEST_MODE=1` and `ADMIN_SECRET` (secret, 12+ characters).
+  - Optional: `PLAYTEST_TESTER_CAP`, `BETA_BUDGET_USD`, `ROBINHOOD_EXPLORER_URL`.
+  - The `MARKET_*` variables keep their defaults.
+  - `CRON_SECRET` as before.
+- **e2e:**
+  - `smoke`, `economy`, `horse-life` and `competition` run against `next start` with
+    `ALLOW_TEST_FIXTURES=1`, which lets the seller fixture run locally; it is never allowed
+    on Vercel.
+  - `playtest.mjs` needs `PLAYTEST_MODE=1 ADMIN_SECRET=...` and resets that server's
+    database.
+- **Decisions taken without the user (flag them):**
+  - verified email is off by default for selling;
+  - the house stallion roster and fees: 4 stallions at 250, 400 or 700, with the fee share
+    going to the treasury;
+  - the gift foal arrives on the account's second UTC day, granted lazily on `/api/me`;
+  - Club is the `/league` landing page;
+  - testers re-join after a reset with their own invite code. Accounts are wiped, the tester
+    record is kept;
+  - a reserved but unlinked tester is re-claimable after 10 minutes;
+  - `/beta` shows only the manual bonus rules (bug bounty, best feedback). The seeded
+    participation, weekly and cup rules stay in the table, unused, for the Prize Pool to
+    replace.
+- **Known issues / follow-ups:**
+  - `/pool` and `/invite` are linked from the Club sub-nav. They 404 until the web3 agent
+    ships them.
+  - The race viewer's director and stage are being reworked by the viewer agent. The release
+    agent added `Director.compact` (no aerials on phones) and a taller phone stage.
+
 ## Done (committed)
 
 - **Engine:** `packages/racing-engine` v1.1.0, deterministic, with a balance pass.

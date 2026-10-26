@@ -83,7 +83,9 @@ export async function checkInvite(ex: Executor, rawCode: string, cap: number): P
   if (!code) return { ok: false, problem: "INVALID" };
   const [row] = await ex.select().from(inviteCodes).where(eq(inviteCodes.code, code));
   if (!row || row.revokedAt) return { ok: false, problem: "INVALID" };
-  const orphan = await ex.select({ id: testers.id }).from(testers).where(and(eq(testers.inviteCode, code), rejoinable(new Date()))).limit(1);
+  // Personal referral codes (kind "referral", shared by many invitees) never re-link an orphan
+  // tester: that would hand someone else's tester record (and wallet) to a new signup.
+  const orphan = row.kind === "admin" ? await ex.select({ id: testers.id }).from(testers).where(and(eq(testers.inviteCode, code), rejoinable(new Date()))).limit(1) : [];
   if (orphan.length) return { ok: true, rejoin: true };
   if (row.uses >= row.maxUses) return { ok: false, problem: "USED" };
   const [n] = await ex.select({ n: sql<number>`count(*)::int` }).from(testers);
@@ -101,7 +103,10 @@ export async function redeemInvite(db: Db, input: { code: string; cap: number; n
   return runTx(db, async (tx) => {
     const [row] = await tx.select().from(inviteCodes).where(eq(inviteCodes.code, code)).for("update");
     if (!row || row.revokedAt) throw new DomainError("INVALID_INPUT", "That invite code isn't valid.", { invite: "INVALID" });
-    const [orphan] = await tx.select().from(testers).where(and(eq(testers.inviteCode, code), rejoinable(input.now ?? new Date()))).orderBy(asc(testers.joinedAt)).limit(1).for("update");
+    const [orphan] =
+      row.kind === "admin"
+        ? await tx.select().from(testers).where(and(eq(testers.inviteCode, code), rejoinable(input.now ?? new Date()))).orderBy(asc(testers.joinedAt)).limit(1).for("update")
+        : [];
     if (orphan) return { testerId: orphan.id, rejoin: true };
     if (row.uses >= row.maxUses) throw new DomainError("NOT_ELIGIBLE", "That invite code has already been used.", { invite: "USED" });
     // Serialise the cap check across codes.
@@ -216,6 +221,12 @@ export const TELEMETRY_EVENTS = [
   "market_buy",
   "market_cancel",
   "feedback",
+  // Beta money (services/betaMoney.ts, apps/web/src/server/chain)
+  "wallet_linked",
+  "checkout_quote",
+  "checkout_paid",
+  "pool_claim",
+  "invite_view",
 ] as const;
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 
