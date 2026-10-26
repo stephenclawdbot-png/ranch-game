@@ -40,6 +40,8 @@ export interface StudView extends EcoHorse {
   stableName: string;
   silks: Silks;
   mine: boolean;
+  /** A Club house stallion (fee to the Club; always available to breed with). */
+  club: boolean;
   block: string | null;
   reason: string | null;
   used: number;
@@ -212,6 +214,8 @@ export interface SellerView {
   races: number;
   minRaces: number;
   emailVerified: boolean;
+  /** A verified email is only required when MARKET_REQUIRE_VERIFIED_EMAIL is on. */
+  emailRequired: boolean;
   missing: string[];
 }
 

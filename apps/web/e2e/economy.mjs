@@ -124,7 +124,8 @@ async function main() {
     await page.getByTestId("tab-sell").click();
     await page.locator('[data-testid="seller-requirements"][data-ok="false"]').waitFor();
     const req = await page.getByTestId("seller-requirements").innerText();
-    assert(/7 days old/.test(req) && /20 races/.test(req) && /verified email/i.test(req), "missing seller requirements listed");
+    assert(/7 days old/.test(req) && /20 races/.test(req), "missing seller requirements listed");
+    assert(!/verified email/i.test(req), "no email requirement by default (MARKET_REQUIRE_VERIFIED_EMAIL off)");
     assert((await page.getByTestId("lock-reason").count()) >= 3, "bound starters show why they can't be sold");
     assert(/Club-bred/.test(await page.getByTestId("lock-reason").first().innerText()), "bound reason in plain words");
     await shot(page, "market-sell-requirements");

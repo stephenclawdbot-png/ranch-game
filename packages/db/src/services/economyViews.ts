@@ -18,7 +18,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from
 import { DomainError } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
-import { RULES, bps, defaultAppraise, seasonBounds, seasonNumberAt, type GameHooks } from "../rules";
+import { RULES, bps, defaultAppraise, seasonBounds, seasonNumberAt, sellerPolicy, type GameHooks, type SellerPolicy } from "../rules";
 import {
   accountPlayDays,
   accounts,
@@ -128,7 +128,7 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   const preview = gc.previewBreeding(sireState, damState, ped, season);
   let block: PairingPreview["block"] = null;
   if (dam.ownerStableId !== stable.id) block = "not_your_mare";
-  else if (!ownSire && (sire.studFee === null || sire.ownerStableId === null)) block = "not_at_stud";
+  else if (!ownSire && !standsAtStud(sire)) block = "not_at_stud";
   else if (preview.blocked) block = preview.blocked;
   else if (dam.lockKind === "race") block = "in_race";
   else if (dam.lockKind === "market" || sire.lockKind === "market") block = "listed";
@@ -178,18 +178,40 @@ export interface StudListing {
   horse: HorseRow;
   stableName: string;
   silks: unknown;
+  /** A Club house stallion (houseStuds.ts). */
+  club: boolean;
 }
 
-/** Stallions standing at public stud (player-owned, entire, not on the Legacy Farm). */
+/** The name the stud book shows for Club house stallions. */
+export const CLUB_STUD_NAME = "The Club";
+
+/**
+ * Stallions standing at public stud (entire, not on the Legacy Farm): player-owned ones and
+ * the Club's house stallions (owner null, origin 'house').
+ */
 export async function listStuds(ex: Executor, opts: { limit?: number } = {}): Promise<StudListing[]> {
   const rows = await ex
     .select({ horse: horses, stableName: stables.name, silks: stables.silks })
     .from(horses)
-    .innerJoin(stables, eq(stables.id, horses.ownerStableId))
-    .where(and(isNotNull(horses.studFee), eq(horses.sex, "male"), eq(horses.gelded, false), ne(horses.careerStatus, "pasture"), isNull(horses.releasedAt)))
+    .leftJoin(stables, eq(stables.id, horses.ownerStableId))
+    .where(
+      and(
+        isNotNull(horses.studFee),
+        eq(horses.sex, "male"),
+        eq(horses.gelded, false),
+        ne(horses.careerStatus, "pasture"),
+        isNull(horses.releasedAt),
+        or(isNotNull(horses.ownerStableId), eq(horses.origin, "house")),
+      ),
+    )
     .orderBy(asc(horses.studFee), desc(horses.rating))
     .limit(opts.limit ?? 60);
-  return rows;
+  return rows.map((r) => ({ horse: r.horse, stableName: r.stableName ?? CLUB_STUD_NAME, silks: r.silks ?? null, club: r.horse.ownerStableId === null }));
+}
+
+/** A horse that stands at public stud: a player's stallion with a fee, or a Club house stallion. */
+export function standsAtStud(h: Pick<HorseRow, "studFee" | "ownerStableId" | "origin">): boolean {
+  return h.studFee !== null && (h.ownerStableId !== null || h.origin === "house");
 }
 
 /**
@@ -353,30 +375,35 @@ export interface SellerStatus {
   races: number;
   minRaces: number;
   emailVerified: boolean;
+  /** Whether a verified email is required (MARKET_REQUIRE_VERIFIED_EMAIL). */
+  emailRequired: boolean;
   /** Plain-words list of what is missing. */
   missing: string[];
 }
 
-/** The seller requirements (§4b) as data: account age, races, verified email. */
-export async function sellerStatus(ex: Executor, input: { accountId: string; stableId: string; now: Date }): Promise<SellerStatus> {
+/** The seller requirements (§4b, env-configurable: rules.ts sellerPolicy) as data. */
+export async function sellerStatus(ex: Executor, input: { accountId: string; stableId: string; now: Date; policy?: SellerPolicy }): Promise<SellerStatus> {
+  const policy = input.policy ?? sellerPolicy();
   const [acc] = await ex.select().from(accounts).where(eq(accounts.id, input.accountId));
   if (!acc) throw new DomainError("NOT_FOUND", "account not found");
   const ageMs = input.now.getTime() - acc.createdAt.getTime();
   const races = await settledRacesForStable(ex, input.stableId);
-  const minDays = Math.round(RULES.sellerMinAccountAgeMs / 86_400_000);
-  const oldEnough = ageMs >= RULES.sellerMinAccountAgeMs;
+  const minDays = policy.minAccountAgeDays;
+  const minAgeMs = minDays * 86_400_000;
+  const oldEnough = ageMs >= minAgeMs;
   const missing: string[] = [];
   if (!oldEnough) missing.push(`Account at least ${minDays} days old`);
-  if (races < RULES.sellerMinRaces) missing.push(`${RULES.sellerMinRaces} races run (${races} so far)`);
-  if (!acc.emailVerifiedAt) missing.push("A verified email address");
+  if (races < policy.minRaces) missing.push(`${policy.minRaces} races run (${races} so far)`);
+  if (policy.requireVerifiedEmail && !acc.emailVerifiedAt) missing.push("A verified email address");
   return {
     ok: missing.length === 0,
     accountAgeDays: Math.max(0, Math.floor(ageMs / 86_400_000)),
     minAccountAgeDays: minDays,
-    oldEnoughAt: oldEnough ? null : new Date(acc.createdAt.getTime() + RULES.sellerMinAccountAgeMs),
+    oldEnoughAt: oldEnough ? null : new Date(acc.createdAt.getTime() + minAgeMs),
     races,
-    minRaces: RULES.sellerMinRaces,
+    minRaces: policy.minRaces,
     emailVerified: !!acc.emailVerifiedAt,
+    emailRequired: policy.requireVerifiedEmail,
     missing,
   };
 }

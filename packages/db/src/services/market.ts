@@ -4,7 +4,8 @@
  *   race, breed as a mare, be released or be listed twice (partial unique index).
  * - Locked (in a race), in-foal, bound (Club-bred) horses and foals below their trade
  *   threshold cannot be listed; the database trigger blocks such transfers regardless.
- * - Sellers need an account >= 7 days old, >= 20 races and a verified email.
+ * - Sellers need an account >= 7 days old and >= 20 races (env-configurable, see rules.ts
+ *   sellerPolicy); a verified email only when MARKET_REQUIRE_VERIFIED_EMAIL is on.
  * - Price floor: 70% of the appraisal at listing time.
  * - Purchase is one transaction: buyer pays, seller receives 95%, 5% is burned, ownership
  *   moves, the listing closes. Linked accounts cannot trade (blocked + fraud event).
@@ -14,7 +15,7 @@ import { and, eq, lte, sql } from "drizzle-orm";
 import { DomainError, type DomainErrorCode } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
 import { accounts, fraudEvents, horses, marketListings, raceEntries, races, trades, type ListingRow } from "../schema";
-import {bps, defaultAppraise, RULES, type GameHooks } from "../rules";
+import { bps, defaultAppraise, gcSellerPolicy, RULES, sellerPolicy, type GameHooks, type SellerPolicy } from "../rules";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStableOf } from "./accounts";
@@ -44,13 +45,13 @@ export async function settledRacesForStable(ex: Executor, stableId: string): Pro
   return Number(r?.n ?? 0);
 }
 
-export async function sellerEligibility(ex: Executor, accountId: string, stableId: string, now: Date): Promise<string[]> {
+export async function sellerEligibility(ex: Executor, accountId: string, stableId: string, now: Date, policy: SellerPolicy = sellerPolicy()): Promise<string[]> {
   const [acc] = await ex.select().from(accounts).where(eq(accounts.id, accountId));
   const problems: string[] = [];
   if (!acc) return ["account not found"];
-  if (now.getTime() - acc.createdAt.getTime() < RULES.sellerMinAccountAgeMs) problems.push("account must be at least 7 days old");
-  if (!acc.emailVerifiedAt) problems.push("verified email required");
-  if ((await settledRacesForStable(ex, stableId)) < RULES.sellerMinRaces) problems.push(`at least ${RULES.sellerMinRaces} races required`);
+  if (now.getTime() - acc.createdAt.getTime() < policy.minAccountAgeDays * 86_400_000) problems.push(`account must be at least ${policy.minAccountAgeDays} days old`);
+  if (policy.requireVerifiedEmail && !acc.emailVerifiedAt) problems.push("verified email required");
+  if ((await settledRacesForStable(ex, stableId)) < policy.minRaces) problems.push(`at least ${policy.minRaces} races required`);
   return problems;
 }
 
@@ -68,7 +69,8 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
   if (duration <= 0 || duration > RULES.maxListingMs) throw new DomainError("INVALID_INPUT", "listing duration out of range");
   return runTx(db, async (tx) => {
     const { horse, stableId } = await lockOwnedHorse(tx, input.accountId, input.horseId);
-    const problems = await sellerEligibility(tx, input.accountId, stableId, input.now);
+    const policy = sellerPolicy();
+    const problems = await sellerEligibility(tx, input.accountId, stableId, input.now, policy);
     if (problems.length) throw new DomainError("SELLER_REQUIREMENTS", problems.join("; "), { problems });
     if (horse.bound) throw new DomainError("HORSE_BOUND", "Club-bred horses cannot be sold");
     if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
@@ -84,6 +86,7 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
         input.price,
         input.now.getTime(),
         { enteredInRace: horse.lockKind === "race", locked: horse.lockKind === "market" },
+        gcSellerPolicy(policy),
       );
       if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)) });
     }

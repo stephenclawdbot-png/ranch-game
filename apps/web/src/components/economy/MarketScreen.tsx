@@ -157,7 +157,7 @@ function SellerChecklist({ v }: { v: MarketView }) {
         <Check ok={s.races >= s.minRaces}>
           {s.minRaces} races run ({s.races} so far)
         </Check>
-        <Check ok={s.emailVerified}>A verified email address{s.emailVerified ? "" : " (email sign-in is coming soon)"}</Check>
+        {s.emailRequired && <Check ok={s.emailVerified}>A verified email address{s.emailVerified ? "" : " (email sign-in is coming soon)"}</Check>}
       </ul>
     </section>
   );

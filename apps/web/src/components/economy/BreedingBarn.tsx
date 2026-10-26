@@ -494,7 +494,7 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
       <section aria-labelledby="studs-h">
         <SectionHeader id="studs-h" title="Standing at stud" />
         {v.studs.length === 0 ? (
-          <p className="surface p-3 text-cream-dim">No other stables have stallions at stud yet.</p>
+          <p className="surface p-3 text-cream-dim">No stallions are standing at stud right now. Check back soon: the Club keeps a few of its own at stud.</p>
         ) : (
           <ul className="surface rows !p-0">
             {v.studs.map((s) => (
@@ -503,7 +503,7 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
                   h={s}
                   meta={
                     <>
-                      {s.stableName} · {s.starts} starts · OR {s.rating} · {s.lifetime - s.used} of {s.lifetime} breedings left
+                      {s.club ? "Club stallion" : s.stableName} · {s.club ? "retired" : `${s.starts} starts`} · {s.lifetime - s.used} of {s.lifetime} breedings left
                     </>
                   }
                   aside={<Credits value={s.studFee} className="text-cream" />}

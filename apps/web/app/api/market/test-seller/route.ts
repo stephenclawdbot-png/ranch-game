@@ -8,10 +8,12 @@ export const dynamic = "force-dynamic";
 /**
  * TEST FIXTURE (never in production): makes the signed-in account meet the seller
  * requirements (8 days old, verified email, 20 settled races) so e2e can list a horse.
- * 404 on production builds and on any Vercel deployment.
+ * 404 on any Vercel deployment, and on production builds unless ALLOW_TEST_FIXTURES=1
+ * (local QA of a production build only).
  */
 export async function POST() {
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV) return errorJson(404, "NOT_FOUND");
+  if (process.env.VERCEL || process.env.VERCEL_ENV) return errorJson(404, "NOT_FOUND");
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_TEST_FIXTURES !== "1") return errorJson(404, "NOT_FOUND");
   return withPlayer(async (db, session) => {
     const [horse] = await listStableHorses(db, session.stable.id);
     if (!horse) throw new Error("fixture needs a horse");

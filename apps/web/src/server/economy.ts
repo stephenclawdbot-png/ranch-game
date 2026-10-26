@@ -27,6 +27,7 @@ import {
   listStableHorses,
   listStablePregnancies,
   listStuds,
+  ensureHouseStuds,
   nameFoal,
   occupancy,
   PACKS,
@@ -187,6 +188,22 @@ function breedingHorse(row: HorseRow, status: BreedingStatus, silks: Silks, nowM
 /** How long recently foaled pregnancies stay on the barn board (for the reveal and naming). */
 const FOALED_VISIBLE_MS = 3 * 24 * 60 * 60 * 1000;
 
+// The Club's house stallions (packages/db houseStuds.ts): top the roster up at most once a minute per instance.
+const HOUSE_STUD_CHECK_MS = 60_000;
+const HS = globalThis as typeof globalThis & { __tbHouseStudsAt?: number };
+
+async function keepHouseStuds(db: Db, now: Date): Promise<void> {
+  const nowMs = now.getTime();
+  if (HS.__tbHouseStudsAt !== undefined && nowMs - HS.__tbHouseStudsAt < HOUSE_STUD_CHECK_MS && nowMs >= HS.__tbHouseStudsAt) return;
+  HS.__tbHouseStudsAt = nowMs;
+  try {
+    await ensureHouseStuds(db, now);
+  } catch (err) {
+    HS.__tbHouseStudsAt = undefined;
+    console.error("house studs", err);
+  }
+}
+
 export async function breedingView(db: Db, session: Session, now: Date): Promise<BreedingView> {
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
@@ -201,6 +218,7 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
   mares.sort((a, b) => rank(a) - rank(b) || b.starts - a.starts);
   stallions.sort((a, b) => rank(a) - rank(b) || b.starts - a.starts);
 
+  await keepHouseStuds(db, now);
   const studs: StudView[] = [];
   for (const s of await listStuds(db)) {
     if (s.horse.ownerStableId === session.stable.id) continue;
@@ -212,6 +230,7 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
       stableName: s.stableName,
       silks: sSilks,
       mine: false,
+      club: s.club,
       block: st.block,
       reason: breedReason(st.block, st),
       used: st.used,
@@ -504,6 +523,7 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
       races: seller.races,
       minRaces: seller.minRaces,
       emailVerified: seller.emailVerified,
+      emailRequired: seller.emailRequired,
       missing: seller.missing,
     },
     feePermille: gc.MARKET_FEE_PERMILLE,

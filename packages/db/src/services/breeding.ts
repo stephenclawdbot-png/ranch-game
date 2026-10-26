@@ -107,7 +107,9 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
 
     if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "you must own the mare");
     const ownSire = sire.ownerStableId === stable.id;
-    if (!ownSire && sire.studFee === null) throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
+    if (!ownSire && (sire.studFee === null || (sire.ownerStableId === null && sire.origin !== "house"))) {
+      throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
+    }
     if (dam.lockKind) throw new DomainError("HORSE_LOCKED", "the mare is entered in a race or listed");
     if (sire.lockKind === "market") throw new DomainError("HORSE_LOCKED", "the stallion is listed for sale");
 
@@ -136,8 +138,12 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
       postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -total });
       if (burned > 0) postings.push({ ledgerAccountId: await systemAccountId(tx, "burn"), amount: burned });
       if (fees.toStallionOwner > 0) {
-        const sireOwner = await accountIdOfStable(tx, sire.ownerStableId!);
-        postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, sireOwner), amount: fees.toStallionOwner });
+        // A Club house stallion's share goes to the Club treasury (houseStuds.ts).
+        const owner =
+          sire.ownerStableId === null
+            ? await systemAccountId(tx, "treasury")
+            : await playerLedgerAccountId(tx, await accountIdOfStable(tx, sire.ownerStableId));
+        postings.push({ ledgerAccountId: owner, amount: fees.toStallionOwner });
       }
       ledgerTransactionId = (await post(tx, { idempotencyKey: `breed:${input.idempotencyKey}`, kind: "breeding_fee", postings })).transactionId;
     }

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { RULES } from "../rules";
+import { RULES, sellerPolicy } from "../rules";
 import { horses, packPulls } from "../schema";
 import { breed } from "../services/breeding";
 import { setStudFee } from "../services/horses";
@@ -146,7 +146,16 @@ describe("economy views: market", () => {
     const p = await newPlayer(h.db, { credits: 20_000, starters: 1 });
     const s0 = await sellerStatus(h.db, { accountId: p.accountId, stableId: p.stableId, now: T0 });
     expect(s0.ok).toBe(false);
-    expect(s0.missing).toHaveLength(3);
+    // Default policy: no email requirement (no email flow yet); 7 days + 20 races.
+    expect(s0.missing).toHaveLength(2);
+    expect(s0.emailRequired).toBe(false);
+    const strict = sellerPolicy({ MARKET_REQUIRE_VERIFIED_EMAIL: "1", MARKET_SELLER_MIN_RACES: "5" });
+    expect(strict).toEqual({ minAccountAgeDays: 7, minRaces: 5, requireVerifiedEmail: true });
+    const s0s = await sellerStatus(h.db, { accountId: p.accountId, stableId: p.stableId, now: T0, policy: strict });
+    expect(s0s.missing).toHaveLength(3);
+    expect(s0s.missing.join(" ")).toMatch(/5 races/);
+    const lax = await sellerStatus(h.db, { accountId: p.accountId, stableId: p.stableId, now: T0, policy: { minAccountAgeDays: 0, minRaces: 0, requireVerifiedEmail: false } });
+    expect(lax).toMatchObject({ ok: true, missing: [] });
     expect(s0.oldEnoughAt?.getTime()).toBe(T0.getTime() + RULES.sellerMinAccountAgeMs);
     await makeSeller(h.db, p.accountId, p.stableId);
     const s1 = await sellerStatus(h.db, { accountId: p.accountId, stableId: p.stableId, now: T0 });
