@@ -391,7 +391,10 @@ function DailyGoalsCard({ goals }: { goals: DailyGoalView[] }) {
             ) : (
               <span className="h-4 w-4 shrink-0 rounded-sm border-2 border-cream-dim" aria-hidden />
             )}
-            <span className={`t-title min-w-0 flex-1 ${g.done ? "text-cream-dim" : ""}`}>{g.label}</span>
+            <span className={`t-title min-w-0 flex-1 ${g.done ? "text-cream-dim" : ""}`}>
+              <span className="sr-only">{g.done ? "Done: " : "To do: "}</span>
+              {g.label}
+            </span>
             <span className={`num shrink-0 ${g.done ? "reward" : "text-cream-dim"}`}>+{g.credits}</span>
           </li>
         ))}
