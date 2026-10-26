@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cameraTarget, gallopMetrics, ladderBelow, placeField, safeInsets, sizeLimits, squeezeX, TracksideCamera, ZOOM_LADDER, type RunnerPos } from "./layout";
+import { cameraTarget, crowding, gallopMetrics, ladderBelow, placeField, safeInsets, sizeLimits, squeezeX, TracksideCamera, ZOOM_LADDER, type RunnerPos } from "./layout";
 
 const sprite = gallopMetrics();
 
@@ -81,6 +81,74 @@ describe("trackside placeField", () => {
     const f = placeField({ W: 1242, H: 698, ppm: 80, cx: 10, sprite, runners: [{ x: 10, lane: 0 }, { x: 10, lane: 8 }], railLane: 12.8 });
     expect(f.placed[1]!.ls).toBeLessThan(f.placed[0]!.ls);
     expect(f.placed[1]!.feetY).toBeLessThan(f.placed[0]!.feetY);
+  });
+});
+
+describe("trackside crowding (big fields on phone-sized stages)", () => {
+  type Rect = { x: number; y: number; w: number; h: number };
+
+  /** Fraction of r NOT covered by the union of the rects drawn in front of it. */
+  function visibleFrac(r: Rect, front: Rect[]): number {
+    const isect: Rect[] = [];
+    for (const q of front) {
+      const x0 = Math.max(r.x, q.x);
+      const x1 = Math.min(r.x + r.w, q.x + q.w);
+      const y0 = Math.max(r.y, q.y);
+      const y1 = Math.min(r.y + r.h, q.y + q.h);
+      if (x1 > x0 && y1 > y0) isect.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    }
+    if (!isect.length) return 1;
+    const xs = [...new Set(isect.flatMap((i) => [i.x, i.x + i.w]))].sort((a, b) => a - b);
+    let covered = 0;
+    for (let k = 0; k < xs.length - 1; k++) {
+      const a = xs[k]!;
+      const b = xs[k + 1]!;
+      const spans = isect
+        .filter((i) => i.x <= a && i.x + i.w >= b)
+        .map((i) => [i.y, i.y + i.h] as const)
+        .sort((p, q) => p[0] - q[0]);
+      let y = 0;
+      let cur = -Infinity;
+      let start = -Infinity;
+      for (const [y0, y1] of spans) {
+        if (y0 > cur) {
+          if (cur > start) y += cur - start;
+          start = y0;
+          cur = y1;
+        } else cur = Math.max(cur, y1);
+      }
+      if (cur > start) y += cur - start;
+      covered += (b - a) * y;
+    }
+    return 1 - covered / (r.w * r.h);
+  }
+
+  it("only kicks in for big fields on narrow stages (desktop and small fields untouched)", () => {
+    expect(crowding(390, 12)).toBe(1);
+    expect(crowding(390, 6)).toBe(0);
+    expect(crowding(768, 12)).toBe(0);
+    expect(crowding(1440, 12)).toBe(0);
+    expect(crowding(360, 9)).toBeCloseTo(0.25, 6);
+  });
+
+  it("keeps 12 stacked runners readable at 390px: every quad stays >=40% uncovered in draw order", () => {
+    const W = 390;
+    const H = 320;
+    // Worst case: the whole field bunched on the same x, spread over every lane.
+    const runners: RunnerPos[] = Array.from({ length: 12 }, (_, i) => ({ x: 500 + (i % 3) * 0.8, lane: i }));
+    const f = placeField({ W, H, ppm: 60, cx: 500, sprite, runners, railLane: 12.8 });
+    expect(crowding(W, runners.length)).toBe(1);
+    // Render order: far lane first; on one lane the trailing runner first.
+    const order = f.placed
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => a.p.ls - b.p.ls || a.p.rect.x - b.p.rect.x)
+      .map((o) => o.p.rect);
+    let worst = 1;
+    for (let j = 0; j < order.length; j++) {
+      expect(inside(W, H, order[j]!)).toBe(true);
+      worst = Math.min(worst, visibleFrac(order[j]!, order.slice(j + 1)));
+    }
+    expect(worst).toBeGreaterThanOrEqual(0.4);
   });
 });
 
