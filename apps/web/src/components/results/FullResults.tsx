@@ -59,11 +59,11 @@ export function FullResults({
                       {e && <Saddlecloth gate={e.gate} />}
                       {e && <SilksIcon silks={e.horse.appearance.silks} className="h-7 w-7" />}
                       <div className="min-w-0">
-                        <Link href={`/horse/${f.horseId}`} className="block truncate font-extrabold hover:underline">
+                        <Link href={`/horse/${f.horseId}`} className="block font-extrabold hover:underline">
                           {e?.horse.name ?? f.horseId}
                           {me && <span className="you-tag ml-2 align-middle">You</span>}
                         </Link>
-                        <p className="truncate text-xs font-semibold text-sage">{e?.stableName}</p>
+                        <p className="line-clamp-2 text-xs font-semibold text-sage">{e?.stableName}</p>
                       </div>
                     </div>
                   </td>

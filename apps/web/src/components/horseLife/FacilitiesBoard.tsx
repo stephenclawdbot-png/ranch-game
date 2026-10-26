@@ -16,7 +16,6 @@ export function FacilitiesBoard({ view }: { view: FacilitiesView }) {
       <ul className="grid gap-3 md:grid-cols-2">
         {view.items.map((it) => {
           const short = it.nextCost !== null && it.nextCost > view.credits;
-          const fromZero = it.key === "stalls" ? 6 : 0;
           return (
             <li key={it.key} className="surface grid content-start gap-2 p-4" data-testid={`facility-${it.key}`}>
               <div className="flex items-baseline justify-between gap-2">
@@ -25,7 +24,8 @@ export function FacilitiesBoard({ view }: { view: FacilitiesView }) {
                   {it.levelLabel}
                 </span>
               </div>
-              <CellBar value={it.level - fromZero} max={it.maxLevel - fromZero} cells={Math.min(18, it.maxLevel - fromZero)} label={`${it.name}: ${it.levelLabel}`} />
+              {/* Fill matches the level label: 6 of 24 stalls reads as a 6/24 bar, not an empty one. */}
+              <CellBar value={it.level} max={it.maxLevel} cells={Math.min(18, it.maxLevel)} label={`${it.name}: ${it.levelLabel}`} />
               <p className="t-meta">{it.blurb}</p>
               <div className="surface-2 grid gap-1 p-3 text-sm">
                 <p>

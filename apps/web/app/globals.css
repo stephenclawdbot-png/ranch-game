@@ -1302,7 +1302,7 @@ dialog.sheet :focus-visible {
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
     z-index: 35;
     padding: 12px var(--gutter) 8px;
-    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0, rgba(8, 21, 14, 0.92) 30%, #08150e 100%);
+    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0, rgba(8, 21, 14, 0.94) 22%, #08150e 100%);
   }
   .action-bar[data-floating="true"] > .btn {
     width: 100%;

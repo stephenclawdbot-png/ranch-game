@@ -222,7 +222,7 @@ function OnTheCourse({ next, live }: { next: RaceSummary; live: RaceSummary | nu
             <span className="live-dot" /> Live
           </span>
           <span className="min-w-0 flex-1">
-            <span className="t-title block truncate">{live.name}</span>
+            <span className="t-title block line-clamp-2">{live.name}</span>
             <span className="t-meta block">
               {live.fieldSize} runners · {formatDistance(live.distanceM)} {SURFACE_LABEL[live.surface].toLowerCase()}
             </span>
@@ -429,7 +429,7 @@ function YourRaces({ state, now, skipRaceId }: { state: PlayerState; now: number
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="t-title block">{a.horseName}</span>
-                  <span className="t-meta block truncate">
+                  <span className="t-meta block line-clamp-2">
                     {a.kind === "live" ? "Live" : "Story"} · {a.raceName}
                   </span>
                 </span>
@@ -455,7 +455,7 @@ function InboxRow({ item, horseName }: { item: InboxView; horseName?: string }) 
         {item.read ? <span className="score w-10 shrink-0 text-center text-[1.75rem]">{pos ? ordinal(pos) : "–"}</span> : <span className="tag tag-ready shrink-0">▶ Ready</span>}
         <span className="min-w-0 flex-1">
           <span className="t-title block">{horseName ?? "Your horse"}</span>
-          <span className="t-meta block truncate">{item.read ? item.title : "We haven’t told you how it went."}</span>
+          <span className="t-meta block line-clamp-2">{item.read ? item.title : "We haven’t told you how it went."}</span>
         </span>
         {item.read && prize > 0 ? <span className="reward shrink-0">+{prize}</span> : <span className="chev">›</span>}
       </Link>

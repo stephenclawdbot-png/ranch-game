@@ -163,7 +163,7 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
         <span className="grid min-w-0 gap-0.5">
           <span className="t-title group-hover:underline">{horse.name}</span>
           <span className="t-meta">
-            {SEX_LABEL[horse.sex]} · {STYLE_LABEL[horse.style]} · {formatDistance(horse.preferredDistanceM)}
+            {SEX_LABEL[horse.sex]} · {STYLE_LABEL[horse.style]} · <span className="whitespace-nowrap">{formatDistance(horse.preferredDistanceM)}</span>
           </span>
           {s.geneticsLine && (
             <span className="caption" data-testid="genetics-line">
