@@ -124,7 +124,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
                     <WorkoutEffect w={w} />
                   </span>
                 )}
-                {w && <span className="col-start-2 text-sm text-cream-dim sm:col-start-auto sm:text-right">{w.cost ? `${w.cost} cr` : "free"}</span>}
+                {w && done && <span className="col-start-2 text-sm text-cream-dim sm:col-start-auto sm:text-right">{w.cost ? `${w.cost} cr` : "free"}</span>}
               </li>
             );
           })}

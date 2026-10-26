@@ -16,7 +16,7 @@ export function HorseLifeHeader({ view, active }: { view: HorseLifeView; active:
           <HorsePortrait appearance={view.horse.appearance} scale="thumb" />
         </span>
         <div className="min-w-0">
-          <h1 className="t-display-l truncate" data-testid="horse-name">
+          <h1 className="t-display-l break-words" data-testid="horse-name">
             {view.name}
           </h1>
           <p className="t-meta">

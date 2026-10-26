@@ -37,7 +37,7 @@ function FoalCard({ f, view, action }: { f: NurseryFoal; view: NurseryView; acti
             </form>
           ) : (
             <p className="flex items-center gap-2">
-              <Link href={`/horse/${f.id}/care`} className="t-title truncate hover:underline">
+              <Link href={`/horse/${f.id}/care`} className="t-title break-words hover:underline">
                 {f.name}
               </Link>
               <button type="button" className="btn-ghost min-h-11 text-sm font-bold" onClick={() => setEditing(true)} aria-label={`Name ${f.name}`} data-testid="foal-name">
