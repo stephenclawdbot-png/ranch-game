@@ -201,7 +201,8 @@ Everything chain-specific is configuration (env), not code.
 | **Premium checkout:** stablecoin payments for premium SKUs, as `Purchased` events | Entitlements granted after verifying the event; pending orders; caps; geo rules |
 | *(Optional, not deployed)* a capped ERC20 with a genesis distribution only | Stable Credits: **never on-chain, never cashed out** |
 
-We do **not** do any of the following:
+We do **not** do any of the following (the closed-beta Prize Pool and affiliate commissions
+in §0 are the user-approved exceptions to "no payouts"; Stable Credits stay off-chain):
 - no on-chain credits;
 - no token rewards for racing (play-to-earn);
 - no staking or yield;
@@ -339,6 +340,8 @@ The checkout response hands the browser the store address and chain id, so there
 |---|---|---|
 | `RaceProofRegistry` | `DEFAULT_ADMIN` (multisig), `PUBLISHER` (server hot key), `PAUSER` | Roots are write-once per `(kind, batchId)`; double-hashed, kind-tagged leaves; verification works while paused; only the admin unpauses |
 | `PremiumStore` | `DEFAULT_ADMIN`, `PRICE_MANAGER`, `PAUSER`, `TREASURER`, `SIGNER` | EIP-712 vouchers bound to buyer, chain and contract; single-use orderId; `maxTotal`; fee-on-transfer rejected; checks-effects-interactions plus `nonReentrant`; withdraw **only to `treasury`**; no payable entry points |
+| `PrizePool` (beta) | `DEFAULT_ADMIN` (owner wallet), `POSTER`, `PAUSER`, `FUNDER` (store + admin) | ETH in only via `fund`; weekly Merkle epochs with `total ≤ maxEpochBps × free balance`; per-epoch per-account cap; linear vesting; `revoke` / `cancelEpoch` / `expireEpoch` return funds to the pool only; **no withdraw/sweep** |
+| `PremiumStore` ETH path (beta) | as above + immutable `prizePool` | `purchaseWithEth` with an EIP-712 `EthQuote` (exact `msg.value`, deadline ≤ 10 min); `poolBps` (10–50 %) to the pool, affiliate commissions (≤ 15 % / 5 %) and the rest to the treasury in the same tx; optional Chainlink tolerance check |
 | `ThoroughbredToken` *(optional)* | `DEFAULT_ADMIN`, `MINTER` | Capped, with permit; `mintGenesis` until `finalizeGenesis()` (irreversible); no fees, blocklist, staking, yield or upgradeability |
 
 Stack: Solidity 0.8.28, OpenZeppelin 5.7.0, Hardhat 2.29.1 with hardhat-toolbox-viem, viem 2.57.
@@ -404,7 +407,9 @@ These come from `docs/game-design.md` §8 and §4b–4f, and are expanded in the
 
 - **Stable Credits are never cashed out**, never bridged and never tokenised. No prize money.
 - **One-way money flow:** buyer → store → treasury. No user balances, no payouts, no refunds
-  on-chain. Exceptional refunds go through support, from the treasury.
+  on-chain. Exceptional refunds go through support, from the treasury. **Closed-beta
+  exception (user decision, §0):** a share of each sale funds the PrizePool (paid by skill
+  rank, claimable by players) and invited buyers' referrers get commissions.
 - **Packs:**
   - published odds and pity (Rare within 10 pulls, Epic within 50);
   - pulls seeded and committed;
