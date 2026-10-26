@@ -1127,6 +1127,12 @@ dialog.sheet :focus-visible {
     border: 2px solid var(--color-ink-3);
     border-top: 0;
   }
+  /* Loading placeholder: a stepped paper shimmer (static under reduced motion). */
+  .skel {
+    display: block;
+    background: var(--color-paper-2);
+    animation: skel 1.2s steps(2) infinite;
+  }
   .pip {
     width: 24px;
     height: 12px;
@@ -1426,6 +1432,11 @@ dialog.sheet :focus-visible {
   to {
     transform: none;
     opacity: 1;
+  }
+}
+@keyframes skel {
+  50% {
+    background: #e3d4ad;
   }
 }
 @keyframes blink {

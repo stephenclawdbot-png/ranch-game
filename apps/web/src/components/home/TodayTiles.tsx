@@ -58,7 +58,17 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   if (tiles === undefined) {
     return (
       <Section id="today-h" title="Today">
-        <div className="surface h-[8rem]" aria-busy />
+        <ul className="surface rows" aria-busy aria-label="Loading today's list" data-testid="today-skeleton">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="flex items-center gap-3 px-4 py-3" aria-hidden>
+              <span className="skel h-8 w-8 shrink-0" />
+              <span className="grid min-w-0 flex-1 gap-2">
+                <span className="skel h-4" style={{ width: `${[46, 38, 54][i]}%` }} />
+                <span className="skel h-3" style={{ width: `${[64, 52, 40][i]}%` }} />
+              </span>
+            </li>
+          ))}
+        </ul>
       </Section>
     );
   }

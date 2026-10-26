@@ -93,7 +93,17 @@ order). Commits: "Horse registry…", "Design v2: tokens…", "Design v2: copy p
   is deliberately small; the Story entry form stays on `/races` (the smoke e2e drives it)
   under a "Race the Club now" section; pack art chosen from 4 PixelLab variants each.
 - **e2e changes:** feedback is sent from `/me`; the foal is renamed to a random unique name;
-  breeding asserts there is no *enabled* Cover button for an ineligible pair.
+  breeding asserts there is no *enabled* Cover button for an ineligible pair; Premium "coming
+  soon" is a line of text, not a disabled button. Web test foal renamed "Dawn Chorus".
+- **Verified (2026-10-26):** `pnpm -r typecheck` green; `pnpm -r test` green (racing-engine's
+  60 ms perf test is flaky only when run during a build); production build green; all six e2e
+  scripts PASS against `next start` (fresh PGlite, `ALLOW_TEST_FIXTURES=1`; playtest and
+  beta-money on `PLAYTEST_MODE=1` servers). Screenshots of every page at 390×844 and
+  1280×800 plus before/after sheets were taken (see `docs/brand-v2/v2-before-after.png`).
+- **Open:** the remaining sloppiness risks are the race viewer's control row (still monospace
+  caps; the viewer is out of scope), admin pages (lighter touch), and pages whose bands now run
+  the live diorama (owned by the diorama agent). Loading states use stepped paper skeletons
+  (`.skel`).
 
 ## Beta money on Robinhood Chain (web3 agent, 2026-10-26)
 

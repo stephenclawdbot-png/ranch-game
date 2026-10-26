@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
-import { HowItWorks, SceneBand, Section } from "@/components/ui/Page";
+import { EmptyState, HowItWorks, SceneBand, Section } from "@/components/ui/Page";
 import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingRaceRow } from "@/components/RaceList";
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
@@ -37,11 +37,18 @@ export default async function RacesPage() {
               <UpcomingRaceRow key={r.id} race={r} />
             ))}
           </RaceBoard>
-          <RaceBoard title="Results">
-            {recent.map((r) => (
-              <RecentRaceRow key={r.id} race={r} />
-            ))}
-          </RaceBoard>
+          {recent.length ? (
+            <RaceBoard title="Results">
+              {recent.map((r) => (
+                <RecentRaceRow key={r.id} race={r} />
+              ))}
+            </RaceBoard>
+          ) : (
+            <section className="min-w-0">
+              <h2 className="t-h2 mb-3">Results</h2>
+              <EmptyState icon="stopwatch" title="No results yet today" text="A race goes off every 3 minutes at Kestrel Downs. Watch the next one from the card." />
+            </section>
+          )}
         </div>
       </section>
 

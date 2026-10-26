@@ -148,7 +148,13 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div className="grid gap-3" aria-busy aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="surface h-20 opacity-60" />
+        <div key={i} className="surface flex items-center gap-3 p-4" aria-hidden>
+          <span className="skel h-16 w-16 shrink-0" />
+          <span className="grid min-w-0 flex-1 gap-2">
+            <span className="skel h-4 w-1/2" />
+            <span className="skel h-3 w-2/3" />
+          </span>
+        </div>
       ))}
     </div>
   );
