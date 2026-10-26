@@ -13,6 +13,7 @@ export const ethQuoteTypes = {
     { name: "sku", type: "bytes32" },
     { name: "quantity", type: "uint32" },
     { name: "priceWei", type: "uint256" },
+    { name: "usdCents", type: "uint64" },
     { name: "deadline", type: "uint64" },
   ],
 } as const;
@@ -24,6 +25,8 @@ export interface EthQuote {
   quantity: number;
   /** Exact total in wei; msg.value must equal it. */
   priceWei: bigint;
+  /** USD price (cents) the quote was computed from; checked on-chain only if a feed is set. */
+  usdCents: bigint;
   /** unix seconds; at most MAX_QUOTE_TTL (10 min) ahead on-chain; the server uses 5 min. */
   deadline: bigint;
 }

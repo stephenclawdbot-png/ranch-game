@@ -21,7 +21,7 @@ async function fixture() {
   const asBuyer = await hre.viem.getContractAt("PremiumStore", store.address, { client: { wallet: buyer! } });
   const chainId = await pc.getChainId();
   async function quote(overrides: Partial<EthQuote> = {}): Promise<EthQuote> {
-    return { orderId: newOrderId(), buyer: getAddress(buyer!.account.address), sku: PACK, quantity: 1, priceWei: PRICE, deadline: (await latestTimestamp()) + 300n, ...overrides };
+    return { orderId: newOrderId(), buyer: getAddress(buyer!.account.address), sku: PACK, quantity: 1, priceWei: PRICE, usdCents: 499n, deadline: (await latestTimestamp()) + 300n, ...overrides };
   }
   async function sign(q: EthQuote, by = signer!, verifyingContract: Address = store.address, cid = chainId): Promise<Hex> {
     return by.signTypedData({ account: by.account, ...ethQuoteTypedData(q, cid, verifyingContract) });
@@ -191,6 +191,31 @@ describe("PremiumStore: native ETH (closed beta)", () => {
     expect(await evil.read.reenterError()).to.equal(toFunctionSelector("ReentrancyGuardReentrantCall()"));
     expect(await store.read.pendingTreasuryWei()).to.equal(0n);
     expect(await pc.getBalance({ address: evil.address })).to.equal(PRICE - (PRICE * 3000n) / 10_000n);
+  });
+
+  it("optional Chainlink check (off by default): quote must be within tolerance of a fresh feed", async () => {
+    const { store, asBuyer, quote, sign } = await loadFixture(fixture);
+    expect(await store.read.priceFeed()).to.equal("0x0000000000000000000000000000000000000000");
+    // $3,326.666... per ETH with 8 decimals -> $4.99 = 0.0015 ETH
+    const feed = await hre.viem.deployContract("MockPriceFeed", [8, 332_666_666_667n]);
+    await expectRevert(asBuyer.write.setPriceFeed([feed.address, 300, 3600]), "AccessControlUnauthorizedAccount");
+    await expectRevert(store.write.setPriceFeed([feed.address, 0, 3600]), "InvalidFeedConfig");
+    await expectRevert(store.write.setPriceFeed([feed.address, 2001, 3600]), "InvalidFeedConfig");
+    await expectRevert(store.write.setPriceFeed([feed.address, 300, 0]), "InvalidFeedConfig");
+    await store.write.setPriceFeed([feed.address, 300, 3600]); // 3%, 1 hour
+    const ok = await quote({ priceWei: (PRICE * 102n) / 100n }); // 2% off: accepted
+    await asBuyer.write.purchaseWithEth([ok, await sign(ok)], { value: ok.priceWei });
+    const cheap = await quote({ priceWei: (PRICE * 95n) / 100n }); // 5% under: a leaked signer can't sell cheap
+    await expectRevert(asBuyer.write.purchaseWithEth([cheap, await sign(cheap)], { value: cheap.priceWei }), "PriceOffFeed");
+    const dear = await quote({ priceWei: (PRICE * 104n) / 100n });
+    await expectRevert(asBuyer.write.purchaseWithEth([dear, await sign(dear)], { value: dear.priceWei }), "PriceOffFeed");
+    await feed.write.set([332_666_666_667n, (await latestTimestamp()) - 3601n]);
+    const stale = await quote();
+    await expectRevert(asBuyer.write.purchaseWithEth([stale, await sign(stale)], { value: PRICE }), "StaleFeed");
+    await feed.write.set([0n, await latestTimestamp()]);
+    await expectRevert(asBuyer.write.purchaseWithEth([stale, await sign(stale)], { value: PRICE }), "StaleFeed");
+    await store.write.setPriceFeed(["0x0000000000000000000000000000000000000000", 0, 0]); // disable again
+    await asBuyer.write.purchaseWithEth([stale, await sign(stale)], { value: PRICE });
   });
 
   it("poolBps is bounded [1000, 5000], admin-only and evented; the pool address is immutable", async () => {

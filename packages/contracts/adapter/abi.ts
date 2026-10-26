@@ -30,7 +30,7 @@ export const premiumStoreAbi = parseAbi([
   "event Purchased(bytes32 indexed orderId, address indexed buyer, bytes32 indexed sku, address token, uint32 quantity, uint256 unitPrice, uint256 total)",
   "event PriceSet(bytes32 indexed sku, address indexed token, uint256 oldPrice, uint256 newPrice)",
   // Native ETH path (closed beta): EIP-712 EthQuote, poolBps to the PrizePool.
-  "struct EthQuote { bytes32 orderId; address buyer; bytes32 sku; uint32 quantity; uint256 priceWei; uint64 deadline; }",
+  "struct EthQuote { bytes32 orderId; address buyer; bytes32 sku; uint32 quantity; uint256 priceWei; uint64 usdCents; uint64 deadline; }",
   "function purchaseWithEth(EthQuote quote, bytes signature) payable returns (uint256 poolShare)",
   "function hashEthQuote(EthQuote quote) view returns (bytes32)",
   "function prizePool() view returns (address)",
@@ -39,6 +39,11 @@ export const premiumStoreAbi = parseAbi([
   "function setPoolBps(uint16 newBps)",
   "function setSkuActive(bytes32 sku, bool active)",
   "function withdrawEth()",
+  "function priceFeed() view returns (address)",
+  "function maxPriceDeviationBps() view returns (uint16)",
+  "function maxFeedAge() view returns (uint32)",
+  "function setPriceFeed(address feed, uint16 maxDeviationBps, uint32 maxAge)",
+  "event PriceFeedSet(address indexed feed, uint16 maxDeviationBps, uint32 maxAge)",
   "event PurchasedWithEth(bytes32 indexed orderId, address indexed buyer, bytes32 indexed sku, uint32 quantity, uint256 priceWei, uint256 poolShare, uint256 treasuryShare)",
   "event PoolBpsSet(uint16 oldBps, uint16 newBps)",
 ]);

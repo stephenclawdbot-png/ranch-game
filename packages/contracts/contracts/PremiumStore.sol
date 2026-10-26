@@ -9,6 +9,16 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+/// @dev Chainlink AggregatorV3Interface (the subset we read). Robinhood Chain documents
+/// Chainlink as its price oracle (docs.robinhood.com/chain/oracles-and-price-feeds).
+interface IPriceFeed {
+    function decimals() external view returns (uint8);
+    function latestRoundData()
+        external
+        view
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
+}
+
 /// @dev The part of PrizePool the store uses.
 interface IPrizePool {
     function fund(bytes32 ref) external payable;
@@ -53,7 +63,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     uint64 public constant MAX_QUOTE_TTL = 10 minutes;
 
     bytes32 public constant ETH_QUOTE_TYPEHASH = keccak256(
-        "EthQuote(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,uint256 priceWei,uint64 deadline)"
+        "EthQuote(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,uint256 priceWei,uint64 usdCents,uint64 deadline)"
     );
 
     struct EthQuote {
@@ -62,6 +72,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         bytes32 sku;
         uint32 quantity;
         uint256 priceWei; // exact total; msg.value must equal it
+        uint64 usdCents; // the USD price the quote was computed from (checked only if a feed is set)
         uint64 deadline; // unix seconds, at most MAX_QUOTE_TTL ahead
     }
 
@@ -85,6 +96,12 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     uint16 public poolBps;
     /// @notice Treasury share kept here because the treasury refused a direct transfer.
     uint256 public pendingTreasuryWei;
+    /// @notice OPTIONAL hardening (off by default): an ETH/USD Chainlink feed. When set, the
+    /// quote's implied price must be within `maxPriceDeviationBps` of the feed and the feed
+    /// must have updated within `maxFeedAge`.
+    IPriceFeed public priceFeed;
+    uint16 public maxPriceDeviationBps;
+    uint32 public maxFeedAge;
     mapping(address token => bool) public acceptedToken;
     mapping(bytes32 sku => bool) public skuActive;
     /// @notice Unit price in the token's smallest unit. 0 = SKU not sold in that token.
@@ -118,6 +135,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     event PoolBpsSet(uint16 oldBps, uint16 newBps);
     event TreasuryTransferDeferred(address indexed treasury, uint256 amount);
     event EthWithdrawn(address indexed to, uint256 amount);
+    event PriceFeedSet(address indexed feed, uint16 maxDeviationBps, uint32 maxAge);
 
     error ZeroAddress();
     error OrderAlreadyFulfilled(bytes32 orderId);
@@ -135,6 +153,9 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error ZeroPrice();
     error PoolBpsOutOfRange(uint16 bps);
     error TreasuryRefused(address treasury, uint256 amount);
+    error PriceOffFeed(uint256 priceWei, uint256 feedWei);
+    error StaleFeed(uint256 updatedAt);
+    error InvalidFeedConfig();
 
     constructor(address admin, address treasury_, address signer, address prizePool_, uint16 poolBps_)
         EIP712("ThoroughbredPremiumStore", "1")
@@ -213,6 +234,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         if (!skuActive[quote.sku]) revert SkuInactive(quote.sku);
         if (quote.priceWei == 0) revert ZeroPrice();
         if (msg.value != quote.priceWei) revert WrongPayment(quote.priceWei, msg.value);
+        if (address(priceFeed) != address(0)) _checkAgainstFeed(quote.priceWei, quote.usdCents);
 
         (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hashEthQuote(quote), signature);
         if (err != ECDSA.RecoverError.NoError || !hasRole(SIGNER_ROLE, signer)) revert InvalidSignature();
@@ -246,6 +268,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
                     quote.sku,
                     quote.quantity,
                     quote.priceWei,
+                    quote.usdCents,
                     quote.deadline
                 )
             )
@@ -292,6 +315,24 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         if (token == address(0)) revert ZeroAddress();
         acceptedToken[token] = accepted;
         emit TokenAcceptedSet(token, accepted);
+    }
+
+    /// @notice Wei a feed implies for `usdCents` (answer has `decimals` decimals, USD per ETH).
+    function _checkAgainstFeed(uint256 priceWei, uint64 usdCents) private view {
+        (, int256 answer,, uint256 updatedAt,) = priceFeed.latestRoundData();
+        if (answer <= 0 || block.timestamp > updatedAt + maxFeedAge) revert StaleFeed(updatedAt);
+        uint256 feedWei = (uint256(usdCents) * 10 ** (16 + uint256(priceFeed.decimals()))) / uint256(answer);
+        uint256 diff = priceWei > feedWei ? priceWei - feedWei : feedWei - priceWei;
+        if (diff * BPS > feedWei * maxPriceDeviationBps) revert PriceOffFeed(priceWei, feedWei);
+    }
+
+    /// @notice Enables (feed != 0) or disables (feed == 0) the optional on-chain price check.
+    function setPriceFeed(address feed, uint16 maxDeviationBps, uint32 maxAge) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (feed != address(0) && (maxDeviationBps == 0 || maxDeviationBps > 2_000 || maxAge == 0)) revert InvalidFeedConfig();
+        priceFeed = IPriceFeed(feed);
+        maxPriceDeviationBps = maxDeviationBps;
+        maxFeedAge = maxAge;
+        emit PriceFeedSet(feed, maxDeviationBps, maxAge);
     }
 
     /// @notice Prize Pool share of future ETH sales, bounded to [MIN_POOL_BPS, MAX_POOL_BPS].
