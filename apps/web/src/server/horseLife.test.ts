@@ -4,7 +4,7 @@
  * career decisions and facilities, through the same server functions the routes call.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAccount, createDb, gameCoreHooks, getBalance, insertHorse, listStableHorses, stableOf, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, gameCoreHooks, getBalance, insertHorse, listStableHorses, stableOf, toHorseState, type DbHandle } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
 import {
   careAction,
@@ -118,6 +118,19 @@ describe("training, career, facilities", () => {
     await careerAction(h.db, p, b!.id, "release", T0);
     expect(await getBalance(h.db, p.accountId)).toBe(before + 50);
     expect(await horseLifeView(h.db, p, b!.id, T0)).toBeNull();
+  });
+
+  it("insurance quotes the career-ending odds, agreeing with injuryRisk", async () => {
+    const p = await player("Underwriters Yard");
+    const [starter] = await listStableHorses(h.db, p.stable.id);
+    const v = await horseLifeView(h.db, p, starter!.id, T0);
+    expect(v!.condition.insurance).toMatchObject({ insured: false, available: true });
+    // Same context as the risk badge on the horse page: normal ride, best trip, good going.
+    const state = toHorseState(starter!);
+    const r = gc.injuryRisk(state, { nowMs: T0.getTime(), going: "good", distanceM: v!.horse.preferredDistanceM, intensity: "normal", stage: gc.stageOf(state) });
+    const expected = (r.permille * r.careerEndingShare) / 1000;
+    expect(v!.condition.insurance.careerEndingPerRace).toBeCloseTo(expected, 6);
+    expect(expected).toBeGreaterThan(0);
   });
 
   it("facilities come with game-core prices; a stable hand enables care for all", async () => {

@@ -26,6 +26,14 @@ export function formatCountdown(ms: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/** Odds in plain words: 2.5 (chance per 1,000) -> "about 1 in 400"; anything tinier -> "under 1 in 10,000". */
+export function oneInText(permille: number): string {
+  const n = permille > 0 ? 1000 / permille : Infinity;
+  if (n > 10_000) return "under 1 in 10,000";
+  const mag = 10 ** Math.max(0, Math.floor(Math.log10(n)) - 1); // two significant figures
+  return `about 1 in ${nf.format(Math.max(2, Math.round(n / mag) * mag))}`;
+}
+
 export function formatClock(ms: number): string {
   return new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }

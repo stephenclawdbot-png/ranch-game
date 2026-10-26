@@ -152,6 +152,9 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
     const r = gc.injuryRisk(state, { nowMs, going: "good", distanceM: horse.preferredDistanceM, intensity, stage });
     return { intensity, label: r.label, permille: r.permille, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text) };
   });
+  // The quote for the insurance panel: the normal-ride risk in the same context as the horse
+  // page's risk badge (stableHorseView), so the two always agree.
+  const careerEndingPerRace = (risks[1]!.permille * risks[1]!.careerEndingShare) / 1000;
   return {
     fatigue: gc.fatigueAt(state, nowMs),
     freshness: gc.freshnessBar(state, nowMs),
@@ -175,6 +178,7 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
       premium: gc.insurancePremium(state),
       payout: gc.insurancePayout(state),
       available: row.careerStatus === "racing" && !row.insured,
+      careerEndingPerRace,
     },
   };
 }

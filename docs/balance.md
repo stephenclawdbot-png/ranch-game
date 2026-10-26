@@ -244,7 +244,7 @@ Decisions from the lead and user:
   cap, plus cosmetics, a season pass and a stable licence.
 
 Today there are **no sinks**:
-- A new player starts with 5,000 credits (`STARTING_CREDITS`).
+- A new player starts with 3,000 credits (`STARTER_GRANT` in game-core, granted through the ledger).
 - One hour of quick races adds about 7,200, with nothing to spend them on.
 
 ### Faucet model (after this pass)

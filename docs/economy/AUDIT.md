@@ -534,8 +534,8 @@ material connection (FTC Endorsement Guides).
 | Market price ceiling | `db/services/market.ts` | none | ≤ 3× appraisal; 72 h resale lock (done 2026-10-26) | Credit transfers / real-money trading |
 | Daily goals | game-core constant | defined, not paid | **3 × 60** per local day, paid through the ledger (done 2026-10-26) | The documented balance assumes them |
 | Story career cost | `races.ts` settle (starts +1 for quick) | Story = career start | Story doesn't consume career starts (or a 4th starter) (done 2026-10-26) | Racing drought days 14–20 |
-| `STARTER_GRANT` docs | `docs/balance.md` | says 5,000 | fix the docs to 3,000 | Stale |
-| Insurance | game-core | 5% / 60% | keep; show the career-ending odds at purchase | −EV sink, not an exploit |
+| `STARTER_GRANT` docs | `docs/balance.md` | says 5,000 | fix the docs to 3,000 (done 2026-10-26) | Stale |
+| Insurance | game-core | 5% / 60% | keep; show the career-ending odds at purchase (done 2026-10-26) | −EV sink, not an exploit |
 
 ---
 

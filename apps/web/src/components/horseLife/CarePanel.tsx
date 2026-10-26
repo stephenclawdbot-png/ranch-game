@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { HorseLifeView } from "@/lib/horseLife";
 import { INTENSITY_LABEL, RISK_LABEL, dayName, hoursText } from "@/lib/horseLife";
-import { formatCredits } from "@/lib/format";
+import { formatCredits, oneInText } from "@/lib/format";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
@@ -189,6 +189,9 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
             <p className="text-sm text-positive">✓ Insured against a career-ending injury (pays {formatCredits(cond.insurance.payout)} credits).</p>
           ) : cond.insurance.available ? (
             <>
+              <p className="text-sm text-cream-dim" data-testid="insurance-risk">
+                Risk: {oneInText(cond.insurance.careerEndingPerRace)} races ends a career for a horse in this condition.
+              </p>
               <p className="text-sm text-cream-dim">
                 One premium of {formatCredits(cond.insurance.premium)} credits. Pays {formatCredits(cond.insurance.payout)} if an injury ever ends {first}&rsquo;s
                 racing career.

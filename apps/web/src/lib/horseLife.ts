@@ -82,7 +82,8 @@ export interface ConditionView {
   } | null;
   /** Injury risk of the next start at its best trip on good going, per ride. */
   risks: RiskRow[];
-  insurance: { insured: boolean; premium: number; payout: number; available: boolean };
+  /** Career-ending chance per race (per 1,000 races), normal ride at its best trip on good going. */
+  insurance: { insured: boolean; premium: number; payout: number; available: boolean; careerEndingPerRace: number };
 }
 
 export interface WorkoutView {
