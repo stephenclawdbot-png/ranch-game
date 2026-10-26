@@ -4,7 +4,7 @@
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { commitSeed, hashToken, newDeviceToken, newSeed, sha256Hex, utcDay } from "../crypto";
 import { DomainError } from "../errors";
-import { accountLinks, accountPlayDays, accounts, fraudEvents, horses, pregnancies, stables, type StableRow } from "../schema";
+import { accountDevices, accountLinks, accountPlayDays, accounts, fraudEvents, horses, pregnancies, stables, type StableRow } from "../schema";
 import {RULES, stageFor, type GameHooks, type HorseSpec } from "../rules";
 import { defaultHooks } from "../hooks";
 import { seasonNumberAt } from "../rules";
@@ -80,17 +80,43 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
   });
 }
 
-/** Resolves the cookie token to its account + stable (null if unknown). */
+/**
+ * Resolves the cookie token to its account + stable: the founding browser's token, or any
+ * linked device's (account_devices). Null if unknown. `last_seen_at` is refreshed at most
+ * once per hour, so the hot path stays two cheap indexed lookups and usually no writes.
+ */
+const SEEN_THROTTLE_MS = 60 * 60_000;
+
 export async function authenticate(db: Db, token: string): Promise<{ accountId: string; stable: StableRow } | null> {
   if (!token) return null;
+  const hash = hashToken(token);
   const rows = await db
-    .select({ accountId: accounts.id, stable: stables })
+    .select({ accountId: accounts.id, stable: stables, lastSeenAt: accounts.lastSeenAt })
     .from(accounts)
     .innerJoin(stables, eq(stables.accountId, accounts.id))
-    .where(eq(accounts.tokenHash, hashToken(token)));
-  const row = rows[0];
-  if (!row) return null;
-  await db.update(accounts).set({ lastSeenAt: new Date() }).where(eq(accounts.id, row.accountId));
+    .where(eq(accounts.tokenHash, hash));
+  let row = rows[0];
+  let device: { id: string; lastSeenAt: Date; accountId: string } | null = null;
+  if (!row) {
+    const devices = await db.select({ id: accountDevices.id, lastSeenAt: accountDevices.lastSeenAt, accountId: accountDevices.accountId }).from(accountDevices).where(eq(accountDevices.tokenHash, hash));
+    device = devices[0] ?? null;
+    if (!device) return null;
+    row = (
+      await db
+        .select({ accountId: accounts.id, stable: stables, lastSeenAt: accounts.lastSeenAt })
+        .from(accounts)
+        .innerJoin(stables, eq(stables.accountId, accounts.id))
+        .where(eq(accounts.id, device.accountId))
+    )[0];
+    if (!row) return null;
+  }
+  const now = new Date();
+  if (now.getTime() - row.lastSeenAt.getTime() >= SEEN_THROTTLE_MS) {
+    await db.update(accounts).set({ lastSeenAt: now }).where(eq(accounts.id, row.accountId));
+  }
+  if (device && now.getTime() - device.lastSeenAt.getTime() >= SEEN_THROTTLE_MS) {
+    await db.update(accountDevices).set({ lastSeenAt: now }).where(eq(accountDevices.id, device.id));
+  }
   return row;
 }
 

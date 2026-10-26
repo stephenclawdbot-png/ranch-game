@@ -128,6 +128,12 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
         <p className="caption">
           {invite ? `Invite ${invite} accepted. ` : ""}Free. No email, no wallet. Your stable is linked to this browser.
         </p>
+        <p className="caption">
+          Already have a stable?{" "}
+          <Link href="/link" className="link" data-testid="play-link-device">
+            Link this device
+          </Link>
+        </p>
       </div>
       <aside className="hidden md:block" aria-label="Preview">
         <div className="sticky top-24">

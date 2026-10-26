@@ -200,3 +200,23 @@ and rollout gates are in `docs/web3.md`.
 - **Server adapter:** `packages/contracts/adapter`. `MockChainAdapter` (default) and
   `EvmChainAdapter` (viem) share one `ChainAdapter` interface. Keys come from Vercel env
   and are never sent to the client.
+
+## 11. Accounts (anonymous device sessions)
+
+There are no emails or passwords. An account is a device: the browser holds a random 256-bit
+token in the httpOnly `tb_session` cookie, and only its sha256 (`accounts.token_hash`) is
+stored. `authenticate()` resolves the token to the account (and its stable) on every request.
+
+**Device linking** (`packages/db` `services/devices.ts`, routes under `/api/account/*`): to
+play the same stable on another device, the signed-in browser gets a one-time code
+(`POST /api/account/link-code`) — 8 characters from an unambiguous alphabet (no 0/O/1/I/L),
+shown as `XXXX-XXXX`, valid 10 minutes, single use; a new code expires the account's previous
+unused ones. Codes are stored hashed (`link_codes.code_hash`). The other device redeems it at
+`POST /api/account/link` (works signed out): the redemption is one transaction that marks the
+code used only while still fresh (`used_at is null`), so two devices can never share one code,
+and it inserts a per-device token into `account_devices` and sets the session cookie. Every
+failure answers the same generic "That code didn't work"; failed redemptions are rate-limited
+per IP (20/hour → 429); a browser that already has a stable in play must confirm
+`{ replace: true }`. Successful links are recorded as an identity signal (kind "device"), so
+anti-multi-account sees one person. `GET/DELETE /api/account/devices` list and revoke linked
+devices; the founding browser's token is not a device and can't be revoked from there.

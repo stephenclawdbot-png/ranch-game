@@ -15,6 +15,7 @@ export { gameCoreHooks, toHorseState, statePatch, specFromGenome, isGenome, isIn
 export * from "./services/tx";
 export * from "./services/ledger";
 export * from "./services/accounts";
+export * from "./services/devices";
 export * from "./services/horses";
 export * from "./services/races";
 export * from "./services/entries";

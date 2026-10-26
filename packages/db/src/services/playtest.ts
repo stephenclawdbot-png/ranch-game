@@ -613,6 +613,8 @@ export const RESET_TABLES = [
   "account_play_days",
   "fraud_events",
   "account_links",
+  "link_codes",
+  "account_devices",
   "accounts",
 ] as const;
 
