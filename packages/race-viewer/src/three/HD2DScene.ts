@@ -86,6 +86,7 @@ const BG_PX_PER_M = 10;
 /** Nose-to-tail length of a racehorse (m); low-density strips are scaled to it. */
 const HORSE_LEN_M = 2.4;
 const PULLUP_TAU = 2.6;
+const CONFETTI = ["#d9a441", "#f3e7c9", "#c8102e", "#1d3f8f", "#2e9259", "#ffffff"];
 const TRACK_PRE = 180;
 const TRACK_POST = 340;
 const x0Track = (_L: number) => -TRACK_PRE;
@@ -200,6 +201,8 @@ export class HD2DScene {
   private winnerTime = Number.POSITIVE_INFINITY;
   private photoFinish = false;
   private confettiDone = false;
+  private confettiLeft = 0;
+  private nearBuf: Runner[] = [];
   private W = 1;
   private H = 1;
   private v1: THREE.Vector3;
@@ -1050,10 +1053,16 @@ export class HD2DScene {
     // Confetti as the winner hits the line.
     if (!this.confettiDone && tS >= this.winnerTime && simDt > 0) {
       this.confettiDone = true;
-      const cols = ["#d9a441", "#f3e7c9", "#c8102e", "#1d3f8f", "#2e9259", "#ffffff"];
-      for (let i = 0; i < 260; i++) {
-        this.particles.emit("confetti", L - 4 + Math.random() * 10, 5 + Math.random() * 5, -this.trackW * Math.random(), (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, cols[i % cols.length]!, 0.09, 5 + Math.random() * 3);
+      this.confettiLeft = 260;
+    }
+    // Confetti is released over several frames (no single-frame spike).
+    if (this.confettiLeft > 0 && simDt > 0) {
+      const cols = CONFETTI;
+      const n = Math.min(this.confettiLeft, 30);
+      for (let i = 0; i < n; i++) {
+        this.particles.emit("confetti", L - 4 + Math.random() * 10, 5 + Math.random() * 5, -this.trackW * Math.random(), (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, cols[(this.confettiLeft - i) % cols.length]!, 0.09, 5 + Math.random() * 3);
       }
+      this.confettiLeft -= n;
     }
     this.particles.update(simDt);
     const buf = this.renderer.getDrawingBufferSize(this.buf);
@@ -1202,9 +1211,26 @@ export class HD2DScene {
     let leadPad = 1;
     let maxSpan = 10;
     let composeShift = 0.12;
+    // The subject plus its nearest rivals within `reach` (no per-frame allocation).
+    const buf = this.nearBuf;
     const near = (reach: number, max: number) => {
-      const g = byX.filter((r) => Math.abs(r.x - sub.x) <= reach).sort((a, b) => Math.abs(a.x - sub.x) - Math.abs(b.x - sub.x)).slice(0, max);
-      return g.includes(sub) ? g : [sub, ...g.slice(0, max - 1)];
+      buf.length = 0;
+      buf.push(sub);
+      while (buf.length < max) {
+        let best: Runner | null = null;
+        let bd = reach;
+        for (const r of byX) {
+          if (buf.includes(r)) continue;
+          const d = Math.abs(r.x - sub.x);
+          if (d <= bd) {
+            bd = d;
+            best = r;
+          }
+        }
+        if (!best) break;
+        buf.push(best);
+      }
+      return buf;
     };
     switch (type) {
       case "gate": {

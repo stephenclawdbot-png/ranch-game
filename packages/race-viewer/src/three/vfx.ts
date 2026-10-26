@@ -57,6 +57,7 @@ export class PixelParticles {
   private geo: THREE.BufferGeometry;
   private mat: THREE.ShaderMaterial;
   private cursor = 0;
+  private colorCache = new Map<string, [number, number, number]>();
   density = 1;
 
   constructor(T: typeof THREE, capacity: number) {
@@ -95,8 +96,28 @@ export class PixelParticles {
     if (kind !== "confetti" && Math.random() > this.density) return;
     const p = this.take();
     if (!p) return;
-    const [r, g, b] = hexToRgb(color);
-    Object.assign(p, { alive: true, kind, x, y, z, vx, vy, vz, life: 0, max: life, size, grow: kind === "dust" ? size * 0.3 : 0, r: r / 255, g: g / 255, b: b / 255, a: alpha, phase: Math.random() * 6.28 });
+    let rgb = this.colorCache.get(color);
+    if (!rgb) {
+      rgb = hexToRgb(color);
+      this.colorCache.set(color, rgb);
+    }
+    p.alive = true;
+    p.kind = kind;
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    p.vx = vx;
+    p.vy = vy;
+    p.vz = vz;
+    p.life = 0;
+    p.max = life;
+    p.size = size;
+    p.grow = kind === "dust" ? size * 0.3 : 0;
+    p.r = rgb[0] / 255;
+    p.g = rgb[1] / 255;
+    p.b = rgb[2] / 255;
+    p.a = alpha;
+    p.phase = Math.random() * 6.28;
   }
 
   update(dt: number): void {
