@@ -27,3 +27,4 @@ export * from "./leagues";
 export * from "./social";
 export * from "./onboarding";
 export * from "./story";
+export * from "./naming";

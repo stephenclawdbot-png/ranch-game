@@ -31,6 +31,7 @@ export const FRIENDLY: Record<string, string> = {
   TOO_EARLY: "Too early: try again in a moment.",
   INSUFFICIENT_ENTRIES: "No stable entries left today.",
   ENTRY_REFILL_UNAVAILABLE: "A refill isn't available right now.",
+  NAME_TAKEN: "That name is taken. Try another.",
   unauthorized: "Found a stable first.",
   race_not_found: "We couldn't find that race.",
   too_early: "The race hasn't started yet.",

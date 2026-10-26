@@ -142,6 +142,7 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
   const horse = horseFromRow(row, silks, nowMs);
   const base = {
     id: row.id,
+    regNo: gc.registrationNumber(row.generation, row.regNo),
     horse,
     careerStatus: row.careerStatus,
     starts: row.starts,

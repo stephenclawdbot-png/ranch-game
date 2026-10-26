@@ -81,6 +81,8 @@ export interface RiskView {
 
 export interface StableHorse {
   id: string;
+  /** Public registration number, e.g. "G2-04571". */
+  regNo: string;
   /** Shared Horse (current stats, appearance in the stable's silks). */
   horse: Horse;
   stage: string;
@@ -168,6 +170,8 @@ export interface PlayerView {
 
 export interface HorseDetailView {
   horse: Horse;
+  /** Public registration number, e.g. "G2-04571". */
+  regNo: string;
   kind: "player" | "house";
   stableName: string;
   trainer: string | null;
@@ -175,7 +179,7 @@ export interface HorseDetailView {
   /** Present for the owner's own horses. */
   status: StableHorse | null;
   runs: RunView[];
-  pedigree: { sire: { id: string; name: string } | null; dam: { id: string; name: string } | null };
+  pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };
   /** Standing at public stud (a player's stallion or a Club house stallion). */
   stud: { fee: number; club: boolean } | null;
   /** The owner's next steps beyond racing (null for other stables' horses). */

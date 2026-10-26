@@ -40,7 +40,8 @@ export type DomainErrorCode =
   | "PRICE_BELOW_FLOOR"
   | "INSUFFICIENT_ENTRIES"
   | "ENTRY_REFILL_UNAVAILABLE"
-  | "TIMEZONE_LOCKED";
+  | "TIMEZONE_LOCKED"
+  | "NAME_TAKEN";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

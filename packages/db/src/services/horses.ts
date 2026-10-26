@@ -13,6 +13,7 @@ import type { Db, Executor } from "../types";
 import { recordPlayDay, stableOf } from "./accounts";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
+import { claimChosenName } from "./naming";
 
 export async function getHorse(ex: Executor, horseId: string): Promise<HorseRow | null> {
   const [h] = await ex.select().from(horses).where(eq(horses.id, horseId));
@@ -212,13 +213,17 @@ export async function releaseToClub(db: Db, input: { accountId: string; horseId:
   });
 }
 
-export async function renameHorse(db: Db, input: { accountId: string; horseId: string; name: string }): Promise<void> {
-  const name = input.name.trim();
-  if (name.length < 1 || name.length > 32) throw new DomainError("INVALID_INPUT", "name must be 1-32 characters");
-  await runTx(db, async (tx) => {
+export async function renameHorse(db: Db, input: { accountId: string; horseId: string; name: string }): Promise<string> {
+  const check = gc.validateHorseName(input.name);
+  if (!check.ok) throw new DomainError("INVALID_INPUT", check.message, { problem: check.problem });
+  return runTx(db, async (tx) => {
     const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
     if (horse.starts > 0) throw new DomainError("NOT_ELIGIBLE", "a horse can only be renamed before its first start");
+    if (gc.nameKey(horse.name) === gc.nameKey(check.name) && horse.name === check.name) return check.name;
+    const name = await claimChosenName(tx, check.name, { exceptHorseId: horse.id });
     await tx.update(horses).set({ name }).where(eq(horses.id, horse.id));
+    await audit(tx, { actor: input.accountId, action: "horse.rename", entityType: "horse", entityId: horse.id, data: { from: horse.name, to: name } });
+    return name;
   });
 }
 

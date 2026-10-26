@@ -12,6 +12,7 @@ import type { Db, Executor } from "../types";
 import { ensureDailyEntries, isValidTimezone } from "./entries";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
+import { claimChosenName, claimSystemName } from "./naming";
 
 export interface CreateAccountInput {
   stableName: string;
@@ -175,16 +176,25 @@ export interface InsertHorseInput {
   generation?: number;
   birthSeasonNumber?: number | null;
   now: Date;
+  /**
+   * "chosen": the name came from the player (validated; NAME_TAKEN when in use).
+   * "system" (default): a free alternative is picked quietly when the name is taken.
+   */
+  nameMode?: "chosen" | "system";
 }
 
 /** Low-level insert. Callers are responsible for the stall check. */
 export async function insertHorse(ex: Executor, input: InsertHorseInput): Promise<string> {
   const careSessions = input.spec.careSessions ?? RULES.careToRacing;
+  const name =
+    input.nameMode === "chosen"
+      ? await claimChosenName(ex, input.spec.name)
+      : await claimSystemName(ex, input.spec.name, sha256Hex(`${input.spec.name}|${JSON.stringify(input.spec.genome ?? null)}|${input.stableId ?? "club"}`));
   const [row] = await ex
     .insert(horses)
     .values({
       ownerStableId: input.stableId,
-      name: input.spec.name.slice(0, 32),
+      name: name.slice(0, 32),
       sex: input.spec.sex,
       sireId: input.sireId ?? null,
       damId: input.damId ?? null,

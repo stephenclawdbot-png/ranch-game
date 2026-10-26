@@ -449,8 +449,7 @@ export async function graduateAction(db: Db, session: Session, horseId: string, 
 
 export async function renameAction(db: Db, session: Session, horseId: string, name: string) {
   assertId(horseId);
-  await renameHorse(db, { accountId: session.accountId, horseId, name });
-  return { name: name.trim() };
+  return { name: await renameHorse(db, { accountId: session.accountId, horseId, name }) };
 }
 
 export type CareerAction = "retire" | "legacy" | "release";

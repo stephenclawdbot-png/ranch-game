@@ -43,6 +43,13 @@
       "when": 1792991297714,
       "tag": "0005_affiliates",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792994722960,
+      "tag": "0006_horse_registry",
+      "breakpoints": true
     }
   ]
 }

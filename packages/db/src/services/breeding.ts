@@ -253,6 +253,7 @@ export async function foalTx(
     // Foals of Club-bred parents are tradeable only after 5 starts.
     tradeMinStarts: parentBound ? 5 : 0,
     now: input.now,
+    nameMode: input.name ? "chosen" : "system",
   });
   await insertLineage(tx, foalId, sire.id, dam.id);
   const [updated] = await tx

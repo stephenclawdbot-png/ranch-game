@@ -26,6 +26,7 @@ import {
   jsonb,
   numeric,
   pgEnum,
+  pgSequence,
   pgTable,
   primaryKey,
   text,
@@ -232,6 +233,9 @@ export const seasons = pgTable(
 // Horses
 // ---------------------------------------------------------------------------
 
+/** Public registration numbers (G<generation>-<reg_no>): one global, never reused sequence. */
+export const horseRegSeq = pgSequence("horse_reg_seq", { startWith: 1 });
+
 export const horses = pgTable(
   "horses",
   {
@@ -239,6 +243,11 @@ export const horses = pgTable(
     /** Single owner column: a horse can never be owned by two stables. Null = house/system horse. */
     ownerStableId: uuid("owner_stable_id").references(() => stables.id),
     name: text("name").notNull(),
+    /**
+     * Public registration sequence, shown as G<generation>-<reg_no zero-padded>. Assigned by
+     * the column default on insert (so every code path, old or new, gets one); unique.
+     */
+    regNo: integer("reg_no").notNull().default(sql`nextval('horse_reg_seq')`),
     sex: horseSexEnum("sex").notNull(),
     gelded: boolean("gelded").notNull().default(false),
     sireId: uuid("sire_id").references((): AnyPgColumn => horses.id),
@@ -317,6 +326,9 @@ export const horses = pgTable(
   },
   (t) => [
     index("horses_owner_idx").on(t.ownerStableId),
+    uniqueIndex("horses_reg_no_uq").on(t.regNo),
+    /** Name lookups for the uniqueness check (case-insensitive; enforced in services/naming.ts). */
+    index("horses_name_lower_idx").using("btree", sql`lower(${t.name})`),
     index("horses_sire_idx").on(t.sireId),
     index("horses_dam_idx").on(t.damId),
     index("horses_rating_idx").on(t.rating),

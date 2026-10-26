@@ -986,23 +986,22 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const nowMs = now.getTime();
   const runs = (await listHorseRuns(db, horseId, 20)).map((r) => runView(r, new Map([[row.id, row.name]])));
   const parentRows = [row.sireId, row.damId].filter((x): x is string => !!x);
-  const parents = new Map<string, string>();
+  const parents = new Map<string, { name: string; regNo: string }>();
   for (const id of parentRows) {
     const p = await getHorse(db, id);
-    if (p) parents.set(id, p.name);
+    if (p) parents.set(id, { name: p.name, regNo: gc.registrationNumber(p.generation, p.regNo) });
   }
-  const pedigree = {
-    sire: row.sireId ? { id: row.sireId, name: parents.get(row.sireId) ?? "Unknown" } : null,
-    dam: row.damId ? { id: row.damId, name: parents.get(row.damId) ?? "Unknown" } : null,
-  };
+  const parent = (id: string | null) => (id ? { id, name: parents.get(id)?.name ?? "Unknown", regNo: parents.get(id)?.regNo ?? null } : null);
+  const pedigree = { sire: parent(row.sireId), dam: parent(row.damId) };
+  const regNo = gc.registrationNumber(row.generation, row.regNo);
   const atStud = row.studFee !== null && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
   if (!row.ownerStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, stud: { fee: row.studFee!, club: true }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, stud: { fee: row.studFee!, club: true }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, stud: null, actions: null };
   }
   const stable = await getStable(db, row.ownerStableId);
   const silks = parseSilks(stable?.silks);
@@ -1019,6 +1018,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   }
   return {
     horse: horseFromRow(row, silks, nowMs),
+    regNo,
     kind: "player",
     stableName: stable?.name ?? "Private stable",
     trainer: null,

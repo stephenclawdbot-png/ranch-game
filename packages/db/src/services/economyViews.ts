@@ -224,8 +224,13 @@ export async function nameFoal(
   input: { accountId: string; pregnancyId: string; name?: string; now: Date },
   hooks: GameHooks = defaultHooks,
 ): Promise<{ foalId: string; alreadyFoaled: boolean; inOverflow: boolean }> {
-  const name = input.name?.trim() || undefined;
-  if (name !== undefined && (name.length < 1 || name.length > 32)) throw new DomainError("INVALID_INPUT", "name must be 1-32 characters");
+  const raw = input.name?.trim() || undefined;
+  let name: string | undefined;
+  if (raw !== undefined) {
+    const check = gc.validateHorseName(raw);
+    if (!check.ok) throw new DomainError("INVALID_INPUT", check.message, { problem: check.problem });
+    name = check.name;
+  }
   const stable = await stableOf(db, input.accountId);
   const [preg] = await db.select().from(pregnancies).where(eq(pregnancies.id, input.pregnancyId));
   if (!preg) throw new DomainError("NOT_FOUND", "pregnancy not found");
