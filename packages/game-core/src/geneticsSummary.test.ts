@@ -44,7 +44,13 @@ describe("geneticsSummary", () => {
 
     const liverOnBlack = summary(withCoat({ liver: ["l", "l"] }));
     expect(liverOnBlack.coat.loci.find((l) => l.locus === "Liver")!.carried).toBe(true);
-    expect(summary(withCoat({ cream: ["Cr", "n"] })).coat.loci.find((l) => l.locus === "Cream")!.carried).toBe(true);
+    // A single cream dose shows (buckskin, palomino): it is not a hidden copy.
+    expect(summary(withCoat({ cream: ["Cr", "n"] })).coat.loci.find((l) => l.locus === "Cream")!.carried).toBe(false);
+    // Black base: a mixed agouti pair hides its weaker allele; a matching pair hides nothing.
+    const agouti = (pair: [string, string]) => summary(withCoat({ extension: ["E", "E"], agouti: pair as never })).coat.loci.find((l) => l.locus === "Agouti")!;
+    expect(agouti(["A", "a"])).toMatchObject({ carried: true, meaning: "bay: black kept to the points (carries black)" });
+    expect(agouti(["a", "a"])).toMatchObject({ carried: false, meaning: "solid black (no agouti)" });
+    expect(agouti(["A", "A"]).carried).toBe(false);
     expect(summary(withCoat({ cream: ["Cr", "Cr"] })).coat.loci.find((l) => l.locus === "Cream")!.carried).toBe(false);
   });
 

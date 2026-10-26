@@ -296,7 +296,7 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
                   <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
                   <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
                     {l.meaning}
-                    {l.carried && <span className="label ml-1">(carried)</span>}
+                    {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
                   </td>
                 </tr>
               ))}

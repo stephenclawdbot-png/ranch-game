@@ -75,14 +75,22 @@ function coatLoci(g: Genome): GeneLine[] {
     {
       locus: "Agouti",
       alleles: join(c.agouti, ["A", "At", "a"]),
-      meaning: red ? "no effect on red coats" : agoutiA ? "bay: black kept to the points" : agoutiAt ? "seal brown / dark bay" : "solid black (no agouti)",
-      carried: red || (e > 0 && agoutiA + agoutiAt < 2),
+      meaning: red
+        ? "no effect on red coats"
+        : agoutiA
+          ? `bay: black kept to the points${agoutiA === 1 ? (agoutiAt ? " (carries seal brown)" : " (carries black)") : ""}`
+          : agoutiAt
+            ? `seal brown / dark bay${agoutiAt === 1 ? " (carries black)" : ""}`
+            : "solid black (no agouti)",
+      // Carried = a copy this horse doesn't show but can pass on: all of agouti on a red base,
+      // or the weaker allele of a mixed pair on a black base.
+      carried: red || c.agouti[0] !== c.agouti[1],
     },
     {
       locus: "Cream",
       alleles: join(c.cream, ["Cr", "n"]),
       meaning: count(c.cream, "Cr") === 0 ? "no cream dilution" : count(c.cream, "Cr") === 1 ? "one dose: partial dilution (palomino, buckskin, smoky black)" : "double dose: cremello, perlino or smoky cream",
-      carried: count(c.cream, "Cr") === 1,
+      carried: false, // one or two doses both show (palomino/buckskin/smoky black, cremello/perlino)
     },
     {
       locus: "Grey",
