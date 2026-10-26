@@ -5,7 +5,7 @@
  * missing; bound and locked horses explained), and your listings (cancel any time).
  * 5% of every sale is burned.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { formatCredits } from "@/lib/format";
@@ -23,6 +23,15 @@ function expiresIn(ms: number): string {
 export function MarketScreen() {
   const { data, setData, error, reload } = useEcoView<MarketView>("/api/market");
   const [tab, setTab] = useState<Tab>("buy");
+  useEffect(() => {
+    const fromHash = () => {
+      const h = window.location.hash.slice(1);
+      if (h === "buy" || h === "sell" || h === "mine") setTab(h);
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
+  }, []);
   if (error && !data) return <ErrorNote error={error} onRetry={reload} />;
   if (!data) return <Skeleton rows={4} />;
   const v = data;

@@ -122,9 +122,19 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
           Foals
         </h2>
         {view.foals.length === 0 ? (
-          <div className="surface p-4 text-cream-dim" data-testid="nursery-empty">
-            No foals right now. Foals come from Paddock Packs and breeding, and grow up with one care session a day: 5 to wean, 7 more to yearling, 7 more to
-            racing age.
+          <div className="surface grid gap-3 p-4 text-cream-dim" data-testid="nursery-empty">
+            <p>
+              No foals right now. Foals come from Paddock Packs and breeding, and grow up with one care session a day: 5 to wean, 7 more to yearling, 7 more to
+              racing age.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/packs" className="btn btn-sm" data-testid="nursery-to-packs">
+                Open a Paddock Pack
+              </Link>
+              <Link href="/breeding" className="btn btn-sm">
+                Breeding barn
+              </Link>
+            </div>
           </div>
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">

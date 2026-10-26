@@ -29,8 +29,11 @@ import {
   getRaceForSimulation,
   getRaceResult,
   facilityLevels,
+  breedingStatus,
+  CLUB_STUD_NAME,
   getStable,
   grantGiftFoal,
+  tradeStatus,
   isGenome,
   listCardRaces,
   listHorseRuns,
@@ -80,7 +83,7 @@ import type {
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
-import { bigCrowd, engineHorseFromSnapshot, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 
@@ -980,13 +983,38 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   if (!row) return null;
   const nowMs = now.getTime();
   const runs = (await listHorseRuns(db, horseId, 20)).map((r) => runView(r, new Map([[row.id, row.name]])));
+  const parentRows = [row.sireId, row.damId].filter((x): x is string => !!x);
+  const parents = new Map<string, string>();
+  for (const id of parentRows) {
+    const p = await getHorse(db, id);
+    if (p) parents.set(id, p.name);
+  }
+  const pedigree = {
+    sire: row.sireId ? { id: row.sireId, name: parents.get(row.sireId) ?? "Unknown" } : null,
+    dam: row.damId ? { id: row.damId, name: parents.get(row.damId) ?? "Unknown" } : null,
+  };
+  const atStud = row.studFee !== null && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
   if (!row.ownerStableId) {
+    // A Club house stallion standing at stud, or a house runner from the Live card.
+    if (row.origin === "house" && atStud) {
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, stud: { fee: row.studFee!, club: true }, actions: null };
+    }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs };
+    return { horse: horseFromRow(row, house.silks, nowMs), kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, stud: null, actions: null };
   }
   const stable = await getStable(db, row.ownerStableId);
   const silks = parseSilks(stable?.silks);
   const mine = session?.stable.id === row.ownerStableId;
+  let actions: HorseDetailView["actions"] = null;
+  if (mine && row.careerStatus !== "pasture") {
+    const breeding = await breedingStatus(db, row, now);
+    const trade = await tradeStatus(db, row);
+    actions = {
+      cover: row.sex === "female" && breeding.block === null,
+      stud: row.sex === "male" && !row.gelded && (breeding.block === null || breeding.block === "season_limit"),
+      sell: trade.lock === null || trade.lock === "listed",
+    };
+  }
   return {
     horse: horseFromRow(row, silks, nowMs),
     kind: "player",
@@ -995,5 +1023,8 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     mine,
     status: mine ? stableHorseView(row, silks, nowMs) : null,
     runs,
+    pedigree,
+    stud: atStud ? { fee: row.studFee!, club: false } : null,
+    actions,
   };
 }

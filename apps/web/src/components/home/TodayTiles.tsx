@@ -23,8 +23,8 @@ interface Tile {
 const POLL_MS = 60_000;
 
 /**
- * "Today" on Home: the few things worth doing, in priority order (foaling, the gift foal,
- * care, the Daily Cup, a free pack, the next Story race). Secondary to the hero action above.
+ * "Today" on Home: the few things worth doing, in priority order (the Daily Cup, the gift foal,
+ * care, a free pack, a mare ready to foal, the next Story race). Secondary to the hero action.
  */
 export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   const [tiles, setTiles] = useState<HomeTiles | null | undefined>(undefined);
@@ -67,39 +67,6 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
 
   const skew = now === null ? 0 : tiles.serverNowMs - Date.now();
   const list: Tile[] = [];
-  if (tiles.foaling) {
-    list.push({
-      key: "foaling",
-      icon: "star",
-      title: `${tiles.foaling.damName} is ready to foal`,
-      text: `By ${tiles.foaling.sireName}. Name the foal and meet it in the barn.`,
-      href: "/breeding",
-      cta: "Meet the foal",
-      ready: true,
-    });
-  }
-  if (tiles.giftFoal) {
-    list.push({
-      key: "gift",
-      icon: "rosette",
-      title: `A gift from the Club: ${tiles.giftFoal.name}`,
-      text: "A foal from the Club's broodmare. Foals grow through daily care, never by the clock.",
-      href: `/horse/${tiles.giftFoal.id}/care`,
-      cta: "Care for the foal",
-      ready: true,
-    });
-  }
-  if (tiles.care) {
-    const n = tiles.care.count;
-    list.push({
-      key: "care",
-      icon: "horseshoe",
-      title: `Care today: ${n} ${n === 1 ? "horse" : "horses"}`,
-      text: tiles.care.foals > 0 ? `${tiles.care.foals} ${tiles.care.foals === 1 ? "foal grows" : "foals grow"} with each day's care. Missing a day never hurts.` : "Feed, groom and turn out: bond and condition. Missing a day never hurts.",
-      href: tiles.care.href,
-      cta: tiles.care.href === "/nursery" ? "Open the nursery" : "Care",
-    });
-  }
   if (tiles.cup) {
     const c = tiles.cup;
     const left = now === null ? null : c.closesAtMs - (now + skew);
@@ -125,6 +92,28 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
           },
     );
   }
+  if (tiles.giftFoal) {
+    list.push({
+      key: "gift",
+      icon: "rosette",
+      title: `A gift from the Club: ${tiles.giftFoal.name}`,
+      text: "A foal from the Club's broodmare. Foals grow through daily care, never by the clock.",
+      href: `/horse/${tiles.giftFoal.id}/care`,
+      cta: "Care for the foal",
+      ready: true,
+    });
+  }
+  if (tiles.care) {
+    const n = tiles.care.count;
+    list.push({
+      key: "care",
+      icon: "horseshoe",
+      title: `Care today: ${n} ${n === 1 ? "horse" : "horses"}`,
+      text: tiles.care.foals > 0 ? `${tiles.care.foals} ${tiles.care.foals === 1 ? "foal grows" : "foals grow"} with each day's care. Missing a day never hurts.` : "Feed, groom and turn out: bond and condition. Missing a day never hurts.",
+      href: tiles.care.href,
+      cta: tiles.care.href === "/nursery" ? "Open the nursery" : "Care",
+    });
+  }
   if (tiles.freePacks > 0) {
     list.push({
       key: "pack",
@@ -133,6 +122,17 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
       text: "Earned by playing. Published odds; every pull is verifiable.",
       href: "/packs",
       cta: "Open",
+      ready: true,
+    });
+  }
+  if (tiles.foaling) {
+    list.push({
+      key: "foaling",
+      icon: "star",
+      title: `${tiles.foaling.damName} is ready to foal`,
+      text: `By ${tiles.foaling.sireName}. Name the foal and meet it in the barn.`,
+      href: "/breeding",
+      cta: "Meet the foal",
       ready: true,
     });
   }

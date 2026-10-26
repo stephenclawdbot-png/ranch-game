@@ -39,8 +39,8 @@ export async function homeTiles(db: Db, session: Session, now: Date): Promise<Ho
     const last = await lastCareDays(db, rows.map((r) => r.id));
     const uncared = rows.filter((r) => !((last.get(r.id) ?? "") >= day));
     const foals = nursery.foals.filter((f) => !f.care.caredToday).length;
-    // One grown horse left: straight to its care tab. Otherwise the nursery ("Care for all").
-    const href = uncared.length === 1 && foals === 0 ? `/horse/${uncared[0]!.id}/care` : "/nursery";
+    // Foals (or a stable hand's "Care for all"): the nursery. Otherwise the first grown horse's care tab.
+    const href = foals > 0 || nursery.stableHand || !uncared[0] ? "/nursery" : `/horse/${uncared[0].id}/care`;
     care = { count: uncared.length, foals, href };
   }
 

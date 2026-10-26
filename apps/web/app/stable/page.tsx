@@ -105,15 +105,6 @@ function Stable({ state }: { state: PlayerState }) {
         </button>
       </div>
 
-      <nav className="flex flex-wrap gap-2" aria-label="Stable yard" data-testid="yard-links">
-        <Link href="/nursery" className="btn btn-sm">
-          Nursery
-        </Link>
-        <Link href="/facilities" className="btn btn-sm">
-          Facilities
-        </Link>
-      </nav>
-
       <div className="grid gap-3 border-t-2 border-line pt-4">
         <Link
           href="/me"

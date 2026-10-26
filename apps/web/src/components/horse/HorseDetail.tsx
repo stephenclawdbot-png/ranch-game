@@ -137,9 +137,44 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
                 <PixelIcon name="flag" size={32} className="-my-2" /> {st?.block ? st.block : `Race ${horse.name}`}
               </button>
             </ActionBar>
+          ) : view.stud ? (
+            <div className="grid gap-2" data-testid="stud-info">
+              <p className="text-sm text-cream-dim">
+                {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee{" "}
+                <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
+              </p>
+              <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
+                Plan a cover with {horse.name.split(" ")[0]}
+              </Link>
+            </div>
           ) : view.kind === "house" ? (
             <p className="text-sm text-cream-dim">A club horse. You&rsquo;ll meet it on the card.</p>
           ) : null}
+          {isMine && view.actions && (view.actions.cover || view.actions.stud || view.actions.sell) && (
+            <ul className="flex flex-wrap gap-2" aria-label="More for this horse" data-testid="horse-actions">
+              {view.actions.cover && (
+                <li>
+                  <Link href="/breeding" className="btn btn-sm" data-testid="plan-cover">
+                    Plan a cover
+                  </Link>
+                </li>
+              )}
+              {view.actions.stud && (
+                <li>
+                  <Link href="/breeding#studs" className="btn btn-sm" data-testid="stand-at-stud">
+                    {view.stud ? `At stud · ${formatCredits(view.stud.fee)}` : "Stand at stud"}
+                  </Link>
+                </li>
+              )}
+              {view.actions.sell && (
+                <li>
+                  <Link href="/market#sell" className="btn btn-sm" data-testid="sell-horse">
+                    Sell
+                  </Link>
+                </li>
+              )}
+            </ul>
+          )}
         </div>
       </section>
 
@@ -211,11 +246,27 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         <dl className="mt-2 grid gap-1 text-cream-dim sm:grid-cols-2">
           <div>
             <dt className="label">Sire</dt>
-            <dd className="text-cream">{horse.sireId ?? "Foundation stock"}</dd>
+            <dd className="text-cream">
+              {view.pedigree.sire ? (
+                <Link href={`/horse/${view.pedigree.sire.id}`} className="underline decoration-2 underline-offset-4 hover:text-cream">
+                  {view.pedigree.sire.name}
+                </Link>
+              ) : (
+                "Foundation stock"
+              )}
+            </dd>
           </div>
           <div>
             <dt className="label">Dam</dt>
-            <dd className="text-cream">{horse.damId ?? "Foundation stock"}</dd>
+            <dd className="text-cream">
+              {view.pedigree.dam ? (
+                <Link href={`/horse/${view.pedigree.dam.id}`} className="underline decoration-2 underline-offset-4 hover:text-cream">
+                  {view.pedigree.dam.name}
+                </Link>
+              ) : (
+                "Foundation stock"
+              )}
+            </dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="label">Markings</dt>

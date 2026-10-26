@@ -173,6 +173,11 @@ export interface HorseDetailView {
   /** Present for the owner's own horses. */
   status: StableHorse | null;
   runs: RunView[];
+  pedigree: { sire: { id: string; name: string } | null; dam: { id: string; name: string } | null };
+  /** Standing at public stud (a player's stallion or a Club house stallion). */
+  stud: { fee: number; club: boolean } | null;
+  /** The owner's next steps beyond racing (null for other stables' horses). */
+  actions: { cover: boolean; stud: boolean; sell: boolean } | null;
 }
 
 /** The viewer's own result in a race (only after the broadcast is over). */

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
 import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingRaceRow } from "@/components/RaceList";
@@ -56,6 +57,9 @@ export default async function RacesPage() {
           <p className="mt-1 max-w-2xl text-cream-dim">
             Solo races against the Club&rsquo;s rival stables, whenever you like. Free to enter: no stable entries used. Watch, or skip to the result.
           </p>
+          <Link href="/story" className="mt-2 inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-cream" data-testid="story-chapters-link">
+            Story chapters, rivals and licences ›
+          </Link>
         </div>
         <QuickRacePanel />
       </section>

@@ -24,7 +24,13 @@ export function BreedingBarn() {
   const { data, setData, error, reload } = useEcoView<BreedingView>("/api/breeding");
   const [tab, setTab] = useState<Tab>("barn");
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#studs") setTab("studs");
+    const fromHash = () => {
+      if (window.location.hash === "#studs") setTab("studs");
+      else if (window.location.hash === "#barn") setTab("barn");
+    };
+    fromHash();
+    window.addEventListener("hashchange", fromHash);
+    return () => window.removeEventListener("hashchange", fromHash);
   }, []);
 
   if (error && !data) return <ErrorNote error={error} onRetry={reload} />;

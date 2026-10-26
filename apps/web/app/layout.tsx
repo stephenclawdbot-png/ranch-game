@@ -12,9 +12,13 @@ const pixelify = Pixelify_Sans({ subsets: ["latin"], weight: ["600"], variable: 
 const jersey = Jersey_10({ subsets: ["latin"], weight: "400", variable: "--font-jersey", display: "swap" });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"], variable: "--font-nunito", display: "swap" });
 
+/** The deployed commit (Vercel system env), for deploy checks: <meta name="build" content="<sha>">. */
+const BUILD_SHA = (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.BUILD_SHA ?? "dev").slice(0, 40);
+
 export const metadata: Metadata = {
   title: { default: "Thoroughbred", template: "%s · Thoroughbred" },
-  description: "Run a racing stable. Six horses, a race in a minute, every result sealed and replayable.",
+  description: "Run a racing stable. Breed, raise and race horses; every result sealed and replayable.",
+  other: { build: BUILD_SHA },
 };
 
 export const viewport: Viewport = {
