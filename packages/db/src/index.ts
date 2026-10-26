@@ -27,3 +27,7 @@ export * from "./services/maintenance";
 export * from "./services/player";
 export * from "./services/economyViews";
 export * from "./services/horseLife";
+export * from "./services/story";
+export * from "./services/dailyCup";
+export * from "./services/leagues";
+export * from "./services/hall";
