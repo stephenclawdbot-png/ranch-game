@@ -8,6 +8,7 @@ import {
   insurancePayout,
   insurancePremium,
   listBlock,
+  listingCeiling,
   listingFloor,
   marketFee,
   promoteFromNursery,
@@ -113,6 +114,7 @@ describe("stalls, appraisal and the market", () => {
     const spent = { ...h, breeding: { used: 4, bySeason: [] } };
     expect(appraise(spent)).toBeLessThan(appraise(h));
     expect(listingFloor(h)).toBe(Math.ceil(appraise(h) * 0.7));
+    expect(listingCeiling(h)).toBe(Math.floor(appraise(h) * 3));
     expect(insurancePremium(h)).toBeLessThan(insurancePayout(h));
     expect(marketFee(1000)).toBe(50);
   });
@@ -129,6 +131,8 @@ describe("stalls, appraisal and the market", () => {
     expect(listBlock({ ...h, binding: "until_5_starts", record: { ...h.record, starts: 4 } }, seller, price, T0, flags)).toBe("bound_until_5_starts");
     expect(listBlock({ ...h, binding: "until_5_starts", record: { ...h.record, starts: 5 } }, seller, price, T0, flags)).toBeNull();
     expect(listBlock(h, seller, Math.floor(price * 0.5), T0, flags)).toBe("below_floor");
+    expect(listBlock(h, seller, price * 3, T0, flags)).toBeNull();
+    expect(listBlock(h, seller, price * 3 + 1, T0, flags)).toBe("above_ceiling");
     expect(listBlock(h, seller, price, T0, { ...flags, enteredInRace: true })).toBe("entered_in_race");
     expect(tradeBlock("a", "b", { linked: [["b", "a"]] })).toBe("linked_accounts");
     expect(tradeBlock("a", "a", { linked: [] })).toBe("self_trade");

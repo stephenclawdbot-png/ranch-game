@@ -115,6 +115,7 @@ const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
   in_race: () => "Entered in a race.",
   listed: () => "Already listed.",
   in_foal: () => "In foal: she can be sold after foaling.",
+  resale_lock: () => "Bought on the market: it can be listed again once the 72-hour resale lock ends.",
 };
 
 /** Player-facing messages for the economy's domain errors (details stay attached). */
@@ -147,6 +148,12 @@ export function friendlyEconomyError(err: unknown): unknown {
         return "That horse is Club-bred and can't be sold.";
       case "PRICE_BELOW_FLOOR":
         return typeof d.floor === "number" ? `The minimum price is ${d.floor.toLocaleString("en-GB")} credits (70% of the appraisal).` : "That price is below the floor (70% of the appraisal).";
+      case "PRICE_ABOVE_CEILING":
+        return typeof d.ceiling === "number" ? `The maximum price is ${d.ceiling.toLocaleString("en-GB")} credits (3x the appraisal).` : "That price is above the ceiling (3x the appraisal).";
+      case "RESALE_LOCKED":
+        return typeof d.until === "number"
+          ? `Bought on the market: it can be listed again after ${new Date(d.until).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.`
+          : "A horse bought on the market can be listed again after 72 hours.";
       case "LISTING_NOT_ACTIVE":
       case "LISTING_EXPIRED":
         return "That listing is no longer available.";
@@ -502,13 +509,16 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
   const horses: SellableHorse[] = [];
   for (const r of await listStableHorses(db, session.stable.id)) {
     if (r.careerStatus === "pasture") continue;
-    const ts = await tradeStatus(db, r);
+    const ts = await tradeStatus(db, r, now);
     horses.push({
       ...ecoHorse(r, silks, nowMs),
       appraisal: ts.appraisal,
       floor: ts.floor,
+      ceiling: ts.ceiling,
       lock: ts.lock,
       lockReason: ts.lock ? (LOCK_REASON[ts.lock]?.(ts) ?? "Can't be sold right now.") : null,
+      boughtAtMs: ts.boughtAt?.getTime() ?? null,
+      resaleUntilMs: ts.resaleUntil?.getTime() ?? null,
       listingId: mineByHorse.get(r.id) ?? null,
     });
   }
@@ -532,6 +542,7 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
     },
     feePermille: gc.MARKET_FEE_PERMILLE,
     floorPermille: gc.LISTING_FLOOR_PERMILLE,
+    ceilingPermille: gc.LISTING_CEILING_PERMILLE,
     maxListingDays: Math.round(RULES.maxListingMs / 86_400_000),
     credits: await getBalance(db, session.accountId),
     stalls: { used: stalls.used, slots: stalls.slots, free: stalls.free },

@@ -177,6 +177,10 @@ describe("market", () => {
     const err = friendlyEconomyError(await listForSale(h.db, s, { horseId: foalRow.id, price: foalRow.floor - 1, days: 7 }, T0).catch((e) => e)) as DomainError;
     expect(err.code).toBe("PRICE_BELOW_FLOOR");
     expect(err.message).toMatch(/minimum price/);
+    expect(foalRow.ceiling).toBe(foalRow.appraisal * 3);
+    const dear = friendlyEconomyError(await listForSale(h.db, s, { horseId: foalRow.id, price: foalRow.ceiling + 1, days: 7 }, T0).catch((e) => e)) as DomainError;
+    expect(dear.code).toBe("PRICE_ABOVE_CEILING");
+    expect(dear.message).toMatch(/maximum price/);
 
     const l1 = await listForSale(h.db, s, { horseId: foalRow.id, price: foalRow.floor, days: 3 }, T0);
     expect(l1.expiresAtMs - T0.getTime()).toBe(3 * DAY);
@@ -196,6 +200,15 @@ describe("market", () => {
     await buy(h.db, b, l2.listingId, T0);
     expect(await getBalance(h.db, b.accountId)).toBe(buyerBefore - price);
     expect(await getBalance(h.db, s.accountId)).toBe(sellerBefore + price - gc.marketFee(price));
+    // The 72 h resale lock: the buyer's sell tab shows the horse locked with the exact dates.
+    const vAfter = await marketView(h.db, b, at(3_600_000));
+    const relisted = vAfter.horses.find((x) => x.id === foalRow.id)!;
+    expect(relisted).toMatchObject({ lock: "resale_lock", boughtAtMs: T0.getTime(), resaleUntilMs: at(72 * 3_600_000).getTime() });
+    expect(relisted.lockReason).toMatch(/Bought on the market/);
+    const vOpen = await marketView(h.db, b, at(72 * 3_600_000));
+    expect(vOpen.horses.find((x) => x.id === foalRow.id)!.lock).toBeNull();
+    const locked = friendlyEconomyError(new DomainError("RESALE_LOCKED", "cannot list", { until: at(72 * 3_600_000).getTime() })) as DomainError;
+    expect(locked.message).toMatch(/listed again after/);
     expect((await marketView(h.db, b, T0)).horses.some((x) => x.id === foalRow.id)).toBe(true);
   });
 });

@@ -33,9 +33,11 @@ export const RULES = {
   purseSplitBps: [5500, 2000, 1200, 700, 400, 200] as readonly number[],
   insurancePremium: 300,
   insurancePayout: 2_000,
-  /** Market (§4b): 5% burned fee, price floor at 70% of appraisal, seller requirements. */
+  /** Market (§4b): 5% burned fee, price floor at 70% of appraisal, ceiling at 3x (AUDIT §6), 72 h resale lock, seller requirements. */
   marketFeeBps: gc.MARKET_FEE_PERMILLE * 10,
   listingFloorBps: gc.LISTING_FLOOR_PERMILLE * 10,
+  listingCeilingBps: gc.LISTING_CEILING_PERMILLE * 10,
+  resaleLockMs: gc.RESALE_LOCK_MS,
   maxListingMs: 14 * 24 * 60 * 60 * 1000,
   sellerMinAccountAgeMs: gc.SELLER_MIN_AGE_DAYS * 24 * 60 * 60 * 1000,
   sellerMinRaces: gc.SELLER_MIN_RACES,

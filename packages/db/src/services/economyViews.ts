@@ -9,8 +9,8 @@
  *     stable's pregnancies, public studs, and naming a foal at foaling;
  *   - packs: pull history, play days, and the proof of a pull (the revealed seed chain, so
  *     the browser can re-derive pity and the foal's genome);
- *   - market: seller requirements as data, per-horse listability with the appraisal floor,
- *     the active listings with horse and seller.
+ *   - market: seller requirements as data, per-horse listability with the appraisal floor and
+ *     ceiling, the active listings with horse and seller.
  *
  * Reads never change state, except `nameFoal` (which wraps the idempotent `foal`).
  */
@@ -36,7 +36,7 @@ import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
 import { foal, pedigreeIndex } from "./breeding";
 import { renameHorse } from "./horses";
-import { settledRacesForStable } from "./market";
+import { resaleLock, settledRacesForStable } from "./market";
 
 export type PackPullRow = typeof packPulls.$inferSelect;
 
@@ -413,7 +413,7 @@ export async function sellerStatus(ex: Executor, input: { accountId: string; sta
   };
 }
 
-export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "in_foal" | "legacy_farm" | null;
+export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "in_foal" | "legacy_farm" | "resale_lock" | null;
 
 export interface TradeStatus {
   horseId: string;
@@ -422,12 +422,19 @@ export interface TradeStatus {
   startsNeeded: number;
   appraisal: number;
   floor: number;
+  /** Maximum listing price: 3x the appraisal (AUDIT §6). */
+  ceiling: number;
+  /** While lock === "resale_lock": when this stable bought the horse and when it can be listed again. */
+  boughtAt: Date | null;
+  resaleUntil: Date | null;
 }
 
-/** Whether a horse can be listed (ignoring the seller requirements), with its floor price. */
-export async function tradeStatus(ex: Executor, horse: HorseRow, hooks: GameHooks = defaultHooks): Promise<TradeStatus> {
+/** Whether a horse can be listed (ignoring the seller requirements), with its floor and ceiling price. */
+export async function tradeStatus(ex: Executor, horse: HorseRow, now?: Date, hooks: GameHooks = defaultHooks): Promise<TradeStatus> {
   const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
   const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
+  const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : bps(appraisal, RULES.listingCeilingBps);
+  const resale = now && horse.ownerStableId ? await resaleLock(ex, horse.id, horse.ownerStableId, now) : null;
   let lock: TradeLock = null;
   const [carrying] = horse.sex === "female" ? await ex.select({ id: pregnancies.id }).from(pregnancies).where(and(eq(pregnancies.damId, horse.id), eq(pregnancies.status, "carrying"))) : [];
   if (horse.bound) lock = "club_bred";
@@ -436,7 +443,8 @@ export async function tradeStatus(ex: Executor, horse: HorseRow, hooks: GameHook
   else if (horse.lockKind === "race") lock = "in_race";
   else if (horse.lockKind === "market") lock = "listed";
   else if (carrying) lock = "in_foal";
-  return { horseId: horse.id, lock, startsNeeded: Math.max(0, horse.tradeMinStarts - horse.starts), appraisal, floor };
+  else if (resale) lock = "resale_lock";
+  return { horseId: horse.id, lock, startsNeeded: Math.max(0, horse.tradeMinStarts - horse.starts), appraisal, floor, ceiling, boughtAt: resale?.boughtAt ?? null, resaleUntil: resale?.until ?? null };
 }
 
 export interface MarketListingView {

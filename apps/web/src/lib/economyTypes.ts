@@ -200,9 +200,14 @@ export interface ListingView extends EcoHorse {
 export interface SellableHorse extends EcoHorse {
   appraisal: number;
   floor: number;
+  /** Maximum listing price: 3x the appraisal. */
+  ceiling: number;
   /** null = can be listed (if the seller requirements are met). */
   lock: string | null;
   lockReason: string | null;
+  /** While lock === "resale_lock": when the horse was bought and when it can be listed again. */
+  boughtAtMs: number | null;
+  resaleUntilMs: number | null;
   listingId: string | null;
 }
 
@@ -226,6 +231,7 @@ export interface MarketView {
   seller: SellerView;
   feePermille: number;
   floorPermille: number;
+  ceilingPermille: number;
   maxListingDays: number;
   credits: number;
   stalls: { used: number; slots: number; free: number };

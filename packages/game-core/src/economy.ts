@@ -72,6 +72,10 @@ export const INSURANCE_PREMIUM_PERMILLE = 50;
 export const INSURANCE_PAYOUT_PERMILLE = 600;
 export const MARKET_FEE_PERMILLE = 50;
 export const LISTING_FLOOR_PERMILLE = 700;
+/** Ceiling: a listing price may never exceed 3x the appraisal (AUDIT §6 anti credit-transfer). */
+export const LISTING_CEILING_PERMILLE = 3000;
+/** A horse bought on the market can't be relisted for this long after the trade (AUDIT §6). */
+export const RESALE_LOCK_MS = 3 * MS_PER_DAY;
 
 export const BASE_STALLS = 6;
 export const MAX_STALLS = 24;
@@ -143,6 +147,10 @@ export function listingFloor(state: HorseState): number {
   return Math.ceil((appraise(state) * LISTING_FLOOR_PERMILLE) / 1000);
 }
 
+export function listingCeiling(state: HorseState): number {
+  return Math.floor((appraise(state) * LISTING_CEILING_PERMILLE) / 1000);
+}
+
 export interface SellerAccount {
   createdAtMs: number;
   racesRun: number;
@@ -162,6 +170,7 @@ export type ListBlock =
   | "entered_in_race"
   | "in_foal"
   | "below_floor"
+  | "above_ceiling"
   | "locked";
 
 /** Seller requirements (§4b). Operators can tune them (the database layer reads env config). */
@@ -191,6 +200,7 @@ export function listBlock(
   if (state.pregnancy) return "in_foal";
   if (flags.locked) return "locked";
   if (price < listingFloor(state)) return "below_floor";
+  if (price > listingCeiling(state)) return "above_ceiling";
   return null;
 }
 

@@ -1009,7 +1009,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   let actions: HorseDetailView["actions"] = null;
   if (mine && row.careerStatus !== "pasture") {
     const breeding = await breedingStatus(db, row, now);
-    const trade = await tradeStatus(db, row);
+    const trade = await tradeStatus(db, row, now);
     actions = {
       cover: row.sex === "female" && breeding.block === null,
       stud: row.sex === "male" && !row.gelded && (breeding.block === null || breeding.block === "season_limit"),
