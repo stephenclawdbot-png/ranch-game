@@ -296,6 +296,7 @@ export function RaceViewer(props: RaceViewerProps) {
       const ft = new Float32Array(240);
       const wk = new Float32Array(2000);
       let wkN = 0;
+      const spikes: string[] = [];
       let ftN = 0;
       let ftMax = 0;
       let raf = 0;
@@ -344,6 +345,7 @@ export function RaceViewer(props: RaceViewerProps) {
         dtSum += deltaMS;
         ft[ftN++ % ft.length] = deltaMS;
         wk[wkN++ % wk.length] = work;
+        if (debug && work > 8 && spikes.length < 30) spikes.push(`${fr.time.toFixed(1)}s:${work.toFixed(0)}ms`);
         if (ftN > 30) ftMax = Math.max(ftMax, deltaMS);
         warm += dt;
         if (quality === "auto" && qualityRef.current === "high" && warm > 2) {
@@ -361,7 +363,7 @@ export function RaceViewer(props: RaceViewerProps) {
           const p99 = win[Math.floor(win.length * 0.99)] ?? 0;
           (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: ftN, camMaxStep: scene.maxCamStep, ...(() => {
             const w = Array.from(wk.subarray(0, Math.min(wkN, wk.length))).sort((a, b) => a - b);
-            return { workMedian: w[w.length >> 1] ?? 0, workP99: w[Math.floor(w.length * 0.99)] ?? 0, workMax: w[w.length - 1] ?? 0, over2x: w.filter((x) => x > 2 * (w[w.length >> 1] ?? 0)).length };
+            return { workMedian: w[w.length >> 1] ?? 0, workP99: w[Math.floor(w.length * 0.99)] ?? 0, workMax: w[w.length - 1] ?? 0, over2x: w.filter((x) => x > 2 * (w[w.length >> 1] ?? 0)).length, spikes };
           })() };
           setDebugText(
             `frame med ${median.toFixed(1)} p99 ${p99.toFixed(1)} max ${ftMax.toFixed(1)} ms\n` +

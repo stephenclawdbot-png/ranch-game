@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import type { ArtFile } from "./art";
+import ART_INDEX from "./art.index.json";
 
 const ROOT = join(process.cwd(), "public", "art");
 
@@ -41,17 +42,20 @@ function unapproved(): Set<string> {
 }
 
 /**
- * Every PixelLab PNG currently present under public/art (read at render/build time).
+ * Every approved PixelLab PNG under public/art (read at render time, or the build-time index).
  * Small (a few dozen entries), passed to the client through <ArtProvider>.
  */
 export function listArt(): ArtFile[] {
-  if (!existsSync(ROOT)) return [];
+  // Vercel functions don't ship public/ (the CDN serves it): use the build-time index
+  // (scripts/art-index.mjs). Locally the folder is read live, so new art shows at once.
+  if (!existsSync(ROOT)) return ART_INDEX as ArtFile[];
   const files: string[] = [];
   try {
     walk(ROOT, files);
   } catch {
-    return [];
+    return ART_INDEX as ArtFile[];
   }
+  if (files.length === 0) return ART_INDEX as ArtFile[];
   const hidden = unapproved();
   const out: ArtFile[] = [];
   for (const f of files) {
