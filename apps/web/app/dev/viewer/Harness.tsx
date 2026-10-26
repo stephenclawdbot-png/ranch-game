@@ -26,6 +26,8 @@ export interface HarnessParams {
   live?: string;
   /** "none" = skip /art (code-drawn art only). */
   art?: string;
+  /** Stage height (px), like the race page passes it. */
+  h?: string;
   /** Low internal resolution, nearest upscale. */
   pixel?: string;
 }
@@ -72,6 +74,7 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         highlightHorseId={params.highlight ?? "h3"}
         pixelated={params.pixel !== undefined}
         artBaseUrl={params.art === "none" ? null : "/art"}
+        height={params.h !== undefined ? num(params.h, 420) : undefined}
       />
     </main>
   );

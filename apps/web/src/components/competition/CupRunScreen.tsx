@@ -30,7 +30,8 @@ export function CupRunScreen({ run }: { run: CupRunView }) {
     const measure = () => {
       const w = el.clientWidth;
       let h = w * 0.5625;
-      if (window.innerWidth < 640) h = Math.max(h, w * 0.62);
+      // Phones: same tall stage as the race page (big fields stay readable), up to ~half the screen.
+      if (window.innerWidth < 640) h = Math.max(h, Math.min(w * 1.05, window.innerHeight * 0.48));
       setHeight(Math.round(Math.min(620, Math.max(220, h))));
     };
     measure();

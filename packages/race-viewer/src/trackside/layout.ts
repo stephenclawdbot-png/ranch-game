@@ -28,7 +28,7 @@ export const LANE_W = 1.25;
 export const CAM_H_MIN = 6;
 export const CAM_H_MAX = 14;
 /** Extra camera height available to big fields on narrow stages (still side-on, never aerial). */
-const CAM_H_CROWD = 9;
+const CAM_H_CROWD = 4;
 
 /**
  * Crowding factor in [0, 1]: 1 on a narrow stage carrying a big field, 0 on wide stages
@@ -43,7 +43,7 @@ export function crowding(W: number, runners: number): number {
 
 /** Lane depth falloff for a crowding level: crowded fields recede faster (more height per lane). */
 export function laneFalloff(cr: number): number {
-  return LANE_K * (1 + 1.35 * cr); // up to ~0.07
+  return LANE_K * (1 + 0.7 * cr); // up to ~0.07
 }
 
 export interface SpriteMetrics {
@@ -98,7 +98,7 @@ export const laneScale = (lane: number, k = LANE_K) => 1 / (1 + k * lane);
 export function camHeight(ppm: number, H: number, laneSpan: number, cr = 0): number {
   const k = laneFalloff(cr);
   // Short (phone) stages spread the lanes a little more: small horses overlap less.
-  const share = H < 420 ? 0.3 + 0.3 * cr : 0.22;
+  const share = H < 420 ? 0.3 + 0.15 * cr : 0.22;
   const cap = CAM_H_MAX + CAM_H_CROWD * cr;
   const want = (share * H) / Math.max(1e-6, ppm * (1 - laneScale(Math.max(3, laneSpan), k)));
   return Math.min(cap, Math.max(CAM_H_MIN, want));
@@ -362,7 +362,7 @@ export interface CameraTarget {
 export function sizeLimits(W: number, runners = 8): { minLen: number; maxLen: number } {
   const minLen = Math.min(180, Math.max(84, W * 0.14));
   // Big fields on narrow stages may fall back to a smaller horse, still on the ladder.
-  const crowded = Math.max(44, Math.round(minLen * (1 - 0.45 * crowding(W, runners))));
+  const crowded = Math.max(44, Math.round(minLen * (1 - 0.25 * crowding(W, runners))));
   return { minLen: crowded, maxLen: Math.min(520, W * 0.34) };
 }
 
