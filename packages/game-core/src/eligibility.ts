@@ -8,6 +8,7 @@
 import type { RaceClass } from "@thoroughbred/shared";
 import type { HorseState, RaceSlot, RaceTier } from "./types";
 import { CARE_TO_YEARLING, raceBlock, stageOf } from "./lifecycle";
+import { ENTRY_CLOSE_BEFORE_MS } from "./seasons";
 
 export interface TierRule {
   /** Shared contract class (what the engine / viewer see). */
@@ -116,8 +117,8 @@ export function eligibleTiers(state: HorseState, nowMs: number): RaceTier[] {
     kind: "regular",
     tier,
     season: 1,
-    postTimeMs: nowMs + 120_000,
-    entryCloseMs: nowMs + 60_000,
+    postTimeMs: nowMs + 2 * ENTRY_CLOSE_BEFORE_MS,
+    entryCloseMs: nowMs + ENTRY_CLOSE_BEFORE_MS,
     distanceM: 1600,
     surface: "turf",
     goingForecast: "good",

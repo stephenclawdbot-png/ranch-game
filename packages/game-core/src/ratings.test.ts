@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { expectedScore, formatWeight, handicapWeights, updateRatings, BOTTOM_WEIGHT_LB, MAX_GAIN_PER_RACE, MAX_LOSS_PER_RACE, TOP_WEIGHT_LB } from "./ratings";
 import { classBand, eligibleTiers, entryBlock, stableEntriesLeft, TIER_RULES } from "./eligibility";
+import { ENTRY_CLOSE_BEFORE_MS } from "./seasons";
 import { DAY, T0, makeHorse } from "./test-helpers";
 import type { RaceSlot } from "./types";
 
@@ -54,7 +55,7 @@ describe("official ratings", () => {
 
 describe("eligibility", () => {
   const slot = (tier: RaceSlot["tier"], extra: Partial<RaceSlot> = {}): RaceSlot => ({
-    id: "r", name: "r", kind: "regular", tier, season: 1, postTimeMs: T0 + DAY, entryCloseMs: T0 + DAY - 60_000, distanceM: 1600, surface: "turf",
+    id: "r", name: "r", kind: "regular", tier, season: 1, postTimeMs: T0 + DAY, entryCloseMs: T0 + DAY - ENTRY_CLOSE_BEFORE_MS, distanceM: 1600, surface: "turf",
     goingForecast: "good", weather: "clear", purse: 0, entryFee: 0, maxRunners: 12, handicap: false, division: null, ...extra,
   });
   it("juveniles: maiden/novice/quick/trial only", () => {

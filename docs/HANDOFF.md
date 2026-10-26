@@ -36,10 +36,10 @@ Preview and Production.)
   - public boards list test accounts: run the `/admin` reset before testers arrive (owner's
     call on timing: it wipes production and preview);
   - check Trackside and the dioramas for fps on a real GPU and phone;
-  - **owner (2026-10-26): "Going down to post" is too long, make it a bit shorter (later).**
-    It is the gap between entry close (post − 60 s, `enterRace`) and "Gates loading"
-    (last 10 s), ~50 s of nothing on Live races. Options: close entries at post − 30 s, or
-    give the wait something to watch (the field cantering down, the parade ring);
+  - **owner (2026-10-26): "Going down to post" is too long, make it a bit shorter.** Fixed
+    (worker/post): entries now close at post − 30 s (`ENTRY_CLOSE_BEFORE_MS` in game-core,
+    `RULES.entriesCloseBeforePostMs` reads it), so the gap to "Gates loading" (last 10 s) is
+    ~20 s. "Give the wait something to watch" stays open as an idea;
   - Trackside has no dun dorsal stripe: `HorseAppearance` carries no dun gene (add it to
     the shared appearance if wanted).
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not

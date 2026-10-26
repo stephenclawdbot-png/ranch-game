@@ -14,7 +14,7 @@ import { DAY, SILKS, T0, makeHorse } from "./test-helpers";
 const clock = { epochMs: T0 };
 
 describe("season calendar", () => {
-  it("a race every 3 minutes with published conditions; entries close 1 minute before", () => {
+  it("a race every 3 minutes with published conditions; entries close 30 s before", () => {
     const slots = regularSlots(clock, T0, T0 + DAY);
     expect(slots.length).toBe(SLOTS_PER_DAY);
     slots.forEach((s, i) => {

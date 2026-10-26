@@ -146,7 +146,7 @@ describe("Live card", () => {
     expect(open.field.filter((f) => f.mine)).toHaveLength(1);
     await expect(liveChunk(h.db, pick.raceId, 0, T0)).rejects.toBeInstanceOf(TooEarlyError);
 
-    // Entries close a minute before the off: the field locks, house horses fill the gates.
+    // Entries close 30 s before the off: the field locks, house horses fill the gates.
     const closeAt = new Date(open.entriesCloseAtMs + 500);
     const closed = await raceCard(h.db, pick.raceId, closeAt, a.stable.id);
     expect(closed.status).toBe("closed");

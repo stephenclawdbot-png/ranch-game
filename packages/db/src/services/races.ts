@@ -1,7 +1,7 @@
 /**
  * Races (game-design §4d): every Live race is shared and live.
  *
- *   publish (card.ts, seed committed)  →  enterRace (open until post − 60 s)
+ *   publish (card.ts, seed committed)  →  enterRace (open until post − 30 s)
  *   →  lockField at entry close (snapshot, house horses fill to 8–12, gate draw from seed)
  *   →  getRaceForSimulation at post time (seed revealed)  →  engine (web app)
  *   →  settleRace after the broadcast (idempotent: purses, ratings, records, unlock, inbox;

@@ -42,7 +42,7 @@ Design System v2 at 390×844 (phone). Before and after, Home and Stable:
 
 | Area | How it works |
 |---|---|
-| **Races** | **Live:** a shared card with a race every 3 minutes. Entries close 1 minute before the off, AI horses fill empty gates, and the race is broadcast live with no spoilers. **Story:** solo races against AI rivals, which you can skip to the result. **Quick Pick** enters your best-fit horse in one tap. |
+| **Races** | **Live:** a shared card with a race every 3 minutes. Entries close 30 seconds before the off, AI horses fill empty gates, and the race is broadcast live with no spoilers. **Story:** solo races against AI rivals, which you can skip to the result. **Quick Pick** enters your best-fit horse in one tap. |
 | **Fairness** | Races are simulated deterministically on the server from a committed seed. Anyone can verify the seed commitment and result hash. The outcome is never sent to clients before the finish is broadcast. |
 | **Horses** | Every horse has a public **registration number** (`G<generation>-<sequence>`, e.g. `G2-04571`) and a **unique name** among active horses (2–18 characters; Hall of Fame names are retired for good). Genetics: a two-allele genome, a vigour gene, real coat-colour genetics, markings, breeds and body shape. Every horse's look is generated in code from its genes. Potential is revealed over time. |
 | **Career clock** | Horses age by **career starts, not calendar time**: 40 starts, running juvenile → prime → veteran → retirement → stud → Legacy Farm. Freshness recovers in real time, with at most 3 starts per day. Injuries are visible before entry and never fatal. |

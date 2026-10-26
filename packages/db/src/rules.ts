@@ -67,9 +67,9 @@ export const RULES = {
   entryRefillBelow: gc.ENTRY_REFILL_BELOW,
   entryRefillPrice: gc.ENTRY_REFILL_COST,
   timezoneChangeMs: gc.TZ_CHANGE_MIN_DAYS * 24 * 60 * 60 * 1000,
-  /** Live card (§4d): a race every 3 minutes; entries close 60 s before the off. */
+  /** Live card (§4d): a race every 3 minutes; entries close 30 s before the off. */
   slotMs: 3 * 60 * 1000,
-  entriesCloseBeforePostMs: 60 * 1000,
+  entriesCloseBeforePostMs: gc.ENTRY_CLOSE_BEFORE_MS,
   cardHorizonMs: 30 * 60 * 1000,
   minField: 8,
   maxField: 12,

@@ -25,7 +25,7 @@ export async function POST() {
     await db.execute(`
       with r as (
         insert into races (kind, name, race_class, conditions, post_time, entries_close_at, status, seed_commitment, seed)
-        select 'quick', 'Fixture ' || g, 'maiden', '{}'::jsonb, now() - g * interval '1 day', now() - g * interval '1 day' - interval '1 minute', 'settled', md5('${acc}' || g), md5('${acc}' || g)
+        select 'quick', 'Fixture ' || g, 'maiden', '{}'::jsonb, now() - g * interval '1 day', now() - g * interval '1 day' - interval '30 seconds', 'settled', md5('${acc}' || g), md5('${acc}' || g)
           from generate_series(1, 20) g
         returning id)
       insert into race_entries (race_id, horse_id, stable_id, gate, tactic, snapshot, rating_before)

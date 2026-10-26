@@ -37,7 +37,7 @@ pnpm --filter @thoroughbred/game-core sim         # full population Monte Carlo 
 | `ledger.ts` | Double-entry credits ledger: zero-sum postings, no negative player or escrow balances, idempotency keys | `post`, `checkLedger`, `grantTx`, `spendTx`, `studFeeTx`, `escrowTx`, `settleSaleTx` |
 | `economy.ts` | Faucet and sink constants, stalls, appraisal, market rules, linked-account hook, story rewards, weekly flow model | `PURSE_BY_TIER`, `appraise`, `listBlock`, `tradeBlock`, `storyReward`, `weeklyFlow`, `ACTIVE_PLAYER` |
 | `entries.ts` | Stable entries (§4f): +10 per local day, bank cap 20, costs, refill | `grantFor`, `entryCost`, `canRefill`, `refill`, `spendEntries` |
-| `seasons.ts` | The 3-minute calendar (entries close 1 min before the off), Weekend Features and qualifiers, the Season Final | `regularSlot(s)`, `nextOpenSlot`, `featureCalendar` |
+| `seasons.ts` | The 3-minute calendar (entries close 30 s before the off), Weekend Features and qualifiers, the Season Final | `regularSlot(s)`, `nextOpenSlot`, `featureCalendar` |
 | `dailyCup.ts` | One seeded fixed field per day and one Cup Run per player per day, ranked by time. Takes `simulateRace` as a parameter | `dailyCupDay`, `runDailyCup`, `rankCup` |
 | `leagues.ts` | Weekly leagues of 30 with promotion and relegation. Absent owners are never relegated | `formLeagues`, `settleLeague` |
 | `social.ts` | Achievements, Hall of Fame criteria, rivalry detection | `ACHIEVEMENTS`, `hallOfFameReasons`, `detectRivalries` |

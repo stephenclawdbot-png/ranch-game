@@ -205,7 +205,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 
 - **The core loop is a shared race card.** A race goes off every 3 minutes across tracks,
   distances, surfaces and classes. Every viewer sees the same race at the same moment, live.
-- **Entries** are open from when the card is published until 1 minute before the off. The
+- **Entries** are open from when the card is published until 30 seconds before the off. The
   seed commitment is published when entries open. At entry close, the field snapshot is
   locked.
 - **Fields of 8–12 horses come from different players.** At lock, any gates still empty are
@@ -299,7 +299,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
     too. A field of equals is the most exciting.
 - **Race calendar.** The schedule runs every 3 minutes, with conditions published in advance
   (distance, surface, going forecast).
-  - Entries close 1 minute before the off.
+  - Entries close 30 seconds before the off.
   - Each horse has a limit on runs per day, to protect it and to stop farming.
 - **Quick races** are casual, low-purse and still rated.
 - **Daily Cup.**

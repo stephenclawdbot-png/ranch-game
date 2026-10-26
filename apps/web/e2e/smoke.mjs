@@ -282,7 +282,7 @@ async function main() {
     await page.keyboard.press("Escape");
     await page.getByTestId("inbox-race").first().waitFor();
 
-    log("waiting for the field to lock (entries close 1 min before the off)");
+    log("waiting for the field to lock (entries close 30 s before the off)");
     await page.goto(`${BASE_URL}/race/${liveId}`);
     const lockDeadline = Date.now() + RACE_TIMEOUT_MS;
     let locked = null;

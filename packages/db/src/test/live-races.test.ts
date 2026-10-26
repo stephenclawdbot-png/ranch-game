@@ -49,8 +49,9 @@ describe("race card", () => {
     expect(cards[1]!.map((r) => r.seedCommitment)).toEqual(cards[0]!.map((r) => r.seedCommitment));
     const first = slotIndexAt(now) + 1;
     expect(await count(h.db, "races", `slot_key in (${Array.from({ length: expected }, (_, i) => `'live:${first + i}'`).join(",")})`)).toBe(expected);
+    expect(RULES.entriesCloseBeforePostMs).toBe(30_000); // one going-to-post constant, from game-core
     for (const r of cards[0]!) {
-      expect(r.entriesCloseAt.getTime()).toBe(r.postTime.getTime() - 60_000);
+      expect(r.entriesCloseAt.getTime()).toBe(r.postTime.getTime() - 30_000);
       expect(r.postTime.getTime() % RULES.slotMs).toBe(RULES.seasonEpochMs % RULES.slotMs);
       expect(r.targetRunners).toBeGreaterThanOrEqual(8);
       expect(r.targetRunners).toBeLessThanOrEqual(12);
@@ -79,7 +80,7 @@ describe("entering live races", () => {
     });
   });
 
-  it("closes entries 60 s before the off; a horse runs in one race at a time; entering is idempotent", async () => {
+  it("closes entries 30 s before the off; a horse runs in one race at a time; entering is idempotent", async () => {
     const p = await newPlayer(h.db);
     const horse = await makeHorse(h.db, p.stableId);
     const a = await liveRace();

@@ -28,11 +28,11 @@ export default async function RacesPage() {
         <LivePickBar />
         <HowItWorks className="mt-3">
           <p>A Live race goes off every 3 minutes, and everyone watches the same race at the same time.</p>
-          <p>Enter your horses until a minute before the off (one stable entry each; you get +10 at local midnight). The Club fills any empty gates with its own horses.</p>
+          <p>Enter your horses until 30 seconds before the off (one stable entry each; you get +10 at local midnight). The Club fills any empty gates with its own horses.</p>
           <p>Every result is sealed before the off and can be replayed and verified afterwards.</p>
         </HowItWorks>
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <RaceBoard title="Coming up" note="Entries close a minute before the off">
+          <RaceBoard title="Coming up" note="Entries close 30 seconds before the off">
             {upcoming.map((r) => (
               <UpcomingRaceRow key={r.id} race={r} />
             ))}
