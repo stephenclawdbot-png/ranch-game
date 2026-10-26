@@ -149,7 +149,7 @@ function deviceTimezone(): string | undefined {
 }
 
 /** Founds the stable: account + starter horses + credits + today's entries, on the server. */
-export async function createStable(input: { stableName: string; silks: Silks }): Promise<PlayerView> {
+export async function createStable(input: { stableName: string; silks: Silks; inviteCode?: string }): Promise<PlayerView> {
   const out = await api<{ player: PlayerView }>("/api/account", { body: { ...input, timezone: deviceTimezone() } });
   clearLegacyProfile();
   return out.player;
