@@ -24,9 +24,27 @@ export const SRC_PX_PER_M = 96;
 export const LANE_K = 0.03;
 /** Lane width (m) used for ground texture depth only. */
 export const LANE_W = 1.25;
-/** Camera height (m) at close zoom; the camera cranes up a little as it zooms out. */
+/** Camera height (m) at close zoom; the camera cranes up as it zooms out (cap grows with crowding). */
 export const CAM_H_MIN = 6;
 export const CAM_H_MAX = 14;
+/** Extra camera height available to big fields on narrow stages (still side-on, never aerial). */
+const CAM_H_CROWD = 9;
+
+/**
+ * Crowding factor in [0, 1]: 1 on a narrow stage carrying a big field, 0 on wide stages
+ * or fields of 8 or fewer. Scales how hard the layout spends the free vertical space to
+ * keep runners apart (lane falloff, camera height, minimum readable size).
+ */
+export function crowding(W: number, runners: number): number {
+  const narrow = Math.min(1, Math.max(0, (560 - W) / 160)); // 1 at <=400, 0 at >=560
+  const big = Math.min(1, Math.max(0, (runners - 8) / 4)); // 1 at >=12
+  return narrow * big;
+}
+
+/** Lane depth falloff for a crowding level: crowded fields recede faster (more height per lane). */
+export function laneFalloff(cr: number): number {
+  return LANE_K * (1 + 1.35 * cr); // up to ~0.07
+}
 
 export interface SpriteMetrics {
   /** Frame width (m) at lane 0. */
@@ -73,13 +91,17 @@ export const laneScale = (lane: number, k = LANE_K) => 1 / (1 + k * lane);
 /**
  * Camera height for a zoom: low and close when zoomed in, craned up a little when wide so
  * the lanes the field occupies still spread over ~22 % of the stage (side-on, never aerial:
- * at most ~20 degrees down at the 40 m lens distance).
+ * at most ~20 degrees down at the 40 m lens distance). Big fields on short narrow stages
+ * (`crowding`) spread over much more of the free band and crane higher, so 12 runners stay
+ * readable on a phone.
  */
-export function camHeight(ppm: number, H: number, laneSpan: number): number {
+export function camHeight(ppm: number, H: number, laneSpan: number, cr = 0): number {
+  const k = laneFalloff(cr);
   // Short (phone) stages spread the lanes a little more: small horses overlap less.
-  const share = H < 420 ? 0.3 : 0.22;
-  const want = (share * H) / Math.max(1e-6, ppm * (1 - laneScale(Math.max(3, laneSpan))));
-  return Math.min(CAM_H_MAX, Math.max(CAM_H_MIN, want));
+  const share = H < 420 ? 0.3 + 0.3 * cr : 0.22;
+  const cap = CAM_H_MAX + CAM_H_CROWD * cr;
+  const want = (share * H) / Math.max(1e-6, ppm * (1 - laneScale(Math.max(3, laneSpan), k)));
+  return Math.min(cap, Math.max(CAM_H_MIN, want));
 }
 
 export interface RunnerPos {
@@ -109,6 +131,8 @@ export interface FieldLayout {
   ppm: number;
   cx: number;
   camH: number;
+  /** Lane falloff used for this layout (grows with crowding; horses, ground and props all share it). */
+  k: number;
   /** Feet line of lane 0. */
   y0: number;
   /** Horizon (y where lane depth -> infinity). */
@@ -154,20 +178,21 @@ export interface FieldInput {
 }
 
 /** Lane-0 screen-y offset of lane l (positive = higher on screen). */
-const rise = (ppm: number, camH: number, l: number) => ppm * camH * (1 - laneScale(l));
+const rise = (ppm: number, camH: number, l: number, k = LANE_K) => ppm * camH * (1 - laneScale(l, k));
 
-function verticalNeed(ppm: number, H: number, span: number, sprite: SpriteMetrics, lmax: number, lmin: number, head: number) {
-  const camH = camHeight(ppm, H, span);
-  const top = rise(ppm, camH, lmax) + (sprite.heightM + head) * ppm * laneScale(lmax);
-  const bottom = Math.max(0, -rise(ppm, camH, lmin)) + 0.08 * ppm;
+function verticalNeed(ppm: number, H: number, span: number, sprite: SpriteMetrics, lmax: number, lmin: number, head: number, cr = 0) {
+  const k = laneFalloff(cr);
+  const camH = camHeight(ppm, H, span, cr);
+  const top = rise(ppm, camH, lmax, k) + (sprite.heightM + head) * ppm * laneScale(lmax, k);
+  const bottom = Math.max(0, -rise(ppm, camH, lmin, k)) + 0.08 * ppm;
   return { camH, top, bottom };
 }
 
 /** Largest zoom (<= ppm) at which lanes [lmin, lmax] fit the safe band vertically. */
-export function verticalFitPpm(ppm: number, H: number, insets: Insets, span: number, sprite: SpriteMetrics, lmax: number, lmin = 0, head = 0.3): number {
+export function verticalFitPpm(ppm: number, H: number, insets: Insets, span: number, sprite: SpriteMetrics, lmax: number, lmin = 0, head = 0.3, cr = 0): number {
   const band = Math.max(1, H - insets.t - insets.b);
   const fits = (p: number) => {
-    const v = verticalNeed(p, H, span, sprite, lmax, lmin, head);
+    const v = verticalNeed(p, H, span, sprite, lmax, lmin, head, cr);
     return v.top + v.bottom <= band;
   };
   if (fits(ppm)) return ppm;
@@ -195,12 +220,14 @@ export function placeField(inp: FieldInput): FieldLayout {
   }
   lmin = Math.max(lmin, -0.9);
   const head = inp.headroomM ?? 0.3;
+  const cr = crowding(W, n);
+  const k = laneFalloff(cr);
   // Hard clamps: one horse fits across, the lanes fit down.
   const availW = Math.max(1, W - insets.l - insets.r);
-  let ppm = Math.min(inp.ppm, (availW * 0.98) / (sprite.lenM * laneScale(lmin)));
+  let ppm = Math.min(inp.ppm, (availW * 0.98) / (sprite.lenM * laneScale(lmin, k)));
   const span = inp.laneSpan ?? lmax;
-  ppm = verticalFitPpm(ppm, H, insets, span, sprite, lmax, lmin, head);
-  const v = verticalNeed(ppm, H, span, sprite, lmax, lmin, head);
+  ppm = verticalFitPpm(ppm, H, insets, span, sprite, lmax, lmin, head, cr);
+  const v = verticalNeed(ppm, H, span, sprite, lmax, lmin, head, cr);
   const band = Math.max(1, H - insets.t - insets.b);
   const slack = Math.max(0, band - v.top - v.bottom);
   // Sit the field low in the band (the backdrop gets the headroom, like the diorama).
@@ -208,7 +235,7 @@ export function placeField(inp: FieldInput): FieldLayout {
   const horizon = y0 - ppm * v.camH;
 
   // Horizontal: linear camera mapping first.
-  const ls = runners.map((r) => laneScale(Math.max(r.lane, lmin)));
+  const ls = runners.map((r) => laneScale(Math.max(r.lane, lmin), k));
   const lin = runners.map((r, i) => W / 2 + (r.x - inp.cx) * ppm * ls[i]!);
   let maxTail = 0;
   let maxNose = 0;
@@ -261,7 +288,7 @@ export function placeField(inp: FieldInput): FieldLayout {
     const l = Math.max(r.lane, lmin);
     const s = ls[i]!;
     const pxPerM = ppm * s;
-    const feetY = y0 - rise(ppm, v.camH, l);
+    const feetY = y0 - rise(ppm, v.camH, l, k);
     const ax = out[i]!;
     const w = sprite.lenM * pxPerM;
     const h = sprite.heightM * pxPerM;
@@ -273,12 +300,12 @@ export function placeField(inp: FieldInput): FieldLayout {
     if (knots.lin[j]! < knots.lin[j - 1]!) knots.lin[j] = knots.lin[j - 1]!;
     if (knots.out[j]! < knots.out[j - 1]!) knots.out[j] = knots.out[j - 1]!;
   }
-  return { W, H, insets, ppm, cx: inp.cx, camH: v.camH, y0, horizon, compressed, placed, knots };
+  return { W, H, insets, ppm, cx: inp.cx, camH: v.camH, k, y0, horizon, compressed, placed, knots };
 }
 
 /** Screen y of the ground at lane l for a layout. */
 export function laneY(f: FieldLayout, l: number): number {
-  return f.y0 - rise(f.ppm, f.camH, l);
+  return f.y0 - rise(f.ppm, f.camH, l, f.k);
 }
 
 // ---------------------------------------------------------------------------- camera
@@ -332,8 +359,11 @@ export interface CameraTarget {
 }
 
 /** Minimum readable horse length and the close-up cap (CSS px). */
-export function sizeLimits(W: number): { minLen: number; maxLen: number } {
-  return { minLen: Math.min(180, Math.max(84, W * 0.14)), maxLen: Math.min(520, W * 0.34) };
+export function sizeLimits(W: number, runners = 8): { minLen: number; maxLen: number } {
+  const minLen = Math.min(180, Math.max(84, W * 0.14));
+  // Big fields on narrow stages may fall back to a smaller horse, still on the ladder.
+  const crowded = Math.max(44, Math.round(minLen * (1 - 0.45 * crowding(W, runners))));
+  return { minLen: crowded, maxLen: Math.min(520, W * 0.34) };
 }
 
 /** Where the camera wants to be: the zoom that fits the field and the centre of the field. */
@@ -362,12 +392,13 @@ export function cameraTarget(c: CameraInput): CameraTarget {
   }
   speed /= Math.max(1, c.runners.length);
   const availW = Math.max(1, W - insets.l - insets.r);
-  const { minLen, maxLen } = sizeLimits(W);
+  const { minLen, maxLen } = sizeLimits(W, c.runners.length);
+  const cr = crowding(W, c.runners.length);
   const ppmMin = minLen / sprite.lenM;
   const ppmMax = maxLen / sprite.lenM;
   let boxR = xmax + sprite.noseM;
   const boxL = xmin - sprite.tailM;
-  const ppmV = verticalFitPpm(ppmMax, H, insets, lmax + 0.6, sprite, lmax + 0.6);
+  const ppmV = verticalFitPpm(ppmMax, H, insets, lmax + 0.6, sprite, lmax + 0.6, 0, 0.3, cr);
   const fit = (bR: number) => Math.min(Math.max(Math.min((availW * 0.9) / Math.max(sprite.lenM, bR - boxL), ppmMax), ppmMin), ppmV);
   let ppmFit = fit(boxR);
   // Ease the winning post in as the leader closes on it (within ~30 % of the frame).
@@ -414,7 +445,7 @@ export class TracksideCamera {
     const t = cameraTarget(input);
     this.target = t;
     const toQ = input.dpr / SRC_PX_PER_M;
-    const qMin = (sizeLimits(input.W).minLen / input.sprite.lenM) * toQ;
+    const qMin = (sizeLimits(input.W, input.runners.length).minLen / input.sprite.lenM) * toQ;
     const q = this.rung(t.ppmFit * toQ, Math.min(qMin, t.ppmFit * toQ));
     const ppmT = q / toQ;
     if (snap) {
