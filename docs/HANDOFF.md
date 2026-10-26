@@ -7,6 +7,41 @@ Preview URL: https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.a
 (Vercel project `ranch-game`, team `meowdotfun`; Neon is connected with `DATABASE_URL` for
 Preview and Production.)
 
+## Start here in a new session (2026-10-26)
+
+- **How we work now:** read [`docs/AGENT-PIPELINE.md`](AGENT-PIPELINE.md). The Claude session is
+  the lead. New hands-on work goes to Ollama Cloud workers: `glm-5.3` for code, `kimi-k3` for
+  design, since Kimi can see screenshots. **Tell the owner the plan and wait for "go" before
+  starting new work, and for "ship" before updating `main`.**
+- **Keys** come from the environment settings (`OLLAMA_API_KEY`, `PIXELLAB_API_KEY`, optionally
+  `ANTHROPIC_API_KEY`), never from the repo or the chat.
+- **Production** (`main` = `aff64b6`):
+  - Post Time rebrand and Design v2;
+  - HD-2D diorama scene bands, including the barn with horses leaning out over the stall doors;
+  - **Trackside** as the default race view;
+  - the horse registry;
+  - QA fixes.
+- **Waiting on the owner:** their picks on the five decisions in
+  [`docs/economy/AUDIT.md`](economy/AUDIT.md):
+  1. premium foals account-bound, and premium lineage out of pool scoring;
+  2. pool at 30% of sales, or 10–20% plus a fixed ~$40/week budget;
+  3. affiliates in the beta (the audit says no money commissions and no level 2; the owner
+     wanted to earn as root inviter);
+  4. beta fixes: Story races not using career starts, Epic pity 20, market price ceiling
+     3× appraisal plus 72 h resale lock, daily goals paid;
+  5. beta length.
+
+  Turn the picks into GLM tickets.
+- **Open, smaller:**
+  - the finish-order ticker is clipped on the right (`docs/qa/2026-10-26-production-visitor.md`
+    #5);
+  - public boards list test accounts: run the `/admin` reset before testers arrive;
+  - check Trackside and the dioramas for fps on a real GPU and phone;
+  - Trackside is crowded with 12 runners on a 390 px phone;
+  - no starting-stalls prop yet.
+- **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
+  the pipeline.
+
 ## Trackside race view (race-viewer agent, 2026-10-26)
 
 Owner decision: the **Trackside** view (the "track-dusk" diorama look applied to the real
