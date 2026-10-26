@@ -7,6 +7,33 @@ Preview URL: https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.a
 (Vercel project `ranch-game`, team `meowdotfun`; Neon is connected with `DATABASE_URL` for
 Preview and Production.)
 
+## HD-2D dioramas (diorama agent, 2026-10-26)
+
+`<Diorama scene="yard" | "paddock" | "grandstand" | "barn" | "track-dusk" />` in
+`apps/web/src/components/diorama/` (harness: `/dev/diorama`, `?scene=`, `motion=still|live`,
+`quality=low`, `h=<px>`). Live in every page-kit scene band (`SceneBand` → `DioramaSlot`:
+stable→yard, barn→barn, grandstand→grandstand, paddock→paddock), so Home, /stable, /races and
+the Club/Story/Facilities bands are animated.
+
+- **Renderer:** Canvas2D, not three.js (apps/web doesn't depend on three and the lockfile is
+  shared). Layers are baked once (DOF blur, aerial haze, bloom); per frame it is a few
+  drawImages, sprites at integer scale with nearest filtering, rays/motes/grade on top. Picks
+  ~720 art px across (integer device px per art px), splits the scale into backing × CSS
+  upscale to cap the backing store; drops to the light path (art-res backing, no bloom) if it
+  runs < 40 fps. Pauses offscreen and when hidden; still frame under reduced motion; SSR shows
+  the poster `<img>` (`public/art/diorama/poster-*.png`), which also stays if anything fails.
+- **Scenes** are data (`scenes.ts`): layers with depth/blur/haze/bloom, items (y = bottom
+  edge), anims (walkers, grooms, stall heads, flags), rays, motes, grade, `focusY` for short
+  bands. Horses recolour from `race/palette.json` keys (`recolor.ts`).
+- **Art pipeline:** `art-src/diorama/gen-diorama.mjs` (PixelLab jobs) → `process_diorama.py`
+  (clean, mirror-tile, 2:1/3:1 palette-snapped downsamples, holes/props → `atlas.generated.ts`)
+  → `make-posters.mjs` + `finish-posters.py` (needs a dev server) → `register.py` (manifest)
+  → `node apps/web/scripts/art-index.mjs`.
+- Screenshots / motion GIFs: `docs/brand-v2/diorama/`.
+- **Follow-ups:** real-device fps check (headless numbers are software-rendered); more
+  variants (time of day, weather); the track-dusk scene isn't placed on a page yet (good fit
+  for the race page's pre-race or results band).
+
 ## POST TIME rebrand + Design System v2 + horse registry (design agent, 2026-10-26)
 
 User decisions: the game is now **POST TIME** (user-facing everywhere; internal packages stay

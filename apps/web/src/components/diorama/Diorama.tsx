@@ -165,7 +165,7 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
   }, [def, still, quality]);
 
   const ready = state === "live" || state === "still";
-  const focus = `${Math.round((def.focusX / def.width) * 100)}% 100%`;
+  const focus = `${Math.round((def.focusX / def.width) * 100)}% ${Math.round((def.focusY / def.height) * 100)}%`;
   return (
     <div
       ref={box}

@@ -170,6 +170,7 @@ export class DioramaEngine {
   private sprites = new Map<Layer, Sprite[]>();
   private overlays: OverlayBaked[] = [];
   private sky: Cnv | null = null;
+  private skyTop = "#000";
   private rays: { a: Cnv; b: Cnv; pad: number; def: RaySet }[] = [];
   private sun: Cnv | null = null;
   private bokeh: Cnv | null = null;
@@ -248,6 +249,18 @@ export class DioramaEngine {
       x.scale(-1, 1);
       x.drawImage(im, 0, 0);
       x.restore();
+      // flat colour that continues the sky upwards (average of its top rows)
+      const d = x.getImageData(0, 0, im.width, 6).data;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      const n = d.length / 4;
+      for (let i = 0; i < d.length; i += 4) {
+        r += d[i]!;
+        g += d[i + 1]!;
+        b += d[i + 2]!;
+      }
+      this.skyTop = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
     }
     for (const l of s.layers) this.layers.push(this.bakeLayer(l));
     for (const l of s.layers) this.sprites.set(l, (l.anims ?? []).map((a) => this.sprite(a)));
@@ -619,6 +632,7 @@ export class DioramaEngine {
   private track(dt: number, drawMs: number) {
     this.frames++;
     this.lastDrawMs = drawMs;
+    if (dt > 100) return; // resumed after a pause: not a real frame time
     this.frameTimes.push(dt);
     if (this.frameTimes.length > 90) this.frameTimes.shift();
     // adaptive quality: sustained < 40 fps after warm-up -> drop to the light path once
@@ -721,11 +735,19 @@ export class DioramaEngine {
       const sw = this.sky.width;
       const d = 0.04;
       const top = Math.round(sy(s.sky.y - this.sky.height, d));
-      // fill above the sky image with its top row colour
-      if (top > 0) c.drawImage(this.sky, 0, 0, sw, 1, 0, 0, W, top + 1);
       let x0 = (-(s.sky.drift * t) - px * d - this.vx) % sw;
       if (x0 > 0) x0 -= sw;
       for (let x = x0; x * k < W; x += sw) c.drawImage(this.sky, Math.round(x * k), top, sw * k, this.sky.height * k);
+      // the sky continues upwards as a flat colour, feathered into the image's top edge
+      if (top > 0) {
+        c.fillStyle = this.skyTop;
+        c.fillRect(0, 0, W, top);
+        const f = c.createLinearGradient(0, top, 0, top + 40 * k);
+        f.addColorStop(0, this.skyTop);
+        f.addColorStop(1, "rgba(0,0,0,0)");
+        c.fillStyle = f;
+        c.fillRect(0, top, W, 40 * k);
+      }
     }
     // sun glow
     if (this.sun) {

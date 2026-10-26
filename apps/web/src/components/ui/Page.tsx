@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { ART_SLOTS, artUrl } from "@/lib/art";
 import { useArt } from "../pixel/ArtProvider";
 import { PixelIcon, type IconName } from "../icons";
+import { DioramaSlot } from "../diorama/DioramaSlot";
 
 /**
  * Design System v2 page kit (docs/brand-and-design-v2.md §4.5): the scene band at the top of
@@ -58,7 +59,7 @@ export function SceneBand({
   return (
     <section className={`scene-band bleed ${size === "home" ? "" : size === "crop" ? "crop" : "short"}`} data-testid={testId ?? "scene-band"}>
       <div className="absolute inset-0" data-slot="diorama" data-scene={scene}>
-        <SceneArt scene={scene} alt={alt} />
+        <DioramaSlot scene={scene} alt={alt} />
       </div>
       <div className="overlay">
         <div className="mx-auto flex max-w-[75rem] items-end justify-between gap-3 px-[var(--gutter)]">
