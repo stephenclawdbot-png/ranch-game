@@ -6,12 +6,13 @@
  *   threshold cannot be listed; the database trigger blocks such transfers regardless.
  * - Sellers need an account >= 7 days old and >= 20 races (env-configurable, see rules.ts
  *   sellerPolicy); a verified email only when MARKET_REQUIRE_VERIFIED_EMAIL is on.
- * - Price floor: 70% of the appraisal at listing time.
+ * - Price floor: 70% of the appraisal at listing time; ceiling: 3x (no credit transfers, AUDIT §6).
+ * - A horse bought here can't be relisted for 72 h after the trade (resale lock, AUDIT §6).
  * - Purchase is one transaction: buyer pays, seller receives 95%, 5% is burned, ownership
  *   moves, the listing closes. Linked accounts cannot trade (blocked + fraud event).
  * - There are no direct credit transfers between players.
  */
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { DomainError, type DomainErrorCode } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
 import { accounts, fraudEvents, horses, marketListings, raceEntries, races, trades, type ListingRow } from "../schema";
@@ -33,6 +34,7 @@ const LIST_BLOCK_CODES: Record<gc.ListBlock, DomainErrorCode> = {
   entered_in_race: "HORSE_LOCKED",
   in_foal: "HORSE_IN_FOAL",
   below_floor: "PRICE_BELOW_FLOOR",
+  above_ceiling: "PRICE_ABOVE_CEILING",
   locked: "HORSE_LOCKED",
 };
 
@@ -63,6 +65,19 @@ export interface ListInput {
   durationMs?: number;
 }
 
+/** While a horse this stable bought on the market is inside its resale lock: when it was bought and when the lock ends. */
+export async function resaleLock(ex: Executor, horseId: string, ownerStableId: string, now: Date): Promise<{ boughtAt: Date; until: Date } | null> {
+  const [t] = await ex
+    .select({ createdAt: trades.createdAt })
+    .from(trades)
+    .where(and(eq(trades.horseId, horseId), eq(trades.buyerStableId, ownerStableId)))
+    .orderBy(desc(trades.createdAt))
+    .limit(1);
+  if (!t) return null;
+  const until = new Date(t.createdAt.getTime() + RULES.resaleLockMs);
+  return until.getTime() > now.getTime() ? { boughtAt: t.createdAt, until } : null;
+}
+
 export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = defaultHooks): Promise<ListingRow> {
   if (!Number.isSafeInteger(input.price) || input.price <= 0) throw new DomainError("INVALID_INPUT", "price must be a positive integer");
   const duration = input.durationMs ?? RULES.maxListingMs;
@@ -76,6 +91,8 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : "already listed");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
+    const resale = await resaleLock(tx, horse.id, stableId, input.now);
+    if (resale) throw new DomainError("RESALE_LOCKED", `bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}`, { until: resale.until.getTime() });
     const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
     if (isGenome(horse.genome)) {
       // game-core's market rules on the locked state (binding, location, floor, seller).
@@ -88,10 +105,12 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
         { enteredInRace: horse.lockKind === "race", locked: horse.lockKind === "market" },
         gcSellerPolicy(policy),
       );
-      if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)) });
+      if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)), ceiling: gc.listingCeiling(toHorseState(horse)) });
     }
     const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
     if (input.price < floor) throw new DomainError("PRICE_BELOW_FLOOR", `minimum price is ${floor}`, { floor, appraisal });
+    const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : bps(appraisal, RULES.listingCeilingBps);
+    if (input.price > ceiling) throw new DomainError("PRICE_ABOVE_CEILING", `maximum price is ${ceiling}`, { ceiling, appraisal });
     const [listing] = await tx
       .insert(marketListings)
       .values({

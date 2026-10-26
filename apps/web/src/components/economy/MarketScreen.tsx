@@ -1,9 +1,9 @@
 "use client";
 /**
  * The market (game-design §8, §4b): credits only, no real money. Buy (atomic; needs a free
- * stall), sell (price floor 70% of the appraisal; seller requirements shown with what is
- * missing; bound and locked horses explained), and your listings (cancel any time).
- * 5% of every sale is burned.
+ * stall), sell (price between 70% and 3x the appraisal; seller requirements shown with what is
+ * missing; bound and locked horses explained, including the 72 h resale lock), and your
+ * listings (cancel any time). 5% of every sale is burned.
  */
 import { useEffect, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -19,6 +19,14 @@ type Tab = "buy" | "sell" | "mine";
 function expiresIn(ms: number): string {
   const h = Math.max(0, Math.round(ms / 3_600_000));
   return h >= 48 ? `${Math.round(h / 24)} days` : h >= 1 ? `${h} h` : "under an hour";
+}
+
+function dayShort(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function dayShortTime(ms: number): string {
+  return new Date(ms).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
 export function MarketScreen() {
@@ -41,7 +49,7 @@ export function MarketScreen() {
       <SceneBand scene="paddock" alt="The sale ring paddock" eyebrow={`Credits only · ${v.stalls.used} of ${v.stalls.slots} stalls used`} title="Market" />
       <HowItWorks className="-mt-2">
         <p>Horses change hands for Stable Credits only, never real money. {v.feePermille / 10}% of every sale is burned.</p>
-        <p>Buying needs a free stall. Sellers set a price of at least 70% of the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them.</p>
+        <p>Buying needs a free stall. Sellers set a price between 70% and 3x the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them; a bought horse can&rsquo;t be relisted for 72 hours.</p>
       </HowItWorks>
       <div className="tabs baize-scope -mx-[var(--gutter)] !px-[var(--gutter)]" role="tablist" aria-label="Market">
         <button type="button" role="tab" aria-selected={tab === "buy"} onClick={() => setTab("buy")} data-testid="tab-buy">
@@ -191,7 +199,7 @@ function Sell({ v, onView, onListed }: { v: MarketView; onView: (v: MarketView) 
       <section aria-labelledby="sellable-h">
         <SectionHeader id="sellable-h" title="Your horses" />
         <p className="t-meta mb-2">
-          The minimum price is {v.floorPermille / 10}% of the appraisal (what the market can see: revealed ability, record, breedings left). Listings last up to {v.maxListingDays} days.
+          The price can be {v.floorPermille / 10}% to {v.ceilingPermille / 1000}x the appraisal (what the market can see: revealed ability, record, breedings left). Listings last up to {v.maxListingDays} days.
         </p>
         <ul className="grid gap-2">
           {v.horses.map((h) => (
@@ -212,9 +220,12 @@ function SellRow({ h, v, onView, onListed }: { h: SellableHorse; v: MarketView; 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const n = Number(price);
-  const valid = price !== "" && Number.isInteger(n) && n >= h.floor;
+  const valid = price !== "" && Number.isInteger(n) && n >= h.floor && n <= h.ceiling;
+  const tooHigh = price !== "" && Number.isInteger(n) && n > h.ceiling;
   const fee = Math.floor((n * v.feePermille) / 1000);
   const locked = h.lock !== null;
+  // The resale lock is shown with its own dates (the lock reason is timezone-free on purpose).
+  const lockText = h.lock === "resale_lock" && h.boughtAtMs !== null && h.resaleUntilMs !== null ? `Bought on ${dayShort(h.boughtAtMs)}: can be listed again after ${dayShortTime(h.resaleUntilMs)}` : h.lockReason;
 
   async function list() {
     setBusy(true);
@@ -236,13 +247,13 @@ function SellRow({ h, v, onView, onListed }: { h: SellableHorse; v: MarketView; 
         h={h}
         meta={
           <>
-            {stageLabel(h.stage)} · appraised {formatCredits(h.appraisal)} · floor {formatCredits(h.floor)}
+            {stageLabel(h.stage)} · appraised {formatCredits(h.appraisal)} · floor {formatCredits(h.floor)} · max {formatCredits(h.ceiling)}
           </>
         }
       />
       {locked ? (
         <p className="text-sm font-bold text-cream-dim" data-testid="lock-reason">
-          🔒 Not for sale: {h.lockReason}
+          🔒 Not for sale: {lockText}
         </p>
       ) : !open ? (
         <button type="button" className="btn w-fit" onClick={() => setOpen(true)} disabled={!v.seller.ok} data-testid="list-open">
@@ -269,7 +280,9 @@ function SellRow({ h, v, onView, onListed }: { h: SellableHorse; v: MarketView; 
           <p id={`floor-${h.id}`} className={`text-sm ${valid ? "text-cream-dim" : "font-bold text-negative"}`}>
             {valid
               ? `You receive ${formatCredits(n - fee)} if it sells (${formatCredits(fee)} burned). The horse can't race or breed while listed.`
-              : `Minimum ${formatCredits(h.floor)} (${v.floorPermille / 10}% of the ${formatCredits(h.appraisal)} appraisal).`}
+              : tooHigh
+                ? `Maximum ${formatCredits(h.ceiling)} (${v.ceilingPermille / 1000}x the ${formatCredits(h.appraisal)} appraisal).`
+                : `Minimum ${formatCredits(h.floor)} (${v.floorPermille / 10}% of the ${formatCredits(h.appraisal)} appraisal).`}
           </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-brass" onClick={list} disabled={!valid || busy} data-testid="list-confirm">

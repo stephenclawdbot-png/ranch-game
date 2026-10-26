@@ -531,7 +531,7 @@ material connection (FTC Endorsement Guides).
 | `PREMIUM_PER_WEEK` | game-core | 10 | **5** in the beta + a $50 lifetime beta cap per tester | "Real small money" |
 | Premium price | `PREMIUM_PACK_USD_CENTS` | $4.99 | keep $4.99 | Revenue is flat to rising up to $7.99 at elasticity −1.5, but small money matters more |
 | Epic pity | `PACK_PITY.premium` | 50 | **20** (beta) | Otherwise unreachable under the cap (18.9% never see Epic) |
-| Market price ceiling | `db/services/market.ts` | none | ≤ 3× appraisal; 72 h resale lock | Credit transfers / real-money trading |
+| Market price ceiling | `db/services/market.ts` | none | ≤ 3× appraisal; 72 h resale lock (done 2026-10-26) | Credit transfers / real-money trading |
 | Daily goals | game-core constant | defined, not paid | implement at **3 × 60**, or drop from the docs | The documented balance assumes them |
 | Story career cost | `races.ts` settle (starts +1 for quick) | Story = career start | Story doesn't consume career starts (or a 4th starter) | Racing drought days 14–20 |
 | `STARTER_GRANT` docs | `docs/balance.md` | says 5,000 | fix the docs to 3,000 | Stale |

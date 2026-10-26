@@ -150,7 +150,9 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   traded or transferred. Their foals are tradeable only after 5 starts.
 - **Market friction:**
   - a 5% fee, burned;
-  - a listing price floor of about 70% of the appraised value;
+  - a listing price floor of about 70% of the appraised value, and a ceiling of 3× (beta
+    decision 2026-10-26: no credit transfers through overpriced junk horses);
+  - a 72-hour resale lock: a horse bought on the market can't be relisted for 72 hours;
   - no direct credit transfers;
   - to sell, an account needs to be at least 7 days old, have at least 20 races and a
     verified email.

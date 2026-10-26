@@ -10,6 +10,7 @@ import { getBalance, ledgerHealth } from "../services/ledger";
 import { buyListing, cancelListing, expireListings, listHorse } from "../services/market";
 import { createRace, enterRace } from "../services/races";
 import { at, count, DAY, expectDbError, floorPrice, getHorseRow, makeHorse, makeSeller, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
+import { toHorseState } from "../gameCore";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -69,14 +70,15 @@ describe("market", () => {
   it("listed horses are escrowed: no double listing, no racing; cancel and expiry return them", async () => {
     const s = await seller();
     const horse = await makeHorse(h.db, s.stableId);
-    const l1 = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: 50_000, now: T0, durationMs: DAY });
-    await expect(listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: 50_000, now: T0 })).rejects.toMatchObject({ code: "HORSE_LOCKED" });
+    const price = await floorPrice(h.db, horse.id);
+    const l1 = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price, now: T0, durationMs: DAY });
+    await expect(listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price, now: T0 })).rejects.toMatchObject({ code: "HORSE_LOCKED" });
     const race = await createRace(h.db, { kind: "quick", name: "R", raceClass: "maiden", conditions: {}, postTime: at(10 * MIN), entriesCloseAt: at(9 * MIN) });
     await expect(enterRace(h.db, { accountId: s.accountId, raceId: race.id, horseId: horse.id, tactic: "front", now: T0 })).rejects.toMatchObject({ code: "HORSE_LOCKED" });
     await cancelListing(h.db, { accountId: s.accountId, listingId: l1.id, now: T0 });
     expect((await getHorseRow(h.db, horse.id)).lockKind).toBeNull();
 
-    const l2 = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: 50_000, now: T0, durationMs: DAY });
+    const l2 = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price, now: T0, durationMs: DAY });
     const buyer = await newPlayer(h.db, { credits: 10_000 });
     await expect(buyListing(h.db, { accountId: buyer.accountId, listingId: l2.id, now: at(2 * DAY) })).rejects.toMatchObject({ code: "LISTING_EXPIRED" });
     expect(await expireListings(h.db, at(2 * DAY))).toBeGreaterThanOrEqual(1);
@@ -95,7 +97,7 @@ describe("market", () => {
     const youngster = await makeHorse(h.db, s.stableId, { tradeMinStarts: 5, starts: 4 });
     await expect(listHorse(h.db, { accountId: s.accountId, horseId: youngster.id, price: 50_000, now: T0 })).rejects.toMatchObject({ code: "HORSE_BOUND" });
     await h.db.update(horses).set({ starts: 5 }).where(eq(horses.id, youngster.id));
-    await expect(listHorse(h.db, { accountId: s.accountId, horseId: youngster.id, price: 50_000, now: T0 })).resolves.toBeDefined();
+    await expect(listHorse(h.db, { accountId: s.accountId, horseId: youngster.id, price: await floorPrice(h.db, youngster.id), now: T0 })).resolves.toBeDefined();
   });
 
   it("enforces seller requirements and the 70% appraisal floor", async () => {
@@ -112,10 +114,40 @@ describe("market", () => {
     await expect(listHorse(h.db, { accountId: fresh.accountId, horseId: horse.id, price: floor, now: T0 })).resolves.toMatchObject({ price: floor });
   });
 
+  it("caps listing prices at 3x the appraisal (price ceiling)", async () => {
+    const s = await seller();
+    const horse = await makeHorse(h.db, s.stableId, { rating: 50 });
+    const appraisal = gc.appraise(toHorseState(await getHorseRow(h.db, horse.id)));
+    const ceiling = appraisal * 3;
+    const l = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: ceiling, now: T0 });
+    expect(l.price).toBe(ceiling);
+    await cancelListing(h.db, { accountId: s.accountId, listingId: l.id, now: T0 });
+    await expect(listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: ceiling + 1, now: T0 })).rejects.toMatchObject({
+      code: "PRICE_ABOVE_CEILING",
+      details: { ceiling },
+    });
+  });
+
+  it("a horse bought on the market can't be relisted for 72 h (resale lock)", async () => {
+    const HOUR = 60 * MIN;
+    const s = await seller();
+    const horse = await makeHorse(h.db, s.stableId);
+    const price = await floorPrice(h.db, horse.id);
+    const listing = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price, now: T0 });
+    const buyer = await newPlayer(h.db, { credits: 50_000 });
+    await makeSeller(h.db, buyer.accountId, buyer.stableId);
+    await buyListing(h.db, { accountId: buyer.accountId, listingId: listing.id, now: T0 });
+    await expect(listHorse(h.db, { accountId: buyer.accountId, horseId: horse.id, price, now: at(71 * HOUR) })).rejects.toMatchObject({
+      code: "RESALE_LOCKED",
+      details: { until: at(72 * HOUR).getTime() },
+    });
+    await expect(listHorse(h.db, { accountId: buyer.accountId, horseId: horse.id, price, now: at(72 * HOUR) })).resolves.toMatchObject({ price });
+  });
+
   it("blocks trades between linked accounts and records a fraud event", async () => {
     const s = await seller();
     const horse = await makeHorse(h.db, s.stableId);
-    const listing = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: 50_000, now: T0 });
+    const listing = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: await floorPrice(h.db, horse.id), now: T0 });
     const alt = await newPlayer(h.db, { credits: 10_000 });
     await recordAccountSignal(h.db, { accountId: s.accountId, kind: "device", value: "device-abc" });
     const linked = await recordAccountSignal(h.db, { accountId: alt.accountId, kind: "device", value: "device-abc" });
@@ -130,7 +162,7 @@ describe("market", () => {
   it("can't buy your own listing", async () => {
     const s = await seller();
     const horse = await makeHorse(h.db, s.stableId);
-    const listing = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: 50_000, now: T0 });
+    const listing = await listHorse(h.db, { accountId: s.accountId, horseId: horse.id, price: await floorPrice(h.db, horse.id), now: T0 });
     await expect(buyListing(h.db, { accountId: s.accountId, listingId: listing.id, now: T0 })).rejects.toMatchObject({ code: "CANNOT_BUY_OWN" });
   });
 });
