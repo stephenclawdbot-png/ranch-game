@@ -974,9 +974,20 @@ export const inviteCodes = pgTable(
     /** The tester who used it last (one per use; see testers.invite_code for all). */
     usedBy: uuid("used_by"),
     revokedAt: ts("revoked_at"),
+    /**
+     * "admin" = a root code from /admin (signups get the OWNER account as inviter), or
+     * "referral" = an account's personal referral code (services/affiliates.ts).
+     */
+    kind: text("kind").notNull().default("admin"),
+    /** The account whose personal code this is (kind "referral"). No FK: survives resets. */
+    ownerAccountId: uuid("owner_account_id"),
     createdAt: createdAt(),
   },
-  (t) => [check("invite_codes_uses", sql`${t.uses} >= 0 and ${t.maxUses} >= 1 and ${t.uses} <= ${t.maxUses}`)],
+  (t) => [
+    check("invite_codes_uses", sql`${t.uses} >= 0 and ${t.maxUses} >= 1 and ${t.uses} <= ${t.maxUses}`),
+    check("invite_codes_kind", sql`${t.kind} in ('admin', 'referral')`),
+    uniqueIndex("invite_codes_referral_owner_uq").on(t.ownerAccountId).where(sql`${t.kind} = 'referral'`),
+  ],
 );
 
 /**
@@ -1162,6 +1173,16 @@ export const chainOrders = pgTable(
     updatedAt: ts("updated_at").notNull().defaultNow(),
     paidAt: ts("paid_at"),
     fulfilledAt: ts("fulfilled_at"),
+    /** Affiliate plan signed into the quote (level 1 = inviter, level 2 = upstream). */
+    ref1AccountId: uuid("ref1_account_id"),
+    ref1Wallet: text("ref1_wallet"),
+    ref1Bps: integer("ref1_bps").notNull().default(0),
+    ref2AccountId: uuid("ref2_account_id"),
+    ref2Wallet: text("ref2_wallet"),
+    ref2Bps: integer("ref2_bps").notNull().default(0),
+    /** From the verified PurchasedWithEth event. */
+    poolShareWei: wei("pool_share_wei"),
+    treasuryWei: wei("treasury_wei"),
   },
   (t) => [
     uniqueIndex("chain_orders_order_uq").on(t.orderId),
@@ -1238,6 +1259,56 @@ export const poolAllocations = pgTable(
   ],
 );
 
+/**
+ * The affiliate tree (2 levels). One row per invitee, written once at signup; inviter and
+ * upstream never change (no cycles: an inviter always signed up before the invitee). Wiped
+ * by the playtest reset with the accounts (RESET_TABLES); earnings below survive.
+ */
+export const referrals = pgTable(
+  "referrals",
+  {
+    accountId: uuid("account_id").primaryKey(),
+    /** Level 1: the code's owner, or the OWNER account for a root (admin) code. */
+    inviterAccountId: uuid("inviter_account_id"),
+    /** Level 2: the inviter's own inviter (denormalised at signup). */
+    upstreamAccountId: uuid("upstream_account_id"),
+    viaCode: text("via_code").notNull(),
+    createdAt: createdAt(),
+    /** Admin revocation: no future commissions from this invitee (past on-chain payments are final). */
+    revokedAt: ts("revoked_at"),
+    revokedReason: text("revoked_reason"),
+    /** When the invitee became active and the inviter got the in-game signup reward. */
+    activatedAt: ts("activated_at"),
+  },
+  (t) => [index("referrals_inviter_idx").on(t.inviterAccountId), index("referrals_upstream_idx").on(t.upstreamAccountId)],
+);
+
+/** Affiliate commissions actually paid on-chain (from verified ReferralCommission events). */
+export const referralEarnings = pgTable(
+  "referral_earnings",
+  {
+    id: id(),
+    orderId: text("order_id").notNull(),
+    level: integer("level").notNull(),
+    inviterAccountId: uuid("inviter_account_id").notNull(),
+    inviteeAccountId: uuid("invitee_account_id").notNull(),
+    wallet: text("wallet").notNull(),
+    amountWei: wei("amount_wei").notNull(),
+    usdCents: integer("usd_cents").notNull(),
+    /** The instant payment failed; the referrer must call withdrawReferral(). */
+    deferred: boolean("deferred").notNull().default(false),
+    txHash: text("tx_hash").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("referral_earnings_uq").on(t.orderId, t.level),
+    index("referral_earnings_inviter_idx").on(t.inviterAccountId, t.createdAt),
+    check("referral_earnings_level", sql`${t.level} in (1, 2)`),
+  ],
+);
+
+export type ReferralRow = typeof referrals.$inferSelect;
+export type ReferralEarningRow = typeof referralEarnings.$inferSelect;
 export type ChainOrderRow = typeof chainOrders.$inferSelect;
 export type PoolEpochRow = typeof poolEpochs.$inferSelect;
 export type PoolAllocationRow = typeof poolAllocations.$inferSelect;

@@ -36,6 +36,13 @@
       "when": 1792990949625,
       "tag": "0004_beta_money",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792991297714,
+      "tag": "0005_affiliates",
+      "breakpoints": true
     }
   ]
 }
