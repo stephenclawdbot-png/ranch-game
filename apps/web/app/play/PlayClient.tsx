@@ -18,7 +18,6 @@ import { ErrorNote } from "@/components/ui/ErrorNote";
 import { api, createStable, legacyProfile, recommendHorse, refreshPlayer, usePlayerState } from "@/lib/player";
 import type { StableHorse } from "@/lib/types";
 import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
-import { Wordmark } from "@/components/SiteNav";
 import { randomSilks } from "@/lib/silks";
 
 /**
@@ -89,9 +88,6 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     >
       <div className="grid content-start gap-5">
         <header className="grid gap-2">
-          <span className="w-fit">
-            <Wordmark />
-          </span>
           <h1 className="t-page">Found your stable</h1>
           <p className="t-meta">
             {imported

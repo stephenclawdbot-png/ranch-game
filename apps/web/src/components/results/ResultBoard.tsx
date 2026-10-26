@@ -49,7 +49,7 @@ export function ResultBoard({ replay, card, highlightHorseId }: { replay: RaceRe
                     </Link>
                     {me && <span className="you-tag">You</span>}
                   </p>
-                  <p className="t-meta truncate">{e?.stableName}</p>
+                  <p className="t-meta line-clamp-2">{e?.stableName}</p>
                 </div>
                 <p className="shrink-0 text-right text-sm font-bold text-cream-dim">
                   {f.position === 1 ? <span className="num text-cream">{formatRaceTime(f.finishTimeUs)}</span> : <>{f.marginLabel}</>}
