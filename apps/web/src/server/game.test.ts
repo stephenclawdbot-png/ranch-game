@@ -98,7 +98,8 @@ describe("Story mode", () => {
     expect(inbox.find((i) => i.raceId === created.raceId)?.readAt).not.toBeNull();
     const view = await playerView(h.db, p, T0);
     expect(view.runs[0]?.raceId).toBe(created.raceId);
-    expect(view.horses.find((x) => x.id === created.horseId)?.starts).toBe(1);
+    // A Story race is not a career start: the run is in the history, the record is not.
+    expect(view.horses.find((x) => x.id === created.horseId)?.starts).toBe(0);
   });
 
   it("a watched Story race withholds its replay until the broadcast is over", { timeout: 60_000 }, async () => {

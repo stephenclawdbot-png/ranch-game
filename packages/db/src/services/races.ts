@@ -4,7 +4,8 @@
  *   publish (card.ts, seed committed)  →  enterRace (open until post − 60 s)
  *   →  lockField at entry close (snapshot, house horses fill to 8–12, gate draw from seed)
  *   →  getRaceForSimulation at post time (seed revealed)  →  engine (web app)
- *   →  settleRace after the broadcast (idempotent: purses, ratings, records, unlock, inbox).
+ *   →  settleRace after the broadcast (idempotent: purses, ratings, records, unlock, inbox;
+ *       Story races pay and fatigue as usual but skip the career clock and record).
  *
  * Every transition takes the race row lock first, so concurrent serverless instances
  * (lazy-on-read plus the cron backstop) serialise: the first does the work, the rest read
@@ -510,24 +511,28 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     }
 
     const retired: string[] = [];
+    // Story races (§4e, kind "quick") never use a career start: no career clock, no record and
+    // no max-starts retirement (a career-ending injury still retires). Prizes, fatigue, injury
+    // and the per-day limit are unchanged; only the career counters differ.
+    const story = race.kind === "quick";
     const ordered = [...entries].sort((a, b) => (a.horseId < b.horseId ? -1 : 1)); // lock order
     for (const e of ordered) {
       const r = byHorse.get(e.horseId)!;
       const h = await lockHorse(tx, e.horseId);
-      const starts = Math.min(RULES.maxStarts, h.starts + 1);
+      const starts = story ? h.starts : Math.min(RULES.maxStarts, h.starts + 1);
       const fromState = r.state ? statePatch(r.state, input.now.getTime()) : null;
       const careerEnding = r.injury?.severity === "career_ending" || r.state?.injury?.severity === "career_ending";
-      const mustRetire = h.careerStatus === "racing" && (starts >= RULES.maxStarts || careerEnding);
+      const mustRetire = h.careerStatus === "racing" && (careerEnding || (!story && starts >= RULES.maxStarts));
       const quirks = [...new Set([...((h.quirks as string[]) ?? []), ...(r.quirksRevealed ?? [])])];
       if (mustRetire) retired.push(h.id);
       await tx
         .update(horses)
         .set({
           starts,
-          wins: h.wins + (r.position === 1 ? 1 : 0),
-          places: h.places + (r.position === 2 ? 1 : 0),
-          shows: h.shows + (r.position === 3 ? 1 : 0),
-          earnings: h.earnings + (prizes[h.id] ?? 0),
+          wins: story ? h.wins : h.wins + (r.position === 1 ? 1 : 0),
+          places: story ? h.places : h.places + (r.position === 2 ? 1 : 0),
+          shows: story ? h.shows : h.shows + (r.position === 3 ? 1 : 0),
+          earnings: story ? h.earnings : h.earnings + (prizes[h.id] ?? 0),
           rating: r.ratingAfter ?? h.rating,
           stage: stageFor(h.careSessions, starts),
           quirks,

@@ -108,7 +108,7 @@ describe("packs", () => {
     expect(horse).toMatchObject({ origin: "pack", stage: "foal", careSessions: 0, bound: false });
   });
 
-  it("pity (game-core rules): never 10 Premium pulls without a Rare, never 50 without an Epic", async () => {
+  it("pity (game-core rules): never 10 Premium pulls without a Rare, never 20 without an Epic", async () => {
     const p = await newPlayer(h.db, { credits: 1_000_000 });
     await h.db.update(stables).set({ stallSlots: 24 }).where(eq(stables.id, p.stableId));
     const rarities: string[] = [];
@@ -127,7 +127,7 @@ describe("packs", () => {
       sinceRare = rank(r) >= 2 ? 0 : sinceRare + 1;
       sinceEpic = rank(r) >= 3 ? 0 : sinceEpic + 1;
       expect(sinceRare).toBeLessThan(10);
-      expect(sinceEpic).toBeLessThan(50);
+      expect(sinceEpic).toBeLessThan(20);
     }
   });
 

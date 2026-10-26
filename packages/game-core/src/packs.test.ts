@@ -59,7 +59,7 @@ describe("pulls", () => {
   it("are foals under the season ceiling, of the rolled rarity, and verifiable after reveal", () => {
     fc.assert(
       fc.property(fc.string({ minLength: 1 }), fc.integer({ min: 0, max: 60 }), fc.integer({ min: 1, max: 15 }), (account, pulls, season) => {
-        const pity = { sinceRare: pulls % 10, sinceEpic: pulls % 50, pulls };
+        const pity = { sinceRare: pulls % 10, sinceEpic: pulls % 20, pulls };
         const { pull } = pullPack("premium", pity, { serverSeed, accountId: account, season });
         expect(PackPullSchema.safeParse(pull).success).toBe(true);
         expect(rarityOf(pull.genome)).toBe(pull.rarity);

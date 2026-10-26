@@ -189,8 +189,10 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
     - **licences** that unlock Live race classes;
     - credits capped per chapter: full reward the first time a story race is won, minimal
       on replays, so story races can't be farmed.
-  - **Shared with Live:** the same stable horses run, using freshness and career starts.
-    Story races don't consume daily Live entries.
+  - **Shared with Live:** the same stable horses run, using freshness. A Story race never
+    uses a career start (no starts, no record, no career-cap retirement; a career-ending
+    injury still retires) — beta decision 2026-10-26. Story races don't consume daily
+    Live entries.
   - **On-ramp:** new players start here. Chapter 1 unlocks Live maiden races.
 - **Live racing.** Everything in §4d: a shared 3-minute card, always live, with ratings,
   leagues, the Daily Cup and the Season Final.
@@ -350,7 +352,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 - **Packs (gacha).**
   - **Paddock Pack:** credits; a young horse, Common or Uncommon.
   - **Premium Pack:** mocked in Phase 1. Better tiers, still under the genetic ceiling.
-  - Odds are published, with pity (Rare or better within 10 pulls; Epic within 50).
+  - Odds are published, with pity (Rare or better within 10 pulls; Epic within 20).
   - Pulls are seeded and committed like races.
   - Premium Packs are geo-blocked where paid loot boxes are restricted.
 - **Phase 2 (later):** USDC and token as premium currency. Credits are never cashed out.

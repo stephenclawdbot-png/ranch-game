@@ -212,7 +212,7 @@ function PickCard({ state, busy, onChoose, onClose }: { state: PlayerState; busy
       ) : (
         <p className="text-cream-dim">None of your horses can race right now (injured, entered elsewhere, or already raced 3 times today). Check the stable.</p>
       )}
-      <p className="text-sm text-cream-dim">Next Story race against the Club&rsquo;s rival stables. Free: no stable entries used. The field and conditions are drawn when you enter.</p>
+      <p className="text-sm text-cream-dim">Next Story race against the Club&rsquo;s rival stables. Free: no stable entries and no career start. The field and conditions are drawn when you enter.</p>
       <div className="grid gap-2 sm:grid-cols-3">
         <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!busy} onClick={() => onChoose("watch")} data-testid="watch-live" autoFocus>
           <PixelIcon name="play" className="h-4 w-4" /> {busy === "watch" ? "Entering…" : "Watch"}

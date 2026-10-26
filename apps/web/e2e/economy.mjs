@@ -70,7 +70,7 @@ async function main() {
     assert(/Common/.test(odds) && /70%/.test(odds) && /Uncommon/.test(odds) && /30%/.test(odds), `paddock odds published (${odds.replace(/\s+/g, " ")})`);
     assert(/Rare/.test(await page.getByTestId("odds-premium").innerText()), "premium odds published");
     assert(/within 5 pulls/.test(await page.getByTestId("pity-paddock").innerText()), "paddock pity published");
-    assert(/within 10 pulls/.test(await page.getByTestId("pity-premium").innerText()) && /within 50 pulls/.test(await page.getByTestId("pity-premium").innerText()), "premium pity published");
+    assert(/within 10 pulls/.test(await page.getByTestId("pity-premium").innerText()) && /within 20 pulls/.test(await page.getByTestId("pity-premium").innerText()), "premium pity published");
     assert((await page.getByTestId("premium-demo").innerText()).includes("Coming soon"), "premium labelled coming soon / demo");
     // Design v2: "Coming soon" is a line of text, never a disabled button.
     assert((await page.locator('button[data-testid="open-premium"]:not([disabled])').count()) === 0, "premium can't be bought");
