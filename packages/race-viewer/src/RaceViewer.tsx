@@ -279,6 +279,8 @@ export function RaceViewer(props: RaceViewerProps) {
       }
       host.appendChild(scene.canvas);
       scene.resize(w0, h0);
+      // Compile/upload everything now so the race itself never stalls.
+      scene.warmup();
       sceneRef.current = scene;
       const artNote = `${rigs.kind}${art.manifest ? ` +${art.images.size} art` : " (code art)"}`;
 
@@ -289,6 +291,10 @@ export function RaceViewer(props: RaceViewerProps) {
       let dtSum = 0;
       let warm = 0;
       let slowFrames = 0;
+      // Frame-time monitor (debug): rolling window of frame intervals.
+      const ft = new Float32Array(240);
+      let ftN = 0;
+      let ftMax = 0;
       let raf = 0;
       let last = performance.now();
       const frame = (now: number) => {
@@ -333,6 +339,8 @@ export function RaceViewer(props: RaceViewerProps) {
         frames++;
         workMs += work;
         dtSum += deltaMS;
+        ft[ftN++ % ft.length] = deltaMS;
+        if (ftN > 30) ftMax = Math.max(ftMax, deltaMS);
         warm += dt;
         if (quality === "auto" && qualityRef.current === "high" && warm > 2) {
           slowFrames = deltaMS > 25 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
@@ -344,7 +352,12 @@ export function RaceViewer(props: RaceViewerProps) {
         dbgAcc += dt;
         if (debug && dbgAcc >= 0.5) {
           const cam = scene.cameraInfo;
+          const win = Array.from(ft.subarray(0, Math.min(ftN, ft.length))).sort((a, b) => a - b);
+          const median = win[win.length >> 1] ?? 0;
+          const p99 = win[Math.floor(win.length * 0.99)] ?? 0;
+          (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: ftN, camMaxStep: scene.maxCamStep };
           setDebugText(
+            `frame med ${median.toFixed(1)} p99 ${p99.toFixed(1)} max ${ftMax.toFixed(1)} ms\n` +
             `${Math.round((1000 * frames) / Math.max(1, dtSum))} fps  ${(workMs / frames).toFixed(1)} ms cpu\n` +
               `${qualityRef.current}  ${artNote}  t=${fr.time.toFixed(2)}s\n` +
               `cam ${cam.shot} x=${cam.x.toFixed(1)}m`,

@@ -98,8 +98,8 @@ export const LOOKS: Record<Weather, Look> = {
     hemiGround: "#5d6a4a",
     hemiIntensity: 1.7,
     fog: "#c4cace",
-    fogNear: 90,
-    fogFar: 1000,
+    fogNear: 170,
+    fogFar: 1700,
     turf: ["#3b5f2c", "#466d33", "#517b3a", "#5c8842", "#6c974d"],
     dirt: ["#5f4532", "#715239", "#836043", "#946e4e", "#a67f5d"],
     grass: ["#34532a", "#3e6031", "#486d37", "#527a3e"],
@@ -122,9 +122,9 @@ export const LOOKS: Record<Weather, Look> = {
     hemiSky: "#aeb8c2",
     hemiGround: "#3f4b38",
     hemiIntensity: 1.5,
-    fog: "#7c858c",
-    fogNear: 40,
-    fogFar: 520,
+    fog: "#8a939a",
+    fogNear: 110,
+    fogFar: 1150,
     turf: ["#2f4d25", "#38592b", "#426631", "#4c7337", "#578040"],
     dirt: ["#4a3426", "#59402e", "#684c37", "#775940", "#86664b"],
     grass: ["#2a4422", "#325028", "#3a5c2e", "#436834"],
@@ -183,6 +183,9 @@ function tileNoise(seed: number, px: number, py = px): (x: number, y: number) =>
   };
 }
 
+/** Synthetic (all-weather) surface: dark red-brown granular fibre/rubber mix. */
+const SYNTHETIC = ["#2a1c1a", "#382521", "#46302a", "#553a32", "#64463c"];
+
 /**
  * Track surface tile. u (x) runs along the track, v across it. Turf: two mowing
  * stripes per tile. Dirt: harrow lines + hoof prints. 128 x 64 px.
@@ -201,17 +204,20 @@ export function surfaceTile(look: Look, surface: Surface, seed = 3): HTMLCanvasE
       let v: number;
       if (surface === "turf") {
         v = 0.5 + (nz - 0.5) * 0.5;
+      } else if (surface === "synthetic") {
+        // Fine granules: mostly per-pixel grain over a gentle large-scale variation.
+        v = 0.5 + (r() - 0.5) * 0.7 + (nz - 0.5) * 0.25;
       } else {
         const harrow = (y % 3 === 0 ? -0.12 : 0) + (y % 7 === 3 ? 0.08 : 0);
         v = 0.5 + (nz - 0.5) * 0.55 + harrow;
       }
-      const ramp = surface === "turf" ? look.turf : surface === "synthetic" ? look.dirt.map((h) => mixHex(h, "#5a4a6a", 0.35)) : look.dirt;
+      const ramp = surface === "turf" ? look.turf : surface === "synthetic" ? SYNTHETIC : look.dirt;
       put(img, x, y, dither(ramp, v, x, y));
     }
   }
   // Specks: grass tips / pebbles / hoof prints.
-  const ramp = surface === "turf" ? look.turf : look.dirt;
-  for (let i = 0; i < (surface === "turf" ? 420 : 260); i++) {
+  const ramp = surface === "turf" ? look.turf : surface === "synthetic" ? SYNTHETIC : look.dirt;
+  for (let i = 0; i < (surface === "turf" ? 420 : surface === "synthetic" ? 900 : 260); i++) {
     const x = Math.floor(r() * W);
     const y = Math.floor(r() * H);
     if (surface === "turf") {

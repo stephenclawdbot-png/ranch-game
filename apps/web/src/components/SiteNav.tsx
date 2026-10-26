@@ -45,11 +45,14 @@ export const SECTIONS: Section[] = [
     href: "/league",
     label: "Club",
     icon: "trophy",
-    match: (p) => starts(p, "/league", "/cup", "/hall"),
+    match: (p) => starts(p, "/league", "/cup", "/hall", "/pool", "/invite", "/beta"),
     sub: [
       { href: "/league", label: "League" },
       { href: "/cup", label: "Daily Cup" },
       { href: "/hall", label: "Hall of Fame" },
+      // Beta money (web3 agent): the on-chain weekly Prize Pool and the referral page.
+      { href: "/pool", label: "Prize Pool" },
+      { href: "/invite", label: "Invite" },
     ],
   },
   {

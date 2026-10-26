@@ -137,7 +137,7 @@ class Spring3 {
   }
 }
 
-import { Director, SHOT_REACH, type ShotType } from "../director";
+import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
 
 export class HD2DScene {
   readonly canvas: HTMLCanvasElement;
@@ -174,6 +174,9 @@ export class HD2DScene {
   private camLook: Spring3;
   private fov: Spring;
   private director = new Director();
+  private byX: Runner[] = [];
+  private dirEvents: { type: string; horseId?: string }[] = [];
+  private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null };
   private dirEventScan = 0;
   private shotType: ShotType = "gate";
   private shotSubject: string | null = null;
@@ -298,9 +301,11 @@ export class HD2DScene {
     const t = src instanceof HTMLCanvasElement ? new T.CanvasTexture(src) : new T.Texture(src);
     t.colorSpace = T.SRGBColorSpace;
     t.magFilter = T.NearestFilter;
-    t.minFilter = opts.mip ? T.NearestMipmapLinearFilter : T.NearestFilter;
+    // Ground tiles: crisp nearest magnification up close, trilinear minification far
+    // away (no aliasing or blocky smudge on distant ground).
+    t.minFilter = opts.mip ? T.LinearMipmapLinearFilter : T.NearestFilter;
     t.generateMipmaps = !!opts.mip;
-    if (opts.mip) t.anisotropy = 4;
+    if (opts.mip) t.anisotropy = Math.min(8, this.renderer?.capabilities.getMaxAnisotropy?.() ?? 4);
     if (opts.repeat) {
       t.wrapS = T.RepeatWrapping;
       t.wrapT = T.RepeatWrapping;
@@ -363,8 +368,8 @@ export class HD2DScene {
     grass.receiveShadow = true;
     this.scene.add(grass);
     // Racing surface: fine tile + broad mowing stripes / harrow bands as vertex colours.
-    const stem = surface === "turf" ? "tex-turf" : "tex-dirt";
-    const sImg = art.images.get(stem);
+    // Synthetic has its own code-drawn granular tile (the dirt art is the wrong material).
+    const sImg = surface === "synthetic" ? undefined : art.images.get(surface === "turf" ? "tex-turf" : "tex-dirt");
     const sCanvas = sImg ?? surfaceTile(this.look, surface);
     const sTex = this.tex(sCanvas, { repeat: true, mip: true });
     const tile = sCanvas.width / FOCAL_PX_PER_M;
@@ -799,7 +804,7 @@ export class HD2DScene {
     let ratio: number;
     // HD pixel standard: never below ~540 lines internally; desktop renders at device
     // resolution (all sprites/tiles sample with nearest filtering).
-    if (this.quality === "low") ratio = Math.min(Math.max(dpr, 1), Math.max(1, 540 / this.H));
+    if (this.quality === "low") ratio = Math.min(Math.max(dpr, 1), 2);
     else if (this.pixelated) ratio = Math.max(540 / this.H, Math.min(1, dpr));
     else ratio = Math.min(dpr, 2, Math.sqrt((2560 * 1440) / (this.W * this.H)));
     this.renderer.setPixelRatio(ratio);
@@ -881,39 +886,38 @@ export class HD2DScene {
     const fieldZ = zSum / this.runners.length;
 
     // --- Camera direction -------------------------------------------------------
-    // A TV director picks the shot (hard cuts); each shot frames its subject with a
-    // fixed lens/angle and the camera moves smoothly within it.
+    // Side-on broadcast camera. The director only changes what it frames (close / pack /
+    // finish line) and around whom; the camera always eases there with critically damped
+    // springs (position, aim, FOV), so there are no cuts. Hot path: no per-frame allocs.
     const mine = this.highlight >= 0 ? this.runners[this.highlight]! : null;
     let mode = f.camera;
     if (mode === "mine" && !mine) mode = "director";
-    const byX = [...this.runners].sort((a, b) => b.x - a.x);
-    // Events that have just happened (for motivated cuts).
-    const newEvents: { type: string; horseId?: string }[] = [];
+    const byX = this.byX;
+    if (byX.length !== this.runners.length) byX.splice(0, byX.length, ...this.runners);
+    byX.sort((a, b) => b.x - a.x);
+    // Events that have just happened (for motivated re-framing).
+    const newEvents = this.dirEvents;
+    newEvents.length = 0;
     for (; this.dirEventScan < evs.length && evs[this.dirEventScan]!.tick / this.replay.tickHz <= tS; this.dirEventScan++) newEvents.push(evs[this.dirEventScan]!);
-    const dirInput = {
-      t: raceT,
-      runners: this.runners.map((r) => ({ id: r.horseId, x: r.x })),
-      trackLengthM: L,
-      winnerTime: this.winnerTime,
-      photoFinish: this.photoFinish,
-      newEvents,
-      highlightId: mine?.horseId ?? null,
-    };
+    const dirInput = this.dirInput;
+    dirInput.t = raceT;
+    if (dirInput.runners.length !== this.runners.length) dirInput.runners = this.runners.map((r) => ({ id: r.horseId, x: r.x }));
+    for (let i = 0; i < this.runners.length; i++) dirInput.runners[i]!.x = this.runners[i]!.x;
+    dirInput.trackLengthM = L;
+    dirInput.winnerTime = this.winnerTime;
+    dirInput.photoFinish = this.photoFinish;
+    dirInput.newEvents = newEvents;
+    dirInput.highlightId = mine?.horseId ?? null;
     let shotType: ShotType;
     let subjectId: string | null;
-    let cut: boolean;
     if (mode === "director") {
       const r = this.director.update(dirInput);
       shotType = r.shot.type;
       subjectId = r.shot.subject;
-      cut = r.cut;
     } else {
       const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
       shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "wide" : tS > this.winnerTime + 0.9 && mode !== "mine" ? "post" : "close";
       subjectId = mode === "mine" ? mine!.horseId : null;
-      cut = shotType !== this.shotType || subjectId !== this.shotSubject;
-      // Keep tracking smooth when a locked camera merely changes subject.
-      if (cut && (shotType === "close" || shotType === "wide") && (this.shotType === "close" || this.shotType === "wide")) cut = false;
     }
     this.shotType = shotType;
     this.shotSubject = subjectId;
@@ -921,7 +925,7 @@ export class HD2DScene {
     const pos = this.v1;
     const at = this.v2;
     const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at);
-    if (this.firstFrame || seek || cut) {
+    if (this.firstFrame || seek) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
       this.fov.snap(sc.fov);
@@ -933,8 +937,17 @@ export class HD2DScene {
       this.fov.step(sc.fov, realDt);
     }
     const cam = this.camera;
+    const px = cam.position.x;
+    const py = cam.position.y;
+    const pz = cam.position.z;
     this.camPos.into(cam.position);
     cam.lookAt(this.camLook.into(this.v2));
+    // Continuity check (debug): camera displacement this frame beyond the subject's own
+    // travel. A cut would show up as a multi-metre step.
+    if (!this.firstFrame && !seek && simDt >= 0) {
+      const step = Math.hypot(cam.position.x - px - subject.speed * simDt, cam.position.y - py, cam.position.z - pz);
+      if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, step);
+    }
     const vfov = this.vfovFor(this.fov.x);
     if (Math.abs(cam.fov - vfov) > 1e-3) {
       cam.fov = vfov;
@@ -1059,7 +1072,7 @@ export class HD2DScene {
       this.post.render(this.scene, cam, {
         focusDist: this.focusDist,
         focusRange: this.focusRange,
-        dofAmount: 0.55,
+        dofAmount: this.W < 640 ? 0.22 : 0.45,
         tiltShift: 0.12,
         bloom: this.look.bloom,
         tint: g.tint,
@@ -1097,6 +1110,58 @@ export class HD2DScene {
     }
     void T;
   }
+
+  /**
+   * Pre-warm the GPU so nothing compiles or uploads mid-race (the cause of hitches on
+   * camera moves): upload every texture, compile every program, and draw one frame of
+   * the full pipeline (shadows, post passes, PiP) from a camera that sees the whole course.
+   */
+  warmup(): void {
+    const T = this.T;
+    const r = this.renderer;
+    const tex: THREE.Texture[] = [];
+    for (const d of this.disposables) if ((d as THREE.Texture).isTexture) tex.push(d as THREE.Texture);
+    for (const run of this.runners) {
+      tex.push(run.rig.texture);
+      const nm = (run.rig as LitHorseRig).normalMap;
+      if (nm) tex.push(nm);
+    }
+    for (const t of tex) {
+      try {
+        r.initTexture(t);
+      } catch {
+        /* texture without an image yet */
+      }
+    }
+    const cam = this.camera;
+    const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
+    r.compile(this.scene, cam);
+    // One full frame from high over the middle of the course: every object in view once.
+    cam.position.set(this.L / 2, 260, 520);
+    cam.fov = 60;
+    cam.updateProjectionMatrix();
+    cam.lookAt(this.L / 2, 0, -this.trackW / 2);
+    const g = this.look.grade;
+    if (this.post) {
+      this.post.render(this.scene, cam, { focusDist: 50, focusRange: 10, dofAmount: 0.45, tiltShift: 0.12, bloom: this.look.bloom, tint: g.tint, saturation: g.saturation, contrast: g.contrast, vignette: 0.42, flash: 0.5 });
+    } else {
+      r.setRenderTarget(null);
+      r.render(this.scene, cam);
+    }
+    if (this.pipCam) {
+      this.pipCam.position.copy(cam.position);
+      this.pipCam.quaternion.copy(cam.quaternion);
+      r.compile(this.scene, this.pipCam);
+    }
+    cam.position.copy(saved.pos);
+    cam.quaternion.copy(saved.quat);
+    cam.fov = saved.fov;
+    cam.updateProjectionMatrix();
+    void T;
+  }
+
+  /** Largest per-frame camera jump (m, net of subject motion) since load: continuity metric. */
+  maxCamStep = 0;
 
   /** True when the PiP inset was drawn this frame (the HUD frames it). */
   pipShown = false;
@@ -1143,10 +1208,11 @@ export class HD2DScene {
     };
     switch (type) {
       case "gate": {
+        // Side-on at the stalls, a touch higher before the off, settling at the off.
         const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
         group = byX;
-        elev = 26 - 14 * k;
-        yaw = -50 + 46 * k;
+        elev = 16 - 6 * k;
+        yaw = -4;
         fillX = 0.8;
         fillY = 0.62;
         fov = 32;
@@ -1175,28 +1241,6 @@ export class HD2DScene {
         maxSpan = 24;
         composeShift = 0.14;
         break;
-      case "headon":
-        // Three-quarter front: ahead of the leaders looking back down the track
-        // (side-view sprites turn at most ~35 deg, so a true head-on would look flat).
-        group = near(SHOT_REACH.headon, 5);
-        elev = 6;
-        yaw = 50;
-        fillX = 0.75;
-        fillY = 0.6;
-        fov = 24;
-        leadPad = 2;
-        maxSpan = 12;
-        break;
-      case "aerial":
-        group = byX;
-        elev = 52;
-        yaw = -8;
-        fillX = 0.88;
-        fillY = 0.55;
-        fov = 34;
-        maxSpan = 1e9;
-        composeShift = 0.08;
-        break;
       case "wide":
         group = byX;
         elev = 20;
@@ -1208,17 +1252,6 @@ export class HD2DScene {
         maxSpan = 80;
         composeShift = 0.16;
         break;
-      case "rail": {
-        // Low rail cam: just inside the inner rail at hoof-to-hip height, the rail posts
-        // whipping past in the foreground.
-        const g = near(SHOT_REACH.rail, 4);
-        let zz = 0;
-        for (const r of g) zz += r.z;
-        zz /= g.length;
-        pos.set(sub.x - 3.0, 1.35, 1.9);
-        at.set(sub.x + 1.5, 1.05, zz);
-        return { fov: 44, vel: sub.speed, x0: sub.x - 6, x1: sub.x + 1, z0: zz - 1, z1: zz + 1 };
-      }
       case "judge":
         group = byX.filter((r) => Math.abs(r.x - L) < 5);
         if (group.length < 2) group = byX.slice(0, 2);
@@ -1235,9 +1268,9 @@ export class HD2DScene {
       case "post":
         group = byX.filter((r) => r.x > L - 40);
         if (group.length < 3) group = byX.slice(0, 3);
-        elev = 14;
-        yaw = 10;
-        fov = 30;
+        elev = 12;
+        yaw = -2;
+        fov = 28;
         vel = 0;
         maxSpan = 30;
         break;
@@ -1260,8 +1293,9 @@ export class HD2DScene {
     }
     // Narrow screens: less track, a little more elevation to separate the lanes.
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
-    maxSpan *= Math.pow(narrowK, type === "close" ? 0.5 : 1.5);
-    if (type !== "judge" && type !== "gate" && type !== "aerial") elev += (1 - narrowK) * 12;
+    // Phones: close tracking frames ~1.5 lengths so the horse reads clearly at 390 px.
+    maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
+    if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 12);
     fillY *= 0.85 + 0.15 * narrowK;
     if (x1 - x0 > maxSpan) {
       // Keep the subject in the frame, trimmed towards the front of the group.

@@ -10,7 +10,7 @@ function run(seed: number, highlight: string | null, photoFinish = true, compact
   const d = new Director();
   d.compact = compact;
   d.reset(-1.5);
-  const cuts: { t: number; type: ShotType; subject: string | null }[] = [];
+  const changes: { t: number; type: ShotType; subject: string | null }[] = [];
   let unseenMax = 0;
   let lastSeen = 0;
   let evIdx = 0;
@@ -21,56 +21,45 @@ function run(seed: number, highlight: string | null, photoFinish = true, compact
     const newEvents = [];
     while (evIdx < replay.events.length && replay.events[evIdx]!.tick / replay.tickHz <= t) newEvents.push(replay.events[evIdx++]!);
     const input = { t, runners, trackLengthM: replay.trackLengthMm / 1000, winnerTime: timing.winnerTime, photoFinish: replay.result.photoFinish, newEvents, highlightId: highlight };
-    const { shot, cut } = d.update(input);
-    if (cut) cuts.push({ t, type: shot.type, subject: shot.subject });
+    const { shot, changed } = d.update(input);
+    if (changed) changes.push({ t, type: shot.type, subject: shot.subject });
     if (highlight && t > 1 && t < timing.winnerTime) {
       if (d.shows(highlight, input)) lastSeen = t;
       unseenMax = Math.max(unseenMax, t - lastSeen);
     }
   }
-  return { cuts, unseenMax, timing, replay };
+  return { changes, unseenMax, timing, replay };
 }
 
-describe("broadcast director", () => {
-  it("compact (phones): no aerials, the player's horse stays in view", () => {
+describe("broadcast director (side-on only)", () => {
+  it("only ever uses side-on framings", () => {
     for (const seed of [3, 7, 11]) {
-      const { cuts, unseenMax } = run(seed, "h9", true, true);
-      expect(cuts.some((c) => c.type === "aerial")).toBe(false);
-      expect(unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
+      const { changes } = run(seed, "h9");
+      for (const c of changes) expect(["gate", "close", "pack", "judge", "post"]).toContain(c.type);
     }
   });
 
-  it("opens on the gate, establishes with an aerial, uses the rail cam in the final furlong and the judge cam for a photo", () => {
-    const { cuts, timing } = run(7, "h9");
-    const types = cuts.map((c) => c.type);
+  it("starts at the gate, tracks close, uses the judge's line for a photo, holds the post", () => {
+    const { changes } = run(7, "h9");
+    const types = changes.map((c) => c.type);
     expect(types[0]).toBe("close");
-    expect(types).toContain("aerial");
-    expect(types).toContain("headon");
-    expect(types).toContain("rail");
+    expect(types).toContain("pack");
     expect(types).toContain("judge");
-    const aerial = cuts.find((c) => c.type === "aerial")!;
-    expect(aerial.t).toBeLessThan(timing.winnerTime * 0.4);
+    expect(types[types.length - 1]).toBe("post");
   });
 
-  it("never cuts more than once per ~3 s outside forced cuts", () => {
-    const { cuts } = run(11, "h4");
-    for (let i = 1; i < cuts.length; i++) {
-      const forced = ["judge", "post"].includes(cuts[i]!.type) || cuts[i - 1]!.type === "gate";
-      if (!forced) expect(cuts[i]!.t - cuts[i - 1]!.t).toBeGreaterThanOrEqual(MIN_SHOT_S - 1e-6);
+  it("holds each framing for a while (no restless re-framing)", () => {
+    const { changes } = run(11, "h4");
+    for (let i = 1; i < changes.length; i++) {
+      const phase = ["judge", "post"].includes(changes[i]!.type) || changes[i - 1]!.type === "gate";
+      if (!phase) expect(changes[i]!.t - changes[i - 1]!.t).toBeGreaterThanOrEqual(MIN_SHOT_S - 1e-6);
     }
   });
 
-  it("never leaves the player's horse unseen for more than ~10 s", () => {
+  it("never leaves the player's horse out of frame for more than ~10 s (also compact)", () => {
     for (const seed of [3, 5, 9]) {
-      const { unseenMax } = run(seed, "h9", false);
-      expect(unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
+      expect(run(seed, "h9", false).unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
+      expect(run(seed, "h9", false, true).unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
     }
-  });
-
-  it("shots last a few seconds (no strobing)", () => {
-    const { cuts } = run(21, "h2");
-    const avg = (cuts[cuts.length - 1]!.t - cuts[0]!.t) / Math.max(1, cuts.length - 1);
-    expect(avg).toBeGreaterThan(3.5);
-    expect(avg).toBeLessThan(12);
   });
 });
