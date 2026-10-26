@@ -50,6 +50,9 @@ importers:
       react-dom:
         specifier: 19.1.10
         version: 19.1.10(react@19.1.10)
+      viem:
+        specifier: 2.57.11
+        version: 2.57.11(typescript@5.9.3)(zod@4.6.7)
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -128,7 +131,7 @@ importers:
         version: 5.9.3
       viem:
         specifier: 2.57.11
-        version: 2.57.11(typescript@5.9.3)
+        version: 2.57.11(typescript@5.9.3)(zod@4.6.7)
 
   packages/db:
     dependencies:
@@ -4594,7 +4597,7 @@ snapshots:
       '@nomicfoundation/hardhat-viem': 2.1.5(hardhat@2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3))(typescript@5.9.3)(viem@2.57.11(typescript@5.9.3))
       '@nomicfoundation/ignition-core': 0.15.15
       hardhat: 2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3)
-      viem: 2.57.11(typescript@5.9.3)
+      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
 
   '@nomicfoundation/hardhat-ignition@0.15.16(@nomicfoundation/hardhat-verify@2.1.3(hardhat@2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3)))(hardhat@2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3))':
     dependencies:
@@ -4634,7 +4637,7 @@ snapshots:
       solidity-coverage: 0.8.17(hardhat@2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3))
       ts-node: 10.9.2(@types/node@22.20.5)(typescript@5.9.3)
       typescript: 5.9.3
-      viem: 2.57.11(typescript@5.9.3)
+      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
 
   '@nomicfoundation/hardhat-verify@2.1.3(hardhat@2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3))':
     dependencies:
@@ -4656,7 +4659,7 @@ snapshots:
       abitype: 0.9.10(typescript@5.9.3)
       hardhat: 2.29.1(ts-node@10.9.2(@types/node@22.20.5)(typescript@5.9.3))(typescript@5.9.3)
       lodash.memoize: 4.1.2
-      viem: 2.57.11(typescript@5.9.3)
+      viem: 2.57.11(typescript@5.9.3)(zod@4.6.7)
     transitivePeerDependencies:
       - typescript
       - zod
@@ -5097,9 +5100,10 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  abitype@1.2.3(typescript@5.9.3):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.6.7):
     optionalDependencies:
       typescript: 5.9.3
+      zod: 4.6.7
 
   acorn-walk@8.3.5:
     dependencies:
@@ -6559,7 +6563,7 @@ snapshots:
 
   os-tmpdir@1.0.2: {}
 
-  ox@0.14.57(typescript@5.9.3):
+  ox@0.14.57(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -6567,7 +6571,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.7)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -7232,15 +7236,15 @@ snapshots:
 
   v8-compile-cache-lib@3.0.1: {}
 
-  viem@2.57.11(typescript@5.9.3):
+  viem@2.57.11(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.7)
       isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.57(typescript@5.9.3)
+      ox: 0.14.57(typescript@5.9.3)(zod@4.6.7)
       ws: 8.21.0
     optionalDependencies:
       typescript: 5.9.3
