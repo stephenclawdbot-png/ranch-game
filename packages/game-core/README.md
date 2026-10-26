@@ -41,6 +41,7 @@ pnpm --filter @thoroughbred/game-core sim         # full population Monte Carlo 
 | `dailyCup.ts` | One seeded fixed field per day and one Cup Run per player per day, ranked by time. Takes `simulateRace` as a parameter | `dailyCupDay`, `runDailyCup`, `rankCup` |
 | `leagues.ts` | Weekly leagues of 30 with promotion and relegation. Absent owners are never relegated | `formLeagues`, `settleLeague` |
 | `social.ts` | Achievements, Hall of Fame criteria, rivalry detection | `ACHIEVEMENTS`, `hallOfFameReasons`, `detectRivalries` |
+| `story.ts` | Story mode (§4e): four chapters (Club → County → National → Classics) of six fixed races covering every surface and trip, named AI rival stables with bios and lines, licences (3 chapter wins → next licence) that gate Live classes, rival runners at the chapter strength | `STORY_CHAPTER_DEFS`, `RIVAL_STABLES`, `rivalFor`, `storyRivalRunner`, `storyProgress`, `licenceAfter`, `licenceForTier`, `licenceBlock` |
 | `onboarding.ts` | Starter stable (3 race-ready Club-bred horses), a competitive but honest first maiden, the day-2 gift foal | `createStarterStable`, `firstMaidenRace`, `createGiftFoal` |
 | `field.ts` | Club (AI) runners for fixed fields | `clubRunner` |
 | `sim/population.ts` | Population Monte Carlo using the real rules | `runPopulationSim`, `populationSteps` |
