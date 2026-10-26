@@ -131,6 +131,7 @@ export class TracksideScene {
   private runners: Runner[] = [];
   private byLane: Runner[] = [];
   private lodTex = new Map<StripSet, LodTex[]>();
+  private mskTex = new Map<StripSet, THREE.DataTexture>();
   private lut: THREE.DataTexture;
   private sprite: SpriteMetrics;
   private cam = new TracksideCamera();
@@ -224,6 +225,7 @@ export class TracksideScene {
         st,
         st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
       );
+      this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
     }
     this.buildBackdrop();
     this.buildGround();
@@ -464,7 +466,10 @@ export class TracksideScene {
         uIdx: { value: lt.idx },
         uNrm: { value: lt.nrm ?? lt.idx },
         uLut: { value: this.lut },
+        uMsk: { value: this.mskTex.get(g) },
         uIdxSize: { value: new T.Vector2(l0.width, l0.height) },
+        uMskSize: { value: new T.Vector2(l0.width, l0.height) },
+        uMskOrigin: { value: new T.Vector2(0, 0) },
         uFrame: { value: new T.Vector4(0, 0, l0.fw, l0.fh) },
         uLodS: { value: 1 },
         uSilk: { value: new T.Vector4(0, 0, 1, 1) },
@@ -853,7 +858,10 @@ export class TracksideScene {
       u.uIdx!.value = tex.idx;
       u.uNrm!.value = tex.nrm ?? tex.idx;
       u.uUseNrm!.value = tex.nrm ? 1 : 0;
+      u.uMsk!.value = this.mskTex.get(st);
       (u.uIdxSize!.value as THREE.Vector2).set(lod.width, lod.height);
+      (u.uMskSize!.value as THREE.Vector2).set(st.lods[0]!.width, st.lods[0]!.height);
+      (u.uMskOrigin!.value as THREE.Vector2).set(...frameOrigin(st.lods[0]!, frame));
       (u.uFrame!.value as THREE.Vector4).set(ox, oy, lod.fw, lod.fh);
       u.uLodS!.value = r.lod;
       const sb = st.silk;
@@ -1028,9 +1036,12 @@ export class TracksideScene {
       }
     }
     // Every horse material once with each LOD bound, so the uniform paths are warm too.
-    for (const st of this.lodTex.values()) {
-      for (const lt of st) {
-        for (const run of this.runners) run.mat.uniforms.uIdx!.value = lt.idx;
+    for (const [st, lts] of this.lodTex) {
+      for (const lt of lts) {
+        for (const run of this.runners) {
+          run.mat.uniforms.uIdx!.value = lt.idx;
+          run.mat.uniforms.uMsk!.value = this.mskTex.get(st);
+        }
         r.compile(this.scene, this.camera);
       }
     }

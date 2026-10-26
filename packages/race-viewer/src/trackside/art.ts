@@ -6,7 +6,7 @@
  */
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
-import { downsampleFrames, indexStrip, newPalette, primaryIndices, silkBoxes, type IndexedFrames, type Palette } from "./strips";
+import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, type IndexedFrames, type Palette } from "./strips";
 
 export const BACKDROP_STEMS = [
   "sky-dusk",
@@ -33,6 +33,8 @@ export interface StripSet {
   lods: IndexedFrames[];
   /** Per-frame silks box (source texels). */
   silk: Float32Array;
+  /** Marking masks at lods[0] resolution (RGBA grid; R region, G param, B face edge). */
+  mask: Uint8Array;
   /** Source texels per metre (the idle strip is authored a little larger). */
   pxPerM: number;
 }
@@ -71,7 +73,7 @@ function approved(art: ArtSet, file: string) {
   return art.manifest?.assets.find((a) => a.status === "approved" && a.src && (a.src === file || a.src.endsWith(`/${file}`)));
 }
 
-async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: number): Promise<StripSet | null> {
+async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: number, keys: KeyPalette): Promise<StripSet | null> {
   const entry = approved(art, `${stem}.png`);
   if (!entry?.src) return null;
   const img = await loadImg(urlOf(art, entry.src));
@@ -87,7 +89,7 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
   const l1 = indexStrip(rgba, img.naturalWidth, fh, frames, palette, anchor, nrm);
   if (!l1) return null;
   const lods = [l1, downsampleFrames(l1, 2, palette), downsampleFrames(l1, 3, palette), downsampleFrames(l1, 4, palette)];
-  return { lods, silk: new Float32Array(0), pxPerM };
+  return { lods, silk: new Float32Array(0), mask: buildMarkMasks(l1, palette, keys), pxPerM };
 }
 
 /** Everything the Trackside view needs; null when the keyed gallop strip is unavailable. */
@@ -102,10 +104,10 @@ export async function loadTracksideArt(art: ArtSet): Promise<TracksideArt | null
   const keys = parseKeyPalette(json);
   if (!keys) return null;
   const palette = newPalette();
-  const gallop = await stripSet(art, "horse-gallop", palette, 96);
+  const gallop = await stripSet(art, "horse-gallop", palette, 96, keys);
   if (!gallop) return null;
   // The idle strip shares the key palette; its horse is drawn ~8 % larger per texel.
-  const idle = await stripSet(art, "horse-idle", palette, 104).catch(() => null);
+  const idle = await stripSet(art, "horse-idle", palette, 104, keys).catch(() => null);
   const primary = primaryIndices(palette, keys);
   gallop.silk = silkBoxes(gallop.lods[0]!, primary);
   if (idle) idle.silk = silkBoxes(idle.lods[0]!, primary);
