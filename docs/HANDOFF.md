@@ -33,14 +33,39 @@ Preview and Production.)
 
   Turn the picks into GLM tickets.
 - **Open, smaller:**
-  - the finish-order ticker is clipped on the right (`docs/qa/2026-10-26-production-visitor.md`
-    #5);
-  - public boards list test accounts: run the `/admin` reset before testers arrive;
-  - check Trackside and the dioramas for fps on a real GPU and phone;
-  - Trackside is crowded with 12 runners on a 390 px phone;
-  - no starting-stalls prop yet.
+  - public boards list test accounts: run the `/admin` reset before testers arrive (owner's
+    call on timing: it wipes production and preview);
+  - check Trackside and the dioramas for fps on a real GPU and phone.
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
+
+## Viewer polish: ticker, phone crowding, starting stalls (lead + Ollama workers, 2026-10-26)
+
+Branch `claude/intelligent-ride-rkrz3i` (from `8fa8146`); not yet on `claude/thoroughbred-demo`
+or `main`.
+
+- **Standings strip** (GLM; lead fix): whole chips only plus a "+N" chip, measured in the
+  browser (`fitCount` in `hud/Hud.tsx`, unit tested). The leader and the highlighted horse
+  always show; on narrow stages names ellipsize (60 px) so leader + me + "+N" fit at 390.
+  Mask fade and horizontal scroll removed. Closes QA #5.
+- **12 runners on phones** (Kimi; lead tuning): `crowding(W, runners)` in `trackside/layout.ts`
+  (0 on wide stages or ≤ 8 runners, so desktop and small fields are byte-identical) adds lane
+  falloff, crane height and a 75 % readable-size floor. `FieldLayout.k` carries the falloff;
+  horses, ground, props and the gate use it. **Decision (flag):** phones get a ~1:1 stage
+  (`min(w × 1.05, 48 % of the screen)`) on the race page and the Cup run screen (was 0.82 ×
+  and 0.62 × width). 390×844, 12 runners: horses 40–55 px, the most-covered horse 20–40 %
+  visible (was 7–20 %). Harness: `/dev/viewer?h=<px>` sets the stage height.
+- **Starting stalls** (Kimi; lead fix): `trackside/gate.ts`, one open bay per lane (no truss or
+  number board, low rails so every jockey shows), world-anchored at the start, doors swing
+  open over 0.22 s at the off. Art: `art-src/race/gen-stalls.mjs` (2 PixelLab generations) →
+  `art-src/finish-stall.py` → `public/art/race/starting-stall{,-front,-door}.png`. Thin parts
+  use their own LOD (they stop at 2:1).
+- One `apps/web` vitest run failed once and passed on four reruns (name not captured);
+  watch for a flaky test.
+- **Pipeline notes:** `glm-5.3` crashes if it Reads a PNG (text-only), so tell it not to open
+  screenshots and to report measurements instead. Kimi's first passes needed lead review
+  both times: it met the numeric criteria but missed the look, so always check its
+  screenshots.
 
 ## Trackside race view (race-viewer agent, 2026-10-26)
 
