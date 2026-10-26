@@ -1201,6 +1201,28 @@ dialog.sheet :focus-visible {
     bottom: 40px;
     z-index: 1;
   }
+  /* The title reads over any scene: a pixel ink outline (4 hard shadows) plus a 2-px drop. */
+  .scene-band .overlay .t-page {
+    text-shadow:
+      2px 0 0 #050d08,
+      -2px 0 0 #050d08,
+      0 2px 0 #050d08,
+      0 -2px 0 #050d08,
+      2px 4px 0 #050d08;
+  }
+  @media (min-width: 768px) {
+    .scene-band::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(90deg, rgba(8, 21, 14, 0.72) 0, rgba(8, 21, 14, 0.4) 30%, rgba(8, 21, 14, 0) 55%);
+      pointer-events: none;
+    }
+    .scene-band .overlay {
+      z-index: 2;
+    }
+  }
   .scene-band.short .overlay,
   .scene-band.crop .overlay {
     bottom: 16px;

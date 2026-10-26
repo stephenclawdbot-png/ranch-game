@@ -72,7 +72,8 @@ async function main() {
     assert(/within 5 pulls/.test(await page.getByTestId("pity-paddock").innerText()), "paddock pity published");
     assert(/within 10 pulls/.test(await page.getByTestId("pity-premium").innerText()) && /within 50 pulls/.test(await page.getByTestId("pity-premium").innerText()), "premium pity published");
     assert((await page.getByTestId("premium-demo").innerText()).includes("Coming soon"), "premium labelled coming soon / demo");
-    assert(await page.getByTestId("open-premium").isDisabled(), "premium can't be bought");
+    // Design v2: "Coming soon" is a line of text, never a disabled button.
+    assert((await page.locator('button[data-testid="open-premium"]:not([disabled])').count()) === 0, "premium can't be bought");
     assert(/Coming soon/.test(await page.getByTestId("open-premium").innerText()), "premium button says coming soon");
     assert((await page.getByTestId("weekly-paddock").innerText()).trim() === "0/3", "weekly paddock limit 0/3");
     const cropBefore = Number((await page.getByTestId("crop-remaining").innerText()).replace(/\D/g, ""));

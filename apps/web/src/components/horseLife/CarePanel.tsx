@@ -20,7 +20,7 @@ interface CareResponse {
 /** Care & condition: today's care session, growth, freshness, injuries, risk and insurance. */
 export function CarePanel({ view }: { view: HorseLifeView }) {
   const { care, condition: cond, career } = view;
-  const first = view.name.split(" ")[0];
+  const first = view.name;
   const recommended = care.feeds.find((f) => f.recommended)?.key ?? care.feeds[0]!.key;
   const [feed, setFeed] = useState(recommended);
   const [groom, setGroom] = useState(true);
@@ -49,7 +49,7 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
       <section className="surface grid gap-3 p-4" aria-labelledby="care-h" data-testid="care-panel">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 id="care-h" className="t-display-m">
+            <h2 id="care-h" className="t-h2">
               Today&rsquo;s care
             </h2>
             <p className="text-sm text-cream-dim">One counted session a day. Missing a day only pauses growth; it never harms {first}.</p>
@@ -114,7 +114,7 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
       </section>
 
       <section className="surface grid gap-3 p-4" aria-labelledby="cond-h" data-testid="condition-panel">
-        <h2 id="cond-h" className="t-display-m">
+        <h2 id="cond-h" className="t-h2">
           Condition
         </h2>
         <div className="grid gap-1">
@@ -137,7 +137,7 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
       </section>
 
       <section className="surface grid gap-3 p-4" aria-labelledby="inj-h" data-testid="injury-panel">
-        <h2 id="inj-h" className="t-display-m">
+        <h2 id="inj-h" className="t-h2">
           Injuries
         </h2>
         {cond.injury ? (

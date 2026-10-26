@@ -119,7 +119,7 @@ export function PoolAdminSection() {
       </p>
 
       <section className="surface grid gap-3 p-3">
-        <h3 className="t-display-m">Compute the next epoch</h3>
+        <h3 className="t-h2">Compute the next epoch</h3>
         <div className="flex flex-wrap gap-3 text-sm">
           <label>
             Kind{" "}
@@ -165,7 +165,7 @@ export function PoolAdminSection() {
 
       {draft && (
         <section className="surface grid gap-2 p-3" data-testid="pool-draft">
-          <h3 className="t-display-m">Draft: epoch #{draft.epochId}</h3>
+          <h3 className="t-h2">Draft: epoch #{draft.epochId}</h3>
           <p className="text-sm">
             Period {draft.period.from.slice(0, 10)} → {draft.period.to.slice(0, 10)} · ETH ${draft.ethUsd.toFixed(2)} ({draft.priceSources.map((s) => `${s.source} ${s.usd ?? "–"}`).join(", ")}) ·
             budget {formatEth(draft.budgetWei)} ({usd(draft.budgetUsdCents)}) of free {formatEth(draft.availableWei)} · total {formatEth(draft.totalWei)}
@@ -234,7 +234,7 @@ export function PoolAdminSection() {
       {msg && <p className="surface p-3 font-bold">{msg}</p>}
 
       <section className="surface grid gap-2 p-3">
-        <h3 className="t-display-m">History</h3>
+        <h3 className="t-h2">History</h3>
         {!hist?.epochs.length ? (
           <p className="text-cream-dim">No epochs yet.</p>
         ) : (

@@ -175,7 +175,7 @@ function SheetHeader({ eyebrow, title, onClose }: { eyebrow: string; title: stri
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="eyebrow">{eyebrow}</p>
-        <h2 id="entry-title" className="t-display-m">
+        <h2 id="entry-title" className="t-h2">
           {title}
         </h2>
       </div>

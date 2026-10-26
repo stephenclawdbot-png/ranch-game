@@ -22,7 +22,7 @@ export function AdminShell() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow">Closed playtest</p>
-          <h1 className="t-display-l">Admin</h1>
+          <h1 className="t-page">Admin</h1>
         </div>
         <button
           type="button"
@@ -68,7 +68,7 @@ export function AdminLogin({ enabled }: { enabled: boolean }) {
   if (!enabled) {
     return (
       <div className="surface mx-auto max-w-md p-4" data-testid="admin-disabled">
-        <h1 className="t-display-m">Admin is off</h1>
+        <h1 className="t-h2">Admin is off</h1>
         <p className="mt-1 text-cream-dim">Set ADMIN_SECRET (12+ characters) in the server environment to enable /admin.</p>
       </div>
     );
@@ -90,7 +90,7 @@ export function AdminLogin({ enabled }: { enabled: boolean }) {
       }}
       data-testid="admin-login"
     >
-      <h1 className="t-display-m">Admin sign-in</h1>
+      <h1 className="t-h2">Admin sign-in</h1>
       <label className="grid gap-1">
         <span className="font-bold">Admin secret</span>
         <input className="field min-h-11" type="password" value={secret} onChange={(e) => setSecret(e.target.value)} autoComplete="current-password" data-testid="admin-secret" />

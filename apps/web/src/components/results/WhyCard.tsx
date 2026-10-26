@@ -14,7 +14,7 @@ export function WhyCard({ analysis, horseName, isYours }: { analysis: RaceAnalys
   const a = analysis;
   return (
     <section className="surface p-3 sm:p-4" aria-labelledby="why-h" data-testid="why-card">
-      <h2 id="why-h" className="t-display-m">
+      <h2 id="why-h" className="t-h2">
         {isYours ? "Why it went that way" : `Why ${horseName} won`}
       </h2>
       <p className="mt-2 max-w-prose text-lg">{a.summary}</p>

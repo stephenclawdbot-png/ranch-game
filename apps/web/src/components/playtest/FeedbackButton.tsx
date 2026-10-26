@@ -118,7 +118,7 @@ function FeedbackDialog({ onClose }: { onClose: () => void }) {
         data-testid="feedback-dialog"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 id="fb-h" className="t-display-m">
+          <h2 id="fb-h" className="t-h2">
             {sent ? "Thank you!" : "Send feedback"}
           </h2>
           <button type="button" className="flex h-11 w-11 items-center justify-center text-xl text-cream-dim hover:text-cream" onClick={onClose} aria-label="Close" ref={sent ? first : undefined}>

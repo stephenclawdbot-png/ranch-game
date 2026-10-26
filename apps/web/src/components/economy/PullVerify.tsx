@@ -93,7 +93,7 @@ export function PullVerify({ id }: { id: string }) {
         <Link href="/packs" className="t-meta w-fit underline decoration-2 underline-offset-4 hover:text-cream">
           ← Packs
         </Link>
-        <h1 className="t-display-l">Pull integrity</h1>
+        <h1 className="t-page">Pull integrity</h1>
         <div className="flex flex-wrap items-center gap-2">
           <RarityBadge rarity={p.pull.rarity} />
           <span className="t-meta">
@@ -104,7 +104,7 @@ export function PullVerify({ id }: { id: string }) {
       </header>
 
       <section className={`${ok ? "surface-2" : "inset"} grid gap-2 p-4`} aria-live="polite" data-testid="verify-result" data-verified={ok ? "true" : "false"}>
-        <h2 className="t-display-m">{local ? (ok ? "✓ Verified in your browser" : "✗ Doesn't match") : failed ? "Couldn't re-check" : "Checking…"}</h2>
+        <h2 className="t-h2">{local ? (ok ? "✓ Verified in your browser" : "✗ Doesn't match") : failed ? "Couldn't re-check" : "Checking…"}</h2>
         {local && (
           <ul className="grid gap-1">
             <Check ok={local.commitment}>The seal published before the pull is the sha256 fingerprint of the revealed seed.</Check>

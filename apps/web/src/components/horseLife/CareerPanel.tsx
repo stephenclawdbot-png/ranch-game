@@ -13,7 +13,7 @@ const REASON: Record<string, string> = { choice: "by your choice", max_starts: "
 /** The career clock (n / 40 starts), maturity, revealed potential and the owner's career decisions. */
 export function CareerPanel({ view }: { view: HorseLifeView }) {
   const c = view.career;
-  const first = view.name.split(" ")[0];
+  const first = view.name;
   const router = useRouter();
   const action = useAction();
   const base = `/api/horses/${view.id}`;

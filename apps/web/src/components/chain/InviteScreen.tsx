@@ -142,8 +142,10 @@ export function InviteScreen() {
         )}
       </section>
 
+      <div className="grid gap-1" data-testid="invite-rules">
+      <p className="t-meta">You never need to buy anything to invite or to earn: inviting is free, and so is playing.</p>
       <HowItWorks label="How rewards work">
-        <ul className="grid list-disc gap-1 pl-5 text-sm" data-testid="invite-rules">
+        <ul className="grid list-disc gap-1 pl-5 text-sm">
           <li>
             <strong>You never need to buy anything to invite or to earn.</strong> Inviting is free, and so is playing.
           </li>
@@ -163,6 +165,7 @@ export function InviteScreen() {
           </li>
         </ul>
       </HowItWorks>
+      </div>
       <p className="caption">
         <Link href="/pool" className="underline">
           Prize Pool

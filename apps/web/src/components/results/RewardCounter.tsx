@@ -53,7 +53,7 @@ export function RewardCounter({
         </h2>
         {prize > 0 ? (
           <>
-            <p className="score text-[2.5rem] text-positive" aria-hidden>
+            <p className="score text-[2.5rem] text-brass-bright" aria-hidden>
               +{formatCredits(shown)}
             </p>
             <p className="text-sm text-cream-dim">

@@ -231,7 +231,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
       ) : quote && phase !== "idle" && phase !== "quoting" ? (
         <div className="grid gap-2" data-testid="checkout-quote">
           <p className="text-cream">
-            <span className="t-display-m">{formatUsdCents(quote.usdCents)}</span> ≈ <span className="num">{formatEth(quote.priceWei, 6)}</span>
+            <span className="t-h2">{formatUsdCents(quote.usdCents)}</span> ≈ <span className="num">{formatEth(quote.priceWei, 6)}</span>
             <span className="caption block">
               Exact amount your wallet will show: {quote.priceWei} wei · ETH at ≈ ${quote.ethUsd.toFixed(2)} (median of public prices) · price held for{" "}
               <span className="num" data-testid="quote-countdown">

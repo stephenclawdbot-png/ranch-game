@@ -1,6 +1,10 @@
-# Thoroughbred: racing stable game
+# POST TIME: a racing stable game
 
-A **live, multiplayer horse-racing stable game** that runs in the browser. You breed, raise,
+![POST TIME](apps/web/public/brand/post-time-wordmark@4x.png)
+
+**Post Time** (the scheduled moment a race starts) is a **live, multiplayer horse-racing stable
+game** that runs in the browser. Your home racecourse is **Kestrel Downs**, where a Live race
+goes off every 3 minutes. You breed, raise,
 train and manage horses that race live against other players' horses on a shared race card.
 Alongside that there's a single-player **Story mode** against named AI rival stables. The
 races are shown as an **HD-2D broadcast**: pixel-art horses in a real 3D racecourse.
@@ -9,10 +13,28 @@ races are shown as an **HD-2D broadcast**: pixel-art horses in a real 3D racecou
 > ride it like Rival Stars. Simple on the surface, deep underneath. It never punishes you
 > for being away.
 
+**Brand:** the game was called "Thoroughbred" during development; the user-facing name is
+now **Post Time** (internal package names stay `@thoroughbred/*`). Wordmark, icons and the
+Design System v2 ("racecard at golden hour") are described in
+[`docs/brand-and-design-v2.md`](docs/brand-and-design-v2.md); the brand files are in
+`apps/web/public/brand/` (generator: `apps/web/scripts/brand/wordmark.py`).
+
 **Status:** Phase 1 (core feel) is in progress. See [`docs/roadmap.md`](docs/roadmap.md) and
 [`docs/HANDOFF.md`](docs/HANDOFF.md).
 **Live preview** (latest work):
 https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.app
+
+---
+
+## Screenshots
+
+Design System v2 at 390×844 (phone). Before and after, Home and Stable:
+
+![Before and after](docs/brand-v2/v2-before-after.png)
+
+| Home | Stable | Race card | Packs |
+|---|---|---|---|
+| ![Home](docs/brand-v2/shots/m-home.png) | ![Stable](docs/brand-v2/shots/m-stable.png) | ![Races](docs/brand-v2/shots/m-races.png) | ![Packs](docs/brand-v2/shots/m-packs.png) |
 
 ---
 
@@ -22,7 +44,7 @@ https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.app
 |---|---|
 | **Races** | **Live:** a shared card with a race every 3 minutes. Entries close 1 minute before the off, AI horses fill empty gates, and the race is broadcast live with no spoilers. **Story:** solo races against AI rivals, which you can skip to the result. **Quick Pick** enters your best-fit horse in one tap. |
 | **Fairness** | Races are simulated deterministically on the server from a committed seed. Anyone can verify the seed commitment and result hash. The outcome is never sent to clients before the finish is broadcast. |
-| **Horses** | Genetics: a two-allele genome, a vigour gene, real coat-colour genetics, markings, breeds and body shape. Every horse's look is generated in code from its genes. Potential is revealed over time. |
+| **Horses** | Every horse has a public **registration number** (`G<generation>-<sequence>`, e.g. `G2-04571`) and a **unique name** among active horses (2–18 characters; Hall of Fame names are retired for good). Genetics: a two-allele genome, a vigour gene, real coat-colour genetics, markings, breeds and body shape. Every horse's look is generated in code from its genes. Potential is revealed over time. |
 | **Career clock** | Horses age by **career starts, not calendar time**: 40 starts, running juvenile → prime → veteran → retirement → stud → Legacy Farm. Freshness recovers in real time, with at most 3 starts per day. Injuries are visible before entry and never fatal. |
 | **Breeding** | 4 breedings per horse, kinship blocks, inbreeding penalties, and a breeding preview with odds. Foals grow only through daily **care sessions**. Missing a day pauses growth and never harms the foal. |
 | **Economy** | **In-game Stable Credits only. Never cashed out, and no prize money.** Credits come from purses, daily goals and capped Story rewards. They're spent on training, entries, breeding, packs, facilities and a credits-only market with a 5% fee that's burned. |
@@ -39,15 +61,16 @@ final user decisions; §12 lists deviations made during implementation.
 
 Mobile has a five-tab bottom bar (Home · Stable · Races · Club · Market) and desktop has the
 same five in the top bar. Each area's index screens share a one-row sub-nav, and detail
-screens are the second and last level. The top bar holds the purse, the entry bank, a
-**Feedback** button and your silks (→ `/me`).
+screens are the second and last level. The top bar holds the POST TIME wordmark, the entry
+bank, the purse and your silks (→ `/me`, where **Feedback** lives; `/beta` has a floating
+"?").
 
 | Area | Routes |
 |---|---|
 | Home | `/`: the hero action (your race live or a result ready, otherwise Quick Pick), your races, **Today** tiles (Daily Cup, gift foal, care, free pack, mare ready to foal, next Story race) from `GET /api/home`, your horses, Live card |
 | Stable | `/stable` (roster) · `/horse/:id` (+ `/care`, `/training`, `/career`; actions: plan a cover, stand at stud, sell) · `/nursery` · `/breeding` (`#studs` = stud book, incl. Club house stallions) · `/facilities` |
 | Races | `/races` (Live card + Story) · `/race/:id` (broadcast, results, verify) · `/story` (chapters, rivals, licences) |
-| Club | `/league` (`/club` redirects here) · `/cup` (+ `/cup/run/:id`) · `/hall` · `/pool` and `/invite` (beta money, web3 agent) · `/beta` (playtesters) |
+| Club | `/league` (`/club` redirects here) · `/cup` (+ `/cup/run/:id`) · `/hall` · `/pool`, `/invite` and `/beta` (beta & wallet: linked from Profile, not the core nav) |
 | Market | `/market` (`#buy`, `#sell`, `#mine`) · `/packs` (+ `/packs/pulls/:id` proof) |
 | Other | `/play` (found a stable; invite gate in playtest mode) · `/me` · `/admin` (playtest admin, `ADMIN_SECRET`) · `/dev/viewer`, `/dev/rig` |
 

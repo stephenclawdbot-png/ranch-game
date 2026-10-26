@@ -77,8 +77,8 @@ describe("breeding barn", () => {
     expect(mid.mares.find((m) => m.id === dam.id)?.block).toMatch(/dam_in_foal|season_limit/);
     await expect(foalAndName(h.db, p, { pregnancyId: c.pregnancyId, name: "Too Soon" }, at(DAY / 2))).rejects.toMatchObject({ code: "TOO_EARLY" });
 
-    const born = await foalAndName(h.db, p, { pregnancyId: c.pregnancyId, name: "First Light" }, at(DAY));
-    expect(born.foal.horse.name).toBe("First Light");
+    const born = await foalAndName(h.db, p, { pregnancyId: c.pregnancyId, name: "Dawn Chorus" }, at(DAY));
+    expect(born.foal.horse.name).toBe("Dawn Chorus");
     expect(born.foal.stage).toBe("foal");
     const after = await breedingView(h.db, p, at(DAY));
     expect(after.pregnancies[0]).toMatchObject({ status: "foaled", foal: { id: born.foal.id } });

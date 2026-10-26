@@ -64,7 +64,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
   const apt = aptitudes(horse);
   const tripName = (id: string) => TRIP_BANDS.find((b) => b.id === id)!.label;
 
-  const first = horse.name.split(" ")[0];
+  const first = horse.name;
   return (
     <div className="grid gap-6">
       <SceneBand
@@ -192,7 +192,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
             Aptitudes
           </h2>
           <p className="mt-1 text-sm text-cream-dim">
-            How much of {horse.name.split(" ")[0]}&rsquo;s ability shows in each condition. A keeps it all; E loses a lot.
+            How much of {horse.name}&rsquo;s ability shows in each condition. A keeps it all; E loses a lot.
           </p>
           <dl className="mt-2 divide-y-2 divide-dotted divide-line">
             <AptRow label="Trip" cells={apt.trip} name={tripName} />

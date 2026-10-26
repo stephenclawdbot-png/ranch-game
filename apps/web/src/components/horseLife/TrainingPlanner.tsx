@@ -39,7 +39,7 @@ function WorkoutEffect({ w }: { w: WorkoutView }) {
 /** Weekly plan (3 slots, 4 with a Trainer), run one session at a time. */
 export function TrainingPlanner({ view }: { view: HorseLifeView }) {
   const t = view.training;
-  const first = view.name.split(" ")[0];
+  const first = view.name;
   const [plan, setPlan] = useState<string[]>(t.plan);
   const [last, setLast] = useState<SessionResponse | null>(null);
   const action = useAction();
@@ -71,7 +71,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
   if (!t.available) {
     return (
       <section className="surface grid gap-2 p-4" data-testid="training-blocked">
-        <h2 className="t-display-m">Training</h2>
+        <h2 className="t-h2">Training</h2>
         <p className="text-cream-dim">{t.blockedReason}</p>
       </section>
     );
@@ -82,7 +82,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
       <section className="surface grid gap-3 p-4" aria-labelledby="plan-h" data-testid="training-plan">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 id="plan-h" className="t-display-m">
+            <h2 id="plan-h" className="t-h2">
               This week&rsquo;s plan
             </h2>
             <p className="text-sm text-cream-dim">
@@ -175,7 +175,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
 
       <section className="surface grid gap-3 p-4" aria-labelledby="real-h" data-testid="realisation">
         <div>
-          <h2 id="real-h" className="t-display-m">
+          <h2 id="real-h" className="t-h2">
             Training progress
           </h2>
           <p className="text-sm text-cream-dim">How much of each stat&rsquo;s potential training has unlocked. Gains shrink near the ceiling.</p>
@@ -200,7 +200,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
       </section>
 
       <section className="surface grid gap-2 p-4" aria-labelledby="fresh-h">
-        <h2 id="fresh-h" className="t-display-m">
+        <h2 id="fresh-h" className="t-h2">
           Freshness
         </h2>
         <CellBar value={view.condition.freshness} max={1000} cells={20} label={`Freshness ${Math.round(view.condition.freshness / 10)}%`} tone={view.condition.freshness < 450 ? "negative" : "positive"} />

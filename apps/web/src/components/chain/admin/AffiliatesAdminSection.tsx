@@ -39,7 +39,7 @@ export function AffiliatesAdminSection() {
   return (
     <div className="grid gap-4" data-testid="admin-affiliates">
       <section className="surface grid gap-2 p-3">
-        <h3 className="t-display-m">Owner (root of the tree)</h3>
+        <h3 className="t-h2">Owner (root of the tree)</h3>
         {data.ownerAccountId ? (
           <p className="text-sm">
             Owner account {data.ownerAccountId.slice(0, 8)}… · affiliate wallet {data.ownerWallet ? shortAddress(data.ownerWallet) : "none"} · treasury {data.treasury ? shortAddress(data.treasury) : "–"}
@@ -61,7 +61,7 @@ export function AffiliatesAdminSection() {
       <ConfigForm v={data} onSave={(body) => act({ action: "config", ...body }, "Saved ✓")} />
 
       <section className="surface grid gap-2 p-3">
-        <h3 className="t-display-m">Top inviters</h3>
+        <h3 className="t-h2">Top inviters</h3>
         <ul className="grid gap-1 text-sm">
           {data.topInviters.map((t) => (
             <li key={t.accountId}>
@@ -73,7 +73,7 @@ export function AffiliatesAdminSection() {
       </section>
 
       <section className="surface grid gap-2 p-3">
-        <h3 className="t-display-m">Flagged (linked accounts)</h3>
+        <h3 className="t-h2">Flagged (linked accounts)</h3>
         <ul className="grid gap-1 text-sm">
           {data.flagged.map((f, i) => (
             <li key={i}>
@@ -85,7 +85,7 @@ export function AffiliatesAdminSection() {
       </section>
 
       <section className="surface grid gap-2 p-3">
-        <h3 className="t-display-m">Tree ({data.tree.length})</h3>
+        <h3 className="t-h2">Tree ({data.tree.length})</h3>
         <table className="w-full text-sm" data-testid="affiliate-tree">
           <thead>
             <tr className="label text-left">
@@ -154,7 +154,7 @@ function ConfigForm({ v, onSave }: { v: View; onSave: (b: Record<string, unknown
   const ceil = v.onchainCeilings;
   return (
     <section className="surface grid gap-2 p-3">
-      <h3 className="t-display-m">Rules</h3>
+      <h3 className="t-h2">Rules</h3>
       <div className="flex flex-wrap gap-3 text-sm">
         <label>
           Level 1 % <input type="number" step="0.1" className="field min-h-11 w-20" min={0} max={15} value={l1} onChange={(e) => setL1(Number(e.target.value))} />

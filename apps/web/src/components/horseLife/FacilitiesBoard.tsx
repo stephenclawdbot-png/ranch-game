@@ -12,7 +12,7 @@ export function FacilitiesBoard({ view }: { view: FacilitiesView }) {
   const action = useAction();
   return (
     <div className="grid gap-6">
-      <SceneBand scene="stable" alt="Your stable yard" eyebrow={`${formatCredits(view.credits)} credits · one-off upgrades, no running costs`} title="Facilities" />
+      <SceneBand scene="stable" alt="Your stable yard" eyebrow={`${formatCredits(view.credits)} credits · no running costs`} title="Facilities" />
       <ul className="grid gap-3 md:grid-cols-2">
         {view.items.map((it) => {
           const short = it.nextCost !== null && it.nextCost > view.credits;

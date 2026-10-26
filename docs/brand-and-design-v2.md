@@ -1,5 +1,10 @@
 # Brand & Design v2: from "dark dashboard" to "racecard at golden hour"
 
+> **Decision (user, 2026-10-26):** the game is named **POST TIME** (the scheduled moment a race
+> starts). **Kestrel Downs** stays as the home racecourse in the game world. The design system
+> below is implemented in `apps/web` (see `docs/HANDOFF.md`, "POST TIME rebrand + Design System
+> v2"); the wordmark's emblem is a brass race stopwatch in the O.
+
 > Status: creative direction for the next implementation pass. Research, brand and design only;
 > no app code was changed. Date: 2026-10-26.
 > Builds on [`design-research.md`](design-research.md) (UX research, IA, race broadcast, ethics) and

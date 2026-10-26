@@ -15,7 +15,7 @@ export function ResultBoard({ replay, card, highlightHorseId }: { replay: RaceRe
   return (
     <section className="surface p-3 sm:p-4" aria-labelledby="board-h" data-testid="result-board">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="board-h" className="t-display-m">
+        <h2 id="board-h" className="t-h2">
           Result
         </h2>
         <p className="t-meta">

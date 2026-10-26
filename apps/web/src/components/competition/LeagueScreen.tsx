@@ -62,7 +62,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
       <SceneBand scene="paddock" alt="The paddock at Kestrel Downs" eyebrow={`Club · season ${view.season.number}`} title="League" />
 
       <section className="frame-hero mt-4 grid gap-3 p-4 sm:p-5" aria-labelledby="my-league-h">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className={`tier-badge tier-${view.joined ? view.tierName : "none"}`} aria-hidden>
               <PixelIcon name={view.tier <= 1 ? "badge-gold" : view.tier <= 3 ? "badge-silver" : "badge-bronze"} size={64} />
@@ -77,7 +77,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
             </p>
             </div>
           </div>
-          <div className="shrink-0 text-right">
+          <div className="shrink-0 sm:text-right">
             <p className="label">Week ends in</p>
             <p className="score text-[2.5rem] leading-none">
               <TimeLeft targetMs={view.weekEndsAtMs} />

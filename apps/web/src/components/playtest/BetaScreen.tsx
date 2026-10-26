@@ -61,7 +61,7 @@ function Beta() {
       )}
 
       <section aria-labelledby="pool-h" className="surface grid gap-2 p-4">
-        <h2 id="pool-h" className="t-display-m">
+        <h2 id="pool-h" className="t-h2">
           Weekly Prize Pool
         </h2>
         <p className="text-cream-dim">The weekly prizes come from the on-chain Prize Pool on Robinhood Chain: its rules, the current pool and payouts are public.</p>
@@ -162,7 +162,7 @@ function Wallet({ address, onSaved }: { address: string | null; onSaved: (a: str
   if (status?.address) {
     return (
       <section aria-labelledby="wallet-h" className="surface grid gap-2 p-4">
-        <h2 id="wallet-h" className="t-display-m">
+        <h2 id="wallet-h" className="t-h2">
           Your wallet
         </h2>
         <WalletLink />
@@ -171,7 +171,7 @@ function Wallet({ address, onSaved }: { address: string | null; onSaved: (a: str
   }
   return (
     <section aria-labelledby="wallet-h" className="surface grid gap-2 p-4">
-      <h2 id="wallet-h" className="t-display-m">
+      <h2 id="wallet-h" className="t-h2">
         Your wallet
       </h2>
       <WalletLink />

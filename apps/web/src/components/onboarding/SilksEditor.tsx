@@ -42,7 +42,7 @@ export function SilksStand({ silks, name, caption = "Your colours" }: { silks: S
       </div>
       <div className="paper m-2 px-3 py-2 text-center">
         <p className="text-xs font-extrabold text-[#5c4a2e]">{caption}</p>
-        <p className="t-display-m truncate" data-testid="preview-name">
+        <p className="t-h2 truncate" data-testid="preview-name">
           {name.trim() || "Your stable"}
         </p>
       </div>

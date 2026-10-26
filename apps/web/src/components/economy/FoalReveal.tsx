@@ -76,7 +76,7 @@ export function FoalReveal({
           <div className={`${css.door} ${css.right}`} />
         </div>
         <div className={`${css.banner} ${done ? css.done : ""} grid justify-items-center gap-2 text-center`}>
-          <h2 id="reveal-title" ref={headingRef} tabIndex={-1} className="t-display-l outline-none" data-testid="reveal-name">
+          <h2 id="reveal-title" ref={headingRef} tabIndex={-1} className="t-hero outline-none" data-testid="reveal-name">
             {foal.horse.name}
           </h2>
           <p className="t-meta">

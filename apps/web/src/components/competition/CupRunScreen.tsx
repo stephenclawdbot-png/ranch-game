@@ -74,7 +74,7 @@ export function CupRunScreen({ run }: { run: CupRunView }) {
           <div className="flex items-center gap-3">
             <PositionBadge position={run.position} size="lg" />
             <div className="min-w-0 flex-1">
-              <h2 id="cup-result-h" className="t-display-m">
+              <h2 id="cup-result-h" className="t-h2">
                 {run.position === 1 ? "Beat the whole field!" : `${ordinal(run.position)} against the field`}
               </h2>
               <p className="t-meta">

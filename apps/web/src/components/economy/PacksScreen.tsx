@@ -227,7 +227,13 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
     <button type="button" className={`btn ${primary ? "btn-brass btn-lg" : ""}`} onClick={onOpen} disabled={busy !== null} data-testid={`open-${o.type}`}>
       {busy === slot ? "Opening…" : `Open for ${formatCredits(o.price)}`}
     </button>
-  ) : o.demo ? null : (
+  ) : o.demo ? (
+    eth ? null : (
+      <p className="t-meta font-bold" data-testid={`open-${o.type}`}>
+        Coming soon: no payments in this demo.
+      </p>
+    )
+  ) : (
     <p className="t-meta font-bold" data-testid={`open-${o.type}-blocked`}>
       {o.disabledReason}
     </p>
@@ -243,11 +249,11 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
             {o.name}
           </h2>
           {eth ? (
-            <span className="tag tag-locked w-fit" data-testid="premium-eth">
+            <span className="tag tag-locked w-fit normal-case" data-testid="premium-eth">
               ETH · closed beta
             </span>
           ) : o.demo ? (
-            <span className="tag tag-locked w-fit" data-testid="premium-demo">
+            <span className="tag tag-locked w-fit normal-case" data-testid="premium-demo">
               Coming soon · demo
             </span>
           ) : (
@@ -266,7 +272,8 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
         </div>
       </div>
 
-      <details className="how">
+      {/* Published odds and pity stay open by default (ethics: odds are never hidden). */}
+      <details className="how" open>
         <summary>Odds &amp; pity</summary>
         <div className="grid gap-3 pt-1">
           <table className="w-full text-sm" data-testid={`odds-${o.type}`}>

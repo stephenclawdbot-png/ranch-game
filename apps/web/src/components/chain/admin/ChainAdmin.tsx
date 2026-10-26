@@ -114,7 +114,8 @@ export function ChainAdmin() {
             ← Admin
           </Link>
         </p>
-        <h1 className="t-display-l">Chain: deploy &amp; contracts</h1>
+        <h1 className="t-page">Chain</h1>
+        <p className="t-h2">Deploy &amp; contracts</p>
         <p className="t-meta">
           You deploy from your own wallet (it needs a little ETH on Robinhood Chain for gas). No private key is stored anywhere in the game. After deploying, copy the addresses into Vercel env
           and redeploy.
@@ -122,7 +123,7 @@ export function ChainAdmin() {
       </header>
 
       <section className="surface grid gap-2 p-4" aria-label="Status">
-        <h2 className="t-display-m">Server status</h2>
+        <h2 className="t-h2">Server status</h2>
         <ul className="grid gap-1 text-sm">
           <li>
             WEB3_ENABLED: <strong>{cfg.enabled ? "on" : "off (mock: Premium shows coming soon)"}</strong> · chain {cfg.chainId} ({chainInfo(cfg.chainId).name}) · RPC {cfg.rpcConfigured ? "set" : "missing"}
@@ -141,7 +142,7 @@ export function ChainAdmin() {
       </section>
 
       <section className="surface grid gap-3 p-4" aria-label="Deploy" data-testid="chain-deploy">
-        <h2 className="t-display-m">Deploy PrizePool + PremiumStore</h2>
+        <h2 className="t-h2">Deploy PrizePool + PremiumStore</h2>
         <div className="flex flex-wrap items-center gap-3">
           <WalletPicker label="Connect owner wallet" />
           <label className="text-sm">
@@ -220,7 +221,7 @@ export function ChainAdmin() {
 
       {cfg.store && cfg.pool && (
         <section className="surface grid gap-3 p-4" aria-label="Live contracts" data-testid="chain-live">
-          <h2 className="t-display-m">Live contracts</h2>
+          <h2 className="t-h2">Live contracts</h2>
           {data.store?.error || data.pool?.error ? (
             <p className="text-negative">{data.store?.error ?? data.pool?.error}</p>
           ) : (
@@ -307,7 +308,7 @@ function OwnerRoot({ owner, onDone }: { owner: ChainStatus["owner"]; onDone: () 
   const [msg, setMsg] = useState<string | null>(null);
   return (
     <section className="surface grid gap-2 p-4" aria-label="Owner account">
-      <h2 className="t-display-m">Owner account (root of the invite tree)</h2>
+      <h2 className="t-h2">Owner account (root of the invite tree)</h2>
       <p className="text-sm text-cream-dim">
         Everyone who signs up with an admin invite code becomes your level-1 invitee, and their invitees your level 2. Commissions go to the owner stable&apos;s verified wallet (keep it different
         from the treasury). To claim: open the game in THIS browser with your own stable, verify its wallet on Profile, then press the button.

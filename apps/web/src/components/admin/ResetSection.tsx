@@ -11,7 +11,7 @@ export function ResetSection() {
   const [result, setResult] = useState<string | null>(null);
   return (
     <div className="surface grid max-w-2xl gap-3 border-2 border-negative p-4" data-testid="reset">
-      <h2 className="t-display-m">Reset game progress</h2>
+      <h2 className="t-h2">Reset game progress</h2>
       <p className="text-cream-dim">
         Wipes every account, stable, horse, race, result, the credits ledger, leagues, cups, the market and packs. <strong className="text-cream">Kept:</strong> testers (and
         their wallets), invite codes, tester rewards, feedback, telemetry and the payout ledger. Testers re-join with their own invite code. Preview and production share

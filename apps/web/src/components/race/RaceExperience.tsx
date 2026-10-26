@@ -239,7 +239,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
                   <p className="flex items-center gap-2 text-sm font-bold text-cream-dim">
                     <span className="you-tag">You</span> Your runner wears the brass marker
                   </p>
-                  <h2 id="yours-h" className="t-display-m mt-1">
+                  <h2 id="yours-h" className="t-h2 mt-1">
                     {mine.horse.name}
                   </h2>
                   <p className="t-meta mb-2">

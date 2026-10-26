@@ -10,7 +10,7 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
   return (
     <details className="surface group" open={open} aria-labelledby="field-h">
       <summary className="flex min-h-12 items-center justify-between gap-2 px-3">
-        <h2 id="field-h" className="t-display-m">
+        <h2 id="field-h" className="t-h2">
           The field
         </h2>
         <span className="text-sm font-bold text-cream-dim">
