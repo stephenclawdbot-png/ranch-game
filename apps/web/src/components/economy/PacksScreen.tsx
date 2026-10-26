@@ -13,6 +13,7 @@ import { formatCredits, shortHash } from "@/lib/format";
 import type { PackOffer, PacksView, PullResultView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
 import { FoalReveal } from "./FoalReveal";
+import { PremiumCheckout } from "@/components/chain/PremiumCheckout";
 import { Credits, RARITY_COLOR, RARITY_LABEL, RarityBadge, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
 export function PacksScreen() {
@@ -84,7 +85,18 @@ export function PacksScreen() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <PackCard o={v.paddock} busy={busy} primary={!freeReady} onOpen={() => open("paddock", false)} />
-        <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} />
+        <div className="grid content-start gap-3">
+          <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} />
+          {/* Closed beta: buy with ETH on Robinhood Chain (renders nothing unless WEB3_ENABLED). */}
+          <PremiumCheckout
+            weeklyLeft={v.premium.weeklyLimit - v.premium.paidThisWeek}
+            stallsFree={v.stalls.free}
+            onFulfilled={() => {
+              reload();
+              refreshPurse();
+            }}
+          />
+        </div>
       </div>
 
       <section aria-labelledby="pulls-h">
@@ -210,7 +222,11 @@ function PackCard({ o, busy, primary, onOpen }: { o: PackOffer; busy: string | n
         <h2 id={`${o.type}-h`} className="t-display-m">
           {o.name}
         </h2>
-        {o.demo ? (
+        {o.demo && o.disabledReason === "Pay with ETH below" ? (
+          <span className="chip chip-cream" data-testid="premium-eth">
+            ETH · closed beta
+          </span>
+        ) : o.demo ? (
           <span className="chip chip-cream" data-testid="premium-demo">
             Coming soon · demo
           </span>
@@ -219,7 +235,9 @@ function PackCard({ o, busy, primary, onOpen }: { o: PackOffer; busy: string | n
         )}
       </div>
       <p className="t-meta">
-        {o.demo
+        {o.demo && o.disabledReason === "Pay with ETH below"
+          ? "Better odds, still under the genetic ceiling. Closed beta: bought with ETH on Robinhood Chain, below. 30% of every sale funds the Prize Pool."
+          : o.demo
           ? "Better odds, still under the genetic ceiling. In Phase 1 it is a preview only: no real payments, nothing to buy."
           : "A young horse, Common or Uncommon. Bought-pack foals are yours to keep, race or sell."}
       </p>

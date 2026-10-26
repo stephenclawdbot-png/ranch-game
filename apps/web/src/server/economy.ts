@@ -363,6 +363,9 @@ export async function standAtStud(db: Db, session: Session, input: { horseId: st
 const PACK_NAME: Record<PackType, string> = { paddock: "Paddock Pack", premium: "Premium Pack" };
 const RARITIES: readonly Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
 
+/** PackOffer.disabledReason when the Premium Pack is sold for ETH (the card points to the checkout). */
+export const ETH_CHECKOUT = "Pay with ETH below";
+
 export function premiumDemoEnabled(): boolean {
   return process.env.PREMIUM_PACK_DEMO === "1";
 }
@@ -391,7 +394,8 @@ function offer(type: PackType, st: PackState, ctx: { credits: number; stallsFree
   });
   let disabledReason: string | null = null;
   const demo = type === "premium";
-  if (demo && !premiumDemoEnabled()) disabledReason = "Coming soon";
+  // Closed beta with WEB3_ENABLED: the Premium Pack is bought with ETH (PremiumCheckout), never credits.
+  if (demo && !premiumDemoEnabled()) disabledReason = process.env.WEB3_ENABLED?.trim().toLowerCase() === "true" ? ETH_CHECKOUT : "Coming soon";
   else if (ctx.stallsFree <= 0) disabledReason = "No free stall";
   else if (ctx.cropLeft <= 0) disabledReason = "Crop sold out";
   else if (st.paidThisWeek >= st.weeklyLimit) disabledReason = "Weekly limit reached";
