@@ -370,6 +370,8 @@ scripts pass against a local production build (`next start` with PGlite).
     on Vercel.
   - `playtest.mjs` needs `PLAYTEST_MODE=1 ADMIN_SECRET=...` and resets that server's
     database.
+  - `beta-polish.mjs` (daily goals, post-race phones, Story starts, genetics, pity,
+    standings) runs against a plain dev server (`npx next dev`, PGlite).
 - **Decisions taken without the user (flag them):**
   - verified email is off by default for selling;
   - the house stallion roster and fees: 4 stallions at 250, 400 or 700, with the fee share
