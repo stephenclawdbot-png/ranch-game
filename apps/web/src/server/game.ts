@@ -28,6 +28,7 @@ import {
   getRace as dbGetRace,
   getRaceForSimulation,
   getRaceResult,
+  facilityLevels,
   getStable,
   isGenome,
   listCardRaces,
@@ -268,6 +269,16 @@ async function settleWithReplay(db: Db, race: PublicRace, replay: RaceReplay, no
     if (row) rows.set(row.id, row);
   }
   const states = [...rows.values()].filter((r) => isGenome(r.genome)).map((r) => toHorseState(r));
+  // Each owner's vet facility level shortens injury recovery (house horses: none).
+  const vetByStable = new Map<string, number>();
+  for (const stableId of new Set(entries.map((e) => e.stableId).filter((s): s is string => !!s))) {
+    const stable = await getStable(db, stableId);
+    vetByStable.set(stableId, stable ? facilityLevels(stable).vet : 0);
+  }
+  const vetOf = (horseId: string) => {
+    const sid = byHorse.get(horseId)?.stableId;
+    return sid ? (vetByStable.get(sid) ?? 0) : 0;
+  };
   const conds = raceConds(race);
   const results = gc.settleField(
     states,
@@ -282,7 +293,7 @@ async function settleWithReplay(db: Db, race: PublicRace, replay: RaceReplay, no
       fieldSize: replay.result.finishOrder.length,
       bigCrowd: bigCrowd(race),
     },
-    (id) => ({ intensity: parsePlan(snapshotOf(byHorse.get(id)).plan).intensity, vetLevel: 0 }),
+    (id) => ({ intensity: parsePlan(snapshotOf(byHorse.get(id)).plan).intensity, vetLevel: vetOf(id) }),
   );
   const byId = new Map(results.map((r) => [r.state.id, r]));
   const runners: RunnerOutcome[] = replay.result.finishOrder.map((f) => {

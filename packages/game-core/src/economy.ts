@@ -164,10 +164,26 @@ export type ListBlock =
   | "below_floor"
   | "locked";
 
-export function listBlock(state: HorseState, seller: SellerAccount, price: number, nowMs: number, flags: { enteredInRace: boolean; locked: boolean }): ListBlock | null {
-  if (nowMs - seller.createdAtMs < SELLER_MIN_AGE_DAYS * MS_PER_DAY) return "account_too_new";
-  if (seller.racesRun < SELLER_MIN_RACES) return "not_enough_races";
-  if (!seller.emailVerified) return "email_unverified";
+/** Seller requirements (§4b). Operators can tune them (the database layer reads env config). */
+export interface SellerPolicy {
+  minAgeDays: number;
+  minRaces: number;
+  requireVerifiedEmail: boolean;
+}
+
+export const DEFAULT_SELLER_POLICY: SellerPolicy = { minAgeDays: SELLER_MIN_AGE_DAYS, minRaces: SELLER_MIN_RACES, requireVerifiedEmail: true };
+
+export function listBlock(
+  state: HorseState,
+  seller: SellerAccount,
+  price: number,
+  nowMs: number,
+  flags: { enteredInRace: boolean; locked: boolean },
+  policy: SellerPolicy = DEFAULT_SELLER_POLICY,
+): ListBlock | null {
+  if (nowMs - seller.createdAtMs < policy.minAgeDays * MS_PER_DAY) return "account_too_new";
+  if (seller.racesRun < policy.minRaces) return "not_enough_races";
+  if (policy.requireVerifiedEmail && !seller.emailVerified) return "email_unverified";
   if (state.binding === "club_bred") return "club_bred";
   if (state.binding === "until_5_starts" && state.record.starts < 5) return "bound_until_5_starts";
   if (state.location !== "stable" && state.location !== "nursery") return "not_in_stable";

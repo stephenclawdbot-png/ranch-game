@@ -203,3 +203,42 @@ export function defaultAppraise(h: HorseRow): number {
   const breedLeft = (RULES.breedingLifetimeLimit - h.breedingCount) / RULES.breedingLifetimeLimit;
   return Math.max(100, Math.round(base * (0.5 + careerLeft) + 300 * breedLeft));
 }
+
+// ---------------------------------------------------------------------------
+// Seller requirements (§4b), configurable by environment
+// ---------------------------------------------------------------------------
+
+export interface SellerPolicy {
+  minAccountAgeDays: number;
+  minRaces: number;
+  /** A verified email is required to sell. Off by default until an email flow ships. */
+  requireVerifiedEmail: boolean;
+}
+
+function envInt(env: Record<string, string | undefined>, name: string, fallback: number): number {
+  const raw = env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
+/**
+ * The market's seller requirements. Env (all optional):
+ * - `MARKET_REQUIRE_VERIFIED_EMAIL` = "1"/"true" to require a verified email (default off:
+ *   there is no email verification flow yet);
+ * - `MARKET_SELLER_MIN_ACCOUNT_DAYS` (default 7);
+ * - `MARKET_SELLER_MIN_RACES` (default 20).
+ */
+export function sellerPolicy(env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {}): SellerPolicy {
+  const email = (env.MARKET_REQUIRE_VERIFIED_EMAIL ?? "").trim().toLowerCase();
+  return {
+    minAccountAgeDays: envInt(env, "MARKET_SELLER_MIN_ACCOUNT_DAYS", gc.SELLER_MIN_AGE_DAYS),
+    minRaces: envInt(env, "MARKET_SELLER_MIN_RACES", gc.SELLER_MIN_RACES),
+    requireVerifiedEmail: email === "1" || email === "true" || email === "yes",
+  };
+}
+
+/** The same policy in game-core's shape. */
+export function gcSellerPolicy(p: SellerPolicy = sellerPolicy()): gc.SellerPolicy {
+  return { minAgeDays: p.minAccountAgeDays, minRaces: p.minRaces, requireVerifiedEmail: p.requireVerifiedEmail };
+}
