@@ -15,7 +15,7 @@ async function fixture() {
   const [admin, treasury, signer, buyer, other] = await hre.viem.getWalletClients();
   const publicClient = await hre.viem.getPublicClient();
   const usd = await hre.viem.deployContract("MockStablecoin", []);
-  const store = await hre.viem.deployContract("PremiumStore", [admin!.account.address, treasury!.account.address, signer!.account.address]);
+  const store = await hre.viem.deployContract("PremiumStore", [admin!.account.address, treasury!.account.address, signer!.account.address, admin!.account.address, 3000]);
   await store.write.setAcceptedToken([usd.address, true]);
   await store.write.setPrice([PACK, usd.address, PACK_PRICE]);
   await store.write.setSkuActive([PACK, true]);
@@ -270,9 +270,12 @@ describe("PremiumStore", () => {
     it("rejects zero addresses in the constructor", async () => {
       const [a] = await hre.viem.getWalletClients();
       const x = a!.account.address;
-      await expectRevert(hre.viem.deployContract("PremiumStore", [ZERO_ADDRESS, x, x]), "ZeroAddress");
-      await expectRevert(hre.viem.deployContract("PremiumStore", [x, ZERO_ADDRESS, x]), "ZeroAddress");
-      await expectRevert(hre.viem.deployContract("PremiumStore", [x, x, ZERO_ADDRESS]), "ZeroAddress");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [ZERO_ADDRESS, x, x, x, 3000]), "ZeroAddress");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [x, ZERO_ADDRESS, x, x, 3000]), "ZeroAddress");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [x, x, ZERO_ADDRESS, x, 3000]), "ZeroAddress");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [x, x, x, ZERO_ADDRESS, 3000]), "ZeroAddress");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [x, x, x, x, 999]), "PoolBpsOutOfRange");
+      await expectRevert(hre.viem.deployContract("PremiumStore", [x, x, x, x, 5001]), "PoolBpsOutOfRange");
     });
   });
 });

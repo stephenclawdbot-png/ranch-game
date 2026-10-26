@@ -11,5 +11,5 @@ const Schema = z.object({ packType: z.enum(["paddock", "premium"]), free: z.bool
 export async function POST(req: Request) {
   const body = await parseBody(req, Schema, "Choose a pack.");
   if (!body.ok) return body.res;
-  return withPlayer(async (db, session, now) => ({ result: await pull(db, session, body.data, now), view: await packsView(db, session, now) }), 201);
+  return withPlayer(async (db, session, now) => ({ result: await pull(db, session, body.data, now), view: await packsView(db, session, now) }), 201, "pack_pull");
 }

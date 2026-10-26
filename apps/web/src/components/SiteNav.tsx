@@ -6,6 +6,7 @@ import { formatCredits } from "@/lib/format";
 import { usePlayerState } from "@/lib/player";
 import { Crest, PixelIcon, type IconName } from "./icons";
 import { SilksIcon } from "./Silks";
+import { FeedbackButton } from "./playtest/FeedbackButton";
 
 type Section = { href: string; label: string; icon: IconName; match: (p: string) => boolean; sub?: { href: string; label: string }[] };
 
@@ -148,7 +149,10 @@ export function SiteNav() {
               );
             })}
           </nav>
-          <div className="ml-auto">{right}</div>
+          <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+            <FeedbackButton />
+            {right}
+          </div>
         </div>
         {sub && (
           <nav aria-label={`${sub.section.label} sections`} className="border-t-2 border-surface-2" data-testid="sub-nav">

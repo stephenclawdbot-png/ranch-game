@@ -1,5 +1,7 @@
 /** Route plumbing for the economy APIs (breeding, studs, packs, market). */
 import { z } from "zod";
+import type { TelemetryEvent } from "@thoroughbred/db";
+import { trackEvent } from "./playtest";
 import { db, type Db } from "./db";
 import { friendlyEconomyError } from "./economy";
 import { errorJson, handleError, json, readJson } from "./http";
@@ -10,11 +12,13 @@ export const IdSchema = z.string().uuid();
 export const KeySchema = z.string().regex(/^[A-Za-z0-9_-]{8,80}$/);
 
 /** Runs `fn` for the signed-in player; maps domain errors to friendly JSON errors. */
-export async function withPlayer<T>(fn: (database: Db, session: Session, now: Date) => Promise<T>, status = 200) {
+export async function withPlayer<T>(fn: (database: Db, session: Session, now: Date) => Promise<T>, status = 200, event?: TelemetryEvent) {
   try {
     const database = await db();
     const session = await requireSession(database);
-    return json(await fn(database, session, new Date()), { status });
+    const out = await fn(database, session, new Date());
+    if (event) await trackEvent(database, session.accountId, event);
+    return json(out, { status });
   } catch (err) {
     return handleError(friendlyEconomyError(err));
   }

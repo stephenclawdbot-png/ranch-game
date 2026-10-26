@@ -9,5 +9,5 @@ export const dynamic = "force-dynamic";
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   if (!IdSchema.safeParse(id).success) return errorJson(404, "NOT_FOUND");
-  return withPlayer(async (db, session, now) => ({ trade: await buy(db, session, id, now), view: await marketView(db, session, now) }));
+  return withPlayer(async (db, session, now) => ({ trade: await buy(db, session, id, now), view: await marketView(db, session, now) }), 200, "market_buy");
 }

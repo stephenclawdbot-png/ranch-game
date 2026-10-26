@@ -4,6 +4,7 @@ import { createStoryRace, playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
 import { HorseIdSchema, PlanSchema } from "@/server/planSchema";
 import { requireSession } from "@/server/session";
+import { trackEvent } from "@/server/playtest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     const session = await requireSession(database);
     const now = new Date();
     const created = await createStoryRace(database, session, { horseId: parsed.data.pick === "auto" ? undefined : parsed.data.horseId, plan: parsed.data.plan, instant: parsed.data.instant }, now);
+    await trackEvent(database, session.accountId, "race_entered", { kind: "story", instant: !!parsed.data.instant });
     return json({ ...created, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {
     return handleError(err);

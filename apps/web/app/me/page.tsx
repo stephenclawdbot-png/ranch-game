@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { PlayerGate } from "@/components/PlayerGate";
@@ -43,6 +44,17 @@ function Profile({ state }: { state: PlayerState }) {
         <h1 className="t-display-xl">Profile &amp; settings</h1>
         <p className="mt-1 text-lg text-cream-dim">Your stable&rsquo;s name and colours, and how the game looks on this device.</p>
       </header>
+
+      {state.tester && (
+        <Link href="/beta" className="surface-2 flex items-center gap-3 p-3 hover:brightness-110" data-testid="me-beta-link">
+          <PixelIcon name="rosette" size={32} />
+          <span className="min-w-0 flex-1">
+            <span className="block font-extrabold text-cream">Playtester: beta rewards &amp; wallet</span>
+            <span className="t-meta block">Your progress, tester bonuses and the address for your tester item.</span>
+          </span>
+          <span aria-hidden className="font-extrabold">›</span>
+        </Link>
+      )}
 
       <section className="grid gap-5 md:grid-cols-[1fr_16rem]" aria-labelledby="colours-h">
         <div className="grid content-start gap-5">

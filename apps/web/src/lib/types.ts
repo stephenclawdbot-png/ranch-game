@@ -161,6 +161,8 @@ export interface PlayerView {
   active: ActiveEntry[];
   inbox: InboxView[];
   runs: RunView[];
+  /** Closed playtest: this stable belongs to an invited tester (see /beta). */
+  tester: boolean;
   serverNowMs: number;
 }
 

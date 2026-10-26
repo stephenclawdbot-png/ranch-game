@@ -1,5 +1,6 @@
 "use client";
 
+import { trackClient } from "@/lib/telemetry";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -68,6 +69,17 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
     t = setTimeout(tick, Math.max(1000, localClose - Date.now() + 1500));
     return () => clearTimeout(t);
   }, [card.fieldLocked, localClose, router]);
+
+  // Telemetry: a race watched through to the finish on this page (no outcome is sent).
+  const sawLive = useRef(false);
+  const watched = useRef(false);
+  useEffect(() => {
+    if (phase === "live") sawLive.current = true;
+    if (phase === "result" && sawLive.current && !watched.current) {
+      watched.current = true;
+      trackClient({ name: "race_watched", raceId: card.id });
+    }
+  }, [phase, card.id]);
 
   // Your result comes from the server (settled there, once); this only shows it.
   useEffect(() => {

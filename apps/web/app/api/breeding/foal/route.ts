@@ -13,7 +13,7 @@ const RenameSchema = z.object({ horseId: IdSchema, name: Name });
 export async function POST(req: Request) {
   const body = await parseBody(req, FoalSchema, "Names are 1 to 32 characters.");
   if (!body.ok) return body.res;
-  return withPlayer((db, session, now) => foalAndName(db, session, body.data, now), 201);
+  return withPlayer((db, session, now) => foalAndName(db, session, body.data, now), 201, "foal");
 }
 
 /** Names a foal (only before its first start). */

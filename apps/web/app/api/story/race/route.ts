@@ -5,6 +5,7 @@ import { errorJson, handleError, json, readJson } from "@/server/http";
 import { HorseIdSchema, PlanSchema } from "@/server/planSchema";
 import { requireSession } from "@/server/session";
 import { createChapterRace } from "@/server/story";
+import { trackEvent } from "@/server/playtest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
     const now = new Date();
     const b = parsed.data;
     const created = await createChapterRace(database, session, { raceKey: b.raceKey, horseId: b.pick === "auto" ? undefined : b.horseId, plan: b.plan, instant: b.instant }, now);
+    await trackEvent(database, session.accountId, "race_entered", { kind: "story", chapter: true, instant: !!b.instant });
     return json({ ...created, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {
     return handleError(err);

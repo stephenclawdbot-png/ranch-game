@@ -9,6 +9,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+/// @dev The part of PrizePool the store uses.
+interface IPrizePool {
+    function fund(bytes32 ref) external payable;
+}
+
 /// @title PremiumStore
 /// @notice One-way checkout for Project Thoroughbred premium SKUs (premium pack, season pass,
 /// cosmetics, entry refill), paid in an allow-listed ERC20 (a 6-decimal stablecoin such as
@@ -23,6 +28,13 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 ///  - `orderId` is single-use: a replayed or front-run order reverts, so it can be fulfilled
 ///    at most once. The server fulfils off-chain only after verifying the Purchased event.
 ///  - Tokens with transfer fees or rebasing are rejected (received amount must equal the price).
+///
+/// Native ETH path (closed beta, docs/web3.md "Beta money flow"): the server signs an EthQuote
+/// with the exact price in wei, computed off-chain from a USD price (median of public spot
+/// prices) and valid for at most MAX_QUOTE_TTL. The buyer pays exactly `priceWei`; `poolBps`
+/// of it goes to the PrizePool (immutable address) in the same transaction, the rest to the
+/// treasury. If the treasury refuses ETH, the share is kept here and `withdrawEth` sends it
+/// to the treasury later; no ETH is ever stuck and none can go anywhere else.
 contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     using SafeERC20 for IERC20;
 
@@ -33,6 +45,25 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
     uint32 public constant MAX_QUANTITY = 100;
+    uint16 public constant BPS = 10_000;
+    /// @notice Bounds for the Prize Pool share of each ETH sale.
+    uint16 public constant MIN_POOL_BPS = 1_000;
+    uint16 public constant MAX_POOL_BPS = 5_000;
+    /// @notice A quote may not be valid for longer than this (the server uses 5 minutes).
+    uint64 public constant MAX_QUOTE_TTL = 10 minutes;
+
+    bytes32 public constant ETH_QUOTE_TYPEHASH = keccak256(
+        "EthQuote(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,uint256 priceWei,uint64 deadline)"
+    );
+
+    struct EthQuote {
+        bytes32 orderId; // server-generated, single-use (shared namespace with Order)
+        address buyer; // must be msg.sender
+        bytes32 sku;
+        uint32 quantity;
+        uint256 priceWei; // exact total; msg.value must equal it
+        uint64 deadline; // unix seconds, at most MAX_QUOTE_TTL ahead
+    }
 
     bytes32 public constant ORDER_TYPEHASH = keccak256(
         "Order(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,address token,uint256 maxTotal,uint64 deadline)"
@@ -49,6 +80,11 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     }
 
     address public treasury;
+    /// @notice Receives `poolBps` of every ETH sale. Immutable: the operator cannot redirect it.
+    IPrizePool public immutable prizePool;
+    uint16 public poolBps;
+    /// @notice Treasury share kept here because the treasury refused a direct transfer.
+    uint256 public pendingTreasuryWei;
     mapping(address token => bool) public acceptedToken;
     mapping(bytes32 sku => bool) public skuActive;
     /// @notice Unit price in the token's smallest unit. 0 = SKU not sold in that token.
@@ -70,6 +106,18 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     event TokenAcceptedSet(address indexed token, bool accepted);
     event TreasurySet(address indexed oldTreasury, address indexed newTreasury);
     event Withdrawn(address indexed token, address indexed to, uint256 amount);
+    event PurchasedWithEth(
+        bytes32 indexed orderId,
+        address indexed buyer,
+        bytes32 indexed sku,
+        uint32 quantity,
+        uint256 priceWei,
+        uint256 poolShare,
+        uint256 treasuryShare
+    );
+    event PoolBpsSet(uint16 oldBps, uint16 newBps);
+    event TreasuryTransferDeferred(address indexed treasury, uint256 amount);
+    event EthWithdrawn(address indexed to, uint256 amount);
 
     error ZeroAddress();
     error OrderAlreadyFulfilled(bytes32 orderId);
@@ -82,9 +130,22 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error NotForSaleInToken(bytes32 sku, address token);
     error PriceAboveMax(uint256 total, uint256 maxTotal);
     error UnexpectedAmountReceived(uint256 expected, uint256 received);
+    error QuoteTtlTooLong(uint64 deadline, uint64 maxDeadline);
+    error WrongPayment(uint256 expected, uint256 sent);
+    error ZeroPrice();
+    error PoolBpsOutOfRange(uint16 bps);
+    error TreasuryRefused(address treasury, uint256 amount);
 
-    constructor(address admin, address treasury_, address signer) EIP712("ThoroughbredPremiumStore", "1") {
-        if (admin == address(0) || treasury_ == address(0) || signer == address(0)) revert ZeroAddress();
+    constructor(address admin, address treasury_, address signer, address prizePool_, uint16 poolBps_)
+        EIP712("ThoroughbredPremiumStore", "1")
+    {
+        if (admin == address(0) || treasury_ == address(0) || signer == address(0) || prizePool_ == address(0)) {
+            revert ZeroAddress();
+        }
+        if (poolBps_ < MIN_POOL_BPS || poolBps_ > MAX_POOL_BPS) revert PoolBpsOutOfRange(poolBps_);
+        prizePool = IPrizePool(prizePool_);
+        poolBps = poolBps_;
+        emit PoolBpsSet(0, poolBps_);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PRICE_MANAGER_ROLE, admin);
         _grantRole(PAUSER_ROLE, admin);
@@ -132,6 +193,65 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         emit Purchased(order.orderId, msg.sender, order.sku, order.token, order.quantity, unitPrice, total);
     }
 
+    /// @notice Pay for a server-quoted order in native ETH. `msg.value` must equal
+    /// `quote.priceWei` exactly; `poolBps` of it is forwarded to the PrizePool in this tx.
+    function purchaseWithEth(EthQuote calldata quote, bytes calldata signature)
+        external
+        payable
+        nonReentrant
+        whenNotPaused
+        returns (uint256 poolShare)
+    {
+        // Checks
+        if (quote.buyer != msg.sender) revert NotOrderBuyer(quote.buyer, msg.sender);
+        if (block.timestamp > quote.deadline) revert OrderExpired(quote.deadline);
+        if (quote.deadline > block.timestamp + MAX_QUOTE_TTL) {
+            revert QuoteTtlTooLong(quote.deadline, uint64(block.timestamp + MAX_QUOTE_TTL));
+        }
+        if (orderBuyer[quote.orderId] != address(0)) revert OrderAlreadyFulfilled(quote.orderId);
+        if (quote.quantity == 0 || quote.quantity > MAX_QUANTITY) revert InvalidQuantity(quote.quantity);
+        if (!skuActive[quote.sku]) revert SkuInactive(quote.sku);
+        if (quote.priceWei == 0) revert ZeroPrice();
+        if (msg.value != quote.priceWei) revert WrongPayment(quote.priceWei, msg.value);
+
+        (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hashEthQuote(quote), signature);
+        if (err != ECDSA.RecoverError.NoError || !hasRole(SIGNER_ROLE, signer)) revert InvalidSignature();
+
+        // Effects
+        orderBuyer[quote.orderId] = msg.sender;
+        poolShare = (msg.value * poolBps) / BPS;
+        uint256 treasuryShare = msg.value - poolShare;
+        emit PurchasedWithEth(quote.orderId, msg.sender, quote.sku, quote.quantity, msg.value, poolShare, treasuryShare);
+
+        // Interactions: the pool is our own contract (reverts bubble up and undo the sale).
+        if (poolShare > 0) prizePool.fund{value: poolShare}(quote.orderId);
+        if (treasuryShare > 0) {
+            address to = treasury;
+            (bool ok,) = to.call{value: treasuryShare}("");
+            if (!ok) {
+                pendingTreasuryWei += treasuryShare;
+                emit TreasuryTransferDeferred(to, treasuryShare);
+            }
+        }
+    }
+
+    /// @notice EIP-712 digest of an EthQuote (what the server signs).
+    function hashEthQuote(EthQuote calldata quote) public view returns (bytes32) {
+        return _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    ETH_QUOTE_TYPEHASH,
+                    quote.orderId,
+                    quote.buyer,
+                    quote.sku,
+                    quote.quantity,
+                    quote.priceWei,
+                    quote.deadline
+                )
+            )
+        );
+    }
+
     /// @notice EIP-712 digest the server signs. Exposed so off-chain code can cross-check.
     function hashOrder(Order calldata order) public view returns (bytes32) {
         return _hashTypedDataV4(
@@ -174,6 +294,13 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         emit TokenAcceptedSet(token, accepted);
     }
 
+    /// @notice Prize Pool share of future ETH sales, bounded to [MIN_POOL_BPS, MAX_POOL_BPS].
+    function setPoolBps(uint16 newBps) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newBps < MIN_POOL_BPS || newBps > MAX_POOL_BPS) revert PoolBpsOutOfRange(newBps);
+        emit PoolBpsSet(poolBps, newBps);
+        poolBps = newBps;
+    }
+
     function setTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newTreasury == address(0)) revert ZeroAddress();
         emit TreasurySet(treasury, newTreasury);
@@ -188,6 +315,18 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         address to = treasury;
         IERC20(token).safeTransfer(to, amount);
         emit Withdrawn(token, to, amount);
+    }
+
+    /// @notice Sends treasury shares that a refused direct transfer left here to the treasury.
+    /// Anyone may call it: the destination is fixed. Works while paused.
+    function withdrawEth() external nonReentrant {
+        uint256 amount = pendingTreasuryWei;
+        if (amount == 0) return;
+        pendingTreasuryWei = 0;
+        address to = treasury;
+        (bool ok,) = to.call{value: amount}("");
+        if (!ok) revert TreasuryRefused(to, amount); // the whole tx reverts: it stays pending
+        emit EthWithdrawn(to, amount);
     }
 
     function pause() external onlyRole(PAUSER_ROLE) {

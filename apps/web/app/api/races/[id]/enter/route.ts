@@ -4,6 +4,7 @@ import { enterLive, playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
 import { HorseIdSchema, PlanSchema } from "@/server/planSchema";
 import { requireSession } from "@/server/session";
+import { trackEvent } from "@/server/playtest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const session = await requireSession(database);
     const now = new Date();
     const entry = await enterLive(database, session, decodeURIComponent(id), parsed.data.horseId, parsed.data.plan, now);
+    await trackEvent(database, session.accountId, "race_entered", { kind: "live" });
     return json({ entry, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {
     return handleError(err);

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
 import { SiteNav } from "@/components/SiteNav";
+import { Telemetry } from "@/components/playtest/Telemetry";
 import { EntryProvider } from "@/components/entry/EntryProvider";
 import { ArtProvider } from "@/components/pixel/ArtProvider";
 import { listArt } from "@/lib/art.server";
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ArtProvider files={art}>
           <EntryProvider>
             <SiteNav />
+            <Telemetry />
             <main id="main" className="relative mx-auto w-full max-w-[75rem] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-8">
               {children}
             </main>

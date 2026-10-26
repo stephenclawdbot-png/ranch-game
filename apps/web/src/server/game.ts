@@ -33,6 +33,7 @@ import {
   CLUB_STUD_NAME,
   getStable,
   grantGiftFoal,
+  testerForAccount,
   tradeStatus,
   isGenome,
   listCardRaces,
@@ -941,6 +942,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     active,
     inbox: inboxView,
     runs: runs.map((r) => runView(r, names)),
+    tester: !!(await testerForAccount(db, session.accountId)),
     serverNowMs: nowMs,
   };
 }

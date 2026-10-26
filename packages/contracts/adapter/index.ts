@@ -7,5 +7,7 @@ export * from "./voucher";
 export * from "./config";
 export { MockChainAdapter, MOCK_STORE_ADDRESS } from "./mock";
 export { EvmChainAdapter, chainFor, type EvmChainAdapterOptions, type PurchaseFinality } from "./evm";
-export { premiumStoreAbi, raceProofRegistryAbi } from "./abi";
+export { premiumStoreAbi, prizePoolAbi, raceProofRegistryAbi } from "./abi";
+export * from "./ethQuote";
+export * from "./prizePool";
 export { idempotencyKey } from "./verify";

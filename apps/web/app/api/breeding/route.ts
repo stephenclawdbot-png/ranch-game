@@ -16,5 +16,5 @@ const CoverSchema = z.object({ sireId: IdSchema, damId: IdSchema, key: KeySchema
 export async function POST(req: Request) {
   const body = await parseBody(req, CoverSchema, "Choose a mare and a stallion.");
   if (!body.ok) return body.res;
-  return withPlayer(async (db, session, now) => ({ cover: await coverMare(db, session, body.data, now), view: await breedingView(db, session, now) }), 201);
+  return withPlayer(async (db, session, now) => ({ cover: await coverMare(db, session, body.data, now), view: await breedingView(db, session, now) }), 201, "breed");
 }

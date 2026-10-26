@@ -12,5 +12,5 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   return withPlayer(async (db, session, now) => {
     await cancel(db, session, id, now);
     return { view: await marketView(db, session, now) };
-  });
+  }, 200, "market_cancel");
 }

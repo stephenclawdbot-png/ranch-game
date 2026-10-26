@@ -4,14 +4,17 @@ import { playerView } from "./game";
 import { errorJson, handleError, json, readJson } from "./http";
 import { requireSession, type Session } from "./session";
 import type { z } from "zod";
+import type { TelemetryEvent } from "@thoroughbred/db";
+import { trackEvent } from "./playtest";
 
 /** Runs a signed-in action and answers `{ ...result, player }` so the header credits update. */
-export async function act<T extends object>(fn: (database: Db, session: Session, now: Date) => Promise<T>, status = 200) {
+export async function act<T extends object>(fn: (database: Db, session: Session, now: Date) => Promise<T>, status = 200, event?: TelemetryEvent) {
   try {
     const database = await db();
     const session = await requireSession(database);
     const now = new Date();
     const out = await fn(database, session, now);
+    if (event) await trackEvent(database, session.accountId, event);
     return json({ ...out, player: await playerView(database, session, now) }, { status });
   } catch (err) {
     return handleError(err);

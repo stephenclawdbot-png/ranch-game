@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import { playerView, quickPickLive } from "@/server/game";
 import { handleError, json } from "@/server/http";
 import { requireSession } from "@/server/session";
+import { trackEvent } from "@/server/playtest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export async function POST() {
     const session = await requireSession(database);
     const now = new Date();
     const pick = await quickPickLive(database, session, now);
+    await trackEvent(database, session.accountId, "race_entered", { kind: "live", quickPick: true });
     return json({ pick, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {
     return handleError(err);

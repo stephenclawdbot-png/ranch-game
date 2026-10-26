@@ -1,5 +1,8 @@
 /**
- * Deploys RaceProofRegistry + PremiumStore (and optionally ThoroughbredToken).
+ * Deploys RaceProofRegistry + PrizePool + PremiumStore (and optionally ThoroughbredToken).
+ *
+ * The closed beta deploys PrizePool + PremiumStore from the OWNER'S BROWSER WALLET instead
+ * (apps/web /admin/chain, no keys on any server); this script is the CLI/test equivalent.
  *
  *   ROBINHOOD_RPC_URL=... DEPLOYER_PRIVATE_KEY=... \
  *   pnpm --filter @thoroughbred/contracts deploy:robinhood
@@ -8,7 +11,10 @@
  *   DEPLOY_ADMIN_ADDRESS        final DEFAULT_ADMIN (use a Safe multisig on mainnet)
  *   DEPLOY_TREASURY_ADDRESS     where store proceeds are withdrawn to
  *   DEPLOY_PUBLISHER_ADDRESS    game server key that posts proof roots
- *   DEPLOY_STORE_SIGNER_ADDRESS game server key that signs Order vouchers
+ *   DEPLOY_STORE_SIGNER_ADDRESS game server key that signs Order vouchers / EthQuotes
+ *   DEPLOY_POOL_POSTER_ADDRESS  optional: key allowed to post Prize Pool epoch roots (the admin always can be granted later)
+ *   DEPLOY_POOL_BPS             Prize Pool share of ETH sales in basis points (default 3000 = 30%)
+ *   DEPLOY_POOL_MAX_CLAIM_WEI   per-account cap per epoch in wei (default 0.01 ETH)
  *   PAYMENT_TOKEN_ADDRESS       stablecoin; defaults to Paxos USDG on Robinhood testnet
  *   DEPLOY_GAME_TOKEN=true      also deploy the optional ThoroughbredToken (off by default)
  *
@@ -52,6 +58,12 @@ export interface DeployOptions {
   gameToken?: { name: string; symbol: string; cap: bigint };
   /** Write deployments/<chainId>.json. */
   writeManifest?: boolean;
+  /** Prize Pool share of ETH sales (bps, 1000..5000). Default 3000. */
+  poolBps?: number;
+  /** PrizePool per-account cap per epoch (wei). Default 0.01 ETH. */
+  poolMaxClaimWei?: bigint;
+  /** Extra POSTER_ROLE holder on the PrizePool (e.g. the server key). */
+  poolPoster?: Address;
   log?: (msg: string) => void;
 }
 
@@ -61,6 +73,7 @@ export interface DeployResult {
   admin: Address;
   raceProofRegistry: Address;
   premiumStore: Address;
+  prizePool: Address;
   paymentToken?: Address;
   gameToken?: Address;
 }
@@ -86,13 +99,22 @@ export async function deployThoroughbred(hre: HardhatRuntimeEnvironment, opts: D
   // Deploy with the deployer as temporary admin so we can configure, then hand over.
   const registry = await hre.viem.deployContract("RaceProofRegistry", [deployer, publisher]);
   log(`RaceProofRegistry ${registry.address}`);
-  const store = await hre.viem.deployContract("PremiumStore", [deployer, treasury, storeSigner]);
+  const pool = await hre.viem.deployContract("PrizePool", [deployer, opts.poolMaxClaimWei ?? 10n ** 16n]);
+  log(`PrizePool ${pool.address}`);
+  const store = await hre.viem.deployContract("PremiumStore", [deployer, treasury, storeSigner, pool.address, opts.poolBps ?? 3000]);
   log(`PremiumStore ${store.address}`);
 
   const wait = async (hash: Hex) => {
     const r = await publicClient.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`tx reverted: ${hash}`);
   };
+
+  // The store forwards the pool share of every ETH sale; only the store and the admin fund.
+  await wait(await pool.write.grantRole([role("FUNDER_ROLE"), store.address]));
+  await wait(await store.write.setSkuActive([skuId("premium_pack"), true]));
+  // The admin (owner wallet / multisig) can always post epoch roots itself.
+  await wait(await pool.write.grantRole([role("POSTER_ROLE"), admin]));
+  if (opts.poolPoster) await wait(await pool.write.grantRole([role("POSTER_ROLE"), opts.poolPoster]));
 
   if (paymentToken) {
     await wait(await store.write.setAcceptedToken([paymentToken, true]));
@@ -119,11 +141,17 @@ export async function deployThoroughbred(hre: HardhatRuntimeEnvironment, opts: D
     for (const r of [DEFAULT_ADMIN_ROLE, role("PRICE_MANAGER_ROLE"), role("PAUSER_ROLE"), role("TREASURER_ROLE")]) {
       await wait(await store.write.grantRole([r, admin]));
     }
+    for (const r of [DEFAULT_ADMIN_ROLE, role("PAUSER_ROLE"), role("FUNDER_ROLE")]) {
+      await wait(await pool.write.grantRole([r, admin]));
+    }
     // Renounce the deployer's powers (admin last).
     await wait(await registry.write.renounceRole([role("PAUSER_ROLE"), deployer]));
     await wait(await registry.write.renounceRole([DEFAULT_ADMIN_ROLE, deployer]));
     for (const r of [role("PRICE_MANAGER_ROLE"), role("PAUSER_ROLE"), role("TREASURER_ROLE"), DEFAULT_ADMIN_ROLE]) {
       await wait(await store.write.renounceRole([r, deployer]));
+    }
+    for (const r of [role("PAUSER_ROLE"), role("FUNDER_ROLE"), DEFAULT_ADMIN_ROLE]) {
+      await wait(await pool.write.renounceRole([r, deployer]));
     }
     log(`admin handed over to ${admin}`);
   }
@@ -134,6 +162,7 @@ export async function deployThoroughbred(hre: HardhatRuntimeEnvironment, opts: D
     admin: getAddress(admin),
     raceProofRegistry: registry.address,
     premiumStore: store.address,
+    prizePool: pool.address,
     paymentToken,
     gameToken,
   };
@@ -158,6 +187,9 @@ if (require.main === module) {
     treasury: envAddress("DEPLOY_TREASURY_ADDRESS"),
     publisher: envAddress("DEPLOY_PUBLISHER_ADDRESS"),
     storeSigner: envAddress("DEPLOY_STORE_SIGNER_ADDRESS"),
+    poolPoster: envAddress("DEPLOY_POOL_POSTER_ADDRESS"),
+    poolBps: process.env.DEPLOY_POOL_BPS ? Number(process.env.DEPLOY_POOL_BPS) : undefined,
+    poolMaxClaimWei: process.env.DEPLOY_POOL_MAX_CLAIM_WEI ? BigInt(process.env.DEPLOY_POOL_MAX_CLAIM_WEI) : undefined,
     paymentToken: envAddress("PAYMENT_TOKEN_ADDRESS"),
     deployGameToken: process.env.DEPLOY_GAME_TOKEN === "true",
     writeManifest: hre.network.name !== "hardhat",

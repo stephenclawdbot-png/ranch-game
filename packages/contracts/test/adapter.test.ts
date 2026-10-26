@@ -159,7 +159,7 @@ async function evmFixture() {
   const publicClient = (await hre.viem.getPublicClient()) as unknown as PublicClient;
   const server = await localServerWallet(); // runtime-generated key, like the production server key
   const usd = await hre.viem.deployContract("MockStablecoin", []);
-  const store = await hre.viem.deployContract("PremiumStore", [admin!.account.address, admin!.account.address, server.account.address]);
+  const store = await hre.viem.deployContract("PremiumStore", [admin!.account.address, admin!.account.address, server.account.address, admin!.account.address, 3000]);
   const registry = await hre.viem.deployContract("RaceProofRegistry", [admin!.account.address, server.account.address]);
   await store.write.setAcceptedToken([usd.address, true]);
   await store.write.setPrice([PACK, usd.address, 4_990_000n]);
@@ -222,7 +222,7 @@ describe("EvmChainAdapter (against the Hardhat network)", () => {
   it("ignores identical events from a different (fake) store", async () => {
     const { make, order, admin, usd, buyer } = await loadFixture(evmFixture);
     const signerAdapter = make();
-    const fake = await hre.viem.deployContract("PremiumStore", [admin.account.address, admin.account.address, admin.account.address]);
+    const fake = await hre.viem.deployContract("PremiumStore", [admin.account.address, admin.account.address, admin.account.address, admin.account.address, 3000]);
     await fake.write.setAcceptedToken([usd.address, true]);
     await fake.write.setPrice([PACK, usd.address, 1n]);
     await fake.write.setSkuActive([PACK, true]);

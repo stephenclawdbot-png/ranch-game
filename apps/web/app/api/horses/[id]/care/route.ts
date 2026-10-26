@@ -12,5 +12,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const b = await body(req, Body);
   if (!b) return badBody("Choose a feed.");
-  return act((database, session, now) => careAction(database, session, decodeURIComponent(id), b, now));
+  return act((database, session, now) => careAction(database, session, decodeURIComponent(id), b, now), 200, "care");
 }

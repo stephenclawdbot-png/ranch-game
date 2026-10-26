@@ -21,5 +21,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const b = await body(req, SessionBody);
   if (!b) return badBody("Something in that request wasn't right.");
-  return act((database, session, now) => trainAction(database, session, decodeURIComponent(id), b, now));
+  return act((database, session, now) => trainAction(database, session, decodeURIComponent(id), b, now), 200, "train");
 }
