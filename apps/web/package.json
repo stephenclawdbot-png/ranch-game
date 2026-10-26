@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "art-index": "node scripts/art-index.mjs"
+    "art-index": "node scripts/art-index.mjs",
+    "test:chain": "CHAIN_E2E=1 vitest run src/server/chain/chain-e2e.test.ts"
   },
   "dependencies": {
     "@thoroughbred/art-pipeline": "workspace:*",

@@ -155,7 +155,6 @@ describe.skipIf(!RUN || !existsSync(HARDHAT))("beta money end-to-end on a local 
     const r2 = await pub.waitForTransactionReceipt({ hash: await buyer.wallet.writeContract({ address: d.premiumStore, abi: premiumStoreAbi, functionName: "purchaseWithEth", args: [quote2, q2.signature], value: quote2.priceWei }) });
     expect(r2.status).toBe("success");
     expect(await chain.findPurchaseTx(q2.orderId)).toBe(r2.transactionHash);
-    console.log("DEBUG", await getChainOrder(h.db, q2.orderId));
     const back = await checkoutBackstop(ctx, new Date(Date.now() + 7 * 60_000)); // the next cron run, after the quote's deadline
     expect(back.settled).toBeGreaterThanOrEqual(1);
     expect((await getChainOrder(h.db, q2.orderId))?.status).toBe("fulfilled");

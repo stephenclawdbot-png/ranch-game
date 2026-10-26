@@ -166,7 +166,7 @@ export class EvmBetaChain implements BetaChain {
     if (a.sku.toLowerCase() !== e.sku.toLowerCase()) return { status: "rejected", reason: "sku_mismatch" };
     if (Number(a.quantity) !== e.quantity) return { status: "rejected", reason: "quantity_mismatch" };
     if (a.priceWei !== e.priceWei) return { status: "rejected", reason: "amount_mismatch" };
-    const head = await this.pc.getBlockNumber();
+    const head = await this.pc.getBlockNumber({ cacheTime: 0 });
     const confirmations = Number(head - receipt.blockNumber + 1n);
     if (confirmations < this.minConfirmations) return { status: "pending", reason: "confirmations" };
     const commissions = parseEventLogs({ abi: premiumStoreAbi, eventName: "ReferralCommission", logs: ours })
@@ -176,9 +176,9 @@ export class EvmBetaChain implements BetaChain {
   }
 
   async findPurchaseTx(orderId: Hex): Promise<Hex | null> {
-    const head = await this.pc.getBlockNumber();
+    const head = await this.pc.getBlockNumber({ cacheTime: 0 });
     const fromBlock = head > this.lookback ? head - this.lookback : 0n;
-    const logs = await this.pc.getContractEvents({ address: this.store, abi: premiumStoreAbi, eventName: "PurchasedWithEth", args: { orderId }, fromBlock, toBlock: head });
+    const logs = await this.pc.getContractEvents({ address: this.store, abi: premiumStoreAbi, eventName: "PurchasedWithEth", args: { orderId }, fromBlock, toBlock: "latest" });
     return logs[0]?.transactionHash ?? null;
   }
 
