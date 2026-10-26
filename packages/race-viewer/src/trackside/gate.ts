@@ -170,8 +170,10 @@ export class StallGate {
       const q = (ppl * B) / GATE_PX_PER_M;
       b.lod = this.pickLod(this.frame, q, b.lod);
       const fl = this.frame.lods.find((l) => l.s === b.lod) ?? this.frame.lods[0]!;
-      const pl = this.post.lods.find((l) => l.s === b.lod) ?? this.post.lods[0]!;
-      const dl = this.door.lods.find((l) => l.s === b.lod) ?? this.door.lods[0]!;
+      // Coarsest LOD a part has at or below the bay's (thin parts stop at 2:1).
+      const near = (p: Part) => p.lods.reduce((a, l) => (l.s <= b.lod && l.s > a.s ? l : a), p.lods[0]!);
+      const pl = near(this.post);
+      const dl = near(this.door);
       const k = q * fl.s; // buffer px per LOD texel
       // Front-door plane through the runner squeeze (same mapping as the props).
       const sx = (lay.W / 2 + (squeezeX(lay, lay.W / 2 + (b.x - lay.cx) * lay.ppm) - lay.W / 2) * ls) * B;
@@ -192,9 +194,12 @@ export class StallGate {
       bind(b.door, dl, depthBase + di + 0.011);
       host.place(b.frame, frameX, Math.round(feet - fl.h * k), frameW, Math.round(fl.h * k));
       // Front post: its right edge sits at the door plane; bottom on the ground.
-      host.place(b.post, Math.round(sx - pl.w * k), Math.round(feet - pl.h * k), Math.round(pl.w * k), Math.round(pl.h * k));
+      // Small parts may lack the coarse LODs (lods[0] fallback), so scale each by its own s.
+      const kp = q * pl.s;
+      const kd = q * dl.s;
+      host.place(b.post, Math.round(sx - pl.w * kp), Math.round(feet - pl.h * kp), Math.round(pl.w * kp), Math.round(pl.h * kp));
       // Front gate: hinge at the plane; swings out to an edge-on sliver at the off.
-      host.place(b.door, Math.round(sx), Math.round(feet - dl.h * k), Math.round(dl.w * k * doorK), Math.round(dl.h * k));
+      host.place(b.door, Math.round(sx), Math.round(feet - dl.h * kd), Math.round(dl.w * kd * doorK), Math.round(dl.h * kd));
     }
   }
 }
