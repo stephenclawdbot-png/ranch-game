@@ -29,6 +29,7 @@ import {
   getRaceForSimulation,
   getRaceResult,
   facilityLevels,
+  goalsForToday,
   breedingStatus,
   CLUB_STUD_NAME,
   getStable,
@@ -897,13 +898,14 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
   const silks = parseSilks(session.stable.silks);
   const rows = await listStableHorses(db, session.stable.id);
   const names = new Map(rows.map((r) => [r.id, r.name]));
-  const [credits, bank, occ, entries, inbox, runs] = [
+  const [credits, bank, occ, entries, inbox, runs, goals] = [
     await getBalance(db, session.accountId),
     await getEntryBank(db, { accountId: session.accountId, now }),
     await occupancy(db, session.stable),
     await listStableEntries(db, session.stable.id),
     await listInbox(db, session.accountId, 20),
     await listStableRuns(db, session.stable.id, 30),
+    await goalsForToday(db, session.accountId, now),
   ];
   const active: ActiveEntry[] = entries.map(({ entry, race }) => ({
     raceId: race.id,
@@ -942,6 +944,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     active,
     inbox: inboxView,
     runs: runs.map((r) => runView(r, names)),
+    goals,
     tester: !!(await testerForAccount(db, session.accountId)),
     serverNowMs: nowMs,
   };

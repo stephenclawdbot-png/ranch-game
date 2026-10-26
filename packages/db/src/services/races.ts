@@ -21,6 +21,7 @@ import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
+import { completeGoal } from "./dailyGoals";
 import { isCarrying, lockHorse, startsOnDay } from "./horses";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
@@ -237,6 +238,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       .returning();
     await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
     await recordPlayDay(tx, input.accountId, input.now);
+    // Today's "run a race" goal (a no-op once it has already paid today).
+    await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.now });
     await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost } });
     return entry!;
   });

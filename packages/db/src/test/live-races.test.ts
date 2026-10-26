@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { isDomainError } from "../errors";
 import { RULES } from "../rules";
+import { gc } from "../gameCore";
 import { entryMovements, raceEntries, races, stables } from "../schema";
 import { createAccount } from "../services/accounts";
 import { ensureRaceCard, slotIndexAt, tickRaceCard } from "../services/card";
@@ -185,7 +186,8 @@ describe("field lock and settlement", () => {
     const playerPrizes = Object.entries(settled.find((s) => !s.alreadySettled)!.prizes)
       .filter(([id]) => field.runners.some((r) => r.horseId === id && !r.isHouse))
       .reduce((s, [, v]) => s + v, 0);
-    expect(paid).toBe(10_000 + playerPrizes);
+    // Each stable's first entry of the day also paid its race goal.
+    expect(paid).toBe(10_000 + playerPrizes + 2 * gc.DAILY_GOAL_CREDITS);
   });
 
   it("house horses are reused across races and never double-booked by concurrent locks", async () => {

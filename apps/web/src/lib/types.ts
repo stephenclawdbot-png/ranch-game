@@ -152,6 +152,13 @@ export interface EntryBankView {
   refillPrice: number;
 }
 
+export interface DailyGoalView {
+  goal: "race" | "care" | "cup";
+  label: string;
+  done: boolean;
+  credits: number;
+}
+
 export interface PlayerView {
   accountId: string;
   stableName: string;
@@ -163,6 +170,8 @@ export interface PlayerView {
   active: ActiveEntry[];
   inbox: InboxView[];
   runs: RunView[];
+  /** Today's three goals, on the player's local day. */
+  goals: DailyGoalView[];
   /** Closed playtest: this stable belongs to an invited tester (see /beta). */
   tester: boolean;
   serverNowMs: number;

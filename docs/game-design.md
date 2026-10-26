@@ -340,7 +340,8 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 
 ## 8. Economy (Phase 1, no token)
 
-- **Credits in:** race purses (scaled by class), daily goals and the Daily Cup.
+- **Credits in:** race purses (scaled by class), daily goals — three per local day (run a race,
+  care for a horse, run the Daily Cup), 60 credits each, paid once automatically — and the Daily Cup.
 - **Credits out:**
   - training and upkeep: a monthly stall fee per horse, which keeps stable size in check;
   - entry fees for Listed and Graded races;

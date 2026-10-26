@@ -29,6 +29,7 @@ export * from "./services/economyViews";
 export * from "./services/horseLife";
 export * from "./services/story";
 export * from "./services/dailyCup";
+export * from "./services/dailyGoals";
 export * from "./services/leagues";
 export * from "./services/hall";
 export * from "./services/houseStuds";

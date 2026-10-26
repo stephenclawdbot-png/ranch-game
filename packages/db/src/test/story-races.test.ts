@@ -5,6 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
+import { gc } from "../gameCore";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { createRace, enterRace, getRaceForSimulation, settleRace, type CreateRaceInput, type RunnerOutcome } from "../services/races";
 import { at, count, DAY, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, T0 } from "./helpers";
@@ -53,7 +54,7 @@ describe("Story races and the career clock", () => {
     const r = await runRace(race.id, at(11 * MIN), [a.id], { [a.id]: { ratingAfter: 20, condition: { fatigue: 500 } } });
     expect(r.retired).toEqual([]);
     // Credits, result and condition are exactly as for any race.
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500);
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ fatigue: 500, rating: 20, lockKind: null, careerStatus: "racing" });
     // The career clock and the record did not move.
@@ -89,6 +90,6 @@ describe("Story races and the career clock", () => {
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
     await runRace(race.id, at(11 * MIN), [a.id]);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 8, wins: 3, places: 1, shows: 3, earnings: 900 + 5_500 });
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500);
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
   });
 });

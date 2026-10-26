@@ -56,7 +56,7 @@ describe("racing", () => {
     const race = await quickRace(0, { kind: "scheduled", purse: 10_000, entryFee: 100 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ lockKind: "race", lockRef: race.id });
-    expect(await getBalance(h.db, p.accountId)).toBe(900);
+    expect(await getBalance(h.db, p.accountId)).toBe(900 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
 
     await expect(getRaceForSimulation(h.db, race.id, at(5 * MIN))).rejects.toMatchObject({ code: "TOO_EARLY" });
     const sim = await getRaceForSimulation(h.db, race.id, at(10 * MIN));
@@ -75,7 +75,7 @@ describe("racing", () => {
     };
     const results = await Promise.all([settleRace(h.db, outcome), settleRace(h.db, outcome), settleRace(h.db, outcome)]);
     expect(results.filter((r) => !r.alreadySettled)).toHaveLength(1);
-    expect(await getBalance(h.db, p.accountId)).toBe(900 + 5_500);
+    expect(await getBalance(h.db, p.accountId)).toBe(900 + 5_500 + gc.DAILY_GOAL_CREDITS);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 1, wins: 1, earnings: 5_500, rating: 12, lockKind: null });
     expect((await getHorseRow(h.db, rival)).lockKind).toBeNull();
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);

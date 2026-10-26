@@ -735,6 +735,31 @@ export const dailyCupEntries = pgTable(
   ],
 );
 
+/**
+ * One completed daily goal per player per LOCAL date. The PK is the idempotency unit; the
+ * payment's ledger key (`daily-goal:<account>:<day>:<goal>` in completeGoal) matches it, so a
+ * retry or double tap pays once and a new local day starts clean.
+ */
+export const dailyGoalEnum = pgEnum("daily_goal", ["race", "care", "cup"]);
+
+export const dailyGoals = pgTable(
+  "daily_goals",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    /** The player's local calendar date (same boundary as care sessions / entries). */
+    localDate: date("local_date", { mode: "string" }).notNull(),
+    goal: dailyGoalEnum("goal").notNull(),
+    completedAt: ts("completed_at").notNull(),
+    /** The `daily_goal` ledger transaction that paid the reward. */
+    ledgerTxId: uuid("ledger_tx_id")
+      .notNull()
+      .references(() => ledgerTransactions.id),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.localDate, t.goal] })],
+);
+
 // ---------------------------------------------------------------------------
 // Leagues (weekly, 30 owners)
 // ---------------------------------------------------------------------------

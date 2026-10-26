@@ -55,7 +55,7 @@ export const ENTRY_FEE_BY_TIER: Record<RaceTier, number> = {
 };
 
 /** Three daily goals; credits per completed goal. Goals never "break" a streak. */
-export const DAILY_GOAL_CREDITS = 120;
+export const DAILY_GOAL_CREDITS = 60;
 export const DAILY_GOALS_PER_DAY = 3;
 /** Daily Cup participation credits (ranked rewards are cosmetic + cup points). */
 export const DAILY_CUP_CREDITS = 80;

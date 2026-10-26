@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { ActiveEntry, InboxView, RaceSummary, StableHorse } from "@/lib/types";
+import type { ActiveEntry, DailyGoalView, InboxView, RaceSummary, StableHorse } from "@/lib/types";
 import type { HorseAppearance } from "@thoroughbred/shared";
 import { useNow } from "@/lib/clock";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCountdown, formatDistance, ordinal } from "@/lib/format";
@@ -164,6 +164,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       </div>
 
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
+
+      <DailyGoalsCard goals={state.goals ?? []} />
 
       <YourRaces state={state} now={now} skipRaceId={heroRaceId} />
 
@@ -370,6 +372,31 @@ function ResultReady({ item, count, horse }: { item: InboxView; count: number; h
       </ActionBar>
       <QuickPickAgain />
     </Hero>
+  );
+}
+
+/** Today's three goals: a tick or an empty box, the job, and what it pays. No streaks. */
+function DailyGoalsCard({ goals }: { goals: DailyGoalView[] }) {
+  if (goals.length === 0) return null;
+  const left = goals.filter((g) => !g.done).length;
+  return (
+    <Section id="goals-h" title="Today's goals" testId="daily-goals" aside={<span className="eyebrow">{left} to do</span>}>
+      <ul className="surface rows">
+        {goals.map((g) => (
+          <li key={g.goal} className="flex items-center gap-3 px-4 py-3" data-testid={`goal-${g.goal}`} data-done={g.done ? "1" : "0"}>
+            {g.done ? (
+              <span className="shrink-0 font-bold text-brass-hi" aria-hidden>
+                ✓
+              </span>
+            ) : (
+              <span className="h-4 w-4 shrink-0 rounded-sm border-2 border-cream-dim" aria-hidden />
+            )}
+            <span className={`t-title min-w-0 flex-1 ${g.done ? "text-cream-dim" : ""}`}>{g.label}</span>
+            <span className={`num shrink-0 ${g.done ? "reward" : "text-cream-dim"}`}>+{g.credits}</span>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

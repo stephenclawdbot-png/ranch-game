@@ -159,11 +159,11 @@ and one refill.
 |---|---|---|---|
 | Live purses (77 starts, fields of 10) | 6,988 | Training (18 sessions) | 1,116 |
 | Story (1 first win, 10 replays) | 900 | Entry fees (Listed/G3) | 640 |
-| Daily goals (3/day × 120) | 2,520 | Breeding (0.75 covers × (1,500 + 800)) | 1,725 |
+| Daily goals (3/day × 60) | 1,260 | Breeding (0.75 covers × (1,500 + 800)) | 1,725 |
 | Daily Cup participation | 560 | Paddock packs (2 × 1,200) | 2,400 |
 | | | Scans, vet, refills, insurance | 1,525 |
 | | | Facilities (stalls, entry tiers, trainer, vet) | 2,500 |
-| **Earned** | **10,968** | **Spent** | **9,906 (ratio 0.90)** |
+| **Earned** | **9,708** | **Spent** | **9,906 (ratio 1.02)** |
 
 An idle week costs 0 credits.
 

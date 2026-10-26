@@ -5,6 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RaceBroadcastChunkSchema, type RaceBroadcastChunk } from "@thoroughbred/shared";
+import { DAILY_GOAL_CREDITS } from "@thoroughbred/game-core";
 import { createAccount, createDb, getBalance, getEntryBank, getRace, listInbox, stableOf, type DbHandle } from "@thoroughbred/db";
 import {
   createStoryRace,
@@ -86,7 +87,7 @@ describe("Story mode", () => {
     const mine = await myRaceResult(h.db, p, created.raceId, T0);
     expect(mine.runners).toHaveLength(1);
     const r = mine.runners[0]!;
-    expect(credits).toBe(3000 + r.storyReward);
+    expect(credits).toBe(3000 + r.storyReward + DAILY_GOAL_CREDITS); // entering also paid the day's race goal
     expect(r.storyReward).toBe(r.position === 1 ? 400 : 20);
     // Viewing again or re-settling never pays twice; Story races cost no stable entries.
     expect(await settleIfDue(h.db, created.raceId, at(60_000))).toBe(false);

@@ -233,7 +233,7 @@ Full tables: `results/credits.md`, `results/population.md`.
 | Story first wins | 400 / 700 / 1,100 / 1,800 × 6 races = **24,000** | Stalls 7..24 | 2,000 + 400 (n − 7) = **97,200** total |
 | Story replays / caps | 20; caps 4k / 7k / 11k / 18k (40k lifetime) | Trainer / vet / entry tiers | 21,000 / 27,000 / 60,000 |
 | Daily Cup | 80 a day | Paddock Pack | 1,200 (≤ 3 a week) |
-| **Daily goals** | **3 × 120 defined, never paid** | Breeding | 1,500 base + stud fee (10% burned) |
+| **Daily goals** | **3 × 60 per local day**, paid via the ledger (done 2026-10-26) | Breeding | 1,500 base + stud fee (10% burned) |
 | Referral activation | 250 per invitee | Scan / vet | 400 / 150 |
 | Insurance payout | 60% of appraisal | Insurance premium | 5% of appraisal |
 | Release to Club | 50 | Market fee | 5% burned, floor 70% of appraisal, **no ceiling** |
@@ -532,7 +532,7 @@ material connection (FTC Endorsement Guides).
 | Premium price | `PREMIUM_PACK_USD_CENTS` | $4.99 | keep $4.99 | Revenue is flat to rising up to $7.99 at elasticity −1.5, but small money matters more |
 | Epic pity | `PACK_PITY.premium` | 50 | **20** (beta) (done 2026-10-26) | Otherwise unreachable under the cap (18.9% never see Epic) |
 | Market price ceiling | `db/services/market.ts` | none | ≤ 3× appraisal; 72 h resale lock (done 2026-10-26) | Credit transfers / real-money trading |
-| Daily goals | game-core constant | defined, not paid | implement at **3 × 60**, or drop from the docs | The documented balance assumes them |
+| Daily goals | game-core constant | defined, not paid | **3 × 60** per local day, paid through the ledger (done 2026-10-26) | The documented balance assumes them |
 | Story career cost | `races.ts` settle (starts +1 for quick) | Story = career start | Story doesn't consume career starts (or a 4th starter) (done 2026-10-26) | Racing drought days 14–20 |
 | `STARTER_GRANT` docs | `docs/balance.md` | says 5,000 | fix the docs to 3,000 | Stale |
 | Insurance | game-core | 5% / 60% | keep; show the career-ending odds at purchase | −EV sink, not an exploit |

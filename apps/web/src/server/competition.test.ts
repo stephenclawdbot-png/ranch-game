@@ -43,7 +43,7 @@ describe("Daily Cup", () => {
     const horseId = before.horses!.find((x) => !x.block)!.id;
     const { entryId } = await runCup(h.db, a, { horseId }, T0);
     await expect(runCup(h.db, a, { horseId }, at(60_000))).rejects.toMatchObject({ code: "DAILY_CUP_ALREADY_ENTERED" });
-    expect(await getBalance(h.db, a.accountId)).toBe(credits + gc.CUP_PARTICIPATION_CREDITS);
+    expect(await getBalance(h.db, a.accountId)).toBe(credits + gc.CUP_PARTICIPATION_CREDITS + gc.DAILY_GOAL_CREDITS); // + the day's cup goal
     const bv = await cupView(h.db, b, T0);
     await runCup(h.db, b, { horseId: bv.horses![0]!.id, tactic: "front" }, T0);
 

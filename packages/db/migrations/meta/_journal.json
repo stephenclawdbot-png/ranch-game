@@ -50,6 +50,13 @@
       "when": 1792994722960,
       "tag": "0006_horse_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793026138178,
+      "tag": "0007_dusty_gladiator",
+      "breakpoints": true
     }
   ]
 }

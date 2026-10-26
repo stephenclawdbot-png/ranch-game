@@ -594,6 +594,7 @@ export const RESET_TABLES = [
   "league_members",
   "leagues",
   "daily_cup_entries",
+  "daily_goals",
   "inbox_items",
   "entry_movements",
   "race_results",

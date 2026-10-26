@@ -3,6 +3,8 @@ import fc from "fast-check";
 import {
   ACTIVE_PLAYER,
   BASE_STALLS,
+  DAILY_GOAL_CREDITS,
+  DAILY_GOALS_PER_DAY,
   MAX_STALLS,
   appraise,
   insurancePayout,
@@ -35,6 +37,12 @@ describe("weekly faucet/sink balance (active player)", () => {
     const idle = weeklyFlow({ ...ACTIVE_PLAYER, startsByTier: {}, storyFirstWinsPerWeek: 0, storyReplaysPerWeek: 0, dailyGoalsPerWeek: 0, dailyCupsPerWeek: 0, trainingSessionsPerWeek: 0, vetTreatmentsPerWeek: 0, coveringsPerWeek: 0, paddockBuysPerWeek: 0, scansPerWeek: 0, entryRefillsPerWeek: 0, insurancePerWeek: 0, facilitySpendPerWeek: 0 });
     expect(idle.spent).toBe(0);
     expect(idle.earned).toBe(0);
+  });
+  it("three daily goals at 60 credits each (owner decision 2026-10-26: implement at 3 × 60)", () => {
+    expect(DAILY_GOALS_PER_DAY).toBe(3);
+    expect(DAILY_GOAL_CREDITS).toBe(60);
+    const f = weeklyFlow({ ...ACTIVE_PLAYER, dailyGoalsPerWeek: DAILY_GOALS_PER_DAY * 7 });
+    expect(f.faucets.dailyGoals).toBe(3 * 7 * DAILY_GOAL_CREDITS);
   });
 });
 

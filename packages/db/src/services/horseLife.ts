@@ -26,6 +26,7 @@ import { RULES, stageFor } from "../rules";
 import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
 import { lockStableOf, recordPlayDay, stableOf } from "./accounts";
+import { completeGoal } from "./dailyGoals";
 import { localDate } from "./entries";
 import { lockOwnedHorse } from "./horses";
 import { getBalance, spendCreditsTx } from "./ledger";
@@ -237,6 +238,8 @@ async function careTx(tx: Tx, accountId: string, horse: HorseRow, day: string, n
       .returning();
   }
   const graduated = horse.careSessions < RULES.careToRacing && careSessions >= RULES.careToRacing;
+  // Today's "care for a horse" goal, on the same transaction (a no-op once it has paid).
+  await completeGoal(tx, { accountId, goal: "care", now });
   return { horse: updated!, counted: true, day, stageBefore, stageAfter: stage, graduated, feed, quality };
 }
 

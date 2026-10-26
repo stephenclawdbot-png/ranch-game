@@ -88,7 +88,7 @@ describe("Daily Cup", () => {
     expect(res.ok).toHaveLength(1);
     expect(res.errors[0]).toMatchObject({ code: "DAILY_CUP_ALREADY_ENTERED" });
     await run(b.accountId, hb.id, 69_000_000);
-    expect(await getBalance(h.db, a.accountId)).toBe(gc.CUP_PARTICIPATION_CREDITS);
+    expect(await getBalance(h.db, a.accountId)).toBe(gc.CUP_PARTICIPATION_CREDITS + gc.DAILY_GOAL_CREDITS); // + the day's cup goal
     const board = await cupDayEntries(h.db, T0.toISOString().slice(0, 10));
     expect(board.map((r) => r.accountId)).toEqual([b.accountId, a.accountId]);
     // The horse is untouched (no start, no fatigue).
@@ -96,7 +96,7 @@ describe("Daily Cup", () => {
     expect(after).toBeDefined();
     // A new UTC day opens a new Cup.
     await run(a.accountId, ha.id, 72_000_000, at(DAY));
-    expect(await getBalance(h.db, a.accountId)).toBe(2 * gc.CUP_PARTICIPATION_CREDITS);
+    expect(await getBalance(h.db, a.accountId)).toBe(2 * (gc.CUP_PARTICIPATION_CREDITS + gc.DAILY_GOAL_CREDITS));
     // Not your horse.
     await expect(run(b.accountId, ha.id, 1, at(2 * DAY))).rejects.toMatchObject({ code: "NOT_OWNER" });
   });

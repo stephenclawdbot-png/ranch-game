@@ -17,6 +17,7 @@ import { dailyCupEntries, economyConfig, horses, stables, type HorseRow } from "
 import { RULES } from "../rules";
 import type { Db, Executor } from "../types";
 import { recordPlayDay } from "./accounts";
+import { completeGoal } from "./dailyGoals";
 import { lockOwnedHorse } from "./horses";
 import { grantCreditsTx } from "./ledger";
 import { horseSnapshot } from "./races";
@@ -83,6 +84,8 @@ export async function runCupEntry(db: Db, input: CupEntryInput) {
     if (input.credits > 0) {
       await grantCreditsTx(tx, { accountId: input.accountId, amount: input.credits, idempotencyKey: `daily-cup:${day}:${input.accountId}`, kind: "daily_cup", memo: "Daily Cup participation" });
     }
+    // Today's "run the Daily Cup" goal (a no-op once it has already paid today).
+    await completeGoal(tx, { accountId: input.accountId, goal: "cup", now: input.now });
     await recordPlayDay(tx, input.accountId, input.now);
     await audit(tx, { actor: input.accountId, action: "daily_cup.run", entityType: "daily_cup_entry", entityId: row!.id, data: { day, horseId: horse.id, position: run.finishPosition } });
     return row!;
