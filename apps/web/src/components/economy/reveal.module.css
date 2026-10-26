@@ -1,0 +1,113 @@
+/* Foal reveal: stall doors swing open in pixel steps, the foal pops in. Reduced motion is
+   handled globally (animations collapse to ~0 ms) and the component skips straight to the end. */
+.stage {
+  position: relative;
+  width: min(100%, 22rem);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #1a120b 0 62%, transparent 62%),
+    repeating-linear-gradient(90deg, #6b4a1e 0 6px, #8a6328 6px 8px, #5c3f19 8px 14px);
+  box-shadow: 0 0 0 4px #0b0f0c, inset 0 0 0 4px #4a2c18;
+  image-rendering: pixelated;
+}
+.beam {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 30%;
+  width: 46%;
+  transform: translateX(-50%);
+  opacity: 0;
+  background: repeating-linear-gradient(180deg, var(--beam) 0 4px, transparent 4px 8px);
+  animation: beam 420ms steps(4) 520ms forwards;
+}
+.foal {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%) scale(0.6);
+  opacity: 0;
+  animation: foal 360ms steps(5) 640ms forwards;
+}
+.door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background:
+    linear-gradient(45deg, transparent 46%, #3a220f 46% 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, #3a220f 46% 54%, transparent 54%),
+    repeating-linear-gradient(90deg, #7a4a26 0 10px, #6a3f20 10px 12px);
+  box-shadow: inset 0 0 0 6px #4a2c18;
+}
+.left {
+  left: 0;
+  animation: open-left 480ms steps(6) 120ms forwards;
+}
+.right {
+  right: 0;
+  animation: open-right 480ms steps(6) 120ms forwards;
+}
+.banner {
+  opacity: 0;
+  animation: banner 240ms steps(3) 980ms forwards;
+}
+.done .left,
+.done .right {
+  animation: none;
+  display: none;
+}
+.done .beam {
+  animation: none;
+  opacity: 0.9;
+}
+.done .foal {
+  animation: none;
+  opacity: 1;
+  transform: translateX(-50%);
+}
+.done .banner {
+  animation: none;
+  opacity: 1;
+}
+@keyframes open-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes open-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes beam {
+  to {
+    opacity: 0.9;
+  }
+}
+@keyframes foal {
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+@keyframes banner {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.banner.done {
+  animation: none;
+  opacity: 1;
+}
