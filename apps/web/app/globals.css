@@ -1545,7 +1545,9 @@ dialog.sheet :focus-visible {
   animation: digit-drop 120ms steps(2) both;
 }
 .fade-up {
-  animation: fade-up 240ms steps(4) both;
+  /* backwards, not both: a held translateY(0) would make this a containing block and trap a
+     floating ActionBar (position: fixed) inside it, off screen. The end state is the natural style. */
+  animation: fade-up 240ms steps(4) backwards;
 }
 .pop {
   animation: pop 320ms steps(5) both;

@@ -101,11 +101,20 @@ export function ResultsSequence({
     if (stage === "next" && staged) nextRef.current?.querySelector<HTMLElement>("a, button")?.focus({ preventScroll: true });
   }, [stage, staged]);
 
+  // The player was watching the stage above: bring the fresh reveal (podium, credits, confetti)
+  // into view instead of leaving them looking at horses pulling up. Once, and only for a fresh result.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!staged) return;
+    const el = rootRef.current;
+    if (el && el.getBoundingClientRect().top > window.innerHeight * 0.6) el.scrollIntoView({ behavior: prefersCalm() ? "auto" : "smooth", block: "start" });
+  }, [staged]);
+
   const at = (s: Stage) => STAGES.indexOf(stage) >= STAGES.indexOf(s);
   const won = settlement?.position === 1;
 
   return (
-    <div className="relative grid gap-4" data-testid="results-sequence">
+    <div ref={rootRef} className="relative grid scroll-mt-28 gap-4" data-testid="results-sequence">
       {stage !== "next" && (
         <div className="flex justify-end">
           <button type="button" className="btn-ghost min-h-11 text-sm font-bold" onClick={() => setStage("next")}>
