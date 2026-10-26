@@ -140,6 +140,52 @@ export const accountLinks = pgTable(
   ],
 );
 
+/**
+ * Extra devices linked to an account with a one-time code (no email, no passwords): phones,
+ * other browsers. Same token convention as accounts: the device holds a random 256-bit
+ * token; only its sha256 (`token_hash`) is stored. The original browser token stays on
+ * `accounts.token_hash` and can't be revoked from the device list.
+ */
+export const accountDevices = pgTable(
+  "account_devices",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    tokenHash: text("token_hash").notNull(),
+    /** Free-form device name sent when linking, e.g. "iPhone · Safari". */
+    label: text("label"),
+    createdAt: createdAt(),
+    lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("account_devices_token_hash_uq").on(t.tokenHash),
+    index("account_devices_account_idx").on(t.accountId),
+  ],
+);
+
+/**
+ * One-time device-link codes: 8 characters from an unambiguous alphabet, shown as
+ * XXXX-XXXX, valid 10 minutes, single use. Only the code's sha256 (`code_hash`) is stored;
+ * a new code expires the account's previous unused ones.
+ */
+export const linkCodes = pgTable(
+  "link_codes",
+  {
+    codeHash: text("code_hash").primaryKey(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    createdAt: createdAt(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+    /** Failed redemptions against this code (expired/used): telemetry, plus the per-IP limit. */
+    attempts: integer("attempts").notNull().default(0),
+  },
+  (t) => [index("link_codes_account_idx").on(t.accountId)],
+);
+
 /** Anti-fraud events for review (blocked linked trades, suspicious patterns ...). */
 export const fraudEvents = pgTable(
   "fraud_events",
