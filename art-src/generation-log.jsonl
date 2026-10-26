@@ -226,3 +226,5 @@
 {"at":"2026-10-26T07:15:35.154Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-groom-brush","secs":76,"usage":{"type":"generations","generations":3},"images":9}
 {"at":"2026-10-26T07:16:29.560Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-aisle-idle","secs":131,"usage":{"type":"generations","generations":6},"images":9}
 {"at":"2026-10-26T07:17:02.516Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-stall-horse","secs":164,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-26T12:46:13.915Z","endpoint":"/generate-image-v2","prefix":"art-src/race/raw/stall-bay","secs":72,"usage":{"type":"generations","generations":15},"images":1}
+{"at":"2026-10-26T12:47:52.668Z","endpoint":"/generate-image-v2","prefix":"art-src/race/raw/stall-bay-b","secs":99,"usage":{"type":"generations","generations":15},"images":1}

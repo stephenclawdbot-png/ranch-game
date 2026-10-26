@@ -21,6 +21,8 @@ SOURCE = {
     "bb-bush": "scene/bb-bush", "bb-bush-b": "scene/bb-bush", "bb-grandstand": "scene/bb-grandstand",
     "grandstand": "scene/bb-grandstand", "finish-post": "scene/finish-post", "furlong-pole": "scene/furlong-pole",
     "starting-gate": "scene/starting-gate", "bb-flag": "scene/bb-flag",
+    "starting-stall": "../race/raw/stall-bay-b", "starting-stall-front": "../race/raw/stall-bay-b",
+    "starting-stall-door": "../race/raw/stall-bay-b",
 }
 POST = {
     "far-hills": "sky cut to alpha, mirror-tiled to 960 px (art-src/process_scene.py)",
@@ -30,6 +32,9 @@ POST = {
     "finish-post": "cleaned with /edit-images-v2 (base removed)", "furlong-pole": "cleaned with /edit-images-v2 (base removed)",
     "bb-flag": "animated with /animate-pixminimax (8 frames), pole pinned",
     "track-turf": "tiled from tex-turf", "track-dirt": "tiled from tex-dirt",
+    "starting-stall": "binary alpha + median-cut palette snap + front post/gate split (art-src/finish-stall.py)",
+    "starting-stall-front": "front post crop of starting-stall (art-src/finish-stall.py)",
+    "starting-stall-door": "front gate crop of starting-stall (art-src/finish-stall.py)",
 }
 
 

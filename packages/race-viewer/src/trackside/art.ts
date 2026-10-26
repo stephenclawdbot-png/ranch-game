@@ -22,6 +22,9 @@ export const BACKDROP_STEMS = [
   "track-dirt",
   "finish-post",
   "furlong-pole",
+  "starting-stall",
+  "starting-stall-front",
+  "starting-stall-door",
 ] as const;
 export type BackdropStem = (typeof BACKDROP_STEMS)[number];
 

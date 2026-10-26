@@ -1065,6 +1065,69 @@
    "src": "race/starting-gate.png"
   },
   {
+   "id": "race.starting-stall-door",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 50,
+   "frameHeight": 125,
+   "fps": 0,
+   "anchor": {
+    "x": 0,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: front gate crop of starting-stall (art-src/finish-stall.py)",
+   "optimizationTier": "standard",
+   "src": "race/starting-stall-door.png"
+  },
+  {
+   "id": "race.starting-stall-front",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 10,
+   "frameHeight": 179,
+   "fps": 0,
+   "anchor": {
+    "x": 1,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: front post crop of starting-stall (art-src/finish-stall.py)",
+   "optimizationTier": "standard",
+   "src": "race/starting-stall-front.png"
+  },
+  {
+   "id": "race.starting-stall",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 266,
+   "frameHeight": 197,
+   "fps": 0,
+   "anchor": {
+    "x": 0.812,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: binary alpha + median-cut palette snap + front post/gate split (art-src/finish-stall.py)",
+   "optimizationTier": "standard",
+   "src": "race/starting-stall.png"
+  },
+  {
    "id": "race.tex-dirt-lo-normal",
    "kind": "track_layer",
    "origin": "pixellab",
@@ -3455,6 +3518,48 @@
    "src": "ui/logo.png"
   },
   {
+   "id": "ui.pack-paddock",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": null,
+   "optimizationTier": "standard",
+   "src": "ui/pack-paddock.png"
+  },
+  {
+   "id": "ui.pack-premium",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": null,
+   "optimizationTier": "standard",
+   "src": "ui/pack-premium.png"
+  },
+  {
    "id": "ui.panel-9slice",
    "kind": "ui_portrait",
    "origin": "pixellab",
@@ -3560,52 +3665,6 @@
    "sourcePrompt": "generate-image-v2 688x288 (HD v2): an English racehorse stable yard at golden hour: a courtyard of red-brick stable blocks with green half-doors, a clock tower over the arch, horses looking out over the stable doors, hay bales, a water trough, cobbled yard, hanging flower baskets, long warm shadows, honey sunlight, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
    "optimizationTier": "standard",
    "src": "scenes/stable-yard.png"
-  },
-  {
-   "id": "ui.pack-paddock",
-   "kind": "ui_portrait",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 1,
-   "frameWidth": 128,
-   "frameHeight": 128,
-   "fps": 0,
-   "anchor": {
-    "x": 0.5,
-    "y": 0.5
-   },
-   "depthBand": "overlay",
-   "palette": [],
-   "variants": [
-    "128px"
-   ],
-   "sourcePrompt": "generate-image-v2 128px seed 9301: honey oak foal crate, cream ribbon, red rosette, hay, horseshoe",
-   "optimizationTier": "standard",
-   "src": "ui/pack-paddock.png"
-  },
-  {
-   "id": "ui.pack-premium",
-   "kind": "ui_portrait",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 1,
-   "frameWidth": 128,
-   "frameHeight": 128,
-   "fps": 0,
-   "anchor": {
-    "x": 0.5,
-    "y": 0.5
-   },
-   "depthBand": "overlay",
-   "palette": [],
-   "variants": [
-    "128px"
-   ],
-   "sourcePrompt": "generate-image-v2 128px seed 9302: racing-green lacquered foal crate, brass trim, blue ribbon, gold rosette",
-   "optimizationTier": "standard",
-   "src": "ui/pack-premium.png"
   },
   {
    "id": "diorama.barn-floor",

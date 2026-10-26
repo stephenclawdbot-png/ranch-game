@@ -1,0 +1,71 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background",
+  "image_size": {
+   "width": 320,
+   "height": 256
+  },
+  "seed": 15501,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<76164 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 512,
+    "height": 211
+   },
+   "usage_description": "match ONLY this pixel art style, palette, line weight and shading; ignore its camera angle completely"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c4a0bb65-2c39-45b1-b332-99da32bd894c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 15
+  },
+  "id": "c4a0bb65-2c39-45b1-b332-99da32bd894c",
+  "status": "completed",
+  "created_at": "2026-10-26T12:45:02.363916+00:00",
+  "last_response": {
+   "seed": 15501,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 320,
+     "base64": "<27832 chars>",
+     "height": 256
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 15
+   },
+   "generation_id": "4c2498f2-e1b4-497f-9daf-afa5fd2dd201",
+   "queue_position": 0,
+   "usage_cost_usd": 0.115,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-26T12:45:08.521497+00:00",
+   "estimated_wait_seconds": 0,
+   "original_image_n_colors": 121,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/race/raw/stall-bay-0.png"
+ ]
+}

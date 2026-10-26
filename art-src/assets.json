@@ -482,6 +482,45 @@
   "variants": []
  },
  {
+  "id": "race.starting-stall-door",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/starting-stall-door.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: front gate crop of starting-stall (art-src/finish-stall.py)",
+  "anchor": {
+   "x": 0,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.starting-stall-front",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/starting-stall-front.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: front post crop of starting-stall (art-src/finish-stall.py)",
+  "anchor": {
+   "x": 1,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
+  "id": "race.starting-stall",
+  "kind": "prop",
+  "depthBand": "track",
+  "src": "race/starting-stall.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": "/generate-image-v2: ONE single free-standing bay of a horse-racing starting gate (a starting stall), empty, no horse: a boxy dark racing-green painted welded steel frame on two small black wheels, a tall vertical square post at the front and one at the back joined by a flat top rail truss, low green padded side boarding between the posts with thin steel bars above it, a white and green closed padded front gate slab at the front right edge, a blank white square number board on top of the frame, ground shadowless, strict perfect side profile view, looking exactly along the running rail: zero perspective, no front view, no three-quarter view, the whole sprite is seen from the side and faces right (the direction of travel), HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep racing greens, cream, transparent background | post: binary alpha + median-cut palette snap + front post/gate split (art-src/finish-stall.py)",
+  "anchor": {
+   "x": 0.812,
+   "y": 1
+  },
+  "variants": []
+ },
+ {
   "id": "race.tex-dirt-lo-normal",
   "kind": "track_layer",
   "depthBand": "track",
@@ -2033,6 +2072,32 @@
   "src": "ui/logo.png",
   "optimizationTier": "standard",
   "sourcePrompt": "generate-image-v2: game logo emblem crest, brass horseshoe framing a racing-green shield with a galloping cream thoroughbred, laurels, blank oxblood ribbon (seed 8105)",
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "ui.pack-paddock",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/pack-paddock.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": null,
+  "anchor": {
+   "x": 0.5,
+   "y": 0.5
+  },
+  "variants": []
+ },
+ {
+  "id": "ui.pack-premium",
+  "kind": "ui_portrait",
+  "depthBand": "overlay",
+  "src": "ui/pack-premium.png",
+  "optimizationTier": "standard",
+  "sourcePrompt": null,
   "anchor": {
    "x": 0.5,
    "y": 0.5

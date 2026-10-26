@@ -27,6 +27,7 @@ import type { SceneFrame, SceneRaceData } from "../three/HD2DScene";
 import { hexToRgb } from "../three/color";
 import { loadTracksideArt, type StripSet, type TracksideArt } from "./art";
 import * as bake from "./bake";
+import { StallGate } from "./gate";
 import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldLayout, type SpriteMetrics } from "./layout";
 import { lookFor, type TracksideLook } from "./looks";
 import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "./strips";
@@ -158,6 +159,7 @@ export class TracksideScene {
   private field: THREE.Mesh | null = null;
   private ground!: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial };
   private props: { mesh: THREE.Mesh; x: number; w: number; h: number; post: boolean }[] = [];
+  private gate: StallGate | null = null;
   private marker: THREE.Mesh | null = null;
   private gradeTop!: THREE.Mesh;
   private gradeBottom!: THREE.Mesh;
@@ -226,6 +228,16 @@ export class TracksideScene {
     this.buildBackdrop();
     this.buildGround();
     this.buildProps();
+    // Starting stalls: one bay per runner lane, world-anchored at the start line.
+    let startM = 0;
+    for (const s of this.sampler(0, [])) startM = Math.max(startM, s.x / 1000);
+    this.gate = StallGate.build(this.art.images, this.look, data, startM, {
+      own: (g) => this.own(g),
+      canvasTex: (img, o) => this.canvasTex(img, o),
+      bandMat: (tex, w, h, o) => this.bandMat(tex, w, h, o),
+      quad: (m, order) => this.quad(m, order),
+      place: (m, x, y, w, h) => this.place(m, x, y, w, h),
+    });
     this.buildRunners();
     this.buildFx();
     const dust = this.points(DUST_MAX, false, O.dust);
@@ -679,6 +691,7 @@ export class TracksideScene {
     this.drawGround(lay);
     this.drawProps(lay);
     this.drawRunners(lay, simDt, raceT, tS);
+    this.gate?.draw(lay, raceT, this.byLane.map((r) => r.index), O.horse, this.B);
     this.drawFx(lay, realDt, f.frozen, f.flash);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
