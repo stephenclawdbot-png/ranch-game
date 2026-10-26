@@ -219,3 +219,8 @@
 {"at":"2026-10-26T06:26:22.393Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-head-grey","secs":184,"usage":{"type":"generations","generations":2},"images":9}
 {"at":"2026-10-26T06:29:42.102Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/groom-hd","secs":60,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-26T06:32:24.913Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-groom-hd","secs":147,"usage":{"type":"generations","generations":3},"images":9}
+{"at":"2026-10-26T07:13:39.367Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/stall-horse","secs":56,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-26T07:13:42.990Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/stall-interior","secs":60,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-26T07:15:35.154Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-groom-brush","secs":76,"usage":{"type":"generations","generations":3},"images":9}
+{"at":"2026-10-26T07:16:29.560Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-aisle-idle","secs":131,"usage":{"type":"generations","generations":6},"images":9}
+{"at":"2026-10-26T07:17:02.516Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-stall-horse","secs":164,"usage":{"type":"generations","generations":2},"images":9}

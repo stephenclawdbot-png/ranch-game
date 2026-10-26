@@ -65,6 +65,15 @@ export interface AnimItem {
   with?: readonly AnimItem[];
   /** Kicks up dust motes from the hooves (track). */
   dust?: boolean;
+  /**
+   * Level of detail: this strip's scale factor (1 = full HD size, 2 = its 2:1 copy...). When
+   * set, the engine swaps in the "-sN" copy (exact box downsample, still integer-scale pixel
+   * art) so the sprite always fits the box with headroom. Unset = fixed size (sprites in a
+   * fixed plane, e.g. horses over stall doors).
+   */
+  lod?: number;
+  /** Hide the sprite when the band needs a copy smaller than lodMax times its own scale. */
+  lodMax?: number;
 }
 
 export interface Layer {
@@ -84,7 +93,7 @@ export interface Layer {
   /** Bands painted OVER the items (contact shade at a wall base). */
   shade?: readonly FillBand[];
   /** Dark interiors painted under the items (stall openings): world rects + colour. */
-  holes?: readonly { rect: Rect; color: string }[];
+  holes?: readonly { rect: Rect; color: string; src?: string }[];
   items: readonly StaticItem[];
   anims?: readonly AnimItem[];
 }
@@ -126,6 +135,8 @@ export interface SceneDef {
   focusX: number;
   /** World y kept in view when the box is short (banners); taller boxes anchor to the bottom. */
   focusY: number;
+  /** Ground line of the focal band (feet): kept inside short views. */
+  groundY?: number;
   /** Camera scroll speed (art px/s) for travelling shots; 0 = still diorama. */
   scroll: number;
   sky: { src: string | null; y: number; drift: number; top: string; bottom: string };
@@ -176,20 +187,28 @@ const FACADE_BOTTOM = 276;
 const STALLS_X = 76;
 const STALLS_BOTTOM = 300;
 
-/** A head sprite looking out of hole i of a facade (bottom of the head hidden by the half-door). */
-function headIn(
-  name: "head-bay-s3" | "head-chestnut-s3" | "head-grey-s3" | "head-bay-s2" | "head-chestnut-s2" | "head-grey-s2",
-  hole: readonly number[],
-  ox: number,
-  oy: number,
-  dx: number,
-  sink: number,
-  phase: number,
-): AnimItem {
-  const a = an[name];
+type StallHorse = "stall-horse-bay" | "stall-horse-grey" | "stall-horse-chestnut" | "stall-horse-black";
+/**
+ * A horse leaning OUT over a half-door in hole `hole` of a facade at (ox, oy): head, neck and
+ * chest show, the chest overlaps the door's top rail by `over` px (it is in front of it), the
+ * rest of the body is hidden behind the door, and the ears stay just under the lintel.
+ */
+function overDoor(name: StallHorse, scale: 1 | 2 | 3, hole: readonly number[], ox: number, oy: number, over: number, dx: number, phase: number): AnimItem {
+  const strip = (scale === 1 ? name : `${name}-s${scale}`) as AnimName;
+  const a = an[strip];
   const [hx, hy, hw, hh] = hole as [number, number, number, number];
-  return sheet(name, ox + hx + Math.round((hw - a.fw) / 2) + dx, oy + hy + hh, { cropBottom: sink, y: oy + hy + hh, phase, fps: 4 + (phase % 2) });
+  const visible = Math.min(a.fh, hh + over - 1);
+  // y is the bottom of the UNcropped frame: the visible part ends `over` px below the door line
+  return sheet(strip, ox + hx + Math.round((hw - a.fw) / 2) + dx, oy + hy + hh + over + (a.fh - visible), { cropBottom: a.fh - visible, phase, fps: 3 + (phase % 2) });
 }
+
+/** Lit stall interiors behind facade doorways (never a flat black hole). */
+const interiors = (holes: readonly (readonly number[])[], ox: number, oy: number, s2: boolean) =>
+  holes.map((h, i) => ({
+    rect: [h[0]! + ox, h[1]! + oy, h[2]!, h[3]!] as const,
+    color: "#1c1009",
+    src: `diorama/stall-interior-${i % 4}${s2 ? "-s2" : ""}.png`,
+  }));
 
 // ---------------------------------------------------------------------------- scenes
 const yard: SceneDef = {
@@ -199,6 +218,7 @@ const yard: SceneDef = {
   height: 360,
   focusX: 420,
   focusY: 255,
+  groundY: 356,
   scroll: 0,
   sky: { src: "race/sky-clear.png", y: 250, drift: 2.2, top: "#3b6ea8", bottom: "#f3d9a4" },
   fog: "#f1d29a",
@@ -242,6 +262,7 @@ const yard: SceneDef = {
       y0: 0,
       y1: 300,
       fills: [{ y0: 262, y1: 300, stops: [[0, "#8a6a45"], [1, "#6d5136"]] }],
+      holes: interiors(yardHoles, FACADE_X, FACADE_BOTTOM - 256, true),
       items: [
         img("race/bb-bush-b.png", 8, 280),
         img("race/bb-tree-poplar.png", 18, 280),
@@ -254,9 +275,10 @@ const yard: SceneDef = {
         prop("yard-props", 3, FACADE_X + 520, 286, { shadow: 46 }),
       ],
       anims: [
-        headIn("head-bay-s3", yardHoles[1]!, FACADE_X, FACADE_BOTTOM - 256, 6, 9, 0),
-        headIn("head-chestnut-s3", yardHoles[4]!, FACADE_X, FACADE_BOTTOM - 256, 4, 9, 3),
-        headIn("head-grey-s3", yardHoles[6]!, FACADE_X, FACADE_BOTTOM - 256, 6, 9, 5),
+        overDoor("stall-horse-bay", 3, yardHoles[1]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 0),
+        overDoor("stall-horse-chestnut", 3, yardHoles[4]!, FACADE_X, FACADE_BOTTOM - 256, 4, 0, 3),
+        overDoor("stall-horse-grey", 3, yardHoles[6]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 5),
+        overDoor("stall-horse-black", 3, yardHoles[2]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 2),
       ],
     },
     {
@@ -278,7 +300,8 @@ const yard: SceneDef = {
         sheet("horse-walk-led", -260, 350, {
           walk: { from: -300, to: 1000, speed: 34 },
           shadow: 190,
-          with: [sheet("groom-walk", 150, 356, { shadow: 50 })],
+          lod: 1,
+          with: [sheet("groom-walk", 150, 356, { shadow: 50, lod: 1 })],
         }),
       ],
     },
@@ -303,6 +326,7 @@ const paddock: SceneDef = {
   height: 360,
   focusX: 440,
   focusY: 280,
+  groundY: 358,
   scroll: 0,
   sky: { src: "race/sky-clear.png", y: 236, drift: 2.6, top: "#3b6ea8", bottom: "#f3d9a4" },
   fog: "#efd6a2",
@@ -364,7 +388,8 @@ const paddock: SceneDef = {
           walk: { from: 960, to: -200, speed: 17, offset: i * 22 },
           phase: i * 3,
           shadow: 80,
-          with: [sheet("groom-walk-s2", -6, 316, { flip: true, shadow: 22 })],
+          lod: 2,
+          with: [sheet("groom-walk-s2", -6, 316, { flip: true, shadow: 22, lod: 2 })],
         }),
       ),
     },
@@ -388,7 +413,8 @@ const paddock: SceneDef = {
           walk: { from: -320, to: 1100, speed: 33, offset: i * 15.5 },
           phase: i * 2,
           shadow: 190,
-          with: [sheet("groom-walk", 140, 358, { shadow: 50, phase: i })],
+          lod: 1,
+          with: [sheet("groom-walk", 140, 358, { shadow: 50, phase: i, lod: 1 })],
         }),
       ),
     },
@@ -410,6 +436,7 @@ const grandstand: SceneDef = {
   height: 360,
   focusX: 450,
   focusY: 270,
+  groundY: 358,
   scroll: 0,
   sky: { src: "race/sky-clear.png", y: 250, drift: 3, top: "#3b6ea8", bottom: "#f3d9a4" },
   fog: "#efd6a2",
@@ -456,8 +483,8 @@ const grandstand: SceneDef = {
       y1: 380,
       items: [img("race/finish-post.png", 610, 354, { shadow: 30 })],
       anims: [
-        { ...sheet("horse-canter", 0, 342), look: { coat: "chestnut", silks: SILKS[1] }, walk: { from: -320, to: 1300, speed: 150 }, shadow: 170, dust: true },
-        { ...sheet("horse-canter", 0, 356), look: { coat: "bay", silks: SILKS[0] }, walk: { from: -320, to: 1300, speed: 150, offset: 5.5 }, phase: 4, shadow: 170, dust: true },
+        { ...sheet("horse-canter", 0, 342), look: { coat: "chestnut", silks: SILKS[1] }, walk: { from: -320, to: 1300, speed: 150 }, shadow: 170, dust: true, lod: 1 },
+        { ...sheet("horse-canter", 0, 356), look: { coat: "bay", silks: SILKS[0] }, walk: { from: -320, to: 1300, speed: 150, offset: 5.5 }, phase: 4, shadow: 170, dust: true, lod: 1 },
       ],
     },
     {
@@ -471,7 +498,6 @@ const grandstand: SceneDef = {
   ],
 };
 
-const STALL_DARK = "#140b07";
 const barn: SceneDef = {
   id: "barn",
   label: "Barn",
@@ -479,6 +505,7 @@ const barn: SceneDef = {
   height: 360,
   focusX: 420,
   focusY: 165,
+  groundY: 356,
   scroll: 0,
   sky: { src: null, y: 0, drift: 0, top: "#120904", bottom: "#2a170c" },
   fog: "#3a2010",
@@ -510,12 +537,12 @@ const barn: SceneDef = {
       y0: 60,
       y1: 310,
       fills: [{ y0: 200, y1: 310, stops: [[0, "#3a2414"], [1, "#2a190e"]] }],
-      holes: barnHoles.map((h) => ({ rect: [h[0] + STALLS_X, h[1] + STALLS_BOTTOM - 224, h[2], h[3]] as const, color: STALL_DARK })),
+      holes: interiors(barnHoles, STALLS_X, STALLS_BOTTOM - 224, false),
       items: [img("diorama/barn-stalls.png", STALLS_X, STALLS_BOTTOM), prop("barn-props", 2, STALLS_X + 236, 140)],
       anims: [
-        headIn("head-bay-s2", barnHoles[1]!, STALLS_X, STALLS_BOTTOM - 224, 6, 10, 0),
-        headIn("head-grey-s2", barnHoles[4]!, STALLS_X, STALLS_BOTTOM - 224, 2, 10, 3),
-        headIn("head-chestnut-s2", barnHoles[7]!, STALLS_X, STALLS_BOTTOM - 224, 4, 10, 5),
+        overDoor("stall-horse-bay", 1, barnHoles[1]!, STALLS_X, STALLS_BOTTOM - 224, 9, 4, 0),
+        overDoor("stall-horse-grey", 1, barnHoles[4]!, STALLS_X, STALLS_BOTTOM - 224, 9, 2, 3),
+        overDoor("stall-horse-chestnut", 1, barnHoles[7]!, STALLS_X, STALLS_BOTTOM - 224, 9, 4, 5),
       ],
     },
     {
@@ -530,7 +557,8 @@ const barn: SceneDef = {
       depth: 1,
       y0: 150,
       y1: 380,
-      items: [prop("barn-props", 3, 640, 330, { shadow: 70 }), prop("barn-props", 1, 520, 328, { shadow: 80 }), prop("barn-props", 5, 600, 332, { shadow: 34 }), prop("barn-props", 4, 140, 326)],
+      items: [prop("barn-props", 3, 50, 334, { shadow: 70 }), prop("barn-props", 5, 136, 336, { shadow: 34 }), prop("barn-props", 4, 196, 326), prop("barn-props", 1, 744, 332, { shadow: 80 })],
+      anims: [sheet("horse-aisle-idle", 330, 354, { shadow: 210, lod: 1, lodMax: 1 })],
     },
     {
       id: "near",
@@ -550,6 +578,7 @@ const dusk: SceneDef = {
   height: 360,
   focusX: 440,
   focusY: 280,
+  groundY: 358,
   scroll: 120,
   sky: { src: "race/sky-dusk.png", y: 250, drift: 1.2, top: "#2b2156", bottom: "#ff9a52" },
   fog: "#d98a6a",
@@ -604,10 +633,10 @@ const dusk: SceneDef = {
       y1: 380,
       items: [],
       anims: [
-        { ...GALLOP, x: 120, y: 318, follow: true, surge: { amp: 26, speed: 0.31 }, look: { coat: "grey", silks: SILKS[4] }, phase: 3, shadow: 160, dust: true },
-        { ...GALLOP, x: 420, y: 328, follow: true, surge: { amp: 20, speed: 0.23 }, look: { coat: "black", silks: SILKS[3] }, phase: 7, shadow: 160, dust: true },
-        { ...GALLOP, x: 250, y: 342, follow: true, surge: { amp: 30, speed: 0.19 }, look: { coat: "chestnut", silks: SILKS[1] }, phase: 1, shadow: 160, dust: true },
-        { ...GALLOP, x: 540, y: 356, follow: true, surge: { amp: 24, speed: 0.27 }, look: { coat: "bay", silks: SILKS[0] }, phase: 9, shadow: 160, dust: true },
+        { ...GALLOP, x: 120, y: 318, follow: true, surge: { amp: 26, speed: 0.31 }, look: { coat: "grey", silks: SILKS[4] }, phase: 3, shadow: 160, dust: true, lod: 1 },
+        { ...GALLOP, x: 420, y: 328, follow: true, surge: { amp: 20, speed: 0.23 }, look: { coat: "black", silks: SILKS[3] }, phase: 7, shadow: 160, dust: true, lod: 1 },
+        { ...GALLOP, x: 250, y: 342, follow: true, surge: { amp: 30, speed: 0.19 }, look: { coat: "chestnut", silks: SILKS[1] }, phase: 1, shadow: 160, dust: true, lod: 1 },
+        { ...GALLOP, x: 540, y: 356, follow: true, surge: { amp: 24, speed: 0.27 }, look: { coat: "bay", silks: SILKS[0] }, phase: 9, shadow: 160, dust: true, lod: 1 },
       ],
     },
     {
@@ -634,6 +663,7 @@ export function sceneFiles(s: SceneDef): string[] {
   };
   for (const l of s.layers) {
     l.items.forEach((i) => out.add(i.src));
+    l.holes?.forEach((h) => h.src && out.add(h.src));
     l.anims?.forEach(addAnim);
   }
   s.overlays?.forEach((o) => out.add(o.src));

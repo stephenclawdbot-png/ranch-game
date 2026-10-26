@@ -11,7 +11,8 @@
  *   hidden, and draws one still frame under prefers-reduced-motion.
  * - If the canvas or any art fails, the poster simply stays.
  */
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { computeFrame } from "./frame";
 import { SCENES, type DioramaSceneId } from "./scenes";
 import type { DioramaEngine, EngineStats } from "./engine";
 
@@ -39,6 +40,7 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
   const def = SCENES[scene];
   const box = useRef<HTMLDivElement>(null);
   const cnv = useRef<HTMLCanvasElement>(null);
+  const poster = useRef<HTMLImageElement>(null);
   const [state, setState] = useState<State>("poster");
   const [prefersReduced, setPrefersReduced] = useState(false);
   const statsCb = useRef(onStats);
@@ -54,6 +56,34 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
   }, []);
 
   const still = motion === "still" || (motion === "auto" && prefersReduced);
+
+  // Place the poster exactly where the canvas will draw the world: same integer scale, same
+  // camera (the SSR fallback is object-fit: cover until this runs).
+  useIsoLayoutEffect(() => {
+    const el = box.current;
+    const img = poster.current;
+    if (!el || !img) return;
+    const place = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;
+      const dpr = window.devicePixelRatio || 1;
+      const f = computeFrame(def, r.width, r.height, dpr, quality);
+      const u = f.s / dpr; // css px per art px
+      Object.assign(img.style, {
+        objectFit: "fill",
+        inset: "auto",
+        left: `${-f.vx * u}px`,
+        top: `${-f.vy * u}px`,
+        width: `${def.width * u}px`,
+        height: `${def.height * u}px`,
+        maxWidth: "none",
+      });
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [def, quality]);
 
   useEffect(() => {
     const el = box.current;
@@ -175,10 +205,11 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      style={{ position: "relative", overflow: "hidden", isolation: "isolate", background: def.sky.bottom, ...(aspect ? { aspectRatio: aspect, width: "100%" } : null), ...style }}
+      style={{ position: "relative", overflow: "hidden", isolation: "isolate", background: `linear-gradient(${def.sky.top}, ${def.sky.bottom})`, ...(aspect ? { aspectRatio: aspect, width: "100%" } : null), ...style }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={poster}
         src={`/art/${def.poster}`}
         alt=""
         draggable={false}
@@ -196,7 +227,7 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
           height: "100%",
           imageRendering: "pixelated",
           opacity: ready ? 1 : 0,
-          transition: still ? "none" : "opacity 450ms ease-out",
+          transition: still ? "none" : "opacity 220ms ease-out",
           pointerEvents: "none",
         }}
       />
@@ -204,6 +235,8 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
     </div>
   );
 }
+
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /** Live engines (dev harness / e2e fps probes read `window.__dioramas`). */
 const registry = new Set<DioramaEngine>();

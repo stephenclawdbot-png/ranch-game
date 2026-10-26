@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<11872 chars>",
+   "format": "png"
+  },
+  "action": "the stable lad stops and stands still facing right, grooming a horse with a body brush held in his raised right hand, brushing in slow strokes, feet planted, seamless loop, keep the same size",
+  "frame_count": 8,
+  "seed": 21065,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "03052572-8039-458d-98a9-04abbf428eb9",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 3
+  },
+  "id": "03052572-8039-458d-98a9-04abbf428eb9",
+  "status": "completed",
+  "created_at": "2026-10-26T07:14:19.417815+00:00",
+  "last_response": {
+   "seed": 21065,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 3,
+    "cost_if_paid": 0.02172407109207577
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<11872 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14296 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13904 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13636 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12344 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13152 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12776 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13028 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12956 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 3
+   },
+   "generation_id": "c15b9ae4-2f1a-4f00-ba1b-8cca95a76fc6",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T07:14:29.984614+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-groom-brush-0.png",
+  "art-src/diorama/raw/anim-groom-brush-1.png",
+  "art-src/diorama/raw/anim-groom-brush-2.png",
+  "art-src/diorama/raw/anim-groom-brush-3.png",
+  "art-src/diorama/raw/anim-groom-brush-4.png",
+  "art-src/diorama/raw/anim-groom-brush-5.png",
+  "art-src/diorama/raw/anim-groom-brush-6.png",
+  "art-src/diorama/raw/anim-groom-brush-7.png",
+  "art-src/diorama/raw/anim-groom-brush-8.png"
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a bay thoroughbred racehorse in a stable stall leaning its head and long neck out over a half-door, seen from the front three-quarter view facing left, head, full arched neck, chest and shoulders visible, withers and back receding into the stall behind, white blaze, ears pricked, leather halter, no door drawn, the chest reaches the bottom edge, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 112,
+   "height": 128
+  },
+  "seed": 21061,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "680b1f24-d22c-406e-9e68-f042345f5359",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "680b1f24-d22c-406e-9e68-f042345f5359",
+  "status": "completed",
+  "created_at": "2026-10-26T07:12:43.815851+00:00",
+  "last_response": {
+   "seed": 21061,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 112,
+     "base64": "<12752 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 112,
+     "base64": "<13796 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 112,
+     "base64": "<14440 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 112,
+     "base64": "<13468 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "4e9d33bf-19f3-4788-82a6-13bfdb81b2ee",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x128.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x128.png",
+   "generation_started_at": "2026-10-26T07:12:49.965628+00:00",
+   "original_image_n_colors": 116,
+   "quantized_image_n_colors": 58
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/stall-horse-0.png",
+  "art-src/diorama/raw/stall-horse-1.png",
+  "art-src/diorama/raw/stall-horse-2.png",
+  "art-src/diorama/raw/stall-horse-3.png"
+ ]
+}

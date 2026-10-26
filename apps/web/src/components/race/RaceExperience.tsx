@@ -15,7 +15,7 @@ import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
 import { Digits } from "../Countdown";
-import { SceneBackdrop } from "../pixel/SceneBackdrop";
+import { DioramaSlot } from "../diorama/DioramaSlot";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
 import { FitList } from "../ui/FitChip";
 import { Saddlecloth } from "./Saddlecloth";
@@ -273,7 +273,7 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
   const closeText = now === null ? "–:––" : formatCountdown(Math.max(0, localClose - now));
   return (
     <div className="relative flex h-full min-h-52 w-full flex-col items-center justify-center overflow-hidden px-4 text-center">
-      <SceneBackdrop variant="grandstand" />
+      <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" />
       {/* Starting stalls, one per runner, with saddlecloth numbers (empty until the field locks) */}
       <div className="absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1" aria-hidden>
         {(card.fieldLocked ? card.field : Array.from({ length: card.targetRunners }, (_, i) => card.field[i] ?? null)).map((e, i) => (

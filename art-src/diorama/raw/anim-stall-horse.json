@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<13468 chars>",
+   "format": "png"
+  },
+  "action": "the horse leaning over the stable door slowly turns its head towards the viewer and back, ears flick forward and back, blinks, soft breathing in the chest, body stays in place, seamless loop",
+  "frame_count": 8,
+  "seed": 21063,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "745f3b28-7db9-466a-9140-a7ac0d86e365",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "745f3b28-7db9-466a-9140-a7ac0d86e365",
+  "status": "completed",
+  "created_at": "2026-10-26T07:14:19.435402+00:00",
+  "last_response": {
+   "seed": 21063,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.03605676163567437
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<13468 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13452 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13032 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12636 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12052 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11620 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11472 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11504 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11184 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.9333333333333333,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "db7a278c-3f0e-43f5-8029-74a3ea14c90b",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T07:14:46.072035+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-stall-horse-0.png",
+  "art-src/diorama/raw/anim-stall-horse-1.png",
+  "art-src/diorama/raw/anim-stall-horse-2.png",
+  "art-src/diorama/raw/anim-stall-horse-3.png",
+  "art-src/diorama/raw/anim-stall-horse-4.png",
+  "art-src/diorama/raw/anim-stall-horse-5.png",
+  "art-src/diorama/raw/anim-stall-horse-6.png",
+  "art-src/diorama/raw/anim-stall-horse-7.png",
+  "art-src/diorama/raw/anim-stall-horse-8.png"
+ ]
+}

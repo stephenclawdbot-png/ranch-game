@@ -29,10 +29,17 @@ the Club/Story/Facilities bands are animated.
   (clean, mirror-tile, 2:1/3:1 palette-snapped downsamples, holes/props → `atlas.generated.ts`)
   → `make-posters.mjs` + `finish-posters.py` (needs a dev server) → `register.py` (manifest)
   → `node apps/web/scripts/art-index.mjs`.
+- **Polish pass (owner feedback):** sprites marked `lod` swap to exact 2:1/3:1 copies so the
+  walking/galloping horses always fit the band with headroom (`frame.ts` `computeFrame`,
+  shared with the poster `<img>`, which is now placed at the same integer scale as the
+  canvas). Stall horses lean OUT over the half-door (head, neck, chest; coats recoloured in
+  code) in front of lit stall interiors (hay net, straw, light); a full-body horse idles in
+  the barn aisle when the band is tall enough. Ground tiles are min-cut quilted (no mirror
+  seams). `track-dusk` is the race page's pre-race backdrop (`PreRace` in RaceExperience).
 - Screenshots / motion GIFs: `docs/brand-v2/diorama/`.
 - **Follow-ups:** real-device fps check (headless numbers are software-rendered); more
-  variants (time of day, weather); the track-dusk scene isn't placed on a page yet (good fit
-  for the race page's pre-race or results band).
+  variants (time of day, weather); a groom grooming the aisle horse (one PixelLab attempt
+  didn't take).
 
 ## POST TIME rebrand + Design System v2 + horse registry (design agent, 2026-10-26)
 

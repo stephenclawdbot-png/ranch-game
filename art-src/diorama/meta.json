@@ -57,11 +57,11 @@
  },
  "yard-cobbles": {
   "source": "diorama/raw/yard-ground-0",
-  "seamless": "x (mirror)"
+  "seamless": "x (min-cut quilt, no mirror)"
  },
  "yard-cobbles-s2": {
   "source": "yard-cobbles 2:1 box downsample",
-  "seamless": "x (mirror)"
+  "seamless": "x (min-cut quilt)"
  },
  "crowd-s2": {
   "source": "race/crowd.png 2:1 box downsample",
@@ -162,7 +162,7 @@
  },
  "barn-floor": {
   "source": "diorama/raw/barn-floor-0",
-  "seamless": "x (mirror)"
+  "seamless": "x (min-cut quilt, no mirror)"
  },
  "barn-stalls": {
   "source": "diorama/raw/barn-stalls-0",
@@ -231,40 +231,48 @@
   "source": "anim-groom-hd 1..8 (animate-with-text-v3 from groom-hd-0)",
   "frames": 8
  },
- "head-bay": {
-  "source": "anim-head-bay 1..8 (animate-with-text-v3 from portraits/horse-bay)",
-  "frames": 8
+ "stall-horse-bay": {
+  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat bay by luminance-ramp recolour",
+  "frames": 6
  },
- "head-bay-s3": {
-  "source": "head-bay 3:1 box downsample snapped to palette",
-  "frames": 8
+ "stall-horse-grey": {
+  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat grey by luminance-ramp recolour",
+  "frames": 6
  },
- "head-bay-s2": {
-  "source": "head-bay 2:1 box downsample snapped to palette",
-  "frames": 8
+ "stall-horse-chestnut": {
+  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat chestnut by luminance-ramp recolour",
+  "frames": 6
  },
- "head-chestnut": {
-  "source": "anim-head-chestnut 1..8 (animate-with-text-v3 from portraits/horse-chestnut)",
-  "frames": 8
+ "stall-horse-black": {
+  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat black by luminance-ramp recolour",
+  "frames": 6
  },
- "head-chestnut-s3": {
-  "source": "head-chestnut 3:1 box downsample snapped to palette",
-  "frames": 8
+ "stall-interior-0": {
+  "source": "diorama/raw/stall-interior-0"
  },
- "head-chestnut-s2": {
-  "source": "head-chestnut 2:1 box downsample snapped to palette",
-  "frames": 8
+ "stall-interior-0-s2": {
+  "source": "stall-interior-0 2:1"
  },
- "head-grey": {
-  "source": "anim-head-grey 1..8 (animate-with-text-v3 from portraits/horse-grey)",
-  "frames": 8
+ "stall-interior-1": {
+  "source": "diorama/raw/stall-interior-1"
  },
- "head-grey-s3": {
-  "source": "head-grey 3:1 box downsample snapped to palette",
-  "frames": 8
+ "stall-interior-1-s2": {
+  "source": "stall-interior-1 2:1"
  },
- "head-grey-s2": {
-  "source": "head-grey 2:1 box downsample snapped to palette",
+ "stall-interior-2": {
+  "source": "diorama/raw/stall-interior-2"
+ },
+ "stall-interior-2-s2": {
+  "source": "stall-interior-2 2:1"
+ },
+ "stall-interior-3": {
+  "source": "diorama/raw/stall-interior-3"
+ },
+ "stall-interior-3-s2": {
+  "source": "stall-interior-3 2:1"
+ },
+ "horse-aisle-idle": {
+  "source": "anim-aisle-idle 1..8 (animate-with-text-v3 from rig-hd/horse-standing-alt-256)",
   "frames": 8
  },
  "horse-walk-jockey": {
@@ -278,7 +286,67 @@
  "horse-walk-jockey-s2": {
   "source": "horse-walk-jockey 2:1 box downsample snapped to its own (key) palette"
  },
+ "horse-walk-jockey-s3": {
+  "source": "horse-walk-jockey 3:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-walk-jockey-s4": {
+  "source": "horse-walk-jockey 4:1 box downsample snapped to its own (key) palette"
+ },
  "groom-walk-s2": {
   "source": "groom-walk 2:1 box downsample snapped to its own (key) palette"
+ },
+ "groom-walk-s3": {
+  "source": "groom-walk 3:1 box downsample snapped to its own (key) palette"
+ },
+ "groom-walk-s4": {
+  "source": "groom-walk 4:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-walk-led-s2": {
+  "source": "horse-walk-led 2:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-walk-led-s3": {
+  "source": "horse-walk-led 3:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-canter-s2": {
+  "source": "horse-canter 2:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-canter-s3": {
+  "source": "horse-canter 3:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-aisle-idle-s2": {
+  "source": "horse-aisle-idle 2:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-aisle-idle-s3": {
+  "source": "horse-aisle-idle 3:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-bay-s2": {
+  "source": "stall-horse-bay 2:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-bay-s3": {
+  "source": "stall-horse-bay 3:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-grey-s2": {
+  "source": "stall-horse-grey 2:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-grey-s3": {
+  "source": "stall-horse-grey 3:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-chestnut-s2": {
+  "source": "stall-horse-chestnut 2:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-chestnut-s3": {
+  "source": "stall-horse-chestnut 3:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-black-s2": {
+  "source": "stall-horse-black 2:1 box downsample snapped to its own (key) palette"
+ },
+ "stall-horse-black-s3": {
+  "source": "stall-horse-black 3:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-gallop-s2": {
+  "source": "horse-gallop 2:1 box downsample snapped to its own (key) palette"
+ },
+ "horse-gallop-s3": {
+  "source": "horse-gallop 3:1 box downsample snapped to its own (key) palette"
  }
 }

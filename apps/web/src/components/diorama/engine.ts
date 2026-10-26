@@ -10,10 +10,10 @@
  * Cost per frame: one drawImage per layer (+1 per bloomed layer), one per animated sprite and
  * shadow, a few dozen 1-px motes, 2 ray sprites, a vignette sprite. All blurs are baked once.
  */
+import { computeFrame, lodStrip, MARGIN } from "./frame";
 import { applyRecolor, lookKey, recolorMap } from "./recolor";
 import type { AnimItem, Layer, Overlay, RaySet, SceneDef, StaticItem } from "./scenes";
 
-const MARGIN = 96; // art px of bake margin on each side of a non-repeating layer
 const ART = "/art/";
 
 type Cnv = HTMLCanvasElement;
@@ -32,8 +32,15 @@ interface Baked {
 interface Sprite {
   def: AnimItem;
   strip: Cnv | HTMLImageElement;
+  /** Frame size of the strip actually drawn (an LOD copy may be smaller than def.fw/fh). */
+  fw: number;
+  fh: number;
+  frames: number;
+  /** def size / drawn size (1 = as authored). */
+  r: number;
   with: Sprite[];
 }
+
 interface OverlayBaked {
   def: Overlay;
   canvas: Cnv;
@@ -218,10 +225,15 @@ export class DioramaEngine {
     if (s.sky.src) files.add(s.sky.src);
     const addA = (a: AnimItem) => {
       files.add(a.src);
+      if (a.lod) for (let f = 2; f <= 4; f++) {
+        const v = lodStrip(a, f);
+        if (v) files.add(v.src);
+      }
       a.with?.forEach(addA);
     };
     for (const l of s.layers) {
       l.items.forEach((i) => files.add(i.src));
+      l.holes?.forEach((h) => h.src && files.add(h.src));
       l.anims?.forEach(addA);
     }
     s.overlays?.forEach((o) => files.add(o.src));
@@ -263,7 +275,7 @@ export class DioramaEngine {
       this.skyTop = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
     }
     for (const l of s.layers) this.layers.push(this.bakeLayer(l));
-    for (const l of s.layers) this.sprites.set(l, (l.anims ?? []).map((a) => this.sprite(a)));
+    this.buildSprites();
     for (const o of s.overlays ?? []) {
       const im = this.img(o.src);
       const c = canvas(im.width, im.height);
@@ -345,6 +357,19 @@ export class DioramaEngine {
       g.addColorStop(1, "#2a1a10");
       x.fillStyle = g;
       x.fillRect(hx - ox, hy - l.y0, hw, hh);
+      if (hole.src) {
+        // lit interior (back wall, hay net, straw), bottom-aligned and centred in the opening
+        const im = this.img(hole.src);
+        const cw = Math.min(im.width, hw);
+        const ch = Math.min(im.height, hh);
+        x.drawImage(im, Math.floor((im.width - cw) / 2), im.height - ch, cw, ch, hx - ox + Math.floor((hw - cw) / 2), hy - l.y0 + hh - ch, cw, ch);
+        // lintel shadow: the top of the stall is in shade
+        const sh = x.createLinearGradient(0, hy - l.y0, 0, hy - l.y0 + hh * 0.45);
+        sh.addColorStop(0, "rgba(14,7,3,0.75)");
+        sh.addColorStop(1, "rgba(14,7,3,0)");
+        x.fillStyle = sh;
+        x.fillRect(hx - ox, hy - l.y0, hw, hh * 0.45);
+      }
     }
     const sway: Baked["sway"] = [];
     for (const it of l.items) {
@@ -464,22 +489,35 @@ export class DioramaEngine {
   }
 
   private recolored = new Map<string, Cnv | HTMLImageElement>();
-  private sprite(a: AnimItem): Sprite {
-    const key = `${a.src}|${a.look ? lookKey(a.look) : ""}|${a.flip ? 1 : 0}`;
+  private lodF = 1;
+  private buildSprites() {
+    for (const l of this.scene.layers) {
+      const list: Sprite[] = [];
+      for (const a of l.anims ?? []) {
+        const sp = this.sprite(a);
+        if (sp) list.push(sp);
+      }
+      this.sprites.set(l, list);
+    }
+  }
+  private sprite(a: AnimItem): Sprite | null {
+    const v = lodStrip(a, this.lodF, this.viewH);
+    if (!v) return null;
+    const key = `${v.src}|${a.look ? lookKey(a.look) : ""}|${a.flip ? 1 : 0}`;
     let strip = this.recolored.get(key);
     if (!strip) {
-      const im = this.img(a.src);
+      const im = this.img(v.src);
       if (!a.look && !a.flip && !this.scene.sprites) strip = im;
       else {
         const c = canvas(im.width, im.height);
         const x = ctx2d(c);
         if (a.flip) {
           // flip each frame in place (keeps frame order)
-          for (let f = 0; f < a.frames; f++) {
+          for (let f = 0; f < v.frames; f++) {
             x.save();
-            x.translate(f * a.fw + a.fw, 0);
+            x.translate(f * v.fw + v.fw, 0);
             x.scale(-1, 1);
-            x.drawImage(im, f * a.fw, 0, a.fw, a.fh, 0, 0, a.fw, a.fh);
+            x.drawImage(im, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
             x.restore();
           }
         } else x.drawImage(im, 0, 0);
@@ -493,7 +531,12 @@ export class DioramaEngine {
       }
       this.recolored.set(key, strip);
     }
-    return { def: a, strip, with: (a.with ?? []).map((w) => this.sprite(w)) };
+    const kids: Sprite[] = [];
+    for (const w of a.with ?? []) {
+      const sp = this.sprite(w);
+      if (sp) kids.push(sp);
+    }
+    return { def: a, strip, fw: v.fw, fh: v.fh, frames: v.frames, r: v.r, with: kids };
   }
 
   private gradeSprite(c: Cnv) {
@@ -528,33 +571,19 @@ export class DioramaEngine {
     this.cssW = Math.max(1, cssW);
     this.cssH = Math.max(1, cssH);
     this.dpr = Math.max(1, dpr || 1);
-    const devW = Math.round(this.cssW * this.dpr);
-    const devH = Math.round(this.cssH * this.dpr);
-    // device px per art px: aim for ~720 art px across, at most ~480 tall, at least 360 wide
-    let s = Math.max(1, Math.round(devW / 720));
-    while (devH / s > 480 && devW / (s + 1) >= 360) s++;
-    // split s = k (backing px per art px) * m (css upscale), keeping the backing store small
-    let m = 1;
-    const budget = this.quality === "high" ? 1.6e6 : 0.5e6;
-    for (const cand of [1, 2, 3, 4, 6]) {
-      if (s % cand) continue;
-      m = cand;
-      if ((devW / cand) * (devH / cand) <= budget) break;
+    const fr = computeFrame(this.scene, this.cssW, this.cssH, this.dpr, this.quality);
+    this.k = fr.k;
+    this.m = fr.m;
+    if (this.el.width !== fr.bw || this.el.height !== fr.bh) {
+      this.el.width = fr.bw;
+      this.el.height = fr.bh;
     }
-    if (this.quality === "low") m = s; // backing = art resolution
-    this.k = s / m;
-    this.m = m;
-    const bw = Math.round(devW / m);
-    const bh = Math.round(devH / m);
-    if (this.el.width !== bw || this.el.height !== bh) {
-      this.el.width = bw;
-      this.el.height = bh;
-    }
-    this.viewW = bw / this.k;
-    this.viewH = bh / this.k;
-    const W = this.scene.width;
-    this.vx = W <= this.viewW ? (W - this.viewW) / 2 : Math.min(Math.max(this.scene.focusX - this.viewW / 2, 0), W - this.viewW);
-    this.vy = Math.min(this.scene.height - this.viewH, this.scene.focusY - this.viewH * 0.5);
+    this.viewW = fr.viewW;
+    this.viewH = fr.viewH;
+    this.vx = fr.vx;
+    this.vy = fr.vy;
+    this.lodF = fr.f;
+    if (this.layers.length) this.buildSprites();
     this.swayBuf = null;
     if (!this.running) this.draw(this.time);
   }
@@ -610,6 +639,9 @@ export class DioramaEngine {
   posterDataUrl(): string {
     const { width: W, height: H } = this.scene;
     this.stop();
+    this.lodF = 1;
+    this.viewH = H;
+    this.buildSprites();
     this.el.width = W;
     this.el.height = H;
     this.k = 1;
@@ -785,7 +817,7 @@ export class DioramaEngine {
       const sprites = this.sprites.get(l);
       if (sprites?.length) {
         c.imageSmoothingEnabled = false;
-        for (const sp of sprites) this.drawSprite(sp, t, d, sx, sy, 0);
+        for (const sp of sprites) this.drawSprite(sp, t, d, sx, sy);
       }
       if (l.id === "focal") this.drawDust(sx, sy);
     }
@@ -853,35 +885,43 @@ export class DioramaEngine {
     d: number,
     sx: (wx: number, d: number, follow?: boolean) => number,
     sy: (wy: number, d: number) => number,
-    baseX: number,
-    parentX?: number,
+    parent?: { cx: number; def: AnimItem },
   ) {
     const a = sp.def;
     const c = this.ctx;
     const k = this.k;
-    let x = a.x;
-    if (parentX !== undefined) x = parentX + a.x;
-    else if (a.walk) {
-      const span = Math.abs(a.walk.to - a.walk.from);
-      const dur = span / a.walk.speed;
-      const u = (((t + (a.walk.offset ?? 0)) % dur) + dur) % dur;
-      x = a.walk.from + Math.sign(a.walk.to - a.walk.from) * u * a.walk.speed;
+    const r = sp.r;
+    // centre of the sprite in world x (LOD copies shrink around their centre and feet)
+    let cx: number;
+    if (parent) cx = parent.cx + (a.x + a.fw / 2 - parent.def.fw / 2) / r;
+    else {
+      let x = a.x;
+      if (a.walk) {
+        const speed = a.walk.speed / r; // smaller = further away = slower across the screen
+        const span = Math.abs(a.walk.to - a.walk.from);
+        const dur = span / speed;
+        const u = (((t + (a.walk.offset ?? 0)) % dur) + dur) % dur;
+        x = a.walk.from + Math.sign(a.walk.to - a.walk.from) * u * speed;
+      }
+      if (a.surge) x += (Math.sin(t * a.surge.speed + (a.phase ?? 0)) * a.surge.amp) / r;
+      cx = x + a.fw / 2;
     }
-    if (a.surge) x += Math.sin(t * a.surge.speed + (a.phase ?? 0)) * a.surge.amp;
-    x += baseX;
-    const frame = Math.floor(t * a.fps + (a.phase ?? 0)) % a.frames;
-    const crop = a.cropBottom ?? 0;
-    const dx = Math.round(sx(x, d, a.follow));
-    if (!sp.with.length && (dx > this.el.width + 40 || dx + a.fw * k < -40)) return;
-    const dy = Math.round(sy(a.y - a.fh, d));
+    const fw = sp.fw;
+    const fh = sp.fh;
+    const left = cx - fw / 2;
+    const frame = Math.floor(t * a.fps + (a.phase ?? 0)) % sp.frames;
+    const crop = Math.round((a.cropBottom ?? 0) / r);
+    const dx = Math.round(sx(left, d, a.follow));
+    if (!sp.with.length && (dx > this.el.width + 40 || dx + fw * k < -40)) return;
+    const dy = Math.round(sy(a.y - fh, d));
     if (a.shadow) {
       c.imageSmoothingEnabled = true;
-      shadowBlob(c, dx + (a.fw * k) / 2, sy(a.y - 1, d), a.shadow * k, 0.3);
+      shadowBlob(c, dx + (fw * k) / 2, sy(a.y - 1, d), (a.shadow / r) * k, 0.3);
       c.imageSmoothingEnabled = false;
     }
-    c.drawImage(sp.strip, frame * a.fw, 0, a.fw, a.fh - crop, dx, dy, a.fw * k, (a.fh - crop) * k);
-    if (a.dust && this.running && Math.random() < 0.5) this.emitDust(x + a.fw * 0.25 + (a.follow ? this.scene.scroll * t : 0), a.y, 0);
-    for (const w of sp.with) this.drawSprite(w, t, d, sx, sy, 0, x);
+    c.drawImage(sp.strip, frame * fw, 0, fw, fh - crop, dx, dy, fw * k, (fh - crop) * k);
+    if (a.dust && this.running && Math.random() < 0.5) this.emitDust(left + fw * 0.25 + (a.follow ? this.scene.scroll * t : 0), a.y, 0);
+    for (const w of sp.with) this.drawSprite(w, t, d, sx, sy, { cx, def: a });
   }
 
   private drawDust(sx: (wx: number, d: number, follow?: boolean) => number, sy: (wy: number, d: number) => number) {

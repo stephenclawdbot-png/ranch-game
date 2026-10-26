@@ -3614,7 +3614,7 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 1376,
+   "frameWidth": 624,
    "frameHeight": 128,
    "fps": 0,
    "anchor": {
@@ -3804,6 +3804,62 @@
    }
   },
   {
+   "id": "diorama.groom-walk-s3",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 32,
+   "frameHeight": 56,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "groom-walk 3:1 box downsample snapped to its own (key) palette | a stable lad groom walking to the right, side view, flat tweed cap, white shirt with rolled sleeves, brown waistcoat, dark trousers and boots, one arm held forward holding a lead rope, full body game sprite, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "hero",
+   "src": "diorama/groom-walk-s3.png",
+   "animations": {
+    "groom-walk-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.groom-walk-s4",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 24,
+   "frameHeight": 42,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "groom-walk 4:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "hero",
+   "src": "diorama/groom-walk-s4.png",
+   "animations": {
+    "groom-walk-s4": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
    "id": "diorama.groom-walk",
    "kind": "prop",
    "origin": "pixellab",
@@ -3832,14 +3888,14 @@
    }
   },
   {
-   "id": "diorama.head-bay-s2",
+   "id": "diorama.horse-aisle-idle-s2",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 8,
-   "frameWidth": 48,
-   "frameHeight": 59,
+   "frameWidth": 127,
+   "frameHeight": 96,
    "fps": 5,
    "anchor": {
     "x": 0.5,
@@ -3848,11 +3904,11 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "head-bay 2:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "sourcePrompt": "horse-aisle-idle 2:1 box downsample snapped to its own (key) palette | horse standing cross-tied in a barn aisle, idle: shifts its weight from one hind leg to the other, swishes its tail, flicks its ears, turns its head slightly towards the viewer and back, feet stay planted, seamless loop",
    "optimizationTier": "hero",
-   "src": "diorama/head-bay-s2.png",
+   "src": "diorama/horse-aisle-idle-s2.png",
    "animations": {
-    "head-bay-s2": {
+    "horse-aisle-idle-s2": {
      "from": 0,
      "to": 7,
      "loop": true
@@ -3860,14 +3916,14 @@
    }
   },
   {
-   "id": "diorama.head-bay-s3",
+   "id": "diorama.horse-aisle-idle-s3",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 8,
-   "frameWidth": 32,
-   "frameHeight": 38,
+   "frameWidth": 85,
+   "frameHeight": 64,
    "fps": 5,
    "anchor": {
     "x": 0.5,
@@ -3876,11 +3932,11 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "head-bay 3:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "sourcePrompt": "horse-aisle-idle 3:1 box downsample snapped to its own (key) palette | horse standing cross-tied in a barn aisle, idle: shifts its weight from one hind leg to the other, swishes its tail, flicks its ears, turns its head slightly towards the viewer and back, feet stay planted, seamless loop",
    "optimizationTier": "hero",
-   "src": "diorama/head-bay-s3.png",
+   "src": "diorama/horse-aisle-idle-s3.png",
    "animations": {
-    "head-bay-s3": {
+    "horse-aisle-idle-s3": {
      "from": 0,
      "to": 7,
      "loop": true
@@ -3888,14 +3944,14 @@
    }
   },
   {
-   "id": "diorama.head-bay",
+   "id": "diorama.horse-aisle-idle",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 8,
-   "frameWidth": 96,
-   "frameHeight": 117,
+   "frameWidth": 253,
+   "frameHeight": 192,
    "fps": 5,
    "anchor": {
     "x": 0.5,
@@ -3904,11 +3960,11 @@
    "depthBand": "track",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "anim-head-bay 1..8 (animate-with-text-v3 from portraits/horse-bay) | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "sourcePrompt": "anim-aisle-idle 1..8 (animate-with-text-v3 from rig-hd/horse-standing-alt-256) | horse standing cross-tied in a barn aisle, idle: shifts its weight from one hind leg to the other, swishes its tail, flicks its ears, turns its head slightly towards the viewer and back, feet stay planted, seamless loop",
    "optimizationTier": "hero",
-   "src": "diorama/head-bay.png",
+   "src": "diorama/horse-aisle-idle.png",
    "animations": {
-    "head-bay": {
+    "horse-aisle-idle": {
      "from": 0,
      "to": 7,
      "loop": true
@@ -3916,169 +3972,127 @@
    }
   },
   {
-   "id": "diorama.head-chestnut-s2",
+   "id": "diorama.horse-canter-s2",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 49,
-   "frameHeight": 58,
-   "fps": 5,
+   "frameCount": 12,
+   "frameWidth": 115,
+   "frameHeight": 73,
+   "fps": 12,
    "anchor": {
     "x": 0.5,
     "y": 1
    },
    "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "head-chestnut 2:1 box downsample snapped to palette | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "horse-canter 2:1 box downsample snapped to its own (key) palette",
    "optimizationTier": "hero",
-   "src": "diorama/head-chestnut-s2.png",
+   "src": "diorama/horse-canter-s2.png",
    "animations": {
-    "head-chestnut-s2": {
+    "horse-canter-s2": {
      "from": 0,
-     "to": 7,
+     "to": 11,
      "loop": true
     }
    }
   },
   {
-   "id": "diorama.head-chestnut-s3",
+   "id": "diorama.horse-canter-s3",
    "kind": "horse_body",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 32,
-   "frameHeight": 38,
-   "fps": 5,
+   "frameCount": 12,
+   "frameWidth": 77,
+   "frameHeight": 49,
+   "fps": 12,
    "anchor": {
     "x": 0.5,
     "y": 1
    },
    "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "head-chestnut 3:1 box downsample snapped to palette | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "horse-canter 3:1 box downsample snapped to its own (key) palette",
    "optimizationTier": "hero",
-   "src": "diorama/head-chestnut-s3.png",
+   "src": "diorama/horse-canter-s3.png",
    "animations": {
-    "head-chestnut-s3": {
+    "horse-canter-s3": {
      "from": 0,
-     "to": 7,
-     "loop": true
-    }
-   }
-  },
-  {
-   "id": "diorama.head-chestnut",
-   "kind": "horse_body",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 98,
-   "frameHeight": 116,
-   "fps": 5,
-   "anchor": {
-    "x": 0.5,
-    "y": 1
-   },
-   "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "anim-head-chestnut 1..8 (animate-with-text-v3 from portraits/horse-chestnut) | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
-   "optimizationTier": "hero",
-   "src": "diorama/head-chestnut.png",
-   "animations": {
-    "head-chestnut": {
-     "from": 0,
-     "to": 7,
-     "loop": true
-    }
-   }
-  },
-  {
-   "id": "diorama.head-grey-s2",
-   "kind": "horse_body",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 50,
-   "frameHeight": 58,
-   "fps": 5,
-   "anchor": {
-    "x": 0.5,
-    "y": 1
-   },
-   "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "head-grey 2:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
-   "optimizationTier": "hero",
-   "src": "diorama/head-grey-s2.png",
-   "animations": {
-    "head-grey-s2": {
-     "from": 0,
-     "to": 7,
-     "loop": true
-    }
-   }
-  },
-  {
-   "id": "diorama.head-grey-s3",
-   "kind": "horse_body",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 33,
-   "frameHeight": 38,
-   "fps": 5,
-   "anchor": {
-    "x": 0.5,
-    "y": 1
-   },
-   "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "head-grey 3:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
-   "optimizationTier": "hero",
-   "src": "diorama/head-grey-s3.png",
-   "animations": {
-    "head-grey-s3": {
-     "from": 0,
-     "to": 7,
-     "loop": true
-    }
-   }
-  },
-  {
-   "id": "diorama.head-grey",
-   "kind": "horse_body",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 8,
-   "frameWidth": 101,
-   "frameHeight": 115,
-   "fps": 5,
-   "anchor": {
-    "x": 0.5,
-    "y": 1
-   },
-   "depthBand": "track",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "anim-head-grey 1..8 (animate-with-text-v3 from portraits/horse-grey) | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
-   "optimizationTier": "hero",
-   "src": "diorama/head-grey.png",
-   "animations": {
-    "head-grey": {
-     "from": 0,
-     "to": 7,
+     "to": 11,
      "loop": true
     }
    }
@@ -4140,6 +4154,62 @@
    "src": "diorama/horse-canter.png",
    "animations": {
     "horse-canter": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-gallop-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 115,
+   "frameHeight": 73,
+   "fps": 14,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-gallop 2:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-gallop-s2.png",
+   "animations": {
+    "horse-gallop-s2": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-gallop-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 77,
+   "frameHeight": 49,
+   "fps": 14,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-gallop 3:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-gallop-s3.png",
+   "animations": {
+    "horse-gallop-s3": {
      "from": 0,
      "to": 11,
      "loop": true
@@ -4210,6 +4280,132 @@
    }
   },
   {
+   "id": "diorama.horse-walk-jockey-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 86,
+   "frameHeight": 64,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "horse-walk-jockey 3:1 box downsample snapped to its own (key) palette | racehorse walking calmly at a slow four-beat walk in the parade ring, legs step one at a time, head nods gently with each step, jockey sits upright and still, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-jockey-s3.png",
+   "animations": {
+    "horse-walk-jockey-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-jockey-s4",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 64,
+   "frameHeight": 48,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "horse-walk-jockey 4:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-jockey-s4.png",
+   "animations": {
+    "horse-walk-jockey-s4": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
    "id": "diorama.horse-walk-jockey",
    "kind": "horse_body",
    "origin": "pixellab",
@@ -4266,6 +4462,62 @@
    "src": "diorama/horse-walk-jockey.png",
    "animations": {
     "horse-walk-jockey": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-led-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 125,
+   "frameHeight": 94,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-walk-led 2:1 box downsample snapped to its own (key) palette | saddled racehorse walking calmly at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-led-s2.png",
+   "animations": {
+    "horse-walk-led-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-led-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 84,
+   "frameHeight": 63,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-walk-led 3:1 box downsample snapped to its own (key) palette | saddled racehorse walking calmly at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-led-s3.png",
+   "animations": {
+    "horse-walk-led-s3": {
      "from": 0,
      "to": 7,
      "loop": true
@@ -4427,13 +4679,517 @@
    "src": "diorama/poster-yard.png"
   },
   {
+   "id": "diorama.stall-horse-bay-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 45,
+   "frameHeight": 57,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-bay 2:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-bay-s2.png",
+   "animations": {
+    "stall-horse-bay-s2": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-bay-s3",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 30,
+   "frameHeight": 38,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-bay 3:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-bay-s3.png",
+   "animations": {
+    "stall-horse-bay-s3": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-bay",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 90,
+   "frameHeight": 113,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat bay by luminance-ramp recolour",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-bay.png",
+   "animations": {
+    "stall-horse-bay": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-black-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 45,
+   "frameHeight": 57,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-black 2:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-black-s2.png",
+   "animations": {
+    "stall-horse-black-s2": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-black-s3",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 30,
+   "frameHeight": 38,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-black 3:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-black-s3.png",
+   "animations": {
+    "stall-horse-black-s3": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-black",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 90,
+   "frameHeight": 113,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat black by luminance-ramp recolour",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-black.png",
+   "animations": {
+    "stall-horse-black": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-chestnut-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 45,
+   "frameHeight": 57,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-chestnut 2:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-chestnut-s2.png",
+   "animations": {
+    "stall-horse-chestnut-s2": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-chestnut-s3",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 30,
+   "frameHeight": 38,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-chestnut 3:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-chestnut-s3.png",
+   "animations": {
+    "stall-horse-chestnut-s3": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-chestnut",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 90,
+   "frameHeight": 113,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat chestnut by luminance-ramp recolour",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-chestnut.png",
+   "animations": {
+    "stall-horse-chestnut": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-grey-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 45,
+   "frameHeight": 57,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-grey 2:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-grey-s2.png",
+   "animations": {
+    "stall-horse-grey-s2": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-grey-s3",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 30,
+   "frameHeight": 38,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-horse-grey 3:1 box downsample snapped to its own (key) palette",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-grey-s3.png",
+   "animations": {
+    "stall-horse-grey-s3": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-horse-grey",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 90,
+   "frameHeight": 113,
+   "fps": 4,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat grey by luminance-ramp recolour",
+   "optimizationTier": "background",
+   "src": "diorama/stall-horse-grey.png",
+   "animations": {
+    "stall-horse-grey": {
+     "from": 0,
+     "to": 5,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.stall-interior-0-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-interior-0 2:1",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-0-s2.png"
+  },
+  {
+   "id": "diorama.stall-interior-0",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/stall-interior-0",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-0.png"
+  },
+  {
+   "id": "diorama.stall-interior-1-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-interior-1 2:1",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-1-s2.png"
+  },
+  {
+   "id": "diorama.stall-interior-1",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/stall-interior-1",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-1.png"
+  },
+  {
+   "id": "diorama.stall-interior-2-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-interior-2 2:1",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-2-s2.png"
+  },
+  {
+   "id": "diorama.stall-interior-2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/stall-interior-2",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-2.png"
+  },
+  {
+   "id": "diorama.stall-interior-3-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 48,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "stall-interior-3 2:1",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-3-s2.png"
+  },
+  {
+   "id": "diorama.stall-interior-3",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 96,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/stall-interior-3",
+   "optimizationTier": "background",
+   "src": "diorama/stall-interior-3.png"
+  },
+  {
    "id": "diorama.yard-cobbles-s2",
    "kind": "track_layer",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 688,
+   "frameWidth": 312,
    "frameHeight": 80,
    "fps": 0,
    "anchor": {
@@ -4454,7 +5210,7 @@
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
-   "frameWidth": 1376,
+   "frameWidth": 624,
    "frameHeight": 160,
    "fps": 0,
    "anchor": {

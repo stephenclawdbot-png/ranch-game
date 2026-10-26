@@ -69,6 +69,13 @@ export const JOBS = {
   "groom-hd": img(
     "a stable lad groom walking to the right, side view, flat tweed cap, white shirt with rolled sleeves, brown waistcoat, dark trousers and leather boots, one arm held forward holding a lead rope, full body game sprite filling the full height of the image, transparent background",
     96, 176, 21042, { ref: null }),
+  // ---- stall horses that lean OUT over the half-door (owner: "make the body visible") ---
+  "stall-horse": img(
+    "a bay thoroughbred racehorse in a stable stall leaning its head and long neck out over a half-door, seen from the front three-quarter view facing left, head, full arched neck, chest and shoulders visible, withers and back receding into the stall behind, white blaze, ears pricked, leather halter, no door drawn, the chest reaches the bottom edge, transparent background",
+    112, 128, 21061, { ref: null }),
+  "stall-interior": img(
+    "the inside of an empty horse stall seen straight through its open top door: dim wooden back wall with planks, a full hay net hanging on the wall, deep golden straw bedding at the bottom, a warm shaft of light falling in from a small high window on the right, cosy depth, the interior fills the whole image, no horse, no door frame",
+    96, 96, 21062, { opaque: true, ref: barnRef }),
   // ---- animations (first frames come from existing approved art) --------------------
   "anim-walk-jockey": anim("art-src/raw/rig-hd/horse-jockey-neutral-256.png",
     "racehorse walking calmly at a slow four-beat walk in the parade ring, legs step one at a time, head nods gently with each step, jockey sits upright and still, one complete walk cycle, seamless loop, stays in place", 8, 21051),
@@ -82,6 +89,12 @@ export const JOBS = {
     "the stable lad walks steadily to the right at a calm pace, arms swing gently, one complete walk cycle, seamless loop, stays in place", 8, 21056),
   "anim-groom-hd": anim("art-src/diorama/raw/groom-hd-0.png",
     "the stable lad walks steadily to the right at a calm pace, arms swing gently, one complete walk cycle, seamless loop, stays in place, keep the same size", 8, 21057),
+  "anim-stall-horse": anim("art-src/diorama/raw/stall-horse-3.png",
+    "the horse leaning over the stable door slowly turns its head towards the viewer and back, ears flick forward and back, blinks, soft breathing in the chest, body stays in place, seamless loop", 8, 21063),
+  "anim-aisle-idle": anim("art-src/raw/rig-hd/horse-standing-alt-256.png",
+    "horse standing cross-tied in a barn aisle, idle: shifts its weight from one hind leg to the other, swishes its tail, flicks its ears, turns its head slightly towards the viewer and back, feet stay planted, seamless loop", 8, 21064),
+  "anim-groom-brush": anim("art-src/diorama/raw/groom-hd-0.png",
+    "the stable lad stops and stands still facing right, grooming a horse with a body brush held in his raised right hand, brushing in slow strokes, feet planted, seamless loop, keep the same size", 8, 21065),
   "anim-head-grey": anim("apps/web/public/art/portraits/horse-grey.png",
     "the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop", 8, 21055),
 };
