@@ -30,6 +30,7 @@ import {
   getRaceResult,
   facilityLevels,
   getStable,
+  grantGiftFoal,
   isGenome,
   listCardRaces,
   listHorseRuns,
@@ -869,8 +870,25 @@ function runView(r: Awaited<ReturnType<typeof listStableRuns>>[number], names: M
 }
 
 /** Everything the signed-in player's pages need. Drives the card first so results arrive. */
+// Accounts known to have had their day-2 gift foal (per instance; the database is the authority).
+const GF = globalThis as typeof globalThis & { __tbGiftDone?: Set<string> };
+
+/** Onboarding §10: the Club's day-2 gift foal (idempotent; packages/db onboarding.ts). */
+async function maybeGiftFoal(db: Db, session: Session, now: Date): Promise<void> {
+  const done = (GF.__tbGiftDone ??= new Set());
+  if (done.has(session.accountId)) return;
+  if (done.size > 50_000) done.clear();
+  try {
+    const r = await grantGiftFoal(db, { accountId: session.accountId, now });
+    if (r.status === "granted" || r.status === "already") done.add(session.accountId);
+  } catch (err) {
+    console.error("gift foal", err);
+  }
+}
+
 export async function playerView(db: Db, session: Session, now: Date): Promise<PlayerView> {
   await driveCard(db, now);
+  await maybeGiftFoal(db, session, now);
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
   const rows = await listStableHorses(db, session.stable.id);

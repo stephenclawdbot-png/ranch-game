@@ -154,7 +154,8 @@ describe("market", () => {
     const bought = await pull(h.db, s, { packType: "paddock", free: false, key: "mkt-pull-1" }, T0);
     const v0 = await marketView(h.db, s, T0);
     expect(v0.seller.ok).toBe(false);
-    expect(v0.seller.missing).toHaveLength(3);
+    expect(v0.seller.missing).toHaveLength(2); // 7 days + 20 races; no email unless MARKET_REQUIRE_VERIFIED_EMAIL
+    expect(v0.seller.emailRequired).toBe(false);
     const starter = v0.horses.find((x) => x.lock === "club_bred");
     expect(starter?.lockReason).toMatch(/Club-bred/);
     const foalRow = v0.horses.find((x) => x.id === bought.foal!.id)!;
