@@ -3,6 +3,8 @@
 export type CameraMode = "director" | "mine" | "leader" | "wide";
 export type RenderQuality = "high" | "low";
 export type QualitySetting = "auto" | RenderQuality;
+/** "trackside" = side-on HD-2D diorama view (default); "classic" = the 3D broadcast. */
+export type ViewMode = "trackside" | "classic";
 
 /** Picture-in-picture inset (CSS px from the stage's bottom-right), or null when it doesn't fit. */
 export function pipRect(stageW: number, stageH: number): { right: number; bottom: number; w: number; h: number } | null {

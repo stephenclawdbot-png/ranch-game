@@ -30,6 +30,7 @@ import { RaceViewer } from "@thoroughbred/race-viewer";
 | `artBaseUrl` | `"/art"` | Root of the art drop (`manifest.json`). A 404 or invalid manifest falls back to code-drawn art. `null` skips the fetch. |
 | `pixelated` | `false` | Renders at a low internal resolution with a nearest upscale, even on high quality |
 | `initialTimeSec`, `initialCamera` | none | Dev and deep-link extras |
+| `view` | URL / remembered / `"trackside"` | `"trackside"` (default) or `"classic"`. When omitted: `?view=classic` / `?view=trackside` on the page URL, then the viewer's last choice (`localStorage["rv:view"]`, guarded), then Trackside. The **3D view / Trackside** button in the controls toggles it. |
 
 The other exports are `CameraMode` (`"leader" | "mine" | "wide"`), `sampleReplay`,
 `createReplaySampler`, `replayTiming`, `standingsAt`, `distanceToGoM`, `commentaryAt` and
@@ -37,6 +38,41 @@ The other exports are `CameraMode` (`"leader" | "mine" | "wide"`), `sampleReplay
 `@thoroughbred/race-viewer/dev`. The main entry doesn't import three.js: it loads with
 `import()` inside an effect, so the component is safe under SSR. Init is StrictMode-safe,
 and everything is disposed on unmount.
+
+## Trackside view (default)
+
+`src/trackside/`: the real race drawn like the "track-dusk" diorama (big side-on pixel
+gallopers, sunset sky, tilt-shift trees and rails, warm rim light, hoof dust). Same props,
+HUD, minimap, clocks, live rules and results flow as the classic view; only rendering differs.
+
+- **Rendering** (`TracksideScene.ts`, three.js, orthographic, screen-space layers): sky wash +
+  sky strip (drifting), sun glow and light shafts, far hills / trees / far rail baked once in
+  Canvas2D with the diorama's blur and haze (`bake.ts`), a perspective "mode-7" turf
+  (world-anchored so hooves don't slide, mowing stripes, the winning line, motion blur at
+  speed), furlong poles and the winning post, contact shadows, horses, dust, the "my horse"
+  chevron, the out-of-focus near rail, motes, rain, grade, vignette and photo flash.
+  Art: the same `race/*` files the diorama uses (read only).
+- **Horses** (`strips.ts`, `art.ts`): `race/horse-gallop.png` (and `horse-idle.png` before the
+  off / after pulling up) become shared palette-index textures plus one LUT row per runner
+  (real coat ramp, silks primary/secondary/cap and the silks pattern), lit from the strip's
+  normal map (rim light), with exact 2:1 / 3:1 / 4:1 palette-preserving downsamples (block
+  mode) so a sprite never minifies. A "sharp pixel" 2x2 resolve keeps texels crisp at any
+  scale (no blur, AA seams only). GLSL in `shaders.ts` avoids reserved words.
+- **Every runner is visible on every frame** (`layout.ts`, unit tested): lanes recede like a
+  long lens (far lanes smaller and higher, depth sorted). The camera eases zoom (log-space
+  spring, resting on a pixel-perfect `m/s` ladder) and centre (spring with the field's speed
+  fed forward) to fit leader to last horse, with the zoom clamped between a close-up cap and a
+  minimum readable horse size. `placeField` then hard-clamps the zoom so the lanes fit the
+  HUD-safe band and, when the field is still too wide, keeps the leader where the camera put
+  it and squeezes the gaps behind it (biggest gaps first, order kept) so stragglers are never
+  dropped. Props and the winning line go through the same squeeze, so whoever is on the line
+  is drawn on the line. The camera brings the winning post in as the leader closes on it.
+- **Looks** (`looks.ts`): dusk by default; a clear race with a daytime post (local hour 7–16)
+  gets golden hour; overcast and rain dim/desaturate and drop the sun, shafts and rim light.
+- **Dev hook**: with `debug` (the `/dev/viewer` harness) or `?rvdebug` on the page,
+  `window.__rvTrackside.rects()` returns the drawn horse quads in stage px (plus `stage()`,
+  `camera()`, `time()`, `maxCamStep()`), used by the all-runners-visible frame check.
+- If the keyed strip can't be loaded, the viewer falls back to the classic view.
 
 ## Live mode (`feed`)
 

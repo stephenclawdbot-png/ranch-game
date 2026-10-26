@@ -5,7 +5,7 @@
  * Dev helpers (fakeReplay, SpriteSheet) live in "@thoroughbred/race-viewer/dev".
  */
 export { RaceViewer, type RaceViewerProps } from "./RaceViewer";
-export type { CameraMode, QualitySetting, RenderQuality } from "./types";
+export type { CameraMode, QualitySetting, RenderQuality, ViewMode } from "./types";
 export { sampleReplay, createReplaySampler, replayTiming, type HorseSample, type ReplaySampler, type ReplayTiming } from "./sampleReplay";
 export { standingsAt, distanceToGoM, commentaryAt, lengthsLabel, type StandingRow } from "./timeline";
 export { PlaybackClock, PLAYBACK_RATES, type ClockFrame, type PlaybackOptions } from "./playback";

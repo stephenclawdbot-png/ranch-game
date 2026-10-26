@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 /** Presentational HUD pieces. All state comes from RaceViewer; nothing here touches Pixi. */
 import { formatRaceTime, type RaceConfig, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 import type { StandingRow } from "../timeline";
-import type { CameraMode } from "../types";
+import type { CameraMode, ViewMode } from "../types";
 import { PLAYBACK_RATES } from "../playback";
 
 const SURFACE_LABEL = { turf: "Turf", dirt: "Dirt", synthetic: "Synthetic" } as const;
@@ -110,6 +110,9 @@ export interface ControlsProps {
   onScrubEnd(): void;
   onCamera(c: CameraMode): void;
   onLive(): void;
+  /** Current view and its toggle (Trackside <-> classic 3D). */
+  view?: ViewMode;
+  onView?(v: ViewMode): void;
 }
 
 const CAMERAS: { id: CameraMode; label: string; short: string; title: string }[] = [
@@ -184,7 +187,20 @@ export function Controls(p: ControlsProps) {
           ))}
         </div>
       )}
-      {p.narrow ? (
+      {p.onView && (
+        <button
+          type="button"
+          className="rv-btn rv-view"
+          onClick={() => p.onView?.(p.view === "classic" ? "trackside" : "classic")}
+          title={p.view === "classic" ? "Switch to the Trackside view" : "Switch to the classic 3D view"}
+          aria-label={p.view === "classic" ? "Trackside view" : "Classic 3D view"}
+          data-rv-view={p.view ?? "trackside"}
+        >
+          <ViewIcon />
+          {p.narrow ? (p.view === "classic" ? "Side" : "3D") : p.view === "classic" ? "Trackside" : "3D view"}
+        </button>
+      )}
+      {p.view !== "classic" && p.onView ? null : p.narrow ? (
         <button type="button" className="rv-btn" onClick={() => p.onCamera(nextCam.id)} title={`Camera: ${CAMERAS.find((c) => c.id === p.camera)?.title}`} aria-label="Camera mode">
           <CamIcon />
           {CAMERAS.find((c) => c.id === p.camera)?.short}
@@ -205,6 +221,16 @@ export function Controls(p: ControlsProps) {
         </button>
       )}
     </div>
+  );
+}
+
+function ViewIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <rect x="1" y="3" width="14" height="10" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M1 10h14" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="4" y="6" width="5" height="3" fill="currentColor" />
+    </svg>
   );
 }
 

@@ -7,6 +7,37 @@ Preview URL: https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.a
 (Vercel project `ranch-game`, team `meowdotfun`; Neon is connected with `DATABASE_URL` for
 Preview and Production.)
 
+## Trackside race view (race-viewer agent, 2026-10-26)
+
+Owner decision: the **Trackside** view (the "track-dusk" diorama look applied to the real
+race) is the **default race view** everywhere the viewer runs (Story, Live, replays, Daily
+Cup). The classic 3D broadcast stays one tap away: the **3D view / Trackside** button in the
+viewer controls, or `?view=classic` (`?view=trackside` forces Trackside); the choice is
+remembered in `localStorage["rv:view"]` (try/catch guarded). Code: `packages/race-viewer/src/trackside/`
+(see the race-viewer README "Trackside view"). No apps/web changes were needed: the viewer
+reads `?view=` itself, and `data-testid="viewer"` still holds a canvas.
+
+- Three.js screen-space layers (orthographic): baked diorama backdrop (sky, hills, trees with
+  DOF blur + haze, rails), perspective world-anchored turf/dirt with the winning line and
+  motion blur, furlong poles + winning post, horses from palette-index strips + per-runner
+  LUT (real coat and silks colours and pattern) with normal-map rim light and exact
+  palette-preserving LOD copies, hoof dust, motes, light shafts, rain, grade, photo flash.
+  Dusk by default; clear daytime posts = golden hour; overcast/rain dim and desaturate.
+- **All runners visible on every frame** (`layout.ts`, unit tested): springs ease zoom
+  (resting on a pixel-perfect ladder) and centre to fit leader..last horse between a
+  close-up cap and a minimum readable size; `placeField` hard-clamps the zoom for the lanes
+  and squeezes the gaps behind the leader when the field is wider than the frame (order kept,
+  props and the winning line squeezed the same way). Verified per frame with the
+  `window.__rvTrackside.rects()` dev hook (`debug` or `?rvdebug`).
+- Screenshots / GIFs: `docs/brand-v2/trackside/`.
+- **Decisions taken without the user (flag):** golden hour for clear races with a local post
+  hour 7–16 (dusk otherwise); minimum readable horse length = 14 % of the stage width
+  (84–180 px), close-up cap 34 %; strung-out fields are squeezed rather than shown tiny (the
+  minimap and standings keep the true gaps); the camera buttons are hidden in Trackside (the
+  framing is automatic); no PiP in Trackside (everyone is always in frame).
+- **Open:** real-device fps check (headless numbers are SwiftShader); the idle strip is used
+  before the off, so the field stands stacked at the start (no stalls prop yet).
+
 ## HD-2D dioramas (diorama agent, 2026-10-26)
 
 `<Diorama scene="yard" | "paddock" | "grandstand" | "barn" | "track-dusk" />` in
