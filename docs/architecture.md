@@ -220,3 +220,17 @@ per IP (20/hour → 429); a browser that already has a stable in play must confi
 `{ replace: true }`. Successful links are recorded as an identity signal (kind "device"), so
 anti-multi-account sees one person. `GET/DELETE /api/account/devices` list and revoke linked
 devices; the founding browser's token is not a device and can't be revoked from there.
+
+**Wallet sign-in** (`apps/web` `src/server/walletAuth.ts`, routes under `/api/auth/wallet/*`,
+detailed in `docs/web3.md` §3.4): a wallet can bring the stable to any device with one free
+SIWE signature — no code, no transaction. The login wallet is `accounts.wallet_address`
+(unique): every successful SIWE verification sets it when unset, and lookups fall back to a
+verified tester row. `POST /api/auth/wallet/challenge` stores a one-time 10-minute
+login-purpose message (no account bound; `wallet_challenges.purpose` keeps it separate from
+payout-link challenges); `POST /api/auth/wallet/verify` checks the signature against the
+address in the stored message, consumes the nonce, and either signs the wallet's stable in
+(an `account_devices` row, with the same `{ replace: true }` guard), links an unknown wallet
+to the browser's stable, or answers `{ needsStable }` — `{ create: true }` founds the stable
+and links the wallet in one request. Challenge + verify are rate-limited per IP (30/hour →
+429). WalletConnect (optional env, loaded on click) covers phone wallets; injected EIP-6963
+wallets always work. Web3 stays optional — the code-link flow above is unchanged.

@@ -5,6 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { PlayerGate } from "@/components/PlayerGate";
 import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
+import { WalletSignIn } from "@/components/chain/WalletSignIn";
+import { disconnectWallet } from "@/components/chain/useWallet";
+import { shortAddress } from "@/lib/chain/format";
 import { FeedbackButton } from "@/components/playtest/FeedbackButton";
 import { PageHeader } from "@/components/ui/Page";
 import { PixelIcon } from "@/components/icons";
@@ -159,6 +162,17 @@ function Profile({ state }: { state: PlayerState }) {
             </Link>
           )}
           <p className="t-meta">Optional, for the closed beta. The game never needs a wallet.</p>
+          {wallet.status?.loginAddress ? (
+            <p className="t-meta" data-testid="me-login-wallet">
+              Sign-in wallet: <span className="font-mono text-cream">{shortAddress(wallet.status.loginAddress)}</span>. Use this wallet to sign in on other
+              devices.
+            </p>
+          ) : (
+            <div className="grid gap-2" data-testid="me-login-wallet">
+              <p className="t-meta">Link a wallet to sign in on other devices (free signature).</p>
+              <WalletSignIn label="Link a wallet for sign-in" onLinked={() => void wallet.reload()} />
+            </div>
+          )}
           <WalletLink />
           <p className="flex flex-wrap gap-4">
             <Link href="/pool" className="link" data-testid="me-pool-link">
@@ -312,7 +326,10 @@ function StartOver() {
           type="button"
           className="btn btn-oxblood"
           disabled={typed.trim().toUpperCase() !== "START OVER"}
-          onClick={() => void signOut().then(() => window.location.assign("/play"))}
+          onClick={() => {
+            disconnectWallet(); // drops a WalletConnect session too, so the QR sheet starts clean
+            void signOut().then(() => window.location.assign("/play"));
+          }}
           data-testid="start-over-confirm"
         >
           Start over

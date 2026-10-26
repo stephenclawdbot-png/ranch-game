@@ -17,6 +17,8 @@ interface Status {
   address: string | null;
   verifiedAtMs: number | null;
   unverifiedAddress: string | null;
+  /** accounts.wallet_address: the wallet that signs this stable in on other devices. */
+  loginAddress: string | null;
   chainId: number;
 }
 

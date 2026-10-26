@@ -13,6 +13,7 @@ import { DomainError } from "../errors";
 import { utcDay, utcWeekStart } from "../crypto";
 import {
   accountPlayDays,
+  accounts,
   chainOrders,
   dailyCupEntries,
   fraudEvents,
@@ -28,7 +29,7 @@ import {
   type PoolEpochRow,
   type TesterRow,
 } from "../schema";
-import type { Db, Executor } from "../types";
+import type { Db, Executor, Tx } from "../types";
 import { recordAccountSignal } from "./accounts";
 import { LIVE_RACE_KINDS, weekScore } from "./leagues";
 import { pullPack, type PullResult } from "./packs";
@@ -41,20 +42,36 @@ const DAY_MS = 86_400_000;
 // Wallets: SIWE (EIP-4361) challenge -> verified link on the tester row
 // ---------------------------------------------------------------------------
 
-export async function createWalletChallenge(db: Db, input: { accountId: string; nonce: string; message: string; expiresAt: Date }): Promise<void> {
+export async function createWalletChallenge(db: Db, input: { accountId: string | null; nonce: string; message: string; expiresAt: Date; purpose?: "link" | "login" }): Promise<void> {
   if (!/^[A-Za-z0-9]{8,64}$/.test(input.nonce)) throw new DomainError("INVALID_INPUT", "bad nonce");
-  await db.insert(walletChallenges).values({ nonce: input.nonce, accountId: input.accountId, message: input.message, expiresAt: input.expiresAt });
+  if (input.purpose === "login" && input.accountId !== null) throw new DomainError("INVALID_INPUT", "a sign-in challenge has no account");
+  if (input.purpose !== "login" && input.accountId === null) throw new DomainError("INVALID_INPUT", "a link challenge needs the signed-in account");
+  await db.insert(walletChallenges).values({ nonce: input.nonce, accountId: input.accountId, message: input.message, purpose: input.purpose ?? "link", expiresAt: input.expiresAt });
 }
 
-/** Marks a challenge used (single-use) and returns the exact message the wallet had to sign. */
-export async function consumeWalletChallenge(db: Db, input: { accountId: string; nonce: string; now: Date }): Promise<string> {
-  const [row] = await db
-    .update(walletChallenges)
-    .set({ usedAt: input.now })
-    .where(and(eq(walletChallenges.nonce, input.nonce), eq(walletChallenges.accountId, input.accountId), isNull(walletChallenges.usedAt), gte(walletChallenges.expiresAt, input.now)))
-    .returning();
-  if (!row) throw new DomainError("INVALID_INPUT", "This sign-in request expired or was already used. Try again.");
-  return row.message;
+/**
+ * Marks a challenge used (single-use) and returns the exact message the wallet had to sign.
+ * The conditional UPDATE is the whole guard: under READ COMMITTED a concurrent replay
+ * matches nothing, so the row lock a transaction adds is belt-and-braces, not load-bearing.
+ */
+export async function consumeWalletChallenge(db: Db, input: { accountId: string | null; nonce: string; now: Date; purpose?: "link" | "login" }): Promise<string> {
+  const purpose = input.purpose ?? "link";
+  return runTx(db, async (tx) => {
+    const [row] = await tx
+      .update(walletChallenges)
+      .set({ usedAt: input.now })
+      .where(
+        and(
+          eq(walletChallenges.nonce, input.nonce),
+          purpose === "login" ? and(eq(walletChallenges.purpose, "login"), isNull(walletChallenges.accountId)) : and(eq(walletChallenges.accountId, input.accountId ?? ""), eq(walletChallenges.purpose, "link")),
+          isNull(walletChallenges.usedAt),
+          gte(walletChallenges.expiresAt, input.now),
+        ),
+      )
+      .returning();
+    if (!row) throw new DomainError("INVALID_INPUT", "This sign-in request expired or was already used. Try again.");
+    return row.message;
+  });
 }
 
 export async function testerOfAccount(ex: Executor, accountId: string): Promise<TesterRow | null> {
@@ -66,6 +83,49 @@ export async function testerOfAccount(ex: Executor, accountId: string): Promise<
 export async function verifiedWalletOf(ex: Executor, accountId: string): Promise<string | null> {
   const t = await testerOfAccount(ex, accountId);
   return t?.walletAddress && t.walletVerifiedAt ? t.walletAddress : null;
+}
+
+/** The account a wallet signs in to: `accounts.wallet_address` (case-insensitive), else the verified wallet of a tester that has this account. */
+export async function accountForWallet(ex: Executor, address: string): Promise<string | null> {
+  const lower = address.trim().toLowerCase();
+  const [a] = await ex.select({ id: accounts.id }).from(accounts).where(sql`lower(${accounts.walletAddress}) = ${lower}`);
+  if (a) return a.id;
+  const [t] = await ex
+    .select({ accountId: testers.accountId })
+    .from(testers)
+    .where(and(sql`lower(${testers.walletAddress}) = ${lower}`, sql`${testers.walletVerifiedAt} is not null`, sql`${testers.accountId} is not null`));
+  return t?.accountId ?? null;
+}
+
+/** The account's sign-in wallet (accounts.wallet_address, checksummed), or null. */
+export async function loginWalletOf(ex: Executor, accountId: string): Promise<string | null> {
+  const [a] = await ex.select({ walletAddress: accounts.walletAddress }).from(accounts).where(eq(accounts.id, accountId));
+  return a?.walletAddress ?? null;
+}
+
+/**
+ * Stores the wallet on the account itself (`accounts.wallet_address`, checksummed): one
+ * wallet signs in to one account. Set when unset by any successful SIWE verification; a
+ * wallet already on ANOTHER account is refused (LINKED_ACCOUNTS), and a stable that already
+ * signed in with a different wallet keeps it (same rule as the tester row).
+ */
+async function setAccountWalletTx(tx: Tx, input: { accountId: string; address: string; now: Date }): Promise<void> {
+  const lower = input.address.trim().toLowerCase();
+  const [taken] = await tx.select({ id: accounts.id }).from(accounts).where(sql`lower(${accounts.walletAddress}) = ${lower}`).for("update");
+  if (taken && taken.id !== input.accountId) throw new DomainError("LINKED_ACCOUNTS", "That wallet is already linked to another stable. One wallet per player.");
+  const [mine] = await tx.select({ walletAddress: accounts.walletAddress }).from(accounts).where(eq(accounts.id, input.accountId)).for("update");
+  if (!mine) throw new DomainError("NOT_FOUND", "account not found");
+  if (mine.walletAddress && mine.walletAddress.toLowerCase() !== lower) {
+    throw new DomainError("NOT_ELIGIBLE", "Your stable already has a sign-in wallet. Ask the organiser to change it.");
+  }
+  if (mine.walletAddress) return;
+  await tx.update(accounts).set({ walletAddress: input.address.trim() }).where(eq(accounts.id, input.accountId));
+  await audit(tx, { actor: input.accountId, action: "account.wallet_set", entityType: "account", entityId: input.accountId, data: { address: input.address, at: input.now } });
+}
+
+/** see setAccountWalletTx */
+export async function ensureAccountWallet(db: Db, input: { accountId: string; address: string; now: Date }): Promise<void> {
+  await runTx(db, (tx) => setAccountWalletTx(tx, input));
 }
 
 /**
@@ -98,15 +158,21 @@ export async function linkVerifiedWallet(db: Db, input: { accountId: string; add
     }
     const [t] = await tx.update(testers).set({ walletAddress: address, walletVerifiedAt: input.now }).where(eq(testers.id, mine!.id)).returning();
     await audit(tx, { actor: input.accountId, action: "wallet.link", entityType: "tester", entityId: t!.id, data: { address } });
+    // Same signature, same claim: the account itself can now be found by wallet (sign-in).
+    await setAccountWalletTx(tx, { accountId: input.accountId, address, now: input.now });
     return t!;
   });
   const linkedAccounts = await recordAccountSignal(db, { accountId: input.accountId, kind: "wallet", value: address });
   return { tester, linkedAccounts };
 }
 
-/** Admin: removes a tester's wallet (e.g. lost wallet). Past allocations keep their address. */
+/** Admin: removes a tester's wallet (e.g. lost wallet): the payout link and the sign-in wallet on the account. Past allocations keep their address. */
 export async function adminUnlinkWallet(db: Db, input: { testerId: string }): Promise<void> {
-  await db.update(testers).set({ walletAddress: null, walletVerifiedAt: null }).where(eq(testers.id, input.testerId));
+  await runTx(db, async (tx) => {
+    const [t] = await tx.select().from(testers).where(eq(testers.id, input.testerId));
+    await tx.update(testers).set({ walletAddress: null, walletVerifiedAt: null }).where(eq(testers.id, input.testerId));
+    if (t?.accountId) await tx.update(accounts).set({ walletAddress: null }).where(eq(accounts.id, t.accountId));
+  });
 }
 
 // ---------------------------------------------------------------------------

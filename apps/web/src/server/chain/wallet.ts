@@ -7,19 +7,24 @@
  */
 import { randomBytes } from "node:crypto";
 import { getAddress, isAddress, type Address, type Hex } from "viem";
-import { consumeWalletChallenge, createWalletChallenge, linkVerifiedWallet, testerOfAccount, type Db } from "@thoroughbred/db";
+import { consumeWalletChallenge, createWalletChallenge, linkVerifiedWallet, loginWalletOf, testerOfAccount, type Db } from "@thoroughbred/db";
 import { DomainError } from "@thoroughbred/db";
 import type { BetaChain } from "./adapter";
 import type { Session } from "../session";
 
 const TTL_MS = 10 * 60_000;
 
-export function siweMessage(input: { domain: string; uri: string; address: Address; chainId: number; nonce: string; issuedAt: Date; expiresAt: Date }): string {
+/** SIWE statement for linking a payout wallet (signed in on /me). */
+export const LINK_STATEMENT = "Link this wallet to my Post Time stable. One wallet per stable; it receives Prize Pool payouts and affiliate commissions. Signing is free and sends no transaction.";
+/** SIWE statement for wallet sign-in (no session): different wording, so a link signature can never be replayed as a sign-in. */
+export const LOGIN_STATEMENT = "Sign in to Post Time with this wallet. Signing is free and sends no transaction.";
+
+export function siweMessage(input: { domain: string; uri: string; address: Address; chainId: number; nonce: string; issuedAt: Date; expiresAt: Date; statement?: string }): string {
   return [
     `${input.domain} wants you to sign in with your Ethereum account:`,
     input.address,
     "",
-    "Link this wallet to my Post Time stable. One wallet per stable; it receives Prize Pool payouts and affiliate commissions. Signing is free and sends no transaction.",
+    input.statement ?? LINK_STATEMENT,
     "",
     `URI: ${input.uri}`,
     "Version: 1",
@@ -62,5 +67,7 @@ export async function walletStatus(db: Db, session: Session) {
     verifiedAtMs: t?.walletVerifiedAt?.getTime() ?? null,
     /** An address saved earlier without a signature (old /beta form): must be re-linked by signing. */
     unverifiedAddress: t?.walletAddress && !t.walletVerifiedAt ? t.walletAddress : null,
+    /** The sign-in wallet on the account itself (accounts.wallet_address): sign in on other devices with it. */
+    loginAddress: await loginWalletOf(db, session.accountId),
   };
 }

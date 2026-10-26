@@ -7,6 +7,7 @@ import { ErrorNote } from "@/components/ui/ErrorNote";
 import { Wordmark } from "@/components/SiteNav";
 import { PixelIcon } from "@/components/icons";
 import { api, usePlayerState } from "@/lib/player";
+import { WalletSignIn } from "@/components/chain/WalletSignIn";
 
 /** Typed code mask: uppercase, 8 characters from the unambiguous alphabet, dash after four. */
 function maskCode(raw: string): string {
@@ -121,6 +122,10 @@ export default function LinkPage() {
           <PixelIcon name="flag" className="h-5 w-5" /> {busy ? "Linking…" : "Link this device"}
         </button>
       </ActionBar>
+      <div className="grid gap-2" data-testid="link-wallet">
+        <p className="caption">Or sign in with a wallet — a free signature, no code needed.</p>
+        <WalletSignIn />
+      </div>
       <p className="caption">
         New here, without a code?{" "}
         <Link href="/play" className="link">

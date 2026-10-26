@@ -1212,13 +1212,18 @@ export const betaRewards = pgTable(
 
 const wei = (name: string) => numeric(name, { precision: 78, scale: 0 });
 
-/** One-time SIWE nonces (EIP-4361). */
+/**
+ * One-time SIWE nonces (EIP-4361). `purpose` "link" = verify a payout wallet for the
+ * signed-in account (account_id set); "login" = wallet sign-in with no session yet
+ * (account_id null until the wallet is matched to a stable).
+ */
 export const walletChallenges = pgTable(
   "wallet_challenges",
   {
     nonce: text("nonce").primaryKey(),
-    accountId: uuid("account_id").notNull(),
+    accountId: uuid("account_id"),
     message: text("message").notNull(),
+    purpose: text("purpose").notNull().default("link"),
     expiresAt: ts("expires_at").notNull(),
     usedAt: ts("used_at"),
     createdAt: createdAt(),

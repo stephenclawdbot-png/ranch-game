@@ -55,5 +55,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793051538324,
     "hash": "ae82634c1d6cc9c76892c1a9effe7dd5052f29d6af1cc5a57aa46cdb1e3131c4",
     "sql": "CREATE TABLE \"account_devices\" (\n\t\"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n\t\"account_id\" uuid NOT NULL,\n\t\"token_hash\" text NOT NULL,\n\t\"label\" text,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\t\"last_seen_at\" timestamp with time zone DEFAULT now() NOT NULL\n);\n--> statement-breakpoint\nCREATE TABLE \"link_codes\" (\n\t\"code_hash\" text PRIMARY KEY NOT NULL,\n\t\"account_id\" uuid NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\t\"expires_at\" timestamp with time zone NOT NULL,\n\t\"used_at\" timestamp with time zone,\n\t\"attempts\" integer DEFAULT 0 NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE \"account_devices\" ADD CONSTRAINT \"account_devices_account_id_accounts_id_fk\" FOREIGN KEY (\"account_id\") REFERENCES \"public\".\"accounts\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nALTER TABLE \"link_codes\" ADD CONSTRAINT \"link_codes_account_id_accounts_id_fk\" FOREIGN KEY (\"account_id\") REFERENCES \"public\".\"accounts\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nCREATE UNIQUE INDEX \"account_devices_token_hash_uq\" ON \"account_devices\" USING btree (\"token_hash\");--> statement-breakpoint\nCREATE INDEX \"account_devices_account_idx\" ON \"account_devices\" USING btree (\"account_id\");--> statement-breakpoint\nCREATE INDEX \"link_codes_account_idx\" ON \"link_codes\" USING btree (\"account_id\");"
+  },
+  {
+    "tag": "0009_jazzy_shiver_man",
+    "when": 1793052720679,
+    "hash": "d99dd0dc006af9e27d1c41e93a7ccf7ef21ffb840e9466542383e14f2b2b4555",
+    "sql": "ALTER TABLE \"wallet_challenges\" ALTER COLUMN \"account_id\" DROP NOT NULL;--> statement-breakpoint\nALTER TABLE \"wallet_challenges\" ADD COLUMN \"purpose\" text DEFAULT 'link' NOT NULL;"
   }
 ];

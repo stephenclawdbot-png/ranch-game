@@ -223,6 +223,7 @@ export const TELEMETRY_EVENTS = [
   "feedback",
   // Beta money (services/betaMoney.ts, apps/web/src/server/chain)
   "wallet_linked",
+  "wallet_sign_in",
   "checkout_quote",
   "checkout_paid",
   "pool_claim",

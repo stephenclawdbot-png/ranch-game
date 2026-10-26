@@ -64,6 +64,13 @@
       "when": 1793051538324,
       "tag": "0008_slow_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793052720679,
+      "tag": "0009_jazzy_shiver_man",
+      "breakpoints": true
     }
   ]
 }

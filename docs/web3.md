@@ -336,6 +336,37 @@ Env vars (server only, in `apps/web/.env.example`):
 The checkout response hands the browser the store address and chain id, so there are no
 `NEXT_PUBLIC_` chain secrets.
 
+### 3.4 Sign in with a wallet (SIWE, works signed out)
+
+Players can take their stable to any device with their wallet — no email, no password, no
+transaction (one free EIP-4361 signature). The **login wallet is `accounts.wallet_address`**
+(checksummed, unique): every successful SIWE verification sets it when unset — the payout-wallet
+link on `/me` and the sign-in flow below — and a wallet already on another account is refused
+(`LINKED_ACCOUNTS`). Lookups fall back to a verified tester row with an account (accounts linked
+before the column existed are backfilled on first sign-in).
+
+- `POST /api/auth/wallet/challenge {address}` (no session): a one-time login-purpose message
+  (`wallet_challenges.purpose = 'login'`, no account bound, 10-minute expiry) whose statement
+  is **"Sign in to Post Time with this wallet. Signing is free and sends no transaction."** —
+  deliberately different from the link statement, so one can never be replayed as the other.
+- `POST /api/auth/wallet/verify {nonce, signature}`: the signature is checked against the
+  address **in the stored message** (viem `verifyMessage`, which also handles ERC-1271 smart
+  wallets when the chain has an RPC; otherwise EOAs), the challenge is consumed (single use),
+  then one of: the wallet's stable gets a **device session** (`account_devices` + cookie; a
+  browser whose own stable is in play must confirm `{ replace: true }`, like `/api/account/link`);
+  an unknown wallet on a browser that has a stable is **linked** there (same as the payout link);
+  otherwise `{ needsStable: true }`, and `{ create: true, stableName, silks }` founds the
+  stable and links the wallet in the same request (the same service `/api/account` uses).
+  Challenge + verify are rate-limited per IP: 30/hour → 429.
+- UI: "Sign in with wallet" on `/play` and `/link` (18+ checkbox, Robinhood Chain terms);
+  `/me` shows the login wallet ("use it to sign in on other devices") or offers to link one.
+- **WalletConnect** (phone wallets via QR / deep link): optional, needs a free project ID from
+  [cloud.reown.com](https://cloud.reown.com) in `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`.
+  The library (`@walletconnect/ethereum-provider`) is dynamically imported on click, so pages
+  that only list wallets never load it; unset = injected wallets only (EIP-6963, which
+  Robinhood Wallet's in-app browser provides). Web3 stays optional: the whole game works
+  without a wallet.
+
 ## 4. Contracts
 
 | Contract | Roles | Key properties |

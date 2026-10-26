@@ -12,6 +12,7 @@ import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
+import { WalletSignIn } from "@/components/chain/WalletSignIn";
 import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -32,6 +33,8 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const [silks, setSilks] = useState<SilksT | null>(null);
   const [stage, setStage] = useState<"form" | "welcome">("form");
   const [imported, setImported] = useState(false);
+  /** "Sign in with your wallet" panel under the founding form (an existing stable's wallet). */
+  const [walletOpen, setWalletOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const decided = useRef(false);
@@ -130,10 +133,24 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
         </p>
         <p className="caption">
           Already have a stable?{" "}
+          <button
+            type="button"
+            className="link"
+            data-testid="play-link-wallet"
+            onClick={() => setWalletOpen((o) => !o)}
+          >
+            Sign in with your wallet
+          </button>{" "}
+          · or{" "}
           <Link href="/link" className="link" data-testid="play-link-device">
-            Link this device
+            link this device with a code
           </Link>
         </p>
+        {walletOpen && (
+          <div className="surface-2 p-3">
+            <WalletSignIn create={{ stableName: name.trim(), silks, inviteCode: invite ?? referral }} />
+          </div>
+        )}
       </div>
       <aside className="hidden md:block" aria-label="Preview">
         <div className="sticky top-24">

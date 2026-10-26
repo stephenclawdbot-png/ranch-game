@@ -103,6 +103,23 @@ export async function redeemLinkCode(db: Db, input: { code: string; label?: stri
   });
 }
 
+/**
+ * A fresh device token for an account the caller has already authenticated by other means
+ * (wallet sign-in): same convention as a redeemed link code — the device holds the raw
+ * token, only its hash is stored, and it shows up in the linked-device list.
+ */
+export async function createDeviceSession(db: Db, input: { accountId: string; label?: string | null; now?: Date; action?: string }): Promise<LinkedDevice> {
+  const now = input.now ?? new Date();
+  const label = input.label?.trim().slice(0, 40) || null;
+  return runTx(db, async (tx) => {
+    const token = newDeviceToken();
+    await tx.insert(accountDevices).values({ accountId: input.accountId, tokenHash: hashToken(token), label, createdAt: now, lastSeenAt: now });
+    await audit(tx, { actor: input.accountId, action: input.action ?? "account.wallet_sign_in", entityType: "account", entityId: input.accountId, data: { label } });
+    const stable = await stableOf(tx, input.accountId);
+    return { token, accountId: input.accountId, stableName: stable.name };
+  });
+}
+
 /** The account's linked devices; `currentTokenHash` marks the requesting device. `original`: the request came from the browser that founded the stable (not in the list). */
 export async function listDevices(db: Db, accountId: string, currentTokenHash: string): Promise<{ devices: DeviceEntry[]; original: boolean }> {
   const [account] = await db.select({ tokenHash: accounts.tokenHash }).from(accounts).where(eq(accounts.id, accountId));
