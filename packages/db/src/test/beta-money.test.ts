@@ -1,0 +1,384 @@
+import { eq, sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { DbHandle } from "../client";
+import { achievements, chainOrders, dailyCupEntries, fraudEvents, packPulls, referrals, testers } from "../schema";
+import { recordAccountSignal, recordPlayDay } from "../services/accounts";
+import { getBalance } from "../services/ledger";
+import { generateInviteCodes, resetPlaytest, RESET_CONFIRMATION, setTesterWallet } from "../services/playtest";
+import {
+  allocateUsd,
+  allocationsForWallet,
+  consumeWalletChallenge,
+  createChainOrder,
+  createWalletChallenge,
+  DEFAULT_POOL_RULES,
+  fulfilChainOrder,
+  linkVerifiedWallet,
+  markEpochPosted,
+  markOrderSubmitted,
+  openChainOrders,
+  poolScores,
+  reservedPremiumPacks,
+  saveEpochDraft,
+  usdCentsToWei,
+  verifiedWalletOf,
+  weekPeriod,
+  weiToUsdCents,
+  type PoolScoreRow,
+} from "../services/betaMoney";
+import {
+  affiliateAdminView,
+  claimOwner,
+  ensureReferralCode,
+  inviteesOf,
+  recordReferral,
+  recordReferralEarnings,
+  referralPlan,
+  revokeReferral,
+  setAffiliateConfig,
+  settleReferralActivations,
+  DEFAULT_AFFILIATE_CONFIG,
+} from "../services/affiliates";
+import { DAY, makeHorse, makeSeller, memoryDb, newPlayer, T0 } from "./helpers";
+
+let h: DbHandle;
+beforeAll(async () => {
+  h = await memoryDb();
+});
+afterAll(async () => {
+  await h.close();
+});
+
+let w = 0;
+const wallet = () => `0x${(++w).toString(16).padStart(40, "a")}`;
+const orderHex = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;
+const txHex = (n: number) => `0x${(n + 0xabc).toString(16).padStart(64, "0")}`;
+
+async function playerWithWallet(now = T0) {
+  const p = await newPlayer(h.db, { starters: 0 });
+  const addr = wallet();
+  await linkVerifiedWallet(h.db, { accountId: p.accountId, address: addr, now });
+  return { ...p, wallet: addr };
+}
+
+describe("wallet links (SIWE-verified, one per account)", () => {
+  it("challenges are single-use and expire", async () => {
+    const p = await newPlayer(h.db);
+    await createWalletChallenge(h.db, { accountId: p.accountId, nonce: "abcDEF123456", message: "msg-1", expiresAt: new Date(T0.getTime() + 600_000) });
+    expect(await consumeWalletChallenge(h.db, { accountId: p.accountId, nonce: "abcDEF123456", now: T0 })).toBe("msg-1");
+    await expect(consumeWalletChallenge(h.db, { accountId: p.accountId, nonce: "abcDEF123456", now: T0 })).rejects.toThrow(/expired or was already used/);
+    await createWalletChallenge(h.db, { accountId: p.accountId, nonce: "zzzZZZ999999", message: "msg-2", expiresAt: new Date(T0.getTime() + 600_000) });
+    await expect(consumeWalletChallenge(h.db, { accountId: p.accountId, nonce: "zzzZZZ999999", now: new Date(T0.getTime() + 601_000) })).rejects.toThrow();
+    const other = await newPlayer(h.db);
+    await createWalletChallenge(h.db, { accountId: p.accountId, nonce: "otherACC1234", message: "m", expiresAt: new Date(T0.getTime() + 600_000) });
+    await expect(consumeWalletChallenge(h.db, { accountId: other.accountId, nonce: "otherACC1234", now: T0 })).rejects.toThrow();
+  });
+
+  it("links once, refuses a wallet already used by another stable, and locks the unsigned path", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    const addr = wallet();
+    const res = await linkVerifiedWallet(h.db, { accountId: a.accountId, address: addr, now: T0 });
+    expect(res.tester.inviteCode).toBe("OPEN");
+    expect(await verifiedWalletOf(h.db, a.accountId)).toBe(addr);
+    await linkVerifiedWallet(h.db, { accountId: a.accountId, address: addr.toUpperCase().replace("0X", "0x"), now: T0 }); // same wallet: idempotent
+    await expect(linkVerifiedWallet(h.db, { accountId: b.accountId, address: addr, now: T0 })).rejects.toThrow(/already linked to another stable/);
+    await expect(linkVerifiedWallet(h.db, { accountId: a.accountId, address: wallet(), now: T0 })).rejects.toThrow(/already has a verified wallet/);
+    await expect(setTesterWallet(h.db, { accountId: a.accountId, address: wallet() })).rejects.toThrow(/verified/);
+    await expect(linkVerifiedWallet(h.db, { accountId: b.accountId, address: "0x123", now: T0 })).rejects.toThrow();
+  });
+});
+
+describe("ETH checkout orders", () => {
+  it("reserve the weekly cap, then fulfil exactly once with prepaid pulls (no credits spent)", async () => {
+    const p = await playerWithWallet();
+    const credits = await getBalance(h.db, p.accountId);
+    const order = await createChainOrder(h.db, {
+      orderId: orderHex(1),
+      accountId: p.accountId,
+      wallet: p.wallet,
+      sku: "premium_pack",
+      quantity: 2,
+      usdCents: 998,
+      priceWei: 3_000_000_000_000_000n,
+      ethUsdMicros: 3_326_000_000,
+      priceSources: [{ source: "coinbase", price: 3326 }],
+      chainId: 46630,
+      storeAddress: "0x00000000000000000000000000000000000000c1",
+      deadline: new Date(T0.getTime() + 300_000),
+      now: T0,
+    });
+    expect(order.status).toBe("quoted");
+    expect(await reservedPremiumPacks(h.db, { accountId: p.accountId, now: T0 })).toBe(2);
+    expect(await reservedPremiumPacks(h.db, { accountId: p.accountId, now: new Date(T0.getTime() + 301_000) })).toBe(0); // expired quote
+    expect((await openChainOrders(h.db, { accountId: p.accountId, now: T0 })).length).toBe(1);
+    await expect(markOrderSubmitted(h.db, { orderId: order.orderId, accountId: (await newPlayer(h.db)).accountId, txHash: txHex(1), now: T0 })).rejects.toThrow();
+    const sub = await markOrderSubmitted(h.db, { orderId: order.orderId, accountId: p.accountId, txHash: txHex(1), now: T0 });
+    expect(sub.status).toBe("submitted");
+    await expect(markOrderSubmitted(h.db, { orderId: order.orderId, accountId: p.accountId, txHash: txHex(2), now: T0 })).rejects.toThrow(/different transaction/);
+
+    const first = await fulfilChainOrder(h.db, { orderId: order.orderId, txHash: txHex(1), now: T0, split: { poolShareWei: 900n, treasuryWei: 2100n } });
+    expect(first.duplicate).toBe(false);
+    expect(first.pulls).toHaveLength(2);
+    expect(first.order.status).toBe("fulfilled");
+    expect(first.order.poolShareWei).toBe("900");
+    const again = await fulfilChainOrder(h.db, { orderId: order.orderId, txHash: txHex(1), now: T0 });
+    expect(again.duplicate).toBe(true);
+    expect(again.pulls.map((x) => x.pullId)).toEqual(first.pulls.map((x) => x.pullId));
+    const pulls = await h.db.select().from(packPulls).where(eq(packPulls.accountId, p.accountId));
+    expect(pulls).toHaveLength(2);
+    expect(pulls.every((x) => x.packType === "premium" && x.price === 0 && !x.free)).toBe(true);
+    expect(await getBalance(h.db, p.accountId)).toBe(credits);
+    await expect(fulfilChainOrder(h.db, { orderId: order.orderId, txHash: txHex(9), now: T0 })).rejects.toThrow(/different transaction/);
+    await expect(fulfilChainOrder(h.db, { orderId: orderHex(999), txHash: txHex(3), now: T0 })).rejects.toThrow(/unknown order/);
+    // Orders survive the playtest reset (real money).
+    await resetPlaytest(h.db, { confirm: RESET_CONFIRMATION });
+    const [kept] = await h.db.select().from(chainOrders).where(eq(chainOrders.orderId, order.orderId));
+    expect(kept?.status).toBe("fulfilled");
+    const [t] = await h.db.select().from(testers).where(sql`lower(${testers.walletAddress}) = ${p.wallet.toLowerCase()}`);
+    expect(t?.walletVerifiedAt).not.toBeNull();
+  });
+});
+
+describe("Prize Pool allocations", () => {
+  const row = (i: number, over: Partial<PoolScoreRow> = {}): PoolScoreRow => ({
+    accountId: `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`,
+    testerId: null,
+    stableName: `S${i}`,
+    wallet: wallet(),
+    racePoints: 100 - i,
+    cupPoints: 0,
+    score: 100 - i,
+    wins: 0,
+    runs: 1,
+    activeDays: 5,
+    flagged: false,
+    eligible: true,
+    reason: null,
+    ...over,
+  });
+
+  it("splits a USD budget over the paid ranks with a per-player cap; leftovers stay in the pool", () => {
+    const rules = { ...DEFAULT_POOL_RULES, paidRanks: 3, capUsdCents: 2_000, minPayoutUsdCents: 50 };
+    const a = allocateUsd([row(1), row(2), row(3, { eligible: false, reason: "x" }), row(4), row(5)], 6_000, rules);
+    expect(a.map((x) => x.rank)).toEqual([1, 2, 3]);
+    expect(a.map((x) => x.usdCents)).toEqual([2_000, 2_000, 1_000]); // 3000/2000/1000 shares, capped at $20
+    expect(a.reduce((s, x) => s + x.usdCents, 0)).toBeLessThanOrEqual(6_000);
+    expect(allocateUsd([row(1)], 30, rules)).toEqual([]); // dust
+    expect(allocateUsd([], 5_000, rules)).toEqual([]);
+  });
+
+  it("converts USD <-> wei at the posting price (rounding down)", () => {
+    const micros = 3_000_000_000; // $3,000/ETH
+    expect(usdCentsToWei(2_000, micros)).toBe(6_666_666_666_666_666n); // $20 = 0.00666... ETH
+    expect(weiToUsdCents(10n ** 18n, micros)).toBe(300_000);
+    expect(() => usdCentsToWei(1, 0)).toThrow();
+  });
+
+  it("scores Daily Cup points, requires 3 active days + a verified wallet, and excludes premium-pack horses", async () => {
+    const weekStart = "2026-11-02";
+    const { from } = weekPeriod(weekStart);
+    const a = await playerWithWallet();
+    const b = await newPlayer(h.db); // no wallet
+    const c = await playerWithWallet(); // only 2 active days
+    const d = await playerWithWallet(); // premium-pack horse
+    for (const p of [a, b, c, d]) {
+      const horse = await makeHorse(h.db, p.stableId);
+      await h.db.insert(dailyCupEntries).values({ day: "2026-11-03", accountId: p.accountId, horseId: horse.id, snapshot: {}, points: 40 });
+      if (p === d) await h.db.insert(packPulls).values({ accountId: d.accountId, packType: "premium", pullIndex: 1, seedCommitment: "x", seedReveal: "y", rarity: "rare", horseId: horse.id, price: 0, free: false, weekStart, seasonNumber: 1, idempotencyKey: `t:${horse.id}` });
+      for (let day = 0; day < (p === c ? 2 : 3); day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+    }
+    const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
+    const by = new Map(scores.map((s) => [s.accountId, s]));
+    expect(by.get(a.accountId)).toMatchObject({ cupPoints: 40, eligible: true, activeDays: 3 });
+    expect(by.get(b.accountId)).toMatchObject({ eligible: false, reason: "no verified wallet" });
+    expect(by.get(c.accountId)).toMatchObject({ eligible: false, reason: "active 2/3 days" });
+    expect(by.get(d.accountId)).toMatchObject({ cupPoints: 0, eligible: false, reason: "no points" });
+    const loose = await poolScores(h.db, { ...weekPeriod(weekStart), rules: { ...DEFAULT_POOL_RULES, excludePremiumHorses: false } });
+    expect(loose.find((s) => s.accountId === d.accountId)?.eligible).toBe(true);
+  });
+
+  it("drafts can be replaced until posted; only posted allocations are served", async () => {
+    const pool = "0x00000000000000000000000000000000000000d1";
+    const addr = wallet();
+    const p = await newPlayer(h.db);
+    const draft = (root: string) =>
+      saveEpochDraft(h.db, {
+        chainId: 46630,
+        poolAddress: pool,
+        epochId: 1,
+        kind: "weekly",
+        weekStart: "2026-11-02",
+        root,
+        totalWei: 5n,
+        availableWei: 100n,
+        ethUsdMicros: 3_000_000_000,
+        priceSources: null,
+        config: { budgetBps: 2500 },
+        vestStart: T0,
+        vestEnd: new Date(T0.getTime() + 14 * DAY),
+        allocations: [{ accountId: p.accountId, testerId: null, stableName: "S", wallet: addr, rank: 1, score: 10, activeDays: 3, usdCents: 100, amountWei: 5n, leaf: `0x${"1".repeat(64)}`, proof: [] }],
+        now: T0,
+      });
+    await draft(`0x${"a".repeat(64)}`);
+    const second = await draft(`0x${"b".repeat(64)}`);
+    expect(await allocationsForWallet(h.db, { wallet: addr, chainId: 46630, poolAddress: pool })).toHaveLength(0);
+    await markEpochPosted(h.db, { id: second.id, txHash: txHex(5), now: T0 });
+    const mine = await allocationsForWallet(h.db, { wallet: addr.toUpperCase().replace("0X", "0x"), chainId: 46630, poolAddress: pool });
+    expect(mine).toHaveLength(1);
+    expect(mine[0]!.epoch.root).toBe(`0x${"b".repeat(64)}`);
+    await expect(draft(`0x${"c".repeat(64)}`)).rejects.toThrow(/already posted/);
+  });
+});
+
+describe("affiliates (2 levels, owner at the root)", () => {
+  async function tree() {
+    const owner = await playerWithWallet();
+    await claimOwner(h.db, { accountId: owner.accountId, now: T0 });
+    const [root] = await generateInviteCodes(h.db, { count: 1, maxUses: 10 });
+    const alice = await playerWithWallet();
+    await recordReferral(h.db, { accountId: alice.accountId, code: root!, now: T0 });
+    const aliceCode = await ensureReferralCode(h.db, alice.accountId);
+    expect(await ensureReferralCode(h.db, alice.accountId)).toBe(aliceCode);
+    const bob = await playerWithWallet();
+    await recordReferral(h.db, { accountId: bob.accountId, code: aliceCode.toLowerCase(), now: T0 });
+    return { owner, alice, bob, root: root!, aliceCode };
+  }
+
+  it("root codes make the owner level 1; personal codes give inviter + upstream; written once", async () => {
+    const { owner, alice, bob, aliceCode } = await tree();
+    const [ra] = await h.db.select().from(referrals).where(eq(referrals.accountId, alice.accountId));
+    expect(ra).toMatchObject({ inviterAccountId: owner.accountId, upstreamAccountId: null });
+    const [rb] = await h.db.select().from(referrals).where(eq(referrals.accountId, bob.accountId));
+    expect(rb).toMatchObject({ inviterAccountId: alice.accountId, upstreamAccountId: owner.accountId, viaCode: aliceCode });
+    await recordReferral(h.db, { accountId: bob.accountId, code: await ensureReferralCode(h.db, owner.accountId), now: T0 }); // no rewrite
+    expect((await h.db.select().from(referrals).where(eq(referrals.accountId, bob.accountId)))[0]!.inviterAccountId).toBe(alice.accountId);
+    expect(await recordReferral(h.db, { accountId: bob.accountId, code: "NOPE", now: T0 })).toBeNull();
+    const view = await inviteesOf(h.db, owner.accountId, DEFAULT_AFFILIATE_CONFIG);
+    expect(view.map((v) => v.level).sort()).toEqual([1, 2]);
+    await expect(claimOwner(h.db, { accountId: (await newPlayer(h.db)).accountId, now: T0 })).rejects.toThrow(/verify a wallet/);
+  });
+
+  it("signs both levels within the window; drops levels for revoked, expired, walletless, linked or capped referrers", async () => {
+    const { owner, alice, bob } = await tree();
+    const plan = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: bob.wallet, usdCents: 499, now: T0 });
+    expect(plan.ref1).toMatchObject({ accountId: alice.accountId, wallet: alice.wallet, bps: 1000, usdCents: 49, owner: false });
+    expect(plan.ref2).toMatchObject({ accountId: owner.accountId, bps: 300, usdCents: 14, owner: true });
+
+    const late = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: bob.wallet, usdCents: 499, now: new Date(T0.getTime() + 91 * DAY) });
+    expect(late.ref1).toBeNull();
+    expect(late.dropped[0]!.reason).toMatch(/window/);
+
+    // Same wallet as the buyer (e.g. alice buying with... her own wallet is impossible; simulate via buyerWallet).
+    const same = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: alice.wallet, usdCents: 499, now: T0 });
+    expect(same.ref1).toBeNull();
+    expect(same.ref2).toBeNull(); // level 2 needs level 1
+    expect(same.dropped.map((d) => d.reason)).toContain("same wallet as the buyer or the other referrer");
+
+    // Linked accounts (same device) -> dropped and flagged; the owner is exempt.
+    await recordAccountSignal(h.db, { accountId: bob.accountId, kind: "device", value: "dev-shared" });
+    await recordAccountSignal(h.db, { accountId: alice.accountId, kind: "device", value: "dev-shared" });
+    const linked = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: bob.wallet, usdCents: 499, now: T0 });
+    expect(linked.ref1).toBeNull();
+    expect(linked.dropped[0]!.reason).toMatch(/linked/);
+    const flags = await h.db.select().from(fraudEvents).where(eq(fraudEvents.kind, "referral_linked"));
+    expect(flags.some((f) => f.accountId === bob.accountId && f.relatedAccountId === alice.accountId)).toBe(true);
+
+    // Revoked referral -> nothing.
+    const carol = await playerWithWallet();
+    await recordReferral(h.db, { accountId: carol.accountId, code: await ensureReferralCode(h.db, alice.accountId), now: T0 });
+    await revokeReferral(h.db, { accountId: carol.accountId, reason: "test", now: T0 });
+    const rev = await referralPlan(h.db, { buyerAccountId: carol.accountId, buyerWallet: carol.wallet, usdCents: 499, now: T0 });
+    expect(rev.ref1).toBeNull();
+    expect(rev.dropped.every((d) => d.reason === "referral revoked")).toBe(true);
+    await expect(revokeReferral(h.db, { accountId: carol.accountId, reason: "again", now: T0 })).rejects.toThrow();
+
+    // Inviter without a wallet.
+    const dave = await newPlayer(h.db);
+    const erin = await playerWithWallet();
+    await recordReferral(h.db, { accountId: erin.accountId, code: await ensureReferralCode(h.db, dave.accountId), now: T0 });
+    const nw = await referralPlan(h.db, { buyerAccountId: erin.accountId, buyerWallet: erin.wallet, usdCents: 499, now: T0 });
+    expect(nw.dropped[0]).toMatchObject({ level: 1, reason: "no verified wallet" });
+  });
+
+  it("weekly per-inviter cap counts open quotes and earnings; the owner has its own (optional) cap", async () => {
+    const { owner, alice } = await tree();
+    await setAffiliateConfig(h.db, { weeklyCapUsdCents: 100, ownerWeeklyCapUsdCents: null });
+    const buyers = [await playerWithWallet(), await playerWithWallet(), await playerWithWallet()];
+    const aliceCode = await ensureReferralCode(h.db, alice.accountId);
+    let n = 100;
+    const results = [];
+    for (const b of buyers) {
+      await recordReferral(h.db, { accountId: b.accountId, code: aliceCode, now: T0 });
+      const plan = await referralPlan(h.db, { buyerAccountId: b.accountId, buyerWallet: b.wallet, usdCents: 499, now: T0 });
+      results.push(plan);
+      await createChainOrder(h.db, {
+        orderId: orderHex(++n),
+        accountId: b.accountId,
+        wallet: b.wallet,
+        sku: "premium_pack",
+        quantity: 1,
+        usdCents: 499,
+        priceWei: 1n,
+        ethUsdMicros: 1,
+        priceSources: null,
+        chainId: 1,
+        storeAddress: "0x00000000000000000000000000000000000000c1",
+        deadline: new Date(T0.getTime() + 300_000),
+        now: T0,
+        ref1: plan.ref1,
+        ref2: plan.ref2,
+      });
+    }
+    // $0.49 each: two fit under $1.00, the third would exceed it.
+    expect(results.map((r) => !!r.ref1)).toEqual([true, true, false]);
+    expect(results[2]!.dropped[0]!.reason).toMatch(/weekly commission cap/);
+    // The owner (level 2) has no cap configured: paid every time.
+    expect(results.every((r) => r.ref2?.accountId === owner.accountId || r.ref1 === null)).toBe(true);
+    await setAffiliateConfig(h.db, { weeklyCapUsdCents: DEFAULT_AFFILIATE_CONFIG.weeklyCapUsdCents });
+    await expect(setAffiliateConfig(h.db, { ref1Bps: 1501 })).rejects.toThrow();
+    await expect(setAffiliateConfig(h.db, { ref2Bps: 501 })).rejects.toThrow();
+  });
+
+  it("records paid commissions once and grants the active-invitee reward once (credits + badge)", async () => {
+    const { owner, alice, bob } = await tree();
+    const plan = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: bob.wallet, usdCents: 499, now: T0 });
+    const order = await createChainOrder(h.db, {
+      orderId: orderHex(500),
+      accountId: bob.accountId,
+      wallet: bob.wallet,
+      sku: "premium_pack",
+      quantity: 1,
+      usdCents: 499,
+      priceWei: 1_000_000n,
+      ethUsdMicros: 1,
+      priceSources: null,
+      chainId: 1,
+      storeAddress: "0x00000000000000000000000000000000000000c1",
+      deadline: new Date(T0.getTime() + 300_000),
+      now: T0,
+      ref1: plan.ref1,
+      ref2: plan.ref2,
+    });
+    const commissions = [
+      { level: 1 as const, wallet: alice.wallet, amountWei: 100_000n, deferred: false },
+      { level: 2 as const, wallet: owner.wallet, amountWei: 30_000n, deferred: false },
+    ];
+    await recordReferralEarnings(h.db, { order, txHash: txHex(500), commissions, now: T0 });
+    await recordReferralEarnings(h.db, { order, txHash: txHex(500), commissions, now: T0 });
+    const admin = await affiliateAdminView(h.db);
+    expect(admin.ownerAccountId).toBe(owner.accountId);
+    expect(admin.owner.level2Wei).not.toBe("0");
+    expect(admin.topInviters.find((t) => t.accountId === alice.accountId)?.earnedUsdCents).toBeGreaterThanOrEqual(49);
+
+    const before = await getBalance(h.db, alice.accountId);
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0); // bob not active yet
+    for (let d = 0; d < 3; d++) await recordPlayDay(h.db, bob.accountId, new Date(T0.getTime() + d * DAY));
+    await makeSeller(h.db, bob.accountId, bob.stableId); // 20 settled runs
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(1);
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0);
+    expect((await getBalance(h.db, alice.accountId)) - before).toBe(DEFAULT_AFFILIATE_CONFIG.activeReward.credits);
+    const badges = await h.db.select().from(achievements).where(eq(achievements.accountId, alice.accountId));
+    expect(badges.map((b) => b.code)).toContain("referrer");
+  });
+});

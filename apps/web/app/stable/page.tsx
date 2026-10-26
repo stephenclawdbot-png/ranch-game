@@ -160,9 +160,15 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
       <span className="num hidden text-cream-dim lg:block" title="Last three runs, oldest first">
         {form}
       </span>
-      <button type="button" className="btn btn-sm justify-self-end" onClick={onRace} disabled={!!s.block} aria-label={`Race ${horse.name}`}>
-        Race
-      </button>
+      {s.block === "Not yet of racing age" ? (
+        <Link href={`/horse/${s.id}/care`} className="btn btn-sm justify-self-end" aria-label={`Care for ${horse.name}`}>
+          Care
+        </Link>
+      ) : (
+        <button type="button" className="btn btn-sm justify-self-end" onClick={onRace} disabled={!!s.block} aria-label={`Race ${horse.name}`}>
+          Race
+        </button>
+      )}
       <span className="col-span-2 flex flex-wrap items-center gap-2 pl-[3.75rem] text-xs font-bold text-sage lg:hidden">
         <span className={cond.tone}>{cond.text}</span>
         <span>· {s.starts}/{s.maxStarts} starts</span>

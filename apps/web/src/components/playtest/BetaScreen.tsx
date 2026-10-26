@@ -65,12 +65,12 @@ function Beta() {
           Weekly Prize Pool
         </h2>
         <p className="text-cream-dim">The weekly prizes come from the on-chain Prize Pool on Robinhood Chain: its rules, the current pool and payouts are public.</p>
-        <Link href="/pool" className="btn w-fit" data-testid="beta-pool-link">
+        <Link href="/pool" prefetch={false} className="btn w-fit" data-testid="beta-pool-link">
           See the Prize Pool
         </Link>
       </section>
 
-      {v.rules.length > 0 && (
+      {v.tester && v.rules.length > 0 && (
         <section aria-labelledby="rules-h">
           <SectionHeader id="rules-h" title="Tester bonuses" />
           <ul className="surface rows" data-testid="beta-rules">

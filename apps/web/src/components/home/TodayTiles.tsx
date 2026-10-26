@@ -170,7 +170,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
                 <span className="t-meta mt-0.5 block">{t.text}</span>
               </span>
               <span className="shrink-0 text-sm font-extrabold text-cream" aria-hidden>
-                {t.cta} ›
+                <span className="hidden sm:inline">{t.cta} </span>›
               </span>
             </Link>
           </li>

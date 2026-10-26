@@ -791,6 +791,8 @@ export class HD2DScene {
   }
 
   resize(W: number, H: number): void {
+    // Phones: the director keeps to close tracking shots (no tiny-horse aerials).
+    this.director.compact = W < 640;
     this.W = Math.max(1, W);
     this.H = Math.max(1, H);
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;

@@ -512,6 +512,12 @@ body::before {
     width: 100%;
     min-height: 3.25rem;
   }
+  /* Phones: nothing may hide behind the sticky action bar + tab bar (bar 76px + tab bar + safe area). */
+  @media (max-width: 767.98px) {
+    main:has([data-action-bar]) {
+      padding-bottom: calc(var(--tabbar-h) + 6.5rem + env(safe-area-inset-bottom));
+    }
+  }
   @media (min-width: 768px) {
     .action-bar {
       position: static;

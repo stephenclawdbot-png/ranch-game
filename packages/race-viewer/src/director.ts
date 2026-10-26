@@ -49,6 +49,11 @@ export const SHOT_REACH: Record<ShotType, number> = { gate: 1e9, close: 5, pack:
 
 export class Director {
   shot: Shot = { type: "gate", subject: null, since: 0 };
+  /**
+   * Small screens (phones): no aerials (horses become specks); stay on close tracking and
+   * pack shots, with the player's horse favoured in the rotation.
+   */
+  compact = false;
   private aerials = 0;
   private headons = 0;
   private finalRail = false;
@@ -128,7 +133,7 @@ export class Director {
 
     // Establishing aerial early (shows everyone, the player's horse included); an
     // optional second one mid-race.
-    if (this.aerials === 0 && progress > 0.15 && progress < 0.3) {
+    if (!this.compact && this.aerials === 0 && progress > 0.15 && progress < 0.3) {
       this.aerials++;
       return { type: "aerial", subject: null };
     }
@@ -152,7 +157,7 @@ export class Director {
       this.headons++;
       return { type: "headon", subject: null };
     }
-    if (this.aerials === 1 && progress > 0.5 && progress < 0.58 && spread(inp.runners) > 45) {
+    if (!this.compact && this.aerials === 1 && progress > 0.5 && progress < 0.58 && spread(inp.runners) > 45) {
       this.aerials++;
       return { type: "aerial", subject: null };
     }
@@ -162,7 +167,7 @@ export class Director {
       this.rotation++;
       const r = this.rotation % 3;
       if (r === 1) return { type: "pack", subject: null };
-      if (r === 2 && hl && hl !== leader?.id) return { type: "close", subject: hl };
+      if ((r === 2 || (this.compact && r === 0)) && hl && hl !== leader?.id) return { type: "close", subject: hl };
       return { type: "close", subject: null };
     }
     return keep;

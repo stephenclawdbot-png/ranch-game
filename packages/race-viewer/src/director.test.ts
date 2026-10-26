@@ -3,11 +3,12 @@ import { Director, MAX_UNSEEN_S, MIN_SHOT_S, type ShotType } from "./director";
 import { fakeReplay } from "./dev/fakeReplay";
 import { createReplaySampler, replayTiming } from "./sampleReplay";
 
-function run(seed: number, highlight: string | null, photoFinish = true) {
+function run(seed: number, highlight: string | null, photoFinish = true, compact = false) {
   const replay = fakeReplay({ horses: 10, seed, distanceM: 1600, photoFinish });
   const timing = replayTiming(replay);
   const sample = createReplaySampler(replay);
   const d = new Director();
+  d.compact = compact;
   d.reset(-1.5);
   const cuts: { t: number; type: ShotType; subject: string | null }[] = [];
   let unseenMax = 0;
@@ -31,6 +32,14 @@ function run(seed: number, highlight: string | null, photoFinish = true) {
 }
 
 describe("broadcast director", () => {
+  it("compact (phones): no aerials, the player's horse stays in view", () => {
+    for (const seed of [3, 7, 11]) {
+      const { cuts, unseenMax } = run(seed, "h9", true, true);
+      expect(cuts.some((c) => c.type === "aerial")).toBe(false);
+      expect(unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
+    }
+  });
+
   it("opens on the gate, establishes with an aerial, uses the rail cam in the final furlong and the judge cam for a photo", () => {
     const { cuts, timing } = run(7, "h9");
     const types = cuts.map((c) => c.type);

@@ -132,6 +132,9 @@ export interface NewChainOrder {
   storeAddress: string;
   deadline: Date;
   now: Date;
+  /** Affiliate plan signed into the quote (services/affiliates.ts referralPlan). */
+  ref1?: { accountId: string; wallet: string; bps: number } | null;
+  ref2?: { accountId: string; wallet: string; bps: number } | null;
 }
 
 export async function createChainOrder(db: Db, o: NewChainOrder): Promise<ChainOrderRow> {
@@ -154,6 +157,12 @@ export async function createChainOrder(db: Db, o: NewChainOrder): Promise<ChainO
       deadline: o.deadline,
       createdAt: o.now,
       updatedAt: o.now,
+      ref1AccountId: o.ref1?.accountId ?? null,
+      ref1Wallet: o.ref1?.wallet.toLowerCase() ?? null,
+      ref1Bps: o.ref1?.bps ?? 0,
+      ref2AccountId: o.ref2?.accountId ?? null,
+      ref2Wallet: o.ref2?.wallet.toLowerCase() ?? null,
+      ref2Bps: o.ref2?.bps ?? 0,
     })
     .returning();
   return row!;
@@ -252,7 +261,10 @@ export interface FulfilResult {
  * it fulfilled. Every step is idempotent, so a crash or a concurrent retry can't double-grant.
  * A paid order that can't be pulled right now stays `paid` and is retried (never lost).
  */
-export async function fulfilChainOrder(db: Db, input: { orderId: string; txHash: string; now: Date }): Promise<FulfilResult> {
+export async function fulfilChainOrder(
+  db: Db,
+  input: { orderId: string; txHash: string; now: Date; split?: { poolShareWei: bigint; treasuryWei: bigint } },
+): Promise<FulfilResult> {
   const txHash = input.txHash.toLowerCase();
   const order = await getChainOrder(db, input.orderId);
   if (!order) throw new DomainError("NOT_FOUND", "unknown order (never fulfil an orderId the server did not create)");
@@ -261,7 +273,15 @@ export async function fulfilChainOrder(db: Db, input: { orderId: string; txHash:
   if (order.status !== "paid" && order.status !== "fulfilled") {
     await db
       .update(chainOrders)
-      .set({ status: "paid", txHash, paidAt: input.now, updatedAt: input.now, error: null })
+      .set({
+        status: "paid",
+        txHash,
+        paidAt: input.now,
+        updatedAt: input.now,
+        error: null,
+        poolShareWei: input.split?.poolShareWei.toString() ?? null,
+        treasuryWei: input.split?.treasuryWei.toString() ?? null,
+      })
       .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, ["quoted", "submitted", "expired"])));
     await audit(db, { actor: order.accountId, action: "chain_order.paid", entityType: "chain_order", entityId: order.id, data: { txHash, priceWei: order.priceWei } });
   }
@@ -371,7 +391,7 @@ export async function poolScores(ex: Executor, input: { from: Date; to: Date; ru
       postTime: races.postTime,
       horseId: raceEntries.horseId,
       fieldSize: sql<number>`(select count(*)::int from race_entries x where x.race_id = "races"."id" and x.status = 'entered')`,
-      premium: sql<boolean>`exists (select 1 from pack_pulls p where p.horse_id = ${raceEntries.horseId} and p.pack_type = 'premium')`,
+      premium: sql<number>`(exists (select 1 from pack_pulls p where p.horse_id = "race_entries"."horse_id" and p.pack_type = 'premium'))::int`,
     })
     .from(raceEntries)
     .innerJoin(races, eq(races.id, raceEntries.raceId))
@@ -389,7 +409,7 @@ export async function poolScores(ex: Executor, input: { from: Date; to: Date; ru
   // Weekly cap applies per UTC week, as in the league.
   const byAccountWeek = new Map<string, { position: number; fieldSize: number; raceClass: string }[]>();
   for (const r of runs) {
-    if (rules.excludePremiumHorses && r.premium) continue;
+    if (rules.excludePremiumHorses && Number(r.premium) === 1) continue;
     const k = `${r.accountId}|${utcWeekStart(r.postTime)}`;
     byAccountWeek.set(k, [...(byAccountWeek.get(k) ?? []), { position: r.position ?? 99, fieldSize: Number(r.fieldSize), raceClass: r.raceClass }]);
   }
@@ -402,12 +422,16 @@ export async function poolScores(ex: Executor, input: { from: Date; to: Date; ru
   }
 
   const cupRows = await ex
-    .select({ accountId: dailyCupEntries.accountId, points: sql<number>`coalesce(sum(${dailyCupEntries.points}), 0)::int`, premium: sql<boolean>`bool_or(exists (select 1 from pack_pulls p where p.horse_id = ${dailyCupEntries.horseId} and p.pack_type = 'premium'))` })
+    .select({
+      accountId: dailyCupEntries.accountId,
+      points: sql<number>`coalesce(sum(${dailyCupEntries.points}), 0)::int`,
+      nonPremium: sql<number>`coalesce(sum(${dailyCupEntries.points}) filter (where not exists (select 1 from pack_pulls p where p.horse_id = "daily_cup_entries"."horse_id" and p.pack_type = 'premium')), 0)::int`,
+    })
     .from(dailyCupEntries)
     .where(and(gte(dailyCupEntries.day, utcDay(from)), lt(dailyCupEntries.day, utcDay(to))))
     .groupBy(dailyCupEntries.accountId);
   const cup = new Map<string, number>();
-  for (const c of cupRows) cup.set(c.accountId, rules.excludePremiumHorses && c.premium ? 0 : Number(c.points));
+  for (const c of cupRows) cup.set(c.accountId, Number(rules.excludePremiumHorses ? c.nonPremium : c.points));
 
   const activeRows = await ex
     .select({ accountId: accountPlayDays.accountId, days: sql<number>`count(*)::int` })

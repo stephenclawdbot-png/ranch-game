@@ -95,7 +95,9 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
               {horse.name}
             </h1>
             <p className="text-cream-dim">
-              {horse.age}-year-old {COAT_LABEL[horse.appearance.coat].toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
+              {horse.age > 0 ? `${horse.age}-year-old ` : "A young "}
+              {COAT_LABEL[horse.appearance.coat].toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
+              {horse.age > 0 ? "" : " in the nursery"}
               {view.trainer && ` · trained by ${view.trainer}`}
             </p>
           </div>
@@ -192,7 +194,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
             <AptRow label="Going" cells={apt.going} name={(k) => GOING_LABEL[k]} />
             <AptRow label="Plan" cells={apt.style} name={(k) => STYLE_LABEL[k]} />
           </dl>
-          <p className="caption mt-2">Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}..</p>
+          <p className="caption mt-2">Trip bands: {TRIP_BANDS.map((b) => `${b.label} ${b.range}`).join(" · ")}.</p>
         </section>
 
         <section className="surface p-4" aria-labelledby="ability-h">

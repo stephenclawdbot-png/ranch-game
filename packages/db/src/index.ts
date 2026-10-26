@@ -35,3 +35,4 @@ export * from "./services/houseStuds";
 export * from "./services/onboarding";
 export * from "./services/playtest";
 export * from "./services/betaMoney";
+export * from "./services/affiliates";
