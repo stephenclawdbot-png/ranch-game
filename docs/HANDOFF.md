@@ -45,6 +45,21 @@ Preview and Production.)
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
 
+## Accounts across devices, wallet sign-in, shorter post wait, design pass (2026-10-26, later)
+
+- **Device linking** (`packages/db/src/services/devices.ts`, `/me` card, `/link`): one-time
+  `XXXX-XXXX` codes (10 min, single use via conditional UPDATE, hashed), extra device tokens in
+  `account_devices`, list/revoke, 20 failures/IP/hour → 429, replace guard for browsers with progress.
+- **Wallet sign-in** (`apps/web/src/server/walletAuth.ts`, `/api/auth/wallet/*`, `WalletSignIn`):
+  SIWE login challenges (`wallet_challenges.purpose = 'login'`), real signature checks even with the
+  mock chain, login wallet = `accounts.wallet_address`; signs in, links, or founds a stable; 18+
+  checkbox. WalletConnect (`@walletconnect/ethereum-provider` 2.26.0, lazy) shows only when
+  **`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`** is set in Vercel (owner: create it at cloud.reown.com).
+  Founding a stable with a wallet asks for a second signature (the first nonce is consumed).
+- **Going to post:** `ENTRY_CLOSE_BEFORE_MS` 60 → 30 s (db rules read it); stored races keep theirs.
+- **Design pass** (Kimi): see `docs/qa/2026-10-26-design-pass.md` (7 fixed, 6 noted for later).
+- e2e `apps/web/e2e/beta-polish.mjs` passes on the merged branch.
+
 ## Beta economy picks, daily goals, genetics, race markings (lead + Ollama workers, 2026-10-26)
 
 Owner picks on `docs/economy/AUDIT.md`: pool **10 % + fixed ~$40/week top-up** (deploy default
