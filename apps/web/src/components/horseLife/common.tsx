@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { GrowthView, RangeView } from "@/lib/horseLife";
 import { api } from "@/lib/player";
-import { GRADE_COLOR } from "../StatBars";
+import { GRADE_COLOR, GRADE_TEXT } from "../StatBars";
 
 /**
  * Runs a horse-life action on the server, then re-renders the page from the server's state
@@ -94,11 +94,11 @@ export function RangeList({ ranges }: { ranges: RangeView[] }) {
             <span className="absolute inset-y-[2px] block" style={{ left: `${r.lo / 10}%`, width: `${Math.max(1, (r.hi - r.lo) / 10)}%`, background: GRADE_COLOR[r.hiGrade] ?? "#cdbf9c" }} />
           </dd>
           <dd className="text-right text-sm font-extrabold">
-            <span style={{ color: GRADE_COLOR[r.loGrade] }}>{r.loGrade}</span>
+            <span style={{ color: GRADE_TEXT[r.loGrade] }}>{r.loGrade}</span>
             {r.loGrade !== r.hiGrade && (
               <>
                 <span className="text-sage"> to </span>
-                <span style={{ color: GRADE_COLOR[r.hiGrade] }}>{r.hiGrade}</span>
+                <span style={{ color: GRADE_TEXT[r.hiGrade] }}>{r.hiGrade}</span>
               </>
             )}
           </dd>

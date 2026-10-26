@@ -12,10 +12,13 @@ import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
-import { horseSummary, pronoun } from "@/lib/aptitude";
+import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { ErrorNote } from "@/components/ui/ErrorNote";
-import { createStable, legacyProfile, recommendHorse, usePlayerState } from "@/lib/player";
+import { api, createStable, legacyProfile, recommendHorse, refreshPlayer, usePlayerState } from "@/lib/player";
+import type { StableHorse } from "@/lib/types";
+import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
+import { Wordmark } from "@/components/SiteNav";
 import { randomSilks } from "@/lib/silks";
 
 /**
@@ -85,24 +88,27 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
       }}
     >
       <div className="grid content-start gap-5">
-        <header>
-          <h1 className="t-display-xl">Found your stable</h1>
-          <p className="mt-1 text-lg text-cream-dim">
+        <header className="grid gap-2">
+          <span className="w-fit">
+            <Wordmark />
+          </span>
+          <h1 className="t-page">Found your stable</h1>
+          <p className="t-meta">
             {imported
-              ? "We found your stable from the demo on this browser: its name and colours come with you. Your horses and credits start fresh on the Club's servers."
+              ? "We found your stable from the demo on this browser: its name and colours come with you. Horses and credits start fresh."
               : "We’ve picked a name and colours. Keep them or roll again, then meet your horses."}
           </p>
         </header>
         <div className="md:hidden">
           <SilksStand silks={silks} name={name} />
         </div>
-        <NameField name={name} onChange={setName} />
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn" onClick={() => setSilks(randomSilks())}>
+        <div className="surface grid gap-4 p-4">
+          <NameField name={name} onChange={setName} />
+          <button type="button" className="btn btn-outline w-fit" onClick={() => setSilks(randomSilks())}>
             <PixelIcon name="dice" className="h-5 w-5" /> New colours
           </button>
         </div>
-        <details className="surface group p-3 [&[open]>summary_.chev]:rotate-90">
+        <details className="surface group p-4 [&[open]>summary_.chev]:rotate-90">
           <summary className="flex min-h-11 items-center justify-between gap-2 font-extrabold">
             Customise colours
             <span className="chev text-cream-dim" aria-hidden>
@@ -119,7 +125,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
           </button>
         </ActionBar>
         {error !== null && <ErrorNote error={error} />}
-        <p className="text-sm text-sage">
+        <p className="caption">
           {invite ? `Invite ${invite} accepted. ` : ""}Free. No email, no wallet. Your stable is linked to this browser.
         </p>
       </div>
@@ -160,69 +166,112 @@ function Welcome() {
 
   const ordered = star ? [star, ...horses.filter((x) => x.id !== star.id)] : horses;
   return (
-    <div className="mx-auto grid max-w-4xl gap-5">
-      <header>
-        <p className="eyebrow">Registered with the club · {formatCredits(state.credits)} credits · {state.entries.balance} Live entries today</p>
-        <h1 className="t-display-xl">{state.stableName}</h1>
-        <p className="mt-1 text-lg text-cream-dim">
-          {horses.length} horses have arrived.{" "}
-          {h && (
-            <>
-              <strong className="text-cream">{h.name}</strong> is fit and ready to race. {horseSummary(h)}
-            </>
-          )}
+    <div className="mx-auto grid max-w-4xl gap-6">
+      <header className="grid gap-1">
+        <p className="eyebrow">
+          Registered at Kestrel Downs · {formatCredits(state.credits)} credits · {state.entries.balance} Live entries
+        </p>
+        <h1 className="t-page">{state.stableName}</h1>
+        <p className="t-meta">
+          {horses.length} horses have arrived. {h ? `${h.name} is fit and ready to race.` : ""} You can rename any of them before their first race.
         </p>
       </header>
 
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3" aria-label="Your starter horses">
-        {ordered.map((s, order) => {
-          const isStar = s.id === star?.id;
-          return (
-            <li
-              key={s.id}
-              className={`${isStar ? "surface is-selected" : "surface"} overflow-hidden !p-0`}
-              style={{ animation: `stall-open 360ms steps(6) ${order * 140}ms both` }}
-            >
-              <Link href={`/horse/${s.id}`} className="block">
-                <Stall className="flex h-[7.5rem] items-end justify-center">
-                  <HorsePortrait appearance={s.horse.appearance} scale={1} className="relative" />
-                  {isStar && <span className="chip chip-brass absolute left-1 top-1 text-xs">Ready to race</span>}
-                </Stall>
-                <div className="p-2">
-                  <p className="font-extrabold leading-tight">{s.horse.name}</p>
-                  <p className="text-sm text-cream-dim">
-                    {STYLE_LABEL[s.horse.style]} · {formatDistance(s.horse.preferredDistanceM)} · {SURFACE_LABEL[s.horse.preferredSurface]}
-                  </p>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+      <ul className="grid gap-3 sm:grid-cols-3" aria-label="Your starter horses">
+        {ordered.map((s, order) => (
+          <StarterCard key={s.id} s={s} star={s.id === star?.id} order={order} />
+        ))}
       </ul>
 
       {h && star && (
-        <div className="flex flex-wrap items-center gap-3">
-          <ActionBar>
-            <button type="button" className="btn btn-brass btn-lg" onClick={raceNow} disabled={busy} data-testid="race-now">
-              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Going to the gates…" : `Race ${h.name} now`}
+        <div className="frame-hero grid gap-3 p-4 sm:p-5">
+          <p className="tag tag-ready w-fit">★ Your first race</p>
+          <p className="t-hero">{h.name} runs as a {STYLE_LABEL[h.style].toLowerCase()}</p>
+          <p className="t-meta">
+            {pronoun(h.sex).he[0]!.toUpperCase() + pronoun(h.sex).he.slice(1)}{" "}
+            {h.style === "front" ? "tries to lead all the way" : h.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. A free Story race against the Club; the gates
+            open ten seconds after you tap.
+          </p>
+          <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
+            <ActionBar>
+              <button type="button" className="btn btn-brass btn-lg" onClick={raceNow} disabled={busy} data-testid="race-now">
+                <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Going to the gates…" : `Race ${h.name} now`}
+              </button>
+            </ActionBar>
+            <button type="button" className="btn btn-outline" onClick={() => entry.open(star.id)}>
+              Change the plan
             </button>
-          </ActionBar>
-          <button type="button" className="btn" onClick={() => entry.open(star.id)}>
-            Change the plan
-          </button>
-          <Link href="/stable" className="btn-ghost inline-flex min-h-11 items-center font-bold">
-            Walk into the stable
-          </Link>
+            <Link href="/stable" className="btn btn-ghost">
+              Walk into the stable
+            </Link>
+          </div>
         </div>
       )}
       {error !== null && <ErrorNote error={error} />}
-      <p className="text-sm text-cream-dim">
-        {h
-          ? `${h.name} runs as a ${STYLE_LABEL[h.style].toLowerCase()}: ${pronoun(h.sex).he} ${h.style === "front" ? "tries to lead all the way" : h.style === "closer" ? "saves energy and comes late" : "sits behind the leaders, then pounces"}. That plan is set for you. Your first race is a free Story race against the Club; the gates open ten seconds after you tap.`
-          : ""}
-      </p>
       <StorageNote />
     </div>
+  );
+}
+
+/** One starter in its stall: the door opens, the portrait at 1x, the name (rename before the first race). */
+function StarterCard({ s, star, order }: { s: StableHorse; star: boolean; order: number }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(s.horse.name);
+  const check = useHorseNameCheck(name, { horseId: s.id, current: s.horse.name });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/horses/${s.id}/rename`, { body: { name } });
+      await refreshPlayer();
+      setEditing(false);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <li className={`surface overflow-hidden ${star ? "is-selected" : ""}`} style={{ animation: `stall-open 360ms steps(6) ${order * 140}ms both` }} data-testid="starter">
+      <Stall className="flex h-[148px] items-end justify-center">
+        <HorsePortrait appearance={s.horse.appearance} scale={1} className="relative" />
+        {star && <span className="tag tag-you absolute left-2 top-2">Ready to race</span>}
+      </Stall>
+      <div className="grid gap-1 p-3">
+        {editing ? (
+          <form className="grid gap-2" onSubmit={save}>
+            <HorseNameInput id={`starter-${s.id}`} label={`Rename ${s.horse.name}`} value={name} onChange={setName} check={check} testId="starter-name-input" />
+            <div className="flex gap-2">
+              <button type="submit" className="btn btn-sm" disabled={busy || !name.trim() || (check !== null && !check.ok)} data-testid="starter-name-save">
+                {busy ? "Saving…" : "Save"}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            </div>
+            {error !== null && <ErrorNote error={error} />}
+          </form>
+        ) : (
+          <>
+            <Link href={`/horse/${s.id}`} className="t-title hover:underline">
+              {s.horse.name}
+            </Link>
+            <p className="t-meta">
+              {STYLE_LABEL[s.horse.style]} · {formatDistance(s.horse.preferredDistanceM)} · {SURFACE_LABEL[s.horse.preferredSurface]}
+            </p>
+            <p className="caption flex items-center justify-between gap-2">
+              <span>{s.regNo}</span>
+              <button type="button" className="link !text-[0.8125rem]" onClick={() => setEditing(true)} data-testid="starter-rename">
+                Rename
+              </button>
+            </p>
+          </>
+        )}
+      </div>
+    </li>
   );
 }
 

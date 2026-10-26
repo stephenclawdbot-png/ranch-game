@@ -17,7 +17,8 @@ import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
 import { PositionBadge } from "../ui/PositionBadge";
 import { Saddlecloth } from "../race/Saddlecloth";
-import { ConditionChips, CupBadge, RaceTime, StatTile } from "./bits";
+import { CupBadge, RaceTime } from "./bits";
+import { EmptyState, HowItWorks, SceneBand } from "../ui/Page";
 
 const STYLES: RunningStyle[] = ["front", "stalker", "closer"];
 
@@ -79,8 +80,8 @@ function Picker({ view }: { view: CupView }) {
   return (
     <div className="grid gap-3">
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1 font-extrabold">Choose your runner</legend>
-        <ul className="surface rows" role="radiogroup" aria-label="Your horses">
+        <legend className="mb-2 font-extrabold">Choose your runner</legend>
+        <ul className="surface-2 rows" role="radiogroup" aria-label="Your horses">
           {horses.map((h) => (
             <li key={h.id}>
               <label className={`row-link cursor-pointer gap-3 px-3 py-2 ${h.block ? "opacity-60" : ""} ${horseId === h.id ? "surface-2" : ""}`}>
@@ -109,11 +110,15 @@ function Picker({ view }: { view: CupView }) {
         </div>
         <p className="caption mt-1 text-cream-dim">★ natural style. The Cup is free, isn&rsquo;t a career start and never tires your horse.</p>
       </div>
-      <ActionBar>
-        <button type="button" className="btn btn-brass btn-lg" disabled={!horseId || !tactic || busy} onClick={run} data-testid="cup-run">
-          <PixelIcon name="trophy" size={32} className="-my-2" /> {busy ? "Running…" : "Take your Cup Run"}
-        </button>
-      </ActionBar>
+      {horseId ? (
+        <ActionBar>
+          <button type="button" className="btn btn-brass btn-lg" disabled={!tactic || busy} onClick={run} data-testid="cup-run">
+            <PixelIcon name="trophy" size={32} className="-my-2" /> {busy ? "Running…" : "Take your Cup Run"}
+          </button>
+        </ActionBar>
+      ) : (
+        <p className="t-meta">None of your horses can run right now. Resting horses are back tomorrow; Story races are always open.</p>
+      )}
       {error !== null && <ErrorNote error={error} />}
     </div>
   );
@@ -124,82 +129,72 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
   const { top, near } = view.board;
   const nearOnly = near.filter((r) => !top.some((t) => t.entryId === r.entryId));
   return (
-    <div className="grid gap-6">
-      <header>
-        <p className="eyebrow">Daily · one run a day</p>
-        <h1 className="t-display-xl">Daily Cup</h1>
-        <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-          Everyone races the same seeded field in the same conditions. One run per day with any horse, ranked by time. Free, and it never counts as a start.
-        </p>
-      </header>
+    <div>
+      <SceneBand scene="paddock" alt="The paddock at Kestrel Downs" eyebrow="Club · one run a day" title="Daily Cup" />
 
-      <section className="frame-hero grid gap-3 p-3 sm:p-4" aria-labelledby="today-h">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 id="today-h" className="t-display-m">
-              {view.conditions.name}
+      <section className="frame-hero mt-4 grid gap-4 p-4 sm:p-5" aria-labelledby="today-h">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="tag tag-ready">Today&rsquo;s Cup</p>
+            <h2 id="today-h" className="t-hero mt-2">
+              {view.conditions.name.replace(/^Daily Cup · /, "")}
             </h2>
-            <div className="mt-2">
-              <ConditionChips distanceM={view.conditions.distanceM} surface={view.conditions.surface} going={view.conditions.going} weather={view.conditions.weather} />
-            </div>
+            <p className="t-meta">
+              <span className="reward !text-base">+{formatCredits(view.participationCredits)}</span> for taking part · {view.entrants} {view.entrants === 1 ? "run" : "runs"} so far
+            </p>
           </div>
-          <div className="text-right">
-            <p className="label text-cream-dim">Closes in</p>
-            <p className="score text-[2.5rem] leading-none text-cream" data-testid="cup-countdown">
+          <div className="shrink-0 text-right">
+            <p className="label">Closes in</p>
+            <p className="score text-[2.5rem] leading-none" data-testid="cup-countdown">
               <Countdown targetMs={view.closesAtMs} skewMs={skew} doneLabel="0:00" />
             </p>
-            <p className="caption text-cream-dim" suppressHydrationWarning>
-              Next Cup opens {formatClock(view.closesAtMs)} (your time)
-            </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <StatTile label="Runs today">{view.entrants}</StatTile>
-          <StatTile label="For taking part">+{formatCredits(view.participationCredits)} credits</StatTile>
-          <StatTile label="Field">{view.field.length} Club rivals</StatTile>
-        </div>
-      </section>
-
-      {view.mine ? (
-        <section className="surface grid gap-3 p-3 sm:p-4" aria-labelledby="mine-h" data-testid="cup-mine">
-          <h2 id="mine-h" className="t-display-m">
-            Your Cup Run
-          </h2>
-          <div className="flex items-center gap-3">
-            <PositionBadge position={view.mine.rank} size="lg" />
-            <div className="min-w-0 flex-1">
-              <p className="t-title text-cream">
-                {view.mine.horseName}: <RaceTime us={view.mine.timeUs} />
-              </p>
-              <p className="t-meta">
-                {ordinal(view.mine.rank)} of {view.entrants} today · {ordinal(view.mine.position)} against the field
-              </p>
+        {view.mine ? (
+          <div className="grid gap-3 border-t-2 border-dotted border-line pt-4" data-testid="cup-mine">
+            <div className="flex items-center gap-3">
+              <PositionBadge position={view.mine.rank} size="lg" />
+              <div className="min-w-0 flex-1">
+                <p className="t-title">
+                  {view.mine.horseName}: <RaceTime us={view.mine.timeUs} />
+                </p>
+                <p className="t-meta">
+                  {ordinal(view.mine.rank)} of {view.entrants} today · {ordinal(view.mine.position)} against the field
+                </p>
+              </div>
+              <CupBadge badge={view.mine.badge} />
             </div>
-            <CupBadge badge={view.mine.badge} />
+            <p className="t-meta">Your rank can change as more stables run. The board is final when the Cup closes.</p>
+            <ActionBar>
+              <Link href={`/cup/run/${view.mine.entryId}`} className="btn btn-brass btn-lg" data-testid="cup-watch-mine">
+                <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch your run
+              </Link>
+            </ActionBar>
           </div>
-          <p className="text-cream-dim">Your rank can change as more stables run today. The board is final when the Cup closes.</p>
-          <Link href={`/cup/run/${view.mine.entryId}`} className="btn btn-sm w-fit" data-testid="cup-watch-mine">
-            <PixelIcon name="play" size={16} /> Watch your run
-          </Link>
-        </section>
-      ) : signedIn ? (
-        <section className="surface p-3 sm:p-4" aria-labelledby="enter-h">
-          <h2 id="enter-h" className="t-display-m mb-2">
-            Your run
-          </h2>
-          <Picker view={view} />
-        </section>
-      ) : (
-        <JoinNudge compact />
+        ) : signedIn ? (
+          <div className="border-t-2 border-dotted border-line pt-4">
+            <Picker view={view} />
+          </div>
+        ) : null}
+      </section>
+      {!view.mine && !signedIn && (
+        <div className="mt-4">
+          <JoinNudge compact />
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <HowItWorks className="mt-3">
+        <p>Everyone races the same seeded field in the same conditions. You get one run a day with any horse, ranked by time.</p>
+        <p>The Cup is free, never counts as a career start and never tires your horse. Taking part earns {formatCredits(view.participationCredits)} credits.</p>
+      </HowItWorks>
+
+      <div className="section grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="board-h" className="min-w-0">
-          <div className="mb-2 flex items-end justify-between gap-2">
-            <h2 id="board-h" className="t-display-m">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 id="board-h" className="t-h2">
               Today&rsquo;s board
             </h2>
-            <p className="caption">Fastest time wins</p>
+            <p className="eyebrow">Fastest time wins</p>
           </div>
           {top.length ? (
             <>
@@ -220,16 +215,16 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
               )}
             </>
           ) : (
-            <p className="surface p-4 text-cream-dim">No runs yet today. Be the first on the board.</p>
+            <EmptyState icon="trophy" title="No runs yet today" text="Be the first on the board: pick a horse above and take your run." testId="cup-empty" />
           )}
         </section>
 
         <aside className="grid content-start gap-4">
-          <section className="surface p-3" aria-labelledby="field-h">
-            <h2 id="field-h" className="t-display-m mb-2">
+          <section className="surface p-4" aria-labelledby="field-h">
+            <h2 id="field-h" className="t-h2">
               The field
             </h2>
-            <p className="caption mb-2 text-cream-dim">The same Club horses for everyone today. You start from gate 4.</p>
+            <p className="t-meta mb-3">The same Club horses for everyone. You start from gate 4.</p>
             <ul className="grid gap-1.5">
               {view.field.map((h) => (
                 <li key={h.gate} className="flex items-center gap-2">
@@ -241,9 +236,9 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
               ))}
             </ul>
           </section>
-          <section className="surface p-3" aria-labelledby="seal-h">
-            <h2 id="seal-h" className="t-display-m mb-1 flex items-center gap-2">
-              <PixelIcon name="shield" size={20} /> Sealed
+          <section className="surface p-4" aria-labelledby="seal-h">
+            <h2 id="seal-h" className="t-h2 mb-1 flex items-center gap-2">
+              <PixelIcon name="shield" size={32} /> Sealed ✓
             </h2>
             <p className="caption text-cream-dim">
               Today&rsquo;s seed was fixed before the first run: fingerprint <code className="break-all">{shortHash(view.seedCommitment, 8)}</code>. It&rsquo;s revealed when the Cup closes, so

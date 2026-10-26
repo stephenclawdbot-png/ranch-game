@@ -109,8 +109,8 @@ async function main() {
     assert(/already been used/.test(await o.getByTestId("invite-problem").innerText()), "used code explained");
     await other.close();
 
-    log("feedback from the top bar");
-    await t.goto(`${BASE_URL}/stable`);
+    log("feedback from Profile");
+    await t.goto(`${BASE_URL}/me`);
     await t.getByTestId("feedback-open").click();
     await t.getByTestId("feedback-dialog").waitFor();
     assert(await t.getByTestId("feedback-send").isDisabled(), "send needs a category and a message");

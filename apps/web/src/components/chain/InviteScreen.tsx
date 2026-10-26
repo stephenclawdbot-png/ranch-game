@@ -10,6 +10,7 @@ import { txUrl } from "@/lib/chain/chains";
 import { formatEth, formatUsdCents } from "@/lib/chain/format";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { WalletLink } from "./WalletLink";
+import { EmptyState, HowItWorks, PageHeader } from "@/components/ui/Page";
 
 interface InviteView {
   code: string;
@@ -57,15 +58,13 @@ export function InviteScreen() {
   const r = v.rules;
   return (
     <div className="grid gap-5" data-testid="invite">
-      <header className="grid gap-1">
-        <h1 className="t-display-l">Invite friends</h1>
-        <p className="t-meta">Share your link. When the people you invite play, you get an in-game reward; when they choose to buy a Premium Pack, you earn a commission in ETH.</p>
-      </header>
+      <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Invite friends" meta="Invite friends to the beta, and earn a share when they buy packs." />
 
-      <section className="frame-hero grid gap-3 p-4" aria-labelledby="link-h">
-        <h2 id="link-h" className="label">
+      <section className="frame-hero grid gap-3 p-4 sm:p-5" aria-labelledby="link-h">
+        <h2 id="link-h" className="t-hero">
           Your invite link
         </h2>
+        <p className="t-meta">Inviting and playing are free. You get {r.activeReward.credits} credits when a friend settles in.</p>
         <input className="field min-h-11 font-mono text-sm" readOnly value={v.link} onFocus={(e) => e.currentTarget.select()} data-testid="invite-link" aria-label="Your invite link" />
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-brass" onClick={copy} data-testid="invite-copy">
@@ -74,44 +73,43 @@ export function InviteScreen() {
           <button type="button" className="btn" onClick={share}>
             Share
           </button>
-          <span className="chip chip-cream self-center font-mono" data-testid="invite-code">
+          <span className="tag tag-locked self-center font-mono normal-case" data-testid="invite-code">
             {v.code}
           </span>
         </div>
       </section>
 
       {!v.wallet && (
-        <section className="surface grid gap-2 p-3">
-          <h2 className="t-display-m">Get paid</h2>
-          <p className="text-sm text-cream-dim">Commissions go to your verified wallet. Without one, your share simply stays with the game (you can link it any time; past purchases aren&apos;t paid retroactively).</p>
+        <section className="surface grid gap-2 p-4">
+          <h2 className="t-h2">Your share goes to your wallet</h2>
+          <p className="t-meta">Link one to receive it. Without a wallet your share stays with the game (past purchases aren&apos;t paid later).</p>
           <WalletLink compact />
         </section>
       )}
 
-      <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Totals">
-        <Stat label="Invited by you" value={v.totals.level1} />
-        <Stat label="Invited by them" value={v.totals.level2} />
+      <section className="surface grid grid-cols-3 divide-x-2 divide-dotted divide-paper-rule p-2" aria-label="Totals">
+        <Stat label="Friends" value={v.totals.level1 + v.totals.level2} />
         <Stat label="Active" value={v.totals.active} />
-        <Stat label="Earned" value={`${formatEth(v.totals.earnedWei, 5)}`} sub={`at the time: ${formatUsdCents(v.totals.earnedUsdCents)}`} />
+        <Stat label="Your share" value={`${formatEth(v.totals.earnedWei, 4)}`} sub={formatUsdCents(v.totals.earnedUsdCents)} />
       </section>
 
       <section aria-labelledby="inv-h">
         <SectionHeader id="inv-h" title="Your invitees" />
         {v.invitees.length === 0 ? (
-          <p className="surface p-3 text-cream-dim">Nobody yet. Send your link to a friend who&apos;d enjoy running a stable.</p>
+          <EmptyState icon="ticket" title="Nobody yet" text="Send your link to a friend who'd enjoy running a stable." />
         ) : (
           <ul className="surface rows !p-0" data-testid="invitees">
             {v.invitees.map((i, k) => (
-              <li key={k} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+              <li key={k} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                 <span>
                   <span className="font-bold text-cream">{i.stableName ?? "A new stable"}</span>{" "}
-                  <span className="chip">{i.level === 1 ? "Level 1" : "Level 2"}</span>
+                  <span className="caption">{i.level === 1 ? "invited by you · Level 1" : "invited by a friend · Level 2"}</span>
                   <span className="caption block">
                     Joined {new Date(i.joinedAt).toLocaleDateString("en-GB")} · {i.races} races · {i.playDays} days played
                     {i.revoked ? " · referral revoked" : Date.now() > i.windowEndsAt ? " · commission window ended" : ` · commissions until ${new Date(i.windowEndsAt).toLocaleDateString("en-GB")}`}
                   </span>
                 </span>
-                <span className={i.active ? "chip chip-cream" : "chip"}>{i.active ? "Active ✓" : `Getting started (${Math.min(i.races, r.activeReward.minRaces)}/${r.activeReward.minRaces} races)`}</span>
+                <span className={i.active ? "tag tag-good" : "tag"}>{i.active ? "Active ✓" : `Getting started (${Math.min(i.races, r.activeReward.minRaces)}/${r.activeReward.minRaces} races)`}</span>
               </li>
             ))}
           </ul>
@@ -119,9 +117,9 @@ export function InviteScreen() {
       </section>
 
       <section aria-labelledby="earn-h">
-        <SectionHeader id="earn-h" title="Earnings" />
+        <SectionHeader id="earn-h" title="Your share" />
         {v.earnings.length === 0 ? (
-          <p className="surface p-3 text-cream-dim">No commissions yet.</p>
+          <p className="t-meta">Nothing yet. When a friend buys a pack, your share shows here with its receipt.</p>
         ) : (
           <ul className="surface rows !p-0" data-testid="earnings">
             {v.earnings.map((e, k) => (
@@ -144,11 +142,8 @@ export function InviteScreen() {
         )}
       </section>
 
-      <section className="surface grid gap-2 p-3" aria-labelledby="ir-h" data-testid="invite-rules">
-        <h2 id="ir-h" className="t-display-m">
-          How it works
-        </h2>
-        <ul className="grid list-disc gap-1 pl-5 text-sm">
+      <HowItWorks label="How rewards work">
+        <ul className="grid list-disc gap-1 pl-5 text-sm" data-testid="invite-rules">
           <li>
             <strong>You never need to buy anything to invite or to earn.</strong> Inviting is free, and so is playing.
           </li>
@@ -167,7 +162,7 @@ export function InviteScreen() {
             revoke a referral. Payments already made on-chain are final.
           </li>
         </ul>
-      </section>
+      </HowItWorks>
       <p className="caption">
         <Link href="/pool" className="underline">
           Prize Pool
@@ -179,9 +174,9 @@ export function InviteScreen() {
 
 function Stat({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
   return (
-    <div className="surface grid gap-1 p-3">
+    <div className="grid justify-items-center gap-0.5 p-2 text-center">
       <span className="label">{label}</span>
-      <span className="num t-display-m text-cream">{value}</span>
+      <span className="score text-[1.875rem] leading-none">{value}</span>
       {sub && <span className="caption">{sub}</span>}
     </div>
   );

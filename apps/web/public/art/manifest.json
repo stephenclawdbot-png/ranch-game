@@ -3560,6 +3560,52 @@
    "sourcePrompt": "generate-image-v2 688x288 (HD v2): an English racehorse stable yard at golden hour: a courtyard of red-brick stable blocks with green half-doors, a clock tower over the arch, horses looking out over the stable doors, hay bales, a water trough, cobbled yard, hanging flower baskets, long warm shadows, honey sunlight, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, cohesive warm palette, wide cinematic side-on view, game background, HD pixel art with fine detail and many small pixels",
    "optimizationTier": "standard",
    "src": "scenes/stable-yard.png"
+  },
+  {
+   "id": "ui.pack-paddock",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "128px"
+   ],
+   "sourcePrompt": "generate-image-v2 128px seed 9301: honey oak foal crate, cream ribbon, red rosette, hay, horseshoe",
+   "optimizationTier": "standard",
+   "src": "ui/pack-paddock.png"
+  },
+  {
+   "id": "ui.pack-premium",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "128px"
+   ],
+   "sourcePrompt": "generate-image-v2 128px seed 9302: racing-green lacquered foal crate, brass trim, blue ribbon, gold rosette",
+   "optimizationTier": "standard",
+   "src": "ui/pack-premium.png"
   }
  ]
 }

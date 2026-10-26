@@ -9,6 +9,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { HowItWorks, SceneBand } from "@/components/ui/Page";
+import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
 import { PixelIcon } from "@/components/icons";
 import { useNow } from "@/lib/clock";
 import { formatCountdown, formatCredits, shortHash } from "@/lib/format";
@@ -38,13 +40,14 @@ export function BreedingBarn() {
   const v = data;
   return (
     <div className="grid gap-5">
-      <header className="grid gap-1">
-        <h1 className="t-display-l">Breeding barn</h1>
-        <p className="t-meta">
-          Season {v.season} · each mare 1 cover a season, every horse {v.lifetime} for life · breeds from {v.minStarts} starts or after retirement · <Credits value={v.credits} />
+      <SceneBand scene="barn" alt="The breeding barn" eyebrow={`Season ${v.season} · ${formatCredits(v.credits)} credits`} title="Breeding" />
+      <HowItWorks className="-mt-2">
+        <p>
+          Each mare can be covered once a season, and every horse has {v.lifetime} breedings for life. Horses breed from {v.minStarts} starts, or once retired from racing.
         </p>
-      </header>
-      <div className="segmented w-fit" role="tablist" aria-label="Breeding">
+        <p>The foal&rsquo;s genes are sealed at the cover and revealed when it is born, 24 hours later. It goes to your nursery.</p>
+      </HowItWorks>
+      <div className="tabs baize-scope -mx-[var(--gutter)] !px-[var(--gutter)]" role="tablist" aria-label="Breeding">
         <button type="button" role="tab" aria-selected={tab === "barn"} onClick={() => setTab("barn")} data-testid="tab-barn">
           Barn
         </button>
@@ -100,6 +103,7 @@ function markSeen(id: string) {
 function PregnancyRow({ p, skewMs, onChanged }: { p: PregnancyCard; skewMs: number; onChanged: () => Promise<void> }) {
   const now = useNow(1000);
   const [name, setName] = useState("");
+  const nameCheck = useHorseNameCheck(name, { allowBlank: true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [reveal, setReveal] = useState<EcoHorse | null>(null);
@@ -153,11 +157,17 @@ function PregnancyRow({ p, skewMs, onChanged }: { p: PregnancyCard; skewMs: numb
           </div>
           {due && (
             <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-              <label className="grid gap-1">
-                <span className="label">Name the foal (optional)</span>
-                <input className="field" value={name} maxLength={32} onChange={(e) => setName(e.target.value)} placeholder="Leave blank for a Club name" data-testid="foal-name" />
-              </label>
-              <button type="button" className="btn btn-brass" onClick={foal} disabled={busy} data-testid="foal-now">
+              <HorseNameInput
+                id={`foal-name-${p.id}`}
+                label="Name the foal (optional)"
+                showLabel
+                value={name}
+                onChange={setName}
+                check={nameCheck}
+                placeholder="Leave blank for a Club name"
+                testId="foal-name"
+              />
+              <button type="button" className="btn btn-brass" onClick={foal} disabled={busy || (nameCheck !== null && !nameCheck.ok)} data-testid="foal-now">
                 {busy ? "Foaling…" : "Welcome the foal"}
               </button>
             </div>
@@ -212,6 +222,7 @@ function PregnancyRow({ p, skewMs, onChanged }: { p: PregnancyCard; skewMs: numb
 function RenameFoal({ foal, onDone }: { foal: EcoHorse; onDone: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(foal.horse.name);
+  const check = useHorseNameCheck(name, { horseId: foal.id, current: foal.horse.name });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   if (!open)
@@ -235,8 +246,8 @@ function RenameFoal({ foal, onDone }: { foal: EcoHorse; onDone: () => Promise<vo
   }
   return (
     <div className="grid w-full gap-2 sm:grid-cols-[1fr_auto]">
-      <input className="field" value={name} maxLength={32} onChange={(e) => setName(e.target.value)} aria-label="Foal name" />
-      <button type="button" className="btn" onClick={save} disabled={busy || !name.trim()}>
+      <HorseNameInput id={`rename-${foal.id}`} label="Foal name" value={name} onChange={setName} check={check} />
+      <button type="button" className="btn self-start" onClick={save} disabled={busy || !name.trim() || (check !== null && !check.ok)}>
         Save name
       </button>
       {error ? <ErrorNote error={error} /> : null}
@@ -284,11 +295,11 @@ function PickList<T extends EcoHorse & { block: string | null; reason: string | 
               role="radio"
               aria-checked={on}
               onClick={() => onPick(h.id)}
-              className={`surface-2 w-full p-2 text-left ${on ? "is-selected" : ""}`}
+              className={`surface-2 w-full p-3 text-left ${on ? "picked" : ""}`}
               data-testid={testid}
               data-eligible={h.block === null}
             >
-              <HorseLine h={h} link={false} aside={on ? <span className="you-tag">Picked</span> : undefined} />
+              <HorseLine h={h} link={false} aside={on ? <span className="tag tag-ready">✓ Picked</span> : undefined} />
               <div className="mt-1 flex flex-wrap items-center justify-between gap-2 pl-1">
                 {eligibilityChip(h)}
                 {extra?.(h)}
@@ -432,11 +443,23 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
             {previewError ? <ErrorNote error={previewError} /> : null}
             {preview && (
               <div className="surface grid gap-4 p-3">
-                <div className={`p-2 ${preview.block ? "inset" : "surface-2"}`} data-testid="cover-eligibility">
+                <div className="surface-2 grid gap-2 p-3" data-testid="cover-eligibility">
                   {preview.block ? (
-                    <p className="font-bold text-cream">
-                      <span className="text-negative">✗</span> Can't cover yet: {preview.reason}
-                    </p>
+                    <>
+                      <p className="font-bold">
+                        <span className="text-negative">✗</span> Not yet: {preview.reason}
+                      </p>
+                      {dam && dam.starts < v.minStarts && dam.block !== null && (
+                        <div className="grid gap-1">
+                          <span className="meter" aria-hidden>
+                            <span style={{ width: `${Math.min(100, (dam.starts / v.minStarts) * 100)}%` }} />
+                          </span>
+                          <span className="caption">
+                            {dam.horse.name}: {dam.starts} of {v.minStarts} starts. Eligible from start {v.minStarts}, or once retired.
+                          </span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <p className="font-bold text-positive">✓ Both horses can breed now.</p>
                   )}
@@ -458,13 +481,15 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
                       </button>
                     </div>
                   </div>
-                ) : (
+                ) : ready ? (
                   <ActionBar>
-                    <button type="button" className="btn btn-brass btn-lg" disabled={!ready} onClick={() => setConfirming(true)} data-testid="cover">
-                      {preview.block ? "Can't cover yet" : !canAfford ? `Needs ${formatCredits(total)} credits` : `Cover for ${formatCredits(total)}`}
+                    <button type="button" className="btn btn-brass btn-lg" onClick={() => setConfirming(true)} data-testid="cover">
+                      Cover for {formatCredits(total)}
                     </button>
                   </ActionBar>
-                )}
+                ) : !preview.block && !canAfford ? (
+                  <p className="t-meta font-bold">This cover costs {formatCredits(total)} credits: a few more races and it&rsquo;s yours.</p>
+                ) : null}
               </div>
             )}
           </div>

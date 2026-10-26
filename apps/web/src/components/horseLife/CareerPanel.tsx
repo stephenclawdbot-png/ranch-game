@@ -6,6 +6,7 @@ import type { HorseLifeView } from "@/lib/horseLife";
 import { formatCredits } from "@/lib/format";
 import { ErrorNote } from "../ui/ErrorNote";
 import { ConfirmButton, RangeList, useAction } from "./common";
+import { HorseNameInput, useHorseNameCheck } from "../ui/HorseNameInput";
 
 const REASON: Record<string, string> = { choice: "by your choice", max_starts: "after 40 starts", injury: "after an injury" };
 
@@ -18,6 +19,7 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
   const base = `/api/horses/${view.id}`;
   const [name, setName] = useState(view.name);
   const [editing, setEditing] = useState(false);
+  const check = useHorseNameCheck(name, { horseId: view.id, current: view.name });
   const pct = (n: number) => `${(n / c.maxStarts) * 100}%`;
 
   async function career(kind: "retire" | "legacy" | "release") {
@@ -34,7 +36,7 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
     <div className="grid gap-5">
       <section className="surface grid gap-3 p-4" aria-labelledby="clock-h" data-testid="career-clock">
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 id="clock-h" className="t-display-m">
+          <h2 id="clock-h" className="t-h2">
             Career
           </h2>
           <p className="score text-[2.5rem] leading-none text-brass-bright" aria-label={`${c.starts} of ${c.maxStarts} starts`}>
@@ -86,7 +88,7 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
 
       <section className="surface grid gap-3 p-4" aria-labelledby="pot-h">
         <div>
-          <h2 id="pot-h" className="t-display-m">
+          <h2 id="pot-h" className="t-h2">
             Potential
           </h2>
           <p className="text-sm text-cream-dim">
@@ -108,7 +110,7 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
       </section>
 
       <section className="surface grid gap-4 p-4" aria-labelledby="dec-h" data-testid="career-actions">
-        <h2 id="dec-h" className="t-display-m">
+        <h2 id="dec-h" className="t-h2">
           Decisions
         </h2>
         {c.lockReason && <p className="text-sm font-bold text-warn">{c.lockReason}: career decisions wait until that&rsquo;s over.</p>}
@@ -117,12 +119,9 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
           <div className="grid gap-2">
             <h3 className="t-title">Name</h3>
             {editing ? (
-              <form className="flex flex-wrap gap-2" onSubmit={rename}>
-                <label className="sr-only" htmlFor="rename">
-                  New name
-                </label>
-                <input id="rename" className="field min-h-11 w-full max-w-xs" value={name} maxLength={32} onChange={(e) => setName(e.target.value)} data-testid="rename-input" />
-                <button type="submit" className="btn btn-sm" disabled={action.busy !== null || !name.trim()} data-testid="rename-save">
+              <form className="flex flex-wrap items-start gap-2" onSubmit={rename}>
+                <HorseNameInput id="rename" label="New name" value={name} onChange={setName} check={check} testId="rename-input" className="min-w-0 max-w-xs flex-1" />
+                <button type="submit" className="btn btn-sm" disabled={action.busy !== null || !name.trim() || (check !== null && !check.ok)} data-testid="rename-save">
                   Save name
                 </button>
               </form>
@@ -131,7 +130,7 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
                 Rename {first}
               </button>
             )}
-            <p className="caption">A horse can be named until its first start.</p>
+            <p className="caption">A horse can be renamed until its first start. Racing names are unique: 2–18 characters.</p>
           </div>
         )}
 

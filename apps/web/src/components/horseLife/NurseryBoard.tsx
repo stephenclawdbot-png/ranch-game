@@ -8,11 +8,14 @@ import { HorsePortrait } from "../HorsePortrait";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
+import { HorseNameInput, useHorseNameCheck } from "../ui/HorseNameInput";
+import { EmptyState, SceneBand } from "../ui/Page";
 import { GrowthTrack, RangeList, useAction } from "./common";
 
 function FoalCard({ f, view, action }: { f: NurseryFoal; view: NurseryView; action: ReturnType<typeof useAction> }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(f.name);
+  const check = useHorseNameCheck(name, { horseId: f.id, current: f.name });
   const base = `/api/horses/${f.id}`;
   async function rename(e: React.FormEvent) {
     e.preventDefault();
@@ -21,17 +24,14 @@ function FoalCard({ f, view, action }: { f: NurseryFoal; view: NurseryView; acti
   return (
     <li className="surface grid gap-3 p-3" data-testid="foal-card" data-horse-id={f.id}>
       <div className="flex items-center gap-3">
-        <Link href={`/horse/${f.id}/care`} className="bg-inset" aria-label={`${f.name}: care`}>
+        <Link href={`/horse/${f.id}/care`} className="well grid place-items-center" aria-label={`${f.name}: care`}>
           <HorsePortrait appearance={f.horse.appearance} scale="thumb" />
         </Link>
         <div className="min-w-0 flex-1">
           {editing ? (
-            <form className="flex flex-wrap gap-2" onSubmit={rename}>
-              <label className="sr-only" htmlFor={`name-${f.id}`}>
-                Name
-              </label>
-              <input id={`name-${f.id}`} className="field min-h-11 w-full max-w-[14rem]" value={name} maxLength={32} onChange={(e) => setName(e.target.value)} data-testid="foal-name-input" />
-              <button type="submit" className="btn btn-sm" disabled={action.busy !== null || !name.trim()} data-testid="foal-name-save">
+            <form className="flex flex-wrap items-start gap-2" onSubmit={rename}>
+              <HorseNameInput id={`name-${f.id}`} value={name} onChange={setName} check={check} testId="foal-name-input" className="min-w-0 max-w-[16rem] flex-1" />
+              <button type="submit" className="btn btn-sm" disabled={action.busy !== null || !name.trim() || (check !== null && !check.ok)} data-testid="foal-name-save">
                 Save
               </button>
             </form>
@@ -84,24 +84,27 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
   const firstUncared = view.foals.find((f) => !f.care.caredToday);
   const { stalls } = view;
   return (
-    <div className="grid gap-5">
-      <header>
-        <h1 className="t-display-l">Nursery</h1>
-        <p className="t-meta" data-testid="nursery-stalls">
-          {stalls.used}/{stalls.slots} stalls in use ·{" "}
-          {stalls.overflow ? "the overflow slot is in use: free a stall before adding horses" : `${stalls.overflowSlots} overflow slot free for a new foal`}
-        </p>
-      </header>
+    <div className="grid gap-6">
+      <SceneBand
+        scene="barn"
+        alt="The foaling barn"
+        eyebrow={
+          <span data-testid="nursery-stalls">
+            {stalls.used} of {stalls.slots} stalls · {stalls.overflow ? "overflow slot in use" : `${stalls.overflowSlots} overflow slot free`}
+          </span>
+        }
+        title="Nursery"
+      />
 
       {view.graduates.length > 0 && (
         <section aria-labelledby="grad-h" className="grid gap-2">
-          <h2 id="grad-h" className="t-display-m">
+          <h2 id="grad-h" className="t-h2">
             Ready to race
           </h2>
           <ul className="grid gap-2">
             {view.graduates.map((g) => (
               <li key={g.id} className="surface flex flex-wrap items-center gap-3 p-3" data-testid="graduate-card">
-                <span className="bg-inset">
+                <span className="well grid place-items-center">
                   <HorsePortrait appearance={g.horse.appearance} scale="thumb" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -118,24 +121,26 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
       )}
 
       <section aria-labelledby="foals-h" className="grid gap-2">
-        <h2 id="foals-h" className="t-display-m">
+        <h2 id="foals-h" className="t-h2">
           Foals
         </h2>
         {view.foals.length === 0 ? (
-          <div className="surface grid gap-3 p-4 text-cream-dim" data-testid="nursery-empty">
-            <p>
-              No foals right now. Foals come from Paddock Packs and breeding, and grow up with one care session a day: 5 to wean, 7 more to yearling, 7 more to
-              racing age.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/packs" className="btn btn-sm" data-testid="nursery-to-packs">
-                Open a Paddock Pack
-              </Link>
-              <Link href="/breeding" className="btn btn-sm">
-                Breeding barn
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            icon="star"
+            testId="nursery-empty"
+            title="No foals right now"
+            text="Foals arrive from Paddock Packs and your own mares, and grow with one care session a day."
+            action={
+              <div className="flex flex-wrap gap-2">
+                <Link href="/packs" className="btn btn-sm" data-testid="nursery-to-packs">
+                  Open a Paddock Pack
+                </Link>
+                <Link href="/breeding" className="btn btn-outline btn-sm">
+                  Breeding barn
+                </Link>
+              </div>
+            }
+          />
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
             {view.foals.map((f) => (

@@ -106,7 +106,8 @@ async function main() {
     await page.getByTestId("pick-sire").first().waitFor();
     await page.getByTestId("breeding-preview").waitFor({ timeout: 30_000 });
     assert(/Breeds from 25 starts/.test(await page.getByTestId("cover-eligibility").innerText()), "eligibility reason shown (25 starts or retired)");
-    assert(await page.getByTestId("cover").isDisabled(), "can't cover an ineligible pair");
+    // Design v2: no disabled primary button; an ineligible pair shows the reason and no Cover action.
+    assert((await page.locator('[data-testid="cover"]:not([disabled])').count()) === 0, "can't cover an ineligible pair");
     const nick = Number(await page.getByTestId("preview-nick").innerText());
     assert(nick >= 0 && nick <= 100, `nick rating shown (${nick})`);
     assert(Number(await page.getByTestId("preview-p50").innerText()) > 0, "predicted overall shown");

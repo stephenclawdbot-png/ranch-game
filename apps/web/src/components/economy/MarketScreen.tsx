@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { EmptyState, HowItWorks, SceneBand } from "@/components/ui/Page";
 import { formatCredits } from "@/lib/format";
 import type { ListingView, MarketView, SellableHorse } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
@@ -37,13 +38,12 @@ export function MarketScreen() {
   const v = data;
   return (
     <div className="grid gap-5">
-      <header className="grid gap-1">
-        <h1 className="t-display-l">Market</h1>
-        <p className="t-meta">
-          Horses for Stable Credits only. {v.feePermille / 10}% of every sale is burned · stalls {v.stalls.used}/{v.stalls.slots} · <Credits value={v.credits} />
-        </p>
-      </header>
-      <div className="segmented w-fit" role="tablist" aria-label="Market">
+      <SceneBand scene="paddock" alt="The sale ring paddock" eyebrow={`Credits only · ${v.stalls.used} of ${v.stalls.slots} stalls used`} title="Market" />
+      <HowItWorks className="-mt-2">
+        <p>Horses change hands for Stable Credits only, never real money. {v.feePermille / 10}% of every sale is burned.</p>
+        <p>Buying needs a free stall. Sellers set a price of at least 70% of the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them.</p>
+      </HowItWorks>
+      <div className="tabs baize-scope -mx-[var(--gutter)] !px-[var(--gutter)]" role="tablist" aria-label="Market">
         <button type="button" role="tab" aria-selected={tab === "buy"} onClick={() => setTab("buy")} data-testid="tab-buy">
           Buy ({v.listings.length})
         </button>
@@ -74,7 +74,19 @@ function ListingMeta({ l }: { l: ListingView }) {
 function Buy({ v, onView }: { v: MarketView; onView: (v: MarketView) => void }) {
   const full = v.stalls.free <= 0;
   if (!v.listings.length)
-    return <p className="surface p-4 text-cream-dim">No horses for sale right now. Listings from other stables appear here; check back later.</p>;
+    return (
+      <EmptyState
+        icon="horse-head"
+        title="No horses on the market yet"
+        text="Other stables' listings appear here. You can list one of yours: tradeable horses sell for credits."
+        testId="market-empty"
+        action={
+          <a href="#sell" className="btn btn-sm">
+            List one of yours
+          </a>
+        }
+      />
+    );
   return (
     <section aria-label="Horses for sale" className="grid gap-2">
       {full && (
@@ -113,8 +125,8 @@ function BuyRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: M
     }
   }
   return (
-    <li className="surface grid gap-2 p-3" data-testid="listing">
-      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<Credits value={l.price} className="text-lg text-cream" />} />
+    <li className="surface grid gap-2 p-4" data-testid="listing">
+      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<span className="score text-[1.875rem] leading-none">{formatCredits(l.price)}</span>} />
       <p className="caption">
         Appraised {formatCredits(l.appraisal)} · listing ends in {expiresIn(l.expiresAtMs - v.serverNowMs)}
       </p>
@@ -154,7 +166,7 @@ function SellerChecklist({ v }: { v: MarketView }) {
   const oldEnough = s.oldEnoughAtMs === null;
   return (
     <section className={`${s.ok ? "surface-2" : "surface"} grid gap-2 p-3`} aria-labelledby="seller-h" data-testid="seller-requirements" data-ok={s.ok ? "true" : "false"}>
-      <h2 id="seller-h" className="t-display-m">
+      <h2 id="seller-h" className="t-h2">
         {s.ok ? "✓ You can sell" : "Before you can sell"}
       </h2>
       <p className="t-meta">Selling needs an established stable. It keeps the market fair and stops throwaway accounts from moving horses around.</p>
@@ -277,7 +289,7 @@ function SellRow({ h, v, onView, onListed }: { h: SellableHorse; v: MarketView; 
 // ---------------------------------------------------------------------------
 
 function Mine({ v, onView }: { v: MarketView; onView: (v: MarketView) => void }) {
-  if (!v.mine.length) return <p className="surface p-4 text-cream-dim">You have no horses listed. List one from the Sell tab.</p>;
+  if (!v.mine.length) return <EmptyState icon="papers" title="Nothing listed" text="You have no horses listed. List one from the Sell tab." />;
   return (
     <ul className="grid gap-2">
       {v.mine.map((l) => (
@@ -304,7 +316,7 @@ function MineRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: 
   }
   return (
     <li className="surface grid gap-2 p-3" data-testid="my-listing">
-      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<Credits value={l.price} className="text-lg text-cream" />} />
+      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<span className="score text-[1.875rem] leading-none">{formatCredits(l.price)}</span>} />
       <p className="caption">
         You receive {formatCredits(l.sellerReceives)} if it sells ({formatCredits(l.fee)} burned) · ends in {expiresIn(l.expiresAtMs - v.serverNowMs)}
       </p>

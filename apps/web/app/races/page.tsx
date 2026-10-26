@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
+import { HowItWorks, SceneBand, Section } from "@/components/ui/Page";
 import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingRaceRow } from "@/components/RaceList";
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
 import { getSession } from "@/server/session";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Races" };
+export const metadata: Metadata = { title: "Race card · Kestrel Downs" };
 
 export default async function RacesPage() {
   const now = new Date();
@@ -21,26 +21,23 @@ export default async function RacesPage() {
   const nextChange = Math.min(...marks, recent.some((r) => r.phase === "live") ? nowMs + 10_000 : Infinity);
 
   return (
-    <div className="grid gap-8">
+    <div>
       <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={nowMs} />
-      <section id="live" className="grid scroll-mt-20 gap-3" aria-labelledby="live-h">
-        <div>
-          <p className="eyebrow">Live · the shared race card</p>
-          <h1 id="live-h" className="t-display-xl">
-            Races
-          </h1>
-          <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-            A race every 3 minutes, live for everyone at once. Enter your horses until a minute before the off; the Club fills empty gates.
-          </p>
-        </div>
+      <SceneBand scene="grandstand" alt="The grandstand at Kestrel Downs" eyebrow="Kestrel Downs · every 3 minutes" title="Race card" testId="races-band" />
+      <section id="live" className="scroll-mt-20" aria-label="Live races">
         <LivePickBar />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <RaceBoard title="Coming up" note="Entries close 1 minute before the off">
+        <HowItWorks className="mt-3">
+          <p>A Live race goes off every 3 minutes, and everyone watches the same race at the same time.</p>
+          <p>Enter your horses until a minute before the off (one stable entry each; you get +10 at local midnight). The Club fills any empty gates with its own horses.</p>
+          <p>Every result is sealed before the off and can be replayed and verified afterwards.</p>
+        </HowItWorks>
+        <div className="mt-8 grid gap-8 lg:grid-cols-2">
+          <RaceBoard title="Coming up" note="Entries close a minute before the off">
             {upcoming.map((r) => (
               <UpcomingRaceRow key={r.id} race={r} />
             ))}
           </RaceBoard>
-          <RaceBoard title="Results" note="Every replay is sealed and reproducible">
+          <RaceBoard title="Results">
             {recent.map((r) => (
               <RecentRaceRow key={r.id} race={r} />
             ))}
@@ -48,21 +45,10 @@ export default async function RacesPage() {
         </div>
       </section>
 
-      <section id="story" className="grid scroll-mt-20 gap-3" aria-labelledby="story-h">
-        <div>
-          <p className="eyebrow">Story · club races</p>
-          <h2 id="story-h" className="t-display-l">
-            Story races
-          </h2>
-          <p className="mt-1 max-w-2xl text-cream-dim">
-            Solo races against the Club&rsquo;s rival stables, whenever you like. Free to enter: no stable entries used. Watch, or skip to the result.
-          </p>
-          <Link href="/story" className="mt-2 inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-cream" data-testid="story-chapters-link">
-            Story chapters, rivals and licences ›
-          </Link>
-        </div>
+      <Section id="story" title="Race the Club now" href="/story" linkLabel="Story chapters" className="scroll-mt-20">
+        <p className="t-meta -mt-1 mb-3">Solo Story races against rival stables. Free, and you can skip to the result.</p>
         <QuickRacePanel />
-      </section>
+      </Section>
     </div>
   );
 }

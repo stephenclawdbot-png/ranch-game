@@ -168,9 +168,11 @@ async function main() {
       await card.waitFor();
       const foalId = await card.getAttribute("data-horse-id");
       await card.getByTestId("foal-name").click();
-      await card.getByTestId("foal-name-input").fill("Little Comet");
+      // Names are unique among active horses (and "Little Comet" is a starter name): pick a fresh one.
+      const foalName = `Comet ${String.fromCharCode(...Array.from({ length: 5 }, () => 97 + Math.floor(Math.random() * 26)))}`;
+      await card.getByTestId("foal-name-input").fill(foalName);
       await card.getByTestId("foal-name-save").click();
-      await page.getByText("Little Comet").first().waitFor();
+      await page.getByText(foalName).first().waitFor();
       await card.getByTestId("foal-care").click();
       await card.getByText("✓ Cared today").waitFor();
       const fl = await life(page, foalId);

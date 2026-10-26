@@ -8,7 +8,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { ActionBar } from "@/components/ui/ActionBar";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { EmptyState, SceneBand } from "@/components/ui/Page";
+import { PixelIcon } from "@/components/icons";
 import { formatCredits, shortHash } from "@/lib/format";
 import type { PackOffer, PacksView, PullResultView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
@@ -52,41 +53,39 @@ export function PacksScreen() {
 
   return (
     <div className="grid gap-5">
-      <header className="grid gap-1">
-        <h1 className="t-display-l">Packs</h1>
-        <p className="t-meta">
-          Each pack is a foal: it needs 19 care days in the nursery before it can race, and no stat can exceed the season ceiling ({v.ceiling}). Odds and pity are published; every pull is
-          sealed before you open it.
-        </p>
-      </header>
-
-      <CropMeter v={v} />
+      <SceneBand scene="paddock" alt="The paddock" eyebrow="Market · foals with published odds" title="Packs" />
 
       {/* Free pack progress. */}
-      <section className={freeReady ? "frame-hero grid gap-3 p-4" : "surface grid gap-2 p-3"} aria-labelledby="free-h" data-testid="free-pack">
-        <h2 id="free-h" className="t-display-m">
-          {freeReady ? "Free Paddock Pack ready" : "Free Paddock Pack"}
-        </h2>
-        <p className="text-cream-dim">
-          One free Paddock Pack every {v.freeEvery}rd day you play (the days don't need to be in a row; missing a day never costs you anything). Free-pack foals are Club-bred: they stay
-          with your stable and can't be sold.
-        </p>
-        <PlayDays playDays={v.playDays} every={v.freeEvery} next={v.nextFreeAtPlayDay} />
-        {freeReady && (
-          <ActionBar>
-            <button type="button" className="btn btn-brass btn-lg" onClick={() => open("paddock", true)} disabled={busy !== null || !!freeBlocked} data-testid="open-free">
-              {busy === "paddock:true" ? "Opening…" : freeBlocked ?? `Open free pack${v.paddock.freeAvailable > 1 ? ` (${v.paddock.freeAvailable})` : ""}`}
-            </button>
-          </ActionBar>
-        )}
+      <section className={`${freeReady ? "frame-hero" : "surface"} flex items-center gap-4 p-4`} aria-labelledby="free-h" data-testid="free-pack">
+        <span className="well hidden shrink-0 sm:grid">
+          <PackArt type="paddock" />
+        </span>
+        <div className="grid min-w-0 flex-1 gap-2">
+          {freeReady && <p className="tag tag-ready w-fit">Ready</p>}
+          <h2 id="free-h" className="t-hero">
+            {freeReady ? "Free Paddock Pack ready" : "Free Paddock Pack"}
+          </h2>
+          <PlayDays playDays={v.playDays} every={v.freeEvery} next={v.nextFreeAtPlayDay} />
+          <p className="caption">Every {v.freeEvery}rd day you play, in a row or not. Free-pack foals are Club-bred and stay with you.</p>
+          {freeReady &&
+            (freeBlocked ? (
+              <p className="t-meta font-bold">{freeBlocked === "No free stall" ? "Free a stall first: your stalls are full." : "This season's foal crop is sold out."}</p>
+            ) : (
+              <ActionBar>
+                <button type="button" className="btn btn-brass btn-lg" onClick={() => open("paddock", true)} disabled={busy !== null} data-testid="open-free">
+                  {busy === "paddock:true" ? "Opening…" : `Open free pack${v.paddock.freeAvailable > 1 ? ` (${v.paddock.freeAvailable})` : ""}`}
+                </button>
+              </ActionBar>
+            ))}
+        </div>
       </section>
 
       {pullError ? <ErrorNote error={pullError} /> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <PackCard o={v.paddock} busy={busy} primary={!freeReady} onOpen={() => open("paddock", false)} />
+        <PackCard o={v.paddock} busy={busy} primary={!freeReady} onOpen={() => open("paddock", false)} ceiling={v.ceiling} />
         <div className="grid content-start gap-3">
-          <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} />
+          <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} ceiling={v.ceiling} />
           {/* Closed beta: buy with ETH on Robinhood Chain (renders nothing unless WEB3_ENABLED). */}
           <PremiumCheckout
             weeklyLeft={v.premium.weeklyLimit - v.premium.paidThisWeek}
@@ -99,14 +98,18 @@ export function PacksScreen() {
         </div>
       </div>
 
+      <CropMeter v={v} />
+
       <section aria-labelledby="pulls-h">
-        <SectionHeader id="pulls-h" title="Your pulls" />
+        <h2 id="pulls-h" className="t-h2 mb-3">
+          Your pulls
+        </h2>
         {v.pulls.length === 0 ? (
-          <p className="surface p-3 text-cream-dim">Your pulls and their proofs will appear here.</p>
+          <EmptyState icon="papers" title="No pulls yet" text="Every foal you open appears here with its sealed proof, so you can check the odds were honest." />
         ) : (
           <ul className="surface rows !p-0" data-testid="pull-history">
             {v.pulls.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3">
+              <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                 <RarityBadge rarity={p.rarity} />
                 <span className="min-w-0 flex-1">
                   {p.horseId ? (
@@ -132,7 +135,7 @@ export function PacksScreen() {
       </section>
 
       <p className="caption">
-        Stable Credits are never cashed out, and packs never contain credits. Paid Premium Packs (later) will be capped at 10 a week and unavailable where paid loot boxes are restricted.
+        Stable Credits are never cashed out, and packs never contain credits. Paid Premium Packs are capped at 10 a week and unavailable where paid loot boxes are restricted.
       </p>
 
       {result && result.foal && (
@@ -166,23 +169,37 @@ export function PacksScreen() {
 function CropMeter({ v }: { v: PacksView }) {
   const share = v.crop.cap ? v.crop.produced / v.crop.cap : 0;
   return (
-    <section className="surface grid gap-1 p-3" aria-labelledby="crop-h" data-testid="crop">
+    <section className="grid gap-1.5" aria-labelledby="crop-h" data-testid="crop">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="crop-h" className="label">
+        <h2 id="crop-h" className="eyebrow">
           Season {v.crop.season} foal crop
         </h2>
-        <span className="text-sm text-cream-dim">
+        <span className="t-meta">
           <span className="num text-cream" data-testid="crop-remaining">
             {formatCredits(v.crop.remaining)}
           </span>{" "}
-          of {formatCredits(v.crop.cap)} pack foals left this season
+          of {formatCredits(v.crop.cap)} left
         </span>
       </div>
-      <span className="block h-3 bg-[#050b08] p-[2px]" role="meter" aria-valuemin={0} aria-valuemax={v.crop.cap} aria-valuenow={v.crop.produced} aria-label="Foal crop used">
-        <span className="block h-full bg-cream-dim" style={{ width: `${Math.max(share > 0 ? 1 : 0, share * 100)}%` }} />
+      <span className="meter" role="meter" aria-valuemin={0} aria-valuemax={v.crop.cap} aria-valuenow={v.crop.produced} aria-label="Foal crop used">
+        <span style={{ width: `${Math.max(share > 0 ? 1 : 0, share * 100)}%` }} />
       </span>
-      <p className="caption">One crop for every stable in the game: it keeps the horse population healthy. A new crop opens each season.</p>
+      <p className="caption">One crop for every stable keeps the horse population healthy. A new crop opens each season.</p>
     </section>
+  );
+}
+
+/** The pack illustration (PixelLab, 128 px native) at 1x, or 2x on wide screens. */
+function PackArt({ type, big = false }: { type: "paddock" | "premium"; big?: boolean }) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/art/ui/pack-${type}.png`} width={128} height={128} alt="" className={`pixelated ${big ? "lg:hidden" : ""}`} draggable={false} />
+      {big && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/art/ui/pack-${type}.png`} width={256} height={256} alt="" className="pixelated hidden lg:block" draggable={false} />
+      )}
+    </>
   );
 }
 
@@ -193,101 +210,115 @@ function PlayDays({ playDays, every, next }: { playDays: number; every: number; 
       <ol className="flex gap-1" aria-label={`Play day ${playDays}. Next free pack on play day ${next}.`}>
         {Array.from({ length: every }, (_, i) => {
           const lit = i < (into === 0 && playDays > 0 ? every : into);
-          return <li key={i} className="h-5 w-8" style={{ background: lit ? "#d9a441" : "#173025", boxShadow: "0 0 0 2px #050b08" }} aria-hidden />;
+          return <li key={i} className={`pip ${lit ? "on" : ""}`} aria-hidden />;
         })}
       </ol>
-      <span className="text-sm text-cream-dim">
+      <span className="t-meta">
         Play day <span className="num text-cream">{playDays}</span> · next free pack on play day <span className="num text-cream">{next}</span>
       </span>
     </div>
   );
 }
 
-function PackCard({ o, busy, primary, onOpen }: { o: PackOffer; busy: string | null; primary: boolean; onOpen: () => void }) {
+function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: string | null; primary: boolean; onOpen: () => void; ceiling: number }) {
   const slot = `${o.type}:false`;
-  const button = (
-    <button
-      type="button"
-      className={`btn ${primary && o.enabled ? "btn-brass btn-lg" : ""} ${o.demo ? "btn-block" : ""}`}
-      onClick={onOpen}
-      disabled={!o.enabled || busy !== null}
-      data-testid={`open-${o.type}`}
-    >
-      {busy === slot ? "Opening…" : o.enabled ? `Open for ${formatCredits(o.price)}` : o.demo && o.disabledReason === "Coming soon" ? "Coming soon · no payments in this demo" : o.disabledReason}
+  const eth = o.demo && o.disabledReason === "Pay with ETH below";
+  const button = o.enabled ? (
+    <button type="button" className={`btn ${primary ? "btn-brass btn-lg" : ""}`} onClick={onOpen} disabled={busy !== null} data-testid={`open-${o.type}`}>
+      {busy === slot ? "Opening…" : `Open for ${formatCredits(o.price)}`}
     </button>
+  ) : o.demo ? null : (
+    <p className="t-meta font-bold" data-testid={`open-${o.type}-blocked`}>
+      {o.disabledReason}
+    </p>
   );
   return (
-    <section className="surface grid content-start gap-3 p-3" aria-labelledby={`${o.type}-h`} data-testid={`pack-${o.type}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id={`${o.type}-h`} className="t-display-m">
-          {o.name}
-        </h2>
-        {o.demo && o.disabledReason === "Pay with ETH below" ? (
-          <span className="chip chip-cream" data-testid="premium-eth">
-            ETH · closed beta
-          </span>
-        ) : o.demo ? (
-          <span className="chip chip-cream" data-testid="premium-demo">
-            Coming soon · demo
-          </span>
-        ) : (
-          <Credits value={o.price} className="text-cream" />
-        )}
-      </div>
-      <p className="t-meta">
-        {o.demo && o.disabledReason === "Pay with ETH below"
-          ? "Better odds, still under the genetic ceiling. Closed beta: bought with ETH on Robinhood Chain, below. 30% of every sale funds the Prize Pool."
-          : o.demo
-          ? "Better odds, still under the genetic ceiling. In Phase 1 it is a preview only: no real payments, nothing to buy."
-          : "A young horse, Common or Uncommon. Bought-pack foals are yours to keep, race or sell."}
-      </p>
-
-      <table className="w-full text-sm" data-testid={`odds-${o.type}`}>
-        <caption className="label mb-1 text-left">Published odds</caption>
-        <tbody>
-          {o.odds.map((r) => (
-            <tr key={r.rarity} className="border-t-2 border-line">
-              <th scope="row" className="py-1 text-left font-bold" style={{ color: RARITY_COLOR[r.rarity] }}>
-                {RARITY_LABEL[r.rarity]}
-              </th>
-              <td className="w-1/2 py-1">
-                <span className="block h-3 bg-[#050b08] p-[2px]" aria-hidden>
-                  <span className="block h-full" style={{ width: `${r.bp / 100}%`, background: RARITY_COLOR[r.rarity] }} />
-                </span>
-              </td>
-              <td className="num py-1 text-right text-cream">{(r.bp / 100).toFixed(r.bp % 100 ? 1 : 0)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="inset grid gap-1 p-2 text-sm" data-testid={`pity-${o.type}`}>
-        <span className="label">Pity (guaranteed)</span>
-        {o.pity.map((p) => (
-          <p key={p.min}>
-            {RARITY_LABEL[p.min]} or better within {p.within} pulls ·{" "}
-            <span className="font-bold text-cream">
-              {p.since} since the last · guaranteed {p.left === 1 ? "on your next pull" : `within ${p.left} pulls`}
+    <section className="surface grid content-start gap-3 p-4" aria-labelledby={`${o.type}-h`} data-testid={`pack-${o.type}`}>
+      <div className="flex items-start gap-4">
+        <span className="well grid shrink-0 place-items-center">
+          <PackArt type={o.type === "premium" ? "premium" : "paddock"} big />
+        </span>
+        <div className="grid min-w-0 gap-1">
+          <h2 id={`${o.type}-h`} className="t-hero">
+            {o.name}
+          </h2>
+          {eth ? (
+            <span className="tag tag-locked w-fit" data-testid="premium-eth">
+              ETH · closed beta
             </span>
+          ) : o.demo ? (
+            <span className="tag tag-locked w-fit" data-testid="premium-demo">
+              Coming soon · demo
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <PixelIcon name="coin" size={32} />
+              <span className="score text-[1.875rem] leading-none">{formatCredits(o.price)}</span>
+            </span>
+          )}
+          <p className="t-meta">
+            {eth
+              ? "Better odds, still under the genetic ceiling. Bought with ETH on Robinhood Chain, below."
+              : o.demo
+                ? "Better odds, still under the genetic ceiling. A preview for now: nothing to buy."
+                : "A young horse, Common or Uncommon. Yours to keep, race or sell."}
           </p>
-        ))}
+        </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <dt className="label">This week</dt>
-          <dd className="num text-cream" data-testid={`weekly-${o.type}`}>
-            {o.paidThisWeek}/{o.weeklyLimit}
-          </dd>
+      <details className="how">
+        <summary>Odds &amp; pity</summary>
+        <div className="grid gap-3 pt-1">
+          <table className="w-full text-sm" data-testid={`odds-${o.type}`}>
+            <caption className="label mb-1 text-left">Published odds</caption>
+            <tbody>
+              {o.odds.map((r) => (
+                <tr key={r.rarity} className="border-t-2 border-dotted border-line">
+                  <th scope="row" className="py-1.5 text-left font-bold">
+                    <span className="inline-flex items-center gap-2">
+                      <i className="dot" style={{ background: RARITY_COLOR[r.rarity] }} aria-hidden />
+                      {RARITY_LABEL[r.rarity]}
+                    </span>
+                  </th>
+                  <td className="w-1/2 py-1.5">
+                    <span className="meter !h-3" aria-hidden>
+                      <span style={{ width: `${r.bp / 100}%`, background: RARITY_COLOR[r.rarity] }} />
+                    </span>
+                  </td>
+                  <td className="num py-1.5 text-right">{(r.bp / 100).toFixed(r.bp % 100 ? 1 : 0)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="surface-2 grid gap-1 p-3 text-sm" data-testid={`pity-${o.type}`}>
+            <span className="label">Pity (guaranteed)</span>
+            {o.pity.map((p) => (
+              <p key={p.min}>
+                {RARITY_LABEL[p.min]} or better within {p.within} pulls ·{" "}
+                <span className="font-bold">
+                  {p.since} since the last · guaranteed {p.left === 1 ? "on your next pull" : `within ${p.left} pulls`}
+                </span>
+              </p>
+            ))}
+          </div>
+          <dl className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <dt className="label">This week</dt>
+              <dd className="num" data-testid={`weekly-${o.type}`}>
+                {o.paidThisWeek}/{o.weeklyLimit}
+              </dd>
+            </div>
+            <div>
+              <dt className="label">Next pull sealed</dt>
+              <dd className="font-mono text-xs text-cream-dim" title={o.nextSeedCommitment}>
+                🔒 {shortHash(o.nextSeedCommitment, 10)}
+              </dd>
+            </div>
+          </dl>
+          <p className="caption">Each pack is a foal: 19 care days in the nursery before it can race, and no stat above the season ceiling ({ceiling}).</p>
         </div>
-        <div>
-          <dt className="label">Next pull sealed</dt>
-          <dd className="font-mono text-xs text-cream-dim" title={o.nextSeedCommitment}>
-            🔒 {shortHash(o.nextSeedCommitment, 10)}
-          </dd>
-        </div>
-      </dl>
-      {primary && o.enabled ? <ActionBar>{button}</ActionBar> : button}
+      </details>
+      {button && (primary && o.enabled ? <ActionBar>{button}</ActionBar> : button)}
     </section>
   );
 }

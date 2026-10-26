@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-/** Section title (display-m, 24 px) with an optional quiet link on the right. */
+/** Section head (Design System v2 `h2`: Nunito 800) with an optional quiet link on the right. */
 export function SectionHeader({
   id,
   title,
@@ -16,16 +16,13 @@ export function SectionHeader({
   aside?: ReactNode;
 }) {
   return (
-    <div className="mb-2 flex items-end justify-between gap-3">
-      <h2 id={id} className="t-display-m">
+    <div className="mb-3 flex items-baseline justify-between gap-3">
+      <h2 id={id} className="t-h2">
         {title}
       </h2>
       {href ? (
-        <Link
-          href={href}
-          className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream"
-        >
-          {linkLabel}
+        <Link href={href} className="link shrink-0">
+          {linkLabel} ›
         </Link>
       ) : (
         aside

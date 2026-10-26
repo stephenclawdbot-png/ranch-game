@@ -7,6 +7,8 @@ import { PlayerGate } from "../PlayerGate";
 import { Skeleton, useEcoView } from "../economy/kit";
 import { ErrorNote } from "../ui/ErrorNote";
 import { SectionHeader } from "../ui/SectionHeader";
+import { HowItWorks, PageHeader } from "../ui/Page";
+import { FeedbackButton } from "./FeedbackButton";
 
 interface BetaView {
   playtest: boolean;
@@ -32,17 +34,14 @@ function Beta() {
   const v = data;
   return (
     <div className="grid gap-6">
-      <header>
-        <p className="eyebrow">Closed playtest</p>
-        <h1 className="t-display-xl">Beta rewards</h1>
-        <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-          Thank you for testing Post Time. Testers get an exclusive item later, and some real-money rewards during the beta. Stable Credits stay in the game: they are
-          never converted to money.
-        </p>
-      </header>
+      <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed playtest" title="Your beta" meta="Thank you for testing Post Time. Your notes shape the game." />
+      <FeedbackButton variant="fab" />
+      <HowItWorks label="About tester rewards">
+        <p>Testers get an exclusive item later, and some rewards during the beta. Stable Credits stay in the game: they are never converted to money.</p>
+      </HowItWorks>
 
       {!v.tester ? (
-        <section className="surface p-4 text-cream-dim" data-testid="beta-not-tester">
+        <section className="surface t-meta p-4" data-testid="beta-not-tester">
           This page is for invited playtesters. {v.playtest ? "Your stable wasn't founded with an invite code." : "The closed playtest isn't running on this server."}
         </section>
       ) : (

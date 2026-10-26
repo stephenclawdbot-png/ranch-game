@@ -178,7 +178,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
         {myRec && mine ? `${mine.horse.name} finished ${ordinal(myRec.position)}.` : ""}
       </p>
 
-      <section aria-labelledby="race-name" className="-mx-4 -mt-4 md:mx-0 md:mt-0">
+      <section aria-labelledby="race-name" className="-mx-[var(--gutter)] -mt-4 md:mx-0 md:mt-0">
         {/* broadcast plate: status · race name · seal */}
         <div className="flex h-11 items-center gap-2 bg-ink px-3">
           {status}

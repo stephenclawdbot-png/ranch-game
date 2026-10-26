@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { PlayerGate } from "@/components/PlayerGate";
-import { WalletLink } from "@/components/chain/WalletLink";
+import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
+import { FeedbackButton } from "@/components/playtest/FeedbackButton";
+import { PageHeader } from "@/components/ui/Page";
 import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
@@ -32,6 +34,7 @@ function Profile({ state }: { state: PlayerState }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const settings = useSettings();
+  const wallet = useWalletStatus();
   const dirty = name.trim() !== state.stableName || JSON.stringify(silks) !== JSON.stringify(state.silks);
   const valid = NAME_RE.test(name.trim());
 
@@ -41,65 +44,40 @@ function Profile({ state }: { state: PlayerState }) {
 
   return (
     <div className="mx-auto grid max-w-4xl gap-8">
-      <header>
-        <h1 className="t-display-xl">Profile &amp; settings</h1>
-        <p className="mt-1 text-lg text-cream-dim">Your stable&rsquo;s name and colours, and how the game looks on this device.</p>
-      </header>
-
-      {state.tester && (
-        <Link href="/beta" className="surface-2 flex items-center gap-3 p-3 hover:brightness-110" data-testid="me-beta-link">
-          <PixelIcon name="rosette" size={32} />
-          <span className="min-w-0 flex-1">
-            <span className="block font-extrabold text-cream">Playtester: beta rewards &amp; wallet</span>
-            <span className="t-meta block">Your progress, tester bonuses and the address for your tester item.</span>
-          </span>
-          <span aria-hidden className="font-extrabold">›</span>
-        </Link>
-      )}
-
-      <section className="surface grid gap-3 p-4" aria-labelledby="money-h" data-testid="me-wallet">
-        <h2 id="money-h" className="t-display-m">
-          Wallet, Prize Pool &amp; invites
-        </h2>
-        <WalletLink />
-        <p className="flex flex-wrap gap-3 text-sm">
-          <Link href="/pool" className="underline" data-testid="me-pool-link">
-            Prize Pool
-          </Link>
-          <Link href="/invite" className="underline" data-testid="me-invite-link">
-            Invite friends
-          </Link>
-        </p>
-      </section>
+      <PageHeader eyebrow={state.stableName} title="Profile" meta="Your stable's name and colours, and how the game looks on this device." />
 
       <section className="grid gap-5 md:grid-cols-[1fr_16rem]" aria-labelledby="colours-h">
-        <div className="grid content-start gap-5">
-          <h2 id="colours-h" className="t-display-m">
+        <div className="surface grid content-start gap-5 p-4">
+          <h2 id="colours-h" className="t-h2">
             Name &amp; colours
           </h2>
           <NameField name={name} onChange={setName} />
           <SilksEditor silks={silks} onChange={setSilks} />
-          <ActionBar>
-            <button
-              type="button"
-              className="btn btn-brass btn-lg"
-              disabled={!dirty || !valid || busy}
-              onClick={async () => {
-                setBusy(true);
-                setError(null);
-                try {
-                  await updateProfile({ stableName: name.trim(), silks });
-                  setSaved(true);
-                } catch (e) {
-                  setError(e);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <PixelIcon name="check" className="h-5 w-5" /> {busy ? "Saving…" : saved && !dirty ? "Saved" : "Save colours"}
-            </button>
-          </ActionBar>
+          {dirty ? (
+            <ActionBar>
+              <button
+                type="button"
+                className="btn btn-brass btn-lg"
+                disabled={!valid || busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await updateProfile({ stableName: name.trim(), silks });
+                    setSaved(true);
+                  } catch (e) {
+                    setError(e);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                <PixelIcon name="check" className="h-5 w-5" /> {busy ? "Saving…" : "Save colours"}
+              </button>
+            </ActionBar>
+          ) : (
+            <p className="t-meta">{saved ? "✓ Saved." : "Change the name or colours to save them."}</p>
+          )}
           {error !== null && <ErrorNote error={error} />}
           <p className="sr-only" role="status">
             {saved && !dirty ? "Saved" : ""}
@@ -111,14 +89,14 @@ function Profile({ state }: { state: PlayerState }) {
       </section>
 
       <section className="surface grid gap-5 p-4" aria-labelledby="access-h">
-        <h2 id="access-h" className="t-display-m">
+        <h2 id="access-h" className="t-h2">
           Display &amp; motion
         </h2>
         <div>
-          <p className="mb-2 font-extrabold" id="text-size-l">
+          <p className="mb-1 font-extrabold" id="text-size-l">
             Text size
           </p>
-          <div className="segmented flex-wrap" role="group" aria-labelledby="text-size-l">
+          <div className="segmented" role="group" aria-labelledby="text-size-l">
             {TEXT_SIZES.map((t) => (
               <button key={t.v} type="button" aria-pressed={settings.text === t.v} onClick={() => saveSettings({ text: t.v })}>
                 {t.label}
@@ -127,13 +105,11 @@ function Profile({ state }: { state: PlayerState }) {
           </div>
         </div>
         <div>
-          <p className="mb-1 font-extrabold" id="motion-l">
+          <p className="font-extrabold" id="motion-l">
             Motion
           </p>
-          <p className="mb-2 text-sm text-cream-dim">
-            Calm turns off celebrations, count-ups and other animation. Device setting follows your system&rsquo;s reduce-motion option.
-          </p>
-          <div className="segmented flex-wrap" role="group" aria-labelledby="motion-l">
+          <p className="t-meta mb-1">Calm turns off celebrations and count-ups. Device setting follows your system.</p>
+          <div className="segmented" role="group" aria-labelledby="motion-l">
             {MOTION.map((m) => (
               <button key={m.v} type="button" aria-pressed={settings.motion === m.v} onClick={() => saveSettings({ motion: m.v })}>
                 {m.label}
@@ -143,25 +119,87 @@ function Profile({ state }: { state: PlayerState }) {
         </div>
       </section>
 
-      <section className="grid gap-3" aria-labelledby="save-h">
-        <h2 id="save-h" className="t-display-m">
+      <section className="surface grid gap-3 p-4" aria-labelledby="save-h">
+        <h2 id="save-h" className="t-h2">
           Where your stable lives
         </h2>
         <StorageNote />
-        <div>
-          <button
-            type="button"
-            className="btn btn-oxblood"
-            onClick={() => {
-              if (window.confirm("Start over with a new stable? This browser forgets your current stable for good: there is no way back to it yet.")) {
-                void signOut().then(() => window.location.assign("/play"));
-              }
-            }}
-          >
-            Start over with a new stable
-          </button>
-        </div>
+        <StartOver />
       </section>
+
+      <section className="surface grid gap-2 p-4" aria-labelledby="fb-h">
+        <h2 id="fb-h" className="t-h2">
+          Feedback
+        </h2>
+        <p className="t-meta">Found a bug, or have an idea? It goes straight to the team, with the page you were on.</p>
+        <FeedbackButton variant="button" />
+      </section>
+
+      <details className="surface group p-4" open={!!wallet.status?.address || state.tester} data-testid="me-wallet">
+        <summary className="flex min-h-11 items-center justify-between gap-2">
+          <span className="t-h2">Beta &amp; wallet</span>
+          <span aria-hidden className="chev group-open:rotate-90">
+            ›
+          </span>
+        </summary>
+        <div className="mt-3 grid gap-4">
+          {state.tester && (
+            <Link href="/beta" className="surface-2 flex items-center gap-3 p-3" data-testid="me-beta-link">
+              <PixelIcon name="rosette" size={32} />
+              <span className="min-w-0 flex-1">
+                <span className="t-title block">Playtester: your beta</span>
+                <span className="t-meta block">Progress, tester bonuses and your tester item.</span>
+              </span>
+              <span aria-hidden className="chev">
+                ›
+              </span>
+            </Link>
+          )}
+          <p className="t-meta">Optional, for the closed beta. The game never needs a wallet.</p>
+          <WalletLink />
+          <p className="flex flex-wrap gap-4">
+            <Link href="/pool" className="link" data-testid="me-pool-link">
+              Prize Pool
+            </Link>
+            <Link href="/invite" className="link" data-testid="me-invite-link">
+              Invite friends
+            </Link>
+          </p>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/** "Start over": a quiet text button with a typed confirm (destructive actions never shout). */
+function StartOver() {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  if (!open)
+    return (
+      <button type="button" className="btn btn-ghost btn-danger-text w-fit !px-0" onClick={() => setOpen(true)} data-testid="start-over">
+        Start over with a new stable…
+      </button>
+    );
+  return (
+    <div className="surface-2 grid gap-2 p-3" role="alertdialog" aria-label="Start over">
+      <p className="font-extrabold">This browser forgets your current stable for good.</p>
+      <p className="t-meta">There is no way back to it yet. Type START OVER to confirm.</p>
+      <input className="field max-w-xs" value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Type START OVER" data-testid="start-over-input" />
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn btn-oxblood"
+          disabled={typed.trim().toUpperCase() !== "START OVER"}
+          onClick={() => void signOut().then(() => window.location.assign("/play"))}
+          data-testid="start-over-confirm"
+        >
+          Start over
+        </button>
+        <button type="button" className="btn btn-outline" onClick={() => setOpen(false)}>
+          Keep my stable
+        </button>
+      </div>
     </div>
   );
 }

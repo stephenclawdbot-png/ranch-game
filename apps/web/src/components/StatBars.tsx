@@ -20,13 +20,15 @@ export function statGrade(v: number): string {
  * >= 4.5:1 on surface-1 and on the inset well.
  */
 export const GRADE_COLOR: Record<string, string> = {
-  S: "#f2c86a",
-  A: "#e8b25a",
-  B: "#cdbf9c",
-  C: "#a9bda9",
-  D: "#8fa592",
-  E: "#8fa592",
+  S: "#d9a441",
+  A: "#d9a441",
+  B: "#2b6a41",
+  C: "#2b6a41",
+  D: "#7a6548",
+  E: "#7a6548",
 };
+/** Grade letter colour on paper-2 (all >= 4.5:1). */
+export const GRADE_TEXT: Record<string, string> = { S: "#8a5d14", A: "#8a5d14", B: "#2b6a41", C: "#2b6a41", D: "#5a4630", E: "#5a4630" };
 
 /** Segmented meter: 10 cells of 100 points; the last lit cell shows a partial. */
 export function PixelMeter({ value, label, max = 1000, cells = 10 }: { value: number; label: string; max?: number; cells?: number }) {
@@ -34,7 +36,7 @@ export function PixelMeter({ value, label, max = 1000, cells = 10 }: { value: nu
   const color = GRADE_COLOR[statGrade(value)];
   return (
     <div
-      className="flex h-3 gap-[2px] bg-[#050b08] p-[2px]"
+      className="flex h-4 gap-[2px] bg-ink p-[2px]"
       role="meter"
       aria-label={label}
       aria-valuemin={0}
@@ -44,7 +46,7 @@ export function PixelMeter({ value, label, max = 1000, cells = 10 }: { value: nu
       {Array.from({ length: cells }, (_, i) => {
         const on = i < Math.floor(lit);
         const part = !on && i < lit;
-        return <span key={i} className="h-full flex-1" style={{ background: on ? color : part ? `${color}66` : "#173025" }} />;
+        return <span key={i} className="h-full flex-1" style={{ background: on ? color : part ? `${color}88` : "#ecdfbd" }} />;
       })}
     </div>
   );
@@ -63,11 +65,11 @@ export function GradeBadge({
   size?: "sm" | "md" | "lg";
 }) {
   const letter = g ?? statGrade(value ?? 0);
-  const dim = size === "lg" ? "h-10 w-10 text-2xl" : size === "sm" ? "h-6 w-6 text-sm" : "h-7 w-7 text-base";
+  const dim = size === "lg" ? "h-10 w-10 text-[2rem]" : size === "sm" ? "h-6 w-6 text-[1.25rem]" : "h-7 w-7 text-[1.375rem]";
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center bg-[#050b08] font-extrabold leading-none ${dim} ${className ?? ""}`}
-      style={{ color: GRADE_COLOR[letter] }}
+      className={`score inline-flex shrink-0 items-center justify-center bg-paper-2 leading-none shadow-[inset_0_0_0_1px_#b59a62] ${dim} ${className ?? ""}`}
+      style={{ color: GRADE_TEXT[letter] ?? "#1d140a" }}
     >
       {letter}
     </span>

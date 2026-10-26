@@ -344,6 +344,14 @@ dialog.sheet :focus-visible {
     background: var(--color-baize-900);
     box-shadow: inset 0 0 0 2px var(--color-baize-line);
   }
+  /* Picked (a selection that isn't "yours"): an ink double keyline, never brass. */
+  .picked {
+    background: #fffaf0 !important;
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 0 0 4px #fffaf0,
+      inset 0 0 0 6px var(--color-ink) !important;
+  }
   .yours {
     box-shadow: inset 4px 0 0 var(--color-brass);
   }
@@ -993,6 +1001,162 @@ dialog.sheet :focus-visible {
     right: 30%;
     height: 4px;
     background: var(--color-brass);
+  }
+
+  /* ------------------------------------------------------- track tiles (race rows) */
+  /* The surface as pixel texture with a white rail on top; the post time on an ink plate. */
+  .track-tile {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    flex: none;
+    box-shadow: inset 0 0 0 2px var(--color-ink);
+    image-rendering: pixelated;
+  }
+  .track-tile::before {
+    content: "";
+    position: absolute;
+    inset: 2px 2px auto 2px;
+    height: 6px;
+    background:
+      linear-gradient(#fffaf0, #fffaf0) 0 0 / 100% 2px no-repeat,
+      linear-gradient(#9ea99f, #9ea99f) 0 2px / 100% 2px no-repeat,
+      repeating-linear-gradient(90deg, #fffaf0 0 2px, transparent 2px 14px) 0 0 / 100% 6px no-repeat;
+  }
+  .track-turf {
+    background: repeating-linear-gradient(90deg, #4d9a5f 0 8px, #448a55 8px 16px);
+  }
+  .track-dirt {
+    background: repeating-conic-gradient(#a8784a 0 25%, #bb8b58 0 50%) 0 0 / 4px 4px;
+  }
+  .track-synthetic {
+    background: repeating-conic-gradient(#4a3d5c 0 25%, #5a4b6e 0 50%) 0 0 / 4px 4px;
+  }
+  .track-plate {
+    position: relative;
+    margin-top: 6px;
+    padding: 3px 4px 2px;
+    min-width: 52px;
+    text-align: center;
+    color: #f6ecd3;
+    background: rgba(13, 9, 5, 0.82);
+  }
+
+  .date-block {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 64px;
+    flex: none;
+    color: var(--color-ink);
+    background: var(--color-paper-2);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 16px 0 2px var(--color-oxblood);
+  }
+  .date-block > :first-child {
+    color: #f6ecd3;
+  }
+  /* A slim pixel meter (crop counter, odds bars). */
+  .meter {
+    display: block;
+    height: 10px;
+    padding: 2px;
+    background: var(--color-ink);
+  }
+  .meter > span {
+    display: block;
+    height: 100%;
+    background: var(--color-brass);
+  }
+  /* Floating "?" (feedback on /beta). */
+  .fab {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+    z-index: 36;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    font: 800 1.375rem/1 var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-brass-hi);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      0 4px 0 var(--color-ink);
+  }
+  @media (min-width: 768px) {
+    .fab {
+      bottom: 24px;
+    }
+  }
+  /* Pedigree: sire and dam on top, the horse below, joined by ink rules. */
+  .ped-tree {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 12px;
+    position: relative;
+  }
+  .ped-parent,
+  .ped-self {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
+  }
+  .ped-self {
+    grid-column: 1 / -1;
+    justify-self: center;
+    min-width: 60%;
+    text-align: center;
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 4px 0 2px #fffaf0;
+  }
+  .ped-tree::before {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    top: calc(50% - 14px);
+    height: 14px;
+    border: 2px solid var(--color-ink-3);
+    border-top: 0;
+  }
+  .pip {
+    width: 24px;
+    height: 12px;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-ink-3);
+  }
+  .pip.on {
+    background: var(--color-brass);
+    box-shadow: inset 0 0 0 2px var(--color-ink);
+  }
+  .rosette-well {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
+  }
+  .rosette-well.locked > * {
+    filter: grayscale(1) brightness(0.55) contrast(0.6);
+    opacity: 0.45;
+  }
+  .tier-badge {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    flex: none;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
   }
 
   /* ------------------------------------------------------- scene band */

@@ -18,23 +18,20 @@ type Category = (typeof CATEGORIES)[number]["key"];
  * Feedback on every page: a small button in the top bar opens a dialog (category, optional
  * 1-5 rating, message). The route, screen size, browser and recent client errors are attached.
  */
-export function FeedbackButton() {
+export function FeedbackButton({ variant = "button" }: { variant?: "button" | "fab" }) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <button
-        ref={button}
-        type="button"
-        className="flex h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm font-extrabold text-cream-dim hover:bg-surface-2 hover:text-cream"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        data-testid="feedback-open"
-      >
-        <PixelIcon name="pencil" className="h-4 w-4" />
-        <span className="hidden lg:inline">Feedback</span>
-        <span className="sr-only lg:hidden">Send feedback</span>
-      </button>
+      {variant === "fab" ? (
+        <button ref={button} type="button" className="fab" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Send feedback" data-testid="feedback-open">
+          ?
+        </button>
+      ) : (
+        <button ref={button} type="button" className="btn btn-outline w-fit" onClick={() => setOpen(true)} aria-haspopup="dialog" data-testid="feedback-open">
+          <PixelIcon name="pencil" className="h-4 w-4" /> Send feedback
+        </button>
+      )}
       {open &&
         // Portal: the top bar is its own stacking context; the dialog must sit above the tab bar too.
         createPortal(

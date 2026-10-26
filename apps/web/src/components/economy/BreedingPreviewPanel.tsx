@@ -6,7 +6,7 @@
  */
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
-import { GRADE_COLOR } from "@/components/StatBars";
+import { GRADE_COLOR, GRADE_TEXT } from "@/components/StatBars";
 import { Credits } from "./kit";
 
 const STATS = [
@@ -105,7 +105,7 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
           <div className="flex flex-wrap gap-1.5" aria-label="Chance per grade">
             {GRADES.filter((g) => (o.grades[g] ?? 0) > 0).map((g) => (
               <span key={g} className="chip">
-                <span className="font-extrabold" style={{ color: GRADE_COLOR[g] }}>
+                <span className="font-extrabold" style={{ color: GRADE_TEXT[g] }}>
                   {g}
                 </span>
                 {pct(o.grades[g] ?? 0)}
@@ -153,7 +153,7 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
                 </span>
                 <span className="num text-right text-cream">
                   {s.min}–{s.max}{" "}
-                  <span className="font-extrabold" style={{ color: GRADE_COLOR[gradeOf(s.max)] }}>
+                  <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(s.max)] }}>
                     {gradeOf(s.min) === gradeOf(s.max) ? gradeOf(s.min) : `${gradeOf(s.min)}–${gradeOf(s.max)}`}
                   </span>
                 </span>

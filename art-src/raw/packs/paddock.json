@@ -1,0 +1,78 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small wooden foal crate made of honey-coloured oak planks, tied with a cream ribbon and bow, a red rosette pinned on the front, a tuft of golden hay poking out of the top, a horseshoe hanging on the side; high-res HD pixel art game item, 3/4 view, clean selective dark outline, rich shading, warm golden-hour light from the upper left, transparent background",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9301
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a488377d-ff78-4800-bb54-3ec0f27c2d68",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "a488377d-ff78-4800-bb54-3ec0f27c2d68",
+  "status": "completed",
+  "created_at": "2026-10-26T06:31:44.883497+00:00",
+  "last_response": {
+   "seed": 9301,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13824 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14012 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<15920 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12456 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "7769c593-5bdc-4edd-91ce-0946d6d029b9",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_128x128.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_128x128.png",
+   "generation_started_at": "2026-10-26T06:31:51.040692+00:00",
+   "original_image_n_colors": 111,
+   "quantized_image_n_colors": 67
+  }
+ },
+ "files": [
+  "art-src/raw/packs/paddock-0.png",
+  "art-src/raw/packs/paddock-1.png",
+  "art-src/raw/packs/paddock-2.png",
+  "art-src/raw/packs/paddock-3.png"
+ ]
+}

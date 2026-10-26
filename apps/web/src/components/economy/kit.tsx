@@ -92,10 +92,10 @@ export function stageLabel(s: string): string {
 
 /** One horse in a compact row: portrait, name (links to the horse page), meta line. */
 export function HorseLine({ h, meta, aside, link = true }: { h: EcoHorse; meta?: ReactNode; aside?: ReactNode; link?: boolean }) {
-  const name = <span className="t-title block truncate">{h.horse.name}</span>;
+  const name = <span className="t-title block">{h.horse.name}</span>;
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="shrink-0 bg-inset">
+      <span className="well grid shrink-0 place-items-center">
         <HorsePortrait appearance={h.horse.appearance} scale="thumb" />
       </span>
       <span className="min-w-0 flex-1">

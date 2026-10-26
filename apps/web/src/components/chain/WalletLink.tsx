@@ -91,7 +91,7 @@ export function WalletLink({ compact = false, onLinked }: { compact?: boolean; o
       {!w.address ? (
         <WalletPicker label="Connect wallet" />
       ) : (
-        <button type="button" className="btn btn-brass" onClick={verify} disabled={busy} data-testid="wallet-verify">
+        <button type="button" className="btn" onClick={verify} disabled={busy} data-testid="wallet-verify">
           {busy ? "Check your wallet…" : `Verify ${shortAddress(w.address)} (free signature)`}
         </button>
       )}

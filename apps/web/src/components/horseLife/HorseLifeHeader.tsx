@@ -12,11 +12,11 @@ export function HorseLifeHeader({ view, active }: { view: HorseLifeView; active:
     <div className="grid gap-3">
       <BackLink href={young ? "/nursery" : "/stable"} label={young ? "Nursery" : "Your stable"} />
       <header className="flex items-center gap-3">
-        <span className="bg-inset">
+        <span className="well grid shrink-0 place-items-center">
           <HorsePortrait appearance={view.horse.appearance} scale="thumb" />
         </span>
         <div className="min-w-0">
-          <h1 className="t-display-l break-words" data-testid="horse-name">
+          <h1 className="t-page break-words" data-testid="horse-name">
             {view.name}
           </h1>
           <p className="t-meta">

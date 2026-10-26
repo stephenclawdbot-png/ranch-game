@@ -160,4 +160,6 @@
 {"path":"ui/icon-whistle.png","w":32,"h":32},
 {"path":"ui/icon-winner-drape.png","w":32,"h":32},
 {"path":"ui/logo.png","w":110,"h":93},
+{"path":"ui/pack-paddock.png","w":128,"h":128},
+{"path":"ui/pack-premium.png","w":128,"h":128},
 {"path":"ui/panel-9slice.png","w":64,"h":64}]

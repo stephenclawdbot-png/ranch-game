@@ -25,7 +25,7 @@ export function WalletPicker({ label = "Connect wallet", onConnected }: { label?
   }
   return (
     <div className="grid gap-2">
-      <button type="button" className="btn btn-brass" onClick={() => setOpen((o) => !o)} data-testid="wallet-connect">
+      <button type="button" className="btn" onClick={() => setOpen((o) => !o)} data-testid="wallet-connect">
         {label}
       </button>
       {open && (

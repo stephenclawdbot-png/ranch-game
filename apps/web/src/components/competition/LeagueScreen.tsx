@@ -5,6 +5,8 @@ import { LocalTime, TimeLeft } from "./LocalTime";
 import { Silks } from "../Silks";
 import { PixelIcon } from "../icons";
 import { tierLabel } from "./bits";
+import { DateBlock } from "./LocalTime";
+import { EmptyState, HowItWorks, SceneBand } from "../ui/Page";
 
 function zoneText(z: LeagueRowView["zone"]): string {
   return z === "promote" ? "▲ Promotion" : z === "relegate" ? "▼ Relegation" : "";
@@ -12,7 +14,7 @@ function zoneText(z: LeagueRowView["zone"]): string {
 
 function LeagueRow({ r }: { r: LeagueRowView }) {
   return (
-    <li className={`flex items-center gap-3 px-3 py-2 ${r.mine ? "surface-2" : ""}`} data-testid="league-row" data-mine={r.mine || undefined} data-zone={r.zone ?? undefined}>
+    <li className={`flex items-center gap-3 px-4 py-3 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="league-row" data-mine={r.mine || undefined} data-zone={r.zone ?? undefined}>
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
       <Silks silks={r.silks} cap={false} className="h-[26px] w-8 shrink-0" />
       <div className="min-w-0 flex-1">
@@ -32,7 +34,7 @@ function LeagueRow({ r }: { r: LeagueRowView }) {
 
 function SeasonRow({ r }: { r: SeasonRowView }) {
   return (
-    <li className={`flex items-center gap-3 px-3 py-2 ${r.mine ? "surface-2" : ""}`} data-testid="season-row">
+    <li className={`flex items-center gap-3 px-2 py-2 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="season-row">
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
       <Silks silks={r.silks} cap={false} className="h-[26px] w-8 shrink-0" />
       <p className="t-title min-w-0 flex-1 truncate text-cream">
@@ -56,30 +58,28 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
   const mine = rows.find((r) => r.mine);
   const lastWeek = view.history[0];
   return (
-    <div className="grid gap-6">
-      <header>
-        <p className="eyebrow">Weekly · season {view.season.number}</p>
-        <h1 className="t-display-xl">League</h1>
-        <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-          Owners race in leagues of up to {view.capacity}. Points come from your Live races; the top {view.promote} go up at the end of the week and the bottom {view.relegate} who
-          raced go down. If you&rsquo;re away, you never drop.
-        </p>
-      </header>
+    <div>
+      <SceneBand scene="paddock" alt="The paddock at Kestrel Downs" eyebrow={`Club · season ${view.season.number}`} title="League" />
 
-      <section className="frame-hero grid gap-3 p-3 sm:p-4" aria-labelledby="my-league-h">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 id="my-league-h" className="t-display-m" data-testid="league-title">
+      <section className="frame-hero mt-4 grid gap-3 p-4 sm:p-5" aria-labelledby="my-league-h">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className={`tier-badge tier-${view.joined ? view.tierName : "none"}`} aria-hidden>
+              <PixelIcon name={view.tier <= 1 ? "badge-gold" : view.tier <= 3 ? "badge-silver" : "badge-bronze"} size={64} />
+            </span>
+            <div className="min-w-0">
+            <h2 id="my-league-h" className="t-hero" data-testid="league-title">
               {view.joined ? `${tierLabel(view.tierName)} League · group ${view.group}` : "Your league"}
             </h2>
             <p className="t-meta">
               Tier {view.tier} of {view.tierCount} · week of {view.weekStart}
               {mine ? ` · you're ${ordinal(mine.rank)} with ${mine.points} pts` : ""}
             </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="label text-cream-dim">Week ends in</p>
-            <p className="score text-[2.5rem] leading-none text-cream">
+          <div className="shrink-0 text-right">
+            <p className="label">Week ends in</p>
+            <p className="score text-[2.5rem] leading-none">
               <TimeLeft targetMs={view.weekEndsAtMs} />
             </p>
           </div>
@@ -92,13 +92,24 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
         )}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <HowItWorks className="mt-3">
+        <p>
+          Owners race in leagues of up to {view.capacity}. Points come from your Live races; at the end of the week the top {view.promote} go up and the bottom {view.relegate} who
+          raced go down. If you&rsquo;re away, you never drop.
+        </p>
+        <p>
+          Every settled Live race scores {view.rules.startPoint} for starting, plus {view.rules.racePoints.join(" / ")} for 1st to {view.rules.racePoints.length}th (fields of 4 or more).
+          Listed and Group places score extra. At most {view.rules.weeklyCap} points a week, so racing more can&rsquo;t buy a league.
+        </p>
+      </HowItWorks>
+
+      <div className="section grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="table-h" className="min-w-0">
-          <div className="mb-2 flex items-end justify-between gap-2">
-            <h2 id="table-h" className="t-display-m">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 id="table-h" className="t-h2">
               This week
             </h2>
-            <p className="caption">▲ promotion · ▼ relegation zone</p>
+            <p className="eyebrow">▲ up · ▼ down</p>
           </div>
           {view.joined ? (
             <ol className="surface rows" data-testid="league-table">
@@ -107,29 +118,23 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
               ))}
             </ol>
           ) : (
-            <div className="surface grid gap-3 p-4" data-testid="league-empty">
-              <p className="text-cream">
-                {signedIn ? "Race in any Live race this week to join a league. You start in Bronze." : "Found a stable and race Live to join a league."}
-              </p>
-              <Link href={signedIn ? "/races" : "/play"} className="btn btn-brass w-fit">
-                <PixelIcon name="flag" size={20} /> {signedIn ? "See the race card" : "Found your stable"}
-              </Link>
-            </div>
+            <EmptyState
+              icon="badge-bronze"
+              testId="league-empty"
+              title="You're not in a league yet"
+              text={signedIn ? "Race in any Live race this week to join one. You start in Bronze." : "Found a stable and race Live to join a league."}
+              action={
+                <Link href={signedIn ? "/races" : "/play"} className="btn btn-sm">
+                  {signedIn ? "See the race card" : "Found your stable"}
+                </Link>
+              }
+            />
           )}
-          <details className="surface mt-3">
-            <summary className="flex min-h-12 items-center px-3 font-extrabold">How points work</summary>
-            <div className="border-t-2 border-line p-3 text-cream-dim">
-              <p>
-                Every settled Live race scores {view.rules.startPoint} for starting, plus {view.rules.racePoints.join(" / ")} for 1st to {view.rules.racePoints.length}th (fields of 4 or
-                more). Listed and Group places score extra. At most {view.rules.weeklyCap} points a week, so racing more can&rsquo;t buy a league.
-              </p>
-            </div>
-          </details>
         </section>
 
         <aside className="grid content-start gap-4">
-          <section className="surface p-3" aria-labelledby="season-h">
-            <h2 id="season-h" className="t-display-m mb-1">
+          <section className="surface p-4" aria-labelledby="season-h">
+            <h2 id="season-h" className="t-h2 mb-1">
               Season {view.season.number}
             </h2>
             <p className="caption mb-2 text-cream-dim">
@@ -143,28 +148,31 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
                 {view.season.mine && !view.season.rows.some((r) => r.mine) && <SeasonRow r={view.season.mine} />}
               </ol>
             ) : (
-              <p className="text-cream-dim">No Live results this season yet.</p>
+              <p className="t-meta">No Live results this season yet. The first Live race you finish puts you on this table.</p>
             )}
           </section>
-          <section className="surface p-3" aria-labelledby="cal-h">
-            <h2 id="cal-h" className="t-display-m mb-1">
+          <section aria-labelledby="cal-h">
+            <h2 id="cal-h" className="t-h2 mb-3">
               Big days
             </h2>
-            <p className="caption mb-2 text-cream-dim">On the Live card. Weekend Features and Season Finals need a Classics licence; qualifiers a National licence.</p>
-            <ul className="grid gap-2" data-testid="league-calendar">
+            <ul className="surface rows" data-testid="league-calendar">
               {view.calendar.map((c) => (
-                <li key={c.id} className="inset px-3 py-2">
-                  <p className="font-extrabold text-cream">{c.name}</p>
-                  <p className="t-meta">
-                    {KIND_LABEL[c.kind]} · <LocalTime ms={c.postTimeMs} withDate /> · {formatDistance(c.distanceM)} {SURFACE_LABEL[c.surface].toLowerCase()}
-                  </p>
+                <li key={c.id} className="flex items-center gap-3 px-4 py-3">
+                  <DateBlock ms={c.postTimeMs} />
+                  <div className="min-w-0">
+                    <p className="t-title">{c.name}</p>
+                    <p className="t-meta">
+                      {KIND_LABEL[c.kind]} · {formatDistance(c.distanceM)} {SURFACE_LABEL[c.surface].toLowerCase()}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
+            <p className="caption mt-2">Features and Finals need a Classics licence; qualifiers a National licence.</p>
           </section>
           {view.history.length > 0 && (
-            <section className="surface p-3" aria-labelledby="hist-h">
-              <h2 id="hist-h" className="t-display-m mb-2">
+            <section className="surface p-4" aria-labelledby="hist-h">
+              <h2 id="hist-h" className="t-h2 mb-2">
                 Past weeks
               </h2>
               <ul className="grid gap-1">

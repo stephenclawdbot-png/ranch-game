@@ -6,7 +6,6 @@ import { EntryForm } from "./entry/EntryForm";
 import { JoinNudge } from "./PlayerGate";
 import { useEntry } from "./entry/EntryProvider";
 import { PixelIcon } from "./icons";
-import { ActionBar } from "./ui/ActionBar";
 
 /** Story races on /races: Quick Pick first (the primary action), the manual picker second. */
 export function QuickRacePanel() {
@@ -25,19 +24,17 @@ export function QuickRacePanel() {
   if (state === null) return <JoinNudge compact />;
   return (
     <div className="grid gap-3">
-      <div className="frame-hero flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+      <div className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="t-title">Quick Pick · Story</p>
-          <p className="text-cream-dim">Your best-suited fresh horse, ridden to its natural style. Watch, skip to the result, or watch later.</p>
+          <p className="t-meta">Your best-suited fresh horse, ridden to its natural style.</p>
         </div>
-        <ActionBar>
-          <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
-            <PixelIcon name="flag" size={32} className="-my-2" /> Race now
-          </button>
-        </ActionBar>
+        <button type="button" className="btn shrink-0" onClick={entry.quickPick} data-testid="quick-pick">
+          <PixelIcon name="flag" size={32} className="-my-2" /> Race now
+        </button>
       </div>
       <details className="surface group" open>
-        <summary className="flex min-h-12 items-center justify-between gap-2 px-3 font-extrabold">
+        <summary className="flex min-h-12 items-center justify-between gap-2 px-4 font-extrabold">
           Or choose the horse and plan yourself
           <span aria-hidden className="text-cream-dim group-open:rotate-90">
             ▸

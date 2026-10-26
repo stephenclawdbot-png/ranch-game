@@ -14,6 +14,7 @@ import { approxUsd, formatEth, formatUsdCents } from "@/lib/chain/format";
 import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { WalletLink } from "./WalletLink";
+import { PageHeader } from "@/components/ui/Page";
 import { WalletPicker } from "./WalletPicker";
 import { useWallet } from "./useWallet";
 
@@ -98,8 +99,8 @@ export function PoolScreen() {
 
   return (
     <div className="grid gap-5" data-testid="pool">
+      <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Prize Pool" />
       <header className="grid gap-1">
-        <h1 className="t-display-l">Prize Pool</h1>
         <p className="t-meta">
           {v.poolBps / 100}% of every Premium Pack sale goes into a contract on Robinhood Chain. Each week it pays the best active players by skill. Nobody can withdraw it, not even us:
           ETH leaves only when a player claims their share.
@@ -112,7 +113,7 @@ export function PoolScreen() {
           In the pool
         </h2>
         <p>
-          <span className="t-display-l num" data-testid="pool-balance">
+          <span className="score text-[2.5rem] leading-none" data-testid="pool-balance">
             {formatEth(v.balanceWei, 5)}
           </span>{" "}
           <span className="text-cream-dim">{approxUsd(v.balanceWei, px)}</span>
@@ -171,7 +172,7 @@ export function PoolScreen() {
       </section>
 
       <section className="surface grid gap-2 p-3" aria-labelledby="rules-h" data-testid="pool-rules">
-        <h2 id="rules-h" className="t-display-m">
+        <h2 id="rules-h" className="t-h2">
           Rules
         </h2>
         <ul className="grid list-disc gap-1 pl-5 text-sm">
@@ -228,7 +229,7 @@ function MyClaims({ mine, px, onClaimed }: { mine: Mine | null; px: number | nul
   if (!mine.wallet) {
     return (
       <section className="surface grid gap-2 p-3" aria-label="Your wallet">
-        <h2 className="t-display-m">Your payouts</h2>
+        <h2 className="t-h2">Your payouts</h2>
         <WalletLink />
       </section>
     );
@@ -260,7 +261,7 @@ function MyClaims({ mine, px, onClaimed }: { mine: Mine | null; px: number | nul
   }
   return (
     <section className="surface grid gap-2 p-3" aria-labelledby="mine-h" data-testid="pool-mine">
-      <h2 id="mine-h" className="t-display-m">
+      <h2 id="mine-h" className="t-h2">
         Your payouts
       </h2>
       {mine.allocations.length === 0 ? (

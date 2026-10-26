@@ -25,3 +25,15 @@ export function TimeLeft({ targetMs, skewMs = 0 }: { targetMs: number; skewMs?: 
   const m = min % 60;
   return <span className="tabular">{d > 0 ? `${d} d ${h} h` : h > 0 ? `${h} h ${m} min` : `${m} min`}</span>;
 }
+
+/** A calendar date block: weekday + day number (Jersey) + time, in the viewer's timezone. */
+export function DateBlock({ ms }: { ms: number }) {
+  const d = new Date(ms);
+  return (
+    <span className="date-block" suppressHydrationWarning>
+      <span className="text-[0.6875rem] font-extrabold uppercase leading-4">{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+      <span className="score text-[1.75rem] leading-none">{d.getDate()}</span>
+      <span className="text-[0.6875rem] font-bold leading-4">{d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+    </span>
+  );
+}

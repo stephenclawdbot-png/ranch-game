@@ -8,12 +8,12 @@ import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/ap
 import { COAT_LABEL, GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
 import { HorsePortrait } from "../HorsePortrait";
-import { SilksIcon } from "../Silks";
-import { Stall } from "../Stall";
+import { Silks } from "../Silks";
 import { GradeBadge, StatBars } from "../StatBars";
 import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
+import { EmptyState, SceneBand } from "../ui/Page";
 import { PositionBadge } from "../ui/PositionBadge";
 
 export { PositionBadge };
@@ -39,7 +39,7 @@ function AptRow<K extends string>({ label, cells, name }: { label: string; cells
       <dt className="pt-1 font-extrabold">{label}</dt>
       <dd className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-1.5">
         {cells.map((c) => (
-          <span key={c.key} className={`flex items-center gap-1.5 px-1.5 py-1 ${c.best ? "bg-surface-2" : ""}`} title={`${name(c.key)}: ${c.grade}`}>
+          <span key={c.key} className={`flex items-center gap-1.5 px-1.5 py-1 ${c.best ? "surface-2" : ""}`} title={`${name(c.key)}: ${c.grade}`}>
             <GradeBadge grade={c.grade} size="sm" />
             <span className="min-w-0 text-sm leading-tight">
               <span className="block font-bold text-cream">{name(c.key)}</span>
@@ -64,113 +64,119 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
   const apt = aptitudes(horse);
   const tripName = (id: string) => TRIP_BANDS.find((b) => b.id === id)!.label;
 
+  const first = horse.name.split(" ")[0];
   return (
     <div className="grid gap-6">
-      <nav aria-label="Breadcrumb">
-        <Link href={isMine ? "/stable" : "/races"} className="inline-flex min-h-11 items-center gap-1 font-bold text-cream-dim hover:text-cream">
-          ‹ {isMine ? "Your stable" : "Races"}
-        </Link>
-      </nav>
+      <SceneBand
+        scene="barn"
+        size="crop"
+        alt=""
+        eyebrow={
+          <span className="inline-flex items-center gap-2">
+            <Silks silks={horse.appearance.silks} cap={false} className="h-[26px] w-8" /> {stableName}
+          </span>
+        }
+        title={<span data-testid="horse-name">{horse.name}</span>}
+        aside={
+          <Link href={isMine ? "/stable" : "/races"} className="link !text-on-baize [text-shadow:0_1px_0_#050d08]">
+            ‹ {isMine ? "Stable" : "Races"}
+          </Link>
+        }
+      />
       {tabs}
 
-      <section className="grid gap-4 md:grid-cols-[auto_1fr] md:gap-6" aria-labelledby="horse-h">
-        <div className="surface w-fit !p-0">
-          <Stall className="flex items-end justify-center px-6 pt-4 md:px-8">
-            <HorsePortrait
-              appearance={horse.appearance}
-              scale={2}
-              className="md:hidden"
-              title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`}
-            />
-            <HorsePortrait appearance={horse.appearance} scale={3} className="hidden md:block" />
-          </Stall>
+      <section className="surface grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:gap-6 sm:p-5" aria-labelledby="horse-h">
+        <div className="well grid h-fit w-fit place-items-center self-start justify-self-center p-2 sm:justify-self-start">
+          <HorsePortrait appearance={horse.appearance} scale={1} className="md:hidden" title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`} />
+          <HorsePortrait appearance={horse.appearance} scale={2} className="hidden md:block" />
         </div>
         <div className="flex min-w-0 flex-col gap-3">
-          <p className="flex items-center gap-2 text-sm font-bold text-cream-dim">
-            <SilksIcon silks={horse.appearance.silks} className="h-7 w-7" /> {stableName}
-            {isMine && <span className="you-tag">Yours</span>}
-          </p>
           <div>
-            <h1 id="horse-h" className="t-display-l md:text-[2.5rem]" data-testid="horse-name">
-              {horse.name}
-            </h1>
-            <p className="text-cream-dim">
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="tag" title="Registration number" data-testid="reg-no">
+                {view.regNo}
+              </span>
+              {isMine && <span className="tag tag-you">Yours</span>}
+            </p>
+            <h2 id="horse-h" className="t-hero mt-2">
               {horse.age > 0 ? `${horse.age}-year-old ` : "A young "}
               {COAT_LABEL[horse.appearance.coat].toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
               {horse.age > 0 ? "" : " in the nursery"}
+            </h2>
+            <p className="t-meta">
+              {STYLE_LABEL[horse.style]} · best {formatDistance(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}
               {view.trainer && ` · trained by ${view.trainer}`}
             </p>
           </div>
-          <ul className="flex flex-wrap gap-1.5" aria-label="At a glance">
-            <li className="chip text-cream">{STYLE_LABEL[horse.style]}</li>
-            <li className="chip text-cream">Best {formatDistance(horse.preferredDistanceM)}</li>
-            <li className="chip text-cream">{SURFACE_LABEL[horse.preferredSurface]}</li>
-          </ul>
-          <p className="max-w-prose text-lg">{horseSummary(horse)}</p>
+          <p className="max-w-prose">{horseSummary(horse)}</p>
           <p className="t-meta">{recordText(record)}</p>
           {st && (
-            <ul className="flex flex-wrap gap-1.5 text-sm" aria-label="Condition" data-testid="horse-status">
-              <li className="chip text-cream">
-                Career {st.starts}/{st.maxStarts} starts
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[0.875rem] font-bold" aria-label="Condition" data-testid="horse-status">
+              <li className="inline-flex items-center gap-1.5">
+                <i className={`dot ${st.condition === "tired" ? "dot-warn" : "dot-pos"}`} aria-hidden />
+                {st.condition === "tired" ? "Tired" : st.condition === "fresh" ? "Fresh" : "Ready"} · {Math.round(st.freshness / 10)}%
               </li>
-              <li className="chip text-cream">OR {st.rating}</li>
-              <li className={`chip ${st.condition === "tired" ? "text-negative" : "text-cream"}`}>
-                {st.condition === "tired" ? "Tired" : st.condition === "fresh" ? "Fresh" : "Ready"} · freshness {Math.round(st.freshness / 10)}%
+              <li>
+                {st.starts}/{st.maxStarts} starts
               </li>
+              <li>OR {st.rating}</li>
               {st.injury && (
-                <li className="chip text-negative">
+                <li className="text-negative">
                   Injured ({st.injury.severity.replace("_", " ")}){st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
                 </li>
               )}
-              <li className={`chip ${st.risk.label === "low" ? "text-cream" : "text-negative"}`} title={st.risk.factors.join(" · ")}>
-                Injury risk {riskText(st.risk)}
+              <li className={st.risk.label === "low" ? "" : "text-negative"} title={st.risk.factors.join(" · ")}>
+                Risk {riskText(st.risk)}
               </li>
             </ul>
           )}
           {isMine && st?.block === "Not yet of racing age" ? (
             <ActionBar className="md:mt-2">
               <Link href={`/horse/${horse.id}/care`} className="btn btn-brass btn-lg" data-testid="care-link">
-                <PixelIcon name="horseshoe" size={32} className="-my-2" /> Care for {horse.name.split(" ")[0]}
+                <PixelIcon name="grooming-brush" size={32} className="-my-2" /> Care for {first}
               </Link>
             </ActionBar>
+          ) : isMine && st?.block ? (
+            <p className="t-meta font-bold" data-testid="enter-a-race-blocked">
+              {st.block}. {first} can race again once that&rsquo;s over.
+            </p>
           ) : isMine ? (
             <ActionBar className="md:mt-2">
-              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} disabled={!!st?.block} data-testid="enter-a-race">
-                <PixelIcon name="flag" size={32} className="-my-2" /> {st?.block ? st.block : `Race ${horse.name}`}
+              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} data-testid="enter-a-race">
+                <PixelIcon name="flag" size={32} className="-my-2" /> Enter {first} in a race
               </button>
             </ActionBar>
           ) : view.stud ? (
             <div className="grid gap-2" data-testid="stud-info">
-              <p className="text-sm text-cream-dim">
-                {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee{" "}
-                <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
+              <p className="t-meta">
+                {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
               </p>
               <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
-                Plan a cover with {horse.name.split(" ")[0]}
+                Plan a cover with {first}
               </Link>
             </div>
           ) : view.kind === "house" ? (
-            <p className="text-sm text-cream-dim">A club horse. You&rsquo;ll meet it on the card.</p>
+            <p className="t-meta">A Club horse. You&rsquo;ll meet it on the card at Kestrel Downs.</p>
           ) : null}
           {isMine && view.actions && (view.actions.cover || view.actions.stud || view.actions.sell) && (
             <ul className="flex flex-wrap gap-2" aria-label="More for this horse" data-testid="horse-actions">
               {view.actions.cover && (
                 <li>
-                  <Link href="/breeding" className="btn btn-sm" data-testid="plan-cover">
+                  <Link href="/breeding" className="btn btn-outline btn-sm" data-testid="plan-cover">
                     Plan a cover
                   </Link>
                 </li>
               )}
               {view.actions.stud && (
                 <li>
-                  <Link href="/breeding#studs" className="btn btn-sm" data-testid="stand-at-stud">
+                  <Link href="/breeding#studs" className="btn btn-outline btn-sm" data-testid="stand-at-stud">
                     {view.stud ? `At stud · ${formatCredits(view.stud.fee)}` : "Stand at stud"}
                   </Link>
                 </li>
               )}
               {view.actions.sell && (
                 <li>
-                  <Link href="/market#sell" className="btn btn-sm" data-testid="sell-horse">
+                  <Link href="/market#sell" className="btn btn-outline btn-sm" data-testid="sell-horse">
                     Sell
                   </Link>
                 </li>
@@ -182,13 +188,13 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-4" aria-labelledby="apt-h">
-          <h2 id="apt-h" className="t-display-m">
+          <h2 id="apt-h" className="t-h2">
             Aptitudes
           </h2>
           <p className="mt-1 text-sm text-cream-dim">
             How much of {horse.name.split(" ")[0]}&rsquo;s ability shows in each condition. A keeps it all; E loses a lot.
           </p>
-          <dl className="mt-2 divide-y-2 divide-line">
+          <dl className="mt-2 divide-y-2 divide-dotted divide-line">
             <AptRow label="Trip" cells={apt.trip} name={tripName} />
             <AptRow label="Surface" cells={apt.surface} name={(k) => SURFACE_LABEL[k]} />
             <AptRow label="Going" cells={apt.going} name={(k) => GOING_LABEL[k]} />
@@ -199,7 +205,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
 
         <section className="surface p-4" aria-labelledby="ability-h">
           <div className="flex items-end justify-between gap-2">
-            <h2 id="ability-h" className="t-display-m">
+            <h2 id="ability-h" className="t-h2">
               Abilities
             </h2>
             <button type="button" className="btn-ghost min-h-11 text-sm font-bold" aria-pressed={numbers} onClick={() => setNumbers((n) => !n)}>
@@ -214,18 +220,16 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
 
       {(isMine || history.length > 0) && (
         <section aria-labelledby="history-h">
-          <h2 id="history-h" className="t-display-m mb-2">
+          <h2 id="history-h" className="t-h2 mb-3">
             Form
           </h2>
           {history.length === 0 ? (
-            <div className="surface p-4 text-cream-dim">
-              No runs yet. {horse.name.split(" ")[0]}&rsquo;s first start will show here with its replay.
-            </div>
+            <EmptyState icon="stopwatch" title="No runs yet" text={`${first}'s first start shows here with its replay.`} />
           ) : (
             <ul className="surface rows" data-testid="history">
               {history.map((h) => (
                 <li key={h.raceId}>
-                  <Link href={`/race/${h.raceId}`} className="row-link group gap-3 px-3 py-2">
+                  <Link href={`/race/${h.raceId}`} className="row-link group gap-3 px-4 py-3">
                     <PositionBadge position={h.position} />
                     <div className="min-w-0 flex-1">
                       <p className="font-extrabold group-hover:underline">{h.raceName}</p>
@@ -234,7 +238,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
                         {new Date(h.postTimeMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       </p>
                     </div>
-                    <span className={`num ${h.prize > 0 ? "text-positive" : "text-sage"}`}>{h.prize > 0 ? `+${formatCredits(h.prize)}` : "–"}</span>
+                    {h.prize > 0 ? <span className="reward">+{formatCredits(h.prize)}</span> : <span className="chev">▶</span>}
                   </Link>
                 </li>
               ))}
@@ -243,41 +247,43 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         </section>
       )}
 
-      <details className="surface p-3">
-        <summary className="flex min-h-11 items-center font-extrabold">Pedigree &amp; markings</summary>
-        <dl className="mt-2 grid gap-1 text-cream-dim sm:grid-cols-2">
-          <div>
-            <dt className="label">Sire</dt>
-            <dd className="text-cream">
-              {view.pedigree.sire ? (
-                <Link href={`/horse/${view.pedigree.sire.id}`} className="underline decoration-2 underline-offset-4 hover:text-cream">
-                  {view.pedigree.sire.name}
-                </Link>
-              ) : (
-                "Foundation stock"
-              )}
-            </dd>
+      <section aria-labelledby="ped-h" data-testid="pedigree">
+        <h2 id="ped-h" className="t-h2 mb-3">
+          Pedigree
+        </h2>
+        <div className="surface grid gap-3 p-4">
+          <div className="ped-tree">
+            <PedigreeBox role="Sire" p={view.pedigree.sire} />
+            <PedigreeBox role="Dam" p={view.pedigree.dam} />
+            <div className="ped-self">
+              <span className="label">Generation {horse.generation}</span>
+              <span className="t-title">{horse.name}</span>
+              <span className="caption">{view.regNo}</span>
+            </div>
           </div>
-          <div>
-            <dt className="label">Dam</dt>
-            <dd className="text-cream">
-              {view.pedigree.dam ? (
-                <Link href={`/horse/${view.pedigree.dam.id}`} className="underline decoration-2 underline-offset-4 hover:text-cream">
-                  {view.pedigree.dam.name}
-                </Link>
-              ) : (
-                "Foundation stock"
-              )}
-            </dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="label">Markings</dt>
-            <dd>
-              Generation {horse.generation}. {FACE_LABEL[horse.appearance.face]}; {legsText(horse.appearance.legs)}.
-            </dd>
-          </div>
-        </dl>
-      </details>
+          <p className="t-meta">
+            {FACE_LABEL[horse.appearance.face]}; {legsText(horse.appearance.legs)}.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PedigreeBox({ role, p }: { role: "Sire" | "Dam"; p: HorseDetailView["pedigree"]["sire"] }) {
+  return (
+    <div className="ped-parent">
+      <span className="label">{role}</span>
+      {p ? (
+        <>
+          <Link href={`/horse/${p.id}`} className="t-title hover:underline">
+            {p.name}
+          </Link>
+          {p.regNo && <span className="caption">{p.regNo}</span>}
+        </>
+      ) : (
+        <span className="t-meta">Foundation stock</span>
+      )}
     </div>
   );
 }
