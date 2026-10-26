@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<22864 chars>",
+   "format": "png"
+  },
+  "action": "racehorse walking calmly at a slow four-beat walk in the parade ring, legs step one at a time, head nods gently with each step, jockey sits upright and still, one complete walk cycle, seamless loop, stays in place",
+  "frame_count": 8,
+  "seed": 21051,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "29060b97-2ab5-4f64-a760-51b6bc17895b",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "29060b97-2ab5-4f64-a760-51b6bc17895b",
+  "status": "completed",
+  "created_at": "2026-10-26T06:23:19.264282+00:00",
+  "last_response": {
+   "seed": 21051,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.02418250876665115
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<22864 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30748 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30028 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30736 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30204 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<32384 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30900 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<31184 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30356 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "61e5b141-8925-46c3-8f77-0d5fec8c0bc3",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T06:23:32.861723+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-walk-jockey-0.png",
+  "art-src/diorama/raw/anim-walk-jockey-1.png",
+  "art-src/diorama/raw/anim-walk-jockey-2.png",
+  "art-src/diorama/raw/anim-walk-jockey-3.png",
+  "art-src/diorama/raw/anim-walk-jockey-4.png",
+  "art-src/diorama/raw/anim-walk-jockey-5.png",
+  "art-src/diorama/raw/anim-walk-jockey-6.png",
+  "art-src/diorama/raw/anim-walk-jockey-7.png",
+  "art-src/diorama/raw/anim-walk-jockey-8.png"
+ ]
+}

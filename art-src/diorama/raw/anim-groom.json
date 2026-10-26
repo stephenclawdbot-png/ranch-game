@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<5216 chars>",
+   "format": "png"
+  },
+  "action": "the stable lad walks steadily to the right at a calm pace, arms swing gently, one complete walk cycle, seamless loop, stays in place",
+  "frame_count": 8,
+  "seed": 21056,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "17d334a5-0bdc-43a5-8efa-777ce23b764c",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "17d334a5-0bdc-43a5-8efa-777ce23b764c",
+  "status": "completed",
+  "created_at": "2026-10-26T06:24:25.831940+00:00",
+  "last_response": {
+   "seed": 21056,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.022457989897992876
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<5216 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<5568 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4864 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4676 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4188 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4492 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4464 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4400 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<4768 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "4e3862e5-54e4-43d8-86ba-b6324234e145",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T06:24:37.792875+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-groom-0.png",
+  "art-src/diorama/raw/anim-groom-1.png",
+  "art-src/diorama/raw/anim-groom-2.png",
+  "art-src/diorama/raw/anim-groom-3.png",
+  "art-src/diorama/raw/anim-groom-4.png",
+  "art-src/diorama/raw/anim-groom-5.png",
+  "art-src/diorama/raw/anim-groom-6.png",
+  "art-src/diorama/raw/anim-groom-7.png",
+  "art-src/diorama/raw/anim-groom-8.png"
+ ]
+}

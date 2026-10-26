@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a long low strip of tall meadow grass and wildflowers seen up close at ground level: green and golden grass blades, buttercups, daisies and clover, side view, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 512,
+   "height": 112
+  },
+  "seed": 21012,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<167928 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 288
+   },
+   "usage_description": "match this pixel art style, pixel density, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "273c060a-cd7d-4cc4-81b7-e81bd30fa255",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 15
+  },
+  "id": "273c060a-cd7d-4cc4-81b7-e81bd30fa255",
+  "status": "completed",
+  "created_at": "2026-10-26T06:21:19.217524+00:00",
+  "last_response": {
+   "seed": 21012,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 512,
+     "base64": "<53092 chars>",
+     "height": 112
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 15
+   },
+   "generation_id": "25aa4faf-0949-47bf-ac15-f2a89d5ebd09",
+   "usage_cost_usd": 0.115,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-26T06:21:25.387262+00:00",
+   "original_image_n_colors": 123,
+   "quantized_image_n_colors": 52
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/fg-grass-0.png"
+ ]
+}

@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<26564 chars>",
+   "format": "png"
+  },
+  "action": "saddled racehorse walking calmly at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place",
+  "frame_count": 8,
+  "seed": 21052,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "54f405ab-9a2c-4843-8ab9-144bbcde2f0e",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "54f405ab-9a2c-4843-8ab9-144bbcde2f0e",
+  "status": "completed",
+  "created_at": "2026-10-26T06:23:19.275016+00:00",
+  "last_response": {
+   "seed": 21052,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.03205046277576023
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<26564 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29584 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28036 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28964 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28940 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<30468 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28552 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29912 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<29556 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "2cfcaad7-5bf9-4a50-9256-7014170ff6ea",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T06:23:41.968491+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-walk-led-0.png",
+  "art-src/diorama/raw/anim-walk-led-1.png",
+  "art-src/diorama/raw/anim-walk-led-2.png",
+  "art-src/diorama/raw/anim-walk-led-3.png",
+  "art-src/diorama/raw/anim-walk-led-4.png",
+  "art-src/diorama/raw/anim-walk-led-5.png",
+  "art-src/diorama/raw/anim-walk-led-6.png",
+  "art-src/diorama/raw/anim-walk-led-7.png",
+  "art-src/diorama/raw/anim-walk-led-8.png"
+ ]
+}

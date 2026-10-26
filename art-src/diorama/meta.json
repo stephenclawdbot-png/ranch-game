@@ -1,0 +1,284 @@
+{
+ "yard-stables": {
+  "source": "diorama/raw/yard-stables-0 (generate-image-v2, style ref scenes/stable-yard)",
+  "holes": [
+   [
+    8,
+    186,
+    58,
+    38
+   ],
+   [
+    76,
+    191,
+    58,
+    31
+   ],
+   [
+    148,
+    191,
+    55,
+    33
+   ],
+   [
+    214,
+    191,
+    57,
+    33
+   ],
+   [
+    399,
+    191,
+    54,
+    33
+   ],
+   [
+    464,
+    191,
+    57,
+    33
+   ],
+   [
+    535,
+    191,
+    55,
+    30
+   ],
+   [
+    601,
+    191,
+    57,
+    31
+   ]
+  ]
+ },
+ "yard-trees": {
+  "source": "diorama/raw/yard-trees-0"
+ },
+ "yard-cobbles": {
+  "source": "diorama/raw/yard-ground-0",
+  "seamless": "x (mirror)"
+ },
+ "yard-cobbles-s2": {
+  "source": "yard-cobbles 2:1 box downsample",
+  "seamless": "x (mirror)"
+ },
+ "crowd-s2": {
+  "source": "race/crowd.png 2:1 box downsample",
+  "seamless": "x"
+ },
+ "grandstand-s2": {
+  "source": "race/bb-grandstand.png 2:1 box downsample"
+ },
+ "yard-props": {
+  "source": "diorama/raw/yard-props-0",
+  "rects": [
+   [
+    0,
+    31,
+    89,
+    61
+   ],
+   [
+    98,
+    50,
+    80,
+    38
+   ],
+   [
+    187,
+    36,
+    88,
+    55
+   ],
+   [
+    285,
+    30,
+    52,
+    62
+   ],
+   [
+    350,
+    56,
+    31,
+    33
+   ]
+  ]
+ },
+ "barn-props": {
+  "source": "diorama/raw/barn-props-0",
+  "rects": [
+   [
+    3,
+    38,
+    99,
+    85
+   ],
+   [
+    112,
+    67,
+    89,
+    57
+   ],
+   [
+    176,
+    0,
+    29,
+    58
+   ],
+   [
+    212,
+    34,
+    72,
+    89
+   ],
+   [
+    292,
+    13,
+    36,
+    110
+   ],
+   [
+    338,
+    62,
+    39,
+    59
+   ]
+  ]
+ },
+ "fg-branch": {
+  "source": "diorama/raw/fg-branch-0"
+ },
+ "fg-grass": {
+  "source": "diorama/raw/fg-grass-0",
+  "seamless": "x (mirror)"
+ },
+ "paddock-pavilion": {
+  "source": "diorama/raw/paddock-pavilion-0"
+ },
+ "barn-wall": {
+  "source": "diorama/raw/barn-wall-0",
+  "seamless": "x (mirror)"
+ },
+ "barn-floor": {
+  "source": "diorama/raw/barn-floor-0",
+  "seamless": "x (mirror)"
+ },
+ "barn-stalls": {
+  "source": "diorama/raw/barn-stalls-0",
+  "holes": [
+   [
+    43,
+    28,
+    40,
+    82
+   ],
+   [
+    95,
+    28,
+    87,
+    82
+   ],
+   [
+    194,
+    28,
+    37,
+    82
+   ],
+   [
+    250,
+    28,
+    38,
+    82
+   ],
+   [
+    300,
+    28,
+    87,
+    82
+   ],
+   [
+    399,
+    28,
+    38,
+    82
+   ],
+   [
+    456,
+    28,
+    37,
+    82
+   ],
+   [
+    505,
+    28,
+    87,
+    82
+   ],
+   [
+    604,
+    28,
+    40,
+    82
+   ]
+  ]
+ },
+ "horse-walk-led": {
+  "source": "anim-walk-led 1..8 (animate-with-text-v3 from rig-hd/horse-neutral-stance-256)",
+  "frames": 8
+ },
+ "groom-walk": {
+  "source": "anim-groom-hd 1..8 (animate-with-text-v3 from groom-hd-0)",
+  "frames": 8
+ },
+ "head-bay": {
+  "source": "anim-head-bay 1..8 (animate-with-text-v3 from portraits/horse-bay)",
+  "frames": 8
+ },
+ "head-bay-s3": {
+  "source": "head-bay 3:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "head-bay-s2": {
+  "source": "head-bay 2:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "head-chestnut": {
+  "source": "anim-head-chestnut 1..8 (animate-with-text-v3 from portraits/horse-chestnut)",
+  "frames": 8
+ },
+ "head-chestnut-s3": {
+  "source": "head-chestnut 3:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "head-chestnut-s2": {
+  "source": "head-chestnut 2:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "head-grey": {
+  "source": "anim-head-grey 1..8 (animate-with-text-v3 from portraits/horse-grey)",
+  "frames": 8
+ },
+ "head-grey-s3": {
+  "source": "head-grey 3:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "head-grey-s2": {
+  "source": "head-grey 2:1 box downsample snapped to palette",
+  "frames": 8
+ },
+ "horse-walk-jockey": {
+  "source": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-walk-jockey)",
+  "keyed": "race/palette.json"
+ },
+ "horse-canter": {
+  "source": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-canter)",
+  "keyed": "race/palette.json"
+ },
+ "horse-walk-jockey-s2": {
+  "source": "horse-walk-jockey 2:1 box downsample snapped to its own (key) palette"
+ },
+ "groom-walk-s2": {
+  "source": "groom-walk 2:1 box downsample snapped to its own (key) palette"
+ }
+}

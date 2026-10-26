@@ -3606,6 +3606,930 @@
    "sourcePrompt": "generate-image-v2 128px seed 9302: racing-green lacquered foal crate, brass trim, blue ribbon, gold rosette",
    "optimizationTier": "standard",
    "src": "ui/pack-premium.png"
+  },
+  {
+   "id": "diorama.barn-floor",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/barn-floor-0 | a barn aisle floor of worn wooden planks scattered with golden straw seen from a low angle, warm lantern light, fills the entire image edge to edge, no walls, no objects, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/barn-floor.png"
+  },
+  {
+   "id": "diorama.barn-props",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/barn-props-0 | barn props in a row on a transparent background: a stack of golden hay bales, a wooden feed bin, a hanging brass oil lantern glowing warm, a leather saddle on a wooden saddle rack, a pitchfork leaning, a metal water bucket, side view game sprites, each prop separate, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/barn-props.png"
+  },
+  {
+   "id": "diorama.barn-stalls",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 224,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/barn-stalls-0 | a row of three wooden horse stall fronts in a barn seen straight-on: oak lower doors with diagonal cross braces, black iron bars on the upper halves only at the sides, brass name plates, each stall has a wide completely black empty open top opening in the middle with no horse, side view front elevation, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/barn-stalls.png"
+  },
+  {
+   "id": "diorama.barn-wall",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/barn-wall-0 | the interior back wall of a cosy wooden racehorse barn seen straight-on: warm oak plank wall, heavy dark timber beams and posts, two high square windows full of bright golden sunlight, bridles and halters hanging on wooden pegs, a saddle on a rack, a lantern on a hook, flat front elevation, no floor, no stalls, the wall fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/barn-wall.png"
+  },
+  {
+   "id": "diorama.crowd-s2",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 160,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "race/crowd.png 2:1 box downsample",
+   "optimizationTier": "background",
+   "src": "diorama/crowd-s2.png"
+  },
+  {
+   "id": "diorama.fg-branch",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "near",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/fg-branch-0 | a leafy oak branch hanging down into the frame from the top left corner, clusters of oak leaves, dark green with golden rim light on the leaf edges, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/fg-branch.png"
+  },
+  {
+   "id": "diorama.fg-grass",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1024,
+   "frameHeight": 112,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "near",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/fg-grass-0 | a long low strip of tall meadow grass and wildflowers seen up close at ground level: green and golden grass blades, buttercups, daisies and clover, side view, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/fg-grass.png"
+  },
+  {
+   "id": "diorama.grandstand-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 320,
+   "frameHeight": 159,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "race/bb-grandstand.png 2:1 box downsample",
+   "optimizationTier": "background",
+   "src": "diorama/grandstand-s2.png"
+  },
+  {
+   "id": "diorama.groom-walk-s2",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 84,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "groom-walk 2:1 box downsample snapped to its own (key) palette | a stable lad groom walking to the right, side view, flat tweed cap, white shirt with rolled sleeves, brown waistcoat, dark trousers and boots, one arm held forward holding a lead rope, full body game sprite, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "hero",
+   "src": "diorama/groom-walk-s2.png",
+   "animations": {
+    "groom-walk-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.groom-walk",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 95,
+   "frameHeight": 168,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-groom-hd 1..8 (animate-with-text-v3 from groom-hd-0) | a stable lad groom walking to the right, side view, flat tweed cap, white shirt with rolled sleeves, brown waistcoat, dark trousers and boots, one arm held forward holding a lead rope, full body game sprite, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "hero",
+   "src": "diorama/groom-walk.png",
+   "animations": {
+    "groom-walk": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-bay-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 59,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-bay 2:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-bay-s2.png",
+   "animations": {
+    "head-bay-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-bay-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 32,
+   "frameHeight": 38,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-bay 3:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-bay-s3.png",
+   "animations": {
+    "head-bay-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-bay",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 96,
+   "frameHeight": 117,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-head-bay 1..8 (animate-with-text-v3 from portraits/horse-bay) | the horse looking out over a stable door slowly turns its head to the left and back, ears flick forward, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-bay.png",
+   "animations": {
+    "head-bay": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-chestnut-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 49,
+   "frameHeight": 58,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-chestnut 2:1 box downsample snapped to palette | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-chestnut-s2.png",
+   "animations": {
+    "head-chestnut-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-chestnut-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 32,
+   "frameHeight": 38,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-chestnut 3:1 box downsample snapped to palette | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-chestnut-s3.png",
+   "animations": {
+    "head-chestnut-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-chestnut",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 98,
+   "frameHeight": 116,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-head-chestnut 1..8 (animate-with-text-v3 from portraits/horse-chestnut) | the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-chestnut.png",
+   "animations": {
+    "head-chestnut": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-grey-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 50,
+   "frameHeight": 58,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-grey 2:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-grey-s2.png",
+   "animations": {
+    "head-grey-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-grey-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 33,
+   "frameHeight": 38,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "head-grey 3:1 box downsample snapped to palette | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-grey-s3.png",
+   "animations": {
+    "head-grey-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.head-grey",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 101,
+   "frameHeight": 115,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-head-grey 1..8 (animate-with-text-v3 from portraits/horse-grey) | the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
+   "optimizationTier": "hero",
+   "src": "diorama/head-grey.png",
+   "animations": {
+    "head-grey": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-canter",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 229,
+   "frameHeight": 145,
+   "fps": 12,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-canter)",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-canter.png",
+   "animations": {
+    "horse-canter": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-jockey-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 128,
+   "frameHeight": 96,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "horse-walk-jockey 2:1 box downsample snapped to its own (key) palette | racehorse walking calmly at a slow four-beat walk in the parade ring, legs step one at a time, head nods gently with each step, jockey sits upright and still, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-jockey-s2.png",
+   "animations": {
+    "horse-walk-jockey-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-jockey",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-walk-jockey) | racehorse walking calmly at a slow four-beat walk in the parade ring, legs step one at a time, head nods gently with each step, jockey sits upright and still, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-jockey.png",
+   "animations": {
+    "horse-walk-jockey": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-walk-led",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 250,
+   "frameHeight": 187,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "anim-walk-led 1..8 (animate-with-text-v3 from rig-hd/horse-neutral-stance-256) | saddled racehorse walking calmly at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-walk-led.png",
+   "animations": {
+    "horse-walk-led": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.paddock-pavilion",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 256,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/paddock-pavilion-0 | a Victorian racecourse weighing room pavilion seen from the front: red brick with cream stone trim, a white veranda with iron columns, a central gable with a small clock cupola, flower boxes, bunting flags, side view front elevation, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/paddock-pavilion.png"
+  },
+  {
+   "id": "diorama.poster-barn",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 840,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"barn\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-barn.png"
+  },
+  {
+   "id": "diorama.poster-grandstand",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 900,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"grandstand\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-grandstand.png"
+  },
+  {
+   "id": "diorama.poster-paddock",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 880,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"paddock\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-paddock.png"
+  },
+  {
+   "id": "diorama.poster-track-dusk",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 880,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"track-dusk\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-track-dusk.png"
+  },
+  {
+   "id": "diorama.poster-yard",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 840,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"yard\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-yard.png"
+  },
+  {
+   "id": "diorama.yard-cobbles-s2",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 80,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "yard-cobbles 2:1 box downsample",
+   "optimizationTier": "background",
+   "src": "diorama/yard-cobbles-s2.png"
+  },
+  {
+   "id": "diorama.yard-cobbles",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/yard-ground-0",
+   "optimizationTier": "background",
+   "src": "diorama/yard-cobbles.png"
+  },
+  {
+   "id": "diorama.yard-props",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/yard-props-0 | stable yard props in a row on a transparent background: two stacked golden hay bales, a wooden water trough, a wooden wheelbarrow full of straw, a half wine barrel planter with red geraniums, a metal bucket, side view game sprites, each prop separate, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/yard-props.png"
+  },
+  {
+   "id": "diorama.yard-stables",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 256,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/yard-stables-0 (generate-image-v2, style ref scenes/stable-yard) | a long single-storey red-brick racehorse stable block seen straight from the front as a flat facade, grey slate roof, a row of stable doorways each with a closed green wooden lower half-door and a completely black empty open top half with no horse, a tall central brick archway with a small white clock tower and weathervane above it, hanging flower baskets between the doors, ivy on the corners, side view front elevation, game background layer, transparent background around the building, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/yard-stables.png"
+  },
+  {
+   "id": "diorama.yard-trees",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 224,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/yard-trees-0 | a dense row of tall mature English trees, oaks and limes with full rounded canopies, deep green leaves lit gold at the top from the low sun, seen from the side at a distance, no ground, no buildings, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/yard-trees.png"
   }
  ]
 }

@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a long single-storey red-brick racehorse stable block seen straight from the front as a flat facade, grey slate roof, a row of stable doorways each with a closed green wooden lower half-door and a completely black empty open top half with no horse, a tall central brick archway with a small white clock tower and weathervane above it, hanging flower baskets between the doors, ivy on the corners, side view front elevation, game background layer, transparent background around the building, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 688,
+   "height": 256
+  },
+  "seed": 21001,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<167928 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 288
+   },
+   "usage_description": "match this pixel art style, pixel density, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a20502bc-4c2d-420c-abbc-211d37567358",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "a20502bc-4c2d-420c-abbc-211d37567358",
+  "status": "completed",
+  "created_at": "2026-10-26T06:21:19.243053+00:00",
+  "last_response": {
+   "seed": 21001,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<89540 chars>",
+     "height": 256
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "36855be7-1c50-47c5-b885-5cddcde6710a",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-26T06:21:25.704245+00:00",
+   "original_image_n_colors": 99,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/yard-stables-0.png"
+ ]
+}

@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<11888 chars>",
+   "format": "png"
+  },
+  "action": "the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop",
+  "frame_count": 8,
+  "seed": 21055,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "77335919-1ffc-400b-a54e-cf4ef71be68a",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "77335919-1ffc-400b-a54e-cf4ef71be68a",
+  "status": "completed",
+  "created_at": "2026-10-26T06:23:18.851205+00:00",
+  "last_response": {
+   "seed": 21055,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.03747900370756785
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<12312 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14004 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13588 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13360 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12292 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12648 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11816 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12424 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12044 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.9333333333333333,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "ba217aa8-bf4a-4820-9629-d56956917973",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T06:23:51.361739+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-head-grey-0.png",
+  "art-src/diorama/raw/anim-head-grey-1.png",
+  "art-src/diorama/raw/anim-head-grey-2.png",
+  "art-src/diorama/raw/anim-head-grey-3.png",
+  "art-src/diorama/raw/anim-head-grey-4.png",
+  "art-src/diorama/raw/anim-head-grey-5.png",
+  "art-src/diorama/raw/anim-head-grey-6.png",
+  "art-src/diorama/raw/anim-head-grey-7.png",
+  "art-src/diorama/raw/anim-head-grey-8.png"
+ ]
+}

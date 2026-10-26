@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<11052 chars>",
+   "format": "png"
+  },
+  "action": "the horse looking out over a stable door lowers its head a little and nods, ears swivel, blinks, gentle breathing, seamless loop",
+  "frame_count": 8,
+  "seed": 21054,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5f417f98-70c6-42f9-97e6-517f9cdfb1f2",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "5f417f98-70c6-42f9-97e6-517f9cdfb1f2",
+  "status": "completed",
+  "created_at": "2026-10-26T06:23:19.172538+00:00",
+  "last_response": {
+   "seed": 21054,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.028781474822097357
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<11464 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11504 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11252 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11604 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11060 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11064 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11044 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11864 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11172 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "3dd510fa-6652-4cb3-b9a6-ab45d35af6fe",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-26T06:23:36.672156+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-head-chestnut-0.png",
+  "art-src/diorama/raw/anim-head-chestnut-1.png",
+  "art-src/diorama/raw/anim-head-chestnut-2.png",
+  "art-src/diorama/raw/anim-head-chestnut-3.png",
+  "art-src/diorama/raw/anim-head-chestnut-4.png",
+  "art-src/diorama/raw/anim-head-chestnut-5.png",
+  "art-src/diorama/raw/anim-head-chestnut-6.png",
+  "art-src/diorama/raw/anim-head-chestnut-7.png",
+  "art-src/diorama/raw/anim-head-chestnut-8.png"
+ ]
+}

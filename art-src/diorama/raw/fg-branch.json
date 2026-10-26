@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a leafy oak branch hanging down into the frame from the top left corner, clusters of oak leaves, dark green with golden rim light on the leaf edges, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 256,
+   "height": 192
+  },
+  "seed": 21011,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<167928 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 288
+   },
+   "usage_description": "match this pixel art style, pixel density, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "67bad82d-93ff-4c5d-9205-d15ce0e3f012",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "67bad82d-93ff-4c5d-9205-d15ce0e3f012",
+  "status": "completed",
+  "created_at": "2026-10-26T06:21:19.169330+00:00",
+  "last_response": {
+   "seed": 21011,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<43912 chars>",
+     "height": 192
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "dc600479-b142-47b9-97da-ad705984df8c",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-26T06:21:25.321452+00:00",
+   "original_image_n_colors": 117,
+   "quantized_image_n_colors": 47
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/fg-branch-0.png"
+ ]
+}
