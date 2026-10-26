@@ -4,7 +4,7 @@
  *
  *   Paddock Pack: 1 free every 3rd play day (play days need not be consecutive) + up to 3
  *                 bought with credits per week. Common/Uncommon. Pity: Uncommon+ within 5.
- *   Premium Pack: mocked in Phase 1, up to 10 per week. Pity: Rare+ within 10, Epic+ within 50.
+ *   Premium Pack: mocked in Phase 1, up to 10 per week. Pity: Rare+ within 10, Epic+ within 20.
  *   A seasonal global foal-crop cap limits all pack foals; the remaining count is public.
  *
  * Fairness: before pulling, the server publishes commitSeed(serverSeed). Each pull's seed is
@@ -37,7 +37,7 @@ export interface PityRule {
 export const PACK_PITY: Record<PackType, PityRule[]> = {
   paddock: [{ min: "uncommon", within: 5, counter: "sinceRare" }],
   premium: [
-    { min: "epic", within: 50, counter: "sinceEpic" },
+    { min: "epic", within: 20, counter: "sinceEpic" },
     { min: "rare", within: 10, counter: "sinceRare" },
   ],
 };

@@ -91,11 +91,19 @@ export interface PackDefinition {
 
 const oddsOf = (t: gc.PackType) => Object.fromEntries(Object.entries(gc.PACK_ODDS[t]).map(([r, v]) => [r, v / 10_000])) as PackDefinition["odds"];
 
+/** Pity in PackDefinition's shape, straight from game-core's PACK_PITY (never hardcoded here). */
+const pityOf = (t: gc.PackType): PackDefinition["pity"] => {
+  const within = (min: Rarity) => gc.PACK_PITY[t].find((p) => p.min === min)?.within;
+  const rare = within("rare");
+  const epic = within("epic");
+  return rare !== undefined && epic !== undefined ? { rare, epic } : null;
+};
+
 /** Published odds and pity come from game-core (PACK_ODDS / PACK_PITY); the pull itself is gc.pullPack. */
 export const PACKS: Record<string, PackDefinition> = {
-  paddock: { price: gc.PADDOCK_PACK_PRICE, odds: oddsOf("paddock"), pity: null },
+  paddock: { price: gc.PADDOCK_PACK_PRICE, odds: oddsOf("paddock"), pity: pityOf("paddock") },
   /** Premium is mocked in Phase 1 (credits). */
-  premium: { price: 2_500, odds: oddsOf("premium"), pity: { rare: 10, epic: 50 } },
+  premium: { price: 2_500, odds: oddsOf("premium"), pity: pityOf("premium") },
 };
 
 export type Stage = "foal" | "weanling" | "yearling" | "juvenile" | "prime" | "veteran";

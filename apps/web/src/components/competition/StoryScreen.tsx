@@ -192,7 +192,7 @@ export function StoryScreen({ view, signedIn }: { view: StoryView; signedIn: boo
     <div className="grid gap-6">
       <SceneBand scene="paddock" alt="The paddock" eyebrow="Your career, solo" title="Story" />
       <HowItWorks className="-mt-2">
-        <p>From the Club to the Classics, against named rival stables. Story races are free (no stable entries) and you can watch or skip to the result.</p>
+        <p>From the Club to the Classics, against named rival stables. Story races are free (no stable entries, never a career start) and you can watch or skip to the result.</p>
         <p>Win three races in a chapter to earn its licence, which opens bigger Live races. First wins pay in full; replays pay a little, up to the chapter&rsquo;s credit cap.</p>
       </HowItWorks>
 

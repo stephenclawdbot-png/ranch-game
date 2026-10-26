@@ -9,7 +9,7 @@ import { enterDailyCup } from "../services/competition";
 import { moveToLegacyFarm, recordCare, retireHorse } from "../services/horses";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { runMaintenance } from "../services/maintenance";
-import { createRace, enterRace, getRaceForSimulation, settleRace, type RunnerOutcome } from "../services/races";
+import { createRace, enterRace, getRaceForSimulation, settleRace, type CreateRaceInput, type RunnerOutcome } from "../services/races";
 import { commitSeed } from "../crypto";
 import { gc, toHorseState } from "../gameCore";
 import { at, count, DAY, expectDbError, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
@@ -23,7 +23,7 @@ afterAll(async () => {
 });
 
 let raceN = 0;
-function quickRace(offsetMs = 0, extra: { purse?: number; entryFee?: number; maxRunners?: number; targetRunners?: number } = {}) {
+function quickRace(offsetMs = 0, extra: Partial<Pick<CreateRaceInput, "kind" | "purse" | "entryFee" | "maxRunners" | "targetRunners">> = {}) {
   return createRace(h.db, {
     kind: "quick",
     name: `Race ${++raceN}`,
@@ -53,7 +53,7 @@ describe("racing", () => {
   it("entering locks the horse; settlement is idempotent (purse paid once) and unlocks", async () => {
     const p = await newPlayer(h.db, { credits: 1_000 });
     const a = await makeHorse(h.db, p.stableId);
-    const race = await quickRace(0, { purse: 10_000, entryFee: 100 });
+    const race = await quickRace(0, { kind: "scheduled", purse: 10_000, entryFee: 100 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ lockKind: "race", lockRef: race.id });
     expect(await getBalance(h.db, p.accountId)).toBe(900);
@@ -126,7 +126,7 @@ describe("racing", () => {
     const p = await newPlayer(h.db);
     const veteran = await makeHorse(h.db, p.stableId, { starts: 39 });
     const unlucky = await makeHorse(h.db, p.stableId, { starts: 5, insured: true });
-    const race = await quickRace();
+    const race = await quickRace(0, { kind: "scheduled", targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: veteran.id, tactic: "front", now: T0 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: unlucky.id, tactic: "front", now: T0 });
     const before = await getBalance(h.db, p.accountId);

@@ -278,7 +278,7 @@ export function EntryForm({
         <PixelIcon name="shield" size={16} className="mt-0.5" />
         <span>
           Story race against the Club&rsquo;s horses, usually near {horse ? `${pronoun(horse.horse.sex).his} best trip` : "your horse's best trip"}. Free: no
-          stable entries used. The result is sealed and settled the moment you enter; the gates open 10 seconds later.
+          stable entries and no career start used. The result is sealed and settled the moment you enter; the gates open 10 seconds later.
         </span>
       </p>
       {error !== null && <ErrorNote error={error} />}
