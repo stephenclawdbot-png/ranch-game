@@ -21,6 +21,24 @@ function Empty({ children, title = "Nothing here yet", icon = "laurel" as IconNa
   return <EmptyState icon={icon} title={title} text={children} />;
 }
 
+function RecordRow({ r }: { r: HallView["records"][number] }) {
+  return (
+    <li>
+      <Link href={`/race/${r.raceId}`} className="row-link gap-3 px-3 py-2">
+        <span className="w-24 shrink-0">
+          <span className="block font-extrabold text-cream">{formatDistance(r.distanceM)}</span>
+          <span className="caption block text-cream-dim">{SURFACE_LABEL[r.surface]}</span>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="t-title block truncate text-cream">{r.horseName}</span>
+          <span className="t-meta block truncate">{r.stableName}</span>
+        </span>
+        <RaceTime us={r.timeUs} className="shrink-0 font-extrabold text-brass-bright" />
+      </Link>
+    </li>
+  );
+}
+
 export function HallScreen({ view }: { view: HallView }) {
   const mine = view.mine;
   return (
@@ -55,33 +73,6 @@ export function HallScreen({ view }: { view: HallView }) {
       </section>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section aria-labelledby="records-h" className="min-w-0">
-          <h2 id="records-h" className="t-h2 mb-3">
-            Record times
-          </h2>
-          {view.records.length ? (
-            <ul className="surface rows" data-testid="hall-records">
-              {view.records.map((r) => (
-                <li key={`${r.surface}-${r.distanceM}`}>
-                  <Link href={`/race/${r.raceId}`} className="row-link gap-3 px-3 py-2">
-                    <span className="w-24 shrink-0">
-                      <span className="block font-extrabold text-cream">{formatDistance(r.distanceM)}</span>
-                      <span className="caption block text-cream-dim">{SURFACE_LABEL[r.surface]}</span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="t-title block truncate text-cream">{r.horseName}</span>
-                      <span className="t-meta block truncate">{r.stableName}</span>
-                    </span>
-                    <RaceTime us={r.timeUs} className="shrink-0 font-extrabold text-brass-bright" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty title="No records yet" icon="stopwatch">Records are set in Live races. The first winner at each trip and surface sets the time to beat.</Empty>
-          )}
-        </section>
-
         <section aria-labelledby="champs-h" className="min-w-0">
           <h2 id="champs-h" className="t-h2 mb-3">
             Champions
@@ -162,6 +153,35 @@ export function HallScreen({ view }: { view: HallView }) {
           )}
         </section>
       </div>
+
+      <section aria-labelledby="records-h">
+        <h2 id="records-h" className="t-h2 mb-3">
+          Record times
+        </h2>
+        {view.records.length ? (
+          <>
+            <ul className="surface rows" data-testid="hall-records">
+              {view.records.slice(0, 5).map((r) => (
+                <RecordRow key={`${r.surface}-${r.distanceM}`} r={r} />
+              ))}
+            </ul>
+            {view.records.length > 5 && (
+              <details className="mt-2">
+                <summary className="inline-flex min-h-11 items-center text-sm font-bold text-cream-dim underline decoration-2 underline-offset-4">
+                  Show all {view.records.length} record times
+                </summary>
+                <ul className="surface rows mt-2" data-testid="hall-records-all">
+                  {view.records.slice(5).map((r) => (
+                    <RecordRow key={`${r.surface}-${r.distanceM}`} r={r} />
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        ) : (
+          <Empty title="No records yet" icon="stopwatch">Records are set in Live races. The first winner at each trip and surface sets the time to beat.</Empty>
+        )}
+      </section>
 
       {mine && (
         <section aria-labelledby="honours-h" className="grid gap-4" data-testid="hall-mine">

@@ -402,9 +402,14 @@ dialog.sheet :focus-visible {
       line-height: 3.25rem;
     }
   }
+  /* On paper the ink glyphs read as drawn; the ink drop shadow garbles small glyphs (e.g. a
+     lowercase "c"), so both pixel-display classes drop it there. */
   .paper-scope .t-display-xl,
   .surface .t-display-xl,
-  .frame-hero .t-display-xl {
+  .frame-hero .t-display-xl,
+  .paper-scope .t-page,
+  .surface .t-page,
+  .frame-hero .t-page {
     text-shadow: none;
   }
   /* Celebration only (splash, onboarding reveal, "1st"). */

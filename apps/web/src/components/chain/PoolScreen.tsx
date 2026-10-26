@@ -11,6 +11,7 @@ import type { Address, Hex } from "viem";
 import { prizePoolAbi } from "@/lib/chain/contracts.generated";
 import { addressUrl, txUrl } from "@/lib/chain/chains";
 import { approxUsd, formatEth, formatUsdCents } from "@/lib/chain/format";
+import { usePlayerState } from "@/lib/player";
 import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { WalletLink } from "./WalletLink";
@@ -74,6 +75,7 @@ export function PoolScreen() {
   const [v, setV] = useState<PoolView | null>(null);
   const [mine, setMine] = useState<Mine | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const signedIn = usePlayerState() != null;
   const load = useCallback(async () => {
     try {
       const r = await fetch("/api/pool", { cache: "no-store" });
@@ -84,14 +86,19 @@ export function PoolScreen() {
     } catch (e) {
       setErr((e as Error).message);
     }
+    if (!signedIn) {
+      setMine(null); // no stable: /api/pool/proof would just 401
+      return;
+    }
     const m = await fetch("/api/pool/proof", { cache: "no-store" });
     if (m.ok) setMine(await m.json());
-  }, []);
+  }, [signedIn]);
   useEffect(() => {
     void load();
+    if (!signedIn) return; // visitors see the public pool once; nothing here is theirs to claim
     const t = setInterval(load, 60_000); // live balance and ≈USD every minute
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, signedIn]);
 
   if (err && !v) return <p className="surface p-3 text-negative">{err}</p>;
   if (!v) return <p className="surface p-3 caption" aria-busy>Loading the Prize Pool…</p>;

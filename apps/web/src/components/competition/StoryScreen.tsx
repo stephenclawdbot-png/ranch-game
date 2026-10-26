@@ -18,7 +18,7 @@ import { HowItWorks, SceneArt, SceneBand } from "../ui/Page";
 
 type Mode = "watch" | "instant";
 
-function RaceAction({ race, chapter }: { race: StoryRaceView; chapter: ChapterView }) {
+function RaceAction({ race, chapter, signedIn }: { race: StoryRaceView; chapter: ChapterView; signedIn: boolean }) {
   const router = useRouter();
   const state = usePlayerState();
   const [open, setOpen] = useState(false);
@@ -34,6 +34,7 @@ function RaceAction({ race, chapter }: { race: StoryRaceView; chapter: ChapterVi
       </p>
     );
   }
+  if (!signedIn) return <p className="caption text-cream-dim">Found a stable to race.</p>;
   if (!race.bestHorse) return <p className="caption text-cream-dim">None of your horses can race right now. Story races are free whenever one is ready.</p>;
 
   async function go(mode: Mode) {
@@ -84,7 +85,7 @@ function RaceAction({ race, chapter }: { race: StoryRaceView; chapter: ChapterVi
   );
 }
 
-function RaceCard({ race, chapter, rivals }: { race: StoryRaceView; chapter: ChapterView; rivals: StoryView["rivals"] }) {
+function RaceCard({ race, chapter, rivals, signedIn }: { race: StoryRaceView; chapter: ChapterView; rivals: StoryView["rivals"]; signedIn: boolean }) {
   const names = race.rivals.map((id) => rivals.find((r) => r.id === id)).filter(Boolean) as StoryView["rivals"];
   return (
     <li id={`race-${race.key}`} className="surface grid scroll-mt-28 content-start gap-3 p-4" data-testid="story-race" data-race-key={race.key} data-won={race.won || undefined}>
@@ -122,12 +123,12 @@ function RaceCard({ race, chapter, rivals }: { race: StoryRaceView; chapter: Cha
           <GradeBadge grade={race.bestHorse.grade} size="sm" /> Your best fit: <span className="font-bold text-cream">{race.bestHorse.name}</span>
         </p>
       )}
-      <RaceAction race={race} chapter={chapter} />
+      <RaceAction race={race} chapter={chapter} signedIn={signedIn} />
     </li>
   );
 }
 
-function ChapterPanel({ chapter, view }: { chapter: ChapterView; view: StoryView }) {
+function ChapterPanel({ chapter, view, signedIn }: { chapter: ChapterView; view: StoryView; signedIn: boolean }) {
   const pct = Math.min(100, Math.round((Math.min(chapter.wins, chapter.winsToComplete) * 100) / chapter.winsToComplete));
   return (
     <section className="grid gap-4" aria-labelledby={`ch-${chapter.id}`} data-testid="story-chapter" data-chapter={chapter.id}>
@@ -172,7 +173,7 @@ function ChapterPanel({ chapter, view }: { chapter: ChapterView; view: StoryView
       </div>
       <ul className="grid gap-3 md:grid-cols-2">
         {chapter.races.map((r) => (
-          <RaceCard key={r.key} race={r} chapter={chapter} rivals={view.rivals} />
+          <RaceCard key={r.key} race={r} chapter={chapter} rivals={view.rivals} signedIn={signedIn} />
         ))}
       </ul>
     </section>
@@ -214,7 +215,7 @@ export function StoryScreen({ view, signedIn }: { view: StoryView; signedIn: boo
         ))}
       </div>
 
-      <ChapterPanel chapter={chapter} view={view} />
+      <ChapterPanel chapter={chapter} view={view} signedIn={signedIn} />
 
       {view.recent.length > 0 && (
         <section aria-labelledby="recent-h">
