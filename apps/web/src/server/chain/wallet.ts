@@ -19,7 +19,7 @@ export function siweMessage(input: { domain: string; uri: string; address: Addre
     `${input.domain} wants you to sign in with your Ethereum account:`,
     input.address,
     "",
-    "Link this wallet to my Thoroughbred stable. One wallet per stable; it receives Prize Pool payouts and affiliate commissions. Signing is free and sends no transaction.",
+    "Link this wallet to my Post Time stable. One wallet per stable; it receives Prize Pool payouts and affiliate commissions. Signing is free and sends no transaction.",
     "",
     `URI: ${input.uri}`,
     "Version: 1",

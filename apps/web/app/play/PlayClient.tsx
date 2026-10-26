@@ -281,7 +281,7 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
         <p className="eyebrow">Closed playtest</p>
         <h1 className="t-display-xl">Invite only, for now</h1>
         <p className="mt-1 text-lg text-cream-dim">
-          Thoroughbred is in a small closed playtest. If you have an invite, enter your code to found your stable. Your feedback shapes the game.
+          Post Time is in a small closed playtest. If you have an invite, enter your code to found your stable. Your feedback shapes the game.
         </p>
       </header>
       <label className="grid gap-1">

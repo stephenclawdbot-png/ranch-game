@@ -50,7 +50,7 @@ export function InviteScreen() {
     }
   }
   async function share() {
-    if (navigator.share) await navigator.share({ title: "Thoroughbred", text: "Run a racing stable with me on Thoroughbred", url: v!.link }).catch(() => null);
+    if (navigator.share) await navigator.share({ title: "Post Time", text: "Run a racing stable with me on Post Time", url: v!.link }).catch(() => null);
     else await copy();
   }
 

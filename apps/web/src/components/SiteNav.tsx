@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { formatCredits } from "@/lib/format";
 import { usePlayerState } from "@/lib/player";
-import { Crest, PixelIcon, type IconName } from "./icons";
-import { SilksIcon } from "./Silks";
-import { FeedbackButton } from "./playtest/FeedbackButton";
+import { PixelIcon, type IconName } from "./icons";
+import { Silks } from "./Silks";
 
 type Section = { href: string; label: string; icon: IconName; match: (p: string) => boolean; sub?: { href: string; label: string }[] };
 
@@ -46,13 +45,12 @@ export const SECTIONS: Section[] = [
     label: "Club",
     icon: "trophy",
     match: (p) => starts(p, "/league", "/cup", "/hall", "/pool", "/invite", "/beta"),
+    // Beta & wallet pages (/pool, /invite, /beta) stay off the core nav (brand doc §5): they are
+    // linked from Profile's "Beta & wallet" section.
     sub: [
       { href: "/league", label: "League" },
       { href: "/cup", label: "Daily Cup" },
       { href: "/hall", label: "Hall of Fame" },
-      // Beta money (web3 agent): the on-chain weekly Prize Pool and the referral page.
-      { href: "/pool", label: "Prize Pool" },
-      { href: "/invite", label: "Invite" },
     ],
   },
   {
@@ -77,10 +75,34 @@ function subNavFor(pathname: string): { section: Section; active: string } | nul
   return null;
 }
 
+/** The POST TIME lockup (pixel wordmark at 2x); the stopwatch mark alone on very narrow phones. */
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/post-time-wordmark.svg" width={152} height={32} alt="Post Time" className={`pixelated max-[379px]:hidden ${className ?? ""}`} draggable={false} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/icon-32.png" width={32} height={32} alt="Post Time" className="pixelated min-[380px]:hidden" draggable={false} />
+    </>
+  );
+}
+
+/** A top-bar purse pill: 32-px icon at 1x plus a Jersey numeral. */
+function Pill({ icon, children, title, testId, label }: { icon: IconName; children: React.ReactNode; title: string; testId: string; label: string }) {
+  return (
+    <span className="pill" title={title}>
+      <PixelIcon name={icon} size={32} />
+      <span className="score text-[1.375rem] leading-none" data-testid={testId} aria-label={label}>
+        {children}
+      </span>
+    </span>
+  );
+}
+
 /**
- * Top bar (crest, purse, your silks -> profile & settings) and the navigation:
- * a flat bottom tab bar on phones (brass notch on the active tab, not a filled button),
- * text tabs in the top bar on desktop.
+ * Top bar (wordmark, purse pills, your silks -> profile) and the navigation: a bottom tab bar
+ * on phones (brass notch on the active tab), text tabs in the top bar on desktop, and one
+ * underline sub-nav per area (scrolls sideways with an edge fade, never cut off silently).
  */
 export function SiteNav() {
   const pathname = usePathname() ?? "/";
@@ -89,38 +111,34 @@ export function SiteNav() {
 
   const right =
     state === undefined ? (
-      <span className="h-11 w-24" aria-hidden />
+      <span className="h-9 w-24" aria-hidden />
     ) : state === null ? (
       pathname.startsWith("/play") || pathname === "/" ? null : (
-        <Link href="/play" className="btn btn-sm hidden md:inline-flex">
+        <Link href="/play" className="btn btn-sm">
           Found a stable
         </Link>
       )
     ) : (
-      <div className="flex items-center gap-1">
-        <span
-          className="flex items-center gap-1 px-1 sm:gap-1.5 sm:px-2"
+      <div className="flex items-center gap-1.5">
+        <Pill
+          icon="flag"
+          testId="entries"
           title={`Stable entries for Live races: ${state.entries.balance} left (bank holds up to ${state.entries.cap}; +${state.entries.allowance} at local midnight)`}
+          label={`${state.entries.balance} of ${state.entries.cap} stable entries left`}
         >
-          <PixelIcon name="flag" size={16} />
-          <span className="num text-base text-cream" data-testid="entries" aria-label={`${state.entries.balance} of ${state.entries.cap} stable entries left`}>
-            {state.entries.balance}
-            <span className="text-cream-dim">/{state.entries.cap}</span>
-          </span>
-        </span>
-        <span className="flex items-center gap-1.5 px-2" title="Stable credits">
-          <PixelIcon name="coin" size={16} />
-          <span className="num text-base text-cream" data-testid="credits" aria-label={`${formatCredits(state.credits)} credits`}>
-            {formatCredits(state.credits)}
-          </span>
-        </span>
+          {state.entries.balance}
+          <span className="sr-only">/{state.entries.cap}</span>
+        </Pill>
+        <Pill icon="coin" testId="credits" title="Stable credits" label={`${formatCredits(state.credits)} credits`}>
+          {formatCredits(state.credits)}
+        </Pill>
         <Link
           href="/me"
-          className={`flex h-11 w-11 items-center justify-center ${pathname.startsWith("/me") ? "bg-surface-2" : "hover:bg-surface-2"}`}
+          className={`avatar ${pathname.startsWith("/me") ? "avatar-on" : ""}`}
           aria-label={`${state.stableName}: profile and settings`}
           aria-current={pathname.startsWith("/me") ? "page" : undefined}
         >
-          <SilksIcon silks={state.silks} className="h-8 w-8" />
+          <Silks silks={state.silks} cap={false} className="h-6 w-6" />
         </Link>
       </div>
     );
@@ -130,47 +148,32 @@ export function SiteNav() {
       <a href="#main" className="sr-only z-50 bg-brass px-3 py-2 font-bold text-ink focus:not-sr-only focus:fixed focus:left-2 focus:top-2">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b-2 border-surface-2 bg-[#0a1b12]">
-        <div className="mx-auto flex h-12 max-w-[75rem] items-center gap-3 px-4 md:h-14 md:px-6">
-          <Link href="/" className="flex min-h-11 items-center gap-2" aria-label="Thoroughbred home">
-            <Crest className="h-8 w-9" />
-            <span className="display text-2xl leading-none text-cream max-[439px]:hidden md:max-lg:hidden">Thoroughbred</span>
+      <header className="topbar sticky top-0 z-40">
+        <div className="mx-auto flex h-[var(--topbar-h)] max-w-[75rem] items-center gap-2 px-[var(--gutter)]">
+          <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label="Post Time home">
+            <Wordmark />
           </Link>
-          <nav className="ml-2 hidden h-full items-stretch gap-0.5 md:flex lg:ml-6 lg:gap-1" aria-label="Main">
+          <nav className="tabs ml-4 hidden h-full !min-h-0 !gap-1 !p-0 ![mask-image:none] md:flex lg:ml-8" aria-label="Main">
             {SECTIONS.map(({ href, label, match }) => {
               const active = match(pathname);
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`relative flex items-center px-3 text-base font-extrabold lg:px-4 ${active ? "text-cream" : "text-cream-dim hover:text-cream"}`}
-                >
+                <Link key={href} href={href} aria-current={active ? "page" : undefined} className="!px-3 !text-base !font-extrabold lg:!px-4">
                   {label}
-                  {active && <span aria-hidden className="absolute inset-x-3 bottom-0 h-[3px] bg-brass" />}
                 </Link>
               );
             })}
           </nav>
-          <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
-            <FeedbackButton />
-            {right}
-          </div>
+          <div className="ml-auto flex items-center">{right}</div>
         </div>
         {sub && (
-          <nav aria-label={`${sub.section.label} sections`} className="border-t-2 border-surface-2" data-testid="sub-nav">
-            <ul className="mx-auto flex max-w-[75rem] gap-1 overflow-x-auto px-2 md:px-4">
+          <nav aria-label={`${sub.section.label} sections`} className="subnav" data-testid="sub-nav">
+            <ul className="tabs mx-auto max-w-[75rem] !px-[var(--gutter)]">
               {sub.section.sub!.map((x) => {
                 const active = x.href === sub.active;
                 return (
-                  <li key={x.href} className="shrink-0">
-                    <Link
-                      href={x.href}
-                      aria-current={active ? "page" : undefined}
-                      className={`relative flex min-h-11 items-center whitespace-nowrap px-2.5 text-sm font-extrabold sm:px-3 ${active ? "text-cream" : "text-cream-dim hover:text-cream"}`}
-                    >
+                  <li key={x.href}>
+                    <Link href={x.href} aria-current={active ? "page" : undefined}>
                       {x.label}
-                      {active && <span aria-hidden className="absolute inset-x-2 bottom-0 h-[3px] bg-brass" />}
                     </Link>
                   </li>
                 );
@@ -180,22 +183,14 @@ export function SiteNav() {
         )}
       </header>
 
-      <nav
-        aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-surface-2 bg-[#0a1b12] pb-[env(safe-area-inset-bottom)] md:hidden"
-      >
-        <ul className="grid h-14 grid-cols-5">
+      <nav aria-label="Main" className="tabbar md:hidden">
+        <ul className="grid h-16 grid-cols-5">
           {SECTIONS.map(({ href, label, icon, match }) => {
             const active = match(pathname);
             return (
               <li key={href}>
-                <Link
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`relative flex h-full flex-col items-center justify-center gap-0.5 text-xs font-extrabold ${active ? "text-cream" : "text-cream-dim"}`}
-                >
-                  {active && <span aria-hidden className="absolute left-1/2 top-[-2px] h-1 w-8 -translate-x-1/2 bg-brass" />}
-                  <PixelIcon name={icon} size={32} className={`-my-1 ${active ? "" : "opacity-70 grayscale-[35%]"}`} />
+                <Link href={href} aria-current={active ? "page" : undefined} className="tabbar-item">
+                  <PixelIcon name={icon} size={32} />
                   {label}
                 </Link>
               </li>

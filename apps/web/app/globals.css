@@ -1,43 +1,58 @@
 @import "tailwindcss";
 
 /*
- * Thoroughbred — pixel-art game UI, "racing club" palette (see docs/design-research.md §11).
+ * POST TIME: Design System v2, "racecard at golden hour" (docs/brand-and-design-v2.md §4).
  *
- *  - Three surface tiers: page (bg) < surface-1 (panel) < surface-2 (raised). Wells use inset.
- *  - Brass means "act" or "yours": primary buttons, your horse/row, selection. Nothing else.
- *  - At most one hero frame (.frame-hero, ornate brass) per screen.
- *  - Type: Pixelify Sans (display, >= 24px only), Jersey 10 (scoreboard numerals >= 30px),
- *    Nunito for everything you read (16px body).
- *  - Motion is event-driven and one-shot. Reduced motion: media query OR html[data-motion=reduce].
+ *  Materials (two, plus the art):
+ *   - BAIZE: deep green. Page background, top bar, tab bar, sub-nav, the race stage, live strips.
+ *   - PAPER: cream racecard with an ink keyline. Everything you read: rows, cards, results, forms.
+ *   - SCENE: PixelLab art at integer scale, the band at the top of each area.
+ *   - BRASS: the one primary action per screen, "yours" markers, rewards. Never decoration.
+ *
+ *  Colour roles are custom properties that each material re-points, so `text-cream` means
+ *  "main text" and reads cream on baize and ink on paper (see .paper-scope / .baize-scope).
+ *
+ *  Type: Pixelify Sans only for the one page title (32 -> 48) and celebrations; Jersey 10 for
+ *  big numerals; Nunito for everything else (section heads are Nunito 800).
+ *  Spacing: 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64. No border-radius anywhere.
+ *  Motion: event-driven, one-shot, steps(). Reduced motion via the media query or html[data-motion=reduce].
  */
 
 @theme {
-  --color-ink: #0b0f0c;
+  /* v2 tokens (§4.4) */
+  --color-baize-900: #08150e;
+  --color-baize-800: #0f2a1d;
+  --color-baize-700: #163a28;
+  --color-baize-line: #2c6645;
+  --color-on-baize: #f3e7c9;
+  --color-on-baize-2: #cdbf9c;
+  --color-on-baize-3: #8fa592;
+  --color-paper: #f6ecd3;
+  --color-paper-2: #ecdfbd;
+  --color-paper-rule: #cbb88f;
+  --color-ink: #1d140a;
+  --color-ink-2: #5a4630;
+  --color-ink-3: #7a6548;
+  --color-brass: #d9a441;
+  --color-brass-hi: #f2c86a;
+  --color-brass-lo: #9a6b22;
+  --color-brass-text: #8a5d14;
+  --color-oxblood: #8e2323;
+  --color-turf: #2b6a41;
+
+  /* Role colours (re-pointed per material; legacy names kept so every class keeps working). */
   --color-bg: #08150e;
   --color-surface-1: #0f2a1d;
   --color-surface-2: #163a28;
   --color-inset: #0b1f15;
   --color-line: #1f4d35;
   --color-line-strong: #5a9b70;
-  --color-paper: #f3e7c9;
   --color-paper-ink: #1d140a;
-
-  /* legacy names (kept so every existing class keeps working) */
-  --color-turf-950: #08150e;
-  --color-turf-900: #0f2a1d;
-  --color-turf-850: #10291c;
-  --color-turf-800: #163a28;
-  --color-turf-700: #1f4d35;
-  --color-turf-600: #2c6645;
-  --color-turf-500: #3f8558;
-
   --color-cream: #f3e7c9;
   --color-cream-dim: #cdbf9c;
   --color-sage: #8fa592;
-  --color-brass: #d9a441;
   --color-brass-bright: #f2c86a;
   --color-brass-deep: #9a6b22;
-  --color-oxblood: #7a1f1f;
   --color-claret: #ff8a7a;
   --color-live: #e5483a;
   --color-win: #f2c86a;
@@ -46,50 +61,133 @@
   --color-warn: #f2c86a;
   --color-negative: #ff8a7a;
 
+  --color-turf-950: #08150e;
+  --color-turf-900: #0f2a1d;
+  --color-turf-850: #10291c;
+  --color-turf-800: #163a28;
+  --color-turf-700: #1f4d35;
+  --color-turf-600: #2c6645;
+  --color-turf-500: #3f8558;
+
   --font-display: var(--font-pixelify), "Courier New", monospace;
   --font-score: var(--font-jersey), var(--font-pixelify), monospace;
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* legacy aliases: Silkscreen and VT323 are gone */
   --font-num: var(--font-jersey), var(--font-pixelify), monospace;
   --font-led: var(--font-jersey), var(--font-pixelify), monospace;
   --font-pixel: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  /* one-shot hop (never loops) */
   --animate-bob: bob 280ms steps(2, jump-none) 1;
 }
 
 :root {
   color-scheme: dark;
-  /* one art pixel on screen */
+  /* spacing scale (§4.2) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --gutter: 16px;
+  /* one art pixel on screen (frames and keylines only) */
   --u: 2px;
-  --tabbar-h: 56px;
+  --topbar-h: 52px;
+  --tabbar-h: 64px;
   --actionbar-h: 76px;
+  --fr-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%231d140a' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fffaf0' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23f6ecd3' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-hero: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%231d140a' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM0 1h1v1h-1zM7 1h1v1h-1zM0 2h1v1h-1zM7 2h1v1h-1zM0 3h1v1h-1zM7 3h1v1h-1zM0 4h1v1h-1zM7 4h1v1h-1zM0 5h1v1h-1zM7 5h1v1h-1zM0 6h1v1h-1zM7 6h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM5 1h1v1h-1zM6 1h1v1h-1zM1 2h1v1h-1zM6 2h1v1h-1zM1 3h1v1h-1zM6 3h1v1h-1zM1 4h1v1h-1zM6 4h1v1h-1zM1 5h1v1h-1zM6 5h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1z'/%3E%3Cpath fill='%23fffaf0' d='M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1z'/%3E%3Cpath fill='%23f6ecd3' d='M2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM5 3h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1z'/%3E%3C/svg%3E");
+  --fr-selected: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%231d140a' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM0 1h1v1h-1zM7 1h1v1h-1zM0 2h1v1h-1zM7 2h1v1h-1zM0 3h1v1h-1zM7 3h1v1h-1zM0 4h1v1h-1zM7 4h1v1h-1zM0 5h1v1h-1zM7 5h1v1h-1zM0 6h1v1h-1zM7 6h1v1h-1zM1 7h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM5 1h1v1h-1zM6 1h1v1h-1zM1 2h1v1h-1zM6 2h1v1h-1zM1 3h1v1h-1zM6 3h1v1h-1zM1 4h1v1h-1zM6 4h1v1h-1zM1 5h1v1h-1zM6 5h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1z'/%3E%3Cpath fill='%23f6ecd3' d='M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM5 3h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1z'/%3E%3C/svg%3E");
   --fr-surface: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%231d4a33' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230f2a1d' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%230b2117' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-raised: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%232c6645' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23163a28' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%2310291c' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
   --fr-inset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23050d08' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23040a06' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b1f15' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%231a4430' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-field: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%235a9b70' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%2306110b' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b1f15' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-btn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23040906' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%233f8558' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%231f4d35' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23123222' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-btn-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23040906' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%234f9a68' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%2324563b' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23163a28' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-brass: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%231a0f03' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff1c1' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23d9a441' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%239a6b22' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-brass-hover: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%231a0f03' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff6d8' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23e7b552' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23a87726' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-oxblood: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23c0473a' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%237a1f1f' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%234d1010' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23f2c86a' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%231d4430' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --fr-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%23fff8e2' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%23f3e7c9' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23b8a274' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
   --fr-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23000000' d='M1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM5 1h1v1h-1zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h1v1h-1zM5 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1z'/%3E%3Cpath fill='%2326332c' d='M1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1z'/%3E%3Cpath fill='%230b0f0c' d='M1 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1z'/%3E%3Cpath fill='%23151c18' d='M1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1z'/%3E%3C/svg%3E");
-  --frame-hero: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%230b0f0c' d='M2 0h8v1h-8zM1 1h1v1h-1zM10 1h1v1h-1zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h1v1h-1zM10 10h1v1h-1zM2 11h8v1h-8z'/%3E%3Cpath fill='%23f2c86a' d='M2 1h8v1h-8zM1 2h1v1h-1zM1 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM1 6h1v1h-1zM1 7h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1z'/%3E%3Cpath fill='%230a1a12' d='M2 2h8v1h-8zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM2 9h8v1h-8z'/%3E%3Cpath fill='%239a6b22' d='M10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 5h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 8h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%2310291c' d='M3 3h6v1h-6zM3 4h6v1h-6zM3 5h6v1h-6zM3 6h6v1h-6zM3 7h6v1h-6zM3 8h6v1h-6z'/%3E%3C/svg%3E");
+}
+@media (min-width: 640px) {
+  :root {
+    --gutter: 24px;
+  }
 }
 @media (min-width: 768px) {
   :root {
     --u: 3px;
+    --topbar-h: 60px;
   }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+
+/* ------------------------------------------------------------- material scopes */
+/* Paper: role colours point at ink. Anything placed on paper reads as printed racecard. */
+.paper-scope,
+.surface,
+.surface-2,
+.panel,
+.panel-quiet,
+.px-panel,
+.px-panel-quiet,
+.card,
+.paper,
+.px-plate,
+.px-tile,
+.frame-hero,
+dialog.sheet {
+  --color-cream: #1d140a;
+  --color-cream-dim: #5a4630;
+  --color-sage: #7a6548;
+  --color-line: #cbb88f;
+  --color-line-strong: #b59a62;
+  --color-surface-1: #f6ecd3;
+  --color-surface-2: #ecdfbd;
+  --color-inset: #ecdfbd;
+  --color-positive: #2b6a41;
+  --color-negative: #a3272b;
+  --color-warn: #8a5200;
+  --color-claret: #a3272b;
+  --color-brass-bright: #8a5d14;
+  --color-win: #8a5d14;
+  --color-sky: #2f63a8;
+  color: var(--color-cream);
+}
+/* Baize: back to cream on green (live strips, ink plates, the stage, buttons with dark fills). */
+.baize-scope,
+.baize,
+.baize-card,
+.plate-ink,
+.px-screen,
+.px-oxblood,
+.chip-ink,
+.chip-live,
+.tag-live,
+.tag-ready {
+  --color-cream: #f3e7c9;
+  --color-cream-dim: #cdbf9c;
+  --color-sage: #8fa592;
+  --color-line: #1f4d35;
+  --color-line-strong: #5a9b70;
+  --color-surface-1: #0f2a1d;
+  --color-surface-2: #163a28;
+  --color-inset: #0b1f15;
+  --color-positive: #9fe0a8;
+  --color-negative: #ff8a7a;
+  --color-warn: #f2c86a;
+  --color-claret: #ff8a7a;
+  --color-brass-bright: #f2c86a;
+  --color-win: #f2c86a;
+  --color-sky: #7fc3ee;
+  color: var(--color-cream);
 }
 
 /* --------------------------------------------------------------- base + settings */
 html {
-  background: var(--color-bg);
+  background: var(--color-baize-900);
   -webkit-text-size-adjust: 100%;
   font-size: 100%;
+  overflow-x: clip;
 }
 html[data-text="90"] {
   font-size: 90%;
@@ -104,30 +202,31 @@ html[data-text="130"] {
 body {
   min-height: 100dvh;
   color: var(--color-cream);
-  background: var(--color-bg);
+  background: var(--color-baize-900);
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-}
-/* A calm glow at the top of the page (fixed pseudo-element: no background-attachment on iOS). */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0 0 auto 0;
-  height: 22rem;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(180deg, #0f2a1d 0%, rgba(15, 42, 29, 0.55) 45%, rgba(8, 21, 14, 0) 100%);
+  overflow-x: clip;
 }
 
 ::selection {
-  background: rgba(217, 164, 65, 0.4);
+  background: rgba(217, 164, 65, 0.45);
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-brass-bright);
+  outline: 3px solid var(--color-brass-hi);
   outline-offset: 2px;
+}
+/* On paper a brass ring alone is too faint: ink + brass double ring (§4.4). */
+.paper-scope :focus-visible,
+.surface :focus-visible,
+.card :focus-visible,
+.frame-hero :focus-visible,
+dialog.sheet :focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px var(--color-brass-hi);
 }
 
 .pixelated {
@@ -139,29 +238,40 @@ body::before {
     image-rendering: pixelated;
   }
 }
-/* Below native size, pixel art is downsampled smoothly (no dropped pixels). */
 .downscaled {
   image-rendering: auto;
 }
 
+/* Full-bleed helper: breaks out of the centred page column. */
+.bleed {
+  margin-inline: calc(50% - 50vw);
+}
+
 @layer components {
-  /* ------------------------------------------------------------ surfaces */
+  /* ------------------------------------------------------------ paper card */
+  /* Paper card: cream fill, 2-px ink keyline, notched corners, 4-px top highlight, 4-px drop. */
   .surface,
-  .px-panel,
   .panel,
+  .panel-quiet,
+  .px-panel,
   .px-panel-quiet,
-  .panel-quiet {
+  .card,
+  .paper,
+  .px-plate {
     position: relative;
-    border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-surface) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-surface-1) padding-box;
+    border: 4px solid transparent;
+    border-image: var(--fr-paper) 2 / 4px stretch;
+    background: var(--color-paper) padding-box;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
   }
-  .surface-2 {
+  /* A raised or well area inside paper: paper-2 with a rule keyline (no drop). */
+  .surface-2,
+  .px-tile {
     position: relative;
-    border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-raised) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-surface-2) padding-box;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
   }
+  /* Wells: dark on baize, paper-2 on paper. */
   .inset,
   .px-inset {
     position: relative;
@@ -169,98 +279,167 @@ body::before {
     border-image: var(--fr-inset) 2 / calc(var(--u) * 2) stretch;
     background: var(--color-inset) padding-box;
   }
-  /* The ornate brass frame: at most one per screen. */
+  .paper-scope .inset,
+  .surface .inset,
+  .card .inset,
+  .frame-hero .inset,
+  .surface .px-inset,
+  dialog.sheet .inset {
+    border: 0;
+    border-image: none;
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
+  }
+  /* Hero card: paper with the one brass ring on screen (§4.5). */
   .frame-hero {
     position: relative;
-    border: calc(var(--u) * 4) solid transparent;
-    border-image: var(--frame-hero) 4 / calc(var(--u) * 4) stretch;
-    background: var(--color-surface-1) padding-box;
-    /* no `filter` here: it would trap the fixed .action-bar inside the hero */
-    box-shadow: 0 calc(var(--u) * 2) 0 rgba(0, 0, 0, 0.35);
+    border: 6px solid transparent;
+    border-image: var(--fr-hero) 3 / 6px stretch;
+    background: var(--color-paper) padding-box;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
   }
-  /* Cream "race card" paper. */
-  .paper,
-  .px-plate {
+  /* Baize panel (live and stage content): the old 9-slice green frame. */
+  .baize,
+  .baize-panel {
     position: relative;
-    color: var(--color-paper-ink);
     border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-paper) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-paper) padding-box;
+    border-image: var(--fr-surface) 2 / calc(var(--u) * 2) stretch;
+    background: var(--color-baize-800) padding-box;
   }
-  .px-tile {
-    border: 2px solid transparent;
-    border-image: var(--fr-paper) 2 / 2px stretch;
-    background: var(--color-paper) padding-box;
+  /* Baize strip: a live/stage row (Home "On the course"). */
+  .baize-card {
+    position: relative;
+    background: var(--color-baize-800);
+    box-shadow:
+      inset 0 0 0 2px #050d08,
+      inset 0 2px 0 2px #1d4a33;
   }
-  /* Semi-opaque ink plate for text over scenes / the broadcast. */
   .plate-ink {
-    background: rgba(8, 21, 14, 0.86);
+    background: rgba(8, 21, 14, 0.88);
     box-shadow: 0 0 0 1px rgba(243, 231, 201, 0.14);
   }
   .px-screen {
     position: relative;
     border: calc(var(--u) * 2) solid transparent;
     border-image: var(--fr-ink) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-ink) padding-box;
+    background: #0b0f0c padding-box;
   }
   .px-oxblood {
-    border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-oxblood) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-oxblood) padding-box;
-    color: var(--color-cream);
+    background: var(--color-oxblood);
+    box-shadow: inset 0 0 0 2px var(--color-ink);
   }
-  /* Selected / yours: a one-art-pixel brass ring. */
+  /* Selected / yours: a 4-px brass bar on the left plus a brass keyline. */
   .is-selected,
   .px-select {
-    border-image: var(--fr-select) 2 / calc(var(--u) * 2) stretch !important;
-    background: #1d4430 padding-box !important;
+    border: 6px solid transparent !important;
+    border-image: var(--fr-selected) 3 / 6px stretch !important;
+  }
+  /* Pixel art sits in a well (paper-2 with a 2-px rule), never on a flat panel with no edge. */
+  .well {
+    background: var(--color-paper-2);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
+  }
+  .baize-scope .well,
+  .baize-card .well {
+    background: var(--color-baize-900);
+    box-shadow: inset 0 0 0 2px var(--color-baize-line);
+  }
+  .yours {
+    box-shadow: inset 4px 0 0 var(--color-brass);
   }
   .field {
-    border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-field) 2 / calc(var(--u) * 2) stretch;
-    background: var(--color-inset) padding-box;
-    color: var(--color-cream);
     min-height: 3rem;
-    padding: 0 0.6rem;
+    padding: 0 0.75rem;
     font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    background: #fffaf0;
+    border: 0;
+    box-shadow: inset 0 0 0 2px var(--color-ink);
+  }
+  .field::placeholder {
+    color: var(--color-ink-3);
   }
   .field:focus {
     outline: none;
   }
   .field:focus-visible {
-    outline: 3px solid var(--color-brass-bright);
-    outline-offset: 2px;
+    outline: 2px solid var(--color-ink);
+    outline-offset: 1px;
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      0 0 0 5px var(--color-brass-hi);
+  }
+  .baize-scope .field {
+    color: var(--color-on-baize);
+    background: var(--color-baize-900);
+    box-shadow: inset 0 0 0 2px var(--color-baize-line);
   }
 
   /* ---------------------------------------------------------- typography */
+  /* The one page title (pixel display): 32/36 phone, 48/52 desktop, 2-px ink drop. */
+  .t-display-xl,
+  .t-page {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 2rem;
+    line-height: 2.25rem;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 0 #050d08;
+  }
+  @media (min-width: 768px) {
+    .t-display-xl,
+    .t-page {
+      font-size: 3rem;
+      line-height: 3.25rem;
+    }
+  }
+  .paper-scope .t-display-xl,
+  .surface .t-display-xl,
+  .frame-hero .t-display-xl {
+    text-shadow: none;
+  }
+  /* Celebration only (splash, onboarding reveal, "1st"). */
+  .t-display-hero,
   .display {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: 0.01em;
     line-height: 1.1;
   }
-  .t-display-xl {
-    font-family: var(--font-display);
-    font-weight: 600;
+  .t-display-hero {
     font-size: 2.5rem;
-    line-height: 1.1;
-  }
-  .t-display-l {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 2rem;
-    line-height: 1.125;
-  }
-  .t-display-m {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 1.5rem;
-    line-height: 1.17;
+    line-height: 2.75rem;
   }
   @media (min-width: 768px) {
-    .t-display-xl {
-      font-size: 3.5rem;
-      line-height: 1.07;
+    .t-display-hero {
+      font-size: 4rem;
+      line-height: 4.25rem;
+    }
+  }
+  /* Hero title (Nunito 800 22/28). Supersedes the pixel display-l. */
+  .t-display-l,
+  .t-hero {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+    letter-spacing: 0;
+  }
+  /* Section head h2 (Nunito 800 18/24 -> 20/28). Supersedes pixel section heads. */
+  .t-display-m,
+  .t-h2 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    letter-spacing: 0;
+  }
+  @media (min-width: 768px) {
+    .t-display-m,
+    .t-h2 {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
     }
   }
   .score {
@@ -272,8 +451,8 @@ body::before {
   }
   .t-title {
     font-weight: 800;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
+    font-size: 1rem;
+    line-height: 1.375rem;
   }
   .t-meta {
     font-weight: 600;
@@ -281,20 +460,17 @@ body::before {
     line-height: 1.25rem;
     color: var(--color-cream-dim);
   }
-  .eyebrow {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 0.8125rem;
-    line-height: 1.25rem;
-    letter-spacing: 0.02em;
-    color: var(--color-cream-dim);
-  }
+  .eyebrow,
   .label {
     font-family: var(--font-sans);
     font-weight: 700;
     font-size: 0.75rem;
     line-height: 1rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-cream-dim);
+  }
+  .label {
     color: var(--color-sage);
   }
   .caption {
@@ -303,7 +479,6 @@ body::before {
     line-height: 1rem;
     color: var(--color-sage);
   }
-  /* Small numbers: sans, tabular. (Jersey 10 is only for big numerals: .score) */
   .num,
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -315,8 +490,38 @@ body::before {
     font-family: var(--font-score);
     letter-spacing: 0.04em;
   }
+  .reward {
+    font-family: var(--font-score);
+    font-size: 1.375rem;
+    line-height: 1;
+    color: var(--color-brass-bright);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .link {
+    font-weight: 700;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-brass-hi);
+    text-decoration: none;
+  }
+  .link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+  .paper-scope .link,
+  .surface .link,
+  .card .link,
+  .frame-hero .link {
+    color: var(--color-brass-text);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
 
   /* ------------------------------------------------------------- buttons */
+  /* Secondary (default): 40 tall, turf fill, paper text, ink keyline. */
   .btn {
     position: relative;
     display: inline-flex;
@@ -325,70 +530,114 @@ body::before {
     gap: 0.5rem;
     min-height: 2.75rem;
     min-width: 2.75rem;
-    padding: 0 0.85rem;
+    padding: 0 0.875rem;
     font-family: var(--font-sans);
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 800;
     line-height: 1.2;
     white-space: nowrap;
-    border: calc(var(--u) * 2) solid transparent;
-    border-image: var(--fr-btn) 2 / calc(var(--u) * 2) stretch;
-    background: #1f4d35 padding-box;
-    color: var(--color-cream);
+    border: 0;
+    color: #f6ecd3;
+    background: var(--color-turf);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 2px 0 2px #3f8a58,
+      0 2px 0 0 var(--color-ink);
     transition: transform 60ms steps(1);
     cursor: pointer;
     user-select: none;
     text-decoration: none;
   }
   .btn:hover:not(:disabled) {
-    border-image-source: var(--fr-btn-hover);
-    background: #24563b padding-box;
+    background: #327a4b;
   }
   .btn:active:not(:disabled) {
     transform: translateY(2px);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 2px 0 2px #3f8a58;
   }
   .btn:disabled,
   .btn[aria-disabled="true"] {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
   }
-  .btn-brass {
-    color: #241505;
-    border-image-source: var(--fr-brass);
-    background: #d9a441 padding-box;
+  /* Primary: brass, 52 tall, ink keyline, brass-hi top / brass-lo bottom, 4-px ink drop. */
+  .btn-brass,
+  .btn-primary {
+    min-height: 3.25rem;
+    padding: 0 1.25rem;
+    font-size: 1.0625rem;
+    color: var(--color-ink);
+    background: var(--color-brass);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 4px 0 2px var(--color-brass-hi),
+      inset 0 -4px 0 2px var(--color-brass-lo),
+      0 4px 0 0 var(--color-ink);
+    margin-bottom: 4px;
   }
-  .btn-brass:hover:not(:disabled) {
-    border-image-source: var(--fr-brass-hover);
-    background: #e7b552 padding-box;
+  .btn-brass:hover:not(:disabled),
+  .btn-primary:hover:not(:disabled) {
+    background: #e2b04f;
+  }
+  .btn-brass:active:not(:disabled),
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 4px 0 2px var(--color-brass-hi),
+      inset 0 -4px 0 2px var(--color-brass-lo);
   }
   .btn-oxblood {
-    border-image-source: var(--fr-oxblood);
-    background: #7a1f1f padding-box;
+    color: #f6ecd3;
+    background: var(--color-oxblood);
+    box-shadow:
+      inset 0 0 0 2px var(--color-ink),
+      inset 0 2px 0 2px #b0392e,
+      0 2px 0 0 var(--color-ink);
   }
   .btn-oxblood:hover:not(:disabled) {
-    border-image-source: var(--fr-oxblood);
-    background: #8a2626 padding-box;
+    background: #a02a2a;
   }
-  .btn-ghost {
-    border: 0;
-    border-image: none;
-    background: transparent;
+  /* Ghost: transparent with a keyline (ink on paper, on-baize-2 on baize). */
+  .btn-outline {
     color: var(--color-cream);
+    background: transparent;
+    box-shadow: inset 0 0 0 2px currentColor;
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: rgba(127, 127, 127, 0.12);
+  }
+  .btn-outline:active:not(:disabled) {
+    box-shadow: inset 0 0 0 2px currentColor;
+  }
+  /* Text button: brass-hi on baize, brass-text underlined on paper. */
+  .btn-ghost {
+    min-height: 2.75rem;
+    box-shadow: none;
+    background: transparent;
+    color: var(--color-brass-bright);
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
-    text-decoration-color: rgba(243, 231, 201, 0.4);
     padding: 0 0.5rem;
   }
   .btn-ghost:hover:not(:disabled) {
-    border-image: none;
+    box-shadow: none;
     background: transparent;
-    text-decoration-color: var(--color-cream);
+    text-decoration-color: currentColor;
+  }
+  .btn-ghost:active:not(:disabled) {
+    box-shadow: none;
+  }
+  .btn-danger-text {
+    color: var(--color-negative);
   }
   .btn-sm {
-    min-height: 2.75rem;
+    min-height: 2.5rem;
     font-size: 0.9375rem;
-    padding: 0 0.65rem;
+    padding: 0 0.75rem;
   }
   .btn-lg {
     min-height: 3.25rem;
@@ -400,7 +649,8 @@ body::before {
     width: 100%;
   }
 
-  /* --------------------------------------------------------------- chips */
+  /* --------------------------------------------------------- chips + tags */
+  /* Info chip (a fact): quiet, on the current material. */
   .chip {
     display: inline-flex;
     align-items: center;
@@ -414,37 +664,121 @@ body::before {
     white-space: nowrap;
   }
   .chip-brass {
-    color: #241505;
+    color: var(--color-ink);
     background: var(--color-brass);
+    box-shadow: inset 0 0 0 2px var(--color-ink);
   }
   .chip-cream {
-    color: var(--color-paper-ink);
+    color: var(--color-ink);
     background: var(--color-paper);
   }
   .chip-live {
-    color: var(--color-cream);
+    color: #f6ecd3;
     background: var(--color-oxblood);
-    box-shadow: 0 0 0 1px #c0473a;
   }
   .chip-ink {
-    color: var(--color-cream);
-    background: rgba(8, 21, 14, 0.86);
+    color: #f6ecd3;
+    background: rgba(8, 21, 14, 0.88);
   }
-  /* "YOU" marker: brass caret + tag (never colour alone). */
+  /* Tags (§4.5): 22 tall caps. */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 22px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-ink-2);
+    background: var(--color-paper-2);
+  }
+  .tag-live {
+    color: #f6ecd3;
+    background: var(--color-oxblood);
+  }
+  .tag-ready {
+    color: var(--color-brass-hi);
+    background: var(--color-ink);
+  }
+  .tag-you {
+    color: var(--color-ink);
+    background: var(--color-brass);
+    box-shadow: inset 0 0 0 2px var(--color-ink);
+  }
+  .tag-locked {
+    color: var(--color-ink-3);
+    background: var(--color-paper-2);
+  }
+  .tag-good {
+    color: #f6ecd3;
+    background: var(--color-turf);
+  }
+  /* "YOU" marker: brass tag (never colour alone). */
   .you-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    padding: 0 0.35rem;
+    padding: 0 0.4rem;
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.04em;
     line-height: 1.25rem;
-    color: #241505;
+    color: var(--color-ink);
     background: var(--color-brass);
+    box-shadow: inset 0 0 0 2px var(--color-ink);
   }
   .you-tag::before {
     content: "▸";
+  }
+  /* Status dot + word ("● Fresh"). */
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: none;
+  }
+  .dot-pos {
+    background: var(--color-turf);
+  }
+  .dot-warn {
+    background: #c27a00;
+  }
+  .dot-neg {
+    background: #a3272b;
+  }
+  .dot-brass {
+    background: var(--color-brass);
+    box-shadow: inset 0 0 0 1px var(--color-brass-lo);
+  }
+  .dot-mute {
+    background: var(--color-ink-3);
+  }
+
+  /* Filter / sort chips (§4.5): 32 tall, keyline on baize; selected = filled. */
+  .fchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 2rem;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-on-baize-2);
+    box-shadow: inset 0 0 0 2px var(--color-baize-line);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .fchip[aria-pressed="true"],
+  .fchip[aria-selected="true"],
+  .fchip[aria-current="true"],
+  .fchip.on {
+    color: var(--color-ink);
+    background: var(--color-on-baize);
+    box-shadow: inset 0 0 0 2px var(--color-on-baize);
   }
 
   .rule,
@@ -457,75 +791,335 @@ body::before {
     width: fit-content;
     max-width: 100%;
     padding: 6px 10px 8px;
-    background: rgba(8, 21, 14, 0.86);
+    background: rgba(8, 21, 14, 0.88);
   }
 
-  /* Row lists: dividers instead of frames. */
+  /* Row lists: dotted paper rules between rows (0 gap inside one card). */
   .rows > * + * {
-    border-top: 2px solid var(--color-line);
+    border-top: 2px dotted var(--color-line);
   }
   .row-link {
     display: flex;
     align-items: center;
-    min-height: 3.5rem;
+    min-height: 4rem;
     transition: background-color 80ms steps(1);
   }
   .row-link:hover {
     background: var(--color-surface-2);
   }
+  .chev {
+    font-weight: 800;
+    font-size: 1.125rem;
+    line-height: 1;
+    color: var(--color-sage);
+  }
 
-  /* Segmented control */
+  /* ------------------------------------------------------ tabs (one style) */
+  /* Underlined text tabs on baize-800, 44 tall, 24 gap, 4-px brass underline when active.
+     Overflow scrolls sideways with an 8-px edge fade. Also used inside paper (ink text). */
+  .tabs {
+    display: flex;
+    gap: var(--s5);
+    min-height: 44px;
+    align-items: stretch;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 16px), transparent 100%);
+    padding-inline: 8px 16px;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tabs > a,
+  .tabs > button,
+  .tabs > li > a,
+  .tabs > li > button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    white-space: nowrap;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--color-sage);
+    flex: none;
+  }
+  .tabs > li {
+    display: flex;
+    flex: none;
+  }
+  .tabs > a:hover,
+  .tabs > button:hover,
+  .tabs > li > a:hover,
+  .tabs > li > button:hover {
+    color: var(--color-cream);
+  }
+  .tabs [aria-current="page"],
+  .tabs [aria-current="true"],
+  .tabs [aria-selected="true"],
+  .tabs [aria-pressed="true"] {
+    color: var(--color-cream);
+  }
+  .tabs [aria-current="page"]::after,
+  .tabs [aria-current="true"]::after,
+  .tabs [aria-selected="true"]::after,
+  .tabs [aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--color-brass);
+  }
+  /* Legacy segmented control: now the same underline tabs. */
   .segmented {
     display: inline-flex;
-    gap: 2px;
-    padding: 2px;
-    background: var(--color-inset);
-    box-shadow: 0 0 0 2px #050d08;
+    gap: var(--s5);
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    box-shadow: inset 0 -2px 0 var(--color-line);
+  }
+  .segmented::-webkit-scrollbar {
+    display: none;
   }
   .segmented > button,
   .segmented > a {
+    position: relative;
     min-height: 2.75rem;
-    padding: 0 0.85rem;
+    padding: 0;
     font-weight: 700;
     font-size: 0.9375rem;
-    color: var(--color-cream-dim);
+    color: var(--color-sage);
+    white-space: nowrap;
+    flex: none;
+  }
+  .segmented > button:hover,
+  .segmented > a:hover {
+    color: var(--color-cream);
   }
   .segmented > [aria-pressed="true"],
   .segmented > [aria-current="true"],
   .segmented > [aria-selected="true"] {
-    background: var(--color-surface-2);
     color: var(--color-cream);
-    box-shadow: inset 0 -3px 0 var(--color-brass);
+  }
+  .segmented > [aria-pressed="true"]::after,
+  .segmented > [aria-current="true"]::after,
+  .segmented > [aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--color-brass);
+  }
+
+  /* ------------------------------------------------------- top bar + tab bar */
+  .topbar {
+    background: var(--color-baize-800);
+    box-shadow: 0 2px 0 #050d08;
+  }
+  .subnav {
+    background: var(--color-baize-800);
+    box-shadow: inset 0 2px 0 #0b1f15;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 36px;
+    padding: 0 8px 0 2px;
+    color: var(--color-on-baize);
+    background: var(--color-baize-900);
+    box-shadow:
+      inset 0 0 0 2px #050d08,
+      inset 0 2px 0 2px #1d4a33;
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    background: var(--color-paper);
+    box-shadow: inset 0 0 0 2px #050d08;
+  }
+  .avatar-on,
+  .avatar:hover {
+    box-shadow:
+      inset 0 0 0 2px #050d08,
+      inset 0 0 0 4px var(--color-brass);
+  }
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--color-baize-800);
+    box-shadow: 0 -2px 0 #050d08;
+  }
+  .tabbar-item {
+    position: relative;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 700;
+    color: var(--color-on-baize-3);
+  }
+  .tabbar-item img,
+  .tabbar-item svg {
+    filter: grayscale(0.65) brightness(0.85);
+  }
+  .tabbar-item[aria-current="page"] {
+    color: var(--color-on-baize);
+  }
+  .tabbar-item[aria-current="page"] img,
+  .tabbar-item[aria-current="page"] svg {
+    filter: none;
+  }
+  .tabbar-item[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 30%;
+    right: 30%;
+    height: 4px;
+    background: var(--color-brass);
+  }
+
+  /* ------------------------------------------------------- scene band */
+  .scene-band {
+    --bh: 216px;
+    --k: 1;
+    position: relative;
+    height: var(--bh);
+    overflow: hidden;
+    background: #2b2013;
+    margin-top: -16px;
+  }
+  .scene-band.short {
+    --bh: 152px;
+  }
+  .scene-band.crop {
+    --bh: 120px;
+  }
+  /* Integer scale only: 1x phones, 2x tablet/desktop, 3x on very wide screens. */
+  .scene-art {
+    position: absolute;
+    left: 50%;
+    max-width: none;
+    width: calc(var(--aw) * var(--k));
+    height: calc(var(--ah) * var(--k));
+    top: clamp(calc(var(--bh) - var(--ah) * var(--k)), calc(var(--bh) / 2 - var(--fy) * var(--ah) * var(--k)), 0px);
+    transform: translateX(-50%);
+    image-rendering: pixelated;
+  }
+  .scene-band::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 112px;
+    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.88) 100%);
+    pointer-events: none;
+  }
+  .scene-band .overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 40px;
+    z-index: 1;
+  }
+  .scene-band.short .overlay,
+  .scene-band.crop .overlay {
+    bottom: 16px;
+  }
+  @media (min-width: 768px) {
+    .scene-band {
+      --bh: 288px;
+      --k: 2;
+      margin-top: -32px;
+    }
+    .scene-band.short {
+      --bh: 216px;
+    }
+    .scene-band.crop {
+      --bh: 160px;
+    }
+    .scene-band .overlay {
+      bottom: 56px;
+    }
+    .scene-band.short .overlay,
+    .scene-band.crop .overlay {
+      bottom: 24px;
+    }
+  }
+  @media (min-width: 1400px) {
+    .scene-band {
+      --bh: 336px;
+      --k: 3;
+    }
+    .scene-band.short {
+      --bh: 240px;
+    }
+  }
+  .section {
+    margin-top: var(--s6);
+  }
+  @media (min-width: 768px) {
+    .section {
+      margin-top: var(--s7);
+    }
+  }
+  .empty-slot {
+    display: grid;
+    place-items: center;
+    width: 80px;
+    height: 80px;
+    flex: none;
+    background: repeating-linear-gradient(135deg, var(--color-paper-2) 0 6px, #e3d4ad 6px 12px);
+    box-shadow: inset 0 0 0 2px var(--color-paper-rule);
+  }
+  .empty-slot > * {
+    opacity: 0.7;
+  }
+  /* The hero card overlaps the band by 24 (§4.2). */
+  .over-band {
+    position: relative;
+    z-index: 2;
+    margin-top: -24px;
   }
 
   /* ------------------------------------------------------- action bar */
-  /* Mobile: sticky in the thumb zone above the tab bar. Desktop: an inline primary button. */
-  .action-bar {
+  /* Inline in the hero; on phones it floats above the tab bar once the hero spot is off screen. */
+  .action-bar[data-floating="true"] {
     position: fixed;
     inset-inline: 0;
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
     z-index: 35;
-    padding: 12px 16px;
-    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0, rgba(8, 21, 14, 0.92) 14px, #08150e 100%);
+    padding: 12px var(--gutter) 8px;
+    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0, rgba(8, 21, 14, 0.92) 30%, #08150e 100%);
   }
-  .action-bar > .btn {
+  .action-bar[data-floating="true"] > .btn {
     width: 100%;
-    min-height: 3.25rem;
   }
-  /* Phones: nothing may hide behind the sticky action bar + tab bar (bar 76px + tab bar + safe area). */
   @media (max-width: 767.98px) {
+    .action-bar > .btn-brass,
+    .action-bar > .btn-primary {
+      width: 100%;
+    }
+    .action-spot {
+      width: 100%;
+    }
     main:has([data-action-bar]) {
       padding-bottom: calc(var(--tabbar-h) + 6.5rem + env(safe-area-inset-bottom));
-    }
-  }
-  @media (min-width: 768px) {
-    .action-bar {
-      position: static;
-      padding: 0;
-      background: none;
-    }
-    .action-bar > .btn {
-      width: auto;
     }
   }
 
@@ -534,17 +1128,27 @@ body::before {
     margin: auto auto 0;
     width: 100%;
     max-width: 40rem;
-    max-height: 92dvh;
+    max-height: 88dvh;
     padding: 0;
     color: var(--color-cream);
-    background: var(--color-surface-1);
+    background: var(--color-paper);
     border: 0;
-    box-shadow: 0 -2px 0 #2c6645, 0 -6px 0 #050d08;
+    box-shadow:
+      0 -2px 0 var(--color-ink),
+      inset 0 2px 0 #fffaf0;
     overflow: auto;
     overscroll-behavior: contain;
   }
+  dialog.sheet::before {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 4px;
+    margin: 8px auto 0;
+    background: var(--color-paper-rule);
+  }
   dialog.sheet::backdrop {
-    background: rgba(4, 10, 6, 0.72);
+    background: rgba(8, 21, 14, 0.72);
   }
   dialog.sheet[open] {
     animation: sheet-up 180ms steps(4) both;
@@ -553,14 +1157,47 @@ body::before {
     dialog.sheet {
       margin: auto;
       max-height: 86dvh;
-      border: calc(var(--u) * 2) solid transparent;
-      border-image: var(--fr-surface) 2 / calc(var(--u) * 2) stretch;
-      background: var(--color-surface-1) padding-box;
-      box-shadow: none;
+      box-shadow:
+        inset 0 0 0 2px var(--color-ink),
+        0 6px 0 rgba(0, 0, 0, 0.45);
+    }
+    dialog.sheet::before {
+      display: none;
     }
   }
 
-  /* Legacy no-ops: tilt/parallax/sheen are retired (no idle motion). */
+  /* "How it works" disclosure (rules move out of the page body). */
+  .how {
+    font-size: 0.9375rem;
+  }
+  .how > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 2.75rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--color-brass-bright);
+    list-style: none;
+  }
+  .how > summary::-webkit-details-marker {
+    display: none;
+  }
+  .how > summary::before {
+    content: "i";
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font: 800 13px/1 var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-brass-hi);
+  }
+  .how[open] > summary::after {
+    content: "×";
+    margin-left: 2px;
+  }
+
   .tilt,
   .parallax {
     transform: none;
@@ -570,10 +1207,18 @@ body::before {
   }
 }
 
-/* When a screen has a sticky action bar, leave room for it on mobile. */
-@media (max-width: 767px) {
-  body:has(.action-bar) main {
-    padding-bottom: calc(var(--tabbar-h) + var(--actionbar-h) + env(safe-area-inset-bottom) + 24px);
+/* Card hover on desktop (§4.8). */
+@media (hover: hover) and (min-width: 768px) {
+  a.surface:hover,
+  a.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
+  }
+  a.surface,
+  a.card {
+    transition:
+      transform 80ms steps(2),
+      box-shadow 80ms steps(2);
   }
 }
 
@@ -688,6 +1333,11 @@ body::before {
   background: var(--color-live);
   box-shadow: 0 0 0 2px #2a0707;
 }
+.chip-live .live-dot,
+.tag-live .live-dot {
+  background: #f6ecd3;
+  box-shadow: none;
+}
 .digit {
   display: inline-block;
   animation: digit-drop 120ms steps(2) both;
@@ -723,7 +1373,6 @@ html[data-motion="reduce"] *::after {
   scroll-behavior: auto !important;
 }
 
-/* Grid children may shrink below their nowrap/truncated content (prevents mobile overflow). */
 @layer base {
   .grid > * {
     min-width: 0;

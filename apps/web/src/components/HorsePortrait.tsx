@@ -89,8 +89,11 @@ export function HorsePortrait({
   title?: string;
   scale?: PortraitScale;
 }) {
-  const art = useArt(ART_SLOTS.portrait(appearance.coat));
-  const native = art?.w ?? 96;
+  const full = useArt(ART_SLOTS.portrait(appearance.coat));
+  const thumb = useArt(ART_SLOTS.thumb(appearance.coat));
+  // Thumbnails use the 64 px box-downsampled file at 1x (never a 128 portrait shrunk in CSS).
+  const art = scale === "thumb" && thumb ? thumb : full;
+  const native = full?.w ?? 96;
   const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
   const style = px ? { width: px, height: px } : undefined;
   if (art) {
@@ -103,7 +106,7 @@ export function HorsePortrait({
         style={style}
         alt={title ?? ""}
         aria-hidden={title ? undefined : true}
-        className={`${scale === "thumb" ? "downscaled" : "pixelated"} shrink-0 object-contain object-bottom ${className ?? ""}`}
+        className={`${scale === "thumb" && !thumb ? "downscaled" : "pixelated"} shrink-0 object-contain object-bottom ${className ?? ""}`}
         data-testid="horse-portrait"
         draggable={false}
       />

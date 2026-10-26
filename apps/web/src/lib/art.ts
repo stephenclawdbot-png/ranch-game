@@ -29,6 +29,8 @@ export const ART_SLOTS = {
     barn: ["scenes/barn-interior.png", "scenes/barn.png"],
   },
   portrait: (coat: string) => [`portraits/horse-${coat}.png`, `portraits/${coat}.png`],
+  /** 64 px thumbnails: exact 2:1 box downsamples of the portraits (scripts/make-thumbs.py). */
+  thumb: (coat: string) => [`portraits/thumb/horse-${coat}.png`],
   icon: (name: string) => [...(ICON_ALIASES[name] ?? []), `ui/icon-${name}.png`, `ui/icons/${name}.png`, `ui/${name}.png`],
 } as const;
 

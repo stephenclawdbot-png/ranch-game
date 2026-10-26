@@ -320,7 +320,47 @@ export const ICONS = {
   ],
 } as const;
 
-export type IconName = keyof typeof ICONS;
+/** Icons that exist only as PixelLab art (32 px native); they fall back to a code-drawn cousin. */
+const ART_ONLY = {
+  "feed-bucket": "horseshoe",
+  "grooming-brush": "horseshoe",
+  racecard: "flag",
+  bell: "stopwatch",
+  "calendar-day": "stopwatch",
+  gate: "flag",
+  laurel: "trophy",
+  "saddle-cloth": "flag",
+  "stable-door": "stable",
+  "money-sack": "coin",
+  medallion: "rosette",
+  plaque: "trophy",
+  lantern: "star",
+  "horse-head": "horseshoe",
+  papers: "pencil",
+  "pocket-watch": "stopwatch",
+  "rosette-green": "rosette",
+  "silks-sash": "flag",
+  "stall-number": "stable",
+  megaphone: "flag",
+  binoculars: "stopwatch",
+  hay: "horseshoe",
+  carrots: "horseshoe",
+  saddle: "horseshoe",
+  "badge-gold": "rosette",
+  "badge-silver": "rosette",
+  "badge-bronze": "rosette",
+  "crest-shield": "shield",
+  "club-crest": "shield",
+  garland: "rosette",
+  ticket: "coin",
+  "winner-drape": "rosette",
+  "water-bucket": "horseshoe",
+  "trophy-silver": "trophy",
+  trunk: "stable",
+  whistle: "flag",
+} as const satisfies Record<string, keyof typeof ICONS>;
+
+export type IconName = keyof typeof ICONS | keyof typeof ART_ONLY;
 
 /**
  * Pixel icon. Uses the PixelLab icon (32 px native) when it exists, else the code-drawn 12x12 map.
@@ -346,7 +386,8 @@ export function PixelIcon({ name, className, title, size }: { name: IconName; cl
       />
     );
   }
-  return <PixelGrid rows={ICONS[name]} palette={PAL} className={`shrink-0 ${className ?? ""}`} style={style} title={title} />;
+  const code = name in ICONS ? (name as keyof typeof ICONS) : ART_ONLY[name as keyof typeof ART_ONLY];
+  return <PixelGrid rows={ICONS[code]} palette={PAL} className={`shrink-0 ${className ?? ""}`} style={style} title={title} />;
 }
 
 type P = { className?: string };
@@ -387,11 +428,13 @@ const CREST_ROWS: string[] = (() => {
   return rows;
 })();
 
-export function Crest({ className }: P) {
-  const art = useArt(ART_SLOTS.logo);
-  if (art) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={artUrl(art)} alt="" aria-hidden className={`downscaled object-contain ${className ?? ""}`} draggable={false} />;
-  }
+/** The POST TIME stopwatch mark (brand), at an integer scale of its 32 px art. */
+export function Crest({ className, size = 64 }: P & { size?: 32 | 64 | 96 }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/brand/icon-32.png" width={size} height={size} alt="" aria-hidden className={`pixelated ${className ?? ""}`} draggable={false} />;
+}
+
+/** Legacy code-drawn crest (kept for the dev harnesses). */
+export function LegacyCrest({ className }: P) {
   return <PixelGrid rows={CREST_ROWS} palette={PAL} className={className} />;
 }

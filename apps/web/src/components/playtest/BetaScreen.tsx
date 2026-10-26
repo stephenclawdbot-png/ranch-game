@@ -36,7 +36,7 @@ function Beta() {
         <p className="eyebrow">Closed playtest</p>
         <h1 className="t-display-xl">Beta rewards</h1>
         <p className="mt-1 max-w-2xl text-lg text-cream-dim">
-          Thank you for testing Thoroughbred. Testers get an exclusive item later, and some real-money rewards during the beta. Stable Credits stay in the game: they are
+          Thank you for testing Post Time. Testers get an exclusive item later, and some real-money rewards during the beta. Stable Credits stay in the game: they are
           never converted to money.
         </p>
       </header>

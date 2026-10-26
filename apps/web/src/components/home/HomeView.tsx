@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { ActiveEntry, InboxView, RaceSummary, StableHorse } from "@/lib/types";
-import { horseSummary } from "@/lib/aptitude";
+import type { HorseAppearance } from "@thoroughbred/shared";
 import { useNow } from "@/lib/clock";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCountdown, formatDistance, ordinal } from "@/lib/format";
 import { recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
 import { Countdown } from "../Countdown";
 import { HorsePortrait } from "../HorsePortrait";
-import { RaceBoard, RecentRaceRow } from "../RaceList";
-import { raceMetaLine } from "../RaceMeta";
 import { conditionLabel } from "../entry/EntryForm";
 import { useEntry } from "../entry/EntryProvider";
-import { PixelIcon, type IconName } from "../icons";
-import { SceneBackdrop } from "../pixel/SceneBackdrop";
+import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
-import { SectionHeader } from "../ui/SectionHeader";
+import { SceneArt, SceneBand, Section } from "../ui/Page";
+import { Wordmark } from "../SiteNav";
 import { TodayTiles } from "./TodayTiles";
 
 interface ClubProps {
@@ -29,7 +28,7 @@ interface ClubProps {
 /** A race you're in counts as "yours to watch" from entry until a few minutes after the off. */
 const WATCH_WINDOW_MS = 4 * 60_000;
 
-/** Home: your next action first; the shared Live card second. */
+/** Home: your yard (scene), the one next action, Today, your horses, then what's on the course. */
 export function HomeView(props: ClubProps) {
   const state = usePlayerState();
   // While one of your races is pending, refresh so results land without a reload.
@@ -41,184 +40,336 @@ export function HomeView(props: ClubProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Signed out: watch now, then join
+// Signed out: the live race first, the wordmark, one call to action
 // ---------------------------------------------------------------------------
 
-const PILLARS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "horseshoe", title: "Own a stable", text: "Sprinters, stayers, closers. Each has a trip, a surface and a style, all from its genes." },
-  { icon: "flag", title: "Story races", text: "Take on the Club's rival stables. Watch, or skip to the result." },
-  { icon: "stopwatch", title: "Live races", text: "A shared race every 3 minutes. Everyone watches the same race." },
+const PILLARS: { scene: "barn" | "paddock" | "grandstand"; title: string; text: string }[] = [
+  { scene: "barn", title: "Raise a stable", text: "Sprinters, stayers and closers, each with a trip and a style from its genes." },
+  { scene: "paddock", title: "Race the Club", text: "Story races against rival stables. Watch, or skip to the result." },
+  { scene: "grandstand", title: "Live at Kestrel Downs", text: "A shared race every 3 minutes. Everyone watches the same finish." },
 ];
 
 function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
   return (
-    <div className="grid gap-8">
-      <section className="grid gap-4 md:grid-cols-[1fr_22rem] md:items-end">
-        <div>
-          <h1 className="t-display-xl">Run a racing stable.</h1>
-          <p className="mt-2 max-w-xl text-lg text-cream-dim">
-            {inviteOnly
-              ? "We're in a small closed playtest. Got an invite? Your first horses are waiting. Everyone can watch the live races."
-              : "Your first horses are waiting. Your first race is about a minute away."}
-          </p>
-          <ActionBar className="md:mt-5">
-            <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
-              <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable · free"}
-            </Link>
-          </ActionBar>
+    <div>
+      <SceneBand scene="stable" size="home" alt="A stable yard at golden hour" eyebrow="A racing stable game" title={<span className="sr-only">Post Time</span>} testId="home-band">
+        <div className="pointer-events-none absolute inset-x-0 bottom-[88px] z-[1] flex justify-center md:bottom-[120px]">
+          <span className="scale-[1.5] md:scale-[2]">
+            <Wordmark />
+          </span>
         </div>
-        {next && <ClubNext next={next} live={live} />}
-      </section>
+      </SceneBand>
+      <div className="over-band mx-auto grid max-w-3xl gap-4">
+        <div className="frame-hero p-4 sm:p-5">
+          <p className="tag tag-ready">Free · no email</p>
+          <h2 className="t-hero mt-2">Your first horses are waiting.</h2>
+          <p className="mt-1 text-cream-dim">
+            {inviteOnly ? "We're in a small closed playtest. Got an invite? Your stable is one tap away." : "Found a stable in one tap. Your first race is about a minute away."}
+          </p>
+          <div className="mt-4">
+            <ActionBar>
+              <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
+                <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
+              </Link>
+            </ActionBar>
+          </div>
+        </div>
+        {next && <OnTheCourse next={next} live={live} />}
+      </div>
 
-      <ul className="grid gap-3 sm:grid-cols-3">
-        {PILLARS.map((p) => (
-          <li key={p.title} className="surface flex items-start gap-3 p-3">
-            <PixelIcon name={p.icon} size={32} />
-            <div>
-              <p className="t-title">{p.title}</p>
-              <p className="text-sm text-cream-dim">{p.text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <Section title="What you do" className="mx-auto max-w-5xl">
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {PILLARS.map((p) => (
+            <li key={p.title} className="surface overflow-hidden">
+              <div className="relative h-24 overflow-hidden bg-baize-800 [--bh:96px] [--k:1]">
+                <SceneArt scene={p.scene} alt="" />
+              </div>
+              <div className="p-3">
+                <p className="t-title">{p.title}</p>
+                <p className="t-meta">{p.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
       {recent.length > 0 && (
-        <RaceBoard title="Recent results" href="/races" hrefLabel="All races">
-          {recent.slice(0, 4).map((r) => (
-            <RecentRaceRow key={r.id} race={r} />
-          ))}
-        </RaceBoard>
+        <Section title="Latest results" href="/races" linkLabel="Race card" className="mx-auto max-w-5xl">
+          <ul className="surface rows">
+            {recent.slice(0, 3).map((r) => (
+              <ResultRow key={r.id} race={r} />
+            ))}
+          </ul>
+        </Section>
       )}
     </div>
   );
 }
 
-/** The next Live race as a scene window with a countdown: watchable with zero setup. */
-function ClubNext({ next, live, compact = false }: { next: RaceSummary; live: RaceSummary | null; compact?: boolean }) {
+function ResultRow({ race }: { race: RaceSummary }) {
   return (
-    <section className="surface overflow-hidden !p-0" data-testid="next-race" aria-labelledby="next-race-h">
-      {!compact && (
-        <div className="relative h-36">
-          <SceneBackdrop variant="paddock" />
-          <div className="plate-ink absolute bottom-2 left-2 px-2 py-1">
-            <p className="text-xs font-bold text-cream-dim">Off in</p>
-            <p className="score text-[2.5rem] leading-none text-cream">
-              <Countdown targetMs={next.postTimeMs} doneLabel="Off" animate />
-            </p>
-          </div>
-        </div>
-      )}
-      <Link href={`/race/${next.id}`} className="row-link group gap-3 px-3 py-2" data-testid="watch-next">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-cream-dim">
-            Next live race · {formatClock(next.postTimeMs)}
-            {compact && (
-              <>
-                {" "}
-                · off in <Countdown targetMs={next.postTimeMs} doneLabel="now" className="text-cream" />
-              </>
-            )}
-          </p>
-          <p id="next-race-h" className="t-title text-cream group-hover:underline">
-            {next.name}
-          </p>
-          <p className="t-meta">
-            {raceMetaLine(next)} · {next.phase === "open" ? `${next.fieldSize} entered` : `${next.fieldSize} runners`}
-          </p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1 text-sm font-extrabold text-cream">
-          <PixelIcon name="play" className="h-3 w-3" /> Watch
+    <li>
+      <Link href={`/race/${race.id}`} className="row-link gap-3 px-4 py-3" data-testid="recent-race">
+        <PixelIcon name="rosette" size={32} />
+        <span className="min-w-0 flex-1">
+          <span className="t-title block">{race.winner ? race.winner.name : "Running now"}</span>
+          <span className="t-meta block">{race.winner ? `Won the ${race.name}` : race.name}</span>
         </span>
+        <span className="chev">›</span>
       </Link>
-      {live && (
-        <Link href={`/race/${live.id}`} className="row-link group gap-2 border-t-2 border-line px-3 py-2 text-sm">
-          <span className="chip chip-live !px-1.5 !py-0 text-xs">
-            <span className="live-dot !h-1.5 !w-1.5" /> Live
-          </span>
-          <span className="min-w-0 flex-1 truncate font-bold text-cream group-hover:underline">{live.name}</span>
-          <span className="font-extrabold">Join ›</span>
-        </Link>
-      )}
-    </section>
+    </li>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Signed in: next best action, your races, stable pulse, then the Live card
+// Signed in
 // ---------------------------------------------------------------------------
 
-function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState }) {
+function greeting(now: number | null): string {
+  if (now === null) return " ";
+  const d = new Date(now);
+  const day = d.toLocaleDateString("en-GB", { weekday: "long" });
+  const h = d.getHours();
+  return `${day} ${h < 5 ? "night" : h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night"}`;
+}
+
+function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const now = useNow(1000);
   // Your own race: about to start or running -> watch it; finished but unseen -> see the result (no spoilers).
   const upcomingMine = now === null ? undefined : [...state.active].sort((a, b) => a.postTimeMs - b.postTimeMs).find((a) => a.postTimeMs > now - WATCH_WINDOW_MS);
   const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId);
   const rec = recommendHorse(state);
   const entry = useEntry();
+  const heroRaceId = upcomingMine?.raceId ?? unseen[0]?.raceId ?? null;
+  const horseOf = (id: string | null | undefined) => state.horses.find((h) => h.id === id);
 
   return (
-    <div className="grid gap-8">
-      <div>
-        <p className="eyebrow">{state.stableName}</p>
-        <h1 className="t-display-xl">Up next</h1>
+    <div>
+      <SceneBand scene="stable" size="home" alt="Your stable yard at golden hour" eyebrow={greeting(now)} title="Your yard" testId="home-band" />
+
+      <div className="over-band">
+        {upcomingMine ? (
+          <YourRace race={upcomingMine} now={now ?? 0} appearance={horseOf(upcomingMine.horseId)?.horse.appearance} />
+        ) : unseen[0] ? (
+          <ResultReady item={unseen[0]} count={unseen.length} horse={horseOf(unseen[0].horseId)} />
+        ) : rec ? (
+          <QuickPickHero s={rec} firstRace={state.runs.length === 0} />
+        ) : (
+          <Hero tag={<span className="tag">Resting</span>} title="Your horses are resting" testId="up-next" body="They're entered or recovering, and can race again soon. A groom builds their bond meanwhile.">
+            <Link href="/stable" className="btn btn-lg w-full sm:w-auto">
+              Go to the stable
+            </Link>
+          </Hero>
+        )}
       </div>
-
-      {upcomingMine ? (
-        <YourRace race={upcomingMine} now={now ?? 0} />
-      ) : unseen[0] ? (
-        <ResultReady item={unseen[0]} count={unseen.length} horseName={state.horses.find((h) => h.id === unseen[0]!.horseId)?.horse.name} />
-      ) : rec ? (
-        <QuickPickHero s={rec} firstRace={state.runs.length === 0} />
-      ) : (
-        <section className="frame-hero p-4" data-testid="up-next">
-          <p className="text-cream-dim">All your horses are resting or entered. They can race again soon.</p>
-        </section>
-      )}
-
-      <YourRaces state={state} now={now} />
 
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
 
-      <section aria-labelledby="pulse-h">
-        <SectionHeader id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable" />
-        <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-4 md:px-0" data-testid="stable-pulse">
+      <YourRaces state={state} now={now} skipRaceId={heroRaceId} />
+
+      <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
+        <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">
           {state.horses.map((s) => {
             const racing = s.lockedRaceId !== null;
             const cond = conditionLabel(s);
+            const tone = racing ? "dot-brass" : s.block || s.condition === "tired" ? "dot-warn" : "dot-pos";
             return (
-              <li key={s.id} className="shrink-0 md:shrink">
-                <Link href={`/horse/${s.id}`} className="surface flex h-full w-48 items-center gap-2 p-1.5 hover:brightness-110 md:w-auto">
-                  <HorsePortrait appearance={s.horse.appearance} scale="thumb" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-extrabold leading-tight">{s.horse.name}</span>
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-cream-dim">
-                      <span aria-hidden className={`h-2 w-2 ${racing ? "bg-brass" : s.block || s.condition === "tired" ? "bg-sage" : "bg-positive"}`} />
-                      {racing ? "Entered" : cond.text}
-                    </span>
+              <li key={s.id} className="shrink-0">
+                <Link href={`/horse/${s.id}`} className="surface flex w-40 flex-col gap-2 p-3 md:w-auto">
+                  <span className="well grid h-[128px] place-items-center overflow-hidden">
+                    <HorsePortrait appearance={s.horse.appearance} scale={1} />
+                  </span>
+                  <span className="t-title leading-tight">{s.horse.name}</span>
+                  <span className="flex items-center gap-1.5 text-[0.8125rem] font-bold text-cream-dim">
+                    <i className={`dot ${tone}`} aria-hidden />
+                    {racing ? "Entered" : cond.text}
                   </span>
                 </Link>
               </li>
             );
           })}
         </ul>
-      </section>
+      </Section>
 
-      <section aria-labelledby="club-h" className="grid gap-4 lg:grid-cols-2">
-        <div className="grid content-start gap-3">
-          <SectionHeader id="club-h" title="Live races" href="/races#live" linkLabel="Live card" />
-          {next && <ClubNext next={next} live={live} compact />}
-          <button type="button" className="btn w-fit" onClick={entry.quickPickLive} data-testid="live-quick-pick">
-            <PixelIcon name="flag" size={16} /> Enter next Live race ({state.entries.balance} entries left)
-          </button>
+      <Section id="club-h" title="On the course" href="/races" linkLabel="Race card">
+        <div className="grid gap-2 lg:grid-cols-2">
+          {next && <OnTheCourse next={next} live={live} />}
+          <div className="baize-card flex items-center gap-3 px-4 py-3">
+            <PixelIcon name="flag" size={32} />
+            <div className="min-w-0 flex-1">
+              <p className="t-title">Enter the next Live race</p>
+              <p className="t-meta">{state.entries.balance} stable entries left today</p>
+            </div>
+            <button type="button" className="btn btn-outline btn-sm !text-on-baize" onClick={entry.quickPickLive} data-testid="live-quick-pick">
+              Enter
+            </button>
+          </div>
         </div>
-        {recent.length > 0 && (
-          <RaceBoard title="Recent results">
-            {recent.slice(0, 3).map((r) => (
-              <RecentRaceRow key={r.id} race={r} />
-            ))}
-          </RaceBoard>
-        )}
-      </section>
+      </Section>
     </div>
+  );
+}
+
+/** The next and the live race on the shared card, as baize strips. */
+function OnTheCourse({ next, live }: { next: RaceSummary; live: RaceSummary | null }) {
+  return (
+    <div className="grid gap-2" data-testid="next-race">
+      {live && (
+        <Link href={`/race/${live.id}`} className="baize-card flex items-center gap-3 px-4 py-3">
+          <span className="tag tag-live">
+            <span className="live-dot" /> Live
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="t-title block truncate">{live.name}</span>
+            <span className="t-meta block">
+              {live.fieldSize} runners · {formatDistance(live.distanceM)} {SURFACE_LABEL[live.surface].toLowerCase()}
+            </span>
+          </span>
+          <span className="btn btn-outline btn-sm !text-on-baize">Watch</span>
+        </Link>
+      )}
+      <Link href={`/race/${next.id}`} className="baize-card flex items-center gap-3 px-4 py-3" data-testid="watch-next">
+        <span className="score w-14 shrink-0 text-[1.875rem] text-brass-hi">
+          <Countdown targetMs={next.postTimeMs} doneLabel="Off" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="t-title block" id="next-race-h">
+            {next.name}
+          </span>
+          <span className="t-meta block">
+            Next off · {formatDistance(next.distanceM)} {SURFACE_LABEL[next.surface].toLowerCase()}
+          </span>
+        </span>
+        <span className="btn btn-outline btn-sm !text-on-baize">Watch</span>
+      </Link>
+    </div>
+  );
+}
+
+/** Hero card: paper with the one brass ring, a portrait breaking out of the top-right corner. */
+function Hero({
+  tag,
+  title,
+  body,
+  appearance,
+  children,
+  testId,
+  footer,
+}: {
+  tag: ReactNode;
+  title: ReactNode;
+  body: ReactNode;
+  appearance?: HorseAppearance;
+  children: ReactNode;
+  testId: string;
+  footer?: ReactNode;
+}) {
+  return (
+    <section className="relative mx-auto max-w-3xl" data-testid={testId} aria-labelledby={`${testId}-h`}>
+      {appearance && (
+        <div className="pointer-events-none absolute -top-10 right-2 z-[3] [filter:drop-shadow(0_2px_0_rgba(0,0,0,.35))] md:-top-16 md:right-4">
+          <span className="md:hidden">
+            <HorsePortrait appearance={appearance} scale={1} />
+          </span>
+          <span className="hidden md:block">
+            <HorsePortrait appearance={appearance} scale={2} />
+          </span>
+        </div>
+      )}
+      <div className="frame-hero p-4 sm:p-6">
+        <div className={appearance ? "pr-[120px] md:pr-[250px]" : ""}>
+          {tag}
+          <h2 id={`${testId}-h`} className="t-hero mt-2">
+            {title}
+          </h2>
+          <p className="mt-1 text-[0.9375rem] leading-[1.375rem] text-cream-dim">{body}</p>
+        </div>
+        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-4">{children}</div>
+        {footer}
+      </div>
+    </section>
+  );
+}
+
+/** The default next action: Quick Pick runs your best-suited fresh horse in a Story race. */
+function QuickPickHero({ s, firstRace }: { s: StableHorse; firstRace: boolean }) {
+  const entry = useEntry();
+  const horse = s.horse;
+  return (
+    <Hero
+      testId="up-next"
+      appearance={horse.appearance}
+      tag={<span className="tag tag-ready">★ {firstRace ? "Your first race" : "Ready to race"}</span>}
+      title={`${horse.name} is ready`}
+      body={`${STYLE_LABEL[horse.style]} · best at ${formatDistance(horse.preferredDistanceM)} on ${SURFACE_LABEL[horse.preferredSurface].toLowerCase()}. A Story race against the Club is free.`}
+    >
+      <ActionBar>
+        <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
+          <PixelIcon name="flag" size={32} className="-my-2" /> Race {horse.name} now
+        </button>
+      </ActionBar>
+      <button type="button" className="btn-ghost btn justify-self-start" onClick={() => entry.open(s.id, { picker: true })}>
+        Choose horse &amp; plan
+      </button>
+    </Hero>
+  );
+}
+
+/** Secondary Story race when the primary action is about a race you already entered. */
+function QuickPickAgain() {
+  const entry = useEntry();
+  return (
+    <button type="button" className="btn-ghost btn justify-self-start" onClick={entry.quickPick} data-testid="quick-pick">
+      Or start a Story race
+    </button>
+  );
+}
+
+function YourRace({ race, now, appearance }: { race: ActiveEntry; now: number; appearance?: HorseAppearance }) {
+  const startsIn = race.postTimeMs - now;
+  return (
+    <Hero
+      testId="up-next"
+      appearance={appearance}
+      tag={
+        startsIn > 0 ? (
+          <span className="tag tag-ready">Off in {formatCountdown(startsIn)}</span>
+        ) : (
+          <span className="tag tag-live">
+            <span className="live-dot" /> Running now
+          </span>
+        )
+      }
+      title={`${race.horseName} is in the ${race.raceName}`}
+      body={race.kind === "live" ? "A Live race at Kestrel Downs: everyone watches the same finish." : "A Story race against the Club."}
+    >
+      <ActionBar>
+        <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg" data-testid="watch-mine">
+          <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch {race.horseName}
+        </Link>
+      </ActionBar>
+      <QuickPickAgain />
+    </Hero>
+  );
+}
+
+function ResultReady({ item, count, horse }: { item: InboxView; count: number; horse?: StableHorse }) {
+  const name = horse?.horse.name ?? "Your horse";
+  return (
+    <Hero
+      testId="up-next"
+      appearance={horse?.horse.appearance}
+      tag={<span className="tag tag-ready">▶ {count > 1 ? `${count} results ready` : "Result ready"}</span>}
+      title={`${name} has run`}
+      body={`Off at ${formatClock(item.createdAtMs)}. The replay is waiting; we haven't said how it went.`}
+    >
+      <ActionBar>
+        <Link href={`/race/${item.raceId}`} className="btn btn-brass btn-lg" data-testid="see-result">
+          <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch the finish
+        </Link>
+      </ActionBar>
+      <QuickPickAgain />
+    </Hero>
   );
 }
 
@@ -230,28 +381,29 @@ function statusOf(a: ActiveEntry, now: number | null): { text: string; live: boo
 }
 
 /** Your races: entered and live first, then results (unseen ones never say how it went). */
-function YourRaces({ state, now }: { state: PlayerState; now: number | null }) {
-  const inbox = state.inbox.filter((i) => i.raceId).slice(0, 6);
-  if (state.active.length === 0 && inbox.length === 0) return null;
+function YourRaces({ state, now, skipRaceId }: { state: PlayerState; now: number | null; skipRaceId: string | null }) {
+  const active = state.active.filter((a) => a.raceId !== skipRaceId);
+  const inbox = state.inbox.filter((i) => i.raceId && i.raceId !== skipRaceId).slice(0, 5);
+  if (active.length === 0 && inbox.length === 0) return null;
   return (
-    <section aria-labelledby="inbox-h">
-      <SectionHeader id="inbox-h" title="Your races" />
+    <Section id="inbox-h" title="Your races" testId="your-races-section">
       <ul className="surface rows" data-testid="your-races">
-        {state.active.map((a) => {
+        {active.map((a) => {
           const st = statusOf(a, now);
           return (
             <li key={`${a.raceId}:${a.horseId}`}>
-              <Link href={`/race/${a.raceId}`} className="row-link group gap-3 px-3 py-2" data-testid="inbox-race" data-state={st.live ? "live" : "entered"}>
-                <span className={`chip shrink-0 ${st.live ? "chip-live" : "text-cream"}`}>
-                  {st.live && <span className="live-dot !h-1.5 !w-1.5" />}
+              <Link href={`/race/${a.raceId}`} className="row-link gap-3 px-4 py-3" data-testid="inbox-race" data-state={st.live ? "live" : "entered"}>
+                <span className={`tag shrink-0 ${st.live ? "tag-live" : "tag-ready"}`}>
+                  {st.live && <span className="live-dot" />}
                   {st.text}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-extrabold group-hover:underline">{a.horseName}</span>
+                  <span className="t-title block">{a.horseName}</span>
                   <span className="t-meta block truncate">
-                    {a.kind === "live" ? "Live" : "Story"} · {a.raceName} · {formatClock(a.postTimeMs)}
+                    {a.kind === "live" ? "Live" : "Story"} · {a.raceName}
                   </span>
                 </span>
+                <span className="chev">›</span>
               </Link>
             </li>
           );
@@ -260,7 +412,7 @@ function YourRaces({ state, now }: { state: PlayerState; now: number | null }) {
           <InboxRow key={i.id} item={i} horseName={state.horses.find((h) => h.id === i.horseId)?.horse.name} />
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
 
@@ -269,115 +421,15 @@ function InboxRow({ item, horseName }: { item: InboxView; horseName?: string }) 
   const prize = typeof item.data?.prize === "number" ? (item.data.prize as number) : 0;
   return (
     <li>
-      <Link href={`/race/${item.raceId}`} className="row-link group gap-3 px-3 py-2" data-testid="inbox-result" data-read={item.read ? "1" : "0"}>
-        {item.read ? (
-          <span className="num w-10 shrink-0 text-lg text-cream">{pos ? ordinal(pos) : "–"}</span>
-        ) : (
-          <span className="chip shrink-0 text-cream">▶ Result ready</span>
-        )}
+      <Link href={`/race/${item.raceId}`} className="row-link gap-3 px-4 py-3" data-testid="inbox-result" data-read={item.read ? "1" : "0"}>
+        {item.read ? <span className="score w-10 shrink-0 text-center text-[1.75rem]">{pos ? ordinal(pos) : "–"}</span> : <span className="tag tag-ready shrink-0">▶ Ready</span>}
         <span className="min-w-0 flex-1">
-          <span className="block font-extrabold group-hover:underline">{horseName ?? "Your horse"}</span>
+          <span className="t-title block">{horseName ?? "Your horse"}</span>
           <span className="t-meta block truncate">{item.read ? item.title : "We haven’t told you how it went."}</span>
         </span>
-        {item.read && <span className={`num shrink-0 ${prize > 0 ? "text-positive" : "text-sage"}`}>{prize > 0 ? `+${prize}` : "–"}</span>}
+        {item.read && prize > 0 ? <span className="reward shrink-0">+{prize}</span> : <span className="chev">›</span>}
       </Link>
     </li>
   );
 }
 
-/** The default next action: Quick Pick runs your best-suited fresh horse in a Story race (or enter the Live card). */
-function QuickPickHero({ s, firstRace }: { s: StableHorse; firstRace: boolean }) {
-  const entry = useEntry();
-  const horse = s.horse;
-  return (
-    <section className="frame-hero p-3 sm:p-4" aria-labelledby="ready-h" data-testid="up-next">
-      <div className="flex gap-4">
-        <div className="hidden shrink-0 bg-inset sm:block">
-          <HorsePortrait appearance={horse.appearance} scale={2} title={horse.name} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <div className="shrink-0 bg-inset sm:hidden">
-              <HorsePortrait appearance={horse.appearance} scale={1} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-extrabold text-cream-dim">{firstRace ? "Story · your first club race" : "Story · next club race"}</p>
-              <h2 id="ready-h" className="t-display-l">
-                {horse.name}
-              </h2>
-              <p className="t-meta">
-                <span className={conditionLabel(s).tone}>✓ {conditionLabel(s).text}</span> · {STYLE_LABEL[horse.style]} · best{" "}
-                {formatDistance(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()} · {s.starts}/{s.maxStarts} starts
-              </p>
-            </div>
-          </div>
-          <p className="mt-3 max-w-prose text-cream-dim">{horseSummary(horse)}</p>
-          <p className="caption mt-1">Quick Pick sends your best-suited fresh horse, ridden to its natural style. Story races are free.</p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <ActionBar>
-              <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
-                <PixelIcon name="flag" size={32} className="-my-2" /> Race now
-              </button>
-            </ActionBar>
-            <button type="button" className="btn-ghost inline-flex min-h-11 items-center font-bold" onClick={() => entry.open(s.id, { picker: true })}>
-              Choose horse &amp; plan
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** Secondary Quick Pick when the primary action is about a race you already entered. */
-function QuickPickAgain() {
-  const entry = useEntry();
-  return (
-    <button type="button" className="btn" onClick={entry.quickPick} data-testid="quick-pick">
-      Story race
-    </button>
-  );
-}
-
-function YourRace({ race, now }: { race: ActiveEntry; now: number }) {
-  const startsIn = race.postTimeMs - now;
-  return (
-    <section className="frame-hero p-4" aria-labelledby="yours-h" data-testid="up-next">
-      <p className="text-sm font-extrabold text-cream-dim">{startsIn > 0 ? "Your race is about to start" : "Your race is running"}</p>
-      <h2 id="yours-h" className="t-display-l">
-        {race.horseName}
-      </h2>
-      <p className="t-meta">
-        {race.kind === "live" ? "Live" : "Story"} · {race.raceName} · {startsIn > 0 ? `off in ${formatCountdown(startsIn)}` : "running now"}
-      </p>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <ActionBar>
-          <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg" data-testid="watch-mine">
-            <PixelIcon name="play" className="h-4 w-4" /> Watch {race.horseName}
-          </Link>
-        </ActionBar>
-        <QuickPickAgain />
-      </div>
-    </section>
-  );
-}
-
-function ResultReady({ item, count, horseName }: { item: InboxView; count: number; horseName?: string }) {
-  return (
-    <section className="frame-hero p-4" aria-labelledby="ready-result-h" data-testid="up-next">
-      <p className="text-sm font-extrabold text-cream-dim">▶ {count > 1 ? `While you were away: ${count} results are ready` : "Result ready"}</p>
-      <h2 id="ready-result-h" className="t-display-l">
-        {horseName ?? "Your horse"}&rsquo;s race
-      </h2>
-      <p className="t-meta">Run at {formatClock(item.createdAtMs)}. We haven&rsquo;t told you how it went.</p>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <ActionBar>
-          <Link href={`/race/${item.raceId}`} className="btn btn-brass btn-lg" data-testid="see-result">
-            <PixelIcon name="play" className="h-4 w-4" /> See the result
-          </Link>
-        </ActionBar>
-        <QuickPickAgain />
-      </div>
-    </section>
-  );
-}

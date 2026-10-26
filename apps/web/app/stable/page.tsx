@@ -5,22 +5,22 @@ import { useMemo, useState } from "react";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { PlayerGate } from "@/components/PlayerGate";
 import { Silks } from "@/components/Silks";
-import { GradeBadge } from "@/components/StatBars";
 import { conditionLabel, riskText } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
-import { PixelIcon } from "@/components/icons";
+import { PixelIcon, type IconName } from "@/components/icons";
 import { ActionBar } from "@/components/ui/ActionBar";
-import { StorageNote } from "@/components/ui/StorageNote";
-import { aptitudes, tripBand } from "@/lib/aptitude";
-import { SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
-import { recommendHorse, totals, type PlayerState } from "@/lib/player";
+import { SceneBand, Section } from "@/components/ui/Page";
+import { aptitudes } from "@/lib/aptitude";
+import { SEX_LABEL, STYLE_LABEL, formatDistance } from "@/lib/format";
+import { recommendHorse, type PlayerState } from "@/lib/player";
 import type { StableHorse } from "@/lib/types";
 
-type SortKey = "rating" | "trip" | "wins";
+type SortKey = "ready" | "fit" | "rating" | "name";
 const SORTS: { key: SortKey; label: string }[] = [
-  { key: "rating", label: "Best" },
-  { key: "trip", label: "Trip" },
-  { key: "wins", label: "Wins" },
+  { key: "ready", label: "Ready first" },
+  { key: "fit", label: "Best fit" },
+  { key: "rating", label: "Rating" },
+  { key: "name", label: "Name" },
 ];
 
 /** Last three finishing positions, oldest first ("5-2-1"), or "–" if unraced. */
@@ -34,152 +34,161 @@ function formFigures(state: PlayerState, horseId: string): string {
 
 function Stable({ state }: { state: PlayerState }) {
   const entry = useEntry();
-  const [sort, setSort] = useState<SortKey>("rating");
-  const t = totals(state);
+  const [sort, setSort] = useState<SortKey>("ready");
+  const best = recommendHorse(state);
 
   const rows = useMemo(() => {
     const list = state.horses.map((s) => ({ s, apt: aptitudes(s.horse) }));
-    if (sort === "rating") list.sort((a, b) => b.apt.ideal - a.apt.ideal);
-    if (sort === "trip") list.sort((a, b) => a.s.horse.preferredDistanceM - b.s.horse.preferredDistanceM);
-    if (sort === "wins") list.sort((a, b) => b.s.horse.record.wins - a.s.horse.record.wins || b.s.horse.record.earnings - a.s.horse.record.earnings);
+    const ready = (s: StableHorse) => (s.block || s.lockedRaceId ? 2 : s.condition === "tired" ? 1 : 0);
+    if (sort === "ready") list.sort((a, b) => ready(a.s) - ready(b.s) || (a.s.id === best?.id ? -1 : b.s.id === best?.id ? 1 : 0) || b.apt.ideal - a.apt.ideal);
+    if (sort === "fit") list.sort((a, b) => b.apt.ideal - a.apt.ideal);
+    if (sort === "rating") list.sort((a, b) => b.s.rating - a.s.rating || b.s.horse.record.wins - a.s.horse.record.wins);
+    if (sort === "name") list.sort((a, b) => a.s.horse.name.localeCompare(b.s.horse.name));
     return list;
-  }, [state, sort]);
-  const best = recommendHorse(state)?.id;
+  }, [state, sort, best?.id]);
+  const empty = Math.max(0, state.stalls.slots - state.stalls.used);
 
   return (
-    <div className="grid gap-5">
-      <header className="flex items-center gap-3">
-        <Silks silks={state.silks} cap={false} className="h-[39px] w-12 shrink-0" />
-        <div className="min-w-0">
-          <h1 className="t-display-l" data-testid="stable-name">
-            {state.stableName}
-          </h1>
-          <p className="t-meta">
-            <span className="num text-cream">{formatCredits(state.credits)}</span> credits · {state.entries.balance}/{state.entries.cap} Live entries ·{" "}
-            {state.stalls.used}/{state.stalls.slots} stalls · {t.starts} {t.starts === 1 ? "run" : "runs"} · {t.wins} {t.wins === 1 ? "win" : "wins"}
-          </p>
-        </div>
-      </header>
+    <div>
+      <SceneBand
+        scene="barn"
+        alt="Inside your barn"
+        eyebrow={
+          <span className="inline-flex items-center gap-2">
+            <Silks silks={state.silks} cap={false} className="h-[26px] w-8" />
+            <span data-testid="stable-name">{state.stableName}</span> · {state.stalls.used} of {state.stalls.slots} stalls
+          </span>
+        }
+        title="Stable"
+      />
 
-      <section aria-labelledby="string-h">
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-          <h2 id="string-h" className="t-display-m">
-            Your horses
-          </h2>
-          <div className="segmented" role="group" aria-label="Sort horses">
+      <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-8">
+        <div className="min-w-0">
+          <div className="-mx-[var(--gutter)] flex gap-2 overflow-x-auto px-[var(--gutter)] pb-3" role="group" aria-label="Sort horses">
             {SORTS.map((s) => (
-              <button key={s.key} type="button" aria-pressed={sort === s.key} onClick={() => setSort(s.key)}>
+              <button key={s.key} type="button" className="fchip" aria-pressed={sort === s.key} onClick={() => setSort(s.key)}>
                 {s.label}
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="surface !p-0">
-          <div
-            className="hidden grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_7rem_7.5rem_4rem_6rem] items-center gap-3 border-b-2 border-line px-3 py-2 lg:grid"
-            aria-hidden
-          >
-            {["Horse", "Style", "Best trip", "Condition", "Spd · Sta · Brs", "Form", ""].map((c) => (
-              <span key={c} className="label">
-                {c}
-              </span>
-            ))}
-          </div>
-          <ul className="rows">
+          <ul className="surface rows">
             {rows.map(({ s }) => (
-              <RosterRow key={s.id} s={s} form={formFigures(state, s.id)} recommended={s.id === best} onRace={() => entry.open(s.id)} />
+              <RosterRow key={s.id} s={s} form={formFigures(state, s.id)} recommended={s.id === best?.id} onRace={() => entry.open(s.id)} />
             ))}
+            {empty > 0 && (
+              <li>
+                <Link href="/packs" className="row-link gap-3 px-4 py-3" data-testid="empty-stalls">
+                  <span className="empty-slot !h-16 !w-16">
+                    <PixelIcon name="horseshoe" size={32} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="t-title block">
+                      {empty} empty {empty === 1 ? "stall" : "stalls"}
+                    </span>
+                    <span className="t-meta block">Foals come from Paddock Packs and your own mares.</span>
+                  </span>
+                  <span className="chev">›</span>
+                </Link>
+              </li>
+            )}
           </ul>
+          {best && (
+            <div className="mt-4">
+              <ActionBar>
+                <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
+                  <PixelIcon name="flag" size={32} className="-my-2" /> Race {best.horse.name} now
+                </button>
+              </ActionBar>
+            </div>
+          )}
         </div>
-      </section>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <ActionBar>
-          <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">
-            <PixelIcon name="flag" size={32} className="-my-2" /> Story race now
-          </button>
-        </ActionBar>
-        <button type="button" className="btn" onClick={entry.quickPickLive} data-testid="live-quick-pick">
-          Enter next Live race
-        </button>
-      </div>
-
-      <div className="grid gap-3 border-t-2 border-line pt-4">
-        <Link
-          href="/me"
-          className="inline-flex min-h-11 w-fit items-center gap-2 font-bold text-cream-dim underline decoration-2 underline-offset-4 hover:text-cream"
-        >
-          <PixelIcon name="pencil" className="h-4 w-4" /> Edit name &amp; colours
-        </Link>
-        <StorageNote />
+        <aside className="min-w-0">
+          <Section title="Around the yard" className="!mt-0 lg:!mt-[52px]">
+            <ul className="surface rows">
+              <YardRow icon="feed-bucket" title="Care" text="Feed, groom and turn out. Builds bond." href={state.horses[0] ? `/horse/${state.horses[0].id}/care` : "/nursery"} />
+              <YardRow icon="stable" title="Facilities" text="More stalls, a vet room, a gallop." href="/facilities" />
+              <YardRow icon="star" title="Nursery" text="Foals grow with daily care." href="/nursery" />
+              <li>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <PixelIcon name="flag" size={32} />
+                  <span className="min-w-0 flex-1">
+                    <span className="t-title block">Live races</span>
+                    <span className="t-meta block">{state.entries.balance} entries left today</span>
+                  </span>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={entry.quickPickLive} data-testid="live-quick-pick">
+                    Enter
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </Section>
+        </aside>
       </div>
     </div>
   );
 }
 
+function YardRow({ icon, title, text, href }: { icon: IconName; title: string; text: string; href: string }) {
+  return (
+    <li>
+      <Link href={href} className="row-link gap-3 px-4 py-3">
+        <PixelIcon name={icon} size={32} />
+        <span className="min-w-0 flex-1">
+          <span className="t-title block">{title}</span>
+          <span className="t-meta block">{text}</span>
+        </span>
+        <span className="chev">›</span>
+      </Link>
+    </li>
+  );
+}
+
 function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: string; recommended: boolean; onRace: () => void }) {
   const horse = s.horse;
-  const st = horse.stats;
   const cond = conditionLabel(s);
+  const resting = s.block === "Not yet of racing age";
+  const dot = s.lockedRaceId ? "dot-brass" : s.block || s.condition === "tired" ? "dot-warn" : "dot-pos";
   return (
-    <li
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2 lg:grid-cols-[minmax(0,1.6fr)_7rem_8.5rem_7rem_7.5rem_4rem_6rem]"
-      data-testid="horse-card"
-    >
-      <Link href={`/horse/${s.id}`} className="group flex min-w-0 items-center gap-3">
-        <span className="bg-inset">
-          <HorsePortrait appearance={horse.appearance} scale="thumb" />
+    <li className={`flex items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 ${recommended ? "yours" : ""}`} data-testid="horse-card">
+      <Link href={`/horse/${s.id}`} className="group flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <span className="well grid shrink-0 place-items-center overflow-hidden">
+          <span className="sm:hidden">
+            <HorsePortrait appearance={horse.appearance} scale="thumb" />
+          </span>
+          <span className="hidden sm:block">
+            <HorsePortrait appearance={horse.appearance} scale={1} />
+          </span>
         </span>
-        <span className="min-w-0">
-          <span className="t-title block group-hover:underline">
-            {horse.name}
-            {recommended && <span className="ml-2 align-middle text-xs font-extrabold text-positive">✓ Quick Pick</span>}
+        <span className="grid min-w-0 gap-0.5">
+          <span className="t-title group-hover:underline">{horse.name}</span>
+          <span className="t-meta">
+            {SEX_LABEL[horse.sex]} · {STYLE_LABEL[horse.style]} · {formatDistance(horse.preferredDistanceM)}
           </span>
-          <span className="t-meta block lg:hidden">
-            {STYLE_LABEL[horse.style]} · {tripBand(horse.preferredDistanceM).label} {formatDistance(horse.preferredDistanceM)} ·{" "}
-            {SURFACE_LABEL[horse.preferredSurface]}
-          </span>
-          <span className="t-meta hidden lg:block">
-            {SEX_LABEL[horse.sex]} · {s.starts}/{s.maxStarts} starts · OR {s.rating}
+          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] font-bold text-cream-dim">
+            {recommended && <span className="tag tag-you !h-5 !text-[0.6875rem]">★ Best fit</span>}
+            <span className="inline-flex items-center gap-1.5" title={`Injury risk next start: ${riskText(s.risk)}`}>
+              <i className={`dot ${dot}`} aria-hidden />
+              {s.lockedRaceId ? "Entered" : cond.text}
+            </span>
+            <span className="hidden sm:inline">Form {form}</span>
+            <span className="hidden text-sage sm:inline">{s.regNo}</span>
           </span>
         </span>
       </Link>
-      <span className="hidden text-sm font-bold text-cream-dim lg:block">{STYLE_LABEL[horse.style]}</span>
-      <span className="hidden whitespace-nowrap text-sm font-bold text-cream lg:block">
-        {tripBand(horse.preferredDistanceM).label} <span className="text-cream-dim">{formatDistance(horse.preferredDistanceM)}</span>
-      </span>
-      <span className={`hidden text-sm font-bold lg:block ${cond.tone}`} title={`Injury risk next start: ${riskText(s.risk)}`}>
-        {cond.text}
-      </span>
-      <span className="hidden gap-1 lg:flex" aria-label={`Speed ${st.speed}, stamina ${st.stamina}, burst ${st.burst}`}>
-        <GradeBadge value={st.speed} size="sm" />
-        <GradeBadge value={st.stamina} size="sm" />
-        <GradeBadge value={st.burst} size="sm" />
-      </span>
-      <span className="num hidden text-cream-dim lg:block" title="Last three runs, oldest first">
-        {form}
-      </span>
-      {s.block === "Not yet of racing age" ? (
-        <Link href={`/horse/${s.id}/care`} className="btn btn-sm justify-self-end" aria-label={`Care for ${horse.name}`}>
+      {resting ? (
+        <Link href={`/horse/${s.id}/care`} className="btn btn-outline btn-sm shrink-0" aria-label={`Care for ${horse.name}`}>
           Care
         </Link>
+      ) : s.block ? (
+        <Link href={`/horse/${s.id}`} className="btn btn-outline btn-sm shrink-0" aria-label={`${horse.name}: ${s.block}`}>
+          View
+        </Link>
       ) : (
-        <button type="button" className="btn btn-sm justify-self-end" onClick={onRace} disabled={!!s.block} aria-label={`Race ${horse.name}`}>
+        <button type="button" className="btn btn-sm shrink-0" onClick={onRace} aria-label={`Race ${horse.name}`}>
           Race
         </button>
       )}
-      <span className="col-span-2 flex flex-wrap items-center gap-2 pl-[3.75rem] text-xs font-bold text-sage lg:hidden">
-        <span className={cond.tone}>{cond.text}</span>
-        <span>· {s.starts}/{s.maxStarts} starts</span>
-        <span className="flex items-center gap-1" aria-label={`Speed ${st.speed}, stamina ${st.stamina}, burst ${st.burst}`}>
-          <span>Spd</span>
-          <GradeBadge value={st.speed} size="sm" />
-          <span className="ml-1">Sta</span>
-          <GradeBadge value={st.stamina} size="sm" />
-        </span>
-        <span className="ml-auto">Form {form}</span>
-      </span>
     </li>
   );
 }

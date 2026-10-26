@@ -17,9 +17,9 @@ export function PlayerGate({ children, fallback }: { children: (s: PlayerState) 
 export function JoinNudge({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`surface flex flex-col items-center text-center ${compact ? "gap-3 p-5" : "gap-4 px-6 py-10"}`}>
-      <Crest className={compact ? "h-12 w-14" : "h-16 w-[4.75rem]"} />
+      <Crest size={64} />
       <div>
-        <h2 className="t-display-m">No stable yet</h2>
+        <h2 className="t-h2">No stable yet</h2>
         <p className="mx-auto mt-1 max-w-md text-cream-dim">Found a stable to get your first horses. It takes one tap, and your first race is a minute away.</p>
       </div>
       {compact ? (
