@@ -1,0 +1,229 @@
+/**
+ * Horse life (care, nursery, training, condition, career, facilities): the shapes the server
+ * sends to these pages, plus small display helpers. Types and pure functions only, so client
+ * components may import it.
+ */
+import type { Horse } from "@thoroughbred/shared";
+import type { RideIntensity, StableHorse } from "./types";
+
+export type StatKey = "speed" | "stamina" | "burst" | "durability" | "adaptability" | "temperament";
+
+export interface GrowthView {
+  stage: "foal" | "weanling" | "yearling";
+  stageLabel: string;
+  /** Counted care sessions so far (0..19). */
+  sessions: number;
+  /** Sessions done inside the current stage, and its length (5 / 7 / 7). */
+  inStage: number;
+  stageLength: number;
+  nextLabel: string;
+  toNext: number;
+  toRacing: number;
+  racingAt: number;
+}
+
+export interface FeedOption {
+  key: string;
+  label: string;
+  hint: string;
+  recommended: boolean;
+}
+
+export interface CareView {
+  /** A session was already counted today (the player's local date). */
+  caredToday: boolean;
+  /** The player's local date (YYYY-MM-DD). */
+  day: string;
+  lastCareDay: string | null;
+  sessions: number;
+  /** Null once the horse is of racing age. */
+  growth: GrowthView | null;
+  feeds: FeedOption[];
+  /** 0..1000; never decays from absence. */
+  bond: number;
+  careQuality: number;
+  canCare: boolean;
+}
+
+export interface RangeView {
+  key: StatKey;
+  label: string;
+  lo: number;
+  hi: number;
+  loGrade: string;
+  hiGrade: string;
+  exact: boolean;
+}
+
+export interface RiskRow {
+  intensity: RideIntensity;
+  label: "low" | "moderate" | "elevated" | "high";
+  permille: number;
+  careerEndingShare: number;
+  factors: string[];
+}
+
+export interface ConditionView {
+  fatigue: number;
+  /** 0..1000 bar. */
+  freshness: number;
+  fitness: number;
+  morale: number;
+  /** The freshness peak 3-5 days after hard work. */
+  peak: { phase: "none" | "building" | "peak" | "fading"; fromMs: number | null; toMs: number | null; bonus: number };
+  injury: {
+    severity: string;
+    label: string;
+    hoursLeft: number;
+    untilMs: number;
+    careerEnding: boolean;
+    vetCost: number;
+    treatedToday: boolean;
+  } | null;
+  /** Injury risk of the next start at its best trip on good going, per ride. */
+  risks: RiskRow[];
+  insurance: { insured: boolean; premium: number; payout: number; available: boolean };
+}
+
+export interface WorkoutView {
+  key: string;
+  label: string;
+  cost: number;
+  fatigue: number;
+  hard: boolean;
+  allowed: boolean;
+  trains: StatKey[];
+}
+
+export interface RealisationRow {
+  key: StatKey;
+  label: string;
+  /** 600..1000 permille of the potential realised by training. */
+  permille: number;
+  nearCeiling: boolean;
+  current: number;
+}
+
+export interface TrainingView {
+  available: boolean;
+  blockedReason: string | null;
+  slots: number;
+  plan: string[];
+  sessionsUsed: number;
+  nextWorkout: string | null;
+  /** Monday 00:00 UTC of next week. */
+  weekResetsMs: number;
+  workouts: WorkoutView[];
+  realisation: RealisationRow[];
+  trainerLevel: number;
+  lightOnly: boolean;
+}
+
+export interface CareerStageRow {
+  key: "juvenile" | "prime" | "veteran";
+  label: string;
+  from: number;
+  to: number;
+  current: boolean;
+}
+
+export interface CareerView {
+  starts: number;
+  maxStarts: number;
+  stage: string;
+  stageLabel: string;
+  careerStatus: "racing" | "retired" | "pasture";
+  retirementReason: string | null;
+  stages: CareerStageRow[];
+  maturity: { type: "early" | "normal" | "late"; label: string; peakFrom: number; peakTo: number; blurb: string };
+  ranges: RangeView[];
+  scanned: boolean;
+  scanCost: number;
+  canRename: boolean;
+  canRetire: boolean;
+  canLegacy: boolean;
+  canRelease: boolean;
+  releasePayout: number;
+  bound: boolean;
+  lockReason: string | null;
+  breedingsLeft: number;
+  racingAge: boolean;
+}
+
+export interface HorseLifeView {
+  id: string;
+  name: string;
+  horse: Horse;
+  status: StableHorse;
+  care: CareView;
+  condition: ConditionView;
+  training: TrainingView;
+  career: CareerView;
+  credits: number;
+  stableHand: boolean;
+  serverNowMs: number;
+}
+
+export interface NurseryFoal {
+  id: string;
+  name: string;
+  horse: Horse;
+  care: CareView;
+  ranges: RangeView[];
+  scanned: boolean;
+  awaitingGraduation: boolean;
+}
+
+export interface NurseryView {
+  foals: NurseryFoal[];
+  graduates: NurseryFoal[];
+  stalls: { slots: number; used: number; free: number; overflow: boolean; overflowSlots: number };
+  stableHand: boolean;
+  scanCost: number;
+  credits: number;
+  /** Horses (any age) not cared for yet today: what "Care for all" would do. */
+  uncared: number;
+}
+
+export interface FacilityItem {
+  key: "stalls" | "entries" | "trainer" | "vet" | "stableHand";
+  name: string;
+  blurb: string;
+  level: number;
+  maxLevel: number;
+  levelLabel: string;
+  now: string;
+  next: string | null;
+  nextCost: number | null;
+}
+
+export interface FacilitiesView {
+  credits: number;
+  items: FacilityItem[];
+  stalls: { slots: number; used: number };
+}
+
+export const STAT_NAMES: Record<StatKey, string> = {
+  speed: "Speed",
+  stamina: "Stamina",
+  burst: "Burst",
+  durability: "Durability",
+  adaptability: "Adaptability",
+  temperament: "Temperament",
+};
+
+/** "in 3 d 4 h" / "in 5 h" / "now" for a number of hours. */
+export function hoursText(h: number): string {
+  if (h <= 0) return "now";
+  const d = Math.floor(h / 24);
+  const r = Math.ceil(h - d * 24);
+  if (d === 0) return `${r} h`;
+  return r === 0 || r === 24 ? `${d + (r === 24 ? 1 : 0)} d` : `${d} d ${r} h`;
+}
+
+export function dayName(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+export const RISK_LABEL: Record<RiskRow["label"], string> = { low: "Low", moderate: "Moderate", elevated: "Elevated", high: "High" };
+export const INTENSITY_LABEL: Record<RideIntensity, string> = { conservative: "Conservative ride", normal: "Normal ride", all_out: "All-out ride" };

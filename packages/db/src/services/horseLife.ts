@@ -21,7 +21,7 @@
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { utcWeekStart } from "../crypto";
 import { DomainError } from "../errors";
-import { accounts, careLog, horses, stables, trainingPlans, type HorseRow, type StableRow } from "../schema";
+import { accounts, careLog, horses, ledgerTransactions, stables, trainingPlans, type HorseRow, type StableRow } from "../schema";
 import { RULES, stageFor } from "../rules";
 import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
@@ -415,7 +415,7 @@ export async function treatHorseInjury(db: Db, input: { accountId: string; horse
     const res = await spendCreditsTx(tx, {
       accountId: input.accountId,
       amount: gc.VET_TREATMENT_COST,
-      idempotencyKey: `vet:${horse.id}:${state.injury.atMs}:${day}`,
+      idempotencyKey: vetTreatmentKey(horse.id, state.injury.atMs, day),
       kind: "vet",
       memo: "vet treatment",
     });
@@ -430,6 +430,20 @@ export async function treatHorseInjury(db: Db, input: { accountId: string; horse
       .returning();
     return { horse: updated!, treated: true, cost: gc.VET_TREATMENT_COST };
   });
+}
+
+/** The ledger key of a vet treatment (one per injury per local day). */
+export function vetTreatmentKey(horseId: string, injuryAtMs: number, day: string): string {
+  return `vet:${horseId}:${injuryAtMs}:${day}`;
+}
+
+/** Whether this injury was already treated on the given local day. */
+export async function vetTreatedOn(ex: Executor, horseId: string, injuryAtMs: number, day: string): Promise<boolean> {
+  const [row] = await ex
+    .select({ id: ledgerTransactions.id })
+    .from(ledgerTransactions)
+    .where(eq(ledgerTransactions.idempotencyKey, vetTreatmentKey(horseId, injuryAtMs, day)));
+  return !!row;
 }
 
 /** Pedigree Scan: narrows the revealed potential ranges for good (PEDIGREE_SCAN_COST credits, once). */

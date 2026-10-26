@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseDetailView } from "@/lib/types";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
@@ -52,7 +52,7 @@ function AptRow<K extends string>({ label, cells, name }: { label: string; cells
   );
 }
 
-export function HorseDetail({ view }: { view: HorseDetailView }) {
+export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: ReactNode }) {
   const entry = useEntry();
   const [numbers, setNumbers] = useState(false);
   const isMine = view.mine;
@@ -71,6 +71,7 @@ export function HorseDetail({ view }: { view: HorseDetailView }) {
           ‹ {isMine ? "Your stable" : "Races"}
         </Link>
       </nav>
+      {tabs}
 
       <section className="grid gap-4 md:grid-cols-[auto_1fr] md:gap-6" aria-labelledby="horse-h">
         <div className="surface w-fit !p-0">
@@ -124,7 +125,13 @@ export function HorseDetail({ view }: { view: HorseDetailView }) {
               </li>
             </ul>
           )}
-          {isMine ? (
+          {isMine && st?.block === "Not yet of racing age" ? (
+            <ActionBar className="md:mt-2">
+              <Link href={`/horse/${horse.id}/care`} className="btn btn-brass btn-lg" data-testid="care-link">
+                <PixelIcon name="horseshoe" size={32} className="-my-2" /> Care for {horse.name.split(" ")[0]}
+              </Link>
+            </ActionBar>
+          ) : isMine ? (
             <ActionBar className="md:mt-2">
               <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} disabled={!!st?.block} data-testid="enter-a-race">
                 <PixelIcon name="flag" size={32} className="-my-2" /> {st?.block ? st.block : `Race ${horse.name}`}
