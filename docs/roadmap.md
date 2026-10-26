@@ -54,6 +54,7 @@ surface, deep underneath, and it never punishes absence. See `docs/game-design.m
 
 ## Phase 5: Social & live ops
 
+- **Hangout plot (user idea, parked):** (1) visitable stable yards (horses in stalls, trophies, guestbook, reactions) — async, no realtime; (2) a live pixel Clubhouse (walk around in your silks, chat + emotes, show off a champion, watch live races together on a big screen) — needs realtime + moderation; (3) per-club clubhouses once clubs exist.
 - Clubs.
 - Events.
 - Share cards.
