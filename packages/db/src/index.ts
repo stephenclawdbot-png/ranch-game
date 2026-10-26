@@ -26,3 +26,4 @@ export * from "./services/competition";
 export * from "./services/maintenance";
 export * from "./services/player";
 export * from "./services/economyViews";
+export * from "./services/horseLife";
