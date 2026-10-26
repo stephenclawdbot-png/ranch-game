@@ -24,6 +24,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -992,11 +993,18 @@ export const testers = pgTable(
     stableName: text("stable_name"),
     /** EVM address (Robinhood Chain) for the exclusive item and beta rewards. */
     walletAddress: text("wallet_address"),
+    /**
+     * Set when the address was proven with a SIWE (EIP-4361) signature (services/betaMoney.ts).
+     * Only verified wallets can buy with ETH or receive Prize Pool allocations, and a verified
+     * wallet belongs to exactly one tester (partial unique index below).
+     */
+    walletVerifiedAt: ts("wallet_verified_at"),
     joinedAt: createdAt(),
     lastSeenAt: ts("last_seen_at"),
   },
   (t) => [
     uniqueIndex("testers_account_uq").on(t.accountId),
+    uniqueIndex("testers_wallet_verified_uq").on(sql`lower(${t.walletAddress})`).where(sql`${t.walletVerifiedAt} is not null`),
     index("testers_invite_idx").on(t.inviteCode),
     check("testers_wallet", sql`${t.walletAddress} is null or ${t.walletAddress} ~ '^0x[0-9a-fA-F]{40}$'`),
   ],
@@ -1100,6 +1108,139 @@ export const betaRewards = pgTable(
     check("beta_rewards_paid_tx", sql`${t.status} <> 'paid' or ${t.txHash} is not null`),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Beta money (closed beta, docs/web3.md "Beta money flow"): SIWE wallet challenges, ETH
+// checkout orders and on-chain Prize Pool epochs/allocations. Real money: these tables
+// SURVIVE the playtest reset (no foreign keys to accounts; not in RESET_TABLES).
+// Wei amounts are numeric(78,0) strings.
+// ---------------------------------------------------------------------------
+
+const wei = (name: string) => numeric(name, { precision: 78, scale: 0 });
+
+/** One-time SIWE nonces (EIP-4361). */
+export const walletChallenges = pgTable(
+  "wallet_challenges",
+  {
+    nonce: text("nonce").primaryKey(),
+    accountId: uuid("account_id").notNull(),
+    message: text("message").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("wallet_challenges_account_idx").on(t.accountId, t.createdAt)],
+);
+
+/** An ETH checkout: the server's quote (EIP-712 EthQuote), then the payment and fulfilment. */
+export const chainOrders = pgTable(
+  "chain_orders",
+  {
+    id: id(),
+    /** bytes32 hex, the on-chain orderId (single-use in PremiumStore). */
+    orderId: text("order_id").notNull(),
+    accountId: uuid("account_id").notNull(),
+    testerId: uuid("tester_id"),
+    wallet: text("wallet").notNull(),
+    sku: text("sku").notNull(),
+    quantity: integer("quantity").notNull(),
+    usdCents: integer("usd_cents").notNull(),
+    priceWei: wei("price_wei").notNull(),
+    /** ETH/USD median used for the quote (micro-dollars per ETH) and the source prices (audit). */
+    ethUsdMicros: bigint("eth_usd_micros", { mode: "number" }).notNull(),
+    priceSources: jsonb("price_sources"),
+    chainId: integer("chain_id").notNull(),
+    storeAddress: text("store_address").notNull(),
+    deadline: ts("deadline").notNull(),
+    /** quoted -> submitted (tx hash known) -> paid (verified on-chain) -> fulfilled; or expired / rejected. */
+    status: text("status").notNull().default("quoted"),
+    txHash: text("tx_hash"),
+    /** Pack pulls granted for this order (one per quantity). */
+    pullIds: jsonb("pull_ids"),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+    paidAt: ts("paid_at"),
+    fulfilledAt: ts("fulfilled_at"),
+  },
+  (t) => [
+    uniqueIndex("chain_orders_order_uq").on(t.orderId),
+    uniqueIndex("chain_orders_tx_uq").on(t.txHash),
+    index("chain_orders_account_idx").on(t.accountId, t.createdAt),
+    index("chain_orders_status_idx").on(t.status, t.createdAt),
+    check("chain_orders_status", sql`${t.status} in ('quoted', 'submitted', 'paid', 'fulfilled', 'expired', 'rejected')`),
+    check("chain_orders_qty", sql`${t.quantity} between 1 and 10`),
+    check("chain_orders_order_hex", sql`${t.orderId} ~ '^0x[0-9a-f]{64}$'`),
+    check("chain_orders_tx_hex", sql`${t.txHash} is null or ${t.txHash} ~ '^0x[0-9a-f]{64}$'`),
+  ],
+);
+
+/** A weekly Prize Pool epoch (draft computed from league/cup/activity data, then posted on-chain). */
+export const poolEpochs = pgTable(
+  "pool_epochs",
+  {
+    id: id(),
+    chainId: integer("chain_id").notNull(),
+    poolAddress: text("pool_address").notNull(),
+    /** On-chain epoch id (sequential per pool). */
+    epochId: integer("epoch_id").notNull(),
+    /** "weekly" or "season" (season-end bonus). */
+    kind: text("kind").notNull().default("weekly"),
+    /** The UTC week (Monday) the scores come from. */
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    status: text("status").notNull().default("draft"),
+    root: text("root").notNull(),
+    totalWei: wei("total_wei").notNull(),
+    leafCount: integer("leaf_count").notNull(),
+    /** The pool's free balance when computed and the budget taken from it. */
+    availableWei: wei("available_wei").notNull(),
+    ethUsdMicros: bigint("eth_usd_micros", { mode: "number" }).notNull(),
+    priceSources: jsonb("price_sources"),
+    /** Rules used (budget share, caps in USD, payout curve, activity minimum...). */
+    config: jsonb("config").notNull(),
+    vestStart: ts("vest_start").notNull(),
+    vestEnd: ts("vest_end").notNull(),
+    txHash: text("tx_hash"),
+    postedAt: ts("posted_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("pool_epochs_uq").on(t.chainId, t.poolAddress, t.epochId),
+    check("pool_epochs_status", sql`${t.status} in ('draft', 'posted', 'cancelled')`),
+  ],
+);
+
+/** One player's allocation in an epoch (with its Merkle proof). */
+export const poolAllocations = pgTable(
+  "pool_allocations",
+  {
+    id: id(),
+    epochRowId: uuid("epoch_row_id")
+      .notNull()
+      .references(() => poolEpochs.id),
+    accountId: uuid("account_id").notNull(),
+    testerId: uuid("tester_id"),
+    wallet: text("wallet").notNull(),
+    stableName: text("stable_name"),
+    rank: integer("rank").notNull(),
+    score: integer("score").notNull(),
+    activeDays: integer("active_days").notNull(),
+    usdCents: integer("usd_cents").notNull(),
+    amountWei: wei("amount_wei").notNull(),
+    leaf: text("leaf").notNull(),
+    proof: jsonb("proof").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("pool_allocations_wallet_uq").on(t.epochRowId, t.wallet),
+    uniqueIndex("pool_allocations_account_uq").on(t.epochRowId, t.accountId),
+    index("pool_allocations_wallet_idx").on(t.wallet),
+  ],
+);
+
+export type ChainOrderRow = typeof chainOrders.$inferSelect;
+export type PoolEpochRow = typeof poolEpochs.$inferSelect;
+export type PoolAllocationRow = typeof poolAllocations.$inferSelect;
 
 export type AccountRow = typeof accounts.$inferSelect;
 export type StableRow = typeof stables.$inferSelect;
