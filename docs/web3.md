@@ -1,8 +1,10 @@
 # Web3 on Robinhood Chain (optional layer)
 
-**Status (2026-10-25):** contracts, tests and the server adapter are built and tested locally.
-Nothing is deployed. `WEB3_ENABLED` is off by default, and **the game works fully without a
-chain.**
+**Status (2026-10-26):** closed-beta money is built: PrizePool + PremiumStore (native ETH,
+30 % to the pool, 2-level affiliates), deploy from the owner's wallet on `/admin/chain`, ETH
+checkout, Prize Pool epochs and claims, `/invite`. Tested locally end to end on Hardhat.
+**Nothing is deployed.** `WEB3_ENABLED` is off by default, and **the game works fully without
+a chain.** Start with §0.
 
 This doc covers:
 - the research findings, with sources and how each fact was checked;
@@ -12,6 +14,142 @@ This doc covers:
 
 Code: `packages/contracts` (contracts, tests, `adapter/`, `scripts/deploy.ts`).
 Agent skills: `.claude/skills/{solidity-dev,robinhood-chain,web3-game-economy}`.
+
+---
+
+## 0. Beta money flow (closed beta, user decision 2026-10-26)
+
+> **User decision (overrides "web3 off for beta" and, for the closed beta only, the earlier
+> "no prize money / money flows one way" rules):** ~50 invited testers buy Premium Packs with
+> real **ETH on Robinhood Chain**. **30 % of every sale funds an on-chain Prize Pool** paid out
+> weekly by skill rank; the rest goes to the owner's treasury, minus a **2-level affiliate
+> commission** (10 % / 3 %) when the buyer was invited. **Stable Credits remain never
+> convertible.** The owner's fear, "players drain the pot and leave", is answered by the
+> contract itself (see "Why the pot can't be drained").
+
+### Money flow
+
+```mermaid
+flowchart LR
+  B[Buyer wallet] -- "purchaseWithEth (exact wei, signed quote)" --> S[PremiumStore]
+  S -- "30% (poolBps, 10-50%)" --> P[PrizePool]
+  S -- "10% L1 / 3% L2 (only if invited, eligible)" --> R[Referrer wallets]
+  S -- "rest (≈57-70%)" --> T[Treasury]
+  P -- "claim (vested, Merkle proof)" --> W[Winner wallets]
+  O[Owner wallet] -- "fund() top-up (optional)" --> P
+```
+
+| Step | Who | What happens |
+|---|---|---|
+| Link wallet | player | `/me` (or `/beta`): connect an injected wallet (EIP-6963: MetaMask, Rabby, Coinbase Wallet, Robinhood Wallet when injected) and sign an **EIP-4361 (SIWE)** message. Free, no gas. One verified wallet per stable, one stable per wallet (partial unique index). The link feeds linked-account detection (§4b) as a `wallet` signal. |
+| Quote | server | `POST /api/checkout/quote {sku, quantity}`: checks web3 on, verified wallet, geo (`PREMIUM_BLOCKED_COUNTRIES`), **weekly cap 10** (pulls this week + open quotes), free stalls, foal crop; prices `$4.99 × qty` in wei with the **median ETH/USD**; picks eligible referrers; **writes the order row first**; signs an EIP-712 `EthQuote {orderId, buyer, sku, quantity, priceWei, usdCents, ref1, ref1Bps, ref2, ref2Bps, deadline}` valid **5 minutes** (contract hard limit 10). |
+| Pay | player | The UI shows "$X ≈ Y ETH" with a countdown and re-quotes automatically when it expires. The wallet sends exactly `priceWei`. |
+| Split | contract | `purchaseWithEth` checks buyer = sender, deadline (≤ 10 min ahead), single-use orderId (shared with the USDG path), SKU active, `msg.value == priceWei`, referral sanity, optional Chainlink tolerance, the signer role. Then: `poolBps` → `PrizePool.fund` (same tx; a revert undoes the sale), commissions → referrers (gas-limited call; on failure credited to `referralOwed`, pulled with `withdrawReferral`), the rest → treasury (on failure kept in `pendingTreasuryWei`, `withdrawEth` sends it to the treasury). The store never keeps ETH. |
+| Confirm | server | `POST /api/checkout/confirm {orderId, txHash}` verifies the receipt: only logs from **our** store, `PurchasedWithEth` for this orderId, buyer, sku, quantity, exact amount, confirmations. Then **idempotently** grants one prepaid Premium pull per quantity (idempotency key `chain:<chain>:<store>:<orderId>:<i>`), records the pool/treasury split and the `ReferralCommission` events. A tx hash can belong to one order only; a wrong hash is forgotten so the right one (or the backstop) can still settle it. |
+| Recover | both | `/packs` resumes open orders on load (`GET /api/checkout/orders`). The cron `/api/cron/chain` (daily, Bearer `CRON_SECRET`) settles submitted/paid orders, scans for paid quotes whose client vanished (`PurchasedWithEth` by indexed orderId), expires dead quotes, and grants affiliate activity rewards. Orders the server didn't create are never fulfilled. |
+| Weekly epoch | admin | `/admin` → **Prize Pool**: compute the last week (scores = league race points, capped per week + Daily Cup points; eligible = verified wallet, ≥ 3 play days, no open linked-account flag; horses from Premium Packs don't score), split the budget (default 25 % of the free pool, ≤ the contract's `maxEpochBps`) over the top 10 by linear weights, cap **$20/person** converted at the median price (stored on the epoch), dust < $0.50 dropped, leftovers roll over. Review, then post the Merkle root with the server key (if granted `POSTER_ROLE` + gas) or from the owner wallet. The season-end bonus is the same flow with `kind: season` over the season's dates. |
+| Claim | player | `/pool`: allocations with vested / claimed / claimable; **Claim** sends `PrizePool.claim(epoch, amount, vestStart, vestEnd, proof)` from the player's wallet (linear vesting, 14 days; claim any time, several times). |
+
+### Why the pot can't be drained
+
+- **No owner withdrawal.** PrizePool has no withdraw, sweep or transfer; ETH leaves only via
+  `claim`, to the wallet named in a posted leaf. There is no upgradeability. (A timelocked
+  `sweepToTreasury` was considered and **left out on purpose**: trust > flexibility. To wind the
+  beta down, post final epochs; the owner can raise `maxEpochBps` to 100 % for that.)
+- **Never over-promises.** `postEpoch` requires `total ≤ maxEpochBps × (balance − outstanding)`
+  (default 50 %), and an epoch's claims can never exceed its `total`, whatever the root says.
+  Invariant (property-tested): `outstanding ≤ balance`.
+- **Per-player ceiling** `maxClaimPerEpoch` (wei, snapshotted per epoch) and **rate limit**
+  (one epoch per `minEpochInterval`, default 6 days).
+- **Vesting** (14 days) means a winner who leaves gets at most what vested; the admin can
+  `revoke` an inactive or cheating account (unvested only, or everything unclaimed) and
+  `cancelEpoch` a wrong/malicious root. **Both only return ETH to the pool.** Unclaimed
+  allocations return to the pool after the claim window (56 days) via `expireEpoch` (anyone).
+- **Payouts reward skill and activity, not money:** free players are equally eligible, runs by
+  Premium-Pack horses don't score, a ≥ 3-active-days rule, linked-account flags hold a player
+  back, $20/week cap.
+- **A leaked server key** can sign quotes (but the server fulfils only its own orders and
+  checks the exact amount) and, if it holds `POSTER_ROLE`, post one capped epoch a week, which
+  the owner can cancel during vesting. It can never move funds. Keep it low-value, rotate by
+  grant + revoke.
+
+### Pricing (dynamic USD)
+
+- `ETH_USD_PRICE_SOURCE=auto`: Coinbase, Kraken, Bitstamp and Binance spot in parallel; at least
+  2 answers; **median**; refused when they diverge by more than **2 %** or leave the sanity
+  bounds; cached ≤ 45 s; every fetch logs the per-source prices, and each order/epoch row stores
+  the snapshot. Checkout pauses with "Pricing is temporarily unavailable, please retry".
+- `/pool`, `/packs` and admin show live "≈ $" conversions refreshed every 60 s.
+- Weekly caps and allocations are defined in USD and converted at epoch computation; the price
+  is shown in the admin and `/pool` history.
+- **On-chain oracle (optional hardening, off by default):** Robinhood Chain documents
+  **Chainlink** as its price oracle ([Oracles & price feeds][rh-oracles]). The ETH/USD proxy
+  address is not listed in the Robinhood docs; read it from data.chain.link (Robinhood network)
+  before use. `PremiumStore.setPriceFeed(feed, maxDeviationBps ≤ 20 %, maxAge)` makes every
+  quote's implied price (`usdCents` vs `priceWei`) match the feed within the tolerance (e.g.
+  300 = 3 %) and rejects stale feeds; `feed = 0` disables it. No Pyth or RedStone deployment was
+  found for Robinhood Chain (2026-10-26).
+
+### Affiliates (2 levels, owner at the root)
+
+- Every account has a personal code (`R-XXXX-XXXX`, an `invite_codes` row of kind `referral`)
+  and link `/play?invite=CODE`; in playtest mode it also passes the invite gate (tester cap still
+  applies). Admin codes are **roots owned by the owner account** (claimed on `/admin/chain`
+  with the owner's own stable + verified wallet). Inviter = the code's owner; upstream = the
+  inviter's inviter. Written once at signup; no cycles; 2 levels max.
+- **Money only from real purchases:** the quote names the eligible L1/L2 wallets; the store
+  pays **10 % / 3 %** (admin-configurable; on-chain ceilings `maxRef1Bps`/`maxRef2Bps` with
+  hard caps 15 % / 5 %) out of the **treasury's** share. A missing or ineligible referrer's
+  share stays with the treasury, **never** the pool.
+- Eligibility (server, at signing): referral not revoked; purchase within **90 days** of the
+  invitee's signup; referrer has a verified wallet different from the buyer's and from the
+  other referrer; **not linked** to the buyer (device / fingerprint / IP hash / wallet: dropped
+  and flagged as a `referral_linked` fraud event); **weekly per-inviter cap** ($50 default,
+  counting paid commissions and open quotes). The owner is exempt from the weekly cap
+  (optional separate owner cap) and from link checks.
+- In-game reward: when an invitee becomes active (≥ 5 races, ≥ 3 play days) the inviter gets
+  250 credits through the ledger and the "referrer" badge, once (idempotent).
+- `/invite`: link + copy/share, invitees (L1/L2) with activity, earnings with explorer links,
+  the rules ("you never need to buy anything to invite or earn"). Admin → **Affiliates**: owner
+  stats (sales in the tree, owner L1/L2, treasury income, pool contributions), config, top
+  inviters, flags, the tree, revoke (future commissions off; on-chain payments are final).
+  Keep the **treasury separate from the owner's affiliate wallet** (warned when equal).
+
+### What the owner must do
+
+1. Create a **dedicated low-value key** for the server and put it in Vercel env as
+   `QUOTE_SIGNER_PRIVATE_KEY` (Production + Preview). Also set `ROBINHOOD_RPC_URL`
+   (a provider URL), `CHAIN_ID=46630` first, `ADMIN_SECRET`, `CRON_SECRET`.
+2. Open `/admin` → sign in → `/admin/chain`. Connect **your** wallet holding a little ETH on
+   Robinhood Chain (testnet ETH from the Alchemy faucet first). Choose the network, the
+   treasury (a different address from your affiliate wallet), the server signer (pre-filled),
+   pool share (30 %), per-player cap ($25), whether the server may post roots. Press Deploy
+   and confirm ~7 transactions. Nothing else needs funding (the pool fills from sales).
+3. Copy the shown block (`WEB3_ENABLED=true`, `CHAIN_ID`, `PREMIUM_STORE_ADDRESS`,
+   `PRIZE_POOL_ADDRESS`) into Vercel env (**Preview first**), redeploy.
+4. In the game, on your own stable: Profile → verify your wallet; then `/admin/chain` → "Make
+   the stable on this browser the owner".
+5. Weekly: `/admin` → Prize Pool → Compute → review → Post (server key or your wallet).
+6. Mainnet only after the testnet run, with the legal checklist below signed off.
+
+### Risks and open legal points (flag to the user)
+
+- **Gambling / lottery / sweepstakes law:** paid loot boxes + a cash pool paid by rank is close
+  to "consideration + chance + prize" in many jurisdictions. Mitigations built in: no purchase
+  needed to win, paid horses don't score, skill ranking, caps, geo-block list. **Needs counsel
+  per market before mainnet**, plus age 18+ and KYC/AML/tax (prize payouts may be reportable).
+- **Affiliate law:** a 2-level commission on sales can fall under multi-level-marketing /
+  pyramid-scheme rules in some markets. Commissions are only from real product sales, nobody
+  pays to join and buying is never required, but get counsel. Robinhood Chain ToS ("lawful
+  testing…") still applies (open question 7).
+- **Playtest reset** wipes purchased foals (pack pulls) while orders/earnings/pool data stay:
+  don't reset after real money flows, or re-grant by hand. The affiliate tree is wiped with
+  accounts (testers rejoin with their codes; admin-code testers get the owner as inviter again).
+- **Daily cron only** (Hobby plan): a buyer who closes the tab before confirm is settled when
+  they reopen `/packs` or by the next cron run.
+- Contracts are **unaudited** (internal tests, 100 % line coverage). Keep beta amounts small.
+
+[rh-oracles]: https://docs.robinhood.com/chain/oracles-and-price-feeds
 
 ---
 

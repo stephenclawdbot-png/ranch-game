@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/race-card",
       "schedule": "17 4 * * *"
+    },
+    {
+      "path": "/api/cron/chain",
+      "schedule": "43 5 * * *"
     }
   ]
 }
