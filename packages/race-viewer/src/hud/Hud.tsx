@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 /** Presentational HUD pieces. All state comes from RaceViewer; nothing here touches Pixi. */
 import { formatRaceTime, type RaceConfig, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 import type { StandingRow } from "../timeline";
@@ -40,12 +40,110 @@ export interface TopHudProps {
   highlightHorseId?: string;
 }
 
+/** Measure chips pre-paint when we can (SSR renders the hidden fallback and never runs effects). */
+const useMeasure = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * Whole-chip fit for the standings strip: the largest k (<= cap) such that the k
+ * visible chips plus the "+N" tail chip all fit `width`. "Me" outside the first
+ * k replaces the k-th chip. When the strip width is unchanged from `prev` and the
+ * larger count only just fits, the previous (smaller) count wins, so a label
+ * wobble can't flip the fit back and forth.
+ */
+export function fitCount(a: {
+  width: number;
+  gap: number;
+  cap: number;
+  total: number;
+  /** Position of the highlighted runner in the full order, -1 when absent. */
+  meIdx: number;
+  /** Chip widths in position order (the "me" chip sits last when it falls outside the cap). */
+  w: number[];
+  meW: number;
+  plusW(n: number): number;
+  prev?: { w: number; k: number };
+}): number {
+  const sum = (k: number) => {
+    const swap = a.meIdx >= 0 && a.meIdx >= k;
+    let s = 0;
+    for (let i = 0; i < (swap ? k - 1 : k); i++) s += a.w[i] ?? 0;
+    return swap ? s + a.meW : s;
+  };
+  const need = (k: number) => sum(k) + (k - 1) * a.gap + (k < a.total ? a.gap + a.plusW(a.total - k) : 0);
+  // The leader always shows; so does "me" (swapped in), so a trailing "me" needs k >= 2.
+  const kMin = Math.min(a.cap, a.meIdx > 0 ? 2 : 1);
+  let k = Math.max(1, a.cap);
+  while (k > kMin && need(k) > a.width) k--;
+  const p = a.prev;
+  if (p && p.w === a.width && p.k >= 1 && p.k < k && need(k) > a.width - 1) k = p.k;
+  return k;
+}
+
 export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
   const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
   const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
-  let rows = standings.slice(0, maxStandings);
-  const me = standings.find((s) => s.horseId === highlightHorseId);
-  if (me && !rows.includes(me)) rows = [...rows.slice(0, Math.max(1, maxStandings - 1)), me];
+  const show = raceTime >= 0;
+  const total = standings.length;
+  const cap = Math.min(maxStandings, total);
+  const meIdx = highlightHorseId ? standings.findIndex((s) => s.horseId === highlightHorseId) : -1;
+  const me = meIdx >= 0 ? standings[meIdx] : undefined;
+  // Every chip that could show, in position order ("me" swapped into the last slot when outside the cap).
+  let cand = standings.slice(0, cap);
+  const candMe = !!me && meIdx >= cap;
+  if (me && candMe) cand = [...cand.slice(0, Math.max(1, cap - 1)), me];
+  // Fit: strip width + measured chip widths decide how many whole chips show; "+N" covers the rest.
+  const [fit, setFit] = useState<number | null>(null);
+  const [stripW, setStripW] = useState(0);
+  const stripRef = useRef<HTMLDivElement>(null);
+  const candRef = useRef<HTMLDivElement>(null);
+  const plusRef = useRef<HTMLSpanElement>(null);
+  const plusCache = useRef(new Map<number, number>());
+  const prev = useRef({ w: 0, k: 0 });
+  useMeasure(() => {
+    if (!show) return;
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStripW(el.clientWidth));
+    ro.observe(el);
+    setStripW(el.clientWidth);
+    return () => ro.disconnect();
+  }, [show]);
+  const key = `${total}#${cap}#${meIdx}#` + cand.map((s) => `${s.position}:${s.name}:${s.gapLabel}`).join("|");
+  useMeasure(() => {
+    const strip = stripRef.current;
+    const box = candRef.current;
+    const plus = plusRef.current;
+    if (!show || !strip || !box || !plus || !total || stripW <= 0) return;
+    const kids = box.children;
+    const w: number[] = [];
+    for (let i = 0; i < cand.length; i++) w.push((kids[i] as HTMLElement).offsetWidth);
+    const gap = parseFloat(getComputedStyle(strip).gap) || 4;
+    const cache = plusCache.current;
+    const plusW = (n: number) => {
+      let v = cache.get(n);
+      if (v === undefined) {
+        plus.textContent = `+${n}`;
+        v = plus.offsetWidth;
+        cache.set(n, v);
+      }
+      return v;
+    };
+    const width = strip.clientWidth;
+    const k = fitCount({ width, gap, cap, total, meIdx, w, meW: me ? (w[candMe ? cap - 1 : meIdx] ?? 0) : 0, plusW, prev: prev.current });
+    prev.current = { w: width, k };
+    setFit(k);
+  }, [show, stripW, key]);
+  const k = Math.min(fit ?? cap, cap);
+  const vis = me && meIdx >= k ? [...standings.slice(0, k - 1), me] : standings.slice(0, k);
+  const hidden = Math.max(0, total - k);
+  const chip = (s: StandingRow) => (
+    <span key={s.horseId} className={`rv-st${s.horseId === highlightHorseId ? " rv-st-me" : ""}`}>
+      <Swatch primary={s.primary} secondary={s.secondary} />
+      <span className="rv-st-pos">{s.position}</span>
+      <span className="rv-st-name">{s.name}</span>
+      {s.gapLabel && <span className="rv-st-gap">{s.gapLabel}</span>}
+    </span>
+  );
   return (
     <div className="rv-hud">
       <div className="rv-row">
@@ -64,17 +162,27 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
           <div className="rv-togo">{raceTime < 0 ? "At the start" : toGoM > 0.5 ? `${Math.ceil(toGoM)}m to go` : winnerHome ? "Winning time" : "Finish"}</div>
         </div>
       </div>
-      {raceTime >= 0 && (
-        <div className="rv-standings" aria-label="Live standings">
-          {rows.map((s) => (
-            <span key={s.horseId} className={`rv-st${s.horseId === highlightHorseId ? " rv-st-me" : ""}`}>
-              <Swatch primary={s.primary} secondary={s.secondary} />
-              <span className="rv-st-pos">{s.position}</span>
-              <span>{s.name}</span>
-              {s.gapLabel && <span className="rv-st-gap">{s.gapLabel}</span>}
-            </span>
-          ))}
-        </div>
+      {show && (
+        <>
+          <div
+            className="rv-standings"
+            ref={stripRef}
+            aria-label="Live standings"
+            style={fit == null ? { visibility: "hidden" } : undefined}
+          >
+            {vis.map(chip)}
+            {fit != null && hidden > 0 && (
+              <span className="rv-st rv-st-more" aria-label={`${hidden} runners not shown`}>
+                +{hidden}
+              </span>
+            )}
+          </div>
+          {/* Off-screen twin of the strip: same chips, always measured, never seen. */}
+          <div className="rv-st-cand" ref={candRef} aria-hidden="true">
+            {cand.map(chip)}
+            <span className="rv-st" ref={plusRef} />
+          </div>
+        </>
       )}
       {commentary && <Ticker event={commentary} />}
     </div>
