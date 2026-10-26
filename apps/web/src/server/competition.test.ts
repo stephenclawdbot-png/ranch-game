@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { createAccount, createDb, createRace, getBalance, getRace, stableOf, storyState, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, createRace, getBalance, getRace, listStableHorses, recordStoryResult, stableOf, storyState, type DbHandle } from "@thoroughbred/db";
 import { cupRunView, cupView, hallView, leagueView, runCup } from "./competition";
 import { createChapterRace, storyView } from "./story";
 import { driveCard, enterLive, entryReason, licenceReason, myRaceResult, quickPickLive, raceCard, raceList } from "./game";
@@ -57,8 +57,6 @@ describe("Daily Cup", () => {
     const run = (await cupRunView(h.db, entryId, a, T0))!;
     expect(run.mine).toBe(true);
     expect(run.sealed).toBe(true);
-    const seed = gc.dailyCupDay("x", 0).seed; // shape only
-    expect(run.replay.seed).not.toBe(seed);
     expect(run.replay.seed).toMatch(/^0{64}$/);
     expect(run.replay.horses.some((x) => x.horseId === run.entrantId)).toBe(true);
     expect(run.replay.result.finishOrder.find((f) => f.horseId === run.entrantId)!.finishTimeUs).toBe(run.timeUs);
@@ -106,13 +104,12 @@ describe("Story chapters", () => {
     const hcp = await createRace(h.db, { kind: "scheduled", name: "Hcp", raceClass: "handicap", conditions: { minRating: 50, maxRating: 75 }, postTime: at(10 * 60_000), entriesCloseAt: at(9 * 60_000) });
     expect(licenceReason(hcp, 1)).toMatch(/County licence/);
     expect(licenceReason(hcp, 2)).toBeNull();
-    const rows = await import("@thoroughbred/db").then((m) => m.listStableHorses(h.db, p.stable.id));
+    const rows = await listStableHorses(h.db, p.stable.id);
     const free = rows.find((r) => !r.lockKind)!;
     expect(entryReason(free, hcp, T0, 1)).toMatch(/County licence/);
     await expect(enterLive(h.db, p, hcp.id, free.id, { tactic: "stalker", intensity: "normal" }, T0)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
 
     // Winning three Club races earns the County licence (recorded directly here: race outcomes are honest).
-    const { recordStoryResult } = await import("@thoroughbred/db");
     for (const k of ["club-2", "club-3", "club-4"]) await recordStoryResult(h.db, { accountId: p.accountId, raceId: created.raceId, raceKey: k, won: true, now: T0 });
     p = await refresh(p);
     expect(p.stable.licenceLevel).toBe(2);
