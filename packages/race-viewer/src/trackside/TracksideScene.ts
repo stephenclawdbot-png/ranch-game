@@ -597,8 +597,8 @@ export class TracksideScene {
   }
 
   /** Drawn horse quads in stage CSS px (dev hook for the all-runners-visible check). */
-  debugRects(): { id: string; x: number; y: number; w: number; h: number }[] {
-    return this.runners.map((r) => ({ id: r.horseId, ...r.rect }));
+  debugRects(): { id: string; x: number; y: number; w: number; h: number; lane: number }[] {
+    return this.runners.map((r) => ({ id: r.horseId, ...r.rect, lane: r.lane }));
   }
 
   private applyResult(): void {
@@ -744,7 +744,7 @@ export class TracksideScene {
         this.setUv(b.mat, b.off / P - Wb / 2 / (k * P), 0, Wb / (k * P), 1);
         b.mat.uniforms.uBlur!.value = blurM * lay.ppm * b.depth / a;
       } else {
-        const ls = laneScale(b.kind === "railFar" ? this.railLane : NEAR_RAIL_LANE);
+        const ls = laneScale(b.kind === "railFar" ? this.railLane : NEAR_RAIL_LANE, lay.k);
         const kr = (lay.ppm * ls * B) / SRC_PX_PER_M;
         const centre = (((lay.cx * SRC_PX_PER_M) % P) + P) % P;
         let top: number;
@@ -780,6 +780,7 @@ export class TracksideScene {
     u.uY0!.value = lay.y0 * B;
     u.uPpm!.value = lay.ppm * B;
     u.uCamH!.value = lay.camH;
+    u.uK!.value = lay.k;
     u.uCxMod!.value = ((lay.cx % 8) + 8) % 8;
     u.uFinishPx!.value = (squeezeX(lay, this.W / 2 + (this.L - lay.cx) * lay.ppm) - this.W / 2) * B;
     u.uBlurM!.value = Math.min(1.2, this.camSpeed / 60);
@@ -787,7 +788,7 @@ export class TracksideScene {
 
   private drawProps(lay: FieldLayout) {
     const B = this.B;
-    const ls = laneScale(this.railLane - 0.45);
+    const ls = laneScale(this.railLane - 0.45, lay.k);
     const pxPerM = lay.ppm * ls;
     const feet = laneY(lay, this.railLane - 0.45);
     for (const p of this.props) {
@@ -922,7 +923,7 @@ export class TracksideScene {
       d.state[n + 5] = life;
       const lane = d.state[n + 1]!;
       const owner = lay.placed[d.state[n + 6]!]!;
-      const ls = laneScale(lane);
+      const ls = laneScale(lane, lay.k);
       const ppl = lay.ppm * ls;
       const x = (this.W / 2 + (d.state[n]! - lay.cx) * ppl + owner.shift) * B;
       const y = (laneY(lay, lane) - d.state[n + 2]! * ppl) * B;

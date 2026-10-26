@@ -20,8 +20,8 @@ export const VIEWER_CSS = `
 .rv-clock{text-align:right;flex:none}
 .rv-time{font-family:var(--rv-f-num);font-size:34px;line-height:.9;font-variant-numeric:tabular-nums;color:var(--rv-brass2);text-shadow:2px 2px 0 var(--rv-ink)}
 .rv-togo{font:10px var(--rv-f-pixel);text-transform:uppercase;margin-top:3px;letter-spacing:.04em;text-shadow:1px 1px 0 var(--rv-ink)}
-.rv-standings{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;pointer-events:auto;mask-image:linear-gradient(90deg,#000 88%,transparent)}
-.rv-standings::-webkit-scrollbar{display:none}
+.rv-standings{display:flex;gap:4px;pointer-events:auto}
+.rv-st-cand{display:flex;gap:4px;position:absolute;visibility:hidden;pointer-events:none}
 .rv-st{display:flex;align-items:center;gap:5px;flex:none;font-size:12px;font-weight:700;line-height:1;padding:3px 7px 3px 3px;background:rgba(15,42,29,.9);border:2px solid var(--rv-ink);box-shadow:inset 1px 1px 0 rgba(242,200,106,.18);white-space:nowrap}
 .rv-st-me{background:#3a2c0e;box-shadow:inset 0 0 0 2px var(--rv-brass)}
 .rv-st-pos{font-family:var(--rv-f-num);font-size:17px;font-weight:400;width:16px;text-align:center;color:var(--rv-brass2)}
@@ -79,6 +79,7 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-time{font-size:26px}
 .rv-narrow .rv-togo{font-size:9px}
 .rv-narrow .rv-st{font-size:11px;padding:2px 6px 2px 2px}
+.rv-narrow .rv-st-name{max-width:60px;overflow:hidden;text-overflow:ellipsis}
 .rv-narrow .rv-st-pos{font-size:15px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:4px 8px 4px 6px}
 .rv-ticker-low{position:absolute;left:8px;right:8px;bottom:86px;display:flex;pointer-events:none}
