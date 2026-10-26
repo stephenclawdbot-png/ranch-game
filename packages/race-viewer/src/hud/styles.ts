@@ -79,7 +79,11 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-time{font-size:26px}
 .rv-narrow .rv-togo{font-size:9px}
 .rv-narrow .rv-st{font-size:11px;padding:2px 6px 2px 2px}
-.rv-narrow .rv-st-name{max-width:60px;overflow:hidden;text-overflow:ellipsis}
+.rv-narrow .rv-st-cand .rv-st-name{max-width:60px;overflow:hidden}
+.rv-narrow .rv-standings .rv-st{flex:0 1 auto;min-width:0}
+.rv-narrow .rv-standings .rv-st>*{flex:none}
+.rv-narrow .rv-standings .rv-st-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rv-standings .rv-st-more{flex:none}
 .rv-narrow .rv-st-pos{font-size:15px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:4px 8px 4px 6px}
 .rv-ticker-low{position:absolute;left:8px;right:8px;bottom:86px;display:flex;pointer-events:none}
