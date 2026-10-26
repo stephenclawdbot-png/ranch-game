@@ -135,13 +135,18 @@ void main() {
 
 /**
  * Horse sprite: palette-index strip + per-runner LUT row (coat, silks, silks pattern),
- * normal-map rim light, "sharp pixel" 2x2 resolve (crisp at any scale, AA seams), grade.
+ * white markings (legs/face) and coat textures (roan/dapple) from a shared mask texture
+ * derived from the strip, normal-map rim light, "sharp pixel" 2x2 resolve (crisp at any
+ * scale, AA seams), grade.
  */
 export const HORSE_FRAG = /* glsl */ `
 uniform sampler2D uIdx;
 uniform sampler2D uNrm;
 uniform sampler2D uLut;
+uniform sampler2D uMsk;
 uniform vec2 uIdxSize;
+uniform vec2 uMskSize;
+uniform vec2 uMskOrigin;
 uniform vec4 uFrame;
 uniform float uLodS;
 uniform vec4 uSilk;
@@ -165,18 +170,56 @@ bool silkHit(float pat, vec2 uv, vec2 p) {
   if (pat < 6.5) return abs(mod(p.x, 6.0) - 3.0) + abs(mod(p.y, 6.0) - 3.0) <= 1.5;
   return abs(mod(p.x, 5.0) - 2.0) < 0.5 && abs(mod(p.y, 4.0) - 1.0) < 0.5;
 }
-vec4 texelAt(vec2 t) {
+float mhash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
   if (t.x < 0.0 || t.y < 0.0 || t.x >= uFrame.z || t.y >= uFrame.w) return vec4(0.0);
   vec2 at = (uFrame.xy + t + 0.5) / uIdxSize;
   float idx = floor(texture2D(uIdx, at).r * 255.0 + 0.5);
   if (idx < 0.5) return vec4(0.0);
   float rowV = (uRow + 0.5) / uLutRows;
-  vec3 c = texture2D(uLut, vec2((idx + 0.5) / 128.0, rowV)).rgb;
+  vec3 c = texture2D(uLut, vec2((idx + 0.5) / 130.0, rowV)).rgb;
   if (uPattern > 0.5) {
-    vec4 pc = texture2D(uLut, vec2((64.0 + idx + 0.5) / 128.0, rowV));
+    vec4 pc = texture2D(uLut, vec2((64.0 + idx + 0.5) / 130.0, rowV));
     if (pc.a > 0.5) {
       vec2 sp = floor((t + 0.5) * uLodS) - uSilk.xy;
       if (silkHit(uPattern, sp / uSilk.zw, sp)) c = pc.rgb;
+    }
+  }
+  // markings / coat texture: one mask lookup, sampled at source-strip resolution so it
+  // stays registered to the gallop frames at every level of detail.
+  vec2 srcP = uMskOrigin + (t + 0.5) * uLodS;
+  vec4 mk = texture2D(uMsk, srcP / uMskSize);
+  float region = floor(mk.r * 255.0 + 0.5);
+  if (region > 0.5 && region < 4.5) {
+    // legs: R byte packs FL, FR, HL, HR (2 bits each); regions are near/far per pair
+    float legsB = floor(flags.r * 255.0 + 0.5);
+    float sh = region < 1.5 ? 4.0 : region < 2.5 ? 1.0 : region < 3.5 ? 64.0 : 16.0;
+    float lvl = mod(floor(legsB / sh), 4.0);
+    float lim = lvl < 1.5 ? 0.14 : lvl < 2.5 ? 0.36 : 0.62;
+    if (lvl > 0.5 && mk.g < lim) c = markW;
+  } else if (region < 5.5 && region > 4.5) {
+    // face: shapes along the profile edge (t: brow .. nose, e: texels from the edge)
+    float tid = mod(floor(flags.g * 255.0 + 0.5), 16.0);
+    float tt = mk.g;
+    float de = mk.b * 255.0 / 32.0;
+    bool hit = false;
+    if (tid > 0.5 && tid < 1.5) hit = tt > 0.03 && tt < 0.4 && de > 0.2 && de < 4.2; // star
+    else if (tid > 1.5 && tid < 2.5) hit = tt > 0.8 && de < 3.2; // snip
+    else if (tid > 2.5 && tid < 3.5) hit = tt > 0.05 && tt < 0.95 && de < 1.7; // stripe
+    else if (tid > 3.5 && tid < 4.5) hit = tt > 0.0 && tt < 0.98 && de < 3.4; // blaze
+    else if (tid > 4.5) hit = de < 5.2; // bald
+    if (hit) c = markW;
+  } else if (region > 5.5) {
+    // body: coat texture (roan ticking / dapple rings; the portrait's 6 px dapple grid)
+    float cpat = floor(floor(flags.g * 255.0 + 0.5) / 16.0);
+    if (cpat > 0.5 && cpat < 1.5) {
+      if (mhash(floor(srcP)) > 0.72) c = mix(c, vec3(1.0), 0.45);
+    } else if (cpat > 1.5) {
+      vec2 cell = floor(floor(srcP) / 6.0);
+      vec2 cc = floor(srcP) - cell * 6.0 - 2.5;
+      if (dot(cc, cc) < 3.2 && mhash(cell) > 0.25) c = mix(c, vec3(1.0), 0.42);
     }
   }
   if (uUseNrm > 0.5) {
@@ -192,6 +235,9 @@ vec4 texelAt(vec2 t) {
   return vec4(c, 1.0);
 }
 void main() {
+  float rowV = (uRow + 0.5) / uLutRows;
+  vec4 flags = texture2D(uLut, vec2(128.5 / 130.0, rowV));
+  vec3 markW = texture2D(uLut, vec2(129.5 / 130.0, rowV)).rgb;
   vec2 p = vUv * uFrame.zw;
   vec2 d = max(fwidth(p), vec2(1e-4));
   vec2 b = floor(p - 0.5);
@@ -199,12 +245,12 @@ void main() {
   vec2 w = clamp((f - 0.5) / d + 0.5, 0.0, 1.0);
   vec4 col;
   if ((w.x <= 0.0 || w.x >= 1.0) && (w.y <= 0.0 || w.y >= 1.0)) {
-    col = texelAt(b + w);
+    col = texelAt(b + w, flags, markW);
   } else {
-    vec4 c00 = texelAt(b);
-    vec4 c10 = texelAt(b + vec2(1.0, 0.0));
-    vec4 c01 = texelAt(b + vec2(0.0, 1.0));
-    vec4 c11 = texelAt(b + vec2(1.0, 1.0));
+    vec4 c00 = texelAt(b, flags, markW);
+    vec4 c10 = texelAt(b + vec2(1.0, 0.0), flags, markW);
+    vec4 c01 = texelAt(b + vec2(0.0, 1.0), flags, markW);
+    vec4 c11 = texelAt(b + vec2(1.0, 1.0), flags, markW);
     col = mix(mix(c00, c10, w.x), mix(c01, c11, w.x), w.y);
   }
   if (col.a < 0.004) discard;
