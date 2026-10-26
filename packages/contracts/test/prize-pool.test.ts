@@ -400,7 +400,7 @@ describe("PrizePool", () => {
       await pool.write.setParams([5000, 0, 3600, parseEther("0.1")]); // lowering the cap later...
       await time.increase(Number(VEST));
       await asAlice.write.claim(claimArgs(id, entryOf(tree, alice.account.address))); // ...doesn't break posted epochs
-      const evs = await pool.getEvents.ParamsSet({}, { fromBlock: 0n });
+      const evs = await pool.getEvents.ParamsSet({ fromBlock: 0n });
       expect(evs.length).to.equal(2);
     });
 
@@ -410,7 +410,7 @@ describe("PrizePool", () => {
       const { pool, admin } = await loadFixture(fixture);
       expect(await pool.read.hasRole([`0x${"00".repeat(32)}`, admin.account.address])).to.equal(true);
       const artifact = await hre.artifacts.readArtifact("PrizePool");
-      const fns = artifact.abi.filter((x: { type: string }) => x.type === "function").map((x: { name?: string }) => x.name);
+      const fns = (artifact.abi as { type: string; name?: string }[]).filter((x) => x.type === "function").map((x) => x.name);
       for (const banned of ["withdraw", "sweep", "sweepToTreasury", "transfer", "rescue"]) expect(fns).to.not.include(banned);
     });
   });

@@ -324,7 +324,7 @@ describe("PremiumStore: native ETH (closed beta)", () => {
       const q = await quote({ ref1: getAddress(inviter.account.address), ref1Bps: 1500, ref2: getAddress(upstream.account.address), ref2Bps: 500 });
       await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
       expect(await pc.getBalance({ address: pool.address })).to.equal(PRICE / 2n);
-      const evs = await store.getEvents.ReferralBpsSet({}, { fromBlock: 0n });
+      const evs = await store.getEvents.ReferralBpsSet({ fromBlock: 0n });
       expect(evs.at(-1)!.args).to.deep.equal({ maxRef1Bps: 1500, maxRef2Bps: 500 });
     });
   });
@@ -337,10 +337,10 @@ describe("PremiumStore: native ETH (closed beta)", () => {
     await expectRevert(store.write.setPoolBps([999]), "PoolBpsOutOfRange");
     await expectRevert(store.write.setPoolBps([5001]), "PoolBpsOutOfRange");
     await store.write.setPoolBps([5000]);
-    const evs = await store.getEvents.PoolBpsSet({}, { fromBlock: 0n });
+    const evs = await store.getEvents.PoolBpsSet({ fromBlock: 0n });
     expect(evs.at(-1)!.args).to.deep.equal({ oldBps: 3000, newBps: 5000 });
     const artifact = await hre.artifacts.readArtifact("PremiumStore");
-    const fns = artifact.abi.filter((x: { type: string }) => x.type === "function").map((x: { name?: string }) => x.name);
+    const fns = (artifact.abi as { type: string; name?: string }[]).filter((x) => x.type === "function").map((x) => x.name);
     expect(fns).to.not.include("setPrizePool");
   });
 });

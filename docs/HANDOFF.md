@@ -7,6 +7,50 @@ Preview URL: https://ranch-game-git-claude-thoroughbred-demo-meowdotfun.vercel.a
 (Vercel project `ranch-game`, team `meowdotfun`; Neon is connected with `DATABASE_URL` for
 Preview and Production.)
 
+## Beta money on Robinhood Chain (web3 agent, 2026-10-26)
+
+User decision: the closed beta sells Premium Packs for **real ETH on Robinhood Chain**; **30 %
+of every sale funds an on-chain Prize Pool** paid weekly by skill rank; **2-level affiliates**
+(10 % / 3 % from the treasury's share, owner at the root). Credits stay non-convertible.
+Full design, safeguards and owner steps: **`docs/web3.md` §0**.
+
+- **Contracts** (`packages/contracts`, 110 tests, 100 % lines): `PrizePool` (no withdraw/sweep;
+  `total ≤ maxEpochBps × free balance`; per-account cap; vesting; revoke/cancel/expiry back to
+  the pool) and `PremiumStore.purchaseWithEth` (EIP-712 `EthQuote`, exact wei, pool share,
+  affiliate commissions, treasury fallbacks, optional Chainlink check). ABIs + bytecode are
+  exported to `apps/web/src/lib/chain/contracts.generated.ts` (`export:web`).
+- **DB** (migrations **0004_beta_money**, **0005_affiliates**): verified wallet on `testers`
+  (`wallet_verified_at`, unique when verified), `wallet_challenges`, `chain_orders`,
+  `pool_epochs`, `pool_allocations`, `referrals`, `referral_earnings`, `invite_codes.kind/owner_account_id`.
+  Money tables survive the playtest reset; `referrals` is wiped with accounts. Services:
+  `services/betaMoney.ts`, `services/affiliates.ts`; `pullPack({prepaid})` for paid pulls.
+- **Server** (`apps/web/src/server/chain`): median ETH/USD (`price.ts`), adapter (mock + viem),
+  SIWE (`wallet.ts`), checkout (`checkout.ts`), pool (`pool.ts`), affiliates.
+  APIs: `/api/wallet{,/challenge,/link}`, `/api/checkout/{quote,confirm,orders}`, `/api/price`,
+  `/api/pool{,/proof}`, `/api/referrals`, `/api/cron/chain` (vercel.json, daily),
+  `/api/admin/{chain,chain/owner,pool,pool/[id],affiliates}`. Signup records the referral.
+- **Pages**: `/pool`, `/invite`, `/admin/chain`; admin tabs **Prize Pool** and **Affiliates**;
+  wallet link on `/me` and `/beta` (unsigned address kept only as an unverified fallback);
+  ETH checkout on `/packs` (only when `WEB3_ENABLED=true`).
+- **Tests**: contracts `pnpm --filter @thoroughbred/contracts test`; db `beta-money.test.ts`;
+  web `src/server/chain/*.test.ts` (mock chain) and **`pnpm --filter @thoroughbred/web test:chain`**
+  (real Hardhat node: deploy → quote → buy → confirm → pool +30 % / L1 +10 % / L2 +3 % →
+  backstop → epoch → claim); browser e2e `apps/web/e2e/beta-money.mjs`.
+- **Owner must do** (nothing is deployed): dedicated `QUOTE_SIGNER_PRIVATE_KEY` +
+  `ROBINHOOD_RPC_URL` + `CHAIN_ID=46630` in Vercel → `/admin/chain`: deploy from your wallet
+  (a little testnet ETH) → paste `WEB3_ENABLED=true`, `PREMIUM_STORE_ADDRESS`,
+  `PRIZE_POOL_ADDRESS` into Vercel (Preview first) → verify your wallet on Profile and claim the
+  owner root → weekly: Admin → Prize Pool → compute → post. Mainnet only after counsel.
+- **Decisions taken without the user (flag):** horses from Premium Packs don't score for the
+  pool; pool score = league race points (weekly cap) + Daily Cup points; top 10 paid by linear
+  weights, 25 % of the free pool per week, $20 cap, $0.50 dust floor, 14-day vesting, 56-day
+  claim window, 6-day minimum epoch interval, on-chain max 50 % of the free pool per epoch; no
+  sweep function at all; poolBps bounded 10–50 %; premium pack $4.99; blocked countries BE, NL
+  (to confirm with counsel); affiliate weekly cap $50 and 250-credit activity reward; the owner
+  is exempt from link checks; personal referral codes never re-link orphan testers after a reset.
+- **NAV suggestions** (nav is the release agent's): `/pool` and `/invite` under Club (already
+  present in the Club sub-nav), `/admin/chain` linked from the admin Prize Pool tab.
+
 ## Release: Phase 1 wiring + closed playtest (release agent)
 
 **Status:** every Phase-1 feature is wired into one product, and the closed-playtest layer is

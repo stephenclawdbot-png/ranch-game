@@ -10,6 +10,18 @@ entries, and the ethics rule at the top). The web3 design is in `docs/web3.md`. 
 conflicts with a rule below, **stop and ask the user**. These are user decisions, not
 defaults.
 
+## Closed-beta exception (user decision, 2026-10-26)
+
+For the closed beta (~50 invited testers) the user approved **real ETH purchases of Premium
+Packs on Robinhood Chain**, a **Prize Pool** (30 % of every sale, paid weekly by skill rank,
+claimable on-chain) and **2-level affiliate commissions** (10 % / 3 %, from the treasury's
+share). This overrides rules 2 and 3 below *for that scope only*; everything else stands, in
+particular: **Stable Credits are never cashed out**, nothing bought turns back into credits,
+paid-pack horses don't score for the pool, nobody needs to buy anything to win or to earn.
+Design, safeguards and open legal points: `docs/web3.md` §0. Code: `packages/contracts`
+(`PrizePool`, `PremiumStore.purchaseWithEth`), `apps/web/src/server/chain`,
+`packages/db` `services/betaMoney.ts` + `services/affiliates.ts`.
+
 ## Non-negotiables
 
 1. **Stable Credits are never cashed out.**

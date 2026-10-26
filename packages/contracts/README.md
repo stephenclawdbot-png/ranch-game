@@ -8,9 +8,11 @@ chain, using `MockChainAdapter`. The architecture, the threat model and the roll
 | Path | What |
 |---|---|
 | `contracts/RaceProofRegistry.sol` | Write-once Merkle roots of race seed commitments and results. Anyone can verify a race. |
-| `contracts/PremiumStore.sol` | One-way checkout for premium SKUs in an allow-listed stablecoin, using server-signed EIP-712 vouchers. There are no user balances and no payouts. |
+| `contracts/PremiumStore.sol` | Checkout for premium SKUs: an allow-listed stablecoin (EIP-712 `Order`) **and native ETH** (EIP-712 `EthQuote`, closed beta): `poolBps` (10–50 %) to the PrizePool, 2-level affiliate commissions (≤ 15 % / 5 %) and the rest to the treasury, in the same tx. Optional Chainlink tolerance check. |
+| `contracts/PrizePool.sol` | Closed-beta Prize Pool: ETH only from the store and owner top-ups; weekly Merkle epochs, never over-allocated (`total ≤ maxEpochBps × (balance − outstanding)`); per-account cap; linear vesting; revoke / cancel / expiry return funds **to the pool**; no withdraw or sweep. |
 | `contracts/ThoroughbredToken.sol` | OPTIONAL capped ERC20 + permit, with a genesis mint only. **Not deployed by default.** |
-| `contracts/mocks/*` | Test-only tokens: 6-decimal blocklist/fee stablecoin, reentrant token. |
+| `contracts/mocks/*` | Test-only: 6-decimal blocklist/fee stablecoin, reentrant token, ETH receiver (accept/reject/re-enter), Chainlink-style price feed. |
+| `scripts/export-web.ts` | Writes `apps/web/src/lib/chain/contracts.generated.ts` (ABIs + bytecode for the browser deploy on `/admin/chain`, EIP-712 types). `pnpm --filter @thoroughbred/contracts export:web` after any contract change; `test/export-web.test.ts` fails when stale. |
 | `adapter/` | Server-side `ChainAdapter` (mock + viem EVM), Merkle batching and EIP-712 vouchers. Exported as `@thoroughbred/contracts/adapter`. |
 | `scripts/deploy.ts` | Deploy and configure, then hand admin to a multisig. Tested against the in-process Hardhat network. |
 
@@ -58,7 +60,29 @@ await chain.getBalances(address);                 // display only
 - Pairs use OpenZeppelin's commutative keccak256. Leaves are sorted, and an odd node is promoted.
 - `seedCommitment = sha256(seed bytes)`, which is the racing engine's `commitSeed`. The contract re-checks it with the sha256 precompile in `verifyRace`.
 
-## What is tested (70 tests; coverage: 100% lines/functions on the 3 production contracts, 96–100% branches)
+## What is tested (110 tests; coverage: 100% lines/functions on the 4 production contracts, 94–100% branches)
+
+**PrizePool** (`test/prize-pool.test.ts`)
+- [x] funding only via `fund()` by FUNDER_ROLE (store/admin); plain transfers refused; funding works while paused
+- [x] cannot over-allocate: `total ≤ maxEpochBps × (balance − outstanding)`, across epochs; property test: `outstanding ≤ balance` over random fund/post/claim sequences
+- [x] epochs sequential, rate-limited (`minEpochInterval`), validated, POSTER_ROLE only, blocked while paused
+- [x] linear vesting math (matches the TS mirror), several partial claims, full amount at vestEnd, double claim → `NothingToClaim`
+- [x] wrong proof / other account / tampered amount or vesting / unknown epoch / above the per-account cap
+- [x] a bad root can never pay more than the epoch total (`EpochExhausted`)
+- [x] leaves bound to epoch, chain and pool contract; golden leaf vector shared with apps/web
+- [x] pause blocks claims, admin-only unpause; reentrancy from a malicious claimer blocked
+- [x] revoke (keep vested / take all unclaimed), cancelEpoch (works while paused), expiry after the claim window (anyone) — all return ETH to the pool only
+- [x] bounded, admin-only params snapshotted per epoch; zero admin rejected; no withdraw/sweep function exists
+
+**PremiumStore native ETH** (`test/premium-store-eth.test.ts`)
+- [x] exact split 30 % pool (Funded event, ref = orderId) / 70 % treasury, nothing left in the store; property test over random prices and bps
+- [x] `hashEthQuote` equals viem's EIP-712 digest; exact `msg.value`; zero price; single-use orderId (shared with the ERC20 path); front-running
+- [x] expired quotes and quotes valid > 10 min rejected; tampered price/quantity/referrer, wrong signer, other contract/chain, garbage signature
+- [x] inactive SKU, quantity bounds, pause; a pool that refuses funding undoes the whole sale
+- [x] a treasury that refuses ETH: sale succeeds, share deferred, `withdrawEth` pays it later; hostile treasury reentrancy blocked
+- [x] affiliates: L1 10 % + L2 3 % paid instantly out of the treasury share (pool untouched); L1 only; refusing referrer credited + `withdrawReferral`; reentrant referrer; validation (ceilings, self, duplicate, L2 without L1); admin ceilings with hard caps 15 % / 5 %
+- [x] optional Chainlink check: within tolerance passes, under/over price and stale/zero feed rejected, disabled again with `feed = 0`
+- [x] poolBps bounded [1000, 5000], admin-only, evented; the pool address is immutable
 
 **RaceProofRegistry**
 - [x] publish stores root/leafCount/timestamp and emits `BatchPublished` (with manifest URI); gas is constant per batch (~76k)
