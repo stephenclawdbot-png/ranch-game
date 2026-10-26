@@ -101,6 +101,13 @@ export interface PullInput {
   now: Date;
   /** Claim the free Paddock Pack (play-day entitlement) instead of paying. */
   free?: boolean;
+  /**
+   * Already paid on-chain (closed-beta ETH checkout, services/betaMoney.ts): no credits are
+   * spent, and the weekly cap, a free stall and the crop were checked when the quote was
+   * signed. A paid pull must never fail later, so it may use the nursery overflow slot and
+   * the crop counter may pass its cap.
+   */
+  prepaid?: boolean;
 }
 
 export interface PullResult {
@@ -119,6 +126,7 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
   const pack = PACKS[input.packType];
   if (!pack) throw new DomainError("INVALID_INPUT", "unknown pack");
   if (input.free && input.packType !== "paddock") throw new DomainError("INVALID_INPUT", "only Paddock Packs are free");
+  if (input.prepaid && (input.free || input.packType !== "premium")) throw new DomainError("INVALID_INPUT", "only Premium Packs are prepaid");
   return runTx(db, async (tx) => {
     const [prior] = await tx.select().from(packPulls).where(eq(packPulls.idempotencyKey, input.idempotencyKey));
     if (prior) {
@@ -136,7 +144,7 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
     }
     // Lock order: stable -> pity -> crop.
     const stable = await lockStableOf(tx, input.accountId);
-    await assertStallFree(tx, stable);
+    await assertStallFree(tx, stable, { allowOverflow: !!input.prepaid });
     await ensurePity(tx, input.accountId, input.packType);
     const [pity] = await tx
       .select()
@@ -150,7 +158,7 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
       if ((await freePullsClaimed(tx, input.accountId)) >= entitled) {
         throw new DomainError("PACK_LIMIT", `a free Paddock Pack comes every ${RULES.freePaddockEveryPlayDays}rd play day`);
       }
-    } else if ((await weeklyPaidPulls(tx, input.accountId, input.packType, weekStart)) >= weeklyLimit(input.packType)) {
+    } else if (!input.prepaid && (await weeklyPaidPulls(tx, input.accountId, input.packType, weekStart)) >= weeklyLimit(input.packType)) {
       throw new DomainError("PACK_LIMIT", `weekly limit of ${weeklyLimit(input.packType)} ${input.packType} packs reached`);
     }
 
@@ -159,12 +167,12 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
     const taken = await tx
       .update(foalCrop)
       .set({ produced: sql`${foalCrop.produced} + 1`, updatedAt: input.now })
-      .where(and(eq(foalCrop.seasonNumber, season), sql`${foalCrop.produced} < ${foalCrop.cap}`))
+      .where(and(eq(foalCrop.seasonNumber, season), input.prepaid ? sql`true` : sql`${foalCrop.produced} < ${foalCrop.cap}`))
       .returning({ produced: foalCrop.produced });
     if (!taken[0]) throw new DomainError("CROP_SOLD_OUT", "this season's foal crop is sold out");
 
     let ledgerTransactionId: string | null = null;
-    if (!input.free) {
+    if (!input.free && !input.prepaid) {
       ledgerTransactionId = (
         await spendCreditsTx(tx, { accountId: input.accountId, amount: pack.price, idempotencyKey: `pack:${input.idempotencyKey}`, kind: "pack" })
       ).transactionId;
@@ -212,7 +220,7 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
         rarity,
         pityApplied,
         horseId,
-        price: input.free ? 0 : pack.price,
+        price: input.free || input.prepaid ? 0 : pack.price,
         free: !!input.free,
         weekStart,
         seasonNumber: season,

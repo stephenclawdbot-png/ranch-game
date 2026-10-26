@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { recentClientErrors } from "@/lib/clientErrors";
 import { PixelIcon } from "../icons";
 
@@ -34,14 +35,17 @@ export function FeedbackButton() {
         <span className="hidden lg:inline">Feedback</span>
         <span className="sr-only lg:hidden">Send feedback</span>
       </button>
-      {open && (
-        <FeedbackDialog
-          onClose={() => {
-            setOpen(false);
-            button.current?.focus();
-          }}
-        />
-      )}
+      {open &&
+        // Portal: the top bar is its own stacking context; the dialog must sit above the tab bar too.
+        createPortal(
+          <FeedbackDialog
+            onClose={() => {
+              setOpen(false);
+              button.current?.focus();
+            }}
+          />,
+          document.body,
+        )}
     </>
   );
 }
