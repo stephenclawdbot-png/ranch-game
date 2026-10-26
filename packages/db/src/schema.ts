@@ -956,6 +956,151 @@ export const economyConfig = pgTable("economy_config", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+// ---------------------------------------------------------------------------
+// Closed playtest (invite codes, testers, feedback, telemetry, beta rewards).
+// These tables SURVIVE the playtest reset (services/playtest.ts): they reference accounts by
+// plain uuid columns (no foreign keys), so wiping game progress never cascades into them.
+// ---------------------------------------------------------------------------
+
+/** Invite codes for the closed playtest (PLAYTEST_MODE=1). */
+export const inviteCodes = pgTable(
+  "invite_codes",
+  {
+    code: text("code").primaryKey(),
+    maxUses: integer("max_uses").notNull().default(1),
+    uses: integer("uses").notNull().default(0),
+    note: text("note"),
+    /** The tester who used it last (one per use; see testers.invite_code for all). */
+    usedBy: uuid("used_by"),
+    revokedAt: ts("revoked_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [check("invite_codes_uses", sql`${t.uses} >= 0 and ${t.maxUses} >= 1 and ${t.uses} <= ${t.maxUses}`)],
+);
+
+/**
+ * A playtester. Survives the reset: after a reset the tester re-joins with the same invite
+ * code and gets re-linked (account_id is set to the new account).
+ */
+export const testers = pgTable(
+  "testers",
+  {
+    id: id(),
+    inviteCode: text("invite_code").notNull(),
+    /** The current account (null after a reset until the tester re-joins). No FK on purpose. */
+    accountId: uuid("account_id"),
+    stableName: text("stable_name"),
+    /** EVM address (Robinhood Chain) for the exclusive item and beta rewards. */
+    walletAddress: text("wallet_address"),
+    joinedAt: createdAt(),
+    lastSeenAt: ts("last_seen_at"),
+  },
+  (t) => [
+    uniqueIndex("testers_account_uq").on(t.accountId),
+    index("testers_invite_idx").on(t.inviteCode),
+    check("testers_wallet", sql`${t.walletAddress} is null or ${t.walletAddress} ~ '^0x[0-9a-fA-F]{40}$'`),
+  ],
+);
+
+/** Exclusive-item entitlements and similar tester perks (kept across resets). */
+export const testerRewards = pgTable(
+  "tester_rewards",
+  {
+    id: id(),
+    testerId: uuid("tester_id")
+      .notNull()
+      .references(() => testers.id),
+    kind: text("kind").notNull(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("tester_rewards_uq").on(t.testerId, t.kind)],
+);
+
+/** In-game feedback (bug / idea / confusing / fun). */
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: id(),
+    accountId: uuid("account_id"),
+    testerId: uuid("tester_id"),
+    stableId: uuid("stable_id"),
+    /** Who sent it when there is no account (sha256 of the IP, for rate limiting only). */
+    senderKey: text("sender_key").notNull(),
+    category: text("category").notNull(),
+    rating: integer("rating"),
+    message: text("message").notNull(),
+    route: text("route"),
+    viewport: text("viewport"),
+    userAgent: text("user_agent"),
+    clientErrors: jsonb("client_errors"),
+    status: text("status").notNull().default("new"),
+    /** Accepted as a bug report (earns the bug bounty). */
+    acceptedBug: boolean("accepted_bug").notNull().default(false),
+    adminNote: text("admin_note"),
+    createdAt: createdAt(),
+    resolvedAt: ts("resolved_at"),
+  },
+  (t) => [
+    index("feedback_created_idx").on(t.createdAt),
+    index("feedback_sender_idx").on(t.senderKey, t.createdAt),
+    check("feedback_category", sql`${t.category} in ('bug', 'idea', 'confusing', 'fun')`),
+    check("feedback_status", sql`${t.status} in ('new', 'resolved')`),
+    check("feedback_rating", sql`${t.rating} is null or ${t.rating} between 1 and 5`),
+    check("feedback_message_len", sql`char_length(${t.message}) between 1 and 4000`),
+  ],
+);
+
+/** First-party, privacy-light telemetry (no third parties; routes only, never query strings). */
+export const telemetryEvents = pgTable(
+  "telemetry_events",
+  {
+    id: id(),
+    accountId: uuid("account_id"),
+    testerId: uuid("tester_id"),
+    name: text("name").notNull(),
+    props: jsonb("props"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("telemetry_name_idx").on(t.name, t.createdAt), index("telemetry_account_idx").on(t.accountId, t.createdAt), index("telemetry_tester_idx").on(t.testerId, t.createdAt)],
+);
+
+/** Beta reward rules (USD, paid manually in USDG by the operator). Editable in /admin. */
+export const betaRewardRules = pgTable("beta_reward_rules", {
+  key: text("key").primaryKey(),
+  label: text("label").notNull(),
+  amountUsdCents: integer("amount_usd_cents").notNull(),
+  config: jsonb("config").notNull().default({}),
+  active: boolean("active").notNull().default(true),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/** Beta rewards earned by testers. One row per (tester, rule, period). Never credits. */
+export const betaRewards = pgTable(
+  "beta_rewards",
+  {
+    id: id(),
+    testerId: uuid("tester_id")
+      .notNull()
+      .references(() => testers.id),
+    ruleKey: text("rule_key").notNull(),
+    period: text("period").notNull(),
+    amountUsdCents: integer("amount_usd_cents").notNull(),
+    status: text("status").notNull().default("pending"),
+    txHash: text("tx_hash"),
+    notes: text("notes"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("beta_rewards_uq").on(t.testerId, t.ruleKey, t.period),
+    check("beta_rewards_status", sql`${t.status} in ('pending', 'approved', 'paid', 'void')`),
+    check("beta_rewards_amount", sql`${t.amountUsdCents} >= 0`),
+    check("beta_rewards_tx", sql`${t.txHash} is null or ${t.txHash} ~ '^0x[0-9a-fA-F]{64}$'`),
+    check("beta_rewards_paid_tx", sql`${t.status} <> 'paid' or ${t.txHash} is not null`),
+  ],
+);
+
 export type AccountRow = typeof accounts.$inferSelect;
 export type StableRow = typeof stables.$inferSelect;
 export type HorseRow = typeof horses.$inferSelect;
@@ -965,3 +1110,7 @@ export type RaceEntryRow = typeof raceEntries.$inferSelect;
 export type ListingRow = typeof marketListings.$inferSelect;
 export type PregnancyRow = typeof pregnancies.$inferSelect;
 export type LedgerAccountRow = typeof ledgerAccounts.$inferSelect;
+export type TesterRow = typeof testers.$inferSelect;
+export type FeedbackRow = typeof feedback.$inferSelect;
+export type BetaRewardRow = typeof betaRewards.$inferSelect;
+export type BetaRewardRuleRow = typeof betaRewardRules.$inferSelect;

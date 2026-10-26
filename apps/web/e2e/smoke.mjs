@@ -312,7 +312,7 @@ async function main() {
     log("inbox on Home");
     await page.goto(`${BASE_URL}/`);
     await page.getByTestId("your-races").waitFor();
-    const resultRow = page.locator(`[data-testid="inbox-result"][href="/race/${liveId}"]`);
+    const resultRow = page.locator(`[data-testid="inbox-result"][href="/race/${liveId}"]`).first();
     await resultRow.waitFor({ timeout: 30_000 });
     assert((await resultRow.getAttribute("data-read")) === "1", "the live result is in the inbox, marked seen");
     await shot(page, "desktop-home-inbox");
