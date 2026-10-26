@@ -17,6 +17,11 @@ describe("scripts/deploy.ts (against the local Hardhat network)", () => {
     }
     expect(await store.read.hasRole([DEFAULT_ADMIN_ROLE, r.deployer])).to.equal(true);
     expect(r.gameToken).to.equal(undefined); // the token is opt-in
+    const pool = await hre.viem.getContractAt("PrizePool", r.prizePool);
+    expect(getAddress(await store.read.prizePool())).to.equal(getAddress(r.prizePool));
+    expect(await store.read.poolBps()).to.equal(3000);
+    expect(await pool.read.hasRole([keccak256(toBytes("FUNDER_ROLE")), store.address])).to.equal(true);
+    expect(await pool.read.hasRole([keccak256(toBytes("POSTER_ROLE")), r.deployer])).to.equal(true);
   });
 
   it("hands admin over to a separate address (multisig) and renounces the deployer", async () => {
@@ -27,6 +32,7 @@ describe("scripts/deploy.ts (against the local Hardhat network)", () => {
       admin: getAddress(multisig!.account.address),
       publisher: getAddress(server!.account.address),
       storeSigner: getAddress(server!.account.address),
+      poolPoster: getAddress(server!.account.address),
       deployGameToken: true,
     });
     const store = await hre.viem.getContractAt("PremiumStore", r.premiumStore);
@@ -39,6 +45,12 @@ describe("scripts/deploy.ts (against the local Hardhat network)", () => {
     expect(await registry.read.hasRole([keccak256(toBytes("PUBLISHER_ROLE")), getAddress(server!.account.address)])).to.equal(true);
     expect(await store.read.hasRole([keccak256(toBytes("SIGNER_ROLE")), getAddress(server!.account.address)])).to.equal(true);
     expect(await store.read.treasury()).to.equal(r.admin);
+    const pool = await hre.viem.getContractAt("PrizePool", r.prizePool);
+    for (const name of ["PAUSER_ROLE", "FUNDER_ROLE"]) expect(await pool.read.hasRole([keccak256(toBytes(name)), r.deployer])).to.equal(false);
+    expect(await pool.read.hasRole([DEFAULT_ADMIN_ROLE, r.deployer])).to.equal(false);
+    expect(await pool.read.hasRole([DEFAULT_ADMIN_ROLE, r.admin])).to.equal(true);
+    expect(await pool.read.hasRole([keccak256(toBytes("POSTER_ROLE")), r.admin])).to.equal(true);
+    expect(await pool.read.hasRole([keccak256(toBytes("POSTER_ROLE")), getAddress(server!.account.address)])).to.equal(true);
     expect(r.gameToken).to.match(/^0x[0-9a-fA-F]{40}$/);
     const token = await hre.viem.getContractAt("ThoroughbredToken", r.gameToken!);
     expect(await token.read.totalSupply()).to.equal(0n); // genesis is a separate reviewed step
