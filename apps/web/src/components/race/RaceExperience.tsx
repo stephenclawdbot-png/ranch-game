@@ -125,7 +125,9 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
       const w = el.clientWidth;
       const vh = window.innerHeight;
       let h = w * 0.5625;
-      if (window.innerWidth < 640) h = Math.max(h, w * 0.62);
+      // Phones (portrait): a taller stage (the HUD strip, minimap and controls sit on it), up
+      // to about half the screen so the field list and results stay reachable.
+      if (window.innerWidth < 640) h = Math.max(h, Math.min(w * 0.82, vh * 0.48));
       h = Math.min(620, Math.max(220, h));
       if (vh < 560) h = Math.min(h, Math.max(200, vh - 60));
       setStageHeight(Math.round(h));

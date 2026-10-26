@@ -28,6 +28,7 @@ import {
   fraudEvents,
   inviteCodes,
   raceEntries,
+  races,
   referralEarnings,
   referrals,
   stables,
@@ -334,7 +335,8 @@ export async function activityOf(ex: Executor, accountIds: string[]): Promise<Ma
     .select({ accountId: stables.accountId, n: sql<number>`count(*)::int` })
     .from(raceEntries)
     .innerJoin(stables, eq(stables.id, raceEntries.stableId))
-    .where(and(inArray(stables.accountId, accountIds), sql`${raceEntries.finishPosition} is not null`))
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(inArray(stables.accountId, accountIds), eq(races.status, "settled"), eq(raceEntries.status, "entered")))
     .groupBy(stables.accountId);
   for (const r of raceRows) out.get(r.accountId)!.races = Number(r.n);
   const dayRows = await ex
