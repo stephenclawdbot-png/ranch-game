@@ -424,7 +424,8 @@ export class HD2DScene {
         col.set([c, c, c], o * 3);
       });
       const b = i * 4;
-      idx.push(b, b + 2, b + 1, b, b + 3, b + 2);
+      // Counter-clockwise seen from above (normal +y), so the strip isn't back-face culled.
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
     }
     const g = this.own(new T.BufferGeometry());
     g.setAttribute("position", new T.BufferAttribute(pos, 3));
