@@ -40,10 +40,32 @@ Preview and Production.)
     It is the gap between entry close (post − 60 s, `enterRace`) and "Gates loading"
     (last 10 s), ~50 s of nothing on Live races. Options: close entries at post − 30 s, or
     give the wait something to watch (the field cantering down, the parade ring);
-  - daily goals: migration + 60-credit constant are in `worker/goals` (`/tmp/wt-goals`); the
-    GLM worker hit the Ollama session limit, resume with `scratchpad/tickets/goals.md`.
+  - Trackside has no dun dorsal stripe: `HorseAppearance` carries no dun gene (add it to
+    the shared appearance if wanted).
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
+
+## Beta economy picks, daily goals, genetics, race markings (lead + Ollama workers, 2026-10-26)
+
+Owner picks on `docs/economy/AUDIT.md`: pool **10 % + fixed ~$40/week top-up** (deploy default
+`poolBps` 1000; checkout no longer sells the pot); **premium foals stay tradeable, no extra
+limits** (against the audit: recorded in the economy skill and `docs/web3.md`, flag in legal
+review); **affiliates unchanged** (10 % / 3 %); all four beta fixes done: Epic pity 20, Story races
+don't use career starts or the record, market ceiling 3× appraisal + 72 h resale lock, daily
+goals (race / care / Daily Cup, 60 credits each, paid in the action's transaction, key
+`daily-goal:<account>:<localDate>:<goal>`, table `daily_goals`, card on Home). Beta length is
+still open.
+
+- After a race on phones the fresh result scrolls into view and "Race X again" floats above the
+  tab bar (`.fade-up` now fills `backwards`: a held transform trapped `position: fixed`).
+- Countdowns render real time on first paint (no "–:––" flash).
+- **Genetics** (`gc.geneticsSummary`, never sends ability alleles, vigour, aptitudes or unrevealed
+  quirks; unit-tested): Genetics section on horse pages, one-line `genetics-line` on stable,
+  nursery, packs and foal reveal.
+- **Trackside markings**: per-runner leg (coronet/sock/stocking) and face marks, roan ticking and
+  dapples, from a derived mask strip + LUT flags (`strips.ts buildMarkMasks`).
+- Ollama Max has a **session usage limit** (hit after ~8 worker runs incl. 3 parallel; resets
+  in a few hours). Run at most 2 workers at once and keep tickets small.
 
 ## Viewer polish: ticker, phone crowding, starting stalls (lead + Ollama workers, 2026-10-26)
 
