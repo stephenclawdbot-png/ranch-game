@@ -9,12 +9,12 @@
  *
  * Credits for story races are granted separately by `grantStoryReward` (capped per chapter).
  */
-import { and, eq, like } from "drizzle-orm";
+import { and, eq, like, sql } from "drizzle-orm";
 import { achievements, stables } from "../schema";
 import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { lockStableOf } from "./accounts";
-import { audit, runTx } from "./tx";
+import { audit, rowsOf, runTx } from "./tx";
 
 export const STORY_WIN_PREFIX = "story-win:";
 
@@ -84,4 +84,40 @@ export async function recordStoryResult(db: Db, input: StoryResultInput): Promis
     }
     return { newWin: inserted.length > 0, licenceBefore: before, licenceAfter: after, chaptersCompleted: completed };
   });
+}
+
+export interface StoryFinish {
+  raceId: string;
+  postTime: Date;
+  conditions: unknown;
+  horseId: string;
+  /** Null for house (rival) runners. */
+  stableId: string | null;
+  position: number;
+}
+
+/** Every finisher of the stable's most recent settled Story races (for rival head-to-heads). */
+export async function storyRaceFinishes(ex: Executor, stableId: string, limit = 60): Promise<StoryFinish[]> {
+  const rows = rowsOf<{ race_id: string; post_time: string | Date; conditions: unknown; horse_id: string; stable_id: string | null; position: number }>(
+    await ex.execute(sql`
+      with mine as (
+        select r.id, r.post_time, r.conditions from races r join race_entries e on e.race_id = r.id
+         where e.stable_id = ${stableId} and r.kind = 'quick' and r.status = 'settled'
+         order by r.post_time desc limit ${limit}
+      )
+      select m.id as race_id, m.post_time, m.conditions, e.horse_id, e.stable_id, e.finish_position as position
+        from mine m join race_entries e on e.race_id = m.id
+       where e.finish_position is not null and e.status = 'entered'`),
+  );
+  return rows.map((r) => ({ raceId: r.race_id, postTime: new Date(r.post_time), conditions: r.conditions, horseId: r.horse_id, stableId: r.stable_id, position: Number(r.position) }));
+}
+
+/** Story credits earned per chapter (for the "x of cap" meter). */
+export async function storyChapterEarnings(ex: Executor, accountId: string): Promise<Record<string, number>> {
+  const rows = rowsOf<{ chapter: string; earned: number }>(
+    await ex.execute(sql`select meta->>'chapter' as chapter, coalesce(sum((meta->>'amount')::int), 0)::int as earned
+                           from ledger_transactions where kind = 'story_reward' and meta->>'accountId' = ${accountId}
+                          group by meta->>'chapter'`),
+  );
+  return Object.fromEntries(rows.map((r) => [r.chapter, Number(r.earned)]));
 }

@@ -55,6 +55,7 @@ const LABEL: Record<string, string> = {
   staying: "Staying",
   turf: "Turf",
   dirt: "Dirt",
+  synthetic: "Synthetic",
   front: "Front-runner",
   stalker: "Stalker",
   closer: "Closer",

@@ -7,7 +7,7 @@ import { SilksSchema } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
 import { isGenome, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
 import type { RacePlan, RiskView, StableHorse } from "@/lib/types";
-import { houseStableFor } from "./house";
+import { houseOwnerFor, storyHouseHorse } from "./storyField";
 
 export const DEFAULT_SILKS: Silks = { pattern: "hoops", primary: "#16224d", secondary: "#e2b33c", cap: "#e2b33c" };
 
@@ -21,7 +21,7 @@ export function parsePlan(x: unknown, fallbackTactic: Horse["style"] = "stalker"
   return p.success ? { tactic: p.data.tactic, intensity: p.data.intensity } : { tactic: fallbackTactic, intensity: "normal" };
 }
 
-type RaceLike = Pick<PublicRace, "kind" | "raceClass" | "conditions" | "postTime" | "targetRunners">;
+type RaceLike = Pick<PublicRace, "kind" | "raceClass" | "conditions" | "postTime" | "targetRunners"> & { id?: string };
 
 export interface RaceConds {
   distanceM: number;
@@ -104,7 +104,12 @@ export function horseFromRow(row: HorseRow, silks: Silks, nowMs: number): Horse 
  */
 export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race: RaceLike, isHouse: boolean): Horse {
   const id = String(snapshot.id);
-  const silks = isHouse ? houseStableFor(id).silks : parseSilks(snapshot.silks);
+  // Story chapter races: house runners race as the named rival stables' horses (storyField.ts).
+  if (isHouse && race.id) {
+    const rival = storyHouseHorse(snapshot, { id: race.id, kind: race.kind, conditions: race.conditions });
+    if (rival) return rival;
+  }
+  const silks = isHouse ? houseOwnerFor(race, id).silks : parseSilks(snapshot.silks);
   const stateParse = gc.HorseStateSchema.safeParse(snapshot.state);
   if (!stateParse.success) return fallbackHorse(snapshot, silks);
   const state = stateParse.data;

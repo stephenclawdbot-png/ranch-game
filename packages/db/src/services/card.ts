@@ -17,6 +17,7 @@ import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { races } from "../schema";
 import { RULES, seasonNumberAt } from "../rules";
+import { gc } from "../gameCore";
 import type { Db } from "../types";
 import { runMaintenance, type MaintenanceReport } from "./maintenance";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
@@ -36,50 +37,135 @@ interface ClassDef {
   purse: number;
 }
 
-const CLASSES: { weight: number; def: ClassDef }[] = [
-  { weight: 25, def: { raceClass: "maiden", label: "Maiden Stakes", conditions: { maxWins: 0, maxRating: 60 }, purse: 2_000 } },
-  { weight: 20, def: { raceClass: "novice", label: "Novice Stakes", conditions: { maxWins: 2, maxRating: 70 }, purse: 2_500 } },
-  { weight: 15, def: { raceClass: "handicap", label: "Handicap (0-55)", conditions: { minRating: 0, maxRating: 55 }, purse: 3_000 } },
-  { weight: 15, def: { raceClass: "handicap", label: "Handicap (50-75)", conditions: { minRating: 50, maxRating: 75 }, purse: 4_000 } },
-  { weight: 15, def: { raceClass: "handicap", label: "Handicap (70-95)", conditions: { minRating: 70, maxRating: 95 }, purse: 5_000 } },
-  { weight: 7, def: { raceClass: "listed", label: "Listed Stakes", conditions: { minRating: 85 }, purse: 8_000 } },
-  { weight: 3, def: { raceClass: "graded", label: "Group 3", conditions: { minRating: 95 }, purse: 12_000 } },
+const MAIDEN: ClassDef = { raceClass: "maiden", label: "Maiden Stakes", conditions: { maxWins: 0, maxRating: 60 }, purse: 2_000 };
+const NOVICE: ClassDef = { raceClass: "novice", label: "Novice Stakes", conditions: { maxWins: 2, maxRating: 70 }, purse: 2_500 };
+const HCP_55: ClassDef = { raceClass: "handicap", label: "Handicap (0-55)", conditions: { minRating: 0, maxRating: 55 }, purse: 3_000 };
+const HCP_75: ClassDef = { raceClass: "handicap", label: "Handicap (50-75)", conditions: { minRating: 50, maxRating: 75 }, purse: 4_000 };
+const HCP_95: ClassDef = { raceClass: "handicap", label: "Handicap (70-95)", conditions: { minRating: 70, maxRating: 95 }, purse: 5_000 };
+const LISTED: ClassDef = { raceClass: "listed", label: "Listed Stakes", conditions: { minRating: 85 }, purse: 8_000 };
+const GROUP3: ClassDef = { raceClass: "graded", label: "Group 3", conditions: { minRating: 95 }, purse: 12_000 };
+
+/**
+ * One hour of the card (20 slots, a race every 3 minutes). Slot 0 is the hourly Feature
+ * (Listed or Group 3). 12 of the other 19 are maiden / novice races ("juvenile slots": every
+ * new horse can run them), then the handicap bands and a Listed race.
+ */
+const HOUR: readonly (ClassDef | "feature")[] = [
+  "feature", MAIDEN, NOVICE, HCP_55, MAIDEN, NOVICE, HCP_75, MAIDEN, NOVICE, HCP_95,
+  MAIDEN, LISTED, NOVICE, MAIDEN, HCP_55, NOVICE, MAIDEN, HCP_75, NOVICE, HCP_95,
 ];
+/** Index of each juvenile slot inside the hour (-1 for the others). */
+const JUVENILE_ORDINAL = HOUR.map((d, i) => (d === MAIDEN || d === NOVICE ? HOUR.slice(0, i).filter((x) => x === MAIDEN || x === NOVICE).length : -1));
+const JUVENILE_PER_HOUR = JUVENILE_ORDINAL.filter((x) => x >= 0).length; // 12
+
 const TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
-const DISTANCES = [1000, 1200, 1400, 1600, 2000, 2400];
-const SURFACES = ["turf", "turf", "dirt"];
-const GOING: Record<string, string[]> = { turf: ["firm", "good", "good", "soft"], dirt: ["good", "good", "heavy"] };
+const SURFACES = ["turf", "dirt", "synthetic"] as const;
+/**
+ * Juvenile-slot trips, one per distance zone. Every trip a horse can prefer (1,000–2,700 m for
+ * starters and pack foals) is within about 450 m below or 130 m above one of these, which keeps
+ * the form-guide fit at grade C or better.
+ */
+const JUVENILE_TRIPS = [1100, 1500, 2000, 2400];
+/** Older horses' races use the whole range, including the long trips bred stayers want. */
+const OPEN_TRIPS = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
+const GOING: Record<string, string[]> = { turf: ["firm", "good", "good", "soft", "heavy"], dirt: ["good", "good", "good", "heavy"], synthetic: ["good"] };
 const WEATHER = ["clear", "clear", "overcast", "rain", "dusk"];
 
-/** Deterministic conditions for a card slot. Every hour (20 slots) is a Feature race. */
+const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
+const calendarCache = new Map<number, Map<number, gc.RaceSlot>>();
+
+/**
+ * The season's special races (game-core `featureCalendar`) by card slot index: the Weekend
+ * Feature (Saturday 19:00 UTC), its weekday Feature Qualifiers (19:00 UTC) and the four Season
+ * Final championships on the last day. Each takes over the slot it falls in.
+ */
+export function specialSlotAt(index: number): gc.RaceSlot | null {
+  const season = seasonNumberAt(slotPostTime(index));
+  let bySlot = calendarCache.get(season);
+  if (!bySlot) {
+    bySlot = new Map(gc.featureCalendar(SEASON_CLOCK, season).map((r) => [Math.floor((r.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs), r]));
+    calendarCache.set(season, bySlot);
+  }
+  return bySlot.get(index) ?? null;
+}
+
+function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
+  const postTime = slotPostTime(index);
+  const final = sp.kind === "season_final";
+  const weekend = sp.kind === "weekend_feature";
+  const track = final || weekend ? "Ashcombe" : "Bellmont";
+  return {
+    kind: final ? "final" : weekend ? "feature" : "scheduled",
+    name: `${track} ${sp.name}`,
+    raceClass: final || weekend ? "graded" : "listed",
+    conditions: {
+      minRating: final || weekend ? 95 : 85,
+      distanceM: sp.distanceM,
+      surface: sp.surface,
+      going: sp.surface === "synthetic" ? "good" : sp.goingForecast,
+      weather: sp.weather,
+      track,
+      calendar: { id: sp.id, kind: sp.kind, division: sp.division },
+    },
+    postTime,
+    entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
+    purse: sp.purse,
+    maxRunners: Math.min(16, sp.maxRunners),
+    targetRunners: RULES.maxField,
+    seasonNumber: sp.season,
+    slotKey: `live:${index}`,
+  };
+}
+
+/**
+ * Deterministic conditions for a card slot.
+ *
+ * Juvenile slots cycle through every (surface, trip zone) pair: the k-th juvenile slot runs on
+ * surface k mod 3 at trip zone k mod 4, so any 12 consecutive juvenile slots (one hour) cover
+ * all 12 pairs, on good or firm ground. Every horse that can run maidens or novices therefore
+ * finds a race that suits its surface and trip within the hour (tested in the web app with the
+ * form-guide rating). The other classes draw surface (all three, synthetic included), trip
+ * (1,000–3,200 m) and going from the slot hash. Calendar races (Weekend Feature, qualifiers,
+ * Season Final) take over their slots (`specialSlotAt`).
+ */
 export function defaultCardSlot(index: number): CreateRaceInput {
+  const sp = specialSlotAt(index);
+  if (sp) return specialCardSlot(index, sp);
   const h = createHash("sha256").update(`card-slot:${index}`).digest();
   let byte = 0;
   const pick = <T>(xs: readonly T[]): T => xs[h[byte++]! % xs.length]!;
   const postTime = slotPostTime(index);
-  const feature = index % 20 === 0;
-  let def: ClassDef;
-  if (feature) def = h[30]! % 2 === 0 ? CLASSES[5]!.def : CLASSES[6]!.def;
-  else {
-    let r = h[31]! % 100;
-    def = CLASSES[0]!.def;
-    for (const c of CLASSES) {
-      if (r < c.weight) {
-        def = c.def;
-        break;
-      }
-      r -= c.weight;
-    }
+  const pos = ((index % 20) + 20) % 20;
+  const hour = Math.floor(index / 20);
+  const slot = HOUR[pos]!;
+  const feature = slot === "feature";
+  const def: ClassDef = feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : slot;
+  let conditions: RaceConditions;
+  const juvenile = JUVENILE_ORDINAL[pos]!;
+  if (juvenile >= 0) {
+    const k = hour * JUVENILE_PER_HOUR + juvenile;
+    const surface = SURFACES[((k % 3) + 3) % 3]!;
+    const weather = pick(["clear", "clear", "overcast", "dusk"]);
+    conditions = {
+      ...def.conditions,
+      distanceM: JUVENILE_TRIPS[((k % 4) + 4) % 4]!,
+      surface,
+      going: surface === "turf" ? pick(["good", "good", "firm"]) : "good",
+      weather,
+      track: pick(TRACKS),
+    };
+  } else {
+    const surface = SURFACES[(hour * 8 + pos + (h[28]! % 3)) % 3]!;
+    conditions = {
+      ...def.conditions,
+      distanceM: pick(OPEN_TRIPS),
+      surface,
+      going: pick(GOING[surface]!),
+      weather: pick(WEATHER),
+      track: pick(TRACKS),
+    };
   }
-  const surface = pick(SURFACES);
-  const conditions: RaceConditions = {
-    ...def.conditions,
-    distanceM: pick(DISTANCES),
-    surface,
-    going: pick(GOING[surface]!),
-    weather: pick(WEATHER),
-    track: pick(TRACKS),
-  };
+  if (conditions.surface === "synthetic") conditions.going = "good";
   return {
     kind: feature ? "feature" : "scheduled",
     name: `${conditions.track} ${feature ? "Feature " : ""}${def.label}`,

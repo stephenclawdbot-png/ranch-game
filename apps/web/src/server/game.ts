@@ -29,7 +29,6 @@ import {
   getRaceForSimulation,
   getRaceResult,
   getStable,
-  grantStoryReward,
   isGenome,
   listCardRaces,
   listHorseRuns,
@@ -46,6 +45,8 @@ import {
   settleRace,
   stableEntriesInRace,
   storyRewardFor,
+  storyState,
+  ensureLeagueMembership,
   tickRaceCard,
   toHorseState,
   RULES,
@@ -76,6 +77,7 @@ import type {
 } from "@/lib/types";
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
+import { houseOwnerFor, settleStoryRace } from "./storyField";
 import { bigCrowd, engineHorseFromSnapshot, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
@@ -132,8 +134,8 @@ function runnerHorse(r: FieldRunner, race: PublicRace): Horse {
   return parsed.success ? parsed.data : engineHorseFromSnapshot(r.horse as Record<string, unknown>, race, r.isHouse);
 }
 
-function stableNameOf(e: RaceEntryRow | undefined, horseId: string, isHouse: boolean): string {
-  if (isHouse || !e?.stableId) return houseStableFor(horseId).name;
+function stableNameOf(e: RaceEntryRow | undefined, horseId: string, isHouse: boolean, race?: Pick<PublicRace, "kind" | "conditions">): string {
+  if (isHouse || !e?.stableId) return houseOwnerFor(race, horseId).name;
   const n = snapshotOf(e).stableName;
   return typeof n === "string" && n ? n : "Private stable";
 }
@@ -288,16 +290,8 @@ async function settleWithReplay(db: Db, race: PublicRace, replay: RaceReplay, no
     return { horseId: f.horseId, position: f.position, finishTimeUs: f.finishTimeUs, ratingAfter: r?.state.rating.or, quirksRevealed: r?.revealedQuirks, state: r?.state };
   });
   const res = await settleRace(db, { raceId: race.id, now: at, runners, resultHash: replay.result.resultHash, engineVersion: replay.engineVersion, result: replay.result });
-  if (race.kind === "quick") {
-    const c = raceConds(race);
-    for (const e of entries) {
-      if (!e.stableId) continue;
-      const accountId = typeof snapshotOf(e).accountId === "string" ? (snapshotOf(e).accountId as string) : null;
-      if (!accountId) continue;
-      const pos = replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 99;
-      await grantStoryReward(db, { accountId, raceId: race.id, storyKey: `club:${race.raceClass}:${c.distanceM}`, chapter: "club", won: pos === 1 });
-    }
-  }
+  // Story: capped reward + chapter progress and licences (storyField.ts).
+  if (race.kind === "quick") await settleStoryRace(db, race, entries, replay);
   return !res.alreadySettled;
 }
 
@@ -332,7 +326,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
           gate: r.gate,
           tactic: r.tactic as FieldEntry["tactic"],
           horse: runnerHorse(r, race),
-          stableName: stableNameOf(e, r.horseId, r.isHouse),
+          stableName: stableNameOf(e, r.horseId, r.isHouse, race),
           isPlayer: !r.isHouse,
           mine: !!viewerStableId && r.stableId === viewerStableId,
         };
@@ -343,7 +337,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       gate: 0,
       tactic: e.tactic as FieldEntry["tactic"],
       horse: engineHorseFromSnapshot(snapshotOf(e), race, e.isHouse),
-      stableName: stableNameOf(e, e.horseId, e.isHouse),
+      stableName: stableNameOf(e, e.horseId, e.isHouse, race),
       isPlayer: !e.isHouse,
       mine: !!viewerStableId && e.stableId === viewerStableId,
     }));
@@ -389,14 +383,14 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
   const winnerOf = (horseId: string, timeUs: number) => {
     const runner = (race.field as LockedField | null)?.runners.find((r) => r.horseId === horseId);
     const horse = runner ? runnerHorse(runner, race) : null;
-    return { horseId, name: horse?.name ?? "Winner", stableName: runner?.isHouse || !runner ? houseStableFor(horseId).name : "", timeUs };
+    return { horseId, name: horse?.name ?? "Winner", stableName: runner?.isHouse || !runner ? houseOwnerFor(race, horseId).name : "", timeUs };
   };
   if (race.status === "settled") {
     // Settled only after the broadcast was over: the stored result is public now.
     const stored = await getRaceResult(db, race.id);
     const first = (stored?.result as { finishOrder?: { horseId: string; finishTimeUs: number }[] } | null)?.finishOrder?.[0];
     const w = first ? winnerOf(first.horseId, first.finishTimeUs) : undefined;
-    if (w && !w.stableName) w.stableName = await playerStableName(db, race.id, first!.horseId);
+    if (w && !w.stableName) w.stableName = await playerStableName(db, race, first!.horseId);
     return { ...base, phase: "finished", winner: w };
   }
   const replay = await replayFor(db, race, now);
@@ -404,13 +398,13 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
   if (!isBroadcastOver(replay, now.getTime())) return { ...base, phase: "live" };
   const first = replay.result.finishOrder[0];
   const w = first ? winnerOf(first.horseId, first.finishTimeUs) : undefined;
-  if (w && !w.stableName) w.stableName = await playerStableName(db, race.id, first!.horseId);
+  if (w && !w.stableName) w.stableName = await playerStableName(db, race, first!.horseId);
   return { ...base, phase: "finished", endsAtMs: broadcastEndsAtMs(replay), winner: w };
 }
 
-async function playerStableName(db: Db, raceId: string, horseId: string): Promise<string> {
-  const e = (await listRaceEntries(db, raceId)).find((x) => x.horseId === horseId);
-  return stableNameOf(e, horseId, !e?.stableId);
+async function playerStableName(db: Db, race: PublicRace, horseId: string): Promise<string> {
+  const e = (await listRaceEntries(db, race.id)).find((x) => x.horseId === horseId);
+  return stableNameOf(e, horseId, !e?.stableId, race);
 }
 
 /** The Live card: the next races (entries open or closed) and the latest ones (live first, then results). */
@@ -522,7 +516,12 @@ export async function enterLive(db: Db, session: Session, raceId: string, horseI
   await driveCard(db, now);
   const race = await loadRace(db, raceId);
   if (race.kind === "quick") throw new DomainError("NOT_ELIGIBLE", "Story races are entered from Story mode");
+  // Licences only ever go up, so checking the request's stable row is safe outside the entry transaction.
+  const licence = licenceReason(race, session.stable.licenceLevel);
+  if (licence) throw new DomainError("NOT_ELIGIBLE", licence);
   const entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta: entryMeta(session, plan) });
+  // Racing Live puts the stable in this week's league (idempotent; never blocks the entry).
+  await ensureLeagueMembership(db, { accountId: session.accountId, now }).catch((e) => console.error("[game] league join failed", e));
   return { raceId, horseId: entry.horseId, postTimeMs: race.postTime.getTime(), entriesCloseAtMs: race.entriesCloseAt.getTime() };
 }
 
@@ -553,9 +552,18 @@ function slotFor(race: PublicRace): gc.RaceSlot {
   };
 }
 
-/** Why a horse can't enter this race (null = eligible): game-core entry rules + the race's rating band. */
-export function entryReason(row: HorseRow, race: PublicRace, now: Date): string | null {
+/** Licence a Live race needs that the stable doesn't hold yet (Story licences, §4e), as a reason. */
+export function licenceReason(race: PublicRace, licenceLevel: number): string | null {
+  if (race.kind === "quick") return null;
+  const block = gc.licenceBlock(licenceLevel, raceTier(race), race.kind === "feature" || race.kind === "final");
+  return block ? `Needs a ${block.name}: earn it in Story mode` : null;
+}
+
+/** Why a horse can't enter this race (null = eligible): licence, game-core entry rules + the race's rating band. */
+export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): string | null {
   if (row.lockKind) return row.lockKind === "race" ? "Already entered in a race" : "Listed on the market";
+  const licence = licenceLevel === undefined ? null : licenceReason(race, licenceLevel);
+  if (licence) return licence;
   if (!isGenome(row.genome)) return null;
   const state = toHorseState(row);
   const block = gc.entryBlock(state, slotFor(race), now.getTime());
@@ -610,7 +618,7 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
     const already = entered.some((e) => e.horseId === row.id);
     return {
       horseId: row.id,
-      reason: already ? "Entered" : race.kind === "quick" ? null : entryReason(row, race, now),
+      reason: already ? "Entered" : race.kind === "quick" ? null : entryReason(row, race, now, session.stable.licenceLevel),
       fitLoss: fitLoss(horse, race),
       risk: {
         conservative: raceRisk(row, race, "conservative", now.getTime()),
@@ -652,7 +660,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
     .slice(0, 8);
   let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; wait: number } | null = null;
   for (const [i, race] of card.entries()) {
-    const fits = pool.filter((c) => entryReason(c.row, race, now) === null).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
+    const fits = pool.filter((c) => entryReason(c.row, race, now, session.stable.licenceLevel) === null).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
     fits.sort((a, b) => a.loss - b.loss);
     const top = fits[0];
     if (!top) continue;
@@ -687,7 +695,9 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
 export const STORY_INSTANT_BACKDATE_MS = 10 * 60_000;
 export const STORY_POST_DELAY_MS = 10_000;
 const STORY_TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
-const STORY_DISTANCES = [1000, 1200, 1400, 1600, 2000, 2400];
+/** Open Story races cover every trip a horse can prefer (1,000-3,200 m) on all three surfaces. */
+const STORY_DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
+const STORY_SURFACES = ["turf", "dirt", "synthetic"] as const;
 
 function rand(n: number): number {
   const b = new Uint32Array(1);
@@ -724,6 +734,54 @@ function storyPick(rows: HorseRow[], silks: ReturnType<typeof parseSilks>, nowMs
   return scored[0] ?? null;
 }
 
+/** A solo Story race to run now: its card conditions (conditions.story says which chapter and rivals). */
+export interface SoloRaceSpec {
+  name: string;
+  raceClass: string;
+  conditions: RaceConditions;
+  targetRunners: number;
+}
+
+/**
+ * Creates, enters, locks, simulates and settles a solo Story race for one horse in one go
+ * (Story rewards and chapter progress are paid at settlement). Instant races are back-dated
+ * so the result shows at once; otherwise the race goes off in STORY_POST_DELAY_MS.
+ */
+export async function runSoloRace(db: Db, session: Session, row: HorseRow, plan: RacePlan, spec: SoloRaceSpec, instant: boolean, now: Date): Promise<{ raceId: string; postTimeMs: number }> {
+  const nowMs = now.getTime();
+  const postTime = instant ? new Date(Math.floor((nowMs - STORY_INSTANT_BACKDATE_MS) / 1000) * 1000) : new Date(Math.ceil((nowMs + STORY_POST_DELAY_MS) / 1000) * 1000);
+  const enterAt = instant ? new Date(postTime.getTime() - 1000) : now;
+  const closeAt = instant ? postTime : new Date(nowMs + 1000);
+  const race = await createRace(db, {
+    kind: "quick",
+    name: spec.name,
+    raceClass: spec.raceClass,
+    conditions: spec.conditions,
+    postTime,
+    entriesCloseAt: closeAt,
+    purse: 0,
+    maxRunners: 12,
+    targetRunners: spec.targetRunners,
+  });
+  try {
+    await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId: row.id, tactic: plan.tactic, now: enterAt, meta: entryMeta(session, plan) });
+    await lockField(db, race.id, closeAt, raceHooks);
+    const locked = (await dbGetRace(db, race.id))!;
+    const simAt = now < postTime ? postTime : now;
+    const replay = await simulateLocked(db, locked, simAt);
+    await settleWithReplay(db, locked, replay, simAt);
+  } catch (e) {
+    await cancelRace(db, { raceId: race.id, now, reason: "story entry failed" }).catch(() => undefined);
+    throw e;
+  }
+  return { raceId: race.id, postTimeMs: postTime.getTime() };
+}
+
+/**
+ * An open Story race (Quick Pick / "race now"): the race secretary finds a race near the
+ * horse's trip (3 in 4) and on its surface (3 in 4, synthetic included), at the stable's
+ * current Story chapter against that chapter's rival stables.
+ */
 export async function createStoryRace(db: Db, session: Session, req: StoryRequest, now: Date): Promise<StoryCreated> {
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
@@ -748,42 +806,32 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
   const horse = horseFromRow(row, silks, nowMs);
   const plan = req.plan ?? { tactic: horse.style, intensity: "normal" as const };
 
-  // The race secretary finds a race near the horse's trip (3 in 4), on its surface (3 in 4).
-  const near = STORY_DISTANCES.filter((d) => Math.abs(d - horse.preferredDistanceM) <= 200);
+  const near = STORY_DISTANCES.filter((d) => d <= horse.preferredDistanceM + 100 && d >= horse.preferredDistanceM - 300);
   const distanceM = near.length && rand(4) < 3 ? near[rand(near.length)]! : STORY_DISTANCES[rand(STORY_DISTANCES.length)]!;
-  const surface = horse.preferredSurface !== "synthetic" && rand(4) < 3 ? horse.preferredSurface : (["turf", "dirt"] as const)[rand(2)]!;
-  const going = surface === "turf" ? (["firm", "good", "good", "soft"] as const)[rand(4)]! : (["good", "good", "heavy"] as const)[rand(3)]!;
+  const surface = rand(4) < 3 ? horse.preferredSurface : STORY_SURFACES[rand(3)]!;
+  const going = surface === "turf" ? (["firm", "good", "good", "soft"] as const)[rand(4)]! : surface === "dirt" ? (["good", "good", "heavy"] as const)[rand(3)]! : "good";
   const weather = (["clear", "clear", "overcast", "rain", "dusk"] as const)[rand(5)]!;
   const raceClass = row.wins === 0 ? "maiden" : row.wins <= 2 ? "novice" : "handicap";
   const track = STORY_TRACKS[rand(STORY_TRACKS.length)]!;
   const or = row.rating;
-
-  const postTime = req.instant ? new Date(Math.floor((nowMs - STORY_INSTANT_BACKDATE_MS) / 1000) * 1000) : new Date(Math.ceil((nowMs + STORY_POST_DELAY_MS) / 1000) * 1000);
-  const enterAt = req.instant ? new Date(postTime.getTime() - 1000) : now;
-  const closeAt = req.instant ? postTime : new Date(nowMs + 1000);
-  const race = await createRace(db, {
-    kind: "quick",
-    name: `${track} Club ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
-    raceClass,
-    conditions: { distanceM, surface, going, weather, track, minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12), story: { chapter: "club" } },
-    postTime,
-    entriesCloseAt: closeAt,
-    purse: 0,
-    maxRunners: 12,
-    targetRunners: 8 + rand(3),
-  });
-  try {
-    await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId: row.id, tactic: plan.tactic, now: enterAt, meta: entryMeta(session, plan) });
-    await lockField(db, race.id, closeAt, raceHooks);
-    const locked = (await dbGetRace(db, race.id))!;
-    const simAt = now < postTime ? postTime : now;
-    const replay = await simulateLocked(db, locked, simAt);
-    await settleWithReplay(db, locked, replay, simAt);
-  } catch (e) {
-    await cancelRace(db, { raceId: race.id, now, reason: "story entry failed" }).catch(() => undefined);
-    throw e;
-  }
-  return { raceId: race.id, postTimeMs: postTime.getTime(), horseId: row.id, pick };
+  const st = await storyState(db, session.accountId);
+  const chapter = gc.currentChapter(st.licenceLevel, new Set(st.wonKeys));
+  const chapterName = gc.chapterDef(chapter).title.replace(/^The /, "");
+  const created = await runSoloRace(
+    db,
+    session,
+    row,
+    plan,
+    {
+      name: `${track} ${chapterName} ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
+      raceClass,
+      conditions: { distanceM, surface, going, weather, track, minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12), story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id) } },
+      targetRunners: 8 + rand(3),
+    },
+    !!req.instant,
+    now,
+  );
+  return { ...created, horseId: row.id, pick };
 }
 
 // ---------------------------------------------------------------------------

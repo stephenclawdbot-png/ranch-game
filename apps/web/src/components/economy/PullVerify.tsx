@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { commitSeed, pullPack, pullSex, NEW_PITY, type PackType, type PityState } from "@thoroughbred/game-core";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import type { PullProofView } from "@/lib/economyTypes";
-import { Check, RarityBadge, Skeleton, useEcoView } from "./kit";
+import { Check, RARITY_LABEL, RarityBadge, Skeleton, useEcoView } from "./kit";
 
 function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -110,7 +110,7 @@ export function PullVerify({ id }: { id: string }) {
             <Check ok={local.commitment}>The seal published before the pull is the sha256 fingerprint of the revealed seed.</Check>
             <Check ok={local.chain}>Your {p.chain.length} earlier {p.chain.length === 1 ? "pull replays" : "pulls replay"} to the same results (that sets the pity counters).</Check>
             <Check ok={local.rarity}>
-              The roll is {local.roll} of 10,000, which gives <b>{local.rolled}</b>
+              The roll is {local.roll} of 10,000, which gives <b>{RARITY_LABEL[local.rolled as keyof typeof RARITY_LABEL] ?? local.rolled}</b>
               {local.pityRule && p.pull.pityApplied ? " after the pity guarantee" : ""}.
             </Check>
             <Check ok={local.pityRule}>Pity: {p.pull.pityApplied ? "the guarantee applied, as the rules say" : "no guarantee was needed"}.</Check>

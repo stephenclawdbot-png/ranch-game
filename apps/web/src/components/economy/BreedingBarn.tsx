@@ -307,6 +307,7 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
   const [busy, setBusy] = useState(false);
   const [coverError, setCoverError] = useState<unknown>(null);
   const [covered, setCovered] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   // Default picks: the first eligible mare and sire.
   useEffect(() => {
@@ -333,7 +334,7 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
     return () => {
       live = false;
     };
-  }, [damId, sireId]);
+  }, [damId, sireId, tick]);
 
   const dam = v.mares.find((m) => m.id === damId);
   const sire = sires.find((s) => s.id === sireId);
@@ -350,6 +351,7 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
       setCovered(`${preview.damName} is in foal to ${preview.sireName}. The foal arrives in 24 hours.`);
       onView(r.view);
       setConfirming(false);
+      setTick((t) => t + 1);
       refreshPurse();
     } catch (e) {
       setCoverError(e);
