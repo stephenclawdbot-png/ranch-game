@@ -4,7 +4,7 @@
  * token (only the hash is stored, like accounts.token_hash) and is recorded in
  * account_devices. Codes live 10 minutes, work once, and are stored hashed.
  */
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { hashToken, newDeviceToken } from "../crypto";
 import { DomainError } from "../errors";
@@ -40,9 +40,9 @@ export interface DeviceEntry {
 }
 
 function newLinkCode(): string {
-  const bytes = randomBytes(8);
+  // randomInt is uniform (a byte % 31 would favour the first 8 characters).
   let out = "";
-  for (let i = 0; i < 8; i++) out += LINK_ALPHABET[bytes[i]! % LINK_ALPHABET.length];
+  for (let i = 0; i < 8; i++) out += LINK_ALPHABET[randomInt(LINK_ALPHABET.length)];
   return `${out.slice(0, 4)}-${out.slice(4)}`;
 }
 
