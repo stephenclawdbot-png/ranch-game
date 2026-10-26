@@ -86,7 +86,7 @@ function RaceAction({ race, chapter }: { race: StoryRaceView; chapter: ChapterVi
 function RaceCard({ race, chapter, rivals }: { race: StoryRaceView; chapter: ChapterView; rivals: StoryView["rivals"] }) {
   const names = race.rivals.map((id) => rivals.find((r) => r.id === id)).filter(Boolean) as StoryView["rivals"];
   return (
-    <li className="surface grid gap-2 p-3" data-testid="story-race" data-race-key={race.key} data-won={race.won || undefined}>
+    <li id={`race-${race.key}`} className="surface grid scroll-mt-28 gap-2 p-3" data-testid="story-race" data-race-key={race.key} data-won={race.won || undefined}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="label text-cream-dim">

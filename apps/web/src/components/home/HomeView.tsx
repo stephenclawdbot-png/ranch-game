@@ -16,6 +16,7 @@ import { PixelIcon, type IconName } from "../icons";
 import { SceneBackdrop } from "../pixel/SceneBackdrop";
 import { ActionBar } from "../ui/ActionBar";
 import { SectionHeader } from "../ui/SectionHeader";
+import { TodayTiles } from "./TodayTiles";
 
 interface ClubProps {
   next: RaceSummary | null;
@@ -168,6 +169,8 @@ function Yard({ state, next, live, recent }: ClubProps & { state: PlayerState })
       )}
 
       <YourRaces state={state} now={now} />
+
+      <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
 
       <section aria-labelledby="pulse-h">
         <SectionHeader id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable" />
