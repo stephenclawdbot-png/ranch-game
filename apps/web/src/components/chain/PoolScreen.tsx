@@ -104,7 +104,7 @@ export function PoolScreen() {
           {v.poolBps / 100}% of every Premium Pack sale goes into a contract on Robinhood Chain. Each week it pays the best active players by skill. Nobody can withdraw it, not even us:
           ETH leaves only when a player claims their share.
         </p>
-        {!v.enabled && <p className="chip chip-cream w-fit">Closed beta: the pool opens when ETH checkout is switched on.</p>}
+        {!v.enabled && <p className="surface-2 p-2 text-sm font-bold">Closed beta: the pool opens when ETH checkout is switched on.</p>}
       </header>
 
       <section className="frame-hero grid gap-2 p-4" aria-labelledby="bal-h">
@@ -121,7 +121,7 @@ export function PoolScreen() {
           Promised to players (vesting): {formatEth(v.outstandingWei, 5)} · free: {formatEth(v.availableWei, 5)} · this week&apos;s budget up to {formatEth(v.budgetWei, 5)}{" "}
           {approxUsd(v.budgetWei, px)}
         </p>
-        {addressUrl(v.chainId, v.pool) && (
+        {!v.mock && addressUrl(v.chainId, v.pool) && (
           <a href={addressUrl(v.chainId, v.pool)!} target="_blank" rel="noreferrer" className="caption underline">
             Contract on the explorer
           </a>
