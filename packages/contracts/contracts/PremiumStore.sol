@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /// @dev Chainlink AggregatorV3Interface (the subset we read). Robinhood Chain documents
 /// Chainlink as its price oracle (docs.robinhood.com/chain/oracles-and-price-feeds).
@@ -45,6 +46,15 @@ interface IPrizePool {
 /// of it goes to the PrizePool (immutable address) in the same transaction, the rest to the
 /// treasury. If the treasury refuses ETH, the share is kept here and `withdrawEth` sends it
 /// to the treasury later; no ETH is ever stuck and none can go anywhere else.
+///
+/// Affiliates (2 levels): a quote may name the buyer's inviter (level 1) and the inviter's
+/// inviter (level 2) with commission bps, bounded on-chain by `maxRef1Bps` / `maxRef2Bps`
+/// (hard caps 15% / 5%). Commissions come out of the TREASURY's share; the pool's share is
+/// never touched. Each referrer is paid in the same tx with a gas-limited call; if that fails
+/// the amount is credited to `referralOwed` and the referrer pulls it with `withdrawReferral`.
+/// The server decides eligibility (verified wallet, 3-month window, weekly cap, linked
+/// accounts) when signing; an ineligible referrer is simply left out (share stays with the
+/// treasury).
 contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     using SafeERC20 for IERC20;
 
@@ -61,9 +71,14 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     uint16 public constant MAX_POOL_BPS = 5_000;
     /// @notice A quote may not be valid for longer than this (the server uses 5 minutes).
     uint64 public constant MAX_QUOTE_TTL = 10 minutes;
+    /// @notice Hard caps for affiliate commissions (bps of the sale).
+    uint16 public constant REF1_BPS_CAP = 1_500;
+    uint16 public constant REF2_BPS_CAP = 500;
+    /// @notice Gas forwarded to a referrer on the instant payment (EOAs and smart wallets).
+    uint256 public constant REFERRAL_CALL_GAS = 60_000;
 
     bytes32 public constant ETH_QUOTE_TYPEHASH = keccak256(
-        "EthQuote(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,uint256 priceWei,uint64 usdCents,uint64 deadline)"
+        "EthQuote(bytes32 orderId,address buyer,bytes32 sku,uint32 quantity,uint256 priceWei,uint64 usdCents,address ref1,uint16 ref1Bps,address ref2,uint16 ref2Bps,uint64 deadline)"
     );
 
     struct EthQuote {
@@ -73,6 +88,10 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint32 quantity;
         uint256 priceWei; // exact total; msg.value must equal it
         uint64 usdCents; // the USD price the quote was computed from (checked only if a feed is set)
+        address ref1; // level-1 referrer (the buyer's inviter) or address(0)
+        uint16 ref1Bps;
+        address ref2; // level-2 referrer (the inviter's inviter) or address(0)
+        uint16 ref2Bps;
         uint64 deadline; // unix seconds, at most MAX_QUOTE_TTL ahead
     }
 
@@ -102,6 +121,11 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     IPriceFeed public priceFeed;
     uint16 public maxPriceDeviationBps;
     uint32 public maxFeedAge;
+    /// @notice Current commission ceilings (admin, within REF1_BPS_CAP / REF2_BPS_CAP).
+    uint16 public maxRef1Bps;
+    uint16 public maxRef2Bps;
+    /// @notice Commissions whose instant payment failed, claimable by the referrer.
+    mapping(address referrer => uint256) public referralOwed;
     mapping(address token => bool) public acceptedToken;
     mapping(bytes32 sku => bool) public skuActive;
     /// @notice Unit price in the token's smallest unit. 0 = SKU not sold in that token.
@@ -135,6 +159,9 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     event PoolBpsSet(uint16 oldBps, uint16 newBps);
     event TreasuryTransferDeferred(address indexed treasury, uint256 amount);
     event EthWithdrawn(address indexed to, uint256 amount);
+    event ReferralCommission(bytes32 indexed orderId, address indexed referrer, uint8 level, uint256 amount, bool deferred);
+    event ReferralWithdrawn(address indexed referrer, uint256 amount);
+    event ReferralBpsSet(uint16 maxRef1Bps, uint16 maxRef2Bps);
     event PriceFeedSet(address indexed feed, uint16 maxDeviationBps, uint32 maxAge);
 
     error ZeroAddress();
@@ -156,6 +183,9 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error PriceOffFeed(uint256 priceWei, uint256 feedWei);
     error StaleFeed(uint256 updatedAt);
     error InvalidFeedConfig();
+    error InvalidReferral();
+    error ReferralBpsOutOfRange(uint16 ref1Bps, uint16 ref2Bps);
+    error NothingOwed();
 
     constructor(address admin, address treasury_, address signer, address prizePool_, uint16 poolBps_)
         EIP712("ThoroughbredPremiumStore", "1")
@@ -167,6 +197,9 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         prizePool = IPrizePool(prizePool_);
         poolBps = poolBps_;
         emit PoolBpsSet(0, poolBps_);
+        maxRef1Bps = 1_000;
+        maxRef2Bps = 300;
+        emit ReferralBpsSet(1_000, 300);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PRICE_MANAGER_ROLE, admin);
         _grantRole(PAUSER_ROLE, admin);
@@ -235,6 +268,7 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         if (quote.priceWei == 0) revert ZeroPrice();
         if (msg.value != quote.priceWei) revert WrongPayment(quote.priceWei, msg.value);
         if (address(priceFeed) != address(0)) _checkAgainstFeed(quote.priceWei, quote.usdCents);
+        _checkReferrals(quote);
 
         (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hashEthQuote(quote), signature);
         if (err != ECDSA.RecoverError.NoError || !hasRole(SIGNER_ROLE, signer)) revert InvalidSignature();
@@ -242,11 +276,15 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         // Effects
         orderBuyer[quote.orderId] = msg.sender;
         poolShare = (msg.value * poolBps) / BPS;
-        uint256 treasuryShare = msg.value - poolShare;
+        uint256 ref1Share = (msg.value * quote.ref1Bps) / BPS;
+        uint256 ref2Share = (msg.value * quote.ref2Bps) / BPS;
+        uint256 treasuryShare = msg.value - poolShare - ref1Share - ref2Share;
         emit PurchasedWithEth(quote.orderId, msg.sender, quote.sku, quote.quantity, msg.value, poolShare, treasuryShare);
 
         // Interactions: the pool is our own contract (reverts bubble up and undo the sale).
         if (poolShare > 0) prizePool.fund{value: poolShare}(quote.orderId);
+        if (ref1Share > 0) _payReferral(quote.orderId, quote.ref1, 1, ref1Share);
+        if (ref2Share > 0) _payReferral(quote.orderId, quote.ref2, 2, ref2Share);
         if (treasuryShare > 0) {
             address to = treasury;
             (bool ok,) = to.call{value: treasuryShare}("");
@@ -255,6 +293,44 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
                 emit TreasuryTransferDeferred(to, treasuryShare);
             }
         }
+    }
+
+    function _checkReferrals(EthQuote calldata q) private view {
+        if (q.ref1Bps > maxRef1Bps || q.ref2Bps > maxRef2Bps) revert ReferralBpsOutOfRange(q.ref1Bps, q.ref2Bps);
+        if (q.ref1 == address(0)) {
+            if (q.ref1Bps != 0 || q.ref2 != address(0) || q.ref2Bps != 0) revert InvalidReferral();
+            return;
+        }
+        if (q.ref1 == q.buyer || q.ref1 == q.ref2) revert InvalidReferral();
+        if (q.ref2 == address(0)) {
+            if (q.ref2Bps != 0) revert InvalidReferral();
+        } else if (q.ref2 == q.buyer) {
+            revert InvalidReferral();
+        }
+    }
+
+    /// @dev Instant payment with bounded gas; on failure the referrer pulls it later.
+    function _payReferral(bytes32 orderId, address to, uint8 level, uint256 amount) private {
+        (bool ok,) = to.call{value: amount, gas: REFERRAL_CALL_GAS}("");
+        if (!ok) referralOwed[to] += amount;
+        emit ReferralCommission(orderId, to, level, amount, !ok);
+    }
+
+    /// @notice A referrer collects commissions whose instant payment failed.
+    function withdrawReferral() external nonReentrant {
+        uint256 amount = referralOwed[msg.sender];
+        if (amount == 0) revert NothingOwed();
+        referralOwed[msg.sender] = 0;
+        emit ReferralWithdrawn(msg.sender, amount);
+        Address.sendValue(payable(msg.sender), amount);
+    }
+
+    /// @notice Commission ceilings, bounded by REF1_BPS_CAP (15%) and REF2_BPS_CAP (5%).
+    function setReferralBps(uint16 ref1Bps, uint16 ref2Bps) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (ref1Bps > REF1_BPS_CAP || ref2Bps > REF2_BPS_CAP) revert ReferralBpsOutOfRange(ref1Bps, ref2Bps);
+        maxRef1Bps = ref1Bps;
+        maxRef2Bps = ref2Bps;
+        emit ReferralBpsSet(ref1Bps, ref2Bps);
     }
 
     /// @notice EIP-712 digest of an EthQuote (what the server signs).
@@ -269,6 +345,10 @@ contract PremiumStore is AccessControl, Pausable, ReentrancyGuard, EIP712 {
                     quote.quantity,
                     quote.priceWei,
                     quote.usdCents,
+                    quote.ref1,
+                    quote.ref1Bps,
+                    quote.ref2,
+                    quote.ref2Bps,
                     quote.deadline
                 )
             )

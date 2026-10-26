@@ -14,6 +14,10 @@ export const ethQuoteTypes = {
     { name: "quantity", type: "uint32" },
     { name: "priceWei", type: "uint256" },
     { name: "usdCents", type: "uint64" },
+    { name: "ref1", type: "address" },
+    { name: "ref1Bps", type: "uint16" },
+    { name: "ref2", type: "address" },
+    { name: "ref2Bps", type: "uint16" },
     { name: "deadline", type: "uint64" },
   ],
 } as const;
@@ -27,6 +31,11 @@ export interface EthQuote {
   priceWei: bigint;
   /** USD price (cents) the quote was computed from; checked on-chain only if a feed is set. */
   usdCents: bigint;
+  /** Level-1 / level-2 affiliate wallets (zero address = none) and their commission bps. */
+  ref1: Address;
+  ref1Bps: number;
+  ref2: Address;
+  ref2Bps: number;
   /** unix seconds; at most MAX_QUOTE_TTL (10 min) ahead on-chain; the server uses 5 min. */
   deadline: bigint;
 }
@@ -39,3 +48,5 @@ export function ethQuoteTypedData(quote: EthQuote, chainId: number, storeAddress
     message: { ...quote },
   };
 }
+
+export const NO_REFERRER: Address = "0x0000000000000000000000000000000000000000";

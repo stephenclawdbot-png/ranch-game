@@ -3,7 +3,7 @@ import hre from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { encodeFunctionData, getAddress, hashTypedData, keccak256, parseEther, toBytes, toFunctionSelector, type Address, type Hex } from "viem";
 import { newOrderId, skuId } from "../adapter/voucher";
-import { ethQuoteTypedData, type EthQuote } from "../adapter/ethQuote";
+import { ethQuoteTypedData, NO_REFERRER, type EthQuote } from "../adapter/ethQuote";
 import { premiumStoreAbi } from "../adapter/abi";
 import { expectRevert, latestTimestamp } from "./helpers";
 
@@ -21,7 +21,7 @@ async function fixture() {
   const asBuyer = await hre.viem.getContractAt("PremiumStore", store.address, { client: { wallet: buyer! } });
   const chainId = await pc.getChainId();
   async function quote(overrides: Partial<EthQuote> = {}): Promise<EthQuote> {
-    return { orderId: newOrderId(), buyer: getAddress(buyer!.account.address), sku: PACK, quantity: 1, priceWei: PRICE, usdCents: 499n, deadline: (await latestTimestamp()) + 300n, ...overrides };
+    return { orderId: newOrderId(), buyer: getAddress(buyer!.account.address), sku: PACK, quantity: 1, priceWei: PRICE, usdCents: 499n, ref1: NO_REFERRER, ref1Bps: 0, ref2: NO_REFERRER, ref2Bps: 0, deadline: (await latestTimestamp()) + 300n, ...overrides };
   }
   async function sign(q: EthQuote, by = signer!, verifyingContract: Address = store.address, cid = chainId): Promise<Hex> {
     return by.signTypedData({ account: by.account, ...ethQuoteTypedData(q, cid, verifyingContract) });
@@ -216,6 +216,117 @@ describe("PremiumStore: native ETH (closed beta)", () => {
     await expectRevert(asBuyer.write.purchaseWithEth([stale, await sign(stale)], { value: PRICE }), "StaleFeed");
     await store.write.setPriceFeed(["0x0000000000000000000000000000000000000000", 0, 0]); // disable again
     await asBuyer.write.purchaseWithEth([stale, await sign(stale)], { value: PRICE });
+  });
+
+  describe("affiliates (2 levels, out of the treasury share)", () => {
+    async function withRefs() {
+      const f = await loadFixture(fixture);
+      const [, , , , , inviter, upstream] = await hre.viem.getWalletClients();
+      return { ...f, inviter: inviter!, upstream: upstream! };
+    }
+
+    it("pays L1 10% and L2 3% instantly; pool keeps exactly 30%; treasury gets the rest", async () => {
+      const { asBuyer, quote, sign, pc, pool, treasury, inviter, upstream, store } = await withRefs();
+      const b = async (a: Address) => pc.getBalance({ address: a });
+      const [t0, i0, u0] = [await b(treasury.account.address), await b(inviter.account.address), await b(upstream.account.address)];
+      const q = await quote({ ref1: getAddress(inviter.account.address), ref1Bps: 1000, ref2: getAddress(upstream.account.address), ref2Bps: 300 });
+      const hash = await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
+      const r = await pc.waitForTransactionReceipt({ hash });
+      console.log(`      purchaseWithEth gas with 2 referrers: ${r.gasUsed}`);
+      const poolShare = (PRICE * 3000n) / 10_000n;
+      const r1 = (PRICE * 1000n) / 10_000n;
+      const r2 = (PRICE * 300n) / 10_000n;
+      expect(await b(pool.address)).to.equal(poolShare);
+      expect((await b(inviter.account.address)) - i0).to.equal(r1);
+      expect((await b(upstream.account.address)) - u0).to.equal(r2);
+      expect((await b(treasury.account.address)) - t0).to.equal(PRICE - poolShare - r1 - r2);
+      expect(await b(store.address)).to.equal(0n);
+      const evs = await store.getEvents.ReferralCommission({}, { fromBlock: r.blockNumber });
+      expect(evs.map((e) => [e.args.level, e.args.amount, e.args.deferred])).to.deep.equal([
+        [1, r1, false],
+        [2, r2, false],
+      ]);
+      const [p] = await store.getEvents.PurchasedWithEth({}, { fromBlock: r.blockNumber });
+      expect(p!.args.treasuryShare).to.equal(PRICE - poolShare - r1 - r2);
+    });
+
+    it("level 1 only: the missing level-2 share stays with the treasury (never the pool)", async () => {
+      const { asBuyer, quote, sign, pc, pool, treasury, inviter } = await withRefs();
+      const t0 = await pc.getBalance({ address: treasury.account.address });
+      const q = await quote({ ref1: getAddress(inviter.account.address), ref1Bps: 1000 });
+      await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
+      expect(await pc.getBalance({ address: pool.address })).to.equal((PRICE * 3000n) / 10_000n);
+      expect((await pc.getBalance({ address: treasury.account.address })) - t0).to.equal(PRICE - (PRICE * 3000n) / 10_000n - (PRICE * 1000n) / 10_000n);
+    });
+
+    it("a referrer that refuses ETH is credited and withdraws later", async () => {
+      const { asBuyer, quote, sign, store, pc } = await withRefs();
+      const sink = await hre.viem.deployContract("MockEthReceiver", []);
+      await sink.write.setMode([1]);
+      const q = await quote({ ref1: getAddress(sink.address), ref1Bps: 1000 });
+      await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
+      const owed = (PRICE * 1000n) / 10_000n;
+      expect(await store.read.referralOwed([sink.address])).to.equal(owed);
+      const [ev] = await store.getEvents.ReferralCommission();
+      expect(ev!.args.deferred).to.equal(true);
+      await expectRevert(asBuyer.write.withdrawReferral(), "NothingOwed");
+      await sink.write.setMode([0]);
+      const data = encodeFunctionData({ abi: premiumStoreAbi, functionName: "withdrawReferral" });
+      await sink.write.execute([store.address, 0n, data]);
+      expect(await pc.getBalance({ address: sink.address })).to.equal(owed);
+      expect(await store.read.referralOwed([sink.address])).to.equal(0n);
+      expect(await pc.getBalance({ address: store.address })).to.equal(0n);
+    });
+
+    it("a gas-griefing or reentrant referrer can't block or re-enter the sale", async () => {
+      const { asBuyer, quote, sign, store } = await withRefs();
+      const evil = await hre.viem.deployContract("MockEthReceiver", []);
+      const q2 = await quote();
+      await evil.write.setReenterAndRecord([store.address, encodeFunctionData({ abi: premiumStoreAbi, functionName: "withdrawReferral" })]);
+      const q = await quote({ ref1: getAddress(evil.address), ref1Bps: 1000 });
+      await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
+      expect(await store.read.isFulfilled([q.orderId])).to.equal(true);
+      expect(await evil.read.reenterError()).to.equal(toFunctionSelector("ReentrancyGuardReentrantCall()"));
+      void q2;
+    });
+
+    it("validates referrers: bps within the current ceilings, no self/duplicate referrers, L2 needs L1", async () => {
+      const { asBuyer, quote, sign, inviter, upstream, buyer } = await withRefs();
+      const i = getAddress(inviter.account.address);
+      const u = getAddress(upstream.account.address);
+      const me = getAddress(buyer.account.address);
+      const cases: [Partial<EthQuote>, string][] = [
+        [{ ref1: i, ref1Bps: 1001 }, "ReferralBpsOutOfRange"],
+        [{ ref1: i, ref1Bps: 1000, ref2: u, ref2Bps: 301 }, "ReferralBpsOutOfRange"],
+        [{ ref1Bps: 100 }, "InvalidReferral"],
+        [{ ref2: u, ref2Bps: 300 }, "InvalidReferral"],
+        [{ ref1: me, ref1Bps: 1000 }, "InvalidReferral"],
+        [{ ref1: i, ref1Bps: 1000, ref2: me, ref2Bps: 300 }, "InvalidReferral"],
+        [{ ref1: i, ref1Bps: 1000, ref2: i, ref2Bps: 300 }, "InvalidReferral"],
+        [{ ref1: i, ref1Bps: 1000, ref2Bps: 300 }, "InvalidReferral"],
+      ];
+      for (const [o, err] of cases) {
+        const q = await quote(o);
+        await expectRevert(asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE }), err);
+      }
+      // A referrer swapped in after signing breaks the signature.
+      const q = await quote({ ref1: i, ref1Bps: 1000 });
+      await expectRevert(asBuyer.write.purchaseWithEth([{ ...q, ref1: u }, await sign(q)], { value: PRICE }), "InvalidSignature");
+    });
+
+    it("ceilings are admin-only with hard caps 15% / 5%; at the caps the pool still gets its full share", async () => {
+      const { store, asBuyer, quote, sign, pc, pool, inviter, upstream } = await withRefs();
+      await expectRevert(asBuyer.write.setReferralBps([1500, 500]), "AccessControlUnauthorizedAccount");
+      await expectRevert(store.write.setReferralBps([1501, 500]), "ReferralBpsOutOfRange");
+      await expectRevert(store.write.setReferralBps([1500, 501]), "ReferralBpsOutOfRange");
+      await store.write.setReferralBps([1500, 500]);
+      await store.write.setPoolBps([5000]);
+      const q = await quote({ ref1: getAddress(inviter.account.address), ref1Bps: 1500, ref2: getAddress(upstream.account.address), ref2Bps: 500 });
+      await asBuyer.write.purchaseWithEth([q, await sign(q)], { value: PRICE });
+      expect(await pc.getBalance({ address: pool.address })).to.equal(PRICE / 2n);
+      const evs = await store.getEvents.ReferralBpsSet({}, { fromBlock: 0n });
+      expect(evs.at(-1)!.args).to.deep.equal({ maxRef1Bps: 1500, maxRef2Bps: 500 });
+    });
   });
 
   it("poolBps is bounded [1000, 5000], admin-only and evented; the pool address is immutable", async () => {
