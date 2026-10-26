@@ -35,7 +35,13 @@ Preview and Production.)
 - **Open, smaller:**
   - public boards list test accounts: run the `/admin` reset before testers arrive (owner's
     call on timing: it wipes production and preview);
-  - check Trackside and the dioramas for fps on a real GPU and phone.
+  - check Trackside and the dioramas for fps on a real GPU and phone;
+  - **owner (2026-10-26): "Going down to post" is too long, make it a bit shorter (later).**
+    It is the gap between entry close (post − 60 s, `enterRace`) and "Gates loading"
+    (last 10 s), ~50 s of nothing on Live races. Options: close entries at post − 30 s, or
+    give the wait something to watch (the field cantering down, the parade ring);
+  - daily goals: migration + 60-credit constant are in `worker/goals` (`/tmp/wt-goals`); the
+    GLM worker hit the Ollama session limit, resume with `scratchpad/tickets/goals.md`.
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
 
