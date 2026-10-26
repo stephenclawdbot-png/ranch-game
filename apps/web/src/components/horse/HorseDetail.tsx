@@ -218,6 +218,8 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         </section>
       </div>
 
+      {view.genetics && <Genetics gen={view.genetics} />}
+
       {(isMine || history.length > 0) && (
         <section aria-labelledby="history-h">
           <h2 id="history-h" className="t-h2 mb-3">
@@ -267,6 +269,83 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         </div>
       </section>
     </div>
+  );
+}
+
+/** Coat genotype, markings, breed mix and build — the stud-book view of the horse. */
+function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
+  return (
+    <section className="surface p-4" aria-labelledby="gen-h" data-testid="genetics">
+      <h2 id="gen-h" className="t-h2">
+        Genetics
+      </h2>
+      <p className="mt-1 text-sm text-cream-dim">
+        {gen.coat.name}
+        {gen.coat.bornAs ? ` — born ${gen.coat.bornAs.toLowerCase()}, greying with career` : ""}. The genotype behind the coat.
+      </p>
+      <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
+        <div>
+          <table className="w-full text-sm" data-testid="genetics-loci">
+            <caption className="label mb-1 text-left">Coat loci</caption>
+            <tbody>
+              {gen.coat.loci.map((l) => (
+                <tr key={l.locus} className="border-t-2 border-dotted border-line">
+                  <th scope="row" className="py-1.5 pr-2 text-left font-bold">
+                    {l.locus}
+                  </th>
+                  <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
+                  <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
+                    {l.meaning}
+                    {l.carried && <span className="label ml-1">(carried)</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="grid content-start gap-3">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+            <dt className="label self-center">Face</dt>
+            <dd className="min-w-0 font-bold">{gen.white.face}</dd>
+            <dt className="label self-center">Legs</dt>
+            <dd className="min-w-0 font-bold">{gen.white.legs}</dd>
+            <dt className="label self-center">Sabino</dt>
+            <dd className="font-mono text-xs font-bold">{gen.white.sabino}</dd>
+            <dt className="label self-center">White tendency</dt>
+            <dd className="font-bold capitalize">{gen.white.tendency}</dd>
+            <dt className="label self-center">Build</dt>
+            <dd className="min-w-0 font-bold capitalize">{gen.build}</dd>
+            <dt className="label self-center">Inbreeding</dt>
+            <dd className="font-bold">{gen.inbreeding.text}</dd>
+          </dl>
+          <ul className="grid gap-1.5" aria-label="Breed mix">
+            {gen.breed.map((b) => (
+              <li key={b.key} className="grid grid-cols-[minmax(0,7.5rem)_1fr_auto] items-center gap-2 text-sm">
+                <span className="min-w-0 truncate font-bold">{b.label}</span>
+                <span className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={b.share} aria-label={`${b.label} share`}>
+                  <span style={{ width: `${b.share}%` }} />
+                </span>
+                <span className="num font-bold">{b.share}%</span>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <span className="label">Quirks</span>
+            {gen.quirks.length ? (
+              <ul className="mt-1 flex flex-wrap gap-1.5">
+                {gen.quirks.map((q) => (
+                  <li key={q.key} className="chip">
+                    {q.label}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="t-meta mt-1">None revealed yet — quirks show themselves in races.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

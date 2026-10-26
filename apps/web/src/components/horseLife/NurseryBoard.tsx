@@ -46,6 +46,11 @@ function FoalCard({ f, view, action }: { f: NurseryFoal; view: NurseryView; acti
             </p>
           )}
           <p className="t-meta">{SEX_LABEL[f.horse.sex]}</p>
+          {f.geneticsLine && (
+            <p className="caption" data-testid="genetics-line">
+              {f.geneticsLine}
+            </p>
+          )}
         </div>
         {f.care.caredToday ? (
           <span className="chip text-positive">✓ Cared today</span>

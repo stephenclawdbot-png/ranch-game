@@ -168,6 +168,8 @@ export interface NurseryFoal {
   id: string;
   name: string;
   horse: Horse;
+  /** One-line genetics, e.g. "bay roan · Sabino · 88% TB". */
+  geneticsLine: string | null;
   care: CareView;
   ranges: RangeView[];
   scanned: boolean;

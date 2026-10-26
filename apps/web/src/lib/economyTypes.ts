@@ -12,6 +12,8 @@ export type PackType = "paddock" | "premium";
 export interface EcoHorse {
   id: string;
   horse: Horse;
+  /** One-line genetics, e.g. "bay roan · Sabino · 88% TB" (null for legacy rows). */
+  geneticsLine: string | null;
   stage: string;
   careerStatus: "racing" | "retired" | "pasture";
   starts: number;
@@ -137,6 +139,8 @@ export interface PullRow {
   pityApplied: "rare" | "epic" | null;
   horseId: string | null;
   horseName: string | null;
+  /** One-line genetics of the pulled foal (null for legacy rows). */
+  geneticsLine: string | null;
   free: boolean;
   price: number;
   createdAtMs: number;

@@ -43,7 +43,7 @@ import {
 } from "@thoroughbred/db";
 import type { Db } from "./db";
 import type { Session } from "./session";
-import { horseFromRow, parseSilks, stableHorseView } from "./horseView";
+import { geneticsLineOf, horseFromRow, parseSilks, stableHorseView } from "./horseView";
 import type {
   CareView,
   CareerView,
@@ -299,6 +299,7 @@ export async function nurseryView(db: Db, session: Session, now: Date): Promise<
     id: r.id,
     name: r.name,
     horse: horseFromRow(r, silks, nowMs),
+    geneticsLine: geneticsLineOf(r),
     care: careView(r, day, last.get(r.id) ?? null, nowMs),
     ranges: rangesOf(toHorseState(r)),
     scanned: r.scanned,

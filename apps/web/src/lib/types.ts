@@ -3,6 +3,7 @@
  * components (the server modules that build them never are).
  */
 import type { Horse, RaceClass, RaceConfig, RunningStyle, Silks, Surface, Going, Weather } from "@thoroughbred/shared";
+import type { GeneticsSummary } from "@thoroughbred/game-core";
 
 export type RaceKind = "live" | "story";
 export type RideIntensity = "conservative" | "normal" | "all_out";
@@ -85,6 +86,8 @@ export interface StableHorse {
   regNo: string;
   /** Shared Horse (current stats, appearance in the stable's silks). */
   horse: Horse;
+  /** One-line genetics, e.g. "bay roan · Sabino · 88% TB" (null for legacy rows). */
+  geneticsLine: string | null;
   stage: string;
   careerStatus: "racing" | "retired" | "pasture";
   starts: number;
@@ -193,6 +196,8 @@ export interface HorseDetailView {
   stud: { fee: number; club: boolean } | null;
   /** The owner's next steps beyond racing (null for other stables' horses). */
   actions: { cover: boolean; stud: boolean; sell: boolean } | null;
+  /** Coat genetics, markings, breed mix, build, inbreeding, revealed quirks (stud-book info). */
+  genetics: GeneticsSummary | null;
 }
 
 /** The viewer's own result in a race (only after the broadcast is over). */

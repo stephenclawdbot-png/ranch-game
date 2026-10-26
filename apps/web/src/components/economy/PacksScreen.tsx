@@ -124,6 +124,11 @@ export function PacksScreen() {
                     {p.pityApplied ? ` · pity (${p.pityApplied === "epic" ? "Epic" : p.packType === "paddock" ? "Uncommon" : "Rare"} guarantee)` : ""} ·{" "}
                     {new Date(p.createdAtMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </span>
+                  {p.geneticsLine && (
+                    <span className="caption block" data-testid="genetics-line">
+                      {p.geneticsLine}
+                    </span>
+                  )}
                 </span>
                 <Link href={`/packs/pulls/${p.id}`} className="btn btn-sm" data-testid="verify-link">
                   ✓ Verify
