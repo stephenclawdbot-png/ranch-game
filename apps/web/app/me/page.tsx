@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { PlayerGate } from "@/components/PlayerGate";
+import { WalletLink } from "@/components/chain/WalletLink";
 import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
 import { ActionBar } from "@/components/ui/ActionBar";
@@ -55,6 +56,21 @@ function Profile({ state }: { state: PlayerState }) {
           <span aria-hidden className="font-extrabold">›</span>
         </Link>
       )}
+
+      <section className="surface grid gap-3 p-4" aria-labelledby="money-h" data-testid="me-wallet">
+        <h2 id="money-h" className="t-display-m">
+          Wallet, Prize Pool &amp; invites
+        </h2>
+        <WalletLink />
+        <p className="flex flex-wrap gap-3 text-sm">
+          <Link href="/pool" className="underline" data-testid="me-pool-link">
+            Prize Pool
+          </Link>
+          <Link href="/invite" className="underline" data-testid="me-invite-link">
+            Invite friends
+          </Link>
+        </p>
+      </section>
 
       <section className="grid gap-5 md:grid-cols-[1fr_16rem]" aria-labelledby="colours-h">
         <div className="grid content-start gap-5">

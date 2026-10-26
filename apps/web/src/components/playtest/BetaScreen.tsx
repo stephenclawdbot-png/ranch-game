@@ -1,5 +1,6 @@
 "use client";
 
+import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
 import Link from "next/link";
 import { useState } from "react";
 import { PlayerGate } from "../PlayerGate";
@@ -156,12 +157,28 @@ function Wallet({ address, onSaved }: { address: string | null; onSaved: (a: str
     }
   }
 
+  // Beta money: the wallet is proven with a free signature (SIWE) and stored on the same tester
+  // record; only a verified wallet buys packs, receives Prize Pool payouts and commissions.
+  const { status } = useWalletStatus();
+  if (status?.address) {
+    return (
+      <section aria-labelledby="wallet-h" className="surface grid gap-2 p-4">
+        <h2 id="wallet-h" className="t-display-m">
+          Your wallet
+        </h2>
+        <WalletLink />
+      </section>
+    );
+  }
   return (
     <section aria-labelledby="wallet-h" className="surface grid gap-2 p-4">
       <h2 id="wallet-h" className="t-display-m">
         Your wallet
       </h2>
-      <p className="text-sm text-cream-dim">An EVM address on Robinhood Chain (0x…, 42 characters) for your tester item and any payouts. Optional; you can change it any time.</p>
+      <WalletLink />
+      <p className="caption mt-2">
+        No browser wallet? You can paste an address for your tester item only. An unverified address can&rsquo;t buy packs or receive Prize Pool payouts or commissions.
+      </p>
       <form
         className="flex flex-wrap items-start gap-2"
         onSubmit={(e) => {

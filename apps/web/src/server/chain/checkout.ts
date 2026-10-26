@@ -14,6 +14,7 @@ import { getAddress } from "viem";
 import {
   BETA_SKUS,
   DomainError,
+  clearOrderTx,
   createChainOrder,
   foalCropStatus,
   fulfilChainOrder,
@@ -191,7 +192,8 @@ export async function settleOrder(ctx: CheckoutCtx, order: ChainOrderRow, txHash
   if (v.status === "rejected") {
     // A tx that doesn't pay this order says nothing about the order itself: only a failed/
     // mismatched tx for it is recorded; the quote can still be paid until its deadline.
-    await noteOrderError(db, { orderId: order.orderId, error: `tx ${txHash}: ${v.reason}`, now });
+    if (order.status === "submitted") await clearOrderTx(db, { orderId: order.orderId, error: `tx ${txHash}: ${v.reason}`, now });
+    else await noteOrderError(db, { orderId: order.orderId, error: `tx ${txHash}: ${v.reason}`, now });
     return { status: "rejected", orderId: order.orderId, reason: v.reason };
   }
   try {

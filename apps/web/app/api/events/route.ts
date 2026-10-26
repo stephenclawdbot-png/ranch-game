@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** Client-side events only; everything else is recorded by the server where it happens. */
 const Event = z.object({
-  name: z.enum(["session_start", "page_view", "race_watched"]),
+  name: z.enum(["session_start", "page_view", "race_watched", "pool_claim"]),
   /** Route path only: query strings and hashes are stripped. */
   route: z.string().max(200).optional(),
   raceId: z.string().uuid().optional(),

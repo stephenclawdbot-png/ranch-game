@@ -250,7 +250,7 @@ function MyClaims({ mine, px, onClaimed }: { mine: Mine | null; px: number | nul
       });
       await pub.waitForTransactionReceipt({ hash });
       setMsg("Claimed ✓");
-      void fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "pool_claim", props: { epoch: a.epochId } }) }).catch(() => null);
+      void fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events: [{ name: "pool_claim", route: "/pool" }] }) }).catch(() => null);
       onClaimed();
     } catch (e) {
       setMsg(walletErrorText(e));

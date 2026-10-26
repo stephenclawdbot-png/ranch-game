@@ -253,7 +253,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-sm">
             <span className="sr-only">Quantity</span>
-            <select className="input" value={qty} onChange={(e) => setQty(Number(e.target.value))} disabled={maxQty === 0} data-testid="checkout-qty">
+            <select className="field min-h-11" value={qty} onChange={(e) => setQty(Number(e.target.value))} disabled={maxQty === 0} data-testid="checkout-qty">
               {Array.from({ length: Math.max(1, maxQty) }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
                   {i + 1} pack{i ? "s" : ""}

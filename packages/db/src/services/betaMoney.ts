@@ -234,6 +234,8 @@ export async function markOrderSubmitted(db: Db, input: { orderId: string; accou
   const order = await getChainOrder(db, input.orderId);
   if (!order || order.accountId !== input.accountId) throw new DomainError("NOT_FOUND", "order not found");
   if (order.txHash && order.txHash !== txHash) throw new DomainError("IDEMPOTENCY_CONFLICT", "This order already has a different transaction.");
+  const [other] = await db.select({ orderId: chainOrders.orderId }).from(chainOrders).where(eq(chainOrders.txHash, txHash));
+  if (other && other.orderId !== order.orderId) throw new DomainError("IDEMPOTENCY_CONFLICT", "That transaction paid another order.");
   if (order.status !== "quoted" && order.status !== "expired") return order;
   const [row] = await db
     .update(chainOrders)
@@ -241,6 +243,17 @@ export async function markOrderSubmitted(db: Db, input: { orderId: string; accou
     .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, ["quoted", "expired"])))
     .returning();
   return row ?? (await getChainOrder(db, input.orderId))!;
+}
+
+/**
+ * The submitted tx doesn't pay this order (wrong hash, failed tx, mismatch): forget it so a
+ * correct hash can still be submitted, and the backstop scans for a payment by orderId.
+ */
+export async function clearOrderTx(db: Db, input: { orderId: string; error: string; now: Date }): Promise<void> {
+  await db
+    .update(chainOrders)
+    .set({ status: "quoted", txHash: null, error: input.error.slice(0, 500), updatedAt: input.now })
+    .where(and(eq(chainOrders.orderId, input.orderId.toLowerCase()), eq(chainOrders.status, "submitted")));
 }
 
 /** Terminal states for orders that were never paid (deadline passed / tx rejected). */
