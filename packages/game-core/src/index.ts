@@ -8,6 +8,7 @@ export * from "./time";
 export * from "./genome";
 export * from "./coat";
 export * from "./genetics";
+export * from "./geneticsSummary";
 export * from "./condition";
 export * from "./lifecycle";
 export * from "./phenotype";

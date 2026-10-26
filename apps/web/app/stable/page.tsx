@@ -165,6 +165,11 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
           <span className="t-meta">
             {SEX_LABEL[horse.sex]} · {STYLE_LABEL[horse.style]} · {formatDistance(horse.preferredDistanceM)}
           </span>
+          {s.geneticsLine && (
+            <span className="caption" data-testid="genetics-line">
+              {s.geneticsLine}
+            </span>
+          )}
           <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] font-bold text-cream-dim">
             {recommended && <span className="tag tag-you !h-5 !text-[0.6875rem]">★ Best fit</span>}
             <span className="inline-flex items-center gap-1.5" title={`Injury risk next start: ${riskText(s.risk)}`}>

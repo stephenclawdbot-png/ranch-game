@@ -65,7 +65,7 @@ import type {
   SellableHorse,
   StudView,
 } from "@/lib/economyTypes";
-import { horseFromRow, parseSilks } from "./horseView";
+import { geneticsLineOf, horseFromRow, parseSilks } from "./horseView";
 import type { Session } from "./session";
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ import type { Session } from "./session";
 
 export function ecoHorse(row: HorseRow, silks: Silks, nowMs: number): EcoHorse {
   const stage = isGenome(row.genome) ? gc.stageOf(toHorseState(row)) : row.stage;
-  return { id: row.id, horse: horseFromRow(row, silks, nowMs), stage, careerStatus: row.careerStatus, starts: row.starts, rating: row.rating };
+  return { id: row.id, horse: horseFromRow(row, silks, nowMs), geneticsLine: geneticsLineOf(row), stage, careerStatus: row.careerStatus, starts: row.starts, rating: row.rating };
 }
 
 /** Idempotency keys are scoped to the account, so one player's key can never match another's. */
@@ -377,7 +377,7 @@ export function premiumDemoEnabled(): boolean {
   return process.env.PREMIUM_PACK_DEMO === "1";
 }
 
-function pullRow(p: PackPullRow & { horseName?: string | null }): PullRow {
+function pullRow(p: PackPullRow & { horseName?: string | null }, geneticsLine: string | null = null): PullRow {
   return {
     id: p.id,
     packType: p.packType === "premium" ? "premium" : "paddock",
@@ -386,6 +386,7 @@ function pullRow(p: PackPullRow & { horseName?: string | null }): PullRow {
     pityApplied: p.pityApplied === "rare" || p.pityApplied === "epic" ? p.pityApplied : null,
     horseId: p.horseId,
     horseName: p.horseName ?? null,
+    geneticsLine,
     free: p.free,
     price: p.price,
     createdAtMs: p.createdAt.getTime(),
@@ -442,9 +443,19 @@ export async function packsView(db: Db, session: Session, now: Date): Promise<Pa
     ceiling: gc.packCeiling(breedingSeason(now).season),
     credits,
     stalls: { used: stalls.used, slots: stalls.slots, free: stalls.free },
-    pulls: (await listPackPulls(db, session.accountId, 20)).map(pullRow),
+    pulls: await pullRows(db, session.accountId),
     serverNowMs: now.getTime(),
   };
+}
+
+/** Pull history rows with the foal's one-line genetics (its genome lives on the horse row). */
+async function pullRows(db: Db, accountId: string): Promise<PullRow[]> {
+  const out: PullRow[] = [];
+  for (const p of await listPackPulls(db, accountId, 20)) {
+    const row = p.horseId ? await getHorse(db, p.horseId) : null;
+    out.push(pullRow(p, row ? geneticsLineOf(row) : null));
+  }
+  return out;
 }
 
 export async function pull(db: Db, session: Session, input: { packType: PackType; free: boolean; key: string }, now: Date): Promise<PullResultView> {
@@ -455,7 +466,7 @@ export async function pull(db: Db, session: Session, input: { packType: PackType
   const row = await getHorse(db, res.horseId);
   const [p] = (await listPackPulls(db, session.accountId, 40)).filter((x) => x.id === res.pullId);
   return {
-    pull: pullRow(p!),
+    pull: pullRow(p!, row ? geneticsLineOf(row) : null),
     foal: row ? ecoHorse(row, parseSilks(session.stable.silks), now.getTime()) : null,
     seedReveal: res.seedReveal,
     nextSeedCommitment: res.nextSeedCommitment,
@@ -467,7 +478,7 @@ export async function pullProof(db: Db, session: Session, pullId: string): Promi
   const proof = await packPullProof(db, { accountId: session.accountId, pullId });
   const horse = proof.pull.horseId ? await getHorse(db, proof.pull.horseId) : null;
   return {
-    pull: pullRow({ ...proof.pull, horseName: horse?.name ?? null }),
+    pull: pullRow({ ...proof.pull, horseName: horse?.name ?? null }, horse ? geneticsLineOf(horse) : null),
     accountId: proof.accountId,
     seasonNumber: proof.pull.seasonNumber,
     seedReveal: proof.pull.seedReveal,

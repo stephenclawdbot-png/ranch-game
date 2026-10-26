@@ -144,6 +144,7 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
     id: row.id,
     regNo: gc.registrationNumber(row.generation, row.regNo),
     horse,
+    geneticsLine: geneticsLineOf(row),
     careerStatus: row.careerStatus,
     starts: row.starts,
     maxStarts: gc.CAREER_MAX_STARTS,
@@ -171,6 +172,18 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
     block: base.lockedRaceId ? "Entered in a race" : block ? (BLOCK_TEXT[block] ?? block) : null,
     risk: riskView(risk),
   };
+}
+
+/** Full genetics summary for the horse page (public: coat genetics are stud-book info). */
+export function geneticsView(row: HorseRow, nowMs: number): gc.GeneticsSummary | null {
+  if (!isGenome(row.genome)) return null;
+  const state = toHorseState(row);
+  return gc.geneticsSummary(state.genome, horseFromRow(row, DEFAULT_SILKS, nowMs).appearance, state.reveal.quirks);
+}
+
+/** One-line genetics for cards, e.g. "bay roan · Sabino · 88% TB" (null for legacy rows). */
+export function geneticsLineOf(row: HorseRow): string | null {
+  return isGenome(row.genome) ? gc.geneticsLine(toHorseState(row).genome) : null;
 }
 
 /** Injury risk for a specific race and ride (the entry sheet). */

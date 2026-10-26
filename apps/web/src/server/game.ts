@@ -84,7 +84,7 @@ import type {
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
-import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 
@@ -994,14 +994,16 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const parent = (id: string | null) => (id ? { id, name: parents.get(id)?.name ?? "Unknown", regNo: parents.get(id)?.regNo ?? null } : null);
   const pedigree = { sire: parent(row.sireId), dam: parent(row.damId) };
   const regNo = gc.registrationNumber(row.generation, row.regNo);
+  // Coat genetics are public stud-book information: any viewer gets them.
+  const genetics = geneticsView(row, nowMs);
   const atStud = row.studFee !== null && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
   if (!row.ownerStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, stud: { fee: row.studFee!, club: true }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, genetics, stud: null, actions: null };
   }
   const stable = await getStable(db, row.ownerStableId);
   const silks = parseSilks(stable?.silks);
@@ -1026,6 +1028,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     status: mine ? stableHorseView(row, silks, nowMs) : null,
     runs,
     pedigree,
+    genetics,
     stud: atStud ? { fee: row.studFee!, club: false } : null,
     actions,
   };

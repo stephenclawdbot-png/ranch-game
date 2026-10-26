@@ -82,6 +82,11 @@ export function FoalReveal({
           <p className="t-meta">
             {SEX_LABEL[foal.horse.sex]} foal · goes to the nursery
           </p>
+          {foal.geneticsLine && (
+            <p className="caption" data-testid="genetics-line">
+              {foal.geneticsLine}
+            </p>
+          )}
           {rarity && <RarityBadge rarity={rarity} />}
           {note}
         </div>
