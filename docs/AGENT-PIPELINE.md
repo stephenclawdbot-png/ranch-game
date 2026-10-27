@@ -46,6 +46,30 @@ A good ticket stands alone. Include:
    trailer `Co-Authored-By: GLM 5.3 via Ollama <noreply@ollama.com>` (or Kimi K3), never push.
 5. **Report format:** under 200 words, with the changes per file and the check results.
 
+## Design work: the lead architects, workers implement (owner rule, 2026-10-27)
+
+Workers don't make design decisions. For anything visual (layout, a new screen, a scene, art,
+HUD, copy placement) the lead writes a **design handover** first, and the worker implements
+exactly that. Anything the handover doesn't cover is flagged in the worker's report, never
+invented. A handover has:
+
+1. **Intent:** what the screen is for, what the player notices first, the one primary action.
+2. **Layout at 390 and 1440:** order, alignment, spacing and what wraps or truncates, in the
+   design-system tokens (`docs/brand-and-design-v2.md` §4). No new colours or sizes unless the
+   handover defines them.
+3. **Components:** which existing ones to reuse; exact specs for anything new.
+4. **States:** empty, loading, error, long names, many/few items.
+5. **A reference mockup made by the lead:** an HTML/SVG wireframe or an annotated screenshot of
+   the current page.
+6. **Acceptance:** the exact screens and states to screenshot side by side with the mockup, and
+   what must not change.
+7. **Out of scope:** files and areas the worker doesn't touch.
+
+The lead reviews the result against the mockup and sends precise notes until it matches.
+Mechanical polish (wrapping, clipping, alignment, wiring) can still be specified briefly.
+Why: in the 2026-10-26 runs Kimi met numeric criteria but missed the look twice (the stalls
+"tower", tiny horses on phones); numbers can't judge taste.
+
 ## Review and merge
 
 - Routine tickets: read the report and `git diff --stat`, run the checks, then merge.
