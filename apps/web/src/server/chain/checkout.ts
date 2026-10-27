@@ -1,8 +1,9 @@
 /**
  * ETH checkout for Premium Packs (closed beta). Flow:
- *   quote   -> server checks (verified wallet, geo, weekly cap incl. open orders, stall, crop),
- *              prices USD -> wei with the median ETH/USD, picks eligible referrers, writes the
- *              order row FIRST, then signs an EIP-712 EthQuote valid for 5 minutes.
+ *   quote   -> server checks (verified wallet, geo, weekly cap incl. open orders, the $50
+ *              beta lifetime cap, stall, crop), prices USD -> wei with the median ETH/USD,
+ *              picks eligible referrers, writes the order row FIRST, then signs an EIP-712
+ *              EthQuote valid for 5 minutes.
  *   pay     -> the buyer's wallet sends purchaseWithEth with exactly priceWei.
  *   confirm -> the server verifies the receipt (our store's event, buyer, sku, quantity, exact
  *              amount, confirmations) and fulfils idempotently (prepaid pulls keyed by orderId).
@@ -26,6 +27,7 @@ import {
   occupancy,
   openChainOrders,
   ordersNeedingAttention,
+  premiumPacksLifetime,
   recordReferralEarnings,
   referralPlan,
   reservedPremiumPacks,
@@ -36,6 +38,7 @@ import {
   type ChainOrderRow,
   type Db,
 } from "@thoroughbred/db";
+import { PREMIUM_BETA_LIFETIME_USD_CENTS } from "@thoroughbred/game-core";
 import { ZERO_ADDRESS } from "@/lib/chain/chains";
 import { quoteToJson, type EthQuote, type EthQuoteJson } from "@/lib/chain/quote";
 import { skuId, type BetaChain } from "./adapter";
@@ -87,6 +90,16 @@ export function checkoutEnabled(cfg: BetaChainConfig): boolean {
   return cfg.enabled;
 }
 
+/** USD cents the tester has already committed to Premium Packs over the beta (confirmed + pending). */
+async function spentOnPacks(ctx: CheckoutCtx, session: Session, now: Date): Promise<number> {
+  return (await premiumPacksLifetime(ctx.db, { accountId: session.accountId, now })) * ctx.cfg.premiumUsdCents;
+}
+
+/** USD cents left under the $50 beta lifetime cap; shown next to the weekly cap in the UI. */
+export async function lifetimeLeftCents(ctx: CheckoutCtx, session: Session, now: Date): Promise<number> {
+  return Math.max(0, PREMIUM_BETA_LIFETIME_USD_CENTS - (await spentOnPacks(ctx, session, now)));
+}
+
 export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: { sku: BetaSku; quantity: number; country: string | null; now: Date }): Promise<QuoteView> {
   const { db, chain, cfg } = ctx;
   if (!checkoutEnabled(cfg)) throw new CheckoutUnavailableError("coming_soon", "Premium Packs for ETH are coming soon.");
@@ -104,6 +117,11 @@ export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: {
   const reserved = await reservedPremiumPacks(db, { accountId: session.accountId, now: input.now });
   if (st.paidThisWeek + reserved + qty > st.weeklyLimit) {
     throw new DomainError("PACK_LIMIT", `weekly limit: ${st.weeklyLimit} Premium Packs a week (${st.paidThisWeek} pulled, ${reserved} in checkout).`);
+  }
+  // Beta lifetime cap (AUDIT §6): $50 of packs per tester, confirmed + pending orders, at
+  // today's price. Up to exactly the cap is fine.
+  if ((await spentOnPacks(ctx, session, input.now)) + cfg.premiumUsdCents * qty > PREMIUM_BETA_LIFETIME_USD_CENTS) {
+    throw new DomainError("PACK_LIMIT", `Beta limit: $${PREMIUM_BETA_LIFETIME_USD_CENTS / 100} of packs per player`);
   }
   const occ = await occupancy(db, session.stable);
   if (occ.free < qty) throw new DomainError("STABLE_FULL", `You need ${qty} free stall${qty > 1 ? "s" : ""} for ${qty} foal${qty > 1 ? "s" : ""}.`);

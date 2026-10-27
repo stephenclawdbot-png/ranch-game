@@ -260,6 +260,25 @@ export async function reservedPremiumPacks(ex: Executor, input: { accountId: str
   return Number(r?.n ?? 0);
 }
 
+/**
+ * Premium Packs this tester has bought over the WHOLE beta (the $50 lifetime cap, AUDIT §6):
+ * confirmed orders (fulfilled) plus pending ones (live quotes, submitted, paid), as pack
+ * quantity — the caller prices them with the current PREMIUM_PACK_USD_CENTS.
+ */
+export async function premiumPacksLifetime(ex: Executor, input: { accountId: string; now: Date }): Promise<number> {
+  const [r] = await ex
+    .select({ n: sql<number>`coalesce(sum(${chainOrders.quantity}), 0)::int` })
+    .from(chainOrders)
+    .where(
+      and(
+        eq(chainOrders.accountId, input.accountId),
+        eq(chainOrders.sku, "premium_pack"),
+        sql`(${chainOrders.status} in ('submitted', 'paid', 'fulfilled') or (${chainOrders.status} = 'quoted' and ${chainOrders.deadline} >= ${input.now}))`,
+      ),
+    );
+  return Number(r?.n ?? 0);
+}
+
 /** Orders a client should resume (after a reload): quoted (live), submitted or paid. */
 export async function openChainOrders(ex: Executor, input: { accountId: string; now: Date }): Promise<ChainOrderRow[]> {
   return ex

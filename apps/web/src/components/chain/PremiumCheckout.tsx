@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address, Hex } from "viem";
+import { PREMIUM_BETA_LIFETIME_USD_CENTS } from "@thoroughbred/game-core";
 import { premiumStoreAbi } from "@/lib/chain/contracts.generated";
 import { txUrl } from "@/lib/chain/chains";
 import { formatEth, formatUsdCents, shortAddress } from "@/lib/chain/format";
@@ -35,6 +36,8 @@ interface CheckoutStatus {
   chainId: number;
   store: Address;
   packUsdCents: number;
+  /** USD cents left under the $50 beta lifetime cap. */
+  lifetimeLeftCents: number;
   orders: OrderView[];
 }
 interface Quote {
@@ -198,7 +201,8 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
   if (!st) return null;
   if (!st.enabled) return null; // the pack card shows "coming soon"
 
-  const maxQty = Math.max(0, Math.min(10, weeklyLeft, stallsFree));
+  const lifetimeLeft = Math.floor(st.lifetimeLeftCents / st.packUsdCents); // packs the beta allowance still covers
+  const maxQty = Math.max(0, Math.min(10, weeklyLeft, stallsFree, lifetimeLeft));
   const estimate = ethUsd ? `≈ ${(((st.packUsdCents * qty) / 100) / ethUsd).toFixed(5)} ETH` : "";
   const left = quote ? quote.deadlineMs - now : 0;
   const wrongWallet = !!(quote && w.address && w.address.toLowerCase() !== quote.quote.buyer.toLowerCase());
@@ -262,7 +266,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
             </select>
           </label>
           <button type="button" className="btn btn-brass" onClick={getQuote} disabled={phase === "quoting" || maxQty === 0} data-testid="checkout-buy">
-            {phase === "quoting" ? "Getting a price…" : maxQty === 0 ? (weeklyLeft <= 0 ? "Weekly limit reached" : "No free stall") : `Buy for ${formatUsdCents(st.packUsdCents * qty)} ${estimate ? `(${estimate})` : ""}`}
+            {phase === "quoting" ? "Getting a price…" : maxQty === 0 ? (weeklyLeft <= 0 ? "Weekly limit reached" : lifetimeLeft <= 0 ? "Beta limit reached" : "No free stall") : `Buy for ${formatUsdCents(st.packUsdCents * qty)} ${estimate ? `(${estimate})` : ""}`}
           </button>
         </div>
       )}
@@ -273,7 +277,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
         </p>
       )}
       <p className="caption">
-        Max 10 Premium Packs a week. Not sold where paid loot boxes are restricted. Paid packs can&apos;t be refunded on-chain; contact the organiser if anything goes wrong.{" "}
+        Max 5 Premium Packs a week and {formatUsdCents(PREMIUM_BETA_LIFETIME_USD_CENTS)} over the beta — {formatUsdCents(st.lifetimeLeftCents)} left. Not sold where paid loot boxes are restricted. Paid packs can&apos;t be refunded on-chain; contact the organiser if anything goes wrong.{" "}
         <Link href="/pool" className="underline">
           Prize Pool
         </Link>

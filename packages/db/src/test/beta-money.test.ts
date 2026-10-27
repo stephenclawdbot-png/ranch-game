@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { achievements, chainOrders, dailyCupEntries, fraudEvents, packPulls, raceEntries, races, referrals, testers } from "../schema";
@@ -19,6 +19,7 @@ import {
   markOrderSubmitted,
   openChainOrders,
   poolScores,
+  premiumPacksLifetime,
   reservedPremiumPacks,
   saveEpochDraft,
   usdCentsToWei,
@@ -111,7 +112,9 @@ describe("ETH checkout orders", () => {
     });
     expect(order.status).toBe("quoted");
     expect(await reservedPremiumPacks(h.db, { accountId: p.accountId, now: T0 })).toBe(2);
+    expect(await premiumPacksLifetime(h.db, { accountId: p.accountId, now: T0 })).toBe(2); // live quotes count
     expect(await reservedPremiumPacks(h.db, { accountId: p.accountId, now: new Date(T0.getTime() + 301_000) })).toBe(0); // expired quote
+    expect(await premiumPacksLifetime(h.db, { accountId: p.accountId, now: new Date(T0.getTime() + 301_000) })).toBe(0);
     expect((await openChainOrders(h.db, { accountId: p.accountId, now: T0 })).length).toBe(1);
     await expect(markOrderSubmitted(h.db, { orderId: order.orderId, accountId: (await newPlayer(h.db)).accountId, txHash: txHex(1), now: T0 })).rejects.toThrow();
     const sub = await markOrderSubmitted(h.db, { orderId: order.orderId, accountId: p.accountId, txHash: txHex(1), now: T0 });
@@ -126,6 +129,7 @@ describe("ETH checkout orders", () => {
     const again = await fulfilChainOrder(h.db, { orderId: order.orderId, txHash: txHex(1), now: T0 });
     expect(again.duplicate).toBe(true);
     expect(again.pulls.map((x) => x.pullId)).toEqual(first.pulls.map((x) => x.pullId));
+    expect(await premiumPacksLifetime(h.db, { accountId: p.accountId, now: new Date(T0.getTime() + 301_000) })).toBe(2); // confirmed orders keep counting for the whole beta
     const pulls = await h.db.select().from(packPulls).where(eq(packPulls.accountId, p.accountId));
     expect(pulls).toHaveLength(2);
     expect(pulls.every((x) => x.packType === "premium" && x.price === 0 && !x.free)).toBe(true);
@@ -426,6 +430,16 @@ describe("affiliates (2 levels, owner at the root)", () => {
     await expect(setAffiliateConfig(h.db, { ref2Bps: 501 })).rejects.toThrow();
   });
 
+  /** Settled Live (scheduled) races the account's horse ran in; makeSeller's kind "quick" runs are Story. */
+  async function liveRuns(runs: number, stableId: string) {
+    const horse = await makeHorse(h.db, stableId);
+    for (let i = 0; i < runs; i++) {
+      const race = await createRace(h.db, { kind: "scheduled", name: `Affiliate live ${i}`, raceClass: "maiden", conditions: {}, postTime: new Date(T0.getTime() - (i + 1) * DAY), entriesCloseAt: new Date(T0.getTime() - (i + 1) * DAY - MIN) });
+      await h.db.update(races).set({ status: "settled" }).where(eq(races.id, race.id));
+      await h.db.insert(raceEntries).values({ raceId: race.id, horseId: horse.id, stableId, gate: 1, tactic: "stalker", snapshot: {}, ratingBefore: 0, finishPosition: i + 1, status: "entered" });
+    }
+  }
+
   it("records paid commissions once and grants the active-invitee reward once (credits + badge)", async () => {
     const { owner, alice, bob } = await tree();
     const plan = await referralPlan(h.db, { buyerAccountId: bob.accountId, buyerWallet: bob.wallet, usdCents: 499, now: T0 });
@@ -460,11 +474,32 @@ describe("affiliates (2 levels, owner at the root)", () => {
     const before = await getBalance(h.db, alice.accountId);
     expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0); // bob not active yet
     for (let d = 0; d < 3; d++) await recordPlayDay(h.db, bob.accountId, new Date(T0.getTime() + d * DAY));
-    await makeSeller(h.db, bob.accountId, bob.stableId); // 20 settled runs
+    await makeSeller(h.db, bob.accountId, bob.stableId); // 20 settled runs, all Story: no longer enough
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0);
+    await liveRuns(5, bob.stableId); // 5 Live races activate
     expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(1);
     expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0);
     expect((await getBalance(h.db, alice.accountId)) - before).toBe(DEFAULT_AFFILIATE_CONFIG.activeReward.credits);
     const badges = await h.db.select().from(achievements).where(eq(achievements.accountId, alice.accountId));
     expect(badges.map((b) => b.code)).toContain("referrer");
+  });
+
+  it("a linked inviter/invitee pair gets no activation reward, and one fraud flag", async () => {
+    const { alice, bob } = await tree();
+    for (let d = 0; d < 3; d++) await recordPlayDay(h.db, bob.accountId, new Date(T0.getTime() + d * DAY));
+    await liveRuns(5, bob.stableId);
+    await recordAccountSignal(h.db, { accountId: bob.accountId, kind: "device", value: "dev-alt" });
+    await recordAccountSignal(h.db, { accountId: alice.accountId, kind: "device", value: "dev-alt" });
+    const before = await getBalance(h.db, alice.accountId);
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0);
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId })).toBe(0); // idempotent: no second flag
+    expect(await getBalance(h.db, alice.accountId)).toBe(before);
+    const flags = await h.db
+      .select()
+      .from(fraudEvents)
+      .where(and(eq(fraudEvents.accountId, bob.accountId), eq(fraudEvents.relatedAccountId, alice.accountId), eq(fraudEvents.kind, "referral_linked")));
+    expect(flags).toHaveLength(1);
+    const [r] = await h.db.select().from(referrals).where(eq(referrals.accountId, bob.accountId));
+    expect(r!.activatedAt).toBeNull(); // stays pending: the flag is reviewed, the reward is simply not granted
   });
 });

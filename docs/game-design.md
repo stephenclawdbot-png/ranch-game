@@ -140,7 +140,8 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 - **Packs produce foals,** which need 19 care days before they can race.
 - **Pack limits:**
   - Paddock Pack: 1 free every 3rd play day, plus up to 3 bought with credits per week.
-  - Premium Pack: up to 10 per week per account.
+  - Premium Pack: up to 5 per week per account in the closed beta, and at most $50 of
+    packs per tester over the whole beta (enforced by the server at checkout).
   - A **seasonal global foal crop cap** (e.g. 10,000), with the remaining count shown
     publicly.
 - **Ways out of the active pool:** racing retirement at 40 starts. Pensioned and Legend

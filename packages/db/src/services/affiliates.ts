@@ -13,8 +13,9 @@
  *   from the buyer's (and from each other), not linked to the buyer (device, fingerprint,
  *   IP hash or wallet; a hit is flagged as a fraud event), weekly per-inviter USD cap. The
  *   owner is exempt from the weekly cap (separate optional owner cap) and from link checks.
- * - Non-money reward: when an invitee becomes active (>= 5 races and >= 3 play days), the
- *   inviter gets credits through the ledger and a badge, once.
+ * - Non-money reward: when an invitee becomes active (>= 5 LIVE races and >= 3 play days;
+ *   Story races don't count) and the pair isn't linked, the inviter gets credits through the
+ *   ledger and a badge, once. A linked pair gets nothing and is flagged like the market.
  */
 import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
@@ -40,6 +41,7 @@ import type { Db, Executor } from "../types";
 import { areLinked } from "./accounts";
 import { verifiedWalletOf } from "./betaMoney";
 import { grantCreditsTx } from "./ledger";
+import { LIVE_RACE_KINDS } from "./leagues";
 import { normalizeInviteCode } from "./playtest";
 import { audit, runTx } from "./tx";
 
@@ -59,7 +61,7 @@ export interface AffiliateConfig {
   weeklyCapUsdCents: number;
   /** The owner's own weekly cap (null = none). */
   ownerWeeklyCapUsdCents: number | null;
-  /** In-game signup reward for the inviter when an invitee becomes active. */
+  /** In-game signup reward for the inviter when an invitee becomes active (Live races only). */
   activeReward: { credits: number; minRaces: number; minPlayDays: number };
 }
 
@@ -331,12 +333,13 @@ export async function activityOf(ex: Executor, accountIds: string[]): Promise<Ma
   const out = new Map<string, { races: number; playDays: number }>();
   if (!accountIds.length) return out;
   for (const id of accountIds) out.set(id, { races: 0, playDays: 0 });
+  // Only Live races count toward the activation reward (AUDIT §6): quick = Story, solo and free.
   const raceRows = await ex
     .select({ accountId: stables.accountId, n: sql<number>`count(*)::int` })
     .from(raceEntries)
     .innerJoin(stables, eq(stables.id, raceEntries.stableId))
     .innerJoin(races, eq(races.id, raceEntries.raceId))
-    .where(and(inArray(stables.accountId, accountIds), eq(races.status, "settled"), eq(raceEntries.status, "entered")))
+    .where(and(inArray(stables.accountId, accountIds), eq(races.status, "settled"), inArray(races.kind, [...LIVE_RACE_KINDS]), eq(raceEntries.status, "entered")))
     .groupBy(stables.accountId);
   for (const r of raceRows) out.get(r.accountId)!.races = Number(r.n);
   const dayRows = await ex
@@ -350,10 +353,14 @@ export async function activityOf(ex: Executor, accountIds: string[]): Promise<Ma
 
 /**
  * Grants the inviter's in-game reward (credits through the ledger + the "referrer" badge)
- * for every invitee that became active. Idempotent per invitee. Returns the number granted.
+ * for every invitee that became active on the Live card (>= minRaces Live races). Linked
+ * inviter/invitee pairs get nothing and are flagged (like the market's linked-trade block);
+ * the referral stays pending, so an unlinked pair can still earn later. Idempotent per
+ * invitee. Returns the number granted.
  */
 export async function settleReferralActivations(db: Db, input: { now: Date; inviterAccountId?: string; limit?: number }): Promise<number> {
   const cfg = await affiliateConfig(db);
+  const owner = await ownerAccountId(db);
   const pending = await db
     .select()
     .from(referrals)
@@ -372,6 +379,17 @@ export async function settleReferralActivations(db: Db, input: { now: Date; invi
   for (const r of pending) {
     const a = act.get(r.accountId)!;
     if (a.races < cfg.activeReward.minRaces || a.playDays < cfg.activeReward.minPlayDays) continue;
+    // Anti-alt check: a linked pair farmed nothing (the owner is exempt, as at signing).
+    if (r.inviterAccountId !== owner && (await areLinked(db, r.accountId, r.inviterAccountId!))) {
+      const flagged = await db
+        .select({ id: fraudEvents.id })
+        .from(fraudEvents)
+        .where(and(eq(fraudEvents.accountId, r.accountId), eq(fraudEvents.relatedAccountId, r.inviterAccountId!), eq(fraudEvents.kind, "referral_linked")))
+        .limit(1);
+      if (!flagged.length)
+        await db.insert(fraudEvents).values({ accountId: r.accountId, relatedAccountId: r.inviterAccountId!, kind: "referral_linked", severity: 2, data: { reward: cfg.activeReward.credits } });
+      continue;
+    }
     const ok = await runTx(db, async (tx) => {
       const upd = await tx.update(referrals).set({ activatedAt: input.now }).where(and(eq(referrals.accountId, r.accountId), isNull(referrals.activatedAt))).returning({ id: referrals.accountId });
       if (!upd.length) return false;
