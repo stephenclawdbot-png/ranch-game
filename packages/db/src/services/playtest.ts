@@ -261,11 +261,36 @@ export async function track(db: Db, input: { accountId: string | null; name: Tel
 export interface PlaytestMetrics {
   days: { day: string; actives: number; sessions: number; signups: number; races: number; racesByKind: Record<string, number> }[];
   retention: { cohort: number; day1: number | null; day7: number | null; day1Eligible: number; day7Eligible: number };
-  funnel: { signups: number; firstRace: number; secondSession: number };
+  /** The 6-step signup funnel; every count is a share of `signups` in the dashboard. */
+  funnel: { signups: number; firstRace: number; raceWatched: number; liveRace: number; secondSession: number; nextDay: number };
+  /** Signup -> first race_entered: median seconds, share under 60 s, signups that raced. */
+  firstRace: { medianSec: number | null; under60Pct: number | null; n: number };
+  /** Last 7 UTC days: total race_entered / sum of daily actives (null when nobody was active). */
+  racesPerActive: number | null;
+  /** % of race_entered (last 7 days) with props.kind = "live". */
+  liveShare: number | null;
+  /** Race-viewer perf reports (target: phone/tablet 30 fps, desktop 60). */
+  perf: { byDevice: PerfDeviceMetrics[]; slowGpus: PerfGpuMetrics[] };
   totals: { testers: number; feedback: number; events: number };
 }
 
-/** Day-1 / day-7 retention, actives, sessions and races per day, and the signup funnel. */
+export interface PerfDeviceMetrics {
+  device: string;
+  reports: number;
+  medianFps: number;
+  lowFps: number;
+  /** % of reports at or over the device target. */
+  onTargetPct: number | null;
+  downgradedPct: number | null;
+}
+
+export interface PerfGpuMetrics {
+  gpu: string;
+  reports: number;
+  medianFps: number;
+}
+
+/** Day-1 / day-7 retention, actives, sessions, races per day, the signup funnel and perf reports. */
 export async function playtestMetrics(ex: Executor, input: { now: Date; days?: number }): Promise<PlaytestMetrics> {
   const span = Math.max(1, Math.min(60, input.days ?? 14));
   const from = new Date(Date.UTC(input.now.getUTCFullYear(), input.now.getUTCMonth(), input.now.getUTCDate()) - (span - 1) * DAY_MS);
@@ -303,17 +328,55 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
              count(*) filter (where exists (select 1 from a where a.account_id = s.account_id and a.d = s.d0 + 7))::int as d7
         from s`),
   );
-  const [fun] = rowsOf<{ signups: number; first_race: number; second_session: number }>(
-    await ex.execute(sql`with s as (select distinct account_id from telemetry_events where name = 'signup' and account_id is not null)
+  const [fun] = rowsOf<{ signups: number; first_race: number; watched: number; live_race: number; second_session: number; next_day: number }>(
+    await ex.execute(sql`with s as (select account_id, min(created_at) as t0 from telemetry_events where name = 'signup' and account_id is not null group by account_id)
       select count(*)::int as signups,
              count(*) filter (where exists (select 1 from telemetry_events e where e.account_id = s.account_id and e.name = 'race_entered'))::int as first_race,
-             count(*) filter (where (select count(*) from telemetry_events e where e.account_id = s.account_id and e.name = 'session_start') >= 2)::int as second_session
+             count(*) filter (where exists (select 1 from telemetry_events e where e.account_id = s.account_id and e.name = 'race_watched'))::int as watched,
+             count(*) filter (where exists (select 1 from telemetry_events e where e.account_id = s.account_id and e.name = 'race_entered' and e.props->>'kind' = 'live'))::int as live_race,
+             count(*) filter (where (select count(*) from telemetry_events e where e.account_id = s.account_id and e.name = 'session_start') >= 2)::int as second_session,
+             count(*) filter (where exists (select 1 from telemetry_events e where e.account_id = s.account_id and (e.created_at at time zone 'UTC')::date = (s.t0 at time zone 'UTC')::date + 1))::int as next_day
         from s`),
+  );
+  const [fr] = rowsOf<{ median_sec: number | null; signups: number; raced: number; under60: number }>(
+    await ex.execute(sql`with su as (select account_id, min(created_at) as t0 from telemetry_events where name = 'signup' and account_id is not null group by account_id),
+      fr as (select account_id, min(created_at) as t1 from telemetry_events where name = 'race_entered' and account_id is not null group by account_id)
+      select percentile_cont(0.5) within group (order by extract(epoch from (fr.t1 - su.t0)))::float8 as median_sec,
+             count(*)::int as signups, count(fr.t1)::int as raced,
+             count(*) filter (where fr.t1 - su.t0 <= interval '60 seconds')::int as under60
+        from su left join fr using (account_id)`),
+  );
+  const perfRows = rowsOf<{ device: string; reports: number; median_fps: number; low_fps: number; on_target: number; downgraded: number }>(
+    await ex.execute(sql`select coalesce(props->>'device', 'unknown') as device, count(*)::int as reports,
+                                percentile_cont(0.5) within group (order by (props->>'fps')::float8)::float8 as median_fps,
+                                percentile_cont(0.5) within group (order by (props->>'fpsLow')::float8)::float8 as low_fps,
+                                count(*) filter (where (props->>'fps')::float8 >= case props->>'device' when 'desktop' then 60 else 30 end)::int as on_target,
+                                count(*) filter (where (props->>'downgraded')::boolean)::int as downgraded
+                           from telemetry_events where name = 'race_perf' and created_at >= ${from}
+                          group by 1`),
+  );
+  const gpuRows = rowsOf<{ gpu: string; reports: number; median_fps: number }>(
+    await ex.execute(sql`select coalesce(props->>'gpu', 'unknown') as gpu, count(*)::int as reports,
+                                percentile_cont(0.5) within group (order by (props->>'fps')::float8)::float8 as median_fps
+                           from telemetry_events where name = 'race_perf' and created_at >= ${from}
+                          group by 1 having count(*) >= 3 order by median_fps asc limit 5`),
   );
   const [tot] = rowsOf<{ testers: number; feedback: number; events: number }>(
     await ex.execute(sql`select (select count(*) from testers)::int as testers, (select count(*) from feedback)::int as feedback, (select count(*) from telemetry_events)::int as events`),
   );
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n * 1000) / d) / 10 : null);
+  // Last 7 UTC days of the window: races per active tester and the Live share.
+  const last7 = days.slice(-7);
+  const races7 = last7.reduce((s, d) => s + d.races, 0);
+  const actives7 = last7.reduce((s, d) => s + d.actives, 0);
+  const in7 = new Set(last7.map((d) => d.day));
+  let live7 = 0;
+  let all7 = 0;
+  for (const k of kinds) {
+    if (!in7.has(k.day)) continue;
+    all7 += Number(k.n);
+    if (k.kind === "live") live7 += Number(k.n);
+  }
   return {
     days,
     retention: {
@@ -323,7 +386,34 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
       day1Eligible: Number(ret?.d1e ?? 0),
       day7Eligible: Number(ret?.d7e ?? 0),
     },
-    funnel: { signups: Number(fun?.signups ?? 0), firstRace: Number(fun?.first_race ?? 0), secondSession: Number(fun?.second_session ?? 0) },
+    funnel: {
+      signups: Number(fun?.signups ?? 0),
+      firstRace: Number(fun?.first_race ?? 0),
+      raceWatched: Number(fun?.watched ?? 0),
+      liveRace: Number(fun?.live_race ?? 0),
+      secondSession: Number(fun?.second_session ?? 0),
+      nextDay: Number(fun?.next_day ?? 0),
+    },
+    firstRace: {
+      medianSec: fr?.median_sec === null || fr?.median_sec === undefined ? null : Number(fr.median_sec),
+      under60Pct: pct(Number(fr?.under60 ?? 0), Number(fr?.signups ?? 0)),
+      n: Number(fr?.raced ?? 0),
+    },
+    racesPerActive: actives7 > 0 ? Math.round((races7 / actives7) * 10) / 10 : null,
+    liveShare: pct(live7, all7),
+    perf: {
+      byDevice: perfRows
+        .map((r) => ({
+          device: String(r.device),
+          reports: Number(r.reports),
+          medianFps: Number(r.median_fps ?? 0),
+          lowFps: Number(r.low_fps ?? 0),
+          onTargetPct: pct(Number(r.on_target), Number(r.reports)),
+          downgradedPct: pct(Number(r.downgraded), Number(r.reports)),
+        }))
+        .sort((a, b) => (a.device === "phone" ? -1 : b.device === "phone" ? 1 : a.device === "tablet" ? -1 : b.device === "tablet" ? 1 : 0)),
+      slowGpus: gpuRows.map((r) => ({ gpu: String(r.gpu), reports: Number(r.reports), medianFps: Number(r.median_fps ?? 0) })),
+    },
     totals: { testers: Number(tot?.testers ?? 0), feedback: Number(tot?.feedback ?? 0), events: Number(tot?.events ?? 0) },
   };
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
@@ -23,6 +24,7 @@ import {
   testerForAccount,
   track,
   updateFeedback,
+  type TelemetryEvent,
   FEEDBACK_PER_HOUR,
   RESET_CONFIRMATION,
 } from "../services/playtest";
@@ -176,5 +178,81 @@ describe("playtest", () => {
     expect(again.testerId).toBe(w.id);
     expect((await testerForAccount(h.db, again.accountId))?.walletAddress).toBe(w.walletAddress);
     expect(await getBalance(h.db, again.accountId)).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Beta dashboard metrics on a clean database: time to first race, the 6-step funnel,
+// live share, races per active day, and race_perf device/GPU reports.
+// ---------------------------------------------------------------------------
+
+describe("beta metrics", () => {
+  let h2: DbHandle;
+  beforeAll(async () => {
+    h2 = await memoryDb();
+  });
+  afterAll(async () => {
+    await h2.close();
+  });
+
+  it("empty telemetry: nulls, not zeroes or NaN", async () => {
+    const m = await playtestMetrics(h2.db, { now: at(2 * DAY), days: 3 });
+    expect(m.firstRace).toEqual({ medianSec: null, under60Pct: null, n: 0 });
+    expect(m.racesPerActive).toBeNull();
+    expect(m.liveShare).toBeNull();
+  });
+
+  it("median time to first race, under-60 share, the 6-step funnel, races per active and live share", async () => {
+    const A = randomUUID();
+    const B = randomUUID();
+    const C = randomUUID();
+    const t = (accountId: string, name: TelemetryEvent, props?: Record<string, unknown>, now = T0) => track(h2.db, { accountId, name, props, now });
+    // A: fast first race (45 s), watched, went live, came back the next UTC day.
+    await t(A, "signup");
+    await t(A, "session_start");
+    await t(A, "race_entered", { kind: "story" }, at(45_000));
+    await t(A, "race_watched", undefined, at(50_000));
+    await t(A, "race_entered", { kind: "live" }, at(90_000));
+    await t(A, "session_start", undefined, at(DAY));
+    // B: slow first race (120 s), live only, never came back.
+    await t(B, "signup");
+    await t(B, "race_entered", { kind: "live" }, at(120_000));
+    // C: signed up on day 2 and never raced.
+    await t(C, "signup", undefined, at(DAY));
+    await t(C, "session_start", undefined, at(DAY));
+
+    const m = await playtestMetrics(h2.db, { now: at(2 * DAY), days: 3 });
+    // Median of [45, 120] s; A is 1 of 3 signups under 60 s.
+    expect(m.firstRace).toEqual({ medianSec: 82.5, under60Pct: 33.3, n: 2 });
+    expect(m.funnel).toEqual({ signups: 3, firstRace: 2, raceWatched: 1, liveRace: 2, secondSession: 1, nextDay: 1 });
+    // 3 races over 4 active-days (A+B on day 1, A+C on day 2): 0.8; 2 of 3 races were Live.
+    expect(m.racesPerActive).toBe(0.8);
+    expect(m.liveShare).toBe(66.7);
+    const day1 = m.days.find((d) => d.day === "2026-11-02")!;
+    expect(day1).toMatchObject({ actives: 2, races: 3 });
+    expect(day1.racesByKind).toEqual({ live: 2, story: 1 });
+  });
+
+  it("perf reports: per-device medians, on-target share and the slow-GPU threshold", async () => {
+    const report = (gpu: string, device: "phone" | "desktop", fps: number, fpsLow: number, downgraded: boolean, now = T0) =>
+      track(h2.db, { accountId: null, name: "race_perf", props: { fps, fpsLow, downgraded, device, gpu }, now });
+    // Phone: Adreno (3 reports, two downgrades) + Mali (1 report).
+    await report("Adreno 640", "phone", 20, 10, true);
+    await report("Adreno 640", "phone", 30, 20, true);
+    await report("Adreno 640", "phone", 40, 30, false);
+    await report("Mali G78", "phone", 50, 40, false);
+    // Desktop: 2 reports, one below the 60 fps target.
+    await report("Apple M2", "desktop", 55, 40, false);
+    await report("Apple M2", "desktop", 65, 50, false);
+
+    const m = await playtestMetrics(h2.db, { now: at(2 * DAY), days: 3 });
+    expect(m.perf.byDevice).toEqual([
+      // Phone: fps [20,30,40,50] -> median 35, low [10,20,30,40] -> 25; 3 of 4 at/over 30; 2 of 4 downgraded.
+      { device: "phone", reports: 4, medianFps: 35, lowFps: 25, onTargetPct: 75, downgradedPct: 50 },
+      // Desktop: median (55+65)/2 = 60, low (40+50)/2 = 45; only the 65 fps report holds 60.
+      { device: "desktop", reports: 2, medianFps: 60, lowFps: 45, onTargetPct: 50, downgradedPct: 0 },
+    ]);
+    // Only Adreno clears the >= 3 reports bar (Mali 1, Apple M2 2).
+    expect(m.perf.slowGpus).toEqual([{ gpu: "Adreno 640", reports: 3, medianFps: 30 }]);
   });
 });
