@@ -212,6 +212,8 @@ export const TELEMETRY_EVENTS = [
   "page_view",
   "race_entered",
   "race_watched",
+  // Race-viewer perf report from the client (one per mounted viewer; devices + fps)
+  "race_perf",
   "care",
   "train",
   "breed",

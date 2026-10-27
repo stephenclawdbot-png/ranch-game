@@ -1,13 +1,14 @@
 "use client";
 import dynamic from "next/dynamic";
 import type { RaceViewerProps } from "@thoroughbred/race-viewer";
+import { trackRacePerf } from "@/lib/telemetry";
 
 /** The race viewer, client-only (it needs WebGL/canvas). */
 export const RaceViewerClient = dynamic(
   () =>
     import("@thoroughbred/race-viewer").then((m) => {
       // The race page shows the title strip and its own staged results sequence.
-      const Viewer = (props: RaceViewerProps) => <m.RaceViewer hudTitle={false} resultsCard={false} {...props} />;
+      const Viewer = (props: RaceViewerProps) => <m.RaceViewer hudTitle={false} resultsCard={false} onPerfReport={trackRacePerf} {...props} />;
       return Viewer;
     }),
   {
