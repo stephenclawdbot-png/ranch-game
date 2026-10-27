@@ -5,42 +5,26 @@
  *
  * Abuse limit: failed redemptions are counted per IP over a sliding hour in memory (codes are
  * random and short-lived, so there is no per-code lockout); at 20 failures the endpoint
- * answers 429. Successful links are recorded as an account signal (kind "device", the IP is
- * only ever stored hashed by recordAccountSignal) so anti-multi-account sees one person.
+ * answers 429. The client IP is a counter key only — it is never an identity signal, so
+ * testers on one Wi-Fi aren't linked. A browser that switches stables (this device now
+ * belongs to another account) is written to the audit log as `account.switch`.
  */
-import { createLinkCode, hashToken, listDevices, recordAccountSignal, redeemLinkCode, revokeDevice, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
+import { audit, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
 import { playerView } from "./game";
 import { errorJson, json } from "./http";
+import { clientIp, slidingWindowLimiter } from "./rateLimit";
 import { setSessionCookie, type Session } from "./session";
 
 export const LINK_FAIL_LIMIT = 20;
-const HOUR_MS = 3_600_000;
-/** Process-local failure timestamps per IP (sliding hour). Serverless instances are interchangeable. */
-const linkFailures = new Map<string, number[]>();
+/** Failed redemptions per IP per sliding hour. */
+const linkFailures = slidingWindowLimiter({ limit: LINK_FAIL_LIMIT, windowMs: 3_600_000 });
 
 /** Test hook: forget the counted failures. */
 export function resetLinkFailures(): void {
-  linkFailures.clear();
+  linkFailures.reset();
 }
 
-function linkFailureCount(ip: string, now: number): number {
-  const fresh = (linkFailures.get(ip) ?? []).filter((t) => now - t < HOUR_MS);
-  if (fresh.length) linkFailures.set(ip, fresh);
-  else linkFailures.delete(ip);
-  return fresh.length;
-}
-
-function noteLinkFailure(ip: string, now: number): void {
-  const stamps = linkFailures.get(ip) ?? [];
-  stamps.push(now);
-  linkFailures.set(ip, stamps);
-}
-
-/** The client's IP (first hop of x-forwarded-for); only ever used hashed or as a counter key. */
-export function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return (fwd?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "local").trim() || "local";
-}
+export { clientIp };
 
 /** POST /api/account/link-code (signed in): a fresh one-time code, shown once, valid 10 minutes. */
 export async function createLinkCodeResponse(database: Db, session: Session) {
@@ -66,7 +50,7 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   const code = typeof body.code === "string" ? body.code : "";
   const replace = body.replace === true;
   const label = typeof body.label === "string" ? body.label : null;
-  if (linkFailureCount(input.ip, now) >= LINK_FAIL_LIMIT) {
+  if (linkFailures.count(input.ip, now) >= LINK_FAIL_LIMIT) {
     const res = errorJson(429, "too_many_tries", { message: "Too many tries. Wait a few minutes, then get a fresh code." });
     res.headers.set("Retry-After", "3600");
     return res;
@@ -76,12 +60,12 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   }
   const linked = await redeemLinkCode(database, { code, label });
   if (!linked) {
-    noteLinkFailure(input.ip, now);
+    linkFailures.fail(input.ip, now);
     return errorJson(400, "link_code_invalid", { message: "That code didn't work. Check it and try again." });
   }
-  await recordAccountSignal(database, { accountId: linked.accountId, kind: "device", value: input.ip });
   if (input.session && input.session.accountId !== linked.accountId) {
-    await recordAccountSignal(database, { accountId: input.session.accountId, kind: "device", value: input.ip });
+    // A stable switch, not a shared identity: the audit log tells the story, no signal is inferred.
+    await audit(database, { actor: linked.accountId, action: "account.switch", entityType: "account", entityId: linked.accountId, data: { from: input.session.accountId, to: linked.accountId } });
   }
   const stable = await stableOf(database, linked.accountId);
   const res = json({ stableName: linked.stableName, player: await playerView(database, { accountId: linked.accountId, stable }, new Date()) });
@@ -97,7 +81,7 @@ export async function listDevicesResponse(database: Db, session: Session, token:
 
 /** DELETE /api/account/devices/:id (signed in): revokes another device's token. */
 export async function revokeDeviceResponse(database: Db, session: Session, deviceId: string) {
-  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(deviceId)) return errorJson(404, "NOT_FOUND");
+  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)) return errorJson(404, "NOT_FOUND");
   await revokeDevice(database, { accountId: session.accountId, deviceId });
   return json({ ok: true });
 }

@@ -61,5 +61,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793052720679,
     "hash": "d99dd0dc006af9e27d1c41e93a7ccf7ef21ffb840e9466542383e14f2b2b4555",
     "sql": "ALTER TABLE \"wallet_challenges\" ALTER COLUMN \"account_id\" DROP NOT NULL;--> statement-breakpoint\nALTER TABLE \"wallet_challenges\" ADD COLUMN \"purpose\" text DEFAULT 'link' NOT NULL;"
+  },
+  {
+    "tag": "0010_talented_leech",
+    "when": 1793085525057,
+    "hash": "afebb8a01eefeee0c102db81fae868d8feeffc18052caecfaac9d6abd8803cfc",
+    "sql": "CREATE UNIQUE INDEX \"accounts_wallet_lower_uq\" ON \"accounts\" USING btree (lower(\"wallet_address\"));"
   }
 ];

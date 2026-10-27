@@ -9,7 +9,7 @@
  * - Chain I/O lives in apps/web (viem). This module is pure DB + rules, so it is PGlite-tested.
  */
 import { and, asc, desc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
-import { DomainError } from "../errors";
+import { DomainError, pgError } from "../errors";
 import { utcDay, utcWeekStart } from "../crypto";
 import {
   accountPlayDays,
@@ -79,13 +79,25 @@ export async function testerOfAccount(ex: Executor, accountId: string): Promise<
   return t ?? null;
 }
 
+/**
+ * Serialises per-wallet work (founding a stable with a wallet) across transactions and
+ * instances: a transaction-scoped advisory lock keyed by lower(address). Safe to take
+ * repeatedly; it releases at the transaction's end.
+ */
+export async function lockWalletTx(tx: Tx, address: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(lower(${address.trim().toLowerCase()})))`);
+}
+
 /** The account's verified wallet (checksummed as stored), or null. */
 export async function verifiedWalletOf(ex: Executor, accountId: string): Promise<string | null> {
   const t = await testerOfAccount(ex, accountId);
   return t?.walletAddress && t.walletVerifiedAt ? t.walletAddress : null;
 }
 
-/** The account a wallet signs in to: `accounts.wallet_address` (case-insensitive), else the verified wallet of a tester that has this account. */
+/**
+ * The account a wallet signs in to: `accounts.wallet_address` (case-insensitive via the
+ * accounts_wallet_lower_uq index), else the verified wallet of a tester that has this account.
+ */
 export async function accountForWallet(ex: Executor, address: string): Promise<string | null> {
   const lower = address.trim().toLowerCase();
   const [a] = await ex.select({ id: accounts.id }).from(accounts).where(sql`lower(${accounts.walletAddress}) = ${lower}`);
@@ -106,7 +118,8 @@ export async function loginWalletOf(ex: Executor, accountId: string): Promise<st
 /**
  * Stores the wallet on the account itself (`accounts.wallet_address`, checksummed): one
  * wallet signs in to one account. Set when unset by any successful SIWE verification; a
- * wallet already on ANOTHER account is refused (LINKED_ACCOUNTS), and a stable that already
+ * wallet already on ANOTHER account is refused (LINKED_ACCOUNTS — also what the
+ * `accounts_wallet_lower_uq` index enforces when two requests race), and a stable that already
  * signed in with a different wallet keeps it (same rule as the tester row).
  */
 async function setAccountWalletTx(tx: Tx, input: { accountId: string; address: string; now: Date }): Promise<void> {
@@ -119,7 +132,13 @@ async function setAccountWalletTx(tx: Tx, input: { accountId: string; address: s
     throw new DomainError("NOT_ELIGIBLE", "Your stable already has a sign-in wallet. Ask the organiser to change it.");
   }
   if (mine.walletAddress) return;
-  await tx.update(accounts).set({ walletAddress: input.address.trim() }).where(eq(accounts.id, input.accountId));
+  try {
+    await tx.update(accounts).set({ walletAddress: input.address.trim() }).where(eq(accounts.id, input.accountId));
+  } catch (err) {
+    // Lost the race for this wallet (unique index on lower(wallet_address)), not a server error.
+    if (pgError(err)?.code === "23505") throw new DomainError("LINKED_ACCOUNTS", "That wallet is already linked to another stable. One wallet per player.");
+    throw err;
+  }
   await audit(tx, { actor: input.accountId, action: "account.wallet_set", entityType: "account", entityId: input.accountId, data: { address: input.address, at: input.now } });
 }
 

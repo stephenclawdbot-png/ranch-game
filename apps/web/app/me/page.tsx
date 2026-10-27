@@ -170,7 +170,7 @@ function Profile({ state }: { state: PlayerState }) {
           ) : (
             <div className="grid gap-2" data-testid="me-login-wallet">
               <p className="t-meta">Link a wallet to sign in on other devices (free signature).</p>
-              <WalletSignIn label="Link a wallet for sign-in" onLinked={() => void wallet.reload()} />
+              <WalletSignIn intent="link" label="Link a wallet for sign-in" onLinked={() => void wallet.reload()} />
             </div>
           )}
           <WalletLink />

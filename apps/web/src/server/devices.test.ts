@@ -5,7 +5,7 @@
  * Storage of tokens and codes as hashes only is asserted in packages/db's devices tests.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { authenticate, createAccount, createDb, createLinkCode, listDevices, stableOf, type DbHandle } from "@thoroughbred/db";
+import { authenticate, createAccount, createDb, createLinkCode, listDevices, schema, stableOf, type DbHandle } from "@thoroughbred/db";
 import { createStoryRace } from "./game";
 import { linkDeviceResponse, listDevicesResponse, resetLinkFailures, LINK_FAIL_LIMIT } from "./devices";
 import type { Session } from "./session";
@@ -77,7 +77,7 @@ describe("POST /api/account/link", () => {
     expect(ok.status).toBe(200);
   });
 
-  it("refuses to switch a browser that has a stable in play, unless replace is confirmed", async () => {
+  it("refuses to switch a browser that has a stable in play, unless replace is confirmed; the switch is audited, the IP never recorded as a signal", async () => {
     const home = await player("Old Stable");
     const other = await player("New Stable");
     // The old browser's stable has run a race, so it is in play.
@@ -90,6 +90,11 @@ describe("POST /api/account/link", () => {
     expect(replaced.status).toBe(200);
     const cookie = replaced.cookies.get("tb_session")!;
     expect(await authenticate(h.db, cookie.value)).toMatchObject({ accountId: other.accountId });
+    // The switch is a browser changing stables, not a shared identity: audit row, no signal.
+    const switches = (await h.db.select().from(schema.auditLog)).filter((r) => r.action === "account.switch");
+    expect(switches.at(-1)).toMatchObject({ data: { from: home.accountId, to: other.accountId } });
+    const deviceSignals = (await h.db.select().from(schema.accountLinks)).filter((r) => r.kind === "device");
+    expect(deviceSignals).toHaveLength(0);
   });
 
   it("links a browser whose stable is still fresh without the confirmation", async () => {

@@ -1,18 +1,20 @@
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { achievements, chainOrders, dailyCupEntries, fraudEvents, packPulls, raceEntries, races, referrals, testers } from "../schema";
+import { achievements, accounts, chainOrders, dailyCupEntries, fraudEvents, packPulls, raceEntries, races, referrals, testers } from "../schema";
 import { recordAccountSignal, recordPlayDay } from "../services/accounts";
 import { getBalance } from "../services/ledger";
 import { generateInviteCodes, resetPlaytest, RESET_CONFIRMATION, setTesterWallet } from "../services/playtest";
 import { createRace } from "../services/races";
 import {
+  accountForWallet,
   allocateUsd,
   allocationsForWallet,
   consumeWalletChallenge,
   createChainOrder,
   createWalletChallenge,
   DEFAULT_POOL_RULES,
+  ensureAccountWallet,
   fulfilChainOrder,
   linkVerifiedWallet,
   markEpochPosted,
@@ -41,7 +43,7 @@ import {
   settleReferralActivations,
   DEFAULT_AFFILIATE_CONFIG,
 } from "../services/affiliates";
-import { DAY, makeHorse, makeSeller, memoryDb, MIN, newPlayer, T0 } from "./helpers";
+import { DAY, expectDbError, makeHorse, makeSeller, memoryDb, MIN, newPlayer, T0 } from "./helpers";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -88,6 +90,29 @@ describe("wallet links (SIWE-verified, one per account)", () => {
     await expect(linkVerifiedWallet(h.db, { accountId: a.accountId, address: wallet(), now: T0 })).rejects.toThrow(/already has a verified wallet/);
     await expect(setTesterWallet(h.db, { accountId: a.accountId, address: wallet() })).rejects.toThrow(/verified/);
     await expect(linkVerifiedWallet(h.db, { accountId: b.accountId, address: "0x123", now: T0 })).rejects.toThrow();
+  });
+
+  it("one wallet, one account: the lower(wallet_address) unique index, and a race that loses it gets LINKED_ACCOUNTS", async () => {
+    const addr = wallet();
+    // Direct rows differing only by case can't coexist (wallets are stored checksummed).
+    await h.db.insert(accounts).values({ tokenHash: `t-${addr.slice(2, 12)}`, walletAddress: addr });
+    await expectDbError(h.db.insert(accounts).values({ tokenHash: "t-other", walletAddress: addr.toUpperCase().replace(/^0X/, "0x") }), /duplicate key|unique/i);
+
+    // Two accounts race to claim the same wallet: exactly one wins, the other is told the
+    // wallet is taken (LINKED_ACCOUNTS), never a 500 or two owners.
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    const race = wallet();
+    const rs = await Promise.allSettled([
+      ensureAccountWallet(h.db, { accountId: a.accountId, address: race, now: T0 }),
+      ensureAccountWallet(h.db, { accountId: b.accountId, address: race, now: T0 }),
+    ]);
+    const losers = rs.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+    expect(losers.length).toBe(1);
+    expect((losers[0]!.reason as { code?: string }).code).toBe("LINKED_ACCOUNTS");
+    const winner = await accountForWallet(h.db, race);
+    expect(winner).toBeTypeOf("string");
+    expect([a.accountId, b.accountId]).toContain(winner);
   });
 });
 

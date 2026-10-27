@@ -216,21 +216,43 @@ unused ones. Codes are stored hashed (`link_codes.code_hash`). The other device 
 code used only while still fresh (`used_at is null`), so two devices can never share one code,
 and it inserts a per-device token into `account_devices` and sets the session cookie. Every
 failure answers the same generic "That code didn't work"; failed redemptions are rate-limited
-per IP (20/hour → 429); a browser that already has a stable in play must confirm
-`{ replace: true }`. Successful links are recorded as an identity signal (kind "device"), so
-anti-multi-account sees one person. `GET/DELETE /api/account/devices` list and revoke linked
-devices; the founding browser's token is not a device and can't be revoked from there.
+per IP (20/hour → 429, one shared sliding-window limiter, `apps/web` `src/server/rateLimit.ts`);
+a browser that already has a stable in play must confirm `{ replace: true }`. The client IP is
+a rate-limit key only, never an identity signal — NAT-sharing testers aren't "linked". A browser
+that switches stables (device link or wallet sign-in) writes an `account.switch` audit row
+(`{ from, to }`), not a signal or a fraud event. `GET/DELETE /api/account/devices` list and
+revoke linked devices; the founding browser's token is not a device and can't be revoked from
+there.
 
 **Wallet sign-in** (`apps/web` `src/server/walletAuth.ts`, routes under `/api/auth/wallet/*`,
 detailed in `docs/web3.md` §3.4): a wallet can bring the stable to any device with one free
 SIWE signature — no code, no transaction. The login wallet is `accounts.wallet_address`
-(unique): every successful SIWE verification sets it when unset, and lookups fall back to a
-verified tester row. `POST /api/auth/wallet/challenge` stores a one-time 10-minute
-login-purpose message (no account bound; `wallet_challenges.purpose` keeps it separate from
-payout-link challenges); `POST /api/auth/wallet/verify` checks the signature against the
-address in the stored message, consumes the nonce, and either signs the wallet's stable in
-(an `account_devices` row, with the same `{ replace: true }` guard), links an unknown wallet
-to the browser's stable, or answers `{ needsStable }` — `{ create: true }` founds the stable
-and links the wallet in one request. Challenge + verify are rate-limited per IP (30/hour →
-429). WalletConnect (optional env, loaded on click) covers phone wallets; injected EIP-6963
+(unique on `lower(wallet_address)`, `accounts_wallet_lower_uq`; a lost race for the same wallet
+answers LINKED_ACCOUNTS, never two owners): every successful SIWE verification sets it when
+unset, and lookups fall back to a verified tester row. `POST /api/auth/wallet/challenge` stores
+a one-time 10-minute login-purpose message (no account bound; `wallet_challenges.purpose` keeps
+it separate from payout-link challenges) — only for a host on the site allowlist (`APP_HOSTS`
+plus `VERCEL_URL`/`VERCEL_BRANCH_URL`/`VERCEL_PROJECT_PRODUCTION_URL`, `localhost:*` outside
+production); `POST /api/auth/wallet/verify` checks the signature against the address in the
+stored message and the message's domain + URI against the same allowlist, consumes the nonce,
+and follows the body's `intent`:
+
+- `signin` (default, /play and /link): the wallet's stable signs this device in (an
+  `account_devices` row; `{ replace: true }` is required whenever the browser has ANY stable,
+  progress or not — the UI asks once and re-signs). A wallet that already belongs to the
+  browser's account answers `{ alreadySignedIn: true }` without touching the cookie. An
+  unknown wallet is never auto-linked: it answers `{ needsStable, canLinkCurrent,
+  currentStable }`, and the client offers linking it to the current stable (intent `link`) or
+  founding a new one — `{ create: true }` founds the stable and links the wallet in ONE
+  transaction under a per-wallet advisory lock (`pg_advisory_xact_lock(hashtext(lower(
+  address)))`, re-checked inside), so two racing requests get one stable and never leak an
+  invite seat. Founding is one shared server function (`foundStable`), used by both
+  `POST /api/account` and the wallet create.
+- `link` (the /me "Link a wallet for sign-in" button; requires a session): only ever links to
+  the CURRENT account — a wallet already on it answers `{ linked: true }` with no session or
+  cookie change, a wallet on another account answers 409 `wallet_in_use`, and it never
+  switches stables.
+
+Challenge + verify are rate-limited per IP (30/hour → 429, the same shared limiter).
+WalletConnect (optional env, loaded on click) covers phone wallets; injected EIP-6963
 wallets always work. Web3 stays optional — the code-link flow above is unchanged.

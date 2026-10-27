@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "accounts_wallet_lower_uq" ON "accounts" USING btree (lower("wallet_address"));

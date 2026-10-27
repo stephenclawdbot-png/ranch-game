@@ -281,7 +281,21 @@ export async function recordAccountSignal(db: Db, input: { accountId: string; ki
       .from(accountLinks)
       .where(and(eq(accountLinks.kind, input.kind), eq(accountLinks.valueHash, valueHash), ne(accountLinks.accountId, input.accountId)));
     for (const o of others) {
-      await tx.insert(fraudEvents).values({ accountId: input.accountId, relatedAccountId: o.id, kind: "account_link", data: { signal: input.kind } });
+      // One review event per new link: repeated signals for the same pair don't pile up.
+      const [already] = await tx
+        .select({ id: fraudEvents.id })
+        .from(fraudEvents)
+        .where(
+          and(
+            eq(fraudEvents.accountId, input.accountId),
+            eq(fraudEvents.relatedAccountId, o.id),
+            eq(fraudEvents.kind, "account_link"),
+            sql`${fraudEvents.data}->>'signal' = ${input.kind}`,
+          ),
+        );
+      if (!already) {
+        await tx.insert(fraudEvents).values({ accountId: input.accountId, relatedAccountId: o.id, kind: "account_link", data: { signal: input.kind } });
+      }
     }
     return others.map((o) => o.id);
   });

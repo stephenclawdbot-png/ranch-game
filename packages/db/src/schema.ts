@@ -112,6 +112,9 @@ export const accounts = pgTable(
     uniqueIndex("accounts_token_hash_uq").on(t.tokenHash),
     uniqueIndex("accounts_email_uq").on(sql`lower(${t.email})`),
     uniqueIndex("accounts_wallet_uq").on(t.walletAddress),
+    // Case-insensitive backstop (wallets are stored checksummed): the race two accounts
+    // set the same wallet loses here instead of ending up with two owners.
+    uniqueIndex("accounts_wallet_lower_uq").on(sql`lower(${t.walletAddress})`),
   ],
 );
 

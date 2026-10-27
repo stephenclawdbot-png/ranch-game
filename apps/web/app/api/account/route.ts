@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { SilksSchema } from "@thoroughbred/shared";
-import { createAccount, linkTester, recordReferral, redeemInvite, stableOf, updateStableProfile } from "@thoroughbred/db";
+import { stableOf, updateStableProfile } from "@thoroughbred/db";
 import { db } from "@/server/db";
+import { foundStable } from "@/server/founding";
 import { playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
-import { playtestConfig, trackEvent } from "@/server/playtest";
+import { trackEvent } from "@/server/playtest";
 import { getSession, requireSession, setSessionCookie } from "@/server/session";
 import { StableNameSchema } from "@/lib/stableName";
 
@@ -33,24 +34,15 @@ export async function POST(req: Request) {
     const existing = await getSession(database);
     if (existing) return json({ created: false, player: await playerView(database, existing, new Date()) });
     const now = new Date();
-    // Closed playtest: reserve a tester for the invite code first (re-links a tester after a reset).
-    const playtest = playtestConfig();
-    let testerId: string | null = null;
-    if (playtest.enabled) {
-      if (!parsed.data.inviteCode?.trim()) return errorJson(403, "invite_required", { message: "The playtest is invite only. Enter your invite code." });
-      testerId = (await redeemInvite(database, { code: parsed.data.inviteCode, cap: playtest.testerCap, now })).testerId;
-    }
-    const acc = await createAccount(database, { stableName: parsed.data.stableName, silks: parsed.data.silks, timezone: parsed.data.timezone, now });
-    if (testerId) await linkTester(database, { testerId, accountId: acc.accountId, stableName: parsed.data.stableName, now });
-    // Affiliate tree (beta money): inviter = the code's owner (root/admin codes -> the owner account).
-    if (parsed.data.inviteCode?.trim()) {
-      try {
-        await recordReferral(database, { accountId: acc.accountId, code: parsed.data.inviteCode, now });
-      } catch (err) {
-        console.error("referral", err);
-      }
-    }
-    await trackEvent(database, acc.accountId, "signup", { playtest: playtest.enabled });
+    // The founding flow wallet sign-in shares (invite seat first, then the account).
+    const acc = await foundStable(database, {
+      stableName: parsed.data.stableName,
+      silks: parsed.data.silks,
+      timezone: parsed.data.timezone,
+      inviteCode: parsed.data.inviteCode ?? null,
+      now,
+    });
+    await trackEvent(database, acc.accountId, "signup", { playtest: acc.playtest });
     const session = { accountId: acc.accountId, stable: await stableOf(database, acc.accountId) };
     const res = json({ created: true, player: await playerView(database, session, now) }, { status: 201 });
     setSessionCookie(res, acc.token);

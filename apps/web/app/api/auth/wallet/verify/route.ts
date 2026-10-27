@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
 const Schema = z.object({
   nonce: z.string().regex(/^[A-Za-z0-9]{8,64}$/),
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/).max(4000),
+  /** What the wallet is signing for: "signin" (/play, /link; default) or "link" to the current stable (/me). */
+  intent: z.enum(["signin", "link"]).optional(),
   /** Confirm leaving this browser's stable behind when the wallet belongs to another one. */
   replace: z.boolean().optional(),
   /** No stable anywhere yet: found one here (name + colours), linked to the wallet. */
