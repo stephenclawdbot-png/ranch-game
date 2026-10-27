@@ -140,19 +140,35 @@ describe("ETH checkout (mock chain)", () => {
     expect((await getChainOrder(h.db, q.orderId))?.status).toBe("fulfilled");
   });
 
-  it("weekly cap of 10 counts pulled packs AND open quotes; a tx for another order is rejected", async () => {
+  it("weekly cap of 5 counts pulled packs AND open quotes; a tx for another order is rejected", async () => {
     const p = await player();
     await link(p);
     const a = await quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 3, country: null, now: T0 });
-    await quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 3, country: null, now: T0 });
-    const b = await quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 3, country: null, now: T0 });
-    await expect(quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 2, country: null, now: T0 })).rejects.toThrow(/weekly limit/);
+    const b = await quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 2, country: null, now: T0 });
+    await expect(quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 1, country: null, now: T0 })).rejects.toThrow(/weekly limit/);
     // Once the open quotes expire, the cap frees up again.
     await quoteCheckout(ctx, p, { sku: "premium_pack", quantity: 2, country: null, now: at(6 * MIN) });
-    const many = p;
     const txB = chain.simulatePurchase(quoteFromJson(b.quote));
-    const wrong = await confirmCheckout(ctx, many, { orderId: a.orderId, txHash: txB, now: at(MIN) });
+    const wrong = await confirmCheckout(ctx, p, { orderId: a.orderId, txHash: txB, now: at(MIN) });
     expect(wrong.status).toBe("rejected");
+  });
+
+  it("beta lifetime cap: $50 of packs per tester; pending orders count; exactly $50 is allowed", async () => {
+    // $50 in week 1 blocks week 2 as well: the cap is for the whole beta, not the week.
+    const fifty = { ...ctx, cfg: { ...ctx.cfg, premiumUsdCents: 2_500 } };
+    const p = await player();
+    await link(p);
+    const q = await quoteCheckout(fifty, p, { sku: "premium_pack", quantity: 2, country: null, now: T0 });
+    expect(q.usdCents).toBe(5_000); // exactly the cap
+    const tx = chain.simulatePurchase(quoteFromJson(q.quote));
+    expect((await confirmCheckout(fifty, p, { orderId: q.orderId, txHash: tx, now: at(MIN) })).status).toBe("fulfilled");
+    await expect(quoteCheckout(fifty, p, { sku: "premium_pack", quantity: 1, country: null, now: at(7 * DAY) })).rejects.toThrow(/Beta limit: \$50/);
+    // Open quotes count before any payment: $34 pending + a $17 pack crosses $50.
+    const dear = { ...ctx, cfg: { ...ctx.cfg, premiumUsdCents: 1_700 } };
+    const r = await player();
+    await link(r);
+    await quoteCheckout(dear, r, { sku: "premium_pack", quantity: 2, country: null, now: T0 });
+    await expect(quoteCheckout(dear, r, { sku: "premium_pack", quantity: 1, country: null, now: T0 })).rejects.toThrow(/Beta limit: \$50/);
   });
 });
 

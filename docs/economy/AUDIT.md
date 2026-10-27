@@ -527,8 +527,8 @@ material connection (FTC Endorsement Guides).
 | `ref1Bps` / `ref2Bps` | `DEFAULT_AFFILIATE_CONFIG` / store ceilings | 1,000 / 300 | **0 / 0** in the beta; later 500 / 0 | MLM optics, owner-root, no economic upside |
 | Owner commissions | `recordReferral` (admin codes → owner) | owner is inviter | inviter = null | The owner shouldn't be the top of a tree |
 | `weeklyCapUsdCents` / `windowDays` | affiliates | $50 / 90 | $10 / 30 (+ 14-day hold, $25 lifetime per invitee) | The cap never binds today |
-| Activation reward | `settleReferralActivations` | 250, no link check, Story races count | 250, link check, ≥ 5 **Live** races | Alt farming |
-| `PREMIUM_PER_WEEK` | game-core | 10 | **5** in the beta + a $50 lifetime beta cap per tester | "Real small money" |
+| Activation reward | `settleReferralActivations` | 250, no link check, Story races count | 250, link check, ≥ 5 **Live** races | Alt farming (done 2026-10-27) |
+| `PREMIUM_PER_WEEK` | game-core | 10 | **5** in the beta + a $50 lifetime beta cap per tester | "Real small money" (done 2026-10-27) |
 | Premium price | `PREMIUM_PACK_USD_CENTS` | $4.99 | keep $4.99 | Revenue is flat to rising up to $7.99 at elasticity −1.5, but small money matters more |
 | Epic pity | `PACK_PITY.premium` | 50 | **20** (beta) (done 2026-10-26) | Otherwise unreachable under the cap (18.9% never see Epic) |
 | Market price ceiling | `db/services/market.ts` | none | ≤ 3× appraisal; 72 h resale lock (done 2026-10-26) | Credit transfers / real-money trading |

@@ -44,7 +44,7 @@ flowchart LR
 | Step | Who | What happens |
 |---|---|---|
 | Link wallet | player | `/me` (or `/beta`): connect an injected wallet (EIP-6963: MetaMask, Rabby, Coinbase Wallet, Robinhood Wallet when injected) and sign an **EIP-4361 (SIWE)** message. Free, no gas. One verified wallet per stable, one stable per wallet (partial unique index). The link feeds linked-account detection (§4b) as a `wallet` signal. |
-| Quote | server | `POST /api/checkout/quote {sku, quantity}`: checks web3 on, verified wallet, geo (`PREMIUM_BLOCKED_COUNTRIES`), **weekly cap 10** (pulls this week + open quotes), free stalls, foal crop; prices `$4.99 × qty` in wei with the **median ETH/USD**; picks eligible referrers; **writes the order row first**; signs an EIP-712 `EthQuote {orderId, buyer, sku, quantity, priceWei, usdCents, ref1, ref1Bps, ref2, ref2Bps, deadline}` valid **5 minutes** (contract hard limit 10). |
+| Quote | server | `POST /api/checkout/quote {sku, quantity}`: checks web3 on, verified wallet, geo (`PREMIUM_BLOCKED_COUNTRIES`), **weekly cap 5** (pulls this week + open quotes) and the **$50 beta lifetime cap** (fulfilled + pending orders, at today's price), free stalls, foal crop; prices `$4.99 × qty` in wei with the **median ETH/USD**; picks eligible referrers; **writes the order row first**; signs an EIP-712 `EthQuote {orderId, buyer, sku, quantity, priceWei, usdCents, ref1, ref1Bps, ref2, ref2Bps, deadline}` valid **5 minutes** (contract hard limit 10). |
 | Pay | player | The UI shows "$X ≈ Y ETH" with a countdown and re-quotes automatically when it expires. The wallet sends exactly `priceWei`. |
 | Split | contract | `purchaseWithEth` checks buyer = sender, deadline (≤ 10 min ahead), single-use orderId (shared with the USDG path), SKU active, `msg.value == priceWei`, referral sanity, optional Chainlink tolerance, the signer role. Then: `poolBps` → `PrizePool.fund` (same tx; a revert undoes the sale), commissions → referrers (gas-limited call; on failure credited to `referralOwed`, pulled with `withdrawReferral`), the rest → treasury (on failure kept in `pendingTreasuryWei`, `withdrawEth` sends it to the treasury). The store never keeps ETH. |
 | Confirm | server | `POST /api/checkout/confirm {orderId, txHash}` verifies the receipt: only logs from **our** store, `PurchasedWithEth` for this orderId, buyer, sku, quantity, exact amount, confirmations. Then **idempotently** grants one prepaid Premium pull per quantity (idempotency key `chain:<chain>:<store>:<orderId>:<i>`), records the pool/treasury split and the `ReferralCommission` events. A tx hash can belong to one order only; a wrong hash is forgotten so the right one (or the backstop) can still settle it. |
@@ -110,8 +110,10 @@ flowchart LR
   and flagged as a `referral_linked` fraud event); **weekly per-inviter cap** ($50 default,
   counting paid commissions and open quotes). The owner is exempt from the weekly cap
   (optional separate owner cap) and from link checks.
-- In-game reward: when an invitee becomes active (≥ 5 races, ≥ 3 play days) the inviter gets
-  250 credits through the ledger and the "referrer" badge, once (idempotent).
+- In-game reward: when an invitee becomes active (≥ 5 **Live** races, ≥ 3 play days; Story
+  races don't count) and the pair isn't linked, the inviter gets 250 credits through the
+  ledger and the "referrer" badge, once (idempotent). A linked pair gets nothing and is
+  flagged as a `referral_linked` fraud event.
 - `/invite`: link + copy/share, invitees (L1/L2) with activity, earnings with explorer links,
   the rules ("you never need to buy anything to invite or earn"). Admin → **Affiliates**: owner
   stats (sales in the tree, owner L1/L2, treasury income, pool contributions), config, top
@@ -245,8 +247,8 @@ flowchart LR
 
 1. **Checkout.** `POST /api/store/checkout {sku, quantity}`. The server checks
    `WEB3_ENABLED`, a verified account, a linked wallet (SIWE), geo rules (Premium Packs are
-   geo-blocked where paid loot boxes are restricted), weekly caps (Premium Pack ≤ 10 per
-   week) and linked-account flags. It then:
+   geo-blocked where paid loot boxes are restricted), weekly caps (Premium Pack ≤ 5 per
+   week and ≤ $50 per tester over the beta) and linked-account flags. It then:
    - writes a **pending order** row `(orderId, accountId, wallet, sku, qty, token, quotedTotal, deadline)`;
    - returns `createPurchaseVoucher(order)`, an EIP-712 `Order` signed by `STORE_SIGNER_PRIVATE_KEY`.
 2. **Pay.** The wallet sends `approve(store, total)` and `purchase(order, signature)`. A
@@ -447,7 +449,7 @@ These come from `docs/game-design.md` §8 and §4b–4f, and are expanded in the
 - **Packs:**
   - published odds and pity (Rare within 10 pulls, Epic within 50);
   - pulls seeded and committed;
-  - Premium Pack ≤ 10 per week per account;
+  - Premium Pack ≤ 5 per week per account, and ≤ $50 per tester over the beta;
   - **geo-blocked where paid loot boxes are restricted.** Belgium has treated paid loot
     boxes as gambling since 2018 [be-lootbox]; this needs current legal confirmation per
     market.

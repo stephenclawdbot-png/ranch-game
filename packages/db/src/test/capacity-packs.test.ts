@@ -143,14 +143,14 @@ describe("packs", () => {
     expect(await count(h.db, "horses", `owner_stable_id = '${p.stableId}'`)).toBe(1);
   });
 
-  it("weekly limits: 3 bought Paddock Packs, 10 Premium Packs", async () => {
+  it("weekly limits: 3 bought Paddock Packs, 5 Premium Packs (beta)", async () => {
     const p = await newPlayer(h.db, { credits: 1_000_000 });
     await h.db.update(stables).set({ stallSlots: 24 }).where(eq(stables.id, p.stableId));
     const paddock = await settledAll(Array.from({ length: 5 }, () => pullPack(h.db, { accountId: p.accountId, packType: "paddock", idempotencyKey: k(), now: T0 })));
     expect(paddock.ok).toHaveLength(3);
     expect(paddock.errors.every((e) => isDomainError(e, "PACK_LIMIT"))).toBe(true);
-    const premium = await settledAll(Array.from({ length: 12 }, () => pullPack(h.db, { accountId: p.accountId, packType: "premium", idempotencyKey: k(), now: T0 })));
-    expect(premium.ok).toHaveLength(10);
+    const premium = await settledAll(Array.from({ length: 7 }, () => pullPack(h.db, { accountId: p.accountId, packType: "premium", idempotencyKey: k(), now: T0 })));
+    expect(premium.ok).toHaveLength(5);
     // Next week the limits reset.
     await expect(pullPack(h.db, { accountId: p.accountId, packType: "paddock", idempotencyKey: k(), now: at(7 * DAY) })).resolves.toBeDefined();
   });

@@ -76,14 +76,15 @@ describe("pulls", () => {
 
 describe("limits", () => {
   const a: PackAllowance = { playDays: 3, freePaddockClaimed: 0, paddockBoughtThisWeek: 0, premiumThisWeek: 0, seasonCropUsed: 0, stallsFree: 1, credits: 5000, premiumAllowedInRegion: true };
-  it("free paddock every 3rd play day (not consecutive), 3 bought a week, premium 10 a week", () => {
+  it("free paddock every 3rd play day (not consecutive), 3 bought a week, premium 5 a week (beta)", () => {
     expect(freePaddockEarned(2)).toBe(0);
     expect(freePaddockEarned(9)).toBe(3);
     expect(packBlock("free", a)).toBeNull();
     expect(packBlock("free", { ...a, freePaddockClaimed: 1 })).toBe("no_free_pack");
     expect(packBlock("credits", { ...a, paddockBoughtThisWeek: 3 })).toBe("weekly_limit");
     expect(packBlock("credits", { ...a, credits: 10 })).toBe("insufficient_credits");
-    expect(packBlock("premium", { ...a, premiumThisWeek: 10 })).toBe("weekly_limit");
+    expect(packBlock("premium", { ...a, premiumThisWeek: 4 })).toBeNull();
+    expect(packBlock("premium", { ...a, premiumThisWeek: 5 })).toBe("weekly_limit");
     expect(packBlock("premium", { ...a, premiumAllowedInRegion: false })).toBe("region_blocked");
   });
   it("needs a stall and respects the seasonal global crop cap", () => {
