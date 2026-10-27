@@ -31,7 +31,7 @@ import {
 } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { recordAccountSignal } from "./accounts";
-import { LIVE_RACE_KINDS, weekScore } from "./leagues";
+import { LIVE_RACE_KINDS, runPoints } from "./leagues";
 import { pullPack, type PullResult } from "./packs";
 import { EVM_ADDRESS_RE } from "./playtest";
 import { audit, runTx } from "./tx";
@@ -414,7 +414,7 @@ export async function chainSalesSummary(ex: Executor): Promise<{ orders: number;
 export interface PoolRules {
   /** Share of the pool's FREE balance one weekly epoch may use (bps). On-chain hard cap: maxEpochBps. */
   budgetBps: number;
-  /** Per-player cap per epoch in USD cents (e.g. 2000 = $20/week). */
+  /** Per-player cap per epoch in USD cents (e.g. 1000 = $10/week). */
   capUsdCents: number;
   /** Minimum active (play) days in the period. */
   minActiveDays: number;
@@ -432,8 +432,8 @@ export interface PoolRules {
 
 export const DEFAULT_POOL_RULES: PoolRules = {
   budgetBps: 2_500,
-  capUsdCents: 2_000,
-  minActiveDays: 3,
+  capUsdCents: 1_000,
+  minActiveDays: 4,
   paidRanks: 10,
   minPayoutUsdCents: 50,
   excludePremiumHorses: true,
@@ -458,9 +458,12 @@ export interface PoolScoreRow {
 }
 
 /**
- * Skill score of every owner for [from, to): weekly-league race points (game-core racePoints
- * + tier bonus, capped per week like the league) plus Daily Cup points, with eligibility.
- * Ties break by wins, then fewer runs (efficiency), then account id (deterministic).
+ * Skill score of every owner for [from, to), on rate, not volume (audit §6): points per Live
+ * run x 15 (the weight min(1, runs / 8) folds into the divisor max(runs, 8)) plus the mean of
+ * the best 3 Daily Cup days x 5, both floor-rounded. Per-run points use the league table
+ * (game-core racePoints + tier bonus) uncapped; 0 Live runs scores from the Cup term only.
+ * Eligibility as in the rules. Ties break by wins, then fewer runs (efficiency), then account
+ * id (deterministic).
  */
 export async function poolScores(ex: Executor, input: { from: Date; to: Date; rules: PoolRules }): Promise<PoolScoreRow[]> {
   const { from, to, rules } = input;
@@ -488,32 +491,37 @@ export async function poolScores(ex: Executor, input: { from: Date; to: Date; ru
         eq(raceEntries.status, "entered"),
       ),
     );
-  // Weekly cap applies per UTC week, as in the league.
-  const byAccountWeek = new Map<string, { position: number; fieldSize: number; raceClass: string }[]>();
+  // Per-run league points over the whole period (no weekly cap: the score is a rate).
+  const byAccount = new Map<string, { position: number; fieldSize: number; raceClass: string }[]>();
   for (const r of runs) {
     if (rules.excludePremiumHorses && Number(r.premium) === 1) continue;
-    const k = `${r.accountId}|${utcWeekStart(r.postTime)}`;
-    byAccountWeek.set(k, [...(byAccountWeek.get(k) ?? []), { position: r.position ?? 99, fieldSize: Number(r.fieldSize), raceClass: r.raceClass }]);
+    byAccount.set(r.accountId, [...(byAccount.get(r.accountId) ?? []), { position: r.position ?? 99, fieldSize: Number(r.fieldSize), raceClass: r.raceClass }]);
   }
   const race = new Map<string, { points: number; wins: number; runs: number }>();
-  for (const [k, rs] of byAccountWeek) {
-    const acc = k.split("|")[0]!;
-    const s = weekScore(rs);
-    const cur = race.get(acc) ?? { points: 0, wins: 0, runs: 0 };
-    race.set(acc, { points: cur.points + s.points, wins: cur.wins + s.wins, runs: cur.runs + s.runs });
+  for (const [acc, rs] of byAccount) {
+    let points = 0;
+    let wins = 0;
+    for (const r of rs) {
+      points += runPoints(r);
+      if (r.position === 1) wins++;
+    }
+    race.set(acc, { points, wins, runs: rs.length });
   }
 
   const cupRows = await ex
     .select({
       accountId: dailyCupEntries.accountId,
+      day: dailyCupEntries.day,
       points: sql<number>`coalesce(sum(${dailyCupEntries.points}), 0)::int`,
       nonPremium: sql<number>`coalesce(sum(${dailyCupEntries.points}) filter (where not exists (select 1 from pack_pulls p where p.horse_id = "daily_cup_entries"."horse_id" and p.pack_type = 'premium')), 0)::int`,
     })
     .from(dailyCupEntries)
     .where(and(gte(dailyCupEntries.day, utcDay(from)), lt(dailyCupEntries.day, utcDay(to))))
-    .groupBy(dailyCupEntries.accountId);
-  const cup = new Map<string, number>();
-  for (const c of cupRows) cup.set(c.accountId, Number(rules.excludePremiumHorses ? c.nonPremium : c.points));
+    .groupBy(dailyCupEntries.accountId, dailyCupEntries.day);
+  // Best 3 Cup days (fewer count as 0): the mean is over 3, so one lucky day can't carry.
+  const cupDays = new Map<string, number[]>();
+  for (const c of cupRows) cupDays.set(c.accountId, [...(cupDays.get(c.accountId) ?? []), Number(rules.excludePremiumHorses ? c.nonPremium : c.points)]);
+  const cup = new Map([...cupDays].map(([acc, ds]) => [acc, ds.sort((a, b) => b - a).slice(0, 3).reduce((a, b) => a + b, 0)] as const));
 
   const activeRows = await ex
     .select({ accountId: accountPlayDays.accountId, days: sql<number>`count(*)::int` })
@@ -541,7 +549,10 @@ export async function poolScores(ex: Executor, input: { from: Date; to: Date; ru
     const wallet = t?.walletAddress && t.walletVerifiedAt ? t.walletAddress : null;
     const activeDays = active.get(accountId) ?? 0;
     const isFlagged = flagged.has(accountId);
-    const score = r.points + c;
+    // Rate score: placing quality per run (full weight from 8 runs) + best-3 Cup days.
+    const raceTerm = r.runs ? Math.floor((r.points * 15) / Math.max(r.runs, 8)) : 0;
+    const cupTerm = Math.floor((c * 5) / 3);
+    const score = raceTerm + cupTerm;
     const reason =
       score <= 0
         ? "no points"

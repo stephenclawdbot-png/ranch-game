@@ -199,7 +199,7 @@ describe("Prize Pool epoch (mock chain)", () => {
       await link(p);
       const horseId = (await listStableHorses(h.db, p.stable.id))[0]!.id;
       await h.db.insert(schema.dailyCupEntries).values({ day: "2026-11-04", accountId: p.accountId, horseId, snapshot: {}, points: 100 - i * 10 });
-      for (let d = 0; d < 3; d++) await recordPlayDay(h.db, p.accountId, new Date(Date.UTC(2026, 10, 2 + d, 9)));
+      for (let d = 0; d < 4; d++) await recordPlayDay(h.db, p.accountId, new Date(Date.UTC(2026, 10, 2 + d, 9)));
     }
     const view = await poolView(ctx, players[0]!, at(0));
     expect(view.standings.length).toBeGreaterThanOrEqual(3);
@@ -211,7 +211,7 @@ describe("Prize Pool epoch (mock chain)", () => {
     expect(draft.epochId).toBe(1);
     expect(draft.allocations.length).toBeGreaterThanOrEqual(3);
     expect(BigInt(draft.totalWei) <= BigInt(draft.budgetWei)).toBe(true);
-    for (const a of draft.allocations) expect(a.usdCents).toBeLessThanOrEqual(2_000); // $20 cap
+    for (const a of draft.allocations) expect(a.usdCents).toBeLessThanOrEqual(1_000); // $10 cap
     const posted = await postEpochWithServer(ctx, draft.draftId!, now);
     expect(posted.status).toBe("posted");
     expect((await chain.epoch(1))?.root).toBe(draft.root);

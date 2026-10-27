@@ -49,7 +49,7 @@ flowchart LR
 | Split | contract | `purchaseWithEth` checks buyer = sender, deadline (≤ 10 min ahead), single-use orderId (shared with the USDG path), SKU active, `msg.value == priceWei`, referral sanity, optional Chainlink tolerance, the signer role. Then: `poolBps` → `PrizePool.fund` (same tx; a revert undoes the sale), commissions → referrers (gas-limited call; on failure credited to `referralOwed`, pulled with `withdrawReferral`), the rest → treasury (on failure kept in `pendingTreasuryWei`, `withdrawEth` sends it to the treasury). The store never keeps ETH. |
 | Confirm | server | `POST /api/checkout/confirm {orderId, txHash}` verifies the receipt: only logs from **our** store, `PurchasedWithEth` for this orderId, buyer, sku, quantity, exact amount, confirmations. Then **idempotently** grants one prepaid Premium pull per quantity (idempotency key `chain:<chain>:<store>:<orderId>:<i>`), records the pool/treasury split and the `ReferralCommission` events. A tx hash can belong to one order only; a wrong hash is forgotten so the right one (or the backstop) can still settle it. |
 | Recover | both | `/packs` resumes open orders on load (`GET /api/checkout/orders`). The cron `/api/cron/chain` (daily, Bearer `CRON_SECRET`) settles submitted/paid orders, scans for paid quotes whose client vanished (`PurchasedWithEth` by indexed orderId), expires dead quotes, and grants affiliate activity rewards. Orders the server didn't create are never fulfilled. |
-| Weekly epoch | admin | `/admin` → **Prize Pool**: compute the last week (scores = league race points, capped per week + Daily Cup points; eligible = verified wallet, ≥ 3 play days, no open linked-account flag; horses from Premium Packs don't score), split the budget (default 25 % of the free pool, ≤ the contract's `maxEpochBps`) over the top 10 by linear weights, cap **$20/person** converted at the median price (stored on the epoch), dust < $0.50 dropped, leftovers roll over. Review, then post the Merkle root with the server key (if granted `POSTER_ROLE` + gas) or from the owner wallet. The season-end bonus is the same flow with `kind: season` over the season's dates. |
+| Weekly epoch | admin | `/admin` → **Prize Pool**: compute the last week (scores = **rate**: points per Live run × 15, full weight from 8 runs, plus the mean of the best 3 Daily Cup days × 5 — playing more doesn't score more by itself (done 2026-10-27); eligible = verified wallet, ≥ 4 play days, no open linked-account flag; horses from Premium Packs don't score), split the budget (default 25 % of the free pool, ≤ the contract's `maxEpochBps`) over the top 10 by linear weights, cap **$10/person** converted at the median price (stored on the epoch), dust < $0.50 dropped, leftovers roll over. Review, then post the Merkle root with the server key (if granted `POSTER_ROLE` + gas) or from the owner wallet. The season-end bonus is the same flow with `kind: season` over the season's dates. |
 | Claim | player | `/pool`: allocations with vested / claimed / claimable; **Claim** sends `PrizePool.claim(epoch, amount, vestStart, vestEnd, proof)` from the player's wallet (linear vesting, 14 days; claim any time, several times). |
 
 ### Why the pot can't be drained
@@ -68,8 +68,9 @@ flowchart LR
   `cancelEpoch` a wrong/malicious root. **Both only return ETH to the pool.** Unclaimed
   allocations return to the pool after the claim window (56 days) via `expireEpoch` (anyone).
 - **Payouts reward skill and activity, not money:** free players are equally eligible, runs by
-  Premium-Pack horses don't score, a ≥ 3-active-days rule, linked-account flags hold a player
-  back, $20/week cap.
+  Premium-Pack horses don't score, a ≥ 4-active-days rule, linked-account flags hold a player
+  back, $10/week cap. The score is a rate (points per Live run, full weight from 8 runs, plus
+  the best 3 Daily Cup days), so volume alone can't win.
 - **A leaked server key** can sign quotes (but the server fulfils only its own orders and
   checks the exact amount) and, if it holds `POSTER_ROLE`, post one capped epoch a week, which
   the owner can cancel during vesting. It can never move funds. Keep it low-value, rotate by

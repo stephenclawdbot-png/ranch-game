@@ -1,10 +1,11 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { achievements, chainOrders, dailyCupEntries, fraudEvents, packPulls, referrals, testers } from "../schema";
+import { achievements, chainOrders, dailyCupEntries, fraudEvents, packPulls, raceEntries, races, referrals, testers } from "../schema";
 import { recordAccountSignal, recordPlayDay } from "../services/accounts";
 import { getBalance } from "../services/ledger";
 import { generateInviteCodes, resetPlaytest, RESET_CONFIRMATION, setTesterWallet } from "../services/playtest";
+import { createRace } from "../services/races";
 import {
   allocateUsd,
   allocationsForWallet,
@@ -39,7 +40,7 @@ import {
   settleReferralActivations,
   DEFAULT_AFFILIATE_CONFIG,
 } from "../services/affiliates";
-import { DAY, makeHorse, makeSeller, memoryDb, newPlayer, T0 } from "./helpers";
+import { DAY, makeHorse, makeSeller, memoryDb, MIN, newPlayer, T0 } from "./helpers";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -175,7 +176,17 @@ describe("Prize Pool allocations", () => {
     expect(() => usdCentsToWei(1, 0)).toThrow();
   });
 
-  it("scores Daily Cup points, requires 3 active days + a verified wallet, and excludes premium-pack horses", async () => {
+  let raceNo = 0;
+  /** A settled Live race: the stable's horse finishes `position` in a 4-runner field (house fillers). */
+  async function liveRun(postTime: Date, stableId: string, horseId: string, position: number) {
+    const race = await createRace(h.db, { kind: "scheduled", name: `Pool race ${++raceNo}`, raceClass: "maiden", conditions: {}, postTime, entriesCloseAt: new Date(postTime.getTime() - MIN) });
+    await h.db.update(races).set({ status: "settled" }).where(eq(races.id, race.id));
+    await h.db.insert(raceEntries).values({ raceId: race.id, horseId, stableId, gate: 1, tactic: "stalker", snapshot: {}, ratingBefore: 0, finishPosition: position, status: "entered" });
+    const fillers = await Promise.all([makeHorse(h.db, null), makeHorse(h.db, null), makeHorse(h.db, null)]);
+    await h.db.insert(raceEntries).values(fillers.map((f, i) => ({ raceId: race.id, horseId: f.id, gate: i + 2, tactic: "stalker", snapshot: {}, ratingBefore: 0, isHouse: true })));
+  }
+
+  it("scores Daily Cup points, requires 4 active days + a verified wallet, and excludes premium-pack horses", async () => {
     const weekStart = "2026-11-02";
     const { from } = weekPeriod(weekStart);
     const a = await playerWithWallet();
@@ -186,16 +197,91 @@ describe("Prize Pool allocations", () => {
       const horse = await makeHorse(h.db, p.stableId);
       await h.db.insert(dailyCupEntries).values({ day: "2026-11-03", accountId: p.accountId, horseId: horse.id, snapshot: {}, points: 40 });
       if (p === d) await h.db.insert(packPulls).values({ accountId: d.accountId, packType: "premium", pullIndex: 1, seedCommitment: "x", seedReveal: "y", rarity: "rare", horseId: horse.id, price: 0, free: false, weekStart, seasonNumber: 1, idempotencyKey: `t:${horse.id}` });
-      for (let day = 0; day < (p === c ? 2 : 3); day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+      for (let day = 0; day < (p === c ? 2 : 4); day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
     }
     const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
     const by = new Map(scores.map((s) => [s.accountId, s]));
-    expect(by.get(a.accountId)).toMatchObject({ cupPoints: 40, eligible: true, activeDays: 3 });
+    expect(by.get(a.accountId)).toMatchObject({ cupPoints: 40, score: 66, eligible: true, activeDays: 4 }); // 40 x 5 / 3
     expect(by.get(b.accountId)).toMatchObject({ eligible: false, reason: "no verified wallet" });
-    expect(by.get(c.accountId)).toMatchObject({ eligible: false, reason: "active 2/3 days" });
+    expect(by.get(c.accountId)).toMatchObject({ eligible: false, reason: "active 2/4 days" });
     expect(by.get(d.accountId)).toMatchObject({ cupPoints: 0, eligible: false, reason: "no points" });
     const loose = await poolScores(h.db, { ...weekPeriod(weekStart), rules: { ...DEFAULT_POOL_RULES, excludePremiumHorses: false } });
     expect(loose.find((s) => s.accountId === d.accountId)?.eligible).toBe(true);
+  });
+
+  it("scores the placing rate, not volume: 3 great runs beat 20 average ones", async () => {
+    const weekStart = "2026-11-09";
+    const { from } = weekPeriod(weekStart);
+    const great = await playerWithWallet();
+    const grinder = await playerWithWallet();
+    for (const p of [great, grinder]) for (let day = 0; day < 4; day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+    const greatHorse = await makeHorse(h.db, great.stableId);
+    const grinderHorse = await makeHorse(h.db, grinder.stableId);
+    for (let i = 0; i < 3; i++) await liveRun(new Date(from.getTime() + (i + 1) * DAY + 3_600_000), great.stableId, greatHorse.id, 1); // 3 wins: 3 x 13 = 39 -> 39 x 15 / 8
+    for (let i = 0; i < 20; i++) await liveRun(new Date(from.getTime() + (i % 5) * DAY + 5 * 3_600_000), grinder.stableId, grinderHorse.id, 6); // 20 sixths: 20 x 3 = 60 -> 60 x 15 / 20
+    const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
+    const by = new Map(scores.map((s) => [s.accountId, s]));
+    expect(by.get(great.accountId)).toMatchObject({ score: 73, racePoints: 39, runs: 3, wins: 3, eligible: true });
+    expect(by.get(grinder.accountId)).toMatchObject({ score: 45, racePoints: 60, runs: 20 });
+    expect(by.get(grinder.accountId)!.score).toBeLessThan(by.get(great.accountId)!.score);
+    expect(scores[0]!.accountId).toBe(great.accountId);
+  });
+
+  it("counts only the best 3 Daily Cup days (mean x 5), so volume alone doesn't score", async () => {
+    const weekStart = "2026-11-16";
+    const { from } = weekPeriod(weekStart);
+    const many = await playerWithWallet();
+    const once = await playerWithWallet();
+    for (const p of [many, once]) for (let day = 0; day < 4; day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+    const manyHorse = await makeHorse(h.db, many.stableId);
+    for (const [day, points] of [["2026-11-16", 40], ["2026-11-17", 30], ["2026-11-18", 20], ["2026-11-19", 10]] as const)
+      await h.db.insert(dailyCupEntries).values({ day, accountId: many.accountId, horseId: manyHorse.id, snapshot: {}, points });
+    const onceHorse = await makeHorse(h.db, once.stableId);
+    await h.db.insert(dailyCupEntries).values({ day: "2026-11-16", accountId: once.accountId, horseId: onceHorse.id, snapshot: {}, points: 40 });
+    const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
+    const by = new Map(scores.map((s) => [s.accountId, s]));
+    expect(by.get(many.accountId)).toMatchObject({ cupPoints: 90, score: 150 }); // (40 + 30 + 20) x 5 / 3; the 10-point day is ignored
+    expect(by.get(once.accountId)).toMatchObject({ cupPoints: 40, score: 66 }); // one 40 day, still the mean over 3
+  });
+
+  it("reaches full weight from 8 runs: the same placings score the same at 8 and 16 runs", async () => {
+    const weekStart = "2026-11-23";
+    const { from } = weekPeriod(weekStart);
+    const r4 = await playerWithWallet();
+    const r8 = await playerWithWallet();
+    const r16 = await playerWithWallet();
+    for (const p of [r4, r8, r16]) for (let day = 0; day < 4; day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+    const h4 = await makeHorse(h.db, r4.stableId);
+    const h8 = await makeHorse(h.db, r8.stableId);
+    const h16 = await makeHorse(h.db, r16.stableId);
+    const at = (d: number, hour: number) => new Date(from.getTime() + (d % 6) * DAY + (hour + 1) * 3_600_000);
+    for (let i = 0; i < 4; i++) await liveRun(at(i, 0), r4.stableId, h4.id, 2); // 9 points a run
+    for (let i = 0; i < 8; i++) await liveRun(at(i, 1), r8.stableId, h8.id, 2);
+    for (let i = 0; i < 16; i++) await liveRun(at(i, 2), r16.stableId, h16.id, 2);
+    const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
+    const by = new Map(scores.map((s) => [s.accountId, s]));
+    expect(by.get(r8.accountId)!.score).toBe(135); // 72 x 15 / 8
+    expect(by.get(r16.accountId)!.score).toBe(135); // 144 x 15 / 16: playing more doesn't score more
+    expect(by.get(r4.accountId)!.score).toBe(67); // half weight at 4 runs: 36 x 15 / 8
+  });
+
+  it("needs 4 active days (3 no longer qualifies) and caps a week at $10", async () => {
+    const weekStart = "2026-11-30";
+    const { from } = weekPeriod(weekStart);
+    const three = await playerWithWallet();
+    const four = await playerWithWallet();
+    for (const [p, days] of [[three, 3], [four, 4]] as const) {
+      const horse = await makeHorse(h.db, p.stableId);
+      await h.db.insert(dailyCupEntries).values({ day: "2026-12-01", accountId: p.accountId, horseId: horse.id, snapshot: {}, points: 40 });
+      for (let day = 0; day < days; day++) await recordPlayDay(h.db, p.accountId, new Date(from.getTime() + day * DAY + 3_600_000));
+    }
+    const scores = await poolScores(h.db, { ...weekPeriod(weekStart), rules: DEFAULT_POOL_RULES });
+    const by = new Map(scores.map((s) => [s.accountId, s]));
+    expect(by.get(three.accountId)).toMatchObject({ eligible: false, reason: "active 3/4 days" });
+    expect(by.get(four.accountId)).toMatchObject({ eligible: true });
+    expect(DEFAULT_POOL_RULES.minActiveDays).toBe(4);
+    const paid = allocateUsd(Array.from({ length: 10 }, (_, i) => row(i + 10)), 100_000, DEFAULT_POOL_RULES);
+    expect(paid[0]!.usdCents).toBe(1_000); // $10 cap, not $20
   });
 
   it("drafts can be replaced until posted; only posted allocations are served", async () => {

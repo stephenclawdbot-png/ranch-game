@@ -47,8 +47,8 @@ export function PoolAdminSection() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [budgetPct, setBudgetPct] = useState(25);
-  const [capUsd, setCapUsd] = useState(20);
-  const [minDays, setMinDays] = useState(3);
+  const [capUsd, setCapUsd] = useState(10);
+  const [minDays, setMinDays] = useState(4);
   const [ranks, setRanks] = useState(10);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [msg, setMsg] = useState<string | null>(null);

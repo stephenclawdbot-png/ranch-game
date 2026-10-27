@@ -21,17 +21,10 @@ Preview and Production.)
   - **Trackside** as the default race view;
   - the horse registry;
   - QA fixes.
-- **Waiting on the owner:** their picks on the five decisions in
-  [`docs/economy/AUDIT.md`](economy/AUDIT.md):
-  1. premium foals account-bound, and premium lineage out of pool scoring;
-  2. pool at 30% of sales, or 10–20% plus a fixed ~$40/week budget;
-  3. affiliates in the beta (the audit says no money commissions and no level 2; the owner
-     wanted to earn as root inviter);
-  4. beta fixes: Story races not using career starts, Epic pity 20, market price ceiling
-     3× appraisal plus 72 h resale lock, daily goals paid;
-  5. beta length.
-
-  Turn the picks into GLM tickets.
+- **Owner picks** on [`docs/economy/AUDIT.md`](economy/AUDIT.md) are all recorded now (§6 rows
+  and §7): premium foals stay tradeable, no extra limits; pool 10 % + a fixed ~$40/week
+  top-up; affiliates unchanged; the four beta fixes done (2026-10-26); **the beta runs 4
+  weeks** (2026-10-27, see the Prize Pool section below).
 - **Open, smaller:**
   - public boards list test accounts: run the `/admin` reset before testers arrive (owner's
     call on timing: it wipes production and preview);
@@ -44,6 +37,26 @@ Preview and Production.)
     the shared appearance if wanted).
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
+
+## Prize Pool: rate scoring, 4 active days, $10 cap; beta is 4 weeks (worker/econ1, 2026-10-27)
+
+Owner approved the audit's recommendation 3 (AUDIT §6 rows marked done 2026-10-27):
+
+- **Rate scoring** in `betaMoney.poolScores`: points per Live run × 15 at full weight from
+  8 runs (weight `min(1, runs/8)` folds into the divisor `max(runs, 8)`, integer maths,
+  rounded down) plus the mean of the best 3 Daily Cup days × 5 (fewer Cup days count as 0).
+  Per-run points keep the league table (`leagues.runPoints`, new shared helper); the weekly
+  points cap no longer applies to pool scoring. 0 Live runs scores from the Cup term only.
+- **Rules**: `minActiveDays` 3 → 4, `capUsdCents` $20 → $10 (admin compute form prefills
+  10/4 too). Premium-pulled horse exclusion unchanged (owner: foals stay tradeable).
+- `/pool` rules copy and the `docs/web3.md` scoring rows say it in plain words.
+- **Owner decision (2026-10-27): the beta runs 4 weeks** (AUDIT §7 records it; the
+  beta-length question is closed).
+- `tools/economy-sim` mirrors updated: `current` = the rate formula, `volume` = the old
+  capped formula kept for comparison. **Not rerun** — this worktree has no `tsx`, and the
+  sim's `checkSync` has a pre-existing daily-goals error (goals are paid since 2026-10-26
+  but `GOALS_IMPLEMENTED` is still false). `docs/economy/results/` is still the 2026-10-26
+  audit run; recalibrate and rerun before the next economy decision.
 
 ## Accounts across devices, wallet sign-in, shorter post wait, design pass (2026-10-26, later)
 
@@ -68,8 +81,8 @@ limits** (against the audit: recorded in the economy skill and `docs/web3.md`, f
 review); **affiliates unchanged** (10 % / 3 %); all four beta fixes done: Epic pity 20, Story races
 don't use career starts or the record, market ceiling 3× appraisal + 72 h resale lock, daily
 goals (race / care / Daily Cup, 60 credits each, paid in the action's transaction, key
-`daily-goal:<account>:<localDate>:<goal>`, table `daily_goals`, card on Home). Beta length is
-still open.
+`daily-goal:<account>:<localDate>:<goal>`, table `daily_goals`, card on Home). Beta length:
+**the beta runs 4 weeks** (owner decision 2026-10-27).
 
 - After a race on phones the fresh result scrolls into view and "Race X again" floats above the
   tab bar (`.fade-up` now fills `backwards`: a held transform trapped `position: fixed`).

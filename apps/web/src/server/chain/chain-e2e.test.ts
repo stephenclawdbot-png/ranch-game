@@ -163,12 +163,12 @@ describe.skipIf(!RUN || !existsSync(HARDHAT))("beta money end-to-end on a local 
     await pub.waitForTransactionReceipt({ hash: await ownerWallet.writeContract({ address: d.prizePool, abi: prizePoolAbi, functionName: "fund", args: [`0x${"00".repeat(32)}`], value: parseEther("1") }) });
     const horseId = (await listStableHorses(h.db, buyer.s.stable.id))[0]!.id;
     await h.db.insert(schema.dailyCupEntries).values({ day: utcDay(now0), accountId: buyer.s.accountId, horseId, snapshot: {}, points: 80 });
-    for (let k = 0; k < 3; k++) await recordPlayDay(h.db, buyer.s.accountId, new Date(now0.getTime() - k * DAY));
+    for (let k = 0; k < 4; k++) await recordPlayDay(h.db, buyer.s.accountId, new Date(now0.getTime() - k * DAY));
     const from = utcDay(new Date(now0.getTime() - 6 * DAY));
     const to = utcDay(new Date(now0.getTime() + DAY));
     const draft = await computeEpochDraft(ctx, { kind: "season", from, to, rules: { budgetBps: 5000 }, now: new Date() });
     expect(draft.allocations.map((a) => a.wallet.toLowerCase())).toEqual([buyer.account.address.toLowerCase()]);
-    expect(draft.allocations[0]!.usdCents).toBe(2_000); // $20 cap
+    expect(draft.allocations[0]!.usdCents).toBe(1_000); // $10 cap
     await postEpochWithServer(ctx, draft.draftId!, new Date());
     expect((await chain.epoch(1))?.root).toBe(draft.root);
     expect((await chain.poolState()).outstandingWei).toBe(BigInt(draft.totalWei));

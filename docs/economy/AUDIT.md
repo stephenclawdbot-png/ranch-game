@@ -519,10 +519,10 @@ material connection (FTC Endorsement Guides).
 | `poolBps` | PremiumStore (deploy) | 3,000 | **1,000** (contract minimum) + a fixed funded budget (~$40/week beta); at most 2,000 | Decouples prizes from purchases; 64% sits unallocated anyway. **Owner chose this (2026-10-26): deploy default 1,000 + weekly top-up; done** |
 | Pool applies to every SKU | design | yes | packs only (deterministic SKUs carry no prize link), or one uniform minimum | Prizes not funded by sales of chance items |
 | `budgetBps` | `DEFAULT_POOL_RULES` | 2,500 | 2,500 weekly + a **final distribution** epoch at 100% at beta end | Avoid stranded ETH |
-| `capUsdCents` | `DEFAULT_POOL_RULES` | 2,000 | **1,000** | Never binds in the beta (rank 1 gets $3.5–4.8); protects at scale |
+| `capUsdCents` | `DEFAULT_POOL_RULES` | 2,000 | **1,000** | Never binds in the beta (rank 1 gets $3.5–4.8); protects at scale (done 2026-10-27) |
 | `paidRanks` | `DEFAULT_POOL_RULES` | 10 | 10 in the beta; at scale, top 3 per 30-player league (≈ 10%) | Fixed top 10 pays 2% of 500 players and concentrates prizes |
-| `minActiveDays` | `DEFAULT_POOL_RULES` | 3 | **4** | Fewer drive-by sybils |
-| Score formula | `poolScores` / `weekScore` | capped volume + uncapped Cup | **rate**: points per run × 15 (full from 8 runs) + mean of the best 3 Cup days × 5 | Skill share 4 → 7% (beta), 6 → 10% (12 weeks); casuals can win |
+| `minActiveDays` | `DEFAULT_POOL_RULES` | 3 | **4** | Fewer drive-by sybils (done 2026-10-27) |
+| Score formula | `poolScores` / `weekScore` | capped volume + uncapped Cup | **rate**: points per run × 15 (full from 8 runs) + mean of the best 3 Cup days × 5 | Skill share 4 → 7% (beta), 6 → 10% (12 weeks); casuals can win (done 2026-10-27) |
 | Prize currency | PrizePool | ETH | USDG (first real season) | No ETH-price exposure or "investment" feel; caps stay in USD |
 | `ref1Bps` / `ref2Bps` | `DEFAULT_AFFILIATE_CONFIG` / store ceilings | 1,000 / 300 | **0 / 0** in the beta; later 500 / 0 | MLM optics, owner-root, no economic upside |
 | Owner commissions | `recordReferral` (admin codes → owner) | owner is inviter | inviter = null | The owner shouldn't be the top of a tree |
@@ -540,6 +540,10 @@ material connection (FTC Endorsement Guides).
 ---
 
 ## 7. Phased plan
+
+**Owner decision (2026-10-27): the beta runs 4 weeks** (recommendation 3's "4+ weeks if prizes
+matter"; the beta-length question is closed). Rate-based pool scoring, the 4-active-day floor
+and the $10 cap are implemented (done 2026-10-27; the three §6 rows).
 
 ### Before the beta (blocking)
 

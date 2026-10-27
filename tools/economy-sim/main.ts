@@ -259,15 +259,15 @@ if (want("pool_beta") && beta) {
   const r = new Report("pool_beta", "Prize Pool in the 2-week closed beta (agent-based, current rules)", `50 testers (casual 15, engaged 15, grinder 5, breeder 5, whale 3, story-only 7), ${SEEDS.beta} seeds. Purchases: 30% minnows (Poisson 1.2 packs/wk), 15% dolphins (Poisson 4), whales want 10/wk; every foal needs a free stall at quote time, so week-1 caps are 2/3/5. Weekly purchase decay 45%. Race-noise sigma ${sigma()} rating points (calibrated: +90 rating -> 35% win in a 10-runner field). phi = 0.5 of an ability edge reaches Live points (classes are rating-windowed); the Daily Cup counts ability fully.`);
   poolTables(r, beta);
   const bn = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.beta, scoring: "bestN" }));
-  const rt = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.beta, scoring: "rate" }));
+  const vol = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.beta, scoring: "volume" }));
   const bn12 = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.season, weeks: 12, leak: false, scoring: "bestN" }));
-  const rt12 = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.season, weeks: 12, leak: false, scoring: "rate" }));
+  const vol12 = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.season, weeks: 12, leak: false, scoring: "volume" }));
   const cu12 = summarisePool(defaultPoolConfig(liveStarts, { seeds: SEEDS.season, weeks: 12, leak: false }));
   r.h2("Scoring variants: what does the score actually measure?");
-  r.p("current = race points capped at 240/week + every Cup day; best-N = best 15 Live runs + best 5 Cup days; rate = points per run x 15 (full weight from 8 runs) + mean of the best 3 Cup days x 5. 12-week columns use the fixed (no-leak) rules, where abilities spread out through training and breeding.");
-  const row = (label: string, f: (s: PoolSummary) => string) => [label, f(beta), f(bn), f(rt), f(cu12), f(bn12), f(rt12)];
+  r.p("current = rate scoring as implemented since 2026-10-27: points per run x 15 (full weight from 8 runs) + mean of the best 3 Cup days x 5; volume = the old formula (race points capped at 240/week + every Cup day); best-N = best 15 Live runs + best 5 Cup days. 12-week columns use the fixed (no-leak) rules, where abilities spread out through training and breeding.");
+  const row = (label: string, f: (s: PoolSummary) => string) => [label, f(beta), f(vol), f(bn), f(cu12), f(vol12), f(bn12)];
   r.table(
-    ["Metric", "Beta current", "Beta best-N", "Beta rate", "12 wk current", "12 wk best-N", "12 wk rate"],
+    ["Metric", "Beta current (rate)", "Beta volume (old)", "Beta best-N", "12 wk current", "12 wk volume (old)", "12 wk best-N"],
     [
       row("Variance explained by activity (volume)", (s) => pct(s.r2Activity, 0)),
       row("... + ability + skill", (s) => pct(s.r2ActivityAbility, 0)),
@@ -279,7 +279,7 @@ if (want("pool_beta") && beta) {
     ],
   );
   r.write();
-  summary.poolBeta = { revenue: beta.revenue, inflow: beta.inflow, allocated: beta.allocated, endBalance: beta.endBalance, stranded: beta.strandedShare, ownerTotal: beta.ownerTotal, affT: beta.affiliateToTesters, affO: beta.affiliateToOwner, gas: beta.gasUsd, weeks: beta.weeks, byArch: beta.byArch, bySegment: beta.bySegment, noise: beta.noiseShare, r2: [beta.r2Activity, beta.r2ActivityAbility], persistence: beta.persistence, bestN: { r2: [bn.r2Activity, bn.r2ActivityAbility], noise: bn.noiseShare }, rate: { r2: [rt.r2Activity, rt.r2ActivityAbility], noise: rt.noiseShare }, rate12: { r2: [rt12.r2Activity, rt12.r2ActivityAbility], noise: rt12.noiseShare }, cur12: { r2: [cu12.r2Activity, cu12.r2ActivityAbility], noise: cu12.noiseShare } };
+  summary.poolBeta = { revenue: beta.revenue, inflow: beta.inflow, allocated: beta.allocated, endBalance: beta.endBalance, stranded: beta.strandedShare, ownerTotal: beta.ownerTotal, affT: beta.affiliateToTesters, affO: beta.affiliateToOwner, gas: beta.gasUsd, weeks: beta.weeks, byArch: beta.byArch, bySegment: beta.bySegment, noise: beta.noiseShare, r2: [beta.r2Activity, beta.r2ActivityAbility], persistence: beta.persistence, bestN: { r2: [bn.r2Activity, bn.r2ActivityAbility], noise: bn.noiseShare }, volume: { r2: [vol.r2Activity, vol.r2ActivityAbility], noise: vol.noiseShare }, volume12: { r2: [vol12.r2Activity, vol12.r2ActivityAbility], noise: vol12.noiseShare }, cur12: { r2: [cu12.r2Activity, cu12.r2ActivityAbility], noise: cu12.noiseShare } };
 }
 
 let seasonLeak: PoolSummary | null = null;
@@ -315,7 +315,7 @@ if (want("pool_season") && seasonLeak && seasonFixed) {
 // ---------------------------------------------------------------------------
 
 if (want("sybil")) {
-  const r = new Report("sybil", "Sybil farming of the Prize Pool (one person, several accounts)", "No purchase needed: every account gets 3 starters and can score. Each extra account plays like a grinder (it needs its own play time, wallet and 3 active days). Detection = the chance per week that linked-account signals (device, fingerprint, IP, wallet funding) flag an alt; flagged accounts are held back.");
+  const r = new Report("sybil", "Sybil farming of the Prize Pool (one person, several accounts)", "No purchase needed: every account gets 3 starters and can score. Each extra account plays like a grinder (it needs its own play time, wallet and 4 active days). Detection = the chance per week that linked-account signals (device, fingerprint, IP, wallet funding) flag an alt; flagged accounts are held back.");
   const rows: (string | number)[][] = [];
   for (const det of [0, 0.3]) {
     for (const k of [1, 2, 3, 5]) {
@@ -407,7 +407,7 @@ if (want("affiliates")) {
       ["Weekly per-inviter cap", usd(AFFILIATE.weeklyCapUsdCents / 100), fmt(AFFILIATE.weeklyCapUsdCents / 100 / (packUsd * AFFILIATE.ref1Bps / 10_000)), "no (whole-beta weekly revenue is ~$200-400)"],
       ["Owner cap", "none", "-", "-"],
       ["Commission window", `${AFFILIATE.windowDays} days`, "-", "longer than the beta"],
-      ["Per-player pool cap / week", usd(POOL_RULES.capUsdCents / 100), "-", "no: rank-1 gets ~$5-7 in the beta"],
+      ["Per-player pool cap / week", usd(POOL_RULES.capUsdCents / 100), "-", "no: the beta budget keeps rank-1 well under it"],
     ],
   );
   r.write();

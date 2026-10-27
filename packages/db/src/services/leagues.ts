@@ -80,13 +80,18 @@ export interface WeekScore {
   runs: number;
 }
 
+/** Points of one Live run (start point + placing + tier bonus), before the weekly cap. */
+export function runPoints(run: Pick<LiveRun, "position" | "fieldSize" | "raceClass">): number {
+  return gc.racePoints(run.position, run.fieldSize, gc.tierBonus(bonusTier(run.raceClass), run.position));
+}
+
 /** League points of one owner's runs in one week (capped). */
 export function weekScore(runs: readonly Pick<LiveRun, "position" | "fieldSize" | "raceClass">[]): WeekScore {
   let points = 0;
   let wins = 0;
   let best = 0;
   for (const r of runs) {
-    points += gc.racePoints(r.position, r.fieldSize, gc.tierBonus(bonusTier(r.raceClass), r.position));
+    points += runPoints(r);
     if (r.position === 1) wins++;
     best = best === 0 ? r.position : Math.min(best, r.position);
   }

@@ -1,9 +1,9 @@
 "use client";
 /**
  * The Prize Pool (closed beta): a share of every Premium Pack sale, held by a contract on
- * Robinhood Chain and paid out weekly by skill (league + Daily Cup points) to active players.
- * Players claim their own vested ETH from their wallet. USD figures are live conversions
- * (always "≈"), refreshed every minute.
+ * Robinhood Chain and paid out weekly by skill (per-run placings + Daily Cup) to active
+ * players. Players claim their own vested ETH from their wallet. USD figures are live
+ * conversions (always "≈"), refreshed every minute.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -183,7 +183,7 @@ export function PoolScreen() {
           Rules
         </h2>
         <ul className="grid list-disc gap-1 pl-5 text-sm">
-          <li>Weekly payouts by rank: points from Live races (league scoring) plus Daily Cup points. The top {v.rules.paidRanks} eligible players share the week&apos;s budget (rank 1 the most).</li>
+          <li>Your score is how well you place per Live race (full weight from 8 runs) plus your best three Daily Cup days. Playing more doesn&apos;t score more by itself. The top {v.rules.paidRanks} eligible players share the week&apos;s budget (rank 1 the most).</li>
           <li>Each week uses at most {v.rules.budgetBps / 100}% of the pool&apos;s free balance; the rest rolls over. The contract itself refuses to promise more than it holds.</li>
           <li>Cap: {formatUsdCents(v.rules.capUsdCents)} per person per week (converted to ETH when the week is posted; the price used is shown in the history).</li>
           <li>Be active: at least {v.rules.minActiveDays} days played that week, and a verified wallet (one per stable; linked accounts are reviewed and excluded).</li>

@@ -89,8 +89,8 @@ export const PURSE_SPLIT = [0.55, 0.2, 0.12, 0.07, 0.04, 0.02] as const;
 /** packages/db/src/services/betaMoney.ts DEFAULT_POOL_RULES */
 export const POOL_RULES = {
   budgetBps: 2_500,
-  capUsdCents: 2_000,
-  minActiveDays: 3,
+  capUsdCents: 1_000,
+  minActiveDays: 4,
   paidRanks: 10,
   minPayoutUsdCents: 50,
   excludePremiumHorses: true,

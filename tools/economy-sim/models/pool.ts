@@ -3,10 +3,11 @@
  * from sales and pays weekly epochs with the REAL allocation rule (mirror of betaMoney.ts
  * poolScores + allocateUsd and the PrizePool contract limits).
  *
- * Scoring (as implemented): weekly race points = sum over Live runs of
- * START_POINT + RACE_POINTS[pos-1] (+ tier bonus), capped at WEEKLY_RACE_POINTS_CAP, plus
- * uncapped Daily Cup points (max(1, 50 - floor(percentile / 20)) + 10 for beating the house
- * field). Eligible: >= 3 active days, verified wallet, no open linked-account flag. Runs by
+ * Scoring (as implemented since 2026-10-27, audit §6 "rate"): race term = points per Live run
+ * x 15 at full weight from 8 runs (floor(points x 15 / max(runs, 8)); per-run points =
+ * START_POINT + RACE_POINTS[pos-1] (+ tier bonus), uncapped) plus the mean of the best 3
+ * Daily Cup days x 5 (floor(sum x 5 / 3); days without a Cup entry count 0). Eligible:
+ * >= 4 active days, verified wallet, no open linked-account flag. Runs by
  * horses pulled from Premium Packs don't score; their OFFSPRING and anything bought with the
  * credits they sell for DO (the "leak" switch).
  *
@@ -36,9 +37,10 @@ export interface PoolSimConfig {
   demandScale: number;
   /** Premium lineage / laundered purchases can score (current rules: true). */
   leak: boolean;
-  /** current = capped volume + every Cup day; bestN = best 15 runs + best 5 Cup days;
-   * rate = points per run x 15 (full weight from 8 runs) + mean of the best 3 Cup days x 5. */
-  scoring: "current" | "bestN" | "rate";
+  /** current = rate scoring as implemented (points per run x 15, full weight from 8 runs +
+   * mean of the best 3 Cup days x 5); volume = the pre-2026-10-27 formula (points capped at
+   * 240/week + every Cup day), kept for comparison; bestN = best 15 runs + best 5 Cup days. */
+  scoring: "current" | "volume" | "bestN";
   phi: number;
   claimRate: number;
   /** Live starts per week by archetype and beta week (from the credits model); last value repeats. */
@@ -133,12 +135,10 @@ function weekScore(rng: SimRng, t: Tester, cfg: PoolSimConfig, week: number, abi
     pts.sort((a, b) => b - a);
     return { race: pts.slice(0, 15).reduce((a, b) => a + b, 0), runs: live };
   }
-  if (cfg.scoring === "rate") {
-    if (!pts.length) return { race: 0, runs: 0 };
-    const avg = pts.reduce((a, b) => a + b, 0) / pts.length;
-    return { race: avg * 15 * Math.min(1, pts.length / 8), runs: live };
-  }
-  return { race: Math.min(GAME.weeklyRacePointsCap, pts.reduce((a, b) => a + b, 0)), runs: live };
+  if (cfg.scoring === "volume") return { race: Math.min(GAME.weeklyRacePointsCap, pts.reduce((a, b) => a + b, 0)), runs: live };
+  // current: rate mirror of poolScores (betaMoney.ts) — floor(points x 15 / max(runs, 8)).
+  if (!pts.length) return { race: 0, runs: 0 };
+  return { race: Math.floor((pts.reduce((a, b) => a + b, 0) * 15) / Math.max(pts.length, 8)), runs: live };
 }
 
 function cupPoints(perfs: { id: number; perf: number }[], beatHouse: Set<number>, mode: PoolSimConfig["scoring"]): Map<number, number> {
@@ -252,12 +252,12 @@ export function runPool(cfg: PoolSimConfig, seed: string): PoolRun {
       }
     }
     for (let i = 0; i < n; i++) {
-      const take = (xs: number[]) => {
-        if (cfg.scoring === "rate") {
-          const top = [...xs].sort((x, y) => y - x).slice(0, 3);
-          return top.length < 3 ? 0 : (top.reduce((x, y) => x + y, 0) / 3) * 5;
-        }
-        return (cfg.scoring === "bestN" ? [...xs].sort((x, y) => y - x).slice(0, 5) : xs).reduce((x, y) => x + y, 0);
+      const take = (xs: number[]): number => {
+        const top = [...xs].sort((x, y) => y - x);
+        if (cfg.scoring === "volume") return xs.reduce((x, y) => x + y, 0);
+        if (cfg.scoring === "bestN") return top.slice(0, 5).reduce((x, y) => x + y, 0);
+        // current: mean of the best 3 Cup days x 5 (missing days count 0), floored as in the code.
+        return Math.floor((top.slice(0, 3).reduce((x, y) => x + y, 0) * 5) / 3);
       };
       cupA[i] = take(cupDays[i]!.a);
       cupB[i] = take(cupDays[i]!.b);
