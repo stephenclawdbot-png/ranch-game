@@ -243,7 +243,15 @@ async function main() {
     for (let i = 0; i < n && !liveId; i++) {
       await rows.nth(i).click();
       await page.getByTestId("live-entry").waitFor();
-      await page.waitForFunction(() => document.querySelectorAll('[data-testid="live-entry"] [data-testid="pick-horse"]').length > 0, null, { timeout: 15_000 });
+      // Entries close 30 s before the off: the soonest race can close while the sheet opens on
+      // a cold server. Then there's nothing to pick here: close the sheet and try the next race.
+      const ready = await page
+        .waitForFunction(() => document.querySelectorAll('[data-testid="live-entry"] [data-testid="pick-horse"]').length > 0, null, { timeout: 15_000 })
+        .then(() => true, () => false);
+      if (!ready) {
+        await page.keyboard.press("Escape");
+        continue;
+      }
       const btn = page.getByTestId("enter-live");
       await page.waitForTimeout(300);
       if (await btn.isEnabled()) {
