@@ -199,6 +199,11 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
     float lvl = mod(floor(legsB / sh), 4.0);
     float lim = lvl < 1.5 ? 0.14 : lvl < 2.5 ? 0.36 : 0.62;
     if (lvl > 0.5 && mk.g < lim) c = markW;
+    else {
+      // dun: faint barring across the mid leg (never over a white marking)
+      float dun = floor(flags.b * 255.0 + 0.5);
+      if (dun > 0.5 && mk.g > 0.3 && mk.g < 0.78 && mod(floor(srcP.y), 6.0) >= 4.0) c *= 0.88;
+    }
   } else if (region < 5.5 && region > 4.5) {
     // face: shapes along the profile edge (t: brow .. nose, e: texels from the edge)
     float tid = mod(floor(flags.g * 255.0 + 0.5), 16.0);
@@ -220,6 +225,13 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
       vec2 cell = floor(floor(srcP) / 6.0);
       vec2 cc = floor(srcP) - cell * 6.0 - 2.5;
       if (dot(cc, cc) < 3.2 && mhash(cell) > 0.25) c = mix(c, vec3(1.0), 0.42);
+    }
+    // dun: a thin darker dorsal stripe down the spine, on top of any coat texture
+    // (mask G is texels below the back over the barrel columns, 0 elsewhere).
+    float dun = floor(flags.b * 255.0 + 0.5);
+    if (dun > 0.5) {
+      float ds = mk.g * 255.0 / 32.0;
+      if (ds >= 1.0 && ds < 4.0) c *= 0.72;
     }
   }
   if (uUseNrm > 0.5) {

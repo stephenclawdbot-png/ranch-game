@@ -53,6 +53,21 @@ describe("coat colour genetics", () => {
   });
 });
 
+describe("dun primitive markings", () => {
+  it("appearanceOf sets dun when the coat genes carry D, and never when they don't", () => {
+    expect(appearanceOf(withCoat({ dun: ["D", "n"] }), adult, SILKS).dun).toBe(true);
+    expect(appearanceOf(withCoat({ dun: ["D", "D"] }), adult, SILKS).dun).toBe(true);
+    expect(appearanceOf(withCoat({}), adult, SILKS).dun).toBeUndefined();
+  });
+
+  it("a greyed-out coat hides the dun marking (a foal born to grey still carries it)", () => {
+    const g = withCoat({ dun: ["D", "n"], grey: ["G", "n"] });
+    expect(appearanceOf(g, { racingAge: false, starts: 0, retired: false }, SILKS).dun).toBe(true);
+    expect(appearanceOf(g, { racingAge: true, starts: 3, retired: false }, SILKS).dun).toBeUndefined();
+    expect(appearanceOf(g, { racingAge: true, starts: 30, retired: false }, SILKS).dun).toBeUndefined();
+  });
+});
+
 describe("markings and look", () => {
   it("are deterministic, valid for the shared contract and the rig", () => {
     fc.assert(

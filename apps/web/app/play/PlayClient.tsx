@@ -188,7 +188,9 @@ function Welcome() {
     <div className="mx-auto grid max-w-4xl gap-6">
       <header className="grid gap-1">
         <p className="eyebrow">
-          Registered at Kestrel Downs · {formatCredits(state.credits)} credits · {state.entries.balance} Live entries
+          <span className="whitespace-nowrap">Registered at Kestrel Downs ·</span>{" "}
+          <span className="whitespace-nowrap">{formatCredits(state.credits)} credits ·</span>{" "}
+          <span className="whitespace-nowrap">{state.entries.balance} Live entries</span>
         </p>
         <h1 className="t-page">{state.stableName}</h1>
         <p className="t-meta">

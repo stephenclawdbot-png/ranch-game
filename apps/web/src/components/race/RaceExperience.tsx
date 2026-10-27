@@ -180,9 +180,9 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
 
       <section aria-labelledby="race-name" className="-mx-[var(--gutter)] -mt-4 md:mx-0 md:mt-0">
         {/* broadcast plate: status · race name · seal */}
-        <div className="flex h-11 items-center gap-2 bg-ink px-3">
+        <div className="flex min-h-11 items-center gap-2 bg-ink px-3 py-1">
           {status}
-          <h1 id="race-name" className="min-w-0 flex-1 truncate font-extrabold" data-testid="race-name">
+          <h1 id="race-name" className="min-w-0 flex-1 font-extrabold leading-tight line-clamp-2" data-testid="race-name">
             {config.name}
           </h1>
           <a

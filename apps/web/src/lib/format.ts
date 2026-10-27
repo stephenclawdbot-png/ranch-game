@@ -59,6 +59,11 @@ export const COAT_LABEL: Record<Coat, string> = {
   bay: "Bay", dark_bay: "Dark bay", chestnut: "Chestnut", liver_chestnut: "Liver chestnut", black: "Black",
   grey: "Grey", dapple_grey: "Dapple grey", palomino: "Palomino", buckskin: "Buckskin", roan: "Roan",
 };
+/** Render-coat label plus "dun" when the appearance carries the dun factor and the label doesn't say it. */
+export function coatLabel(a: { coat: Coat; dun?: boolean }): string {
+  const label = COAT_LABEL[a.coat];
+  return a.dun && !label.toLowerCase().includes("dun") ? `Dun ${label.toLowerCase()}` : label;
+}
 export const SEX_LABEL: Record<Sex, string> = { colt: "Colt", filly: "Filly", stallion: "Stallion", mare: "Mare", gelding: "Gelding" };
 
 export function shortHash(hex: string, n = 10): string {

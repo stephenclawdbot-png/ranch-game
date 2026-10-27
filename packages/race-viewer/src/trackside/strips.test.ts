@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { buildLut, downsampleFrames, frameOrigin, indexStrip, LUT_W, newPalette, primaryIndices, silkBoxes } from "./strips";
+import { buildLut, downsampleFrames, frameOrigin, indexStrip, LUT_FLAG_X, LUT_W, newPalette, primaryIndices, silkBoxes } from "./strips";
 import { lookFor } from "./looks";
 
 const KEYS = { coat: ["#401115", "#843216", "#ed8f39"], silksPrimary: ["#90097b", "#f344cc"], silksSecondary: ["#0e8dac", "#36e1ec"], cap: ["#ae1397"] };
@@ -68,6 +68,15 @@ describe("trackside strips", () => {
     const boxes = silkBoxes(s, primaryIndices(pal, KEYS));
     expect(Array.from(boxes.slice(0, 4))).toEqual([1, 0, 2, 2]);
     expect(Array.from(boxes.slice(4, 8))).toEqual([2, 0, 2, 2]);
+  });
+
+  it("packs the dun flag into the marking-flags column (B byte) per runner", () => {
+    const pal = newPalette();
+    const s = indexStrip(strip(), 12, 4, 2, pal, { x: 5, y: 4 }, null)!;
+    const FLAG_X = LUT_FLAG_X;
+    const lut = buildLut(pal, KEYS, [{ ...look("buckskin", "solid"), dun: true }, look("bay", "solid")]);
+    expect(lut[(0 * LUT_W + FLAG_X) * 4 + 2]).toBe(1); // dun: dorsal stripe + leg barring
+    expect(lut[(1 * LUT_W + FLAG_X) * 4 + 2]).toBe(0);
   });
 });
 

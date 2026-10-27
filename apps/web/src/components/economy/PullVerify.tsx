@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { commitSeed, pullPack, pullSex, NEW_PITY, type PackType, type PityState } from "@thoroughbred/game-core";
 import { ErrorNote } from "@/components/ui/ErrorNote";
+import { HashValue } from "@/components/ui/HashValue";
 import type { PullProofView } from "@/lib/economyTypes";
 import { Check, RARITY_LABEL, RarityBadge, Skeleton, useEcoView } from "./kit";
 
@@ -130,13 +131,15 @@ export function PullVerify({ id }: { id: string }) {
         <dl className="grid gap-2">
           <div>
             <dt className="label">Fingerprint published before the pull</dt>
-            <dd className="break-all font-mono text-xs text-cream" data-testid="seal-commitment">
-              {p.pull.seedCommitment}
+            <dd className="text-cream" data-testid="seal-commitment">
+              <HashValue value={p.pull.seedCommitment} />
             </dd>
           </div>
           <div>
             <dt className="label">Seed revealed with the result</dt>
-            <dd className="break-all font-mono text-xs text-cream">{p.seedReveal}</dd>
+            <dd className="text-cream">
+              <HashValue value={p.seedReveal} />
+            </dd>
           </div>
           <div>
             <dt className="label">Pity before this pull</dt>

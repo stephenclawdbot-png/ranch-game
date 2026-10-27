@@ -188,6 +188,8 @@ export function fakeReplay(opts: FakeReplayOptions = {}): RaceReplay {
         coat: COATS[i % COATS.length]!,
         face: FACES[Math.floor(rand() * FACES.length)]!,
         legs,
+        // Buckskin and red-dun-looking chestnuts double as dun runners in the dev fixture.
+        dun: COATS[i % COATS.length] === "buckskin" || (i % 4 === 2 && COATS[i % COATS.length] === "chestnut") || undefined,
         silks: { primary, secondary, cap, pattern: PATTERNS[i % PATTERNS.length]! },
       },
     });

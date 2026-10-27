@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { EmptyState, SceneBand } from "@/components/ui/Page";
+import { HashValue } from "@/components/ui/HashValue";
 import { PixelIcon } from "@/components/icons";
 import { formatCredits, shortHash } from "@/lib/format";
 import type { PackOffer, PacksView, PullResultView } from "@/lib/economyTypes";
@@ -322,8 +323,8 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
             </div>
             <div>
               <dt className="label">Next pull sealed</dt>
-              <dd className="font-mono text-xs text-cream-dim" title={o.nextSeedCommitment}>
-                🔒 {shortHash(o.nextSeedCommitment, 10)}
+              <dd className="text-cream-dim">
+                🔒 <HashValue value={o.nextSeedCommitment} />
               </dd>
             </div>
           </dl>

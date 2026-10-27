@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { oneInText } from "./format";
+import { coatLabel, oneInText } from "./format";
+
+describe("coatLabel", () => {
+  it("names the render coat plain when there is no dun factor", () => {
+    expect(coatLabel({ coat: "buckskin" })).toBe("Buckskin");
+  });
+
+  it("adds \"dun\" when the appearance carries the dun factor", () => {
+    expect(coatLabel({ coat: "buckskin", dun: true })).toBe("Dun buckskin");
+    expect(coatLabel({ coat: "chestnut", dun: true })).toBe("Dun chestnut");
+  });
+});
 
 describe("oneInText", () => {
   it("turns a chance per 1,000 into plain odds, rounded to two figures", () => {

@@ -1393,6 +1393,8 @@ dialog.sheet :focus-visible {
   .how[open] > summary::after {
     content: "×";
     margin-left: 2px;
+    line-height: 1;
+    transform: translateY(0.06em);
   }
 
   .tilt,
