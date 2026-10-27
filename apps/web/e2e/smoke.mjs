@@ -185,7 +185,10 @@ async function main() {
     const storyMine = await (await page.request.get(`${BASE_URL}/api/races/${storyId}/me`)).json();
     const reward = storyMine.runners[0].prize + storyMine.runners[0].storyReward;
     const p1 = await me(page);
-    assert(p1.credits === p0.credits + reward, `story reward settled server-side once (${p0.credits} + ${reward} = ${p1.credits})`);
+    // The first race of the local day also completes the daily "race" goal (paid once, same transaction).
+    const goal = (p, g) => (p.goals ?? []).find((x) => x.goal === g);
+    const goalPay = goal(p1, "race")?.done && !goal(p0, "race")?.done ? goal(p1, "race").credits : 0;
+    assert(p1.credits === p0.credits + reward + goalPay, `story reward + daily goal settled server-side once (${p0.credits} + ${reward} + ${goalPay} = ${p1.credits})`);
     assert(p1.entries.balance === p0.entries.balance, "story races are free (no stable entries)");
     await shot(page, "desktop-story-result");
     const storyWinner = (await page.getByTestId("winner-name").innerText()).trim();

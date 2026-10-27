@@ -140,7 +140,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId);
   const rec = recommendHorse(state);
   const entry = useEntry();
-  const heroRaceId = upcomingMine?.raceId ?? unseen[0]?.raceId ?? null;
+  // The hero features one horse's run: skip that run below, not every horse in the same race.
+  const heroRun = upcomingMine ? { raceId: upcomingMine.raceId, horseId: upcomingMine.horseId } : unseen[0]?.raceId ? { raceId: unseen[0].raceId, horseId: unseen[0].horseId } : null;
   const horseOf = (id: string | null | undefined) => state.horses.find((h) => h.id === id);
 
   return (
@@ -167,7 +168,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
       <DailyGoalsCard goals={state.goals ?? []} />
 
-      <YourRaces state={state} now={now} skipRaceId={heroRaceId} />
+      <YourRaces state={state} now={now} skip={heroRun} />
 
       <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
         <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">
@@ -411,9 +412,10 @@ function statusOf(a: ActiveEntry, now: number | null): { text: string; live: boo
 }
 
 /** Your races: entered and live first, then results (unseen ones never say how it went). */
-function YourRaces({ state, now, skipRaceId }: { state: PlayerState; now: number | null; skipRaceId: string | null }) {
-  const active = state.active.filter((a) => a.raceId !== skipRaceId);
-  const inbox = state.inbox.filter((i) => i.raceId && i.raceId !== skipRaceId).slice(0, 5);
+function YourRaces({ state, now, skip }: { state: PlayerState; now: number | null; skip: { raceId: string; horseId: string | null } | null }) {
+  const isHero = (raceId: string | null, horseId: string | null) => !!skip && raceId === skip.raceId && (skip.horseId === null || horseId === skip.horseId);
+  const active = state.active.filter((a) => !isHero(a.raceId, a.horseId));
+  const inbox = state.inbox.filter((i) => i.raceId && !isHero(i.raceId, i.horseId)).slice(0, 5);
   if (active.length === 0 && inbox.length === 0) return null;
   return (
     <Section id="inbox-h" title="Your races" testId="your-races-section">
