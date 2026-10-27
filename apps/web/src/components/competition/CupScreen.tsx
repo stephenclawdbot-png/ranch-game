@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { RunningStyle } from "@thoroughbred/shared";
 import type { CupRow, CupView } from "@/lib/competitionTypes";
-import { STYLE_LABEL, STYLE_SHORT, formatClock, formatCredits, ordinal, shortHash } from "@/lib/format";
+import { STYLE_LABEL, STYLE_SHORT, formatClock, formatCredits, ordinal } from "@/lib/format";
 import { useClockSkew } from "@/lib/clock";
 import { api } from "@/lib/player";
 import { Countdown } from "../Countdown";
@@ -16,6 +16,7 @@ import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
 import { PositionBadge } from "../ui/PositionBadge";
+import { HashValue } from "../ui/HashValue";
 import { Saddlecloth } from "../race/Saddlecloth";
 import { CupBadge, RaceTime } from "./bits";
 import { EmptyState, HowItWorks, SceneBand } from "../ui/Page";
@@ -241,7 +242,7 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
               <PixelIcon name="shield" size={32} /> Sealed ✓
             </h2>
             <p className="caption text-cream-dim">
-              Today&rsquo;s seed was fixed before the first run: fingerprint <code className="break-all">{shortHash(view.seedCommitment, 8)}</code>. It&rsquo;s revealed when the Cup closes, so
+              Today&rsquo;s seed was fixed before the first run: fingerprint <HashValue value={view.seedCommitment} />. It&rsquo;s revealed when the Cup closes, so
               anyone can re-run every result.
             </p>
             {view.yesterday && (
@@ -257,7 +258,7 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
                     You: {ordinal(view.yesterday.mine.rank)} · <RaceTime us={view.yesterday.mine.timeUs} />
                   </p>
                 )}
-                <p className="caption break-all text-cream-dim">Seed: {shortHash(view.yesterday.seed, 10)}</p>
+                <p className="caption flex flex-wrap items-center gap-x-1 text-cream-dim">Seed: <HashValue value={view.yesterday.seed} /></p>
               </div>
             )}
           </section>

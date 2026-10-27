@@ -94,6 +94,8 @@ export const HorseAppearanceSchema = z.object({
   face: FaceMarkingSchema,
   /** Front-left, front-right, hind-left, hind-right. */
   legs: z.tuple([LegMarkingSchema, LegMarkingSchema, LegMarkingSchema, LegMarkingSchema]),
+  /** Dun factor: draw the primitive markings (dorsal stripe, leg barring). Optional for old replays. */
+  dun: z.boolean().optional(),
   /** Optional override for mane/tail colour; derived from coat if absent. */
   maneColor: HexColor.optional(),
   silks: SilksSchema,

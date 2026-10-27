@@ -4,12 +4,31 @@ import type { ReactNode } from "react";
 import { usePlayerState, type PlayerState } from "@/lib/player";
 import { Crest, PixelIcon } from "./icons";
 import { ActionBar } from "./ui/ActionBar";
+import { SceneBand, type SceneName } from "./ui/Page";
 
-/** Renders children with the player state, or the "found a stable" empty state. */
-export function PlayerGate({ children, fallback }: { children: (s: PlayerState) => ReactNode; fallback?: ReactNode }) {
+/**
+ * Renders children with the player state, or the "found a stable" empty state. With `band`,
+ * the signed-out page keeps the area's scene illustration up top, so it isn't one big flat
+ * card on desktop.
+ */
+export function PlayerGate({
+  children,
+  fallback,
+  band,
+}: {
+  children: (s: PlayerState) => ReactNode;
+  fallback?: ReactNode;
+  band?: { scene: SceneName; alt: string; eyebrow?: string; title: string };
+}) {
   const state = usePlayerState();
   if (state === undefined) return <>{fallback ?? <div className="min-h-[40vh]" aria-busy />}</>;
-  if (state === null) return <JoinNudge />;
+  if (state === null)
+    return (
+      <div className="grid gap-5">
+        {band && <SceneBand scene={band.scene} alt={band.alt} eyebrow={band.eyebrow} title={band.title} />}
+        <JoinNudge />
+      </div>
+    );
   return <>{children(state)}</>;
 }
 

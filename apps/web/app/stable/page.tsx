@@ -199,5 +199,5 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
 }
 
 export default function StablePage() {
-  return <PlayerGate>{(state) => <Stable state={state} />}</PlayerGate>;
+  return <PlayerGate band={{ scene: "barn", alt: "Inside your barn", eyebrow: "Your yard", title: "Stable" }}>{(state) => <Stable state={state} />}</PlayerGate>;
 }

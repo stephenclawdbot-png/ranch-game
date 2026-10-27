@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseDetailView } from "@/lib/types";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
-import { COAT_LABEL, GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
+import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits, formatDistance } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
 import { HorsePortrait } from "../HorsePortrait";
 import { Silks } from "../Silks";
@@ -87,7 +87,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
 
       <section className="surface grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:gap-6 sm:p-5" aria-labelledby="horse-h">
         <div className="well grid h-fit w-fit place-items-center self-start justify-self-center p-2 sm:justify-self-start">
-          <HorsePortrait appearance={horse.appearance} scale={1} className="md:hidden" title={`${horse.name}, ${COAT_LABEL[horse.appearance.coat]}`} />
+          <HorsePortrait appearance={horse.appearance} scale={1} className="md:hidden" title={`${horse.name}, ${coatLabel(horse.appearance)}`} />
           <HorsePortrait appearance={horse.appearance} scale={2} className="hidden md:block" />
         </div>
         <div className="flex min-w-0 flex-col gap-3">
@@ -100,7 +100,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
             </p>
             <h2 id="horse-h" className="t-hero mt-2">
               {horse.age > 0 ? `${horse.age}-year-old ` : "A young "}
-              {COAT_LABEL[horse.appearance.coat].toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
+              {coatLabel(horse.appearance).toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
               {horse.age > 0 ? "" : " in the nursery"}
             </h2>
             <p className="t-meta">

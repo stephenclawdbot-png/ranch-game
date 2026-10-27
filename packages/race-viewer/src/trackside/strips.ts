@@ -239,7 +239,8 @@ export function primaryIndices(palette: Palette, keys: KeyPalette): Set<number> 
  *   R = region (MARK_REGION: 0 none, 1/2 front legs near/far, 3/4 hind legs near/far,
  *       5 face, 6 body),
  *   G = within-region param (legs: 0 at the hoof .. 1 where the leg ducks under the body;
- *       face: 0 at the brow .. 1 at the nose),
+ *       face: 0 at the brow .. 1 at the nose; body: texels below the spine * 32 over the
+ *       barrel columns only, 0 elsewhere — the dun dorsal stripe key),
  *   B = face only: horizontal distance to the profile edge in texels * 32 (blaze width),
  *   A = 255.
  *
@@ -448,12 +449,16 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
     }
 
     // ---- body: every other coat pixel (roan / dapple texture zone) ----------
+    // G carries texels below the spine over the barrel (rump .. shoulder), so the dun
+    // dorsal stripe hugs the back however the frame poses the horse.
     for (let x = x0; x <= x1; x++) {
+      const col = runs[x]!;
+      const colTop = col?.length && x >= x0 + W * 0.08 && x <= split ? col[0]![0] : -1;
       for (let y = 0; y < fh; y++) {
         if (roleAt(f, x, y) !== 1) continue;
         const o = ((f[1] + y) * src.width + f[0] + x) * 4;
         if (out[o]) continue;
-        paint(f, x, y, MARK_REGION.body, 0, 0);
+        paint(f, x, y, MARK_REGION.body, colTop >= 0 ? Math.min(255, (y - colTop) * 32) : 0, 0);
       }
     }
   }
@@ -465,7 +470,7 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
  * silks, cap) or the source colour for fixed roles; the pattern half holds the secondary
  * silks colour for primary keys (alpha 0 elsewhere). Column LUT_FLAG_X packs the marking
  * flags: R = leg levels 2 bits each in tuple order (FL|FR<<2|HL<<4|HR<<6), G = face id |
- * coat pattern << 4; column LUT_WHITE_X is the marking white.
+ * coat pattern << 4, B = dun (primitive markings); column LUT_WHITE_X is the marking white.
  */
 export function buildLut(palette: Palette, keys: KeyPalette, appearances: readonly HorseAppearance[]): Uint8Array {
   const rows = Math.max(1, appearances.length);
@@ -497,6 +502,7 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     const fo = (row * LUT_W + LUT_FLAG_X) * 4;
     lut[fo] = fl | (fr << 2) | (hl << 4) | (hr << 6);
     lut[fo + 1] = (FACE_ID[a.face ?? "none"] ?? 0) | ((COAT_PATTERN_ID[resolveHorseColors(a).texture] ?? 0) << 4);
+    lut[fo + 2] = a.dun ? 1 : 0;
     lut[fo + 3] = 255;
     const wo = (row * LUT_W + LUT_WHITE_X) * 4;
     lut[wo] = (MARKING_WHITE >> 16) & 255;
