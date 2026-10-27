@@ -3,9 +3,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { isDomainError } from "../errors";
 import { gc } from "../gameCore";
+import { defaultHooks } from "../hooks";
 import { fraudEvents, horses } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { breed } from "../services/breeding";
+import { tradeStatus } from "../services/economyViews";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { buyListing, cancelListing, expireListings, listHorse } from "../services/market";
 import { createRace, enterRace } from "../services/races";
@@ -126,6 +128,18 @@ describe("market", () => {
       code: "PRICE_ABOVE_CEILING",
       details: { ceiling },
     });
+  });
+
+  it("a degenerate appraisal can't invert the band: the ceiling stays at or above the floor (or 1)", async () => {
+    // A horse without a valid genome takes the bps() fallback; an appraise hook can return 0.
+    const s = await seller();
+    const noGenome = await makeHorse(h.db, s.stableId, { genome: {} });
+    const hooks = { ...defaultHooks, appraise: () => 0 };
+    const ts = await tradeStatus(h.db, noGenome, T0, hooks);
+    expect(ts).toMatchObject({ floor: 0, ceiling: 1 }); // max(floor(0), floor, 1): 1, not 0
+    const l = await listHorse(h.db, { accountId: s.accountId, horseId: noGenome.id, price: 1, now: T0 }, hooks);
+    await cancelListing(h.db, { accountId: s.accountId, listingId: l.id, now: T0 });
+    await expect(listHorse(h.db, { accountId: s.accountId, horseId: noGenome.id, price: 2, now: T0 }, hooks)).rejects.toMatchObject({ code: "PRICE_ABOVE_CEILING" });
   });
 
   it("a horse bought on the market can't be relisted for 72 h (resale lock)", async () => {

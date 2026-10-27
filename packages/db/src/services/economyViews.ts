@@ -28,6 +28,7 @@ import {
   packPulls,
   pregnancies,
   stables,
+  trades,
   type HorseRow,
   type ListingRow,
   type PregnancyRow,
@@ -39,6 +40,13 @@ import { renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
 
 export type PackPullRow = typeof packPulls.$inferSelect;
+
+/** Horses by id in ONE query (screens join pull history and listings to horse rows). */
+export async function horsesByIds(ex: Executor, ids: string[]): Promise<Map<string, HorseRow>> {
+  if (!ids.length) return new Map();
+  const rows = await ex.select().from(horses).where(inArray(horses.id, ids));
+  return new Map(rows.map((r) => [r.id, r]));
+}
 
 // ---------------------------------------------------------------------------
 // Breeding
@@ -429,12 +437,43 @@ export interface TradeStatus {
   resaleUntil: Date | null;
 }
 
-/** Whether a horse can be listed (ignoring the seller requirements), with its floor and ceiling price. */
-export async function tradeStatus(ex: Executor, horse: HorseRow, now?: Date, hooks: GameHooks = defaultHooks): Promise<TradeStatus> {
+/** The resale lock of a horse this stable bought on the market, while it lasts (else null). */
+export function resaleInfoOf(boughtAt: Date, now: Date): { boughtAt: Date; until: Date } | null {
+  const until = new Date(boughtAt.getTime() + RULES.resaleLockMs);
+  return until.getTime() > now.getTime() ? { boughtAt, until } : null;
+}
+
+/**
+ * The whole stable's resale locks in ONE query (the latest market buy per horse), for
+ * callers that call `tradeStatus` for every horse of a stable: pass the map's entries in,
+ * instead of `tradeStatus` querying `trades` once per horse (an N+1).
+ */
+export async function resaleLocksOf(ex: Executor, ownerStableId: string, now: Date): Promise<Map<string, { boughtAt: Date; until: Date } | null>> {
+  const rows = await ex
+    .selectDistinctOn([trades.horseId], { horseId: trades.horseId, createdAt: trades.createdAt })
+    .from(trades)
+    .where(eq(trades.buyerStableId, ownerStableId))
+    .orderBy(trades.horseId, desc(trades.createdAt));
+  return new Map(rows.map((r) => [r.horseId, resaleInfoOf(r.createdAt, now)]));
+}
+
+/**
+ * Whether a horse can be listed (ignoring the seller requirements), with its floor and
+ * ceiling price. `resale` may come from `resaleLocksOf` (one query for a whole stable);
+ * without it the single-horse resale lock is looked up here.
+ */
+export async function tradeStatus(
+  ex: Executor,
+  horse: HorseRow,
+  now?: Date,
+  hooks: GameHooks = defaultHooks,
+  resaleIn?: { boughtAt: Date; until: Date } | null,
+): Promise<TradeStatus> {
   const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
   const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
-  const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : bps(appraisal, RULES.listingCeilingBps);
-  const resale = now && horse.ownerStableId ? await resaleLock(ex, horse.id, horse.ownerStableId, now) : null;
+  // Never below the floor (or 1), so a degenerate appraisal can't invert the band.
+  const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : Math.max(bps(appraisal, RULES.listingCeilingBps), floor, 1);
+  const resale = resaleIn !== undefined ? resaleIn : now && horse.ownerStableId ? await resaleLock(ex, horse.id, horse.ownerStableId, now) : null;
   let lock: TradeLock = null;
   const [carrying] = horse.sex === "female" ? await ex.select({ id: pregnancies.id }).from(pregnancies).where(and(eq(pregnancies.damId, horse.id), eq(pregnancies.status, "carrying"))) : [];
   if (horse.bound) lock = "club_bred";

@@ -17,7 +17,7 @@
  *   Story races don't count) and the pair isn't linked, the inviter gets credits through the
  *   ledger and a badge, once. A linked pair gets nothing and is flagged like the market.
  */
-import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, notExists, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { DomainError } from "../errors";
 import { utcWeekStart } from "../crypto";
@@ -358,22 +358,60 @@ export async function activityOf(ex: Executor, accountIds: string[]): Promise<Ma
  * the referral stays pending, so an unlinked pair can still earn later. Idempotent per
  * invitee. Returns the number granted.
  */
-export async function settleReferralActivations(db: Db, input: { now: Date; inviterAccountId?: string; limit?: number }): Promise<number> {
+export async function settleReferralActivations(db: Db, input: { now: Date; inviterAccountId?: string; limit?: number; maxPages?: number }): Promise<number> {
   const cfg = await affiliateConfig(db);
   const owner = await ownerAccountId(db);
-  const pending = await db
-    .select()
-    .from(referrals)
-    .where(
-      and(
-        isNull(referrals.activatedAt),
-        isNull(referrals.revokedAt),
-        sql`${referrals.inviterAccountId} is not null`,
-        input.inviterAccountId ? eq(referrals.inviterAccountId, input.inviterAccountId) : sql`true`,
-      ),
-    )
-    .limit(input.limit ?? 200);
-  if (!pending.length) return 0;
+  // Every pending referral, oldest first, in pages (keyset on created_at, account_id): an
+  // invitee who never becomes active stays pending forever, so a single "first N" window
+  // would fill with them and starve everyone behind. Pairs already flagged referral_linked
+  // are skipped in the query.
+  const page = input.limit ?? 200;
+  const maxPages = input.maxPages ?? 50;
+  let granted = 0;
+  let cursor: { createdAt: Date; accountId: string } | null = null;
+  for (let p = 0; p < maxPages; p++) {
+    const pending: (typeof referrals.$inferSelect)[] = await db
+      .select()
+      .from(referrals)
+      .where(
+        and(
+          isNull(referrals.activatedAt),
+          isNull(referrals.revokedAt),
+          sql`${referrals.inviterAccountId} is not null`,
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(fraudEvents)
+              .where(
+                and(
+                  eq(fraudEvents.accountId, referrals.accountId),
+                  eq(fraudEvents.relatedAccountId, referrals.inviterAccountId),
+                  eq(fraudEvents.kind, "referral_linked"),
+                ),
+              ),
+          ),
+          input.inviterAccountId ? eq(referrals.inviterAccountId, input.inviterAccountId) : sql`true`,
+          cursor ? sql`(${referrals.createdAt}, ${referrals.accountId}) > (${cursor.createdAt}, ${cursor.accountId})` : sql`true`,
+        ),
+      )
+      .orderBy(referrals.createdAt, referrals.accountId)
+      .limit(page);
+    if (!pending.length) break;
+    const last: typeof referrals.$inferSelect = pending[pending.length - 1]!;
+    cursor = { createdAt: last.createdAt, accountId: last.accountId };
+    granted += await settlePendingPage(db, input.now, cfg, owner, pending);
+    if (pending.length < page) break;
+  }
+  return granted;
+}
+
+async function settlePendingPage(
+  db: Db,
+  now: Date,
+  cfg: Awaited<ReturnType<typeof affiliateConfig>>,
+  owner: string | null,
+  pending: (typeof referrals.$inferSelect)[],
+): Promise<number> {
   const act = await activityOf(db, pending.map((p) => p.accountId));
   let granted = 0;
   for (const r of pending) {
@@ -391,14 +429,14 @@ export async function settleReferralActivations(db: Db, input: { now: Date; invi
       continue;
     }
     const ok = await runTx(db, async (tx) => {
-      const upd = await tx.update(referrals).set({ activatedAt: input.now }).where(and(eq(referrals.accountId, r.accountId), isNull(referrals.activatedAt))).returning({ id: referrals.accountId });
+      const upd = await tx.update(referrals).set({ activatedAt: now }).where(and(eq(referrals.accountId, r.accountId), isNull(referrals.activatedAt))).returning({ id: referrals.accountId });
       if (!upd.length) return false;
       const inviterExists = await tx.select({ id: stables.id }).from(stables).where(eq(stables.accountId, r.inviterAccountId!)).limit(1);
       if (!inviterExists.length) return true; // inviter gone (reset): mark, grant nothing
       if (cfg.activeReward.credits > 0) {
         await grantCreditsTx(tx, { accountId: r.inviterAccountId!, amount: cfg.activeReward.credits, idempotencyKey: `referral:active:${r.accountId}`, kind: "referral_reward", memo: "An invitee became active" });
       }
-      await tx.insert(achievements).values({ accountId: r.inviterAccountId!, code: "referrer", data: { firstInvitee: r.accountId }, earnedAt: input.now }).onConflictDoNothing();
+      await tx.insert(achievements).values({ accountId: r.inviterAccountId!, code: "referrer", data: { firstInvitee: r.accountId }, earnedAt: now }).onConflictDoNothing();
       return true;
     });
     if (ok) granted++;

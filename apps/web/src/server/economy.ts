@@ -16,9 +16,11 @@ import {
   breedingStatus,
   buyListing,
   cancelListing,
+  defaultHooks,
   getBalance,
   getHorse,
   getPackState,
+  horsesByIds,
   isDomainError,
   isGenome,
   listHorse,
@@ -37,6 +39,7 @@ import {
   previewPairing,
   pullPack,
   renameHorse,
+  resaleLocksOf,
   sellerStatus,
   setStudFee,
   toHorseState,
@@ -450,12 +453,12 @@ export async function packsView(db: Db, session: Session, now: Date): Promise<Pa
 
 /** Pull history rows with the foal's one-line genetics (its genome lives on the horse row). */
 async function pullRows(db: Db, accountId: string): Promise<PullRow[]> {
-  const out: PullRow[] = [];
-  for (const p of await listPackPulls(db, accountId, 20)) {
-    const row = p.horseId ? await getHorse(db, p.horseId) : null;
-    out.push(pullRow(p, row ? geneticsLineOf(row) : null));
-  }
-  return out;
+  const pulls = await listPackPulls(db, accountId, 20);
+  const foals = await horsesByIds(db, pulls.map((p) => p.horseId).filter((id): id is string => !!id));
+  return pulls.map((p) => {
+    const foal = p.horseId ? foals.get(p.horseId) : undefined;
+    return pullRow(p, foal ? geneticsLineOf(foal) : null);
+  });
 }
 
 export async function pull(db: Db, session: Session, input: { packType: PackType; free: boolean; key: string }, now: Date): Promise<PullResultView> {
@@ -518,9 +521,11 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
   const listings = all.map(view);
   const mineByHorse = new Map(listings.filter((l) => l.mine).map((l) => [l.id, l.listingId]));
   const horses: SellableHorse[] = [];
+  // One resale-locks query for the whole stable (tradeStatus takes the map's entries).
+  const resales = await resaleLocksOf(db, session.stable.id, now);
   for (const r of await listStableHorses(db, session.stable.id)) {
     if (r.careerStatus === "pasture") continue;
-    const ts = await tradeStatus(db, r, now);
+    const ts = await tradeStatus(db, r, now, defaultHooks, resales.get(r.id) ?? null);
     horses.push({
       ...ecoHorse(r, silks, nowMs),
       appraisal: ts.appraisal,

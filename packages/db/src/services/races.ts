@@ -179,6 +179,12 @@ export interface EnterRaceInput {
   tactic: string;
   now: Date;
   /**
+   * The real request time for daily goals, when `now` is not the wall clock (instant Story
+   * races enter with a backdated `now` = post time - 1s, which can be yesterday). Defaults
+   * to `now`.
+   */
+  goalNow?: Date;
+  /**
    * Extra entry data stored with the snapshot (e.g. the race plan, the owner's silks and
    * stable name for the race card). Never overrides snapshot fields.
    */
@@ -238,8 +244,9 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       .returning();
     await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
     await recordPlayDay(tx, input.accountId, input.now);
-    // Today's "run a race" goal (a no-op once it has already paid today).
-    await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.now });
+    // Today's "run a race" goal on the wall clock (a no-op once it has already paid today);
+    // a cancelled race keeps the day's goal (owner-accepted edge).
+    await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.goalNow ?? input.now });
     await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost } });
     return entry!;
   });

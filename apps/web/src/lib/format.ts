@@ -28,6 +28,7 @@ export function formatCountdown(ms: number): string {
 
 /** Odds in plain words: 2.5 (chance per 1,000) -> "about 1 in 400"; anything tinier -> "under 1 in 10,000". */
 export function oneInText(permille: number): string {
+  if (permille >= 500) return "more than 1 in 2"; // 1 in 2 or likelier
   const n = permille > 0 ? 1000 / permille : Infinity;
   if (n > 10_000) return "under 1 in 10,000";
   const mag = 10 ** Math.max(0, Math.floor(Math.log10(n)) - 1); // two significant figures

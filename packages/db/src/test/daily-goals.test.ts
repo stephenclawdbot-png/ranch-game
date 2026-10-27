@@ -106,6 +106,29 @@ describe("daily goals", () => {
     expect(await getBalance(h.db, p.accountId)).toBe(GOAL);
   });
 
+  it("a backdated Story entry credits the goal on the wall clock's day (goalNow)", async () => {
+    // An instant Story race enters with now = post time - 1s, ~10 min backdated: around
+    // local midnight that is yesterday, and the goal must not land there.
+    const p = await newPlayer(h.db, { credits: 0 }); // UTC
+    const horse = await makeHorse(h.db, p.stableId);
+    const wall = new Date(Date.UTC(2026, 10, 3, 0, 0, 30)); // 00:00:30 today
+    const enterAt = new Date(wall.getTime() - 10 * MIN - 1_000); // 23:50:29 yesterday
+    const postTime = new Date(Math.floor((wall.getTime() - 10 * MIN) / 1000) * 1000);
+    const race = await createRace(h.db, {
+      kind: "quick",
+      name: "Backdated story",
+      raceClass: "maiden",
+      conditions: { distanceM: 1200, surface: "turf" },
+      postTime,
+      entriesCloseAt: postTime,
+      targetRunners: 2,
+    });
+    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "front", now: enterAt, goalNow: wall });
+    expect(await doneGoals(p.accountId, wall)).toEqual(["race"]);
+    expect(await doneGoals(p.accountId, enterAt)).toEqual([]);
+    expect(await getBalance(h.db, p.accountId)).toBe(GOAL);
+  });
+
   it("a counted care session completes the care goal (an already-cared horse doesn't)", async () => {
     const p = await newPlayer(h.db, { credits: 0 });
     const horse = await makeHorse(h.db, p.stableId);

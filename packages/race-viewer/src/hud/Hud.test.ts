@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fitCount } from "./Hud";
+import { fitCount, visibleStandings } from "./Hud";
+import type { StandingRow } from "../timeline";
 
 const chips = (n: number, w: number) => Array.from({ length: n }, () => w);
 const base = {
@@ -52,6 +53,11 @@ describe("fitCount", () => {
   it("keeps the leader next to a trailing highlighted chip however narrow the strip", () => {
     expect(fitCount({ ...base, width: 10, meIdx: 6, meW: 90 })).toBe(2);
     expect(fitCount({ ...base, width: 10, meIdx: 0, meW: 100 })).toBe(1);
+  });
+
+  it("with a cap of 1 the single chip is the leader, never the highlighted runner", () => {
+    // No swap at k = 1: "me" can't displace the leader, and the fit measures the leader's chip.
+    expect(fitCount({ ...base, cap: 1, width: 10, meIdx: 5, meW: 90, w: [100] })).toBe(1);
   });
 
   it("prefers the previous, smaller fit when the larger one only just fits", () => {
