@@ -64,7 +64,7 @@ export function fitCount(a: {
   prev?: { w: number; k: number };
 }): number {
   const sum = (k: number) => {
-    const swap = a.meIdx >= 0 && a.meIdx >= k;
+    const swap = a.meIdx >= 0 && a.meIdx >= k && k > 1;
     let s = 0;
     for (let i = 0; i < (swap ? k - 1 : k); i++) s += a.w[i] ?? 0;
     return swap ? s + a.meW : s;
@@ -79,6 +79,15 @@ export function fitCount(a: {
   return k;
 }
 
+/**
+ * The chips that show for a fitted count k: the first k, with "me" swapped into the last
+ * slot when it sits outside — but a single chip is always the leader (maxStandings 1).
+ */
+export function visibleStandings(standings: StandingRow[], k: number, meIdx: number): StandingRow[] {
+  const me = meIdx >= 0 ? standings[meIdx] : undefined;
+  return me && meIdx >= k && k > 1 ? [...standings.slice(0, k - 1), me] : standings.slice(0, k);
+}
+
 export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
   const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
   const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
@@ -89,7 +98,7 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
   const me = meIdx >= 0 ? standings[meIdx] : undefined;
   // Every chip that could show, in position order ("me" swapped into the last slot when outside the cap).
   let cand = standings.slice(0, cap);
-  const candMe = !!me && meIdx >= cap;
+  const candMe = !!me && meIdx >= cap && cap > 1;
   if (me && candMe) cand = [...cand.slice(0, Math.max(1, cap - 1)), me];
   // Fit: strip width + measured chip widths decide how many whole chips show; "+N" covers the rest.
   const [fit, setFit] = useState<number | null>(null);
@@ -134,7 +143,7 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
     setFit(k);
   }, [show, stripW, key]);
   const k = Math.min(fit ?? cap, cap);
-  const vis = me && meIdx >= k ? [...standings.slice(0, k - 1), me] : standings.slice(0, k);
+  const vis = visibleStandings(standings, k, meIdx);
   const hidden = Math.max(0, total - k);
   const chip = (s: StandingRow) => (
     <span key={s.horseId} className={`rv-st${s.horseId === highlightHorseId ? " rv-st-me" : ""}`}>

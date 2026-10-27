@@ -260,6 +260,11 @@ export async function reservedPremiumPacks(ex: Executor, input: { accountId: str
   return Number(r?.n ?? 0);
 }
 
+/** Serialises Premium checkout for one account (transaction-scoped advisory lock): cap checks + order row. */
+export async function lockPremiumCheckout(tx: Executor, accountId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`premium:${accountId}`}))`);
+}
+
 /**
  * Premium Packs this tester has bought over the WHOLE beta (the $50 lifetime cap, AUDIT §6):
  * confirmed orders (fulfilled) plus pending ones (live quotes, submitted, paid), as pack

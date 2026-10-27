@@ -148,7 +148,8 @@ export function listingFloor(state: HorseState): number {
 }
 
 export function listingCeiling(state: HorseState): number {
-  return Math.floor((appraise(state) * LISTING_CEILING_PERMILLE) / 1000);
+  // Never below the floor (or 1), so a degenerate appraisal can't invert the band.
+  return Math.max(Math.floor((appraise(state) * LISTING_CEILING_PERMILLE) / 1000), listingFloor(state), 1);
 }
 
 export interface SellerAccount {

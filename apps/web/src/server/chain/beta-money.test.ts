@@ -153,6 +153,26 @@ describe("ETH checkout (mock chain)", () => {
     expect(wrong.status).toBe("rejected");
   });
 
+  it("two concurrent quotes for the last packs under the lifetime cap: one wins", async () => {
+    // $16.66 packs: 2 bought in week 1 ($33.32; the starter stable has 3 free stalls), then two
+    // concurrent 1-pack quotes in week 2. Each alone stays under the $50 cap ($49.98), so an
+    // unlocked check-then-insert race would let both through ($66.64).
+    const dear = { ...ctx, cfg: { ...ctx.cfg, premiumUsdCents: 1_666 } };
+    const p = await player();
+    await link(p);
+    const q = await quoteCheckout(dear, p, { sku: "premium_pack", quantity: 2, country: null, now: T0 });
+    const tx = chain.simulatePurchase(quoteFromJson(q.quote));
+    expect((await confirmCheckout(dear, p, { orderId: q.orderId, txHash: tx, now: at(MIN) })).status).toBe("fulfilled");
+    const rs = await Promise.allSettled([
+      quoteCheckout(dear, p, { sku: "premium_pack", quantity: 1, country: null, now: at(7 * DAY) }),
+      quoteCheckout(dear, p, { sku: "premium_pack", quantity: 1, country: null, now: at(7 * DAY) }),
+    ]);
+    const ok = rs.flatMap((r) => (r.status === "fulfilled" ? [r.value.orderId] : []));
+    expect(ok).toHaveLength(1);
+    for (const r of rs) if (r.status === "rejected") expect(String(r.reason?.message)).toMatch(/Beta limit: \$50/);
+    expect((await getChainOrder(h.db, ok[0]!))?.usdCents).toBe(1_666);
+  });
+
   it("beta lifetime cap: $50 of packs per tester; pending orders count; exactly $50 is allowed", async () => {
     // $50 in week 1 blocks week 2 as well: the cap is for the whole beta, not the week.
     const fifty = { ...ctx, cfg: { ...ctx.cfg, premiumUsdCents: 2_500 } };

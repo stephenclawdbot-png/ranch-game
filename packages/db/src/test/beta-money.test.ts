@@ -41,7 +41,7 @@ import {
   settleReferralActivations,
   DEFAULT_AFFILIATE_CONFIG,
 } from "../services/affiliates";
-import { DAY, makeHorse, makeSeller, memoryDb, MIN, newPlayer, T0 } from "./helpers";
+import { at, count, DAY, makeHorse, makeSeller, memoryDb, MIN, newPlayer, T0 } from "./helpers";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -501,5 +501,27 @@ describe("affiliates (2 levels, owner at the root)", () => {
     expect(flags).toHaveLength(1);
     const [r] = await h.db.select().from(referrals).where(eq(referrals.accountId, bob.accountId));
     expect(r!.activatedAt).toBeNull(); // stays pending: the flag is reviewed, the reward is simply not granted
+  });
+
+  it("the activation scan never starves: it pages past invitees who never became active", async () => {
+    const { alice } = await tree();
+    const aliceCode = (await ensureReferralCode(h.db, alice.accountId)).toLowerCase();
+    // 250 invitees who never play (pending forever), then ONE eligible invitee behind them.
+    for (let i = 0; i < 250; i++) {
+      const b = await newPlayer(h.db);
+      await recordReferral(h.db, { accountId: b.accountId, code: aliceCode, now: at(i) });
+    }
+    const eligible = await newPlayer(h.db);
+    await recordReferral(h.db, { accountId: eligible.accountId, code: aliceCode, now: at(400) });
+    for (let d = 0; d < 3; d++) await recordPlayDay(h.db, eligible.accountId, new Date(T0.getTime() + d * DAY));
+    await liveRuns(5, eligible.stableId);
+    const before = await getBalance(h.db, alice.accountId);
+    // Pages of 100: the eligible invitee sits on the third page and is paid in one pass.
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId, limit: 100 })).toBe(1);
+    expect(await getBalance(h.db, alice.accountId)).toBe(before + DEFAULT_AFFILIATE_CONFIG.activeReward.credits);
+    const [re] = await h.db.select().from(referrals).where(eq(referrals.accountId, eligible.accountId));
+    expect(re!.activatedAt).not.toBeNull();
+    // Idempotent: a second pass pays nothing.
+    expect(await settleReferralActivations(h.db, { now: T0, inviterAccountId: alice.accountId, limit: 100 })).toBe(0);
   });
 });

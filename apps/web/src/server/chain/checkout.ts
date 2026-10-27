@@ -27,10 +27,12 @@ import {
   occupancy,
   openChainOrders,
   ordersNeedingAttention,
+  lockPremiumCheckout,
   premiumPacksLifetime,
   recordReferralEarnings,
   referralPlan,
   reservedPremiumPacks,
+  runTx,
   seasonNumberAt,
   verifiedWalletOf,
   isDomainError,
@@ -90,6 +92,26 @@ export function checkoutEnabled(cfg: BetaChainConfig): boolean {
   return cfg.enabled;
 }
 
+/**
+ * The weekly and the $50 beta lifetime cap (AUDIT §6), checked before a quote is signed.
+ * Runs twice per quote: once to fail fast, and again inside the order transaction under a
+ * per-account advisory lock, so two concurrent quotes can't both pass (e.g. the last pack
+ * under the lifetime cap).
+ */
+async function assertPackCaps(db: Db, session: Session, qty: number, now: Date, premiumUsdCents: number): Promise<void> {
+  const st = await getPackState(db, { accountId: session.accountId, packType: "premium", now });
+  const reserved = await reservedPremiumPacks(db, { accountId: session.accountId, now });
+  if (st.paidThisWeek + reserved + qty > st.weeklyLimit) {
+    throw new DomainError("PACK_LIMIT", `weekly limit: ${st.weeklyLimit} Premium Packs a week (${st.paidThisWeek} pulled, ${reserved} in checkout).`);
+  }
+  // Lifetime: confirmed + pending orders as pack quantity, priced at today's cents. Up to
+  // exactly the cap is fine.
+  const spent = (await premiumPacksLifetime(db, { accountId: session.accountId, now })) * premiumUsdCents;
+  if (spent + premiumUsdCents * qty > PREMIUM_BETA_LIFETIME_USD_CENTS) {
+    throw new DomainError("PACK_LIMIT", `Beta limit: $${PREMIUM_BETA_LIFETIME_USD_CENTS / 100} of packs per player`);
+  }
+}
+
 /** USD cents the tester has already committed to Premium Packs over the beta (confirmed + pending). */
 async function spentOnPacks(ctx: CheckoutCtx, session: Session, now: Date): Promise<number> {
   return (await premiumPacksLifetime(ctx.db, { accountId: session.accountId, now })) * ctx.cfg.premiumUsdCents;
@@ -113,16 +135,7 @@ export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: {
   if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (Profile → Wallet). It takes one free signature.");
 
   // Weekly cap (pulls this week + open orders), stalls and the foal crop, BEFORE signing.
-  const st = await getPackState(db, { accountId: session.accountId, packType: "premium", now: input.now });
-  const reserved = await reservedPremiumPacks(db, { accountId: session.accountId, now: input.now });
-  if (st.paidThisWeek + reserved + qty > st.weeklyLimit) {
-    throw new DomainError("PACK_LIMIT", `weekly limit: ${st.weeklyLimit} Premium Packs a week (${st.paidThisWeek} pulled, ${reserved} in checkout).`);
-  }
-  // Beta lifetime cap (AUDIT §6): $50 of packs per tester, confirmed + pending orders, at
-  // today's price. Up to exactly the cap is fine.
-  if ((await spentOnPacks(ctx, session, input.now)) + cfg.premiumUsdCents * qty > PREMIUM_BETA_LIFETIME_USD_CENTS) {
-    throw new DomainError("PACK_LIMIT", `Beta limit: $${PREMIUM_BETA_LIFETIME_USD_CENTS / 100} of packs per player`);
-  }
+  await assertPackCaps(db, session, qty, input.now, cfg.premiumUsdCents);
   const occ = await occupancy(db, session.stable);
   if (occ.free < qty) throw new DomainError("STABLE_FULL", `You need ${qty} free stall${qty > 1 ? "s" : ""} for ${qty} foal${qty > 1 ? "s" : ""}.`);
   const crop = await foalCropStatus(db, seasonNumberAt(input.now));
@@ -153,23 +166,29 @@ export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: {
     ref2Bps: plan.ref2?.bps ?? 0,
     deadline: BigInt(Math.floor(deadline.getTime() / 1000)),
   };
-  // The pending order row is written BEFORE the voucher exists.
-  await createChainOrder(db, {
-    orderId,
-    accountId: session.accountId,
-    wallet,
-    sku: input.sku,
-    quantity: qty,
-    usdCents,
-    priceWei,
-    ethUsdMicros: price.micros,
-    priceSources: { sources: price.sources, fetchedAtMs: price.fetchedAtMs, referralDropped: plan.dropped },
-    chainId: chain.chainId,
-    storeAddress: chain.store,
-    deadline,
-    now: input.now,
-    ref1: plan.ref1,
-    ref2: plan.ref2,
+  // The caps re-checked and the pending order row written inside one transaction, under a
+  // per-account advisory lock: two concurrent quotes for the same last packs can't both
+  // pass. The row is still written BEFORE the voucher exists.
+  await runTx(db, async (tx) => {
+    await lockPremiumCheckout(tx, session.accountId);
+    await assertPackCaps(tx, session, qty, input.now, cfg.premiumUsdCents);
+    await createChainOrder(tx, {
+      orderId,
+      accountId: session.accountId,
+      wallet,
+      sku: input.sku,
+      quantity: qty,
+      usdCents,
+      priceWei,
+      ethUsdMicros: price.micros,
+      priceSources: { sources: price.sources, fetchedAtMs: price.fetchedAtMs, referralDropped: plan.dropped },
+      chainId: chain.chainId,
+      storeAddress: chain.store,
+      deadline,
+      now: input.now,
+      ref1: plan.ref1,
+      ref2: plan.ref2,
+    });
   });
   const signature = await chain.signQuote(quote);
   await trackEvent(db, session.accountId, "checkout_quote", { sku: input.sku, qty, usdCents });

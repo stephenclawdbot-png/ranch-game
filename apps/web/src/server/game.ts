@@ -781,7 +781,7 @@ export async function runSoloRace(db: Db, session: Session, row: HorseRow, plan:
     targetRunners: spec.targetRunners,
   });
   try {
-    await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId: row.id, tactic: plan.tactic, now: enterAt, meta: entryMeta(session, plan) });
+    await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId: row.id, tactic: plan.tactic, now: enterAt, goalNow: now, meta: entryMeta(session, plan) });
     await lockField(db, race.id, closeAt, raceHooks);
     const locked = (await dbGetRace(db, race.id))!;
     const simAt = now < postTime ? postTime : now;

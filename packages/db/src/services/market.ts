@@ -109,7 +109,8 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     }
     const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
     if (input.price < floor) throw new DomainError("PRICE_BELOW_FLOOR", `minimum price is ${floor}`, { floor, appraisal });
-    const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : bps(appraisal, RULES.listingCeilingBps);
+    // Never below the floor (or 1), so a degenerate appraisal can't invert the band.
+    const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : Math.max(bps(appraisal, RULES.listingCeilingBps), floor, 1);
     if (input.price > ceiling) throw new DomainError("PRICE_ABOVE_CEILING", `maximum price is ${ceiling}`, { ceiling, appraisal });
     const [listing] = await tx
       .insert(marketListings)
