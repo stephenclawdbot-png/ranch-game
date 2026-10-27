@@ -9,8 +9,8 @@
  *    COUNT AS CAREER STARTS (settleRace increments starts for every kind except the Daily Cup);
  *  - Live: 1 entry per race (10/day, bank 20, +5 refill for 250 once a day when bank < 5),
  *    3 starts per horse per day, 40-start career, purse by tier and licence;
- *  - Daily Cup participation credits; daily goals are NOT paid by the server (finding), so
- *    they are off unless GOALS_IMPLEMENTED;
+ *  - Daily Cup participation credits; daily goals (race / care / Cup, paid by the server since
+ *    2026-10-26) on every play day while GOALS_IMPLEMENTED;
  *  - training (WORKOUTS costs), paddock packs (1,200, <= 3/week, free one every 3rd play day,
  *    each needs a free stall), stalls (2,000 + 400 x (n - 7)), trainer / vet / entry tiers,
  *    breeding (1,500 base, 1 covering per mare per season, foal after 24 h), scans.
@@ -19,7 +19,7 @@ import { GAME, PURSE_SPLIT, gc } from "../lib/constants.ts";
 import { drawPosition, winProbability } from "../lib/race.ts";
 import { SimRng, mean } from "../lib/rng.ts";
 
-export let GOALS_IMPLEMENTED = false;
+export let GOALS_IMPLEMENTED = true;
 export function setGoalsImplemented(v: boolean) {
   GOALS_IMPLEMENTED = v;
 }
