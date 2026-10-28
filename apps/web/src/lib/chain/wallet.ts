@@ -51,6 +51,29 @@ export async function listWallets(): Promise<WalletOption[]> {
   return out;
 }
 
+/** True on a phone: the UA-CH mobile flag, or a coarse pointer plus a mobile UA string. */
+export function isPhoneBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  const uad = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
+  if (uad?.mobile) return true;
+  return window.matchMedia("(pointer: coarse)").matches && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
+/**
+ * The MetaMask fallback row in the wallet picker, shown unless an injected wallet is
+ * MetaMask (EIP-6963 rdns, or the legacy isMetaMask name). Phones deep-link into the
+ * MetaMask app, which reopens this page in its browser; desktop links to the download
+ * page in a new tab, so the picker stays open.
+ */
+export function metamaskFallback({ injected, isPhone, href }: { injected: Pick<WalletOption, "id" | "name">[]; isPhone: boolean; href: string }): { show: boolean; caption: string; url: string; newTab: boolean } {
+  const show = !injected.some((w) => w.id === "io.metamask" || w.name === "MetaMask");
+  if (isPhone) {
+    const u = new URL(href);
+    return { show, caption: "Opens this page in the MetaMask app", url: `https://metamask.app.link/dapp/${u.host}${u.pathname}${u.search}`, newTab: false };
+  }
+  return { show, caption: "Install MetaMask, then reload this page", url: "https://metamask.io/download/", newTab: true };
+}
+
 /** The WalletConnect project ID (free at cloud.reown.com); unset = injected wallets only. */
 export function walletConnectProjectId(): string | null {
   const id = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
