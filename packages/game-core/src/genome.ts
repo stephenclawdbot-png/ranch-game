@@ -403,7 +403,9 @@ export interface BreedProfile {
 
 export const BREED_PROFILES: Record<Breed, BreedProfile> = {
   thoroughbred: {
-    statMean: { speed: 470, stamina: 430, burst: 440, durability: 400, adaptability: 400, temperament: 410 },
+    // tuned 2026-10-29 (breeds report: 17.2% of fitted races vs 12.5%): speed/burst to durability/adaptability, same total.
+    // Pre-v2 mints keep the original numbers (V1_STAT_MEANS) so old pull proofs still verify.
+    statMean: { speed: 450, stamina: 430, burst: 430, durability: 420, adaptability: 410, temperament: 410 },
     distance: { sprint: 150, mile: 400, middle: 350, staying: 100 },
     turf: 700,
     style: { front: 300, stalker: 400, closer: 300 },
@@ -502,7 +504,8 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     mintWeight: 60,
   },
   andalusian: {
-    statMean: { speed: 400, stamina: 420, burst: 470, durability: 430, adaptability: 420, temperament: 460 },
+    // tuned 2026-10-29 (breeds report: 9.0-9.5% vs 12.5%): speed from temperament, same total
+    statMean: { speed: 420, stamina: 420, burst: 470, durability: 430, adaptability: 420, temperament: 440 },
     distance: { sprint: 150, mile: 450, middle: 350, staying: 50 },
     turf: 750,
     style: { front: 250, stalker: 400, closer: 350 },
@@ -515,7 +518,8 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     mintWeight: 60,
   },
   friesian: {
-    statMean: { speed: 360, stamina: 470, burst: 400, durability: 470, adaptability: 430, temperament: 470 },
+    // tuned 2026-10-29 (breeds report: 5.0% of fitted races vs 12.5% target): speed from temperament/durability, same total
+    statMean: { speed: 430, stamina: 470, burst: 410, durability: 450, adaptability: 430, temperament: 410 },
     distance: { sprint: 0, mile: 200, middle: 450, staying: 350 },
     turf: 650,
     style: { front: 200, stalker: 450, closer: 350 },
@@ -541,7 +545,8 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     mintWeight: 60,
   },
   marwari: {
-    statMean: { speed: 420, stamina: 480, burst: 410, durability: 470, adaptability: 450, temperament: 370 },
+    // tuned 2026-10-29 (breeds report: 15.8% of fitted races vs 12.5%): race stats to adaptability/temperament, same total
+    statMean: { speed: 400, stamina: 470, burst: 410, durability: 470, adaptability: 470, temperament: 380 },
     distance: { sprint: 50, mile: 250, middle: 400, staying: 300 },
     turf: 300,
     style: { front: 300, stalker: 350, closer: 350 },
@@ -553,6 +558,17 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     morph: { legLength: 0, neckLength: -0.01, girth: 0, height: 0, headSize: -0.02 },
     mintWeight: 60,
   },
+};
+
+/**
+ * The original four breeds' stat means as the v1 mint used them, frozen: pre-v2 pack pulls are
+ * re-minted to verify their proofs, so these must never change even when BREED_PROFILES is tuned.
+ */
+const V1_STAT_MEANS: Partial<Record<Breed, StatRecord<number>>> = {
+  thoroughbred: { speed: 470, stamina: 430, burst: 440, durability: 400, adaptability: 400, temperament: 410 },
+  arabian: { speed: 400, stamina: 500, burst: 380, durability: 470, adaptability: 430, temperament: 400 },
+  quarterHorse: { speed: 480, stamina: 330, burst: 500, durability: 440, adaptability: 400, temperament: 470 },
+  akhalTeke: { speed: 440, stamina: 480, burst: 400, durability: 430, adaptability: 470, temperament: 360 },
 };
 
 /** Breed-share-weighted mean of a numeric breed trait. */
@@ -828,7 +844,7 @@ function mintGenome(seed: string, opts: MintOptions, legacyV1: boolean): Genome 
   const means = {} as StatRecord<number>;
   let meanOfMeans = 0;
   for (const k of STAT_KEYS) {
-    means[k] = breedBlend(breed, (p) => p.statMean[k]);
+    means[k] = legacyV1 ? BREEDS_V1.reduce((s, b) => s + breed[b] * V1_STAT_MEANS[b]![k], 0) / 1000 : breedBlend(breed, (p) => p.statMean[k]);
     meanOfMeans += means[k] / STAT_KEYS.length;
   }
   const p = {} as StatRecord<number>;
