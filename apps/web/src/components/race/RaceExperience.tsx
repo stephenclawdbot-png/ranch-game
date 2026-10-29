@@ -17,6 +17,7 @@ import { PixelIcon } from "../icons";
 import { Digits } from "../Countdown";
 import { DioramaSlot } from "../diorama/DioramaSlot";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
+import { PhotoFinishCard } from "../results/PhotoFinishCard";
 import { FitList } from "../ui/FitChip";
 import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
@@ -181,11 +182,16 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
 
       <section aria-labelledby="race-name" className="-mx-[var(--gutter)] -mt-4 md:mx-0 md:mt-0">
         {/* broadcast plate: status · race name · seal */}
-        <div className="flex min-h-11 items-center gap-2 bg-ink px-3 py-1">
+        <div className="race-plate">
           {status}
-          <h1 id="race-name" className="min-w-0 flex-1 font-extrabold leading-tight line-clamp-2" data-testid="race-name">
-            {config.name}
-          </h1>
+          <div className="min-w-0 flex-1">
+            <p className="eyebrow !text-[0.625rem] !text-sage">
+              {card.kind === "story" ? "Story race" : "Live · Kestrel Downs card"} · {CLASS_LABEL[config.raceClass]}
+            </p>
+            <h1 id="race-name" className="t-serif text-[1.25rem] leading-6 line-clamp-2 md:text-[1.625rem] md:leading-8" data-testid="race-name">
+              {config.name}
+            </h1>
+          </div>
           <a
             href="#fair-h"
             className="flex shrink-0 items-center gap-1 text-sm font-bold text-cream-dim hover:text-cream"
@@ -233,7 +239,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid min-w-0 content-start gap-4">
           {phase === "result" && replay ? (
-            <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
+            <>
+              <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
+              <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
+            </>
           ) : (
             <>
               {mine && (
@@ -292,8 +301,9 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
           </div>
         ))}
       </div>
-      <div className="plate-ink relative -mt-8 px-4 py-2 sm:-mt-14">
-        <p className="text-sm font-bold text-cream">{entriesOpen ? "Entries open" : loading ? "Gates loading" : "Going down to post"}</p>
+      <div className="race-countdown relative -mt-8 sm:-mt-14">
+        <p className="eyebrow">{entriesOpen ? "Entries open" : loading ? "Gates loading" : "Going down to post"}</p>
+        <p className="t-serif mt-0.5 text-[1.125rem] leading-6 text-cream md:text-[1.375rem] md:leading-7">{card.config.name}</p>
         <p className="score text-[3.75rem] leading-none text-cream" data-testid="countdown">
           <Digits text={entriesOpen ? closeText : text} />
         </p>

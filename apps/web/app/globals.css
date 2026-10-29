@@ -2222,3 +2222,378 @@ select.field option {
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------ Champion profile (REDESIGN §4.2) */
+.champ {
+  position: relative;
+  margin-top: -16px;
+}
+@media (min-width: 768px) {
+  .champ {
+    margin-top: -32px;
+  }
+}
+.champ-stage {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  isolation: isolate;
+}
+@media (min-width: 768px) {
+  .champ-stage {
+    height: clamp(420px, 46vw, 760px);
+  }
+}
+/* Dim the barn and put a warm key light behind the horse. */
+.champ-light {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 60% at 50% 62%, rgba(242, 200, 106, 0.22), transparent 70%),
+    linear-gradient(180deg, rgba(8, 21, 14, 0.45), rgba(8, 21, 14, 0.25) 40%, rgba(8, 21, 14, 0.92));
+}
+@media (min-width: 1024px) {
+  .champ-light {
+    background:
+      radial-gradient(30% 55% at 30% 60%, rgba(242, 200, 106, 0.24), transparent 70%),
+      linear-gradient(90deg, rgba(8, 21, 14, 0.25), rgba(8, 21, 14, 0.1) 34%, rgba(8, 21, 14, 0.78) 50%, rgba(8, 21, 14, 0.9) 70%),
+      linear-gradient(180deg, rgba(8, 21, 14, 0.3), rgba(8, 21, 14, 0) 30%, rgba(8, 21, 14, 0.9));
+  }
+}
+.champ-hero {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.55));
+  animation: champ-in 320ms ease-out;
+}
+@media (min-width: 1024px) {
+  .champ-hero {
+    left: 30%;
+    bottom: 40px;
+  }
+}
+@keyframes champ-in {
+  from {
+    opacity: 0;
+    transform: translate(calc(-50% + 24px), 0);
+  }
+}
+.champ-roster {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.champ-roster a {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 40%, #2c6645, #0f2a1d);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.25);
+  opacity: 0.85;
+}
+.champ-roster a > * {
+  margin-top: 6px;
+}
+.champ-roster a[aria-current="page"] {
+  opacity: 1;
+  box-shadow: inset 0 0 0 2px var(--color-brass-hi);
+}
+.champ-roster a:hover {
+  opacity: 1;
+}
+.champ-arrow {
+  position: absolute;
+  z-index: 3;
+  top: 46%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-on-baize);
+  background: rgba(8, 21, 14, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.2);
+  text-decoration: none;
+}
+.champ-prev {
+  left: 10px;
+}
+.champ-next {
+  right: 10px;
+}
+.champ-back {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  bottom: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-on-baize-2);
+  text-shadow: 0 1px 2px #000;
+  text-decoration: none;
+}
+@media (min-width: 1024px) {
+  .champ-back {
+    top: 18px;
+    bottom: auto;
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+  }
+  .champ-roster {
+    left: auto;
+    right: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    transform: none;
+  }
+}
+.champ-plate {
+  position: relative;
+  z-index: 4;
+  margin: -8px auto 0;
+  padding: 0 var(--gutter);
+  max-width: 40rem;
+  text-align: center;
+}
+.champ-plate > .eyebrow,
+.champ-plate > ul {
+  justify-content: center;
+}
+@media (min-width: 1024px) {
+  .champ-plate {
+    position: absolute;
+    top: 72px;
+    left: 52%;
+    width: min(36rem, calc(48% - var(--gutter)));
+    margin: 0;
+    padding: 0;
+    text-align: left;
+  }
+  .champ-plate > .eyebrow,
+  .champ-plate > ul {
+    justify-content: flex-start;
+  }
+}
+.champ-name {
+  margin-top: 4px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 2.5rem;
+  line-height: 2.625rem;
+  color: var(--color-on-baize);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+@media (min-width: 768px) {
+  .champ-name {
+    font-size: 4rem;
+    line-height: 4.125rem;
+  }
+}
+.champ-id {
+  margin-top: 4px;
+  font-size: 0.9375rem;
+  color: var(--color-on-baize-2);
+}
+.champ-ready {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.champ-tile {
+  display: grid;
+  gap: 2px;
+  padding: 10px 6px;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px var(--glass-line);
+}
+.champ-tile .score {
+  font-size: 1.75rem;
+  color: var(--color-on-baize);
+}
+.champ-tile .score.text-positive {
+  color: #9fe0a8;
+}
+.champ-tile .score.text-warn {
+  color: #f2c86a;
+}
+.champ-tile-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-on-baize-3);
+}
+.champ-last {
+  display: grid;
+  gap: 2px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 12px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--glass-line);
+  text-decoration: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .champ-hero {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------- Photo-finish card (REDESIGN §4.3) */
+.photo-card {
+  position: relative;
+  padding: 18px;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 2px #1d140a,
+    inset 0 0 0 6px #f6ecd3,
+    inset 0 0 0 7px rgba(29, 20, 10, 0.35),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+  animation: photo-in 360ms ease-out both;
+}
+@keyframes photo-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) rotate(-0.6deg);
+  }
+}
+.photo-card-top {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.photo-card-portrait {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #163a28;
+  box-shadow: inset 0 0 0 2px #1d140a;
+}
+.photo-card-portrait > * {
+  transform: scale(0.75);
+}
+@media (min-width: 640px) {
+  .photo-card-portrait {
+    width: 128px;
+    height: 128px;
+  }
+  .photo-card-portrait > * {
+    transform: none;
+  }
+}
+.photo-card-eyebrow {
+  font-weight: 800;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a5d14;
+}
+.photo-card-headline {
+  margin-top: 2px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.75rem;
+  line-height: 1.875rem;
+  color: #1d140a;
+}
+@media (min-width: 640px) {
+  .photo-card-headline {
+    font-size: 2.25rem;
+    line-height: 2.375rem;
+  }
+}
+.photo-card-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid #d9a441;
+  font-family: var(--font-score);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #1d140a;
+}
+.photo-card-yours {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #5a4630;
+}
+.photo-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.photo-card .photo-card-btn {
+  color: #1d140a;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(29, 20, 10, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-card {
+    animation: none;
+  }
+}
+
+/* -------------------------------------------------------------- Race day (REDESIGN §4.3) */
+.race-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  background: rgba(8, 21, 14, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 -1px 0 rgba(243, 231, 201, 0.08);
+}
+@media (min-width: 768px) {
+  .race-plate {
+    border-radius: 14px 14px 0 0;
+    padding: 10px 16px;
+  }
+}
+.race-countdown {
+  padding: 10px 18px 12px;
+  border-radius: 14px;
+  background: rgba(8, 21, 14, 0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    inset 0 0 0 1px rgba(243, 231, 201, 0.14),
+    0 12px 32px rgba(0, 0, 0, 0.4);
+}
+[data-testid="race-stage"] {
+  border-radius: 0;
+}
+@media (min-width: 768px) {
+  [data-testid="race-stage"] {
+    border-radius: 0 0 14px 14px;
+  }
+}

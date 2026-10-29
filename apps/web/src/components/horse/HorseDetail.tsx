@@ -7,13 +7,12 @@ import type { HorseDetailView } from "@/lib/types";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
 import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits, formatDistance } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
-import { HorsePortrait } from "../HorsePortrait";
-import { Silks } from "../Silks";
 import { GradeBadge, StatBars } from "../StatBars";
 import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
-import { EmptyState, SceneBand } from "../ui/Page";
+import { EmptyState } from "../ui/Page";
+import { HorseStage } from "./HorseStage";
 import { PositionBadge } from "../ui/PositionBadge";
 
 export { PositionBadge };
@@ -67,124 +66,85 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
   const first = horse.name;
   return (
     <div className="grid gap-6">
-      <SceneBand
-        scene="barn"
-        size="crop"
-        alt=""
-        eyebrow={
-          <span className="inline-flex items-center gap-2">
-            <Silks silks={horse.appearance.silks} cap={false} className="h-[26px] w-8" /> {stableName}
-          </span>
+      <HorseStage
+        view={view}
+        status={
+          <>
+            <p className="mx-auto mt-3 max-w-prose text-[0.9375rem] text-on-baize-2 lg:mx-0">{horseSummary(horse)}</p>
+            <p className="t-meta mt-1 !text-on-baize-3">{recordText(record)}</p>
+            {st && (
+              <ul className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[0.8125rem] font-bold text-on-baize-2 lg:justify-start" aria-label="Condition" data-testid="horse-status">
+                {st.injury && (
+                  <li className="text-negative">
+                    Injured ({st.injury.severity.replace("_", " ")}){st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                  </li>
+                )}
+                <li className={st.risk.label === "low" ? "" : "text-negative"} title={st.risk.factors.join(" · ")}>
+                  Risk {riskText(st.risk)}
+                </li>
+              </ul>
+            )}
+          </>
         }
-        title={<span data-testid="horse-name">{horse.name}</span>}
-        aside={
-          <Link href={isMine ? "/stable" : "/races"} className="link !text-on-baize [text-shadow:0_1px_0_#050d08]">
-            ‹ {isMine ? "Stable" : "Races"}
-          </Link>
+        actions={
+          <>
+            {isMine && st?.block === "Not yet of racing age" ? (
+              <ActionBar className="md:mt-2">
+                <Link href={`/horse/${horse.id}/care`} className="btn btn-brass btn-lg" data-testid="care-link">
+                  <PixelIcon name="grooming-brush" size={32} className="-my-2" /> Care for {first}
+                </Link>
+              </ActionBar>
+            ) : isMine && st?.block ? (
+              <p className="t-meta font-bold" data-testid="enter-a-race-blocked">
+                {st.block}. {first} can race again once that&rsquo;s over.
+              </p>
+            ) : isMine ? (
+              <ActionBar className="md:mt-2">
+                <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} data-testid="enter-a-race">
+                  <PixelIcon name="flag" size={32} className="-my-2" /> Enter {first} in a race
+                </button>
+              </ActionBar>
+            ) : view.stud ? (
+              <div className="grid gap-2" data-testid="stud-info">
+                <p className="t-meta">
+                  {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
+                </p>
+                <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
+                  Plan a cover with {first}
+                </Link>
+              </div>
+            ) : view.kind === "house" ? (
+              <p className="t-meta">A Club horse. You&rsquo;ll meet it on the card at Kestrel Downs.</p>
+            ) : null}
+            {isMine && view.actions && (view.actions.cover || view.actions.stud || view.actions.sell) && (
+              <ul className="flex flex-wrap gap-2" aria-label="More for this horse" data-testid="horse-actions">
+                {view.actions.cover && (
+                  <li>
+                    <Link href="/breeding" className="btn btn-outline btn-sm" data-testid="plan-cover">
+                      Plan a cover
+                    </Link>
+                  </li>
+                )}
+                {view.actions.stud && (
+                  <li>
+                    <Link href="/breeding#studs" className="btn btn-outline btn-sm" data-testid="stand-at-stud">
+                      {view.stud ? `At stud · ${formatCredits(view.stud.fee)}` : "Stand at stud"}
+                    </Link>
+                  </li>
+                )}
+                {view.actions.sell && (
+                  <li>
+                    <Link href="/market#sell" className="btn btn-outline btn-sm" data-testid="sell-horse">
+                      Sell
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            )}
+          </>
         }
       />
       {tabs}
-
-      <section className="surface grid gap-4 p-4 sm:grid-cols-[auto_1fr] sm:gap-6 sm:p-5" aria-labelledby="horse-h">
-        <div className="well grid h-fit w-fit place-items-center self-start justify-self-center p-2 sm:justify-self-start">
-          <HorsePortrait appearance={horse.appearance} scale={1} className="md:hidden" title={`${horse.name}, ${coatLabel(horse.appearance)}`} />
-          <HorsePortrait appearance={horse.appearance} scale={2} className="hidden md:block" />
-        </div>
-        <div className="flex min-w-0 flex-col gap-3">
-          <div>
-            <p className="flex flex-wrap items-center gap-2">
-              <span className="tag" title="Registration number" data-testid="reg-no">
-                {view.regNo}
-              </span>
-              {isMine && <span className="tag tag-you">Yours</span>}
-            </p>
-            <h2 id="horse-h" className="t-hero mt-2">
-              {horse.age > 0 ? `${horse.age}-year-old ` : "A young "}
-              {coatLabel(horse.appearance).toLowerCase()} {SEX_LABEL[horse.sex].toLowerCase()}
-              {horse.age > 0 ? "" : " in the nursery"}
-            </h2>
-            <p className="t-meta">
-              {STYLE_LABEL[horse.style]} · best {formatDistance(horse.preferredDistanceM)} on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}
-              {view.trainer && ` · trained by ${view.trainer}`}
-            </p>
-          </div>
-          <p className="max-w-prose">{horseSummary(horse)}</p>
-          <p className="t-meta">{recordText(record)}</p>
-          {st && (
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[0.875rem] font-bold" aria-label="Condition" data-testid="horse-status">
-              <li className="inline-flex items-center gap-1.5">
-                <i className={`dot ${st.condition === "tired" ? "dot-warn" : "dot-pos"}`} aria-hidden />
-                {st.condition === "tired" ? "Tired" : st.condition === "fresh" ? "Fresh" : "Ready"} · {Math.round(st.freshness / 10)}%
-              </li>
-              <li>
-                {st.starts}/{st.maxStarts} starts
-              </li>
-              <li>OR {st.rating}</li>
-              {st.injury && (
-                <li className="text-negative">
-                  Injured ({st.injury.severity.replace("_", " ")}){st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
-                </li>
-              )}
-              <li className={st.risk.label === "low" ? "" : "text-negative"} title={st.risk.factors.join(" · ")}>
-                Risk {riskText(st.risk)}
-              </li>
-            </ul>
-          )}
-          {isMine && st?.block === "Not yet of racing age" ? (
-            <ActionBar className="md:mt-2">
-              <Link href={`/horse/${horse.id}/care`} className="btn btn-brass btn-lg" data-testid="care-link">
-                <PixelIcon name="grooming-brush" size={32} className="-my-2" /> Care for {first}
-              </Link>
-            </ActionBar>
-          ) : isMine && st?.block ? (
-            <p className="t-meta font-bold" data-testid="enter-a-race-blocked">
-              {st.block}. {first} can race again once that&rsquo;s over.
-            </p>
-          ) : isMine ? (
-            <ActionBar className="md:mt-2">
-              <button type="button" className="btn btn-brass btn-lg" onClick={() => entry.open(horse.id)} data-testid="enter-a-race">
-                <PixelIcon name="flag" size={32} className="-my-2" /> Enter {first} in a race
-              </button>
-            </ActionBar>
-          ) : view.stud ? (
-            <div className="grid gap-2" data-testid="stud-info">
-              <p className="t-meta">
-                {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
-              </p>
-              <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
-                Plan a cover with {first}
-              </Link>
-            </div>
-          ) : view.kind === "house" ? (
-            <p className="t-meta">A Club horse. You&rsquo;ll meet it on the card at Kestrel Downs.</p>
-          ) : null}
-          {isMine && view.actions && (view.actions.cover || view.actions.stud || view.actions.sell) && (
-            <ul className="flex flex-wrap gap-2" aria-label="More for this horse" data-testid="horse-actions">
-              {view.actions.cover && (
-                <li>
-                  <Link href="/breeding" className="btn btn-outline btn-sm" data-testid="plan-cover">
-                    Plan a cover
-                  </Link>
-                </li>
-              )}
-              {view.actions.stud && (
-                <li>
-                  <Link href="/breeding#studs" className="btn btn-outline btn-sm" data-testid="stand-at-stud">
-                    {view.stud ? `At stud · ${formatCredits(view.stud.fee)}` : "Stand at stud"}
-                  </Link>
-                </li>
-              )}
-              {view.actions.sell && (
-                <li>
-                  <Link href="/market#sell" className="btn btn-outline btn-sm" data-testid="sell-horse">
-                    Sell
-                  </Link>
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-4" aria-labelledby="apt-h">
