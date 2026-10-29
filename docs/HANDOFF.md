@@ -58,8 +58,30 @@ Preview and Production.)
   share links that open on the finish (`/race/<id>?at=finish`; ignored before the race
   ends, so no spoilers).
 - **Follow my horse:** a "Whole field" or "Follow mine" toggle in Trackside.
-- Status: sister courses and My races run on GLM, follow cam on Kimi; the queue starts after
-  sister courses are merged; sabino after the follow cam (both change the Trackside shader).
+- **Merged (2026-10-29):**
+  - sister courses;
+  - My races page plus share links;
+  - follow cam;
+  - fair Live races:
+    - class limit = the highest of current rating, peak − 10 (capped at ability + 5) and
+      ability mark − 5;
+    - one horse per stable per Live race;
+    - Story difficulty uses the same band rating;
+    - stored ratings stay pure Elo (a floor on the stored rating inflated every level by
+      about 5);
+  - the elapsed-only race clock.
+- **Open, waiting on the Ollama session limit (hit 2026-10-29 06:15 UTC):**
+  - `worker/portrait34` (Kimi) did all 3 steps but is NOT merged. Lead notes are in
+    `scratchpad/tickets/portrait34fix.md`: neck seam, palomino eye smear, roan on the face
+    front, a blue eye on non-cream coats.
+  - `worker/genetics2` (GLM, G1) is part done and saved as a WIP commit; resume with
+    `genetics2resume.md`.
+  - A send_later check-in relaunches both.
+- **Specs:** `docs/genetics-v2.md` has 12 breeds, 14 genes, breed strengths, pure lines and
+  crosses, plus the portrait and sprite coverage tables.
+- **Tickets, in order:**
+  - Kimi: diorama horses, colour v3, patterns, breed looks (needs `PIXELLAB_API_KEY`).
+  - GLM: race72 naming, the queue, G2, G3.
 
 ## Prize Pool: rate scoring, 4 active days, $10 cap; beta is 4 weeks (worker/econ1, 2026-10-27)
 
