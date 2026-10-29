@@ -4,7 +4,7 @@ The owner's brief is "AAA game experience redesign", pasted 2026-10-29: make it 
 premium horse-racing game, not a web app, and keep every gameplay, data and economy rule. Crypto
 is out of scope for now (the owner said to disregard it). This document covers phases 1–3 of the
 brief: the audit, the creative direction and the experience architecture. It also has mockups
-of the three benchmark screens. **Phase 4 (building) starts when the owner says go.**
+of the three benchmark screens. **Owner, 2026-10-29: go. This prompt is the lead's own work, not handed to the Ollama workers. The lead designs and builds it; crypto and SPL are out of scope.**
 
 Mockups (HTML using the game's own art, rendered at 390 and 1440): `docs/redesign/mockups/`
 `hub-*.png`, `profile-*.png`, `raceday-*.png`.
@@ -42,6 +42,26 @@ All 26 player screens were screenshotted signed-in at 390 and 1440 (scratchpad `
    art with a refined serif interface.
 8. Several screens show long loading skeletons on cold start (market, packs, pool, invite).
 
+## 1b. Benchmarks: what to adapt, what to avoid
+
+These are design principles from widely known play experiences. No assets, logos or layouts
+are copied.
+
+| Reference | Player fantasy | First impression and hierarchy | Interaction and motion | Retention loop | Adapt | Avoid |
+|---|---|---|---|---|---|---|
+| **Gran Turismo 7** | Car-culture connoisseur | The menu is a **world map of places** (café, garage, dealers); one primary thing per place | Slow, elegant camera moves; prestige typography; quiet sound and music | "Menu books": guided collections that unlock places | **Places as navigation** (our Estate plaques); museum-grade presentation of the car (our horse) | Long load-and-transition chains between places; menus nested several deep |
+| **Rival Stars Horse Racing** | Owning and bonding with beautiful horses | The horse up close in a lit environment; ranch scenery | Care actions that touch the horse; races as cinematic set pieces | Care → train → race → breed a better foal | Horse-first framing; the stable as a **home** you return to; ceremonial foal moments | Currency clutter, energy timers and stacked pop-ups over the fantasy |
+| **Photo Finish Live** | A trainer competing against real people | Race-first; live races against others | Short race loop, quick entry | Seasons, leagues, auctions, studs | **Always-on live races** and seasonal ladders (we have both); ownership history in the market | Menus that feel like a spreadsheet; outcomes that feel opaque |
+| **Umamusume** | Raising one athlete through a career | The athlete as a character; stats with letter grades | Turn-based training: **each choice shows its gain and its risk** before you commit; strong victory payoffs | A career run with an arc, then legacy into the next run | **Visible trade-offs before committing** (our Training planner); grade letters; payoff moments; inheritance as legacy | Information overload in training screens; animation that can't be skipped |
+| **Football Manager** | The manager who sees everything | Dense but **consistently laid out** tables; an inbox drives the day | Hover and drill-down everywhere; keyboard flow | "One more week": news and consequences | **Ledger mode**: consistent tables, drill-down, an inbox of real events; power-user filters | A wall of numbers for a new player; no sense of place |
+| **Red Dead Redemption 2** | Living in a world | Minimal HUD; the world carries the information | Diegetic UI (journals, catalogues); slow, deliberate pacing; horse bonding through touch | Attachment to your horse and camp | **Diegetic labels** (plaques on buildings, nameplates on stalls); time-of-day atmosphere; the stable as camp | Slowness for its own sake: routine actions must stay one tap |
+
+**Synthesis, our identity:** *a heritage racing estate seen through a sports broadcast.*
+From GT7 and RDR2: places, not menus. From Rival Stars and Umamusume: the horse as protagonist,
+with payoff moments. From Football Manager and Photo Finish: honest depth, a ledger and live
+competition. Rendered in our own HD-2D pixel art with a serif and broadcast interface, which
+none of the references use together.
+
 ## 2. Creative direction: Cinematic Equestrian Prestige, in HD-2D
 
 **The horse is the hero. The race is the spectacle. The yard is home. The economy supports
@@ -73,6 +93,137 @@ the fantasy.**
   - Theatre is reserved for the off, the finish line, photo finishes, foal reveals and
     trophies.
   - `prefers-reduced-motion` turns all of it into fades.
+
+## 2b. Design system v3 (the spec the code follows)
+
+**Tokens (semantic, in `globals.css`):**
+- Ground: `--bg` baize-900 `#08150e` behind everything, with a dimmed scene backdrop.
+- Materials:
+  - **glass** = `rgba(8,21,14,.72)` + `blur(8px)` + a `1px rgba(243,231,201,.14)` border, radius 14;
+  - **glass-2** = `rgba(243,231,201,.06)` for wells inside glass;
+  - **scrim** = `rgba(8,21,14,.78)` behind any text on art.
+- Text: cream `#f3e7c9`, cream-dim `#cdbf9c`, sage `#8fa592`.
+- Accent: brass `#d9a441` / brass-hi `#f2c86a`, for primary actions and live data only.
+- States: positive `#9fe0a8`, warn `#f2c86a`, negative `#ff8a7a`, live `#e5483a`.
+- Paper (cream cards) survives only as **printed matter**: racecards, certificates and the
+  photo-finish card, never as the default panel.
+
+**Type:**
+
+| Role | Face | Size (phone / desktop) |
+|---|---|---|
+| Display: horse and race names, page titles | Cormorant Garamond 600 | 32 / 56 |
+| Title: section heads, card titles | Cormorant Garamond 600 | 22 / 26 |
+| Eyebrow | Nunito 800 caps, `.16em` tracking | 11 |
+| Body | Nunito 400 / 600 | 15 |
+| Meta | Nunito 600 | 13 |
+| Numerals: clocks, ratings, prices, positions | Jersey 10 | 22–64 |
+
+Pixelify stays in the wordmark only.
+
+**Spacing:** a 4 px base with steps 4 / 8 / 12 / 16 / 24 / 32 / 48. Page gutter 16 / 24 / 32.
+Panels pad 14–16.
+
+**Layout grid:**
+- Phone: one column.
+- Tablet: 8 columns.
+- Desktop: 12 columns, content up to 1200 px; Showcase screens go full-bleed.
+
+**Elevation:**
+- Glass gets no hard drop shadow; depth comes from the blurred scene behind it.
+- Primary buttons keep a 2 px brass-lo base plus a soft shadow.
+
+**Components:**
+- **Glass panel**: the default container.
+- **Plaque**: a destination label on a scene.
+- **Nameplate**: eyebrow, serif name and identity line.
+- **Ready tile**: a numeral plus a caps label.
+- **Broadcast ticker**: positions, margins, metres to go.
+- **Countdown**: Jersey numerals.
+- **Chip**: a status pill.
+- **Grade bar**: now vs potential, with a serif grade letter.
+- **Ledger table**: zebra-free, hairline rows, right-aligned numerals.
+- **Drawer**: phone filters.
+- **Sheet**: modal, glass on a scrim.
+- Existing **Silks**, **PositionBadge** and **HorsePortrait** keep their roles.
+
+**Buttons:**
+- primary is brass;
+- secondary is ghost (cream hairline);
+- destructive is oxblood;
+- minimum height 44 px;
+- hover lifts brightness, press sinks 1 px, disabled at 45 % opacity;
+- focus is a 3 px brass ring.
+
+**States:**
+- **Empty:** a scene vignette plus one sentence plus one action. Never a dead end.
+- **Loading:** glass skeletons that keep the final layout (no jumps).
+- **Error:** an inline glass note in negative colour with a retry.
+- **Success:** a brass toast, 2.5 s.
+
+**Data visualisation:** bars are brass on a cream 10 % track, and the potential marker is a
+dashed cream tick. Grade letters go S/A/B/C/D/E. Never encode meaning with colour alone; there
+is always a label or letter.
+
+**Accessibility:**
+- Text contrast 4.5:1 on glass over the brightest scene region (the scrim is what ensures it).
+- Targets at least 44 px.
+- `prefers-reduced-motion` turns motion into fades and stills.
+- The text-size setting (90–130 %) is kept.
+- Every scene is decorative or carries a label.
+- Plaques are real links in DOM order, so keyboard and screen readers get a list.
+
+**Responsive:**
+- Showcase screens recompose rather than shrink. Phone: scene on top, sheet overlapping below.
+  Desktop: full-bleed scene with panels at the side.
+- Racing on phones offers a landscape full-screen viewer.
+
+## 3b. Page and flow map
+
+```
+Landing (visitor) ── Found a stable ─► Onboarding: name+silks sheet → meet your 3 horses → pick one
+                                         → Champion profile → Race now → Paddock → Race → Result
+                                         → Estate (next goal)
+Estate (hub) ── plaques ─► The Barn (Stable roster showcase) ─► Champion profile ─► Train / Care / Career / Pedigree
+            │           ├► Racecourse (Racing: card · Story map · My races) ─► Race day (paddock → race → result)
+            │           ├► Gallops (Training planner for the featured horse)
+            │           ├► Breeding Barn (pair picker → preview → covering → Nursery → Foal reveal)
+            │           ├► Sales Ring (Market lots · Packs counter) ─► Lot detail ─► confirm
+            │           └► Trophy Room (Club: League · Daily Cup · Hall of Fame · discoveries)
+            └── silks button ─► Profile, settings, devices, wallet (secondary)
+```
+
+- **Casual player:** Estate's one primary action, then race day, then back.
+- **Power player:**
+  - Racing schedule with filters;
+  - Stable roster as a Ledger table toggle;
+  - the Market's comparison and filters;
+  - keyboard: `R` race, `T` train, arrows switch horse.
+
+## 5b. PixelLab asset specification (no generation until approved)
+
+**Shared rules:**
+- Side-on 2.5D, a three-quarter tilt for buildings.
+- Light from the upper-left at golden hour, as the base of the existing posters.
+- 1 art pixel = 2 or 3 screen pixels, never fractional.
+- Palette anchored on the existing posters (racing green, brick, warm wood, sky purple to
+  amber).
+- Outlines in dark ink `#1d140a` at 1 px.
+- Every asset cut into parallax layers (sky, far, mid, near, foreground) with animated parts as
+  sprite strips (motes, flags, leaves, lanterns).
+
+| Asset | Size (art px) | Layers and animation | Times of day |
+|---|---|---|---|
+| Estate panorama | 2,400 × 420 | sky, hills, buildings (barn, gallops rail, sales ring, trophy room, breeding barn), yard, foreground; grooms and horses walk; flags; smoke | dawn, day, dusk, night (lanterns) |
+| Trophy Room interior | 900 × 380 | back wall with shelves (empty slots fill with real trophies), cabinet glass, rug, window light | day, night |
+| Sales Ring interior | 900 × 380 | tiered seating, auctioneer box, ring sand, a lot horse walking | day |
+| Gallops | 1,200 × 360 | rail, all-weather strip, trees; a work rider at canter | morning |
+| Photo-finish dressing | 640 × 360 | winning post close-up, camera flash, sepia grain overlay | – |
+| Breed head families | 128 × 128 each | dished, stock, baroque, warmblood; same pose and bridle as today | – |
+| Trophies and plaques | 48 × 48 and 96 × 96 | cup, plate, shield, rosette tiers, the Hall plaque frame | – |
+
+Horses, coats and markings keep the role-map recolour pipeline (genetics-v2 coverage tables).
+Bodies don't get new paintings per coat.
 
 ## 3. Experience architecture
 
@@ -187,9 +338,10 @@ schedule's filters, Ledger-mode tables, and keyboard shortcuts on desktop later.
 All generated once, cached and atlased, never at runtime. **Blocker:** `PIXELLAB_API_KEY` in
 the environment settings.
 
-## 6. Delivery plan (after the owner's go)
+## 6. Delivery plan
 
-Design rule (2026-10-27): the lead architects, workers implement exactly.
+Owner, 2026-10-29: the redesign is built by the lead itself. The Ollama workers keep their
+own genetics and art tickets. The order below stays; read "(GLM)" and "(Kimi)" as "lead".
 
 1. **Design system v3** (GLM):
    - tokens and the serif title face;
