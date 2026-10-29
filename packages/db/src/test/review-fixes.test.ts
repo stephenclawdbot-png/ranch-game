@@ -9,6 +9,7 @@ import type { DbHandle } from "../client";
 import { RULES } from "../rules";
 import { dailyCupEntries, horses, inboxItems } from "../schema";
 import { runCupEntry, settleCupDays } from "../services/dailyCup";
+import { economyHealth } from "../services/health";
 import { breed, foal } from "../services/breeding";
 import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
@@ -184,5 +185,18 @@ describe("Daily Cup points", () => {
     expect(pts.get(a.accountId)!).toBeGreaterThan(pts.get(b.accountId)!);
     expect(Math.min(...pts.values())).toBeGreaterThanOrEqual(1);
     expect(await settleCupDays(h.db, at(DAY))).toBe(0); // idempotent
+  });
+});
+
+describe("economy health (admin)", () => {
+  it("totals credits earned and spent by kind, horses in and out, and the week's loop", async () => {
+    const p = await newPlayer(h.db, { credits: 7_000 });
+    await makeHorse(h.db, p.stableId);
+    const hh = await economyHealth(h.db, { now: at(DAY), days: 7 });
+    expect(hh.earned).toBeGreaterThan(0);
+    expect(hh.byKind.length).toBeGreaterThan(0);
+    expect(hh.playerBalances).toBeGreaterThan(0);
+    expect(hh.horses.born).toBeGreaterThan(0);
+    expect(hh.week.weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

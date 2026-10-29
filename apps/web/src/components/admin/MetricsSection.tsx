@@ -13,7 +13,57 @@ interface Metrics {
   totals: { testers: number; feedback: number; events: number };
 }
 
+interface Economy {
+  fromDay: string;
+  byKind: { kind: string; earned: number; spent: number }[];
+  earned: number;
+  spent: number;
+  spentPer100: number | null;
+  playerBalances: number;
+  horses: { born: number; bornByOrigin: Record<string, number>; retired: number; legacyFarm: number; died: number };
+  week: { weekStart: string; qualifierStables: number; featureStables: number; plateStables: number; liveStables: number };
+}
+
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
+const n0 = (v: number) => v.toLocaleString("en-GB");
+
+/** Economy and weekly-loop health: the live counterpart of the season harness (healthy: spent ~85-115 per 100 earned). */
+function EconomyHealth({ e }: { e: Economy }) {
+  const tone = e.spentPer100 === null ? undefined : e.spentPer100 >= 85 && e.spentPer100 <= 115 ? ("positive" as const) : ("negative" as const);
+  return (
+    <section className="grid gap-2" data-testid="economy-health">
+      <h3 className="t-h2">Economy and the weekly loop (last 7 days)</h3>
+      <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Tile label="Credits earned" value={n0(e.earned)} />
+        <Tile label="Credits spent" value={n0(e.spent)} />
+        <Tile label="Spent per 100 earned" value={e.spentPer100 === null ? "–" : String(e.spentPer100)} sub="healthy 85-115 (grants excluded)" tone={tone} />
+        <Tile label="Held by players" value={n0(e.playerBalances)} />
+        <Tile label="Horses born" value={String(e.horses.born)} sub={Object.entries(e.horses.bornByOrigin).map(([k, v]) => `${k} ${v}`).join(" · ")} />
+        <Tile label="Horses out" value={String(e.horses.retired + e.horses.legacyFarm)} sub={`${e.horses.retired} retired · ${e.horses.legacyFarm} Legacy Farm · ${e.horses.died} died`} />
+        <Tile label="Tried a Qualifier" value={`${e.week.qualifierStables} / ${e.week.liveStables}`} sub="stables this week / racing Live" />
+        <Tile label="Saturday" value={`${e.week.featureStables} Feature · ${e.week.plateStables} Plate`} sub="stables this week" />
+      </ul>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left">
+            <th className="p-1">Ledger kind</th>
+            <th className="p-1 text-right">Earned</th>
+            <th className="p-1 text-right">Spent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {e.byKind.map((k) => (
+            <tr key={k.kind} className="border-t-2 border-line">
+              <td className="p-1 font-bold">{k.kind}</td>
+              <td className="p-1 text-right">{k.earned ? n0(k.earned) : ""}</td>
+              <td className="p-1 text-right">{k.spent ? n0(k.spent) : ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
 
 /** Seconds as "m:ss" (e.g. 82.5 -> "1:23"). */
 const mmss = (sec: number | null) => {
@@ -35,7 +85,7 @@ const FUNNEL_STEPS: [label: string, short: string, key: keyof Metrics["funnel"]]
 const FPS_TARGET: Record<string, number> = { phone: 30, tablet: 30, desktop: 60 };
 
 export function MetricsSection() {
-  const { data, error } = useAdminData<{ metrics: Metrics }>("/api/admin/metrics?days=14");
+  const { data, error } = useAdminData<{ metrics: Metrics; economy?: Economy }>("/api/admin/metrics?days=14");
   if (error) return <p className="font-bold text-negative">{error}</p>;
   if (!data) return <p className="text-cream-dim">Loading…</p>;
   const m = data.metrics;
@@ -54,6 +104,7 @@ export function MetricsSection() {
   }
   return (
     <div className="grid gap-4" data-testid="metrics">
+      {data.economy && <EconomyHealth e={data.economy} />}
       <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile label="Testers" value={String(m.totals.testers)} />
         <Tile label="Day-1 retention" value={pct(m.retention.day1)} sub={`of ${m.retention.day1Eligible} who could`} />
