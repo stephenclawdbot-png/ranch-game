@@ -168,5 +168,5 @@ export function applyRecolor(data: Uint8ClampedArray, width: number, height: num
 /** Stable cache key for an appearance's recolour result. */
 export function appearanceKey(a: HorseAppearance): string {
   const s = a.silks;
-  return [a.coat, a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern].join("|");
+  return [a.coat, a.colour ? JSON.stringify(a.colour) : "", a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern].join("|");
 }

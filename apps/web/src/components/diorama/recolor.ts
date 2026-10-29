@@ -5,8 +5,8 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES } from "@thoroughbred/art-pipeline";
-import type { Coat } from "@thoroughbred/shared";
+import { COAT_PALETTES, resolveHorseColors, type CoatPalette } from "@thoroughbred/art-pipeline";
+import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
 const KEYS = PALETTE as unknown as Record<"coat" | "mane" | "points" | "silksPrimary" | "silksSecondary" | "cap", string[]>;
@@ -15,6 +15,8 @@ export interface DioramaHorseLook {
   coat: Coat;
   /** Silks body, sleeves and cap (hex). */
   silks?: [primary: string, secondary: string, cap: string];
+  /** Full appearance (coat v2 layered colours); drives the palette when present. */
+  appearance?: HorseAppearance;
 }
 
 type RGB = [number, number, number];
@@ -48,7 +50,7 @@ const around = (hex: string, n: number) => {
 
 /** packed key rgb -> packed target rgb for one horse. */
 export function recolorMap(look: DioramaHorseLook): Map<number, number> {
-  const p = COAT_PALETTES[look.coat] ?? COAT_PALETTES.bay;
+  const p: CoatPalette = look.appearance ? resolveHorseColors(look.appearance) : (COAT_PALETTES[look.coat] ?? COAT_PALETTES.bay);
   const [shade, body, hi] = [hexToRgb(p.shade), hexToRgb(p.body), hexToRgb(p.highlight)];
   const lum = (c: RGB) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const mane = hexToRgb(p.mane);
@@ -59,10 +61,12 @@ export function recolorMap(look: DioramaHorseLook): Map<number, number> {
     mane: ramp([mix(mane, BLACK, 0.35), mane, mix(mane, WHITE, 0.18)], KEYS.mane.length),
     points: ramp([mix(pts, BLACK, 0.35), pts, mix(pts, WHITE, 0.12)], KEYS.points.length),
   };
-  if (look.silks) {
-    targets.silksPrimary = around(look.silks[0], KEYS.silksPrimary.length);
-    targets.silksSecondary = around(look.silks[1], KEYS.silksSecondary.length);
-    targets.cap = around(look.silks[2], KEYS.cap.length);
+  const silks: [string, string, string] | undefined =
+    look.silks ?? (look.appearance ? [look.appearance.silks.primary, look.appearance.silks.secondary, look.appearance.silks.cap] : undefined);
+  if (silks) {
+    targets.silksPrimary = around(silks[0], KEYS.silksPrimary.length);
+    targets.silksSecondary = around(silks[1], KEYS.silksSecondary.length);
+    targets.cap = around(silks[2], KEYS.cap.length);
   }
   const map = new Map<number, number>();
   for (const role of Object.keys(targets) as (keyof typeof KEYS)[]) {
@@ -88,4 +92,5 @@ export function applyRecolor(data: Uint8ClampedArray, map: Map<number, number>):
   }
 }
 
-export const lookKey = (l: DioramaHorseLook) => `${l.coat}|${l.silks?.join(",") ?? ""}`;
+export const lookKey = (l: DioramaHorseLook) =>
+  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun]) : ""}`;
