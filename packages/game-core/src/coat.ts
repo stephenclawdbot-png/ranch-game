@@ -15,7 +15,7 @@
  * The rig only knows the ten `Coat` values, so rarer phenotypes render as the nearest coat
  * (plus a mane colour override) while `coatName` keeps the real name for display.
  */
-import type { Coat, FaceMarking, HorseAppearance, LegMarking, Silks } from "@thoroughbred/shared";
+import type { Coat, FaceMarking, HorseAppearance, HorseColour, LegMarking, Silks } from "@thoroughbred/shared";
 import { BREEDS, MORPH_KEYS, type CoatGenes, type Genome, type MorphKey, type RigLook } from "./types";
 import { BREED_PROFILES } from "./genome";
 import { Rng, clamp } from "./rng";
@@ -124,6 +124,32 @@ function colouredCoat(c: CoatGenes): CoatPhenotype {
 /** Career starts at which a grey horse is fully white (dapples from racing age until then). */
 export const GREY_WHITE_AT_STARTS = 24;
 
+/** Grey stage of the coat by career progress (never calendar time). */
+export function greyStage(genes: CoatGenes, progress: { racingAge: boolean; starts: number; retired: boolean }): HorseColour["grey"] {
+  if (count(genes.grey, "G") === 0) return "none";
+  if (!progress.racingAge) return "greying";
+  return progress.retired || progress.starts >= GREY_WHITE_AT_STARTS ? "white" : "dapple";
+}
+
+/** Base colour in the shared `HorseColour` vocabulary (dark_bay -> seal_brown, liver_chestnut -> liver). */
+export function colourBase(c: CoatGenes): HorseColour["base"] {
+  const b = baseColour(c);
+  return b === "liver_chestnut" ? "liver" : b === "dark_bay" ? "seal_brown" : b;
+}
+
+/** Layered coat genetics (coat v2) straight from the genome; renderers resolve it to a palette. */
+export function horseColour(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }): HorseColour {
+  const c = genome.coat;
+  return {
+    base: colourBase(c),
+    cream: count(c.cream, "Cr") as HorseColour["cream"],
+    dun: count(c.dun, "D") > 0,
+    roan: count(c.roan, "Rn") > 0,
+    grey: greyStage(c, progress),
+    sabino: count(c.sabino, "Sb1") as HorseColour["sabino"],
+  };
+}
+
 /**
  * Resolve the coat. Grey depends on career progress, never on calendar time: foals are born
  * coloured, racing greys are dappled, and they go grey by `GREY_WHITE_AT_STARTS` starts or on
@@ -227,8 +253,9 @@ export function rigLook(genome: Genome): RigLook {
 export function appearanceOf(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }, silks: Silks): HorseAppearance {
   const coat = resolveCoat(genome, progress);
   const m = resolveMarkings(genome);
-  const out: HorseAppearance = { coat: coat.coat, face: m.face, legs: m.legs, silks };
-  if (coat.maneColor) out.maneColor = coat.maneColor;
+  const out: HorseAppearance = { coat: coat.coat, face: m.face, legs: m.legs, silks, colour: horseColour(genome, progress) };
+  // maneColor stays unset: `colour` carries the exact layered palette now (renderers that
+  // predate coat v2, and legacy replays, keep using coat + maneColor as before).
   // Dun primitive markings (dorsal stripe, leg barring) ride with the D allele; a coat that
   // is greying out hides them once the grey shows (foals born to grey still show them).
   const greyShown = count(genome.coat.grey, "G") > 0 && progress.racingAge;

@@ -18,6 +18,8 @@ function PixelHead({ appearance, className, title, style }: { appearance: HorseA
   const c = resolveHorseColors(appearance);
   const ink = "#0b0f0c";
   const marks = appearance.face !== "none" ? FACE_MARKS[appearance.face] : null;
+  // Grullo / smoky grullo: duns on black carry a dark face mask (points shade, not grey).
+  const darkHead = !!appearance.colour?.dun && appearance.colour.base === "black" && appearance.colour.grey === "none";
   const ramp: Record<string, string> = {
     h: c.highlight,
     b: c.body,
@@ -29,7 +31,7 @@ function PixelHead({ appearance, className, title, style }: { appearance: HorseA
     M: mix(c.mane, "#ffffff", 0.18),
     n: mix(c.mane, ink, 0.55),
     o: mix(c.shade, ink, 0.55),
-    e: "#120b07",
+    e: c.eye ?? "#120b07",
     i: "#f3e7c9",
     k: mix(c.muzzle, ink, 0.6),
     l: "#3a2414",
@@ -48,12 +50,18 @@ function PixelHead({ appearance, className, title, style }: { appearance: HorseA
       pixel={(x, y, ch) => {
         if (ch === ".") return undefined;
         if (marks && marks[y]![x] === "1") return ch === "d" || ch === "x" ? mix(white, c.shade, 0.25) : white;
-        if (c.texture === "roan" && "hbd".includes(ch) && noise(x, y) > 0.72) return mix(ramp[ch]!, "#ffffff", 0.45);
+        // Roan: ~35 % of body/neck pixels ticked toward white, stable per pixel, never on
+        // the blaze/white face markings (handled above).
+        if (c.texture === "roan" && "hbd".includes(ch) && noise(x, y) > 0.65) return mix(ramp[ch]!, "#ffffff", 0.45);
         if (c.texture === "dapple" && "bd".includes(ch)) {
           // Rings of lighter coat: classic dapple, quantised to the pixel grid.
           const cx = (x % 6) - 2.5;
           const cy = (y % 6) - 2.5;
           if (cx * cx + cy * cy < 3.2 && noise(Math.floor(x / 6), Math.floor(y / 6)) > 0.25) return mix(ramp[ch]!, c.highlight, 0.55);
+        }
+        if (darkHead && "hbd".includes(ch)) {
+          const k = ch === "h" ? 0.3 : ch === "b" ? 0.6 : 0.45;
+          return mix(ramp[ch]!, c.points, k);
         }
         return ramp[ch];
       }}
@@ -81,6 +89,7 @@ export function HorsePortrait({
   className,
   title,
   scale,
+  codeDrawn,
 }: {
   appearance: HorseAppearance;
   className?: string;
@@ -88,11 +97,13 @@ export function HorsePortrait({
   backdrop?: boolean;
   title?: string;
   scale?: PortraitScale;
+  /** Always use the code-drawn pixel head (dev galleries), ignoring PixelLab portrait art. */
+  codeDrawn?: boolean;
 }) {
   const full = useArt(ART_SLOTS.portrait(appearance.coat));
   const thumb = useArt(ART_SLOTS.thumb(appearance.coat));
   // Thumbnails use the 64 px box-downsampled file at 1x (never a 128 portrait shrunk in CSS).
-  const art = scale === "thumb" && thumb ? thumb : full;
+  const art = codeDrawn ? null : scale === "thumb" && thumb ? thumb : full;
   const native = full?.w ?? 96;
   const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
   const style = px ? { width: px, height: px } : undefined;

@@ -13,12 +13,14 @@ import { resolveHorseColors } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
- * 128 marking flags, 129 marking white. */
-export const LUT_W = 130;
+ * 128 marking flags, 129 marking white, 130 dun stripe colour. */
+export const LUT_W = 131;
 /** LUT column of the per-runner marking flags (R: leg levels packed 2 bits x4, G: face | coat pattern<<4). */
 export const LUT_FLAG_X = 128;
 /** LUT column of the marking paint colour (warm white, MARKING_WHITE in art-pipeline/palettes). */
 export const LUT_WHITE_X = 129;
+/** LUT column of the dun stripe colour (dorsal stripe / leg barring; alpha 0 = legacy darkening). */
+export const LUT_STRIPE_X = 130;
 export const MARKING_WHITE = 0xf3f0e8;
 export const MAX_COLOURS = 63;
 /** Silks pattern ids (shader). */
@@ -470,13 +472,16 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
  * silks, cap) or the source colour for fixed roles; the pattern half holds the secondary
  * silks colour for primary keys (alpha 0 elsewhere). Column LUT_FLAG_X packs the marking
  * flags: R = leg levels 2 bits each in tuple order (FL|FR<<2|HL<<4|HR<<6), G = face id |
- * coat pattern << 4, B = dun (primitive markings); column LUT_WHITE_X is the marking white.
+ * coat pattern << 4, B = dun (primitive markings); column LUT_WHITE_X is the marking white;
+ * column LUT_STRIPE_X the dun stripe colour (alpha 0 when the palette has none — the shader
+ * falls back to the legacy fixed darkening).
  */
 export function buildLut(palette: Palette, keys: KeyPalette, appearances: readonly HorseAppearance[]): Uint8Array {
   const rows = Math.max(1, appearances.length);
   const lut = new Uint8Array(LUT_W * rows * 4);
   appearances.forEach((a, row) => {
     const plan = buildRecolorPlan(keys, a);
+    const colors = resolveHorseColors(a);
     for (let i = 1; i < palette.colours.length; i++) {
       const src = palette.colours[i]!;
       const out = plan.map.get(src) ?? src;
@@ -501,7 +506,7 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     const hr = LEG_LEVEL[a.legs?.[3] ?? "none"] ?? 0;
     const fo = (row * LUT_W + LUT_FLAG_X) * 4;
     lut[fo] = fl | (fr << 2) | (hl << 4) | (hr << 6);
-    lut[fo + 1] = (FACE_ID[a.face ?? "none"] ?? 0) | ((COAT_PATTERN_ID[resolveHorseColors(a).texture] ?? 0) << 4);
+    lut[fo + 1] = (FACE_ID[a.face ?? "none"] ?? 0) | ((COAT_PATTERN_ID[colors.texture] ?? 0) << 4);
     lut[fo + 2] = a.dun ? 1 : 0;
     lut[fo + 3] = 255;
     const wo = (row * LUT_W + LUT_WHITE_X) * 4;
@@ -509,6 +514,14 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     lut[wo + 1] = (MARKING_WHITE >> 8) & 255;
     lut[wo + 2] = MARKING_WHITE & 255;
     lut[wo + 3] = 255;
+    if (colors.stripe) {
+      const n = Number.parseInt(colors.stripe.slice(1), 16);
+      const so = (row * LUT_W + LUT_STRIPE_X) * 4;
+      lut[so] = (n >> 16) & 255;
+      lut[so + 1] = (n >> 8) & 255;
+      lut[so + 2] = n & 255;
+      lut[so + 3] = 255;
+    }
   });
   return lut;
 }

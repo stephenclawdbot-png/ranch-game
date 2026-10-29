@@ -73,7 +73,10 @@ export function hashString(s: string): number {
 
 /** Stable hash of everything visible in an appearance. */
 export function hashAppearance(a: HorseAppearance): number {
-  return hashString(JSON.stringify([a.coat, a.face, a.legs, a.maneColor ?? "", a.silks.primary, a.silks.secondary, a.silks.pattern, a.silks.cap]));
+  const parts: unknown[] = [a.coat, a.face, a.legs, a.maneColor ?? "", a.silks.primary, a.silks.secondary, a.silks.pattern, a.silks.cap];
+  // coat v2: two horses can share a `coat` (palomino / cremello) but not a colour; legacy keys unchanged
+  if (a.colour) parts.push(a.colour);
+  return hashString(JSON.stringify(parts));
 }
 
 /** Small deterministic PRNG (mulberry32). */
