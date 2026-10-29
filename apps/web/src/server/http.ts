@@ -27,6 +27,7 @@ export const FRIENDLY: Record<string, string> = {
   RACE_LIMIT: "That horse has already raced 3 times today. It can race again tomorrow.",
   RACE_CLOSED: "Entries for that race have closed.",
   RACE_FULL: "The stalls are full for that race.",
+  STABLE_ALREADY_ENTERED: "You already have a horse in this race. One runner per stable.",
   NOT_ELIGIBLE: "That horse isn't eligible for this race.",
   TOO_EARLY: "Too early: try again in a moment.",
   INSUFFICIENT_ENTRIES: "No stable entries left today.",

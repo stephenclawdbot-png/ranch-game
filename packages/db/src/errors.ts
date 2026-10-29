@@ -19,6 +19,7 @@ export type DomainErrorCode =
   | "RACE_LIMIT"
   | "RACE_CLOSED"
   | "RACE_FULL"
+  | "STABLE_ALREADY_ENTERED"
   | "NOT_ELIGIBLE"
   | "TOO_EARLY"
   | "ALREADY_CARED_TODAY"

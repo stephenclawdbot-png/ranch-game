@@ -22,6 +22,7 @@ import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
+import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
 import { isCarrying, lockHorse, startsOnDay } from "./horses";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
@@ -160,12 +161,25 @@ export function racingBlock(h: HorseRow, race: RaceRow, now: Date): DomainError 
   return null;
 }
 
-/** Class / rating band eligibility from the race conditions (§6). Returns a reason or null. */
+/** Class / rating band eligibility from the race conditions (§6). Returns a reason or null.
+ * Max checks use the band rating (peak and ability floor, gc.bandRating), so a horse can't
+ * drop a band by losing on purpose and a strong newcomer can't farm below its settled level. */
 export function classEligibility(h: HorseRow, race: Pick<RaceRow, "raceClass" | "conditions">): string | null {
   const c = (race.conditions ?? {}) as RaceConditions;
   if (c.maxWins !== undefined && h.wins > c.maxWins) return c.maxWins === 0 ? "maiden races are for horses without a win" : `at most ${c.maxWins} wins`;
   if (c.minRating !== undefined && h.rating < c.minRating) return `rating ${h.rating} is below the band (${c.minRating}+)`;
-  if (c.maxRating !== undefined && h.rating > c.maxRating) return `rating ${h.rating} is above the band (≤ ${c.maxRating})`;
+  if (c.maxRating !== undefined) {
+    const dyn = (h.dynamics ?? {}) as { peakOr?: number };
+    const mark = isGenome(h.genome) ? gc.abilityMark(toHorseState(h)) : 0;
+    const check = gc.bandCheck({ or: h.rating, peakOr: Math.max(dyn.peakOr ?? 0, h.rating) }, mark);
+    if (check.rating > c.maxRating) {
+      // A strong newcomer's OR may still be below the band it belongs in: novices first.
+      const band = gc.TIER_RULES[gc.classBand(check.rating)];
+      return check.source === "ability"
+        ? `too strong for this band — try ${h.rating >= band.minOr ? band.label : "Novice races"}`
+        : `rated ${check.rating} at best — this band is for horses rated up to ${c.maxRating}`;
+    }
+  }
   return null;
 }
 
@@ -220,6 +234,11 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
 
     const active = await listRaceEntries(tx, race.id);
     if (active.length >= race.maxRunners) throw new DomainError("RACE_FULL", "the field is full");
+    // One horse per stable per Live race (story races and the Daily Cup are excluded).
+    if ((LIVE_RACE_KINDS as readonly string[]).includes(race.kind)) {
+      const mine = active.find((e) => e.stableId === stable.id);
+      if (mine) throw new DomainError("STABLE_ALREADY_ENTERED", `you already have ${(mine.snapshot as { name?: string }).name ?? "a horse"} in this race`);
+    }
     const mine = active.filter((e) => e.stableId === stable.id).length;
     if (race.kind !== "quick" && mine + 1 > Math.floor(race.targetRunners / 2)) {
       throw new DomainError("NOT_ELIGIBLE", "one stable may not make up more than half of the field");
@@ -550,7 +569,13 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
           stage: stageFor(h.careSessions, starts),
           quirks,
           stats: r.stats ?? h.stats,
-          dynamics: r.dynamics ? { ...(h.dynamics as Record<string, unknown>), ...r.dynamics } : h.dynamics,
+          // The peak rides along whenever the rating is written here (some callers send only
+          // ratingAfter, no dynamics), so a settled horse can't drop a band by losing.
+          dynamics: {
+            ...(h.dynamics as Record<string, unknown>),
+            ...(r.dynamics ?? {}),
+            peakOr: Math.max((h.dynamics as { peakOr?: number }).peakOr ?? 0, (r.dynamics?.peakOr as number | undefined) ?? 0, r.ratingAfter ?? h.rating),
+          },
           ...(r.condition ?? {}),
           ...(r.injury
             ? { injury: { severity: r.injury.severity, raceId: race.id, ...(r.injury.detail ?? {}) }, injuredUntil: new Date(input.now.getTime() + r.injury.recoveryMs) }

@@ -62,7 +62,8 @@ export function classBand(or: number): RaceTier {
  * settle above the bands they could farm). Min checks keep the current OR.
  */
 export const PEAK_DROP = 10;
-export const ABILITY_MARGIN = 15;
+/** Half a grade (calibrated: ~10 OR per grade, tools/balance/ability.report.ts). */
+export const ABILITY_MARGIN = 5;
 
 /** Which term of the band rating binds: today's OR, the peak, or the ability floor. */
 export type BandSource = "or" | "peak" | "ability";

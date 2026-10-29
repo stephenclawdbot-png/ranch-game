@@ -58,10 +58,10 @@ describe("bandRating: today's OR, never far below the peak or the settled abilit
   });
 
   it("the ability mark floors the band rating for strong newcomers", () => {
-    expect(ABILITY_MARGIN).toBe(15);
-    expect(bandCheck({ or: 40, peakOr: 40 }, 76)).toEqual({ rating: 61, source: "ability" });
-    expect(bandCheck({ or: 62, peakOr: 70 }, 80)).toEqual({ rating: 65, source: "ability" });
-    expect(bandRating({ or: 40, peakOr: 40 }, 76)).toBe(61);
+    expect(ABILITY_MARGIN).toBe(5);
+    expect(bandCheck({ or: 40, peakOr: 40 }, 76)).toEqual({ rating: 71, source: "ability" });
+    expect(bandCheck({ or: 62, peakOr: 70 }, 80)).toEqual({ rating: 75, source: "ability" });
+    expect(bandRating({ or: 40, peakOr: 40 }, 76)).toBe(71);
   });
 });
 
@@ -116,10 +116,13 @@ describe("ability mark (the OR a horse of its current running ability settles at
     expect(eligibleTiers(h, NOW)).not.toContain("hcp_0_55");
   });
 
-  it("a starter-grade (500) or B-grade (700) newcomer is not blocked from the low band", () => {
-    // The calibrated boundary sits at ~760 stats: 700 settles at OR 61, so with ABILITY_MARGIN
-    // 15 the floor (46) does not reach the 55 cap (see tools/balance/ability.report.ts).
-    for (const stats of [500, 700]) {
+  it("a B-grade (700, settles at OR 61) newcomer is blocked from 0-55; starter grade (500) is not", () => {
+    // ~10 OR per grade: ABILITY_MARGIN 5 (half a grade) keeps a horse that settles above the
+    // band top out of it, so its edge over the band is at most half a grade.
+    const b = horseOf({ speed: 700, stamina: 700, burst: 700 });
+    expect(entryBlock(b, slotOf("hcp_0_55", NOW), NOW)).toBe("rating_too_high");
+    expect(entryBlock(b, slotOf("novice", NOW), NOW)).toBeNull();
+    for (const stats of [500, 600]) {
       const h = horseOf({ speed: stats, stamina: stats, burst: stats });
       expect(entryBlock(h, slotOf("hcp_0_55", NOW), NOW)).toBeNull();
       expect(eligibleTiers(h, NOW)).toContain("hcp_0_55");
@@ -127,7 +130,7 @@ describe("ability mark (the OR a horse of its current running ability settles at
   });
 
   it("the band the copy suggests is the one the band rating belongs in", () => {
-    expect(classBand(bandRating({ or: 40, peakOr: 40 }, abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))))).toBe("hcp_50_75");
+    expect(classBand(bandRating({ or: 40, peakOr: 40 }, abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))))).toBe("hcp_70_95");
   });
 
   it("is deterministic (no Date, no Math.random)", () => {

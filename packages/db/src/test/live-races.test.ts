@@ -100,13 +100,24 @@ describe("entering live races", () => {
     });
   });
 
-  it("no stable may make up more than half of a field, even with concurrent entries", async () => {
+  it("one horse per stable per Live race, even with concurrent entries; other stables unaffected", async () => {
     const p = await newPlayer(h.db);
+    const q = await newPlayer(h.db);
     const race = await liveRace({ targetRunners: 8 });
     const mine = await Promise.all(Array.from({ length: 6 }, () => makeHorse(h.db, p.stableId)));
-    const res = await settledAll(mine.map((x) => enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: x.id, tactic: "front", now: T0 })));
-    expect(res.ok).toHaveLength(4);
-    expect(res.errors.every((e) => isDomainError(e, "NOT_ELIGIBLE"))).toBe(true);
+    const theirs = await Promise.all(Array.from({ length: 2 }, () => makeHorse(h.db, q.stableId)));
+    const res = await settledAll([
+      ...mine.map((x) => enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: x.id, tactic: "front", now: T0 })),
+      ...theirs.map((x) => enterRace(h.db, { accountId: q.accountId, raceId: race.id, horseId: x.id, tactic: "front", now: T0 })),
+    ]);
+    expect(res.ok).toHaveLength(2); // one horse from each stable
+    expect(res.errors.every((e) => isDomainError(e, "STABLE_ALREADY_ENTERED"))).toBe(true);
+    expect(res.errors.every((e) => /you already have Horse \d+ in this race/.test((e as Error).message))).toBe(true);
+    // A story race (quick) still takes several horses from one stable.
+    const story = await liveRace({ kind: "quick", targetRunners: 2 });
+    const three = await Promise.all([makeHorse(h.db, p.stableId), makeHorse(h.db, p.stableId), makeHorse(h.db, p.stableId)]);
+    for (const x of three) await enterRace(h.db, { accountId: p.accountId, raceId: story.id, horseId: x.id, tactic: "front", now: T0 });
+    expect(await count(h.db, "race_entries", `race_id = '${story.id}'`)).toBe(3);
   });
 
   it("consumes stable entries (Live 1, Feature 2, Story 0) and never goes negative", async () => {
@@ -153,8 +164,9 @@ describe("field lock and settlement", () => {
   it("locks once even when several instances race to do it; fills with house horses; gates drawn from the seed", async () => {
     const p = await newPlayer(h.db);
     const q = await newPlayer(h.db);
+    const r = await newPlayer(h.db);
     const race = await liveRace({ targetRunners: 9 });
-    for (const pl of [p, p, q]) {
+    for (const pl of [p, q, r]) {
       const horse = await makeHorse(h.db, pl.stableId);
       await enterRace(h.db, { accountId: pl.accountId, raceId: race.id, horseId: horse.id, tactic: "stalker", now: T0 });
     }
@@ -185,12 +197,12 @@ describe("field lock and settlement", () => {
     const settled = await Promise.all([settleRace(h.db, outcome), settleRace(h.db, outcome)]);
     expect(settled.filter((s) => !s.alreadySettled)).toHaveLength(1);
     for (const r of field.runners) expect((await getHorseRow(h.db, r.horseId)).lockKind).toBeNull();
-    const paid = (await getBalance(h.db, p.accountId)) + (await getBalance(h.db, q.accountId));
+    const paid = (await getBalance(h.db, p.accountId)) + (await getBalance(h.db, q.accountId)) + (await getBalance(h.db, r.accountId));
     const playerPrizes = Object.entries(settled.find((s) => !s.alreadySettled)!.prizes)
-      .filter(([id]) => field.runners.some((r) => r.horseId === id && !r.isHouse))
+      .filter(([id]) => field.runners.some((fr) => fr.horseId === id && !fr.isHouse))
       .reduce((s, [, v]) => s + v, 0);
     // Each stable's first entry of the day also paid its race goal.
-    expect(paid).toBe(10_000 + playerPrizes + 2 * gc.DAILY_GOAL_CREDITS);
+    expect(paid).toBe(15_000 + playerPrizes + 3 * gc.DAILY_GOAL_CREDITS); // three stables of 5,000
   });
 
   it("house horses are reused across races and never double-booked by concurrent locks", async () => {
@@ -311,11 +323,12 @@ describe("sister courses", () => {
     const a = await newPlayer(h.db);
     const b = await newPlayer(h.db);
     const c = await newPlayer(h.db);
+    const d = await newPlayer(h.db);
     const race = await slotRace();
     await enter(a.accountId, a.stableId, race.id);
     await enter(b.accountId, b.stableId, race.id);
     // The third and fourth gates arrive together: the slot lock admits exactly one sister.
-    const both = await settledAll([enter(c.accountId, c.stableId, race.id), enter(a.accountId, a.stableId, race.id)]);
+    const both = await settledAll([enter(c.accountId, c.stableId, race.id), enter(d.accountId, d.stableId, race.id)]);
     expect(both.ok).toHaveLength(2);
     const sisters = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}:%`));
     expect(sisters).toHaveLength(1);
@@ -325,7 +338,7 @@ describe("sister courses", () => {
       kind: "scheduled",
       name: "Kestrel Downs Sprint Stakes", // next course in TRACKS, same race name
       slotKey: `${race.slotKey}:2`,
-      conditions: { ...orig!.conditions, track: "Kestrel Downs" },
+      conditions: { ...(orig!.conditions as Record<string, unknown>), track: "Kestrel Downs" },
       purse: orig!.purse,
       maxRunners: 4,
       targetRunners: 4,
@@ -346,12 +359,13 @@ describe("sister courses", () => {
     const a = await newPlayer(h.db);
     const b = await newPlayer(h.db);
     const c = await newPlayer(h.db);
+    const d = await newPlayer(h.db);
     const race = await slotRace();
     // Each round fills the slot's newest race; each full race opens the next course.
     for (let k = 0; k < 6; k++) {
       const slot = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}%`)).orderBy(asc(races.slotKey));
       const current = slot.at(-1)!;
-      const four = [a, b, c, [a, b, c][k % 3]!]; // two from one stable is the half-field limit
+      const four = [a, b, c, d]; // one horse per stable per Live race
       for (const p of four) await enter(p.accountId, p.stableId, current.id);
     }
     const slot = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}%`)).orderBy(asc(races.slotKey));
