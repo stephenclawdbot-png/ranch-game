@@ -289,6 +289,35 @@ Rules for every row:
 - deterministic per horse (seeded from the horse's appearance);
 - legacy appearances (no `colour`) render as today.
 
+## Sprite coverage: every renderer draws every breed and gene (owner, 2026-10-29)
+
+Five places draw horses. A gene or breed is "done" only when every applicable one draws it.
+
+| Renderer | Where players see it | Recolour method | Shape (breed, size) |
+|---|---|---|---|
+| **Trackside strip** (`race-viewer/trackside`) | Every race, the default view | Per-runner LUT row plus the mask texture in `HORSE_FRAG` | Height and leg-length scale; girth widens the barrel |
+| **Classic 3D** (`race-viewer/three` + `pixel-rig`) | The "3D view" toggle | `pixel-rig` ramp from `resolveHorseColors`; `rigLook` morph and variants | Already has morph knobs; feed them from `rigLook` |
+| **Diorama walkers** (`diorama/scenes.ts`: walk-led, walk-jockey, canter, aisle-idle sheets) | Scene bands on Home, Stable, Races, Story, Hall | `diorama/recolor.ts` from a `DioramaHorseLook` | Height scale, whole display pixels only |
+| **Stall horses** (`stall-horse-*` over the stall doors) | Stable and yard scenes | **Today: 4 fixed paintings with no genes.** All 4 share one pose at s1, s2 and s3, so they get the same role-map recolour as the 3/4 portrait | Head family overlay (ears, mane) only |
+| **3/4 portrait** (`HorsePortrait`) | Horse pages, cards, foal reveal | Role map (portrait coverage above) | Head family painting |
+
+**Your own horses in the scenes.** The Stable band's stall horses and the aisle horse become
+the player's own horses: their first 3–4 by stable order, each with its own genes and silks
+on the walk-jockey sheet. Home's walker is the player's most recent racer. Visitors and empty
+stables keep the decorative horses.
+
+Each visual ticket adds its genes to **every** row:
+
+| Gene or breed | Trackside | Classic 3D | Walkers | Stall horses | Portrait |
+|---|---|---|---|---|---|
+| Coat v2 (merged) | ✓ | ✓ | ✓ | the diorama-horses ticket | portrait34 |
+| Colour v3 (champagne, silver, pearl) | colour v3 | colour v3 | colour v3 | colour v3 | colour v3 |
+| Sabino, tobiano, leopard, splash | patterns | patterns | patterns | patterns (neck and face only) | patterns |
+| Breed shapes, size, feathering, curled ears, sheen | breed looks | breed looks | breed looks | breed looks (ears, mane, sheen) | breed looks |
+
+Every visual ticket's acceptance includes a 390 px race screenshot (Trackside at race size),
+a classic 3D screenshot, and the Stable band, alongside the `/dev/coats` gallery.
+
 ## Delivery
 
 1. **G1, GLM:** genes, breeds, inheritance, upgrade, preview, summary, named crosses; no visuals.
@@ -298,6 +327,7 @@ Rules for every row:
    Hall discoveries, breed races, the breeds balance report. The lead reviews the numbers.
 4. **Visual tickets, Kimi:**
    - colour v3 (champagne, silver, pearl swatches by the lead first);
-   - every visual ticket covers its rows of the portrait coverage table above;
+   - every visual ticket covers its rows of the portrait and sprite coverage tables above;
+   - diorama horses: recolourable stall horses, and the player's own horses in the scene bands;
    - white patterns (tobiano, leopard, splash) together with sabino;
    - breed looks (head families plus feathering, curled ears, dish, size).
