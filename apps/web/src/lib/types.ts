@@ -209,6 +209,15 @@ export interface MyRaceResult {
   runners: { horseId: string; horseName: string; position: number; prize: number; storyReward: number; firstWin: boolean; ratingBefore: number; ratingAfter: number | null }[];
 }
 
+/** /api/me/races: one cursor page of the stable's settled runs, plus the filter's totals. */
+export interface MyRacesView {
+  rows: RunView[];
+  /** For the current filter (places = 2nd or 3rd). */
+  summary: { runs: number; wins: number; places: number; credits: number };
+  /** Feed to `cursor` for the next page; null on the last. */
+  nextCursor: string | null;
+}
+
 export interface ApiError {
   error: string;
   message: string;
