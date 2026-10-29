@@ -78,6 +78,7 @@ import type {
   ActiveEntry,
   FieldEntry,
   HorseDetailView,
+  PedigreeNode,
   InboxView,
   MyRaceResult,
   MyRacesView,
@@ -1062,6 +1063,36 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
   return { raceId, settled: fresh.status === "settled", firstView, runners };
 }
 
+/** Three generations above `row` (15 horses at most), fetched a generation at a time. */
+async function pedigreeTree(db: Db, row: NonNullable<Awaited<ReturnType<typeof getHorse>>>, nowMs: number, depth = 3): Promise<PedigreeNode> {
+  const rows = new Map<string, NonNullable<Awaited<ReturnType<typeof getHorse>>>>([[row.id, row]]);
+  let level = [row];
+  for (let g = 0; g < depth; g++) {
+    const ids = [...new Set(level.flatMap((r) => [r.sireId, r.damId]).filter((x): x is string => !!x && !rows.has(x)))];
+    const got = (await Promise.all(ids.map((id) => getHorse(db, id)))).filter((r): r is NonNullable<typeof r> => !!r);
+    for (const r of got) rows.set(r.id, r);
+    level = got;
+  }
+  const node = (id: string | null, d: number): PedigreeNode | null => {
+    const r = id ? rows.get(id) : undefined;
+    if (!r) return null;
+    const h = horseFromRow(r, DEFAULT_SILKS, nowMs);
+    return {
+      id: r.id,
+      name: r.name,
+      regNo: gc.registrationNumber(r.generation, r.regNo),
+      sex: h.sex,
+      appearance: h.appearance,
+      starts: r.starts,
+      wins: r.wins,
+      generation: r.generation,
+      sire: d < depth ? node(r.sireId, d + 1) : null,
+      dam: d < depth ? node(r.damId, d + 1) : null,
+    };
+  };
+  return node(row.id, 0)!;
+}
+
 export async function horseDetail(db: Db, horseId: string, session: Session | null, now: Date): Promise<HorseDetailView | null> {
   if (!UUID_RE.test(horseId)) return null;
   const row = await getHorse(db, horseId);
@@ -1076,6 +1107,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   }
   const parent = (id: string | null) => (id ? { id, name: parents.get(id)?.name ?? "Unknown", regNo: parents.get(id)?.regNo ?? null } : null);
   const pedigree = { sire: parent(row.sireId), dam: parent(row.damId) };
+  const tree = await pedigreeTree(db, row, nowMs);
   const regNo = gc.registrationNumber(row.generation, row.regNo);
   // Coat genetics are public stud-book information: any viewer gets them.
   const genetics = geneticsView(row, nowMs);
@@ -1083,10 +1115,10 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   if (!row.ownerStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, genetics, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, tree, genetics, stud: null, actions: null };
   }
   const stable = await getStable(db, row.ownerStableId);
   const silks = parseSilks(stable?.silks);
@@ -1111,6 +1143,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     status: mine ? stableHorseView(row, silks, nowMs) : null,
     runs,
     pedigree,
+    tree,
     genetics,
     stud: atStud ? { fee: row.studFee!, club: false } : null,
     actions,

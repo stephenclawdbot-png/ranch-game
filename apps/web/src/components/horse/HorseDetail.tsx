@@ -13,6 +13,7 @@ import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { EmptyState } from "../ui/Page";
 import { HorseStage } from "./HorseStage";
+import { PedigreeTree } from "./PedigreeTree";
 import { PositionBadge } from "../ui/PositionBadge";
 
 export { PositionBadge };
@@ -214,15 +215,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
           Pedigree
         </h2>
         <div className="surface grid gap-3 p-4">
-          <div className="ped-tree">
-            <PedigreeBox role="Sire" p={view.pedigree.sire} />
-            <PedigreeBox role="Dam" p={view.pedigree.dam} />
-            <div className="ped-self">
-              <span className="label">Generation {horse.generation}</span>
-              <span className="t-title">{horse.name}</span>
-              <span className="caption">{view.regNo}</span>
-            </div>
-          </div>
+          <PedigreeTree root={view.tree} coiText={view.genetics?.inbreeding.text ?? null} />
           <p className="t-meta">
             {FACE_LABEL[horse.appearance.face]}; {legsText(horse.appearance.legs)}.
           </p>
@@ -309,20 +302,3 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
   );
 }
 
-function PedigreeBox({ role, p }: { role: "Sire" | "Dam"; p: HorseDetailView["pedigree"]["sire"] }) {
-  return (
-    <div className="ped-parent">
-      <span className="label">{role}</span>
-      {p ? (
-        <>
-          <Link href={`/horse/${p.id}`} className="t-title hover:underline">
-            {p.name}
-          </Link>
-          {p.regNo && <span className="caption">{p.regNo}</span>}
-        </>
-      ) : (
-        <span className="t-meta">Foundation stock</span>
-      )}
-    </div>
-  );
-}

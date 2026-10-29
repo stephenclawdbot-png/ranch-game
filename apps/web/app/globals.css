@@ -3593,3 +3593,134 @@ dialog.sheet .inset {
 .tboard-risk.is-risk {
   color: var(--color-negative, #e0614a);
 }
+
+/* ---------------------------------------------------------------- Pedigree bracket (REDESIGN §4.6) */
+.ped-scroll {
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+}
+.ped-bracket {
+  display: grid;
+  column-gap: 22px;
+  row-gap: 6px;
+}
+.ped-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* connector: a pixel line from each ancestor back to its child */
+.ped-slot:not(.gen-0)::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  width: 22px;
+  border-left: 2px solid var(--color-sage);
+  opacity: 0.7;
+}
+.ped-slot.is-sire:not(.gen-0)::before {
+  top: 50%;
+  bottom: -3px;
+  border-top: 2px solid var(--color-sage);
+}
+.ped-slot.is-dam:not(.gen-0)::before {
+  top: -3px;
+  bottom: 50%;
+  border-bottom: 2px solid var(--color-sage);
+}
+.ped-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+a.ped-node:hover,
+a.ped-node:focus-visible {
+  background: #1f4d35;
+}
+.gen-0 .ped-node {
+  background: rgba(217, 164, 65, 0.14);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 4px var(--color-brass);
+}
+.ped-node.is-unknown {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  opacity: 0.6;
+}
+.ped-portrait {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.ped-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-sage);
+}
+.is-sire .ped-role {
+  color: var(--color-sky);
+}
+.is-dam .ped-role {
+  color: #e7a3b8;
+}
+.ped-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-name);
+  font-size: 1.125rem;
+  line-height: 1.1;
+  color: var(--color-cream);
+}
+.gen-0 .ped-name {
+  font-size: 1.375rem;
+}
+.ped-meta {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-cream-dim);
+}
+.ped-rep {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-family: var(--font-score);
+  font-weight: 400;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  color: var(--ink-0);
+  background: var(--color-warn);
+}
+.ped-slot.is-repeat .ped-node {
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 4px rgba(242, 200, 106, 0.55);
+}
+.ped-slot.is-lit .ped-node {
+  background: rgba(242, 200, 106, 0.2);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 4px var(--color-warn);
+}

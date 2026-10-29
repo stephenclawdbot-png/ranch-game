@@ -194,12 +194,27 @@ export interface HorseDetailView {
   status: StableHorse | null;
   runs: RunView[];
   pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };
+  /** Three generations of ancestors above this horse (null parent = foundation stock). */
+  tree: PedigreeNode;
   /** Standing at public stud (a player's stallion or a Club house stallion). */
   stud: { fee: number; club: boolean } | null;
   /** The owner's next steps beyond racing (null for other stables' horses). */
   actions: { cover: boolean; stud: boolean; sell: boolean } | null;
   /** Coat genetics, markings, breed mix, build, inbreeding, revealed quirks (stud-book info). */
   genetics: GeneticsSummary | null;
+}
+
+export interface PedigreeNode {
+  id: string;
+  name: string;
+  regNo: string;
+  sex: Horse["sex"];
+  appearance: Horse["appearance"];
+  starts: number;
+  wins: number;
+  generation: number;
+  sire: PedigreeNode | null;
+  dam: PedigreeNode | null;
 }
 
 /** The viewer's own result in a race (only after the broadcast is over). */
