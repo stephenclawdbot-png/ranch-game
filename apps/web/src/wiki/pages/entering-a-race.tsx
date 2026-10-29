@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { RULES, defaultCardSlot, entryCostFor } from "@thoroughbred/db";
+import { CARD_ENTRY_FEE_PERMILLE, RULES, defaultCardSlot, entryCostFor } from "@thoroughbred/db";
 import { STYLE_LABEL, formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count, pct, sampleGenome } from "../kit";
 
@@ -39,7 +39,9 @@ export default function EnteringARacePage() {
   const styles = styleExamples();
   const risks = riskExample();
   const normal = risks.find((r) => r.v === "normal")!.risk;
-  // Credit entry fees on the Live card (one week of it, big days included): normally none, races are paid for in entries.
+  // Credit entry fees on the Live card (one week of it, big days included).
+  const week = Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i));
+  const minFee = Math.min(...week.map((s) => s.entryFee ?? 0));
   const maxFee = Math.max(...Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i).entryFee ?? 0));
   return (
     <>
@@ -91,7 +93,7 @@ export default function EnteringARacePage() {
       <P>
         Live races are paid for from your <b>stable entry bank</b>, not with credits. You get a fresh allowance every local midnight, unused entries roll over up to the bank&rsquo;s cap, and
         missing a day is never punished. Story races and the Daily Cup are free.{" "}
-        {maxFee === 0 ? <>Races on the Live card have no credit entry fee.</> : <>A few top races also charge an entry fee of up to {formatCredits(maxFee)} credits.</>} The whole entry economy
+        Every Live race also charges a small credit entry fee, {CARD_ENTRY_FEE_PERMILLE / 10}% of its purse ({formatCredits(minFee)} to {formatCredits(maxFee)} credits; the top classes have a fixed minimum). The entry sheet shows it before you confirm. The whole entry economy
         is on <WikiLink slug="credits-and-entries" />.
       </P>
       <Facts
