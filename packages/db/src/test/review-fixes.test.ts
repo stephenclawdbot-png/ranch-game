@@ -11,7 +11,7 @@ import { dailyCupEntries, horses, inboxItems } from "../schema";
 import { runCupEntry, settleCupDays } from "../services/dailyCup";
 import { economyHealth } from "../services/health";
 import { breed, foal } from "../services/breeding";
-import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
+import { CALENDAR_PURSE, CARD_ENTRY_FEE_PERMILLE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
 import { createRace, enterRace, featureQualificationReason } from "../services/races";
 import { gc, toHorseState } from "../gameCore";
@@ -39,9 +39,10 @@ describe("race card prices", () => {
     expect(CALENDAR_PURSE.weekend_feature).toBeGreaterThan(richest);
     expect(CALENDAR_PURSE.season_final).toBeGreaterThan(CALENDAR_PURSE.weekend_feature);
     for (const s of hourly) {
-      if (s.raceClass === "listed") expect(s.entryFee).toBe(gc.ENTRY_FEE_BY_TIER.listed);
-      else if (s.raceClass === "graded") expect(s.entryFee).toBe(gc.ENTRY_FEE_BY_TIER.g3);
-      else expect(s.entryFee).toBe(0);
+      const share = Math.round(((s.purse ?? 0) * CARD_ENTRY_FEE_PERMILLE) / 1000);
+      const fixed = s.raceClass === "listed" ? gc.ENTRY_FEE_BY_TIER.listed : s.raceClass === "graded" ? gc.ENTRY_FEE_BY_TIER.g3 : 0;
+      expect(s.entryFee).toBe(Math.max(share, fixed));
+      expect(s.entryFee).toBeGreaterThan(0);
     }
     // the card's calendar slots use the calendar purses
     const special = Array.from({ length: DAY_SLOTS * 28 }, (_, i) => base + i).map((i) => [i, specialSlotAt(i)] as const).filter(([, sp]) => sp);

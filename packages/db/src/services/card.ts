@@ -44,13 +44,16 @@ interface ClassDef {
   purse: number;
 }
 
-const MAIDEN: ClassDef = { raceClass: "maiden", label: "Maiden Stakes", conditions: { maxWins: 0, maxRating: 60 }, purse: 2_000 };
-const NOVICE: ClassDef = { raceClass: "novice", label: "Novice Stakes", conditions: { maxWins: 2, maxRating: 70 }, purse: 2_500 };
-const HCP_55: ClassDef = { raceClass: "handicap", label: "Handicap (0-55)", conditions: { minRating: 0, maxRating: 55 }, purse: 3_000 };
-const HCP_75: ClassDef = { raceClass: "handicap", label: "Handicap (50-75)", conditions: { minRating: 50, maxRating: 75 }, purse: 4_000 };
-const HCP_95: ClassDef = { raceClass: "handicap", label: "Handicap (70-95)", conditions: { minRating: 70, maxRating: 95 }, purse: 5_000 };
-const LISTED: ClassDef = { raceClass: "listed", label: "Listed Stakes", conditions: { minRating: 85 }, purse: 8_000 };
-const GROUP3: ClassDef = { raceClass: "graded", label: "Group 3", conditions: { minRating: 95 }, purse: 12_000 };
+// Purses halved 2026-10-29 (season harness: players spent only 46 of every 100 credits earned in
+// play and purses were 69% of income; the economy model was balanced at about a third of the old
+// live purses). Calendar purses below derive from these.
+const MAIDEN: ClassDef = { raceClass: "maiden", label: "Maiden Stakes", conditions: { maxWins: 0, maxRating: 60 }, purse: 1_000 };
+const NOVICE: ClassDef = { raceClass: "novice", label: "Novice Stakes", conditions: { maxWins: 2, maxRating: 70 }, purse: 1_250 };
+const HCP_55: ClassDef = { raceClass: "handicap", label: "Handicap (0-55)", conditions: { minRating: 0, maxRating: 55 }, purse: 1_500 };
+const HCP_75: ClassDef = { raceClass: "handicap", label: "Handicap (50-75)", conditions: { minRating: 50, maxRating: 75 }, purse: 2_000 };
+const HCP_95: ClassDef = { raceClass: "handicap", label: "Handicap (70-95)", conditions: { minRating: 70, maxRating: 95 }, purse: 2_500 };
+const LISTED: ClassDef = { raceClass: "listed", label: "Listed Stakes", conditions: { minRating: 85 }, purse: 4_000 };
+const GROUP3: ClassDef = { raceClass: "graded", label: "Group 3", conditions: { minRating: 95 }, purse: 6_000 };
 /** Hourly Features pay this multiple of their class purse. */
 const FEATURE_PURSE_MULTIPLIER = 2;
 
@@ -66,12 +69,16 @@ export const CALENDAR_PURSE: Record<"feature_qualifier" | "weekend_feature" | "s
   season_final: GROUP3.purse * FEATURE_PURSE_MULTIPLIER * 3,
 };
 
-/** Credit entry fee (a sink, on top of the stable entries) for the top classes, from game-core's tier fees. */
-export function cardEntryFee(raceClass: string, opts: { group1?: boolean } = {}): number {
-  if (opts.group1) return gc.ENTRY_FEE_BY_TIER.g1;
-  if (raceClass === "graded") return gc.ENTRY_FEE_BY_TIER.g3;
-  if (raceClass === "listed") return gc.ENTRY_FEE_BY_TIER.listed;
-  return 0;
+/**
+ * Credit entry fee for a Live race (a sink that scales with racing, never with absence): a share
+ * of the purse (CARD_ENTRY_FEE_PERMILLE), or game-core's fixed tier fee for the top classes when
+ * that is higher.
+ */
+export const CARD_ENTRY_FEE_PERMILLE = 50;
+export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?: number } = {}): number {
+  const share = Math.round(((opts.purse ?? 0) * CARD_ENTRY_FEE_PERMILLE) / 1000);
+  const fixed = opts.group1 ? gc.ENTRY_FEE_BY_TIER.g1 : raceClass === "graded" ? gc.ENTRY_FEE_BY_TIER.g3 : raceClass === "listed" ? gc.ENTRY_FEE_BY_TIER.listed : 0;
+  return Math.max(share, fixed);
 }
 
 /**
@@ -155,7 +162,7 @@ function plateCardSlot(index: number, wf: gc.RaceSlot): CreateRaceInput {
     postTime,
     entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
     purse: CALENDAR_PURSE.feature_qualifier,
-    entryFee: cardEntryFee("listed"),
+    entryFee: cardEntryFee("listed", { purse: CALENDAR_PURSE.feature_qualifier }),
     maxRunners: RULES.maxField,
     targetRunners: RULES.maxField,
     seasonNumber: wf.season,
@@ -175,7 +182,9 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
     conditions: {
       // The Weekend Feature's gate is qualifying (a top 3 in a qualifier, or rating 100+), not a
       // rating floor: a horse rated 85-94 that places in a qualifier must be able to run.
-      ...(weekend ? {} : { minRating: final ? 95 : 85 }),
+      // Qualifiers are open to every rating (the harness found no player rated 85+ within a
+      // season); a top 3 is the test. Only the Season Final keeps a floor.
+      ...(final ? { minRating: 95 } : {}),
       distanceM: sp.distanceM,
       surface: sp.surface,
       going: sp.surface === "synthetic" ? "good" : sp.goingForecast,
@@ -186,7 +195,7 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
     postTime,
     entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
     purse: sp.kind === "season_final" || sp.kind === "weekend_feature" || sp.kind === "feature_qualifier" ? CALENDAR_PURSE[sp.kind] : sp.purse,
-    entryFee: cardEntryFee(final || weekend ? "graded" : "listed", { group1: final || weekend }),
+    entryFee: cardEntryFee(final || weekend ? "graded" : "listed", { group1: final || weekend, purse: sp.kind === "season_final" || sp.kind === "weekend_feature" || sp.kind === "feature_qualifier" ? CALENDAR_PURSE[sp.kind] : sp.purse }),
     maxRunners: Math.min(16, sp.maxRunners),
     targetRunners: RULES.maxField,
     seasonNumber: sp.season,
@@ -257,7 +266,7 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     postTime,
     entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
     purse: feature ? def.purse * FEATURE_PURSE_MULTIPLIER : def.purse,
-    entryFee: cardEntryFee(def.raceClass),
+    entryFee: cardEntryFee(def.raceClass, { purse: feature ? def.purse * FEATURE_PURSE_MULTIPLIER : def.purse }),
     maxRunners: RULES.maxField,
     targetRunners: RULES.minField + (h[29]! % (RULES.maxField - RULES.minField + 1)),
     seasonNumber: seasonNumberAt(postTime),
