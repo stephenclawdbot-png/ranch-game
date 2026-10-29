@@ -254,7 +254,8 @@ export function appearanceOf(genome: Genome, progress: { racingAge: boolean; sta
   const coat = resolveCoat(genome, progress);
   const m = resolveMarkings(genome);
   const out: HorseAppearance = { coat: coat.coat, face: m.face, legs: m.legs, silks, colour: horseColour(genome, progress) };
-  if (coat.maneColor) out.maneColor = coat.maneColor;
+  // maneColor stays unset: `colour` carries the exact layered palette now (renderers that
+  // predate coat v2, and legacy replays, keep using coat + maneColor as before).
   // Dun primitive markings (dorsal stripe, leg barring) ride with the D allele; a coat that
   // is greying out hides them once the grey shows (foals born to grey still show them).
   const greyShown = count(genome.coat.grey, "G") > 0 && progress.racingAge;

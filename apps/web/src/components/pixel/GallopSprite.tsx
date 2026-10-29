@@ -99,6 +99,41 @@ function recolour(img: HTMLImageElement, pal: RacePalette, appearance: HorseAppe
     }
   }
   ctx.putImageData(data, 0, 0);
+  // Dun: a thin dorsal stripe along the back in the palette stripe colour (the barrel
+  // columns of each frame; the head/neck sit right of 55 %, the tail is mane-keyed).
+  // Painted 1..3 px below the back line (the ink outline occupies the top pixel), and
+  // only on columns hugging the spine height so the shoulder/chest don't catch it.
+  if (appearance.dun && c.stripe) {
+    const [sr, sg, sb] = rgbOf(c.stripe);
+    const fw = Math.round(cv.width / 12);
+    for (let f = 0; f < 12; f++) {
+      const tops: [number, number][] = [];
+      for (let x = Math.round(f * fw + fw * 0.08); x < f * fw + fw * 0.55; x++) {
+        for (let y = 0; y < cv.height; y++) {
+          const i = (y * cv.width + x) * 4;
+          if (d[i + 3]! >= 8 && isCoat[y * cv.width + x]) {
+            tops.push([x, y]);
+            break;
+          }
+        }
+      }
+      if (!tops.length) continue;
+      const ys = tops.map(([, y]) => y).sort((a, b) => a - b);
+      const spine = ys[Math.floor(ys.length / 2)]!;
+      for (const [x, top] of tops) {
+        if (Math.abs(top - spine) > 3) continue;
+        for (let y = top + 1; y <= top + 3; y++) {
+          const i = (y * cv.width + x) * 4;
+          if (d[i + 3]! < 8 || !isCoat[y * cv.width + x]) continue;
+          const k = y === top + 1 ? 1 : y === top + 2 ? 0.85 : 0.5;
+          d[i] = Math.round(d[i]! + (sr - d[i]!) * k);
+          d[i + 1] = Math.round(d[i + 1]! + (sg - d[i + 1]!) * k);
+          d[i + 2] = Math.round(d[i + 2]! + (sb - d[i + 2]!) * k);
+        }
+      }
+    }
+    ctx.putImageData(data, 0, 0);
+  }
   return cv;
 }
 
@@ -107,7 +142,7 @@ function recolour(img: HTMLImageElement, pal: RacePalette, appearance: HorseAppe
  * (nearest-neighbour upscaled). Renders nothing until the art exists.
  * Pass `still` to freeze on that frame (gallery cells, reduced-motion posters).
  */
-export function GallopSprite({ appearance, scale = 2, fps = 14, className, still }: { appearance: HorseAppearance; scale?: number; fps?: number; className?: string; still?: number }) {
+export function GallopSprite({ appearance, scale = 2, fps = 14, className, still, fit }: { appearance: HorseAppearance; scale?: number; fps?: number; className?: string; still?: number; fit?: boolean }) {
   const art = useArt(["race/horse-gallop.png"]);
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
@@ -150,7 +185,7 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className, still
       height={art.h}
       aria-hidden
       className={`pixelated ${ready ? "" : "opacity-0"} ${className ?? ""}`}
-      style={{ width: fw * scale, height: art.h * scale }}
+      style={fit ? { width: "100%", height: "auto" } : { width: fw * scale, height: art.h * scale }}
     />
   );
 }

@@ -60,7 +60,7 @@ function PixelHead({ appearance, className, title, style }: { appearance: HorseA
           if (cx * cx + cy * cy < 3.2 && noise(Math.floor(x / 6), Math.floor(y / 6)) > 0.25) return mix(ramp[ch]!, c.highlight, 0.55);
         }
         if (darkHead && "hbd".includes(ch)) {
-          const k = ch === "h" ? 0.25 : ch === "b" ? 0.5 : 0.35;
+          const k = ch === "h" ? 0.3 : ch === "b" ? 0.6 : 0.45;
           return mix(ramp[ch]!, c.points, k);
         }
         return ramp[ch];
@@ -89,6 +89,7 @@ export function HorsePortrait({
   className,
   title,
   scale,
+  codeDrawn,
 }: {
   appearance: HorseAppearance;
   className?: string;
@@ -96,11 +97,13 @@ export function HorsePortrait({
   backdrop?: boolean;
   title?: string;
   scale?: PortraitScale;
+  /** Always use the code-drawn pixel head (dev galleries), ignoring PixelLab portrait art. */
+  codeDrawn?: boolean;
 }) {
   const full = useArt(ART_SLOTS.portrait(appearance.coat));
   const thumb = useArt(ART_SLOTS.thumb(appearance.coat));
   // Thumbnails use the 64 px box-downsampled file at 1x (never a 128 portrait shrunk in CSS).
-  const art = scale === "thumb" && thumb ? thumb : full;
+  const art = codeDrawn ? null : scale === "thumb" && thumb ? thumb : full;
   const native = full?.w ?? 96;
   const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
   const style = px ? { width: px, height: px } : undefined;
