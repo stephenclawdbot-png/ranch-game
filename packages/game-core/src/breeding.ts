@@ -10,7 +10,7 @@ import type { CoatGenes, Genome, HorseState, PedigreeIndex, StatKey, StatRecord,
 import { STAT_KEYS } from "./types";
 import type { RunningStyle, Surface } from "@thoroughbred/shared";
 import { BREEDINGS_LIFETIME, BREED_FROM_STARTS, PREGNANCY_MS, createHorseState, isFemale, isMale, isRacingAge, normaliseLocation, stageOf } from "./lifecycle";
-import { MUTATION_MAX, VIGOUR_MUTATION_MAX, coiOf, familyRange, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
+import { MUTATION_MAX, VIGOUR_MUTATION_MAX, coiOf, familyRange, fragileChance, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
 import {
   OVERALL_WEIGHTS,
   VIGOUR_MAX,
@@ -146,13 +146,18 @@ export function foalBinding(sire: Pick<HorseState, "binding">, dam: Pick<HorseSt
   return sire.binding === "club_bred" || dam.binding === "club_bred" ? "until_5_starts" : "free";
 }
 
+/** Parents whose racing career ended in an injury (each may pass on fragile legs). */
+export function injuredParents(sire: Pick<HorseState, "career">, dam: Pick<HorseState, "career">): { sire: boolean; dam: boolean } {
+  return { sire: sire.career.racingRetired?.reason === "injury", dam: dam.career.racingRetired?.reason === "injury" };
+}
+
 /** Deliver the foal of a due pregnancy. Never fails for lack of space (nursery overflow). */
 export function deliverFoal(dam: HorseState, sire: HorseState, input: FoalInput): { dam: HorseState; foal: HorseState } {
   const preg = dam.pregnancy;
   if (!preg) throw new Error("deliverFoal: mare is not in foal");
   if (preg.sireId !== sire.id) throw new Error("deliverFoal: wrong sire");
   if (input.nowMs < preg.dueAtMs) throw new Error("deliverFoal: not due yet");
-  const genome = inherit(sire.genome, dam.genome, preg.foalSeed, { coi: preg.coi, family: input.family });
+  const genome = inherit(sire.genome, dam.genome, preg.foalSeed, { coi: preg.coi, family: input.family, injured: injuredParents(sire, dam) });
   const sex = new Rng(`${preg.foalSeed}|sex`).chance(500) ? "colt" : "filly";
   const foal = createHorseState({
     id: input.foalId,
@@ -220,6 +225,8 @@ export interface BreedingPreview {
    * every mutation), set by the parents and grandparents. Per stat and overall potential.
    */
   limits: { stats: StatRecord<{ floor: number; ceiling: number }>; overall: { floor: number; ceiling: number }; lineage: "deep" | "rising" | "foundation" };
+  /** Chance (permille) the foal has fragile legs, and whether a parent's career-ending injury is why. */
+  fragile: { permille: number; fromInjury: boolean };
 }
 
 function toPermille<T extends string>(d: Dist<T>): Partial<Record<T, number>> {
@@ -366,5 +373,9 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
     mutation: { ratePermille: mp.ratePermille, negPermille: mp.negPermille, maxStep: 30 },
     nick: { score, label },
     limits: { stats: limStats, overall: { floor: limMean("floor"), ceiling: limMean("ceiling") }, lineage },
+    fragile: (() => {
+      const inj = injuredParents(sire, dam);
+      return { permille: fragileChance(sg, dg, inj), fromInjury: inj.sire || inj.dam };
+    })(),
   };
 }

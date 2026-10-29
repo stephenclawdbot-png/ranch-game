@@ -8,7 +8,7 @@
 import type { Going } from "@thoroughbred/shared";
 import type { GameStage, HorseState, Injury, InjurySeverity, RideIntensity } from "./types";
 import { MS_PER_DAY, MS_PER_HOUR, dayIndex } from "./time";
-import { potentialOf } from "./genome";
+import { isFragile, potentialOf } from "./genome";
 import { Rng, clampInt } from "./rng";
 
 // ---------------------------------------------------------------------------
@@ -121,9 +121,13 @@ export const GOING_RISK: Record<Going, number> = { firm: 1300, good: 1000, soft:
 export const INTENSITY_RISK: Record<RideIntensity, number> = { conservative: 700, normal: 1000, all_out: 1500 };
 /** Share of injuries that are career-ending at baseline, permille (rises when tired / all-out). */
 export const CAREER_ENDING_SHARE = 30;
+/** Share of career-ending injuries that are fatal, permille (Live races only; never Story or training). */
+export const FATAL_SHARE_OF_CAREER_ENDING = 200;
+/** Fragile legs (inherited) raise the injury risk by this multiplier, permille. */
+export const FRAGILE_RISK = 1300;
 
 export interface RiskFactor {
-  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran";
+  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran" | "fragile";
   /** Multiplier permille applied by this factor (1000 = neutral). */
   multiplier: number;
   /** One short line for the entry sheet. */
@@ -167,6 +171,7 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   if (intM !== 1000) factors.push({ key: "intensity", multiplier: intM, text: ctx.intensity === "all_out" ? "All-out ride" : "Conservative ride" });
   const distM = ctx.distanceM > 2400 ? 1100 : 1000;
   if (distM !== 1000) factors.push({ key: "distance", multiplier: distM, text: "Long trip" });
+  if (isFragile(state.genome)) factors.push({ key: "fragile", multiplier: FRAGILE_RISK, text: "Fragile legs (inherited)" });
   const vetM = ctx.stage === "veteran" ? 1200 : 1000;
   if (vetM !== 1000) factors.push({ key: "veteran", multiplier: vetM, text: "Veteran legs" });
 
@@ -178,14 +183,18 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   return { permille, label, careerEndingShare: ce, factors };
 }
 
-export const INJURY_DAYS: Record<InjurySeverity, [number, number]> = { minor: [2, 4], moderate: [6, 12], career_ending: [14, 21] };
+export const INJURY_DAYS: Record<InjurySeverity, [number, number]> = { minor: [2, 4], moderate: [6, 12], career_ending: [14, 21], fatal: [21, 21] };
 
-/** Roll for an injury after a start or workout. Deterministic in the seed. Never fatal. */
-export function rollInjury(risk: Pick<InjuryRisk, "permille" | "careerEndingShare">, seed: string, atMs: number, vetLevel: number, source: string): Injury | null {
+/**
+ * Roll for an injury after a start or workout. Deterministic in the seed. A share of career-ending
+ * injuries is fatal when `fatal` is allowed (Live races; never Story races or training).
+ */
+export function rollInjury(risk: Pick<InjuryRisk, "permille" | "careerEndingShare">, seed: string, atMs: number, vetLevel: number, source: string, opts: { fatal?: boolean } = {}): Injury | null {
   const rng = new Rng(`${seed}|injury`);
   // Roll in 1/1,000,000 so permille risks below 1 still work.
   if (rng.int(1_000_000) >= risk.permille * 1000) return null;
-  const sev: InjurySeverity = rng.chance(risk.careerEndingShare) ? "career_ending" : rng.chance(300) ? "moderate" : "minor";
+  let sev: InjurySeverity = rng.chance(risk.careerEndingShare) ? "career_ending" : rng.chance(300) ? "moderate" : "minor";
+  if (sev === "career_ending" && opts.fatal && new Rng(`${seed}|fatal`).chance(FATAL_SHARE_OF_CAREER_ENDING)) sev = "fatal";
   const [lo, hi] = INJURY_DAYS[sev];
   return { severity: sev, atMs, unitsRequired: rng.range(lo, hi) * 24, bonusUnits: 0, vetLevel: clampInt(vetLevel, 0, 3), source };
 }

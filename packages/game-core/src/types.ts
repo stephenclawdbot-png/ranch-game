@@ -118,6 +118,11 @@ export const QUIRK_KEYS = ["mudlark", "gateShy", "lateKick", "crowdShy"] as cons
 export const QuirkKeySchema = z.enum(QUIRK_KEYS);
 export type QuirkKey = z.infer<typeof QuirkKeySchema>;
 const Bit = z.union([z.literal(0), z.literal(1)]);
+/**
+ * Fragile legs: one copy shows (dominant). Passed on by a parent whose racing career ended in an
+ * injury (50% per such parent) as well as by carriers. Optional: older genomes have none.
+ */
+export const FragileGenesSchema = z.tuple([Bit, Bit]);
 export const QuirkGenesSchema = z.object({
   mudlark: z.tuple([Bit, Bit]),
   gateShy: z.tuple([Bit, Bit]),
@@ -149,6 +154,7 @@ export const GenomeSchema = z.object({
   morph: MorphGenesSchema,
   variants: VariantGenesSchema,
   quirks: QuirkGenesSchema,
+  fragile: FragileGenesSchema.optional(),
   breed: BreedSharesSchema,
   /**
    * Coefficient of inbreeding at conception, permille (0 for foundation horses). Inbreeding
@@ -196,7 +202,8 @@ export type Binding = z.infer<typeof BindingSchema>;
 export const RetireReasonSchema = z.enum(["choice", "max_starts", "injury"]);
 export type RetireReason = z.infer<typeof RetireReasonSchema>;
 
-export const InjurySeveritySchema = z.enum(["minor", "moderate", "career_ending"]);
+/** fatal: the horse dies (rare; Live races only). career_ending: no more racing, can still breed. */
+export const InjurySeveritySchema = z.enum(["minor", "moderate", "career_ending", "fatal"]);
 export type InjurySeverity = z.infer<typeof InjurySeveritySchema>;
 
 export const InjurySchema = z.object({

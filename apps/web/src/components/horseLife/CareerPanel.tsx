@@ -53,7 +53,9 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
               : `Not racing yet: ${first} reaches racing age through daily care.`
             : c.careerStatus === "retired"
               ? `${stud ? "At stud" : "A broodmare"} ${REASON[c.retirementReason ?? "choice"] ?? ""}: no more racing. ${c.breedingsLeft > 0 ? `${c.breedingsLeft} breedings left, then retired for good.` : ""}`
-              : "Retired for good on the Legacy Farm: no racing, no breeding. Legends never leave the Hall."}
+              : c.diedAtMs !== null
+                ? `In memoriam. ${first} was fatally injured in a race and rests on the Legacy Farm. The record, the Hall and any foals carry the line on.`
+                : "Retired for good on the Legacy Farm: no racing, no breeding. Legends never leave the Hall."}
         </p>
         <div className="relative pt-5" aria-hidden>
           <div className="flex h-4 gap-[2px] bg-[#050b08] p-[2px]">

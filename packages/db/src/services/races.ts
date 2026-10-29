@@ -469,8 +469,8 @@ export interface RunnerOutcome {
   finishTimeUs?: number;
   /** New official rating (game-core ratings); unchanged if omitted. */
   ratingAfter?: number;
-  /** Injury from this run. Career-ending forces racing retirement (never death). */
-  injury?: { severity: "minor" | "moderate" | "career_ending"; recoveryMs: number; detail?: Record<string, unknown> } | null;
+  /** Injury from this run. Career-ending forces racing retirement; fatal retires the horse for good. */
+  injury?: { severity: "minor" | "moderate" | "career_ending" | "fatal"; recoveryMs: number; detail?: Record<string, unknown> } | null;
   quirksRevealed?: string[];
   /** Post-race condition snapshot (permille). */
   condition?: Partial<Pick<HorseRow, "fitness" | "fatigue" | "freshness" | "form" | "morale" | "bond">>;
@@ -551,7 +551,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       const h = await lockHorse(tx, e.horseId);
       const starts = story ? h.starts : Math.min(RULES.maxStarts, h.starts + 1);
       const fromState = r.state ? statePatch(r.state, input.now.getTime()) : null;
-      const careerEnding = r.injury?.severity === "career_ending" || r.state?.injury?.severity === "career_ending";
+      const fatal = r.injury?.severity === "fatal" || r.state?.injury?.severity === "fatal";
+      const careerEnding = fatal || r.injury?.severity === "career_ending" || r.state?.injury?.severity === "career_ending";
       const mustRetire = h.careerStatus === "racing" && (careerEnding || (!story && starts >= RULES.maxStarts));
       const quirks = [...new Set([...((h.quirks as string[]) ?? []), ...(r.quirksRevealed ?? [])])];
       if (mustRetire) retired.push(h.id);
@@ -569,19 +570,24 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
           stats: r.stats ?? h.stats,
           // The peak rides along whenever the rating is written here (some callers send only
           // ratingAfter, no dynamics), so a settled horse can't drop a band by losing.
-          dynamics: {
-            ...(h.dynamics as Record<string, unknown>),
-            ...(r.dynamics ?? {}),
-            peakOr: Math.max((h.dynamics as { peakOr?: number }).peakOr ?? 0, (r.dynamics?.peakOr as number | undefined) ?? 0, r.ratingAfter ?? h.rating),
-          },
           ...(r.condition ?? {}),
           ...(r.injury
             ? { injury: { severity: r.injury.severity, raceId: race.id, ...(r.injury.detail ?? {}) }, injuredUntil: new Date(input.now.getTime() + r.injury.recoveryMs) }
             : {}),
           ...(fromState ?? {}),
+          // after fromState: its dynamics hold only the state's keys, so merge onto the stored ones
+          dynamics: {
+            ...(h.dynamics as Record<string, unknown>),
+            ...(fromState?.dynamics ?? {}),
+            ...(r.dynamics ?? {}),
+            peakOr: Math.max((h.dynamics as { peakOr?: number }).peakOr ?? 0, fromState?.dynamics.peakOr ?? 0, (r.dynamics?.peakOr as number | undefined) ?? 0, r.ratingAfter ?? h.rating),
+            ...(fatal ? { diedAtMs: input.now.getTime(), diedAtRaceId: race.id } : {}),
+          },
           ...(mustRetire
             ? { careerStatus: "retired" as const, retirementReason: careerEnding ? ("injury" as const) : ("max_starts" as const), retiredAt: input.now }
             : {}),
+          // a fatal injury: retired for good (the Legacy Farm keeps the horse's memory; no stall)
+          ...(fatal ? { careerStatus: "pasture" as const, pasturedAt: input.now, retirementReason: "injury" as const, retiredAt: h.retiredAt ?? input.now, studFee: null } : {}),
           ...(h.lockKind === "race" && h.lockRef === race.id ? { lockKind: null, lockRef: null } : {}),
           updatedAt: input.now,
         })
@@ -609,8 +615,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
             accountId: owners.get(e.stableId)!,
             kind: "race_result",
             dedupeKey: `race:${race.id}:${h.id}`,
-            title: `${h.name} finished ${ordinal(r.position)} in the ${race.name}`,
-            data: { position: r.position, fieldSize: entries.length, prize: prizes[h.id] ?? 0, retired: mustRetire, injury: r.injury?.severity ?? null },
+            title: fatal ? `${h.name} was fatally injured in the ${race.name}` : `${h.name} finished ${ordinal(r.position)} in the ${race.name}`,
+            data: { position: r.position, fieldSize: entries.length, prize: prizes[h.id] ?? 0, retired: mustRetire, injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null },
             raceId: race.id,
             horseId: h.id,
             createdAt: input.now,

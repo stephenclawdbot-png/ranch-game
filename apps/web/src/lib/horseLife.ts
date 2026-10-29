@@ -150,6 +150,8 @@ export interface CareerView {
   stageLabel: string;
   careerStatus: "racing" | "retired" | "pasture";
   retirementReason: string | null;
+  /** Set when a fatal race injury ended the horse's life: in memoriam on the Legacy Farm. */
+  diedAtMs: number | null;
   stages: CareerStageRow[];
   maturity: { type: "early" | "normal" | "late"; label: string; peakFrom: number; peakTo: number; blurb: string };
   ranges: RangeView[];

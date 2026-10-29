@@ -173,6 +173,17 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
         <p className="caption">{LINEAGE[p.limits.lineage].text}</p>
       </div>
 
+      {p.fragile.permille > 0 && (
+        <p className="inset p-3 text-sm" data-testid="preview-fragile">
+          <span className="font-extrabold text-claret">Fragile legs: {pct(p.fragile.permille)}</span>{" "}
+          <span className="text-cream-dim">
+            {p.fragile.fromInjury
+              ? "A parent's racing ended in an injury. The foal may inherit fragile legs: more injuries in races and lower durability. The gamble is yours."
+              : "A parent carries the fragile-legs gene. The foal may inherit it: more injuries in races and lower durability."}
+          </span>
+        </p>
+      )}
+
       {/* Inbreeding. */}
       <div className={`flex flex-wrap items-center gap-2 p-3 ${p.coiWarning ? "px-oxblood" : "inset"}`} data-testid="preview-coi">
         <span className="font-extrabold">{p.coiWarning ? "⚠ Inbreeding warning" : "✓ Inbreeding"}</span>

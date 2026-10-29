@@ -124,6 +124,12 @@ export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race:
   }).horse;
 }
 
+/** When a fatal race injury ended the horse's life (dynamics.diedAtMs), else null. */
+export function diedAtOf(row: HorseRow): number | null {
+  const d = (row.dynamics as { diedAtMs?: unknown } | null)?.diedAtMs;
+  return typeof d === "number" ? d : null;
+}
+
 export function riskView(r: gc.InjuryRisk): RiskView {
   return { permille: r.permille, label: r.label, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text) };
 }

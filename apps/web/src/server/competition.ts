@@ -48,7 +48,7 @@ import {
 import { conditionRating, lossGrade } from "@/lib/aptitude";
 import type { CalendarRaceView, CupConditions, CupRow, CupRunView, CupView, HallView, LeagueRowView, LeagueView, SeasonRowView, TrophyRoomView, TrophyTier } from "@/lib/competitionTypes";
 import { houseStableFor } from "./house";
-import { horseFromRow, parseSilks, stableHorseView } from "./horseView";
+import { diedAtOf, horseFromRow, parseSilks, stableHorseView } from "./horseView";
 import type { Session } from "./session";
 
 // ---------------------------------------------------------------------------
@@ -378,7 +378,7 @@ export async function trophyRoomView(db: Db, session: Session, now: Date): Promi
   const silks = parseSilks(session.stable.silks);
   const stars = (await topHorsesOf(db, stableId, 3))
     .filter((h) => h.wins > 0)
-    .map((h) => ({ horseId: h.id, name: h.name, appearance: horseFromRow(h, silks, nowMs).appearance, wins: h.wins, starts: h.starts, earnings: h.earnings, status: (h.careerStatus === "racing" ? "racing" : h.careerStatus === "retired" ? "stud" : "retired") as "racing" | "stud" | "retired" }));
+    .map((h) => ({ horseId: h.id, name: h.name, appearance: horseFromRow(h, silks, nowMs).appearance, wins: h.wins, starts: h.starts, earnings: h.earnings, status: (diedAtOf(h) !== null ? "deceased" : h.careerStatus === "racing" ? "racing" : h.careerStatus === "retired" ? "stud" : "retired") as "racing" | "stud" | "retired" | "deceased" }));
   return {
     stableName: session.stable.name,
     silks,

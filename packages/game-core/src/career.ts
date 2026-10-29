@@ -44,8 +44,10 @@ export interface HorseRunResult {
   revealedQuirks: QuirkKey[];
   /** Racing career ended in this race (40 starts or career-ending injury). */
   retired: boolean;
-  /** Insurance pays out (career-ending injury on an insured horse). */
+  /** Insurance pays out (career-ending or fatal injury on an insured horse). */
   insurancePayout: boolean;
+  /** The horse died of its injury (rare; Live races only). */
+  fatal: boolean;
 }
 
 /** Fatigue from a race: 150 + distance/10, scaled by durability (sound horses tire less). */
@@ -101,13 +103,21 @@ export function applyRun(state: HorseState, cond: RunConditions, run: HorseRunIn
   // Injury (unrated runs — trials — carry no injury risk).
   let injury: Injury | null = null;
   if (rule.rated) {
-    injury = rollInjury(risk, `${cond.seed}|${state.id}`, cond.atMs, run.vetLevel, cond.raceId);
+    // fatal injuries only in Live races (never Story / quick races)
+    injury = rollInjury(risk, `${cond.seed}|${state.id}`, cond.atMs, run.vetLevel, cond.raceId, { fatal: cond.tier !== "quick" });
     if (injury) next = { ...next, injury };
   }
 
   let retired = false;
   let insurancePayout = false;
-  if (injury?.severity === "career_ending") {
+  const fatal = injury?.severity === "fatal";
+  if (fatal) {
+    // the horse is gone: off the stable's books for good (the Legacy Farm keeps its memory)
+    next = retireFromRacing(next, "injury");
+    next = { ...next, location: "legacy_farm", career: { ...next.career, pastured: true } };
+    retired = true;
+    insurancePayout = next.career.insured;
+  } else if (injury?.severity === "career_ending") {
     next = retireFromRacing(next, "injury");
     retired = true;
     insurancePayout = next.career.insured;
@@ -115,7 +125,7 @@ export function applyRun(state: HorseState, cond: RunConditions, run: HorseRunIn
     next = retireFromRacing(next, "max_starts");
     retired = true;
   }
-  return { state: next, injury, revealedQuirks: revealed, retired, insurancePayout };
+  return { state: next, injury, revealedQuirks: revealed, retired, insurancePayout, fatal };
 }
 
 /**

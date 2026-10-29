@@ -35,6 +35,29 @@ export interface InheritOptions {
   coi?: number;
   /** The foal's grandparents' genomes (up to 4; missing = foundation stock). */
   family?: readonly Genome[];
+  /** Parents whose racing career ended in an injury: each passes fragile legs 50% of the time. */
+  injured?: { sire?: boolean; dam?: boolean };
+}
+
+/** Chance (permille) that a parent whose career ended in an injury passes on fragile legs. */
+export const FRAGILE_FROM_INJURY_PERMILLE = 500;
+
+/** The allele a parent passes at the fragile locus (own stream: never shifts other draws). */
+function fragileAllele(rng: Rng, parent: Genome, injured: boolean): 0 | 1 {
+  const own = parent.fragile ? pick(rng, parent.fragile) : 0;
+  if (own) return 1;
+  return injured && rng.chance(FRAGILE_FROM_INJURY_PERMILLE) ? 1 : 0;
+}
+
+/** Chance (permille) a foal of this pairing has fragile legs (preview). */
+export function fragileChance(sire: Genome, dam: Genome, injured: { sire?: boolean; dam?: boolean } = {}): number {
+  const passes = (g: Genome, inj: boolean) => {
+    const own = g.fragile ? (g.fragile[0] + g.fragile[1]) / 2 : 0;
+    return own + (1 - own) * (inj ? FRAGILE_FROM_INJURY_PERMILLE / 1000 : 0);
+  };
+  const ps = passes(sire, !!injured.sire);
+  const pd = passes(dam, !!injured.dam);
+  return Math.round((1 - (1 - ps) * (1 - pd)) * 1000);
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +204,10 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
     morph,
     variants,
     quirks,
+    fragile: (() => {
+      const fr = new Rng(`${seed}|fragile`);
+      return [fragileAllele(fr, sire, !!opts.injured?.sire), fragileAllele(fr, dam, !!opts.injured?.dam)] as [0 | 1, 0 | 1];
+    })(),
     breed: blendBreeds(sire.breed, dam.breed),
     coi,
     markingSeed: rng.nextU32(),

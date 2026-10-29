@@ -116,9 +116,18 @@ export function expressStat(locus: number, vigour: number, stat: StatKey, coi: n
   return v;
 }
 
+/** Fragile legs cost this much durability potential. */
+export const FRAGILE_DURABILITY_PENALTY = 100;
+
+/** Fragile legs show with one copy. */
+export function isFragile(genome: Pick<Genome, "fragile">): boolean {
+  return !!genome.fragile && genome.fragile[0] + genome.fragile[1] >= 1;
+}
+
 /** Genetic potential of one stat, 0..1000. */
 export function potentialOf(genome: Genome, stat: StatKey): number {
-  return expressStat(locusValue(genome.stats[stat]), vigourValue(genome.vigour), stat, genome.coi);
+  const v = expressStat(locusValue(genome.stats[stat]), vigourValue(genome.vigour), stat, genome.coi);
+  return stat === "durability" && isFragile(genome) ? Math.max(0, v - FRAGILE_DURABILITY_PENALTY) : v;
 }
 
 export function potentials(genome: Genome): StatRecord<number> {

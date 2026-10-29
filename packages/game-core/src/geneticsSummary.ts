@@ -9,6 +9,7 @@
  */
 import type { FaceMarking, HorseAppearance, LegMarking } from "@thoroughbred/shared";
 import { adultCoatName } from "./coat";
+import { isFragile } from "./genome";
 import { QUIRK_KEYS, type Breed, type Genome, type QuirkKey } from "./types";
 
 /** One coat locus in standard notation (dominant allele first) with its plain meaning. */
@@ -33,6 +34,8 @@ export interface GeneticsSummary {
   /** COI: percent with one decimal, "None" when 0. */
   inbreeding: { permille: number; text: string };
   quirks: { key: QuirkKey; label: string }[];
+  /** Fragile legs (inherited): public stud-book information, like the coat. */
+  fragile: boolean;
 }
 
 const count = <T extends string>(pair: readonly [T, T], v: T) => (pair[0] === v ? 1 : 0) + (pair[1] === v ? 1 : 0);
@@ -159,6 +162,7 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
     build: buildOf(genome),
     inbreeding: { permille: genome.coi, text: genome.coi === 0 ? "None" : genome.coi % 10 === 0 ? `${Math.floor(genome.coi / 10)}%` : `${Math.floor(genome.coi / 10)}.${genome.coi % 10}%` },
     quirks: QUIRK_KEYS.filter((q) => revealed.has(q)).map((q) => ({ key: q, label: QUIRK_LABEL[q] })),
+    fragile: isFragile(genome),
   };
 }
 

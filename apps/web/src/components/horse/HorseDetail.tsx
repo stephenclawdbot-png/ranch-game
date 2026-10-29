@@ -270,6 +270,14 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
             <dd className="min-w-0 font-bold capitalize">{gen.build}</dd>
             <dt className="label self-center">Inbreeding</dt>
             <dd className="font-bold">{gen.inbreeding.text}</dd>
+            {gen.fragile && (
+              <>
+                <dt className="label self-center">Soundness</dt>
+                <dd className="min-w-0 font-bold text-claret" data-testid="genetics-fragile" title="A dominant gene: more injury-prone in races, a lower durability ceiling, and half its foals can inherit it">
+                  Fragile legs (inherited)
+                </dd>
+              </>
+            )}
           </dl>
           <ul className="grid gap-1.5" aria-label="Breed mix">
             {gen.breed.map((b) => (

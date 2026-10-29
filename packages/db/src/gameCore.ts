@@ -35,6 +35,9 @@ export interface HorseDynamics {
   peakOr?: number;
   retiredAtStarts?: number;
   lastCareDay?: number | null;
+  /** Set when a fatal race injury ended the horse's life (it stays on the Legacy Farm in memoriam). */
+  diedAtMs?: number;
+  diedAtRaceId?: string;
 }
 
 function defaultTraining(): gc.HorseState["training"] {
@@ -182,7 +185,12 @@ export const gameCoreHooks: GameHooks = {
   },
   breedFoal: ({ seed, sire, dam, name, coi, season, family }) => {
     if (!isGenome(sire.genome) || !isGenome(dam.genome)) return { ...placeholderFallback(seed, `foal:${sire.id}:${dam.id}`, 0, name), careSessions: 0 };
-    const genome = gc.inherit(sire.genome, dam.genome, seed, { coi: coi ?? 0, family: (family ?? []).map((r) => r.genome).filter(isGenome) });
+    const genome = gc.inherit(sire.genome, dam.genome, seed, {
+      coi: coi ?? 0,
+      family: (family ?? []).map((r) => r.genome).filter(isGenome),
+      // a parent whose racing ended in an injury may pass on fragile legs
+      injured: { sire: sire.retirementReason === "injury", dam: dam.retirementReason === "injury" },
+    });
     const sex = new gc.Rng(`${seed}|sex`).chance(500) ? "colt" : "filly";
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });

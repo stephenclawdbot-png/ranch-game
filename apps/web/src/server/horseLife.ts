@@ -43,7 +43,7 @@ import {
 } from "@thoroughbred/db";
 import type { Db } from "./db";
 import type { Session } from "./session";
-import { geneticsLineOf, horseFromRow, parseSilks, stableHorseView } from "./horseView";
+import { diedAtOf, geneticsLineOf, horseFromRow, parseSilks, stableHorseView } from "./horseView";
 import type {
   CareView,
   CareerView,
@@ -164,10 +164,10 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
     injury: inj
       ? {
           severity: inj.severity,
-          label: inj.severity === "career_ending" ? "Career-ending injury" : inj.severity === "moderate" ? "Moderate injury" : "Minor injury",
+          label: inj.severity === "fatal" ? "Fatal injury" : inj.severity === "career_ending" ? "Career-ending injury" : inj.severity === "moderate" ? "Moderate injury" : "Minor injury",
           hoursLeft: gc.hoursToHeal(inj, nowMs),
           untilMs: nowMs + gc.hoursToHeal(inj, nowMs) * HOUR,
-          careerEnding: inj.severity === "career_ending",
+          careerEnding: inj.severity === "career_ending" || inj.severity === "fatal",
           vetCost: gc.VET_TREATMENT_COST,
           treatedToday: await vetTreatedOn(db, row.id, inj.atMs, day),
         }
@@ -244,6 +244,7 @@ async function careerView(db: Db, row: HorseRow, state: gc.HorseState): Promise<
     stageLabel: STAGE_TEXT[stage] ?? stage,
     careerStatus: row.careerStatus,
     retirementReason: row.retirementReason,
+    diedAtMs: diedAtOf(row),
     stages: [
       { key: "juvenile", label: "Juvenile", from: 0, to: gc.JUVENILE_MAX_STARTS, current: current(0, gc.JUVENILE_MAX_STARTS) },
       { key: "prime", label: "Prime", from: gc.JUVENILE_MAX_STARTS + 1, to: gc.PRIME_MAX_STARTS, current: current(gc.JUVENILE_MAX_STARTS + 1, gc.PRIME_MAX_STARTS) },

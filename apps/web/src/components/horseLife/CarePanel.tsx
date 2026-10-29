@@ -140,7 +140,11 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
         <h2 id="inj-h" className="t-h2">
           Injuries
         </h2>
-        {cond.injury ? (
+        {cond.injury?.severity === "fatal" ? (
+          <p className="font-extrabold text-negative" data-testid="injury-status">
+            Fatal injury. In memoriam: the horse rests on the Legacy Farm, and its record and foals carry the line on.
+          </p>
+        ) : cond.injury ? (
           <div className="grid gap-2">
             <p className="font-extrabold text-negative" data-testid="injury-status">
               {cond.injury.label} · back in {hoursText(cond.injury.hoursLeft)} ({dayName(cond.injury.untilMs)})
