@@ -193,6 +193,6 @@ export async function listCardRaces(ex: Executor, input: { from: Date; to: Date;
     })
     .from(races)
     .where(and(like(races.slotKey, "live:%"), gte(races.postTime, input.from), lte(races.postTime, input.to)))
-    .orderBy(asc(races.postTime));
+    .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
   return rows.map((r) => ({ ...publicRace(r.race), entered: Number(r.entered), mine: Number(r.mine) }));
 }

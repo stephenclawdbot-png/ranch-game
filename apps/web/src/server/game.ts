@@ -28,6 +28,7 @@ import {
   getRace as dbGetRace,
   getRaceForSimulation,
   getRaceResult,
+  isDomainError,
   facilityLevels,
   goalsForToday,
   breedingStatus,
@@ -47,6 +48,7 @@ import {
   lockField,
   markInboxRead,
   occupancy,
+  openSlotRace,
   refillEntries,
   scratchEntry,
   settleRace,
@@ -430,7 +432,17 @@ export async function raceList(db: Db, now: Date, viewerStableId: string | null,
   const nowMs = now.getTime();
   const ahead = await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: viewerStableId });
   const behind = await listCardRaces(db, { from: new Date(nowMs - 8 * RULES.slotMs), to: now, stableId: viewerStableId });
-  const upcoming = await Promise.all(ahead.slice(0, opts.upcoming ?? 6).map((r) => summarize(db, r, now)));
+  const rows = ahead.slice(0, opts.upcoming ?? 6);
+  const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now)));
+  // Sister courses (§4d) sort right after their original: name them under the original's row.
+  for (const [i, r] of rows.entries()) {
+    if (!r.slotKey || !/^live:\d+$/.test(r.slotKey)) continue;
+    const courses = rows
+      .filter((s) => s.slotKey?.startsWith(`${r.slotKey}:`))
+      .map((s) => String((s.conditions as RaceConditions).track ?? ""))
+      .filter(Boolean);
+    if (courses.length) upcoming[i]!.alsoAt = courses;
+  }
   const recent = await Promise.all(
     behind
       .filter((r) => r.status !== "cancelled")
@@ -531,15 +543,26 @@ function entryMeta(session: Session, plan: RacePlan) {
 export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date) {
   if (!isRaceId(raceId)) throw new RaceNotFoundError(raceId);
   await driveCard(db, now);
-  const race = await loadRace(db, raceId);
+  let race = await loadRace(db, raceId);
   if (race.kind === "quick") throw new DomainError("NOT_ELIGIBLE", "Story races are entered from Story mode");
   // Licences only ever go up, so checking the request's stable row is safe outside the entry transaction.
   const licence = licenceReason(race, session.stable.licenceLevel);
   if (licence) throw new DomainError("NOT_ELIGIBLE", licence);
-  const entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta: entryMeta(session, plan) });
+  const meta = entryMeta(session, plan);
+  let entry: Awaited<ReturnType<typeof enterRace>>;
+  try {
+    entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta });
+  } catch (e) {
+    // A full Live race has a sister course in the same slot (§4d): retry once there.
+    if (!isDomainError(e, "RACE_FULL")) throw e;
+    const sister = await openSlotRace(db, raceId, now);
+    if (!sister) throw e;
+    race = await loadRace(db, sister.id);
+    entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta });
+  }
   // Racing Live puts the stable in this week's league (idempotent; never blocks the entry).
   await ensureLeagueMembership(db, { accountId: session.accountId, now }).catch((e) => console.error("[game] league join failed", e));
-  return { raceId, horseId: entry.horseId, postTimeMs: race.postTime.getTime(), entriesCloseAtMs: race.entriesCloseAt.getTime() };
+  return { raceId: race.id, horseId: entry.horseId, postTimeMs: race.postTime.getTime(), entriesCloseAtMs: race.entriesCloseAt.getTime() };
 }
 
 export async function scratchLive(db: Db, session: Session, raceId: string, horseId: string, now: Date) {
@@ -656,12 +679,16 @@ export interface LivePick {
   tactic: Horse["style"];
   postTimeMs: number;
   reason: string;
+  /** Other player stables already in the race (0 = a Club field). */
+  rivals: number;
 }
 
 /**
  * Live Quick Pick (§4d): enter the best-fit fresh horse into the next suitable race on the
  * card. Races are tried soonest first; a horse must be eligible (game-core rules + band) and
- * fit the trip and ground well (grade B or better), else the best fit in the next few races.
+ * fit the trip and ground well, else the best fit in the next few races. Races with real
+ * players in them score better (6 points a stable, up to 4), so quick-join groups players;
+ * a race that is already full still wins on score, and the entry lands on its sister course.
  */
 export async function quickPickLive(db: Db, session: Session, now: Date): Promise<LivePick> {
   await driveCard(db, now);
@@ -672,34 +699,49 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
   const fresh = candidates.filter((c) => c.view.condition !== "tired");
   const pool = fresh.length ? fresh : candidates;
   if (!pool.length) throw new DomainError("NOT_ELIGIBLE", candidates.length ? "your horses are tired" : "none of your horses can race right now");
+  // Other player stables in each race (lazy: the loop usually stops at the first good fit).
+  const rivalStables = new Map<string, number>();
+  const rivalsOf = async (raceId: string): Promise<number> => {
+    let n = rivalStables.get(raceId);
+    if (n === undefined) {
+      n = new Set((await listRaceEntries(db, raceId)).filter((e) => e.stableId && e.stableId !== session.stable.id).map((e) => e.stableId)).size;
+      rivalStables.set(raceId, n);
+    }
+    return n;
+  };
   const card = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: session.stable.id }))
-    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.entered < r.maxRunners)
+    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000) // full races stay: their sister takes the entry
     .slice(0, 8);
-  let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; wait: number } | null = null;
+  let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; score: number } | null = null;
   for (const [i, race] of card.entries()) {
     const fits = pool.filter((c) => entryReason(c.row, race, now, session.stable.licenceLevel) === null).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
     fits.sort((a, b) => a.loss - b.loss);
     const top = fits[0];
     if (!top) continue;
-    if (top.loss <= 25) {
-      best = { race, c: top.c, loss: top.loss, wait: i };
-      break;
+    const bonus = 6 * Math.min(await rivalsOf(race.id), 4);
+    const score = top.loss + i * 4 - bonus; // fit + 4 a slot of waiting - the draw of real players
+    if (top.loss - bonus <= 25) {
+      best = { race, c: top.c, loss: top.loss, score };
+      break; // a good fit wins early, social bonus included
     }
-    if (!best || top.loss + i * 4 < best.loss + best.wait * 4) best = { race, c: top.c, loss: top.loss, wait: i };
+    if (!best || score < best.score) best = { race, c: top.c, loss: top.loss, score };
   }
   if (!best) throw new DomainError("NOT_ELIGIBLE", "no race on the card suits your horses right now");
   const { race, c } = best;
   const plan: RacePlan = { tactic: c.horse.style, intensity: "normal" };
-  await enterLive(db, session, race.id, c.row.id, plan, now);
+  const entered = await enterLive(db, session, race.id, c.row.id, plan, now);
+  // A full race's entry lands on its sister course: report the race actually entered.
+  const run = entered.raceId === race.id ? race : await loadRace(db, entered.raceId);
   const conds = raceConds(race);
   const fitWord = best.loss <= 10 ? "a great fit" : best.loss <= 25 ? "a good fit" : "the best fit on the card";
   return {
-    raceId: race.id,
-    raceName: race.name,
+    raceId: run.id,
+    raceName: run.name,
     horseId: c.row.id,
     horseName: c.horse.name,
     tactic: plan.tactic,
-    postTimeMs: race.postTime.getTime(),
+    postTimeMs: run.postTime.getTime(),
+    rivals: await rivalsOf(run.id),
     reason: `${c.horse.name}: ${fitWord} at ${conds.distanceM.toLocaleString("en-GB")} m on ${conds.surface}${c.view.condition === "fresh" ? ", and fresh" : ""}`,
   };
 }

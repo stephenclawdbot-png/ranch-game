@@ -44,6 +44,8 @@ export interface LivePickResult {
   horseName: string;
   postTimeMs: number;
   reason: string;
+  /** Other player stables in the race (0 = racing a Club field). */
+  rivals: number;
 }
 
 type Target =
@@ -399,6 +401,9 @@ function LivePickCard({
         <div className="min-w-0">
           <p className="text-cream" data-testid="live-pick-reason">
             {r.reason}.
+          </p>
+          <p className="mt-1 text-sm font-bold text-cream-dim" data-testid="live-pick-rivals">
+            {r.rivals > 0 ? `Racing against ${r.rivals} other ${r.rivals === 1 ? "stable" : "stables"}` : "Club field"}
           </p>
           <p className="mt-1 text-sm text-cream-dim">
             Off at {formatClock(r.postTimeMs)} (in <Countdown targetMs={r.postTimeMs} doneLabel="now" className="text-cream" />). {state.entries.balance} stable{" "}

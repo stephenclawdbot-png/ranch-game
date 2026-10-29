@@ -20,6 +20,7 @@ import { gc, isGenome, statePatch, toHorseState, type HorseState } from "../game
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
+import { ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { completeGoal } from "./dailyGoals";
 import { isCarrying, lockHorse, startsOnDay } from "./horses";
@@ -244,6 +245,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       .returning();
     await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
     await recordPlayDay(tx, input.accountId, input.now);
+    // One gate left in a Live card race: open a sister course in the same slot (§4d, card.ts).
+    if (active.length + 1 >= race.maxRunners - 1) await ensureSisterRace(tx, race, input.now);
     // Today's "run a race" goal on the wall clock (a no-op once it has already paid today);
     // a cancelled race keeps the day's goal (owner-accepted edge).
     await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.goalNow ?? input.now });

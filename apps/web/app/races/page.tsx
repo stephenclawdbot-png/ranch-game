@@ -34,7 +34,7 @@ export default async function RacesPage() {
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <RaceBoard title="Coming up" note="Entries close 30 seconds before the off">
             {upcoming.map((r) => (
-              <UpcomingRaceRow key={r.id} race={r} />
+              <UpcomingRaceRow key={r.id} race={r} alsoAt={r.alsoAt} />
             ))}
           </RaceBoard>
           {recent.length ? (

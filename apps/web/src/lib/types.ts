@@ -67,6 +67,8 @@ export interface RaceSummary {
   phase: "open" | "closed" | "live" | "finished";
   /** The viewer's horses entered in this race. */
   mine: number;
+  /** Sister courses running the same race in the same slot (original rows only). */
+  alsoAt?: string[];
   /** When the result became official. Only present once finished. */
   endsAtMs?: number;
   /** Only present once the race has finished on the broadcast clock. */
