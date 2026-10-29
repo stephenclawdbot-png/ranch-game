@@ -9,10 +9,10 @@
  *   - self-breeding: CHECK on breeding_events and horses.
  * Kinship (parent/child, full siblings) is checked from the pedigree.
  */
-import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
 import { DomainError, type DomainErrorCode } from "../errors";
-import { breedingEvents, horses, lineageEdges, pregnancies, type HorseRow, type PregnancyRow } from "../schema";
+import { breedingEvents, horses, inboxItems, lineageEdges, pregnancies, type HorseRow, type PregnancyRow } from "../schema";
 import { RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { gc, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -168,6 +168,8 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
       })
       .returning();
     await tx.update(horses).set({ breedingCount: sql`${horses.breedingCount} + 1`, updatedAt: input.now }).where(inArray(horses.id, [sire.id, dam.id]));
+    // the stallion's last covering retires him for good now (the mare goes once she has foaled)
+    await retireSpentBreeders(tx, [sire.id], input.now);
     const seed = newSeed();
     const dueAt = new Date(input.now.getTime() + RULES.pregnancyMs);
     const [preg] = await tx
@@ -183,6 +185,36 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
     });
     return { breedingEventId: event!.id, pregnancyId: preg!.id, dueAt, seedCommitment: preg!.seedCommitment, coiBp, duplicate: false };
   });
+}
+
+/**
+ * A horse at stud / broodmare that has used its last breeding retires for good to the Legacy
+ * Farm (frees its stall, stops standing at stud), and its owner gets a note. Racing horses that
+ * breed keep racing; a mare in foal goes after foaling; listed horses wait for the listing.
+ */
+async function retireSpentBreeders(ex: Executor, ids: readonly string[], now: Date): Promise<string[]> {
+  if (!ids.length) return [];
+  const spent = await ex
+    .update(horses)
+    .set({ careerStatus: "pasture", pasturedAt: now, studFee: null, updatedAt: now })
+    .where(and(inArray(horses.id, [...ids]), eq(horses.careerStatus, "retired"), gte(horses.breedingCount, RULES.breedingLifetimeLimit), isNull(horses.lockKind)))
+    .returning();
+  for (const h of spent) {
+    if (!h.ownerStableId) continue;
+    await ex
+      .insert(inboxItems)
+      .values({
+        accountId: await accountIdOfStable(ex, h.ownerStableId),
+        kind: "retired",
+        dedupeKey: `retired-spent:${h.id}`,
+        title: `${h.name} has used every breeding and retired for good to the Legacy Farm`,
+        data: { reason: "breedings_used" },
+        horseId: h.id,
+        createdAt: now,
+      })
+      .onConflictDoNothing();
+  }
+  return spent.map((h) => h.id);
 }
 
 export interface FoalResult {
@@ -272,6 +304,7 @@ export async function foalTx(
     .set({ status: "foaled", foalId, foaledAt: input.now, seedRevealed: true })
     .where(eq(pregnancies.id, preg.id))
     .returning();
+  await retireSpentBreeders(tx, [dam.id], input.now);
   const inOverflow = ownerStable ? (await occupancy(tx, ownerStable)).overflow : false;
   await audit(tx, { actor: null, action: "breeding.foal", entityType: "horse", entityId: foalId, data: { pregnancyId: preg.id, seed: preg.seed, inOverflow } });
   return { foalId, pregnancy: updated!, inOverflow, alreadyFoaled: false };

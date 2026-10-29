@@ -37,7 +37,12 @@ export interface LiveRun {
   raceClass: string;
   kind: string;
   postTime: Date;
+  /** A Group 1: the Weekend Feature or a Season Final (the hourly Features are Listed / Group 3). */
+  group1?: boolean;
 }
+
+/** SQL: is this race (alias "races") a Group 1, i.e. a Season Final or the Weekend Feature. */
+export const GROUP1_RACE_SQL = sql`("races"."kind" = 'final' or "races"."conditions"->'calendar'->>'kind' = 'weekend_feature')`;
 
 /** Settled Live runs in [from, to), optionally only for some accounts. */
 export async function liveRunsBetween(ex: Executor, input: { from: Date; to: Date; accountIds?: string[] }): Promise<LiveRun[]> {
@@ -50,6 +55,7 @@ export async function liveRunsBetween(ex: Executor, input: { from: Date; to: Dat
       raceClass: races.raceClass,
       kind: races.kind,
       postTime: races.postTime,
+      group1: sql<boolean>`${GROUP1_RACE_SQL}`,
       fieldSize: sql<number>`(select count(*)::int from race_entries x where x.race_id = "races"."id" and x.status = 'entered')`,
     })
     .from(raceEntries)
@@ -69,8 +75,11 @@ export async function liveRunsBetween(ex: Executor, input: { from: Date; to: Dat
   return rows.map((r) => ({ ...r, position: r.position ?? 99, fieldSize: Number(r.fieldSize) }));
 }
 
-function bonusTier(raceClass: string): string {
-  return raceClass === "graded" ? "g3" : raceClass === "listed" ? "listed" : "";
+type PointsRun = Pick<LiveRun, "position" | "fieldSize" | "raceClass"> & { group1?: boolean };
+
+function bonusTier(run: PointsRun): string {
+  if (run.group1) return "g1";
+  return run.raceClass === "graded" ? "g3" : run.raceClass === "listed" ? "listed" : "";
 }
 
 export interface WeekScore {
@@ -81,12 +90,12 @@ export interface WeekScore {
 }
 
 /** Points of one Live run (start point + placing + tier bonus), before the weekly cap. */
-export function runPoints(run: Pick<LiveRun, "position" | "fieldSize" | "raceClass">): number {
-  return gc.racePoints(run.position, run.fieldSize, gc.tierBonus(bonusTier(run.raceClass), run.position));
+export function runPoints(run: PointsRun): number {
+  return gc.racePoints(run.position, run.fieldSize, gc.tierBonus(bonusTier(run), run.position));
 }
 
 /** League points of one owner's runs in one week (capped). */
-export function weekScore(runs: readonly Pick<LiveRun, "position" | "fieldSize" | "raceClass">[]): WeekScore {
+export function weekScore(runs: readonly PointsRun[]): WeekScore {
   let points = 0;
   let wins = 0;
   let best = 0;

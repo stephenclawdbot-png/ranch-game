@@ -4,6 +4,7 @@
  * them. Paddock Pack for credits (3 a week) plus a free one every 3rd play day; the Premium
  * Pack is a demo here (no payments). The seasonal foal crop is public.
  */
+import { PREMIUM_PER_WEEK } from "@thoroughbred/game-core";
 import Link from "next/link";
 import { useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -141,7 +142,7 @@ export function PacksScreen() {
       </section>
 
       <p className="caption">
-        Stable Credits are never cashed out, and packs never contain credits. Paid Premium Packs are capped at 10 a week and unavailable where paid loot boxes are restricted.
+        Stable Credits are never cashed out, and packs never contain credits. Paid Premium Packs are capped at {PREMIUM_PER_WEEK} a week and unavailable where paid loot boxes are restricted.
       </p>
 
       {result && result.foal && (

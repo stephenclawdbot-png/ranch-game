@@ -51,7 +51,11 @@ const utcClock = (ms: number) => {
 
 export default function RaceTypesPage() {
   const { rows: hour, feats } = liveHour();
-  const calendar = gc.featureCalendar(SEASON_CLOCK, 1);
+  // the calendar races as the Live card publishes them (its purses and fees)
+  const calendar = gc.featureCalendar(SEASON_CLOCK, 1).map((r) => {
+    const card = defaultCardSlot(Math.floor((r.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
+    return { ...r, purse: card.purse ?? 0, entryFee: card.entryFee ?? 0 };
+  });
   const qualifier = calendar.find((r) => r.kind === "feature_qualifier")!;
   const weekend = calendar.find((r) => r.kind === "weekend_feature")!;
   const finals = calendar.filter((r) => r.kind === "season_final");
@@ -135,16 +139,17 @@ export default function RaceTypesPage() {
         the <GameLink href="/league">League</GameLink> page.
       </P>
       <Table
-        head={["Race", "When", "Purse", "Runners", "Entries"]}
+        head={["Race", "When", "Purse", "Runners", "Entries", "Entry fee"]}
         rows={[
-          ["Feature Qualifier (Listed)", `Monday to Friday, ${utcClock(slotStart(qualifier.postTimeMs))}`, formatCredits(qualifier.purse), `up to ${qualifier.maxRunners}`, entryCostFor("scheduled", "listed")],
-          ["Weekend Feature (Group 1)", `Saturday, ${utcClock(slotStart(weekend.postTimeMs))}`, formatCredits(weekend.purse), `up to ${weekend.maxRunners}`, entryCostFor("feature", "graded")],
+          ["Feature Qualifier (Listed)", `Monday to Friday, ${utcClock(slotStart(qualifier.postTimeMs))}`, formatCredits(qualifier.purse), `up to ${qualifier.maxRunners}`, entryCostFor("scheduled", "listed"), `${formatCredits(qualifier.entryFee)} cr`],
+          ["Weekend Feature (Group 1)", `Saturday, ${utcClock(slotStart(weekend.postTimeMs))}`, formatCredits(weekend.purse), `up to ${weekend.maxRunners}`, entryCostFor("feature", "graded"), `${formatCredits(weekend.entryFee)} cr`],
           [
             "Season Final (one per division)",
             `Last day of the season, ${finals.map((f) => utcClock(slotStart(f.postTimeMs))).join(", ")}`,
             formatCredits(finals[0]!.purse),
             `up to ${finals[0]!.maxRunners}`,
             entryCostFor("final", "graded"),
+            `${formatCredits(finals[0]!.entryFee)} cr`,
           ],
         ]}
       />

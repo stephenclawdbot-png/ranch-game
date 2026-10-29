@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatDistance } from "@/lib/format";
+import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCredits, formatDistance } from "@/lib/format";
 import { api, recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
 import type { RacePlan, RaceSummary, RiskView } from "@/lib/types";
 import { Countdown } from "../Countdown";
@@ -340,6 +340,12 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
         <p className="-mt-3 text-sm text-cream-dim">
           {raceMetaLine(race)} · off {formatClock(race.postTimeMs)} · entries close in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" className="text-cream" /> ·{" "}
           {race.entryCost} {race.entryCost === 1 ? "entry" : "entries"} ({state.entries.balance} left)
+          {race.entryFee > 0 && (
+            <>
+              {" "}
+              · <span className="text-cream" data-testid="entry-fee">{formatCredits(race.entryFee)} cr entry fee</span>
+            </>
+          )}
         </p>
       )}
       {loadError !== null && <ErrorNote error={loadError} />}
@@ -353,7 +359,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       <div className="grid [&>.btn]:w-full">
         <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data} onClick={go} data-testid="enter-live">
           <PixelIcon name="flag" size={32} className="-my-2" />
-          {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}`}
+          {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}${race && race.entryFee > 0 ? ` + ${formatCredits(race.entryFee)} cr` : ""}`}
         </button>
       </div>
     </div>

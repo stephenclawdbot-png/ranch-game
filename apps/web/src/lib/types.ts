@@ -65,6 +65,8 @@ export interface RaceSummary {
   postTimeMs: number;
   entriesCloseAtMs: number;
   entryCost: number;
+  /** Credit entry fee on top of the stable entries (top classes only; 0 for most races). */
+  entryFee: number;
   /** Entered so far (open) or the locked field size. */
   fieldSize: number;
   targetRunners: number;

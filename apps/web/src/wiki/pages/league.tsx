@@ -11,7 +11,7 @@ function seasonFinals() {
   const finals = gc.featureCalendar(SEASON_CLOCK, 1).filter((r) => r.kind === "season_final");
   return finals.map((f) => {
     const card = defaultCardSlot(Math.floor((f.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
-    return { division: f.division!, distanceM: f.distanceM, surface: f.surface, purse: f.purse, minRating: card.conditions.minRating, runners: card.maxRunners, utc: new Date(card.postTime).toISOString().slice(11, 16) };
+    return { division: f.division!, distanceM: f.distanceM, surface: f.surface, purse: card.purse ?? 0, minRating: card.conditions.minRating, runners: card.maxRunners, utc: new Date(card.postTime).toISOString().slice(11, 16) };
   });
 }
 

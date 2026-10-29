@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { defaultCardSlot, slotIndexAt, type CreateRaceInput } from "@thoroughbred/db";
+import { CALENDAR_PURSE, defaultCardSlot, slotIndexAt, type CreateRaceInput } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceConds, raceTier } from "./horseView";
 
@@ -77,7 +77,7 @@ describe("Live card content fits the horses players actually have", () => {
       const slot = defaultCardSlot(slotIndexAt(new Date(sp.postTimeMs)));
       expect(slot.kind).toBe(sp.kind === "season_final" ? "final" : "feature");
       expect(slot.name).toContain(sp.name);
-      expect(slot.purse).toBe(sp.purse);
+      expect(slot.purse).toBe(CALENDAR_PURSE[sp.kind as keyof typeof CALENDAR_PURSE]);
     }
   });
 });

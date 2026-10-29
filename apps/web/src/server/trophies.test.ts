@@ -7,7 +7,6 @@ describe("Trophy Room tiers", () => {
     expect(trophyTier("feature", "handicap", 1)).toBe("gold");
     expect(trophyTier("scheduled", "graded", 1)).toBe("gold");
     expect(trophyTier("scheduled", "listed", 1)).toBe("silver");
-    expect(trophyTier("daily_cup", "novice", 1)).toBe("silver");
     expect(trophyTier("scheduled", "maiden", 1)).toBe("bronze");
     expect(trophyTier("quick", "maiden", 1)).toBe("first");
     expect(trophyTier("final", "graded", 2)).toBe("second");

@@ -51,6 +51,28 @@ const HCP_75: ClassDef = { raceClass: "handicap", label: "Handicap (50-75)", con
 const HCP_95: ClassDef = { raceClass: "handicap", label: "Handicap (70-95)", conditions: { minRating: 70, maxRating: 95 }, purse: 5_000 };
 const LISTED: ClassDef = { raceClass: "listed", label: "Listed Stakes", conditions: { minRating: 85 }, purse: 8_000 };
 const GROUP3: ClassDef = { raceClass: "graded", label: "Group 3", conditions: { minRating: 95 }, purse: 12_000 };
+/** Hourly Features pay this multiple of their class purse. */
+const FEATURE_PURSE_MULTIPLIER = 2;
+
+/**
+ * Calendar races, priced on the Live card's scale so each one pays more than anything on the
+ * hourly card below it: a Feature Qualifier at least an hourly Listed Feature, the Weekend
+ * Feature twice the richest hourly race (a Group 3 Feature), the Season Final three times.
+ * (game-core's featureCalendar keeps its own tier-model purses; the card uses these.)
+ */
+export const CALENDAR_PURSE: Record<"feature_qualifier" | "weekend_feature" | "season_final", number> = {
+  feature_qualifier: LISTED.purse * FEATURE_PURSE_MULTIPLIER,
+  weekend_feature: GROUP3.purse * FEATURE_PURSE_MULTIPLIER * 2,
+  season_final: GROUP3.purse * FEATURE_PURSE_MULTIPLIER * 3,
+};
+
+/** Credit entry fee (a sink, on top of the stable entries) for the top classes, from game-core's tier fees. */
+export function cardEntryFee(raceClass: string, opts: { group1?: boolean } = {}): number {
+  if (opts.group1) return gc.ENTRY_FEE_BY_TIER.g1;
+  if (raceClass === "graded") return gc.ENTRY_FEE_BY_TIER.g3;
+  if (raceClass === "listed") return gc.ENTRY_FEE_BY_TIER.listed;
+  return 0;
+}
 
 /**
  * One hour of the card (20 slots, a race every 3 minutes). Slot 0 is the hourly Feature
@@ -116,7 +138,8 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
     },
     postTime,
     entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
-    purse: sp.purse,
+    purse: sp.kind === "season_final" || sp.kind === "weekend_feature" || sp.kind === "feature_qualifier" ? CALENDAR_PURSE[sp.kind] : sp.purse,
+    entryFee: cardEntryFee(final || weekend ? "graded" : "listed", { group1: final || weekend }),
     maxRunners: Math.min(16, sp.maxRunners),
     targetRunners: RULES.maxField,
     seasonNumber: sp.season,
@@ -180,7 +203,8 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     conditions,
     postTime,
     entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
-    purse: feature ? def.purse * 2 : def.purse,
+    purse: feature ? def.purse * FEATURE_PURSE_MULTIPLIER : def.purse,
+    entryFee: cardEntryFee(def.raceClass),
     maxRunners: RULES.maxField,
     targetRunners: RULES.minField + (h[29]! % (RULES.maxField - RULES.minField + 1)),
     seasonNumber: seasonNumberAt(postTime),

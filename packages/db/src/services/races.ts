@@ -11,7 +11,7 @@
  * (lazy-on-read plus the cron backstop) serialise: the first does the work, the rest read
  * the stored outcome. Lock order everywhere: race → stable → horse(s).
  */
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
@@ -181,6 +181,32 @@ export function classEligibility(h: HorseRow, race: Pick<RaceRow, "raceClass" | 
   return null;
 }
 
+/** The Weekend Feature's qualifying window: the week of qualifiers before it. */
+const FEATURE_QUALIFYING_WINDOW_MS = 7 * 86_400_000;
+
+/**
+ * Weekend Feature places (game-core featureQualified): a top-3 finish in a Feature Qualifier in
+ * the week before the race, or an official rating of 100+ by right. Other races: no check.
+ */
+export async function featureQualificationReason(ex: Executor, h: HorseRow, race: Pick<RaceRow, "postTime" | "conditions">): Promise<string | null> {
+  const cal = ((race.conditions ?? {}) as RaceConditions).calendar as { kind?: string } | undefined;
+  if (cal?.kind !== "weekend_feature") return null;
+  const rows = await ex
+    .select({ position: raceEntries.finishPosition })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(
+      and(
+        eq(raceEntries.horseId, h.id),
+        sql`${races.conditions}->'calendar'->>'kind' = 'feature_qualifier'`,
+        gte(races.postTime, new Date(race.postTime.getTime() - FEATURE_QUALIFYING_WINDOW_MS)),
+        lt(races.postTime, race.postTime),
+      ),
+    );
+  const finishes = rows.map((r) => r.position).filter((p): p is number => p !== null);
+  return gc.featureQualified(finishes, h.rating) ? null : "the Weekend Feature needs a top-3 finish in this week's Feature Qualifiers (or a rating of 100+)";
+}
+
 // ---------------------------------------------------------------------------
 // Entering & scratching
 // ---------------------------------------------------------------------------
@@ -229,6 +255,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     }
     const reason = hooks.raceEligibility ? hooks.raceEligibility({ horse, race, now: input.now }) : classEligibility(horse, race);
     if (reason) throw new DomainError("NOT_ELIGIBLE", reason);
+    const qualifying = await featureQualificationReason(tx, horse, race);
+    if (qualifying) throw new DomainError("NOT_ELIGIBLE", qualifying);
 
     const active = await listRaceEntries(tx, race.id);
     if (active.length >= race.maxRunners) throw new DomainError("RACE_FULL", "the field is full");

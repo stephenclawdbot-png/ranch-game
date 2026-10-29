@@ -63,6 +63,8 @@ import {
   tickRaceCard,
   toHorseState,
   RULES,
+  classEligibility,
+  featureQualificationReason,
   type CardHooks,
   type Db,
   type FieldRunner,
@@ -414,6 +416,7 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
     postTimeMs: race.postTime.getTime(),
     entriesCloseAtMs: race.entriesCloseAt.getTime(),
     entryCost: race.entryCost,
+    entryFee: race.entryFee,
     fieldSize: race.field ? (race.field as LockedField).runners.length : race.entered,
     targetRunners: race.targetRunners,
     phase: phaseOf(race, now, null),
@@ -634,27 +637,38 @@ export function licenceReason(race: PublicRace, licenceLevel: number): string | 
   return block ? `Needs a ${block.name}: earn it in Story mode` : null;
 }
 
-/** Why a horse can't enter this race (null = eligible): licence, game-core entry rules + the race's rating band. */
+/** game-core's class blocks: the Live card's own conditions decide these (classEligibility), not the tier model. */
+const CLASS_BLOCKS: ReadonlySet<string> = new Set(["rating_too_low", "rating_too_high", "too_many_wins", "juvenile_class", "not_juvenile"]);
+
+const sentence = (s: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : null);
+
+/**
+ * Why a horse can't enter this race (null = eligible), the same rules the server enforces on
+ * entry: licence, the horse's state (age, injury, starts today, in foal), then the race's own
+ * class conditions with the band rating (db classEligibility). Weekend Feature qualifying needs
+ * the database: see entryReasonFull.
+ */
 export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): string | null {
   if (row.lockKind) return row.lockKind === "race" ? "Already entered in a race" : "Listed on the market";
   const licence = licenceLevel === undefined ? null : licenceReason(race, licenceLevel);
   if (licence) return licence;
-  if (!isGenome(row.genome)) return null;
-  const state = toHorseState(row);
-  const block = gc.entryBlock(state, slotFor(race), now.getTime());
-  if (block) return BLOCK_REASON[block] ?? block;
-  const c = race.conditions as RaceConditions;
-  if (c.maxWins !== undefined && row.wins > c.maxWins) return c.maxWins === 0 ? "Maidens only (no wins yet)" : `At most ${c.maxWins} wins`;
-  if (c.minRating !== undefined && row.rating < c.minRating) return `Rating ${row.rating} is below the band (${c.minRating}+)`;
-  if (c.maxRating !== undefined && row.rating > c.maxRating) return `Rating ${row.rating} is above the band (up to ${c.maxRating})`;
-  return null;
+  if (isGenome(row.genome)) {
+    const block = gc.entryBlock(toHorseState(row), slotFor(race), now.getTime());
+    if (block && !CLASS_BLOCKS.has(block)) return BLOCK_REASON[block] ?? block;
+  }
+  return sentence(classEligibility(row, race));
+}
+
+/** entryReason plus the checks that need the database (Weekend Feature qualifying). */
+export async function entryReasonFull(db: Db, row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): Promise<string | null> {
+  return entryReason(row, race, now, licenceLevel) ?? sentence(await featureQualificationReason(db, row, race));
 }
 
 const BLOCK_REASON: Record<string, string> = {
   not_racing_age: "Not yet of racing age",
   retired: "At stud: no longer racing",
   injured: "Recovering from injury",
-  daily_limit: "Raced 3 times today",
+  daily_limit: `Raced ${RULES.startsPerDay} times today`,
   in_foal: "In foal",
   career_complete: "Career complete",
   rating_too_low: "Rating below this class",
@@ -688,12 +702,12 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
   const silks = parseSilks(session.stable.silks);
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
   const entered = (await listRaceEntries(db, raceId)).filter((e) => e.stableId === session.stable.id);
-  const options = rows.map((row) => {
+  const options = await Promise.all(rows.map(async (row) => {
     const horse = horseFromRow(row, silks, now.getTime());
     const already = entered.some((e) => e.horseId === row.id);
     return {
       horseId: row.id,
-      reason: already ? "Entered" : race.kind === "quick" ? null : entryReason(row, race, now, session.stable.licenceLevel),
+      reason: already ? "Entered" : race.kind === "quick" ? null : await entryReasonFull(db, row, race, now, session.stable.licenceLevel),
       fitLoss: fitLoss(horse, race),
       risk: {
         conservative: raceRisk(row, race, "conservative", now.getTime()),
@@ -701,7 +715,7 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
         all_out: raceRisk(row, race, "all_out", now.getTime()),
       },
     };
-  });
+  }));
   const summary = await summarize(db, { ...race, entered: (await listRaceEntries(db, raceId)).length, mine: entered.length }, now);
   return { race: summary, options };
 }
@@ -749,7 +763,8 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
     .slice(0, 8);
   let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; score: number } | null = null;
   for (const [i, race] of card.entries()) {
-    const fits = pool.filter((c) => entryReason(c.row, race, now, session.stable.licenceLevel) === null).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
+    const open = await Promise.all(pool.map(async (c) => (await entryReasonFull(db, c.row, race, now, session.stable.licenceLevel)) === null));
+    const fits = pool.filter((_, j) => open[j]).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
     fits.sort((a, b) => a.loss - b.loss);
     const top = fits[0];
     if (!top) continue;

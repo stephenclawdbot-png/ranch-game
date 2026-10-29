@@ -338,7 +338,7 @@ export function trophyTier(kind: string, raceClass: string, position: number): T
   if (position === 2) return "second";
   if (position === 3) return "third";
   if (kind === "final" || kind === "feature" || raceClass === "graded") return "gold";
-  if (kind === "daily_cup" || raceClass === "listed") return "silver";
+  if (raceClass === "listed") return "silver";
   if (kind === "scheduled" || kind === "trial") return "bronze";
   return "first";
 }

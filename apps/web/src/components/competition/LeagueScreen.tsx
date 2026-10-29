@@ -65,7 +65,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className={`tier-badge tier-${view.joined ? view.tierName : "none"}`} aria-hidden>
-              <PixelIcon name={view.tier <= 1 ? "badge-gold" : view.tier <= 3 ? "badge-silver" : "badge-bronze"} size={64} />
+              <PixelIcon name={view.tierName === "bronze" ? "badge-bronze" : view.tierName === "silver" ? "badge-silver" : "badge-gold"} size={64} />
             </span>
             <div className="min-w-0">
             <h2 id="my-league-h" className="t-hero" data-testid="league-title">

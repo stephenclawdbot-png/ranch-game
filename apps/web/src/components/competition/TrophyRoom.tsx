@@ -1,6 +1,7 @@
 /**
  * The Trophy Room (REDESIGN §4.8): the stable's own honours on display. Cups for Live wins
- * (gold: finals, features, graded; silver: listed and daily cups; bronze: other Live races),
+ * (gold: finals, features, graded; silver: listed; bronze: other Live races; Daily Cup feats
+ * show as plaques),
  * rosettes for Story wins and places, brass plaques for achievements (the ones still to win
  * stand dimmed with what earns them), medals for titles and Hall of Fame inductions, and the
  * stable's best horses framed on the wall. Every trophy opens the race at the finish.
@@ -102,7 +103,7 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
       <div className="mt-6 grid gap-8">
         <Shelf
           title="Cups"
-          note="Live race wins: gold for finals, features and graded races; silver for listed races and daily cups; bronze for the rest."
+          note="Live race wins: gold for finals, features and graded races; silver for listed races; bronze for the rest. Daily Cup feats hang with the plaques."
           empty={
             view.cups.length ? undefined : (
               <div className="shelf-empty">

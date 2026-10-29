@@ -171,7 +171,7 @@ export async function inductHallOfFame(db: Db, now: Date): Promise<number> {
              count(*) filter (where r.race_class = 'graded')::int as graded,
              count(*) filter (where r.kind = 'final')::int as finals,
              count(*) filter (where r.kind = 'feature')::int as features,
-             count(*) filter (where r.kind in ('feature','final') and r.race_class = 'graded')::int as g1
+             count(*) filter (where (r.kind = 'final' or r.conditions->'calendar'->>'kind' = 'weekend_feature'))::int as g1
         from race_entries e join races r on r.id = e.race_id
        where r.kind in ${LIVE} and r.status = 'settled' and e.is_house = false and e.finish_position = 1
        group by e.horse_id`),
@@ -233,7 +233,7 @@ export async function ownerStats(ex: Executor, accountId: string): Promise<gc.Ow
       select count(*)::int as races,
              count(*) filter (where e.finish_position = 1)::int as wins,
              count(*) filter (where e.finish_position = 1 and r.race_class = 'graded' and r.kind in ${LIVE})::int as graded,
-             count(*) filter (where e.finish_position = 1 and r.race_class = 'graded' and r.kind in ('feature','final'))::int as g1,
+             count(*) filter (where e.finish_position = 1 and (r.kind = 'final' or r.conditions->'calendar'->>'kind' = 'weekend_feature'))::int as g1,
              count(*) filter (where e.finish_position = 1 and (rr.result->>'photoFinish')::boolean)::int as photo,
              count(*) filter (where e.finish_position = 1 and r.kind = 'final')::int as finals
         from race_entries e join races r on r.id = e.race_id left join race_results rr on rr.race_id = r.id
