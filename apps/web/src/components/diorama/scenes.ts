@@ -193,11 +193,12 @@ type StallHorse = "stall-horse-bay" | "stall-horse-grey" | "stall-horse-chestnut
  * chest show, the chest overlaps the door's top rail by `over` px (it is in front of it), the
  * rest of the body is hidden behind the door, and the ears stay just under the lintel.
  */
-function overDoor(name: StallHorse, scale: 1 | 2 | 3, hole: readonly number[], ox: number, oy: number, over: number, dx: number, phase: number): AnimItem {
+function overDoor(name: StallHorse, scale: 1 | 2 | 3, hole: readonly number[], ox: number, oy: number, over: number, dx: number, phase: number, rows?: number): AnimItem {
   const strip = (scale === 1 ? name : `${name}-s${scale}`) as AnimName;
   const a = an[strip];
   const [hx, hy, hw, hh] = hole as [number, number, number, number];
-  const visible = Math.min(a.fh, hh + over - 1);
+  // `rows` keeps exactly that many frame rows (the head and neck) whatever the hole height
+  const visible = Math.min(a.fh, rows ?? hh + over - 1);
   // y is the bottom of the UNcropped frame: the visible part ends `over` px below the door line
   return sheet(strip, ox + hx + Math.round((hw - a.fw) / 2) + dx, oy + hy + hh + over + (a.fh - visible), { cropBottom: a.fh - visible, phase, fps: 3 + (phase % 2) });
 }
@@ -274,11 +275,12 @@ const yard: SceneDef = {
         prop("yard-props", 1, FACADE_X + 590, 288, { shadow: 70 }),
         prop("yard-props", 3, FACADE_X + 520, 286, { shadow: 46 }),
       ],
+      // stall heads end on the half-door line (rows 0-31: ears to throat), the neck behind the door
       anims: [
-        overDoor("stall-horse-bay", 3, yardHoles[1]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 0),
-        overDoor("stall-horse-chestnut", 3, yardHoles[4]!, FACADE_X, FACADE_BOTTOM - 256, 4, 0, 3),
-        overDoor("stall-horse-grey", 3, yardHoles[6]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 5),
-        overDoor("stall-horse-black", 3, yardHoles[2]!, FACADE_X, FACADE_BOTTOM - 256, 4, 2, 2),
+        overDoor("stall-horse-bay", 3, yardHoles[1]!, FACADE_X, FACADE_BOTTOM - 256, 0, 2, 0, 32),
+        overDoor("stall-horse-chestnut", 3, yardHoles[4]!, FACADE_X, FACADE_BOTTOM - 256, 0, 0, 3, 32),
+        overDoor("stall-horse-grey", 3, yardHoles[6]!, FACADE_X, FACADE_BOTTOM - 256, 0, 2, 5, 32),
+        overDoor("stall-horse-black", 3, yardHoles[2]!, FACADE_X, FACADE_BOTTOM - 256, 0, 2, 2, 32),
       ],
     },
     {
