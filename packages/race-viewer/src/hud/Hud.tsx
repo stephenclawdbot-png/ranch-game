@@ -292,7 +292,8 @@ export function Controls(p: ControlsProps) {
           onPointerCancel={p.onScrubEnd}
           onChange={(e) => p.onSeek(Number(e.currentTarget.value))}
         />
-        <span className="rv-elapsed">{p.liveMode ? clockLabel(t) : `${clockLabel(t)} / ${clockLabel(p.duration)}`}</span>
+        {/* Elapsed only, never the total: a known end time reads as "the result is fixed" (owner, 2026-10-29). */}
+        <span className="rv-elapsed">{clockLabel(t)}</span>
       </div>
       {rates.length === 0 ? null : p.narrow ? (
         <button type="button" className="rv-btn" onClick={() => p.onRate(rates[(rates.indexOf(p.rate as never) + 1) % rates.length] ?? 1)} aria-label={`Speed ${p.rate}x`} title="Playback speed">
