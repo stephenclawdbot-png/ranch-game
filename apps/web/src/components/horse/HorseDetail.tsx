@@ -273,7 +273,7 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
             {gen.fragile && (
               <>
                 <dt className="label self-center">Soundness</dt>
-                <dd className="min-w-0 font-bold text-claret" data-testid="genetics-fragile" title="A dominant gene: more injury-prone in races, a lower durability ceiling, and half its foals can inherit it">
+                <dd className="min-w-0 font-bold text-claret" data-testid="genetics-fragile" title="A dominant gene: more injury-prone in races, a lower durability ceiling, and its foals can inherit it (all of them if it carries two copies)">
                   Fragile legs (inherited)
                 </dd>
               </>
