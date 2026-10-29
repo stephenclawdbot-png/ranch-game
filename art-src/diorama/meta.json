@@ -242,23 +242,8 @@
   "source": "diorama/raw/pasture-far-0",
   "seamless": "x (mirror)"
  },
- "pasture-ground": {
-  "source": "diorama/raw/pasture-ground-0",
-  "seamless": "x (min-cut quilt, no mirror)"
- },
- "pasture-ground-s2": {
-  "source": "pasture-ground 2:1 box downsample",
-  "seamless": "x (min-cut quilt)"
- },
- "trophy-room": {
-  "source": "diorama/raw/trophy-room-0"
- },
- "sales-ring-back": {
-  "source": "diorama/raw/sales-ring-back-0",
-  "seamless": "x (mirror)"
- },
- "sales-ring-floor": {
-  "source": "diorama/raw/sales-ring-floor-0",
+ "pasture-meadow": {
+  "source": "diorama/raw/pasture-meadow-0",
   "seamless": "x (min-cut quilt, no mirror)"
  },
  "pasture-fence": {

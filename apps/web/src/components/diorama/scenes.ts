@@ -743,15 +743,15 @@ const pastureBase: SceneDef = {
       haze: 0.08,
       bloom: 0.12,
       y0: 200,
-      y1: 330,
+      y1: 440,
       items: [
-        img("diorama/pasture-ground-s2.png", -120, 330, { tile: true }),
+        // the whole pasture floor: one meadow in perspective, under all three rows
+        img("diorama/pasture-meadow.png", -120, 432, { tile: true }),
         prop("pasture-props", 1, 250, 280, { shadow: 70 }),
         prop("pasture-props", 0, 600, 284, { shadow: 60 }),
       ],
       anims: [],
     },
-    { id: "meadow", depth: 0.85, y0: 318, y1: 400, items: [img("diorama/pasture-ground.png", -160, 482, { tile: true })] },
     // mid row: the sharp focal plane
     { id: "herd", depth: 1, bloom: 0.1, y0: 200, y1: 380, items: [], anims: [] },
     // near row: the lead horse at full HD size, closest to the camera

@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "one continuous green grass paddock seen from a low camera, receding in perspective toward a fence line at the top edge: fine short distant grass at the top, getting gradually larger and more detailed toward the bottom, tufts of grass, clover, small buttercups and daisies scattered evenly, soft golden-hour light, the grass fills the entire image edge to edge with no bands or stripes, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 688,
+   "height": 176
+  },
+  "seed": 21078,
+  "no_background": false,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<167928 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 288
+   },
+   "usage_description": "match this pixel art style, pixel density, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4ef7c411-b79d-43a1-83a6-752c257d9bc7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "4ef7c411-b79d-43a1-83a6-752c257d9bc7",
+  "status": "completed",
+  "created_at": "2026-10-29T11:37:42.069872+00:00",
+  "last_response": {
+   "seed": 21078,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<109012 chars>",
+     "height": 176
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "50d984ab-a524-48f8-b9d5-dc8ce33c4998",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-29T11:37:48.481976+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 29
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/pasture-meadow-0.png"
+ ]
+}

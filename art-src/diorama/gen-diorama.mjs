@@ -113,6 +113,9 @@ export const JOBS = {
   "pasture-ground": img(
     "flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky",
     688, 160, 21071, { opaque: true }),
+  "pasture-meadow": img(
+    "one continuous green grass paddock seen from a low camera, receding in perspective toward a fence line at the top edge: fine short distant grass at the top, getting gradually larger and more detailed toward the bottom, tufts of grass, clover, small buttercups and daisies scattered evenly, soft golden-hour light, the grass fills the entire image edge to edge with no bands or stripes, no fence, no objects, no sky",
+    688, 176, 21078, { opaque: true }),
   "pasture-fence": img(
     "a long white wooden post-and-rail paddock fence seen straight from the side, three horizontal rails on square white posts evenly spaced, slightly weathered paint, side view, a long straight horizontal strip, transparent background",
     688, 96, 21072),

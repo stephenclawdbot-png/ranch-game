@@ -5032,35 +5032,14 @@
    "src": "diorama/pasture-fence.png"
   },
   {
-   "id": "diorama.pasture-ground-s2",
-   "kind": "building",
-   "origin": "pixellab",
-   "license": "PixelLab generated (commercial use per PixelLab ToS)",
-   "status": "approved",
-   "frameCount": 1,
-   "frameWidth": 312,
-   "frameHeight": 80,
-   "fps": 0,
-   "anchor": {
-    "x": 0.5,
-    "y": 1
-   },
-   "depthBand": "mid",
-   "palette": [],
-   "variants": [],
-   "sourcePrompt": "pasture-ground 2:1 box downsample | flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
-   "optimizationTier": "background",
-   "src": "diorama/pasture-ground-s2.png"
-  },
-  {
-   "id": "diorama.pasture-ground",
+   "id": "diorama.pasture-meadow",
    "kind": "building",
    "origin": "pixellab",
    "license": "PixelLab generated (commercial use per PixelLab ToS)",
    "status": "approved",
    "frameCount": 1,
    "frameWidth": 624,
-   "frameHeight": 160,
+   "frameHeight": 176,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -5069,9 +5048,9 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "diorama/raw/pasture-ground-0 | flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "sourcePrompt": "diorama/raw/pasture-meadow-0 | one continuous green grass paddock seen from a low camera, receding in perspective toward a fence line at the top edge: fine short distant grass at the top, getting gradually larger and more detailed toward the bottom, tufts of grass, clover, small buttercups and daisies scattered evenly, soft golden-hour light, the grass fills the entire image edge to edge with no bands or stripes, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
    "optimizationTier": "background",
-   "src": "diorama/pasture-ground.png"
+   "src": "diorama/pasture-meadow.png"
   },
   {
    "id": "diorama.pasture-props",
@@ -5258,7 +5237,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "diorama/raw/sales-ring-back-0 | the inside of a grand Victorian bloodstock sales ring seen straight-on from the ring floor: a curved amphitheatre of tiered dark wooden benches packed with a seated crowd of breeders in tweed and hats, a raised mahogany auctioneer's rostrum in the centre with a brass rail and a small lot number board, green iron columns, a glass skylight roof letting in warm golden light, flat front elevation, no floor, the wall fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "sourcePrompt": " | the inside of a grand Victorian bloodstock sales ring seen straight-on from the ring floor: a curved amphitheatre of tiered dark wooden benches packed with a seated crowd of breeders in tweed and hats, a raised mahogany auctioneer's rostrum in the centre with a brass rail and a small lot number board, green iron columns, a glass skylight roof letting in warm golden light, flat front elevation, no floor, the wall fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
    "optimizationTier": "background",
    "src": "diorama/sales-ring-back.png"
   },
@@ -5279,7 +5258,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "diorama/raw/sales-ring-floor-0 | the floor of an indoor horse sales ring seen from a low angle: soft raked tan bark and sawdust, warm light pools, a low curved polished wooden kick board rail running across the back, fills the entire image edge to edge, no horses, no people, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "sourcePrompt": " | the floor of an indoor horse sales ring seen from a low angle: soft raked tan bark and sawdust, warm light pools, a low curved polished wooden kick board rail running across the back, fills the entire image edge to edge, no horses, no people, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
    "optimizationTier": "background",
    "src": "diorama/sales-ring-floor.png"
   },
@@ -5825,7 +5804,7 @@
    "depthBand": "mid",
    "palette": [],
    "variants": [],
-   "sourcePrompt": "diorama/raw/trophy-room-0 | the inside of a cosy English racing stable's trophy room seen straight-on: dark oak wood panelled walls, a tall glass-fronted display cabinet on each side with empty wooden shelves, a stone fireplace in the centre with a mantelpiece, an oil painting of a racehorse above it, brass picture lamps glowing warm, a green leather armchair, a patterned red rug on wooden floorboards, warm golden lamp light, flat front elevation, the room fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "sourcePrompt": " | the inside of a cosy English racing stable's trophy room seen straight-on: dark oak wood panelled walls, a tall glass-fronted display cabinet on each side with empty wooden shelves, a stone fireplace in the centre with a mantelpiece, an oil painting of a racehorse above it, brass picture lamps glowing warm, a green leather armchair, a patterned red rug on wooden floorboards, warm golden lamp light, flat front elevation, the room fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
    "optimizationTier": "background",
    "src": "diorama/trophy-room.png"
   },

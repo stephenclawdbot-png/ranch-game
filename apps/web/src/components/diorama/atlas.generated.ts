@@ -58,25 +58,9 @@ export const DIORAMA_ATLAS = {
    "w": 1260,
    "h": 146
   },
-  "pasture-ground": {
+  "pasture-meadow": {
    "w": 624,
-   "h": 160
-  },
-  "pasture-ground-s2": {
-   "w": 312,
-   "h": 80
-  },
-  "trophy-room": {
-   "w": 688,
-   "h": 288
-  },
-  "sales-ring-back": {
-   "w": 1376,
-   "h": 288
-  },
-  "sales-ring-floor": {
-   "w": 624,
-   "h": 128
+   "h": 176
   },
   "pasture-fence": {
    "w": 688,
