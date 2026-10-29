@@ -33,6 +33,66 @@ function pair<T>(rng: Rng, sire: readonly [T, T], dam: readonly [T, T]): [T, T] 
 export interface InheritOptions {
   /** COI of the foal (permille), from coiOf(sireId, damId, pedigree). */
   coi?: number;
+  /** The foal's grandparents' genomes (up to 4; missing = foundation stock). */
+  family?: readonly Genome[];
+}
+
+// ---------------------------------------------------------------------------
+// Family bounds: the lineage sets how far a foal can land above or below its parents
+// ---------------------------------------------------------------------------
+
+/** Best parent allele + this, at most (balance.md "over-parent bound"). */
+export const FAMILY_HEADROOM = 40;
+/** A one-generation spike (parents far above their own parents) keeps only this much. */
+export const FAMILY_HEADROOM_MIN = 10;
+/** Weakest parent allele − this, at least; inbreeding widens it by COI / 10. */
+export const FAMILY_FLOOR_DROP = 40;
+/**
+ * A strong family protects the floor: a mutation can't take an allele below the family
+ * centre − this (the floor never rises above the weakest parent allele, so inheritance stays
+ * Mendelian). Inbreeding then lowers it by COI / 10.
+ */
+export const FAMILY_FLOOR_SPREAD = 60;
+/** Mutations lean back toward the family centre: + this permille negative per 100 above it. */
+export const FAMILY_PULL_PER_100 = 60;
+
+export interface FamilyRange {
+  /** Lowest / highest allele a foal can carry at this stat. */
+  floor: number;
+  ceiling: number;
+  /** Where the line sits: parents 2/3, grandparents 1/3 (parents only without records). */
+  centre: number;
+}
+
+const mean = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+
+/** Per-stat allele range for a foal of this pairing, from its parents and grandparents. */
+export function familyRange(sire: Genome, dam: Genome, family: readonly Genome[] = [], coi = 0): Record<(typeof STAT_KEYS)[number], FamilyRange> {
+  const out = {} as Record<(typeof STAT_KEYS)[number], FamilyRange>;
+  for (const k of STAT_KEYS) {
+    const parents = [...sire.stats[k], ...dam.stats[k]];
+    const grand = family.flatMap((g) => g.stats[k]);
+    const pMean = mean(parents);
+    const gMean = grand.length ? mean(grand) : pMean;
+    // a line that rose in one generation has less headroom than a line that has been there a while
+    const spike = Math.max(0, pMean - gMean);
+    const headroom = clampInt(Math.round(FAMILY_HEADROOM - spike / 5), FAMILY_HEADROOM_MIN, FAMILY_HEADROOM);
+    const weakest = Math.min(...parents);
+    const inbred = Math.floor(clampInt(coi, 0, 1000) / 10);
+    const centre = Math.round((pMean * 2 + gMean) / 3);
+    out[k] = {
+      // inbreeding widens the downside whatever the family's strength
+      floor: clampInt(Math.min(weakest, Math.max(weakest - FAMILY_FLOOR_DROP, centre - FAMILY_FLOOR_SPREAD)) - inbred, 0, 1000),
+      ceiling: clampInt(Math.max(...parents) + headroom, 0, 1000),
+      centre,
+    };
+  }
+  return out;
+}
+
+/** Mutation's negative share for an allele: COI base, leaning back toward the family centre. */
+function leanNeg(neg: number, v: number, centre: number): number {
+  return clampInt(neg + Math.round(((v - centre) * FAMILY_PULL_PER_100) / 100), 50, 950);
 }
 
 /** Mutation parameters for a given COI (exported for the breeding preview). */
@@ -65,10 +125,13 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
   const coi = clampInt(opts.coi ?? 0, 0, 1000);
   const { ratePermille, negPermille } = mutationParams(coi);
 
+  const range = familyRange(sire, dam, opts.family ?? [], coi);
   const stats = {} as Genome["stats"];
   for (const k of STAT_KEYS) {
     const p = pair(rng, sire.stats[k], dam.stats[k]);
-    stats[k] = [mutate(rng, p[0], ratePermille, negPermille), mutate(rng, p[1], ratePermille, negPermille)] as AllelePair;
+    const b = range[k];
+    const one = (v: number) => clampInt(mutate(rng, v, ratePermille, leanNeg(negPermille, v, b.centre)), b.floor, b.ceiling);
+    stats[k] = [one(p[0]), one(p[1])] as AllelePair;
   }
 
   const vp = pair(rng, sire.vigour, dam.vigour);

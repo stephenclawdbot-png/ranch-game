@@ -10,9 +10,11 @@ import type { CoatGenes, Genome, HorseState, PedigreeIndex, StatKey, StatRecord,
 import { STAT_KEYS } from "./types";
 import type { RunningStyle, Surface } from "@thoroughbred/shared";
 import { BREEDINGS_LIFETIME, BREED_FROM_STARTS, PREGNANCY_MS, createHorseState, isFemale, isMale, isRacingAge, normaliseLocation, stageOf } from "./lifecycle";
-import { coiOf, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
+import { MUTATION_MAX, VIGOUR_MUTATION_MAX, coiOf, familyRange, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
 import {
   OVERALL_WEIGHTS,
+  VIGOUR_MAX,
+  VIGOUR_MIN,
   expressStat,
   vigourValue,
   distanceBand,
@@ -135,6 +137,8 @@ export interface FoalInput {
   season: number;
   /** True when the owner has a free stall; otherwise the foal goes to the nursery overflow. */
   stallFree: boolean;
+  /** The foal's grandparents' genomes (family bounds; missing = foundation stock). */
+  family?: readonly Genome[];
 }
 
 /** Foal binding: offspring of a Club-bred parent is tradeable only after 5 starts. */
@@ -148,7 +152,7 @@ export function deliverFoal(dam: HorseState, sire: HorseState, input: FoalInput)
   if (!preg) throw new Error("deliverFoal: mare is not in foal");
   if (preg.sireId !== sire.id) throw new Error("deliverFoal: wrong sire");
   if (input.nowMs < preg.dueAtMs) throw new Error("deliverFoal: not due yet");
-  const genome = inherit(sire.genome, dam.genome, preg.foalSeed, { coi: preg.coi });
+  const genome = inherit(sire.genome, dam.genome, preg.foalSeed, { coi: preg.coi, family: input.family });
   const sex = new Rng(`${preg.foalSeed}|sex`).chance(500) ? "colt" : "filly";
   const foal = createHorseState({
     id: input.foalId,
@@ -210,6 +214,11 @@ export interface BreedingPreview {
   /** Mutation odds shown to the player (permille per allele, share negative). */
   mutation: { ratePermille: number; negPermille: number; maxStep: number };
   nick: { score: number; label: "Excellent" | "Good" | "Fair" | "Poor" };
+  /**
+   * The family's limits: the lowest and highest a foal of this pairing can possibly be (with
+   * every mutation), set by the parents and grandparents. Per stat and overall potential.
+   */
+  limits: { stats: StatRecord<{ floor: number; ceiling: number }>; overall: { floor: number; ceiling: number }; lineage: "deep" | "rising" | "foundation" };
 }
 
 function toPermille<T extends string>(d: Dist<T>): Partial<Record<T, number>> {
@@ -227,7 +236,7 @@ function statOutcomes(sire: Genome, dam: Genome, k: StatKey, vig: number, coi: n
  * Exact preview of a pairing (before mutation, which the preview shows separately). Uses the
  * true genotypes: the odds are what they are, published before the player commits.
  */
-export function previewBreeding(sire: HorseState, dam: HorseState, ped: PedigreeIndex, season: number): BreedingPreview {
+export function previewBreeding(sire: HorseState, dam: HorseState, ped: PedigreeIndex, season: number, family: readonly Genome[] = []): BreedingPreview {
   const coi = coiOf(sire.id, dam.id, ped);
   const blocked = pairingBlock(sire, dam, ped, season);
   const sg = sire.genome;
@@ -315,6 +324,30 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
   const label = score >= 70 ? "Excellent" : score >= 55 ? "Good" : score >= 40 ? "Fair" : "Poor";
   const mp = mutationParams(coi);
 
+  // Family limits in potential terms: the allele range at both loci, with the vigour range a
+  // mutation can reach.
+  // Reachable extremes: one allele from each parent, each moved at most one mutation step and
+  // kept inside the family range; the vigour locus likewise.
+  const range = familyRange(sg, dg, family, coi);
+  const step = MUTATION_MAX;
+  const vclamp = (v: number) => clampInt(v, VIGOUR_MIN, VIGOUR_MAX);
+  const vigLo = vigourValue([vclamp(Math.min(...sg.vigour) - VIGOUR_MUTATION_MAX), vclamp(Math.min(...dg.vigour) - VIGOUR_MUTATION_MAX)]);
+  const vigHi = vigourValue([vclamp(Math.max(...sg.vigour) + VIGOUR_MUTATION_MAX), vclamp(Math.max(...dg.vigour) + VIGOUR_MUTATION_MAX)]);
+  const limStats = {} as StatRecord<{ floor: number; ceiling: number }>;
+  for (const k of STAT_KEYS) {
+    const r = range[k];
+    const fit = (v: number) => clampInt(v, r.floor, r.ceiling);
+    const lo = locusValue([fit(Math.min(...sg.stats[k]) - step), fit(Math.min(...dg.stats[k]) - step)]);
+    const hi = locusValue([fit(Math.max(...sg.stats[k]) + step), fit(Math.max(...dg.stats[k]) + step)]);
+    limStats[k] = { floor: expressStat(lo, vigLo, k, coi), ceiling: expressStat(hi, vigHi, k, coi) };
+  }
+  const limMean = (f: "floor" | "ceiling") => Math.round(STAT_KEYS.reduce((a, k) => a + limStats[k][f] * OVERALL_WEIGHTS[k], 0) / den);
+  const spikes = STAT_KEYS.map((k) => {
+    const p = [...sg.stats[k], ...dg.stats[k]];
+    return p.reduce((a, b) => a + b, 0) / 4 - range[k].centre;
+  });
+  const lineage = family.length === 0 ? "foundation" : spikes.reduce((a, b) => a + b, 0) / spikes.length > 20 ? "rising" : "deep";
+
   return {
     coi,
     coiWarning: coi >= COI_WARN,
@@ -328,5 +361,6 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
     maturity: toPermille(maturity),
     mutation: { ratePermille: mp.ratePermille, negPermille: mp.negPermille, maxStep: 30 },
     nick: { score, label },
+    limits: { stats: limStats, overall: { floor: limMean("floor"), ceiling: limMean("ceiling") }, lineage },
   };
 }

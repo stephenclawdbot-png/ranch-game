@@ -65,16 +65,18 @@ export function layoutHerd(horses: StableHorse[], l: number, r: number): { place
   }
   // one column per horse across the pasture; the lead horse keeps its own column, the rest
   // alternate mid / far so neighbours stand at different depths
-  const shown = rest.slice(0, Math.max(0, Math.floor(span / 90) - 1));
-  const cols = shown.length + (lead ? 1 : 0);
+  // the full-HD lead is about two columns wide: it gets two, so it doesn't cover its neighbours
+  const leadCols = lead ? (placed[0]!.item.fw > 200 ? 2 : 1) : 0;
+  const shown = rest.slice(0, Math.max(0, Math.floor(span / 90) - leadCols));
+  const cols = shown.length + leadCols;
   const slot = span / Math.max(1, cols);
-  const leadCol = lead ? Math.min(cols - 1, Math.max(0, Math.round((span >= 560 ? 0.62 : 0.5) * cols - 0.5))) : -1;
+  const leadCol = lead ? Math.min(cols - leadCols, Math.max(0, Math.round((span >= 560 ? 0.62 : 0.5) * cols - leadCols / 2))) : -1;
   if (lead) {
     const p = placed[0]!;
-    const cx = l + 12 + slot * (leadCol + 0.5);
+    const cx = l + 12 + slot * (leadCol + leadCols / 2);
     p.item = { ...p.item, x: Math.round(cx - p.item.fw / 2) };
   }
-  const free = Array.from({ length: cols }, (_, i) => i).filter((i) => i !== leadCol);
+  const free = Array.from({ length: cols }, (_, i) => i).filter((i) => i < leadCol || i >= leadCol + leadCols);
   shown.forEach((s, i) => {
     const row: "far" | "mid" = i % 2 === 0 ? "mid" : "far";
     const h = hash(s.id);

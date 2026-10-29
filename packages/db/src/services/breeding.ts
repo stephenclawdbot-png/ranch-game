@@ -224,6 +224,15 @@ export async function foal(
   return runTx(db, (tx) => foalTx(tx, input, hooks));
 }
 
+/** The four grandparents of a sire x dam foal that are on record (foundation stock has none). */
+export async function grandparentsOf(ex: Executor, sire: Pick<HorseRow, "sireId" | "damId">, dam: Pick<HorseRow, "sireId" | "damId">): Promise<HorseRow[]> {
+  const ids = [sire.sireId, sire.damId, dam.sireId, dam.damId].filter((x): x is string => !!x);
+  if (!ids.length) return [];
+  const rows = await ex.select().from(horses).where(inArray(horses.id, [...new Set(ids)]));
+  // a shared grandparent (half-sibling parents) counts once per appearance
+  return ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is HorseRow => !!r);
+}
+
 export async function foalTx(
   tx: Executor,
   input: { pregnancyId: string; now: Date; name?: string },
@@ -240,7 +249,9 @@ export async function foalTx(
   const parents = await tx.select().from(horses).where(inArray(horses.id, [preg.sireId, preg.damId])).orderBy(asc(horses.id)).for("update");
   const sire = parents.find((h) => h.id === preg.sireId)!;
   const dam = parents.find((h) => h.id === preg.damId)!;
-  const spec = hooks.breedFoal({ seed: preg.seed, sire, dam, name: input.name, coi: preg.coi, season: seasonNumberAt(input.now) });
+  // The foal's grandparents set its family limits (game-core familyRange).
+  const family = await grandparentsOf(tx, sire, dam);
+  const spec = hooks.breedFoal({ seed: preg.seed, sire, dam, name: input.name, coi: preg.coi, season: seasonNumberAt(input.now), family });
   const parentBound = sire.bound || dam.bound;
   const foalId = await insertHorse(tx, {
     stableId: dam.ownerStableId,

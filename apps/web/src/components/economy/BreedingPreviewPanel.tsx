@@ -63,6 +63,21 @@ const LABEL: Record<string, string> = {
   normal: "Normal",
   late: "Late peaker",
 };
+/** What the line means for the foal's limits (game-core familyRange). */
+const LINEAGE: Record<"deep" | "rising" | "foundation", { tag: string; text: string }> = {
+  deep: {
+    tag: "Established line",
+    text: "Parents and grandparents are of a level, so a foal can land up to 40 above its best parent's genes. Mutations lean back toward the family's level.",
+  },
+  rising: {
+    tag: "Rising line",
+    text: "These parents are well above their own parents: a one-generation jump. The foal gets less headroom above them, and mutations lean back toward the family.",
+  },
+  foundation: {
+    tag: "Foundation stock",
+    text: "No grandparents on record: the limits come from the parents alone. Breeding on from this foal builds a line.",
+  },
+};
 const entries = (o: Partial<Record<string, number>>) => Object.entries(o).map(([k, v]) => ({ label: LABEL[k] ?? k, permille: v ?? 0 }));
 
 export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
@@ -125,6 +140,39 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
         </div>
       </div>
 
+      {/* Family limits: the lowest and highest this foal can possibly be, set by the line. */}
+      <div className="inset grid gap-2 p-3" data-testid="preview-limits">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h4 className="label">Family limits</h4>
+          <span className="chip">{LINEAGE[p.limits.lineage].tag}</span>
+        </div>
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <span className="t-meta">
+            Lowest possible{" "}
+            <span className="num text-cream" data-testid="limit-floor">
+              {p.limits.overall.floor}
+            </span>{" "}
+            <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(p.limits.overall.floor)] }}>
+              {gradeOf(p.limits.overall.floor)}
+            </span>
+          </span>
+          <span className="t-meta">
+            Highest possible{" "}
+            <span className="num text-cream" data-testid="limit-ceiling">
+              {p.limits.overall.ceiling}
+            </span>{" "}
+            <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(p.limits.overall.ceiling)] }}>
+              {gradeOf(p.limits.overall.ceiling)}
+            </span>
+          </span>
+        </div>
+        <div className="relative h-5 bg-[#050b08]" role="img" aria-label={`Possible ${p.limits.overall.floor} to ${p.limits.overall.ceiling}; 80% of foals ${o.p10} to ${o.p90}.`}>
+          <span className="absolute inset-y-1 bg-[#23402f]" style={{ left: pos(p.limits.overall.floor), width: `calc(${pos(p.limits.overall.ceiling)} - ${pos(p.limits.overall.floor)})` }} />
+          <span className="absolute inset-y-1 bg-[#3f8558]" style={{ left: pos(o.p10), width: `calc(${pos(o.p90)} - ${pos(o.p10)})` }} />
+        </div>
+        <p className="caption">{LINEAGE[p.limits.lineage].text}</p>
+      </div>
+
       {/* Inbreeding. */}
       <div className={`flex flex-wrap items-center gap-2 p-3 ${p.coiWarning ? "px-oxblood" : "inset"}`} data-testid="preview-coi">
         <span className="font-extrabold">{p.coiWarning ? "⚠ Inbreeding warning" : "✓ Inbreeding"}</span>
@@ -147,7 +195,8 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
             return (
               <li key={k} className="grid grid-cols-[6.5rem_1fr_5.5rem] items-center gap-2 text-sm">
                 <span className="font-bold text-cream">{label}</span>
-                <span className="relative h-4 bg-[#050b08]" role="img" aria-label={`${label}: ${s.min} to ${s.max}, expected ${s.expected}`}>
+                <span className="relative h-4 bg-[#050b08]" role="img" aria-label={`${label}: ${s.min} to ${s.max}, expected ${s.expected}; possible ${p.limits.stats[k].floor} to ${p.limits.stats[k].ceiling}`}>
+                  <span className="absolute inset-y-[5px] bg-[#1c3427]" style={{ left: pos(p.limits.stats[k].floor), width: `calc(${pos(p.limits.stats[k].ceiling)} - ${pos(p.limits.stats[k].floor)})` }} />
                   <span className="absolute inset-y-1 bg-[#2c6645]" style={{ left: pos(s.min), width: `max(3px, calc(${pos(s.max)} - ${pos(s.min)}))` }} />
                   <span className="absolute inset-y-0 w-[3px]" style={{ left: pos(s.expected), background: GRADE_COLOR[g] }} />
                 </span>

@@ -180,9 +180,9 @@ export const gameCoreHooks: GameHooks = {
     const rng = new gc.Rng(`${seed}|pack-name`);
     return specFromGenome({ genome: g, name: gc.clubHorseName(rng), sex: sex ?? (rng.chance(500) ? "colt" : "filly"), careSessions: 0, season: season ?? 1 });
   },
-  breedFoal: ({ seed, sire, dam, name, coi, season }) => {
+  breedFoal: ({ seed, sire, dam, name, coi, season, family }) => {
     if (!isGenome(sire.genome) || !isGenome(dam.genome)) return { ...placeholderFallback(seed, `foal:${sire.id}:${dam.id}`, 0, name), careSessions: 0 };
-    const genome = gc.inherit(sire.genome, dam.genome, seed, { coi: coi ?? 0 });
+    const genome = gc.inherit(sire.genome, dam.genome, seed, { coi: coi ?? 0, family: (family ?? []).map((r) => r.genome).filter(isGenome) });
     const sex = new gc.Rng(`${seed}|sex`).chance(500) ? "colt" : "filly";
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });

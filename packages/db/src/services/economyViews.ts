@@ -35,7 +35,7 @@ import {
 } from "../schema";
 import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
-import { foal, pedigreeIndex } from "./breeding";
+import { foal, grandparentsOf, pedigreeIndex } from "./breeding";
 import { renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
 
@@ -133,7 +133,8 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   const season = seasonNumberAt(input.now);
   const [sireState, damState] = [await breedingStateOf(ex, sire), await breedingStateOf(ex, dam)];
   const ped = await pedigreeIndex(ex, [sire.id, dam.id]);
-  const preview = gc.previewBreeding(sireState, damState, ped, season);
+  const family = (await grandparentsOf(ex, sire, dam)).map((r) => r.genome).filter(isGenome);
+  const preview = gc.previewBreeding(sireState, damState, ped, season, family);
   let block: PairingPreview["block"] = null;
   if (dam.ownerStableId !== stable.id) block = "not_your_mare";
   else if (!ownSire && !standsAtStud(sire)) block = "not_at_stud";

@@ -325,6 +325,19 @@ Already done in this pass:
 | Over-parent bound | foal stat ≤ max(sire, dam) + 40; hard cap 1000 |
 | Result | best horse reaches B (700) in gen 2, **A (800) in gen 6**, S (900) in gen 10. The population mean rises ~+15 per generation. |
 
+**Implemented (2026-10-29): family limits** (game-core `familyRange`, owner ask "a possible lower
+and upper limit of breeding with consideration to lineage and family"). Per stat allele, from the
+parents and the four grandparents:
+- **Upper limit:** best parent allele + 40 for an established line; a rising line (parents well
+  above their own parents) keeps only +10..+40 (`40 − spike/5`).
+- **Lower limit:** weakest parent allele − 40; a strong family (centre − 60 above that) protects it
+  up to the weakest parent allele; inbreeding lowers it by COI/10.
+- **Lean:** mutations lean back toward the family centre (parents 2/3, grandparents 1/3): +6%
+  negative share per 10 above it. Mendelian segregation is unchanged.
+- The breeding preview shows the reachable extremes ("lowest / highest possible", per stat and
+  overall) and the line type (established / rising / foundation stock).
+- A best-to-best selection test bounds the frontier at +40 per generation.
+
 **Important:** with only the rare ±0–30 mutation (game-design §3) and no segregation variance, the
 frontier **stalls**: +5 per generation, best horse 634 after 10 generations. The two-allele genome
 must supply real segregation variance, or A-grade horses never appear.

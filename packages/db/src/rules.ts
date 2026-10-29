@@ -162,7 +162,7 @@ export interface GameHooks {
   /** A pack horse (a foal) of the given rarity; `genome` when game-core already minted it. */
   packHorse(input: { seed: string; rarity: Rarity; packType: string; season?: number; genome?: unknown; sex?: "colt" | "filly" }): HorseSpec;
   /** Inheritance: the foal of `sire` x `dam` from the committed seed (coi in permille). */
-  breedFoal(input: { seed: string; sire: HorseRow; dam: HorseRow; name?: string; coi?: number; season?: number }): HorseSpec;
+  breedFoal(input: { seed: string; sire: HorseRow; dam: HorseRow; name?: string; coi?: number; season?: number; family?: HorseRow[] }): HorseSpec;
   /** Extra race eligibility (class, rating band, conditions). Return a reason to refuse, or null. */
   raceEligibility?(input: RaceEligibilityInput): string | null;
   /** A house (Club AI) horse for a Live field, deterministic from the race seed. */
