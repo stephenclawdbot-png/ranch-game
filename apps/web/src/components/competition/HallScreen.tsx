@@ -43,7 +43,19 @@ export function HallScreen({ view }: { view: HallView }) {
   const mine = view.mine;
   return (
     <div>
-      <SceneBand scene="grandstand" alt="The grandstand at Kestrel Downs" eyebrow="Club · permanent honours" title="Hall of Fame" />
+      <SceneBand
+        scene="grandstand"
+        alt="The grandstand at Kestrel Downs"
+        eyebrow="Club · permanent honours"
+        title="Hall of Fame"
+        aside={
+          view.mine ? (
+            <Link href="/trophies" className="btn btn-sm">
+              Your Trophy Room
+            </Link>
+          ) : undefined
+        }
+      />
       <div className="mt-6 grid gap-8 md:gap-12">
       <section aria-labelledby="inducted-h">
         <h2 id="inducted-h" className="t-h2 mb-3">

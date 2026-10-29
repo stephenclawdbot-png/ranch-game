@@ -2,7 +2,7 @@
  * Shapes for the competition and story screens (Daily Cup, leagues, Hall of Fame, Story
  * chapters). Types only: safe to import from client components.
  */
-import type { Going, RaceReplay, RunningStyle, Silks, Surface, Weather } from "@thoroughbred/shared";
+import type { Going, Horse, RaceReplay, RunningStyle, Silks, Surface, Weather } from "@thoroughbred/shared";
 import type { Grade } from "./aptitude";
 
 // ---------------------------------------------------------------------------
@@ -163,6 +163,35 @@ export interface HallView {
     titles: string[];
     rivals: { stableName: string; silks: Silks; closeFinishes: number; yourWins: number; lastAtMs: number }[];
   } | null;
+}
+
+// ---------------------------------------------------------------------------
+// Trophy Room (the stable's own honours)
+// ---------------------------------------------------------------------------
+
+/** gold / silver / bronze cups for Live wins by class; rosettes for Story wins and places. */
+export type TrophyTier = "gold" | "silver" | "bronze" | "first" | "second" | "third";
+
+export interface TrophyView {
+  raceId: string;
+  raceName: string;
+  horseId: string;
+  horseName: string;
+  position: number;
+  atMs: number;
+  prize: number;
+  tier: TrophyTier;
+}
+
+export interface TrophyRoomView {
+  stableName: string;
+  silks: Silks;
+  totals: { wins: number; places: number; cups: number; earnings: number };
+  cups: TrophyView[];
+  rosettes: TrophyView[];
+  achievements: { id: string; title: string; description: string; earned: boolean; earnedAtMs: number | null }[];
+  honours: { key: string; title: string; detail: string; atMs: number | null }[];
+  stars: { horseId: string; name: string; appearance: Horse["appearance"]; wins: number; starts: number; earnings: number; retired: boolean }[];
 }
 
 // ---------------------------------------------------------------------------

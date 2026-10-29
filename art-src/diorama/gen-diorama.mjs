@@ -135,6 +135,13 @@ export const JOBS = {
   "sales-ring-floor": img(
     "the floor of an indoor horse sales ring seen from a low angle: soft raked tan bark and sawdust, warm light pools, a low curved polished wooden kick board rail running across the back, fills the entire image edge to edge, no horses, no people",
     688, 128, 21082, { opaque: true, ref: barnRef }),
+  // ---- the Trophy Room (the stable's own honours) --------------------------------------
+  "trophy-room": img(
+    "the inside of a cosy English racing stable's trophy room seen straight-on: dark oak wood panelled walls, a tall glass-fronted display cabinet on each side with empty wooden shelves, a stone fireplace in the centre with a mantelpiece, an oil painting of a racehorse above it, brass picture lamps glowing warm, a green leather armchair, a patterned red rug on wooden floorboards, warm golden lamp light, flat front elevation, the room fills the whole image",
+    688, 288, 21091, { opaque: true, ref: barnRef }),
+  "trophies": img(
+    "racing trophies in a row on a transparent background, each object separate with space between: a large gold two-handled cup on a black plinth, a silver trophy cup, a bronze trophy cup, a blue first-place rosette with ribbons, a red second-place rosette with ribbons, a yellow third-place rosette with ribbons, a small engraved brass plaque on dark wood, a gold medal on a striped ribbon, side view game sprites",
+    384, 96, 21092, { ref: null }),
 };
 
 const names = process.argv.slice(2);

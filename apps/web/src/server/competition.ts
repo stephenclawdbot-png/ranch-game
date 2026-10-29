@@ -21,6 +21,7 @@ import {
   dayNumber,
   famousBloodlines,
   hallEntries,
+  horseNamesByIds,
   inductHallOfFame,
   induct,
   isGenome,
@@ -28,6 +29,7 @@ import {
   leagueOf,
   listAchievements,
   listStableHorses,
+  listStablePlacings,
   recordTimes,
   rivalsOf,
   runCupEntry,
@@ -36,6 +38,7 @@ import {
   settleLeagueWeeks,
   syncAchievements,
   toHorseState,
+  topHorsesOf,
   utcDay,
   utcWeekStart,
   weekBounds,
@@ -43,9 +46,9 @@ import {
   type Db,
 } from "@thoroughbred/db";
 import { conditionRating, lossGrade } from "@/lib/aptitude";
-import type { CalendarRaceView, CupConditions, CupRow, CupRunView, CupView, HallView, LeagueRowView, LeagueView, SeasonRowView } from "@/lib/competitionTypes";
+import type { CalendarRaceView, CupConditions, CupRow, CupRunView, CupView, HallView, LeagueRowView, LeagueView, SeasonRowView, TrophyRoomView, TrophyTier } from "@/lib/competitionTypes";
 import { houseStableFor } from "./house";
-import { parseSilks, stableHorseView } from "./horseView";
+import { horseFromRow, parseSilks, stableHorseView } from "./horseView";
 import type { Session } from "./session";
 
 // ---------------------------------------------------------------------------
@@ -326,3 +329,69 @@ export async function hallView(db: Db, session: Session | null, now: Date): Prom
   };
 }
 
+// ---------------------------------------------------------------------------
+// Trophy Room
+// ---------------------------------------------------------------------------
+
+/** Cup by race standing for a win; rosettes for Story (solo) wins and for places. */
+export function trophyTier(kind: string, raceClass: string, position: number): TrophyTier {
+  if (position === 2) return "second";
+  if (position === 3) return "third";
+  if (kind === "final" || kind === "feature" || raceClass === "graded") return "gold";
+  if (kind === "daily_cup" || raceClass === "listed") return "silver";
+  if (kind === "scheduled" || kind === "trial") return "bronze";
+  return "first";
+}
+
+const TIER_ORDER: Record<TrophyTier, number> = { gold: 0, silver: 1, bronze: 2, first: 3, second: 4, third: 5 };
+
+export async function trophyRoomView(db: Db, session: Session, now: Date): Promise<TrophyRoomView> {
+  const stableId = session.stable.id;
+  const runs = await listStablePlacings(db, stableId, 500);
+  const names = await horseNamesByIds(db, runs.map((r) => r.horseId));
+  const trophies = runs.map((r) => ({
+    raceId: r.raceId,
+    raceName: r.raceName,
+    horseId: r.horseId,
+    horseName: names.get(r.horseId) ?? "A horse",
+    position: r.position!,
+    atMs: r.postTime.getTime(),
+    prize: r.prize ?? 0,
+    tier: trophyTier(r.kind, r.raceClass, r.position!),
+  }));
+  const cups = trophies.filter((t) => t.tier === "gold" || t.tier === "silver" || t.tier === "bronze").sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.atMs - a.atMs);
+  const rosettes = trophies.filter((t) => t.tier === "first" || t.tier === "second" || t.tier === "third").sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || b.atMs - a.atMs);
+  await syncAchievements(db, session.accountId).catch((e) => console.error("[trophies] achievements failed", e));
+  const earned = await listAchievements(db, session.accountId);
+  const at = new Map(earned.map((a) => [a.code, a.earnedAt.getTime()]));
+  const honours: TrophyRoomView["honours"] = gc.STORY_CHAPTER_DEFS.filter((c) => at.has(`story-chapter:${c.id}`)).map((c) => ({
+    key: `story:${c.id}`,
+    title: `${c.title} champion`,
+    detail: "Story chapter won",
+    atMs: at.get(`story-chapter:${c.id}`) ?? null,
+  }));
+  for (const e of await hallEntries(db)) {
+    if (e.stableName !== session.stable.name) continue;
+    honours.push({ key: e.entry.entryKey, title: e.entry.title, detail: "Hall of Fame", atMs: e.entry.inductedAt.getTime() });
+  }
+  const nowMs = now.getTime();
+  const silks = parseSilks(session.stable.silks);
+  const stars = (await topHorsesOf(db, stableId, 3))
+    .filter((h) => h.wins > 0)
+    .map((h) => ({ horseId: h.id, name: h.name, appearance: horseFromRow(h, silks, nowMs).appearance, wins: h.wins, starts: h.starts, earnings: h.earnings, retired: h.careerStatus !== "racing" }));
+  return {
+    stableName: session.stable.name,
+    silks,
+    totals: {
+      wins: trophies.filter((t) => t.position === 1).length,
+      places: trophies.filter((t) => t.position > 1).length,
+      cups: cups.length,
+      earnings: trophies.reduce((a, t) => a + t.prize, 0),
+    },
+    cups,
+    rosettes,
+    achievements: gc.ACHIEVEMENTS.map((a) => ({ id: a.id, title: a.title, description: a.description, earned: at.has(a.id), earnedAtMs: at.get(a.id) ?? null })),
+    honours,
+    stars,
+  };
+}

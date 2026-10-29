@@ -175,6 +175,59 @@
    ]
   ]
  },
+ "trophies": {
+  "source": "diorama/raw/trophies-0",
+  "rects": [
+   [
+    3,
+    3,
+    64,
+    88
+   ],
+   [
+    72,
+    19,
+    50,
+    59
+   ],
+   [
+    128,
+    19,
+    50,
+    59
+   ],
+   [
+    186,
+    19,
+    32,
+    66
+   ],
+   [
+    225,
+    19,
+    31,
+    66
+   ],
+   [
+    263,
+    19,
+    32,
+    66
+   ],
+   [
+    300,
+    36,
+    45,
+    34
+   ],
+   [
+    352,
+    26,
+    27,
+    52
+   ]
+  ]
+ },
  "fg-branch": {
   "source": "diorama/raw/fg-branch-0"
  },
@@ -196,6 +249,9 @@
  "pasture-ground-s2": {
   "source": "pasture-ground 2:1 box downsample",
   "seamless": "x (min-cut quilt)"
+ },
+ "trophy-room": {
+  "source": "diorama/raw/trophy-room-0"
  },
  "sales-ring-back": {
   "source": "diorama/raw/sales-ring-back-0",

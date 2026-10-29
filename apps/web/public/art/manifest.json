@@ -5788,6 +5788,48 @@
    "src": "diorama/stall-interior-3.png"
   },
   {
+   "id": "diorama.trophies",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/trophies-0 | racing trophies in a row on a transparent background, each object separate with space between: a large gold two-handled cup on a black plinth, a silver trophy cup, a bronze trophy cup, a blue first-place rosette with ribbons, a red second-place rosette with ribbons, a yellow third-place rosette with ribbons, a small engraved brass plaque on dark wood, a gold medal on a striped ribbon, side view game sprites, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/trophies.png"
+  },
+  {
+   "id": "diorama.trophy-room",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/trophy-room-0 | the inside of a cosy English racing stable's trophy room seen straight-on: dark oak wood panelled walls, a tall glass-fronted display cabinet on each side with empty wooden shelves, a stone fireplace in the centre with a mantelpiece, an oil painting of a racehorse above it, brass picture lamps glowing warm, a green leather armchair, a patterned red rug on wooden floorboards, warm golden lamp light, flat front elevation, the room fills the whole image, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/trophy-room.png"
+  },
+  {
    "id": "diorama.yard-cobbles-s2",
    "kind": "track_layer",
    "origin": "pixellab",

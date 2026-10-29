@@ -74,6 +74,22 @@ export async function horseFormFigures(ex: Executor, horseId: string, before: Da
   return rows.map((r) => r.position!);
 }
 
+/** A stable's first-to-third finishes (the Trophy Room), newest first. */
+export async function listStablePlacings(ex: Executor, stableId: string, limit = 500) {
+  return ex
+    .select(runColumns)
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(eq(raceEntries.stableId, stableId), eq(races.status, "settled"), isNotNull(raceEntries.finishPosition), lte(raceEntries.finishPosition, 3)))
+    .orderBy(desc(races.postTime))
+    .limit(limit);
+}
+
+/** A stable's most successful horses (any career status), most wins first. */
+export async function topHorsesOf(ex: Executor, stableId: string, limit = 3) {
+  return ex.select().from(horses).where(eq(horses.ownerStableId, stableId)).orderBy(desc(horses.wins), desc(horses.earnings)).limit(limit);
+}
+
 /** Settled runs of a stable's horses, newest first. */
 export async function listStableRuns(ex: Executor, stableId: string, limit = 20) {
   return ex

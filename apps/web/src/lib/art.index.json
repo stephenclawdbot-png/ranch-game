@@ -69,6 +69,8 @@
 {"path":"diorama/stall-interior-2.png","w":96,"h":96},
 {"path":"diorama/stall-interior-3-s2.png","w":48,"h":48},
 {"path":"diorama/stall-interior-3.png","w":96,"h":96},
+{"path":"diorama/trophies.png","w":384,"h":96},
+{"path":"diorama/trophy-room.png","w":688,"h":288},
 {"path":"diorama/yard-cobbles-s2.png","w":312,"h":80},
 {"path":"diorama/yard-cobbles.png","w":624,"h":160},
 {"path":"diorama/yard-props.png","w":384,"h":128},

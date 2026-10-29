@@ -212,7 +212,7 @@ save(downsample(cobq, 2), "yard-cobbles-s2", "yard-cobbles 2:1 box downsample", 
 save(downsample(load(Path("apps/web/public/art/race/crowd.png")), 2), "crowd-s2", "race/crowd.png 2:1 box downsample", seamless="x")
 save(downsample(load(Path("apps/web/public/art/race/bb-grandstand.png")), 2), "grandstand-s2", "race/bb-grandstand.png 2:1 box downsample")
 
-for sheet in ("yard-props", "barn-props", "pasture-props"):
+for sheet in ("yard-props", "barn-props", "pasture-props", "trophies"):
     a = clean(quantise(load(RAW / f"{sheet}-0.png")))
     _, bx = components(a[..., 3] > 0, 60)
     # merge components whose boxes overlap (e.g. a lantern and its bracket)
@@ -241,6 +241,10 @@ meadow = quantise(load(RAW / "pasture-ground-0.png"))
 meadow[..., 3] = 255
 save(quilt(meadow, 64), "pasture-ground", "diorama/raw/pasture-ground-0", seamless="x (min-cut quilt, no mirror)")
 save(downsample(quilt(meadow, 64), 2), "pasture-ground-s2", "pasture-ground 2:1 box downsample", seamless="x (min-cut quilt)")
+# the Trophy Room: the room (opaque hero) and the trophy sheet (split into props below)
+room = quantise(load(RAW / "trophy-room-0.png"))
+room[..., 3] = 255
+save(room, "trophy-room", "diorama/raw/trophy-room-0")
 # the Sales Ring: amphitheatre back wall and the tan-bark ring floor (both opaque, tiled in x)
 ring = quantise(load(RAW / "sales-ring-back-0.png"))
 ring[..., 3] = 255

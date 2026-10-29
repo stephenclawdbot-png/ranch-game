@@ -4033,3 +4033,265 @@ a.ped-node:focus-visible {
     margin-top: 4px;
   }
 }
+
+/* ---------------------------------------------------------------- Trophy Room (REDESIGN §4.8) */
+.troom {
+  position: relative;
+  margin-top: -16px;
+}
+@media (min-width: 768px) {
+  .troom {
+    margin-top: -32px;
+  }
+}
+.troom-stage {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  background: #2a1a0e;
+}
+@media (min-width: 768px) {
+  .troom-stage {
+    height: clamp(360px, 38vw, 540px);
+  }
+}
+.troom-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 40%;
+  image-rendering: pixelated;
+}
+.troom-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 6, 2, 0.45), transparent 28%, transparent 62%, rgba(10, 6, 2, 0.75));
+  pointer-events: none;
+}
+.troom-greet {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  top: 14px;
+}
+@media (min-width: 1024px) {
+  .troom-greet {
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    top: 40px;
+  }
+}
+.troom-greet .eyebrow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.troom-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 2rem;
+  color: var(--color-on-baize);
+  text-shadow:
+    0 3px 0 var(--ink-0),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+@media (min-width: 1024px) {
+  .troom-title {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+.troom-stats {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 640px;
+}
+@media (min-width: 1024px) {
+  .troom-stats {
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    bottom: 28px;
+  }
+}
+.troom-stats > div {
+  padding: 6px 10px;
+  background: rgba(15, 9, 4, 0.82);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px rgba(217, 164, 65, 0.35);
+}
+.troom-stats dt {
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+}
+.troom-stats dd {
+  font-family: var(--font-score);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-on-baize);
+}
+.shelf-head {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.shelf-board {
+  position: relative;
+  padding: 18px 14px 0;
+  background: linear-gradient(180deg, #24160b, #3a2412 80%);
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+.shelf-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 18px 14px;
+  padding-bottom: 0;
+}
+/* the plank each row of trophies stands on */
+.shelf-board::after {
+  content: "";
+  display: block;
+  height: 14px;
+  margin: 0 -14px;
+  background: linear-gradient(180deg, #a8743c 0 3px, #7a4f26 3px 11px, #4a2e15 11px);
+  box-shadow: 0 2px 0 var(--ink-0);
+}
+.shelf-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+  color: var(--color-cream-dim);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.shelf-empty p {
+  padding-bottom: 8px;
+}
+.trophy-sprite {
+  display: block;
+  background-image: url("/art/diorama/trophies.png");
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.45));
+}
+.trophy-sprite.is-dim {
+  opacity: 0.22;
+  filter: grayscale(1) brightness(0.6);
+}
+.trophy,
+.plaque-piece {
+  position: relative;
+  display: block;
+  padding-bottom: 2px;
+  outline: none;
+  transition: transform 120ms ease-out;
+}
+.trophy:hover,
+.trophy:focus-visible,
+.plaque-piece:hover,
+.plaque-piece:focus-visible {
+  transform: translateY(-4px);
+}
+.plaque-piece.is-locked .trophy-card-race {
+  color: var(--color-cream-dim);
+}
+.trophy-card {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 240px;
+  transform: translateX(-50%);
+  padding: 8px 10px;
+  background: var(--color-baize-800);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    0 3px 0 var(--ink-0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+.trophy:hover .trophy-card,
+.trophy:focus-visible .trophy-card,
+.plaque-piece:hover .trophy-card,
+.plaque-piece:focus-visible .trophy-card {
+  opacity: 1;
+}
+.trophy-card-tier {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brass);
+}
+.trophy-card-race {
+  display: block;
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: var(--color-on-baize);
+}
+.trophy-card-meta {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-cream-dim);
+}
+.stars {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+}
+.star-frame {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px 12px 12px;
+  text-align: center;
+  background: #24160b;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 7px #b8862b,
+    inset 0 0 0 9px var(--ink-0),
+    0 4px 0 var(--ink-0);
+}
+.star-canvas {
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle at 50% 40%, #3f6b33, #1f3a1c);
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+.star-name {
+  font-family: var(--font-name);
+  font-size: 1.5rem;
+  line-height: 1.375rem;
+  color: var(--color-on-baize);
+}
+.star-meta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-cream-dim);
+}
+/* hover cards open inward: from the left edge of the trophy, from the right on a row's last few */
+.trophy-card {
+  left: 0;
+  transform: none;
+}
+.shelf-row > li:nth-last-child(-n + 3):not(:nth-child(-n + 3)) .trophy-card {
+  left: auto;
+  right: 0;
+}

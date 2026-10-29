@@ -183,7 +183,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       at: [YARD.arch],
     },
     { id: "barn", label: "The Barn", status: `${state.horses.length} ${state.horses.length === 1 ? "horse" : "horses"}`, href: "/stable", at: [YARD.stallsMid, YARD.stallsLeft] },
-    { id: "trophy", label: "Trophy Room", href: "/hall", at: [YARD.tower] },
+    { id: "trophy", label: "Trophy Room", href: "/trophies", at: [YARD.tower] },
     { id: "breeding", label: "Breeding Barn", href: "/breeding", at: [YARD.stallsRight, YARD.stallsRightIn, YARD.stallsLeft] },
     { id: "gallops", label: "Gallops", href: rec ? `/horse/${rec.id}/training` : "/stable", at: [YARD.hayLow] },
     { id: "sales", label: "Sales Ring", href: "/market", at: [YARD.trough] },
