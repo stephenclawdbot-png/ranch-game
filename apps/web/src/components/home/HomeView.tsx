@@ -16,6 +16,7 @@ import { ActionBar } from "../ui/ActionBar";
 import { SceneArt, SceneBand, Section } from "../ui/Page";
 import { Wordmark } from "../SiteNav";
 import { TodayTiles } from "./TodayTiles";
+import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
 
 interface ClubProps {
   next: RaceSummary | null;
@@ -144,11 +145,24 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const heroRun = upcomingMine ? { raceId: upcomingMine.raceId, horseId: upcomingMine.horseId } : unseen[0]?.raceId ? { raceId: unseen[0].raceId, horseId: unseen[0].horseId } : null;
   const horseOf = (id: string | null | undefined) => state.horses.find((h) => h.id === id);
 
+  const plaques: EstatePlaque[] = [
+    {
+      id: "racecourse",
+      label: "Racecourse",
+      status: live ? "Live now" : next && now !== null ? (next.postTimeMs > now ? `Off in ${formatCountdown(next.postTimeMs - now)}` : "At the post") : undefined,
+      href: "/races",
+      at: [YARD.arch],
+    },
+    { id: "barn", label: "The Barn", status: `${state.horses.length} ${state.horses.length === 1 ? "horse" : "horses"}`, href: "/stable", at: [YARD.stallsMid, YARD.stallsLeft] },
+    { id: "trophy", label: "Trophy Room", href: "/hall", at: [YARD.tower] },
+    { id: "breeding", label: "Breeding Barn", href: "/breeding", at: [YARD.stallsRight, YARD.stallsRightIn, YARD.stallsLeft] },
+    { id: "gallops", label: "Gallops", href: rec ? `/horse/${rec.id}/training` : "/stable", at: [YARD.hayLow] },
+    { id: "sales", label: "Sales Ring", href: "/market", at: [YARD.trough] },
+  ];
+
   return (
     <div>
-      <SceneBand scene="stable" size="home" alt="Your stable yard at golden hour" eyebrow={greeting(now)} title="Your yard" testId="home-band" />
-
-      <div className="over-band">
+      <EstateStage eyebrow={`${state.stableName} · ${greeting(now)}`} greeting={`${salutation(now)}, trainer.`} plaques={plaques}>
         {upcomingMine ? (
           <YourRace race={upcomingMine} now={now ?? 0} appearance={horseOf(upcomingMine.horseId)?.horse.appearance} />
         ) : unseen[0] ? (
@@ -162,7 +176,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
             </Link>
           </Hero>
         )}
-      </div>
+        {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} />}
+      </EstateStage>
 
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
 
@@ -194,21 +209,6 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         </ul>
       </Section>
 
-      <Section id="club-h" title="On the course" href="/races" linkLabel="Race card">
-        <div className="grid gap-2 lg:grid-cols-2">
-          {next && <OnTheCourse next={next} live={live} />}
-          <div className="baize-card flex items-center gap-3 px-4 py-3">
-            <PixelIcon name="flag" size={32} />
-            <div className="min-w-0 flex-1">
-              <p className="t-title">Enter the next Live race</p>
-              <p className="t-meta">{state.entries.balance} stable entries left today</p>
-            </div>
-            <button type="button" className="btn btn-outline btn-sm !text-on-baize" onClick={entry.quickPickLive} data-testid="live-quick-pick">
-              Enter
-            </button>
-          </div>
-        </div>
-      </Section>
     </div>
   );
 }
@@ -249,7 +249,7 @@ function OnTheCourse({ next, live }: { next: RaceSummary; live: RaceSummary | nu
   );
 }
 
-/** Hero card: paper with the one brass ring, a portrait breaking out of the top-right corner. */
+/** Featured card (Estate panel): the horse's portrait in a well, the story, then the actions. */
 function Hero({
   tag,
   title,
@@ -268,27 +268,70 @@ function Hero({
   footer?: ReactNode;
 }) {
   return (
-    <section className="relative mx-auto max-w-3xl" data-testid={testId} aria-labelledby={`${testId}-h`}>
-      {appearance && (
-        <div className="pointer-events-none absolute -top-10 right-2 z-[3] [filter:drop-shadow(0_2px_0_rgba(0,0,0,.35))] md:-top-16 md:right-4">
-          <span className="md:hidden">
-            <HorsePortrait appearance={appearance} scale={1} />
+    <section className="frame-hero p-4" data-testid={testId} aria-labelledby={`${testId}-h`}>
+      <div className="flex items-start gap-4">
+        {appearance && (
+          <span className="well grid h-[96px] w-[96px] shrink-0 place-items-center overflow-hidden md:h-[128px] md:w-[128px]">
+            <span className="md:hidden">
+              <HorsePortrait appearance={appearance} scale="thumb" />
+            </span>
+            <span className="hidden md:block">
+              <HorsePortrait appearance={appearance} scale={1} />
+            </span>
           </span>
-          <span className="hidden md:block">
-            <HorsePortrait appearance={appearance} scale={2} />
-          </span>
-        </div>
-      )}
-      <div className="frame-hero p-4 sm:p-6">
-        <div className={appearance ? "pr-[120px] md:pr-[250px]" : ""}>
+        )}
+        <div className="min-w-0 flex-1">
           {tag}
-          <h2 id={`${testId}-h`} className="t-hero mt-2">
+          <h2 id={`${testId}-h`} className="t-hero mt-1.5">
             {title}
           </h2>
-          <p className="mt-1 text-[0.9375rem] leading-[1.375rem] text-cream-dim">{body}</p>
+          <p className="mt-1 text-[0.875rem] leading-5 text-cream-dim">{body}</p>
         </div>
-        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-4">{children}</div>
-        {footer}
+      </div>
+      <div className="mt-4 grid gap-2">{children}</div>
+      {footer}
+    </section>
+  );
+}
+
+/** The next race on the shared card: name, conditions, a broadcast countdown, Enter and Watch. */
+function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSummary | null; entries: number }) {
+  const entry = useEntry();
+  return (
+    <section className="surface p-4" data-testid="next-race" aria-labelledby="next-race-h">
+      {live && (
+        <Link href={`/race/${live.id}`} className="mb-3 flex items-center gap-2 text-[0.8125rem] font-bold text-cream-dim">
+          <span className="tag tag-live">
+            <span className="live-dot" /> Live
+          </span>
+          <span className="min-w-0 flex-1 truncate">{live.name}</span>
+          <span className="link">Watch ›</span>
+        </Link>
+      )}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow">Next on the card</p>
+          <h3 id="next-race-h" className="t-serif mt-0.5 text-[1.375rem] leading-7">
+            {next.name}
+          </h3>
+          <p className="t-meta">
+            {formatDistance(next.distanceM)} · {SURFACE_LABEL[next.surface]} · {entries} {entries === 1 ? "entry" : "entries"} left today
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className="score block text-[2.25rem] leading-none text-brass-hi">
+            <Countdown targetMs={next.postTimeMs} doneLabel="Off" />
+          </span>
+          <span className="eyebrow !text-sage">to post</span>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+        <button type="button" className="btn btn-brass" onClick={entry.quickPickLive} data-testid="live-quick-pick">
+          <PixelIcon name="flag" size={32} className="-my-2" /> Enter your best fit
+        </button>
+        <Link href={`/race/${next.id}`} className="btn" data-testid="watch-next">
+          Watch
+        </Link>
       </div>
     </section>
   );

@@ -12,12 +12,12 @@ type Section = { href: string; label: string; icon: IconName; match: (p: string)
 const starts = (p: string, ...prefixes: string[]) => prefixes.some((x) => p === x || p.startsWith(`${x}/`));
 
 /**
- * Five destinations (design-research §11.1-11.2): Home · Stable · Races · Club · Market. Each
+ * Five destinations (REDESIGN §3): Estate · Stable · Racing · Club · Sales. Each
  * area's index screens share a one-row sub-nav; detail screens (a horse, a race, a Cup run,
  * a pull proof) are the second and last level.
  */
 export const SECTIONS: Section[] = [
-  { href: "/", label: "Home", icon: "home", match: (p) => p === "/" },
+  { href: "/", label: "Estate", icon: "home", match: (p) => p === "/" },
   {
     href: "/stable",
     label: "Stable",
@@ -32,7 +32,7 @@ export const SECTIONS: Section[] = [
   },
   {
     href: "/races",
-    label: "Races",
+    label: "Racing",
     icon: "flag",
     match: (p) => starts(p, "/races", "/race", "/story"),
     sub: [
@@ -55,7 +55,7 @@ export const SECTIONS: Section[] = [
   },
   {
     href: "/market",
-    label: "Market",
+    label: "Sales",
     icon: "coin",
     match: (p) => starts(p, "/market", "/packs"),
     sub: [
@@ -150,7 +150,7 @@ export function SiteNav() {
       </a>
       <header className="topbar sticky top-0 z-40">
         <div className="mx-auto flex h-[var(--topbar-h)] max-w-[75rem] items-center gap-2 px-[var(--gutter)]">
-          <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label="Post Time home">
+          <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label="Post Time: your estate">
             <Wordmark />
           </Link>
           <nav className="tabs ml-4 hidden h-full !min-h-0 !gap-1 !p-0 ![mask-image:none] md:flex lg:ml-8" aria-label="Main">

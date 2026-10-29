@@ -2060,3 +2060,165 @@ select.field option {
     0 1px 2px rgba(0, 0, 0, 0.9),
     0 0 12px rgba(0, 0, 0, 0.8);
 }
+
+/* ---------------------------------------------------------------- Estate hub (REDESIGN §4.1) */
+.estate {
+  position: relative;
+  margin-top: -16px;
+}
+@media (min-width: 768px) {
+  .estate {
+    margin-top: -32px;
+  }
+}
+.estate-stage {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  isolation: isolate;
+}
+@media (min-width: 768px) {
+  .estate-stage {
+    height: clamp(360px, 50vw, 820px);
+  }
+}
+.estate-greet {
+  position: absolute;
+  left: var(--gutter);
+  top: 18px;
+  z-index: 2;
+  max-width: min(480px, 62%);
+  pointer-events: none;
+}
+@media (max-width: 767px) {
+  /* Phones: the eyebrow carries the greeting; the stage belongs to the plaques. */
+  .estate-title {
+    display: none;
+  }
+}
+.estate-greet .eyebrow {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(0, 0, 0, 0.8);
+}
+.estate-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.625rem;
+  line-height: 1.875rem;
+  color: var(--color-on-baize);
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.7),
+    0 0 24px rgba(0, 0, 0, 0.55);
+}
+@media (min-width: 1024px) {
+  .estate-greet {
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    top: 48px;
+  }
+  .estate-title {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+.estate-pins {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.plaque {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transform: translate(-50%, -100%);
+  text-decoration: none;
+  transition: transform 160ms ease-out;
+}
+.plaque:hover {
+  transform: translate(-50%, calc(-100% - 2px));
+}
+.plaque-label {
+  padding: 3px 12px 4px;
+  border-radius: 8px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.25rem;
+  color: var(--color-on-baize);
+  white-space: nowrap;
+  background: rgba(8, 21, 14, 0.8);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 0 0 1px var(--brass-rule),
+    0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.plaque:hover .plaque-label,
+.plaque:focus-visible .plaque-label {
+  box-shadow:
+    inset 0 0 0 1px var(--color-brass-hi),
+    0 8px 22px rgba(0, 0, 0, 0.5);
+}
+.plaque-status {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brass-hi);
+  white-space: nowrap;
+  background: rgba(8, 21, 14, 0.7);
+}
+.plaque-pin {
+  width: 2px;
+  height: 14px;
+  background: linear-gradient(var(--brass-rule), rgba(242, 200, 106, 0.9));
+}
+.plaque-pin::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 12px 0 0 -2px;
+  border-radius: 99px;
+  background: var(--color-brass-hi);
+  box-shadow: 0 0 0 3px rgba(242, 200, 106, 0.25);
+}
+.estate-fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 21, 14, 0), rgba(8, 21, 14, 0.85));
+}
+.estate-panels {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 12px;
+  margin: -72px auto 0;
+  padding: 0 var(--gutter);
+  max-width: 40rem;
+}
+@media (min-width: 1024px) {
+  .estate-fade {
+    height: 30%;
+  }
+  .estate-panels {
+    position: absolute;
+    top: 96px;
+    right: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    width: 26rem;
+    margin: 0;
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plaque {
+    transition: none;
+  }
+}
