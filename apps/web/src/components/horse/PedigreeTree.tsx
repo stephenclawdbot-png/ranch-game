@@ -55,7 +55,7 @@ export function PedigreeTree({ root, coiText }: { root: PedigreeNode; coiText: s
         <ol
           className="ped-bracket"
           aria-label={`Pedigree of ${root.name}`}
-          style={{ gridTemplateColumns: `repeat(${depth + 1}, minmax(170px, 1fr))`, gridTemplateRows: `repeat(${2 ** depth}, minmax(52px, auto))`, minWidth: depth === 3 ? 760 : depth === 2 ? 560 : undefined }}
+          style={{ gridTemplateColumns: `repeat(${depth + 1}, minmax(200px, 1fr))`, gridTemplateRows: `repeat(${2 ** depth}, minmax(76px, auto))`, minWidth: depth === 3 ? 880 : depth === 2 ? 660 : undefined }}
         >
           {all.map((s, i) => {
             const n = s.node;
