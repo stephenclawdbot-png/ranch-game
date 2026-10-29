@@ -669,6 +669,11 @@ export class TracksideScene {
     // the camera locks on the highlighted runner (that guarantee is whole-field only).
     const sprite = this.sprite;
     const followOn = f.follow === true && this.highlight >= 0;
+    // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
+    // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the
+    // follow lock's spring would settle 2*v/omega ahead of the runner — enough to push it
+    // out of the close-up frame. (Whole-field keeps its existing framing regardless.)
+    const camV = followOn && simDt === 0 ? 0 : 1;
     this.cam.update(
       {
         W: this.W,
@@ -677,7 +682,7 @@ export class TracksideScene {
         sprite,
         railLane: this.railLane,
         finishX: L,
-        runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed })),
+        runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed * camV })),
         followIndex: followOn ? this.highlight : null,
       },
       snap ? 0 : realDt,

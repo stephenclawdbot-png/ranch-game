@@ -301,6 +301,25 @@ describe("trackside follow cam (Follow mine)", () => {
     expect(whole.compressed).toBe(true);
   });
 
+  it("keeps the followed runner centred and framed while racing (no feed-forward drift)", () => {
+    const cam = new TracksideCamera();
+    const W = 1440;
+    const H = 900;
+    const runners = field(12);
+    let x0 = 0;
+    for (let f = 0; f < 60 * 8; f++) {
+      const dt = 1 / 60;
+      x0 += runners[4]!.speed * dt;
+      runners[4]!.x = x0;
+      cam.update({ W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners, followIndex: 4 }, dt, f === 0);
+      const lay = placeField({ W, H, ppm: cam.ppm, cx: cam.cx, sprite, runners, railLane: 12.8, laneSpan: cam.laneSpan, follow: 4 });
+      expect(inside(W, H, lay.placed[4]!.rect), `frame ${f}`).toBe(true);
+    }
+    const lay = placeField({ W, H, ppm: cam.ppm, cx: cam.cx, sprite, runners, railLane: 12.8, laneSpan: cam.laneSpan, follow: 4 });
+    const p = lay.placed[4]!;
+    expect(Math.abs((p.rect.x + p.rect.w / 2) / W - FOLLOW_AT)).toBeLessThan(0.02);
+  });
+
   it("eases smoothly when the mode toggles (no jump cut) and settles on the close-up rung", () => {
     const cam = new TracksideCamera();
     const W = 390;

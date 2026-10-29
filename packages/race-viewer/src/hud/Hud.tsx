@@ -317,7 +317,8 @@ export function Controls(p: ControlsProps) {
           data-rv-view={p.view ?? "trackside"}
         >
           <ViewIcon />
-          {p.narrow ? (p.view === "classic" ? "Side" : "3D") : p.view === "classic" ? "Trackside" : "3D view"}
+          {/* Narrow stages: icon only (the follow toggle next to it needs the room). */}
+          {p.narrow ? null : p.view === "classic" ? "Trackside" : "3D view"}
         </button>
       )}
       {p.onView && p.view !== "classic" ? (
