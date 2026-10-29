@@ -97,6 +97,37 @@ export const JOBS = {
     "the stable lad stops and stands still facing right, grooming a horse with a body brush held in his raised right hand, brushing in slow strokes, feet planted, seamless loop, keep the same size", 8, 21065),
   "anim-head-grey": anim("apps/web/public/art/portraits/horse-grey.png",
     "the horse looking out over a stable door slowly turns its head to the left and back, ears flick, blinks, gentle breathing, seamless loop", 8, 21055),
+  // ---- the Ranch (pasture turnout: the stable's own horses, untacked) ------------------
+  "loose-horse": {
+    ep: "/edit-images-v2",
+    body: () => ({
+      method: "edit_with_text",
+      edit_images: [{ image: b64img("art-src/raw/rig-hd/horse-neutral-stance-256.png"), width: 256, height: 192 }],
+      image_size: { width: 256, height: 192 },
+      description:
+        "remove the saddle, the white saddle cloth, the girth and the reins completely; the horse wears only a plain leather head collar; fill the back, withers and belly where the saddle was with the same glossy bay coat; keep exactly the same horse, pose, size, colours, outline and pixel art style",
+      no_background: true,
+      seed: 21070,
+    }),
+  },
+  "pasture-ground": img(
+    "flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky",
+    688, 160, 21071, { opaque: true }),
+  "pasture-fence": img(
+    "a long white wooden post-and-rail paddock fence seen straight from the side, three horizontal rails on square white posts evenly spaced, slightly weathered paint, side view, a long straight horizontal strip, transparent background",
+    688, 96, 21072),
+  "pasture-far": img(
+    "a distant English countryside horizon seen from a paddock: gentle rolling green hills with patchwork fields and dark hedgerows, a small red-brick stable block with a slate roof and a white clock cupola far away among oak trees, side view, no sky, transparent background above the hills",
+    688, 192, 21073),
+  "pasture-props": img(
+    "paddock props in a row on a transparent background: a galvanised round metal water trough, a wooden hay rack full of golden hay, a small wooden field shelter with a shingle roof seen from the side, a wooden five-bar gate, side view game sprites, each prop separate",
+    384, 128, 21074),
+  "anim-loose-walk": anim("art-src/diorama/raw/loose-horse-0.png",
+    "untacked horse walking calmly across a grass paddock at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place, keep the same size", 8, 21075),
+  "anim-loose-graze": anim("art-src/diorama/raw/loose-horse-0.png",
+    "untacked horse lowers its head all the way to the ground and grazes, muzzle in the grass, nibbling, ears flick, tail swishes, feet stay planted, seamless loop, keep the same size", 8, 21076),
+  "anim-loose-idle": anim("art-src/diorama/raw/loose-horse-0.png",
+    "untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size", 8, 21077),
 };
 
 const names = process.argv.slice(2);

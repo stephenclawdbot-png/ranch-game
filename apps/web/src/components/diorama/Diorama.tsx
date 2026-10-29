@@ -13,7 +13,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { computeFrame } from "./frame";
-import { SCENES, type DioramaSceneId } from "./scenes";
+import { SCENES, type DioramaSceneId, type SceneDef } from "./scenes";
 import type { DioramaEngine, EngineStats } from "./engine";
 
 export interface DioramaProps {
@@ -37,20 +37,22 @@ export interface DioramaProps {
    * otherwise push a short view down to the floor and crop the subject's head.
    */
   framing?: { focusY?: number; ground?: boolean };
+  /** A scene built at runtime (the Ranch herd); memoise it, a new object rebuilds the engine. */
+  sceneDef?: SceneDef;
   onStats?: (s: EngineStats) => void;
 }
 
 type State = "poster" | "loading" | "live" | "still" | "fallback";
 
-export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats, framing }: DioramaProps) {
+export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats, framing, sceneDef }: DioramaProps) {
   const focusY = framing?.focusY;
   const ground = framing?.ground;
   // One adjusted scene for the poster and the engine, so both frame the same view.
   const def = useMemo(() => {
-    const base = SCENES[scene];
+    const base = sceneDef ?? SCENES[scene];
     if (focusY === undefined && ground !== false) return base;
     return { ...base, focusY: focusY ?? base.focusY, groundY: ground === false ? undefined : base.groundY };
-  }, [scene, focusY, ground]);
+  }, [scene, sceneDef, focusY, ground]);
   const box = useRef<HTMLDivElement>(null);
   const cnv = useRef<HTMLCanvasElement>(null);
   const poster = useRef<HTMLImageElement>(null);

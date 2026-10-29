@@ -3288,3 +3288,207 @@ dialog.sheet .inset {
 .row-link:hover .chev {
   filter: brightness(1.4);
 }
+
+/* ---------------------------------------------------------------- The Ranch (REDESIGN §4.4) */
+.ranch {
+  position: relative;
+  margin-top: -16px;
+}
+@media (min-width: 768px) {
+  .ranch {
+    margin-top: -32px;
+  }
+}
+.ranch-stage {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  isolation: isolate;
+}
+@media (min-width: 768px) {
+  .ranch-stage {
+    height: clamp(360px, 44vw, 600px);
+  }
+}
+.ranch-greet {
+  position: absolute;
+  left: var(--gutter);
+  top: 14px;
+  z-index: 3;
+  max-width: min(520px, 70%);
+  pointer-events: none;
+}
+.ranch-greet .eyebrow {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(0, 0, 0, 0.8);
+}
+.ranch-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 2rem;
+  color: var(--color-on-baize);
+  text-shadow:
+    0 3px 0 var(--ink-0),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+@media (min-width: 1024px) {
+  .ranch-greet {
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    top: 40px;
+  }
+  .ranch-title {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+.ranch-tags {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.ranch-tags > li {
+  position: absolute;
+}
+.ranch-hit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.ranch-tag {
+  position: relative;
+  z-index: 2; /* above every horse's hit area, so each tag opens its own horse */
+  transform: translateY(-115%);
+  white-space: nowrap;
+  font-family: var(--font-name);
+  font-size: 1.0625rem;
+  line-height: 1;
+  padding: 3px 8px 4px;
+  color: var(--color-on-baize);
+  background: var(--color-baize-800);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    0 2px 0 var(--ink-0);
+  transition: transform 120ms ease-out;
+}
+.ranch-tag.is-entered {
+  background: #7a5a16;
+}
+.ranch-tag.is-resting {
+  color: var(--color-cream-dim);
+}
+.ranch-hit:hover .ranch-tag,
+.ranch-hit:focus-visible .ranch-tag,
+.ranch-hit[aria-pressed="true"] .ranch-tag {
+  transform: translateY(-130%);
+  background: #1f4d35;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #3f8a58,
+    0 3px 0 var(--ink-0);
+}
+.ranch-tag-far {
+  transform: translateY(-240%);
+}
+.ranch-hit:hover .ranch-tag-far,
+.ranch-hit:focus-visible .ranch-tag-far,
+.ranch-hit[aria-pressed="true"] .ranch-tag-far {
+  transform: translateY(-255%);
+}
+.ranch-hit[aria-pressed="true"] .ranch-tag {
+  background: var(--color-brass);
+  color: var(--ink-0);
+}
+.ranch-hit:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+.ranch-barn,
+.ranch-hint {
+  position: absolute;
+  z-index: 3;
+  bottom: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  color: var(--color-on-baize);
+  background: var(--ink-0);
+  pointer-events: none;
+}
+.ranch-barn {
+  right: var(--gutter);
+}
+.ranch-hint {
+  left: var(--gutter);
+}
+.ranch-card {
+  position: absolute;
+  z-index: 4;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 12px 14px 14px;
+}
+@media (min-width: 768px) {
+  .ranch-card {
+    left: auto;
+    right: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    top: 40px;
+    bottom: auto;
+    width: 340px;
+  }
+}
+.ranch-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: var(--ink-0);
+  color: var(--color-on-baize);
+}
+.ranch-name {
+  font-family: var(--font-name);
+  font-size: 1.75rem;
+  line-height: 1.625rem;
+  color: var(--color-cream);
+}
+.ranch-facts {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.ranch-facts > div {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+.ranch-facts dt {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-sage);
+}
+.ranch-facts dd {
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+.ranch-facts dd.score {
+  font-family: var(--font-score);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1;
+}

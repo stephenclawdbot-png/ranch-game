@@ -590,12 +590,13 @@ export class DioramaEngine {
 
   // ------------------------------------------------------------------ input
   setPointer(nx: number, ny: number): void {
-    this.parTarget.x = Math.max(-1, Math.min(1, nx)) * 12;
-    this.parTarget.y = Math.max(-1, Math.min(1, ny)) * 4;
+    const k = this.scene.parallax ?? 1;
+    this.parTarget.x = Math.max(-1, Math.min(1, nx)) * 12 * k;
+    this.parTarget.y = Math.max(-1, Math.min(1, ny)) * 4 * k;
   }
   setScroll(n: number): void {
     // n: -1 (element below the fold) .. 1 (scrolled past): a gentle vertical drift
-    this.parTarget.y = Math.max(-1, Math.min(1, n)) * 6;
+    this.parTarget.y = Math.max(-1, Math.min(1, n)) * 6 * (this.scene.parallax ?? 1);
   }
 
   // ------------------------------------------------------------------ loop

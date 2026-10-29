@@ -9,7 +9,8 @@ import { conditionLabel, riskText } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon, type IconName } from "@/components/icons";
 import { ActionBar } from "@/components/ui/ActionBar";
-import { SceneBand, Section } from "@/components/ui/Page";
+import { RanchStage } from "@/components/stable/RanchStage";
+import { Section } from "@/components/ui/Page";
 import { aptitudes } from "@/lib/aptitude";
 import { SEX_LABEL, STYLE_LABEL, formatDistance } from "@/lib/format";
 import { recommendHorse, type PlayerState } from "@/lib/player";
@@ -50,13 +51,15 @@ function Stable({ state }: { state: PlayerState }) {
 
   return (
     <div>
-      <SceneBand
-        scene="barn"
-        alt="Inside your barn"
+      <RanchStage
+        horses={state.horses}
+        onRace={(id) => entry.open(id)}
         eyebrow={
           <span className="inline-flex items-center gap-2">
             <Silks silks={state.silks} cap={false} className="h-[26px] w-8" />
-            <span data-testid="stable-name">{state.stableName}</span> · {state.stalls.used} of {state.stalls.slots} stalls
+            <span>
+              <span data-testid="stable-name">{state.stableName}</span> · {state.stalls.used} of {state.stalls.slots} stalls
+            </span>
           </span>
         }
         title="Stable"

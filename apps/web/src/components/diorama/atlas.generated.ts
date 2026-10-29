@@ -34,6 +34,10 @@ export const DIORAMA_ATLAS = {
    "w": 384,
    "h": 128
   },
+  "pasture-props": {
+   "w": 384,
+   "h": 128
+  },
   "fg-branch": {
    "w": 256,
    "h": 192
@@ -45,6 +49,22 @@ export const DIORAMA_ATLAS = {
   "paddock-pavilion": {
    "w": 384,
    "h": 256
+  },
+  "pasture-far": {
+   "w": 1260,
+   "h": 146
+  },
+  "pasture-ground": {
+   "w": 624,
+   "h": 160
+  },
+  "pasture-ground-s2": {
+   "w": 312,
+   "h": 80
+  },
+  "pasture-fence": {
+   "w": 688,
+   "h": 81
   },
   "barn-wall": {
    "w": 1376,
@@ -126,6 +146,18 @@ export const DIORAMA_ATLAS = {
    "w": 2748,
    "h": 145
   },
+  "horse-loose-walk": {
+   "w": 2032,
+   "h": 184
+  },
+  "horse-loose-graze": {
+   "w": 6144,
+   "h": 182
+  },
+  "horse-loose-idle": {
+   "w": 2016,
+   "h": 181
+  },
   "horse-walk-jockey-s2": {
    "w": 1024,
    "h": 96
@@ -206,6 +238,30 @@ export const DIORAMA_ATLAS = {
    "w": 150,
    "h": 30
   },
+  "horse-loose-walk-s2": {
+   "w": 1016,
+   "h": 92
+  },
+  "horse-loose-walk-s3": {
+   "w": 680,
+   "h": 62
+  },
+  "horse-loose-graze-s2": {
+   "w": 3072,
+   "h": 91
+  },
+  "horse-loose-graze-s3": {
+   "w": 2064,
+   "h": 61
+  },
+  "horse-loose-idle-s2": {
+   "w": 1008,
+   "h": 91
+  },
+  "horse-loose-idle-s3": {
+   "w": 672,
+   "h": 61
+  },
   "horse-gallop-s2": {
    "w": 1380,
    "h": 73
@@ -284,6 +340,32 @@ export const DIORAMA_ATLAS = {
     62,
     39,
     59
+   ]
+  ],
+  "pasture-props": [
+   [
+    0,
+    67,
+    71,
+    43
+   ],
+   [
+    78,
+    46,
+    86,
+    64
+   ],
+   [
+    167,
+    17,
+    104,
+    96
+   ],
+   [
+    276,
+    51,
+    108,
+    56
    ]
   ]
  },
@@ -454,6 +536,24 @@ export const DIORAMA_ATLAS = {
    "frames": 12,
    "fps": 12
   },
+  "horse-loose-walk": {
+   "fw": 254,
+   "fh": 184,
+   "frames": 8,
+   "fps": 7
+  },
+  "horse-loose-graze": {
+   "fw": 256,
+   "fh": 182,
+   "frames": 24,
+   "fps": 5
+  },
+  "horse-loose-idle": {
+   "fw": 252,
+   "fh": 181,
+   "frames": 8,
+   "fps": 5
+  },
   "horse-walk-jockey-s2": {
    "fw": 128,
    "fh": 96,
@@ -581,6 +681,42 @@ export const DIORAMA_ATLAS = {
    "frames": 6,
    "fps": 4,
    "door": 26
+  },
+  "horse-loose-walk-s2": {
+   "fw": 127,
+   "fh": 92,
+   "frames": 8,
+   "fps": 7
+  },
+  "horse-loose-walk-s3": {
+   "fw": 85,
+   "fh": 62,
+   "frames": 8,
+   "fps": 7
+  },
+  "horse-loose-graze-s2": {
+   "fw": 128,
+   "fh": 91,
+   "frames": 24,
+   "fps": 5
+  },
+  "horse-loose-graze-s3": {
+   "fw": 86,
+   "fh": 61,
+   "frames": 24,
+   "fps": 5
+  },
+  "horse-loose-idle-s2": {
+   "fw": 126,
+   "fh": 91,
+   "frames": 8,
+   "fps": 5
+  },
+  "horse-loose-idle-s3": {
+   "fw": 84,
+   "fh": 61,
+   "frames": 8,
+   "fps": 5
   },
   "horse-gallop-s2": {
    "fw": 115,

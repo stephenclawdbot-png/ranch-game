@@ -212,7 +212,7 @@ save(downsample(cobq, 2), "yard-cobbles-s2", "yard-cobbles 2:1 box downsample", 
 save(downsample(load(Path("apps/web/public/art/race/crowd.png")), 2), "crowd-s2", "race/crowd.png 2:1 box downsample", seamless="x")
 save(downsample(load(Path("apps/web/public/art/race/bb-grandstand.png")), 2), "grandstand-s2", "race/bb-grandstand.png 2:1 box downsample")
 
-for sheet in ("yard-props", "barn-props"):
+for sheet in ("yard-props", "barn-props", "pasture-props"):
     a = clean(quantise(load(RAW / f"{sheet}-0.png")))
     _, bx = components(a[..., 3] > 0, 60)
     # merge components whose boxes overlap (e.g. a lantern and its bracket)
@@ -232,6 +232,18 @@ save(clean(quantise(load(RAW / "fg-branch-0.png"))), "fg-branch", "diorama/raw/f
 grass = clean(quantise(load(RAW / "fg-grass-0.png")))
 save(mirror_tile(grass), "fg-grass", "diorama/raw/fg-grass-0", seamless="x (mirror)")
 save(clean(quantise(load(RAW / "paddock-pavilion-0.png"))), "paddock-pavilion", "diorama/raw/paddock-pavilion-0")
+# the Ranch pasture: far countryside (alpha-cropped, mirrored to tile), meadow floor and fence
+far = clean(quantise(load(RAW / "pasture-far-0.png")))
+ys, xs = np.nonzero(far[..., 3])
+far = far[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1]
+save(mirror_tile(far), "pasture-far", "diorama/raw/pasture-far-0", seamless="x (mirror)")
+meadow = quantise(load(RAW / "pasture-ground-0.png"))
+meadow[..., 3] = 255
+save(quilt(meadow, 64), "pasture-ground", "diorama/raw/pasture-ground-0", seamless="x (min-cut quilt, no mirror)")
+save(downsample(quilt(meadow, 64), 2), "pasture-ground-s2", "pasture-ground 2:1 box downsample", seamless="x (min-cut quilt)")
+fence = clean(quantise(load(RAW / "pasture-fence-0.png")))
+ys, xs = np.nonzero(fence[..., 3])
+save(fence[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1], "pasture-fence", "diorama/raw/pasture-fence-0")
 
 wall = quantise(load(RAW / "barn-wall-0.png"))
 wall[..., 3] = 255
@@ -286,7 +298,8 @@ for i in range(4):
 strip(fr("anim-aisle-idle", 1, 8), "horse-aisle-idle", "anim-aisle-idle 1..8 (animate-with-text-v3 from rig-hd/horse-standing-alt-256)", 5)
 
 # keyed (recolourable) strips made by art-src/process_gallop.py --palette-from race/horse-gallop
-for name, fps in (("horse-walk-jockey", 8), ("horse-canter", 12)):
+# horse-loose-*: the Ranch turnout (untacked, keyed; art-src/diorama/key-ranch.sh)
+for name, fps in (("horse-walk-jockey", 8), ("horse-canter", 12), ("horse-loose-walk", 7), ("horse-loose-graze", 5), ("horse-loose-idle", 5)):
     m = json.loads(Path(f"art-src/meta/race/{name}.meta.json").read_text())
     atlas["anims"][name] = {"fw": m["frameWidth"], "fh": m["frameHeight"], "frames": m["frameCount"], "fps": fps}
     im = Image.open(OUT / f"{name}.png")
@@ -324,6 +337,9 @@ for name, ks, fps in (
     ("stall-horse-grey", (2, 3), 4),
     ("stall-horse-chestnut", (2, 3), 4),
     ("stall-horse-black", (2, 3), 4),
+    ("horse-loose-walk", (2, 3), 7),
+    ("horse-loose-graze", (2, 3), 5),
+    ("horse-loose-idle", (2, 3), 5),
 ):
     for k in ks:
         downsample_strip(name, k, fps)

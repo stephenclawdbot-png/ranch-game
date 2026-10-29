@@ -228,3 +228,11 @@
 {"at":"2026-10-26T07:17:02.516Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-stall-horse","secs":164,"usage":{"type":"generations","generations":2},"images":9}
 {"at":"2026-10-26T12:46:13.915Z","endpoint":"/generate-image-v2","prefix":"art-src/race/raw/stall-bay","secs":72,"usage":{"type":"generations","generations":15},"images":1}
 {"at":"2026-10-26T12:47:52.668Z","endpoint":"/generate-image-v2","prefix":"art-src/race/raw/stall-bay-b","secs":99,"usage":{"type":"generations","generations":15},"images":1}
+{"at":"2026-10-29T09:12:38.656Z","endpoint":"/edit-images-v2","prefix":"art-src/diorama/raw/loose-horse","secs":55,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-29T09:12:43.770Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/pasture-props","secs":60,"usage":{"type":"generations","generations":10},"images":1}
+{"at":"2026-10-29T09:13:05.961Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/pasture-fence","secs":83,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-29T09:13:27.634Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/pasture-far","secs":104,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-29T09:13:50.342Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/pasture-ground","secs":127,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-29T09:15:56.778Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-graze","secs":104,"usage":{"type":"generations","generations":6},"images":9}
+{"at":"2026-10-29T09:15:56.964Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-idle","secs":104,"usage":{"type":"generations","generations":6},"images":9}
+{"at":"2026-10-29T09:16:23.851Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-walk","secs":131,"usage":{"type":"generations","generations":6},"images":9}

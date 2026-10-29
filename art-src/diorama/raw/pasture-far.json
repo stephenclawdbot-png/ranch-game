@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a distant English countryside horizon seen from a paddock: gentle rolling green hills with patchwork fields and dark hedgerows, a small red-brick stable block with a slate roof and a white clock cupola far away among oak trees, side view, no sky, transparent background above the hills, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+  "image_size": {
+   "width": 688,
+   "height": 192
+  },
+  "seed": 21073,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<167928 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 288
+   },
+   "usage_description": "match this pixel art style, pixel density, palette and golden-hour lighting"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ce109679-46e5-4990-957f-f4fda3f6efb2",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "ce109679-46e5-4990-957f-f4fda3f6efb2",
+  "status": "completed",
+  "created_at": "2026-10-29T09:11:44.327898+00:00",
+  "last_response": {
+   "seed": 21073,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<81120 chars>",
+     "height": 192
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "ecff1bf3-5299-4ea0-b7a2-42fe2e8173bd",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-29T09:11:50.735855+00:00",
+   "original_image_n_colors": 122,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/pasture-far-0.png"
+ ]
+}

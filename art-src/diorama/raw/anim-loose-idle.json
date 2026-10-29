@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<23192 chars>",
+   "format": "png"
+  },
+  "action": "untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size",
+  "frame_count": 8,
+  "seed": 21077,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6f8b44c1-bc41-40ba-ad30-f554aa7b2d87",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "6f8b44c1-bc41-40ba-ad30-f554aa7b2d87",
+  "status": "completed",
+  "created_at": "2026-10-29T09:14:13.745187+00:00",
+  "last_response": {
+   "seed": 21077,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.02571737617254257
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<23192 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25184 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25276 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25444 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<24696 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25016 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<24848 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25328 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25320 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "f74124ac-2d4b-457c-8f7a-5959f458db34",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T09:14:27.505187+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-loose-idle-0.png",
+  "art-src/diorama/raw/anim-loose-idle-1.png",
+  "art-src/diorama/raw/anim-loose-idle-2.png",
+  "art-src/diorama/raw/anim-loose-idle-3.png",
+  "art-src/diorama/raw/anim-loose-idle-4.png",
+  "art-src/diorama/raw/anim-loose-idle-5.png",
+  "art-src/diorama/raw/anim-loose-idle-6.png",
+  "art-src/diorama/raw/anim-loose-idle-7.png",
+  "art-src/diorama/raw/anim-loose-idle-8.png"
+ ]
+}

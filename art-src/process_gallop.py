@@ -140,7 +140,9 @@ def classify(img):
 
     # Tack: dark neutral pixels near the white saddle cloth (saddle, girth, boots).
     white = role == "white"
-    if white.any():
+    _lab, _n = components(white)
+    cloth_ok = any(np.sum(_lab == i) >= 8 for i in range(1, _n + 1))  # riderless strips: no cloth
+    if cloth_ok:
         lab2, n2 = components(white)
         sizes = [(np.sum(lab2 == i), i) for i in range(1, n2 + 1)]
         big = max(sizes)[1]
@@ -182,7 +184,7 @@ def classify(img):
             role[girth] = "tack"
     # Below the saddle cloth nothing can be silks: dark crimson belly shading is coat.
     belly = None
-    if white.any():
+    if cloth_ok:
         cloth_bottom = yy.max()
         rows_ = np.arange(H)[:, None]
         for r in ("silksPrimary", "cap", "silksSecondary"):
@@ -292,7 +294,8 @@ def main():
     base = max(bottoms)
     # Keep natural vertical bob; frames are already on one ground line within 1-2 px, so
     # only shift horizontally by the silks centroid to kill sideways jitter.
-    cx = [np.nonzero((ro == "silksPrimary") | (ro == "silksSecondary"))[1].mean() for ro in roles]
+    # (riderless strips have no silks: steady them on the coat instead)
+    cx = [np.nonzero((ro == "silksPrimary") | (ro == "silksSecondary"))[1].mean() if ((ro == "silksPrimary") | (ro == "silksSecondary")).any() else np.nonzero(ro == "coat")[1].mean() for ro in roles]
     ref = np.median(cx)
     shifted = []
     for o, c in zip(out_frames, cx):

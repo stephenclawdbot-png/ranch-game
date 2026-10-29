@@ -4276,6 +4276,363 @@
    }
   },
   {
+   "id": "diorama.horse-loose-graze-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 24,
+   "frameWidth": 128,
+   "frameHeight": 91,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-graze 2:1 box downsample snapped to its own (key) palette | untacked horse lowers its head all the way to the ground and grazes, muzzle in the grass, nibbling, ears flick, tail swishes, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-graze-s2.png",
+   "animations": {
+    "horse-loose-graze-s2": {
+     "from": 0,
+     "to": 23,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-graze-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 24,
+   "frameWidth": 86,
+   "frameHeight": 61,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-graze 3:1 box downsample snapped to its own (key) palette | untacked horse lowers its head all the way to the ground and grazes, muzzle in the grass, nibbling, ears flick, tail swishes, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-graze-s3.png",
+   "animations": {
+    "horse-loose-graze-s3": {
+     "from": 0,
+     "to": 23,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-graze",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 24,
+   "frameWidth": 256,
+   "frameHeight": 182,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-loose-graze) | untacked horse lowers its head all the way to the ground and grazes, muzzle in the grass, nibbling, ears flick, tail swishes, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-graze.png",
+   "animations": {
+    "horse-loose-graze": {
+     "from": 0,
+     "to": 23,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-idle-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 126,
+   "frameHeight": 91,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-idle 2:1 box downsample snapped to its own (key) palette | untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-idle-s2.png",
+   "animations": {
+    "horse-loose-idle-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-idle-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 84,
+   "frameHeight": 61,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-idle 3:1 box downsample snapped to its own (key) palette | untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-idle-s3.png",
+   "animations": {
+    "horse-loose-idle-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-idle",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 252,
+   "frameHeight": 181,
+   "fps": 5,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-loose-idle) | untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-idle.png",
+   "animations": {
+    "horse-loose-idle": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-walk-s2",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 127,
+   "frameHeight": 92,
+   "fps": 7,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-walk 2:1 box downsample snapped to its own (key) palette | untacked horse walking calmly across a grass paddock at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-walk-s2.png",
+   "animations": {
+    "horse-loose-walk-s2": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-walk-s3",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 85,
+   "frameHeight": 62,
+   "fps": 7,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "horse-loose-walk 3:1 box downsample snapped to its own (key) palette | untacked horse walking calmly across a grass paddock at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-walk-s3.png",
+   "animations": {
+    "horse-loose-walk-s3": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "diorama.horse-loose-walk",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 254,
+   "frameHeight": 184,
+   "fps": 7,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "art-src/process_gallop.py --hd --palette-from art-src/meta/race/horse-gallop.meta.json (horse-loose-walk) | untacked horse walking calmly across a grass paddock at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place, keep the same size",
+   "optimizationTier": "hero",
+   "src": "diorama/horse-loose-walk.png",
+   "animations": {
+    "horse-loose-walk": {
+     "from": 0,
+     "to": 7,
+     "loop": true
+    }
+   }
+  },
+  {
    "id": "diorama.horse-walk-jockey-s2",
    "kind": "horse_body",
    "origin": "pixellab",
@@ -4633,6 +4990,111 @@
    "src": "diorama/paddock-pavilion.png"
   },
   {
+   "id": "diorama.pasture-far",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1260,
+   "frameHeight": 146,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/pasture-far-0 | a distant English countryside horizon seen from a paddock: gentle rolling green hills with patchwork fields and dark hedgerows, a small red-brick stable block with a slate roof and a white clock cupola far away among oak trees, side view, no sky, transparent background above the hills, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/pasture-far.png"
+  },
+  {
+   "id": "diorama.pasture-fence",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 81,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/pasture-fence-0 | a long white wooden post-and-rail paddock fence seen straight from the side, three horizontal rails on square white posts evenly spaced, slightly weathered paint, side view, a long straight horizontal strip, transparent background, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/pasture-fence.png"
+  },
+  {
+   "id": "diorama.pasture-ground-s2",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 312,
+   "frameHeight": 80,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "pasture-ground 2:1 box downsample | flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/pasture-ground-s2.png"
+  },
+  {
+   "id": "diorama.pasture-ground",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 624,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/pasture-ground-0 | flat green grass paddock pasture seen from a low angle, lush meadow grass with clover, buttercups and daisies, a few darker grazed patches, warm golden-hour light, the grass fills the entire image edge to edge, no fence, no objects, no sky, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/pasture-ground.png"
+  },
+  {
+   "id": "diorama.pasture-props",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "diorama/raw/pasture-props-0 | paddock props in a row on a transparent background: a galvanised round metal water trough, a wooden hay rack full of golden hay, a small wooden field shelter with a shingle roof seen from the side, a wooden five-bar gate, side view game sprites, each prop separate, high-res HD pixel art with fine detail and many small pixels, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racing palette: honey sunlight, red brick, deep greens, cream",
+   "optimizationTier": "background",
+   "src": "diorama/pasture-props.png"
+  },
+  {
    "id": "diorama.poster-barn",
    "kind": "building",
    "origin": "pixellab",
@@ -4694,6 +5156,27 @@
    "sourcePrompt": "Composited still frame of <Diorama scene=\"paddock\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
    "optimizationTier": "background",
    "src": "diorama/poster-paddock.png"
+  },
+  {
+   "id": "diorama.poster-pasture",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 880,
+   "frameHeight": 360,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "Composited still frame of <Diorama scene=\"pasture\"> (art-src/diorama/make-posters.mjs + finish-posters.py)",
+   "optimizationTier": "background",
+   "src": "diorama/poster-pasture.png"
   },
   {
    "id": "diorama.poster-track-dusk",

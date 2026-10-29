@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<23192 chars>",
+   "format": "png"
+  },
+  "action": "untacked horse walking calmly across a grass paddock at a slow four-beat walk, legs step one at a time, head nods gently with each step, tail swings softly, one complete walk cycle, seamless loop, stays in place, keep the same size",
+  "frame_count": 8,
+  "seed": 21075,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a761638f-6300-451d-a210-3e389d099d01",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "a761638f-6300-451d-a210-3e389d099d01",
+  "status": "completed",
+  "created_at": "2026-10-29T09:14:13.759295+00:00",
+  "last_response": {
+   "seed": 21075,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.02890700752205319
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<23192 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<26320 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<26252 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<26892 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<27380 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<28148 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<27496 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<27836 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<26572 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "c804d7f1-00d0-46bc-a2bd-7cd7f9f15c2c",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T09:14:33.455048+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-loose-walk-0.png",
+  "art-src/diorama/raw/anim-loose-walk-1.png",
+  "art-src/diorama/raw/anim-loose-walk-2.png",
+  "art-src/diorama/raw/anim-loose-walk-3.png",
+  "art-src/diorama/raw/anim-loose-walk-4.png",
+  "art-src/diorama/raw/anim-loose-walk-5.png",
+  "art-src/diorama/raw/anim-loose-walk-6.png",
+  "art-src/diorama/raw/anim-loose-walk-7.png",
+  "art-src/diorama/raw/anim-loose-walk-8.png"
+ ]
+}

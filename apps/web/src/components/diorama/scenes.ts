@@ -10,7 +10,7 @@
 import { DIORAMA_ATLAS as A } from "./atlas.generated";
 import type { DioramaHorseLook } from "./recolor";
 
-export const DIORAMA_SCENES = ["yard", "paddock", "grandstand", "barn", "track-dusk"] as const;
+export const DIORAMA_SCENES = ["yard", "paddock", "grandstand", "barn", "track-dusk", "pasture"] as const;
 export type DioramaSceneId = (typeof DIORAMA_SCENES)[number];
 
 export type Rect = readonly [x: number, y: number, w: number, h: number];
@@ -149,6 +149,8 @@ export interface SceneDef {
   overlays?: readonly Overlay[];
   /** Colour grade baked into every animated sprite (dusk light). */
   sprites?: { color: string; alpha: number };
+  /** Pointer / scroll parallax strength (default 1). Scenes with HTML pinned to sprites keep it low. */
+  parallax?: number;
   /** Time (s) of the reduced-motion / poster frame. */
   posterT: number;
   poster: string;
@@ -163,7 +165,7 @@ function sheet(name: AnimName, x: number, y: number, extra: Partial<AnimItem> = 
 }
 const GALLOP: Omit<AnimItem, "x" | "y"> = { src: "race/horse-gallop.png", fw: 229, fh: 146, frames: 12, fps: 14 };
 const FLAG: Omit<AnimItem, "x" | "y"> = { src: "race/bb-flag.png", fw: 90, fh: 100, frames: 8, fps: 8 };
-const prop = (sheetName: "yard-props" | "barn-props", i: number, x: number, y: number, extra: Partial<StaticItem> = {}): StaticItem => ({
+const prop = (sheetName: "yard-props" | "barn-props" | "pasture-props", i: number, x: number, y: number, extra: Partial<StaticItem> = {}): StaticItem => ({
   src: `diorama/${sheetName}.png`,
   rect: A.props[sheetName][i] as unknown as Rect,
   x,
@@ -652,7 +654,78 @@ const dusk: SceneDef = {
   ],
 };
 
-export const SCENES: Record<DioramaSceneId, SceneDef> = { yard, paddock, grandstand, barn, "track-dusk": dusk };
+// ---------------------------------------------------------------------------- the Ranch
+/** Feet lines of the two herd rows (art px): the far row stands in the field, the near row on the meadow. */
+export const PASTURE_ROWS = { far: 318, near: 352 } as const;
+
+/** The stable's own horses turned out (untacked, keyed strips recoloured to each horse's genes). */
+export function looseHorse(kind: "graze" | "idle" | "walk", size: 2 | 3, x: number, y: number, extra: Partial<AnimItem> = {}): AnimItem {
+  return sheet(`horse-loose-${kind}-s${size}` as AnimName, x, y, { shadow: size === 2 ? 96 : 64, ...extra });
+}
+
+const pastureBase: SceneDef = {
+  id: "pasture",
+  label: "The paddocks",
+  width: 880,
+  height: 360,
+  focusX: 440,
+  focusY: 270,
+  groundY: 356,
+  scroll: 0,
+  parallax: 0.15,
+  sky: { src: "race/sky-clear.png", y: 236, drift: 2.4, top: "#3b6ea8", bottom: "#f3d9a4" },
+  fog: "#efd6a2",
+  sun: { x: 140, y: 50, r: 230, color: "#ffd98a", alpha: 0.5 },
+  rays: [{ x: -60, y: -60, angle: 50, spread: 24, count: 6, length: 560, width: 28, color: "#ffe2a0", alpha: 0.3, depth: 0.5, seed: 7 }],
+  motes: { count: 50, color: "#fff1c4", glow: "#ffd27a", wind: 7, y0: 60, y1: 360, bokeh: 6 },
+  grade: { top: "#ffcf7a", topA: 0.07, bottom: "#1d140a", bottomA: 0.16, vignette: 0.38 },
+  posterT: 6,
+  poster: "diorama/poster-pasture.png",
+  overlays: [{ src: "diorama/fg-branch.png", corner: "top-right", dx: -36, dy: -28, flip: true, blur: 2.6, depth: 1.6, sway: 2 }],
+  layers: [
+    { id: "country", depth: 0.14, blur: 1.2, haze: 0.32, y0: 100, y1: 266, items: [img("diorama/pasture-far.png", -190, 264, { tile: true })] },
+    {
+      id: "shelter",
+      depth: 0.4,
+      blur: 0.5,
+      haze: 0.12,
+      y0: 0,
+      y1: 266,
+      items: [img("race/bb-tree-oak.png", 660, 262), prop("pasture-props", 2, 70, 260, { shadow: 90 })],
+    },
+    {
+      id: "fence",
+      depth: 0.5,
+      haze: 0.06,
+      y0: 170,
+      y1: 270,
+      fills: [{ y0: 252, y1: 270, stops: [[0, "#6f9447"], [1, "#5d8a3c"]] }],
+      items: [img("diorama/pasture-fence.png", -100, 264, { tile: true })],
+    },
+    {
+      id: "field",
+      depth: 0.62,
+      y0: 248,
+      y1: 330,
+      items: [
+        img("diorama/pasture-ground-s2.png", -120, 330, { tile: true }),
+        prop("pasture-props", 1, 250, 280, { shadow: 70 }),
+        prop("pasture-props", 0, 600, 284, { shadow: 60 }),
+      ],
+      anims: [],
+    },
+    { id: "meadow", depth: 0.85, y0: 318, y1: 400, items: [img("diorama/pasture-ground.png", -160, 482, { tile: true })] },
+    { id: "herd", depth: 1, y0: 220, y1: 380, items: [], anims: [] },
+    { id: "near", depth: 1.45, blur: 2.4, y0: 300, y1: 420, items: [img("diorama/fg-grass.png", -200, 380, { tile: true })] },
+  ],
+};
+
+/** The pasture with the herd placed in (far row in the field, near row on the meadow). */
+export function pastureScene(far: AnimItem[], near: AnimItem[]): SceneDef {
+  return { ...pastureBase, layers: pastureBase.layers.map((l) => (l.id === "field" ? { ...l, anims: far } : l.id === "herd" ? { ...l, anims: near } : l)) };
+}
+
+export const SCENES: Record<DioramaSceneId, SceneDef> = { yard, paddock, grandstand, barn, "track-dusk": dusk, pasture: pastureBase };
 
 /** Every art file a scene needs (for preloading and tests). */
 export function sceneFiles(s: SceneDef): string[] {
