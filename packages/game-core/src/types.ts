@@ -231,6 +231,34 @@ export const GenomeV1Schema = GenomeSchema.omit({ genes2: true, breed: true }).e
 });
 export type GenomeV1 = z.infer<typeof GenomeV1Schema>;
 
+/** Wild-type v2 loci: what every pre-genetics-v2 horse gets (MSTN C/T is the neutral miler). */
+export const WILD_GENES2: Genes2 = {
+  champagne: ["n", "n"],
+  silver: ["n", "n"],
+  pearl: ["n", "n"],
+  tobiano: ["n", "n"],
+  leopard: ["n", "n"],
+  patn1: ["n", "n"],
+  splash: ["n", "n"],
+  height: ["n", "n"],
+  feather: ["Fe", "Fe"],
+  mstn: ["C", "T"],
+  bigHeart: ["n", "n"],
+  ironLegs: ["n", "n"],
+  curledEars: ["n", "n"],
+  dish: ["n", "n"],
+};
+
+/** A v1 genome as v2: the new breed shares are 0, every new locus wild type (genome.ts re-uses). */
+export function upgradeV1Genome(v1: GenomeV1): Genome {
+  const breed = {} as BreedShares;
+  for (const b of BREEDS) breed[b] = b in v1.breed ? v1.breed[b as keyof GenomeV1["breed"]] : 0;
+  return { ...v1, version: GENOME_VERSION, breed, genes2: WILD_GENES2 };
+}
+
+/** Any stored genome: v2 passes through, v1 is upgraded on read (rows are never rewritten). */
+export const StoredGenomeSchema = GenomeSchema.or(GenomeV1Schema.transform(upgradeV1Genome));
+
 /** Expressed look knobs for @thoroughbred/pixel-rig (`factory.create(appearance, look)`). */
 export const RigLookSchema = z.object({
   variants: z.object({ head: z.number().int(), mane: z.number().int(), tail: z.number().int(), build: z.number().int() }),
@@ -312,7 +340,8 @@ export const HorseStateSchema = z.object({
   sireId: z.string().nullable(),
   damId: z.string().nullable(),
   generation: NonNegInt,
-  genome: GenomeSchema,
+  /** v2 in place; a v1 genome stored in an old entry snapshot is upgraded on read. */
+  genome: StoredGenomeSchema,
   location: HorseLocationSchema,
   binding: BindingSchema,
   bornAtMs: z.number().int(),

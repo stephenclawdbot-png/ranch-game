@@ -35,6 +35,7 @@ import {
   type StatKey,
   type StatRecord,
   type SurfaceAllele,
+  upgradeV1Genome,
 } from "./types";
 import { GenomeSchema, GenomeV1Schema } from "./types";
 
@@ -460,30 +461,9 @@ export function blendBreeds(a: BreedShares, b: BreedShares): BreedShares {
 // v1 → v2 upgrade (stored rows are never rewritten; this runs on every read)
 // ---------------------------------------------------------------------------
 
-/** Wild-type v2 loci: what every pre-genetics-v2 horse gets (MSTN C/T is the neutral miler). */
-export const WILD_GENES2: Genes2 = {
-  champagne: ["n", "n"],
-  silver: ["n", "n"],
-  pearl: ["n", "n"],
-  tobiano: ["n", "n"],
-  leopard: ["n", "n"],
-  patn1: ["n", "n"],
-  splash: ["n", "n"],
-  height: ["n", "n"],
-  feather: ["Fe", "Fe"],
-  mstn: ["C", "T"],
-  bigHeart: ["n", "n"],
-  ironLegs: ["n", "n"],
-  curledEars: ["n", "n"],
-  dish: ["n", "n"],
-};
-
-/** A v1 breed record padded with the eight v2 breeds at share 0. */
-function v1Shares(breed: GenomeV1["breed"]): BreedShares {
-  const out = {} as BreedShares;
-  for (const b of BREEDS) out[b] = b in breed ? breed[b as keyof GenomeV1["breed"]] : 0;
-  return out;
-}
+// Wild-type v2 loci and the v1 share padding live in types.ts (no import cycle) so the
+// schemas can upgrade v1 genomes in place at their parse points.
+export { WILD_GENES2 } from "./types";
 
 /**
  * Parse any stored genome: v2 passes through, v1 is upgraded on read (new breed shares 0,
@@ -495,7 +475,7 @@ export function upgradeGenome(raw: unknown): Genome | null {
   if (v2.success) return v2.data;
   const v1 = GenomeV1Schema.safeParse(raw);
   if (!v1.success) return null;
-  return { ...v1.data, version: GENOME_VERSION, breed: v1Shares(v1.data.breed), genes2: WILD_GENES2 };
+  return upgradeV1Genome(v1.data);
 }
 
 // ---------------------------------------------------------------------------
