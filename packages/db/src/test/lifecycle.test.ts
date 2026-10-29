@@ -124,12 +124,13 @@ describe("racing", () => {
 
   it("mandatory racing retirement at 40 starts; career-ending injury retires but never kills", async () => {
     const p = await newPlayer(h.db);
+    const q = await newPlayer(h.db); // one horse per stable per Live race
     const veteran = await makeHorse(h.db, p.stableId, { starts: 39 });
-    const unlucky = await makeHorse(h.db, p.stableId, { starts: 5, insured: true });
+    const unlucky = await makeHorse(h.db, q.stableId, { starts: 5, insured: true });
     const race = await quickRace(0, { kind: "scheduled", targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: veteran.id, tactic: "front", now: T0 });
-    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: unlucky.id, tactic: "front", now: T0 });
-    const before = await getBalance(h.db, p.accountId);
+    await enterRace(h.db, { accountId: q.accountId, raceId: race.id, horseId: unlucky.id, tactic: "front", now: T0 });
+    const before = await getBalance(h.db, q.accountId);
     const unluckyBefore = await getHorseRow(h.db, unlucky.id);
     const r = await runRace(race.id, at(11 * MIN), [veteran.id, unlucky.id], {
       [unlucky.id]: { injury: { severity: "career_ending", recoveryMs: 30 * DAY } },
@@ -137,7 +138,7 @@ describe("racing", () => {
     expect(r.retired.sort()).toEqual([veteran.id, unlucky.id].sort());
     expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 40, careerStatus: "retired", retirementReason: "max_starts" });
     expect(await getHorseRow(h.db, unlucky.id)).toMatchObject({ careerStatus: "retired", retirementReason: "injury" });
-    expect(await getBalance(h.db, p.accountId)).toBe(before + gc.insurancePayout(toHorseState(unluckyBefore)));
+    expect(await getBalance(h.db, q.accountId)).toBe(before + gc.insurancePayout(toHorseState(unluckyBefore)));
     // The CHECK refuses a racing horse at 40 starts.
     const other = await makeHorse(h.db, p.stableId, { starts: 39 });
     await expectDbError(h.db.update(horses).set({ starts: 40 }).where(eq(horses.id, other.id)), /horses_mandatory_retirement/);

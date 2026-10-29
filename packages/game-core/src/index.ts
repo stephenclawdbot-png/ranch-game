@@ -15,6 +15,7 @@ export * from "./phenotype";
 export * from "./training";
 export * from "./career";
 export * from "./ratings";
+export * from "./ability";
 export * from "./eligibility";
 export * from "./breeding";
 export * from "./packs";

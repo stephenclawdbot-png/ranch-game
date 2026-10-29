@@ -728,7 +728,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
     return n;
   };
   const card = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: session.stable.id }))
-    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000) // full races stay: their sister takes the entry
+    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.mine === 0) // full races stay (their sister takes the entry); one horse per stable per race
     .slice(0, 8);
   let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; score: number } | null = null;
   for (const [i, race] of card.entries()) {
