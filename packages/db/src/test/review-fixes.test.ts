@@ -7,7 +7,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { RULES } from "../rules";
-import { horses, inboxItems } from "../schema";
+import { dailyCupEntries, horses, inboxItems } from "../schema";
+import { runCupEntry, settleCupDays } from "../services/dailyCup";
 import { breed, foal } from "../services/breeding";
 import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
@@ -165,5 +166,23 @@ describe("Saturday Plate", () => {
     expect(await featureQualificationReason(h.db, await getHorseRow(h.db, fresh.id), plate)).toMatch(/Plate is for horses that ran/);
     await h.db.execute(`update race_entries set finish_position = 2 where race_id = '${qualifier.id}' and horse_id = '${tried.id}'`);
     expect(await featureQualificationReason(h.db, await getHorseRow(h.db, tried.id), plate)).toMatch(/qualified for the Weekend Feature/);
+  });
+});
+
+describe("Daily Cup points", () => {
+  it("are settled once the day is over, from the whole day's field", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    const ha = await makeHorse(h.db, a.stableId);
+    const hb = await makeHorse(h.db, b.stableId);
+    await runCupEntry(h.db, { accountId: a.accountId, horseId: ha.id, now: T0, credits: 0, run: () => ({ finishPosition: 1, finishTimeUs: 70_000_000, result: null }) });
+    await runCupEntry(h.db, { accountId: b.accountId, horseId: hb.id, now: T0, credits: 0, run: () => ({ finishPosition: 4, finishTimeUs: 72_000_000, result: null }) });
+    expect(await settleCupDays(h.db, T0)).toBe(0); // same day: not yet
+    expect(await settleCupDays(h.db, at(DAY))).toBe(2);
+    const rows = await h.db.select().from(dailyCupEntries);
+    const pts = new Map(rows.map((r) => [r.accountId, r.points]));
+    expect(pts.get(a.accountId)!).toBeGreaterThan(pts.get(b.accountId)!);
+    expect(Math.min(...pts.values())).toBeGreaterThanOrEqual(1);
+    expect(await settleCupDays(h.db, at(DAY))).toBe(0); // idempotent
   });
 });

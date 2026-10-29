@@ -10,11 +10,12 @@
  *   run (simulated by the caller against the locked row), the entry row and the participation
  *   credits (ledger, idempotent per account and day).
  */
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
 import { newSeed, utcDay } from "../crypto";
 import { DomainError } from "../errors";
 import { dailyCupEntries, economyConfig, horses, stables, type HorseRow } from "../schema";
 import { RULES } from "../rules";
+import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { recordPlayDay } from "./accounts";
 import { completeGoal } from "./dailyGoals";
@@ -90,6 +91,35 @@ export async function runCupEntry(db: Db, input: CupEntryInput) {
     await audit(tx, { actor: input.accountId, action: "daily_cup.run", entityType: "daily_cup_entry", entityId: row!.id, data: { day, horseId: horse.id, position: run.finishPosition } });
     return row!;
   });
+}
+
+/**
+ * Cup points depend on the whole day's field (game-core rankCup percentiles), so they are
+ * settled once the UTC day is over: every finished day whose entries still hold 0 points gets
+ * its standings computed and written (idempotent; cupPoints are always >= 1). Feeds the Prize
+ * Pool's Cup term and season Cup totals.
+ */
+export async function settleCupDays(db: Db, now: Date, limit = 7): Promise<number> {
+  const today = utcDay(now);
+  const days = await db
+    .selectDistinct({ day: dailyCupEntries.day })
+    .from(dailyCupEntries)
+    .where(and(lt(dailyCupEntries.day, today), eq(dailyCupEntries.points, 0)))
+    .limit(limit);
+  let settled = 0;
+  for (const { day } of days) {
+    settled += await runTx(db, async (tx) => {
+      const rows = await tx.select().from(dailyCupEntries).where(eq(dailyCupEntries.day, day)).for("update");
+      const standings = gc.rankCup(
+        rows.map((r) => ({ ownerId: r.accountId, horseId: r.horseId, finishTimeUs: Number(r.finishTimeUs), position: r.finishPosition ?? 99, enteredAtMs: r.createdAt.getTime() })),
+      );
+      for (const st of standings) {
+        await tx.update(dailyCupEntries).set({ points: st.cupPoints }).where(and(eq(dailyCupEntries.day, day), eq(dailyCupEntries.accountId, st.ownerId)));
+      }
+      return standings.length;
+    });
+  }
+  return settled;
 }
 
 export interface CupBoardRow {

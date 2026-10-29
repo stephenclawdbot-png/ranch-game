@@ -35,6 +35,7 @@ import {
   runCupEntry,
   seasonNumberAt,
   seasonStandings,
+  settleCupDays,
   settleLeagueWeeks,
   syncAchievements,
   toHorseState,
@@ -91,6 +92,8 @@ function cupBlock(row: Awaited<ReturnType<typeof listStableHorses>>[number], now
 }
 
 export async function cupView(db: Db, session: Session | null, now: Date): Promise<CupView> {
+  // Finished days get their Cup points (they depend on the whole day's field); lazy and idempotent.
+  await settleCupDays(db, now).catch((e) => console.error("[cup] settle failed", e));
   const nowMs = now.getTime();
   const day = gc.dayIndex(nowMs);
   const cup = await cupOf(db, day);
