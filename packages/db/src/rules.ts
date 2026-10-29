@@ -67,10 +67,15 @@ export const RULES = {
   entryRefillBelow: gc.ENTRY_REFILL_BELOW,
   entryRefillPrice: gc.ENTRY_REFILL_COST,
   timezoneChangeMs: gc.TZ_CHANGE_MIN_DAYS * 24 * 60 * 60 * 1000,
-  /** Live card (§4d): a race every 3 minutes; entries close 30 s before the off. */
-  slotMs: 3 * 60 * 1000,
+  /** Live card (§4d): a race every 15 minutes (game-core SLOT_INTERVAL_MS); entries close 30 s before the off. */
+  slotMs: gc.SLOT_INTERVAL_MS,
   entriesCloseBeforePostMs: gc.ENTRY_CLOSE_BEFORE_MS,
-  cardHorizonMs: 30 * 60 * 1000,
+  /**
+   * How far ahead the card is published (entries open at publication). Six hours = 24 races
+   * at 15-minute spacing: one whole class cycle (20 races) is always open, so every horse can
+   * be entered now in a race that suits it later in the day.
+   */
+  cardHorizonMs: 6 * 60 * 60 * 1000,
   minField: 8,
   maxField: 12,
   /** Settle once the broadcast is surely over (races run < 150 s). */

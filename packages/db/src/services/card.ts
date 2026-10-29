@@ -1,5 +1,5 @@
 /**
- * The Live race card (§4d): a race every 3 minutes, published ahead from a deterministic
+ * The Live race card (§4d): a race every 15 minutes (RULES.slotMs), published ahead from a deterministic
  * calendar, plus the tick that drives the card forward.
  *
  * Publishing is idempotent across serverless instances: each slot has a unique
@@ -75,17 +75,19 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean } = {})
 }
 
 /**
- * One hour of the card (20 slots, a race every 3 minutes). Slot 0 is the hourly Feature
- * (Listed or Group 3). 12 of the other 19 are maiden / novice races ("juvenile slots": every
- * new horse can run them), then the handicap bands and a Listed race.
+ * One class cycle of the card (20 slots: 5 hours at 15-minute spacing). Slot 0 is the cycle's
+ * Feature (Listed or Group 3). 12 of the other 19 are maiden / novice races ("juvenile slots":
+ * every new horse can run them), then the handicap bands and a Listed race.
  */
-const HOUR: readonly (ClassDef | "feature")[] = [
+const CYCLE: readonly (ClassDef | "feature")[] = [
   "feature", MAIDEN, NOVICE, HCP_55, MAIDEN, NOVICE, HCP_75, MAIDEN, NOVICE, HCP_95,
   MAIDEN, LISTED, NOVICE, MAIDEN, HCP_55, NOVICE, MAIDEN, HCP_75, NOVICE, HCP_95,
 ];
-/** Index of each juvenile slot inside the hour (-1 for the others). */
-const JUVENILE_ORDINAL = HOUR.map((d, i) => (d === MAIDEN || d === NOVICE ? HOUR.slice(0, i).filter((x) => x === MAIDEN || x === NOVICE).length : -1));
-const JUVENILE_PER_HOUR = JUVENILE_ORDINAL.filter((x) => x >= 0).length; // 12
+/** Slots in one class cycle. */
+export const CARD_CYCLE_SLOTS = 20;
+/** Index of each juvenile slot inside the cycle (-1 for the others). */
+const JUVENILE_ORDINAL = CYCLE.map((d, i) => (d === MAIDEN || d === NOVICE ? CYCLE.slice(0, i).filter((x) => x === MAIDEN || x === NOVICE).length : -1));
+const JUVENILE_PER_CYCLE = JUVENILE_ORDINAL.filter((x) => x >= 0).length; // 12
 
 const TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 const SURFACES = ["turf", "dirt", "synthetic"] as const;
@@ -151,12 +153,14 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
  * Deterministic conditions for a card slot.
  *
  * Juvenile slots cycle through every (surface, trip zone) pair: the k-th juvenile slot runs on
- * surface k mod 3 at trip zone k mod 4, so any 12 consecutive juvenile slots (one hour) cover
+ * surface k mod 3 at trip zone k mod 4, so any 12 consecutive juvenile slots (one cycle) cover
  * all 12 pairs, on good or firm ground. Every horse that can run maidens or novices therefore
- * finds a race that suits its surface and trip within the hour (tested in the web app with the
+ * finds a race that suits its surface and trip within one cycle, which the published card
+ * always covers (RULES.cardHorizonMs; tested in the web app with the
  * form-guide rating). The other classes draw surface (all three, synthetic included), trip
  * (1,000–3,200 m) and going from the slot hash. Calendar races (Weekend Feature, qualifiers,
- * Season Final) take over their slots (`specialSlotAt`).
+ * Season Final) take over their slots (`specialSlotAt`); a juvenile race they displace moves to
+ * the next ordinary handicap / Listed slot (`carriedJuvenile`), so no trip ever drops out.
  */
 export function defaultCardSlot(index: number): CreateRaceInput {
   const sp = specialSlotAt(index);
@@ -165,15 +169,17 @@ export function defaultCardSlot(index: number): CreateRaceInput {
   let byte = 0;
   const pick = <T>(xs: readonly T[]): T => xs[h[byte++]! % xs.length]!;
   const postTime = slotPostTime(index);
-  const pos = ((index % 20) + 20) % 20;
-  const hour = Math.floor(index / 20);
-  const slot = HOUR[pos]!;
+  // a juvenile race displaced by a calendar race runs here instead of this slot's own class
+  const source = carriedJuvenile(index) ?? index;
+  const pos = cyclePos(source);
+  const cycle = Math.floor(source / CARD_CYCLE_SLOTS);
+  const slot = CYCLE[pos]!;
   const feature = slot === "feature";
   const def: ClassDef = feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : slot;
   let conditions: RaceConditions;
   const juvenile = JUVENILE_ORDINAL[pos]!;
   if (juvenile >= 0) {
-    const k = hour * JUVENILE_PER_HOUR + juvenile;
+    const k = cycle * JUVENILE_PER_CYCLE + juvenile;
     const surface = SURFACES[((k % 3) + 3) % 3]!;
     const weather = pick(["clear", "clear", "overcast", "dusk"]);
     conditions = {
@@ -185,7 +191,7 @@ export function defaultCardSlot(index: number): CreateRaceInput {
       track: pick(TRACKS),
     };
   } else {
-    const surface = SURFACES[(hour * 8 + pos + (h[28]! % 3)) % 3]!;
+    const surface = SURFACES[(cycle * 8 + pos + (h[28]! % 3)) % 3]!;
     conditions = {
       ...def.conditions,
       distanceM: pick(OPEN_TRIPS),
@@ -210,6 +216,33 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     seasonNumber: seasonNumberAt(postTime),
     slotKey: `live:${index}`,
   };
+}
+
+const cyclePos = (index: number) => ((index % CARD_CYCLE_SLOTS) + CARD_CYCLE_SLOTS) % CARD_CYCLE_SLOTS;
+const isJuvenileSlot = (index: number) => JUVENILE_ORDINAL[cyclePos(index)]! >= 0;
+/** An ordinary (non-juvenile, non-Feature, non-calendar) slot: one that can carry a displaced juvenile race. */
+const isCarrierSlot = (index: number) => !isJuvenileSlot(index) && CYCLE[cyclePos(index)] !== "feature" && !specialSlotAt(index);
+/** How far back a displaced juvenile race can be (calendar races cluster within 7 slots on Season Final day). */
+const CARRY_LOOKBACK = 16;
+
+/**
+ * The slot index of a juvenile race that a calendar race displaced and that runs in this slot
+ * instead. Displaced juvenile races queue in order and each takes the next carrier slot after
+ * it, so several calendar races in a row (Season Final day) still keep every trip on the card.
+ * Null for every other slot.
+ */
+function carriedJuvenile(index: number): number | null {
+  if (!isCarrierSlot(index)) return null;
+  const queue: number[] = [];
+  for (let t = index - CARRY_LOOKBACK; t <= index; t++) {
+    if (specialSlotAt(t)) {
+      if (isJuvenileSlot(t)) queue.push(t);
+    } else if (isCarrierSlot(t) && queue.length) {
+      const carried = queue.shift()!;
+      if (t === index) return carried;
+    }
+  }
+  return null;
 }
 
 export interface CardHooks extends FieldHooks {

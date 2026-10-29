@@ -14,7 +14,7 @@ import { DAY, SILKS, T0, makeHorse } from "./test-helpers";
 const clock = { epochMs: T0 };
 
 describe("season calendar", () => {
-  it("a race every 3 minutes with published conditions; entries close 30 s before", () => {
+  it("a race every slot with published conditions; entries close 30 s before", () => {
     const slots = regularSlots(clock, T0, T0 + DAY);
     expect(slots.length).toBe(SLOTS_PER_DAY);
     slots.forEach((s, i) => {
@@ -23,7 +23,8 @@ describe("season calendar", () => {
       expect(s.postTimeMs - s.entryCloseMs).toBe(ENTRY_CLOSE_BEFORE_MS);
     });
     expect(regularSlot(clock, 1234)).toEqual(regularSlot(clock, 1234));
-    const tiers = new Set(slots.map((s) => s.tier));
+    // every class comes round within a few days of slots
+    const tiers = new Set(regularSlots(clock, T0, T0 + 5 * DAY).map((s) => s.tier));
     for (const t of ["maiden", "novice", "quick", "hcp_0_55", "hcp_50_75", "hcp_70_95", "listed", "g3", "g2", "g1"]) expect(tiers.has(t as never)).toBe(true);
   });
   it("nextOpenSlot is always still open", () => {

@@ -43,7 +43,7 @@ async function bank(accountId: string, now = T0) {
 }
 
 describe("race card", () => {
-  it("publishes one race per 3-minute slot, idempotently across concurrent instances", async () => {
+  it("publishes one race per slot, idempotently across concurrent instances", async () => {
     const now = at(30 * DAY);
     const cards = await Promise.all([ensureRaceCard(h.db, now), ensureRaceCard(h.db, now), ensureRaceCard(h.db, now)]);
     const expected = RULES.cardHorizonMs / RULES.slotMs;

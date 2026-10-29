@@ -2,7 +2,8 @@
  * Competition calendar. Seasons (4 real weeks) exist for competitions only: leagues, the
  * Weekend Feature, the Season Final and titles — never for horse ageing.
  *
- * A race goes off every 3 minutes. Conditions are published in advance (deterministic from
+ * A race goes off every 15 minutes (beta pacing: full fields for a small player base; it was
+ * 3 minutes). Conditions are published in advance (deterministic from
  * the season and slot number), entries close 30 s before the off.
  *
  *   - Regular slots rotate through the classes (maiden … G1) on a fixed 20-slot cycle.
@@ -16,9 +17,9 @@ import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE, SEASON_DAYS, seasonOf, seasonSt
 import { ENTRY_FEE_BY_TIER, PURSE_BY_TIER, SEASON_FINAL_PURSE, WEEKEND_FEATURE_PURSE } from "./economy";
 import { Rng, seedFrom } from "./rng";
 
-export const SLOT_INTERVAL_MS = 3 * MS_PER_MINUTE;
+export const SLOT_INTERVAL_MS = 15 * MS_PER_MINUTE;
 export const ENTRY_CLOSE_BEFORE_MS = 30 * 1000; // short going-to-post wait; "Gates loading" covers the last 10 s
-export const SLOTS_PER_DAY = MS_PER_DAY / SLOT_INTERVAL_MS; // 480
+export const SLOTS_PER_DAY = MS_PER_DAY / SLOT_INTERVAL_MS; // 96
 
 /** 20-slot class rotation (one hour = 20 slots). */
 export const TIER_CYCLE: readonly RaceTier[] = [

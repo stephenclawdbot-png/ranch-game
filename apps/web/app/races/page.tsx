@@ -23,11 +23,11 @@ export default async function RacesPage() {
   return (
     <div>
       <AutoRefresh atMs={Number.isFinite(nextChange) ? nextChange : null} serverNowMs={nowMs} />
-      <SceneBand scene="grandstand" alt="The grandstand at Kestrel Downs" eyebrow="Kestrel Downs · every 3 minutes" title="Race card" testId="races-band" />
+      <SceneBand scene="grandstand" alt="The grandstand at Kestrel Downs" eyebrow="Kestrel Downs · every 15 minutes" title="Race card" testId="races-band" />
       <section id="live" className="scroll-mt-20" aria-label="Live races">
         <LivePickBar />
         <HowItWorks className="mt-3">
-          <p>A Live race goes off every 3 minutes, and everyone watches the same race at the same time.</p>
+          <p>A Live race goes off every 15 minutes, and everyone watches the same race at the same time. The card is published hours ahead: enter now for a race later today.</p>
           <p>Enter your horses until 30 seconds before the off (one stable entry each; you get +10 at local midnight). The Club fills any empty gates with its own horses.</p>
           <p>Every result is sealed before the off and can be replayed and verified afterwards.</p>
         </HowItWorks>
@@ -46,7 +46,7 @@ export default async function RacesPage() {
           ) : (
             <section className="min-w-0">
               <h2 className="t-h2 mb-3">Results</h2>
-              <EmptyState icon="stopwatch" title="No results yet today" text="A race goes off every 3 minutes at Kestrel Downs. Watch the next one from the card." />
+              <EmptyState icon="stopwatch" title="No results yet today" text="A race goes off every 15 minutes at Kestrel Downs. Watch the next one from the card." />
             </section>
           )}
         </div>

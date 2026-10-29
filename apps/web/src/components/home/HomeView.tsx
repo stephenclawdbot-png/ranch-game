@@ -62,7 +62,7 @@ const CHAPTERS: { scene: "barn" | "paddock" | "grandstand"; eyebrow: string; tit
   {
     scene: "grandstand",
     eyebrow: "Live at Kestrel Downs",
-    title: "A race every three minutes. Everyone watches the same finish.",
+    title: "A race every fifteen minutes. Everyone watches the same finish.",
     text: "Enter Live races against real stables. Every result is sealed before the off and replayable to the last stride.",
   },
 ];

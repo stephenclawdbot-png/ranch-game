@@ -17,7 +17,7 @@ const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"]
 /** The deployed commit (Vercel system env), for deploy checks: <meta name="build" content="<sha>">. */
 const BUILD_SHA = (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.BUILD_SHA ?? "dev").slice(0, 40);
 
-const DESCRIPTION = "Post Time: a pixel-art racing stable game. Breed, raise and race your horses at Kestrel Downs, with a live race every 3 minutes and every result sealed and replayable.";
+const DESCRIPTION = "Post Time: a pixel-art racing stable game. Breed, raise and race your horses at Kestrel Downs, with a live race every 15 minutes and every result sealed and replayable.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")),
