@@ -58,7 +58,7 @@ HUD, minimap, clocks, live rules and results flow as the classic view; only rend
   normal map (rim light), with exact 2:1 / 3:1 / 4:1 palette-preserving downsamples (block
   mode) so a sprite never minifies. A "sharp pixel" 2x2 resolve keeps texels crisp at any
   scale (no blur, AA seams only). GLSL in `shaders.ts` avoids reserved words.
-- **Every runner is visible on every frame** (`layout.ts`, unit tested): lanes recede like a
+- **Every runner is visible on every frame** in whole-field mode (`layout.ts`, unit tested): lanes recede like a
   long lens (far lanes smaller and higher, depth sorted). The camera eases zoom (log-space
   spring, resting on a pixel-perfect `m/s` ladder) and centre (spring with the field's speed
   fed forward) to fit leader to last horse, with the zoom clamped between a close-up cap and a
@@ -67,11 +67,18 @@ HUD, minimap, clocks, live rules and results flow as the classic view; only rend
   it and squeezes the gaps behind it (biggest gaps first, order kept) so stragglers are never
   dropped. Props and the winning line go through the same squeeze, so whoever is on the line
   is drawn on the line. The camera brings the winning post in as the leader closes on it.
+- **"Follow mine" camera**: with a highlighted horse, the viewer controls offer
+  Whole field | Follow mine (remembered in `localStorage["rv:follow"]`). Follow mode locks
+  the marked runner at 40 % from the left at the close-up cap (same ladder, same springs —
+  toggling animates, never cuts) and lets the rest of the field leave the frame; the whole-
+  field guarantee above is whole-field only. The minimap and standings still show everyone,
+  and the post still eases in as the runner closes on it.
 - **Looks** (`looks.ts`): dusk by default; a clear race with a daytime post (local hour 7–16)
   gets golden hour; overcast and rain dim/desaturate and drop the sun, shafts and rim light.
 - **Dev hook**: with `debug` (the `/dev/viewer` harness) or `?rvdebug` on the page,
   `window.__rvTrackside.rects()` returns the drawn horse quads in stage px (plus `stage()`,
-  `camera()`, `time()`, `maxCamStep()`), used by the all-runners-visible frame check.
+  `camera()`, `time()`, `maxCamStep()`), used by the all-runners-visible frame check (whole-
+  field mode; follow mode intentionally crops the field).
 - If the keyed strip can't be loaded, the viewer falls back to the classic view.
 
 ## Live mode (`feed`)

@@ -87,8 +87,11 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-st-pos{font-size:15px}
 .rv-narrow .rv-ticker{font-size:11.5px;padding:4px 8px 4px 6px}
 .rv-ticker-low{position:absolute;left:8px;right:8px;bottom:86px;display:flex;pointer-events:none}
-.rv-narrow .rv-controls{gap:4px;padding:12px 6px 6px}
-.rv-narrow .rv-btn{min-width:34px;height:34px;padding:0 7px;font-size:10px}
+.rv-narrow .rv-controls{gap:3px;padding:12px 6px 6px}
+.rv-narrow .rv-btn{min-width:32px;height:34px;padding:0 7px;font-size:10px}
+.rv-narrow .rv-scrub{min-width:40px}
+.rv-narrow .rv-range{min-width:28px}
+.rv-narrow .rv-seg .rv-btn{padding:0 5px;gap:4px}
 .rv-narrow .rv-elapsed{display:none}
 .rv-narrow .rv-modal{bottom:46px;padding:6px}
 .rv-narrow .rv-card-h{padding:9px 9px 6px 11px}

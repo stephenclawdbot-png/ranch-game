@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { cameraTarget, crowding, gallopMetrics, ladderBelow, placeField, safeInsets, sizeLimits, squeezeX, TracksideCamera, ZOOM_LADDER, type RunnerPos } from "./layout";
+import {
+  cameraTarget,
+  crowding,
+  FOLLOW_AT,
+  followTarget,
+  gallopMetrics,
+  ladderBelow,
+  placeField,
+  safeInsets,
+  sizeLimits,
+  squeezeX,
+  TracksideCamera,
+  verticalFitPpm,
+  ZOOM_LADDER,
+  type CameraRunner,
+  type RunnerPos,
+} from "./layout";
 
 const sprite = gallopMetrics();
 
@@ -27,7 +43,7 @@ const STAGES: [number, number][] = [
 ];
 
 describe("trackside placeField", () => {
-  it("keeps every runner inside the stage for any zoom, centre and spread", () => {
+  it("whole-field mode: keeps every runner inside the stage for any zoom, centre and spread", () => {
     const r = rng(42);
     for (let k = 0; k < 4000; k++) {
       const [W, H] = STAGES[k % STAGES.length]!;
@@ -188,7 +204,7 @@ describe("trackside camera", () => {
         maxCentreStep = Math.max(maxCentreStep, Math.abs(cam.cx - prev.cx - 16 / 60));
       }
       prev = { ppm: cam.ppm, cx: cam.cx };
-      // and the hard guarantee holds with the eased camera
+      // and the hard whole-field guarantee holds with the eased camera
       const lay = placeField({ W, H, ppm: cam.ppm, cx: cam.cx, sprite, runners, railLane: 12.8, laneSpan: cam.laneSpan });
       for (const p of lay.placed) expect(inside(W, H, p.rect)).toBe(true);
     }
@@ -200,5 +216,133 @@ describe("trackside camera", () => {
     const i = safeInsets(390, 320);
     expect(i.t).toBeGreaterThan(0);
     expect(320 - i.t - i.b).toBeGreaterThan(90);
+  });
+});
+
+describe("trackside follow cam (Follow mine)", () => {
+  const field = (n: number, lead = 600): CameraRunner[] => Array.from({ length: n }, (_, i) => ({ x: lead - i * 3.2, lane: i, speed: 15 - i * 0.4 }));
+
+  it("centres the followed runner at 40% of the stage width", () => {
+    for (const [W, H] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      const runners = field(12);
+      const meIdx = 4;
+      const input = { W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners, followIndex: meIdx };
+      const t = cameraTarget(input);
+      expect(t.follow).toBe(runners[meIdx]);
+      const lay = placeField({ W, H, ppm: t.ppm, cx: t.cx, sprite, runners, railLane: 12.8, laneSpan: t.laneSpan, follow: meIdx });
+      const p = lay.placed[meIdx]!;
+      const centreX = p.rect.x + p.rect.w / 2;
+      expect(centreX / W).toBeCloseTo(FOLLOW_AT, 4);
+      // the followed runner itself is always inside the stage
+      expect(inside(W, H, p.rect)).toBe(true);
+    }
+  });
+
+  it("zooms to the close-up size (the maxLen cap, only pulled down when the lanes can't fit the stage)", () => {
+    for (const [W, H] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      const runners = field(12);
+      const t = followTarget({ W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners }, runners[4]!);
+      const maxLen = sizeLimits(W, runners.length).maxLen;
+      // On the acceptance stages the lanes genuinely fit, so the cap is reached exactly.
+      expect(t.ppm * sprite.lenM).toBeCloseTo(maxLen, 6);
+      // Tautology guard for other stages: never above the cap, never above the vertical fit.
+      const cr = crowding(W, runners.length);
+      const insets = safeInsets(W, H);
+      const ppmV = verticalFitPpm(maxLen / sprite.lenM, H, insets, 11.6, sprite, 11.6, 0, 0.3, cr);
+      expect(t.ppm).toBeLessThanOrEqual(maxLen / sprite.lenM + 1e-9);
+      expect(t.ppm).toBeLessThanOrEqual(ppmV + 1e-9);
+      // Close-up is far tighter than the whole-field fit of a strung-out field.
+      const whole = cameraTarget({ W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners });
+      expect(t.ppm).toBeGreaterThan(whole.ppm);
+    }
+  });
+
+  it("feed-forwards the followed runner's speed (the lock doesn't lag)", () => {
+    const runners = field(12);
+    const t = followTarget({ W: 1440, H: 900, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners }, runners[7]!);
+    expect(t.speed).toBe(runners[7]!.speed);
+  });
+
+  it("whole field is still the target without a valid follow index", () => {
+    const runners = field(12);
+    for (const followIndex of [null, undefined, -1, 99]) {
+      const t = cameraTarget({ W: 1440, H: 900, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners, followIndex });
+      expect(t.follow ?? null).toBeNull();
+    }
+  });
+
+  it("keeps following a pulled-up / far-behind runner (no re-frame back to the field)", () => {
+    const runners = field(12, 1000);
+    const me = runners[9]!;
+    me.x = 300; // tailed off, 700 m behind the leaders
+    me.speed = 4;
+    const t = followTarget({ W: 390, H: 844, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners }, me);
+    const lay = placeField({ W: 390, H: 844, ppm: t.ppm, cx: t.cx, sprite, runners, railLane: 12.8, laneSpan: t.laneSpan, follow: 9 });
+    const p = lay.placed[9]!;
+    expect((p.rect.x + p.rect.w / 2) / 390).toBeCloseTo(FOLLOW_AT, 4);
+    expect(inside(390, 844, p.rect)).toBe(true);
+    // ...and the leaders are long gone off the right edge.
+    expect(lay.placed[0]!.rect.x).toBeGreaterThan(390);
+  });
+
+  it("placeField in follow mode: pure linear mapping, no fit/compression, others may leave", () => {
+    const runners: RunnerPos[] = Array.from({ length: 12 }, (_, i) => ({ x: 1000 - i * i * 1.5, lane: i % 4 }));
+    const f = placeField({ W: 390, H: 320, ppm: 30, cx: 990, sprite, runners, railLane: 12.8, follow: 3 });
+    expect(f.compressed).toBe(false);
+    for (const p of f.placed) expect(Math.abs(p.shift)).toBeLessThan(1e-9);
+    // The same field without follow compresses to fit (guarantee is whole-field only).
+    const whole = placeField({ W: 390, H: 320, ppm: 30, cx: 990, sprite, runners, railLane: 12.8 });
+    expect(whole.compressed).toBe(true);
+  });
+
+  it("keeps the followed runner centred and framed while racing (no feed-forward drift)", () => {
+    const cam = new TracksideCamera();
+    const W = 1440;
+    const H = 900;
+    const runners = field(12);
+    let x0 = 0;
+    for (let f = 0; f < 60 * 8; f++) {
+      const dt = 1 / 60;
+      x0 += runners[4]!.speed * dt;
+      runners[4]!.x = x0;
+      cam.update({ W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners, followIndex: 4 }, dt, f === 0);
+      const lay = placeField({ W, H, ppm: cam.ppm, cx: cam.cx, sprite, runners, railLane: 12.8, laneSpan: cam.laneSpan, follow: 4 });
+      expect(inside(W, H, lay.placed[4]!.rect), `frame ${f}`).toBe(true);
+    }
+    const lay = placeField({ W, H, ppm: cam.ppm, cx: cam.cx, sprite, runners, railLane: 12.8, laneSpan: cam.laneSpan, follow: 4 });
+    const p = lay.placed[4]!;
+    expect(Math.abs((p.rect.x + p.rect.w / 2) / W - FOLLOW_AT)).toBeLessThan(0.02);
+  });
+
+  it("eases smoothly when the mode toggles (no jump cut) and settles on the close-up rung", () => {
+    const cam = new TracksideCamera();
+    const W = 390;
+    const H = 844;
+    const runners = field(12);
+    const base = { W, H, dpr: 2, sprite, railLane: 12.8, finishX: 1200, runners };
+    cam.update({ ...base, followIndex: null }, 0, true);
+    let prevPpm = cam.ppm;
+    let maxZoomStep = 0;
+    for (let f = 0; f < 60 * 8; f++) {
+      cam.update({ ...base, followIndex: 4 }, 1 / 60, false);
+      maxZoomStep = Math.max(maxZoomStep, Math.abs(Math.log(cam.ppm / prevPpm)));
+      prevPpm = cam.ppm;
+    }
+    // Continuous the whole way through the transition (springs, not cuts)...
+    expect(maxZoomStep).toBeLessThan(0.06);
+    // ...and it actually reaches the close-up ladder (the whole-field rung is far below).
+    const fit = followTarget(base, runners[4]!).ppm;
+    expect(cam.ppm).toBeGreaterThan(fit / 1.2);
+    expect(cam.ppm).toBeLessThanOrEqual(fit + 1e-9);
+    // Toggling back returns to the field fit.
+    for (let f = 0; f < 60 * 8; f++) cam.update({ ...base, followIndex: null }, 1 / 60, false);
+    const whole = cameraTarget(base);
+    expect(cam.ppm).toBeLessThan(whole.ppm * 1.2);
   });
 });
