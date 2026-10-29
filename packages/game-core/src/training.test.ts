@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { allowedWorkouts, nextPlannedWorkout, realisationGain, slotsFor, train, DEFAULT_PLAN, WORKOUTS } from "./training";
+import { allowedWorkouts, nextPlannedWorkout, previewTraining, realisationGain, slotsFor, train, DEFAULT_PLAN, WORKOUTS } from "./training";
 import { STAT_KEYS, WorkoutSchema, type Workout } from "./types";
 import { DAY, HOUR, T0, makeHorse } from "./test-helpers";
 import { weekStartMs, weekIndex } from "./time";
@@ -75,5 +75,23 @@ describe("training", () => {
     expect(allowedWorkouts(makeHorse("y", { care: 13 })).sort()).toEqual(["gate_practice", "rest", "swimming"]);
     expect(train(makeHorse("y", { care: 13 }), "speed_work", ctx).block).toBe("not_light");
     expect(nextPlannedWorkout(DEFAULT_PLAN, makeHorse("n"), MON)).toBe("speed_work");
+  });
+
+  it("the preview is exactly what the session then does (gains, fatigue, overwork, cost)", () => {
+    fc.assert(
+      fc.property(fc.constantFrom<Workout>(...WorkoutSchema.options), fc.integer({ min: 0, max: 900 }), fc.string(), (w, fatigue, seed) => {
+        const base = makeHorse(seed, { starts: 10 });
+        const h = { ...base, condition: { ...base.condition, fatigue, fatigueAtMs: MON } };
+        const p = previewTraining(h, w, ctx);
+        const r = train(h, w, ctx, "fixed-seed");
+        expect(p.block).toBe(r.ok ? null : r.block);
+        if (!r.ok) return;
+        for (const k of STAT_KEYS) expect(r.state.training.realisation[k] - h.training.realisation[k], `${w} ${k}`).toBe(p.gains[k] ?? 0);
+        expect(r.state.condition.fatigue).toBe(p.fatigueAfter);
+        expect(r.overworked).toBe(p.overworked);
+        expect(r.cost).toBe(p.cost);
+        if (p.injuryPermille === 0) expect(r.injured).toBe(false);
+      }),
+    );
   });
 });

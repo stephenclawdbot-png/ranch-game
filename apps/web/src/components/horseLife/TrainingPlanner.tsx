@@ -9,6 +9,7 @@ import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
 import { CellBar, useAction } from "./common";
+import { TrainingBoard } from "./TrainingBoard";
 
 interface SessionResponse {
   ran: boolean;
@@ -79,6 +80,15 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
 
   return (
     <div className="grid gap-5">
+      {t.sessionsUsed < t.slots && (
+        <TrainingBoard
+          previews={t.previews}
+          workouts={t.workouts}
+          picked={nextKey ?? null}
+          session={t.sessionsUsed + 1}
+          onPick={(key) => setPlan((p) => p.map((x, j) => (j === t.sessionsUsed ? key : x)))}
+        />
+      )}
       <section className="surface grid gap-3 p-4" aria-labelledby="plan-h" data-testid="training-plan">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>

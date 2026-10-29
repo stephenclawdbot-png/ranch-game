@@ -183,7 +183,7 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
   };
 }
 
-async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: ReturnType<typeof horseFromRow>, stable: StableRow, nowMs: number): Promise<TrainingView> {
+async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: ReturnType<typeof horseFromRow>, stable: StableRow, nowMs: number, credits: number): Promise<TrainingView> {
   const lv = facilityLevels(stable);
   const slots = gc.slotsFor(lv.trainer);
   const saved = await currentTrainingPlan(db, row.id);
@@ -218,6 +218,13 @@ async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: 
     }),
     trainerLevel: lv.trainer,
     lightOnly: stage === "yearling",
+    // the trade-off board: what the next session would do for each workout, before committing
+    previews: used < slots
+      ? (Object.keys(gc.WORKOUTS) as gc.Workout[]).map((w) => {
+          const p = gc.previewTraining(state, w, { nowMs, trainerLevel: lv.trainer, vetLevel: lv.vet, credits });
+          return { key: w, block: p.block, gains: p.gains, fatigueBefore: p.fatigueBefore, fatigueAfter: p.fatigueAfter, overworked: p.overworked, injuryPermille: p.injuryPermille, setsUpPeak: p.setsUpPeak };
+        })
+      : [],
   };
 }
 
@@ -276,6 +283,7 @@ export async function horseLifeView(db: Db, session: Session, horseId: string, n
   const horse = horseFromRow(row, silks, nowMs);
   const day = await careDayOf(db, session.accountId, now);
   const last = (await lastCareDays(db, [row.id])).get(row.id) ?? null;
+  const balance = await getBalance(db, session.accountId);
   return {
     id: row.id,
     name: row.name,
@@ -283,9 +291,9 @@ export async function horseLifeView(db: Db, session: Session, horseId: string, n
     status: stableHorseView(row, silks, nowMs),
     care: careView(row, day, last, nowMs),
     condition: await conditionView(db, row, state, horse, day, nowMs),
-    training: await trainingView(db, row, state, horse, stable, nowMs),
+    training: await trainingView(db, row, state, horse, stable, nowMs, balance),
     career: await careerView(db, row, state),
-    credits: await getBalance(db, session.accountId),
+    credits: balance,
     stableHand: facilityLevels(stable).stableHand > 0,
     serverNowMs: nowMs,
   };

@@ -118,6 +118,21 @@ export interface TrainingView {
   realisation: RealisationRow[];
   trainerLevel: number;
   lightOnly: boolean;
+  /** Per workout: what the next session would do (empty when the week is done). */
+  previews: TrainingPreviewView[];
+}
+
+export interface TrainingPreviewView {
+  key: string;
+  block: string | null;
+  /** Realisation gained per stat, permille of potential (10 = +1%). */
+  gains: Partial<Record<StatKey, number>>;
+  fatigueBefore: number;
+  fatigueAfter: number;
+  overworked: boolean;
+  /** Chance of a minor knock this session, permille. */
+  injuryPermille: number;
+  setsUpPeak: boolean;
 }
 
 export interface CareerStageRow {

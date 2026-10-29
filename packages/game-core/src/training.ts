@@ -115,6 +115,60 @@ export interface TrainResult {
 /** Overwork injury chance per hard session when tired, permille at fatigue 1000. */
 export const OVERWORK_INJURY_MAX_PERMILLE = 60;
 
+/** What one session would do, computed before committing (the trade-off board shows it). */
+export interface TrainingPreview {
+  workout: Workout;
+  block: TrainBlock | "insufficient_credits" | null;
+  cost: number;
+  /** Realisation gained per stat, permille of potential (10 = +1%). */
+  gains: Partial<StatRecord<number>>;
+  fatigueBefore: number;
+  fatigueAfter: number;
+  /** Hard work while tired: half the gains. */
+  overworked: boolean;
+  /** Chance of a minor training knock this session, permille (0 when not tired enough). */
+  injuryPermille: number;
+  /** Hard work sets up the freshness peak 3-5 days later. */
+  setsUpPeak: boolean;
+}
+
+function efficiencyOf(state: HorseState, spec: WorkoutSpec, trainerLevel: number, fatigueBefore: number): { eff: number; overworked: boolean } {
+  const overworked = spec.hard && fatigueBefore > 600;
+  let eff = 1000 + TRAINER_EFFICIENCY_PER_LEVEL * Math.min(2, trainerLevel);
+  if (overworked) eff = Math.floor(eff / 2);
+  if (stageOf(state) === "yearling") eff = Math.floor(eff / 2);
+  return { eff, overworked };
+}
+
+function overworkInjuryPermille(state: HorseState, spec: WorkoutSpec, fatigueBefore: number): number {
+  if (!spec.hard || fatigueBefore <= TIRED_THRESHOLD + 200 || stageOf(state) === "yearling") return 0;
+  const dur = potentialOf(state.genome, "durability");
+  return Math.round(((fatigueBefore - (TIRED_THRESHOLD + 200)) * OVERWORK_INJURY_MAX_PERMILLE * (1500 - dur)) / ((1000 - TIRED_THRESHOLD - 200) * 1000));
+}
+
+export function previewTraining(state: HorseState, workout: Workout, ctx: TrainContext): TrainingPreview {
+  const spec = WORKOUTS[workout];
+  const fatigueBefore = fatigueAt(state, ctx.nowMs);
+  const block = trainBlock(state, workout, ctx) ?? (ctx.credits < spec.cost ? "insufficient_credits" : null);
+  const { eff, overworked } = efficiencyOf(state, spec, ctx.trainerLevel, fatigueBefore);
+  const gains: Partial<StatRecord<number>> = {};
+  for (const [k, base] of Object.entries(spec.gains) as [StatKey, number][]) {
+    const r = state.training.realisation[k];
+    gains[k] = Math.min(1000, r + realisationGain(r, base, eff)) - r;
+  }
+  return {
+    workout,
+    block,
+    cost: spec.cost,
+    gains,
+    fatigueBefore,
+    fatigueAfter: clampInt(fatigueBefore + spec.fatigue, 0, 1000),
+    overworked,
+    injuryPermille: overworkInjuryPermille(state, spec, fatigueBefore),
+    setsUpPeak: spec.hard,
+  };
+}
+
 /**
  * Run one training session now. Deterministic in (state, workout, ctx, seed). Seed default:
  * derived from horse id, day and session number so a retry on the same day is idempotent.
@@ -129,11 +183,7 @@ export function train(state: HorseState, workout: Workout, ctx: TrainContext, se
   const week = weekIndex(ctx.nowMs);
   const used = state.training.week === week ? state.training.sessionsThisWeek : 0;
   const fatigueBefore = fatigueAt(state, ctx.nowMs);
-  const overworked = spec.hard && fatigueBefore > 600;
-  const stage = stageOf(state);
-  let eff = 1000 + TRAINER_EFFICIENCY_PER_LEVEL * Math.min(2, ctx.trainerLevel);
-  if (overworked) eff = Math.floor(eff / 2);
-  if (stage === "yearling") eff = Math.floor(eff / 2);
+  const { eff, overworked } = efficiencyOf(state, spec, ctx.trainerLevel, fatigueBefore);
 
   let next = applyRealisation(state, spec.gains, eff);
   next = withFatigue(next, spec.fatigue, ctx.nowMs, spec.hard);
@@ -144,9 +194,8 @@ export function train(state: HorseState, workout: Workout, ctx: TrainContext, se
   };
 
   let injured = false;
-  if (spec.hard && fatigueBefore > TIRED_THRESHOLD + 200 && stage !== "yearling") {
-    const dur = potentialOf(state.genome, "durability");
-    const p = Math.round(((fatigueBefore - (TIRED_THRESHOLD + 200)) * OVERWORK_INJURY_MAX_PERMILLE * (1500 - dur)) / ((1000 - TIRED_THRESHOLD - 200) * 1000));
+  const p = overworkInjuryPermille(state, spec, fatigueBefore);
+  if (p > 0) {
     const inj = rollInjury({ permille: p, careerEndingShare: 0 }, seed ?? seedFrom("train", state.id, dayIndex(ctx.nowMs), used), ctx.nowMs, ctx.vetLevel, "training");
     if (inj) {
       next = { ...next, injury: { ...inj, severity: "minor", unitsRequired: Math.min(inj.unitsRequired, 4 * 24) } };
