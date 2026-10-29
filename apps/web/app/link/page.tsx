@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { Wordmark } from "@/components/SiteNav";
+import { SceneBackdrop } from "@/components/ui/Page";
 import { PixelIcon } from "@/components/icons";
 import { api, usePlayerState } from "@/lib/player";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
@@ -70,6 +71,7 @@ export default function LinkPage() {
       }}
       data-testid="link-page"
     >
+      <SceneBackdrop scene="stable" />
       <header>
         <p className="w-fit">
           <Wordmark />

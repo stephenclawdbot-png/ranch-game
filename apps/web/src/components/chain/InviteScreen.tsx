@@ -58,7 +58,7 @@ export function InviteScreen() {
   const r = v.rules;
   return (
     <div className="grid gap-5" data-testid="invite">
-      <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Invite friends" meta="Invite friends to the beta, and earn a share when they buy packs." />
+      <PageHeader scene="grandstand" back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Invite friends" meta="Invite friends to the beta, and earn a share when they buy packs." />
 
       <section className="frame-hero grid gap-3 p-4 sm:p-5" aria-labelledby="link-h">
         <h2 id="link-h" className="t-hero">

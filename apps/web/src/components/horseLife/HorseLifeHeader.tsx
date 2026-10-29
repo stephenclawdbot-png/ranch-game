@@ -2,6 +2,7 @@ import type { HorseLifeView } from "@/lib/horseLife";
 import { SEX_LABEL } from "@/lib/format";
 import { formatCredits } from "@/lib/format";
 import { HorsePortrait } from "../HorsePortrait";
+import { SceneBackdrop } from "../ui/Page";
 import { BackLink } from "./common";
 import { HorseTabs, type HorseTab } from "./HorseTabs";
 
@@ -10,6 +11,7 @@ export function HorseLifeHeader({ view, active }: { view: HorseLifeView; active:
   const young = view.care.growth !== null;
   return (
     <div className="grid gap-3">
+      <SceneBackdrop scene="barn" />
       <BackLink href={young ? "/nursery" : "/stable"} label={young ? "Nursery" : "Your stable"} />
       <header className="flex items-center gap-3">
         <span className="well grid shrink-0 place-items-center">

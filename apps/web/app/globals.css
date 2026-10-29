@@ -2794,3 +2794,14 @@ select.field option {
       linear-gradient(270deg, rgba(8, 21, 14, 0.94), rgba(8, 21, 14, 0.72) 38%, rgba(8, 21, 14, 0) 62%);
   }
 }
+/* Tablet (768-1023): the top nav and purse don't both fit at full size. Tighter tabs, and the
+   entries pill steps aside (the count is on Home and every race sheet). */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .topbar nav.tabs > a {
+    padding-inline: 0.5rem !important;
+    font-size: 0.9375rem !important;
+  }
+  .topbar .pill:has([data-testid="entries"]) {
+    display: none;
+  }
+}

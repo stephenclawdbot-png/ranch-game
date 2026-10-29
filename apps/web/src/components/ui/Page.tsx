@@ -98,7 +98,10 @@ export function PageHeader({
   meta,
   aside,
   className,
+  scene = "stable",
 }: {
+  /** The scene this page sits over, blurred (v3: the world never disappears). */
+  scene?: SceneName;
   back?: { href: string; label: string };
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -108,6 +111,7 @@ export function PageHeader({
 }) {
   return (
     <header className={`grid gap-1 ${className ?? ""}`}>
+      <SceneBackdrop scene={scene} />
       {back && (
         <Link href={back.href} className="link w-fit !text-on-baize-2 hover:!text-on-baize">
           ‹ {back.label}

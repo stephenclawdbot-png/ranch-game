@@ -106,7 +106,7 @@ export function PoolScreen() {
 
   return (
     <div className="grid gap-5" data-testid="pool">
-      <PageHeader back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Prize Pool" />
+      <PageHeader scene="grandstand" back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Prize Pool" />
       <header className="grid gap-1">
         <p className="t-meta">
           A weekly budget from the Club plus {v.poolBps / 100}% of every Premium Pack sale goes into a contract on Robinhood Chain. Each week it pays the best active players by skill. Nobody can withdraw it, not even us:
