@@ -30,7 +30,7 @@ workspace packages and the web app's `@/` alias):
 # a full season: 28 days, 50 stables -> tools/season-harness/out/dev/
 npx vitest run --config tools/season-harness/vitest.config.ts season
 
-# named run, quick mode (3 days, 12 stables, about 1.5 min)
+# named run, quick mode (3 days, 12 stables, under 2 min)
 HARNESS_TAG=quick HARNESS_QUICK=1 npx vitest run --config tools/season-harness/vitest.config.ts season
 
 # baseline, then a change, then compare (the change's report shows both)
@@ -68,9 +68,10 @@ Type-check with `npx tsc -p tools/season-harness`.
 | `HARNESS_REPORT_ONLY` | | `1` re-renders from `out/<tag>/metrics.json` |
 | `HARNESS_VERBOSE` | on | `0` silences the per-day progress lines |
 
-Runtime is roughly 60–90 s per simulated day for 50 stables with the 15-minute card (half of
-it is the card itself: publishing, locking, engine runs and settlement), so a 7-day baseline is
-about 10 minutes and a full season 45–60 minutes. `meta.timing` in metrics.json splits it.
+Runtime is roughly 70–100 s per simulated day for 50 stables with the 15-minute card (the
+grinders' entry sheets take almost half; driving the card itself, with its engine runs and
+settlements, about 15%), so a 7-day run is about 10 minutes and a full season about 40. A
+3-minute card means five times the races and steps. `meta.timing` in metrics.json splits it.
 
 ## Outputs (`out/<tag>/`, git-ignored)
 

@@ -119,8 +119,14 @@ export function flags(r: RunResult): string[] {
   if (t.died > 0) out.push(`${t.died} horse(s) died from fatal race injuries.`);
   const farm = sum(r.farmers.groups.map((g) => g.studFeesToMain + g.marketToMain));
   if (farm > 0) out.push(`Farmer alts passed ${fmt(farm)} credits to their mains (stud fees ${fmt(sum(r.farmers.groups.map((g) => g.studFeesToMain)))}, market ${fmt(sum(r.farmers.groups.map((g) => g.marketToMain)))}).`);
-  const lastOr = lastDay(r)?.ratings;
-  if (lastOr && COHORTS.every((c) => !r.meta.cohorts[c] || lastOr[c].max < 85)) out.push("No racing horse reached OR 85, the Feature Qualifier floor.");
+  const bestOr = Math.max(0, ...r.days.flatMap((d) => COHORTS.filter((c) => r.meta.cohorts[c]).map((c) => d.ratings[c].max)));
+  if (bestOr < 85) out.push(`No racing horse reached OR 85, the Feature Qualifier floor (best ${bestOr}).`);
+  const wfDays = r.days.filter((d) => d.features.wfRaces > 0).length;
+  if (wfDays && t.wfPlayerRunners === 0 && (t.fqQualifiers > 0 || r.days.some((d) => d.features.ratedHundred > 0))) {
+    out.push(`Weekend Features ran on ${wfDays} day(s) with no player runner although ${t.fqQualifiers} qualifier top-3 finish(es) and up to ${Math.max(...r.days.map((d) => d.features.ratedHundred))} horse(s) rated 100+ existed: check the Classics licence (Story chapter 4) and whether qualified horses were still racing (40-start careers).`);
+  }
+  const retiredByStarts = t.retired.max_starts ?? 0;
+  if (retiredByStarts > 0) out.push(`${retiredByStarts} horses completed their 40-start careers within the run.`);
   return out;
 }
 
@@ -353,9 +359,12 @@ function lineChart(spec: ChartSpec, main: RunResult, base: RunResult | null): st
 </figure>`;
 }
 
+/** An HTML table; numeric cells (and their column headers) are right-aligned. */
 function table(head: string[], rows: (string | number)[][], numeric = true): string {
-  return `<div class="tablewrap"><table><thead><tr>${head.map((h, i) => `<th${i && numeric ? ' class="n"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows
-    .map((r) => `<tr>${r.map((c, i) => `<td${i && numeric ? ' class="n"' : ""}>${esc(typeof c === "number" ? fmt(c) : c)}</td>`).join("")}</tr>`)
+  const isNum = (c: string | number | undefined) => numeric && (typeof c === "number" || /^[+-]?[\d,.]+(%| runners| min)?( \(.*\))?$/.test(String(c ?? "")));
+  const numCol = head.map((_, i) => i > 0 && rows.length > 0 && rows.every((r) => isNum(r[i]) || r[i] === "–"));
+  return `<div class="tablewrap"><table><thead><tr>${head.map((h, i) => `<th${numCol[i] ? ' class="n"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows
+    .map((r) => `<tr>${r.map((c, i) => `<td${numCol[i] ? ' class="n"' : ""}>${esc(typeof c === "number" ? fmt(c) : c)}</td>`).join("")}</tr>`)
     .join("")}</tbody></table></div>`;
 }
 
@@ -436,6 +445,9 @@ ${table(["cohort", "stables", "Live win", "ran a Qualifier", "qualified", "ran W
 ${d ? `<h2>Balances and ratings at the end</h2>${table(["cohort", "median credits", "p90", "max", "median OR", "p90 OR", "best OR", "licence"], COHORTS.filter((c) => r.meta.cohorts[c]).map((c) => [c, d.balances[c].median, d.balances[c].p90, d.balances[c].max, d.ratings[c].median, d.ratings[c].p90, d.ratings[c].max, d.licence[c]]))}` : ""}
 <h2>Credits by ledger kind (whole run)</h2>${table(["kind", "created", "destroyed", "between players"], creditRows)}
 ${farmerRows.length ? `<h2>Farmers</h2><p class="meta">Alt accounts feeding a main: stud fees for covering the alts' mares with the main's stallion (the main sets the fee to what the alt holds) and ceiling-priced market sales. Fraud events: ${esc(top(r.farmers.fraudEvents).map(([k, v]) => `${k} ${v}`).join(", ") || "none")}.</p>${table(["group", "detection", "main stallion", "alt covers", "stud fees to main", "market to main", "horses to main", "refused buys", "main balance", "alt balances"], farmerRows)}` : ""}
+${r.notables ? `<h2>Calendar races and top horses</h2><p class="meta">Every player run in a Feature Qualifier, Weekend Feature or Season Final, and the best-rated player horses at the end.</p>
+${r.notables.featureRuns.length ? table(["post time", "race", "min OR", "cohort", "stable", "horse", "OR before", "finish"], r.notables.featureRuns.map((x) => [x.date.slice(0, 16).replace("T", " "), x.race, x.minRating ?? "–", x.cohort, x.stable, x.horse, x.ratingBefore, x.position ?? "–"])) : `<p class="meta">No player horse ran in a calendar race.</p>`}
+${table(["horse", "cohort", "stable", "origin", "status", "OR", "peak OR", "starts", "wins"], r.notables.topHorses.map((x) => [x.name, x.cohort, x.stable, x.origin, x.careerStatus, x.rating, x.peakOr, x.starts, x.wins]))}` : ""}
 <h2>Refused actions</h2><p class="meta">Server refusals (DomainError codes) by cohort: what the simulated players tried that the rules stopped. Top 8 per cohort.</p>${table(["cohort", "action:code", "count"], refusedRows)}
 ${r.errors.length ? `<h2>Unexpected exceptions</h2>${table(["time", "stable", "action", "message"], r.errors.slice(0, 30).map((e) => [new Date(e.atMs).toISOString(), e.agent, e.action, e.message]), false)}` : ""}
 </main><script>${SCRIPT}</script></body></html>

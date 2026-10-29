@@ -395,6 +395,71 @@ export interface FarmerReport {
   fraudEvents: Record<string, number>;
 }
 
+export interface NotableRun {
+  date: string;
+  race: string;
+  calendar: string;
+  minRating: number | null;
+  cohort: Cohort;
+  stable: string;
+  horse: string;
+  ratingBefore: number;
+  position: number | null;
+}
+
+export interface NotableHorse {
+  name: string;
+  cohort: Cohort;
+  stable: string;
+  origin: string;
+  careerStatus: string;
+  rating: number;
+  peakOr: number;
+  starts: number;
+  wins: number;
+}
+
+/** Every player run in a calendar race (qualifiers, Weekend Features, finals) and the top-rated player horses. */
+export async function notables(world: World): Promise<{ featureRuns: NotableRun[]; topHorses: NotableHorse[] }> {
+  const db = world.db;
+  const featureRuns = (
+    await q<Row>(
+      db,
+      `select r.post_time, r.name race, r.conditions->'calendar'->>'kind' ck, (r.conditions->>'minRating')::int minr, c.cohort, c.name stable, h.name horse, e.rating_before, e.finish_position
+         from race_entries e join races r on r.id = e.race_id join harness_cohort c on c.stable_id = e.stable_id join horses h on h.id = e.horse_id
+        where r.conditions->'calendar'->>'kind' is not null and e.status = 'entered' order by r.post_time`,
+    )
+  ).map((r) => ({
+    date: iso(new Date(r.post_time as string | Date).getTime()),
+    race: String(r.race),
+    calendar: String(r.ck),
+    minRating: r.minr === null ? null : num(r.minr),
+    cohort: r.cohort as Cohort,
+    stable: String(r.stable),
+    horse: String(r.horse),
+    ratingBefore: num(r.rating_before),
+    position: r.finish_position === null ? null : num(r.finish_position),
+  }));
+  const topHorses = (
+    await q<Row>(
+      db,
+      `select h.name, c.cohort, c.name stable, h.origin, h.career_status, h.rating, coalesce((h.dynamics->>'peakOr')::int, h.rating) peak, h.starts, h.wins
+         from horses h join harness_cohort c on c.stable_id = h.owner_stable_id order by h.rating desc, h.starts desc limit 15`,
+    )
+  ).map((r) => ({
+    name: String(r.name),
+    cohort: r.cohort as Cohort,
+    stable: String(r.stable),
+    origin: String(r.origin),
+    careerStatus: String(r.career_status),
+    rating: num(r.rating),
+    peakOr: num(r.peak),
+    starts: num(r.starts),
+    wins: num(r.wins),
+  }));
+  return { featureRuns, topHorses };
+}
+
 export interface Checks {
   ledger: LedgerHealth;
   /** Σ created − Σ destroyed by kind must equal the players' total (double entry). */

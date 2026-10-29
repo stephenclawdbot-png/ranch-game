@@ -27,7 +27,7 @@ import * as gc from "@thoroughbred/game-core";
 import { DomainError, RULES, recordAccountSignal, stableOf, type Db } from "@thoroughbred/db";
 import { enterLive, entryOptions, playerView, quickPickLive, raceList, refill } from "@/server/game";
 import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
-import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, nurseryView, trainAction, vetAction } from "@/server/horseLife";
+import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
 import { cupView, leagueView, runCup } from "@/server/competition";
 import { createChapterRace, storyView } from "@/server/story";
 import { foundStable } from "@/server/founding";
@@ -323,11 +323,27 @@ async function sheetEntries(c: VisitCtx, s: Session, view: { horses: StableHorse
   return balance > 0 ? free.size : 0;
 }
 
+/** Light work only (open to yearlings), cycled to fill the plan's slots. */
+const LIGHT_PLAN = ["gate_practice", "swimming", "rest", "swimming"];
+
+/**
+ * One session for each horse that can use it, the way the training tab offers it
+ * (horseLifeView: the plan's next workout, blocked reasons). Yearlings get a light-work plan
+ * first (the default plan opens with speed work, which they can't do). Tired horses rest.
+ */
 async function train(c: VisitCtx, s: Session, horses: StableHorse[], reserve: number, credits: number): Promise<void> {
   for (const h of horses) {
     if (h.careerStatus !== "racing" || h.lockedRaceId || h.injury || h.condition === "tired" || credits < reserve) continue;
     if (h.stage === "foal" || h.stage === "weanling") continue;
-    const r = await c.world.act(c.a, "train", c.now, () => trainAction(c.world.db, s, h.id, {}, c.now));
+    const life = await c.world.act(c.a, "horse_life", c.now, () => horseLifeView(c.world.db, s, h.id, c.now));
+    // A "rest" next is no work to buy (and with a Trainer's 4th slot on a 3-slot plan the server
+    // refuses it as week_full although the tab offers it).
+    if (!life?.training.available || !life.training.nextWorkout || life.training.nextWorkout === "rest") continue;
+    if (life.training.lightOnly && life.training.plan.some((w) => w !== "rest" && !life.training.workouts.find((x) => x.key === w)?.allowed)) {
+      const slots = Array.from({ length: life.training.slots }, (_, i) => LIGHT_PLAN[i % LIGHT_PLAN.length]!);
+      if (!(await c.world.act(c.a, "training_plan", c.now, () => savePlanAction(c.world.db, s, h.id, slots, c.now)))) continue;
+    }
+    const r = await c.world.act(c.a, "train", c.now, () => trainAction(c.world.db, s, h.id, { expectedSession: life.training.sessionsUsed }, c.now));
     if (!r?.ran) continue;
     c.a.stats.trainingSessions++;
     credits -= r.cost;
@@ -498,6 +514,9 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await freePack(c, s);
     await upgrade(c, s, ["entries", "trainer", "stableHand", "stalls"], 3_000);
     if (a.rng.chance(300)) await shop(c, s, 2_500, 1.15);
+    // Morning work, after the night's rest: one session for every horse that isn't tired.
+    const mv = (await fresh(c, s)) ?? view;
+    await train(c, s, mv.horses, 1_500, mv.credits);
     // Story licences open the better Live classes: two first-win attempts a day while the
     // licence is below Features (Story runs count towards a horse's starts per day).
     if (s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
@@ -512,8 +531,6 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
       v = (await fresh(c, s)) ?? v;
       await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true });
     }
-    v = (await fresh(c, s)) ?? v;
-    await train(c, s, v.horses, 1_500, v.credits);
   }
 }
 
@@ -555,11 +572,12 @@ async function mainVisit(c: VisitCtx, s: Session, view: View): Promise<void> {
     await sellSurplus(c, s, (h) => h.stage === "foal" || h.stage === "weanling", (h) => h.ceiling, 2);
     // Buy what the alts list at the floor.
     await shop(c, s, 0, 0.75);
+    const fv = (await fresh(c, s)) ?? view;
+    await train(c, s, fv.horses, 1_500, fv.credits);
   }
   if (c.first && s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
   const v = (await fresh(c, s)) ?? view;
   await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true });
-  if (c.last) await train(c, s, ((await fresh(c, s)) ?? v).horses, 1_500, v.credits);
 }
 
 async function altVisit(c: VisitCtx, s: Session, view: View, main: Agent | null): Promise<void> {

@@ -16,7 +16,7 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, createCohortTable, farmerReport, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type Snapshot } from "./metrics";
+import { activity, checks, createCohortTable, farmerReport, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type Snapshot } from "./metrics";
 import { sum } from "./stats";
 
 const DAY = 86_400_000;
@@ -75,6 +75,8 @@ export interface RunResult {
   totals: Totals;
   outcomes: ByCohort<CohortOutcome>;
   farmers: FarmerReport;
+  /** Player runs in calendar races and the top-rated player horses at the end. */
+  notables: Awaited<ReturnType<typeof notables>>;
   checks: Checks;
   activity: ReturnType<typeof activity>;
   errors: UnexpectedError[];
@@ -254,6 +256,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       totals: totalsOf(days, last),
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
+      notables: await notables(world),
       checks: await checks(world, last),
       activity: activity(world),
       errors: world.errors.slice(0, 200),
