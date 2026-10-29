@@ -159,7 +159,7 @@ export class World {
 // ---------------------------------------------------------------------------
 
 const SILK_COLOURS = ["#1f4e9c", "#8e2323", "#2e7d32", "#f3e7c9", "#d9a441", "#4a148c", "#263238", "#e65100"];
-const PATTERNS = ["solid", "hoops", "stripes", "chevron", "quartered", "diamond"];
+const PATTERNS = ["solid", "hoops", "stripes", "chevron", "diamonds", "sash", "quartered", "stars"];
 const NAME_A = ["Copper", "Hollow", "Larch", "Meadow", "Raven", "Summer", "Thorn", "Willow", "Ash", "Brook", "Cedar", "Fern"];
 const NAME_B = ["Gate", "Lane", "Ridge", "Downs", "Field", "Yard", "Farm", "Stud", "Park", "Barn"];
 

@@ -34,8 +34,8 @@ export default defineConfig({
     environment: "node",
     testTimeout: 6 * 3_600_000,
     hookTimeout: 600_000,
+    // A process per file: the server keeps per-instance caches on globalThis, and the
+    // harness swaps the process's random sources for a seeded stream.
     pool: "forks",
-    // One season per process: the server keeps per-instance caches on globalThis.
-    poolOptions: { forks: { singleFork: true } },
   },
 });
