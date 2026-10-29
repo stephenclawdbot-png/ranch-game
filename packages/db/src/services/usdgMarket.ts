@@ -842,6 +842,16 @@ export async function myUsdgBids(ex: Executor, input: { accountId: string }): Pr
     .then((rows) => rows.map((r) => r.usdg_bids));
 }
 
+/** Orders a human should look at: paid but not delivered (stuck), or flagged by the price review. */
+export async function usdgOrdersForReview(ex: Executor, limit = 50): Promise<UsdgOrderRow[]> {
+  return ex
+    .select()
+    .from(usdgOrders)
+    .where(or(eq(usdgOrders.status, "paid"), eq(usdgOrders.flagged, true)))
+    .orderBy(desc(usdgOrders.createdAt))
+    .limit(limit);
+}
+
 export async function usdgSalesSummary(ex: Executor): Promise<{ registrations: number; sales: number; volume: number; fees: number; flagged: number; open: number }> {
   const [r] = await ex
     .select({
