@@ -21,6 +21,7 @@ import { FitList } from "../ui/FitChip";
 import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
 import { FieldList } from "./FieldList";
+import { ShareReplay } from "./ShareReplay";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -33,7 +34,7 @@ type Phase = "loading" | "pre" | "live" | "result";
  * Layout (phone first): broadcast plate + full-bleed stage at the top; below it your
  * runner's fit check and the field (pre/live) or the staged results (after the finish).
  */
-export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNowMs: number }) {
+export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: RaceCard; serverNowMs: number; initialTimeSec?: number }) {
   const { config } = card;
   const router = useRouter();
   const entry = useEntry();
@@ -205,7 +206,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
             <PreRace localPost={localPost} localClose={localClose} now={now} card={card} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
-              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} autoplay />
+              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} initialTimeSec={initialTimeSec} autoplay />
             </div>
           ) : (
             <div className="flex h-full min-h-56 flex-col items-center justify-center gap-2 text-cream-dim">
@@ -226,6 +227,7 @@ export function RaceExperience({ card, serverNowMs }: { card: RaceCard; serverNo
             Enter a horse
           </button>
         )}
+        {phase === "result" && <ShareReplay card={card} horseName={mine?.horse.name ?? winnerName ?? "The winner"} />}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">

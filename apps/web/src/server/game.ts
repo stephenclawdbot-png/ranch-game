@@ -49,10 +49,12 @@ import {
   markInboxRead,
   occupancy,
   openSlotRace,
+  pageStableRuns,
   refillEntries,
   scratchEntry,
   settleRace,
   stableEntriesInRace,
+  stableRunSummary,
   storyRewardFor,
   storyState,
   ensureLeagueMembership,
@@ -70,12 +72,14 @@ import {
   type RunnerOutcome,
 } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
+import { replayStartSec } from "@/lib/replayStart";
 import type {
   ActiveEntry,
   FieldEntry,
   HorseDetailView,
   InboxView,
   MyRaceResult,
+  MyRacesView,
   PlayerView,
   RaceCard,
   RaceKind,
@@ -507,6 +511,20 @@ export async function servedReplay(db: Db, id: string, now: Date): Promise<RaceR
   const replay = await replayFor(db, race, now);
   if (!isBroadcastOver(replay, now.getTime())) throw new TooEarlyError(race.postTime.getTime(), "live");
   return replay;
+}
+
+/**
+ * Where `?at=` opens the replay on a race page: "finish" = winning time − FINISH_LEAD_SEC,
+ * or a race second. Undefined unless the finish has been broadcast (no spoilers: a live or
+ * upcoming race ignores the param entirely).
+ */
+export async function replayStartFor(db: Db, id: string, at: string | null | undefined, now: Date): Promise<number | undefined> {
+  const race = await loadRace(db, id);
+  if (now < race.postTime) return undefined;
+  const replay = await replayFor(db, race, now);
+  if (!isBroadcastOver(replay, now.getTime())) return undefined;
+  const winnerUs = replay.result.finishOrder[0]?.finishTimeUs;
+  return replayStartSec(at, true, winnerUs != null ? winnerUs / 1_000_000 : null);
 }
 
 export interface VerifyResult {
@@ -994,6 +1012,23 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
 
 export async function refill(db: Db, session: Session, now: Date) {
   return refillEntries(db, { accountId: session.accountId, now });
+}
+
+export interface MyRacesFilter {
+  horseId?: string | null;
+  kind: "all" | "live" | "story";
+  winsOnly: boolean;
+}
+
+/**
+ * /api/me/races: one page of the stable's settled runs (newest first, its replay one tap
+ * away) plus the totals for the same filter. Only races already settled appear.
+ */
+export async function myRaces(db: Db, session: Session, filter: MyRacesFilter, cursor: string | null, limit = 30): Promise<MyRacesView> {
+  const q = { stableId: session.stable.id, horseId: filter.horseId && UUID_RE.test(filter.horseId) ? filter.horseId : null, kind: filter.kind, winsOnly: filter.winsOnly };
+  const [page, summary] = [await pageStableRuns(db, q, cursor, limit), await stableRunSummary(db, q)];
+  const names = new Map(page.rows.map((r) => [r.horseId, r.horseName]));
+  return { rows: page.rows.map((r) => runView(r, names)), summary, nextCursor: page.nextCursor };
 }
 
 /** The viewer's own result in a race. Only after the broadcast is over; settles lazily; marks the inbox read. */

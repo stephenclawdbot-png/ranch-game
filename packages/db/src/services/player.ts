@@ -2,9 +2,9 @@
  * Player-facing reads and small writes the web app needs: the inbox, race history (per
  * horse and per stable), Story-mode rewards (§4e) and the stable profile.
  */
-import { and, asc, desc, eq, gte, isNotNull, isNull, like, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, like, lt, lte, ne, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
-import { inboxItems, raceEntries, races, stables, type StableRow } from "../schema";
+import { horses, inboxItems, raceEntries, races, stables, type StableRow } from "../schema";
 import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { lockStableOf } from "./accounts";
@@ -79,6 +79,76 @@ export async function stableEntriesInRace(ex: Executor, stableId: string, raceId
     .select()
     .from(raceEntries)
     .where(and(eq(raceEntries.stableId, stableId), eq(raceEntries.raceId, raceId), eq(raceEntries.status, "entered")));
+}
+
+/** Filters for a stable's full race history (/me/races). */
+export interface StableRunQuery {
+  stableId: string;
+  /** One horse only (null: every horse in the stable). */
+  horseId?: string | null;
+  /** all (default) | live (every shared-card kind) | story (kind 'quick'). */
+  kind?: "all" | "live" | "story";
+  /** Winners only (position 1). */
+  winsOnly?: boolean;
+}
+
+function runWhere(q: StableRunQuery) {
+  const where = [eq(raceEntries.stableId, q.stableId), eq(races.status, "settled"), isNotNull(raceEntries.finishPosition)];
+  if (q.horseId) where.push(eq(raceEntries.horseId, q.horseId));
+  if (q.kind === "story") where.push(eq(races.kind, "quick"));
+  else if (q.kind === "live") where.push(ne(races.kind, "quick"));
+  if (q.winsOnly) where.push(eq(raceEntries.finishPosition, 1));
+  return where;
+}
+
+const historyColumns = { ...runColumns, horseName: horses.name };
+
+/**
+ * One page of a stable's settled runs, newest first (ties broken by race then horse id,
+ * so the cursor is a strict total order). The cursor is the `postTimeMs:raceId:horseId`
+ * of the last row served; `nextCursor` resumes right after it (null on the last page).
+ */
+export async function pageStableRuns(ex: Executor, q: StableRunQuery, cursor: string | null, limit = 30) {
+  const where = runWhere(q);
+  const parts = cursor?.split(":");
+  if (parts && parts.length === 3 && /^\d+$/.test(parts[0]!) && parts.every((p) => p.length > 0)) {
+    const at = new Date(Number(parts[0]));
+    where.push(or(lt(races.postTime, at), and(eq(races.postTime, at), lt(raceEntries.raceId, parts[1]!)), and(eq(races.postTime, at), eq(raceEntries.raceId, parts[1]!), lt(raceEntries.horseId, parts[2]!)))!);
+  }
+  const rows = await ex
+    .select(historyColumns)
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .innerJoin(horses, eq(horses.id, raceEntries.horseId))
+    .where(and(...where))
+    .orderBy(desc(races.postTime), desc(raceEntries.raceId), desc(raceEntries.horseId))
+    .limit(limit + 1);
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
+  return { rows: page, nextCursor: rows.length > limit && last ? `${last.postTime.getTime()}:${last.raceId}:${last.horseId}` : null };
+}
+
+export interface StableRunSummary {
+  runs: number;
+  wins: number;
+  /** Placed without winning: 2nd or 3rd. */
+  places: number;
+  credits: number;
+}
+
+/** Totals for the same filter the history page lists. */
+export async function stableRunSummary(ex: Executor, q: StableRunQuery): Promise<StableRunSummary> {
+  const [row] = await ex
+    .select({
+      runs: sql<number>`count(*)::int`,
+      wins: sql<number>`(count(*) filter (where ${raceEntries.finishPosition} = 1))::int`,
+      places: sql<number>`(count(*) filter (where ${raceEntries.finishPosition} between 2 and 3))::int`,
+      credits: sql<number>`coalesce(sum(${raceEntries.prize}), 0)::int`,
+    })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(...runWhere(q)));
+  return { runs: Number(row?.runs ?? 0), wins: Number(row?.wins ?? 0), places: Number(row?.places ?? 0), credits: Number(row?.credits ?? 0) };
 }
 
 // ---------------------------------------------------------------------------

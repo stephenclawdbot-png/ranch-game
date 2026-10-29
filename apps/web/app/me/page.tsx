@@ -50,6 +50,17 @@ function Profile({ state }: { state: PlayerState }) {
     <div className="mx-auto grid max-w-4xl gap-8">
       <PageHeader eyebrow={state.stableName} title="Profile" meta="Your stable's name and colours, and how the game looks on this device." />
 
+      <Link href="/me/races" className="surface flex items-center gap-3 p-3" data-testid="my-races">
+        <PixelIcon name="stopwatch" size={32} />
+        <span className="min-w-0 flex-1">
+          <span className="t-title block">My races</span>
+          <span className="t-meta block">Every run your stable has made, each with its replay.</span>
+        </span>
+        <span aria-hidden className="chev">
+          ›
+        </span>
+      </Link>
+
       <section className="grid gap-5 md:grid-cols-[1fr_16rem]" aria-labelledby="colours-h">
         <div className="surface grid content-start gap-5 p-4">
           <h2 id="colours-h" className="t-h2">

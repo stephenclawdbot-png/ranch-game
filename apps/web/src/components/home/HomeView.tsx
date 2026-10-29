@@ -418,7 +418,7 @@ function YourRaces({ state, now, skip }: { state: PlayerState; now: number | nul
   const inbox = state.inbox.filter((i) => i.raceId && !isHero(i.raceId, i.horseId)).slice(0, 5);
   if (active.length === 0 && inbox.length === 0) return null;
   return (
-    <Section id="inbox-h" title="Your races" testId="your-races-section">
+    <Section id="inbox-h" title="Your races" href="/me/races" linkLabel="All" testId="your-races-section">
       <ul className="surface rows" data-testid="your-races">
         {active.map((a) => {
           const st = statusOf(a, now);
