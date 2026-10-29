@@ -1,0 +1,122 @@
+[
+ {
+  "name": "Gold champagne (chestnut + Ch)",
+  "body": "#cfa86c",
+  "shade": "#a8834c",
+  "highlight": "#e6c58f",
+  "mane": "#e9d6ae",
+  "points": "#c4955f",
+  "muzzle": "#c99c8a",
+  "eye": "#b07a2a"
+ },
+ {
+  "name": "Amber champagne (bay + Ch)",
+  "body": "#b8935e",
+  "shade": "#8f6c3e",
+  "highlight": "#d4b07c",
+  "mane": "#6b4a35",
+  "points": "#6b4a35",
+  "muzzle": "#c99c8a",
+  "eye": "#b07a2a"
+ },
+ {
+  "name": "Sable champagne (seal + Ch)",
+  "body": "#9a7a5c",
+  "shade": "#72583f",
+  "highlight": "#b8977a",
+  "mane": "#5a4232",
+  "points": "#5a4232",
+  "muzzle": "#c99c8a",
+  "eye": "#b07a2a"
+ },
+ {
+  "name": "Classic champagne (black + Ch)",
+  "body": "#8f7b6e",
+  "shade": "#6a5a50",
+  "highlight": "#ad998b",
+  "mane": "#5d4b42",
+  "points": "#5d4b42",
+  "muzzle": "#c99c8a",
+  "eye": "#b07a2a"
+ },
+ {
+  "name": "Silver black (black + Z)",
+  "body": "#4a3326",
+  "shade": "#2e1f17",
+  "highlight": "#6b4a38",
+  "mane": "#d8cfc0",
+  "points": "#3a2a20",
+  "muzzle": "#2a201c",
+  "eye": "#120b07"
+ },
+ {
+  "name": "Silver bay (bay + Z)",
+  "body": "#8a4527",
+  "shade": "#5a2a16",
+  "highlight": "#b5683d",
+  "mane": "#cfc5b5",
+  "points": "#6b4a3a",
+  "muzzle": "#3a2c26",
+  "eye": "#120b07"
+ },
+ {
+  "name": "Silver dapple (black + Z), dapple",
+  "body": "#5a4030",
+  "shade": "#3a2a1f",
+  "highlight": "#7d5d48",
+  "mane": "#e0d8ca",
+  "points": "#46342a",
+  "muzzle": "#2a201c",
+  "eye": "#120b07"
+ },
+ {
+  "name": "Pearl (chestnut, prl/prl)",
+  "body": "#d9b08c",
+  "shade": "#b88d68",
+  "highlight": "#ecc9a8",
+  "mane": "#c99f7a",
+  "points": "#c09070",
+  "muzzle": "#c49a88",
+  "eye": "#3a2a20"
+ },
+ {
+  "name": "Pearl (bay, prl/prl)",
+  "body": "#d2a780",
+  "shade": "#ab835f",
+  "highlight": "#e6c29e",
+  "mane": "#8a6a55",
+  "points": "#8a6a55",
+  "muzzle": "#b8907e",
+  "eye": "#3a2a20"
+ },
+ {
+  "name": "Pearl (black, prl/prl)",
+  "body": "#a08878",
+  "shade": "#7a6658",
+  "highlight": "#bba595",
+  "mane": "#6e5a50",
+  "points": "#6e5a50",
+  "muzzle": "#a88a7c",
+  "eye": "#3a2a20"
+ },
+ {
+  "name": "Cream pearl (chestnut, prl + Cr)",
+  "body": "#ecd9bd",
+  "shade": "#cdb898",
+  "highlight": "#f8ecd8",
+  "mane": "#f0e2c8",
+  "points": "#dcc4a2",
+  "muzzle": "#d9a99a",
+  "eye": "#8fb5a0"
+ },
+ {
+  "name": "Cream pearl (bay, prl + Cr)",
+  "body": "#e4cfae",
+  "shade": "#c4ad88",
+  "highlight": "#f2e2c6",
+  "mane": "#a88a70",
+  "points": "#a88a70",
+  "muzzle": "#d9a99a",
+  "eye": "#8fb5a0"
+ }
+]
