@@ -2597,3 +2597,33 @@ select.field option {
     border-radius: 0 0 14px 14px;
   }
 }
+/* Variants re-asserted: the unlayered v3 .chip / .tag base would otherwise win over the layered
+   coloured variants (unlayered beats layered regardless of specificity). */
+.chip-brass {
+  color: var(--color-ink);
+  background: var(--color-brass);
+}
+.chip-cream {
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+.chip-live {
+  color: #f6ecd3;
+  background: var(--color-live);
+}
+.chip-ink {
+  color: #f6ecd3;
+  background: rgba(8, 21, 14, 0.88);
+}
+.tag-you {
+  color: var(--color-ink);
+  background: var(--color-brass);
+}
+.tag-good {
+  color: #f6ecd3;
+  background: var(--color-turf);
+}
+.btn-danger-text,
+.btn-ghost.btn-danger-text {
+  color: var(--color-negative);
+}
