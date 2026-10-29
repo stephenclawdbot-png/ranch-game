@@ -14,7 +14,9 @@ import nodeCrypto from "node:crypto";
 import { syncBuiltinESMExports } from "node:module";
 import { Rng, seedFrom } from "@thoroughbred/game-core";
 
-let installed: string | null = null;
+let installed = false;
+/** The current stream; each install (one per run) starts it afresh from the run's seed. */
+let stream: Rng | null = null;
 
 /** Fills `bytes` from the stream. */
 function fill(rng: Rng, bytes: Uint8Array): void {
@@ -29,14 +31,14 @@ function asBytes(view: ArrayBufferView): Uint8Array {
 }
 
 /**
- * Replaces the process's random sources with one seeded stream. Idempotent per seed; a second
- * call with another seed throws (one season per process).
+ * Replaces the process's random sources with one stream seeded from `seed`. Calling it again
+ * (the next run in the same process) restarts the stream from the new seed.
  */
 export function installDeterministicRandom(seed: string): void {
-  if (installed === seed) return;
-  if (installed !== null) throw new Error(`deterministic random already installed with seed ${installed}`);
-  installed = seed;
-  const rng = new Rng(seedFrom("season-harness", "crypto", seed));
+  stream = new Rng(seedFrom("season-harness", "crypto", seed));
+  if (installed) return;
+  installed = true;
+  const rng = { nextU32: () => stream!.nextU32(), float: () => stream!.float() } as Rng;
   const c = nodeCrypto as unknown as Record<string, unknown>;
 
   c.randomBytes = (size: number, cb?: (err: Error | null, buf: Buffer) => void) => {

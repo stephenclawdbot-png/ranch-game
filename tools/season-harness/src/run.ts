@@ -37,6 +37,8 @@ export interface RunMeta {
   cardHorizonMs: number;
   engineVersion: string;
   runtimeMs: number;
+  /** Wall time split: card driving, agent visits by cohort, metric sampling. */
+  timing: Record<string, number>;
   finishedAt: string;
 }
 
@@ -81,7 +83,10 @@ export interface RunResult {
 /** Clears the per-instance caches game.ts and friends keep on globalThis (a fresh server). */
 function freshServer(): void {
   const g = globalThis as Record<string, unknown>;
-  for (const k of ["__tbTick", "__tbGiftDone", "__tbHouseStudsAt", "__tbPopulation", "__tbHall"]) delete g[k];
+  // game.ts and competition.ts hold these objects from module load: reset them in place.
+  if (g.__tbTick) Object.assign(g.__tbTick, { at: 0, inflight: null });
+  if (g.__tbHall) Object.assign(g.__tbHall, { at: 0 });
+  for (const k of ["__tbGiftDone", "__tbHouseStudsAt", "__tbPopulation"]) delete g[k];
 }
 
 function addInto(into: Record<string, number>, from: Record<string, number>): void {
@@ -130,7 +135,7 @@ interface Visit {
 function scheduleDay(world: World, dayStartMs: number): Visit[] {
   const out: Visit[] = [];
   for (const a of world.agents) {
-    const times = visitsOn(a, dayStartMs);
+    const times = visitsOn(world, a, dayStartMs);
     times.forEach((atMs, i) => out.push({ atMs, agent: a, first: i === 0, last: i === times.length - 1 }));
   }
   return out.sort((x, y) => x.atMs - y.atMs || x.agent.index - y.agent.index);
@@ -141,6 +146,12 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
   freshServer();
   const wallStart = Date.now();
   const handle = await createDb({ url: null, pglite: "memory" });
+  // A second stream from here on, once the database has booted (migrations) and served a first
+  // query: PGlite draws randomness only the first time its runtime loads in a process, which
+  // would otherwise shift a second run in the same process (the smoke test). It must differ
+  // from the boot stream, or the UUIDs the migrations drew would come round again.
+  await handle.db.execute("select gen_random_uuid()");
+  installDeterministicRandom(`${cfg.seed}:run`);
   try {
     const world = new World(handle.db, cfg.seed);
     const start = new Date(cfg.startMs);
@@ -169,40 +180,56 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
     let visits = scheduleDay(world, cfg.startMs);
     let dayStart = cfg.startMs;
     let dayWall = Date.now();
-    for (let t = cfg.startMs; t <= end; t += cfg.stepMs) {
+    const timing: Record<string, number> = { drive: 0, sample: 0, casual: 0, grinder: 0, breeder: 0, farmer: 0 };
+    const timed = async <T>(k: string, f: () => Promise<T>): Promise<T> => {
+      const t0 = Date.now();
+      try {
+        return await f();
+      } finally {
+        timing[k] = (timing[k] ?? 0) + Date.now() - t0;
+      }
+    };
+    for (let t = cfg.startMs; ; t = Math.min(t + cfg.stepMs, end)) {
       const now = new Date(t);
       try {
-        await driveCard(world.db, now, { force: true, maintenance: true });
+        await timed("drive", () => driveCard(world.db, now, { force: true, maintenance: true }));
       } catch (e) {
         world.errors.push({ atMs: t, agent: "(card)", action: "driveCard", message: e instanceof Error ? e.message : String(e) });
       }
       while (t >= dayStart + DAY) {
-        const cur = await snapshot(world);
-        const sample = await sampleDay(world, days.length + 1, dayStart, dayStart + DAY, prev, cur);
+        const cur = await timed("sample", () => snapshot(world));
+        const sample = await timed("sample", () => sampleDay(world, days.length + 1, dayStart, dayStart + DAY, prev, cur));
         days.push(sample);
         prev = cur;
         log(
           `day ${sample.day} ${sample.date}: ${sample.races.live} Live races (avg field ${sample.races.avgField}, players ${sample.races.playerShare}%), ` +
             `${sample.races.story} Story, created ${sample.credits.createdTotal.toLocaleString("en-GB")} / destroyed ${sample.credits.destroyedTotal.toLocaleString("en-GB")}, ` +
-            `${world.errors.length} errors, ${((Date.now() - dayWall) / 1000).toFixed(1)} s`,
+            `${world.errors.length} errors, ${((Date.now() - dayWall) / 1000).toFixed(1)} s (${Object.entries(timing).map(([k, v]) => `${k} ${Math.round(v / 1000)}`).join(", ")} s so far)`,
         );
         dayWall = Date.now();
         dayStart += DAY;
         if (dayStart < end) visits = visits.concat(scheduleDay(world, dayStart));
       }
       if (t >= end) break;
-      const due = visits.filter((v) => v.atMs < t + cfg.stepMs);
-      visits = visits.filter((v) => v.atMs >= t + cfg.stepMs);
+      const next = Math.min(t + cfg.stepMs, end);
+      const due = visits.filter((v) => v.atMs < next);
+      visits = visits.filter((v) => v.atMs >= next);
       for (const v of due) {
         const at = new Date(Math.max(t, v.atMs));
         try {
-          await visit(world, v.agent, at, v.first, v.last, v.agent.role === "alt" ? (mainOf.get(v.agent.group!) ?? null) : null);
+          await timed(v.agent.cohort, () => visit(world, v.agent, at, v.first, v.last, v.agent.role === "alt" ? (mainOf.get(v.agent.group!) ?? null) : null));
         } catch (e) {
           world.errors.push({ atMs: at.getTime(), agent: v.agent.name, action: "visit", message: e instanceof Error ? e.message : String(e) });
         }
       }
     }
 
+    // A run that ends mid-day (the smoke test) samples the part-day too.
+    if (dayStart < end) {
+      const cur = await snapshot(world);
+      days.push(await sampleDay(world, days.length + 1, dayStart, end, prev, cur));
+      prev = cur;
+    }
     const last = await snapshot(world);
     const result: RunResult = {
       meta: {
@@ -220,6 +247,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         cardHorizonMs: RULES.cardHorizonMs,
         engineVersion: ENGINE_VERSION,
         runtimeMs: Date.now() - wallStart,
+        timing,
         finishedAt: utcDay(new Date()),
       },
       days,

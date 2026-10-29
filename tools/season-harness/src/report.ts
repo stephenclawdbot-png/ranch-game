@@ -57,6 +57,7 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
   const destroyed = sum(Object.values(t.destroyed));
   const d = lastDay(r);
   const born = (k: string) => t.born[k] ?? 0;
+  const earned = created - (t.created.starter_grant ?? 0);
   const pot = t.potential;
   const potN = pot.below + pot.between + pot.above;
   const out: KeyNumber[] = [
@@ -68,7 +69,7 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "cupRuns", label: "Daily Cup runs", value: t.cupRuns },
     { key: "created", label: "Credits created", value: created },
     { key: "destroyed", label: "Credits destroyed", value: destroyed },
-    { key: "sinkRatio", label: "Destroyed per 100 created", value: created ? round1((100 * destroyed) / created) : 0 },
+    { key: "sinkRatio", label: "Destroyed per 100 created (starter grants excluded)", value: earned ? round1((100 * destroyed) / earned) : 0 },
     { key: "playerTotal", label: "Credits held by players (end)", value: d?.credits.playerTotal ?? 0 },
     { key: "bredFoals", label: "Foals bred", value: born("bred") },
     { key: "packFoals", label: "Pack foals", value: born("pack") },
@@ -105,9 +106,12 @@ export function flags(r: RunResult): string[] {
   const created = sum(Object.values(t.created));
   const destroyed = sum(Object.values(t.destroyed));
   if (!r.checks.ok) out.push(`CHECKS FAILED: ledger ${JSON.stringify(r.checks.ledger.unbalancedTransactions.length)} unbalanced, conservation drift ${r.checks.conservation.drift}, ${r.checks.unexpectedErrors} unexpected exceptions.`);
-  if (created > 0 && destroyed / created < 0.5) out.push(`Credit inflation: sinks removed only ${round1((100 * destroyed) / created)} of every 100 credits created (${fmt(created - destroyed)} net into players' hands).`);
+  const earned = created - (t.created.starter_grant ?? 0);
+  if (earned > 0 && destroyed / earned < 0.5) {
+    out.push(`Credit inflation: sinks removed only ${round1((100 * destroyed) / earned)} of every 100 credits earned in play (starter grants aside); players hold ${fmt(created - destroyed)} credits at the end.`);
+  }
   const purse = t.created.purse ?? 0;
-  if (created > 0 && purse / created > 0.5) out.push(`Purses are ${pct(purse, created)}% of all credits created.`);
+  if (earned > 0 && purse / earned > 0.5) out.push(`Purses are ${pct(purse, earned)}% of the credits earned in play.`);
   if (t.liveRaces && pct(t.liveRacesWithPlayers, t.liveRaces) < 50) out.push(`Mostly empty of players: only ${pct(t.liveRacesWithPlayers, t.liveRaces)}% of Live races had a player runner (player share of runners ${t.playerShare}%).`);
   if (t.fqQualifiers === 0) out.push(`Nobody qualified through a Feature Qualifier (${t.fqPlayerRunners} player runners in qualifiers).`);
   if (t.wfPlayerRunners === 0) out.push("No player horse ran in a Weekend Feature.");
@@ -171,7 +175,7 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
   if (r.farmers.groups.length) {
     L.push("", "## Farmers (alt accounts feeding a main)", "");
     for (const g of r.farmers.groups) {
-      L.push(`- Group ${g.group} (${g.detected ? "shares a wallet: detectable" : "separate devices: undetected"}): stud fees to main ${fmt(g.studFeesToMain)}, market to main ${fmt(g.marketToMain)}, horses to main ${g.horsesToMain}, refused buys ${g.blockedTrades}; main ends on ${fmt(g.mainBalance)}, alts on ${g.altBalances.map((b) => fmt(b)).join(", ")}.`);
+      L.push(`- Group ${g.group} (${g.detected ? "shares a wallet: detectable" : "separate devices: undetected"}): main has a stallion at stud: ${g.mainStallion ? "yes" : "no"}, alt mares covered by him ${g.altMaresCovered}, stud fees to main ${fmt(g.studFeesToMain)}, market to main ${fmt(g.marketToMain)}, horses to main ${g.horsesToMain}, refused buys ${g.blockedTrades}; main ends on ${fmt(g.mainBalance)}, alts on ${g.altBalances.map((b) => fmt(b)).join(", ")}.`);
     }
     L.push(`- Fraud events: ${top(r.farmers.fraudEvents).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}.`);
   }
@@ -335,9 +339,12 @@ function lineChart(spec: ChartSpec, main: RunResult, base: RunResult | null): st
       return `<polyline points="${pts}" fill="none" stroke="var(--s${s.slot})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${s.dashed ? ' stroke-dasharray="5 4" opacity="0.8"' : ""}/>${marker}`;
     })
     .join("");
-  const legend = all
-    .map((s) => `<span class="key"><svg width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="var(--s${s.slot})" stroke-width="2.5"${s.dashed ? ' stroke-dasharray="5 4"' : ""}/></svg>${esc(s.label)}</span>`)
-    .join("");
+  const swatch = (stroke: string, dashed: boolean) =>
+    `<svg width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="${stroke}" stroke-width="2.5"${dashed ? ' stroke-dasharray="5 4"' : ""}/></svg>`;
+  // Colour names the series; in compare mode the line style names the run.
+  const legend =
+    spec.series(main).map((s) => `<span class="key">${swatch(`var(--s${s.slot})`, false)}${esc(s.name)}</span>`).join("") +
+    (base ? `<span class="key runkey">${swatch("var(--ink2)", false)}${esc(main.meta.tag)}</span><span class="key runkey">${swatch("var(--ink2)", true)}${esc(base.meta.tag)}</span>` : "");
   const data = esc(JSON.stringify({ n, x0: x(0), x1: x(n - 1), unit: spec.unit, series: all.map((s) => ({ name: s.label, slot: s.slot, values: s.values })) }));
   return `<figure class="chart" id="c-${spec.id}">
 <figcaption><h3>${esc(spec.title)}</h3><p>${esc(spec.note)} <span class="unit">(${esc(spec.unit)}, by day)</span></p></figcaption>
@@ -366,7 +373,7 @@ h3{font-size:15px;margin:0}.meta,figcaption p{color:var(--ink2);margin:0}.unit{c
 .tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.tile span{color:var(--ink2);font-size:13px}.tile i{display:block;font-style:normal;font-size:12px;color:var(--ink3)}
 .flags{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--s1);border-radius:6px;padding:8px 16px 8px 28px}.ok{color:var(--good)}.fail{color:var(--bad);font-weight:600}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:16px}.chart{margin:0;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 12px 4px}
-.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 2px;font-size:13px;color:var(--ink2)}.key{display:inline-flex;align-items:center;gap:6px}
+.runkey{color:var(--ink3)}.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 2px;font-size:13px;color:var(--ink2)}.key{display:inline-flex;align-items:center;gap:6px}
 .plot{position:relative}.plot svg{width:100%;height:auto;display:block}.grid{stroke:var(--grid);stroke-width:1}.grid.zero{stroke:var(--ink3)}.tick{fill:var(--ink3);font-size:11px;font-variant-numeric:tabular-nums}
 .cross{stroke:var(--ink3);stroke-width:1}.tip{position:absolute;top:4px;pointer-events:none;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.15);white-space:nowrap}
 .tip div{display:flex;align-items:center;gap:6px}.tip i{width:10px;height:3px;display:inline-block;border-radius:2px}.tip b{margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums}
@@ -414,7 +421,7 @@ function reportHtml(r: RunResult, base: RunResult | null): string {
         }),
       )
     : "";
-  const farmerRows = r.farmers.groups.map((g) => [`group ${g.group}`, g.detected ? "detectable (shared wallet)" : "undetected", g.studFeesToMain, g.marketToMain, g.horsesToMain, g.blockedTrades, g.mainBalance, g.altBalances.map((b) => fmt(b)).join(" / ")]);
+  const farmerRows = r.farmers.groups.map((g) => [`group ${g.group}`, g.detected ? "detectable (shared wallet)" : "undetected", g.mainStallion ? "yes" : "no", g.altMaresCovered, g.studFeesToMain, g.marketToMain, g.horsesToMain, g.blockedTrades, g.mainBalance, g.altBalances.map((b) => fmt(b)).join(" / ")]);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Season harness ${esc(m.tag)}</title><style>${STYLE}</style></head><body><main>
 <h1>Season harness: ${esc(m.tag)}${base ? ` vs ${esc(base.meta.tag)}` : ""}</h1>
@@ -428,7 +435,7 @@ ${deltaTable}
 ${table(["cohort", "stables", "Live win", "ran a Qualifier", "qualified", "ran Weekend Feature", "bred", "sold", "licence 3+", "promoted", "above start credits", "Live starts", "visits"], outcomeRows)}
 ${d ? `<h2>Balances and ratings at the end</h2>${table(["cohort", "median credits", "p90", "max", "median OR", "p90 OR", "best OR", "licence"], COHORTS.filter((c) => r.meta.cohorts[c]).map((c) => [c, d.balances[c].median, d.balances[c].p90, d.balances[c].max, d.ratings[c].median, d.ratings[c].p90, d.ratings[c].max, d.licence[c]]))}` : ""}
 <h2>Credits by ledger kind (whole run)</h2>${table(["kind", "created", "destroyed", "between players"], creditRows)}
-${farmerRows.length ? `<h2>Farmers</h2><p class="meta">Alt accounts feeding a main: stud fees for covering the alts' mares with the main's stallion (the main sets the fee to what the alt holds) and ceiling-priced market sales. Fraud events: ${esc(top(r.farmers.fraudEvents).map(([k, v]) => `${k} ${v}`).join(", ") || "none")}.</p>${table(["group", "detection", "stud fees to main", "market to main", "horses to main", "refused buys", "main balance", "alt balances"], farmerRows)}` : ""}
+${farmerRows.length ? `<h2>Farmers</h2><p class="meta">Alt accounts feeding a main: stud fees for covering the alts' mares with the main's stallion (the main sets the fee to what the alt holds) and ceiling-priced market sales. Fraud events: ${esc(top(r.farmers.fraudEvents).map(([k, v]) => `${k} ${v}`).join(", ") || "none")}.</p>${table(["group", "detection", "main stallion", "alt covers", "stud fees to main", "market to main", "horses to main", "refused buys", "main balance", "alt balances"], farmerRows)}` : ""}
 <h2>Refused actions</h2><p class="meta">Server refusals (DomainError codes) by cohort: what the simulated players tried that the rules stopped. Top 8 per cohort.</p>${table(["cohort", "action:code", "count"], refusedRows)}
 ${r.errors.length ? `<h2>Unexpected exceptions</h2>${table(["time", "stable", "action", "message"], r.errors.slice(0, 30).map((e) => [new Date(e.atMs).toISOString(), e.agent, e.action, e.message]), false)}` : ""}
 </main><script>${SCRIPT}</script></body></html>

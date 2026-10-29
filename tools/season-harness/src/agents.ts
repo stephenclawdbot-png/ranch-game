@@ -203,9 +203,11 @@ export async function foundAgent(world: World, input: { index: number; cohort: C
 }
 
 /** Today's visit instants for an agent (jittered ±20 minutes; empty when the agent skips the day). */
-export function visitsOn(a: Agent, dayStartMs: number): number[] {
-  if (a.skipPermille && a.rng.chance(a.skipPermille)) return [];
-  return a.visitMinutes.map((m) => dayStartMs + Math.max(0, Math.min(1439, m + a.rng.range(-20, 20))) * MIN);
+export function visitsOn(world: World, a: Agent, dayStartMs: number): number[] {
+  // Its own stream per (agent, day): the schedule never shifts when a decision draws more.
+  const rng = new gc.Rng(gc.seedFrom("season-harness", world.seed, "visits", a.index, dayStartMs));
+  if (a.skipPermille && rng.chance(a.skipPermille)) return [];
+  return a.visitMinutes.map((m) => dayStartMs + Math.max(0, Math.min(1439, m + rng.range(-20, 20))) * MIN);
 }
 
 // ---------------------------------------------------------------------------
@@ -284,8 +286,15 @@ const isWeekendFeature = (r: Pick<RaceSummary, "name">) => r.name.includes("Week
  * shows). Feature Qualifiers and the Weekend Feature take any eligible horse first.
  */
 async function smartEntries(c: VisitCtx, s: Session, view: { horses: StableHorse[]; entries: { balance: number } }, opts: { lookaheadMs: number; tiredOk: boolean }): Promise<void> {
+  const left = await sheetEntries(c, s, view, opts);
+  // Nothing on the next few hours suits a fresh horse well: let Live Quick Pick find it a race.
+  if (left > 0) await quickPicks(c, s, Math.min(left, 2));
+}
+
+/** Returns how many free, fit horses are still without a race. */
+async function sheetEntries(c: VisitCtx, s: Session, view: { horses: StableHorse[]; entries: { balance: number } }, opts: { lookaheadMs: number; tiredOk: boolean }): Promise<number> {
   const free = new Map(view.horses.filter((h) => h.careerStatus === "racing" && !h.block && h.ranToday < RULES.startsPerDay && (opts.tiredOk || h.condition !== "tired")).map((h) => [h.id, h]));
-  if (!free.size) return;
+  if (!free.size) return 0;
   let balance = view.entries.balance;
   const list = await c.world.act(c.a, "race_list", c.now, () => raceList(c.world.db, c.now, s.stable.id, { upcoming: 64, recent: 0 }));
   const horizon = c.now.getTime() + opts.lookaheadMs;
@@ -297,7 +306,9 @@ async function smartEntries(c: VisitCtx, s: Session, view: { horses: StableHorse
     const sheet = await c.world.act(c.a, "entry_options", c.now, () => entryOptions(c.world.db, s, race.id, c.now));
     if (!sheet) continue;
     const special = isQualifier(race) || isWeekendFeature(race);
-    const fits = sheet.options.filter((o) => o.reason === null && free.has(o.horseId) && (special || o.fitLoss <= 25)).sort((x, y) => x.fitLoss - y.fitLoss);
+    // Fit first, then freshness (Quick Pick's own trade-off: 15 a run today, 40 when tired).
+    const cost = (o: { horseId: string; fitLoss: number }) => o.fitLoss + free.get(o.horseId)!.ranToday * 15 + (free.get(o.horseId)!.condition === "tired" ? 40 : 0);
+    const fits = sheet.options.filter((o) => o.reason === null && free.has(o.horseId) && (special || o.fitLoss <= 25)).sort((x, y) => cost(x) - cost(y));
     const best = fits[0];
     if (!best) continue;
     const horse = free.get(best.horseId)!;
@@ -309,6 +320,7 @@ async function smartEntries(c: VisitCtx, s: Session, view: { horses: StableHorse
     if (isQualifier(race)) c.a.stats.fqEntries++;
     if (isWeekendFeature(race)) c.a.stats.wfEntries++;
   }
+  return balance > 0 ? free.size : 0;
 }
 
 async function train(c: VisitCtx, s: Session, horses: StableHorse[], reserve: number, credits: number): Promise<void> {
@@ -356,7 +368,6 @@ async function breedMares(c: VisitCtx, s: Session, opts: { retireMares: boolean;
   }
   let credits = v.credits;
   for (const mare of v.mares.filter((m) => m.block === null)) {
-    if (v.stalls.used >= v.stalls.slots + v.stalls.overflow + RULES.nurseryOverflowSlots) break;
     const studs = v.studs.filter((x) => x.block === null && x.studFee <= opts.feeCap && x.studFee + v!.baseFee <= credits);
     const own = v.stallions.filter((x) => x.block === null);
     const preferred = opts.preferSireOf ? studs.find((x) => x.id === opts.preferSireOf) : undefined;
@@ -378,15 +389,20 @@ async function foalDue(c: VisitCtx, s: Session): Promise<void> {
   }
 }
 
-/** Stands the best eligible stallion at stud at `fee` (retiring a racing colt first when asked). */
-async function standStallion(c: VisitCtx, s: Session, fee: number, retireColt: boolean): Promise<string | null> {
+/**
+ * Stands the best eligible stallion at stud at `fee`. With `retireColtFrom` set, a racing colt
+ * with at least that many starts (the most raced one) is retired to stud first when there is none.
+ */
+async function standStallion(c: VisitCtx, s: Session, fee: number, retireColtFrom: number | null): Promise<string | null> {
   const v = await c.world.act(c.a, "breeding_view", c.now, () => breedingView(c.world.db, s, c.now));
   if (!v) return null;
   const standing = v.stallions.find((x) => x.studFee !== null && x.careerStatus !== "pasture");
   if (standing) return standing.id;
   let candidate = v.stallions.filter((x) => x.careerStatus === "retired" && x.used < x.lifetime).sort((a, b) => b.rating - a.rating)[0];
-  if (!candidate && retireColt) {
-    const colt = v.stallions.filter((x) => x.careerStatus === "racing" && (x.stage === "juvenile" || x.stage === "prime" || x.stage === "veteran")).sort((a, b) => b.starts - a.starts)[0];
+  if (!candidate && retireColtFrom !== null) {
+    const colt = v.stallions
+      .filter((x) => x.careerStatus === "racing" && x.starts >= retireColtFrom && (x.stage === "juvenile" || x.stage === "prime" || x.stage === "veteran"))
+      .sort((a, b) => b.starts - a.starts)[0];
     if (colt && (await c.world.act(c.a, "retire", c.now, () => careerAction(c.world.db, s, colt.id, "retire", c.now)))) {
       c.a.stats.retired++;
       candidate = colt;
@@ -415,24 +431,24 @@ async function sellSurplus(c: VisitCtx, s: Session, pick: (h: { id: string; rati
   }
 }
 
-/** Buys the best-rated listing priced within `maxOverAppraisal` of its appraisal that it can afford above `reserve`. */
+/** Buys the best listing (racing age first, then rating) priced within `maxOverAppraisal` of its appraisal that it can afford above `reserve`. */
 async function shop(c: VisitCtx, s: Session, reserve: number, maxOverAppraisal: number): Promise<void> {
   const v = await c.world.act(c.a, "market_view", c.now, () => marketView(c.world.db, s, c.now));
   if (!v || v.stalls.free <= 0) return;
   const pick = v.listings
     .filter((l) => l.price <= l.appraisal * maxOverAppraisal && v.credits - l.price >= reserve && l.careerStatus === "racing")
-    .sort((a, b) => b.rating - a.rating || a.price - b.price)[0];
+    .sort((a, b) => Number(RACING_STAGES.has(b.stage)) - Number(RACING_STAGES.has(a.stage)) || b.rating - a.rating || a.price - b.price)[0];
   if (!pick) return;
   if (await c.world.act(c.a, "market_buy", c.now, () => buy(c.world.db, s, pick.listingId, c.now))) c.a.stats.purchases++;
 }
 
-/** When the stalls are full: retired horses that no longer breed (or racing ones near the end) go to the Legacy Farm. */
+const RACING_STAGES = new Set(["juvenile", "prime", "veteran"]);
+
+/** When the stalls are full: retired horses with every breeding used go to the Legacy Farm (broodmares are kept). */
 async function makeRoom(c: VisitCtx, s: Session): Promise<void> {
   const v = await c.world.act(c.a, "breeding_view", c.now, () => breedingView(c.world.db, s, c.now));
   if (!v || v.stalls.used < v.stalls.slots) return;
-  const spare = [...v.mares, ...v.stallions].filter((h) => h.careerStatus === "retired" && h.studFee === null && (h.used >= h.lifetime || h.block === "lifetime_limit")).concat(
-    [...v.mares, ...v.stallions].filter((h) => h.careerStatus === "retired" && h.studFee === null && h.block === "season_limit"),
-  )[0];
+  const spare = [...v.mares, ...v.stallions].find((h) => h.careerStatus === "retired" && h.studFee === null && (h.used >= h.lifetime || h.block === "lifetime_limit"));
   if (spare && (await c.world.act(c.a, "legacy", c.now, () => careerAction(c.world.db, s, spare.id, "legacy", c.now)))) c.a.stats.legacy++;
 }
 
@@ -482,17 +498,19 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await freePack(c, s);
     await upgrade(c, s, ["entries", "trainer", "stableHand", "stalls"], 3_000);
     if (a.rng.chance(300)) await shop(c, s, 2_500, 1.15);
+    // Story licences open the better Live classes: two first-win attempts a day while the
+    // licence is below Features (Story runs count towards a horse's starts per day).
+    if (s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
   }
-  // Story licences open the better Live classes: climb while there are first wins to take.
-  if (s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
   let v = (await fresh(c, s)) ?? view;
-  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: false });
+  // Grinders use their entries: tired horses run too (fresh ones are preferred).
+  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true });
   if (c.last) {
     v = (await fresh(c, s)) ?? v;
     if (v.entries.balance < RULES.entryRefillBelow && v.credits > 2_000) {
       if (await world.act(a, "refill", now, () => refill(world.db, s, now))) a.stats.refills++;
       v = (await fresh(c, s)) ?? v;
-      await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: false });
+      await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true });
     }
     v = (await fresh(c, s)) ?? v;
     await train(c, s, v.horses, 1_500, v.credits);
@@ -500,16 +518,19 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
 }
 
 async function breederVisit(c: VisitCtx, s: Session, view: View): Promise<void> {
-  const { a, now, world } = c;
+  const { a } = c;
   if (c.first) {
     await careAll(c, s, view.horses);
     await dailyCup(c, s);
     await freePack(c, s);
     await foalDue(c, s);
     await breedMares(c, s, { retireMares: true, feeCap: 2_000 });
-    await standStallion(c, s, 600 + 100 * a.rng.int(10), false);
+    // A colt goes to stud once he has shown something on the track.
+    await standStallion(c, s, 600 + 100 * a.rng.int(10), 8);
     await makeRoom(c, s);
     await upgrade(c, s, ["stalls", "stableHand"], 4_000);
+    // Tradeable stock to sell on: paid Paddock foals aren't Club-bred (free-pack and starter horses are).
+    if (((await fresh(c, s))?.credits ?? 0) > 5_000) await paidPack(c, s);
   }
   await quickPicks(c, s, 2);
   if (c.last) {
@@ -521,14 +542,13 @@ async function breederVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
 }
 
 async function mainVisit(c: VisitCtx, s: Session, view: View): Promise<void> {
-  const { a, now, world } = c;
   if (c.first) {
     await careAll(c, s, view.horses);
     await vets(c, s, view.horses);
     await dailyCup(c, s);
     await freePack(c, s);
     // The wash stallion: a starter colt retired to stud on day one.
-    await standStallion(c, s, 0, true);
+    await standStallion(c, s, 0, 0);
     // Horses the alts can buy at the ceiling: paid Paddock foals are tradeable at once.
     const credits = (await fresh(c, s))?.credits ?? 0;
     if (credits > 4_000) await paidPack(c, s);
@@ -536,24 +556,28 @@ async function mainVisit(c: VisitCtx, s: Session, view: View): Promise<void> {
     // Buy what the alts list at the floor.
     await shop(c, s, 0, 0.75);
   }
-  if (s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
+  if (c.first && s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
   const v = (await fresh(c, s)) ?? view;
-  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: false });
+  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true });
   if (c.last) await train(c, s, ((await fresh(c, s)) ?? v).horses, 1_500, v.credits);
 }
 
 async function altVisit(c: VisitCtx, s: Session, view: View, main: Agent | null): Promise<void> {
-  const { a, now, world } = c;
   await careAll(c, s, view.horses);
   await dailyCup(c, s);
-  if (s.stable.licenceLevel < 2) await storyRaces(c, s, 2);
+  if (c.first && s.stable.licenceLevel < 2) await storyRaces(c, s, 1);
+  // The evening visit passes value to the main first, while the mares aren't entered in races.
+  if (c.last && main) await passToMain(c, s, main);
   await quickPicks(c, s, 4);
   await freePack(c, s);
-  if (!c.last || !main) return;
+}
+
+async function passToMain(c: VisitCtx, s: Session, main: Agent): Promise<void> {
+  const { a, now, world } = c;
   // Channel 1: the main's stallion covers the alt's mare for whatever the alt holds.
   const ms = await world.session(main);
   const before = (await fresh(c, s))?.credits ?? 0;
-  const sire = await standStallion({ ...c, a: main }, ms, 0, true);
+  const sire = await standStallion({ ...c, a: main }, ms, 0, 0);
   if (sire && before > RULES.breedingBaseFee + 500) {
     const fee = Math.min(MAX_STUD_FEE, before - RULES.breedingBaseFee - 100);
     await world.act(main, "stand_at_stud", now, () => standAtStud(world.db, ms, { horseId: sire, fee }));

@@ -391,7 +391,7 @@ export interface CohortOutcome {
 }
 
 export interface FarmerReport {
-  groups: { group: number; detected: boolean; studFeesToMain: number; marketToMain: number; horsesToMain: number; mainBalance: number; altBalances: number[]; blockedTrades: number }[];
+  groups: { group: number; detected: boolean; mainStallion: boolean; altMaresCovered: number; studFeesToMain: number; marketToMain: number; horsesToMain: number; mainBalance: number; altBalances: number[]; blockedTrades: number }[];
   fraudEvents: Record<string, number>;
 }
 
@@ -459,11 +459,15 @@ export async function farmerReport(world: World): Promise<FarmerReport> {
     );
     const [mkt] = await q<{ s: string }>(db, `select coalesce(sum(price - fee), 0)::bigint s from trades where seller_stable_id = '${main.stableId}' and buyer_stable_id in (${altStables})`);
     const [horses] = await q<{ n: number }>(db, `select count(*)::int n from trades where buyer_stable_id = '${main.stableId}' and seller_stable_id in (${altStables})`);
+    const [stallion] = await q<{ n: number }>(db, `select count(*)::int n from horses where owner_stable_id = '${main.stableId}' and stud_fee is not null`);
+    const [covered] = await q<{ n: number }>(db, `select count(*)::int n from breeding_events where requested_by in (${altIds}) and sire_owner_stable_id = '${main.stableId}'`);
     const bal = async (a: Agent) => num((await q<{ b: string }>(db, `select balance b from ledger_accounts where owner_account_id = '${a.accountId}' and kind = 'player'`))[0]?.b);
     const blocked = sum(alts.concat(main).map((a) => sum(Object.entries(a.stats.refused).filter(([k]) => k.startsWith("market_buy:")).map(([, n]) => n))));
     groups.push({
       group: main.group!,
       detected: main.detected,
+      mainStallion: num(stallion?.n) > 0,
+      altMaresCovered: num(covered?.n),
       studFeesToMain: num(stud?.s),
       marketToMain: num(mkt?.s),
       horsesToMain: num(horses?.n),
