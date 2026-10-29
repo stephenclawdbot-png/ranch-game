@@ -49,6 +49,26 @@ export const CoatSchema = z.enum([
 ]);
 export type Coat = z.infer<typeof CoatSchema>;
 
+/**
+ * Layered coat genetics (coat colours v2): the coat follows the genes instead of one of the
+ * ten fixed `Coat` values. Renderers resolve this through `coatPaletteOf` (art-pipeline).
+ * Optional: older clients and saved replays only carry `coat`.
+ */
+export const HorseColourSchema = z.object({
+  /** Extension x agouti x liver base pigment. */
+  base: z.enum(["bay", "seal_brown", "chestnut", "liver", "black"]),
+  /** Cream dilution copies (0, 1, 2). */
+  cream: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  /** Dun factor (primitive markings: dorsal stripe, leg barring). */
+  dun: z.boolean(),
+  roan: z.boolean(),
+  /** Grey stage by career progress: born coloured, dapples while racing, white by veteran age. */
+  grey: z.enum(["none", "greying", "dapple", "white"]),
+  /** Sabino-1 copies (white patterning). */
+  sabino: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+});
+export type HorseColour = z.infer<typeof HorseColourSchema>;
+
 export const FaceMarkingSchema = z.enum(["none", "star", "snip", "stripe", "blaze", "bald"]);
 export type FaceMarking = z.infer<typeof FaceMarkingSchema>;
 
@@ -98,6 +118,8 @@ export const HorseAppearanceSchema = z.object({
   dun: z.boolean().optional(),
   /** Optional override for mane/tail colour; derived from coat if absent. */
   maneColor: HexColor.optional(),
+  /** Layered coat genetics (v2). Absent on older clients and saved replays. */
+  colour: HorseColourSchema.optional(),
   silks: SilksSchema,
 });
 export type HorseAppearance = z.infer<typeof HorseAppearanceSchema>;

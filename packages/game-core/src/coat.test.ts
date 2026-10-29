@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { HorseAppearanceSchema } from "@thoroughbred/shared";
-import { adultCoatName, appearanceOf, baseColour, resolveCoat, resolveMarkings, resolveMorph, rigLook, RIG_MORPH_RANGE, whiteScore } from "./coat";
+import { adultCoatName, appearanceOf, baseColour, horseColour, resolveCoat, resolveMarkings, resolveMorph, rigLook, RIG_MORPH_RANGE, whiteScore } from "./coat";
 import { generateFoundationGenome } from "./genome";
 import { MORPH_KEYS, RigLookSchema, type CoatGenes, type Genome } from "./types";
 import { SILKS } from "./test-helpers";
@@ -53,8 +53,61 @@ describe("coat colour genetics", () => {
   });
 });
 
-describe("dun primitive markings", () => {
-  it("appearanceOf sets dun when the coat genes carry D, and never when they don't", () => {
+describe("layered coat genetics (colour)", () => {
+  const nocoat = { dun: false, roan: false, grey: "none", sabino: 0 } as const;
+  it.each([
+    [{}, "Bay", { base: "bay", cream: 0 }],
+    [{ agouti: ["At", "a"] }, "Seal Brown", { base: "seal_brown", cream: 0 }],
+    [{ agouti: ["At", "At"] }, "Seal Brown", { base: "seal_brown", cream: 0 }],
+    [{ extension: ["e", "e"] }, "Chestnut", { base: "chestnut", cream: 0 }],
+    [{ extension: ["e", "e"], liver: ["l", "l"] }, "Liver chestnut", { base: "liver", cream: 0 }],
+    [{ agouti: ["a", "a"] }, "Black", { base: "black", cream: 0 }],
+    [{ cream: ["Cr", "n"] }, "Buckskin", { base: "bay", cream: 1 }],
+    [{ agouti: ["At", "a"], cream: ["Cr", "n"] }, "Smoky brown", { base: "seal_brown", cream: 1 }],
+    [{ extension: ["e", "e"], cream: ["Cr", "n"] }, "Palomino", { base: "chestnut", cream: 1 }],
+    [{ extension: ["e", "e"], liver: ["l", "l"], cream: ["Cr", "n"] }, "Dark palomino", { base: "liver", cream: 1 }],
+    [{ agouti: ["a", "a"], cream: ["Cr", "n"] }, "Smoky black", { base: "black", cream: 1 }],
+    [{ cream: ["Cr", "Cr"] }, "Perlino", { base: "bay", cream: 2 }],
+    [{ extension: ["e", "e"], cream: ["Cr", "Cr"] }, "Cremello", { base: "chestnut", cream: 2 }],
+    [{ agouti: ["a", "a"], cream: ["Cr", "Cr"] }, "Smoky cream", { base: "black", cream: 2 }],
+    [{ dun: ["D", "n"] }, "Bay dun", { base: "bay", cream: 0, dun: true }],
+    [{ extension: ["e", "e"], dun: ["D", "n"] }, "Red dun", { base: "chestnut", cream: 0, dun: true }],
+    [{ extension: ["e", "e"], liver: ["l", "l"], dun: ["D", "n"] }, "Red dun (liver)", { base: "liver", cream: 0, dun: true }],
+    [{ agouti: ["a", "a"], dun: ["D", "n"] }, "Grullo", { base: "black", cream: 0, dun: true }],
+    [{ cream: ["Cr", "n"], dun: ["D", "n"] }, "Dunskin", { base: "bay", cream: 1, dun: true }],
+    [{ agouti: ["At", "a"], cream: ["Cr", "n"], dun: ["D", "n"] }, "Dunskin (seal brown)", { base: "seal_brown", cream: 1, dun: true }],
+    [{ extension: ["e", "e"], cream: ["Cr", "n"], dun: ["D", "n"] }, "Dunalino", { base: "chestnut", cream: 1, dun: true }],
+  ] as [Partial<CoatGenes>, string, Record<string, unknown>][])("%s coat genes -> %s colour", (c, _label, want) => {
+    const a = appearanceOf(withCoat(c), adult, SILKS);
+    expect(a.colour).toEqual({ ...nocoat, ...want });
+    if (want.dun) expect(a.dun).toBe(true);
+  });
+
+  it("roan rides the base colour: bay roan, blue roan, strawberry roan", () => {
+    expect(appearanceOf(withCoat({ roan: ["Rn", "n"] }), adult, SILKS).colour).toMatchObject({ base: "bay", roan: true });
+    expect(appearanceOf(withCoat({ agouti: ["a", "a"], roan: ["Rn", "n"] }), adult, SILKS).colour).toMatchObject({ base: "black", roan: true });
+    expect(appearanceOf(withCoat({ extension: ["e", "e"], roan: ["Rn", "n"] }), adult, SILKS).colour).toMatchObject({ base: "chestnut", roan: true });
+    expect(appearanceOf(withCoat({ roan: ["Rn", "n"] }), adult, SILKS).colour!.grey).toBe("none");
+  });
+
+  it("grey stage follows career progress: greying foal, dapple while racing, white at 24 starts / retirement", () => {
+    const g = withCoat({ grey: ["G", "n"] });
+    expect(horseColour(g, { racingAge: false, starts: 0, retired: false }).grey).toBe("greying");
+    expect(horseColour(g, { racingAge: true, starts: 3, retired: false }).grey).toBe("dapple");
+    expect(horseColour(g, { racingAge: true, starts: 24, retired: false }).grey).toBe("white");
+    expect(horseColour(g, { racingAge: true, starts: 1, retired: true }).grey).toBe("white");
+    // the coat under the grey is still carried
+    expect(horseColour(withCoat({ grey: ["G", "n"], extension: ["e", "e"] }), adult).base).toBe("chestnut");
+  });
+
+  it("sabino copies count 0..2", () => {
+    expect(horseColour(withCoat({}), adult).sabino).toBe(0);
+    expect(horseColour(withCoat({ sabino: ["Sb1", "n"] }), adult).sabino).toBe(1);
+    expect(horseColour(withCoat({ sabino: ["Sb1", "Sb1"] }), adult).sabino).toBe(2);
+  });
+});
+
+describe("dun primitive markings", () => {  it("appearanceOf sets dun when the coat genes carry D, and never when they don't", () => {
     expect(appearanceOf(withCoat({ dun: ["D", "n"] }), adult, SILKS).dun).toBe(true);
     expect(appearanceOf(withCoat({ dun: ["D", "D"] }), adult, SILKS).dun).toBe(true);
     expect(appearanceOf(withCoat({}), adult, SILKS).dun).toBeUndefined();
