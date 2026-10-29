@@ -45,7 +45,7 @@ Where column.
 | `CARD_CYCLE_SLOTS` | 20 | packages/db/src/services/card.ts:87 | Length of the class cycle (5 h at 15 min; was 1 h at 3 min). | Class mix per day |
 | `CYCLE` (hourly class pattern, live) | slot 0 Feature; Maiden ×6 (1,4,7,10,13,16); Novice ×6 (2,5,8,12,15,18); Hcp 0-55 ×2 (3,14); Hcp 50-75 ×2 (6,17); Hcp 70-95 ×2 (9,19); Listed ×1 (11) | packages/db/src/services/card.ts:82 | The live class rotation: 12 of 20 slots are juvenile-friendly (maiden/novice). | Field size per class, credits/day, League movement (tier bonus races), qualifier count |
 | Feature class | 50% Listed / 50% Group 3 (`h[30] % 2`) | packages/db/src/services/card.ts:178 | Slot 0 of each cycle is a Feature of a random class. | Credits/day (Feature pays 2×), licence-4 demand |
-| `JUVENILE_TRIPS` | 1100, 1500, 2000, 2400 m | packages/db/src/services/card.ts:99 | Trips of maiden/novice slots; the k-th juvenile slot runs surface k mod 3, trip k mod 4, so 12 juvenile slots cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
+| `JUVENILE_TRIPS` | 1000, 1500, 2000, 2400 m | packages/db/src/services/card.ts:99 | Trips of maiden/novice slots; the k-th juvenile slot runs surface k mod 3, trip k mod 4, so 12 juvenile slots cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
 | Juvenile going / weather | turf: good, good, firm; others good; weather clear, clear, overcast, dusk | packages/db/src/services/card.ts:184, :189 | Juvenile races never run soft/heavy or in rain. | Injury rate (going), upset rate (rain) |
 | `OPEN_TRIPS` | 1000..3200 m (10 trips) | packages/db/src/services/card.ts:101 | Trips for handicaps, Listed and Features. | Distance-fit, stayers' opportunities |
 | `GOING` (open races) | turf firm/good/good/soft/heavy; dirt good×3/heavy; synthetic good | packages/db/src/services/card.ts:102 | Going draw for non-juvenile races. | Injury rate (firm 1.3×, heavy 1.4×), quirk reveals (mudlark) |
@@ -170,14 +170,15 @@ Where column.
 | `INTENSITY_RISK` | conservative 0.7, normal 1.0, all_out 1.5 | packages/game-core/src/condition.ts:121 | Ride factor. | Injury rate |
 | Distance factor | ×1.1 over 2400 m | packages/game-core/src/condition.ts:172 | Long trips are riskier. | Injury rate |
 | `FRAGILE_RISK` | ×1.3 | packages/game-core/src/condition.ts:127 | Inherited fragile legs. | Injury rate |
-| Veteran factor | ×1.2 (29+ starts) | packages/game-core/src/condition.ts:175 | Older legs. | Injury rate |
-| Risk labels | <5 low, <12 moderate, <25 elevated, else high | packages/game-core/src/condition.ts:182 | Entry-sheet label. | Player risk-taking |
-| `CAREER_ENDING_SHARE` | 30 permille of injuries; +30 if fatigue > 700, +20 if all_out; cap 200 | packages/game-core/src/condition.ts:123, :181 | Share of injuries that end the career. | Career-ending rate, insurance payouts, population |
-| Moderate share | 30% of non-career-ending injuries (rest minor) | packages/game-core/src/condition.ts:196 | Severity mix. | Injury downtime |
+| `IRON_LEGS_RISK` | ×0.8 | packages/game-core/src/genome.ts:211, packages/game-core/src/condition.ts:175 | Inherited iron legs (genetics v2, dominant). | Injury rate |
+| Veteran factor | ×1.2 (29+ starts) | packages/game-core/src/condition.ts:176 | Older legs. | Injury rate |
+| Risk labels | <5 low, <12 moderate, <25 elevated, else high | packages/game-core/src/condition.ts:183 | Entry-sheet label. | Player risk-taking |
+| `CAREER_ENDING_SHARE` | 30 permille of injuries; +30 if fatigue > 700, +20 if all_out; cap 200 | packages/game-core/src/condition.ts:123, :182 | Share of injuries that end the career. | Career-ending rate, insurance payouts, population |
+| Moderate share | 30% of non-career-ending injuries (rest minor) | packages/game-core/src/condition.ts:197 | Severity mix. | Injury downtime |
 | `FATAL_SHARE_OF_CAREER_ENDING` | 200 permille (Live races only) | packages/game-core/src/condition.ts:125 | 20% of career-ending injuries in Live races are fatal. | Fatality rate, population |
-| `INJURY_DAYS` | minor 2-4, moderate 6-12, career-ending 14-21, fatal 21 days | packages/game-core/src/condition.ts:186 | Recovery time by severity. | Starts/day, entries used |
-| Vet healing | +25% speed per vet level (max 3) | packages/game-core/src/condition.ts:199, :205 | Vet facility speeds healing. | Injury downtime |
-| `VET_HEAL_BONUS_H` / `VET_TREATMENT_COST` | +24 h per treatment / 150 credits (once per injury per local day) | packages/game-core/src/condition.ts:219, packages/game-core/src/economy.ts:68 | Paid treatment. | Credit sink, downtime |
+| `INJURY_DAYS` | minor 2-4, moderate 6-12, career-ending 14-21, fatal 21 days | packages/game-core/src/condition.ts:187 | Recovery time by severity. | Starts/day, entries used |
+| Vet healing | +25% speed per vet level (max 3) | packages/game-core/src/condition.ts:200, :206 | Vet facility speeds healing. | Injury downtime |
+| `VET_HEAL_BONUS_H` / `VET_TREATMENT_COST` | +24 h per treatment / 150 credits (once per injury per local day) | packages/game-core/src/condition.ts:220, packages/game-core/src/economy.ts:68 | Paid treatment. | Credit sink, downtime |
 | Story races | never fatal; unrated trials carry no injury roll | packages/game-core/src/career.ts (applyRun) | Fatal roll only when tier ≠ quick. | Fatality rate |
 | `INSURANCE_PREMIUM_PERMILLE` | 50 (5% of appraisal), one-off, to treasury | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Insure a racing horse once. | Credit sink |
 | `INSURANCE_PAYOUT_PERMILLE` | 600 (60% of appraisal) on career-ending or fatal injury | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:627 | Payout minted to the owner. | Credits created |
@@ -287,45 +288,60 @@ Where column.
 | `MAX_STUD_FEE` | 100,000 credits | apps/web/src/server/economy.ts:361 | Upper bound for a stud fee. | Credit transfer between players |
 | `HOUSE_STUD_COUNT` | 4 Club stallions | packages/db/src/services/houseStuds.ts:28 | Standing Club studs (replaced as they retire). | Stud supply, foal quality floor |
 | `HOUSE_STUD_FEES` | common 250, uncommon 400, rare 700 (rarity cycle uncommon, common, rare, uncommon) | packages/db/src/services/houseStuds.ts:30, :32 | Club stud fee; 90% to treasury, 10% burned. | Credit sink |
-| `COI_WARN` | 62 permille | packages/game-core/src/breeding.ts:40 | Inbreeding warning in the preview. | Player behaviour |
-| `COI_MAX_DEPTH` | 10 generations | packages/game-core/src/genetics.ts:222 | Pedigree depth for COI. | Inbreeding |
+| `COI_WARN` | 62 permille | packages/game-core/src/breeding.ts:53 | Inbreeding warning in the preview. | Player behaviour |
+| `COI_MAX_DEPTH` | 10 generations | packages/game-core/src/genetics.ts:234 | Pedigree depth for COI. | Inbreeding |
 | `MUTATION_PERMILLE` | 60 per stat allele | packages/game-core/src/genetics.ts:14 | Base mutation chance. | Foal quality spread |
 | `MUTATION_MAX` | ±1..30 | packages/game-core/src/genetics.ts:16 | Mutation step. | Foal quality spread |
-| `MUTATION_COI_RATE_PER_100` | +30 permille per 100 COI (cap 400) | packages/game-core/src/genetics.ts:18, :125 | Inbreeding raises mutation rate. | Foal quality |
-| `MUTATION_NEG_BASE` / `MUTATION_NEG_PER_100_COI` | 500 / +120 per 100 COI (cap 950) | packages/game-core/src/genetics.ts:20, :21, :126 | Share of negative mutations. | Foal quality |
-| `VIGOUR_MUTATION_MAX` | ±1..10 (vigour clamp ±150) | packages/game-core/src/genetics.ts:137 | Vigour (class) locus mutation. | Foal quality |
+| `MUTATION_COI_RATE_PER_100` | +30 permille per 100 COI (cap 400) | packages/game-core/src/genetics.ts:18, :129 | Inbreeding raises mutation rate. | Foal quality |
+| `MUTATION_NEG_BASE` / `MUTATION_NEG_PER_100_COI` | 500 / +120 per 100 COI (cap 950) | packages/game-core/src/genetics.ts:20, :21, :130 | Share of negative mutations. | Foal quality |
+| `VIGOUR_MUTATION_MAX` | ±1..10 (vigour clamp ±150) | packages/game-core/src/genetics.ts:141 | Vigour (class) locus mutation. | Foal quality |
 | `DRIFT_PERMILLE` | 30 | packages/game-core/src/genetics.ts:23 | Cosmetic/aptitude drift. | Distance preference drift |
-| `FAMILY_HEADROOM` / `_MIN` | 40 / 10 | packages/game-core/src/genetics.ts:68, :70 | Max allele above the best parent (less after a one-generation spike). | Breeding progress rate per generation |
-| `FAMILY_FLOOR_DROP` | 40 | packages/game-core/src/genetics.ts:72 | Allele floor below the weakest parent. | Foal quality floor |
-| `FAMILY_FLOOR_SPREAD` | 60 | packages/game-core/src/genetics.ts:78 | Strong families protect the floor (centre − 60). | Foal quality floor |
-| `FAMILY_PULL_PER_100` | 60 permille more negative per 100 above the family centre | packages/game-core/src/genetics.ts:80 | Regression to the family mean. | Breeding progress rate |
-| `FRAGILE_FROM_INJURY_PERMILLE` | 500 | packages/game-core/src/genetics.ts:43 | A parent retired by injury passes fragile legs 50% of the time. | Injury rate of foals |
-| `FRAGILE_DURABILITY_PENALTY` | −100 durability potential | packages/game-core/src/genome.ts:120 | Fragile legs cost durability. | Injury rate |
-| `DOMINANCE_PERMILLE` | 550 (500 additive, 1000 complete) | packages/game-core/src/genome.ts:41 | How the higher allele expresses. | Foal quality, hidden value |
-| `INBREEDING_DEPRESSION_PERMILLE` | 800 on durability and temperament | packages/game-core/src/genome.ts:43, :44 | Potential × (1 − 0.8 × COI). | Injury rate, upset rate |
-| `VIGOUR_MIN` / `VIGOUR_MAX` | −150 / +150 | packages/game-core/src/genome.ts:104, :105 | Class locus range, added to every stat. | Foal quality |
-| `LAUNCH_MEAN_CEILING` | 600 mean potential | packages/game-core/src/genome.ts:51 | Mint ceiling (packs, starters, gifts, house). | Foal quality of minted horses |
-| `LAUNCH_STAT_CEILING` | 700 per stat | packages/game-core/src/genome.ts:52 | | |
-| `CEILING_STEP_PER_SEASON` / `CEILING_MAX_STEPS` | +10 per season, max 8 steps (680 mean / 780 stat by season 9) | packages/game-core/src/genome.ts:53, :54 | Potential ceilings per season. | Minted horse quality over time, house horse strength |
-| `ALLELE_HEADROOM` | speed 200, others 250 above the stat ceiling | packages/game-core/src/genome.ts:62 | Hidden breeding value in minted alleles. | Breeding frontier |
-| `GEM_LOCUS_PERMILLE` | 150 | packages/game-core/src/genome.ts:64 | Chance a minted locus hides a high allele. | Hidden value |
-| `OVERALL_WEIGHTS` | all 1 (plain mean) | packages/game-core/src/genome.ts:90 | Headline grade / appraisal mean. | Appraisal, grades |
-| `GRADE_FLOORS` | S 900, A 800, B 700, C 600, D 500, E 0 | packages/game-core/src/genome.ts:158 | Grade labels. | Achievements, Hall (S) |
-| `RARITY_FLOORS` | uncommon 510, rare 540, epic 565, legendary 585 | packages/game-core/src/genome.ts:181 | Rarity from mean potential. | Pack value |
-| `RARITY_MINT_BANDS` | common 470-510, uncommon 510-540, rare 540-565, epic 565-585, legendary 585+ | packages/game-core/src/genome.ts:183 | Mint target per rarity. | Pack foal quality |
-| `NATURAL_RARITY_WEIGHTS` | 600 / 280 / 90 / 25 / 5 | packages/game-core/src/genome.ts:442 | Rarity of minted horses without a target (house horses). | House horse strength |
-| `MINT_VIGOUR_MEAN` / `_SD` / `_GEM_PERMILLE` | −10 / 45 / 100 (gem allele 70-150) | packages/game-core/src/genome.ts:431-433, :523 | Minted vigour. | Hidden value |
-| `MINT_HET_SD` / `MINT_STAT_FLOOR` | 150 / 150 | packages/game-core/src/genome.ts:436, :439 | Minted allele spread and floor. | Hidden value |
-| Breed profile shaping | dev ×1.2 + N(0,45), clamp ±140 | packages/game-core/src/genome.ts:504, :505 | How strongly breeds shape stat profiles. | Niche horses |
-| `BREED_PROFILES` | Thoroughbred (mint weight 500), Arabian (200), Quarter Horse (180), Akhal-Teke (120): stat means, trip, turf %, style, maturity, coat | packages/game-core/src/genome.ts:278 | Breed tendencies. | Trip/surface mix, foal quality |
-| Breed purity | 45% pure, else main 700-950 | packages/game-core/src/genome.ts:384, :390 | Breed shares of minted horses. | Aptitude spread |
-| `DISTANCE_CENTER_M` | sprint 1100, mile 1500, middle 2000, staying 2600 | packages/game-core/src/genome.ts:204 | Preferred trip from distance alleles (± distanceMod, clamp 1000-3200). | Distance-fit |
-| `SURFACE_HET_ADAPT_BONUS` | +20 adaptability for synthetic (TD) types | packages/game-core/src/genome.ts:226 | | Surface-fit |
-| `QUIRK_FREQ` / `QUIRK_DOMINANT` | mudlark 200 (recessive), gateShy 50 (dominant), lateKick 250 (recessive), crowdShy 40 (dominant) | packages/game-core/src/genome.ts:418, :245 | Quirk prevalence. | Upsets |
+| `MORPH_SEGREGATION_SD` / `_MAX` | 60 / 208 | packages/game-core/src/genetics.ts:25, :27 | Polygenic segregation on every morph allele (body shape and polygenic height); the max bounds the preview's limits. | Foal size spread |
+| `FAMILY_HEADROOM` / `_MIN` | 40 / 10 | packages/game-core/src/genetics.ts:72, :74 | Max allele above the best parent (less after a one-generation spike). | Breeding progress rate per generation |
+| `FAMILY_FLOOR_DROP` | 40 | packages/game-core/src/genetics.ts:76 | Allele floor below the weakest parent. | Foal quality floor |
+| `FAMILY_FLOOR_SPREAD` | 60 | packages/game-core/src/genetics.ts:82 | Strong families protect the floor (centre − 60). | Foal quality floor |
+| `FAMILY_PULL_PER_100` | 60 permille more negative per 100 above the family centre | packages/game-core/src/genetics.ts:84 | Regression to the family mean. | Breeding progress rate |
+| `FRAGILE_FROM_INJURY_PERMILLE` | 500 | packages/game-core/src/genetics.ts:47 | A parent retired by injury passes fragile legs 50% of the time. | Injury rate of foals |
+| `FRAGILE_DURABILITY_PENALTY` | −100 durability potential | packages/game-core/src/genome.ts:126 | Fragile legs cost durability. | Injury rate |
+| `DOMINANCE_PERMILLE` | 550 (500 additive, 1000 complete) | packages/game-core/src/genome.ts:47 | How the higher allele expresses. | Foal quality, hidden value |
+| `INBREEDING_DEPRESSION_PERMILLE` | 800 on durability and temperament | packages/game-core/src/genome.ts:49, :50 | Potential × (1 − 0.8 × COI). | Injury rate, upset rate |
+| `VIGOUR_MIN` / `VIGOUR_MAX` | −150 / +150 | packages/game-core/src/genome.ts:110, :111 | Class locus range, added to every stat. | Foal quality |
+| `LAUNCH_MEAN_CEILING` | 600 mean potential | packages/game-core/src/genome.ts:57 | Mint ceiling (packs, starters, gifts, house). | Foal quality of minted horses |
+| `LAUNCH_STAT_CEILING` | 700 per stat | packages/game-core/src/genome.ts:58 | | |
+| `CEILING_STEP_PER_SEASON` / `CEILING_MAX_STEPS` | +10 per season, max 8 steps (680 mean / 780 stat by season 9) | packages/game-core/src/genome.ts:59, :60 | Potential ceilings per season. | Minted horse quality over time, house horse strength |
+| `ALLELE_HEADROOM` | speed 200, others 250 above the stat ceiling | packages/game-core/src/genome.ts:68 | Hidden breeding value in minted alleles. | Breeding frontier |
+| `GEM_LOCUS_PERMILLE` | 150 | packages/game-core/src/genome.ts:70 | Chance a minted locus hides a high allele. | Hidden value |
+| `OVERALL_WEIGHTS` | all 1 (plain mean) | packages/game-core/src/genome.ts:96 | Headline grade / appraisal mean. | Appraisal, grades |
+| `GRADE_FLOORS` | S 900, A 800, B 700, C 600, D 500, E 0 | packages/game-core/src/genome.ts:276 | Grade labels. | Achievements, Hall (S) |
+| `RARITY_FLOORS` | uncommon 510, rare 540, epic 565, legendary 585 | packages/game-core/src/genome.ts:299 | Rarity from mean potential. | Pack value |
+| `RARITY_MINT_BANDS` | common 470-510, uncommon 510-540, rare 540-565, epic 565-585, legendary 585+ | packages/game-core/src/genome.ts:301 | Mint target per rarity. | Pack foal quality |
+| `NATURAL_RARITY_WEIGHTS` | 600 / 280 / 90 / 25 / 5 | packages/game-core/src/genome.ts:734 | Rarity of minted horses without a target (house horses). | House horse strength |
+| `MINT_VIGOUR_MEAN` / `_SD` / `_GEM_PERMILLE` | −10 / 45 / 100 (gem allele 70-150) | packages/game-core/src/genome.ts:723-725, :856 | Minted vigour. | Hidden value |
+| `MINT_HET_SD` / `MINT_STAT_FLOOR` | 150 / 150 | packages/game-core/src/genome.ts:728, :731 | Minted allele spread and floor. | Hidden value |
+| Breed profile shaping | dev ×1.2 + N(0,45), clamp ±140 | packages/game-core/src/genome.ts:837, :838 | How strongly breeds shape stat profiles. | Niche horses |
+| `BREED_PROFILES` | 12 breeds (genetics v2, docs/genetics-v2.md): stat means (sums 2,550-2,620), trip, turf %, style, maturity, coat and v2 allele frequencies, white, morph (morph.height = breed size), mint weight | packages/game-core/src/genome.ts:404 | Breed tendencies. The four v1 breeds must not change: the v1 mint (pack-pull proofs) reads them. | Trip/surface mix, breed balance, foal looks |
+| Breed mint weights | Thoroughbred 500, Arabian 200, Quarter Horse 180, Akhal-Teke 120, the 8 new breeds 60 each; Club runners (`evenBreeds`) weight all 12 equally | packages/game-core/src/genome.ts:415-554 (mintWeight), packages/db/src/gameCore.ts:211 (houseHorse) | Breed mix of packs and starters vs Club fields. | How often players see each breed |
+| Breed purity | 45% pure, else main 700-950 | packages/game-core/src/genome.ts:646, :652 | Breed shares of minted horses. | Aptitude spread |
+| `BREEDS_V1` | thoroughbred, arabian, quarterHorse, akhalTeke | packages/game-core/src/genome.ts:639 | The only breeds `generateFoundationGenomeV1` draws (re-deriving pre-v2 pack pulls). | Pull-proof verification |
+| `G2_LOCI` | 14 loci: allele frequency key, non-wild and wild allele | packages/game-core/src/genome.ts:660 | Minting of the v2 genes (own stream `seed|mint-g2`). | v2 gene prevalence |
+| `SIZE_PER_HT_PERMILLE` | +30 (3%) per Ht copy | packages/game-core/src/genome.ts:138 | Height (LCORL) gene. | Size, speed vs burst |
+| `SIZE_POLYGENIC_PERMILLE` | ±30 at a mean morph.height allele of ±1000 | packages/game-core/src/genome.ts:140 | Polygenic height. | Size spread |
+| `SIZE_MIN_PERMILLE` / `SIZE_MAX_PERMILLE` | −120 / +120 (0.88-1.12) | packages/game-core/src/genome.ts:142, :143 | Size clamp. | Max size effect (±24 speed) |
+| `SIZE_STAT_PER_PCT` | per whole 1%: speed +2, stamina +1, burst −2, durability −1 (sums to 0) | packages/game-core/src/genome.ts:148 | Size moves points between stats (potentials). Off for genomes upgraded from v1. Mints absorb it into their planned stats. | Breed race shape, foal spread, injury (durability) |
+| `MSTN_STAT_SHIFT` | 15 | packages/game-core/src/genome.ts:150 | C/C: burst +15, stamina −15; T/T the reverse. | Sprint vs stay |
+| `MSTN_TRIP_M` | 200 m | packages/game-core/src/genome.ts:152 | C/C best trip −200 m; T/T +200 m. | Distance fit, card coverage (`JUVENILE_TRIPS` sprint trip is 1,000 m for C/C sprinters) |
+| `BIG_HEART_STAMINA` | +25 stamina potential (bh/bh, recessive) | packages/game-core/src/genome.ts:154 | The one v2 gene that adds strength. Shown on the horse page once raced or scanned. | Foal quality (rare) |
+| `IRON_LEGS_RISK` | ×0.8 injury risk (IL dominant) | packages/game-core/src/genome.ts:211, packages/game-core/src/condition.ts:175 | Sound legs. | Injury rate |
+| `PUREBRED_PERMILLE` | 875 (7/8 rule) | packages/game-core/src/geneticsSummary.ts:90 | "Purebred X" label. | Labels (G3 will hang signatures on it) |
+| `NAMED_CROSS_MIN_PERMILLE` / `NAMED_CROSSES` | 250; Anglo-Arab, Appendix Quarter Horse, Hispano-Arabe | packages/game-core/src/geneticsSummary.ts:92, :94 | Named-cross labels. | Labels |
+| v2 allele frequencies | e.g. Paint TO 550, Appaloosa LP 600 / PATN1 400, Friesian fe 1000, Marwari Ce 950, Warmblood Ht 850 | packages/game-core/src/genome.ts:404 (`genes2` per breed) | How common each new gene is per breed. | Looks, hidden-carrier surprises |
+| `DISTANCE_CENTER_M` | sprint 1100, mile 1500, middle 2000, staying 2600 | packages/game-core/src/genome.ts:322 | Preferred trip from distance alleles (± distanceMod ± MSTN, clamp 1000-3200). | Distance-fit |
+| `SURFACE_HET_ADAPT_BONUS` | +20 adaptability for synthetic (TD) types | packages/game-core/src/genome.ts:350 | | Surface-fit |
+| `QUIRK_FREQ` / `QUIRK_DOMINANT` | mudlark 200 (recessive), gateShy 50 (dominant), lateKick 250 (recessive), crowdShy 40 (dominant) | packages/game-core/src/genome.ts:710, :369 | Quirk prevalence. | Upsets |
 | `REVEAL_BASE_WIDTH` | foal 260, weanling 240, yearling 200, racing 160 | packages/game-core/src/phenotype.ts:97 | Width of the revealed potential range. | Market prices (appraisal uses midpoints) |
 | `REVEAL_PER_START` / `REVEAL_EXACT_BELOW` | −12 per start / exact below 10 | packages/game-core/src/phenotype.ts:98, :101 | Racing reveals potential. | Market prices |
-| `SCAN_WIDTH_PERMILLE` / `PEDIGREE_SCAN_COST` | 400 (narrows to 40%) / 400 credits | packages/game-core/src/phenotype.ts:100, packages/game-core/src/economy.ts:69 | Paid reveal. | Credit sink, market prices |
-| Nick score | 25 + 60 × beats-both + 15 × trip coherence + 10 × surface coherence − COI/4 | packages/game-core/src/breeding.ts:334 | Preview label only. | Player behaviour |
+| `SCAN_WIDTH_PERMILLE` / `PEDIGREE_SCAN_COST` | 400 (narrows to 40%) / 400 credits | packages/game-core/src/phenotype.ts:100, packages/game-core/src/economy.ts:69 | Paid reveal (also reveals big heart). | Credit sink, market prices |
+| Nick score | 25 + 60 × beats-both + 15 × trip coherence + 10 × surface coherence − COI/4 | packages/game-core/src/breeding.ts:519 | Preview label only. | Player behaviour |
 
 ## 10. Economy
 
@@ -481,13 +497,13 @@ These must stay in sync (or be derived from one source).
 | Entry allowance / cap | packages/game-core/src/entries.ts:16-19, packages/db/src/schema.ts:250-251 (defaults 10/20), :256 (CHECK ≤15/≤30) | Raising the max needs a migration. |
 | Breedings 4, mare 1/season | packages/game-core/src/lifecycle.ts:37, packages/game-core/src/breeding.ts:33, packages/db/src/schema.ts:384 (CHECK 0..4), :567 (unique dam+season) | Changing either needs a migration. |
 | Career 40 starts | packages/game-core/src/lifecycle.ts:30, packages/db/src/schema.ts:391, :401 | Needs a migration. |
-| OR 0..140 | packages/game-core/src/ratings.ts:15-16, packages/db/src/schema.ts:388, packages/db/src/gameCore.ts:92 | |
+| OR 0..140 | packages/game-core/src/ratings.ts:15-16, packages/db/src/schema.ts:388, packages/db/src/gameCore.ts:101 | |
 | Field size 12 / target 10 / max 16 | packages/db/src/rules.ts:80, packages/db/src/schema.ts:630 (default 12), :632 (default 10), :654 (CHECK ≤ 16), packages/db/src/services/races.ts:93 (default target 10), packages/db/src/services/card.ts:145 (`min(16, …)`), apps/web/src/server/game.ts:872 (Story 12) | |
 | League size 30 | packages/game-core/src/leagues.ts:11, packages/db/src/schema.ts:824 | |
 | Course names | packages/db/src/services/card.ts:92, apps/web/src/server/game.ts:806 | |
 | Trip lists | packages/db/src/services/card.ts:101, apps/web/src/server/game.ts:808, packages/game-core/src/seasons.ts:51 | |
 | Daily entry budget 10 / refill 5 | packages/game-core/src/entries.ts:16, :21 and packages/game-core/src/eligibility.ts:117, :120 (dead helper) | |
-| Mutation step 30 | packages/game-core/src/genetics.ts:16, packages/game-core/src/breeding.ts:373 (preview literal) | |
+| Mutation step 30 | packages/game-core/src/genetics.ts:16, packages/game-core/src/breeding.ts:571 (preview literal) | |
 | Affiliate and pool rules | packages/db/src/services/affiliates.ts:68-77, packages/db/src/services/betaMoney.ts:476-485, mirrored in tools/economy-sim/lib/constants.ts:90-130 (checked by `checkSync`) | |
 | Referral caps 1500 / 500 | packages/db/src/services/affiliates.ts:76-77, packages/contracts/contracts/PremiumStore.sol:75-76 | |
 | Slot cadence in copy | packages/game-core/src/seasons.ts:20 vs UI text apps/web/app/races/page.tsx:30, :49 and apps/web/app/layout.tsx:20 ("every 15 minutes") | Copy is hard-coded. |
@@ -533,9 +549,9 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Training thresholds | overwork > 600, injury from > 500, trainer max 2 levels, yearling ½, training injury ≤ 4 days, bond +2 | packages/game-core/src/training.ts:136-146, :192, :201 |
 | Care values | 1000 / 650 / 450, ×50, 3:1 average, recovery feed > 400 fatigue | packages/game-core/src/lifecycle.ts:165-202 |
 | Ride intensity effects | +25/−20, −20/+10 | packages/game-core/src/phenotype.ts:226-229 |
-| Mutation caps | rate 400, negative share 950, lean clamp 50..950 | packages/game-core/src/genetics.ts:118, :125, :126 |
-| Mint shaping | ×1.2, sd 45, ±140, pure 45%, main 700-950, vigour gem 70-150 | packages/game-core/src/genome.ts:384, :390, :504, :505, :523 |
-| Nick score | 25 + 60 + 15 + 10 − COI/4 | packages/game-core/src/breeding.ts:334 |
+| Mutation caps | rate 400, negative share 950, lean clamp 50..950 | packages/game-core/src/genetics.ts:122, :129, :130 |
+| Mint shaping | ×1.2, sd 45, ±140, pure 45%, main 700-950, vigour gem 70-150 | packages/game-core/src/genome.ts:646, :652, :837, :838, :856 |
+| Nick score | 25 + 60 + 15 + 10 − COI/4 | packages/game-core/src/breeding.ts:519 |
 | Appraisal formula | 400, /12, stage factors, 150, 120, /10, ×15, min 100 | packages/game-core/src/economy.ts:137-143 |
 | Stall cost formula | 2,000 + 400 × (n − 7) | packages/game-core/src/economy.ts:84 |
 | Daily Cup | jitter −40..+60, points formula, top-10 percentile 100, firm 20% | packages/game-core/src/dailyCup.ts:47, :51, :122, :123 |

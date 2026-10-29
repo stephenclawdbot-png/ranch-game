@@ -325,6 +325,33 @@ a classic 3D screenshot, and the Stable band, alongside the `/dev/coats` gallery
    from a separate `|g2` stream (v1 loci byte-identical), preview odds, summary lines, web rows.
 2. **G2, GLM:** size, MSTN, big heart and iron legs in phenotype and injury, plus the balance
    reports. The lead reviews the balance numbers.
+   Done (2026-10-29, merged with dev): see "As built" below. The breeds report is
+   `tools/balance/breeds.report.ts`; its numbers are for the lead.
+
+### As built (genetics v2 merge, 2026-10-29)
+
+- **Where the effects live.** Size, MSTN and big heart change the stat *potentials*
+  (`genome.ts` `phenotypeDelta`, applied in `potentials()` next to fragile legs), so the horse
+  page, ranges, appraisal, injury risk and the race snapshot all see them. The engine is untouched.
+  Iron legs is a factor in `condition.injuryRisk` (×0.8).
+- **Old horses.** `upgradeV1Genome` also sets `upgradedFrom: 1`; such a genome gets no size
+  effect (its breed size and polygenic height existed in v1), so every pre-v2 horse races exactly
+  as before. Its foals are ordinary v2 horses.
+- **Mints absorb the delta.** A foundation horse's planned potentials already carry its breed
+  shape, so the mint shifts its stat alleles by −delta (rarity, ceilings and the breed band hold).
+  Size, MSTN and big heart therefore show in *bred* foals, by Mendelian segregation.
+- **Committed seeds.** Foals: the v1 loci, family limits and fragile legs draw exactly as before
+  (fixture `packages/game-core/src/fixtures/v1-foal.json`). Mints: the v2 loci use their own
+  stream (`seed|mint-g2`); the 12-breed draw changes what a seed mints, so pack pulls stored with a
+  version-1 genome are re-derived by `generateFoundationGenomeV1` (fixture `v1-mints.json`) in
+  the server and client pull proofs.
+- **Card.** MSTN C/C sprinters (64% of Quarter Horses) want 200 m less, so the juvenile sprint
+  trip is 1,000 m (was 1,100 m) to keep every starter a B-fit race in the published card.
+- **Visuals.** No renderer draws the new genes yet. The horse page lists visible traits under
+  "Markings" with a "not shown on the portrait yet" note, the card line names them, and the
+  wiki says so.
+- **Not built:** G3 (signatures, pure-line spread, first-cross vigour, discoveries, breed races),
+  the "???" unknown-cross preview label, and the visual tickets.
 3. **G3, GLM:** breed signatures, pure-line spread, first-cross vigour, named crosses with
    Hall discoveries, breed races, the breeds balance report. The lead reviews the numbers.
 4. **Visual tickets, Kimi:**
