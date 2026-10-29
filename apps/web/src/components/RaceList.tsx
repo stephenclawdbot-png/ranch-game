@@ -22,7 +22,7 @@ export function TrackTile({ surface, children, className }: { surface: RaceSumma
 }
 
 /** Racecard row: track tile with the time · name (never truncated) · two facts · Enter. */
-export function UpcomingRaceRow({ race }: { race: RaceSummary; featured?: boolean }) {
+export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: string[]; featured?: boolean }) {
   const entry = useEntry();
   const now = useNow(1000);
   const open = race.phase === "open" && (now === null || now < race.entriesCloseAtMs);
@@ -52,6 +52,11 @@ export function UpcomingRaceRow({ race }: { race: RaceSummary; featured?: boolea
               <>Field locked · {race.fieldSize} runners</>
             )}
           </span>
+          {alsoAt && alsoAt.length > 0 && (
+            <span className="caption">
+              Also running at {alsoAt.join(", ")}
+            </span>
+          )}
         </span>
       </Link>
       {open && (

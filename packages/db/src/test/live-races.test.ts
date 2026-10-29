@@ -1,12 +1,14 @@
-import { eq } from "drizzle-orm";
+import { asc, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
+import { commitSeed } from "../crypto";
 import { isDomainError } from "../errors";
 import { RULES } from "../rules";
 import { gc } from "../gameCore";
 import { entryMovements, raceEntries, races, stables } from "../schema";
 import { createAccount } from "../services/accounts";
 import { ensureRaceCard, slotIndexAt, tickRaceCard } from "../services/card";
+import { listCardRaces } from "../services/player";
 import { getEntryBank, localDate, refillEntries, setTimezone, upgradeEntryTier } from "../services/entries";
 import { getBalance } from "../services/ledger";
 import { cancelRace, createRace, enterRace, getRaceForSimulation, lockField, scratchEntry, settleRace, type CreateRaceInput } from "../services/races";
@@ -277,5 +279,112 @@ describe("stable entry bank", () => {
     expect(s).toMatchObject({ entryAllowance: 15, entryCap: 30 });
     expect((await bank(p.accountId, at(DAY))).balance).toBe(25);
     expect((await bank(p.accountId, at(2 * DAY))).balance).toBe(30);
+  });
+});
+
+describe("sister courses", () => {
+  let slotN = 0;
+  /** A Live card race in a far-future slot (never collides with a published card slot). */
+  function slotRace(extra: Partial<CreateRaceInput> = {}) {
+    return createRace(h.db, {
+      kind: "scheduled",
+      name: "Ashcombe Sprint Stakes",
+      raceClass: "maiden",
+      conditions: { maxWins: 0, maxRating: 60, distanceM: 1400, surface: "turf", track: "Ashcombe" },
+      postTime: at(10 * MIN),
+      entriesCloseAt: at(10 * MIN - 30_000),
+      purse: 2_000,
+      maxRunners: 4,
+      targetRunners: 4,
+      slotKey: `live:9000${String(++slotN).padStart(3, "0")}`,
+      ...extra,
+    });
+  }
+
+  async function enter(accountId: string, stableId: string, raceId: string, rating = 40) {
+    const horse = await makeHorse(h.db, stableId, { rating, wins: 0, starts: 0 });
+    await enterRace(h.db, { accountId, raceId, horseId: horse.id, tactic: "front", now: T0 });
+    return horse;
+  }
+
+  it("the last-but-one gate opens one sister; concurrent entries create exactly one", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    const c = await newPlayer(h.db);
+    const race = await slotRace();
+    await enter(a.accountId, a.stableId, race.id);
+    await enter(b.accountId, b.stableId, race.id);
+    // The third and fourth gates arrive together: the slot lock admits exactly one sister.
+    const both = await settledAll([enter(c.accountId, c.stableId, race.id), enter(a.accountId, a.stableId, race.id)]);
+    expect(both.ok).toHaveLength(2);
+    const sisters = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}:%`));
+    expect(sisters).toHaveLength(1);
+    const [orig] = await h.db.select().from(races).where(eq(races.id, race.id));
+    const s = sisters[0]!;
+    expect(s).toMatchObject({
+      kind: "scheduled",
+      name: "Kestrel Downs Sprint Stakes", // next course in TRACKS, same race name
+      slotKey: `${race.slotKey}:2`,
+      conditions: { ...orig!.conditions, track: "Kestrel Downs" },
+      purse: orig!.purse,
+      maxRunners: 4,
+      targetRunners: 4,
+      postTime: orig!.postTime,
+      entriesCloseAt: orig!.entriesCloseAt,
+      status: "open",
+    });
+    expect(s.seedCommitment).not.toBe(orig!.seedCommitment); // its own fresh seed commitment
+    expect(commitSeed(s.seed!)).toBe(s.seedCommitment);
+    // The card lists the sister right after its original.
+    const list = await listCardRaces(h.db, { from: at(5 * MIN), to: at(15 * MIN) });
+    expect(list[list.findIndex((r) => r.id === race.id) + 1]!.id).toBe(s.id);
+    // A full race still refuses the fifth entry (the web layer retries on the sister).
+    await expect(enter(b.accountId, b.stableId, race.id)).rejects.toMatchObject({ code: "RACE_FULL" });
+  });
+
+  it("caps at five sisters (six courses); filling the sixth creates no seventh", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    const c = await newPlayer(h.db);
+    const race = await slotRace();
+    // Each round fills the slot's newest race; each full race opens the next course.
+    for (let k = 0; k < 6; k++) {
+      const slot = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}%`)).orderBy(asc(races.slotKey));
+      const current = slot.at(-1)!;
+      const four = [a, b, c, [a, b, c][k % 3]!]; // two from one stable is the half-field limit
+      for (const p of four) await enter(p.accountId, p.stableId, current.id);
+    }
+    const slot = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}%`)).orderBy(asc(races.slotKey));
+    expect(slot.map((r) => r.slotKey)).toEqual([race.slotKey, `${race.slotKey}:2`, `${race.slotKey}:3`, `${race.slotKey}:4`, `${race.slotKey}:5`, `${race.slotKey}:6`]);
+    expect(slot.map((r) => (r.conditions as { track?: string }).track)).toEqual(["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"]);
+  });
+
+  it("a sister locks, fills with Club horses and settles like any Live race", async () => {
+    const p = await newPlayer(h.db);
+    const race = await slotRace();
+    for (const f of [await newPlayer(h.db), await newPlayer(h.db), await newPlayer(h.db)]) {
+      await enter(f.accountId, f.stableId, race.id); // one gate left: opens the sister
+    }
+    const [sister] = await h.db.select().from(races).where(like(races.slotKey, `${race.slotKey}:%`));
+    expect(sister).toBeDefined();
+    const mine = await enter(p.accountId, p.stableId, sister!.id);
+    const close = at(10 * MIN - 30_000);
+    const field = await lockField(h.db, sister!.id, close);
+    expect(field.runners).toHaveLength(4); // 1 player + 3 Club horses
+    expect(field.runners.filter((r) => r.isHouse)).toHaveLength(3);
+    const sim = await getRaceForSimulation(h.db, sister!.id, at(10 * MIN));
+    const before = await getBalance(h.db, p.accountId);
+    const settled = await settleRace(h.db, {
+      raceId: sister!.id,
+      now: at(13 * MIN),
+      resultHash: "c".repeat(64),
+      result: {},
+      runners: sim.field.runners.map((r, i) => ({ horseId: r.horseId, position: i + 1 })),
+    });
+    expect(settled.alreadySettled).toBe(false);
+    expect(settled.prizes[mine.id]).toBeGreaterThan(0);
+    expect(await getBalance(h.db, p.accountId)).toBe(before + settled.prizes[mine.id]!);
+    expect((await getHorseRow(h.db, mine.id)).lockKind).toBeNull();
+    expect((await h.db.select().from(races).where(eq(races.id, sister!.id)))[0]!.status).toBe("settled");
   });
 });

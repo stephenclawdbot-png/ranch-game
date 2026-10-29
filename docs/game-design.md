@@ -218,6 +218,14 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   apply (see the entries proposal).
 - **Quick Pick** means "enter my best-fit fresh horse into the next suitable race on the
   card", in one tap.
+- **Sister courses.** A slot never turns players away. When a Live race is one gate from
+  full, the same race is created on the next course in the slot that is still free —
+  identical class, trip, ground, purse, post time and entry close, a fresh seed commitment
+  of its own, at most five sisters per slot (the six courses). Everything treats a sister
+  as a normal Live race (lock, Club fill, settlement, leagues); the card shows it as its own
+  row, with the other courses named under the original. Quick Pick scores races with real
+  players in them higher, so quick-join groups players; entering a full race lands the
+  entry on its sister.
 - **Watching is optional.** The race runs live regardless. If you're away, the result and
   replay go to your inbox.
 - **There are no instant results.** Every race is live for everyone. Solo quick races are a

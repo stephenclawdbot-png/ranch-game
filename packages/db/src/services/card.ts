@@ -13,13 +13,14 @@
  *   3. return the races due for simulation + settlement; the web app runs the engine
  *      (getRaceForSimulation → simulateRace) and calls settleRace for each.
  */
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, like, lte, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
-import { races } from "../schema";
+import { raceEntries, races, type RaceRow } from "../schema";
 import { RULES, seasonNumberAt } from "../rules";
 import { gc } from "../gameCore";
-import type { Db } from "../types";
+import type { Db, Executor, Tx } from "../types";
 import { runMaintenance, type MaintenanceReport } from "./maintenance";
+import { audit } from "./tx";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
 
 export function slotIndexAt(at: Date): number {
@@ -28,6 +29,12 @@ export function slotIndexAt(at: Date): number {
 
 export function slotPostTime(index: number): Date {
   return new Date(RULES.seasonEpochMs + index * RULES.slotMs);
+}
+
+/** Slot index of a Live card slot key (sisters share the original's index); null for anything else. */
+export function slotIndexOf(slotKey: string | null): number | null {
+  const m = /^live:(\d+)(?::\d+)?$/.exec(slotKey ?? "");
+  return m ? Number(m[1]!) : null;
 }
 
 interface ClassDef {
@@ -198,8 +205,110 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
     .select()
     .from(races)
     .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs))))
-    .orderBy(asc(races.postTime));
+    .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
   return card.filter((r) => r.slotKey?.startsWith("live:")).map(publicRace);
+}
+
+// ---------------------------------------------------------------------------
+// Sister courses (§4d): a slot never turns players away
+// ---------------------------------------------------------------------------
+
+/** At most 5 sisters per slot: with the original, all six courses run. */
+const SISTER_MAX = 5;
+
+/**
+ * Serialises sister-course work on one slot (transaction-scoped advisory lock on
+ * hashtext('slot:<index>'), like lockPremiumCheckout): concurrent entries that fill the
+ * slot's races can't both create the next sister.
+ */
+export async function lockSlot(tx: Tx, index: number): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`slot:${index}`}))`);
+}
+
+/** A slot's races: the original (live:<i>) first, then its sisters (live:<i>:n) in order. */
+async function slotRaces(ex: Executor, index: number): Promise<RaceRow[]> {
+  return ex
+    .select()
+    .from(races)
+    .where(or(eq(races.slotKey, `live:${index}`), like(races.slotKey, `live:${index}:%`)))
+    .orderBy(asc(races.slotKey));
+}
+
+/** Player entries per race (Club horses are added at lock and never count towards filling). */
+async function playerEntryCounts(ex: Executor, raceIds: string[]): Promise<Map<string, number>> {
+  const rows = await ex
+    .select({ raceId: raceEntries.raceId, n: sql<number>`count(*)::int` })
+    .from(raceEntries)
+    .where(and(inArray(raceEntries.raceId, raceIds), eq(raceEntries.status, "entered"), isNotNull(raceEntries.stableId)))
+    .groupBy(raceEntries.raceId);
+  return new Map(rows.map((r) => [r.raceId, Number(r.n)]));
+}
+
+function hasFreeGate(r: RaceRow, entered: number, now: Date): boolean {
+  return r.status === "open" && r.entriesCloseAt > now && entered < r.maxRunners;
+}
+
+/**
+ * Sister course (§4d): when a Live card race is one gate from full, the same race is created
+ * once on another course in the same slot — identical class, trip, ground, purse, post time
+ * and entry close, the next course in TRACKS the slot hasn't used, its own fresh seed
+ * commitment, slotKey live:<index>:<n> (n = 2, 3 …). Called inside the entry transaction;
+ * the slot advisory lock plus the unique slot_key make it exactly-once under concurrency.
+ * No-op when another race in the slot still has a free gate, or at the 5-sister cap.
+ */
+export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promise<RaceRow | null> {
+  const index = slotIndexOf(race.slotKey);
+  if (index === null || (race.kind !== "scheduled" && race.kind !== "feature" && race.kind !== "final")) return null;
+  if (now >= race.entriesCloseAt) return null;
+  await lockSlot(tx, index);
+  const slot = await slotRaces(tx, index);
+  const sisters = slot.filter((r) => r.slotKey !== `live:${index}`);
+  if (sisters.length >= SISTER_MAX) return null;
+  const entered = await playerEntryCounts(tx, slot.map((r) => r.id));
+  if (slot.some((r) => r.id !== race.id && hasFreeGate(r, entered.get(r.id) ?? 0, now))) return null;
+  const original = slot.find((r) => r.slotKey === `live:${index}`) ?? race;
+  const origTrack = String((original.conditions as RaceConditions).track ?? "");
+  const used = new Set(slot.map((r) => String((r.conditions as RaceConditions).track ?? "")));
+  const start = Math.max(0, TRACKS.indexOf(origTrack));
+  const track = [...TRACKS.slice(start + 1), ...TRACKS.slice(0, start + 1)].find((t) => !used.has(t));
+  if (!track) return null;
+  const bare = original.name.startsWith(`${origTrack} `) ? original.name.slice(origTrack.length + 1) : original.name;
+  const [sister] = await tx
+    .insert(races)
+    .values(
+      raceValues({
+        kind: race.kind,
+        name: `${track} ${bare}`,
+        raceClass: race.raceClass,
+        conditions: { ...(race.conditions as RaceConditions), track },
+        postTime: race.postTime,
+        entriesCloseAt: race.entriesCloseAt,
+        purse: race.purse,
+        entryFee: race.entryFee,
+        maxRunners: race.maxRunners,
+        targetRunners: race.targetRunners,
+        entryCost: race.entryCost,
+        seasonNumber: race.seasonNumber,
+        slotKey: `live:${index}:${sisters.length + 2}`,
+      }),
+    )
+    .onConflictDoNothing({ target: races.slotKey }) // the lock's belt and braces
+    .returning();
+  if (sister) {
+    await audit(tx, { actor: null, action: "race.sister", entityType: "race", entityId: sister.id, data: { slot: index, of: original.id, track } });
+  }
+  return sister ?? null;
+}
+
+/** The next race in the same slot with a free gate (the sister course a full race retries on). */
+export async function openSlotRace(db: Db, raceId: string, now: Date): Promise<PublicRace | null> {
+  const [race] = await db.select().from(races).where(eq(races.id, raceId));
+  const index = slotIndexOf(race?.slotKey ?? null);
+  if (!race || index === null) return null;
+  const slot = await slotRaces(db, index);
+  const entered = await playerEntryCounts(db, slot.map((r) => r.id));
+  const next = slot.find((r) => r.id !== raceId && hasFreeGate(r, entered.get(r.id) ?? 0, now));
+  return next ? publicRace(next) : null;
 }
 
 export interface TickReport {
