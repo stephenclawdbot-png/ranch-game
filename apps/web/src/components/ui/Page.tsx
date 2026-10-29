@@ -28,6 +28,17 @@ export function SceneBackdrop({ scene }: { scene: SceneName }) {
   return <div className="scene-backdrop" style={{ backgroundImage: `url(${BACKDROP[scene]})` }} aria-hidden data-testid="scene-backdrop" />;
 }
 
+/**
+ * Banner framing per scene (banners are ~110-170 art px tall against 360 px art): the barn
+ * centres on the horses' heads over the stall doors (ears ~108 to muzzles ~195), and ignores
+ * the floor line, which would otherwise crop them at the forehead. The stable yard centres on
+ * the horses looking out of the stall doors (~205-245) and the led horse's head (~170).
+ */
+const BAND_FRAMING: Partial<Record<SceneName, { focusY?: number; ground?: boolean }>> = {
+  barn: { focusY: 150, ground: false },
+  stable: { focusY: 220, ground: false },
+};
+
 /** Where to centre each scene vertically (fraction of the art height) so its subject shows. */
 const FOCUS: Record<SceneName, number> = { stable: 0.42, barn: 0.5, grandstand: 0.58, paddock: 0.55 };
 
@@ -73,7 +84,7 @@ export function SceneBand({
     <section className={`scene-band bleed ${size === "home" ? "" : size === "crop" ? "crop" : "short"}`} data-testid={testId ?? "scene-band"}>
       <SceneBackdrop scene={scene} />
       <div className="absolute inset-0" data-slot="diorama" data-scene={scene}>
-        <DioramaSlot scene={scene} alt={alt} />
+        <DioramaSlot scene={scene} alt={alt} framing={BAND_FRAMING[scene]} />
       </div>
       <div className="overlay">
         <div className="mx-auto flex max-w-[75rem] items-end justify-between gap-3 px-[var(--gutter)]">

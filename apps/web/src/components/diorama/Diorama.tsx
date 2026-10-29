@@ -11,7 +11,7 @@
  *   hidden, and draws one still frame under prefers-reduced-motion.
  * - If the canvas or any art fails, the poster simply stays.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { computeFrame } from "./frame";
 import { SCENES, type DioramaSceneId } from "./scenes";
 import type { DioramaEngine, EngineStats } from "./engine";
@@ -31,13 +31,26 @@ export interface DioramaProps {
   label?: string;
   /** Content layered over the scene (titles, CTAs). */
   children?: ReactNode;
+  /**
+   * Camera framing override for boxes much shorter than the art (page banners): centre on
+   * `focusY` (art px) and, with `ground: false`, drop the "keep the feet in view" rule that would
+   * otherwise push a short view down to the floor and crop the subject's head.
+   */
+  framing?: { focusY?: number; ground?: boolean };
   onStats?: (s: EngineStats) => void;
 }
 
 type State = "poster" | "loading" | "live" | "still" | "fallback";
 
-export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats }: DioramaProps) {
-  const def = SCENES[scene];
+export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats, framing }: DioramaProps) {
+  const focusY = framing?.focusY;
+  const ground = framing?.ground;
+  // One adjusted scene for the poster and the engine, so both frame the same view.
+  const def = useMemo(() => {
+    const base = SCENES[scene];
+    if (focusY === undefined && ground !== false) return base;
+    return { ...base, focusY: focusY ?? base.focusY, groundY: ground === false ? undefined : base.groundY };
+  }, [scene, focusY, ground]);
   const box = useRef<HTMLDivElement>(null);
   const cnv = useRef<HTMLCanvasElement>(null);
   const poster = useRef<HTMLImageElement>(null);
