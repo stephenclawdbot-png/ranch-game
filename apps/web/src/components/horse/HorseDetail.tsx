@@ -285,6 +285,21 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
             <dd className="font-bold capitalize">{gen.white.tendency}</dd>
             <dt className="label self-center">Build</dt>
             <dd className="min-w-0 font-bold capitalize">{gen.build}</dd>
+            <dt className="label self-center">Size</dt>
+            <dd className="min-w-0" data-testid="genetics-size">
+              <span className="font-bold">{gen.size.text}</span>
+              <span className="t-meta block">{gen.size.effect}</span>
+            </dd>
+            {gen.traits.length > 0 && (
+              <>
+                <dt className="label self-center">Markings</dt>
+                <dd className="min-w-0" data-testid="genetics-traits">
+                  <span className="font-bold">{gen.traits.join(", ")}</span>
+                  {/* No renderer draws the genetics-v2 patterns and colours yet (docs/genetics-v2.md). */}
+                  <span className="t-meta block">Not shown on the portrait yet</span>
+                </dd>
+              </>
+            )}
             <dt className="label self-center">Inbreeding</dt>
             <dd className="font-bold">{gen.inbreeding.text}</dd>
             {gen.fragile && (
@@ -299,6 +314,7 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
           <ul className="grid gap-1.5" aria-label="Breed mix">
             <li className="text-sm font-extrabold text-cream" data-testid="genetics-breed-label">
               {gen.breedLabel}
+              <span className="t-meta ml-1 font-normal">of 12 breeds; foals inherit the exact average of their parents</span>
             </li>
             {gen.breed.map((b) => (
               <li key={b.key} className="grid grid-cols-[minmax(0,7.5rem)_1fr_auto] items-center gap-2 text-sm">

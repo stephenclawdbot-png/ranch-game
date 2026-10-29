@@ -96,19 +96,30 @@ describe("lineage: breeding generations through the server", () => {
     const grandIds = [sireRow.sireId, sireRow.damId, damRow.sireId, damRow.damId].filter((x): x is string => !!x);
     const grand = await Promise.all(grandIds.map((id) => getHorse(h.db, id)));
     expect(grand.length).toBeGreaterThanOrEqual(2);
-    const range = gc.familyRange(sireRow.genome as gc.Genome, damRow.genome as gc.Genome, grand.map((r) => r!.genome as gc.Genome), (row.genome as gc.Genome).coi);
-    for (const k of gc.STAT_KEYS) for (const a of (row.genome as gc.Genome).stats[k]) {
+    const g = (r: { genome: unknown }) => gc.upgradeGenome(r.genome)!;
+    const range = gc.familyRange(g(sireRow), g(damRow), grand.map((r) => g(r!)), g(row).coi);
+    for (const k of gc.STAT_KEYS) for (const a of g(row).stats[k]) {
       expect(a).toBeGreaterThanOrEqual(range[k].floor);
       expect(a).toBeLessThanOrEqual(range[k].ceiling);
     }
-    expect(gc.overallPotential(row.genome as gc.Genome)).toBeLessThanOrEqual(lim.overall.ceiling);
-    expect(gc.overallPotential(row.genome as gc.Genome)).toBeGreaterThanOrEqual(lim.overall.floor);
+    // The limits hold on expressed potentials too (size, MSTN and big heart included).
+    expect(gc.overallPotential(g(row))).toBeLessThanOrEqual(lim.overall.ceiling);
+    expect(gc.overallPotential(g(row))).toBeGreaterThanOrEqual(lim.overall.floor);
+    for (const k of gc.STAT_KEYS) {
+      expect(gc.potentials(g(row))[k]).toBeLessThanOrEqual(lim.stats[k].ceiling);
+      expect(gc.potentials(g(row))[k]).toBeGreaterThanOrEqual(lim.stats[k].floor);
+    }
+    // Genetics v2 on the preview: the foal's exact breed, size range, trait and MSTN odds.
+    expect(pv.preview.breed.shares.reduce((a, b) => a + b.share, 0)).toBe(1000);
+    expect(pv.preview.size.min).toBeLessThanOrEqual(pv.preview.size.max);
+    expect(Object.values(pv.preview.mstn).reduce((a: number, b) => a + (b ?? 0), 0)).toBeGreaterThanOrEqual(999);
 
     // Genetics on every foal: a breed mix that adds up, a valid coat appearance the Ranch can recolour.
     const silks = parseSilks(p.stable.silks);
     const nowMs = at(t + DAY).getTime();
     const allFoals = [...foals.map((f) => f.id), g2.foal.id];
     const views = [];
+    const report: { id: string; label: string; mix: string; overall: number; pot: gc.StatRecord<number>; size: string; mstn: string; traits: string[]; coat: string }[] = [];
     for (const id of allFoals) {
       const r = (await getHorse(h.db, id))!;
       const gv = geneticsView(r, nowMs)!;
@@ -116,11 +127,26 @@ describe("lineage: breeding generations through the server", () => {
       const total = gv.breed.reduce((a, b) => a + b.share, 0);
       expect(total).toBeGreaterThanOrEqual(98);
       expect(total).toBeLessThanOrEqual(102);
+      // Foals inherit the exact average of their parents' breed shares (12 breeds), and every
+      // genetics-v2 locus shows on the horse page.
+      const fg = g(r);
+      expect(fg.version).toBe(2);
+      expect(fg.breed).toEqual(gc.blendBreeds(g((await getHorse(h.db, r.sireId!))!).breed, g((await getHorse(h.db, r.damId!))!).breed));
+      expect(gv.genes2).toHaveLength(14);
+      expect(gv.breedLabel.length).toBeGreaterThan(3);
+      report.push({ id, label: gv.breedLabel, mix: gv.breed.map((b) => `${b.share}% ${b.label}`).join(" · "), overall: gc.overallPotential(fg), pot: gc.potentials(fg), size: gv.size.text, mstn: gc.mstnType(fg), traits: gv.traits, coat: gv.coat.name });
       const sh = stableHorseView(r, silks, nowMs);
       expect(HorseSchema.safeParse(sh.horse).success).toBe(true);
       expect(recolorMap({ coat: sh.horse.appearance.coat, appearance: sh.horse.appearance }).size).toBeGreaterThan(10);
       views.push(sh);
     }
+    // Foal stats across breeds (read them in the test log).
+    console.log(
+      ["foal | breed | mix | overall | spd/sta/bur/dur/ada/tem | size | MSTN | v2 traits | coat"]
+        .concat(report.map((f) => `${f.id.slice(0, 8)} | ${f.label} | ${f.mix} | ${f.overall} | ${gc.STAT_KEYS.map((k) => f.pot[k]).join("/")} | ${f.size} | ${f.mstn} | ${f.traits.join(", ") || "-"} | ${f.coat}`))
+        .join("\n"),
+    );
+
     // Generation numbers follow the line.
     expect((await getHorse(h.db, g2.foal.id))!.generation).toBe(Math.max(sireRow.generation, damRow.generation) + 1);
 
@@ -130,4 +156,33 @@ describe("lineage: breeding generations through the server", () => {
     for (const pl of herd.placed) expect(pl.item.look?.appearance).toEqual(pl.s.horse.appearance);
     if (process.env.RANCH_EXPORT) writeFileSync(process.env.RANCH_EXPORT, JSON.stringify({ horses: views, limits: lim, schema: Object.keys(schema).length }));
   }, 120_000);
+
+  it("a horse stored before genetics v2 (version-1 genome) reads, previews and breeds as v2", async () => {
+    const acc = await createAccount(h.db, { stableName: "Old Bloodlines", startingCredits: 200_000, silks: { pattern: "solid", primary: "#2b5f3a", secondary: "#f3e7c9", cap: "#2b5f3a" }, timezone: "Europe/London", now: T0 });
+    const p: Session = { accountId: acc.accountId, stable: await stableOf(h.db, acc.accountId) };
+    const v0 = await breedingView(h.db, p, T0);
+    const mare = v0.mares[0]!;
+    const stud = v0.studs.find((s) => s.club)!;
+    // Store the mare's genome exactly as the v1 code wrote it.
+    const v1 = gc.generateFoundationGenomeV1("lineage-v1-mare", { season: 1, rarity: "uncommon" });
+    await sql(`update horses set genome = '${JSON.stringify(v1)}'::jsonb where id = '${mare.id}'`);
+    await readyToBreed(mare.id);
+    const row = (await getHorse(h.db, mare.id))!;
+    expect((row.genome as { version: number }).version).toBe(1);
+    const gv = geneticsView(row, T0.getTime())!;
+    expect(gv.genes2).toHaveLength(14);
+    expect(gv.traits).toEqual([]);
+    expect(gv.size.effect).toMatch(/no effect/);
+    // It races exactly as before: v1 potentials (alleles, vigour, inbreeding).
+    const up = gc.upgradeGenome(v1)!;
+    for (const k of gc.STAT_KEYS) expect(gc.potentials(up)[k]).toBe(gc.expressStat(gc.locusValue(v1.stats[k]), gc.vigourValue(v1.vigour), k, v1.coi));
+    const pv = await breedingPreview(h.db, p, { sireId: stud.id, damId: mare.id }, T0);
+    expect(pv.block).toBeNull();
+    const c = await coverMare(h.db, p, { sireId: stud.id, damId: mare.id, key: "v1-cover" }, T0);
+    const born = await foalAndName(h.db, p, { pregnancyId: c.pregnancyId, name: "Old Line Foal" }, at(DAY));
+    const foal = gc.upgradeGenome((await getHorse(h.db, born.foal.id))!.genome)!;
+    expect(foal.version).toBe(2);
+    expect(foal.upgradedFrom).toBeUndefined();
+    expect(foal.breed).toEqual(gc.blendBreeds(up.breed, gc.upgradeGenome((await getHorse(h.db, stud.id))!.genome)!.breed));
+  }, 60_000);
 });

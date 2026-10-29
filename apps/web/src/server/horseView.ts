@@ -184,7 +184,8 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
 export function geneticsView(row: HorseRow, nowMs: number): gc.GeneticsSummary | null {
   if (!isGenome(row.genome)) return null;
   const state = toHorseState(row);
-  return gc.geneticsSummary(state.genome, horseFromRow(row, DEFAULT_SILKS, nowMs).appearance, state.reveal.quirks);
+  // Big heart is known once the horse has raced or had a Pedigree Scan (docs/genetics-v2.md).
+  return gc.geneticsSummary(state.genome, horseFromRow(row, DEFAULT_SILKS, nowMs).appearance, state.reveal.quirks, { heartKnown: state.career.starts > 0 || state.reveal.scanned });
 }
 
 /** One-line genetics for cards, e.g. "bay roan · Sabino · 88% TB" (null for legacy rows). */

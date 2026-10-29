@@ -4,6 +4,7 @@
  * §7). Overall first (range, ranking, nick), then the depth: stat ranges, coat colours,
  * new-gene traits, the foal's breed, hidden carriers, aptitudes, inbreeding and fees.
  */
+import { BIG_HEART_STAMINA, IRON_LEGS_RISK, MSTN_STAT_SHIFT, MSTN_TRIP_M, SIZE_STAT_PER_PCT } from "@thoroughbred/game-core";
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
 import { GRADE_COLOR, GRADE_TEXT } from "@/components/StatBars";
@@ -26,6 +27,8 @@ export function gradeOf(v: number): (typeof GRADES)[number] {
   return v >= 900 ? "S" : v >= 800 ? "A" : v >= 700 ? "B" : v >= 600 ? "C" : v >= 500 ? "D" : "E";
 }
 const pos = (v: number) => `${Math.max(0, Math.min(100, ((v - LO) / (HI - LO)) * 100))}%`;
+const signedPct = (v: number) => (v > 0 ? `+${v}%` : v < 0 ? `−${-v}%` : "0%");
+const signed = (v: number) => (v > 0 ? `+${v}` : `−${-v}`);
 const pct = (permille: number) => `${(permille / 10).toFixed(permille < 100 && permille % 10 ? 1 : 0)}%`;
 
 function OddsBars({ title, items }: { title: string; items: { label: string; permille: number }[] }) {
@@ -232,17 +235,45 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
         <OddsBars title="Surface" items={entries(p.surface)} />
         <OddsBars title="Running style" items={entries(p.style)} />
         <OddsBars title="Maturity" items={entries(p.maturity)} />
-        <OddsBars title="Visible traits" items={p.traits.map((t) => ({ label: t.name, permille: t.permille }))} />
-        <OddsBars title="Speed gene (MSTN)" items={entries(p.mstn)} />
+        <div data-testid="preview-traits">
+          <OddsBars title="Patterns, body and performance genes" items={p.traits.map((t) => ({ label: t.name, permille: t.permille }))} />
+          {p.traits.length === 0 ? (
+            <p className="caption">Neither parent carries any of them.</p>
+          ) : (
+            <p className="caption mt-1">
+              Iron legs: injury risk {signed(Math.round((IRON_LEGS_RISK - 1000) / 10))}%. Big heart: stamina {signed(BIG_HEART_STAMINA)}. Patterns and colours are listed on the horse page; the portrait doesn&apos;t draw them yet.
+            </p>
+          )}
+        </div>
+        <div>
+          <OddsBars title="Speed gene (MSTN)" items={entries(p.mstn)} />
+          <p className="caption mt-1">
+            Sprinters: best trip {MSTN_TRIP_M} m shorter, burst {signed(MSTN_STAT_SHIFT)}, stamina {signed(-MSTN_STAT_SHIFT)}. Stayers the reverse.
+          </p>
+        </div>
       </div>
 
-      {/* The foal's exact breed and anything a foal could carry unseen. */}
+      {/* The foal's exact breed and size, and anything a foal could carry unseen. */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="inset grid content-start gap-1 p-3" data-testid="preview-breed">
-          <h4 className="label">Foal's breed</h4>
+          <h4 className="label">Foal&apos;s breed</h4>
           <span className="font-extrabold text-cream">{p.breed.label}</span>
           <span className="caption">
             {p.breed.shares.map((s) => `${(s.share / 10).toFixed(s.share % 10 ? 1 : 0)}% ${s.label}`).join(" · ")}
+          </span>
+          <h4 className="label mt-2">Foal&apos;s size</h4>
+          <span className="text-sm" data-testid="preview-size">
+            <span className="font-extrabold text-cream">{signedPct(p.size.likely)}</span> most likely
+            {p.size.min !== p.size.max ? (
+              <>
+                {" "}
+                · {signedPct(p.size.min)} to {signedPct(p.size.max)}
+              </>
+            ) : null}
+          </span>
+          <span className="caption">
+            Against an average Thoroughbred. Each 1% taller: speed {signed(SIZE_STAT_PER_PCT.speed)}, stamina {signed(SIZE_STAT_PER_PCT.stamina)}, burst {signed(SIZE_STAT_PER_PCT.burst)}, durability{" "}
+            {signed(SIZE_STAT_PER_PCT.durability)}. Smaller is the reverse; the total never changes.
           </span>
         </div>
         {p.hidden.length > 0 && (
