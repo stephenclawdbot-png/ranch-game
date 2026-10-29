@@ -92,11 +92,11 @@ const JUVENILE_PER_CYCLE = JUVENILE_ORDINAL.filter((x) => x >= 0).length; // 12
 const TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 const SURFACES = ["turf", "dirt", "synthetic"] as const;
 /**
- * Juvenile-slot trips, one per distance zone. Every trip a horse can prefer (1,000–2,700 m for
+ * Juvenile-slot trips, one per distance zone. Every trip a horse can prefer (1,000–2,900 m for
  * starters and pack foals) is within about 450 m below or 130 m above one of these, which keeps
- * the form-guide fit at grade C or better.
+ * the form-guide fit at grade C or better. Sprint is 1,000 m since genetics v2: MSTN C/C (most QHs) want 200 m less.
  */
-const JUVENILE_TRIPS = [1100, 1500, 2000, 2400];
+const JUVENILE_TRIPS = [1000, 1500, 2000, 2400];
 /** Older horses' races use the whole range, including the long trips bred stayers want. */
 const OPEN_TRIPS = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
 const GOING: Record<string, string[]> = { turf: ["firm", "good", "good", "soft", "heavy"], dirt: ["good", "good", "good", "heavy"], synthetic: ["good"] };

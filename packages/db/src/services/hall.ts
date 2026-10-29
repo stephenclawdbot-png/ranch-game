@@ -9,7 +9,7 @@
  */
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { achievements, hallOfFame, horses, stables } from "../schema";
-import { gc, isGenome, toHorseState } from "../gameCore";
+import { gc, genomeOf, isGenome, toHorseState } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { awardAchievement, induct } from "./competition";
 import { rowsOf } from "./tx";
@@ -242,7 +242,10 @@ export async function ownerStats(ex: Executor, accountId: string): Promise<gc.Ow
   const bred = await ex.select({ genome: horses.genome }).from(horses).where(and(eq(horses.ownerStableId, stable.id), eq(horses.origin, "bred")));
   let best = -1;
   const grades = ["E", "D", "C", "B", "A", "S"] as const;
-  for (const b of bred) if (isGenome(b.genome)) best = Math.max(best, grades.indexOf(gc.gradeOf(gc.overallPotential(b.genome))));
+  for (const b of bred) {
+    const g = genomeOf(b.genome);
+    if (g) best = Math.max(best, grades.indexOf(gc.gradeOf(gc.overallPotential(g))));
+  }
   const [cup] = rowsOf<{ runs: number; top10: number }>(
     await ex.execute(sql`
       select count(*)::int as runs, count(*) filter (where pct <= 100)::int as top10 from (

@@ -1,0 +1,1487 @@
+{
+  "mints": [
+    {
+      "seed": "mint-a",
+      "opts": {
+        "season": 1
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            477,
+            539
+          ],
+          "stamina": [
+            375,
+            813
+          ],
+          "burst": [
+            541,
+            505
+          ],
+          "durability": [
+            679,
+            252
+          ],
+          "adaptability": [
+            675,
+            499
+          ],
+          "temperament": [
+            403,
+            414
+          ]
+        },
+        "vigour": [
+          -4,
+          -1
+        ],
+        "distance": [
+          "staying",
+          "mile"
+        ],
+        "distanceMod": [
+          90,
+          63
+        ],
+        "surface": [
+          "D",
+          "D"
+        ],
+        "style": [
+          "stalker",
+          "front"
+        ],
+        "maturity": [
+          "late",
+          "early"
+        ],
+        "coat": {
+          "extension": [
+            "e",
+            "E"
+          ],
+          "agouti": [
+            "a",
+            "At"
+          ],
+          "cream": [
+            "Cr",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "l"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          0,
+          24
+        ],
+        "morph": {
+          "legLength": [
+            156,
+            154
+          ],
+          "neckLength": [
+            -506,
+            763
+          ],
+          "girth": [
+            -121,
+            82
+          ],
+          "height": [
+            190,
+            -527
+          ],
+          "headSize": [
+            -667,
+            276
+          ]
+        },
+        "variants": {
+          "head": [
+            0,
+            2
+          ],
+          "mane": [
+            3,
+            2
+          ],
+          "tail": [
+            1,
+            0
+          ],
+          "build": [
+            0,
+            0
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            1
+          ],
+          "crowdShy": [
+            0,
+            1
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 0,
+          "quarterHorse": 0,
+          "akhalTeke": 1000
+        },
+        "coi": 0,
+        "markingSeed": 3826817837
+      }
+    },
+    {
+      "seed": "mint-b",
+      "opts": {
+        "season": 1
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            179,
+            868
+          ],
+          "stamina": [
+            432,
+            319
+          ],
+          "burst": [
+            336,
+            716
+          ],
+          "durability": [
+            782,
+            344
+          ],
+          "adaptability": [
+            837,
+            239
+          ],
+          "temperament": [
+            333,
+            715
+          ]
+        },
+        "vigour": [
+          -49,
+          -16
+        ],
+        "distance": [
+          "sprint",
+          "sprint"
+        ],
+        "distanceMod": [
+          54,
+          64
+        ],
+        "surface": [
+          "T",
+          "D"
+        ],
+        "style": [
+          "stalker",
+          "stalker"
+        ],
+        "maturity": [
+          "early",
+          "early"
+        ],
+        "coat": {
+          "extension": [
+            "e",
+            "E"
+          ],
+          "agouti": [
+            "a",
+            "At"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "l",
+            "L"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          13,
+          25
+        ],
+        "morph": {
+          "legLength": [
+            237,
+            46
+          ],
+          "neckLength": [
+            -397,
+            -37
+          ],
+          "girth": [
+            -14,
+            342
+          ],
+          "height": [
+            -417,
+            -108
+          ],
+          "headSize": [
+            173,
+            636
+          ]
+        },
+        "variants": {
+          "head": [
+            3,
+            0
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            3,
+            0
+          ],
+          "build": [
+            0,
+            3
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            1
+          ],
+          "gateShy": [
+            1,
+            0
+          ],
+          "lateKick": [
+            1,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 0,
+          "quarterHorse": 950,
+          "akhalTeke": 50
+        },
+        "coi": 0,
+        "markingSeed": 2685071159
+      }
+    },
+    {
+      "seed": "mint-c",
+      "opts": {
+        "season": 2,
+        "rarity": "legendary"
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            910,
+            301
+          ],
+          "stamina": [
+            381,
+            872
+          ],
+          "burst": [
+            488,
+            608
+          ],
+          "durability": [
+            600,
+            493
+          ],
+          "adaptability": [
+            259,
+            712
+          ],
+          "temperament": [
+            775,
+            206
+          ]
+        },
+        "vigour": [
+          71,
+          -22
+        ],
+        "distance": [
+          "middle",
+          "sprint"
+        ],
+        "distanceMod": [
+          93,
+          78
+        ],
+        "surface": [
+          "D",
+          "T"
+        ],
+        "style": [
+          "front",
+          "front"
+        ],
+        "maturity": [
+          "early",
+          "late"
+        ],
+        "coat": {
+          "extension": [
+            "e",
+            "e"
+          ],
+          "agouti": [
+            "A",
+            "At"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "l",
+            "L"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          54,
+          43
+        ],
+        "morph": {
+          "legLength": [
+            146,
+            -237
+          ],
+          "neckLength": [
+            151,
+            681
+          ],
+          "girth": [
+            294,
+            343
+          ],
+          "height": [
+            -174,
+            756
+          ],
+          "headSize": [
+            -213,
+            308
+          ]
+        },
+        "variants": {
+          "head": [
+            3,
+            0
+          ],
+          "mane": [
+            2,
+            0
+          ],
+          "tail": [
+            0,
+            0
+          ],
+          "build": [
+            0,
+            0
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 750,
+          "arabian": 0,
+          "quarterHorse": 250,
+          "akhalTeke": 0
+        },
+        "coi": 0,
+        "markingSeed": 1569206661
+      }
+    },
+    {
+      "seed": "mint-d",
+      "opts": {
+        "season": 1,
+        "rarity": "common"
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            771,
+            211
+          ],
+          "stamina": [
+            463,
+            481
+          ],
+          "burst": [
+            670,
+            154
+          ],
+          "durability": [
+            228,
+            690
+          ],
+          "adaptability": [
+            198,
+            789
+          ],
+          "temperament": [
+            135,
+            731
+          ]
+        },
+        "vigour": [
+          41,
+          -38
+        ],
+        "distance": [
+          "staying",
+          "sprint"
+        ],
+        "distanceMod": [
+          -33,
+          -63
+        ],
+        "surface": [
+          "T",
+          "D"
+        ],
+        "style": [
+          "front",
+          "front"
+        ],
+        "maturity": [
+          "early",
+          "late"
+        ],
+        "coat": {
+          "extension": [
+            "E",
+            "e"
+          ],
+          "agouti": [
+            "a",
+            "A"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "L"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          6,
+          10
+        ],
+        "morph": {
+          "legLength": [
+            -204,
+            -17
+          ],
+          "neckLength": [
+            -132,
+            -164
+          ],
+          "girth": [
+            302,
+            417
+          ],
+          "height": [
+            349,
+            504
+          ],
+          "headSize": [
+            352,
+            285
+          ]
+        },
+        "variants": {
+          "head": [
+            0,
+            0
+          ],
+          "mane": [
+            3,
+            1
+          ],
+          "tail": [
+            1,
+            0
+          ],
+          "build": [
+            0,
+            0
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 0,
+          "quarterHorse": 250,
+          "akhalTeke": 750
+        },
+        "coi": 0,
+        "markingSeed": 4105926466
+      }
+    },
+    {
+      "seed": "mint-e",
+      "opts": {
+        "season": 3,
+        "breed": "arabian"
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            496,
+            512
+          ],
+          "stamina": [
+            328,
+            699
+          ],
+          "burst": [
+            212,
+            736
+          ],
+          "durability": [
+            758,
+            271
+          ],
+          "adaptability": [
+            218,
+            698
+          ],
+          "temperament": [
+            112,
+            876
+          ]
+        },
+        "vigour": [
+          -30,
+          -55
+        ],
+        "distance": [
+          "mile",
+          "staying"
+        ],
+        "distanceMod": [
+          17,
+          -48
+        ],
+        "surface": [
+          "D",
+          "D"
+        ],
+        "style": [
+          "stalker",
+          "stalker"
+        ],
+        "maturity": [
+          "normal",
+          "late"
+        ],
+        "coat": {
+          "extension": [
+            "E",
+            "E"
+          ],
+          "agouti": [
+            "a",
+            "A"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "L"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          32,
+          56
+        ],
+        "morph": {
+          "legLength": [
+            392,
+            258
+          ],
+          "neckLength": [
+            -275,
+            376
+          ],
+          "girth": [
+            508,
+            -416
+          ],
+          "height": [
+            323,
+            128
+          ],
+          "headSize": [
+            146,
+            158
+          ]
+        },
+        "variants": {
+          "head": [
+            0,
+            0
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            0,
+            0
+          ],
+          "build": [
+            0,
+            0
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            1,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 800,
+          "quarterHorse": 200,
+          "akhalTeke": 0
+        },
+        "coi": 0,
+        "markingSeed": 808703021
+      }
+    },
+    {
+      "seed": "mint-f",
+      "opts": {
+        "season": 1,
+        "breed": "quarterHorse",
+        "rarity": "rare"
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            861,
+            370
+          ],
+          "stamina": [
+            739,
+            195
+          ],
+          "burst": [
+            384,
+            782
+          ],
+          "durability": [
+            627,
+            514
+          ],
+          "adaptability": [
+            735,
+            522
+          ],
+          "temperament": [
+            546,
+            775
+          ]
+        },
+        "vigour": [
+          -65,
+          -59
+        ],
+        "distance": [
+          "sprint",
+          "sprint"
+        ],
+        "distanceMod": [
+          28,
+          79
+        ],
+        "surface": [
+          "D",
+          "D"
+        ],
+        "style": [
+          "stalker",
+          "front"
+        ],
+        "maturity": [
+          "normal",
+          "normal"
+        ],
+        "coat": {
+          "extension": [
+            "E",
+            "e"
+          ],
+          "agouti": [
+            "A",
+            "At"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "l"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          59,
+          35
+        ],
+        "morph": {
+          "legLength": [
+            140,
+            -440
+          ],
+          "neckLength": [
+            -314,
+            485
+          ],
+          "girth": [
+            -209,
+            2
+          ],
+          "height": [
+            -392,
+            160
+          ],
+          "headSize": [
+            213,
+            -541
+          ]
+        },
+        "variants": {
+          "head": [
+            0,
+            2
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            3,
+            2
+          ],
+          "build": [
+            0,
+            3
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            1,
+            0
+          ],
+          "lateKick": [
+            0,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 0,
+          "quarterHorse": 1000,
+          "akhalTeke": 0
+        },
+        "coi": 0,
+        "markingSeed": 1424508850
+      }
+    },
+    {
+      "seed": "mint-g",
+      "opts": {
+        "season": 1,
+        "breed": "akhalTeke"
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            477,
+            661
+          ],
+          "stamina": [
+            661,
+            472
+          ],
+          "burst": [
+            356,
+            405
+          ],
+          "durability": [
+            425,
+            505
+          ],
+          "adaptability": [
+            633,
+            309
+          ],
+          "temperament": [
+            423,
+            554
+          ]
+        },
+        "vigour": [
+          -46,
+          30
+        ],
+        "distance": [
+          "staying",
+          "sprint"
+        ],
+        "distanceMod": [
+          93,
+          -30
+        ],
+        "surface": [
+          "T",
+          "D"
+        ],
+        "style": [
+          "front",
+          "stalker"
+        ],
+        "maturity": [
+          "normal",
+          "late"
+        ],
+        "coat": {
+          "extension": [
+            "E",
+            "e"
+          ],
+          "agouti": [
+            "a",
+            "At"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "l"
+          ],
+          "sabino": [
+            "Sb1",
+            "n"
+          ]
+        },
+        "white": [
+          39,
+          21
+        ],
+        "morph": {
+          "legLength": [
+            -309,
+            65
+          ],
+          "neckLength": [
+            35,
+            -98
+          ],
+          "girth": [
+            -353,
+            326
+          ],
+          "height": [
+            -102,
+            -327
+          ],
+          "headSize": [
+            -185,
+            -555
+          ]
+        },
+        "variants": {
+          "head": [
+            1,
+            0
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            0,
+            0
+          ],
+          "build": [
+            0,
+            2
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            0,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            1
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 0,
+          "arabian": 0,
+          "quarterHorse": 100,
+          "akhalTeke": 900
+        },
+        "coi": 0,
+        "markingSeed": 245095781
+      }
+    },
+    {
+      "seed": "mint-h",
+      "opts": {
+        "season": 5
+      },
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            191,
+            875
+          ],
+          "stamina": [
+            657,
+            453
+          ],
+          "burst": [
+            342,
+            700
+          ],
+          "durability": [
+            315,
+            602
+          ],
+          "adaptability": [
+            313,
+            651
+          ],
+          "temperament": [
+            388,
+            572
+          ]
+        },
+        "vigour": [
+          59,
+          -46
+        ],
+        "distance": [
+          "middle",
+          "middle"
+        ],
+        "distanceMod": [
+          15,
+          68
+        ],
+        "surface": [
+          "T",
+          "D"
+        ],
+        "style": [
+          "stalker",
+          "stalker"
+        ],
+        "maturity": [
+          "normal",
+          "late"
+        ],
+        "coat": {
+          "extension": [
+            "E",
+            "e"
+          ],
+          "agouti": [
+            "a",
+            "A"
+          ],
+          "cream": [
+            "n",
+            "n"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "l"
+          ],
+          "sabino": [
+            "Sb1",
+            "n"
+          ]
+        },
+        "white": [
+          40,
+          5
+        ],
+        "morph": {
+          "legLength": [
+            -122,
+            -518
+          ],
+          "neckLength": [
+            128,
+            409
+          ],
+          "girth": [
+            -99,
+            94
+          ],
+          "height": [
+            -250,
+            -207
+          ],
+          "headSize": [
+            -679,
+            -35
+          ]
+        },
+        "variants": {
+          "head": [
+            3,
+            0
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            0,
+            0
+          ],
+          "build": [
+            0,
+            0
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            1,
+            0
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            0
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 1000,
+          "arabian": 0,
+          "quarterHorse": 0,
+          "akhalTeke": 0
+        },
+        "coi": 0,
+        "markingSeed": 2536210322
+      }
+    }
+  ],
+  "pull": {
+    "serverSeed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "accountId": "acct-1",
+    "season": 1,
+    "pack": "paddock",
+    "pull": {
+      "pack": "paddock",
+      "pullIndex": 0,
+      "season": 1,
+      "seedCommitment": "e0e77a507412b120f6ede61f62295b1a7b2ff19d3dcc8f7253e51663470c888e",
+      "pullSeed": "eeb0ec13ed39304371f908c1ba1abd5f2e6e0ba3ba986106953d89291ac094a2",
+      "rarity": "common",
+      "pityTriggered": "none",
+      "roll": 479,
+      "genome": {
+        "version": 1,
+        "stats": {
+          "speed": [
+            339,
+            828
+          ],
+          "stamina": [
+            572,
+            356
+          ],
+          "burst": [
+            664,
+            493
+          ],
+          "durability": [
+            403,
+            581
+          ],
+          "adaptability": [
+            596,
+            265
+          ],
+          "temperament": [
+            664,
+            277
+          ]
+        },
+        "vigour": [
+          -24,
+          -72
+        ],
+        "distance": [
+          "mile",
+          "mile"
+        ],
+        "distanceMod": [
+          8,
+          -19
+        ],
+        "surface": [
+          "T",
+          "T"
+        ],
+        "style": [
+          "stalker",
+          "stalker"
+        ],
+        "maturity": [
+          "early",
+          "early"
+        ],
+        "coat": {
+          "extension": [
+            "e",
+            "e"
+          ],
+          "agouti": [
+            "A",
+            "At"
+          ],
+          "cream": [
+            "n",
+            "Cr"
+          ],
+          "grey": [
+            "n",
+            "n"
+          ],
+          "roan": [
+            "n",
+            "n"
+          ],
+          "dun": [
+            "n",
+            "n"
+          ],
+          "liver": [
+            "L",
+            "l"
+          ],
+          "sabino": [
+            "n",
+            "n"
+          ]
+        },
+        "white": [
+          0,
+          69
+        ],
+        "morph": {
+          "legLength": [
+            -509,
+            284
+          ],
+          "neckLength": [
+            -201,
+            148
+          ],
+          "girth": [
+            -127,
+            -531
+          ],
+          "height": [
+            -375,
+            -82
+          ],
+          "headSize": [
+            731,
+            430
+          ]
+        },
+        "variants": {
+          "head": [
+            0,
+            3
+          ],
+          "mane": [
+            0,
+            0
+          ],
+          "tail": [
+            2,
+            0
+          ],
+          "build": [
+            2,
+            3
+          ]
+        },
+        "quirks": {
+          "mudlark": [
+            1,
+            1
+          ],
+          "gateShy": [
+            0,
+            0
+          ],
+          "lateKick": [
+            0,
+            1
+          ],
+          "crowdShy": [
+            0,
+            0
+          ]
+        },
+        "breed": {
+          "thoroughbred": 800,
+          "arabian": 0,
+          "quarterHorse": 200,
+          "akhalTeke": 0
+        },
+        "coi": 0,
+        "markingSeed": 3220711408
+      }
+    }
+  }
+}

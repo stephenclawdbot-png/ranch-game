@@ -16,7 +16,7 @@
  */
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
-import { gc, isGenome, toHorseState } from "../gameCore";
+import { gc, genomeOf, isGenome, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import { RULES, bps, defaultAppraise, seasonBounds, seasonNumberAt, sellerPolicy, type GameHooks, type SellerPolicy } from "../rules";
 import {
@@ -133,7 +133,7 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   const season = seasonNumberAt(input.now);
   const [sireState, damState] = [await breedingStateOf(ex, sire), await breedingStateOf(ex, dam)];
   const ped = await pedigreeIndex(ex, [sire.id, dam.id]);
-  const family = (await grandparentsOf(ex, sire, dam)).map((r) => r.genome).filter(isGenome);
+  const family = (await grandparentsOf(ex, sire, dam)).map((r) => genomeOf(r.genome)).filter((g): g is gc.Genome => g !== null);
   const preview = gc.previewBreeding(sireState, damState, ped, season, family);
   let block: PairingPreview["block"] = null;
   if (dam.ownerStableId !== stable.id) block = "not_your_mare";
@@ -149,7 +149,7 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
     sire,
     dam,
     season,
-    parents: { sire: gc.overallPotential(sire.genome), dam: gc.overallPotential(dam.genome) },
+    parents: { sire: gc.overallPotential(sireState.genome), dam: gc.overallPotential(damState.genome) },
   };
 }
 
@@ -268,7 +268,10 @@ export async function populationOverall(ex: Executor, limit = 2000): Promise<num
     .orderBy(desc(horses.createdAt))
     .limit(limit);
   const out: number[] = [];
-  for (const r of rows) if (isGenome(r.genome)) out.push(gc.overallPotential(r.genome));
+  for (const r of rows) {
+    const g = genomeOf(r.genome);
+    if (g) out.push(gc.overallPotential(g));
+  }
   return out.sort((a, b) => a - b);
 }
 
@@ -352,7 +355,10 @@ export function checkPull(input: {
     const { pull } = gc.pullPack(type, pityBefore, { serverSeed: input.pull.seedReveal, accountId: input.accountId, season: input.pull.seasonNumber });
     checks.rarity = pull.rarity === input.pull.rarity && input.pull.pullIndex === pityBefore.pulls + 1;
     checks.pity = (pull.pityTriggered === "none" ? null : pull.pityTriggered) === (input.pull.pityApplied ?? null);
-    checks.genome = input.genome === null || jsonEqual(pull.genome, input.genome);
+    // A pull made before genetics v2 stored a version-1 genome: re-derive it with the v1 mint.
+    const v1 = (input.genome as { version?: unknown } | null)?.version === 1;
+    const expected = v1 ? gc.mintForVersion(pull.pullSeed, { season: input.pull.seasonNumber, rarity: pull.rarity }, 1) : pull.genome;
+    checks.genome = input.genome === null || jsonEqual(expected, input.genome);
     checks.sex = input.sex === null || gc.pullSex(pull) === input.sex;
   } catch {
     /* a malformed seed fails the commitment check */

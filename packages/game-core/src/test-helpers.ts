@@ -1,6 +1,6 @@
 /** Test helpers (not exported from the package entry). */
 import type { Silks } from "@thoroughbred/shared";
-import type { HorseState, PedigreeEntry, Rarity } from "./types";
+import { BREEDS, GENES2_KEYS, WILD_GENES2, type Genome, type HorseState, type PedigreeEntry, type Rarity } from "./types";
 import { generateFoundationGenome } from "./genome";
 import { CARE_TO_RACING, createHorseState } from "./lifecycle";
 
@@ -39,6 +39,17 @@ export function makeHorse(seed: string, o: MakeOpts = {}): HorseState {
   let out: HorseState = { ...h, career: { ...h.career, starts: o.starts ?? 0 } };
   if (o.retired) out = { ...out, career: { ...out.career, racingRetired: { reason: "choice", atStarts: out.career.starts } } };
   return out;
+}
+
+/**
+ * The same genome with no genetics-v2 stat change: a pure Standardbred (size 1.00), level
+ * polygenic height and wild-type v2 loci (MSTN C/T, no big heart), so potential = alleles.
+ */
+export function v2Neutral(g: Genome): Genome {
+  const breed = {} as Genome["breed"];
+  for (const b of BREEDS) breed[b] = b === "standardbred" ? 1000 : 0;
+  const genes2 = Object.fromEntries(GENES2_KEYS.map((k) => [k, [...WILD_GENES2[k]]])) as Genome["genes2"];
+  return { ...g, breed, morph: { ...g.morph, height: [0, 0] }, genes2 };
 }
 
 export function pedOf(...horses: HorseState[]): Record<string, PedigreeEntry> {

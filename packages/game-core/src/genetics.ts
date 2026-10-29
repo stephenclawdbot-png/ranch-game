@@ -6,7 +6,7 @@
  * mutation rate and skews mutations negative; it also costs durability/temperament
  * potential via inbreeding depression (genome.potentialOf).
  */
-import { GENOME_VERSION, STAT_KEYS, MORPH_KEYS, QUIRK_KEYS, type AllelePair, type Genome, type PedigreeIndex } from "./types";
+import { GENES2_KEYS, GENOME_VERSION, STAT_KEYS, MORPH_KEYS, QUIRK_KEYS, type AllelePair, type Genes2Key, type Genome, type PedigreeIndex } from "./types";
 import { blendBreeds } from "./genome";
 import { Rng, clampInt } from "./rng";
 
@@ -21,6 +21,10 @@ export const MUTATION_NEG_BASE = 500;
 export const MUTATION_NEG_PER_100_COI = 120;
 /** Chance per categorical allele of a small variant / white / morph drift. */
 export const DRIFT_PERMILLE = 30;
+/** Polygenic segregation on every morph allele (body shape, polygenic height): sd of the term. */
+export const MORPH_SEGREGATION_SD = 60;
+/** Largest that term can be (Rng.normal is bounded to ±2√3), for the preview's guaranteed limits. */
+export const MORPH_SEGREGATION_MAX = 208;
 
 function pick<T>(rng: Rng, pair: readonly [T, T]): T {
   return rng.chance(500) ? pair[0] : pair[1];
@@ -166,7 +170,7 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
   for (const k of MORPH_KEYS) {
     const p = pair(rng, sire.morph[k], dam.morph[k]);
     // Polygenic segregation: a small Gaussian-ish term on every morph allele.
-    morph[k] = [clampInt(p[0] + rng.normal() * 60, -1000, 1000), clampInt(p[1] + rng.normal() * 60, -1000, 1000)];
+    morph[k] = [clampInt(p[0] + rng.normal() * MORPH_SEGREGATION_SD, -1000, 1000), clampInt(p[1] + rng.normal() * MORPH_SEGREGATION_SD, -1000, 1000)];
   }
 
   const quirks = {} as Genome["quirks"];
@@ -180,6 +184,13 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
 
   const white = pair(rng, sire.white, dam.white);
   const distanceMod = pair(rng, sire.distanceMod, dam.distanceMod);
+
+  // The v2 loci come from their own stream (like fragile legs), so every v1 draw stays
+  // byte-identical for coverings committed before genetics v2: a pending pregnancy's foal keeps
+  // every v1 gene it was going to have.
+  const g2 = new Rng(`${seed}|g2`);
+  const genes2 = {} as Record<Genes2Key, [string, string]>;
+  for (const k of GENES2_KEYS) genes2[k] = pair(g2, sire.genes2[k], dam.genes2[k]);
 
   return {
     version: GENOME_VERSION,
@@ -204,6 +215,7 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
     morph,
     variants,
     quirks,
+    genes2: genes2 as Genome["genes2"],
     fragile: (() => {
       const fr = new Rng(`${seed}|fragile`);
       return [fragileAllele(fr, sire, !!opts.injured?.sire), fragileAllele(fr, dam, !!opts.injured?.dam)] as [0 | 1, 0 | 1];

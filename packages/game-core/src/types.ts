@@ -104,13 +104,68 @@ export const VariantGenesSchema = z.object({
 });
 export type VariantGenes = z.infer<typeof VariantGenesSchema>;
 
-export const BREEDS = ["thoroughbred", "arabian", "quarterHorse", "akhalTeke"] as const;
+export const GENES2_KEYS = [
+  "champagne",
+  "silver",
+  "pearl",
+  "tobiano",
+  "leopard",
+  "patn1",
+  "splash",
+  "height",
+  "feather",
+  "mstn",
+  "bigHeart",
+  "ironLegs",
+  "curledEars",
+  "dish",
+] as const;
+export type Genes2Key = (typeof GENES2_KEYS)[number];
+
+/**
+ * The 14 genetics-v2 loci (docs/genetics-v2.md): colour and pattern dilutions, body genes and
+ * performance genes. Inheritance: champagne/silver/tobiano/leopard/splash/ironLegs/curledEars
+ * dominant; pearl/feather/bigHeart recessive; height/mstn/dish (and leopard, splash) incomplete.
+ * Silver shows only on black pigment (invisible on e/e); PATN1 shows only with LP.
+ */
+export const Genes2Schema = z.object({
+  champagne: z.tuple([z.enum(["Ch", "n"]), z.enum(["Ch", "n"])]),
+  silver: z.tuple([z.enum(["Z", "n"]), z.enum(["Z", "n"])]),
+  pearl: z.tuple([z.enum(["prl", "n"]), z.enum(["prl", "n"])]),
+  tobiano: z.tuple([z.enum(["TO", "n"]), z.enum(["TO", "n"])]),
+  leopard: z.tuple([z.enum(["LP", "n"]), z.enum(["LP", "n"])]),
+  patn1: z.tuple([z.enum(["PATN1", "n"]), z.enum(["PATN1", "n"])]),
+  splash: z.tuple([z.enum(["SW", "n"]), z.enum(["SW", "n"])]),
+  height: z.tuple([z.enum(["Ht", "n"]), z.enum(["Ht", "n"])]),
+  feather: z.tuple([z.enum(["Fe", "fe"]), z.enum(["Fe", "fe"])]),
+  mstn: z.tuple([z.enum(["C", "T"]), z.enum(["C", "T"])]),
+  bigHeart: z.tuple([z.enum(["bh", "n"]), z.enum(["bh", "n"])]),
+  ironLegs: z.tuple([z.enum(["IL", "n"]), z.enum(["IL", "n"])]),
+  curledEars: z.tuple([z.enum(["Ce", "n"]), z.enum(["Ce", "n"])]),
+  dish: z.tuple([z.enum(["Dh", "n"]), z.enum(["Dh", "n"])]),
+});
+export type Genes2 = z.infer<typeof Genes2Schema>;
+
+export const BREEDS = [
+  "thoroughbred",
+  "arabian",
+  "quarterHorse",
+  "akhalTeke",
+  "standardbred",
+  "appaloosa",
+  "paintHorse",
+  "mustang",
+  "andalusian",
+  "friesian",
+  "warmblood",
+  "marwari",
+] as const;
 export const BreedSchema = z.enum(BREEDS);
 export type Breed = z.infer<typeof BreedSchema>;
 /** Breed shares in permille; always sums to 1000. */
 export const BreedSharesSchema = z
-  .object({ thoroughbred: Permille, arabian: Permille, quarterHorse: Permille, akhalTeke: Permille })
-  .refine((b) => b.thoroughbred + b.arabian + b.quarterHorse + b.akhalTeke === 1000, "breed shares must sum to 1000");
+  .object(Object.fromEntries(BREEDS.map((b) => [b, Permille])) as { [K in Breed]: typeof Permille })
+  .refine((b) => BREEDS.reduce((s, k) => s + b[k], 0) === 1000, "breed shares must sum to 1000");
 export type BreedShares = z.infer<typeof BreedSharesSchema>;
 
 /** Genetic quirks, hidden until revealed through racing. Each locus: 0/1 copies per allele. */
@@ -131,7 +186,7 @@ export const QuirkGenesSchema = z.object({
 });
 export type QuirkGenes = z.infer<typeof QuirkGenesSchema>;
 
-export const GENOME_VERSION = 1 as const;
+export const GENOME_VERSION = 2 as const;
 export const GenomeSchema = z.object({
   version: z.literal(GENOME_VERSION),
   /** Diploid stat loci. Potential = blend of the two alleles with partial dominance of the higher one. */
@@ -149,6 +204,8 @@ export const GenomeSchema = z.object({
   style: z.tuple([RunningStyleSchema, RunningStyleSchema]),
   maturity: z.tuple([MaturityAlleleSchema, MaturityAlleleSchema]),
   coat: CoatGenesSchema,
+  /** The 14 genetics-v2 loci (colour/pattern, body and performance genes). */
+  genes2: Genes2Schema,
   /** Polygenic white-spotting tendency, 0..100 per allele. */
   white: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100)]),
   morph: MorphGenesSchema,
@@ -163,8 +220,61 @@ export const GenomeSchema = z.object({
   coi: Permille,
   /** Per-horse uint32 for marking placement and the pixel-rig `seed` (not inherited). */
   markingSeed: z.number().int().min(0).max(0xffffffff),
+  /**
+   * Set (to 1) only by `upgradeV1Genome`: a horse minted or bred before genetics v2. Its body
+   * size never moves its stats (genome.phenotypeDelta), so it races exactly as before. Never
+   * inherited: its foals are ordinary v2 horses.
+   */
+  upgradedFrom: z.literal(1).optional(),
 });
 export type Genome = z.infer<typeof GenomeSchema>;
+
+/** Pre-v2 breed shares: only the original four breeds, still summing to 1000. */
+const BreedSharesV1Schema = z
+  .object({ thoroughbred: Permille, arabian: Permille, quarterHorse: Permille, akhalTeke: Permille })
+  .refine((b) => b.thoroughbred + b.arabian + b.quarterHorse + b.akhalTeke === 1000, "breed shares must sum to 1000");
+/**
+ * Version 1 genome, as stored for every horse minted before genetics v2. Rows are never
+ * rewritten; `upgradeGenome` (genome.ts) turns them into v2 on read.
+ */
+export const GenomeV1Schema = GenomeSchema.omit({ genes2: true, breed: true, upgradedFrom: true }).extend({
+  version: z.literal(1),
+  breed: BreedSharesV1Schema,
+});
+export type GenomeV1 = z.infer<typeof GenomeV1Schema>;
+
+/** Wild-type v2 loci: what every pre-genetics-v2 horse gets (MSTN C/T is the neutral miler). */
+export const WILD_GENES2: Genes2 = {
+  champagne: ["n", "n"],
+  silver: ["n", "n"],
+  pearl: ["n", "n"],
+  tobiano: ["n", "n"],
+  leopard: ["n", "n"],
+  patn1: ["n", "n"],
+  splash: ["n", "n"],
+  height: ["n", "n"],
+  feather: ["Fe", "Fe"],
+  mstn: ["C", "T"],
+  bigHeart: ["n", "n"],
+  ironLegs: ["n", "n"],
+  curledEars: ["n", "n"],
+  dish: ["n", "n"],
+};
+
+/**
+ * A v1 genome as v2: the new breed shares are 0, every new locus wild type (MSTN C/T, the
+ * neutral miler) and `upgradedFrom: 1` so size never moves its stats. Every v1 field is copied
+ * verbatim (fragile legs included), so the horse looks and races exactly as before.
+ */
+export function upgradeV1Genome(v1: GenomeV1): Genome {
+  const breed = {} as BreedShares;
+  for (const b of BREEDS) breed[b] = b in v1.breed ? v1.breed[b as keyof GenomeV1["breed"]] : 0;
+  const genes2 = Object.fromEntries(GENES2_KEYS.map((k) => [k, [...WILD_GENES2[k]]])) as Genes2;
+  return { ...v1, version: GENOME_VERSION, breed, genes2, upgradedFrom: 1 };
+}
+
+/** Any stored genome: v2 passes through, v1 is upgraded on read (rows are never rewritten). */
+export const StoredGenomeSchema = GenomeSchema.or(GenomeV1Schema.transform(upgradeV1Genome));
 
 /** Expressed look knobs for @thoroughbred/pixel-rig (`factory.create(appearance, look)`). */
 export const RigLookSchema = z.object({
@@ -248,7 +358,8 @@ export const HorseStateSchema = z.object({
   sireId: z.string().nullable(),
   damId: z.string().nullable(),
   generation: NonNegInt,
-  genome: GenomeSchema,
+  /** v2 in place; a v1 genome stored in an old entry snapshot is upgraded on read. */
+  genome: StoredGenomeSchema,
   location: HorseLocationSchema,
   binding: BindingSchema,
   bornAtMs: z.number().int(),

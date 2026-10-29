@@ -2,7 +2,6 @@ import * as gc from "@thoroughbred/game-core";
 import { formatCredits, formatDistance, STYLE_LABEL, SURFACE_LABEL } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, WikiLink, appearanceOfGenome } from "../kit";
 
-const BREED_NAME: Record<gc.Breed, string> = { thoroughbred: "Thoroughbred", arabian: "Arabian", quarterHorse: "Quarter Horse", akhalTeke: "Akhal-Teke" };
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", pattern: "hoops", cap: "#1f4e9c" } as const;
 const MINUTES = (ms: number) => Math.round(ms / 60_000);
 
@@ -52,7 +51,7 @@ export default function QuickStartPage() {
             key={state.id}
             appearance={appearanceOfGenome(state.genome)}
             name={state.name}
-            line={`${BREED_NAME[breed]} · ${STYLE_LABEL[horse.style]} · ${formatDistance(horse.preferredDistanceM)} · ${SURFACE_LABEL[horse.preferredSurface]}`}
+            line={`${gc.BREED_LABEL[breed]} · ${STYLE_LABEL[horse.style]} · ${formatDistance(horse.preferredDistanceM)} · ${SURFACE_LABEL[horse.preferredSurface]}`}
           />
         ))}
       </HorseRow>

@@ -8,7 +8,7 @@
 import type { Going } from "@thoroughbred/shared";
 import type { GameStage, HorseState, Injury, InjurySeverity, RideIntensity } from "./types";
 import { MS_PER_DAY, MS_PER_HOUR, dayIndex } from "./time";
-import { isFragile, potentialOf } from "./genome";
+import { IRON_LEGS_RISK, hasIronLegs, isFragile, potentialOf } from "./genome";
 import { Rng, clampInt } from "./rng";
 
 // ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ export const FATAL_SHARE_OF_CAREER_ENDING = 200;
 export const FRAGILE_RISK = 1300;
 
 export interface RiskFactor {
-  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran" | "fragile";
+  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran" | "fragile" | "ironLegs";
   /** Multiplier permille applied by this factor (1000 = neutral). */
   multiplier: number;
   /** One short line for the entry sheet. */
@@ -172,6 +172,7 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   const distM = ctx.distanceM > 2400 ? 1100 : 1000;
   if (distM !== 1000) factors.push({ key: "distance", multiplier: distM, text: "Long trip" });
   if (isFragile(state.genome)) factors.push({ key: "fragile", multiplier: FRAGILE_RISK, text: "Fragile legs (inherited)" });
+  if (hasIronLegs(state.genome)) factors.push({ key: "ironLegs", multiplier: IRON_LEGS_RISK, text: "Iron legs (inherited)" });
   const vetM = ctx.stage === "veteran" ? 1200 : 1000;
   if (vetM !== 1000) factors.push({ key: "veteran", multiplier: vetM, text: "Veteran legs" });
 

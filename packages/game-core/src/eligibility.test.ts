@@ -9,7 +9,7 @@ import { ABILITY_MARGIN, PEAK_DROP, bandCheck, bandRating, classBand, eligibleTi
 import { abilityMark, abilityOrOf, abilityScore } from "./ability";
 import { currentStats } from "./phenotype";
 import { seedFrom } from "./rng";
-import { DAY, T0, makeHorse } from "./test-helpers";
+import { DAY, T0, makeHorse, v2Neutral } from "./test-helpers";
 
 /** A prime (20-start) horse whose CURRENT speed/stamina/burst are exactly `stats`: mature
  * (normal curve, in the peak window), fully realised, so current = potential, vigour 0. */
@@ -18,7 +18,7 @@ function horseOf(stats: { speed: number; stamina: number; burst: number }, ratin
   const pair = (v: number): [number, number] => [v, v];
   return {
     ...h,
-    genome: { ...h.genome, stats: { ...h.genome.stats, speed: pair(stats.speed), stamina: pair(stats.stamina), burst: pair(stats.burst) }, vigour: [0, 0], maturity: ["normal", "normal"], coi: 0 },
+    genome: { ...v2Neutral(h.genome), stats: { ...h.genome.stats, speed: pair(stats.speed), stamina: pair(stats.stamina), burst: pair(stats.burst) }, vigour: [0, 0], maturity: ["normal", "normal"], coi: 0 },
     training: { ...h.training, realisation: { speed: 1000, stamina: 1000, burst: 1000, durability: 1000, adaptability: 1000, temperament: 1000 } },
     rating,
   };

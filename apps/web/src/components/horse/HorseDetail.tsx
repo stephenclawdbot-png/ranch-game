@@ -255,6 +255,23 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
               ))}
             </tbody>
           </table>
+          <table className="mt-4 w-full text-sm" data-testid="genetics-genes2">
+            <caption className="label mb-1 text-left">Body, pattern and performance genes</caption>
+            <tbody>
+              {gen.genes2.map((l) => (
+                <tr key={l.locus} className="border-t-2 border-dotted border-line">
+                  <th scope="row" className="py-1.5 pr-2 text-left font-bold">
+                    {l.locus}
+                  </th>
+                  <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
+                  <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
+                    {l.meaning}
+                    {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         <div className="grid content-start gap-3">
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
@@ -280,6 +297,9 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
             )}
           </dl>
           <ul className="grid gap-1.5" aria-label="Breed mix">
+            <li className="text-sm font-extrabold text-cream" data-testid="genetics-breed-label">
+              {gen.breedLabel}
+            </li>
             {gen.breed.map((b) => (
               <li key={b.key} className="grid grid-cols-[minmax(0,7.5rem)_1fr_auto] items-center gap-2 text-sm">
                 <span className="min-w-0 truncate font-bold">{b.label}</span>

@@ -109,7 +109,7 @@ describe("family bounds (lineage sets a foal's lower and upper limit)", () => {
 
   it("two good parents can throw a foal worse than both, in between, or better (genes, not a ladder)", () => {
     const sire = g("good-s", "legendary");
-    const dam = g("good-d", "legendary");
+    const dam = g("good-d3", "legendary"); // legendary mints sit in a narrow band: a pair 6 apart leaves room "between"
     const [lo, hi] = [Math.min(overallPotential(sire), overallPotential(dam)), Math.max(overallPotential(sire), overallPotential(dam))];
     let worse = 0;
     let between = 0;
