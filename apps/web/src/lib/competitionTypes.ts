@@ -191,7 +191,7 @@ export interface TrophyRoomView {
   rosettes: TrophyView[];
   achievements: { id: string; title: string; description: string; earned: boolean; earnedAtMs: number | null }[];
   honours: { key: string; title: string; detail: string; atMs: number | null }[];
-  stars: { horseId: string; name: string; appearance: Horse["appearance"]; wins: number; starts: number; earnings: number; retired: boolean }[];
+  stars: { horseId: string; name: string; appearance: Horse["appearance"]; wins: number; starts: number; earnings: number; status: "racing" | "stud" | "retired" | "deceased" }[];
 }
 
 // ---------------------------------------------------------------------------

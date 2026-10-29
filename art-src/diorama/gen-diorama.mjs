@@ -145,6 +145,14 @@ export const JOBS = {
   "trophies": img(
     "racing trophies in a row on a transparent background, each object separate with space between: a large gold two-handled cup on a black plinth, a silver trophy cup, a bronze trophy cup, a blue first-place rosette with ribbons, a red second-place rosette with ribbons, a yellow third-place rosette with ribbons, a small engraved brass plaque on dark wood, a gold medal on a striped ribbon, side view game sprites",
     384, 96, 21092, { ref: null }),
+  // ---- animated 3/4 portraits (the portrait idles: blink, ear flick, breath) -------------
+  ...Object.fromEntries(
+    ["bay", "black", "buckskin", "chestnut", "dapple_grey", "dark_bay", "grey", "liver_chestnut", "palomino", "roan"].map((coat, i) => [
+      `anim-portrait-${coat}`,
+      anim(`apps/web/public/art/portraits/horse-${coat}.png`,
+        "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop", 8, 21100 + i),
+    ]),
+  ),
 };
 
 const names = process.argv.slice(2);

@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<10616 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21100,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f5589129-87d5-4cc6-929d-753ee414f29c",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "f5589129-87d5-4cc6-929d-753ee414f29c",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.429828+00:00",
+  "last_response": {
+   "seed": 21100,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.03130454357465108
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<10980 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11088 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11028 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11084 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10704 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10748 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10640 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11188 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10616 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "14081e21-f294-489b-8d32-7b7ac4d33dd7",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:51:51.719293+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-bay-0.png",
+  "art-src/diorama/raw/anim-portrait-bay-1.png",
+  "art-src/diorama/raw/anim-portrait-bay-2.png",
+  "art-src/diorama/raw/anim-portrait-bay-3.png",
+  "art-src/diorama/raw/anim-portrait-bay-4.png",
+  "art-src/diorama/raw/anim-portrait-bay-5.png",
+  "art-src/diorama/raw/anim-portrait-bay-6.png",
+  "art-src/diorama/raw/anim-portrait-bay-7.png",
+  "art-src/diorama/raw/anim-portrait-bay-8.png"
+ ]
+}

@@ -8,7 +8,7 @@ import { ErrorNote } from "../ui/ErrorNote";
 import { ConfirmButton, RangeList, useAction } from "./common";
 import { HorseNameInput, useHorseNameCheck } from "../ui/HorseNameInput";
 
-const REASON: Record<string, string> = { choice: "by your choice", max_starts: "after 40 starts", injury: "after an injury" };
+const REASON: Record<string, string> = { choice: "by your choice", max_starts: "after 40 starts", injury: "after a career-ending injury" };
 
 /** The career clock (n / 40 starts), maturity, revealed potential and the owner's career decisions. */
 export function CareerPanel({ view }: { view: HorseLifeView }) {
@@ -21,6 +21,8 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
   const [editing, setEditing] = useState(false);
   const check = useHorseNameCheck(name, { horseId: view.id, current: view.name });
   const pct = (n: number) => `${(n / c.maxStarts) * 100}%`;
+  // the breeding career: a stallion goes to stud, a mare becomes a broodmare (retiring is final)
+  const stud = view.horse.sex === "colt" || view.horse.sex === "stallion" || view.horse.sex === "gelding";
 
   async function career(kind: "retire" | "legacy" | "release") {
     const r = await action.run<{ action: string }>(kind, `${base}/career`, { body: { action: kind } });
@@ -50,8 +52,8 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
               ? `${c.stageLabel}. ${c.maxStarts - c.starts} starts left in the career.`
               : `Not racing yet: ${first} reaches racing age through daily care.`
             : c.careerStatus === "retired"
-              ? `Retired from racing ${REASON[c.retirementReason ?? "choice"] ?? ""}. ${c.breedingsLeft > 0 ? `${c.breedingsLeft} breedings left.` : ""}`
-              : "On the Legacy Farm for good. Legends never leave the Hall."}
+              ? `${stud ? "At stud" : "A broodmare"} ${REASON[c.retirementReason ?? "choice"] ?? ""}: no more racing. ${c.breedingsLeft > 0 ? `${c.breedingsLeft} breedings left, then retired for good.` : ""}`
+              : "Retired for good on the Legacy Farm: no racing, no breeding. Legends never leave the Hall."}
         </p>
         <div className="relative pt-5" aria-hidden>
           <div className="flex h-4 gap-[2px] bg-[#050b08] p-[2px]">
@@ -136,14 +138,17 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
 
         {c.canRetire && (
           <div className="grid gap-2">
-            <h3 className="t-title">Retire from racing</h3>
+            <h3 className="t-title">{view.horse.sex === "gelding" ? "End racing" : stud ? "Send to stud" : "Make a broodmare"}</h3>
             <p className="text-sm text-cream-dim">
-              Ends the racing career now ({c.starts} of {c.maxStarts} starts). {first} stays in your stable and can breed while breedings remain.
+              Ends the racing career now ({c.starts} of {c.maxStarts} starts).{" "}
+              {view.horse.sex === "gelding"
+                ? `Geldings don't breed: ${first} stays in your stable until you retire them.`
+                : `${first} stays in your stable and breeds up to ${c.breedingsLeft} more times, then retires for good.`}
             </p>
             <ConfirmButton
-              label={`Retire ${first}`}
-              confirmLabel="Yes, retire"
-              warning={`Retirement is final: ${first} will never race again.`}
+              label={view.horse.sex === "gelding" ? `End ${first}'s racing` : stud ? `Send ${first} to stud` : `Make ${first} a broodmare`}
+              confirmLabel="Yes, end racing"
+              warning={`${first} will never race again.`}
               onConfirm={() => career("retire")}
               busy={action.busy === "retire"}
               disabled={action.busy !== null}
@@ -154,11 +159,13 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
 
         {c.careerStatus !== "pasture" && (
           <div className="grid gap-2">
-            <h3 className="t-title">Legacy Farm</h3>
-            <p className="text-sm text-cream-dim">A permanent home: frees a stall, and {first} stays in your records and the Hall of Fame. No upkeep, ever.</p>
+            <h3 className="t-title">Retire for good</h3>
+            <p className="text-sm text-cream-dim">
+              Retired horses don&rsquo;t race or breed again. {first} moves to the Legacy Farm: frees a stall, stays in your records and the Hall of Fame. No upkeep, ever.
+            </p>
             <ConfirmButton
-              label="Move to the Legacy Farm"
-              confirmLabel="Yes, move for good"
+              label={`Retire ${first} for good`}
+              confirmLabel="Yes, retire for good"
               warning={`This is permanent: ${first} won't race or breed again.`}
               onConfirm={() => career("legacy")}
               busy={action.busy === "legacy"}

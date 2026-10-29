@@ -1,0 +1,110 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<14596 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21104,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "7aea377b-66a5-48e0-bb9f-b7e2d35ee392",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "7aea377b-66a5-48e0-bb9f-b7e2d35ee392",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.608696+00:00",
+  "last_response": {
+   "seed": 21104,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.024531225581963856
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<15016 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14712 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14292 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<15108 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14404 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<15416 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14684 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<15216 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14620 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "787f9ae6-3a46-4b8c-904d-eaae2ab4c61b",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:51:57.4939+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-dapple_grey-0.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-1.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-2.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-3.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-4.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-5.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-6.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-7.png",
+  "art-src/diorama/raw/anim-portrait-dapple_grey-8.png"
+ ]
+}

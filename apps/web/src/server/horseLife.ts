@@ -79,7 +79,7 @@ const STAGE_TEXT: Record<string, string> = {
   prime: "Prime",
   veteran: "Veteran",
   stud: "At stud",
-  pasture: "Legacy Farm",
+  pasture: "Retired",
 };
 
 const MATURITY_TEXT: Record<"early" | "normal" | "late", [string, string]> = {
@@ -196,7 +196,7 @@ async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: 
   const used = state.training.week === week ? state.training.sessionsThisWeek : 0;
   const stage = gc.stageOf(state);
   let blockedReason: string | null = null;
-  if (row.careerStatus !== "racing") blockedReason = "Retired horses don't train.";
+  if (row.careerStatus !== "racing") blockedReason = row.careerStatus === "pasture" ? "Retired horses don't train." : "Horses at stud don't train.";
   else if (stage === "foal" || stage === "weanling") blockedReason = `Training opens at yearling (${gc.CARE_TO_YEARLING} care sessions; ${row.careSessions} so far).`;
   else if (row.lockKind === "race") blockedReason = "Entered in a race: training resumes after it.";
   else if (row.lockKind === "market") blockedReason = "Listed on the market.";

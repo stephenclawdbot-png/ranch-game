@@ -1,0 +1,52 @@
+{
+ "bay": {
+  "frames": 14,
+  "kept": 8,
+  "size": 128
+ },
+ "black": {
+  "frames": 14,
+  "kept": 8,
+  "size": 128
+ },
+ "buckskin": {
+  "frames": 8,
+  "kept": 5,
+  "size": 128
+ },
+ "chestnut": {
+  "frames": 16,
+  "kept": 9,
+  "size": 128
+ },
+ "dapple_grey": {
+  "frames": 6,
+  "kept": 4,
+  "size": 128
+ },
+ "dark_bay": {
+  "frames": 16,
+  "kept": 9,
+  "size": 128
+ },
+ "grey": {
+  "frames": 6,
+  "kept": 4,
+  "size": 128
+ },
+ "liver_chestnut": {
+  "frames": 16,
+  "kept": 9,
+  "size": 128
+ },
+ "palomino": {
+  "frames": 4,
+  "kept": 3,
+  "size": 128
+ },
+ "roan": {
+  "frames": 8,
+  "kept": 5,
+  "size": 128
+ }
+}

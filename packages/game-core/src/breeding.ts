@@ -204,7 +204,8 @@ export interface BreedingPreview {
   coiWarning: boolean;
   blocked: BreedBlock | null;
   stats: StatRecord<StatPreview>;
-  overall: { p10: number; p50: number; p90: number; grades: Partial<Record<Grade, number>>; beatsBothParents: number };
+  /** beatsBothParents / belowBothParents: permille of foals above the better / below the weaker parent. */
+  overall: { p10: number; p50: number; p90: number; grades: Partial<Record<Grade, number>>; beatsBothParents: number; belowBothParents: number };
   /** Coat colour probabilities (permille), by display name. */
   coats: { name: string; permille: number }[];
   distance: Partial<Record<DistanceAllele, number>>;
@@ -275,10 +276,13 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
   };
   const og = new Map<Grade, number>();
   const parentBest = Math.max(overallPotential(sg), overallPotential(dg));
+  const parentWorst = Math.min(overallPotential(sg), overallPotential(dg));
   let beats = 0;
+  let below = 0;
   for (const [v, p] of overallList) {
     addTo(og, gradeOf(v), p);
     if (v > parentBest) beats += p;
+    if (v < parentWorst) below += p;
   }
 
   // Coat colours: enumerate coat loci genotypes.
@@ -353,7 +357,7 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
     coiWarning: coi >= COI_WARN,
     blocked,
     stats,
-    overall: { p10: pct(0.1), p50: pct(0.5), p90: pct(0.9), grades: toPermille(og), beatsBothParents: Math.round(beats * 1000) },
+    overall: { p10: pct(0.1), p50: pct(0.5), p90: pct(0.9), grades: toPermille(og), beatsBothParents: Math.round(beats * 1000), belowBothParents: Math.round(below * 1000) },
     coats,
     distance: toPermille(distance),
     surface: toPermille(surface),

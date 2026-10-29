@@ -1,0 +1,110 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<14052 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21109,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "36299eab-21a4-4c70-848c-b7b86f1d1795",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "36299eab-21a4-4c70-848c-b7b86f1d1795",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.586316+00:00",
+  "last_response": {
+   "seed": 21109,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.042507544153266484
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<14588 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13892 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13620 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13944 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13620 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13860 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13688 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<14132 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<13616 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "b769680f-2613-4c54-8102-5749dc566187",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:52:14.591192+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-roan-0.png",
+  "art-src/diorama/raw/anim-portrait-roan-1.png",
+  "art-src/diorama/raw/anim-portrait-roan-2.png",
+  "art-src/diorama/raw/anim-portrait-roan-3.png",
+  "art-src/diorama/raw/anim-portrait-roan-4.png",
+  "art-src/diorama/raw/anim-portrait-roan-5.png",
+  "art-src/diorama/raw/anim-portrait-roan-6.png",
+  "art-src/diorama/raw/anim-portrait-roan-7.png",
+  "art-src/diorama/raw/anim-portrait-roan-8.png"
+ ]
+}

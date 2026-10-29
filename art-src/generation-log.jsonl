@@ -241,3 +241,13 @@
 {"at":"2026-10-29T10:29:47.581Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/trophies","secs":72,"usage":{"type":"generations","generations":10},"images":1}
 {"at":"2026-10-29T10:29:59.262Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/trophy-room","secs":84,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-29T11:38:54.013Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/pasture-meadow","secs":73,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-29T11:53:14.062Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-chestnut","secs":106,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:14.668Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-buckskin","secs":107,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:15.084Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-black","secs":107,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:29.972Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-dapple_grey","secs":122,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:38.913Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-grey","secs":131,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:50.980Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-bay","secs":143,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:55.522Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-dark_bay","secs":148,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:53:55.901Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-palomino","secs":148,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:54:28.771Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-liver_chestnut","secs":181,"usage":{"type":"generations","generations":2},"images":9}
+{"at":"2026-10-29T11:55:12.020Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-portrait-roan","secs":224,"usage":{"type":"generations","generations":2},"images":9}

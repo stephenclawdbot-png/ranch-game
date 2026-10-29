@@ -22,7 +22,7 @@ export const FRIENDLY: Record<string, string> = {
   HORSE_LOCKED: "That horse is already entered in a race.",
   HORSE_IN_FOAL: "Mares in foal don't race.",
   HORSE_INJURED: "That horse is recovering from an injury.",
-  HORSE_RETIRED: "That horse has retired from racing.",
+  HORSE_RETIRED: "That horse no longer races.",
   HORSE_NOT_OF_AGE: "That horse isn't old enough to race yet.",
   RACE_LIMIT: "That horse has already raced 3 times today. It can race again tomorrow.",
   RACE_CLOSED: "Entries for that race have closed.",

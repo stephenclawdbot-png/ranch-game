@@ -130,7 +130,7 @@ export function riskView(r: gc.InjuryRisk): RiskView {
 
 const BLOCK_TEXT: Record<string, string> = {
   not_racing_age: "Not yet of racing age",
-  retired: "Retired from racing",
+  retired: "At stud: no longer racing",
   career_complete: "Career complete",
   injured: "Recovering from injury",
   in_foal: "In foal",

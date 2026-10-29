@@ -106,4 +106,25 @@ describe("family bounds (lineage sets a foal's lower and upper limit)", () => {
     // allele bound +40 a generation, so expressed overall can't rise faster than that
     expect(best8 - best0).toBeLessThanOrEqual(8 * FAMILY_HEADROOM);
   });
+
+  it("two good parents can throw a foal worse than both, in between, or better (genes, not a ladder)", () => {
+    const sire = g("good-s", "legendary");
+    const dam = g("good-d", "legendary");
+    const [lo, hi] = [Math.min(overallPotential(sire), overallPotential(dam)), Math.max(overallPotential(sire), overallPotential(dam))];
+    let worse = 0;
+    let between = 0;
+    let better = 0;
+    for (let i = 0; i < 400; i++) {
+      const o = overallPotential(inherit(sire, dam, `ladder${i}`, { family: [sire, dam, sire, dam] }));
+      if (o < lo) worse++;
+      else if (o > hi) better++;
+      else between++;
+    }
+    expect(worse).toBeGreaterThan(20);
+    expect(better).toBeGreaterThan(20);
+    expect(between).toBeGreaterThan(20);
+    const p = previewBreeding({ ...makeHorse("pv-s", { rarity: "legendary", starts: 30 }), genome: sire }, { ...makeHorse("pv-d", { rarity: "legendary", sex: "filly", starts: 30 }), genome: dam }, {}, 1);
+    expect(p.overall.belowBothParents).toBeGreaterThan(0);
+    expect(p.overall.beatsBothParents).toBeGreaterThan(0);
+  });
 });

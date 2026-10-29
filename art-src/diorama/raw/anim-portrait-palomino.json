@@ -1,0 +1,110 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<10992 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21108,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "0269dc7e-554b-4a4f-aacd-14b1c5cc4df2",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "0269dc7e-554b-4a4f-aacd-14b1c5cc4df2",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.547180+00:00",
+  "last_response": {
+   "seed": 21108,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.03220946141746309
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<11484 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11312 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11332 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11496 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11004 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11860 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11400 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<12212 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11408 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "434189cd-9100-4992-b240-c7da2c0a0b66",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:52:05.656374+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-palomino-0.png",
+  "art-src/diorama/raw/anim-portrait-palomino-1.png",
+  "art-src/diorama/raw/anim-portrait-palomino-2.png",
+  "art-src/diorama/raw/anim-portrait-palomino-3.png",
+  "art-src/diorama/raw/anim-portrait-palomino-4.png",
+  "art-src/diorama/raw/anim-portrait-palomino-5.png",
+  "art-src/diorama/raw/anim-portrait-palomino-6.png",
+  "art-src/diorama/raw/anim-portrait-palomino-7.png",
+  "art-src/diorama/raw/anim-portrait-palomino-8.png"
+ ]
+}

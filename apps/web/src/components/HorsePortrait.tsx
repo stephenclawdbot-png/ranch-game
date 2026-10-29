@@ -4,6 +4,7 @@ import type { HorseAppearance } from "@thoroughbred/shared";
 import { ART_SLOTS, MARKING_WHITE, artUrl, resolveHorseColors } from "@/lib/art";
 import { useArt } from "./pixel/ArtProvider";
 import { PixelGrid, mix } from "./pixel/PixelGrid";
+import ANIM_INDEX from "../../public/art/portraits/anim/index.json";
 import { FACE_MARKS, HEAD_ROWS, HEAD_SIZE } from "./pixel/horseHeadData";
 
 /** Deterministic hash noise for roan/dapple texture (SSR and client agree). */
@@ -78,11 +79,24 @@ export function usePortraitNative(coat: HorseAppearance["coat"]): number {
   return art?.w ?? 96;
 }
 
+/** Frame counts of the animated 3/4 portraits (art-src/portrait_anims.py). */
+const ANIM = ANIM_INDEX as Record<string, { frames: number; size: number }>;
+/** Seconds per frame of the idle loop (blink, ear flick, breath). */
+const FRAME_S = 0.16;
+
+function phaseOf(a: HorseAppearance): number {
+  const k = `${a.coat}|${a.silks.primary}|${a.face}|${a.legs.join("")}`;
+  let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0;
+  return Math.abs(h % 997) / 997;
+}
+
 /**
- * Horse head-and-neck portrait (facing left). Uses the PixelLab portrait for the coat
- * when it exists (nearest-neighbour, pixelated), otherwise a code-drawn pixel head.
+ * Horse head-and-neck portrait (facing left): the 3/4 pixel portrait for the coat, animated like
+ * a gif (an idle loop: blink, ear flick, breath) where the coat has a loop, else the still 3/4
+ * portrait. Never the flat code-drawn head (that stays for dev galleries via `codeDrawn`).
  * Pass `scale` to lock it to an integer multiple of the native art (one pixel density per
- * screen); otherwise it is sized by its container (`className`).
+ * screen); otherwise it is sized by its container (`className`). Reduced motion holds frame 0.
  */
 export function HorsePortrait({
   appearance,
@@ -102,28 +116,53 @@ export function HorsePortrait({
 }) {
   const full = useArt(ART_SLOTS.portrait(appearance.coat));
   const thumb = useArt(ART_SLOTS.thumb(appearance.coat));
-  // Thumbnails use the 64 px box-downsampled file at 1x (never a 128 portrait shrunk in CSS).
-  const art = codeDrawn ? null : scale === "thumb" && thumb ? thumb : full;
-  const native = full?.w ?? 96;
+  if (codeDrawn) return <PixelHead appearance={appearance} className={`shrink-0 ${className ?? ""}`} title={title} />;
+  const native = full?.w ?? 128;
   const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
-  const style = px ? { width: px, height: px } : undefined;
-  if (art) {
+  const box = px ? { width: px, height: px } : undefined;
+  const coat = appearance.coat;
+  // the still 3/4 portrait: from the art manifest, or straight from the served file
+  const still = scale === "thumb" ? (thumb ? artUrl(thumb) : `/art/portraits/thumb/horse-${coat}.png`) : full ? artUrl(full) : `/art/portraits/horse-${coat}.png`;
+  const anim = ANIM[coat];
+  if (anim && anim.frames > 1) {
+    const strip = scale === "thumb" ? `/art/portraits/anim/thumb/horse-${coat}.png` : `/art/portraits/anim/horse-${coat}.png`;
+    const dur = anim.frames * FRAME_S;
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={artUrl(art)}
-        width={px ?? art.w}
-        height={px ?? art.h}
-        style={style}
-        alt={title ?? ""}
+      <span
+        className={`portrait-anim shrink-0 ${className ?? ""}`}
+        style={box}
+        role={title ? "img" : undefined}
+        aria-label={title}
         aria-hidden={title ? undefined : true}
-        className={`${scale === "thumb" && !thumb ? "downscaled" : "pixelated"} shrink-0 object-contain object-bottom ${className ?? ""}`}
         data-testid="horse-portrait"
-        draggable={false}
-      />
+        data-still={still}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={strip}
+          alt=""
+          draggable={false}
+          className={scale === "thumb" ? "" : "pixelated"}
+          style={{ width: `${anim.frames * 100}%`, animationDuration: `${dur}s`, animationTimingFunction: `steps(${anim.frames})`, animationDelay: `${-phaseOf(appearance) * dur}s` }}
+        />
+      </span>
     );
   }
-  return <PixelHead appearance={appearance} className={`shrink-0 ${className ?? ""}`} title={title} style={style} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={still}
+      width={px ?? native}
+      height={px ?? native}
+      style={box}
+      alt={title ?? ""}
+      aria-hidden={title ? undefined : true}
+      className={`pixelated shrink-0 object-contain object-bottom ${className ?? ""}`}
+      data-testid="horse-portrait"
+      data-still={still}
+      draggable={false}
+    />
+  );
 }
 
 export { HEAD_SIZE };

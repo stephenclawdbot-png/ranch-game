@@ -82,8 +82,8 @@ const STAGE_LABEL: Record<string, string> = {
   juvenile: "Juvenile",
   prime: "Prime",
   veteran: "Veteran",
-  stud: "Retired · breeding",
-  pasture: "Legacy Farm",
+  stud: "At stud",
+  pasture: "Retired",
   retired: "Retired",
 };
 export function stageLabel(s: string): string {

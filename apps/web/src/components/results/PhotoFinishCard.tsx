@@ -156,11 +156,14 @@ async function drawCard(d: { race: string; headline: string; facts: string[]; yo
   ctx.fillStyle = "#d9a441";
   ctx.fillRect(80, 470, W - 160, 3);
   // the winner's portrait (the painted 3/4 head for its coat), nearest-neighbour at 3x
-  const portrait = document.querySelector<HTMLImageElement | HTMLCanvasElement>('[data-testid="photo-finish-card"] [data-testid="horse-portrait"]');
+  // the still 3/4 portrait (the card may be showing an animated strip)
+  const portrait = document.querySelector<HTMLElement>('[data-testid="photo-finish-card"] [data-testid="horse-portrait"]');
   ctx.imageSmoothingEnabled = false;
   if (portrait) {
     try {
-      const src = portrait instanceof HTMLImageElement ? await loadImage(portrait.src) : portrait;
+      const url = portrait.dataset.still ?? (portrait instanceof HTMLImageElement ? portrait.src : null);
+      if (!url) throw new Error("no portrait");
+      const src = await loadImage(url);
       ctx.fillStyle = "#163a28";
       ctx.fillRect(80, 80, 384, 384);
       ctx.drawImage(src, 80, 80, 384, 384);

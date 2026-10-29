@@ -83,7 +83,7 @@ function ranked(rows: CupBoardRow[], viewer: string | null): CupRow[] {
 
 /** Why a horse can't take a Cup Run (the Cup isn't a start: race locks and daily limits don't apply). */
 function cupBlock(row: Awaited<ReturnType<typeof listStableHorses>>[number], nowMs: number): string | null {
-  if (row.careerStatus !== "racing") return "Retired from racing";
+  if (row.careerStatus !== "racing") return row.careerStatus === "pasture" ? "Retired" : "At stud: no longer racing";
   if (row.careSessions < RULES.careToRacing) return "Not yet of racing age";
   if (row.injuredUntil && row.injuredUntil.getTime() > nowMs) return "Recovering from injury";
   if (!isGenome(row.genome)) return "Not eligible";
@@ -378,7 +378,7 @@ export async function trophyRoomView(db: Db, session: Session, now: Date): Promi
   const silks = parseSilks(session.stable.silks);
   const stars = (await topHorsesOf(db, stableId, 3))
     .filter((h) => h.wins > 0)
-    .map((h) => ({ horseId: h.id, name: h.name, appearance: horseFromRow(h, silks, nowMs).appearance, wins: h.wins, starts: h.starts, earnings: h.earnings, retired: h.careerStatus !== "racing" }));
+    .map((h) => ({ horseId: h.id, name: h.name, appearance: horseFromRow(h, silks, nowMs).appearance, wins: h.wins, starts: h.starts, earnings: h.earnings, status: (h.careerStatus === "racing" ? "racing" : h.careerStatus === "retired" ? "stud" : "retired") as "racing" | "stud" | "retired" }));
   return {
     stableName: session.stable.name,
     silks,

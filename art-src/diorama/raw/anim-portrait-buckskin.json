@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<11524 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21102,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "230ce866-3973-46ca-9f0b-d68cd04fd6ec",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "230ce866-3973-46ca-9f0b-d68cd04fd6ec",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.390342+00:00",
+  "last_response": {
+   "seed": 21102,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.027256754000981646
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<11984 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11508 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11396 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11512 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10892 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11096 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<10984 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11416 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11232 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "7460d07e-e1e5-47d4-b3d2-bf149bfdeed7",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:51:45.538744+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-buckskin-0.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-1.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-2.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-3.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-4.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-5.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-6.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-7.png",
+  "art-src/diorama/raw/anim-portrait-buckskin-8.png"
+ ]
+}

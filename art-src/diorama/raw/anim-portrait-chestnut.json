@@ -1,0 +1,109 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<11052 chars>",
+   "format": "png"
+  },
+  "action": "the horse stands still and calm: one slow blink, the ears flick forward and back once, a soft breath through the nostrils, tiny natural head bob; the head, neck and bridle stay in the same place and size, keep exactly the same colours, lighting and pixel art style, seamless loop",
+  "frame_count": 8,
+  "seed": 21103,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e3673003-e472-44a2-9c0d-c880dd97d629",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 2
+  },
+  "id": "e3673003-e472-44a2-9c0d-c880dd97d629",
+  "status": "completed",
+  "created_at": "2026-10-29T11:51:28.408268+00:00",
+  "last_response": {
+   "seed": 21103,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 2,
+    "cost_if_paid": 0.024373684797022076
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<11464 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11752 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11508 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11528 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11484 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11684 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11528 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11820 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<11624 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 2
+   },
+   "generation_id": "916056cd-ab65-49cf-b18e-585f05aa6894",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-29T11:51:43.295571+00:00"
+  }
+ },
+ "files": [
+  "art-src/diorama/raw/anim-portrait-chestnut-0.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-1.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-2.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-3.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-4.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-5.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-6.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-7.png",
+  "art-src/diorama/raw/anim-portrait-chestnut-8.png"
+ ]
+}

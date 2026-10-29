@@ -4305,3 +4305,30 @@ a.ped-node:focus-visible {
 .ranch-hit {
   padding-top: 16%;
 }
+
+/* ---------------------------------------------------------------- animated 3/4 portraits (gif-like idle loop) */
+.portrait-anim {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+.portrait-anim > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  max-width: none;
+  animation-name: portrait-strip;
+  animation-iteration-count: infinite;
+}
+@keyframes portrait-strip {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portrait-anim > img {
+    animation: none;
+  }
+}

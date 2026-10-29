@@ -652,7 +652,7 @@ export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceL
 
 const BLOCK_REASON: Record<string, string> = {
   not_racing_age: "Not yet of racing age",
-  retired: "Retired from racing",
+  retired: "At stud: no longer racing",
   injured: "Recovering from injury",
   daily_limit: "Raced 3 times today",
   in_foal: "In foal",

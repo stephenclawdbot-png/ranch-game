@@ -389,7 +389,7 @@ function PlanCover({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =
       )}
       {v.mares.length === 0 ? (
         <div className="surface grid gap-2 p-4">
-          <p className="text-cream-dim">No mares in your stable yet. Fillies grow into broodmares: they breed from {v.minStarts} starts, or once retired from racing.</p>
+          <p className="text-cream-dim">No mares in your stable yet. Fillies grow into broodmares: they breed from {v.minStarts} starts, or once made a broodmare.</p>
           <Link href="/packs" className="btn w-fit">
             Find a foal in a pack
           </Link>
@@ -534,7 +534,7 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
                   h={s}
                   meta={
                     <>
-                      {s.club ? "Club stallion" : s.stableName} · {s.club ? "retired" : `${s.starts} starts`} · {s.lifetime - s.used} of {s.lifetime} breedings left
+                      {s.club ? "Club stallion" : s.stableName} · {s.club ? "at stud" : `${s.starts} starts`} · {s.lifetime - s.used} of {s.lifetime} breedings left
                     </>
                   }
                   aside={<Credits value={s.studFee} className="text-cream" />}

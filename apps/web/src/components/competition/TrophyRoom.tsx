@@ -161,7 +161,7 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
                     </span>
                     <span className="star-name">{h.name}</span>
                     <span className="star-meta">
-                      {h.wins} {h.wins === 1 ? "win" : "wins"} from {h.starts} · {formatCredits(h.earnings)} cr{h.retired ? " · retired" : ""}
+                      {h.wins} {h.wins === 1 ? "win" : "wins"} from {h.starts} · {formatCredits(h.earnings)} cr{h.status === "stud" ? " · at stud" : h.status === "retired" ? " · retired" : h.status === "deceased" ? " · in memoriam" : ""}
                     </span>
                   </Link>
                 </li>

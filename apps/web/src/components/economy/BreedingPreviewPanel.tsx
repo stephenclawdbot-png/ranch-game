@@ -115,7 +115,7 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
             <span className="absolute -bottom-0 h-2 w-2 bg-claret" style={{ left: pos(v.parents.dam) }} title={`Dam ${v.parents.dam}`} />
           </div>
           <p className="caption">
-            <span className="text-sky">■</span> Sire {v.parents.sire} · <span className="text-claret">■</span> Dam {v.parents.dam} · Beats both parents: <span className="num text-cream">{pct(o.beatsBothParents)}</span>
+            <span className="text-sky">■</span> Sire {v.parents.sire} · <span className="text-claret">■</span> Dam {v.parents.dam} · Beats both parents: <span className="num text-cream">{pct(o.beatsBothParents)}</span> · Below both: <span className="num text-cream" data-testid="preview-below">{pct(o.belowBothParents)}</span>
           </p>
           <div className="flex flex-wrap gap-1.5" aria-label="Chance per grade">
             {GRADES.filter((g) => (o.grades[g] ?? 0) > 0).map((g) => (
