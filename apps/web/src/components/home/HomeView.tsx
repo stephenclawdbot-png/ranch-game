@@ -13,7 +13,9 @@ import { conditionLabel } from "../entry/EntryForm";
 import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
-import { SceneArt, SceneBand, Section } from "../ui/Page";
+import { Section } from "../ui/Page";
+import { Diorama } from "../diorama/Diorama";
+import { DioramaSlot } from "../diorama/DioramaSlot";
 import { Wordmark } from "../SiteNav";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
@@ -44,55 +46,76 @@ export function HomeView(props: ClubProps) {
 // Signed out: the live race first, the wordmark, one call to action
 // ---------------------------------------------------------------------------
 
-const PILLARS: { scene: "barn" | "paddock" | "grandstand"; title: string; text: string }[] = [
-  { scene: "barn", title: "Raise a stable", text: "Sprinters, stayers and closers, each with a trip and a style from its genes." },
-  { scene: "paddock", title: "Race the Club", text: "Story races against rival stables. Watch, or skip to the result." },
-  { scene: "grandstand", title: "Live at Kestrel Downs", text: "A shared race every 3 minutes. Everyone watches the same finish." },
+const CHAPTERS: { scene: "barn" | "paddock" | "grandstand"; eyebrow: string; title: string; text: string }[] = [
+  {
+    scene: "barn",
+    eyebrow: "Your stable",
+    title: "Raise champions, foal by foal.",
+    text: "Every horse is born from real genetics: its coat, its build, its trip and its temperament. Care for them, train them, and breed the next generation.",
+  },
+  {
+    scene: "paddock",
+    eyebrow: "Story",
+    title: "Take on the rival stables.",
+    text: "A career against the Club's houses: small fields, big ambitions. Win your licences and step up to the County Circuit.",
+  },
+  {
+    scene: "grandstand",
+    eyebrow: "Live at Kestrel Downs",
+    title: "A race every three minutes. Everyone watches the same finish.",
+    text: "Enter Live races against real stables. Every result is sealed before the off and replayable to the last stride.",
+  },
 ];
 
 function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
   return (
     <div>
-      <SceneBand scene="stable" size="home" alt="A stable yard at golden hour" eyebrow="A racing stable game" title={<span className="sr-only">Post Time</span>} testId="home-band">
-        <div className="pointer-events-none absolute inset-x-0 bottom-[88px] z-[1] flex justify-center md:bottom-[120px]">
-          <span className="scale-[1.5] md:scale-[2]">
+      <section className="landing bleed" data-testid="home-band" aria-label="Post Time">
+        <Diorama scene="track-dusk" aspect={null} priority label="Racehorses cantering down to the post at dusk" style={{ position: "absolute", inset: 0 }} />
+        <div className="landing-fade" aria-hidden />
+        <div className="landing-hero">
+          <p className="eyebrow">A racing stable game · free</p>
+          <span className="landing-wordmark">
             <Wordmark />
           </span>
-        </div>
-      </SceneBand>
-      <div className="over-band mx-auto grid max-w-3xl gap-4">
-        <div className="frame-hero p-4 sm:p-5">
-          <p className="tag tag-ready">Free · no email</p>
-          <h2 className="t-hero mt-2">Your first horses are waiting.</h2>
-          <p className="mt-1 text-cream-dim">
-            {inviteOnly ? "We're in a small closed playtest. Got an invite? Your stable is one tap away." : "Found a stable in one tap. Your first race is about a minute away."}
-          </p>
-          <div className="mt-4">
-            <ActionBar>
-              <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
-                <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
+          <h1 className="landing-title">Breed a dynasty. Race it live.</h1>
+          <p className="landing-sub">{inviteOnly ? "We're in a small closed playtest. Got an invite? Your stable is one tap away." : "Found a stable in one tap, no email. Your first race is about a minute away."}</p>
+          <div className="landing-actions">
+            <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
+              <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
+            </Link>
+            {(live ?? next) && (
+              <Link href={`/race/${(live ?? next)!.id}`} className="btn btn-lg" data-testid="watch-next">
+                {live ? (
+                  <>
+                    <span className="live-dot" /> Watch live
+                  </>
+                ) : (
+                  <>
+                    Watch the next race · <Countdown targetMs={next!.postTimeMs} doneLabel="off" />
+                  </>
+                )}
               </Link>
-            </ActionBar>
+            )}
           </div>
         </div>
-        {next && <OnTheCourse next={next} live={live} />}
-      </div>
+      </section>
 
-      <Section title="What you do" className="mx-auto max-w-5xl">
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {PILLARS.map((p) => (
-            <li key={p.title} className="surface overflow-hidden">
-              <div className="relative h-24 overflow-hidden bg-baize-800 [--bh:96px] [--k:1]">
-                <SceneArt scene={p.scene} alt="" />
-              </div>
-              <div className="p-3">
-                <p className="t-title">{p.title}</p>
-                <p className="t-meta">{p.text}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Section>
+      <div className="grid gap-0">
+        {CHAPTERS.map((c, i) => (
+          <section key={c.scene} className={`chapter bleed ${i % 2 ? "chapter-right" : ""}`} aria-labelledby={`ch-${c.scene}`}>
+            <DioramaSlot scene={c.scene} alt="" priority={false} />
+            <div className="chapter-fade" aria-hidden />
+            <div className="chapter-body">
+              <p className="eyebrow">{c.eyebrow}</p>
+              <h2 id={`ch-${c.scene}`} className="chapter-title">
+                {c.title}
+              </h2>
+              <p className="chapter-text">{c.text}</p>
+            </div>
+          </section>
+        ))}
+      </div>
 
       {recent.length > 0 && (
         <Section title="Latest results" href="/races" linkLabel="Race card" className="mx-auto max-w-5xl">
@@ -103,6 +126,12 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
           </ul>
         </Section>
       )}
+      <div className="mx-auto mt-10 grid max-w-3xl justify-items-center gap-3 text-center">
+        <p className="t-h2">Your first horses are waiting.</p>
+        <Link href="/play" className="btn btn-brass btn-lg">
+          <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -209,42 +238,6 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         </ul>
       </Section>
 
-    </div>
-  );
-}
-
-/** The next and the live race on the shared card, as baize strips. */
-function OnTheCourse({ next, live }: { next: RaceSummary; live: RaceSummary | null }) {
-  return (
-    <div className="grid gap-2" data-testid="next-race">
-      {live && (
-        <Link href={`/race/${live.id}`} className="baize-card flex items-center gap-3 px-4 py-3">
-          <span className="tag tag-live">
-            <span className="live-dot" /> Live
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="t-title block line-clamp-2">{live.name}</span>
-            <span className="t-meta block">
-              {live.fieldSize} runners · {formatDistance(live.distanceM)} {SURFACE_LABEL[live.surface].toLowerCase()}
-            </span>
-          </span>
-          <span className="btn btn-outline btn-sm !text-on-baize">Watch</span>
-        </Link>
-      )}
-      <Link href={`/race/${next.id}`} className="baize-card flex items-center gap-3 px-4 py-3" data-testid="watch-next">
-        <span className="score w-14 shrink-0 text-[1.875rem] text-brass-hi">
-          <Countdown targetMs={next.postTimeMs} doneLabel="Off" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="t-title block" id="next-race-h">
-            {next.name}
-          </span>
-          <span className="t-meta block">
-            Next off · {formatDistance(next.distanceM)} {SURFACE_LABEL[next.surface].toLowerCase()}
-          </span>
-        </span>
-        <span className="btn btn-outline btn-sm !text-on-baize">Watch</span>
-      </Link>
     </div>
   );
 }
