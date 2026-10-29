@@ -152,7 +152,8 @@ export default function GeneticsAndInheritancePage() {
         </div>
       </div>
       <P>
-        What the breeding screen would show for this pairing before you pay (it uses the true genes, so the odds are exact):
+        What the breeding screen would show for this pairing before you pay. It uses the true genes, so its odds are exact; it leaves mutations out (they are listed separately), and 400
+        foals are only a sample, so the two can differ by a few points.
       </P>
       <Facts
         title="Breeding preview"

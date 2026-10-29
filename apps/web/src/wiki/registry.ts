@@ -51,7 +51,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
 
   // Racing
   { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards and classes.", keywords: ["live", "quick", "story", "class", "maiden"] },
-  { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, entry fees, the paddock and choosing a tactic.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer"] },
+  { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, the entry bank, the paddock and choosing a tactic.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer"] },
   { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands and the form figures on the card.", keywords: ["rating", "or", "form", "band"] },
 
@@ -74,7 +74,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "packs", section: "economy", title: "Packs", summary: "What packs contain, the odds and the pity counter.", keywords: ["pack", "odds", "pity", "rarity"] },
 
   // Club & glory
-  { slug: "league", section: "club", title: "The League", summary: "Seasons, points, divisions and promotion.", keywords: ["league", "season", "points", "division"] },
+  { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, divisions, promotion and the Season Final.", keywords: ["league", "season", "points", "division"] },
   { slug: "daily-cup", section: "club", title: "The Daily Cup", summary: "One run a day through a ladder of races.", keywords: ["cup", "daily", "run"] },
   { slug: "hall-and-trophies", section: "club", title: "Hall of Fame & Trophy Room", summary: "Legends, honours and the silverware on your shelves.", keywords: ["hall", "fame", "trophy", "honours", "legend"] },
   { slug: "glossary", section: "club", title: "Glossary", summary: "Racing and breeding words used in the game, in plain English.", keywords: ["words", "terms", "definitions"] },
