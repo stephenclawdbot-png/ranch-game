@@ -17,8 +17,17 @@ import { defaultAppraise, RULES, type GameHooks, type HorseSpec } from "./rules"
 export type HorseState = gc.HorseState;
 export type Genome = gc.Genome;
 
+/**
+ * True when `x` is a genome we can play: v2 as stored, or a v1 genome from before genetics v2
+ * (upgraded on read — rows are never rewritten). Junk stays junk.
+ */
 export function isGenome(x: unknown): x is gc.Genome {
-  return gc.GenomeSchema.safeParse(x).success;
+  return gc.upgradeGenome(x) !== null;
+}
+
+/** Any stored genome as v2 (v1 upgraded on read); null when the row holds no real genome. */
+export function genomeOf(x: unknown): gc.Genome | null {
+  return gc.upgradeGenome(x);
 }
 
 export function isInjury(x: unknown): x is gc.Injury {
@@ -65,7 +74,7 @@ export function toHorseState(
     sireId: row.sireId,
     damId: row.damId,
     generation: row.generation,
-    genome: row.genome as gc.Genome,
+    genome: genomeOf(row.genome) ?? (row.genome as gc.Genome),
     location,
     binding,
     bornAtMs: row.bornAt.getTime(),
@@ -176,19 +185,22 @@ export const gameCoreHooks: GameHooks = {
     return specFromGenome({ genome: s.genome, name: s.name, sex: s.sex === "filly" ? "filly" : "colt", careSessions: gc.CARE_TO_RACING, season: season ?? 1 });
   },
   packHorse: ({ seed, rarity, season, genome, sex }) => {
-    const g = genome && isGenome(genome) ? genome : gc.generateFoundationGenome(seed, { season: season ?? 1, rarity });
+    const g = genomeOf(genome) ?? gc.generateFoundationGenome(seed, { season: season ?? 1, rarity });
     const rng = new gc.Rng(`${seed}|pack-name`);
     return specFromGenome({ genome: g, name: gc.clubHorseName(rng), sex: sex ?? (rng.chance(500) ? "colt" : "filly"), careSessions: 0, season: season ?? 1 });
   },
   breedFoal: ({ seed, sire, dam, name, coi, season }) => {
-    if (!isGenome(sire.genome) || !isGenome(dam.genome)) return { ...placeholderFallback(seed, `foal:${sire.id}:${dam.id}`, 0, name), careSessions: 0 };
-    const genome = gc.inherit(sire.genome, dam.genome, seed, { coi: coi ?? 0 });
+    const sg = genomeOf(sire.genome);
+    const dg = genomeOf(dam.genome);
+    if (!sg || !dg) return { ...placeholderFallback(seed, `foal:${sire.id}:${dam.id}`, 0, name), careSessions: 0 };
+    const genome = gc.inherit(sg, dg, seed, { coi: coi ?? 0 });
     const sex = new gc.Rng(`${seed}|sex`).chance(500) ? "colt" : "filly";
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });
   },
   houseHorse: ({ seed, index, rating, season }) => {
-    const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1 });
+    // Even breed weights so Live fields look varied (owner: "genetics aren't seen in race").
+    const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true });
     const rng = new gc.Rng(`${seed}|house|${index}`);
     return { ...specFromGenome({ genome, name: gc.clubHorseName(rng), sex: rng.chance(500) ? "colt" : "filly", careSessions: gc.CARE_TO_RACING, season: season ?? 1 }), rating };
   },
