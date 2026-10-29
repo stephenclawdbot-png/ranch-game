@@ -682,6 +682,10 @@ export const RESET_TABLES = [
   "foal_crop",
   "pack_pulls",
   "pack_pity",
+  // The USDG market follows the horses (paid usdg_orders survive, like chain_orders).
+  "usdg_bids",
+  "usdg_listings",
+  "usdg_registrations",
   "trades",
   "market_listings",
   "league_members",

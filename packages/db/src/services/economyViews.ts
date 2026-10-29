@@ -38,6 +38,7 @@ import { stableOf } from "./accounts";
 import { foal, grandparentsOf, pedigreeIndex } from "./breeding";
 import { renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
+import { isUsdgRegistered } from "./usdgMarket";
 
 export type PackPullRow = typeof packPulls.$inferSelect;
 
@@ -428,7 +429,7 @@ export async function sellerStatus(ex: Executor, input: { accountId: string; sta
   };
 }
 
-export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "in_foal" | "legacy_farm" | "resale_lock" | null;
+export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "usdg_only" | "in_foal" | "legacy_farm" | "resale_lock" | null;
 
 export interface TradeStatus {
   horseId: string;
@@ -475,6 +476,8 @@ export async function tradeStatus(
   now?: Date,
   hooks: GameHooks = defaultHooks,
   resaleIn?: { boughtAt: Date; until: Date } | null,
+  /** Registered for the USDG market (from `usdgRegisteredIds` for a whole stable); looked up when omitted. */
+  usdgRegisteredIn?: boolean,
 ): Promise<TradeStatus> {
   const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
   const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
@@ -488,6 +491,7 @@ export async function tradeStatus(
   else if (horse.careerStatus === "pasture") lock = "legacy_farm";
   else if (horse.lockKind === "race") lock = "in_race";
   else if (horse.lockKind === "market") lock = "listed";
+  else if (usdgRegisteredIn ?? (await isUsdgRegistered(ex, horse.id))) lock = "usdg_only";
   else if (carrying) lock = "in_foal";
   else if (resale) lock = "resale_lock";
   return { horseId: horse.id, lock, startsNeeded: Math.max(0, horse.tradeMinStarts - horse.starts), appraisal, floor, ceiling, boughtAt: resale?.boughtAt ?? null, resaleUntil: resale?.until ?? null };
