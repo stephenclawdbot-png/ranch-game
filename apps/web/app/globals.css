@@ -331,8 +331,9 @@ dialog.sheet :focus-visible {
   /* Selected / yours: a 4-px brass bar on the left plus a brass keyline. */
   .is-selected,
   .px-select {
-    border: 6px solid transparent !important;
-    border-image: var(--fr-selected) 3 / 6px stretch !important;
+    border: 1px solid var(--color-brass-hi) !important;
+    border-image: none !important;
+    box-shadow: inset 3px 0 0 var(--color-brass-hi) !important;
   }
   /* Pixel art sits in a well (paper-2 with a 2-px rule), never on a flat panel with no edge. */
   .well {
@@ -344,13 +345,10 @@ dialog.sheet :focus-visible {
     background: var(--color-baize-900);
     box-shadow: inset 0 0 0 2px var(--color-baize-line);
   }
-  /* Picked (a selection that isn't "yours"): an ink double keyline, never brass. */
+  /* Picked (a selection that isn't "yours"): a cream keyline on a lifted glass (v3). */
   .picked {
-    background: #fffaf0 !important;
-    box-shadow:
-      inset 0 0 0 2px var(--color-ink),
-      inset 0 0 0 4px #fffaf0,
-      inset 0 0 0 6px var(--color-ink) !important;
+    background: rgba(243, 231, 201, 0.12) !important;
+    box-shadow: inset 0 0 0 2px var(--color-on-baize) !important;
   }
   .yours {
     box-shadow: inset 4px 0 0 var(--color-brass);
@@ -1141,12 +1139,13 @@ dialog.sheet :focus-visible {
   .pip {
     width: 24px;
     height: 12px;
-    background: var(--color-paper-2);
-    box-shadow: inset 0 0 0 2px var(--color-ink-3);
+    border-radius: 3px;
+    background: rgba(243, 231, 201, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.3);
   }
   .pip.on {
     background: var(--color-brass);
-    box-shadow: inset 0 0 0 2px var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-brass-lo);
   }
   .rosette-well {
     display: grid;
@@ -1589,4 +1588,475 @@ html[data-motion="reduce"] *::after {
   summary::-webkit-details-marker {
     display: none;
   }
+}
+
+/* =============================================================================================
+ * Design system v3 (docs/redesign/REDESIGN.md §2b): "Cinematic Equestrian Prestige" in HD-2D.
+ * Unlayered on purpose: it overrides the v2 component layer above. Paper is no longer the
+ * default panel; panels are glass over the living scene, titles are a heritage serif, numbers
+ * stay pixel (Jersey). Paper survives as printed matter only (`.print`).
+ * ============================================================================================= */
+:root {
+  --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-display: var(--font-serif);
+  --glass: rgba(8, 21, 14, 0.72);
+  --glass-strong: rgba(8, 21, 14, 0.86);
+  --glass-2: rgba(243, 231, 201, 0.06);
+  --glass-line: rgba(243, 231, 201, 0.14);
+  --glass-line-2: rgba(243, 231, 201, 0.08);
+  --scrim: rgba(8, 21, 14, 0.78);
+  --brass-rule: rgba(217, 164, 65, 0.55);
+  --r-panel: 14px;
+  --r-control: 10px;
+}
+
+/* Ground: deep baize with a warm key light from the top and a vignette, fixed behind the page. */
+html {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(242, 200, 106, 0.08), transparent 60%),
+    radial-gradient(90% 70% at 50% 120%, rgba(0, 0, 0, 0.45), transparent 70%),
+    var(--color-baize-900);
+  background-attachment: fixed;
+}
+body {
+  background: transparent;
+}
+/* Ledger pages sit over their area's scene, blurred and dimmed (the world never disappears). */
+.scene-backdrop {
+  position: fixed;
+  inset: -40px;
+  z-index: -1;
+  background-size: cover;
+  background-position: center 40%;
+  image-rendering: auto;
+  filter: blur(18px) brightness(0.32) saturate(0.95);
+  pointer-events: none;
+}
+.scene-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 21, 14, 0.15), rgba(8, 21, 14, 0.65) 70%);
+}
+
+/* Material: what used to be paper is now glass, with cream roles (the baize palette). */
+.paper-scope,
+.surface,
+.surface-2,
+.panel,
+.panel-quiet,
+.px-panel,
+.px-panel-quiet,
+.card,
+.paper,
+.px-plate,
+.px-tile,
+.frame-hero,
+dialog.sheet {
+  --color-cream: #f3e7c9;
+  --color-cream-dim: #cdbf9c;
+  --color-sage: #8fa592;
+  --color-line: rgba(243, 231, 201, 0.12);
+  --color-line-strong: rgba(243, 231, 201, 0.3);
+  --color-surface-1: rgba(8, 21, 14, 0.72);
+  --color-surface-2: rgba(243, 231, 201, 0.07);
+  --color-inset: rgba(0, 0, 0, 0.22);
+  --color-positive: #9fe0a8;
+  --color-negative: #ff8a7a;
+  --color-warn: #f2c86a;
+  --color-claret: #ff8a7a;
+  --color-brass-bright: #f2c86a;
+  --color-win: #f2c86a;
+  --color-sky: #7fc3ee;
+  color: var(--color-cream);
+}
+.surface,
+.panel,
+.panel-quiet,
+.px-panel,
+.px-panel-quiet,
+.card,
+.paper,
+.px-plate,
+dialog.sheet {
+  border: 1px solid var(--glass-line);
+  border-image: none;
+  border-radius: var(--r-panel);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+.surface-2,
+.px-tile {
+  border-radius: calc(var(--r-panel) - 4px);
+  background: var(--glass-2);
+  box-shadow: inset 0 0 0 1px var(--glass-line-2);
+}
+.frame-hero {
+  border: 1px solid var(--glass-line);
+  border-image: none;
+  border-radius: var(--r-panel);
+  background:
+    linear-gradient(90deg, transparent, var(--brass-rule), transparent) top / 100% 1px no-repeat,
+    var(--glass-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+.paper-scope .inset,
+.surface .inset,
+.card .inset,
+.frame-hero .inset,
+.surface .px-inset,
+dialog.sheet .inset,
+.inset,
+.px-inset {
+  border: 0;
+  border-image: none;
+  border-radius: var(--r-control);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 0 0 1px var(--glass-line-2);
+}
+.well,
+.baize-scope .well,
+.baize-card .well {
+  border-radius: var(--r-control);
+  background: radial-gradient(120% 120% at 50% 30%, rgba(63, 133, 88, 0.22), rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 0 0 1px var(--glass-line-2);
+}
+.baize-card {
+  border-radius: var(--r-panel);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px var(--glass-line);
+}
+.yours {
+  box-shadow: inset 3px 0 0 var(--color-brass-hi);
+}
+/* Printed matter (racecards, certificates, the photo-finish card): the old paper, on purpose. */
+.print {
+  --color-cream: #1d140a;
+  --color-cream-dim: #5a4630;
+  --color-sage: #7a6548;
+  --color-line: #cbb88f;
+  --color-surface-2: #ecdfbd;
+  color: #1d140a;
+  background: var(--color-paper);
+  border-radius: var(--r-panel);
+}
+
+/* Focus: one brass ring everywhere (no more ink+brass double ring for paper). */
+.paper-scope :focus-visible,
+.surface :focus-visible,
+.card :focus-visible,
+.frame-hero :focus-visible,
+dialog.sheet :focus-visible {
+  outline: 3px solid var(--color-brass-hi);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Type: heritage serif for names and titles; Jersey numerals stay; Nunito for reading. */
+.t-display-xl,
+.t-page {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  letter-spacing: 0.005em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+@media (min-width: 768px) {
+  .t-display-xl,
+  .t-page {
+    font-size: 3.5rem;
+    line-height: 3.75rem;
+  }
+}
+.paper-scope .t-page,
+.surface .t-page,
+.frame-hero .t-page,
+.paper-scope .t-display-xl,
+.surface .t-display-xl,
+.frame-hero .t-display-xl {
+  text-shadow: none;
+}
+.t-display-hero,
+.display {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+.t-display-l,
+.t-hero {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.75rem;
+  line-height: 2rem;
+  letter-spacing: 0.005em;
+}
+.t-display-m,
+.t-h2 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+}
+@media (min-width: 768px) {
+  .t-display-l,
+  .t-hero {
+    font-size: 2rem;
+    line-height: 2.375rem;
+  }
+  .t-display-m,
+  .t-h2 {
+    font-size: 1.625rem;
+    line-height: 2rem;
+  }
+}
+.t-serif {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+.eyebrow {
+  font-weight: 800;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  color: var(--color-brass-hi);
+}
+.paper-scope .link,
+.surface .link,
+.card .link,
+.frame-hero .link {
+  color: var(--color-brass-hi);
+  text-decoration: none;
+}
+.paper-scope .link:hover,
+.surface .link:hover,
+.card .link:hover,
+.frame-hero .link:hover {
+  text-decoration: underline;
+}
+
+/* Buttons: primary brass (soft bevel, rounded), secondary glass with a cream hairline. */
+.btn {
+  border-radius: var(--r-control);
+  color: var(--color-on-baize);
+  background: rgba(243, 231, 201, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.28);
+  transition:
+    background-color 120ms ease-out,
+    transform 80ms ease-out,
+    filter 120ms ease-out;
+}
+.btn:hover:not(:disabled) {
+  background: rgba(243, 231, 201, 0.14);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.28);
+}
+.btn-brass,
+.btn-primary {
+  color: #2a1a06;
+  background: linear-gradient(180deg, #f4cf78, #d9a441 70%, #c8922f);
+  box-shadow:
+    0 2px 0 var(--color-brass-lo),
+    0 10px 26px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 246, 214, 0.65);
+  margin-bottom: 2px;
+}
+.btn-brass:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f7d88d, #e2b04f 70%, #cf9a36);
+  filter: brightness(1.03);
+}
+.btn-brass:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 var(--color-brass-lo),
+    0 6px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 246, 214, 0.5);
+}
+.btn-oxblood {
+  color: #f6ecd3;
+  background: linear-gradient(180deg, #a83232, #8e2323);
+  box-shadow: 0 2px 0 #5c1515;
+}
+.btn-outline {
+  color: var(--color-cream);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.35);
+}
+.btn-ghost {
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-brass-hi);
+}
+
+/* Inputs: dark wells with a hairline, cream text. */
+.field {
+  border-radius: var(--r-control);
+  color: var(--color-on-baize);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.22);
+}
+.field::placeholder {
+  color: var(--color-on-baize-3);
+}
+.field:focus-visible {
+  outline: 3px solid var(--color-brass-hi);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.4);
+}
+select.field option {
+  color: #1d140a;
+}
+
+/* Chips, tags, dots on glass. */
+.chip {
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+  background: rgba(243, 231, 201, 0.08);
+  box-shadow: inset 0 0 0 1px var(--glass-line-2);
+}
+.tag {
+  border-radius: 6px;
+  color: var(--color-on-baize-2);
+  background: rgba(243, 231, 201, 0.1);
+}
+.tag-ready {
+  color: var(--color-brass-hi);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px var(--brass-rule);
+}
+.tag-live {
+  background: var(--color-live);
+}
+.tag-locked {
+  color: var(--color-on-baize-3);
+  background: rgba(243, 231, 201, 0.06);
+}
+.tag-you,
+.you-tag,
+.chip-brass {
+  border-radius: 6px;
+  box-shadow: none;
+}
+.dot {
+  border-radius: 999px;
+}
+.dot-pos {
+  background: #9fe0a8;
+}
+.dot-warn {
+  background: #f2c86a;
+}
+.dot-neg {
+  background: #ff8a7a;
+}
+.dot-mute {
+  background: var(--color-on-baize-3);
+}
+.fchip {
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.22);
+}
+
+/* Rows: hairlines, not dotted paper rules. */
+.rows > * + * {
+  border-top: 1px solid var(--glass-line-2);
+}
+.row-link:hover {
+  background: rgba(243, 231, 201, 0.05);
+}
+.rule,
+.px-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-rule), transparent);
+}
+
+/* Reduced motion: everything becomes a fade or a still. */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .row-link {
+    transition: none;
+  }
+}
+
+/* Skeletons: glass shimmer, not paper. */
+.skel {
+  border-radius: 8px;
+  background: rgba(243, 231, 201, 0.07);
+  box-shadow: none;
+  animation: skel3 1.4s ease-in-out infinite;
+}
+@keyframes skel3 {
+  50% {
+    background: rgba(243, 231, 201, 0.13);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+  }
+}
+
+
+/* Navigation chrome (v3): dark glass over the world, hairlines, brass only for "you are here". */
+.topbar {
+  background: rgba(8, 21, 14, 0.8);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 1px 0 rgba(243, 231, 201, 0.08);
+}
+.subnav {
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(243, 231, 201, 0.06);
+}
+.pill {
+  border-radius: 999px;
+  padding: 0 10px 0 4px;
+  background: rgba(243, 231, 201, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(243, 231, 201, 0.12);
+}
+.avatar {
+  border-radius: 999px;
+  background: rgba(243, 231, 201, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.avatar-on,
+.avatar:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 2px var(--color-brass-hi);
+}
+.tabbar {
+  background: rgba(8, 21, 14, 0.88);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+  box-shadow: 0 -1px 0 rgba(243, 231, 201, 0.08);
+}
+.tabbar-item[aria-current="page"] {
+  color: var(--color-brass-hi);
+}
+.tabbar-item[aria-current="page"]::before {
+  left: 36%;
+  right: 36%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+}
+/* Scene band: melt into the backdrop instead of ending on a hard baize edge. */
+.scene-band::after {
+  height: 50%;
+  background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.55) 70%, rgba(8, 21, 14, 0.75) 100%);
+}
+/* Text on art always gets a scrim-strength shadow (REDESIGN §2b: text never sits bare on art). */
+.scene-band .overlay .eyebrow,
+.scene-band .overlay .t-meta {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(0, 0, 0, 0.8);
 }

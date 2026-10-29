@@ -15,6 +15,19 @@ import { DioramaSlot } from "../diorama/DioramaSlot";
 
 export type SceneName = "stable" | "barn" | "grandstand" | "paddock";
 
+/** The poster each scene's page sits over, blurred (design system v3: the world never disappears). */
+const BACKDROP: Record<SceneName, string> = {
+  stable: "/art/diorama/poster-yard.png",
+  barn: "/art/diorama/poster-barn.png",
+  grandstand: "/art/diorama/poster-grandstand.png",
+  paddock: "/art/diorama/poster-paddock.png",
+};
+
+/** Fixed, blurred, dimmed scene behind the whole page (Ledger mode). */
+export function SceneBackdrop({ scene }: { scene: SceneName }) {
+  return <div className="scene-backdrop" style={{ backgroundImage: `url(${BACKDROP[scene]})` }} aria-hidden data-testid="scene-backdrop" />;
+}
+
 /** Where to centre each scene vertically (fraction of the art height) so its subject shows. */
 const FOCUS: Record<SceneName, number> = { stable: 0.42, barn: 0.5, grandstand: 0.58, paddock: 0.55 };
 
@@ -58,6 +71,7 @@ export function SceneBand({
 }) {
   return (
     <section className={`scene-band bleed ${size === "home" ? "" : size === "crop" ? "crop" : "short"}`} data-testid={testId ?? "scene-band"}>
+      <SceneBackdrop scene={scene} />
       <div className="absolute inset-0" data-slot="diorama" data-scene={scene}>
         <DioramaSlot scene={scene} alt={alt} />
       </div>
