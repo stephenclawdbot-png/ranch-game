@@ -25,7 +25,7 @@ import {
   preferredSurface,
   runningStyle,
 } from "./genome";
-import { breedLabel } from "./geneticsSummary";
+import { BREED_LABEL, breedLabel } from "./geneticsSummary";
 import { adultCoatName } from "./coat";
 import { Rng, clampInt, seedFrom } from "./rng";
 import type { Grade } from "./types";
@@ -212,7 +212,7 @@ export interface BreedingPreview {
   /** Hidden-carrier warnings, e.g. "Both carry pearl: 25% pearl foal". */
   hidden: string[];
   /** The foal's exact breed (average of the parents) and its named-cross label. */
-  breed: { label: string; shares: { key: Breed; share: number }[] };
+  breed: { label: string; shares: { key: Breed; label: string; share: number }[] };
   distance: Partial<Record<DistanceAllele, number>>;
   surface: Partial<Record<Surface, number>>;
   style: Partial<Record<RunningStyle, number>>;
@@ -368,7 +368,7 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
 
   // The foal's breed: the exact average of the parents.
   const foalBreed = blendBreeds(sg.breed, dg.breed);
-  const breedShares = BREEDS.map((k) => ({ key: k, share: foalBreed[k] }))
+  const breedShares = BREEDS.map((k) => ({ key: k, label: BREED_LABEL[k], share: foalBreed[k] }))
     .filter((s) => s.share > 0)
     .sort((a, b) => b.share - a.share);
 

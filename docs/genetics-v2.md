@@ -321,6 +321,8 @@ a classic 3D screenshot, and the Stable band, alongside the `/dev/coats` gallery
 ## Delivery
 
 1. **G1, GLM:** genes, breeds, inheritance, upgrade, preview, summary, named crosses; no visuals.
+   Done (2026-10-29): schema v2 + upgrade-on-read, 12 breeds, 14 genes, Mendelian inheritance
+   from a separate `|g2` stream (v1 loci byte-identical), preview odds, summary lines, web rows.
 2. **G2, GLM:** size, MSTN, big heart and iron legs in phenotype and injury, plus the balance
    reports. The lead reviews the balance numbers.
 3. **G3, GLM:** breed signatures, pure-line spread, first-cross vigour, named crosses with

@@ -169,8 +169,8 @@ describe("breeding preview: exact Mendelian odds for the new loci", () => {
     const p = preview(parent({}, {}, { thoroughbred: 1000 }), parent({}, {}, { arabian: 1000 }));
     expect(p.breed.label).toBe("Anglo-Arab");
     expect(p.breed.shares).toEqual([
-      { key: "thoroughbred", share: 500 },
-      { key: "arabian", share: 500 },
+      { key: "thoroughbred", label: "Thoroughbred", share: 500 },
+      { key: "arabian", label: "Arabian", share: 500 },
     ]);
   });
 });

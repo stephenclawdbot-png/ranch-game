@@ -47,7 +47,7 @@ const FACE_LABEL: Record<FaceMarking, string> = { none: "Plain face", star: "Sta
 const LEG_LABEL: Record<LegMarking, string> = { none: "", coronet: "coronet", sock: "sock", stocking: "stocking" };
 const LEG_NAMES = ["near fore", "off fore", "near hind", "off hind"];
 
-const BREED_LABEL: Record<Breed, string> = {
+export const BREED_LABEL: Record<Breed, string> = {
   thoroughbred: "Thoroughbred",
   arabian: "Arabian",
   quarterHorse: "Quarter Horse",

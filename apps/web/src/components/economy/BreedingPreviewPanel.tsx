@@ -2,7 +2,7 @@
 /**
  * The breeding preview: the exact odds of a pairing, before the player commits (game-design
  * §7). Overall first (range, ranking, nick), then the depth: stat ranges, coat colours,
- * aptitudes, inbreeding and mutation, fees.
+ * new-gene traits, the foal's breed, hidden carriers, aptitudes, inbreeding and fees.
  */
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
@@ -62,6 +62,9 @@ const LABEL: Record<string, string> = {
   early: "Early peaker",
   normal: "Normal",
   late: "Late peaker",
+  sprinter: "Sprinter (C/C)",
+  miler: "Miler (C/T)",
+  stayer: "Stayer (T/T)",
 };
 const entries = (o: Partial<Record<string, number>>) => Object.entries(o).map(([k, v]) => ({ label: LABEL[k] ?? k, permille: v ?? 0 }));
 
@@ -169,6 +172,29 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
         <OddsBars title="Surface" items={entries(p.surface)} />
         <OddsBars title="Running style" items={entries(p.style)} />
         <OddsBars title="Maturity" items={entries(p.maturity)} />
+        <OddsBars title="Visible traits" items={p.traits.map((t) => ({ label: t.name, permille: t.permille }))} />
+        <OddsBars title="Speed gene (MSTN)" items={entries(p.mstn)} />
+      </div>
+
+      {/* The foal's exact breed and anything a foal could carry unseen. */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="inset grid content-start gap-1 p-3" data-testid="preview-breed">
+          <h4 className="label">Foal's breed</h4>
+          <span className="font-extrabold text-cream">{p.breed.label}</span>
+          <span className="caption">
+            {p.breed.shares.map((s) => `${(s.share / 10).toFixed(s.share % 10 ? 1 : 0)}% ${s.label}`).join(" · ")}
+          </span>
+        </div>
+        {p.hidden.length > 0 && (
+          <div className="inset grid content-start gap-1 p-3" data-testid="preview-hidden">
+            <h4 className="label">Hidden genes</h4>
+            <ul className="grid gap-0.5 text-sm">
+              {p.hidden.map((h) => (
+                <li key={h}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Fees. */}
