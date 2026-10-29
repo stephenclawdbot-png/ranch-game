@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
 import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
+import { perfReport, type PerfReport } from "./perfReport";
 import { replayTiming } from "./sampleReplay";
 import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
 import { pipRect, type CameraMode, type QualitySetting, type RenderQuality, type ViewMode } from "./types";
@@ -45,6 +46,11 @@ export interface RaceViewerProps {
   highlightHorseId?: string;
   /** Called once when playback first reaches the end of the race. */
   onFinished?: () => void;
+  /**
+   * Real-device frame timings, at most once per mounted viewer: after 20 s of playback
+   * with ≥ 300 frames, or on unmount if ≥ 150 frames were drawn. Never depends on `debug`.
+   */
+  onPerfReport?: (r: PerfReport) => void;
   className?: string;
   /** Stage height in px. Default: responsive 16:9, at least 320px. */
   height?: number;
@@ -170,6 +176,7 @@ export function RaceViewer(props: RaceViewerProps) {
     autoplay = true,
     highlightHorseId,
     onFinished,
+    onPerfReport,
     className,
     height,
     quality = "auto",
@@ -225,6 +232,13 @@ export function RaceViewer(props: RaceViewerProps) {
   const qualityRef = useRef<RenderQuality>("high");
   const frameFlags = useRef({ frozen: false, slowmo: false });
   const narrowRef = useRef(false);
+  const viewRef = useRef<ViewMode | null>(props.view ?? null);
+  viewRef.current = view;
+  const onPerfReportRef = useRef(onPerfReport);
+  onPerfReportRef.current = onPerfReport;
+  // Perf samples live across scene rebuilds (view switch, art change): one report per mount.
+  const downgradedRef = useRef(false);
+  const perfRef = useRef({ ft: new Float32Array(240), n: 0, playedMs: 0, reported: false });
   const duration = useMemo(() => (final ? replayTiming(final).duration : 0), [final]);
 
   useEffect(() => injectViewerCss(), []);
@@ -287,6 +301,15 @@ export function RaceViewer(props: RaceViewerProps) {
       commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), narrowRef.current ? 3.5 : 6, 1)[0] ?? null) : null,
     });
   }, [live, highlightHorseId]);
+
+  /** Sends the perf report once (20 s in, or on unmount); only the send allocates. */
+  const sendPerfReport = useCallback(() => {
+    const perf = perfRef.current;
+    const cb = onPerfReportRef.current;
+    if (perf.reported || !cb || perf.n === 0) return;
+    perf.reported = true;
+    cb(perfReport(perf.ft.subarray(0, Math.min(perf.n, perf.ft.length)), qualityRef.current, downgradedRef.current, viewRef.current ?? "trackside"));
+  }, []);
 
   // Three.js HD-2D scene. StrictMode-safe: the async init checks `disposed` after every await.
   useEffect(() => {
@@ -360,12 +383,11 @@ export function RaceViewer(props: RaceViewerProps) {
       let dtSum = 0;
       let warm = 0;
       let slowFrames = 0;
-      // Frame-time monitor (debug): rolling window of frame intervals.
-      const ft = new Float32Array(240);
+      // Frame-time monitor: rolling window of frame intervals (shared with the perf report).
+      const perf = perfRef.current;
       const wk = new Float32Array(2000);
       let wkN = 0;
       const spikes: string[] = [];
-      let ftN = 0;
       let ftMax = 0;
       let raf = 0;
       let last = performance.now();
@@ -411,25 +433,29 @@ export function RaceViewer(props: RaceViewerProps) {
         frames++;
         workMs += work;
         dtSum += deltaMS;
-        ft[ftN++ % ft.length] = deltaMS;
+        perf.ft[perf.n++ % perf.ft.length] = deltaMS;
         wk[wkN++ % wk.length] = work;
         if (debug && work > 8 && spikes.length < 30) spikes.push(`${fr.time.toFixed(1)}s:${work.toFixed(0)}ms`);
-        if (ftN > 30) ftMax = Math.max(ftMax, deltaMS);
+        if (perf.n > 30) ftMax = Math.max(ftMax, deltaMS);
         warm += dt;
         if (quality === "auto" && qualityRef.current === "high" && warm > 2) {
           slowFrames = deltaMS > 25 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
           if (slowFrames > 90) {
             qualityRef.current = "low";
+            downgradedRef.current = true;
             sc.setQuality("low");
           }
         }
+        // Real-device perf report: once, after 20 s of playback with enough frames.
+        if (clock.playing || clock.live) perf.playedMs += deltaMS;
+        if (!perf.reported && perf.playedMs >= 20_000 && perf.n >= 300) sendPerfReport();
         dbgAcc += dt;
         if (debug && dbgAcc >= 0.5) {
           const cam = sc.cameraInfo;
-          const win = Array.from(ft.subarray(0, Math.min(ftN, ft.length))).sort((a, b) => a - b);
+          const win = Array.from(perf.ft.subarray(0, Math.min(perf.n, perf.ft.length))).sort((a, b) => a - b);
           const median = win[win.length >> 1] ?? 0;
           const p99 = win[Math.floor(win.length * 0.99)] ?? 0;
-          (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: ftN, camMaxStep: sc.maxCamStep, ...(() => {
+          (window as unknown as { __rvFrameStats?: unknown }).__rvFrameStats = { median, p99, max: ftMax, frames: perf.n, camMaxStep: sc.maxCamStep, ...(() => {
             const w = Array.from(wk.subarray(0, Math.min(wkN, wk.length))).sort((a, b) => a - b);
             return { workMedian: w[w.length >> 1] ?? 0, workP99: w[Math.floor(w.length * 0.99)] ?? 0, workMax: w[w.length - 1] ?? 0, over2x: w.filter((x) => x > 2 * (w[w.length >> 1] ?? 0)).length, spikes };
           })() };
@@ -477,6 +503,9 @@ export function RaceViewer(props: RaceViewerProps) {
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view]);
+
+  // Unmount: send a report for viewers that left before the 20 s mark (>= 150 frames drawn).
+  useEffect(() => () => sendPerfReport(), [sendPerfReport]);
 
   // (Live feed updates need no subscription here: the render loop reads the growing
   // frames/events/liveEdgeFrame directly every frame and polls for `final`.)

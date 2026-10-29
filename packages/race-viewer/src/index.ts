@@ -6,6 +6,7 @@
  */
 export { RaceViewer, type RaceViewerProps } from "./RaceViewer";
 export type { CameraMode, QualitySetting, RenderQuality, ViewMode } from "./types";
+export { perfReport, type PerfReport } from "./perfReport";
 export { sampleReplay, createReplaySampler, replayTiming, type HorseSample, type ReplaySampler, type ReplayTiming } from "./sampleReplay";
 export { standingsAt, distanceToGoM, commentaryAt, lengthsLabel, type StandingRow } from "./timeline";
 export { PlaybackClock, PLAYBACK_RATES, type ClockFrame, type PlaybackOptions } from "./playback";
