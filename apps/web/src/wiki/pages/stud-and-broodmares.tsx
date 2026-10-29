@@ -64,7 +64,8 @@ export default function StudAndBroodmaresPage() {
           </>,
           <>A stallion of yours can also stand at public stud for other stables at a fee you set. Each visiting mare uses one of his breedings.</>,
           <>
-            Once a horse has used all {gc.BREEDINGS_LIFETIME} breedings its breeding days are over. Retire it for good to the <WikiLink slug="legacy-farm">Legacy Farm</WikiLink> to free its stall.
+            Once a horse has used all {gc.BREEDINGS_LIFETIME} breedings it retires for good to the <WikiLink slug="legacy-farm">Legacy Farm</WikiLink> on its own, freeing its stall: a
+            stallion straight after his last covering, a mare once her last foal is born. You get a note in your inbox.
           </>,
         ]}
       />

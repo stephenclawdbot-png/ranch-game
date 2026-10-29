@@ -89,7 +89,7 @@ export default function HallAndTrophiesPage() {
       <Table
         head={["Honour", "Earned by"]}
         rows={[
-          [CATEGORY.champion, `${t.champG1} top-level wins, or 1 top-level win and ${t.champGradedWithOne} Group wins. Top level: a Group Feature or a Season Final.`],
+          [CATEGORY.champion, `${t.champG1} top-level wins, or 1 top-level win and ${t.champGradedWithOne} Group wins. Top level (Group 1): the Weekend Feature or a Season Final.`],
           [CATEGORY.season_winner, t.finals === 1 ? "Winning a Season Final." : `Winning ${t.finals} Season Finals.`],
           [CATEGORY.record_time, t.records === 1 ? "Holding a record time." : `Holding ${t.records} record times.`],
           [CATEGORY.great_racehorse, `A peak rating of ${t.peak} or more, or ${t.wins} wins from at least ${t.startsNeeded} starts.`],

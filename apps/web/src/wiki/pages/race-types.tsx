@@ -126,7 +126,8 @@ export default function RaceTypesPage() {
       <P>
         <b>Maidens</b> are for horses that have never won. <b>Novices</b> are for horses with only a couple of wins. <b>Handicaps</b> are grouped by official rating into overlapping bands, so
         a horse on the edge of two bands can choose. <b>Listed</b> and <b>Group</b> races are the top level. Your horse&rsquo;s rating decides which bands it may run in: see{" "}
-        <WikiLink slug="ratings-and-form" />. Juveniles (up to {gc.JUVENILE_MAX_STARTS} starts) can run Maidens and Novices but not Handicaps or above yet.
+        <WikiLink slug="ratings-and-form" />. Each race&rsquo;s own conditions (wins, rating band) decide who may run; the entry sheet shows the
+        reason when a horse can&rsquo;t.
       </P>
       <P>
         Some classes also need a <b>licence</b>. You start with the {gc.licenceDef(1).name}; each Story chapter you complete earns the next one.
@@ -157,6 +158,11 @@ export default function RaceTypesPage() {
         Each week&rsquo;s Feature has a distance division (sprint, mile, middle or staying), and the Season Final runs one championship for each of the {gc.DIVISIONS.length} divisions. More on
         the season in <WikiLink slug="league" />.
       </P>
+      <Callout tone="rule" title="Qualifying for the Weekend Feature">
+        <p>
+          A horse needs a top-3 finish in one of that week&rsquo;s Feature Qualifiers, or an official rating of 100 or more. The entry sheet tells you if a horse hasn&rsquo;t qualified.
+        </p>
+      </Callout>
 
       <H2 id="quick">Quick races and Story chapters</H2>
       <P>
