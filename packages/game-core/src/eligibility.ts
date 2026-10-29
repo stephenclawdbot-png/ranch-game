@@ -3,10 +3,12 @@
  *
  * Maiden → Novice → Handicap bands (0–55, 50–75, 70–95) → Listed → Graded (G3, G2, G1).
  * Juveniles (0–6 starts) run in trials, maidens, novices, quick races and the Daily Cup.
- * Overlapping handicap bands let a horse on the boundary choose.
+ * Overlapping handicap bands let a horse on the boundary choose. Max checks use the horse's
+ * peak and ability floor (bandRating), so a horse can't drop a band by losing on purpose.
  */
 import type { RaceClass } from "@thoroughbred/shared";
 import type { HorseState, RaceSlot, RaceTier } from "./types";
+import { abilityMark } from "./ability";
 import { CARE_TO_YEARLING, raceBlock, stageOf } from "./lifecycle";
 import { ENTRY_CLOSE_BEFORE_MS } from "./seasons";
 
@@ -51,6 +53,37 @@ export function classBand(or: number): RaceTier {
   if (or >= 70) return "hcp_70_95";
   if (or >= 50) return "hcp_50_75";
   return "hcp_0_55";
+}
+
+/**
+ * No sandbagging: the max-band checks use the horse's peak, not just today's OR (losing on
+ * purpose can drop OR by 7 a race, but the band only follows PEAK_DROP below the peak; bands
+ * overlap by 5, so that is at most one band), floored by the ability mark (strong newcomers
+ * settle above the bands they could farm). Min checks keep the current OR.
+ */
+export const PEAK_DROP = 10;
+export const ABILITY_MARGIN = 15;
+
+/** Which term of the band rating binds: today's OR, the peak, or the ability floor. */
+export type BandSource = "or" | "peak" | "ability";
+
+export interface BandCheck {
+  /** The rating a max-band check uses. */
+  rating: number;
+  source: BandSource;
+}
+
+/** The band check with the guards, keeping the binding term for the entry-sheet copy. */
+export function bandCheck(rating: { or: number; peakOr: number }, ability = 0): BandCheck {
+  const peak = rating.peakOr - PEAK_DROP;
+  const floor = ability - ABILITY_MARGIN;
+  const top = Math.max(rating.or, peak, floor);
+  return { rating: top, source: top === floor && floor > rating.or && floor > peak ? "ability" : top === peak && peak > rating.or ? "peak" : "or" };
+}
+
+/** The rating a max-band check uses: today's OR, never far below the peak or the settled ability. */
+export function bandRating(rating: { or: number; peakOr: number }, ability = 0): number {
+  return bandCheck(rating, ability).rating;
 }
 
 export type EligibilityBlock =
@@ -105,7 +138,7 @@ export function entryBlock(state: HorseState, slot: RaceSlot, nowMs: number, ent
   if (stage === "juvenile" && !rule.juvenileOk) return "juvenile_class";
   if (rule.maxWins !== null && state.record.wins > rule.maxWins) return "too_many_wins";
   if (state.rating.or < rule.minOr) return "rating_too_low";
-  if (state.rating.or > rule.maxOr) return "rating_too_high";
+  if (bandRating(state.rating, abilityMark(state)) > rule.maxOr) return "rating_too_high";
   return null;
 }
 
