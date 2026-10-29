@@ -163,7 +163,20 @@ export function SiteNav() {
               );
             })}
           </nav>
-          <div className="ml-auto flex items-center">{right}</div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Link
+              href="/wiki"
+              className={`pill ${pathname.startsWith("/wiki") ? "pill-on" : ""}`}
+              aria-label="Wiki: how the game works"
+              aria-current={pathname.startsWith("/wiki") ? "page" : undefined}
+              title="Wiki: how the game works"
+              data-testid="nav-wiki"
+            >
+              <PixelIcon name="papers" size={32} />
+              <span className="pr-1 font-extrabold max-sm:hidden">Wiki</span>
+            </Link>
+            {right}
+          </div>
         </div>
         {sub && (
           <nav aria-label={`${sub.section.label} sections`} className="subnav" data-testid="sub-nav">
