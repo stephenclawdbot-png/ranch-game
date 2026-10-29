@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Game UI directions</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Pixelify+Sans:wght@500;700&family=Teko:wght@500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;1,700;1,800&family=Lilita+One&family=Nunito:wght@600;700;800&family=Fredoka:wght@600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08150e;color:#f3e7c9;font-family:Nunito,sans-serif;padding:24px}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.col{border-radius:14px;overflow:hidden;background:#0f2a1d;border:1px solid #2c6645}
+.scene{height:170px;background:url(../../../apps/web/public/art/diorama/poster-yard.png) center 62%/cover;image-rendering:pixelated;position:relative}
+.scene .plq{position:absolute;left:50%;top:40px;transform:translateX(-50%)}
+.body{padding:16px;display:grid;gap:14px}
+.lab{font:800 11px Nunito;letter-spacing:.16em;color:#8fa592;text-transform:uppercase}
+.px{image-rendering:pixelated}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tile{display:grid;justify-items:center;gap:2px;padding:8px 10px;min-width:74px}
+.tile .v{font:28px 'Jersey 10';line-height:1}
+.tile .k{font:800 10px Nunito;letter-spacing:.12em;text-transform:uppercase;color:#8fa592}
+.card{padding:12px;display:flex;gap:12px;align-items:center}
+.card img.p{width:64px;height:64px}
+/* ---------- A: Pixel arcade ---------- */
+.a .title{font:700 34px 'Pixelify Sans';line-height:1;color:#f3e7c9;text-shadow:0 3px 0 #050d08}
+.a .name{font:44px 'Jersey 10';line-height:.9;color:#f2c86a;text-shadow:0 3px 0 #050d08,0 0 0 #000}
+.a .btn{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 16px;font:700 18px 'Pixelify Sans';color:#1d140a;background:#d9a441;box-shadow:inset 0 0 0 3px #1d140a,inset 0 6px 0 3px #f2c86a,inset 0 -6px 0 3px #9a6b22,0 5px 0 #1d140a}
+.a .btn2{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 14px;font:700 16px 'Pixelify Sans';color:#f3e7c9;background:#2b6a41;box-shadow:inset 0 0 0 3px #1d140a,inset 0 4px 0 3px #3f8a58,0 4px 0 #1d140a}
+.a .panel{background:#f6ecd3;color:#1d140a;box-shadow:inset 0 0 0 3px #1d140a,0 5px 0 rgba(0,0,0,.5)}
+.a .tile{background:#163a28;box-shadow:inset 0 0 0 3px #050d08,inset 0 3px 0 3px #1d4a33}
+.a .plq{font:700 15px 'Pixelify Sans';padding:4px 10px;background:#0f2a1d;color:#f3e7c9;box-shadow:inset 0 0 0 2px #050d08,inset 0 2px 0 2px #1d4a33,0 3px 0 #050d08;display:flex;gap:6px;align-items:center}
+/* ---------- B: Racing broadcast ---------- */
+.b .title{font:italic 800 36px 'Barlow Condensed';text-transform:uppercase;line-height:1;letter-spacing:.01em;color:#fff;text-shadow:0 2px 0 #000}
+.b .name{font:700 50px Teko;line-height:.85;text-transform:uppercase;color:#f2c86a;letter-spacing:.02em}
+.b .btn{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;font:italic 800 19px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.04em;color:#1d140a;background:linear-gradient(#f6d37f,#d9a441 60%,#b8862b);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);box-shadow:inset 0 -4px 0 #8a5d14}
+.b .btn2{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;font:italic 700 17px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:#1f4d35;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);box-shadow:inset 0 -3px 0 #0b1f15}
+.b .panel{background:linear-gradient(90deg,#0b1f15,#123524);border-left:4px solid #e5483a}
+.b .tile{background:#0b1f15;border-top:3px solid #f2c86a}
+.b .tile .v{font:700 32px Teko}
+.b .plq{font:italic 800 15px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.06em;padding:5px 14px;background:#e5483a;color:#fff;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);display:flex;gap:6px;align-items:center}
+/* ---------- C: Cozy stable game ---------- */
+.c .title{font:36px 'Lilita One';line-height:1;color:#fff;-webkit-text-stroke:2px #1d140a;paint-order:stroke fill;text-shadow:0 4px 0 #1d140a}
+.c .name{font:46px 'Lilita One';line-height:1;color:#f2c86a;-webkit-text-stroke:3px #1d140a;paint-order:stroke fill;text-shadow:0 4px 0 #1d140a}
+.c .btn{display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 20px;font:20px 'Lilita One';color:#fff;-webkit-text-stroke:1.5px #6b4a12;paint-order:stroke fill;border-radius:14px;background:linear-gradient(#ffd77a,#f0b23e 55%,#d9922a);box-shadow:inset 0 2px 0 #fff2c4,inset 0 0 0 2px #7a5212,0 6px 0 #7a5212,0 9px 14px rgba(0,0,0,.4)}
+.c .btn2{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;font:18px 'Lilita One';color:#fff;-webkit-text-stroke:1.2px #123a24;paint-order:stroke fill;border-radius:12px;background:linear-gradient(#5cc07a,#3f8a58);box-shadow:inset 0 2px 0 #b6f0c6,inset 0 0 0 2px #123a24,0 5px 0 #123a24}
+.c .panel{background:#f6ecd3;color:#1d140a;border-radius:16px;box-shadow:inset 0 0 0 3px #5a4630,0 6px 0 #3a2a1a}
+.c .tile{background:#fff6dd;color:#1d140a;border-radius:12px;box-shadow:inset 0 0 0 2px #5a4630,0 4px 0 #3a2a1a}
+.c .tile .k{color:#7a6548}
+.c .plq{font:15px 'Lilita One';padding:4px 12px;border-radius:10px;background:#fff6dd;color:#1d140a;box-shadow:inset 0 0 0 2px #5a4630,0 3px 0 #3a2a1a;display:flex;gap:6px;align-items:center}
+h2.dir{font:800 13px Nunito;letter-spacing:.14em;text-transform:uppercase;color:#f2c86a;padding:12px 16px 0}
+p.why{font:600 13px Nunito;color:#cdbf9c;padding:4px 16px 0;line-height:1.4}
+</style></head><body><div class="board">
+<div class="col a"><h2 class="dir">A · Pixel arcade</h2><p class="why">Pixel display type, ink-outlined bevel buttons. Matches the art 1:1 (classic HD-2D / Stardew-like).</p>
+<div class="body">
+ <div class="scene"><span class="plq"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="20">Racecourse</span></div>
+ <div class="title">Good morning, trainer</div>
+ <div class="card panel"><img class="p px" src="../../../apps/web/public/art/portraits/horse-dapple_grey.png"><div><div class="lab" style="color:inherit;opacity:.7">Ready to race</div><div class="name">Silver Feather</div></div></div>
+ <div class="row"><div class="tile"><span class="v">92</span><span class="k">Fresh</span></div><div class="tile"><span class="v">58</span><span class="k">Rating</span></div><div class="tile"><span class="v">2-1-4</span><span class="k">Form</span></div></div>
+ <div class="row"><span class="btn"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="24">Race now</span><span class="btn2"><img class="px" src="../../../apps/web/public/art/ui/icon-stopwatch.png" width="22">Train</span></div>
+ <div class="row"><img class="px" src="../../../apps/web/public/art/ui/icon-trophy.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-rosette.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-horseshoe.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-saddle.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-coin.png" width="32"><span class="lab">same pixel icon set, all three</span></div>
+</div></div>
+<div class="col b"><h2 class="dir">B · Racing broadcast</h2><p class="why">Condensed italic sports type, slanted buttons, TV-graphics tiles. Feels like a race-day broadcast.</p>
+<div class="body">
+ <div class="scene"><span class="plq"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="20">Racecourse</span></div>
+ <div class="title">Good morning, trainer</div>
+ <div class="card panel"><img class="p px" src="../../../apps/web/public/art/portraits/horse-dapple_grey.png"><div><div class="lab" style="color:inherit;opacity:.7">Ready to race</div><div class="name">Silver Feather</div></div></div>
+ <div class="row"><div class="tile"><span class="v">92</span><span class="k">Fresh</span></div><div class="tile"><span class="v">58</span><span class="k">Rating</span></div><div class="tile"><span class="v">2-1-4</span><span class="k">Form</span></div></div>
+ <div class="row"><span class="btn"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="24">Race now</span><span class="btn2"><img class="px" src="../../../apps/web/public/art/ui/icon-stopwatch.png" width="22">Train</span></div>
+ <div class="row"><img class="px" src="../../../apps/web/public/art/ui/icon-trophy.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-rosette.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-horseshoe.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-saddle.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-coin.png" width="32"><span class="lab">same pixel icon set, all three</span></div>
+</div></div>
+<div class="col c"><h2 class="dir">C · Cozy stable game</h2><p class="why">Chunky rounded type with outlines, candy 3D buttons. Feels like a friendly mobile game (Rival Stars / Supercell-ish).</p>
+<div class="body">
+ <div class="scene"><span class="plq"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="20">Racecourse</span></div>
+ <div class="title">Good morning, trainer</div>
+ <div class="card panel"><img class="p px" src="../../../apps/web/public/art/portraits/horse-dapple_grey.png"><div><div class="lab" style="color:inherit;opacity:.7">Ready to race</div><div class="name">Silver Feather</div></div></div>
+ <div class="row"><div class="tile"><span class="v">92</span><span class="k">Fresh</span></div><div class="tile"><span class="v">58</span><span class="k">Rating</span></div><div class="tile"><span class="v">2-1-4</span><span class="k">Form</span></div></div>
+ <div class="row"><span class="btn"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="24">Race now</span><span class="btn2"><img class="px" src="../../../apps/web/public/art/ui/icon-stopwatch.png" width="22">Train</span></div>
+ <div class="row"><img class="px" src="../../../apps/web/public/art/ui/icon-trophy.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-rosette.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-horseshoe.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-saddle.png" width="32"><img class="px" src="../../../apps/web/public/art/ui/icon-coin.png" width="32"><span class="lab">same pixel icon set, all three</span></div>
+</div></div>
+</div></body></html>
