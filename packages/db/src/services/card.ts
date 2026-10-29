@@ -120,6 +120,49 @@ export function specialSlotAt(index: number): gc.RaceSlot | null {
   return bySlot.get(index) ?? null;
 }
 
+/** The Saturday Plate runs this many slots after the Weekend Feature (30 minutes). */
+export const PLATE_AFTER_SLOTS = 2;
+
+/**
+ * The Saturday Plate (beta loop, from the research: Umamusume's Final B, Hattrick's lucky
+ * losers): a Listed consolation race after the Weekend Feature for horses that ran in that
+ * week's Feature Qualifiers but did not qualify. Returns the Weekend Feature it follows.
+ */
+export function plateSlotAt(index: number): gc.RaceSlot | null {
+  const wf = specialSlotAt(index - PLATE_AFTER_SLOTS);
+  return wf && wf.kind === "weekend_feature" && !specialSlotAt(index) ? wf : null;
+}
+
+/** A calendar race (special or Plate) takes over this slot. */
+const isCalendarSlot = (index: number) => specialSlotAt(index) !== null || plateSlotAt(index) !== null;
+
+function plateCardSlot(index: number, wf: gc.RaceSlot): CreateRaceInput {
+  const postTime = slotPostTime(index);
+  const track = "Ashcombe";
+  const division = wf.division ?? "mile";
+  return {
+    kind: "scheduled",
+    name: `${track} Saturday Plate (${division})`,
+    raceClass: "listed",
+    conditions: {
+      distanceM: wf.distanceM,
+      surface: wf.surface,
+      going: wf.surface === "synthetic" ? "good" : wf.goingForecast,
+      weather: wf.weather,
+      track,
+      calendar: { id: `${wf.id}-plate`, kind: "weekend_plate", division: wf.division },
+    },
+    postTime,
+    entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
+    purse: CALENDAR_PURSE.feature_qualifier,
+    entryFee: cardEntryFee("listed"),
+    maxRunners: RULES.maxField,
+    targetRunners: RULES.maxField,
+    seasonNumber: wf.season,
+    slotKey: `live:${index}`,
+  };
+}
+
 function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
   const postTime = slotPostTime(index);
   const final = sp.kind === "season_final";
@@ -165,6 +208,8 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
 export function defaultCardSlot(index: number): CreateRaceInput {
   const sp = specialSlotAt(index);
   if (sp) return specialCardSlot(index, sp);
+  const plate = plateSlotAt(index);
+  if (plate) return plateCardSlot(index, plate);
   const h = createHash("sha256").update(`card-slot:${index}`).digest();
   let byte = 0;
   const pick = <T>(xs: readonly T[]): T => xs[h[byte++]! % xs.length]!;
@@ -221,7 +266,7 @@ export function defaultCardSlot(index: number): CreateRaceInput {
 const cyclePos = (index: number) => ((index % CARD_CYCLE_SLOTS) + CARD_CYCLE_SLOTS) % CARD_CYCLE_SLOTS;
 const isJuvenileSlot = (index: number) => JUVENILE_ORDINAL[cyclePos(index)]! >= 0;
 /** An ordinary (non-juvenile, non-Feature, non-calendar) slot: one that can carry a displaced juvenile race. */
-const isCarrierSlot = (index: number) => !isJuvenileSlot(index) && CYCLE[cyclePos(index)] !== "feature" && !specialSlotAt(index);
+const isCarrierSlot = (index: number) => !isJuvenileSlot(index) && CYCLE[cyclePos(index)] !== "feature" && !isCalendarSlot(index);
 /** How far back a displaced juvenile race can be (calendar races cluster within 7 slots on Season Final day). */
 const CARRY_LOOKBACK = 16;
 
@@ -235,7 +280,7 @@ function carriedJuvenile(index: number): number | null {
   if (!isCarrierSlot(index)) return null;
   const queue: number[] = [];
   for (let t = index - CARRY_LOOKBACK; t <= index; t++) {
-    if (specialSlotAt(t)) {
+    if (isCalendarSlot(t)) {
       if (isJuvenileSlot(t)) queue.push(t);
     } else if (isCarrierSlot(t) && queue.length) {
       const carried = queue.shift()!;

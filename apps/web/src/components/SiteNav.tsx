@@ -34,8 +34,9 @@ export const SECTIONS: Section[] = [
     href: "/races",
     label: "Racing",
     icon: "flag",
-    match: (p) => starts(p, "/races", "/race", "/story"),
+    match: (p) => starts(p, "/races", "/race", "/story", "/week"),
     sub: [
+      { href: "/week", label: "This week" },
       { href: "/races", label: "Race card" },
       { href: "/story", label: "Story" },
     ],

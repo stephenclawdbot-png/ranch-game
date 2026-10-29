@@ -208,6 +208,17 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} />}
       </EstateStage>
 
+      <Link href="/week" className="surface mt-4 flex items-center justify-between gap-3 p-4" data-testid="home-week">
+        <span className="flex items-center gap-3">
+          <PixelIcon name="trophy" size={32} />
+          <span>
+            <span className="t-title block">Road to Saturday</span>
+            <span className="caption block">This week&rsquo;s Feature, your Qualifiers and the League line</span>
+          </span>
+        </span>
+        <span className="btn btn-sm">This week</span>
+      </Link>
+
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
 
       <DailyGoalsCard goals={state.goals ?? []} />

@@ -78,15 +78,22 @@ export interface LeagueMove {
   outcome: "promoted" | "relegated" | "stayed";
 }
 
+/** The lowest tier that relegates: Bronze and Silver have floors so new stables learn without dropping (research: TFT/Hearthstone floors). */
+export const RELEGATION_FROM_TIER: LeagueTier = "gold";
+/** A week's League score counts only a stable's best this many runs: a bad race never hurts, volume helps little. */
+export const BEST_RUNS_COUNTED = 20;
+
 /**
- * End-of-week moves: top 5 (with points) go up, bottom 5 among those who raced go down.
- * Owners with 0 points never move down: being away is never punished.
+ * End-of-week moves: top 5 (with points) go up, bottom 5 among those who raced go down, from
+ * Gold upwards only (Bronze and Silver are floors). Owners with 0 points never move down:
+ * being away is never punished.
  */
 export function settleLeague(league: League): LeagueMove[] {
   const t = LEAGUE_TIERS.indexOf(league.tier);
   const table = standings(league);
   const active = table.filter((m) => m.points > 0);
-  const relegated = new Set(t > 0 && active.length > PROMOTE + RELEGATE ? active.slice(-RELEGATE).map((m) => m.ownerId) : []);
+  const floor = t < LEAGUE_TIERS.indexOf(RELEGATION_FROM_TIER);
+  const relegated = new Set(!floor && active.length > PROMOTE + RELEGATE ? active.slice(-RELEGATE).map((m) => m.ownerId) : []);
   return table.map((m, i) => {
     const promote = i < PROMOTE && m.points > 0 && t < LEAGUE_TIERS.length - 1;
     const down = relegated.has(m.ownerId);

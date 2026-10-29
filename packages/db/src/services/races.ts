@@ -186,11 +186,12 @@ const FEATURE_QUALIFYING_WINDOW_MS = 7 * 86_400_000;
 
 /**
  * Weekend Feature places (game-core featureQualified): a top-3 finish in a Feature Qualifier in
- * the week before the race, or an official rating of 100+ by right. Other races: no check.
+ * the week before the race, or an official rating of 100+ by right. The Saturday Plate takes the
+ * horses that ran in a qualifier that week but did not qualify. Other races: no check.
  */
 export async function featureQualificationReason(ex: Executor, h: HorseRow, race: Pick<RaceRow, "postTime" | "conditions">): Promise<string | null> {
   const cal = ((race.conditions ?? {}) as RaceConditions).calendar as { kind?: string } | undefined;
-  if (cal?.kind !== "weekend_feature") return null;
+  if (cal?.kind !== "weekend_feature" && cal?.kind !== "weekend_plate") return null;
   const rows = await ex
     .select({ position: raceEntries.finishPosition })
     .from(raceEntries)
@@ -204,7 +205,40 @@ export async function featureQualificationReason(ex: Executor, h: HorseRow, race
       ),
     );
   const finishes = rows.map((r) => r.position).filter((p): p is number => p !== null);
-  return gc.featureQualified(finishes, h.rating) ? null : "the Weekend Feature needs a top-3 finish in this week's Feature Qualifiers (or a rating of 100+)";
+  const qualified = gc.featureQualified(finishes, h.rating);
+  if (cal.kind === "weekend_plate") {
+    // the Plate is the consolation race: for horses that tried this week and missed the Feature
+    if (!finishes.length) return "the Saturday Plate is for horses that ran in this week's Feature Qualifiers";
+    return qualified ? "this horse qualified for the Weekend Feature: run it there" : null;
+  }
+  return qualified ? null : "the Weekend Feature needs a top-3 finish in this week's Feature Qualifiers (or a rating of 100+)";
+}
+
+export interface CalendarRun {
+  horseId: string;
+  raceId: string;
+  kind: string;
+  postTime: Date;
+  /** Null until the race has settled. */
+  position: number | null;
+}
+
+/** A stable's runs in calendar races (Feature Qualifiers, Weekend Feature, Plate, Finals) in [from, to). */
+export async function stableCalendarRuns(ex: Executor, stableId: string, from: Date, to: Date): Promise<CalendarRun[]> {
+  const rows = await ex
+    .select({ horseId: raceEntries.horseId, raceId: races.id, kind: sql<string>`${races.conditions}->'calendar'->>'kind'`, postTime: races.postTime, position: raceEntries.finishPosition })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(
+      and(
+        eq(raceEntries.stableId, stableId),
+        eq(raceEntries.status, "entered"),
+        sql`${races.conditions}->'calendar'->>'kind' is not null`,
+        gte(races.postTime, from),
+        lt(races.postTime, to),
+      ),
+    );
+  return rows.map((r) => ({ ...r, horseId: r.horseId! }));
 }
 
 // ---------------------------------------------------------------------------

@@ -268,3 +268,33 @@ export interface StoryRaceCreated {
   raceKey: string;
   pick?: { horseId: string; horseName: string; reason: string };
 }
+
+/** Road to Saturday: the week's target race, how to get in, and where the stable stands. */
+export interface WeekView {
+  serverNowMs: number;
+  weekStartMs: number;
+  /** This week's Weekend Feature (null in a Season Final week). */
+  feature: { name: string; postTimeMs: number; distanceM: number; surface: string; going: string; division: string | null; purse: number; entryFee: number } | null;
+  /** The Saturday Plate after it, for horses that tried and missed. */
+  plate: { postTimeMs: number; purse: number } | null;
+  /** The Season Final, when it falls in this week. */
+  finalDay: { postTimeMs: number } | null;
+  qualifiers: { postTimeMs: number; done: boolean; purse: number; mine: { horseName: string; position: number | null }[] }[];
+  /** Stable licence is enough for the Weekend Feature. */
+  licenceOk: boolean;
+  licenceNeeded: string;
+  horses: {
+    id: string;
+    name: string;
+    rating: number;
+    status: "qualified" | "plate" | "not_yet";
+    via: "top3" | "rating" | null;
+    bestQualifierFinish: number | null;
+    /** Form-guide fit for the Feature's trip, surface and going (A best). */
+    fit: "A" | "B" | "C" | "D" | "E" | null;
+    canRaceToday: boolean;
+  }[];
+  league: { tierName: string; rank: number; of: number; points: number; promoteLine: number | null; gapToPromotion: number | null; floor: boolean } | null;
+  /** One plain-English line: what to do next. */
+  headline: string;
+}

@@ -14,7 +14,7 @@
  */
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { utcWeekStart } from "../crypto";
-import { leagueMembers, leagues, raceEntries, races, stables } from "../schema";
+import { inboxItems, leagueMembers, leagues, raceEntries, races, stables } from "../schema";
 import { gc } from "../gameCore";
 import { seasonBounds } from "../rules";
 import type { Db, Executor } from "../types";
@@ -99,8 +99,10 @@ export function weekScore(runs: readonly PointsRun[]): WeekScore {
   let points = 0;
   let wins = 0;
   let best = 0;
+  // only the best BEST_RUNS_COUNTED runs score: extra entries help little, a bad race never hurts
+  const scored = runs.map(runPoints).sort((a, b) => b - a).slice(0, gc.BEST_RUNS_COUNTED);
+  for (const p of scored) points += p;
   for (const r of runs) {
-    points += runPoints(r);
     if (r.position === 1) wins++;
     best = best === 0 ? r.position : Math.min(best, r.position);
   }
@@ -114,6 +116,8 @@ function scoresByAccount(runs: LiveRun[]): Map<string, WeekScore> {
 }
 
 const tierName = (tier: number) => gc.LEAGUE_TIERS[Math.max(0, Math.min(gc.LEAGUE_TIERS.length - 1, tier - 1))]!;
+
+const ordinalOf = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
 
 /** Settles every finished week league (idempotent). Returns the number of members settled. */
 export async function settleLeagueWeeks(db: Db, now: Date, opts: { accountId?: string } = {}): Promise<number> {
@@ -148,6 +152,31 @@ export async function settleLeagueWeeks(db: Db, now: Date, opts: { accountId?: s
           .update(leagueMembers)
           .set({ points: s?.points ?? 0, finalRank: mv.rank, movement: mv.outcome === "promoted" ? 1 : mv.outcome === "relegated" ? -1 : 0 })
           .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.accountId, mv.ownerId)));
+        // Sunday recap (beta loop): where the week ended, the move, and the real gap to the line.
+        if (s && s.runs > 0) {
+          const tierLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+          const lineRank = gc.PROMOTE;
+          const line = [...moves].sort((a, b) => a.rank - b.rank)[lineRank - 1];
+          const linePoints = line ? (scores.get(line.ownerId)?.points ?? 0) : 0;
+          const gap = mv.outcome === "promoted" ? 0 : Math.max(0, linePoints - s.points + 1);
+          const title =
+            mv.outcome === "promoted"
+              ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, promoted to ${tierLabel(mv.to)}`
+              : mv.outcome === "relegated"
+                ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, down to ${tierLabel(mv.to)}`
+                : `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}${gap > 0 ? `, ${gap} points from promotion` : ""}`;
+          await tx
+            .insert(inboxItems)
+            .values({
+              accountId: mv.ownerId,
+              kind: "week_recap",
+              dedupeKey: `week-recap:${league.weekStart}`,
+              title,
+              data: { weekStart: league.weekStart, rank: mv.rank, of: moves.length, points: s.points, wins: s.wins, runs: s.runs, outcome: mv.outcome, from: mv.from, to: mv.to, gapToPromotion: gap },
+              createdAt: now,
+            })
+            .onConflictDoNothing();
+        }
       }
       return moves.length;
     });

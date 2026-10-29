@@ -91,11 +91,19 @@ describe("leagues", () => {
     expect(ls.flatMap((l) => l.members.map((m) => m.ownerId)).sort()).toEqual([...ids].sort());
     expect(formLeagues(7, "silver", [...ids].reverse())).toEqual(ls);
   });
-  it("top 5 promoted, bottom 5 of those who raced relegated; absent owners never relegated", () => {
-    let l = formLeagues(1, "silver", Array.from({ length: 30 }, (_, i) => `o${i}`))[0]!;
-    l.members.forEach((m, i) => {
-      if (i < 20) l = addPoints(l, m.ownerId, racePoints((i % 8) + 1, 10) + i, i % 3 === 0, (i % 8) + 1);
-    });
+  it("top 5 promoted, bottom 5 of those who raced relegated from Gold up; absent owners never relegated", () => {
+    const fill = (tier: "silver" | "gold") => {
+      let l = formLeagues(1, tier, Array.from({ length: 30 }, (_, i) => `o${i}`))[0]!;
+      l.members.forEach((m, i) => {
+        if (i < 20) l = addPoints(l, m.ownerId, racePoints((i % 8) + 1, 10) + i, i % 3 === 0, (i % 8) + 1);
+      });
+      return l;
+    };
+    // Silver is a floor: promotion only
+    const silver = settleLeague(fill("silver"));
+    expect(silver.filter((m) => m.outcome === "promoted").length).toBe(5);
+    expect(silver.filter((m) => m.outcome === "relegated").length).toBe(0);
+    const l = fill("gold");
     const moves = settleLeague(l);
     expect(moves.filter((m) => m.outcome === "promoted").length).toBe(5);
     expect(moves.filter((m) => m.outcome === "relegated").length).toBe(5);

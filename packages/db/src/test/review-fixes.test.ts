@@ -9,7 +9,7 @@ import type { DbHandle } from "../client";
 import { RULES } from "../rules";
 import { horses, inboxItems } from "../schema";
 import { breed, foal } from "../services/breeding";
-import { CALENDAR_PURSE, defaultCardSlot, specialSlotAt } from "../services/card";
+import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
 import { createRace, enterRace, featureQualificationReason } from "../services/races";
 import { gc, toHorseState } from "../gameCore";
@@ -142,5 +142,28 @@ describe("harness findings (2026-10-29)", () => {
     await recordAccountSignal(h.db, { accountId: alt.accountId, kind: "device", value: "same-phone" });
     const mare = await makeHorse(h.db, alt.stableId, { sex: "female", careerStatus: "retired", retirementReason: "choice", retiredAt: T0 });
     await expect(breed(h.db, { accountId: alt.accountId, sireId: sire.id, damId: mare.id, now: T0, idempotencyKey: `linked:${mare.id}` })).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
+  });
+});
+
+describe("Saturday Plate", () => {
+  it("follows every Weekend Feature on the card, and takes qualifier runners who missed the Feature", async () => {
+    const base = Math.floor((T0.getTime() - RULES.seasonEpochMs) / RULES.slotMs);
+    const plates = Array.from({ length: gc.SLOTS_PER_DAY * 14 }, (_, i) => base + i).filter((i) => plateSlotAt(i));
+    expect(plates.length).toBeGreaterThanOrEqual(1);
+    for (const i of plates) {
+      expect(specialSlotAt(i - PLATE_AFTER_SLOTS)?.kind).toBe("weekend_feature");
+      expect((defaultCardSlot(i).conditions.calendar as { kind: string }).kind).toBe("weekend_plate");
+    }
+    const p = await newPlayer(h.db, { credits: 10_000 });
+    const qualifier = await createRace(h.db, { kind: "scheduled", name: "Q", raceClass: "listed", conditions: { calendar: { kind: "feature_qualifier" } }, postTime: at(10 * MIN), entriesCloseAt: at(9 * MIN) });
+    const plate = await createRace(h.db, { kind: "scheduled", name: "Plate", raceClass: "listed", conditions: { calendar: { kind: "weekend_plate" } }, postTime: at(2 * DAY), entriesCloseAt: at(2 * DAY - MIN) });
+    const tried = await makeHorse(h.db, p.stableId, { rating: 88 });
+    const fresh = await makeHorse(h.db, p.stableId, { rating: 88 });
+    await enterRace(h.db, { accountId: p.accountId, raceId: qualifier.id, horseId: tried.id, tactic: "front", now: T0 });
+    await h.db.execute(`update race_entries set finish_position = 6 where race_id = '${qualifier.id}' and horse_id = '${tried.id}'`);
+    expect(await featureQualificationReason(h.db, await getHorseRow(h.db, tried.id), plate)).toBeNull();
+    expect(await featureQualificationReason(h.db, await getHorseRow(h.db, fresh.id), plate)).toMatch(/Plate is for horses that ran/);
+    await h.db.execute(`update race_entries set finish_position = 2 where race_id = '${qualifier.id}' and horse_id = '${tried.id}'`);
+    expect(await featureQualificationReason(h.db, await getHorseRow(h.db, tried.id), plate)).toMatch(/qualified for the Weekend Feature/);
   });
 });

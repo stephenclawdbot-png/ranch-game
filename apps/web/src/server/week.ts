@@ -1,0 +1,120 @@
+/**
+ * Road to Saturday (beta loop): the week's Weekend Feature and its conditions (known on Monday),
+ * the weekday Feature Qualifiers and the stable's results in them, which horses are qualified
+ * (top 3 in a qualifier, or rating 100+), which go to the Saturday Plate, how well each fits
+ * the Feature, and the stable's League standing with the gap to the promotion line.
+ */
+import * as gc from "@thoroughbred/game-core";
+import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, stableCalendarRuns, startsOnDay, type Db } from "@thoroughbred/db";
+import { conditionRating, lossGrade } from "@/lib/aptitude";
+import type { WeekView } from "@/lib/competitionTypes";
+import { horseFromRow, parseSilks } from "./horseView";
+import type { Session } from "./session";
+
+const DAY = 86_400_000;
+const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
+const slotIndexOf = (ms: number) => Math.floor((ms - RULES.seasonEpochMs) / RULES.slotMs);
+const slotStartMs = (ms: number) => slotIndexOf(ms) * RULES.slotMs + RULES.seasonEpochMs;
+
+/** Monday 00:00 UTC of the week containing `nowMs`. */
+function weekStartMs(nowMs: number): number {
+  const day = Math.floor(nowMs / DAY);
+  const dow = (((day + 3) % 7) + 7) % 7; // 0 = Monday (1970-01-01 was a Thursday)
+  return (day - dow) * DAY;
+}
+
+export async function weekView(db: Db, session: Session, now: Date): Promise<WeekView> {
+  const nowMs = now.getTime();
+  const from = weekStartMs(nowMs);
+  const to = from + 7 * DAY;
+  const season = seasonNumberAt(now);
+  const cal = [...gc.featureCalendar(SEASON_CLOCK, season - 1), ...gc.featureCalendar(SEASON_CLOCK, season), ...gc.featureCalendar(SEASON_CLOCK, season + 1)].filter(
+    (r) => r.postTimeMs >= from && r.postTimeMs < to,
+  );
+  const wf = cal.find((r) => r.kind === "weekend_feature") ?? null;
+  const finals = cal.filter((r) => r.kind === "season_final");
+  const card = (ms: number) => defaultCardSlot(slotIndexOf(ms));
+
+  const runs = await stableCalendarRuns(db, session.stable.id, new Date(from), new Date(to));
+  const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
+  const names = new Map(rows.map((r) => [r.id, r.name]));
+  const qualifierRuns = runs.filter((r) => r.kind === "feature_qualifier");
+
+  const qualifiers = cal
+    .filter((r) => r.kind === "feature_qualifier")
+    .map((q) => {
+      const at = slotStartMs(q.postTimeMs);
+      const mine = qualifierRuns.filter((r) => slotStartMs(r.postTime.getTime()) === at).map((r) => ({ horseName: names.get(r.horseId) ?? "Your horse", position: r.position }));
+      return { postTimeMs: at, done: at + RULES.slotMs < nowMs, purse: CALENDAR_PURSE.feature_qualifier, mine };
+    });
+
+  let feature: WeekView["feature"] = null;
+  if (wf) {
+    const c = card(wf.postTimeMs);
+    const cond = c.conditions as { distanceM: number; surface: string; going: string };
+    feature = { name: c.name, postTimeMs: slotStartMs(wf.postTimeMs), distanceM: cond.distanceM, surface: cond.surface, going: cond.going, division: wf.division, purse: c.purse ?? 0, entryFee: c.entryFee ?? 0 };
+  }
+
+  const silks = parseSilks(session.stable.silks);
+  const horses: WeekView["horses"] = [];
+  for (const row of rows) {
+    const finishes = qualifierRuns.filter((r) => r.horseId === row.id && r.position !== null).map((r) => r.position!);
+    const top3 = finishes.some((p) => p <= 3);
+    const byRating = row.rating >= 100;
+    const status: WeekView["horses"][number]["status"] = top3 || byRating ? "qualified" : finishes.length ? "plate" : "not_yet";
+    let fit: WeekView["horses"][number]["fit"] = null;
+    if (feature) {
+      const horse = horseFromRow(row, silks, nowMs);
+      const ideal = conditionRating(horse, horse.style, { distanceM: horse.preferredDistanceM, surface: horse.preferredSurface, going: "good" });
+      const here = conditionRating(horse, horse.style, { distanceM: feature.distanceM, surface: feature.surface as never, going: feature.going as never });
+      fit = lossGrade(Math.max(0, ideal - here)) as NonNullable<WeekView["horses"][number]["fit"]>;
+    }
+    const canRaceToday = (await startsOnDay(db, row.id, now, { liveOnly: true })) < RULES.liveStartsPerDay && !row.lockKind && !(row.injuredUntil && row.injuredUntil > now);
+    horses.push({ id: row.id, name: row.name, rating: row.rating, status, via: top3 ? "top3" : byRating ? "rating" : null, bestQualifierFinish: finishes.length ? Math.min(...finishes) : null, fit, canRaceToday });
+  }
+  horses.sort((a, b) => (a.status === b.status ? (a.fit ?? "Z").localeCompare(b.fit ?? "Z") || b.rating - a.rating : a.status === "qualified" ? -1 : b.status === "qualified" ? 1 : 0));
+
+  const table = await leagueOf(db, session.accountId, now);
+  let league: WeekView["league"] = null;
+  if (table) {
+    const rank = table.rows.findIndex((r) => r.accountId === session.accountId) + 1;
+    const me = table.rows[rank - 1];
+    const line = table.rows[gc.PROMOTE - 1];
+    const floor = gc.LEAGUE_TIERS.indexOf(table.tierName as gc.LeagueTier) < gc.LEAGUE_TIERS.indexOf(gc.RELEGATION_FROM_TIER);
+    league = {
+      tierName: table.tierName,
+      rank,
+      of: table.rows.length,
+      points: me?.points ?? 0,
+      promoteLine: line ? line.points : null,
+      gapToPromotion: rank > 0 && rank <= gc.PROMOTE ? 0 : line ? Math.max(0, line.points - (me?.points ?? 0) + 1) : null,
+      floor,
+    };
+  }
+
+  const licenceOk = session.stable.licenceLevel >= gc.licenceForTier("g1", true);
+  const qualified = horses.filter((h) => h.status === "qualified");
+  const nextQ = qualifiers.find((q) => !q.done);
+  let headline: string;
+  if (!wf && finals.length) headline = "Season Final week: the championships run on the last day of the season.";
+  else if (!licenceOk) headline = `Earn the ${gc.licenceDef(gc.licenceForTier("g1", true)).name} in Story mode to run on Saturday.`;
+  else if (qualified.length) headline = `${qualified.map((h) => h.name).join(", ")} ${qualified.length === 1 ? "is" : "are"} in for Saturday${feature ? ` (${feature.distanceM} m, ${feature.surface}, ${feature.going})` : ""}.`;
+  else if (nextQ) {
+    const best = horses.find((h) => h.canRaceToday && (h.fit === "A" || h.fit === "B"));
+    headline = `Not qualified yet. Next Feature Qualifier ${new Date(nextQ.postTimeMs).toUTCString().slice(0, 11)} ${new Date(nextQ.postTimeMs).toISOString().slice(11, 16)} UTC: a top 3 gets you in${best ? `; ${best.name} suits Saturday's trip` : ""}.`;
+  } else headline = horses.some((h) => h.status === "plate") ? "Missed the Feature this week: your qualifier runners can take the Saturday Plate." : "No Feature Qualifiers left this week. Next week's conditions arrive on Monday.";
+
+  return {
+    serverNowMs: nowMs,
+    weekStartMs: from,
+    feature,
+    plate: wf ? { postTimeMs: slotStartMs(wf.postTimeMs) + PLATE_AFTER_SLOTS * RULES.slotMs, purse: CALENDAR_PURSE.feature_qualifier } : null,
+    finalDay: finals.length ? { postTimeMs: slotStartMs(finals[0]!.postTimeMs) } : null,
+    qualifiers,
+    licenceOk,
+    licenceNeeded: gc.licenceDef(gc.licenceForTier("g1", true)).name,
+    horses,
+    league,
+    headline,
+  };
+}
