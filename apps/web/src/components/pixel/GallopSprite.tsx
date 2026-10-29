@@ -37,6 +37,13 @@ function ramp(stops: string[], n: number): string[] {
   });
 }
 
+/** Deterministic hash noise for coat textures (matches the Trackside roan density). */
+function noise(x: number, y: number): number {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+
 /** Recolours the PixelLab gallop strip (key colours from race/palette.json) for one horse. */
 function recolour(img: HTMLImageElement, pal: RacePalette, appearance: HorseAppearance): HTMLCanvasElement {
   const c = resolveHorseColors(appearance);
@@ -57,14 +64,38 @@ function recolour(img: HTMLImageElement, pal: RacePalette, appearance: HorseAppe
   ctx.drawImage(img, 0, 0);
   const data = ctx.getImageData(0, 0, cv.width, cv.height);
   const d = data.data;
+  const coatKeys = new Set(pal.coat.map((s) => parseInt(s.slice(1), 16)));
+  const isCoat: boolean[] = new Array(d.length / 4).fill(false);
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] === 0) continue;
-    const to = map.get((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!);
+    const src = (d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!;
+    const to = map.get(src);
     if (to) {
       const [r, g, b] = rgbOf(to);
       d[i] = r;
       d[i + 1] = g;
       d[i + 2] = b;
+      isCoat[i / 4] = coatKeys.has(src);
+    }
+  }
+  // Coat texture over the horse's own body colour (coat-key pixels only: never mane,
+  // points or silks), stable per source pixel.
+  if (c.texture !== "none") {
+    for (let i = 0; i < d.length; i += 4) {
+      if (!isCoat[i / 4]) continue;
+      const x = (i / 4) % cv.width;
+      const y = Math.floor(i / 4 / cv.width);
+      let t = -1;
+      if (c.texture === "roan" && noise(x, y) > 0.65) t = 0.45;
+      if (c.texture === "dapple") {
+        const cx = (x % 6) - 2.5;
+        const cy = (y % 6) - 2.5;
+        if (cx * cx + cy * cy < 3.2 && noise(Math.floor(x / 6), Math.floor(y / 6)) > 0.25) t = 0.42;
+      }
+      if (t < 0) continue;
+      d[i] = Math.round(d[i]! + (255 - d[i]!) * t);
+      d[i + 1] = Math.round(d[i + 1]! + (255 - d[i + 1]!) * t);
+      d[i + 2] = Math.round(d[i + 2]! + (255 - d[i + 2]!) * t);
     }
   }
   ctx.putImageData(data, 0, 0);
@@ -74,13 +105,14 @@ function recolour(img: HTMLImageElement, pal: RacePalette, appearance: HorseAppe
 /**
  * The PixelLab gallop cycle, recoloured for a horse and played on a tiny canvas
  * (nearest-neighbour upscaled). Renders nothing until the art exists.
+ * Pass `still` to freeze on that frame (gallery cells, reduced-motion posters).
  */
-export function GallopSprite({ appearance, scale = 2, fps = 14, className }: { appearance: HorseAppearance; scale?: number; fps?: number; className?: string }) {
+export function GallopSprite({ appearance, scale = 2, fps = 14, className, still }: { appearance: HorseAppearance; scale?: number; fps?: number; className?: string; still?: number }) {
   const art = useArt(["race/horse-gallop.png"]);
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const fw = art ? Math.round(art.w / FRAMES) : 0;
-  const key = `${appearance.coat}${appearance.silks.primary}${appearance.silks.secondary}${appearance.silks.cap}`;
+  const key = `${appearance.coat}|${JSON.stringify(appearance.colour ?? null)}|${appearance.maneColor ?? ""}|${appearance.silks.primary}${appearance.silks.secondary}${appearance.silks.cap}`;
 
   useEffect(() => {
     if (!art) return;
@@ -95,10 +127,10 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className }: { a
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const start = performance.now();
       const draw = (t: number) => {
-        const f = reduce ? 3 : Math.floor(((t - start) / 1000) * fps) % FRAMES;
+        const f = still ?? (reduce ? 3 : Math.floor(((t - start) / 1000) * fps) % FRAMES);
         ctx.clearRect(0, 0, fw, art.h);
         ctx.drawImage(strip, f * fw, 0, fw, art.h, 0, 0, fw, art.h);
-        if (!reduce) raf = requestAnimationFrame(draw);
+        if (still === undefined && !reduce) raf = requestAnimationFrame(draw);
       };
       raf = requestAnimationFrame(draw);
       setReady(true);
@@ -108,7 +140,7 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className }: { a
       cancelAnimationFrame(raf);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [art?.path, key, fps, fw]);
+  }, [art?.path, key, fps, fw, still]);
 
   if (!art) return null;
   return (
