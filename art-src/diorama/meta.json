@@ -197,6 +197,14 @@
   "source": "pasture-ground 2:1 box downsample",
   "seamless": "x (min-cut quilt)"
  },
+ "sales-ring-back": {
+  "source": "diorama/raw/sales-ring-back-0",
+  "seamless": "x (mirror)"
+ },
+ "sales-ring-floor": {
+  "source": "diorama/raw/sales-ring-floor-0",
+  "seamless": "x (min-cut quilt, no mirror)"
+ },
  "pasture-fence": {
   "source": "diorama/raw/pasture-fence-0"
  },

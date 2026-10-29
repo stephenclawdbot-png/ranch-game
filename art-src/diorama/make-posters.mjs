@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const base = process.argv[2] ?? "http://localhost:3300";
 const browser = await chromium.launch();
-for (const s of ["yard", "paddock", "grandstand", "barn", "track-dusk", "pasture"]) {
+for (const s of ["yard", "paddock", "grandstand", "barn", "track-dusk", "pasture", "sales-ring"]) {
   const page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
   await page.goto(`${base}/dev/diorama?scene=${s}&motion=still`, { waitUntil: "networkidle" });
   await page.waitForSelector(`[data-diorama-state="still"]`, { timeout: 60000 });

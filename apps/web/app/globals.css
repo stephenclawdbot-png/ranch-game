@@ -3865,3 +3865,171 @@ a.ped-node:focus-visible {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- The Sales Ring + catalogue (REDESIGN §4.7) */
+.ring {
+  position: relative;
+  margin-top: -16px;
+}
+@media (min-width: 768px) {
+  .ring {
+    margin-top: -32px;
+  }
+}
+.ring-stage {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  isolation: isolate;
+}
+@media (min-width: 768px) {
+  .ring-stage {
+    height: clamp(360px, 40vw, 560px);
+  }
+}
+.ring-greet {
+  position: absolute;
+  left: var(--gutter);
+  top: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .ring-greet {
+    left: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    top: 40px;
+  }
+}
+.ring-greet .eyebrow {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(0, 0, 0, 0.8);
+}
+.ring-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 2rem;
+  color: var(--color-on-baize);
+  text-shadow:
+    0 3px 0 var(--ink-0),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+@media (min-width: 1024px) {
+  .ring-title {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+.ring-board {
+  position: absolute;
+  z-index: 3;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 10px 14px 12px;
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px #1d140a,
+    inset 0 0 0 5px #f6ecd3,
+    inset 0 0 0 6px rgba(29, 20, 10, 0.3),
+    0 5px 0 rgba(0, 0, 0, 0.5);
+}
+@media (min-width: 768px) {
+  .ring-board {
+    left: auto;
+    right: max(var(--gutter), calc((100vw - 75rem) / 2 + var(--gutter)));
+    bottom: 24px;
+    width: 340px;
+  }
+}
+.ring-board-eyebrow,
+.ring-board-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a5d14;
+}
+.ring-board-name {
+  font-family: var(--font-name);
+  font-size: 1.875rem;
+  line-height: 1.75rem;
+  color: #1d140a;
+}
+.ring-board-ped {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #5a4630;
+}
+.ring-board-price {
+  font-family: var(--font-score);
+  font-size: 2rem;
+  line-height: 1;
+  color: #1d140a;
+}
+.lots-grid {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 1024px) {
+  .lots-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.lot-card {
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px #1d140a,
+    inset 0 0 0 5px #f6ecd3,
+    inset 0 0 0 6px rgba(29, 20, 10, 0.3),
+    0 5px 0 rgba(0, 0, 0, 0.45);
+  scroll-margin-top: 96px;
+}
+.lot-card:target {
+  box-shadow:
+    inset 0 0 0 2px #1d140a,
+    inset 0 0 0 5px #d9a441,
+    0 5px 0 rgba(0, 0, 0, 0.45);
+}
+.lot-no {
+  font-family: var(--font-score);
+  font-size: 1.625rem;
+  line-height: 1;
+  color: #8a5d14;
+}
+.lot-price {
+  font-family: var(--font-score);
+  font-size: 2rem;
+  line-height: 1;
+  color: #1d140a;
+}
+.lot-ped {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #5a4630;
+}
+@media (max-width: 767px) {
+  .ring-board {
+    padding: 7px 10px 9px;
+  }
+  .ring-board-name {
+    font-size: 1.375rem;
+    line-height: 1.25rem;
+  }
+  .ring-board-ped {
+    font-size: 0.75rem;
+  }
+  .ring-board-label {
+    display: none;
+  }
+  .ring-board-price {
+    font-size: 1.5rem;
+  }
+  .ring-board .mt-2 {
+    margin-top: 4px;
+  }
+}

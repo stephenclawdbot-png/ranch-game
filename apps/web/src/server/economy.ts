@@ -24,6 +24,7 @@ import {
   isDomainError,
   isGenome,
   listHorse,
+  horseNamesByIds,
   listMarket,
   listPackPulls,
   listStableHorses,
@@ -498,10 +499,25 @@ export async function pullProof(db: Db, session: Session, pullId: string): Promi
 // Market
 // ---------------------------------------------------------------------------
 
+/** Catalogue lot numbers 1-999 from the listing id (stable while it's listed; clashes step on). */
+export function lotNumbers(listingIds: string[]): Map<string, number> {
+  const taken = new Set<number>();
+  const out = new Map<string, number>();
+  for (const id of [...listingIds].sort()) {
+    let n = (Number.parseInt(id.replace(/-/g, "").slice(0, 8), 16) % 999) + 1;
+    while (taken.has(n)) n = (n % 999) + 1;
+    taken.add(n);
+    out.set(id, n);
+  }
+  return out;
+}
+
 export async function marketView(db: Db, session: Session, now: Date): Promise<MarketView> {
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
   const all = await listMarket(db, { now, limit: 100 });
+  const names = await horseNamesByIds(db, all.flatMap((m) => [m.horse.sireId, m.horse.damId]).filter((x): x is string => !!x));
+  const lots = lotNumbers(all.map((m) => m.listing.id));
   const view = (m: (typeof all)[number]): ListingView => {
     const sellerSilks = parseSilks(m.sellerSilks);
     const fee = gc.marketFee(m.listing.price);
@@ -516,6 +532,9 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
       sellerSilks,
       expiresAtMs: m.listing.expiresAt.getTime(),
       mine: m.listing.sellerStableId === session.stable.id,
+      lot: lots.get(m.listing.id)!,
+      sireName: m.horse.sireId ? (names.get(m.horse.sireId) ?? null) : null,
+      damName: m.horse.damId ? (names.get(m.horse.damId) ?? null) : null,
     };
   };
   const listings = all.map(view);

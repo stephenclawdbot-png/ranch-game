@@ -10,7 +10,7 @@
 import { DIORAMA_ATLAS as A } from "./atlas.generated";
 import type { DioramaHorseLook } from "./recolor";
 
-export const DIORAMA_SCENES = ["yard", "paddock", "grandstand", "barn", "track-dusk", "pasture"] as const;
+export const DIORAMA_SCENES = ["yard", "paddock", "grandstand", "barn", "track-dusk", "pasture", "sales-ring"] as const;
 export type DioramaSceneId = (typeof DIORAMA_SCENES)[number];
 
 export type Rect = readonly [x: number, y: number, w: number, h: number];
@@ -745,7 +745,49 @@ export function pastureScene(far: AnimItem[], near: AnimItem[]): SceneDef {
   return { ...pastureBase, layers: pastureBase.layers.map((l) => (l.id === "field" ? { ...l, anims: far } : l.id === "herd" ? { ...l, anims: near } : l)) };
 }
 
-export const SCENES: Record<DioramaSceneId, SceneDef> = { yard, paddock, grandstand, barn, "track-dusk": dusk, pasture: pastureBase };
+// ---------------------------------------------------------------------------- the Sales Ring
+/** The lot in the ring: untacked, in its own coat, led round by a groom. */
+const lotHorse = (look?: DioramaHorseLook): AnimItem =>
+  sheet("horse-loose-walk", 0, 352, {
+    look: look ?? { coat: "bay" },
+    walk: { from: -300, to: 980, speed: 30 },
+    shadow: 190,
+    lod: 1,
+    with: [sheet("groom-walk", 150, 358, { shadow: 50, lod: 1 })],
+  });
+
+const salesRingBase: SceneDef = {
+  id: "sales-ring",
+  label: "The Sales Ring",
+  width: 688,
+  height: 360,
+  focusX: 344,
+  focusY: 250,
+  groundY: 356,
+  scroll: 0,
+  sky: { src: null, y: 0, drift: 0, top: "#2a1a0e", bottom: "#4a2f18" },
+  fog: "#e9c58a",
+  sun: { x: 344, y: -40, r: 300, color: "#ffe0a0", alpha: 0.45 },
+  rays: [{ x: 344, y: -80, angle: 92, spread: 30, count: 7, length: 520, width: 34, color: "#ffe2a0", alpha: 0.32, depth: 0.5, seed: 11 }],
+  motes: { count: 60, color: "#fff1c4", glow: "#ffd27a", wind: 2, y0: 20, y1: 340, bokeh: 6 },
+  grade: { top: "#ffcf7a", topA: 0.06, bottom: "#1d140a", bottomA: 0.2, vignette: 0.46 },
+  posterT: 9,
+  poster: "diorama/poster-sales-ring.png",
+  layers: [
+    { id: "skylight", depth: 0.2, y0: 0, y1: 40, fills: [{ y0: 0, y1: 40, stops: [[0, "#3b2614"], [1, "#2a1a0e"]] }], items: [] },
+    { id: "gallery", depth: 0.5, blur: 0.5, haze: 0.06, bloom: 0.2, y0: 0, y1: 280, items: [img("diorama/sales-ring-back.png", -344, 276, { tile: true })] },
+    { id: "ring", depth: 0.8, y0: 260, y1: 400, items: [img("diorama/sales-ring-floor.png", -120, 404, { tile: true })] },
+    { id: "lot", depth: 1, y0: 160, y1: 380, items: [], anims: [lotHorse()] },
+  ],
+};
+
+/** The Sales Ring with this lot being led round. */
+export function salesRingScene(look: DioramaHorseLook | null): SceneDef {
+  if (!look) return salesRingBase;
+  return { ...salesRingBase, layers: salesRingBase.layers.map((l) => (l.id === "lot" ? { ...l, anims: [lotHorse(look)] } : l)) };
+}
+
+export const SCENES: Record<DioramaSceneId, SceneDef> = { yard, paddock, grandstand, barn, "track-dusk": dusk, pasture: pastureBase, "sales-ring": salesRingBase };
 
 /** Every art file a scene needs (for preloading and tests). */
 export function sceneFiles(s: SceneDef): string[] {

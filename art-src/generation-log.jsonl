@@ -236,3 +236,5 @@
 {"at":"2026-10-29T09:15:56.778Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-graze","secs":104,"usage":{"type":"generations","generations":6},"images":9}
 {"at":"2026-10-29T09:15:56.964Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-idle","secs":104,"usage":{"type":"generations","generations":6},"images":9}
 {"at":"2026-10-29T09:16:23.851Z","endpoint":"/animate-with-text-v3","prefix":"art-src/diorama/raw/anim-loose-walk","secs":131,"usage":{"type":"generations","generations":6},"images":9}
+{"at":"2026-10-29T10:17:05.046Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/sales-ring-floor","secs":90,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-29T10:17:21.229Z","endpoint":"/generate-image-v2","prefix":"art-src/diorama/raw/sales-ring-back","secs":106,"usage":{"type":"generations","generations":25},"images":1}

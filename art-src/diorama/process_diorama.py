@@ -241,6 +241,13 @@ meadow = quantise(load(RAW / "pasture-ground-0.png"))
 meadow[..., 3] = 255
 save(quilt(meadow, 64), "pasture-ground", "diorama/raw/pasture-ground-0", seamless="x (min-cut quilt, no mirror)")
 save(downsample(quilt(meadow, 64), 2), "pasture-ground-s2", "pasture-ground 2:1 box downsample", seamless="x (min-cut quilt)")
+# the Sales Ring: amphitheatre back wall and the tan-bark ring floor (both opaque, tiled in x)
+ring = quantise(load(RAW / "sales-ring-back-0.png"))
+ring[..., 3] = 255
+save(mirror_tile(ring), "sales-ring-back", "diorama/raw/sales-ring-back-0", seamless="x (mirror)")
+bark = quantise(load(RAW / "sales-ring-floor-0.png"))
+bark[..., 3] = 255
+save(quilt(bark, 64), "sales-ring-floor", "diorama/raw/sales-ring-floor-0", seamless="x (min-cut quilt, no mirror)")
 fence = clean(quantise(load(RAW / "pasture-fence-0.png")))
 ys, xs = np.nonzero(fence[..., 3])
 save(fence[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1], "pasture-fence", "diorama/raw/pasture-fence-0")

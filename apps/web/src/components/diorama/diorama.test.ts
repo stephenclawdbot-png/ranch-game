@@ -13,8 +13,8 @@ const pngSize = (f: string) => {
 };
 
 describe("diorama scenes", () => {
-  it("defines all six scenes with a poster", () => {
-    expect([...DIORAMA_SCENES].sort()).toEqual(["barn", "grandstand", "paddock", "pasture", "track-dusk", "yard"]);
+  it("defines every scene with a poster", () => {
+    expect([...DIORAMA_SCENES].sort()).toEqual(["barn", "grandstand", "paddock", "pasture", "sales-ring", "track-dusk", "yard"]);
     for (const id of DIORAMA_SCENES) {
       const s = SCENES[id];
       expect(s.id).toBe(id);

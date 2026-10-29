@@ -199,6 +199,10 @@ export interface ListingView extends EcoHorse {
   sellerSilks: Silks;
   expiresAtMs: number;
   mine: boolean;
+  /** Sale catalogue lot number (stable for the listing's life). */
+  lot: number;
+  sireName: string | null;
+  damName: string | null;
 }
 
 export interface SellableHorse extends EcoHorse {

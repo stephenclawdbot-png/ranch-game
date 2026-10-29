@@ -128,6 +128,13 @@ export const JOBS = {
     "untacked horse lowers its head all the way to the ground and grazes, muzzle in the grass, nibbling, ears flick, tail swishes, feet stay planted, seamless loop, keep the same size", 8, 21076),
   "anim-loose-idle": anim("art-src/diorama/raw/loose-horse-0.png",
     "untacked horse standing relaxed in a paddock, idle: swishes its tail, flicks its ears, shifts its weight, turns its head slightly towards the viewer and back, feet stay planted, seamless loop, keep the same size", 8, 21077),
+  // ---- the Sales Ring (the market as an auction house) ---------------------------------
+  "sales-ring-back": img(
+    "the inside of a grand Victorian bloodstock sales ring seen straight-on from the ring floor: a curved amphitheatre of tiered dark wooden benches packed with a seated crowd of breeders in tweed and hats, a raised mahogany auctioneer's rostrum in the centre with a brass rail and a small lot number board, green iron columns, a glass skylight roof letting in warm golden light, flat front elevation, no floor, the wall fills the whole image",
+    688, 288, 21081, { opaque: true, ref: barnRef }),
+  "sales-ring-floor": img(
+    "the floor of an indoor horse sales ring seen from a low angle: soft raked tan bark and sawdust, warm light pools, a low curved polished wooden kick board rail running across the back, fills the entire image edge to edge, no horses, no people",
+    688, 128, 21082, { opaque: true, ref: barnRef }),
 };
 
 const names = process.argv.slice(2);

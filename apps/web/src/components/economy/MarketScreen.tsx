@@ -8,11 +8,12 @@
 import { useEffect, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { EmptyState, HowItWorks, SceneBand } from "@/components/ui/Page";
+import { EmptyState, HowItWorks } from "@/components/ui/Page";
 import { formatCredits } from "@/lib/format";
 import type { ListingView, MarketView, SellableHorse } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
 import { Check, Credits, HorseLine, Skeleton, refreshPurse, stageLabel, useEcoView } from "./kit";
+import { SalesRing, pedigreeLine } from "./SalesRing";
 
 type Tab = "buy" | "sell" | "mine";
 
@@ -46,7 +47,14 @@ export function MarketScreen() {
   const v = data;
   return (
     <div className="grid gap-5">
-      <SceneBand scene="paddock" alt="The sale ring paddock" eyebrow={`Credits only · ${v.stalls.used} of ${v.stalls.slots} stalls used`} title="Market" />
+      <SalesRing
+        lot={v.listings.find((l) => !l.mine) ?? v.listings[0] ?? null}
+        eyebrow={`Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`}
+        onSeeLot={(l) => {
+          setTab("buy");
+          requestAnimationFrame(() => document.getElementById(`lot-${l.lot}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+        }}
+      />
       <HowItWorks className="-mt-2">
         <p>Horses change hands for Stable Credits only, never real money. {v.feePermille / 10}% of every sale is burned.</p>
         <p>Buying needs a free stall. Sellers set a price between 70% and 3x the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them; a bought horse can&rsquo;t be relisted for 72 hours.</p>
@@ -102,7 +110,8 @@ function Buy({ v, onView }: { v: MarketView; onView: (v: MarketView) => void }) 
           All {v.stalls.slots} stalls are taken: free a stall before buying.
         </p>
       )}
-      <ul className="grid gap-2">
+      <h2 className="t-h2">Sale catalogue</h2>
+      <ul className="lots-grid">
         {v.listings.map((l) => (
           <BuyRow key={l.listingId} l={l} v={v} onView={onView} />
         ))}
@@ -133,10 +142,16 @@ function BuyRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: M
     }
   }
   return (
-    <li className="surface grid gap-2 p-4" data-testid="listing">
-      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<span className="score text-[1.875rem] leading-none">{formatCredits(l.price)}</span>} />
+    <li className="lot-card print grid gap-2 p-4" id={`lot-${l.lot}`} data-testid="listing">
+      <div className="flex items-baseline justify-between gap-2 border-b border-dashed border-line pb-2">
+        <span className="lot-no">Lot {l.lot}</span>
+        <span className="truncate text-xs font-bold text-cream-dim">Vendor · {l.sellerStableName}</span>
+      </div>
+      <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<span className="lot-price">{formatCredits(l.price)}</span>} />
+      <p className="lot-ped">{pedigreeLine(l)}</p>
+      {l.geneticsLine && <p className="caption">{l.geneticsLine}</p>}
       <p className="caption">
-        Appraised {formatCredits(l.appraisal)} · listing ends in {expiresIn(l.expiresAtMs - v.serverNowMs)}
+        Appraised {formatCredits(l.appraisal)} · closes in {expiresIn(l.expiresAtMs - v.serverNowMs)}
       </p>
       {done ? (
         <p className="font-bold text-positive" role="status">

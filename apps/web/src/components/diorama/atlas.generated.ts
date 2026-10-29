@@ -62,6 +62,14 @@ export const DIORAMA_ATLAS = {
    "w": 312,
    "h": 80
   },
+  "sales-ring-back": {
+   "w": 1376,
+   "h": 288
+  },
+  "sales-ring-floor": {
+   "w": 624,
+   "h": 128
+  },
   "pasture-fence": {
    "w": 688,
    "h": 81

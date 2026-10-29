@@ -494,6 +494,14 @@ export interface MarketListingView {
 }
 
 /** Active, unexpired listings with horse and seller (soonest expiry first). */
+/** Names of horses by id in one query (the sale catalogue's "by X out of Y"). */
+export async function horseNamesByIds(ex: Executor, ids: string[]): Promise<Map<string, string>> {
+  const uniq = [...new Set(ids)];
+  if (!uniq.length) return new Map();
+  const rows = await ex.select({ id: horses.id, name: horses.name }).from(horses).where(inArray(horses.id, uniq));
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
 export async function listMarket(ex: Executor, input: { now: Date; sellerStableId?: string; limit?: number }): Promise<MarketListingView[]> {
   const rows = await ex
     .select({ listing: marketListings, horse: horses, sellerStableName: stables.name, sellerSilks: stables.silks })
