@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Race day</title><link rel="stylesheet" href="base.css">
+<style>
+body{padding:16px 0 40px}
+.board{display:flex;flex-direction:column;gap:28px;align-items:center}
+@media(min-width:1000px){.board{flex-direction:row;justify-content:center;align-items:flex-start;gap:22px;padding-top:24px}}
+.frame{width:390px;height:844px;position:relative;overflow:hidden;border-radius:28px;border:1px solid rgba(243,231,201,.14);background:var(--baize);flex:none}
+@media(min-width:1000px){.frame{transform:scale(.98)}}
+.label{position:absolute;top:-2px;left:0;right:0;text-align:center}
+.bg{position:absolute;left:50%;top:0;height:330px;transform:translateX(-50%);image-rendering:pixelated}
+.fade{position:absolute;left:0;right:0;top:180px;height:160px;background:linear-gradient(rgba(8,21,14,0),var(--baize))}
+.pad{position:absolute;left:12px;right:12px;top:230px}
+.runner{display:grid;grid-template-columns:30px 34px 1fr auto;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(243,231,201,.08)}
+.runner .silk{width:30px;height:30px;border-radius:6px}
+.runner b{font-weight:800}.runner small{display:block;color:var(--sage);font-size:12px}
+.runner.me{background:rgba(242,200,106,.1);border-radius:10px;border:1px solid var(--rule)}
+.gate{font-family:"Jersey 10";font-size:22px;color:var(--cream2);text-align:center}
+.count{position:absolute;left:24px;right:24px;top:64px;text-align:center;padding:10px 8px 12px;border-radius:14px;background:rgba(8,21,14,.72);backdrop-filter:blur(4px)}
+.count .num{font-size:64px;color:var(--brass-hi);line-height:1;text-shadow:0 4px 20px rgba(0,0,0,.6)}
+.view{position:absolute;inset:56px 0 auto 0;height:430px;overflow:hidden}
+.view img{height:100%;position:absolute;left:50%;transform:translateX(-58%);image-rendering:pixelated}
+.hud{position:absolute;left:10px;right:10px;top:66px;display:flex;justify-content:space-between;align-items:flex-start;z-index:2}
+.pos{display:grid;gap:4px}
+.pos span{display:flex;gap:6px;align-items:center;font-weight:800;font-size:12px;background:rgba(8,21,14,.75);padding:3px 8px;border-radius:6px}
+.pos span.me{outline:1px solid var(--brass-hi)}
+.lower{position:absolute;left:0;right:0;top:486px;padding:14px}
+.photo{position:absolute;left:16px;right:16px;top:80px;border-radius:16px;overflow:hidden;border:1px solid var(--rule);background:#14110c}
+.photo .shot{height:250px;position:relative;overflow:hidden;filter:sepia(.55) contrast(1.05) brightness(.9)}
+.photo .shot img{position:absolute;height:100%;left:50%;transform:translateX(-62%);image-rendering:pixelated}
+.photo .line{position:absolute;top:0;bottom:0;left:56%;width:2px;background:rgba(255,255,255,.85)}
+.photo .meta{padding:16px}
+.tape{display:flex;justify-content:space-between;font-family:"Jersey 10";font-size:20px;color:var(--cream2)}
+</style></head><body>
+<div class="board">
+ <div class="frame"><img class="bg" src="../../../apps/web/public/art/diorama/poster-paddock.png"><div class="fade"></div>
+  <div class="topbar"><span class="caps">The paddock</span><span class="chip" style="background:rgba(229,72,58,.85);border:0">● LIVE IN</span></div>
+  <div class="count"><div class="num">1:52</div><div class="serif" style="font-size:24px;text-shadow:0 2px 10px #000">Ashcombe Novice Stakes</div><div style="color:var(--cream2);font-size:13px">1,500 m · Synthetic · Good · 9 runners</div></div>
+  <div class="pad glass" style="padding:6px">
+   <div class="runner me"><span class="gate">4</span><span class="silk" style="background:repeating-linear-gradient(90deg,#2b6a41 0 6px,#f3e7c9 6px 12px)"></span><div><b>Silver Feather</b><small>yours · stalker · 2-1-4 · fits trip ✓ ground ✓</small></div><span class="chip">58</span></div>
+   <div class="runner"><span class="gate">1</span><span class="silk" style="background:#8e2323"></span><div><b>Harbour Tide</b><small>Larkspur Farm · front-runner · 1-1-3</small></div><span class="chip">61</span></div>
+   <div class="runner"><span class="gate">2</span><span class="silk" style="background:linear-gradient(135deg,#1f3f8a 50%,#f2c86a 50%)"></span><div><b>Copper Comet</b><small>Brightwater Stud · closer · 3-5-2</small></div><span class="chip">55</span></div>
+   <div class="runner"><span class="gate">3</span><span class="silk" style="background:#3a2a5e"></span><div><b>Velvet Thunder</b><small>Club · stalker · 6-2-7</small></div><span class="chip">52</span></div>
+   <div style="padding:10px;text-align:center;color:var(--sage);font-size:13px;font-weight:700">+ 5 more runners</div>
+  </div>
+  <div style="position:absolute;left:12px;right:12px;bottom:18px;display:grid;gap:8px"><a class="btn">Watch from the stands</a><div style="text-align:center;color:var(--sage);font-size:12px">Plan: stalker, normal ride · change until 0:30</div></div>
+ </div>
+ <div class="frame"><div class="topbar"><span class="caps" style="color:var(--live)">● Live · 0:41</span><span class="chip">Follow mine</span></div>
+  <div class="view"><img src="../../../apps/web/public/art/diorama/poster-track-dusk.png"></div>
+  <div class="hud"><div class="pos"><span>1 Harbour Tide</span><span class="me">2 Silver Feather · ½ L</span><span>3 Copper Comet · 1 L</span></div><div class="glass" style="padding:6px 10px;text-align:right"><div class="num" style="font-size:28px;color:var(--brass-hi)">412 m</div><div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--sage)">TO GO</div></div></div>
+  <div class="lower"><div class="caps">Commentary</div><div class="serif" style="font-size:22px;line-height:1.2;margin-top:4px">“Silver Feather is switched wide — and she’s coming!”</div>
+   <div class="rule" style="margin:14px 0"></div><div style="height:6px;border-radius:99px;background:rgba(243,231,201,.12);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:72%;border-radius:99px;background:var(--brass)"></i></div>
+   <div style="display:flex;justify-content:space-between;color:var(--sage);font-size:12px;margin-top:6px"><span>Start</span><span>Furlong pole</span><span>Post</span></div></div>
+ </div>
+ <div class="frame"><div class="topbar"><span class="caps">Result · photo finish</span><span class="chip">Share</span></div>
+  <div class="photo"><div class="shot"><img src="../../../apps/web/public/art/diorama/poster-track-dusk.png"><span class="line"></span></div>
+   <div class="meta"><div class="caps">Ashcombe Novice Stakes · 1,500 m</div><div class="serif" style="font-size:34px;line-height:1.05;margin:6px 0">Silver Feather wins by a short head</div>
+    <div class="tape"><span>1:31.84</span><span>9 ran</span><span>+2,500 cr</span></div>
+    <div class="rule" style="margin:12px 0"></div>
+    <div style="color:var(--cream2);font-size:13px">Came from 6th at the furlong pole · fastest final 200 m · rating 58 → 64</div></div></div>
+  <div style="position:absolute;left:16px;right:16px;bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn ghost">▶ Replay</a><a class="btn">Back to the yard</a></div>
+ </div>
+</div></body></html>

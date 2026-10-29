@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estate hub</title><link rel="stylesheet" href="base.css">
+<style>
+.world{position:relative;height:62vh;min-height:500px;overflow:hidden;background:#1b2a1c}
+.world .scene{position:absolute;left:50%;top:0;height:100%;transform:translateX(-46%);image-rendering:pixelated}
+.world::after{content:"";position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(rgba(8,21,14,0),var(--baize))}
+.plaque{position:absolute;z-index:3;display:flex;flex-direction:column;align-items:center;gap:4px}
+.plaque b{font-family:"Cormorant Garamond",serif;font-weight:700;font-size:16px;padding:3px 12px;border-radius:6px;background:rgba(8,21,14,.78);border:1px solid var(--rule);color:var(--cream);white-space:nowrap}
+.plaque i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brass-hi);background:rgba(8,21,14,.6);padding:1px 6px;border-radius:4px}
+.plaque .pin{width:2px;height:16px;background:var(--rule)}
+.greet{position:absolute;left:16px;top:66px;z-index:3}
+.greet .serif{font-size:30px;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.sheet{position:relative;margin:-150px 12px 0;z-index:4;padding:16px;padding-bottom:120px}
+.feat{display:flex;gap:14px;align-items:center;padding:14px}
+.feat img{width:112px;height:112px;border-radius:10px;background:radial-gradient(#2a4a35,#0f2a1d)}
+.next{margin-top:12px;padding:14px;display:grid;gap:10px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.notes{display:flex;gap:8px;margin-top:12px;overflow:hidden}
+.desk-side{display:none}
+@media(min-width:1000px){
+ .world{height:100vh;min-height:760px}.world .scene{transform:translateX(-50%);height:100%}
+ .sheet{position:absolute;right:40px;top:110px;width:400px;margin:0;padding:0}
+ .greet{left:48px;top:96px}.greet .serif{font-size:48px}
+}
+</style></head><body>
+<div class="topbar"><img class="wordmark px" src="../../brand-v2/post-time-wordmark@4x.png"><nav class="deskbar"><a class="on">Estate</a><a>Stable</a><a>Racing</a><a>Club</a><a>Sales</a></nav><div class="bal"><span class="chip"><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png" width="16">10</span><span class="chip"><img class="px" src="../../../apps/web/public/art/ui/icon-coin.png" width="16">3,080</span></div></div>
+<section class="world">
+ <img class="scene" src="../../../apps/web/public/art/diorama/poster-yard.png">
+ <div class="greet"><div class="caps">Larkrise Lodge · Thursday morning</div><div class="serif">Good morning,<br>trainer.</div></div>
+ <div class="plaque" style="left:11%;top:44%"><i>3 horses</i><b>The Barn</b><span class="pin"></span></div>
+ <div class="plaque" style="left:47%;top:34%"><i>Off in 2:14</i><b>Racecourse</b><span class="pin"></span></div>
+ <div class="plaque" style="left:71%;top:52%"><i>1 session left</i><b>Gallops</b><span class="pin"></span></div>
+ <div class="plaque" style="left:30%;top:60%"><i>4 for sale</i><b>Sales Ring</b><span class="pin"></span></div>
+</section>
+<section class="sheet">
+ <div class="glass feat">
+  <img class="px" src="../../../apps/web/public/art/portraits/horse-dapple_grey.png">
+  <div style="flex:1"><div class="caps">Featured · ready to race</div><div class="serif" style="font-size:26px;line-height:1.05;margin:2px 0 6px">Silver Feather</div>
+   <div style="color:var(--cream2);font-size:13px">3-year-old grey filly · Thoroughbred<br>Best: 1,550 m on dirt · OR 58</div>
+   <div style="display:flex;gap:6px;margin-top:8px"><span class="chip"><span class="dot"></span>Fresh</span><span class="chip">Form 2-1-4</span></div></div>
+ </div>
+ <div class="glass next">
+  <div class="row"><div><div class="caps">Your next race</div><div class="serif" style="font-size:21px">Ashcombe Novice Stakes</div><div style="color:var(--cream2);font-size:13px">1,500 m · Synthetic · 9 runners · 2,500 cr purse</div></div><div style="text-align:right"><div class="num" style="font-size:34px;color:var(--brass-hi)">2:14</div><div style="font-size:11px;color:var(--sage)">TO POST</div></div></div>
+  <a class="btn">Enter Silver Feather</a>
+ </div>
+ <div class="notes"><span class="chip">🏆 Western Harvest won at Bellmont</span><span class="chip">🌱 Foal due in 2 days</span></div>
+</section>
+<nav class="tabbar"><a class="on"><img class="px" src="../../../apps/web/public/art/ui/icon-stable-door.png">Estate</a><a><img class="px" src="../../../apps/web/public/art/ui/icon-horseshoe.png">Stable</a><a><img class="px" src="../../../apps/web/public/art/ui/icon-flag.png">Racing</a><a><img class="px" src="../../../apps/web/public/art/ui/icon-club-crest.png">Club</a><a><img class="px" src="../../../apps/web/public/art/ui/icon-tote.png">Sales</a></nav>
+</body></html>
