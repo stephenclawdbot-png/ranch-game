@@ -6,8 +6,11 @@ it moves. Built for planning balance changes and wiring a simulation harness.
 - **Source of truth:** the code at `de561a4` (2026-10-29), read directly. Commit `89e8d9a`
   ("Beta pacing") changed the Live card from one race every 3 minutes to one every 15 minutes
   and the published card from 30 minutes to 6 hours ahead. Where that changed a value, the
-  pre-`89e8d9a` value is noted as "was". A companion map of loops and flows is
-  [`GAME-SYSTEMS.md`](GAME-SYSTEMS.md).
+  pre-`89e8d9a` value is noted as "was". The beta loop commits that followed (`6420a5f` one Live
+  start a day, National licence for the Weekend Feature, stud fee ceiling; `0110fe7` This week,
+  Saturday Plate, League floors and best-20 scoring, Sunday recap; `3659516` Cup points settled
+  daily) are folded in, and every file:line was re-checked against `3659516`. A companion map
+  of loops and flows is [`GAME-SYSTEMS.md`](GAME-SYSTEMS.md).
 - **Units:** credits are Stable Credits (never cashable). "permille" = parts per 1,000, "bps" =
   parts per 10,000. Stats, potentials and realisation are on a 0..1000 scale (650 = a plain
   horse in the engine). OR = official rating (0..140).
@@ -30,41 +33,41 @@ Where column.
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
 | `SEASON_DAYS` | 28 days | packages/game-core/src/time.ts:12 | Length of a competition season (leagues, Features, Final, titles, breeding cap, crop cap). | Season Final frequency, breeding covers per mare per year, foal crop per season, potential ceiling growth |
-| `RULES.seasonEpochMs` | 2026-01-05 00:00 UTC (a Monday) | packages/db/src/rules.ts:84 | Start of season 1; slot indices and season numbers count from here. | Which season it is (mint ceilings), calendar alignment |
-| `RULES.seasonMs` | 28 × 24 h (literal) | packages/db/src/rules.ts:85 | Season length on the database side. Duplicates `SEASON_DAYS`. | Same as `SEASON_DAYS` |
+| `RULES.seasonEpochMs` | 2026-01-05 00:00 UTC (a Monday) | packages/db/src/rules.ts:86 | Start of season 1; slot indices and season numbers count from here. | Which season it is (mint ceilings), calendar alignment |
+| `RULES.seasonMs` | 28 × 24 h (literal) | packages/db/src/rules.ts:87 | Season length on the database side. Duplicates `SEASON_DAYS`. | Same as `SEASON_DAYS` |
 | `SLOT_INTERVAL_MS` | 15 min (was 3 min) | packages/game-core/src/seasons.ts:20 | Time between Live races; `RULES.slotMs` now reads it. | Races/day, credits created/day, field size (players spread over fewer or more races), house-horse minting |
-| `RULES.slotMs` | `gc.SLOT_INTERVAL_MS` (was a literal 3 min) | packages/db/src/rules.ts:71 | Slot length the live card and slot keys use. | As above |
+| `RULES.slotMs` | `gc.SLOT_INTERVAL_MS` (was a literal 3 min) | packages/db/src/rules.ts:73 | Slot length the live card and slot keys use. | As above |
 | `SLOTS_PER_DAY` | 96 (was 480) | packages/game-core/src/seasons.ts:22 | Derived races per day per course. | Credits created/day, entries demand |
-| `ENTRY_CLOSE_BEFORE_MS` / `RULES.entriesCloseBeforePostMs` | 30 s | packages/game-core/src/seasons.ts:21, packages/db/src/rules.ts:72 | Entries close this long before the off; fields lock then. | Last-minute entries, field size |
-| `RULES.cardHorizonMs` | 6 h (was 30 min) | packages/db/src/rules.ts:78 | How far ahead the card is published (entries open at publication). 6 h = 24 races at 15 min. | Field size (entries accumulate longer), how far ahead players plan |
-| `RULES.settleAfterPostMs` | 150 s | packages/db/src/rules.ts:82 | Cron backstop settles races this long after the off (the web tick settles as soon as the broadcast ends). | Result latency |
-| `TICK_EVERY_MS` | 4 s | apps/web/src/server/game.ts:218 | Per-instance throttle on the lazy card tick. | Server load, lock/settle latency |
-| `RULES.minField` | 8 | packages/db/src/rules.ts:79 | Lowest target field for an ordinary card race (house horses fill to the target). | Field size, house-horse population, purse share per runner |
-| `RULES.maxField` | 12 | packages/db/src/rules.ts:80 | Gate count of an ordinary card race; also the target for calendar races. | Field size, sister-course trigger |
-| Target runners per slot | `8 + h[29] % 5` → 8..12 | packages/db/src/services/card.ts:215 | Each slot's target field is drawn from the slot hash. | Field size, expected prize per run |
+| `ENTRY_CLOSE_BEFORE_MS` / `RULES.entriesCloseBeforePostMs` | 30 s | packages/game-core/src/seasons.ts:21, packages/db/src/rules.ts:74 | Entries close this long before the off; fields lock then. | Last-minute entries, field size |
+| `RULES.cardHorizonMs` | 6 h (was 30 min) | packages/db/src/rules.ts:80 | How far ahead the card is published (entries open at publication). 6 h = 24 races at 15 min. | Field size (entries accumulate longer), how far ahead players plan |
+| `RULES.settleAfterPostMs` | 150 s | packages/db/src/rules.ts:84 | Cron backstop settles races this long after the off (the web tick settles as soon as the broadcast ends). | Result latency |
+| `TICK_EVERY_MS` | 4 s | apps/web/src/server/game.ts:219 | Per-instance throttle on the lazy card tick. | Server load, lock/settle latency |
+| `RULES.minField` | 8 | packages/db/src/rules.ts:81 | Lowest target field for an ordinary card race (house horses fill to the target). | Field size, house-horse population, purse share per runner |
+| `RULES.maxField` | 12 | packages/db/src/rules.ts:82 | Gate count of an ordinary card race; also the target for calendar races. | Field size, sister-course trigger |
+| Target runners per slot | `8 + h[29] % 5` → 8..12 | packages/db/src/services/card.ts:260 | Each slot's target field is drawn from the slot hash. | Field size, expected prize per run |
 | `CARD_CYCLE_SLOTS` | 20 | packages/db/src/services/card.ts:87 | Length of the class cycle (5 h at 15 min; was 1 h at 3 min). | Class mix per day |
 | `CYCLE` (hourly class pattern, live) | slot 0 Feature; Maiden ×6 (1,4,7,10,13,16); Novice ×6 (2,5,8,12,15,18); Hcp 0-55 ×2 (3,14); Hcp 50-75 ×2 (6,17); Hcp 70-95 ×2 (9,19); Listed ×1 (11) | packages/db/src/services/card.ts:82 | The live class rotation: 12 of 20 slots are juvenile-friendly (maiden/novice). | Field size per class, credits/day, League movement (tier bonus races), qualifier count |
-| Feature class | 50% Listed / 50% Group 3 (`h[30] % 2`) | packages/db/src/services/card.ts:178 | Slot 0 of each cycle is a Feature of a random class. | Credits/day (Feature pays 2×), licence-4 demand |
+| Feature class | 50% Listed / 50% Group 3 (`h[30] % 2`) | packages/db/src/services/card.ts:223 | Slot 0 of each cycle is a Feature of a random class. | Credits/day (Feature pays 2×), licence-4 demand |
 | `JUVENILE_TRIPS` | 1000, 1500, 2000, 2400 m | packages/db/src/services/card.ts:99 | Trips of maiden/novice slots; the k-th juvenile slot runs surface k mod 3, trip k mod 4, so 12 juvenile slots cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
-| Juvenile going / weather | turf: good, good, firm; others good; weather clear, clear, overcast, dusk | packages/db/src/services/card.ts:184, :189 | Juvenile races never run soft/heavy or in rain. | Injury rate (going), upset rate (rain) |
+| Juvenile going / weather | turf: good, good, firm; others good; weather clear, clear, overcast, dusk | packages/db/src/services/card.ts:229, :234 | Juvenile races never run soft/heavy or in rain. | Injury rate (going), upset rate (rain) |
 | `OPEN_TRIPS` | 1000..3200 m (10 trips) | packages/db/src/services/card.ts:101 | Trips for handicaps, Listed and Features. | Distance-fit, stayers' opportunities |
 | `GOING` (open races) | turf firm/good/good/soft/heavy; dirt good×3/heavy; synthetic good | packages/db/src/services/card.ts:102 | Going draw for non-juvenile races. | Injury rate (firm 1.3×, heavy 1.4×), quirk reveals (mudlark) |
 | `WEATHER` (open races) | clear, clear, overcast, rain, dusk | packages/db/src/services/card.ts:103 | Weather draw; rain widens day-form noise by 25% in the engine. | Upset rate |
-| Open-race surface | `SURFACES[(cycle*8 + pos + h[28]%3) % 3]` | packages/db/src/services/card.ts:194 | Surface of non-juvenile slots. | Surface-fit |
-| `CARRY_LOOKBACK` | 16 slots | packages/db/src/services/card.ts:226 | A juvenile race displaced by a calendar race runs in the next ordinary slot, looking back 16 slots. | Juvenile trip coverage on Feature/Final days |
+| Open-race surface | `SURFACES[(cycle*8 + pos + h[28]%3) % 3]` | packages/db/src/services/card.ts:239 | Surface of non-juvenile slots. | Surface-fit |
+| `CARRY_LOOKBACK` | 16 slots | packages/db/src/services/card.ts:271 | A juvenile race displaced by a calendar race runs in the next ordinary slot, looking back 16 slots. | Juvenile trip coverage on Feature/Final days |
 | `TRACKS` | Ashcombe, Kestrel Downs, Saltmarsh, Bellmont, Larkspur, Harrowgate | packages/db/src/services/card.ts:92 | Course names; also the order sister courses are opened in. | Max sister courses (6 courses) |
-| `SISTER_MAX` | 5 sisters per slot | packages/db/src/services/card.ts:274 | A slot can spawn up to 5 copies on other courses (6 races total). | Field size cap per slot (6 × 12 = 72 runners), credits/day (each sister pays a full purse) |
-| Sister trigger | when entries reach `maxRunners − 1` | packages/db/src/services/races.ts:294 | A sister course opens when a race is one gate from full. | Field size, credits/day |
-| Calendar track | Final/Weekend Feature at Ashcombe, Qualifiers at Bellmont | packages/db/src/services/card.ts:127 | Course of calendar races. | Cosmetic |
+| `SISTER_MAX` | 5 sisters per slot | packages/db/src/services/card.ts:319 | A slot can spawn up to 5 copies on other courses (6 races total). | Field size cap per slot (6 × 12 = 72 runners), credits/day (each sister pays a full purse) |
+| Sister trigger | when entries reach `maxRunners − 1` | packages/db/src/services/races.ts:331 | A sister course opens when a race is one gate from full. | Field size, credits/day |
+| Calendar track | Final/Weekend Feature at Ashcombe, Qualifiers at Bellmont | packages/db/src/services/card.ts:170 | Course of calendar races. | Cosmetic |
 | `featureCalendar` qualifiers | Mon-Fri 19:01:30 UTC, Listed, `PURSE_BY_TIER.listed` (model) | packages/game-core/src/seasons.ts:167 | Five Feature Qualifiers per week (not on the season's last day). | Qualifier count, Weekend Feature field |
 | `featureCalendar` Weekend Feature | Saturday 19:01:30 UTC, G1, `WEEKEND_FEATURE_PURSE` (model) | packages/game-core/src/seasons.ts:169 | One Weekend Feature per week; division drawn per week. | League points (G1 bonus), credits |
 | Feature division | one division per week, seeded | packages/game-core/src/seasons.ts:160 | Sprint/mile/middle/staying for that week's Qualifiers and Feature; trip = middle of the division's list. | Which horses can compete |
 | Season Final times | last season day, 18:01:30 UTC + 30 min per division (4 races) | packages/game-core/src/seasons.ts:175 | Four championships (sprint, mile, middle, staying). | Season Final entrants, credits |
 | Calendar surfaces | Final: sprint on dirt, others turf; Features/Qualifiers turf | packages/game-core/src/seasons.ts:132 | Surface of calendar races. | Which horses can win them |
 | Calendar field size (model) | 14 for Final/Weekend Feature, else 12 | packages/game-core/src/seasons.ts:148 | `maxRunners` for calendar races (card caps at 16). | Field size |
-| Calendar `targetRunners` (live) | `RULES.maxField` = 12 | packages/db/src/services/card.ts:146 | House horses fill calendar races to 12, not 14. | Field size |
+| Calendar `targetRunners` (live) | `RULES.maxField` = 12 | packages/db/src/services/card.ts:189 | House horses fill calendar races to 12, not 14. | Field size |
 | `CALENDAR_PURSE` (live) | Qualifier 16,000; Weekend Feature 48,000; Final 72,000 | packages/db/src/services/card.ts:63 | Live purses of calendar races (Listed ×2, G3 ×2 ×2, G3 ×2 ×3). | Credits created/week |
-| Calendar min rating (live) | Final/Weekend Feature 95; Qualifier 85 | packages/db/src/services/card.ts:133 | Entry conditions of calendar races. | Who can enter, qualifier count |
+| Calendar min rating (live) | Final/Weekend Feature 95; Qualifier 85 | packages/db/src/services/card.ts:176 | Entry conditions of calendar races. | Who can enter, qualifier count |
 | `TIER_CYCLE` (model only) | 20-slot rotation incl. 4 Quick, G3 at slot 18 | packages/game-core/src/seasons.ts:25 | The model rotation used by `regularSlot`; not used by the live card. | Model only (economy-sim, tests) |
 | `G2_HOURS` / `G1_HOURS` (model only) | 2, 8, 14, 20 / 21 UTC | packages/game-core/src/seasons.ts:48, :49 | Model upgrades slot 18 to G2/G1; the live card has no hourly G2/G1. | Model only |
 | `DISTANCES` | sprint 1000-1200, mile 1400-1600, middle 1800-2200, staying 2400-3200 | packages/game-core/src/seasons.ts:51 | Division trip lists (calendar races, Daily Cup, model slots). | Distance-fit |
@@ -88,8 +91,8 @@ Where column.
 | `cardEntryFee` (credits, live) | Listed 120, Group 3 200, G1 (Weekend Feature, Final) 500; else 0 | packages/db/src/services/card.ts:70 | Credit entry fee on top of stable entries (burned; refunded if abandoned). | Credit sink |
 | `ENTRY_FEE_BY_TIER` | listed 120, g3 200, g2 320, g1 500, others 0 | packages/game-core/src/economy.ts:42 | Fee table `cardEntryFee` reads. | Credit sink |
 | `TZ_CHANGE_MIN_DAYS` | 30 days | packages/game-core/src/entries.ts:96 | Timezone (local-day boundary) change cooldown. | Daily-grant gaming |
-| One horse per stable per Live race | rule | packages/db/src/services/races.ts:264 | A stable can enter one horse in each Live race. | Field diversity, starts/day |
-| Half-field cap | stable ≤ `floor(targetRunners/2)` | packages/db/src/services/races.ts:269 | One stable may not fill more than half a field. | Field size |
+| One horse per stable per Live race | rule | packages/db/src/services/races.ts:301 | A stable can enter one horse in each Live race. | Field diversity, starts/day |
+| Half-field cap | stable ≤ `floor(targetRunners/2)` | packages/db/src/services/races.ts:306 | One stable may not fill more than half a field. | Field size |
 | `STABLE_DAILY_ENTRIES` / refill size (dead proposal) | 10 / 5 | packages/game-core/src/eligibility.ts:117, :120 | Older per-day budget helper; not used by the live bank. | None (duplicate) |
 
 ## 3. Horse lifecycle
@@ -104,28 +107,28 @@ Where column.
 | `PRIME_MAX_STARTS` | 28 | packages/game-core/src/lifecycle.ts:32 | Prime 7-28, veteran 29-40 (veteran injury ×1.2). | Injury rate, appraisal (veteran 75%) |
 | `MAX_STARTS_PER_DAY` / `RULES.startsPerDay` | 3 per horse per UTC day | packages/game-core/src/lifecycle.ts:36, packages/db/src/rules.ts:31 | Hard cap on a horse's starts per day (Story counts too). | Starts/day, career length in days (40 starts ≥ 14 days), injury rate (frequency factor) |
 | `BREED_FROM_STARTS` | 25 | packages/game-core/src/lifecycle.ts:34 | Racing horses may breed from 25 starts; retired horses any time. | Stud supply, foal crop |
-| `BREEDINGS_LIFETIME` | 4 | packages/game-core/src/lifecycle.ts:37 | Coverings per horse for life (also a DB CHECK). The last covering retires a stallion to pasture. | Foal crop, horse population, stud fees |
-| `PREGNANCY_MS` | 24 h | packages/game-core/src/lifecycle.ts:38 | Covering → foal. | Foal crop timing |
-| `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:40 | Starting rating of every new horse (incl. house horses and studs). | Class entry, sandbagging (ability floor counters it) |
-| Display age | care <12 → 0, <19 → 1; starts ≤6 → 2, ≤14 → 3, ≤21 → 4, ≤28 → 5, ≤34 → 6, else 7 | packages/game-core/src/lifecycle.ts:79-89 | Age shown on the card (career clock, not calendar). | Cosmetic |
-| Stage of a retired horse | stud while breedings remain, else pasture | packages/game-core/src/lifecycle.ts:53 | Retired horses with breedings left stay in the stable (stall) as stud/broodmare. | Stall pressure |
-| Legacy Farm (pasture) | no stall; permanent | packages/game-core/src/lifecycle.ts:218, packages/db/src/services/accounts.ts:164 | Pensioned, spent or fatally injured horses leave the stall count. | Stall pressure, horse population (active) |
-| `RELEASE_TO_CLUB_CREDITS` / `RULES.releasePayout` | 50 credits | packages/game-core/src/lifecycle.ts:232, packages/db/src/rules.ts:45 | Paid for releasing a horse to the Club (ledger kind `adjustment`). | Credits (small faucet), population |
-| `RULES.starterHorses` | 3 (bound, racing age) | packages/db/src/rules.ts:48 | Starter horses per new stable. | Horse population per account |
+| `BREEDINGS_LIFETIME` | 4 | packages/game-core/src/lifecycle.ts:45 | Coverings per horse for life (also a DB CHECK). The last covering retires a stallion to pasture. | Foal crop, horse population, stud fees |
+| `PREGNANCY_MS` | 24 h | packages/game-core/src/lifecycle.ts:46 | Covering → foal. | Foal crop timing |
+| `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:48 | Starting rating of every new horse (incl. house horses and studs). | Class entry, sandbagging (ability floor counters it) |
+| Display age | care <12 → 0, <19 → 1; starts ≤6 → 2, ≤14 → 3, ≤21 → 4, ≤28 → 5, ≤34 → 6, else 7 | packages/game-core/src/lifecycle.ts:87-97 | Age shown on the card (career clock, not calendar). | Cosmetic |
+| Stage of a retired horse | stud while breedings remain, else pasture | packages/game-core/src/lifecycle.ts:61 | Retired horses with breedings left stay in the stable (stall) as stud/broodmare. | Stall pressure |
+| Legacy Farm (pasture) | no stall; permanent | packages/game-core/src/lifecycle.ts:226, packages/db/src/services/accounts.ts:164 | Pensioned, spent or fatally injured horses leave the stall count. | Stall pressure, horse population (active) |
+| `RELEASE_TO_CLUB_CREDITS` / `RULES.releasePayout` | 50 credits | packages/game-core/src/lifecycle.ts:240, packages/db/src/rules.ts:47 | Paid for releasing a horse to the Club (ledger kind `adjustment`). | Credits (small faucet), population |
+| `RULES.starterHorses` | 3 (bound, racing age) | packages/db/src/rules.ts:50 | Starter horses per new stable. | Horse population per account |
 | `STARTER_PLAN` | Quarter Horse common colt, Thoroughbred uncommon filly, Arabian common colt | packages/game-core/src/onboarding.ts:26 | Breed/rarity/sex of the starters. | Foal quality of first breedings |
 | Gift foal | from the 2nd UTC day; 60% common / 40% uncommon; Club-bred | packages/game-core/src/onboarding.ts:90-111 | One free foal per account (needs a stall or the overflow slot). | Horse population |
-| `RULES.nurseryOverflowSlots` | 1 | packages/db/src/rules.ts:52 | A covering (and the gift foal) may use one slot beyond the stalls. | Stall pressure |
-| Foal binding | foal of a Club-bred parent: tradeable after 5 starts | packages/db/src/services/breeding.ts:297 | Free-pack, starter and gift lines are not sellable until bred on. | Market supply |
+| `RULES.nurseryOverflowSlots` | 1 | packages/db/src/rules.ts:54 | A covering (and the gift foal) may use one slot beyond the stalls. | Stall pressure |
+| Foal binding | foal of a Club-bred parent: tradeable after 5 starts | packages/db/src/services/breeding.ts:303 | Free-pack, starter and gift lines are not sellable until bred on. | Market supply |
 
 ## 4. Care, condition and training
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `FEEDS` / recommended feed | growing → growth_mix; injured or fatigue > 400 → recovery; stud/pasture → maintenance; else performance | packages/game-core/src/lifecycle.ts:158, :165 | The "right" feed for a session. | Care quality → realised stats |
-| Care quality per session | right feed 1000, maintenance 650, wrong 450 | packages/game-core/src/lifecycle.ts:173-175 | Quality of one session (rolling 3:1 average). | Realised stats (care bonus) |
-| Care quality rolling average | `(q_old×3 + q)/4` | packages/game-core/src/lifecycle.ts:201 | How fast care quality moves. | Realised stats |
-| `careBonus` | up to +50 permille realisation (quality × 50/1000) | packages/game-core/src/lifecycle.ts:180 | Care adds to training realisation. | Race strength |
-| Bond per care / training / race | +6 / +2 / +4 (+10 for a win) | packages/game-core/src/lifecycle.ts:202, packages/game-core/src/training.ts:192, packages/game-core/src/career.ts:74 | Bond feeds morale (bond/40 up to +25). | Race strength (±1.5% via morale) |
+| `FEEDS` / recommended feed | growing → growth_mix; injured or fatigue > 400 → recovery; stud/pasture → maintenance; else performance | packages/game-core/src/lifecycle.ts:166, :173 | The "right" feed for a session. | Care quality → realised stats |
+| Care quality per session | right feed 1000, maintenance 650, wrong 450 | packages/game-core/src/lifecycle.ts:181-183 | Quality of one session (rolling 3:1 average). | Realised stats (care bonus) |
+| Care quality rolling average | `(q_old×3 + q)/4` | packages/game-core/src/lifecycle.ts:209 | How fast care quality moves. | Realised stats |
+| `careBonus` | up to +50 permille realisation (quality × 50/1000) | packages/game-core/src/lifecycle.ts:188 | Care adds to training realisation. | Race strength |
+| Bond per care / training / race | +6 / +2 / +4 (+10 for a win) | packages/game-core/src/lifecycle.ts:210, packages/game-core/src/training.ts:192, packages/game-core/src/career.ts:74 | Bond feeds morale (bond/40 up to +25). | Race strength (±1.5% via morale) |
 | `CARE_HEAL_BONUS_H` | +12 h healing per counted care | packages/game-core/src/condition.ts:218 | Care shortens injury recovery. | Injury downtime |
 | `FATIGUE_RECOVERY_PER_HOUR` | 12 per hour (1000 → 0 in ~3.5 days) | packages/game-core/src/condition.ts:19 | Real-time fatigue recovery. | Starts/day sustainable, injury rate |
 | `TIRED_THRESHOLD` | 300 | packages/game-core/src/condition.ts:21 | Above this fatigue costs performance and raises injury risk. | Race strength, injury rate |
@@ -144,7 +147,7 @@ Where column.
 | `BASE_SLOTS` | 3 sessions / horse / week (+1 with any trainer level) | packages/game-core/src/training.ts:45, :52 | Weekly training cap per horse. | Credit sink volume, realised stats |
 | `TRAINER_EFFICIENCY_PER_LEVEL` | +100 permille per level, max 2 levels (+20%) | packages/game-core/src/training.ts:47, :137 | Trainer facility boosts gains. | Realised stats |
 | `REALISATION_CURVE` | 400 (gain = base × (1000 − r)/400) | packages/game-core/src/training.ts:49 | Diminishing returns near full realisation. | Realised stats ceiling speed |
-| Starting realisation | 600 per stat | packages/game-core/src/lifecycle.ts:126 | New horses start 60% realised. | Race strength of new horses |
+| Starting realisation | 600 per stat | packages/game-core/src/lifecycle.ts:134 | New horses start 60% realised. | Race strength of new horses |
 | `TRAINING_WEIGHT_PERMILLE` | 200 | packages/game-core/src/phenotype.ts:72 | Realisation moves the top 20% of a stat. | How much training matters |
 | Overwork | hard work at fatigue > 600 gains half | packages/game-core/src/training.ts:136 | | Realised stats |
 | Yearling efficiency | half; light work only | packages/game-core/src/training.ts:139 | | Realised stats |
@@ -181,9 +184,9 @@ Where column.
 | `VET_HEAL_BONUS_H` / `VET_TREATMENT_COST` | +24 h per treatment / 150 credits (once per injury per local day) | packages/game-core/src/condition.ts:220, packages/game-core/src/economy.ts:68 | Paid treatment. | Credit sink, downtime |
 | Story races | never fatal; unrated trials carry no injury roll | packages/game-core/src/career.ts (applyRun) | Fatal roll only when tier ≠ quick. | Fatality rate |
 | `INSURANCE_PREMIUM_PERMILLE` | 50 (5% of appraisal), one-off, to treasury | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Insure a racing horse once. | Credit sink |
-| `INSURANCE_PAYOUT_PERMILLE` | 600 (60% of appraisal) on career-ending or fatal injury | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:627 | Payout minted to the owner. | Credits created |
-| `RULES.insurancePremium` / `insurancePayout` | 300 / 2,000 flat | packages/db/src/rules.ts:34, :35 | Fallback for horses without a real genome only. | Legacy rows only |
-| `RULES.careHealMs` | 12 h | packages/db/src/rules.ts:59 | Healing per care for rows without a genome (duplicate of `CARE_HEAL_BONUS_H`). | Legacy rows only |
+| `INSURANCE_PAYOUT_PERMILLE` | 600 (60% of appraisal) on career-ending or fatal injury | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:664 | Payout minted to the owner. | Credits created |
+| `RULES.insurancePremium` / `insurancePayout` | 300 / 2,000 flat | packages/db/src/rules.ts:36, :37 | Fallback for horses without a real genome only. | Legacy rows only |
+| `RULES.careHealMs` | 12 h | packages/db/src/rules.ts:61 | Healing per care for rows without a genome (duplicate of `CARE_HEAL_BONUS_H`). | Legacy rows only |
 
 ## 6. Racing engine
 
@@ -230,7 +233,7 @@ Where column.
 | `K_PROVISIONAL` / `K_ESTABLISHED` | 14 / 7 | packages/game-core/src/ratings.ts:19, :20 | Rating speed. | Class movement speed |
 | `PROVISIONAL_RUNS` | 5 | packages/game-core/src/ratings.ts:21 | First 5 rated runs use K 14. | Class movement of new horses |
 | `MAX_GAIN_PER_RACE` / `MAX_LOSS_PER_RACE` | +10 / −7 | packages/game-core/src/ratings.ts:22, :23 | Per-race clamp. | Rating inflation/deflation |
-| `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:40 | | Class entry |
+| `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:48 | | Class entry |
 | `PEAK_DROP` | 10 | packages/game-core/src/eligibility.ts:64 | Band checks use max(OR, peak − 10, ability − 5). | Sandbagging, class access |
 | `ABILITY_MARGIN` | 5 | packages/game-core/src/eligibility.ts:66 | Ability floor tolerance. | Class access of strong newcomers |
 | `ABILITY_OR_TABLE` | score 300 → OR 18 … 900 → OR 97 (13 knots) | packages/game-core/src/ability.ts:36 | Settled OR for a given running ability (ability floor). | Class access, Story difficulty |
@@ -238,7 +241,7 @@ Where column.
 | `TIER_RULES` | maiden ≤0 wins; novice ≤2 wins; hcp 0-55, 50-75, 70-95; listed ≥88; g3 ≥95; g2 ≥102; g1 ≥108; quick rated; trial/cup unrated | packages/game-core/src/eligibility.ts:30-42 | Model class bands (game-core eligibility). | Class access (model; live uses card conditions) |
 | `classBand` | ≥108 g1, ≥102 g2, ≥95 g3, ≥88 listed, ≥70 hcp 70-95, ≥50 hcp 50-75, else 0-55 | packages/game-core/src/eligibility.ts:49-55 | Band a rating belongs in (used in the entry-sheet hint). | Copy, class access hints |
 | Live card bands | Maiden 0 wins, OR ≤60; Novice ≤2 wins, OR ≤70; Hcp 0-55; Hcp 50-75; Hcp 70-95; Listed ≥85; Group 3 ≥95 | packages/db/src/services/card.ts:47-53 | Live entry conditions (max checks use band rating). | Field size per class, League movement |
-| Story difficulty band | band rating ±12 | apps/web/src/server/game.ts:939 | Open Story races draw house horses rated within ±12. | Story win rate, story credits |
+| Story difficulty band | band rating ±12 | apps/web/src/server/game.ts:945 | Open Story races draw house horses rated within ±12. | Story win rate, story credits |
 | Unknown-runner default | OR 40, 10 rated runs | packages/game-core/src/career.ts:149 | Runners without a state. | Rating changes |
 | Story races are rated | tier `quick` rated: true | packages/game-core/src/eligibility.ts:41 | Story results move OR (but not career starts). | Class access, farming |
 
@@ -262,19 +265,19 @@ Where column.
 | `DAILY_CUP_CREDITS` / `CUP_PARTICIPATION_CREDITS` | 80 credits per UTC day | packages/game-core/src/economy.ts:61, packages/game-core/src/dailyCup.ts:129 | Paid for taking part. | Credits created/day |
 | `STORY_CHAPTER_DEFS` | 4 chapters × 6 races; win 3 to complete | packages/game-core/src/story.ts:227, :235 | Story campaign and licences. | Licence access, story credits |
 | Chapter strengths / field sizes | Club 318 (+3/race, final 334), 7 runners; County 368 (384), 8; National 405 (422), 9; Classics 440 (458), 10 | packages/game-core/src/story.ts:238, :257, :276, :295 | Rival strength (mean current stat) and field size. | Story win rate, licence pace |
-| Rival spread | strength −15..+15, stat spread 50 | packages/game-core/src/story.ts:421, :422 | Rival variation. | Story win rate |
-| `STORY_FIRST_WIN_REWARD` | club 400, county 700, national 1,100, classics 1,800 | packages/game-core/src/economy.ts:246 | Credits for a first win of a story race key. | Credits created |
-| `STORY_REPLAY_REWARD` | 20 | packages/game-core/src/economy.ts:248 | Any other story finish. | Credits created |
-| `STORY_CHAPTER_CAP` | 4,000 / 7,000 / 11,000 / 18,000 (40,000 lifetime) | packages/game-core/src/economy.ts:250 | Lifetime credits per chapter. | Credits created (bounded) |
+| Rival spread | strength −15..+15, stat spread 50 | packages/game-core/src/story.ts:427, :428 | Rival variation. | Story win rate |
+| `STORY_FIRST_WIN_REWARD` | club 400, county 700, national 1,100, classics 1,800 | packages/game-core/src/economy.ts:256 | Credits for a first win of a story race key. | Credits created |
+| `STORY_REPLAY_REWARD` | 20 | packages/game-core/src/economy.ts:258 | Any other story finish. | Credits created |
+| `STORY_CHAPTER_CAP` | 4,000 / 7,000 / 11,000 / 18,000 (40,000 lifetime) | packages/game-core/src/economy.ts:260 | Lifetime credits per chapter. | Credits created (bounded) |
 | Open Story race keys | chapter × class × trip | apps/web/src/server/storyField.ts:95 | First-win keys of "race now" Story races (3 classes × 10 trips per chapter), so first wins are plentiful until the cap. | Credits created |
-| Open Story race shape | 3-in-4 near the horse's trip and surface; 8-10 runners; class by wins; purse 0 | apps/web/src/server/game.ts:919-940 | Story race generator. | Story win rate |
-| `LICENCES` / `licenceForTier` | 1 Club: maiden, novice, hcp 0-55; 2 County: hcp 50-75/70-95; 3 National: Listed, G3; 4 Classics: any Feature (hourly Features too), G1, Final; 5 champion title | packages/game-core/src/story.ts:334, :349-363 | Live class gates, earned in Story. | Who reaches the rich races, credits/day |
+| Open Story race shape | 3-in-4 near the horse's trip and surface; 8-10 runners; class by wins; purse 0 | apps/web/src/server/game.ts:925-946 | Story race generator. | Story win rate |
+| `LICENCES` / `licenceForTier` | 1 Club: maiden, novice, hcp 0-55; 2 County: hcp 50-75/70-95; 3 National: Listed, G3; 4 Classics: any Feature (hourly Features too), G1, Final; 5 champion title | packages/game-core/src/story.ts:334, :349-369 | Live class gates, earned in Story. | Who reaches the rich races, credits/day |
 | `featureQualified` | OR ≥ 100 or a top-3 in any Qualifier in the 7 days before | packages/game-core/src/seasons.ts:182, packages/db/src/services/races.ts:185 | Weekend Feature entry. | Qualifier count, Weekend Feature field size |
-| Season Final entry | OR ≥ 95 + Classics licence, 2 entries, 500 fee | packages/db/src/services/card.ts:133, :144 | No qualification beyond the band. | Final field size |
+| Season Final entry | OR ≥ 95 + Classics licence, 2 entries, 500 fee | packages/db/src/services/card.ts:176, :187 | No qualification beyond the band. | Final field size |
 | Hall of Fame | champion: 2+ G1 or 1 G1 + 4 graded; season winner; record time; great racehorse: peak OR ≥ 115 or 20+ starts with 10+ wins; foundation sire/mare: 3+ graded-winning offspring; elite genetics: S-grade potential | packages/game-core/src/social.ts:77-85 | Permanent inductions. | Status |
 | Hall candidates per sweep | 200 horses | packages/db/src/services/hall.ts:189 | Cap on candidates checked. | Induction latency |
 | `ACHIEVEMENTS` | 16 plaques (1 race, 1/10 wins, photo win, graded/G1 win, foals, B/A/S bred, 20 Cup runs, Cup top 10%, promotion, Final win, Hall, 30 care days) | packages/game-core/src/social.ts:37-54 | Owner plaques. | Retention |
-| `trophyTier` | Feature/Final/graded win = gold; listed = silver; other Live win = bronze; Story win = rosette | apps/web/src/server/competition.ts:337 | Trophy room. | Status |
+| `trophyTier` | Feature/Final/graded win = gold; listed = silver; other Live win = bronze; Story win = rosette | apps/web/src/server/competition.ts:340 | Trophy room. | Status |
 | `RIVAL_MARGIN_MM` / `RIVAL_MIN_CLOSE` | 1 length / 3 close finishes | packages/game-core/src/social.ts:107, :108 | Rivalry detection. | Social |
 
 ## 9. Breeding and genetics
@@ -285,7 +288,7 @@ Where column.
 | `STALLION_PER_SEASON` | 4 | packages/game-core/src/breeding.ts:34 | Stallion cap per season (lifetime 4 makes it effectively "all at once"). | Stud supply |
 | `BREEDING_BASE_FEE` | 1,500 credits (burned) | packages/game-core/src/breeding.ts:36 | Platform fee per covering. | Credit sink, foal crop |
 | `STUD_FEE_BURN_PERMILLE` | 100 (10% of stud fee burned) | packages/game-core/src/breeding.ts:38 | Burn on player-to-player stud fees. | Credit sink |
-| `MAX_STUD_FEE` | 100,000 credits | apps/web/src/server/economy.ts:361 | Upper bound for a stud fee. | Credit transfer between players |
+| `MAX_STUD_FEE` | 100,000 credits | apps/web/src/server/economy.ts:362 | Upper bound for a stud fee. | Credit transfer between players |
 | `HOUSE_STUD_COUNT` | 4 Club stallions | packages/db/src/services/houseStuds.ts:28 | Standing Club studs (replaced as they retire). | Stud supply, foal quality floor |
 | `HOUSE_STUD_FEES` | common 250, uncommon 400, rare 700 (rarity cycle uncommon, common, rare, uncommon) | packages/db/src/services/houseStuds.ts:30, :32 | Club stud fee; 90% to treasury, 10% burned. | Credit sink |
 | `COI_WARN` | 62 permille | packages/game-core/src/breeding.ts:53 | Inbreeding warning in the preview. | Player behaviour |
@@ -349,39 +352,39 @@ Where column.
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `STARTER_GRANT` / `RULES.startingCredits` | 3,000 | packages/game-core/src/economy.ts:62, packages/db/src/rules.ts:47 | Credits for a new stable (kind `starter_grant`). | Credits created per account, sybil value |
+| `STARTER_GRANT` / `RULES.startingCredits` | 3,000 | packages/game-core/src/economy.ts:62, packages/db/src/rules.ts:49 | Credits for a new stable (kind `starter_grant`). | Credits created per account, sybil value |
 | Live purses (ClassDef, **live**) | Maiden 2,000; Novice 2,500; Hcp 0-55 3,000; Hcp 50-75 4,000; Hcp 70-95 5,000; Listed 8,000; Group 3 12,000 | packages/db/src/services/card.ts:47-53 | Purse of each Live race. | Credits created/day (the biggest faucet) |
-| `FEATURE_PURSE_MULTIPLIER` | ×2 (Listed Feature 16,000; G3 Feature 24,000) | packages/db/src/services/card.ts:55, :212 | Cycle Feature pays double. | Credits created/day |
+| `FEATURE_PURSE_MULTIPLIER` | ×2 (Listed Feature 16,000; G3 Feature 24,000) | packages/db/src/services/card.ts:55, :257 | Cycle Feature pays double. | Credits created/day |
 | `CALENDAR_PURSE` | Qualifier 16,000; Weekend Feature 48,000; Final 72,000 | packages/db/src/services/card.ts:63 | Calendar purses (live). | Credits created/week |
 | Purse per 20-slot cycle | 79,000 (avg Feature 20,000) → 379,200/day at 15 min (was 1,896,000/day at 3 min), per course, before sisters | derived from card.ts:47-55, :82 | Gross purse posted. Only placed **player** runners are minted. | Credits created/day |
-| `RULES.purseSplitBps` | 5500 / 2000 / 1200 / 700 / 400 / 200 | packages/db/src/rules.ts:33, packages/db/src/services/races.ts:558 | Split to the first 6; house runners' shares are not minted. | Credits per finish, expected prize = purse/field |
+| `RULES.purseSplitBps` | 5500 / 2000 / 1200 / 700 / 400 / 200 | packages/db/src/rules.ts:35, packages/db/src/services/races.ts:595 | Split to the first 6; house runners' shares are not minted. | Credits per finish, expected prize = purse/field |
 | `PURSE_BY_TIER` (**model**) | maiden 600, novice 750, quick 240, hcp 800/1,100/1,500, listed 2,600, g3 4,000, g2 6,000, g1 10,000 | packages/game-core/src/economy.ts:24 | Model purses (game-core `regularSlot`, `weeklyFlow`, economy-sim). Not paid live. | Model only |
 | `WEEKEND_FEATURE_PURSE` / `SEASON_FINAL_PURSE` (**model**) | 20,000 / 30,000 | packages/game-core/src/economy.ts:38, :39 | Model calendar purses; the card overrides them. | Model only |
 | `DAILY_GOAL_CREDITS` × `DAILY_GOALS_PER_DAY` | 60 × 3 (run a race, care, run the Cup) per local day | packages/game-core/src/economy.ts:58, :59, packages/db/src/services/dailyGoals.ts:43 | Paid automatically (kind `daily_goal`). | Credits created/day (180) |
-| `DAILY_CUP_CREDITS` | 80 per UTC day | packages/game-core/src/economy.ts:61, packages/db/src/services/dailyCup.ts:85 | Kind `daily_cup`. | Credits created/day |
-| Story rewards | first win 400-1,800, replay 20, cap 4k-18k per chapter | packages/game-core/src/economy.ts:246-250, packages/db/src/services/player.ts:222 | Kind `story_reward`. | Credits created (40,000 lifetime max) |
-| Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:628 | Kind `insurance_payout`. | Credits created |
-| Release payout | 50 | packages/db/src/rules.ts:45, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
+| `DAILY_CUP_CREDITS` | 80 per UTC day | packages/game-core/src/economy.ts:61, packages/db/src/services/dailyCup.ts:86 | Kind `daily_cup`. | Credits created/day |
+| Story rewards | first win 400-1,800, replay 20, cap 4k-18k per chapter | packages/game-core/src/economy.ts:256-260, packages/db/src/services/player.ts:222 | Kind `story_reward`. | Credits created (40,000 lifetime max) |
+| Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:665 | Kind `insurance_payout`. | Credits created |
+| Release payout | 50 | packages/db/src/rules.ts:47, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
 | Referral active reward | 250 credits to the inviter when an invitee has 5 races and 3 play days | packages/db/src/services/affiliates.ts:74, :437 | Kind `referral_reward`. Runtime-configurable. | Credits created, sybil value |
-| Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:697 | Kind `entry_fee_refund` (burn → player). | Neutral |
+| Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:734 | Kind `entry_fee_refund` (burn → player). | Neutral |
 
 ### 10b. Sinks (credits burned, or sent to treasury)
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| Entry fees | Listed 120, G3 200, G1 500 | packages/db/src/services/card.ts:70, packages/db/src/services/races.ts:276 | Kind `entry_fee` (burn). | Credit sink |
+| Entry fees | Listed 120, G3 200, G1 500 | packages/db/src/services/card.ts:70, packages/db/src/services/races.ts:313 | Kind `entry_fee` (burn). | Credit sink |
 | Entry refill | 250 | packages/game-core/src/entries.ts:23, packages/db/src/services/entries.ts:162 | Kind `entry_refill` (burn). | Credit sink |
-| Training | 0-90 per session | packages/game-core/src/training.ts:37-42, packages/db/src/services/horseLife.ts:375 | Kind `training` (burn). | Credit sink |
-| Vet treatment | 150 | packages/game-core/src/economy.ts:68, packages/db/src/services/horseLife.ts:418 | Kind `vet` (burn). | Credit sink |
-| Pedigree scan | 400 | packages/game-core/src/economy.ts:69, packages/db/src/services/horseLife.ts:457 | Kind `pedigree_scan` (burn). | Credit sink |
+| Training | 0-90 per session | packages/game-core/src/training.ts:37-42, packages/db/src/services/horseLife.ts:380 | Kind `training` (burn). | Credit sink |
+| Vet treatment | 150 | packages/game-core/src/economy.ts:68, packages/db/src/services/horseLife.ts:423 | Kind `vet` (burn). | Credit sink |
+| Pedigree scan | 400 | packages/game-core/src/economy.ts:69, packages/db/src/services/horseLife.ts:462 | Kind `pedigree_scan` (burn). | Credit sink |
 | `BASE_STALLS` / `MAX_STALLS` | 6 / 24 | packages/game-core/src/economy.ts:80, :81 | Stable size limit (DB CHECK 1..24). | Horse population per stable |
 | `stallCost(n)` | 2,000 + 400 × (n − 7): stall 7 = 2,000 … stall 24 = 8,800 (97,200 for all 18) | packages/game-core/src/economy.ts:84 | Kind `stall_slot` (burn). | Credit sink, population |
 | `FACILITY_COSTS` | trainer 6,000 / 15,000; vet 3,000 / 8,000 / 16,000 | packages/game-core/src/economy.ts:86-89 | Kind `facility` (burn). | Credit sink |
 | Entry tiers | 4,000-22,000 (60,000 total) | packages/game-core/src/entries.ts:25 | Kind `facility` (burn). | Credit sink |
 | Stable hand | 2,500 | packages/db/src/services/horseLife.ts:44 | Kind `facility` (burn). | Credit sink |
-| Breeding | 1,500 base (burn) + stud fee (10% burn, 90% to the stud owner or the Club treasury) | packages/game-core/src/breeding.ts:36, :38, packages/db/src/services/breeding.ts:131-148 | Kind `breeding_fee`. | Credit sink, player-to-player transfer |
+| Breeding | 1,500 base (burn) + stud fee (10% burn, 90% to the stud owner or the Club treasury) | packages/game-core/src/breeding.ts:36, :38, packages/db/src/services/breeding.ts:131-154 | Kind `breeding_fee`. | Credit sink, player-to-player transfer |
 | Paddock pack | 1,200 | packages/game-core/src/packs.ts:47, packages/db/src/services/packs.ts:177 | Kind `pack` (burn). | Credit sink |
-| Premium pack (credit demo) | 2,500 (only with `PREMIUM_PACK_DEMO=1`) | packages/db/src/rules.ts:113 | Kind `pack`. | Demo only |
+| Premium pack (credit demo) | 2,500 (only with `PREMIUM_PACK_DEMO=1`) | packages/db/src/rules.ts:115 | Kind `pack`. | Demo only |
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
 
@@ -390,31 +393,31 @@ Where column.
 | Kind | Direction | Posted at |
 |---|---|---|
 | `starter_grant` | mint → player | packages/db/src/services/accounts.ts:61 |
-| `purse` | mint → placed player runners (one transaction per race) | packages/db/src/services/races.ts:568 |
-| `insurance_payout` | mint → owner | packages/db/src/services/races.ts:629 |
+| `purse` | mint → placed player runners (one transaction per race) | packages/db/src/services/races.ts:605 |
+| `insurance_payout` | mint → owner | packages/db/src/services/races.ts:666 |
 | `daily_goal` | mint → player | packages/db/src/services/dailyGoals.ts:41 |
-| `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:85 |
+| `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:86 |
 | `story_reward` | mint → player | packages/db/src/services/player.ts:228 |
 | `referral_reward` | mint → inviter | packages/db/src/services/affiliates.ts:437 |
 | `adjustment` (release to Club) | mint → player | packages/db/src/services/horses.ts:210 |
-| `entry_fee_refund` | burn → player | packages/db/src/services/races.ts:697 |
-| `entry_fee` | player → burn | packages/db/src/services/races.ts:276 |
+| `entry_fee_refund` | burn → player | packages/db/src/services/races.ts:734 |
+| `entry_fee` | player → burn | packages/db/src/services/races.ts:313 |
 | `entry_refill` | player → burn | packages/db/src/services/entries.ts:162 |
-| `training` | player → burn | packages/db/src/services/horseLife.ts:375 (also the older plan charge, packages/db/src/services/horses.ts:140) |
-| `vet` | player → burn | packages/db/src/services/horseLife.ts:418 |
-| `pedigree_scan` | player → burn | packages/db/src/services/horseLife.ts:457 |
+| `training` | player → burn | packages/db/src/services/horseLife.ts:380 (also the older plan charge, packages/db/src/services/horses.ts:140) |
+| `vet` | player → burn | packages/db/src/services/horseLife.ts:423 |
+| `pedigree_scan` | player → burn | packages/db/src/services/horseLife.ts:462 |
 | `facility` / `stall_slot` | player → burn | packages/db/src/services/horseLife.ts:110, packages/db/src/services/accounts.ts:254, packages/db/src/services/entries.ts:179 |
 | `pack` | player → burn | packages/db/src/services/packs.ts:177 |
 | `insurance_premium` | player → treasury | packages/db/src/services/horses.ts:237 |
-| `breeding_fee` | player → burn + stud owner (or treasury for Club studs) | packages/db/src/services/breeding.ts:148 |
+| `breeding_fee` | player → burn + stud owner (or treasury for Club studs) | packages/db/src/services/breeding.ts:154 |
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
 
 ### 10d. Balance model
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `ACTIVE_PLAYER` profile | 75 starts/wk (8 maiden, 10 novice, 12 quick, 20/15/6 hcp, 2 listed, 2 g3), field 10, 18 training sessions, 0.75 coverings, 2 packs, 1 scan, 3 refills, 2,500/wk facilities | packages/game-core/src/economy.ts:349 | The reference player for `weeklyFlow` (target spend ≈ earn ±15%). | Balance target |
-| `weeklyFlow` insurance | 300 per insurance (flat) | packages/game-core/src/economy.ts:335 | Uses the flat fallback, not 5% of appraisal. | Model only |
+| `ACTIVE_PLAYER` profile | 75 starts/wk (8 maiden, 10 novice, 12 quick, 20/15/6 hcp, 2 listed, 2 g3), field 10, 18 training sessions, 0.75 coverings, 2 packs, 1 scan, 3 refills, 2,500/wk facilities | packages/game-core/src/economy.ts:359 | The reference player for `weeklyFlow` (target spend ≈ earn ±15%). | Balance target |
+| `weeklyFlow` insurance | 300 per insurance (flat) | packages/game-core/src/economy.ts:345 | Uses the flat fallback, not 5% of appraisal. | Model only |
 
 ## 11. Market
 
@@ -427,12 +430,12 @@ Where column.
 | `LISTING_CEILING_PERMILLE` | 3000 (3× appraisal) | packages/game-core/src/economy.ts:76 | Highest list price (anti credit-transfer). | Market prices, RMT risk |
 | `MARKET_FEE_PERMILLE` | 50 (5% burned) | packages/game-core/src/economy.ts:73 | Fee on each sale. | Credit sink |
 | `RESALE_LOCK_MS` | 72 h | packages/game-core/src/economy.ts:78, packages/db/src/services/market.ts:77 | Bought horses can't be relisted for 3 days. | Flipping |
-| `RULES.maxListingMs` / `LISTING_DAYS` | 14 days / UI offers 3, 7, 14 (default 7) | packages/db/src/rules.ts:41, apps/web/src/server/economy.ts:588 | Listing duration. | Market supply |
-| `SELLER_MIN_AGE_DAYS` | 7 (env `MARKET_SELLER_MIN_ACCOUNT_DAYS`) | packages/game-core/src/economy.ts:161, packages/db/src/rules.ts:250 | Seller account age. | Market supply, sybil cost |
-| `SELLER_MIN_RACES` | 20 (env `MARKET_SELLER_MIN_RACES`) | packages/game-core/src/economy.ts:162, packages/db/src/rules.ts:251 | Seller race count. | Market supply, sybil cost |
-| Verified email to sell | game-core default true; DB default false (env `MARKET_REQUIRE_VERIFIED_EMAIL`) | packages/game-core/src/economy.ts:184, packages/db/src/rules.ts:252 | Live default is off (no email flow). | Market supply |
-| Bindings | Club-bred (starters, gift, free packs) never; their foals after 5 starts | packages/game-core/src/economy.ts:197-198, packages/game-core/src/packs.ts:169 | Untradeable horses. | Market supply |
-| Linked accounts | trades blocked | packages/game-core/src/economy.ts:221 | Anti credit-transfer. | RMT risk |
+| `RULES.maxListingMs` / `LISTING_DAYS` | 14 days / UI offers 3, 7, 14 (default 7) | packages/db/src/rules.ts:43, apps/web/src/server/economy.ts:589 | Listing duration. | Market supply |
+| `SELLER_MIN_AGE_DAYS` | 7 (env `MARKET_SELLER_MIN_ACCOUNT_DAYS`) | packages/game-core/src/economy.ts:171, packages/db/src/rules.ts:252 | Seller account age. | Market supply, sybil cost |
+| `SELLER_MIN_RACES` | 20 (env `MARKET_SELLER_MIN_RACES`) | packages/game-core/src/economy.ts:172, packages/db/src/rules.ts:253 | Seller race count. | Market supply, sybil cost |
+| Verified email to sell | game-core default true; DB default false (env `MARKET_REQUIRE_VERIFIED_EMAIL`) | packages/game-core/src/economy.ts:194, packages/db/src/rules.ts:254 | Live default is off (no email flow). | Market supply |
+| Bindings | Club-bred (starters, gift, free packs) never; their foals after 5 starts | packages/game-core/src/economy.ts:207-208, packages/game-core/src/packs.ts:169 | Untradeable horses. | Market supply |
+| Linked accounts | trades blocked | packages/game-core/src/economy.ts:231 | Anti credit-transfer. | RMT risk |
 
 ## 12. Packs
 
@@ -481,27 +484,27 @@ These must stay in sync (or be derived from one source).
 
 | Value | Locations | Notes |
 |---|---|---|
-| Purse split 55/20/12/7/4/2 | packages/db/src/rules.ts:33, packages/racing-engine/src/results.ts:25, packages/game-core/src/economy.ts:315, tools/economy-sim/lib/constants.ts:83 | Four copies; the DB one pays. |
+| Purse split 55/20/12/7/4/2 | packages/db/src/rules.ts:35, packages/racing-engine/src/results.ts:25, packages/game-core/src/economy.ts:325, tools/economy-sim/lib/constants.ts:83 | Four copies; the DB one pays. |
 | Class rotation (20 slots) | packages/db/src/services/card.ts:82 (live `CYCLE`), packages/game-core/src/seasons.ts:25 (model `TIER_CYCLE`) | Different patterns; only the card is live. |
-| Class rating bands | packages/game-core/src/eligibility.ts:30-55, packages/db/src/services/card.ts:47-53, packages/db/src/services/card.ts:133, apps/web/src/server/horseView.ts:48 (`raceTier` maps `maxRating` back to a tier) | Listed 88 vs 85, G1 108 vs 95, maiden/novice caps differ. |
+| Class rating bands | packages/game-core/src/eligibility.ts:30-55, packages/db/src/services/card.ts:47-53, packages/db/src/services/card.ts:176, apps/web/src/server/horseView.ts:48 (`raceTier` maps `maxRating` back to a tier) | Listed 88 vs 85, G1 108 vs 95, maiden/novice caps differ. |
 | Entry cost per race | packages/game-core/src/entries.ts:66-70, packages/db/src/services/races.ts:34 | Hourly Listed Feature: 1 vs 2. |
-| Release payout 50 | packages/game-core/src/lifecycle.ts:232 (`RELEASE_TO_CLUB_CREDITS`), packages/db/src/rules.ts:45 (`releasePayout`, the one used) | Two literals. |
-| Care healing 12 h | packages/game-core/src/condition.ts:218, packages/db/src/rules.ts:59 | |
-| Bond per care | +6 packages/game-core/src/lifecycle.ts:202, +6 packages/db/src/services/horseLife.ts:236 (no-genome path), +10 packages/db/src/services/horses.ts:117 (older `recordCare`) | |
-| Care quality fallback 650 | packages/game-core/src/lifecycle.ts:174, packages/db/src/services/horseLife.ts:201 | |
+| Release payout 50 | packages/game-core/src/lifecycle.ts:240 (`RELEASE_TO_CLUB_CREDITS`), packages/db/src/rules.ts:47 (`releasePayout`, the one used) | Two literals. |
+| Care healing 12 h | packages/game-core/src/condition.ts:218, packages/db/src/rules.ts:61 | |
+| Bond per care | +6 packages/game-core/src/lifecycle.ts:210, +6 packages/db/src/services/horseLife.ts:236 (no-genome path), +10 packages/db/src/services/horses.ts:117 (older `recordCare`) | |
+| Care quality fallback 650 | packages/game-core/src/lifecycle.ts:182, packages/db/src/services/horseLife.ts:201 | |
 | Vet level cap 3 | packages/game-core/src/condition.ts:199, packages/db/src/services/horseLife.ts:182, packages/game-core/src/economy.ts:88 (3 vet levels) | |
-| Insurance | permille rule packages/game-core/src/economy.ts:71-72; flat 300/2,000 packages/db/src/rules.ts:34-35; flat 300 in packages/game-core/src/economy.ts:335 | |
-| Season length | packages/game-core/src/time.ts:12 (`SEASON_DAYS`), packages/db/src/rules.ts:85 (literal 28 × 24 h) | |
+| Insurance | permille rule packages/game-core/src/economy.ts:71-72; flat 300/2,000 packages/db/src/rules.ts:36-37; flat 300 in packages/game-core/src/economy.ts:345 | |
+| Season length | packages/game-core/src/time.ts:12 (`SEASON_DAYS`), packages/db/src/rules.ts:87 (literal 28 × 24 h) | |
 | Week length | packages/db/src/services/leagues.ts:24 (`WEEK_MS`), packages/db/src/services/races.ts:185 (qualifying window), packages/game-core/src/time.ts:11 | |
 | Stalls 6 / 24 | packages/game-core/src/economy.ts:80-81, packages/db/src/schema.ts:240 (default 6), :260 (CHECK 1..24) | |
 | Entry allowance / cap | packages/game-core/src/entries.ts:16-19, packages/db/src/schema.ts:250-251 (defaults 10/20), :256 (CHECK ≤15/≤30) | Raising the max needs a migration. |
-| Breedings 4, mare 1/season | packages/game-core/src/lifecycle.ts:37, packages/game-core/src/breeding.ts:33, packages/db/src/schema.ts:384 (CHECK 0..4), :567 (unique dam+season) | Changing either needs a migration. |
+| Breedings 4, mare 1/season | packages/game-core/src/lifecycle.ts:45, packages/game-core/src/breeding.ts:33, packages/db/src/schema.ts:384 (CHECK 0..4), :567 (unique dam+season) | Changing either needs a migration. |
 | Career 40 starts | packages/game-core/src/lifecycle.ts:30, packages/db/src/schema.ts:391, :401 | Needs a migration. |
 | OR 0..140 | packages/game-core/src/ratings.ts:15-16, packages/db/src/schema.ts:388, packages/db/src/gameCore.ts:101 | |
-| Field size 12 / target 10 / max 16 | packages/db/src/rules.ts:80, packages/db/src/schema.ts:630 (default 12), :632 (default 10), :654 (CHECK ≤ 16), packages/db/src/services/races.ts:93 (default target 10), packages/db/src/services/card.ts:145 (`min(16, …)`), apps/web/src/server/game.ts:872 (Story 12) | |
+| Field size 12 / target 10 / max 16 | packages/db/src/rules.ts:82, packages/db/src/schema.ts:630 (default 12), :632 (default 10), :654 (CHECK ≤ 16), packages/db/src/services/races.ts:93 (default target 10), packages/db/src/services/card.ts:188 (`min(16, …)`), apps/web/src/server/game.ts:878 (Story 12) | |
 | League size 30 | packages/game-core/src/leagues.ts:11, packages/db/src/schema.ts:824 | |
-| Course names | packages/db/src/services/card.ts:92, apps/web/src/server/game.ts:806 | |
-| Trip lists | packages/db/src/services/card.ts:101, apps/web/src/server/game.ts:808, packages/game-core/src/seasons.ts:51 | |
+| Course names | packages/db/src/services/card.ts:92, apps/web/src/server/game.ts:812 | |
+| Trip lists | packages/db/src/services/card.ts:101, apps/web/src/server/game.ts:814, packages/game-core/src/seasons.ts:51 | |
 | Daily entry budget 10 / refill 5 | packages/game-core/src/entries.ts:16, :21 and packages/game-core/src/eligibility.ts:117, :120 (dead helper) | |
 | Mutation step 30 | packages/game-core/src/genetics.ts:16, packages/game-core/src/breeding.ts:571 (preview literal) | |
 | Affiliate and pool rules | packages/db/src/services/affiliates.ts:68-77, packages/db/src/services/betaMoney.ts:476-485, mirrored in tools/economy-sim/lib/constants.ts:90-130 (checked by `checkSync`) | |
@@ -522,32 +525,32 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Live class purses and conditions | `MAIDEN`…`GROUP3` ClassDefs (not exported) | packages/db/src/services/card.ts:47-53 |
 | Feature multiplier | 2 | packages/db/src/services/card.ts:55 |
 | Live class cycle | `CYCLE` (not exported) | packages/db/src/services/card.ts:82 |
-| Feature Listed/G3 coin flip | `h[30] % 2` | packages/db/src/services/card.ts:178 |
-| Target runners draw | `8 + h[29] % 5` | packages/db/src/services/card.ts:215 |
-| Juvenile trips, open trips, going, weather, tracks | lists | packages/db/src/services/card.ts:92-103, :184, :189 |
-| Sister cap | 5 | packages/db/src/services/card.ts:274 |
-| Calendar min ratings | 95 / 85 | packages/db/src/services/card.ts:133 |
-| Displaced-juvenile lookback | 16 slots | packages/db/src/services/card.ts:226 |
-| House-horse rating when minted | band midpoint `(min + max(min, 40… max))/2` | packages/db/src/services/races.ts:362-366 |
-| House pool scan | `limit(needed × 4)` | packages/db/src/services/races.ts:388 |
-| House tactic | uniform front/stalker/closer | packages/db/src/services/races.ts:350, :421 |
-| One-per-stable, half-field, sister trigger | rules | packages/db/src/services/races.ts:264, :269, :294 |
+| Feature Listed/G3 coin flip | `h[30] % 2` | packages/db/src/services/card.ts:223 |
+| Target runners draw | `8 + h[29] % 5` | packages/db/src/services/card.ts:260 |
+| Juvenile trips, open trips, going, weather, tracks | lists | packages/db/src/services/card.ts:92-103, :229, :234 |
+| Sister cap | 5 | packages/db/src/services/card.ts:319 |
+| Calendar min ratings | 95 / 85 | packages/db/src/services/card.ts:176 |
+| Displaced-juvenile lookback | 16 slots | packages/db/src/services/card.ts:271 |
+| House-horse rating when minted | band midpoint `(min + max(min, 40… max))/2` | packages/db/src/services/races.ts:399-403 |
+| House pool scan | `limit(needed × 4)` | packages/db/src/services/races.ts:425 |
+| House tactic | uniform front/stalker/closer | packages/db/src/services/races.ts:387, :458 |
+| One-per-stable, half-field, sister trigger | rules | packages/db/src/services/races.ts:301, :306, :331 |
 | Qualifying window | 7 days | packages/db/src/services/races.ts:185 |
-| RULES literals | insurance 300/2,000; listing 14 d; release 50; starters 3; overflow 1; care heal 12 h; horizon 6 h; field 8/12; settle 150 s; epoch 2026-01-05; premium 2,500 | packages/db/src/rules.ts:34-85, :113 |
-| Fallback appraisal | `(400 + OR × 40)(0.5 + career left) + 300 × breedings left`, min 100 | packages/db/src/rules.ts:216 |
-| Story generator | trips list, 3-in-4 fit, OR ±12, 8-10 runners, class by wins, purse 0, max 12 | apps/web/src/server/game.ts:808, :871-872, :919-940 |
-| Story Quick Pick | −40 per run today, −60 if tired | apps/web/src/server/game.ts:839 |
-| Card list sizes | 6 upcoming, 8 slots back | apps/web/src/server/game.ts:458-459 |
-| Tick throttle | 4 s | apps/web/src/server/game.ts:218 |
-| Stud fee cap / listing days | 100,000 / 3, 7, 14 | apps/web/src/server/economy.ts:361, :588 |
-| Trophy tiers | rule | apps/web/src/server/competition.ts:337 |
+| RULES literals | insurance 300/2,000; listing 14 d; release 50; starters 3; overflow 1; care heal 12 h; horizon 6 h; field 8/12; settle 150 s; epoch 2026-01-05; premium 2,500 | packages/db/src/rules.ts:36-87, :115 |
+| Fallback appraisal | `(400 + OR × 40)(0.5 + career left) + 300 × breedings left`, min 100 | packages/db/src/rules.ts:218 |
+| Story generator | trips list, 3-in-4 fit, OR ±12, 8-10 runners, class by wins, purse 0, max 12 | apps/web/src/server/game.ts:814, :877-878, :925-946 |
+| Story Quick Pick | −40 per run today, −60 if tired | apps/web/src/server/game.ts:845 |
+| Card list sizes | 6 upcoming, 8 slots back | apps/web/src/server/game.ts:459-460 |
+| Tick throttle | 4 s | apps/web/src/server/game.ts:219 |
+| Stud fee cap / listing days | 100,000 / 3, 7, 14 | apps/web/src/server/economy.ts:362, :589 |
+| Trophy tiers | rule | apps/web/src/server/competition.ts:340 |
 | Fallback risk view | 4 permille, 30 CE share | apps/web/src/server/horseView.ts:162 |
 | Injury factor multipliers | durability, fatigue, frequency (+400/+100), distance 1.1, veteran 1.2 | packages/game-core/src/condition.ts:158-175 |
 | Career-ending bumps / cap | +30 tired, +20 all-out, cap 200; moderate 30% | packages/game-core/src/condition.ts:181, :196 |
 | Morale and fitness formulas | +20/+10/−8, bond/40, ×15/100; 940 + 60 × fitness | packages/game-core/src/condition.ts:77-92 |
 | Race fatigue / fitness / bond | 150 + d/10, × (1300 − 0.6 dur); +40; +10/+4 | packages/game-core/src/career.ts:56, :73, :74 |
 | Training thresholds | overwork > 600, injury from > 500, trainer max 2 levels, yearling ½, training injury ≤ 4 days, bond +2 | packages/game-core/src/training.ts:136-146, :192, :201 |
-| Care values | 1000 / 650 / 450, ×50, 3:1 average, recovery feed > 400 fatigue | packages/game-core/src/lifecycle.ts:165-202 |
+| Care values | 1000 / 650 / 450, ×50, 3:1 average, recovery feed > 400 fatigue | packages/game-core/src/lifecycle.ts:173-210 |
 | Ride intensity effects | +25/−20, −20/+10 | packages/game-core/src/phenotype.ts:226-229 |
 | Mutation caps | rate 400, negative share 950, lean clamp 50..950 | packages/game-core/src/genetics.ts:122, :129, :130 |
 | Mint shaping | ×1.2, sd 45, ±140, pure 45%, main 700-950, vigour gem 70-150 | packages/game-core/src/genome.ts:646, :652, :837, :838, :856 |
@@ -555,7 +558,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Appraisal formula | 400, /12, stage factors, 150, 120, /10, ×15, min 100 | packages/game-core/src/economy.ts:137-143 |
 | Stall cost formula | 2,000 + 400 × (n − 7) | packages/game-core/src/economy.ts:84 |
 | Daily Cup | jitter −40..+60, points formula, top-10 percentile 100, firm 20% | packages/game-core/src/dailyCup.ts:47, :51, :122, :123 |
-| Story chapter bases | 318/368/405/440, +3 per race, fields 7-10, rival ±15 | packages/game-core/src/story.ts:224, :238, :257, :276, :295, :421 |
+| Story chapter bases | 318/368/405/440, +3 per race, fields 7-10, rival ±15 | packages/game-core/src/story.ts:224, :238, :257, :276, :295, :427 |
 | Calendar times | 19:00 + 90 s; Final 18:00 + 30 min × i + 90 s | packages/game-core/src/seasons.ts:167-175 |
 | League tier bonus | 10 / 6 / 3 | packages/game-core/src/leagues.ts:30-32 |
 | Pool score formula | ×15 / max(runs, 8); best 3 Cup days × 5 / 3; linear weights | packages/db/src/services/betaMoney.ts:567, :596-597, :654 |
@@ -568,14 +571,14 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 
 1. **Purses: live is about 3x the model.** The live card is built by `defaultCardSlot`
    (packages/db/src/services/card.ts) because the web hooks pass no `cardSlot`
-   (`raceHooks`, apps/web/src/server/game.ts:108; `tickRaceCard` at :243). Settlement pays
-   `race.purse` (packages/db/src/services/races.ts:558). Live vs `PURSE_BY_TIER`:
+   (`raceHooks`, apps/web/src/server/game.ts:109; `tickRaceCard` at :243). Settlement pays
+   `race.purse` (packages/db/src/services/races.ts:595). Live vs `PURSE_BY_TIER`:
    maiden 2,000 vs 600 (3.3x), novice 2,500 vs 750 (3.3x), Hcp 0-55 3,000 vs 800 (3.75x),
    Hcp 50-75 4,000 vs 1,100 (3.6x), Hcp 70-95 5,000 vs 1,500 (3.3x), Listed 8,000 vs 2,600
    (3.1x), Group 3 12,000 vs 4,000 (3.0x); Features pay 2x on top. Calendar: Qualifier 16,000
    vs 2,600 (6.2x), Weekend Feature 48,000 vs 20,000 (2.4x), Final 72,000 vs 30,000 (2.4x).
    Everything priced against the model is off by that factor:
-   - `weeklyFlow(ACTIVE_PLAYER)` (packages/game-core/src/economy.ts:309) gives earned 9,708 vs
+   - `weeklyFlow(ACTIVE_PLAYER)` (packages/game-core/src/economy.ts:319) gives earned 9,708 vs
      spent 9,906 per week (ratio 1.02, on target). The same starts at live purses (Story
      "quick" starts paying 0) earn 25,820 per week, ratio 0.38: spend covers well under half
      of income.
@@ -595,11 +598,11 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
    (packages/db/src/services/card.ts:82).
 4. **Rating bands.** Listed min OR 88 in `TIER_RULES`/`classBand`
    (packages/game-core/src/eligibility.ts:37, :52) vs 85 on the card (card.ts:52) and for
-   Qualifiers (card.ts:133). G1 min 108 in game-core vs 95 for the Weekend Feature and Final
-   (card.ts:133). Live maidens cap OR 60 and novices 70 (card.ts:47-48); game-core has no cap.
+   Qualifiers (card.ts:176). G1 min 108 in game-core vs 95 for the Weekend Feature and Final
+   (card.ts:176). Live maidens cap OR 60 and novices 70 (card.ts:47-48); game-core has no cap.
 5. **Juvenile class rules are not enforced live.** `TIER_RULES.juvenileOk`/`juvenileOnly`
    only apply through `gc.entryBlock`, and the web filters those blocks out
-   (`CLASS_BLOCKS`, apps/web/src/server/game.ts:641), then uses the card's conditions
+   (`CLASS_BLOCKS`, apps/web/src/server/game.ts:642), then uses the card's conditions
    (`classEligibility`, packages/db/src/services/races.ts:167). Licences gate instead.
 6. **Handicap weights are not applied live.** `handicapWeights` (packages/game-core/src/ratings.ts:94)
    is called only by tools/balance/ability.report.ts; `engineHorseFromSnapshot` passes no
@@ -610,13 +613,13 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 7. **Entry cost of hourly Listed Features.** Live: 2 entries (kind `feature`,
    packages/db/src/services/races.ts:36). Model `entryCost`: 1 (tier listed,
    packages/game-core/src/entries.ts:69-70). All hourly Features also need the Classics
-   licence (apps/web/src/server/game.ts:636).
+   licence (apps/web/src/server/game.ts:637).
 8. **Calendar field size.** Model 14 for the Weekend Feature and Final
-   (packages/game-core/src/seasons.ts:148); live target 12 (card.ts:146), so house horses only
+   (packages/game-core/src/seasons.ts:148); live target 12 (card.ts:189), so house horses only
    fill to 12.
 9. **Daily Cup points are never stored.** `runCupEntry` writes `points: 0`
-   (packages/db/src/services/dailyCup.ts:79); `rankCup` points (packages/game-core/src/dailyCup.ts:123)
-   are display-only (apps/web/src/server/competition.ts:76). The Prize Pool's cup term
+   (packages/db/src/services/dailyCup.ts:80); `rankCup` points (packages/game-core/src/dailyCup.ts:123)
+   are display-only (apps/web/src/server/competition.ts:77). The Prize Pool's cup term
    (packages/db/src/services/betaMoney.ts:558-567, :597) is therefore always 0, and
    `dailyCupBoard` (packages/db/src/services/competition.ts:92) sorts on a zero column.
 10. **Economy sim is out of sync and would abort.** `checkSync`
@@ -627,18 +630,18 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
     (apps/web/src/components/chain/admin/ChainAdmin.tsx:37). Both trip `checkSync`.
     (Static reading; the sim was not run here because its `tsx` runner isn't installed.)
 11. **Seller policy default.** game-core `DEFAULT_SELLER_POLICY.requireVerifiedEmail` is true
-    (packages/game-core/src/economy.ts:184); the DB default is false (packages/db/src/rules.ts:252).
+    (packages/game-core/src/economy.ts:194); the DB default is false (packages/db/src/rules.ts:254).
     Live sellers need no verified email.
 12. **Insurance in the model.** `weeklyFlow` charges 300 flat per insurance
-    (packages/game-core/src/economy.ts:335); live charges 5% of appraisal once
+    (packages/game-core/src/economy.ts:345); live charges 5% of appraisal once
     (packages/db/src/services/horses.ts:236).
 13. **Story races are rated but pay no purse.** Story uses tier `quick` (rated: true,
     packages/game-core/src/eligibility.ts:41), so Story results move OR; `weeklyFlow` counts
     12 Quick starts a week at 240 credits each, but live Story races have purse 0
-    (apps/web/src/server/game.ts:871) and pay Story rewards instead.
-14. **House runners.** Their purse shares are never minted (packages/db/src/services/races.ts:560),
+    (apps/web/src/server/game.ts:877) and pay Story rewards instead.
+14. **House runners.** Their purse shares are never minted (packages/db/src/services/races.ts:597),
     and new house horses are minted on demand with a rating at the band midpoint, not their
-    ability (packages/db/src/services/races.ts:362-395). The house population grows without a
+    ability (packages/db/src/services/races.ts:399-432). The house population grows without a
     cap as fields lock short.
-15. **Premium pack credit price.** 2,500 credits (packages/db/src/rules.ts:113) applies only
+15. **Premium pack credit price.** 2,500 credits (packages/db/src/rules.ts:115) applies only
     with `PREMIUM_PACK_DEMO=1`; the real price is $4.99 in ETH (apps/web/src/server/chain/config.ts:58).
