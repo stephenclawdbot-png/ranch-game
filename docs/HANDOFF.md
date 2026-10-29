@@ -15,7 +15,7 @@ Preview and Production.)
   starting new work, and for "ship" before updating `main`.**
 - **Keys** come from the environment settings (`OLLAMA_API_KEY`, `PIXELLAB_API_KEY`, optionally
   `ANTHROPIC_API_KEY`), never from the repo or the chat.
-- **Production** (`main` = `aff64b6`):
+- **Production** (`main` = `5dabac1`, 2026-10-28; the branch is ahead with metrics, the MetaMask fallback and coat v2, not shipped yet):
   - Post Time rebrand and Design v2;
   - HD-2D diorama scene bands, including the barn with horses leaning out over the stall doors;
   - **Trackside** as the default race view;
@@ -37,6 +37,29 @@ Preview and Production.)
     the shared appearance if wanted).
 - **Parked ideas:** the hangout plot (`docs/roadmap.md` Phase 5); Grok for X marketing only, not
   the pipeline.
+
+## Coat v2, sister courses, My races, race queue, follow cam (lead + workers, 2026-10-29)
+
+- **Coat colours v2 (merged, Kimi):** `HorseAppearance.colour` (optional: base, cream 0–2,
+  dun, roan, grey stage, sabino 0–2) is filled by `appearanceOf`; every renderer resolves it
+  through `coatPaletteOf` (art-pipeline) to the lead's anchors in
+  `docs/brand-v2/coats/coat-anchors-v2.png`. Roan ticks over the horse's own colour, the dun
+  stripe uses the palette's stripe colour, two-cream coats get a pink muzzle and blue eye.
+  Appearances without `colour` (old replays) render exactly as before. Review page:
+  `/dev/coats`. Next: sabino white patterning (ticket written: legs, belly splash, blaze;
+  max sabino mostly white).
+- **Owner (2026-10-29): overflow races must not sound like tiers.** When a Live race is
+  nearly full a **sister course** opens: the same race at the same time at another of the six
+  courses (`live:<index>:<n>`, own seed commitment). Never "division".
+- **Quick Join** prefers races with real players, and falls back to a **race queue** (until the
+  player's local midnight; the entry is charged only on a match; first come, first served;
+  matched on every `driveCard` and by the cron).
+- **My races** (`/me/races`: filters by horse, Live or Story, wins; summary line) and replay
+  share links that open on the finish (`/race/<id>?at=finish`; ignored before the race
+  ends, so no spoilers).
+- **Follow my horse:** a "Whole field" or "Follow mine" toggle in Trackside.
+- Status: sister courses and My races run on GLM, follow cam on Kimi; the queue starts after
+  sister courses are merged; sabino after the follow cam (both change the Trackside shader).
 
 ## Prize Pool: rate scoring, 4 active days, $10 cap; beta is 4 weeks (worker/econ1, 2026-10-27)
 
