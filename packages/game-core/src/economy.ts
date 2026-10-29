@@ -143,6 +143,16 @@ export function appraise(state: HorseState): number {
   return Math.max(100, value);
 }
 
+/**
+ * Highest stud fee a stallion may stand at: his appraisal (never below STUD_FEE_MIN_CEILING).
+ * The season harness (2026-10-29) caught linked accounts washing credits through stud fees by
+ * raising the fee to whatever the alt held; a ceiling tied to the horse's value caps that.
+ */
+export const STUD_FEE_MIN_CEILING = 500;
+export function studFeeCeiling(state: HorseState): number {
+  return Math.max(STUD_FEE_MIN_CEILING, appraise(state));
+}
+
 export function listingFloor(state: HorseState): number {
   return Math.ceil((appraise(state) * LISTING_FLOOR_PERMILLE) / 1000);
 }

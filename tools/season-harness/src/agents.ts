@@ -293,7 +293,7 @@ async function smartEntries(c: VisitCtx, s: Session, view: { horses: StableHorse
 
 /** Returns how many free, fit horses are still without a race. */
 async function sheetEntries(c: VisitCtx, s: Session, view: { horses: StableHorse[]; entries: { balance: number } }, opts: { lookaheadMs: number; tiredOk: boolean }): Promise<number> {
-  const free = new Map(view.horses.filter((h) => h.careerStatus === "racing" && !h.block && h.ranToday < RULES.startsPerDay && (opts.tiredOk || h.condition !== "tired")).map((h) => [h.id, h]));
+  const free = new Map(view.horses.filter((h) => h.careerStatus === "racing" && !h.block && h.ranToday < RULES.liveStartsPerDay && (opts.tiredOk || h.condition !== "tired")).map((h) => [h.id, h]));
   if (!free.size) return 0;
   let balance = view.entries.balance;
   const list = await c.world.act(c.a, "race_list", c.now, () => raceList(c.world.db, c.now, s.stable.id, { upcoming: 64, recent: 0 }));

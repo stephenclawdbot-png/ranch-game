@@ -360,7 +360,12 @@ export async function runTrainingSession(
       if (!w.success) throw new DomainError("INVALID_INPUT", "unknown workout");
       workout = w.data;
     } else {
-      workout = gc.nextPlannedWorkout((await currentTrainingPlan(tx, horse.id)) ?? gc.DEFAULT_PLAN, state, nowMs);
+      // A plan saved before a Trainer upgrade has fewer slots than the week now allows: pad it
+      // with rest sessions exactly as the training view shows it, so the extra slot can be run.
+      const saved = (await currentTrainingPlan(tx, horse.id)) ?? gc.DEFAULT_PLAN;
+      const slots = gc.slotsFor(facilityLevels(stable).trainer);
+      const padded = [...saved.slots, ...Array<gc.Workout>(Math.max(0, slots - saved.slots.length)).fill("rest" as gc.Workout)].slice(0, slots);
+      workout = gc.nextPlannedWorkout({ ...saved, slots: padded }, state, nowMs);
     }
     const lv = facilityLevels(stable);
     if (!workout) throw new DomainError(...TRAIN_BLOCK.week_full!);

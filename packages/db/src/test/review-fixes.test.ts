@@ -12,7 +12,9 @@ import { breed, foal } from "../services/breeding";
 import { CALENDAR_PURSE, defaultCardSlot, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
 import { createRace, enterRace, featureQualificationReason } from "../services/races";
-import { gc } from "../gameCore";
+import { gc, toHorseState } from "../gameCore";
+import { recordAccountSignal } from "../services/accounts";
+import { setStudFee } from "../services/horses";
 import { at, DAY, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, T0 } from "./helpers";
 
 let h: DbHandle;
@@ -111,5 +113,34 @@ describe("Group 1 points", () => {
     const g3 = runPoints({ position: 1, fieldSize: 10, raceClass: "graded" });
     const g1 = runPoints({ position: 1, fieldSize: 10, raceClass: "graded", group1: true });
     expect(g1 - g3).toBe(gc.tierBonus("g1", 1) - gc.tierBonus("g3", 1));
+  });
+});
+
+describe("harness findings (2026-10-29)", () => {
+  it("one Live race per horse per day; Story races don't count towards it", async () => {
+    const p = await newPlayer(h.db, { credits: 20_000 });
+    const horse = await makeHorse(h.db, p.stableId);
+    const live = (min: number) =>
+      createRace(h.db, { kind: "scheduled", name: `Live ${min}`, raceClass: "maiden", conditions: {}, postTime: at(min * MIN), entriesCloseAt: at(min * MIN - MIN) });
+    const r1 = await live(30);
+    const r2 = await live(90);
+    await enterRace(h.db, { accountId: p.accountId, raceId: r1.id, horseId: horse.id, tactic: "front", now: T0 });
+    await h.db.execute(`update horses set lock_kind = null, lock_ref = null where id = '${horse.id}'`);
+    await expect(enterRace(h.db, { accountId: p.accountId, raceId: r2.id, horseId: horse.id, tactic: "front", now: T0 })).rejects.toMatchObject({ code: "RACE_LIMIT" });
+    const story = await createRace(h.db, { kind: "quick", name: "Story", raceClass: "maiden", conditions: {}, postTime: at(60 * MIN), entriesCloseAt: at(59 * MIN) });
+    await expect(enterRace(h.db, { accountId: p.accountId, raceId: story.id, horseId: horse.id, tactic: "front", now: T0 })).resolves.toBeTruthy();
+  });
+
+  it("stud fees are capped at the stallion's appraisal, and linked accounts can't pay each other stud fees", async () => {
+    const owner = await newPlayer(h.db, { credits: 20_000 });
+    const alt = await newPlayer(h.db, { credits: 20_000 });
+    const sire = await makeHorse(h.db, owner.stableId, { sex: "male", careerStatus: "retired", retirementReason: "choice", retiredAt: T0 });
+    const ceiling = gc.studFeeCeiling(toHorseState(await getHorseRow(h.db, sire.id)));
+    await expect(setStudFee(h.db, { accountId: owner.accountId, horseId: sire.id, fee: ceiling + 1 })).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    await setStudFee(h.db, { accountId: owner.accountId, horseId: sire.id, fee: ceiling });
+    await recordAccountSignal(h.db, { accountId: owner.accountId, kind: "device", value: "same-phone" });
+    await recordAccountSignal(h.db, { accountId: alt.accountId, kind: "device", value: "same-phone" });
+    const mare = await makeHorse(h.db, alt.stableId, { sex: "female", careerStatus: "retired", retirementReason: "choice", retiredAt: T0 });
+    await expect(breed(h.db, { accountId: alt.accountId, sireId: sire.id, damId: mare.id, now: T0, idempotencyKey: `linked:${mare.id}` })).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
   });
 });

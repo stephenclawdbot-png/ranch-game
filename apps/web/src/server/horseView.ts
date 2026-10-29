@@ -140,7 +140,7 @@ const BLOCK_TEXT: Record<string, string> = {
   career_complete: "Career complete",
   injured: "Recovering from injury",
   in_foal: "In foal",
-  daily_limit: "Raced 3 times today",
+  daily_limit: `Raced ${gc.MAX_STARTS_PER_DAY} times today`,
 };
 
 /** Everything the stable pages show about one of the player's horses. */

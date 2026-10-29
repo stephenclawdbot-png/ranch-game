@@ -17,7 +17,7 @@ import { RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { gc, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
-import { accountIdOfStable, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
+import { accountIdOfStable, areLinked, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
 import { playerLedgerAccountId, post, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
 
@@ -129,6 +129,12 @@ export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
 
     // Fees (game-core breedingFees): base fee burned; stud fee to the sire's owner minus the 10% burn.
     const fees = gc.breedingFees(sire.studFee ?? 0, ownSire);
+    // Paid coverings between linked accounts would move credits between them (as market sales
+    // between linked accounts would): refused, like the market's guard.
+    if (!ownSire && fees.studFee > 0 && sire.ownerStableId) {
+      const sireAccount = await accountIdOfStable(tx, sire.ownerStableId);
+      if (await areLinked(tx, input.accountId, sireAccount)) throw new DomainError("LINKED_ACCOUNTS", "paid coverings between linked accounts are not allowed");
+    }
     const baseFee = input.baseFee ?? fees.baseFee;
     const burned = fees.burned - fees.baseFee + baseFee;
     const total = baseFee + fees.studFee;

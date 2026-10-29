@@ -100,7 +100,7 @@ export default function LeaguePage() {
       <H2 id="season-final">The Season Final</H2>
       <P>
         The last day of every season belongs to the Season Final: one championship for each distance division, each worth {formatCredits(finals[0]!.purse)} credits. They are Group races for
-        horses rated {finals[0]!.minRating}+, need a {gc.licenceDef(gc.licenceForTier("g1", true)).name} and cost {entryCostFor("final", "graded")} stable entries.
+        horses rated {finals[0]!.minRating}+, need a {gc.licenceDef(gc.licenceForTier("g1", "final")).name} and cost {entryCostFor("final", "graded")} stable entries.
       </P>
       <Table
         head={["Championship", "Trip", "Surface", "Off (UTC)", "Runners"]}

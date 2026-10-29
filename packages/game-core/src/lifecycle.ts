@@ -34,6 +34,14 @@ export const PRIME_MAX_STARTS = 28;
 export const BREED_FROM_STARTS = 25;
 /** Hard cap on starts per horse per real day. */
 export const MAX_STARTS_PER_DAY = 3;
+/**
+ * Live races per horse per day (beta, 2026-10-29). The season harness showed grinders running
+ * horses ~2 times a day and burning 40-start careers in about 2.5 weeks; the economy model
+ * assumed 1-1.5 starts a day. One Live start a day makes a career last a season or more, makes
+ * rest and rotation real, and makes a bigger string of horses worth having. Story races still
+ * share the all-races cap above.
+ */
+export const MAX_LIVE_STARTS_PER_DAY = 1;
 export const BREEDINGS_LIFETIME = 4;
 export const PREGNANCY_MS = 24 * MS_PER_HOUR;
 /** Initial official rating on a horse's first start. */

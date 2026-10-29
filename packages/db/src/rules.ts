@@ -29,6 +29,8 @@ export const RULES = {
   studPlatformBps: gc.STUD_FEE_BURN_PERMILLE * 10,
   /** Racing. Hard cap of starts per horse per UTC day (by post time). */
   startsPerDay: gc.MAX_STARTS_PER_DAY,
+  /** Live races (scheduled, feature, final) per horse per day. */
+  liveStartsPerDay: gc.MAX_LIVE_STARTS_PER_DAY,
   /** Same split as the engine's PRIZE_SPLIT_PCT, so the result board and the ledger agree. */
   purseSplitBps: [5500, 2000, 1200, 700, 400, 200] as readonly number[],
   insurancePremium: 300,

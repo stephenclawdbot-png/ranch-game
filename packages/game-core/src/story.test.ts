@@ -67,7 +67,9 @@ describe("story chapters", () => {
     expect(licenceForTier("hcp_50_75")).toBe(2);
     expect(licenceForTier("listed")).toBe(3);
     expect(licenceForTier("g1")).toBe(4);
-    expect(licenceForTier("novice", true)).toBe(4);
+    expect(licenceForTier("novice", true)).toBe(3);
+    expect(licenceForTier("g1", true)).toBe(3);
+    expect(licenceForTier("g1", "final")).toBe(4);
     expect(licenceBlock(1, "novice")).toBeNull();
     expect(licenceBlock(1, "hcp_70_95")?.name).toBe("County licence");
     expect(licenceBlock(3, "g3")).toBeNull();

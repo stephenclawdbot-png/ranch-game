@@ -334,8 +334,8 @@ export interface LicenceDef {
 export const LICENCES: readonly LicenceDef[] = [
   { level: 1, name: "Club licence", unlocks: "Maiden and Novice races and the 0–55 Handicap" },
   { level: 2, name: "County licence", unlocks: "the 50–75 and 70–95 Handicaps" },
-  { level: 3, name: "National licence", unlocks: "Listed and Group races" },
-  { level: 4, name: "Classics licence", unlocks: "Feature races, Group 1 and the Season Final" },
+  { level: 3, name: "National licence", unlocks: "Listed and Group races, the Features and the Weekend Feature" },
+  { level: 4, name: "Classics licence", unlocks: "the Season Final" },
   { level: 5, name: "Classics champion", unlocks: "the champion's title (every class is already open)" },
 ];
 
@@ -345,9 +345,15 @@ export function licenceDef(level: number): LicenceDef {
   return LICENCES[Math.max(1, Math.min(MAX_LICENCE, level)) - 1]!;
 }
 
-/** Licence level a Live race class needs. `feature` = Weekend Feature, Season Final or the hourly Feature. */
-export function licenceForTier(tier: RaceTier, feature = false): number {
-  if (feature) return 4;
+/**
+ * Licence level a Live race class needs. `feature`: true for the card's Features and the Weekend
+ * Feature (National, level 3), "final" for the Season Final (Classics, level 4). The season
+ * harness (2026-10-29) found no simulated player ever reached a Weekend Feature while it needed
+ * the Classics licence: the week's target race must be reachable within a season of play.
+ */
+export function licenceForTier(tier: RaceTier, feature: boolean | "final" = false): number {
+  if (feature === "final") return 4;
+  if (feature) return 3;
   switch (tier) {
     case "hcp_50_75":
     case "hcp_70_95":
@@ -364,7 +370,7 @@ export function licenceForTier(tier: RaceTier, feature = false): number {
 }
 
 /** Null when the licence allows the race, else the licence that would. */
-export function licenceBlock(level: number, tier: RaceTier, feature = false): LicenceDef | null {
+export function licenceBlock(level: number, tier: RaceTier, feature: boolean | "final" = false): LicenceDef | null {
   const need = licenceForTier(tier, feature);
   return level >= need ? null : licenceDef(need);
 }

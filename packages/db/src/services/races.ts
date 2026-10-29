@@ -253,6 +253,9 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     if ((await startsOnDay(tx, horse.id, race.postTime)) >= RULES.startsPerDay) {
       throw new DomainError("RACE_LIMIT", `at most ${RULES.startsPerDay} starts per horse per day`);
     }
+    if ((LIVE_RACE_KINDS as readonly string[]).includes(race.kind) && (await startsOnDay(tx, horse.id, race.postTime, { liveOnly: true })) >= RULES.liveStartsPerDay) {
+      throw new DomainError("RACE_LIMIT", RULES.liveStartsPerDay === 1 ? "one Live race per horse per day" : `at most ${RULES.liveStartsPerDay} Live races per horse per day`);
+    }
     const reason = hooks.raceEligibility ? hooks.raceEligibility({ horse, race, now: input.now }) : classEligibility(horse, race);
     if (reason) throw new DomainError("NOT_ELIGIBLE", reason);
     const qualifying = await featureQualificationReason(tx, horse, race);

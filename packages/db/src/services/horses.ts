@@ -247,15 +247,20 @@ export async function setStudFee(db: Db, input: { accountId: string; horseId: st
       throw new DomainError("BREEDING_NOT_ELIGIBLE", "only entire stallions not on the Legacy Farm can stand at stud");
     }
     if (input.fee !== null && (!Number.isSafeInteger(input.fee) || input.fee < 0)) throw new DomainError("INVALID_INPUT", "bad fee");
+    if (input.fee !== null && isGenome(horse.genome)) {
+      const ceiling = gc.studFeeCeiling(toHorseState(horse));
+      if (input.fee > ceiling) throw new DomainError("INVALID_INPUT", `the stud fee can be at most ${ceiling} credits (his appraisal)`);
+    }
     await tx.update(horses).set({ studFee: input.fee }).where(eq(horses.id, horse.id));
   });
 }
 
-/** Number of starts a horse has on the given UTC day (by race post time). */
-export async function startsOnDay(ex: Executor, horseId: string, at: Date): Promise<number> {
+/** Number of starts a horse has on the given UTC day (by race post time); `liveOnly` counts Live races only. */
+export async function startsOnDay(ex: Executor, horseId: string, at: Date, opts: { liveOnly?: boolean } = {}): Promise<number> {
   const rows = await ex.execute(sql`
     select count(*)::int as n from race_entries e join races r on r.id = e.race_id
-     where e.horse_id = ${horseId} and r.status <> 'cancelled'
+     where e.horse_id = ${horseId} and r.status <> 'cancelled' and e.status = 'entered'
+       ${opts.liveOnly ? sql`and r.kind in ('scheduled','feature','final')` : sql``}
        and r.post_time >= (${utcDay(at)}::date)::timestamp at time zone 'UTC'
        and r.post_time < (${utcDay(at)}::date + 1)::timestamp at time zone 'UTC'`);
   const list = (Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? [])) as { n: number }[];

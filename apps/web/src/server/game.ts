@@ -65,6 +65,7 @@ import {
   RULES,
   classEligibility,
   featureQualificationReason,
+  startsOnDay,
   type CardHooks,
   type Db,
   type FieldRunner,
@@ -633,7 +634,7 @@ function slotFor(race: PublicRace): gc.RaceSlot {
 /** Licence a Live race needs that the stable doesn't hold yet (Story licences, §4e), as a reason. */
 export function licenceReason(race: PublicRace, licenceLevel: number): string | null {
   if (race.kind === "quick") return null;
-  const block = gc.licenceBlock(licenceLevel, raceTier(race), race.kind === "feature" || race.kind === "final");
+  const block = gc.licenceBlock(licenceLevel, raceTier(race), race.kind === "final" ? "final" : race.kind === "feature");
   return block ? `Needs a ${block.name}: earn it in Story mode` : null;
 }
 
@@ -659,9 +660,14 @@ export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceL
   return sentence(classEligibility(row, race));
 }
 
-/** entryReason plus the checks that need the database (Weekend Feature qualifying). */
+/** entryReason plus the checks that need the database (one Live race a day, Weekend Feature qualifying). */
 export async function entryReasonFull(db: Db, row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): Promise<string | null> {
-  return entryReason(row, race, now, licenceLevel) ?? sentence(await featureQualificationReason(db, row, race));
+  const base = entryReason(row, race, now, licenceLevel);
+  if (base) return base;
+  if (race.kind !== "quick" && (await startsOnDay(db, row.id, race.postTime, { liveOnly: true })) >= RULES.liveStartsPerDay) {
+    return RULES.liveStartsPerDay === 1 ? "Already raced Live today (one Live race a day)" : `Raced ${RULES.liveStartsPerDay} Live races today`;
+  }
+  return sentence(await featureQualificationReason(db, row, race));
 }
 
 const BLOCK_REASON: Record<string, string> = {
