@@ -13,6 +13,7 @@ import type { RunningStyle, Surface } from "@thoroughbred/shared";
 import { Rng, clampInt } from "./rng";
 import {
   BREEDS,
+  GENES2_KEYS,
   GENOME_VERSION,
   STAT_KEYS,
   type AllelePair,
@@ -20,7 +21,10 @@ import {
   type BreedShares,
   type CoatGenes,
   type DistanceAllele,
+  type Genes2,
+  type Genes2Key,
   type Genome,
+  type GenomeV1,
   type Grade,
   type MaturityAllele,
   type MaturityType,
@@ -32,6 +36,7 @@ import {
   type StatRecord,
   type SurfaceAllele,
 } from "./types";
+import { GenomeSchema, GenomeV1Schema } from "./types";
 
 // ---------------------------------------------------------------------------
 // Constants (tuned by src/sim; see README)
@@ -258,6 +263,8 @@ export interface BreedProfile {
   maturity: Record<MaturityAllele, number>;
   /** Permille allele frequencies of the non-wild coat alleles. */
   coat: { E: number; A: number; At: number; Cr: number; G: number; Rn: number; D: number; l: number; Sb1: number };
+  /** Permille frequencies of the v2 non-wild alleles (MSTN: C; feather: fe). */
+  genes2: { Ch: number; Z: number; prl: number; TO: number; LP: number; PATN1: number; SW: number; Ht: number; fe: number; C: number; bh: number; IL: number; Ce: number; Dh: number };
   /** Mean white tendency per allele (0..100). */
   white: number;
   /** Morph offsets in rig units (added to 1.0), weighted by breed share. */
@@ -274,6 +281,7 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     style: { front: 300, stalker: 400, closer: 300 },
     maturity: { early: 300, normal: 450, late: 250 },
     coat: { E: 600, A: 560, At: 150, Cr: 10, G: 40, Rn: 5, D: 0, l: 200, Sb1: 20 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 600, fe: 0, C: 450, bh: 60, IL: 50, Ce: 0, Dh: 0 },
     white: 28,
     morph: { legLength: 0.04, neckLength: 0.03, girth: -0.02, height: 0.03, headSize: 0 },
     mintWeight: 500,
@@ -285,6 +293,7 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     style: { front: 200, stalker: 350, closer: 450 },
     maturity: { early: 150, normal: 400, late: 450 },
     coat: { E: 550, A: 600, At: 50, Cr: 0, G: 220, Rn: 0, D: 0, l: 250, Sb1: 40 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 150, fe: 0, C: 150, bh: 40, IL: 150, Ce: 0, Dh: 850 },
     white: 34,
     morph: { legLength: 0, neckLength: -0.02, girth: -0.01, height: -0.05, headSize: -0.05 },
     mintWeight: 200,
@@ -296,6 +305,7 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     style: { front: 550, stalker: 350, closer: 100 },
     maturity: { early: 550, normal: 350, late: 100 },
     coat: { E: 500, A: 500, At: 100, Cr: 80, G: 30, Rn: 40, D: 40, l: 300, Sb1: 20 },
+    genes2: { Ch: 20, Z: 5, prl: 0, TO: 10, LP: 0, PATN1: 0, SW: 30, Ht: 300, fe: 0, C: 800, bh: 0, IL: 100, Ce: 0, Dh: 0 },
     white: 22,
     morph: { legLength: -0.06, neckLength: -0.04, girth: 0.08, height: -0.02, headSize: 0.03 },
     mintWeight: 180,
@@ -307,9 +317,113 @@ export const BREED_PROFILES: Record<Breed, BreedProfile> = {
     style: { front: 350, stalker: 400, closer: 250 },
     maturity: { early: 200, normal: 450, late: 350 },
     coat: { E: 600, A: 550, At: 150, Cr: 150, G: 30, Rn: 0, D: 20, l: 200, Sb1: 10 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 500, fe: 0, C: 250, bh: 80, IL: 120, Ce: 0, Dh: 0 },
     white: 18,
     morph: { legLength: 0.07, neckLength: 0.08, girth: -0.06, height: 0.02, headSize: -0.01 },
     mintWeight: 120,
+  },
+  standardbred: {
+    statMean: { speed: 430, stamina: 470, burst: 380, durability: 470, adaptability: 400, temperament: 450 },
+    distance: { sprint: 50, mile: 450, middle: 400, staying: 100 },
+    turf: 250,
+    style: { front: 400, stalker: 450, closer: 150 },
+    maturity: { early: 250, normal: 500, late: 250 },
+    coat: { E: 650, A: 600, At: 250, Cr: 0, G: 10, Rn: 0, D: 0, l: 100, Sb1: 5 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 450, fe: 0, C: 300, bh: 0, IL: 200, Ce: 0, Dh: 0 },
+    white: 15,
+    // Steady, sound and calm; the same fine head family as the Thoroughbred.
+    morph: { legLength: 0.01, neckLength: 0, girth: 0, height: 0, headSize: 0 },
+    mintWeight: 60,
+  },
+  appaloosa: {
+    statMean: { speed: 430, stamina: 420, burst: 430, durability: 450, adaptability: 460, temperament: 410 },
+    distance: { sprint: 250, mile: 450, middle: 250, staying: 50 },
+    turf: 450,
+    style: { front: 350, stalker: 400, closer: 250 },
+    maturity: { early: 300, normal: 450, late: 250 },
+    coat: { E: 550, A: 500, At: 100, Cr: 50, G: 30, Rn: 60, D: 40, l: 200, Sb1: 20 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 600, PATN1: 400, SW: 0, Ht: 350, fe: 0, C: 450, bh: 0, IL: 150, Ce: 0, Dh: 0 },
+    white: 25,
+    // Stock type: short-coupled, deep-bodied, broad-jawed.
+    morph: { legLength: -0.03, neckLength: -0.03, girth: 0.05, height: -0.01, headSize: 0.03 },
+    mintWeight: 60,
+  },
+  paintHorse: {
+    statMean: { speed: 470, stamina: 340, burst: 490, durability: 440, adaptability: 410, temperament: 450 },
+    distance: { sprint: 700, mile: 250, middle: 50, staying: 0 },
+    turf: 250,
+    style: { front: 500, stalker: 350, closer: 150 },
+    maturity: { early: 500, normal: 400, late: 100 },
+    coat: { E: 500, A: 500, At: 100, Cr: 100, G: 20, Rn: 50, D: 50, l: 300, Sb1: 60 },
+    genes2: { Ch: 20, Z: 0, prl: 0, TO: 550, LP: 0, PATN1: 0, SW: 80, Ht: 300, fe: 0, C: 750, bh: 0, IL: 100, Ce: 0, Dh: 0 },
+    white: 45,
+    morph: { legLength: -0.05, neckLength: -0.03, girth: 0.06, height: -0.02, headSize: 0.03 },
+    mintWeight: 60,
+  },
+  mustang: {
+    statMean: { speed: 410, stamina: 480, burst: 400, durability: 500, adaptability: 480, temperament: 330 },
+    distance: { sprint: 100, mile: 300, middle: 350, staying: 250 },
+    turf: 400,
+    style: { front: 250, stalker: 400, closer: 350 },
+    maturity: { early: 200, normal: 450, late: 350 },
+    coat: { E: 550, A: 550, At: 100, Cr: 60, G: 40, Rn: 80, D: 250, l: 200, Sb1: 20 },
+    genes2: { Ch: 10, Z: 60, prl: 0, TO: 80, LP: 30, PATN1: 0, SW: 0, Ht: 100, fe: 0, C: 300, bh: 0, IL: 300, Ce: 0, Dh: 0 },
+    white: 20,
+    // Small, tough and stocky.
+    morph: { legLength: -0.04, neckLength: -0.03, girth: 0.03, height: -0.06, headSize: 0.03 },
+    mintWeight: 60,
+  },
+  andalusian: {
+    statMean: { speed: 400, stamina: 420, burst: 470, durability: 430, adaptability: 420, temperament: 460 },
+    distance: { sprint: 150, mile: 450, middle: 350, staying: 50 },
+    turf: 750,
+    style: { front: 250, stalker: 400, closer: 350 },
+    maturity: { early: 200, normal: 450, late: 350 },
+    coat: { E: 600, A: 450, At: 100, Cr: 30, G: 450, Rn: 0, D: 0, l: 200, Sb1: 10 },
+    genes2: { Ch: 0, Z: 0, prl: 120, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 350, fe: 0, C: 350, bh: 0, IL: 100, Ce: 0, Dh: 0 },
+    white: 15,
+    // Baroque: arched, heavy-necked and round.
+    morph: { legLength: 0, neckLength: -0.02, girth: 0.05, height: 0, headSize: 0.02 },
+    mintWeight: 60,
+  },
+  friesian: {
+    statMean: { speed: 360, stamina: 470, burst: 400, durability: 470, adaptability: 430, temperament: 470 },
+    distance: { sprint: 0, mile: 200, middle: 450, staying: 350 },
+    turf: 650,
+    style: { front: 200, stalker: 450, closer: 350 },
+    maturity: { early: 100, normal: 400, late: 500 },
+    coat: { E: 950, A: 30, At: 0, Cr: 0, G: 0, Rn: 0, D: 0, l: 100, Sb1: 0 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 750, fe: 1000, C: 150, bh: 0, IL: 100, Ce: 0, Dh: 0 },
+    white: 3,
+    // Baroque and tall; about 1 in 10 carries hidden red (e), the classic recessive surprise.
+    morph: { legLength: 0.02, neckLength: 0, girth: 0.05, height: 0.05, headSize: 0.02 },
+    mintWeight: 60,
+  },
+  warmblood: {
+    statMean: { speed: 420, stamina: 470, burst: 420, durability: 450, adaptability: 440, temperament: 400 },
+    distance: { sprint: 50, mile: 300, middle: 450, staying: 200 },
+    turf: 800,
+    style: { front: 250, stalker: 400, closer: 350 },
+    maturity: { early: 150, normal: 450, late: 400 },
+    coat: { E: 600, A: 600, At: 200, Cr: 10, G: 80, Rn: 5, D: 0, l: 200, Sb1: 40 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 850, fe: 50, C: 250, bh: 0, IL: 150, Ce: 0, Dh: 0 },
+    white: 35,
+    // Big, scopey and plain-headed.
+    morph: { legLength: 0.03, neckLength: 0.02, girth: 0.02, height: 0.06, headSize: 0.03 },
+    mintWeight: 60,
+  },
+  marwari: {
+    statMean: { speed: 420, stamina: 480, burst: 410, durability: 470, adaptability: 450, temperament: 370 },
+    distance: { sprint: 50, mile: 250, middle: 400, staying: 300 },
+    turf: 300,
+    style: { front: 300, stalker: 350, closer: 350 },
+    maturity: { early: 200, normal: 450, late: 350 },
+    coat: { E: 550, A: 550, At: 100, Cr: 20, G: 150, Rn: 20, D: 10, l: 200, Sb1: 80 },
+    genes2: { Ch: 0, Z: 0, prl: 0, TO: 0, LP: 0, PATN1: 0, SW: 0, Ht: 400, fe: 0, C: 250, bh: 0, IL: 200, Ce: 950, Dh: 200 },
+    white: 40,
+    // Fine head; the curled ears are the Ce layer, not the shape.
+    morph: { legLength: 0, neckLength: -0.01, girth: 0, height: 0, headSize: -0.02 },
+    mintWeight: 60,
   },
 };
 
@@ -337,7 +451,51 @@ export function blendBreeds(a: BreedShares, b: BreedShares): BreedShares {
     floors[i]! += 1;
     rem--;
   }
-  return { thoroughbred: floors[0]!, arabian: floors[1]!, quarterHorse: floors[2]!, akhalTeke: floors[3]! };
+  const out = {} as BreedShares;
+  BREEDS.forEach((k, i) => (out[k] = floors[i]!));
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// v1 → v2 upgrade (stored rows are never rewritten; this runs on every read)
+// ---------------------------------------------------------------------------
+
+/** Wild-type v2 loci: what every pre-genetics-v2 horse gets (MSTN C/T is the neutral miler). */
+export const WILD_GENES2: Genes2 = {
+  champagne: ["n", "n"],
+  silver: ["n", "n"],
+  pearl: ["n", "n"],
+  tobiano: ["n", "n"],
+  leopard: ["n", "n"],
+  patn1: ["n", "n"],
+  splash: ["n", "n"],
+  height: ["n", "n"],
+  feather: ["Fe", "Fe"],
+  mstn: ["C", "T"],
+  bigHeart: ["n", "n"],
+  ironLegs: ["n", "n"],
+  curledEars: ["n", "n"],
+  dish: ["n", "n"],
+};
+
+/** A v1 breed record padded with the eight v2 breeds at share 0. */
+function v1Shares(breed: GenomeV1["breed"]): BreedShares {
+  const out = {} as BreedShares;
+  for (const b of BREEDS) out[b] = b in breed ? breed[b as keyof GenomeV1["breed"]] : 0;
+  return out;
+}
+
+/**
+ * Parse any stored genome: v2 passes through, v1 is upgraded on read (new breed shares 0,
+ * every new locus wild type, MSTN C/T — so no existing horse changes). Null when `raw` is
+ * not a genome at all.
+ */
+export function upgradeGenome(raw: unknown): Genome | null {
+  const v2 = GenomeSchema.safeParse(raw);
+  if (v2.success) return v2.data;
+  const v1 = GenomeV1Schema.safeParse(raw);
+  if (!v1.success) return null;
+  return { ...v1.data, version: GENOME_VERSION, breed: v1Shares(v1.data.breed), genes2: WILD_GENES2 };
 }
 
 // ---------------------------------------------------------------------------
@@ -366,12 +524,15 @@ export interface MintOptions {
   rarity?: Rarity;
   /** Force a main breed. */
   breed?: Breed;
+  /** Even mint weights across all 12 breeds (Club runners in Live fields, so fields look varied). */
+  evenBreeds?: boolean;
 }
 
 /** Random breed shares: 700-1000 of a main breed, remainder from one other breed. */
-function mintBreedShares(rng: Rng, forced?: Breed): BreedShares {
-  const main = forced ?? BREEDS[rng.weighted(BREEDS.map((b) => BREED_PROFILES[b].mintWeight))]!;
-  const shares: BreedShares = { thoroughbred: 0, arabian: 0, quarterHorse: 0, akhalTeke: 0 };
+function mintBreedShares(rng: Rng, forced?: Breed, evenBreeds = false): BreedShares {
+  const main = forced ?? BREEDS[rng.weighted(BREEDS.map((b) => (evenBreeds ? 1 : BREED_PROFILES[b].mintWeight)))]!;
+  const shares = {} as BreedShares;
+  for (const b of BREEDS) shares[b] = 0;
   const pure = rng.chance(450);
   if (pure) {
     shares[main] = 1000;
@@ -383,6 +544,36 @@ function mintBreedShares(rng: Rng, forced?: Breed): BreedShares {
     shares[second] = 1000 - mainShare;
   }
   return shares;
+}
+
+/** [locus, profile frequency key, non-wild allele, wild allele] for minting the v2 loci. */
+export const G2_LOCI: readonly [Genes2Key, keyof BreedProfile["genes2"], string, string][] = [
+  ["champagne", "Ch", "Ch", "n"],
+  ["silver", "Z", "Z", "n"],
+  ["pearl", "prl", "prl", "n"],
+  ["tobiano", "TO", "TO", "n"],
+  ["leopard", "LP", "LP", "n"],
+  ["patn1", "PATN1", "PATN1", "n"],
+  ["splash", "SW", "SW", "n"],
+  ["height", "Ht", "Ht", "n"],
+  ["feather", "fe", "fe", "Fe"],
+  ["mstn", "C", "C", "T"],
+  ["bigHeart", "bh", "bh", "n"],
+  ["ironLegs", "IL", "IL", "n"],
+  ["curledEars", "Ce", "Ce", "n"],
+  ["dish", "Dh", "Dh", "n"],
+];
+
+/** Mint the v2 loci: each allele drawn from one ancestral breed, picked by share (like pickBlended). */
+function mintGenes2(rng: Rng, shares: BreedShares): Genes2 {
+  const main = mainBreed(shares);
+  const breedOf = () => BREEDS[rng.weighted(BREEDS.map((b) => shares[b]))] ?? main;
+  const out: Record<string, [string, string]> = {};
+  for (const [locus, freq, alt, wild] of G2_LOCI) {
+    const draw = () => (rng.chance(BREED_PROFILES[breedOf()].genes2[freq]) ? alt : wild);
+    out[locus] = [draw(), draw()];
+  }
+  return out as Genes2;
 }
 
 function mintCoat(rng: Rng, shares: BreedShares): CoatGenes {
@@ -476,7 +667,7 @@ export function generateFoundationGenome(seed: string, opts: MintOptions): Genom
   const ceiling = potentialCeiling(opts.season);
   const meanCap = meanCeiling(opts.season);
   const rarity = opts.rarity ?? pickWeighted(rng, NATURAL_RARITY_WEIGHTS);
-  const breed = mintBreedShares(rng, opts.breed);
+  const breed = mintBreedShares(rng, opts.breed, opts.evenBreeds ?? false);
 
   // Target mean potential inside the tier band (and under the mean ceiling).
   const [bandLo, bandHiRaw] = RARITY_MINT_BANDS[rarity];
@@ -538,6 +729,7 @@ export function generateFoundationGenome(seed: string, opts: MintOptions): Genom
     style,
     maturity,
     coat: mintCoat(rng, breed),
+    genes2: mintGenes2(rng, breed),
     white: [w(), w()],
     morph: {
       legLength: [m(), m()],

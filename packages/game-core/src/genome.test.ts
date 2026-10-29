@@ -20,7 +20,7 @@ import {
   runningStyle,
   vigourValue,
 } from "./genome";
-import { GenomeSchema, RARITY_ORDER, STAT_KEYS, type Genome, type Rarity } from "./types";
+import { GenomeSchema, RARITY_ORDER, STAT_KEYS, BREEDS, type Genome, type Rarity } from "./types";
 
 const rarityArb = fc.constantFrom<Rarity>(...RARITY_ORDER);
 
@@ -148,11 +148,15 @@ describe("aptitudes", () => {
 });
 
 describe("breed shares and inbreeding", () => {
-  it("blendBreeds always sums to 1000", () => {
+  it("blendBreeds always sums to 1000 and is the exact average of the parents", () => {
     fc.assert(
       fc.property(fc.string(), fc.string(), (a, b) => {
-        const x = blendBreeds(generateFoundationGenome(a, { season: 1 }).breed, generateFoundationGenome(b, { season: 1 }).breed);
-        expect(x.thoroughbred + x.arabian + x.quarterHorse + x.akhalTeke).toBe(1000);
+        const ga = generateFoundationGenome(a, { season: 1 });
+        const gb = generateFoundationGenome(b, { season: 1 });
+        const x = blendBreeds(ga.breed, gb.breed);
+        expect(BREEDS.reduce((s, k) => s + x[k], 0)).toBe(1000);
+        // Within 1 permille of the exact average (largest-remainder rounding).
+        for (const k of BREEDS) expect(Math.abs(x[k] - (ga.breed[k] + gb.breed[k]) / 2)).toBeLessThan(1);
       }),
     );
   });

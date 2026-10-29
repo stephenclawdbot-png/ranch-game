@@ -6,13 +6,14 @@
  * pairings. Both horses must be breeding-eligible: racing age reached and racing-retired or
  * at least 25 starts, not pastured, not a gelding, mare not already in foal.
  */
-import type { CoatGenes, Genome, HorseState, PedigreeIndex, StatKey, StatRecord, Binding, DistanceAllele, MaturityType } from "./types";
-import { STAT_KEYS } from "./types";
+import type { Breed, CoatGenes, Genome, HorseState, PedigreeIndex, StatKey, StatRecord, Binding, DistanceAllele, MaturityType } from "./types";
+import { BREEDS, STAT_KEYS } from "./types";
 import type { RunningStyle, Surface } from "@thoroughbred/shared";
 import { BREEDINGS_LIFETIME, BREED_FROM_STARTS, PREGNANCY_MS, createHorseState, isFemale, isMale, isRacingAge, normaliseLocation, stageOf } from "./lifecycle";
 import { coiOf, inherit, kinBlock, mutationParams, type KinBlock } from "./genetics";
 import {
   OVERALL_WEIGHTS,
+  blendBreeds,
   expressStat,
   vigourValue,
   distanceBand,
@@ -24,6 +25,7 @@ import {
   preferredSurface,
   runningStyle,
 } from "./genome";
+import { breedLabel } from "./geneticsSummary";
 import { adultCoatName } from "./coat";
 import { Rng, clampInt, seedFrom } from "./rng";
 import type { Grade } from "./types";
@@ -203,6 +205,14 @@ export interface BreedingPreview {
   overall: { p10: number; p50: number; p90: number; grades: Partial<Record<Grade, number>>; beatsBothParents: number };
   /** Coat colour probabilities (permille), by display name. */
   coats: { name: string; permille: number }[];
+  /** Visible genetics-v2 trait odds (permille), by display name. */
+  traits: { name: string; permille: number }[];
+  /** MSTN speed-gene type odds (permille). */
+  mstn: Partial<Record<"sprinter" | "miler" | "stayer", number>>;
+  /** Hidden-carrier warnings, e.g. "Both carry pearl: 25% pearl foal". */
+  hidden: string[];
+  /** The foal's exact breed (average of the parents) and its named-cross label. */
+  breed: { label: string; shares: { key: Breed; share: number }[] };
   distance: Partial<Record<DistanceAllele, number>>;
   surface: Partial<Record<Surface, number>>;
   style: Partial<Record<RunningStyle, number>>;
@@ -221,6 +231,19 @@ function toPermille<T extends string>(d: Dist<T>): Partial<Record<T, number>> {
 /** Expressed values for one stat over (vigour combo × locus combo), each with probability 1/16. */
 function statOutcomes(sire: Genome, dam: Genome, k: StatKey, vig: number, coi: number): number[] {
   return combos(sire.stats[k], dam.stats[k]).map((pair) => expressStat(locusValue(pair), vig, k, coi));
+}
+
+// ---------------------------------------------------------------------------
+// Genetics-v2 preview: exact Mendelian odds per locus
+// ---------------------------------------------------------------------------
+
+const alleleCount = <T extends string>(pair: readonly [T, T], v: T): number => (pair[0] === v ? 1 : 0) + (pair[1] === v ? 1 : 0);
+
+/** Distribution of the foal's copy count (0, 1, 2) of `alt`, from one random allele per parent. */
+function copyDist(sire: readonly [string, string], dam: readonly [string, string], alt: string): [number, number, number] {
+  const ps = alleleCount(sire, alt) / 2;
+  const pd = alleleCount(dam, alt) / 2;
+  return [(1 - ps) * (1 - pd), ps * (1 - pd) + (1 - ps) * pd, ps * pd];
 }
 
 /**
@@ -294,6 +317,61 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
     .filter((c) => c.permille > 0)
     .sort((a, b) => b.permille - a.permille || a.name.localeCompare(b.name));
 
+  // Genetics-v2 traits: the loci are independent, so their probabilities multiply. Silver
+  // shows only on black pigment (hidden on e/e); leopard spots need both LP and PATN1; pearl
+  // shows with two copies, or one copy next to a cream allele.
+  const g2s = sg.genes2;
+  const g2d = dg.genes2;
+  const atLeastOne = (d: [number, number, number]) => d[1] + d[2];
+  const red = copyDist(sg.coat.extension, dg.coat.extension, "e")[2]; // P(e/e): no black pigment
+  const cream = atLeastOne(copyDist(sg.coat.cream, dg.coat.cream, "Cr"));
+  const pearl = copyDist(g2s.pearl, g2d.pearl, "prl");
+  const silver = copyDist(g2s.silver, g2d.silver, "Z");
+  const lp = copyDist(g2s.leopard, g2d.leopard, "LP");
+  const patn1 = copyDist(g2s.patn1, g2d.patn1, "PATN1");
+  const mstnDist = copyDist(g2s.mstn, g2d.mstn, "C");
+  const traitOdds: [string, number][] = [
+    ["Champagne", atLeastOne(copyDist(g2s.champagne, g2d.champagne, "Ch"))],
+    ["Silver (black coats)", atLeastOne(silver) * (1 - red)],
+    ["Pearl", pearl[2] + pearl[1] * cream],
+    ["Tobiano", atLeastOne(copyDist(g2s.tobiano, g2d.tobiano, "TO"))],
+    ["Leopard spots", atLeastOne(lp) * atLeastOne(patn1)],
+    ["Splash white", atLeastOne(copyDist(g2s.splash, g2d.splash, "SW"))],
+    ["Feathered legs", copyDist(g2s.feather, g2d.feather, "fe")[2]],
+    ["Curled ears", atLeastOne(copyDist(g2s.curledEars, g2d.curledEars, "Ce"))],
+    ["Dished face", atLeastOne(copyDist(g2s.dish, g2d.dish, "Dh"))],
+  ];
+  const traits = traitOdds
+    .map(([name, p]) => ({ name, permille: Math.round(p * 1000) }))
+    .filter((t) => t.permille > 0)
+    .sort((a, b) => b.permille - a.permille || a.name.localeCompare(b.name));
+  const mstn = {
+    sprinter: Math.round(mstnDist[2] * 1000),
+    miler: Math.round(mstnDist[1] * 1000),
+    stayer: Math.round(mstnDist[0] * 1000),
+  };
+
+  // Hidden carriers: a recessive or masked allele both parents could pass on unseen.
+  const pctTxt = (p: number) => `${Math.round(p * 1000) / 10}%`;
+  const carries = (pair: readonly [string, string], alt: string) => alleleCount(pair, alt) > 0;
+  const showsPearl = (genes: Genome) => alleleCount(genes.genes2.pearl, "prl") === 2 || (alleleCount(genes.genes2.pearl, "prl") === 1 && alleleCount(genes.coat.cream, "Cr") > 0);
+  const hidden: string[] = [];
+  if (carries(g2s.pearl, "prl") && carries(g2d.pearl, "prl") && !showsPearl(sg) && !showsPearl(dg)) hidden.push(`Both carry pearl: ${pctTxt(pearl[2])} pearl foal`);
+  if (atLeastOne(silver) > 0 && red > 0) hidden.push(`Silver is invisible on chestnut foals: ${pctTxt(atLeastOne(silver) * red)} would carry it unseen`);
+  if (atLeastOne(patn1) > 0 && lp[0] > 0) hidden.push(`PATN1 needs leopard complex to show: ${pctTxt(atLeastOne(patn1) * lp[0])} of foals carry it hidden`);
+  const feathered = copyDist(g2s.feather, g2d.feather, "fe");
+  if (carries(g2s.feather, "fe") && carries(g2d.feather, "fe") && alleleCount(g2s.feather, "fe") < 2 && alleleCount(g2d.feather, "fe") < 2)
+    hidden.push(`Both carry feathering: ${pctTxt(feathered[2])} feathered foal`);
+  const bigHeart = copyDist(g2s.bigHeart, g2d.bigHeart, "bh");
+  if (carries(g2s.bigHeart, "bh") && carries(g2d.bigHeart, "bh") && alleleCount(g2s.bigHeart, "bh") < 2 && alleleCount(g2d.bigHeart, "bh") < 2)
+    hidden.push(`Both carry big heart: ${pctTxt(bigHeart[2])} double-copy foal (+25 stamina, hidden until checked)`);
+
+  // The foal's breed: the exact average of the parents.
+  const foalBreed = blendBreeds(sg.breed, dg.breed);
+  const breedShares = BREEDS.map((k) => ({ key: k, share: foalBreed[k] }))
+    .filter((s) => s.share > 0)
+    .sort((a, b) => b.share - a.share);
+
   // Aptitudes.
   const distance = new Map<DistanceAllele, number>();
   for (const d of combos(sg.distance, dg.distance))
@@ -322,6 +400,10 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
     stats,
     overall: { p10: pct(0.1), p50: pct(0.5), p90: pct(0.9), grades: toPermille(og), beatsBothParents: Math.round(beats * 1000) },
     coats,
+    traits,
+    mstn,
+    hidden,
+    breed: { label: breedLabel(foalBreed), shares: breedShares },
     distance: toPermille(distance),
     surface: toPermille(surface),
     style: toPermille(style),

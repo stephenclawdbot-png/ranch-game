@@ -18,6 +18,21 @@ const wild: CoatGenes = {
 };
 const g0 = generateFoundationGenome("genetics-summary", { season: 1 });
 const withCoat = (c: Partial<CoatGenes>, o: Partial<Genome> = {}): Genome => ({ ...g0, ...o, coat: { ...wild, ...c } });
+/** Breed shares with only the original four breeds set (a v2 record, new breeds at 0). */
+const breedOf = (thoroughbred: number, arabian: number): Genome["breed"] => ({
+  thoroughbred,
+  arabian,
+  quarterHorse: 0,
+  akhalTeke: 0,
+  standardbred: 0,
+  appaloosa: 0,
+  paintHorse: 0,
+  mustang: 0,
+  andalusian: 0,
+  friesian: 0,
+  warmblood: 0,
+  marwari: 0,
+});
 const progress = { racingAge: true, starts: 5, retired: false };
 const app = (g: Genome) => appearanceOf(g, progress, SILKS);
 const summary = (g: Genome, revealed: string[] = []) => geneticsSummary(g, app(g), revealed);
@@ -75,13 +90,14 @@ describe("geneticsSummary", () => {
     expect(summary(withCoat({}, { white: [10, 10] })).white.tendency).toBe("low");
   });
 
-  it("lists non-zero breed shares in %, largest first", () => {
-    const s = summary(withCoat({}, { breed: { thoroughbred: 880, arabian: 120, quarterHorse: 0, akhalTeke: 0 } }));
+  it("lists non-zero breed shares in %, largest first, under the named-cross label", () => {
+    const s = summary(withCoat({}, { breed: breedOf(880, 120) }));
     expect(s.breed).toEqual([
       { key: "thoroughbred", label: "Thoroughbred", share: 88 },
       { key: "arabian", label: "Arabian", share: 12 },
     ]);
-    expect(s.breedLine).toBe("88% Thoroughbred · 12% Arabian");
+    expect(s.breedLabel).toBe("Purebred Thoroughbred");
+    expect(s.breedLine).toBe("Purebred Thoroughbred — 88% Thoroughbred · 12% Arabian");
   });
 
   it("keeps the build to 2–3 descriptive words with no numbers", () => {
@@ -138,7 +154,7 @@ describe("geneticsSummary", () => {
 
 describe("geneticsLine", () => {
   it("is coat, sabino and breed mix in one line", () => {
-    const g = withCoat({ extension: ["e", "e"], roan: ["Rn", "n"], sabino: ["Sb1", "n"] }, { breed: { thoroughbred: 880, arabian: 120, quarterHorse: 0, akhalTeke: 0 } });
+    const g = withCoat({ extension: ["e", "e"], roan: ["Rn", "n"], sabino: ["Sb1", "n"] }, { breed: breedOf(880, 120) });
     expect(geneticsLine(g)).toBe("strawberry roan · Sabino · 88% TB · 12% Arabian");
     // Plain genotype: no sabino part, and the same breed percentages as the summary.
     const plain = withCoat({ agouti: ["a", "a"] });

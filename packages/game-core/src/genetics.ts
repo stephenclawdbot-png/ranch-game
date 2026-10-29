@@ -6,7 +6,7 @@
  * mutation rate and skews mutations negative; it also costs durability/temperament
  * potential via inbreeding depression (genome.potentialOf).
  */
-import { GENOME_VERSION, STAT_KEYS, MORPH_KEYS, QUIRK_KEYS, type AllelePair, type Genome, type PedigreeIndex } from "./types";
+import { GENES2_KEYS, GENOME_VERSION, STAT_KEYS, MORPH_KEYS, QUIRK_KEYS, type AllelePair, type Genome, type PedigreeIndex } from "./types";
 import { blendBreeds } from "./genome";
 import { Rng, clampInt } from "./rng";
 
@@ -95,6 +95,13 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
   const white = pair(rng, sire.white, dam.white);
   const distanceMod = pair(rng, sire.distanceMod, dam.distanceMod);
 
+  // The v2 loci come from their own stream, so every v1 draw below stays byte-identical for
+  // coverings committed before genetics v2 (fairness: the foal of a pending pregnancy is fixed).
+  const g2 = new Rng(`${seed}|g2`);
+  const g2Out = {} as Record<(typeof GENES2_KEYS)[number], [string, string]>;
+  for (const k of GENES2_KEYS) g2Out[k] = pair(g2, sire.genes2[k], dam.genes2[k]);
+  const genes2 = g2Out as Genome["genes2"];
+
   return {
     version: GENOME_VERSION,
     stats,
@@ -118,6 +125,7 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
     morph,
     variants,
     quirks,
+    genes2,
     breed: blendBreeds(sire.breed, dam.breed),
     coi,
     markingSeed: rng.nextU32(),
