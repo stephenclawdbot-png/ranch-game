@@ -88,3 +88,29 @@ export const prizePoolAbi = parseAbi([
   "event EpochExpired(uint64 indexed epochId, uint256 returned)",
   "event ParamsSet(uint16 maxEpochBps, uint32 minEpochInterval, uint32 claimWindow, uint128 maxClaimPerEpoch)",
 ]);
+
+/** HorseMarket (USDG horse market, docs/usdg-market.md). */
+export const horseMarketAbi = parseAbi([
+  "struct SaleOrder { bytes32 orderId; bytes32 horseRef; address seller; address buyer; address token; uint256 price; uint256 fee; uint64 deadline; }",
+  "struct RegistrationOrder { bytes32 orderId; bytes32 horseRef; address owner; address token; uint256 fee; uint64 deadline; }",
+  "function buy(SaleOrder order, bytes signature)",
+  "function register(RegistrationOrder order, bytes signature)",
+  "function hashSaleOrder(SaleOrder o) view returns (bytes32)",
+  "function hashRegistrationOrder(RegistrationOrder o) view returns (bytes32)",
+  "function isUsed(bytes32 orderId) view returns (bool)",
+  "function orderPayer(bytes32 orderId) view returns (address)",
+  "function feeBps() view returns (uint16)",
+  "function treasury() view returns (address)",
+  "function acceptedToken(address token) view returns (bool)",
+  "function paused() view returns (bool)",
+  "function setFeeBps(uint16 newBps)",
+  "function setTreasury(address newTreasury)",
+  "function setAcceptedToken(address token, bool accepted)",
+  "function pause()",
+  "function unpause()",
+  "event Sold(bytes32 indexed orderId, bytes32 indexed horseRef, address indexed seller, address buyer, uint256 price, uint256 fee)",
+  "event Registered(bytes32 indexed orderId, bytes32 indexed horseRef, address indexed owner, uint256 fee)",
+  "event FeeBpsSet(uint16 oldBps, uint16 newBps)",
+  "event TreasurySet(address indexed oldTreasury, address indexed newTreasury)",
+  "event TokenAcceptedSet(address indexed token, bool accepted)",
+]);

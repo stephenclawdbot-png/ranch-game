@@ -2,6 +2,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { getAddress, keccak256, toBytes } from "viem";
 import { deployThoroughbred, DEFAULT_CATALOGUE } from "../scripts/deploy";
+import { deployHorseMarket } from "../scripts/deploy-horse-market";
 import { parseTokenAmount, skuId } from "../adapter/voucher";
 import { DEFAULT_ADMIN_ROLE } from "./helpers";
 
@@ -54,5 +55,31 @@ describe("scripts/deploy.ts (against the local Hardhat network)", () => {
     expect(r.gameToken).to.match(/^0x[0-9a-fA-F]{40}$/);
     const token = await hre.viem.getContractAt("ThoroughbredToken", r.gameToken!);
     expect(await token.read.totalSupply()).to.equal(0n); // genesis is a separate reviewed step
+  });
+
+  it("deployHorseMarket: USDG allow-listed, fee set, the multisig is admin and the deployer holds no role", async () => {
+    const [, multisig, server, treasury] = await hre.viem.getWalletClients();
+    const usd = await hre.viem.deployContract("MockStablecoin", []);
+    const r = await deployHorseMarket(hre, {
+      token: usd.address,
+      admin: getAddress(multisig!.account.address),
+      treasury: getAddress(treasury!.account.address),
+      signer: getAddress(server!.account.address),
+    });
+    const m = await hre.viem.getContractAt("HorseMarket", r.horseMarket);
+    expect(await m.read.acceptedToken([usd.address])).to.equal(true);
+    expect(await m.read.feeBps()).to.equal(500);
+    expect(await m.read.treasury()).to.equal(getAddress(treasury!.account.address));
+    expect(await m.read.hasRole([DEFAULT_ADMIN_ROLE, r.admin])).to.equal(true);
+    expect(await m.read.hasRole([DEFAULT_ADMIN_ROLE, r.deployer])).to.equal(false);
+    expect(await m.read.hasRole([keccak256(toBytes("PAUSER_ROLE")), r.deployer])).to.equal(false);
+    expect(await m.read.hasRole([keccak256(toBytes("SIGNER_ROLE")), getAddress(server!.account.address)])).to.equal(true);
+    // Outside testnet a token address is required; the fee is capped.
+    let err: unknown;
+    await deployHorseMarket(hre).catch((e) => (err = e));
+    expect(String(err)).to.include("USDG_TOKEN_ADDRESS");
+    err = undefined;
+    await deployHorseMarket(hre, { token: usd.address, feeBps: 1001 }).catch((e) => (err = e));
+    expect(String(err)).to.include("0..1000");
   });
 });

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { toEventSelector, toFunctionSelector, type Abi, type AbiEvent, type AbiFunction } from "viem";
-import { premiumStoreAbi, prizePoolAbi, raceProofRegistryAbi } from "../adapter/abi";
+import { horseMarketAbi, premiumStoreAbi, prizePoolAbi, raceProofRegistryAbi } from "../adapter/abi";
 
 function check(name: string, handWritten: Abi, compiled: Abi) {
   for (const item of handWritten) {
@@ -29,5 +29,8 @@ describe("adapter ABIs match compiled contracts", () => {
   });
   it("PrizePool", async () => {
     check("PrizePool", prizePoolAbi, (await hre.artifacts.readArtifact("PrizePool")).abi as Abi);
+  });
+  it("HorseMarket", async () => {
+    check("HorseMarket", horseMarketAbi, (await hre.artifacts.readArtifact("HorseMarket")).abi as Abi);
   });
 });
