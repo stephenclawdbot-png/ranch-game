@@ -252,14 +252,31 @@ save(stalls, "barn-stalls", "diorama/raw/barn-stalls-0", holes=sh)
 fr = lambda p, a, b: [load(RAW / f"{p}-{i}.png") for i in range(a, b + 1)]
 strip(fr("anim-walk-led", 1, 8), "horse-walk-led", "anim-walk-led 1..8 (animate-with-text-v3 from rig-hd/horse-neutral-stance-256)", 8)
 strip(fr("anim-groom-hd", 1, 8), "groom-walk", "anim-groom-hd 1..8 (animate-with-text-v3 from groom-hd-0)", 8)
-# stall horses leaning out over the half-door: head, neck, chest (owner: never a floating head)
-sh_frames = [clean(f) for f in fr("anim-stall-horse", 0, 3)]
-# frame 3 grows a door-post stub at the bottom left: take that corner from frame 2
-sh_frames[3][70:, :32] = sh_frames[2][70:, :32]
-sh_frames = sh_frames + [sh_frames[2], sh_frames[1]]  # ping-pong head turn
+# stall horses looking out over the half-door, cut from the approved 3/4 portraits (owner: the
+# old generated head/chest read as a floating head). The portrait's neck runs straight down, so
+# the door line crosses the neck under the muzzle (portrait row 105) and the rest is behind the
+# door. 128 -> 96 px (3x nearest up, exact 4:1 box down, palette-snapped) to suit the stalls; a
+# slow 1 px nod; `door` = frame rows down to the door line (overDoor crops there).
+PORTRAITS = Path("apps/web/public/art/portraits")
+DOOR_ROW = 105
+NOD = (0, 0, 1, 1, 1, 0)
+
+
+def scale_3_4(a):
+    return downsample(np.repeat(np.repeat(a, 3, 0), 3, 1), 4)
+
+
 for coat in ("bay", "grey", "chestnut", "black"):
-    frames = [recoat(f, coat) for f in sh_frames]
-    strip(frames, f"stall-horse-{coat}", f"anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat {coat} by luminance-ramp recolour", 4)
+    head = scale_3_4(clean(load(PORTRAITS / f"horse-{coat}.png")))
+    frames = []
+    for d in NOD:
+        f = np.zeros_like(head)
+        f[: head.shape[0] - d] = head[d:]
+        frames.append(f)
+    ys = np.nonzero((head[..., 3] > 0).any(1))[0]
+    y0 = max(0, int(ys.min()) - max(NOD) - 1)  # strip() crops the union box with 1 px of padding
+    strip(frames, f"stall-horse-{coat}", f"portraits/horse-{coat}.png 3:4 (3x nearest, 4:1 box), 1 px nod", 4)
+    atlas["anims"][f"stall-horse-{coat}"]["door"] = int(round(DOOR_ROW * 0.75)) - y0
 for i in range(4):
     im = quantise(load(RAW / f"stall-interior-{i}.png"))
     im[..., 3] = 255
@@ -292,6 +309,8 @@ def downsample_strip(name, k, fps, src=None):
     out = f"{name}-s{k}"
     save(s, out, f"{name} {k}:1 box downsample snapped to its own (key) palette")
     atlas["anims"][out] = {"fw": int(small[0].shape[1]), "fh": int(small[0].shape[0]), "frames": n, "fps": fps}
+    if "door" in atlas["anims"][name]:
+        atlas["anims"][out]["door"] = int(atlas["anims"][name]["door"] + ph) // k
 
 
 # level-of-detail copies (the engine picks one so a sprite always fits its band)

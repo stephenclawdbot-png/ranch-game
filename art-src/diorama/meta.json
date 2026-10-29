@@ -232,19 +232,19 @@
   "frames": 8
  },
  "stall-horse-bay": {
-  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat bay by luminance-ramp recolour",
+  "source": "portraits/horse-bay.png 3:4 (3x nearest, 4:1 box), 1 px nod",
   "frames": 6
  },
  "stall-horse-grey": {
-  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat grey by luminance-ramp recolour",
+  "source": "portraits/horse-grey.png 3:4 (3x nearest, 4:1 box), 1 px nod",
   "frames": 6
  },
  "stall-horse-chestnut": {
-  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat chestnut by luminance-ramp recolour",
+  "source": "portraits/horse-chestnut.png 3:4 (3x nearest, 4:1 box), 1 px nod",
   "frames": 6
  },
  "stall-horse-black": {
-  "source": "anim-stall-horse 0..3 ping-pong (animate-with-text-v3 from stall-horse-3), coat black by luminance-ramp recolour",
+  "source": "portraits/horse-black.png 3:4 (3x nearest, 4:1 box), 1 px nod",
   "frames": 6
  },
  "stall-interior-0": {

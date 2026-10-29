@@ -30,7 +30,7 @@ export function SceneBackdrop({ scene }: { scene: SceneName }) {
 
 /**
  * Banner framing per scene (banners are ~110-170 art px tall against 360 px art): the barn
- * centres on the horses' heads over the stall doors (ears ~108 to muzzles ~195), and ignores
+ * centres on the horses' heads over the stall doors (ears ~110 to the door ~186), and ignores
  * the floor line, which would otherwise crop them at the forehead. The stable yard centres on
  * the horses looking out of the stall doors (~205-245) and the led horse's head (~170).
  */

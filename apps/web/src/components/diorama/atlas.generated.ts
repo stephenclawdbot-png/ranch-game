@@ -67,20 +67,20 @@ export const DIORAMA_ATLAS = {
    "h": 168
   },
   "stall-horse-bay": {
-   "w": 540,
-   "h": 113
+   "w": 444,
+   "h": 89
   },
   "stall-horse-grey": {
-   "w": 540,
-   "h": 113
+   "w": 444,
+   "h": 89
   },
   "stall-horse-chestnut": {
-   "w": 540,
-   "h": 113
+   "w": 444,
+   "h": 89
   },
   "stall-horse-black": {
-   "w": 540,
-   "h": 113
+   "w": 444,
+   "h": 89
   },
   "stall-interior-0": {
    "w": 96,
@@ -175,36 +175,36 @@ export const DIORAMA_ATLAS = {
    "h": 64
   },
   "stall-horse-bay-s2": {
-   "w": 270,
-   "h": 57
+   "w": 222,
+   "h": 45
   },
   "stall-horse-bay-s3": {
-   "w": 180,
-   "h": 38
+   "w": 150,
+   "h": 30
   },
   "stall-horse-grey-s2": {
-   "w": 270,
-   "h": 57
+   "w": 222,
+   "h": 45
   },
   "stall-horse-grey-s3": {
-   "w": 180,
-   "h": 38
+   "w": 150,
+   "h": 30
   },
   "stall-horse-chestnut-s2": {
-   "w": 270,
-   "h": 57
+   "w": 222,
+   "h": 45
   },
   "stall-horse-chestnut-s3": {
-   "w": 180,
-   "h": 38
+   "w": 150,
+   "h": 30
   },
   "stall-horse-black-s2": {
-   "w": 270,
-   "h": 57
+   "w": 222,
+   "h": 45
   },
   "stall-horse-black-s3": {
-   "w": 180,
-   "h": 38
+   "w": 150,
+   "h": 30
   },
   "horse-gallop-s2": {
    "w": 1380,
@@ -409,28 +409,32 @@ export const DIORAMA_ATLAS = {
    "fps": 8
   },
   "stall-horse-bay": {
-   "fw": 90,
-   "fh": 113,
+   "fw": 74,
+   "fh": 89,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 77
   },
   "stall-horse-grey": {
-   "fw": 90,
-   "fh": 113,
+   "fw": 74,
+   "fh": 89,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 77
   },
   "stall-horse-chestnut": {
-   "fw": 90,
-   "fh": 113,
+   "fw": 74,
+   "fh": 89,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 77
   },
   "stall-horse-black": {
-   "fw": 90,
-   "fh": 113,
+   "fw": 74,
+   "fh": 89,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 77
   },
   "horse-aisle-idle": {
    "fw": 253,
@@ -523,52 +527,60 @@ export const DIORAMA_ATLAS = {
    "fps": 5
   },
   "stall-horse-bay-s2": {
-   "fw": 45,
-   "fh": 57,
+   "fw": 37,
+   "fh": 45,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 39
   },
   "stall-horse-bay-s3": {
-   "fw": 30,
-   "fh": 38,
+   "fw": 25,
+   "fh": 30,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 26
   },
   "stall-horse-grey-s2": {
-   "fw": 45,
-   "fh": 57,
+   "fw": 37,
+   "fh": 45,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 39
   },
   "stall-horse-grey-s3": {
-   "fw": 30,
-   "fh": 38,
+   "fw": 25,
+   "fh": 30,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 26
   },
   "stall-horse-chestnut-s2": {
-   "fw": 45,
-   "fh": 57,
+   "fw": 37,
+   "fh": 45,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 39
   },
   "stall-horse-chestnut-s3": {
-   "fw": 30,
-   "fh": 38,
+   "fw": 25,
+   "fh": 30,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 26
   },
   "stall-horse-black-s2": {
-   "fw": 45,
-   "fh": 57,
+   "fw": 37,
+   "fh": 45,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 39
   },
   "stall-horse-black-s3": {
-   "fw": 30,
-   "fh": 38,
+   "fw": 25,
+   "fh": 30,
    "frames": 6,
-   "fps": 4
+   "fps": 4,
+   "door": 26
   },
   "horse-gallop-s2": {
    "fw": 115,
