@@ -1597,7 +1597,7 @@ html[data-motion="reduce"] *::after {
  * stay pixel (Jersey). Paper survives as printed matter only (`.print`).
  * ============================================================================================= */
 :root {
-  --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-serif: var(--font-pixelify), "Courier New", monospace;
   --font-display: var(--font-serif);
   --glass: rgba(8, 21, 14, 0.72);
   --glass-strong: rgba(8, 21, 14, 0.86);
@@ -2804,4 +2804,487 @@ select.field option {
   .topbar .pill:has([data-testid="entries"]) {
     display: none;
   }
+}
+
+/* =============================================================================================
+ * Design system v3.1 "Pixel arcade" (owner pick 2026-10-29, docs/redesign/mockups/type-board.png).
+ * One kit with the art: ink outline (#050d08 on baize, #1d140a on paper), light from the top-left,
+ * one highlight rim and a hard drop on every panel and button. Square pixel corners. Titles and
+ * labels in Pixelify, names and every number in Jersey, reading text in Nunito. The world stays
+ * visible through the scene backdrops; the panels themselves are solid.
+ * ============================================================================================= */
+:root {
+  --font-display: var(--font-pixelify), "Courier New", monospace;
+  --font-name: var(--font-jersey), var(--font-pixelify), monospace;
+  --r-panel: 0px;
+  --r-control: 0px;
+  --ink-0: #050d08;
+}
+
+/* Panels: the notched pixel frame (dark rim, top highlight, shade) on solid baize. */
+.surface,
+.panel,
+.panel-quiet,
+.px-panel,
+.px-panel-quiet,
+.card,
+.paper,
+.px-plate,
+dialog.sheet,
+.baize-card {
+  border: 4px solid transparent;
+  border-image: var(--fr-surface) 2 / 4px stretch;
+  border-radius: 0;
+  background: rgba(15, 42, 29, 0.96) padding-box;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+}
+.surface-2,
+.px-tile {
+  border-radius: 0;
+  background: #163a28;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #1d4a33;
+}
+.inset,
+.px-inset,
+.surface .inset,
+.card .inset,
+.paper-scope .inset,
+dialog.sheet .inset {
+  border-radius: 0;
+  background: #0b1f15;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 -2px 0 2px #1a4430;
+}
+.well,
+.baize-scope .well,
+.baize-card .well {
+  border-radius: 0;
+  background: #0b1f15;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #163a28;
+}
+/* Featured cards: cream paper with the brass ring, ink roles (board A's hero card). */
+.frame-hero {
+  --color-cream: #1d140a;
+  --color-cream-dim: #5a4630;
+  --color-sage: #7a6548;
+  --color-line: #cbb88f;
+  --color-surface-2: #ecdfbd;
+  --color-positive: #2b6a41;
+  --color-negative: #a3272b;
+  --color-brass-bright: #8a5d14;
+  color: #1d140a;
+  border: 6px solid transparent;
+  border-image: var(--fr-hero) 3 / 6px stretch;
+  border-radius: 0;
+  background: var(--color-paper) padding-box;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.5);
+}
+.frame-hero .well {
+  background: #ecdfbd;
+  box-shadow: inset 0 0 0 2px #1d140a;
+}
+.frame-hero .link,
+.frame-hero .btn-ghost {
+  color: #8a5d14;
+}
+
+/* Type: pixel titles with an ink drop; Jersey names; Nunito reading. */
+.t-display-xl,
+.t-page {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  letter-spacing: 0.01em;
+  text-shadow: 0 3px 0 var(--ink-0);
+}
+@media (min-width: 768px) {
+  .t-display-xl,
+  .t-page {
+    font-size: 3.25rem;
+    line-height: 3.5rem;
+  }
+}
+.t-display-l,
+.t-hero {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.75rem;
+}
+.t-display-m,
+.t-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3125rem;
+  line-height: 1.625rem;
+  text-shadow: 0 2px 0 var(--ink-0);
+}
+.surface .t-h2,
+.frame-hero .t-h2,
+.frame-hero .t-hero {
+  text-shadow: none;
+}
+@media (min-width: 768px) {
+  .t-display-l,
+  .t-hero {
+    font-size: 1.75rem;
+    line-height: 2rem;
+  }
+  .t-display-m,
+  .t-h2 {
+    font-size: 1.5rem;
+    line-height: 1.875rem;
+  }
+}
+.t-serif {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.t-title {
+  font-weight: 800;
+}
+
+/* Buttons: ink keyline, highlight top, shade bottom, hard ink drop; pressed sinks to the drop. */
+.btn {
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #f6ecd3;
+  background: var(--color-turf);
+  box-shadow:
+    inset 0 0 0 3px var(--ink-0),
+    inset 0 5px 0 3px #3f8a58,
+    inset 0 -4px 0 3px #1f4d35,
+    0 4px 0 var(--ink-0);
+  margin-bottom: 4px;
+  transition: transform 50ms steps(1);
+}
+.btn:hover:not(:disabled) {
+  background: #327a4b;
+  filter: none;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    inset 0 0 0 3px var(--ink-0),
+    inset 0 5px 0 3px #3f8a58,
+    inset 0 -4px 0 3px #1f4d35;
+}
+.btn-brass,
+.btn-primary {
+  color: #1d140a;
+  background: var(--color-brass);
+  box-shadow:
+    inset 0 0 0 3px #1d140a,
+    inset 0 6px 0 3px var(--color-brass-hi),
+    inset 0 -6px 0 3px var(--color-brass-lo),
+    0 5px 0 #1d140a;
+  margin-bottom: 5px;
+}
+.btn-brass:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background: #e2b04f;
+  filter: none;
+}
+.btn-brass:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow:
+    inset 0 0 0 3px #1d140a,
+    inset 0 6px 0 3px var(--color-brass-hi),
+    inset 0 -6px 0 3px var(--color-brass-lo);
+}
+.btn-oxblood {
+  color: #f6ecd3;
+  background: var(--color-oxblood);
+  box-shadow:
+    inset 0 0 0 3px var(--ink-0),
+    inset 0 4px 0 3px #b0392e,
+    0 4px 0 var(--ink-0);
+}
+.btn-outline {
+  color: var(--color-cream);
+  background: rgba(8, 21, 14, 0.55);
+  box-shadow:
+    inset 0 0 0 3px currentColor,
+    0 4px 0 var(--ink-0);
+}
+.btn-outline:active:not(:disabled) {
+  box-shadow: inset 0 0 0 3px currentColor;
+}
+.frame-hero .btn-outline {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 3px #1d140a,
+    0 4px 0 rgba(29, 20, 10, 0.5);
+}
+.btn-ghost {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  background: transparent;
+  box-shadow: none;
+  margin-bottom: 0;
+  color: var(--color-brass-hi);
+}
+.btn-ghost:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+.btn-danger-text,
+.btn-ghost.btn-danger-text {
+  color: var(--color-negative);
+}
+
+/* Inputs, chips, tags, pills: square, ink-rimmed. */
+.field {
+  border-radius: 0;
+  background: #0b1f15;
+  box-shadow: inset 0 0 0 2px var(--ink-0), inset 0 2px 0 2px #163a28;
+}
+.field:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ink-0), inset 0 2px 0 2px #163a28;
+}
+.chip {
+  border-radius: 0;
+  background: #163a28;
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+.tag,
+.tag-ready,
+.tag-you,
+.you-tag,
+.chip-brass {
+  border-radius: 0;
+}
+.tag-ready {
+  background: var(--ink-0);
+  box-shadow: inset 0 0 0 2px var(--color-brass-lo);
+}
+.tag-you,
+.you-tag,
+.chip-brass {
+  box-shadow: inset 0 0 0 2px #1d140a;
+}
+.fchip {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--color-baize-line);
+}
+.dot {
+  border-radius: 0;
+}
+.pill {
+  border-radius: 0;
+  padding: 0 8px 0 2px;
+  background: var(--color-baize-900);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #1d4a33;
+}
+.avatar {
+  border-radius: 0;
+  background: var(--color-paper);
+  box-shadow: inset 0 0 0 2px var(--ink-0);
+}
+.avatar-on,
+.avatar:hover {
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 4px var(--color-brass);
+}
+.topbar {
+  background: var(--color-baize-800);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 3px 0 var(--ink-0);
+}
+.tabbar {
+  background: var(--color-baize-800);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 -3px 0 var(--ink-0);
+}
+.tabbar-item {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+.tabbar-item[aria-current="page"]::before {
+  left: 30%;
+  right: 30%;
+  height: 4px;
+  border-radius: 0;
+  background: var(--color-brass);
+}
+.rows > * + * {
+  border-top: 2px solid var(--ink-0);
+  box-shadow: inset 0 2px 0 #163a28;
+}
+.skel {
+  border-radius: 0;
+}
+
+/* Showcase screens in the pixel kit. */
+.plaque-label {
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 3px 10px 5px;
+  background: var(--color-baize-800);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #1d4a33,
+    0 3px 0 var(--ink-0);
+}
+.plaque:hover .plaque-label,
+.plaque:focus-visible .plaque-label {
+  background: #1f4d35;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #3f8a58,
+    0 3px 0 var(--ink-0);
+}
+.plaque-status {
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: var(--ink-0);
+}
+.plaque-pin {
+  width: 4px;
+  background: var(--ink-0);
+}
+.plaque-pin::after {
+  width: 8px;
+  height: 8px;
+  margin: 12px 0 0 -2px;
+  border-radius: 0;
+  box-shadow: 0 0 0 2px var(--ink-0);
+}
+.estate-title,
+.landing-title,
+.chapter-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-shadow:
+    0 3px 0 var(--ink-0),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+.champ-name {
+  font-family: var(--font-name);
+  font-weight: 400;
+  font-size: 3.25rem;
+  line-height: 2.875rem;
+  color: var(--color-brass-hi);
+  text-shadow:
+    0 4px 0 var(--ink-0),
+    0 0 20px rgba(0, 0, 0, 0.55);
+}
+@media (min-width: 768px) {
+  .champ-name {
+    font-size: 5rem;
+    line-height: 4.5rem;
+  }
+}
+.champ-tile {
+  border-radius: 0;
+  background: #163a28;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 3px var(--ink-0),
+    inset 0 3px 0 3px #1d4a33,
+    0 4px 0 rgba(0, 0, 0, 0.5);
+}
+.champ-last,
+.race-countdown,
+.race-plate {
+  border-radius: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.champ-last,
+.race-countdown {
+  background: rgba(15, 42, 29, 0.95);
+  box-shadow:
+    inset 0 0 0 3px var(--ink-0),
+    inset 0 3px 0 3px #1d4a33,
+    0 4px 0 rgba(0, 0, 0, 0.5);
+}
+.race-plate {
+  background: var(--color-baize-800);
+  box-shadow: inset 0 -3px 0 var(--ink-0);
+}
+@media (min-width: 768px) {
+  .race-plate,
+  [data-testid="race-stage"] {
+    border-radius: 0;
+  }
+}
+.champ-roster a,
+.champ-arrow {
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 2px 0 2px #3f8a58;
+}
+.champ-roster a[aria-current="page"] {
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    inset 0 0 0 4px var(--color-brass);
+}
+.photo-card {
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 3px #1d140a,
+    inset 0 0 0 7px #f6ecd3,
+    inset 0 0 0 9px #d9a441,
+    0 6px 0 rgba(0, 0, 0, 0.55);
+}
+.photo-card-headline {
+  font-family: var(--font-name);
+  font-weight: 400;
+  font-size: 2.25rem;
+  line-height: 2.125rem;
+}
+@media (min-width: 640px) {
+  .photo-card-headline {
+    font-size: 2.875rem;
+    line-height: 2.625rem;
+  }
+}
+.photo-card-portrait {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px #1d140a;
+}
+.photo-card .photo-card-btn {
+  box-shadow:
+    inset 0 0 0 3px #1d140a,
+    0 3px 0 rgba(29, 20, 10, 0.5);
+}
+/* Row chevron: a crisp pixel arrow (the text glyph stays for screen readers' sake: hidden). */
+.chev {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: none;
+  font-size: 0;
+  color: transparent;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath fill='%238fa592' d='M1 0h1v1H1zM2 1h1v1H2zM3 2h1v2H3zM2 4h1v1H2zM1 5h1v1H1z'/%3E%3C/svg%3E") center / 12px 12px no-repeat;
+}
+.row-link:hover .chev {
+  filter: brightness(1.4);
 }

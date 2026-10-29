@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
+import { Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
 import { SiteNav } from "@/components/SiteNav";
 import { Telemetry } from "@/components/playtest/Telemetry";
 import { EntryProvider } from "@/components/entry/EntryProvider";
@@ -8,11 +8,10 @@ import { listArt } from "@/lib/art.server";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settingsBoot";
 import "./globals.css";
 
-// Faces (design system v3, docs/redesign/REDESIGN.md §2b): heritage serif for names and titles,
-// scoreboard numerals, a readable sans; the pixel face is the wordmark only.
-const pixelify = Pixelify_Sans({ subsets: ["latin"], weight: ["600"], variable: "--font-pixelify", display: "swap" });
+// Faces (design system v3.1 "Pixel arcade", owner pick 2026-10-29): Pixelify for titles and labels,
+// Jersey for names and numbers, Nunito for reading.
+const pixelify = Pixelify_Sans({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-pixelify", display: "swap" });
 const jersey = Jersey_10({ subsets: ["latin"], weight: "400", variable: "--font-jersey", display: "swap" });
-const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-cormorant", display: "swap" });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"], variable: "--font-nunito", display: "swap" });
 
 /** The deployed commit (Vercel system env), for deploy checks: <meta name="build" content="<sha>">. */
@@ -40,7 +39,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const art = listArt();
   return (
-    <html lang="en" className={`${pixelify.variable} ${jersey.variable} ${nunito.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${pixelify.variable} ${jersey.variable} ${nunito.variable}`} suppressHydrationWarning>
       <head>
         {/* Applies saved text size / motion settings before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />

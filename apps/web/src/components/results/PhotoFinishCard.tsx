@@ -168,7 +168,7 @@ async function drawCard(d: { race: string; headline: string; facts: string[]; yo
       /* the card still has every fact without the picture */
     }
   }
-  const serif = getComputedStyle(document.documentElement).getPropertyValue("--font-cormorant").trim() || "Georgia";
+  const serif = getComputedStyle(document.documentElement).getPropertyValue("--font-pixelify").trim() || "monospace";
   const sans = getComputedStyle(document.documentElement).getPropertyValue("--font-nunito").trim() || "sans-serif";
   const score = getComputedStyle(document.documentElement).getPropertyValue("--font-jersey").trim() || "monospace";
   ctx.fillStyle = "#8a5d14";

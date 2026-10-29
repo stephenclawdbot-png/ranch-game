@@ -14,6 +14,7 @@ import { usePlayerState } from "@/lib/player";
 import { Diorama } from "../diorama/Diorama";
 import { HorsePortrait } from "../HorsePortrait";
 import { Silks } from "../Silks";
+import { PixelIcon } from "../icons";
 
 function identity(view: HorseDetailView): string {
   const h = view.horse;
@@ -56,12 +57,12 @@ export function HorseStage({ view, actions, status }: { view: HorseDetailView; a
         )}
         {prev && (
           <Link href={`/horse/${prev.id}`} className="champ-arrow champ-prev" aria-label={`Previous horse: ${prev.horse.name}`} scroll={false}>
-            ‹
+            <PixelIcon name="arrow" size={16} className="-scale-x-100" />
           </Link>
         )}
         {next && (
           <Link href={`/horse/${next.id}`} className="champ-arrow champ-next" aria-label={`Next horse: ${next.horse.name}`} scroll={false}>
-            ›
+            <PixelIcon name="arrow" size={16} />
           </Link>
         )}
         <div className="champ-hero" key={horse.id}>
@@ -73,7 +74,7 @@ export function HorseStage({ view, actions, status }: { view: HorseDetailView; a
           </span>
         </div>
         <Link href={view.mine ? "/stable" : "/races"} className="champ-back">
-          ‹ {view.mine ? "Stable" : "Racing"}
+          <PixelIcon name="arrow" size={12} className="-scale-x-100" /> {view.mine ? "Stable" : "Racing"}
         </Link>
       </div>
 
@@ -133,7 +134,9 @@ export function HorseStage({ view, actions, status }: { view: HorseDetailView; a
             <span className="t-serif block text-[1.125rem] leading-6 text-cream">
               {ordinal(last.position)} · {last.raceName}
             </span>
-            <span className="link">▶ Watch the finish</span>
+            <span className="link inline-flex items-center gap-1.5">
+              <PixelIcon name="play" size={12} /> Watch the finish
+            </span>
           </Link>
         )}
       </div>

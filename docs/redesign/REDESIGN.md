@@ -178,6 +178,37 @@ is always a label or letter.
   Desktop: full-bleed scene with panels at the side.
 - Racing on phones offers a landscape full-screen viewer.
 
+## 2c. Owner pick (2026-10-29): v3.1 "Pixel arcade", superseding the serif and glass of §2b
+
+Owner feedback on v3: *"Gaming fonts too. Icons buttons please it feels like made by u try to
+research ui ux too."* The research (game-button and HUD-cohesion guidance) agreed on these rules:
+- **One kit:** the same outline colour, the same light direction (top-left), and one highlight
+  plus a dark rim on every element. A mismatched element makes the whole UI look unfinished.
+  The smooth web buttons and serif clashed with the pixel art and icons; that was the "made by
+  you" feeling.
+- **Physical buttons:** a visible border, depth (a bottom edge and drop), a pressed state that
+  sinks, one primary button per screen, short verbs, an icon plus a label.
+- **Display type with character for titles**, a clean high-x-height sans for reading, and
+  numerals that are designed (Jersey).
+- **Icons:** silhouette first, tested at real size on real backgrounds; no generic glyphs
+  (‹ › ▶ ★ or emoji) where a pixel icon exists.
+
+Three directions were built on the same art (`mockups/type-board.png`): A pixel arcade,
+B racing broadcast, C cozy stable game. **The owner picked A.**
+
+**v3.1, the spec now in force:**
+- Titles and labels in **Pixelify Sans 700** with a 3 px ink drop.
+- Horse names and every number in **Jersey 10** (names in brass).
+- Reading text in Nunito.
+- Panels on the notched pixel frame (`--fr-surface`): solid baize with a dark rim, a top
+  highlight and a 4 px drop. Featured cards and printed matter on cream paper with the brass
+  ring (`--fr-hero`).
+- Buttons with a 3 px ink keyline, a highlight top, a shade bottom and a 4–5 px ink drop;
+  pressed moves down onto the drop.
+- Square corners everywhere.
+- Pixel icons for arrows, play, star and row chevrons.
+- The world stays visible through the scene backdrops, while panels are solid.
+
 ## 3b. Page and flow map
 
 ```

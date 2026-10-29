@@ -298,7 +298,9 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
             <span className="live-dot" /> Live
           </span>
           <span className="min-w-0 flex-1 truncate">{live.name}</span>
-          <span className="link">Watch ›</span>
+          <span className="link inline-flex items-center gap-1">
+            Watch <PixelIcon name="arrow" size={12} />
+          </span>
         </Link>
       )}
       <div className="flex items-start gap-3">
@@ -338,7 +340,11 @@ function QuickPickHero({ s, firstRace }: { s: StableHorse; firstRace: boolean })
     <Hero
       testId="up-next"
       appearance={horse.appearance}
-      tag={<span className="tag tag-ready">★ {firstRace ? "Your first race" : "Ready to race"}</span>}
+      tag={
+        <span className="tag tag-ready">
+          <PixelIcon name="star" size={12} /> {firstRace ? "Your first race" : "Ready to race"}
+        </span>
+      }
       title={`${horse.name} is ready`}
       body={`${STYLE_LABEL[horse.style]} · best at ${formatDistance(horse.preferredDistanceM)} on ${SURFACE_LABEL[horse.preferredSurface].toLowerCase()}. A Story race against the Club is free.`}
     >
@@ -398,7 +404,11 @@ function ResultReady({ item, count, horse }: { item: InboxView; count: number; h
     <Hero
       testId="up-next"
       appearance={horse?.horse.appearance}
-      tag={<span className="tag tag-ready">▶ {count > 1 ? `${count} results ready` : "Result ready"}</span>}
+      tag={
+        <span className="tag tag-ready">
+          <PixelIcon name="play" size={12} /> {count > 1 ? `${count} results ready` : "Result ready"}
+        </span>
+      }
       title={`${name} has run`}
       body={`Off at ${formatClock(item.createdAtMs)}. The replay is waiting; we haven't said how it went.`}
     >
@@ -490,7 +500,11 @@ function InboxRow({ item, horseName }: { item: InboxView; horseName?: string }) 
   return (
     <li>
       <Link href={`/race/${item.raceId}`} className="row-link gap-3 px-4 py-3" data-testid="inbox-result" data-read={item.read ? "1" : "0"}>
-        {item.read ? <span className="score w-10 shrink-0 text-center text-[1.75rem]">{pos ? ordinal(pos) : "–"}</span> : <span className="tag tag-ready shrink-0">▶ Ready</span>}
+        {item.read ? <span className="score w-10 shrink-0 text-center text-[1.75rem]">{pos ? ordinal(pos) : "–"}</span> : (
+          <span className="tag tag-ready shrink-0">
+            <PixelIcon name="play" size={12} /> Ready
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="t-title block">{horseName ?? "Your horse"}</span>
           <span className="t-meta block line-clamp-2">{item.read ? item.title : "We haven’t told you how it went."}</span>
