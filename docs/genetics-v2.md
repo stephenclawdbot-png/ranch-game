@@ -151,12 +151,117 @@ within ±5 points, and no breed's mean win rate in a mixed field may be outside 
 - Genetics summary (`geneticsSummary.ts`): a line for each new gene, using the same carried
   flags.
 
+
+## Breed strengths, pure lines and crossbreeding (owner, 2026-10-29)
+
+> "Make sure each breed has its own strengths and weaknesses. Cross breeding is not that
+> advisable but may result in something great; pure lines also have benefits. Make it fun and
+> rewarding."
+
+### 1. Each breed has a signature strength and weakness
+
+These work like quirks. A strength or weakness is a stat change that applies only when the race
+conditions match, added in `raceSnapshot`. The engine and the shared contract are unchanged.
+
+**Strength scales with breed share:**
+- 0 below 25 %;
+- linear from 25 % (a quarter of full strength) up to 87.5 %;
+- full strength at 87.5 % or more ("Purebred").
+
+**The weakness always scales linearly with share.** So a cross keeps more of each
+parent's strength than of its weakness: that's the reward for crossing.
+
+| Breed | Strength (when it applies: stat change) | Weakness (when it applies: stat change) |
+|---|---|---|
+| Thoroughbred | **Class**: turf or good going: speed +25 | **Fragile**: injury risk ×1.15 |
+| Arabian | **Endurance**: 2,000 m or more: stamina +35 | **Slow away**: 1,200 m or less: speed −20 |
+| Quarter Horse | **Rocket start**: 1,200 m or less: burst +30, temperament +40 (gates) | **Fades**: over 1,600 m: stamina −30 |
+| Akhal-Teke | **Desert heart**: firm going or clear/hot weather: stamina +25; recovers fatigue 15 % faster | **Hot-blooded**: field of 10 or more: temperament −60 |
+| Standardbred | **Rhythm**: always: temperament +40; recovers between races 20 % faster | **No kick**: always: burst −20 |
+| Appaloosa | **Sure-footed**: soft or heavy going: adaptability +100, speed +15 | **Plain on fast ground**: firm going: speed −15 |
+| Paint Horse | **Turn of foot**: 1,000–1,600 m: burst +30 | **Short-winded**: over 1,800 m: stamina −25 |
+| Mustang | **Iron constitution**: injury risk ×0.75; career +4 starts | **Rough**: graded or listed races: speed −15 |
+| Andalusian | **Brave**: big crowd or 12 runners: temperament +60, burst +15 | **Short of stamina**: 2,000 m or more: stamina −25 |
+| Friesian | **Power**: soft or heavy going: speed +25; always calm (temperament +30) | **Heavy**: firm or good going: speed −25 |
+| Warmblood | **Scope**: turf, 1,600–2,400 m: speed +20, stamina +15 | **Late developer**: until 8 career starts: speed −25 |
+| Marwari | **Alert**: rain or wind: adaptability +80; never gate-shy (cancels the gate-shy quirk) | **Light frame**: always: burst −15 |
+
+Sizes are deliberate: a full strength is worth about a quarter of a grade (25 points, roughly
+15–18 % wins against an even 8-runner field, up from 12 %). That's enough to choose races by
+breed, never enough to make a breed win everything. The balance check below must confirm it.
+
+### 2. Pure lines
+
+Purebred means one breed is 87.5 % or more (the breed registries' 7/8 rule).
+
+- **Full signature strength** (above).
+- **Predictable foals ("true breeding").** When both parents are purebred of the same breed,
+  the foal's stat inheritance spread is ×0.75: foals land close to the parents' average. What
+  you plan is what you get.
+- **Breed races.** One Live slot an hour is a breed race ("Arabian Stakes", "Quarter Horse
+  Dash"), open to purebreds of that breed only. Same purse table as the class, fewer
+  rivals, a breed badge in the Hall.
+- **The cost:** a closed gene pool. Pure-to-pure breeding raises inbreeding (COI) faster, and
+  the existing inbreeding depression applies. The breeding preview warns as today. Pure lines
+  need careful pairing, never infinite.
+- Market: the appraisal adds +10 % for purebreds (cosmetic prestige, it doesn't affect races).
+
+### 3. Crossbreeding: a gamble that can pay
+
+- **First-cross vigour.** A foal of two purebreds of *different* breeds gets
+  vigour +20 (hybrid vigour: +20 to every stat potential) and COI 0. Both parents'
+  strengths apply at 50 % share each, weaknesses at half. This is the "may result in something
+  great" generation.
+- **Later crosses scatter.** A foal with no purebred parent (cross × cross) has a stat
+  inheritance spread of ×1.35: more poor foals and more stars. The average is unchanged, so it
+  isn't worse on average, just riskier. "Not that advisable" without making it a trap.
+- **Mixed bags lose identity.** A breed under 25 % contributes no strength, but its
+  weakness still scales with its share. A horse that is a little of everything has small
+  weaknesses and no strengths. The preview says so.
+- **Named crosses: discoveries.** Some pairs make more than the sum of their parts. While
+  both breeds are 25 % or more and together 87.5 % or more, the cross gets a **combined
+  signature** at full strength, and the pair's weaknesses are halved again:
+
+| Cross | Breeds | Combined signature |
+|---|---|---|
+| Anglo-Arab | TB + Arabian | Class + Endurance: a turf stayer |
+| Appendix QH | QH + TB | Rocket start + Class: a sprinter that handles turf |
+| Hispano-Arabe | Andalusian + Arabian | Brave + Endurance |
+| Sport Horse | Warmblood + TB | Scope + Class; the warmblood's late-developer weakness is gone |
+| Desert Stayer | Akhal-Teke + Arabian | Desert heart + Endurance; hot-blooded halved |
+| Ranch Sprinter | Paint + QH | Turn of foot + Rocket start |
+| Mountain Horse | Mustang + Appaloosa | Iron constitution + Sure-footed |
+
+  The first stable to foal each named cross gets a Hall of Fame entry ("First Anglo-Arab:
+  bred by Blackthorn Yard"). The breeding preview shows the label once a cross is
+  discovered, and "???: an unknown cross" before that, so finding them is part of the game.
+
+### 4. Balance check (required before merge)
+
+The `tools/balance` breeds report must show:
+- every purebred's win rate in mixed 8-runner Live fields between 1/n − 3 and 1/n + 3 points
+  overall;
+- each breed at least +4 points above its average in its strength conditions;
+- first crosses about +2 points above the parents' average;
+- cross × cross foals: the same mean as their parents, with a wider spread (the standard
+  deviation of potential ×1.3 or more);
+- the lead's edge table still holding (one grade better ≈ 45 % wins).
+
+### Existing horses
+
+The genes of existing horses stay exactly the same. Their breed shares (mostly 70–100 % one of
+the original four breeds) **will** start expressing strengths and weaknesses. That is a rules
+change by design. Switch it on at a weekly reset so the Prize Pool week isn't split, and put
+one line in the patch notes.
+
 ## Delivery
 
 1. **G1, GLM:** genes, breeds, inheritance, upgrade, preview, summary, named crosses; no visuals.
 2. **G2, GLM:** size, MSTN, big heart and iron legs in phenotype and injury, plus the balance
    reports. The lead reviews the balance numbers.
-3. **Visual tickets, Kimi:**
+3. **G3, GLM:** breed signatures, pure-line spread, first-cross vigour, named crosses with
+   Hall discoveries, breed races, the breeds balance report. The lead reviews the numbers.
+4. **Visual tickets, Kimi:**
    - colour v3 (champagne, silver, pearl swatches by the lead first);
    - white patterns (tobiano, leopard, splash) together with sabino;
    - breed looks (head families plus feathering, curled ears, dish, size).
