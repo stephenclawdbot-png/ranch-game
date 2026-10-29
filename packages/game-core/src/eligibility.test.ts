@@ -140,3 +140,13 @@ describe("ability mark (the OR a horse of its current running ability settles at
     expect(currentStats(h)).toMatchObject({ speed: 650, stamina: 700, burst: 620 });
   });
 });
+describe("no throwing, no trap: the peak term follows today's ability", () => {
+  it("an aged horse whose ability faded is released from the peak rule; a sandbagger is not", () => {
+    // Peak 90, today OR 62 and ability mark 61 (faded): the peak term is capped at 61 + 5 = 66.
+    expect(bandCheck({ or: 62, peakOr: 90 }, 61).rating).toBe(66);
+    // Same peak, ability still worth it (mark 85): the peak rule binds at 80.
+    expect(bandCheck({ or: 62, peakOr: 90 }, 85).rating).toBe(80);
+    // A thrower (OR dropped to 40, ability mark 61): never rated below 56 for bands or Story.
+    expect(bandRating({ or: 40, peakOr: 61 }, 61)).toBe(56);
+  });
+});

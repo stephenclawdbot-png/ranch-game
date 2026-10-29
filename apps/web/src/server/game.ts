@@ -29,6 +29,7 @@ import {
   getRaceForSimulation,
   getRaceResult,
   isDomainError,
+  bandRatingOf,
   facilityLevels,
   goalsForToday,
   breedingStatus,
@@ -890,7 +891,9 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
   const weather = (["clear", "clear", "overcast", "rain", "dusk"] as const)[rand(5)]!;
   const raceClass = row.wins === 0 ? "maiden" : row.wins <= 2 ? "novice" : "handicap";
   const track = STORY_TRACKS[rand(STORY_TRACKS.length)]!;
-  const or = row.rating;
+  // Story difficulty follows the anti-throwing band rating, not the raw OR (a thrown OR
+  // must not buy easier Story fields).
+  const or = bandRatingOf(row).rating;
   const st = await storyState(db, session.accountId);
   const chapter = gc.currentChapter(st.licenceLevel, new Set(st.wonKeys));
   const chapterName = gc.chapterDef(chapter).title.replace(/^The /, "");

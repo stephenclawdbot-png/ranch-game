@@ -76,7 +76,9 @@ export interface BandCheck {
 
 /** The band check with the guards, keeping the binding term for the entry-sheet copy. */
 export function bandCheck(rating: { or: number; peakOr: number }, ability = 0): BandCheck {
-  const peak = rating.peakOr - PEAK_DROP;
+  // The peak term is capped by today's ability: a sandbagger's ability is intact, so it
+  // binds; a horse that has really faded (age) is released into the band it now belongs in.
+  const peak = ability > 0 ? Math.min(rating.peakOr - PEAK_DROP, ability + ABILITY_MARGIN) : rating.peakOr - PEAK_DROP;
   const floor = ability - ABILITY_MARGIN;
   const top = Math.max(rating.or, peak, floor);
   return { rating: top, source: top === floor && floor > rating.or && floor > peak ? "ability" : top === peak && peak > rating.or ? "peak" : "or" };

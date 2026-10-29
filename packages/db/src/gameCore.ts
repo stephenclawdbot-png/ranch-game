@@ -206,3 +206,14 @@ export function entryBankOf(stable: { entryBalance: number; entryAllowance: numb
 }
 
 export { gc };
+
+/**
+ * The rating a horse is judged at for band caps and Story difficulty (game-core bandCheck):
+ * today's OR, never far below its peak while its ability still supports it, never below its
+ * ability floor. Throwing races lowers the stored OR (ratings stay zero-sum) but not this.
+ */
+export function bandRatingOf(h: HorseRow): gc.BandCheck {
+  const dyn = (h.dynamics ?? {}) as { peakOr?: number };
+  const mark = isGenome(h.genome) ? gc.abilityMark(toHorseState(h)) : 0;
+  return gc.bandCheck({ or: h.rating, peakOr: Math.max(dyn.peakOr ?? 0, h.rating) }, mark);
+}

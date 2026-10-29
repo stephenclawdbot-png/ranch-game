@@ -16,7 +16,7 @@ import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
-import { gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
+import { bandRatingOf, gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
@@ -169,9 +169,7 @@ export function classEligibility(h: HorseRow, race: Pick<RaceRow, "raceClass" | 
   if (c.maxWins !== undefined && h.wins > c.maxWins) return c.maxWins === 0 ? "maiden races are for horses without a win" : `at most ${c.maxWins} wins`;
   if (c.minRating !== undefined && h.rating < c.minRating) return `rating ${h.rating} is below the band (${c.minRating}+)`;
   if (c.maxRating !== undefined) {
-    const dyn = (h.dynamics ?? {}) as { peakOr?: number };
-    const mark = isGenome(h.genome) ? gc.abilityMark(toHorseState(h)) : 0;
-    const check = gc.bandCheck({ or: h.rating, peakOr: Math.max(dyn.peakOr ?? 0, h.rating) }, mark);
+    const check = bandRatingOf(h);
     if (check.rating > c.maxRating) {
       // A strong newcomer's OR may still be below the band it belongs in: novices first.
       const band = gc.TIER_RULES[gc.classBand(check.rating)];
