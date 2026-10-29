@@ -369,3 +369,84 @@ test passing, and no gameplay, data or economy change.
 - Commentary and photo-finish cards only ever use real simulation data.
 - Visuals don't guarantee virality. The bet is attachment to individual horses plus shareable
   finishes; measure it with the race_perf and funnel metrics already in the dashboard.
+
+## 8. Phase 4–6 delivered (lead, 2026-10-29): what was built and how it measures up
+
+Built on `claude/intelligent-ride-rkrz3i` and **not shipped to production** (that waits for the
+owner's "ship"). Screenshots are in `docs/redesign/shots/`.
+
+**Delivered:**
+
+1. **Design system v3 in code** (`app/globals.css`, an unlayered v3 block, plus `layout.tsx`):
+   - every paper scope becomes dark glass with cream roles, so all 26 screens restyle
+     consistently from one token switch; paper survives as `.print`;
+   - Cormorant Garamond for titles and names, Jersey numerals, Pixelify in the wordmark only;
+   - glass top bar and tab bar, rounded brass primary, hairline rows, glass skeletons;
+   - **every page sits over its area's scene**, blurred and dimmed;
+   - reduced motion respected.
+2. **Estate hub** (signed-in Home, `home/EstateStage.tsx`):
+   - the living yard full-bleed;
+   - **destination plaques pinned to scene landmarks through the diorama camera**: Trophy
+     Room on the bell tower, Racecourse on the arch, Barn and Breeding Barn on the stalls,
+     Gallops on the hay, Sales Ring on the trough. Each takes its first landmark that is in
+     view and clear of the greeting, the panels and the other plaques;
+   - the featured-horse and next-race panels, the latter with a broadcast countdown.
+   Nav: Estate · Stable · Racing · Club · Sales.
+3. **Landing** (visitor Home):
+   - the track at dusk full-bleed with horses cantering;
+   - wordmark, "Breed a dynasty. Race it live.", one entry action and Watch the next race;
+   - three full-bleed chapters (barn, paddock, grandstand).
+   Onboarding (`/play`) sits over the barn and keeps its stall-door reveal.
+4. **Champion profile** (`horse/HorseStage.tsx`):
+   - barn stage with a warm key light;
+   - the genetic 3/4 portrait at 2× (phone) and 3× (desktop);
+   - a roster strip plus prev/next to change subject;
+   - serif nameplate, readiness tiles, the primary action, and "Last time out ▶ Watch the
+     finish".
+5. **Race day:**
+   - glass broadcast plate with the serif race name;
+   - a glass countdown plate over the stalls;
+   - the elapsed-only clock;
+   - the **photo-finish card**, built only from the settled replay (real margin phrase,
+     winning time, field, your finish, prize, rating change), with a canvas PNG export for
+     Web Share or download.
+6. **Testing:**
+   - every screen captured at 390, 768 and 1440 on a production build;
+   - fixes found by looking: layered `!important` rules, variant colours, tablet nav
+     overflow, scrims, plaque collisions;
+   - web unit tests 122 passing;
+   - the e2e smoke test (sign-up → Story → watched race → Live race with no leaks → results →
+     inbox → reload → mobile) passed on the dev server after the Estate change, and is
+     re-run on the production build.
+
+**Success criteria, honestly:**
+
+| # | Question | Answer |
+|---|---|---|
+| 1 | Recognisable in 3 s? | **Yes.** The landing opens on racehorses at a track; Home is a stable yard. |
+| 2 | Does a new player know what to do? | **Yes.** One brass action per showcase screen (Found your stable / Race X now / Enter your best fit). |
+| 3 | Is the horse the protagonist? | **Mostly.** Profile and Estate lead with the horse. Lists (stable roster, market) are still rows; a showcase roster view is the next step. |
+| 4 | Is the stable a place? | **Yes on the Estate** (plaques on buildings). The Stable page itself is still a list over the barn. |
+| 5 | Is entering a race exciting? | **Better.** The countdown plate and stalls work. A paddock racecard (gate, silks, form) before the off is specced and not built yet. |
+| 6 | Are outcomes trustworthy? | **Yes.** Nothing in the presentation touches the broadcast rules; the clock never shows the end time; the card uses settled data only. |
+| 7 | Breeding and training clear? | **Unchanged.** Those screens are restyled, not redesigned (Ledger mode). The training trade-off view and pedigree tree are next. |
+| 8 | Complex information without overload? | **Improved** (glass hierarchy, serif headings), not re-architected. |
+| 9 | Moments worth sharing? | **Yes:** the photo-finish image plus share links that open at the finish. Whether players share is a hypothesis; measure it. |
+| 10 | Works on mobile? | **Yes.** Designed phone-first; every showcase recomposes, not shrinks. |
+| 11 | Beautiful in routine management? | **Yes, by the backdrop and glass**: no screen is a flat admin page now. |
+| 12 | Sustainable pipeline? | **Yes.** No new paintings were needed; everything reuses the dioramas, portraits and icons. |
+
+**Not done yet, in order:**
+1. Paddock racecard before the off.
+2. Stable roster as a showcase (portrait carousel) alongside the list.
+3. Training planner as a trade-off board: the gain and risk of each session before committing,
+   as specced.
+4. Interactive pedigree tree.
+5. Market as an auction-house lot view.
+6. Trophy Room as a room (needs art).
+7. Estate panorama, Sales Ring, Gallops and Trophy Room art. Spec in §5b; needs
+   `PIXELLAB_API_KEY`.
+
+This is not AAA, and isn't claimed as such. It is one cohesive HD-2D game interface where three
+screens are genuinely cinematic and the rest are consistent and calm. The gap to the brief is
+mainly new art and the four deeper redesigns above.
