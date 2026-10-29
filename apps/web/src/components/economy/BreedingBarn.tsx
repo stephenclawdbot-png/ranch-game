@@ -550,12 +550,13 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
 }
 
 function StudForm({ s, baseFee, onView }: { s: BreedingHorse; baseFee: number; onView: (v: BreedingView) => void }) {
-  const [fee, setFee] = useState(String(s.studFee ?? 800));
+  const max = s.studFeeMax ?? 100_000;
+  const [fee, setFee] = useState(String(Math.min(s.studFee ?? 800, max)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const n = Number(fee);
-  const valid = fee.trim() !== "" && Number.isInteger(n) && n >= 0 && n <= 100_000;
+  const valid = fee.trim() !== "" && Number.isInteger(n) && n >= 0 && n <= max;
   async function save(next: number | null) {
     setBusy(true);
     setError(null);
@@ -583,7 +584,7 @@ function StudForm({ s, baseFee, onView }: { s: BreedingHorse; baseFee: number; o
       <div className="pl-1">{eligibilityChip(s)}</div>
       <div className="flex flex-wrap items-end gap-2">
         <label className="grid gap-1">
-          <span className="label">Stud fee (credits)</span>
+          <span className="label">Stud fee (credits, up to {formatCredits(max)})</span>
           <input className="field w-36" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value.replace(/[^0-9]/g, ""))} data-testid="stud-fee" />
         </label>
         <button type="button" className="btn" onClick={() => save(n)} disabled={busy || !valid} data-testid="stud-save">

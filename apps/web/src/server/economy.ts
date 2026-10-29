@@ -193,6 +193,7 @@ function breedingHorse(row: HorseRow, status: BreedingStatus, silks: Silks, nowM
     usedThisSeason: status.usedThisSeason,
     perSeason: status.perSeason,
     studFee: row.studFee,
+    studFeeMax: isGenome(row.genome) ? gc.studFeeCeiling(toHorseState(row)) : null,
   };
 }
 

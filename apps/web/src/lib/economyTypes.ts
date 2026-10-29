@@ -35,6 +35,8 @@ export interface BreedingHorse extends EcoHorse {
   perSeason: number;
   /** Standing at stud (stallions). */
   studFee: number | null;
+  /** Highest stud fee this stallion may stand at (his appraisal, game-core studFeeCeiling); null for legacy rows. */
+  studFeeMax?: number | null;
 }
 
 export interface StudView extends EcoHorse {
