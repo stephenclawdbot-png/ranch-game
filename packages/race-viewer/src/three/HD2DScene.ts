@@ -59,6 +59,8 @@ export interface SceneFrame {
   time: number;
   realDt: number;
   camera: CameraMode;
+  /** Trackside only: "Follow mine" camera (locks on the highlighted runner). Ignored here. */
+  follow?: boolean;
   frozen: boolean;
   flash: number;
 }

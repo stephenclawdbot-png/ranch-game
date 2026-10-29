@@ -6,13 +6,19 @@
  * smaller and higher than a near lane (a pinhole camera `D` metres from the inner rail and
  * `camH` metres up), and the horses are depth-sorted so near lanes overlap far lanes.
  *
- * Hard guarantee: `placeField` puts EVERY runner fully inside the stage (inside the HUD-safe
- * band), whatever zoom and centre the eased camera has reached. It first clamps the zoom so
- * the lanes fit vertically and one horse fits horizontally; when the field is still wider
- * than the frame it compresses the gaps between runners (big gaps first, order kept) so
- * stragglers stay on screen instead of dropping out. The camera springs normally keep the
- * field inside the linear zone, so compression only shows on very strung-out fields (zoom
- * clamped at the minimum readable size) and for a moment while the zoom is easing out.
+ * Hard guarantee: in the default whole-field framing, `placeField` puts EVERY runner fully
+ * inside the stage (inside the HUD-safe band), whatever zoom and centre the eased camera has
+ * reached. It first clamps the zoom so the lanes fit vertically and one horse fits
+ * horizontally; when the field is still wider than the frame it compresses the gaps between
+ * runners (big gaps first, order kept) so stragglers stay on screen instead of dropping out.
+ * The camera springs normally keep the field inside the linear zone, so compression only
+ * shows on very strung-out fields (zoom clamped at the minimum readable size) and for a
+ * moment while the zoom is easing out.
+ *
+ * "Follow mine" mode (`FieldInput.follow` / `CameraInput.followIndex`) drops that guarantee
+ * on purpose: the camera locks the marked runner at ~40 % from the left at the close-up
+ * zoom and everyone else is free to leave the frame; the followed runner itself stays put
+ * by construction.
  *
  * Units: metres along the track (x), lanes (0 = inner rail, nearest the camera), CSS px.
  */
@@ -175,6 +181,12 @@ export interface FieldInput {
   laneSpan?: number;
   /** Extra headroom above the far horse (marker), m. */
   headroomM?: number;
+  /**
+   * Follow-cam: index of the runner to lock on. Horizontal fitting/compression is skipped:
+   * runners land by the pure linear camera mapping and may leave the frame. Vertical
+   * framing is unchanged. Ignored when out of range.
+   */
+  follow?: number | null;
 }
 
 /** Lane-0 screen-y offset of lane l (positive = higher on screen). */
@@ -207,7 +219,8 @@ export function verticalFitPpm(ppm: number, H: number, insets: Insets, span: num
   return Math.max(1e-3, lo);
 }
 
-/** Place every runner on screen. See the module comment for the guarantee. */
+/** Place every runner on screen. See the module comment for the guarantee (whole-field
+ * framing; with `follow` only the followed runner stays on screen). */
 export function placeField(inp: FieldInput): FieldLayout {
   const { W, H, sprite, runners } = inp;
   const insets = inp.insets ?? safeInsets(W, H);
@@ -249,7 +262,12 @@ export function placeField(inp: FieldInput): FieldLayout {
   const order = lin.map((_, i) => i).sort((a, b) => lin[a]! - lin[b]! || a - b);
   const out = lin.slice();
   let compressed = false;
-  if (n > 0) {
+  const followIdx = inp.follow != null && inp.follow >= 0 && inp.follow < n ? inp.follow : null;
+  if (followIdx !== null) {
+    // Follow-cam: no fitting/compression — the linear mapping stands, so runners other than
+    // the followed one may leave the frame by design (the whole-field guarantee above does
+    // not apply in this mode).
+  } else if (n > 0) {
     const p0 = lin[order[0]!]!;
     const p1 = lin[order[n - 1]!]!;
     const S = p1 - p0;
@@ -346,6 +364,12 @@ export interface CameraInput {
   finishX: number;
   /** Seconds of look-ahead (velocity extrapolation; never reads future frames). */
   lookahead?: number;
+  /**
+   * Follow-cam: index of the runner to lock on ("Follow mine"). The camera centres that
+   * runner at ~40 % of the stage width at the close-up zoom; everyone else may leave the
+   * frame. Null/absent (or out of range) = whole field.
+   */
+  followIndex?: number | null;
 }
 
 export interface CameraTarget {
@@ -356,6 +380,8 @@ export interface CameraTarget {
   laneSpan: number;
   /** Mean speed of the field, m/s (spring feed-forward). */
   speed: number;
+  /** The followed runner in follow-cam mode (null = whole field). */
+  follow?: CameraRunner | null;
 }
 
 /** Minimum readable horse length and the close-up cap (CSS px). */
@@ -366,8 +392,16 @@ export function sizeLimits(W: number, runners = 8): { minLen: number; maxLen: nu
   return { minLen: crowded, maxLen: Math.min(520, W * 0.34) };
 }
 
-/** Where the camera wants to be: the zoom that fits the field and the centre of the field. */
+/** Fraction of the stage width where the followed runner's sprite centre sits. */
+export const FOLLOW_AT = 0.4;
+
+/**
+ * Where the camera wants to be: the zoom that fits the field and the centre of the field —
+ * or, with `followIndex`, the close-up lock on that runner (see `followTarget`).
+ */
 export function cameraTarget(c: CameraInput): CameraTarget {
+  const me = c.followIndex != null && c.followIndex >= 0 && c.followIndex < c.runners.length ? c.runners[c.followIndex]! : null;
+  if (me) return followTarget(c, me);
   const { W, H, sprite } = c;
   const insets = safeInsets(W, H);
   const la = c.lookahead ?? 1.2;
@@ -416,6 +450,35 @@ export function cameraTarget(c: CameraInput): CameraTarget {
 }
 
 /**
+ * Camera centre (m) that puts the followed runner's sprite centre at `FOLLOW_AT` of the
+ * stage width, for a given zoom. Used with the actual ladder zoom so the runner sits
+ * exactly on the 40 % line once the springs settle. `k` must match placeField's lane
+ * falloff for the anchor to be exact.
+ */
+export function followCx(W: number, sprite: SpriteMetrics, me: { x: number; lane: number }, ppm: number, k = LANE_K): number {
+  const ppml = Math.max(1e-6, ppm * laneScale(me.lane, k));
+  return me.x + ((1 - 2 * FOLLOW_AT) * W * 0.5) / ppml + (sprite.lenM / 2 - sprite.tailM);
+}
+
+/**
+ * Follow-cam target ("Follow mine"): the close-up zoom (the `maxLen` cap, only pulled down
+ * when the field's lanes genuinely can't fit the stage height) and the centre from
+ * `followCx`. Feed-forward is the runner's own speed, so the lock doesn't lag. The winning
+ * post needs no special case: the camera rides with the runner, so the post eases in from
+ * the right as the followed runner closes on it.
+ */
+export function followTarget(c: CameraInput, me: CameraRunner): CameraTarget {
+  const { W, H, sprite } = c;
+  const insets = safeInsets(W, H);
+  let lmax = 0;
+  for (const r of c.runners) lmax = Math.max(lmax, r.lane);
+  const cr = crowding(W, c.runners.length);
+  let ppmFit = sizeLimits(W, c.runners.length).maxLen / sprite.lenM;
+  ppmFit = Math.min(ppmFit, verticalFitPpm(ppmFit, H, insets, lmax + 0.6, sprite, lmax + 0.6, 0, 0.3, cr));
+  return { ppm: ppmFit, ppmFit, cx: followCx(W, sprite, me, ppmFit, laneFalloff(cr)), laneSpan: lmax + 0.6, speed: me.speed, follow: me };
+}
+
+/**
  * Stateful eased camera: the zoom rests on the pixel-perfect ladder (with hysteresis) and
  * eases between rungs with a critically damped spring in log space; the centre follows with
  * a spring that feeds forward the field's speed (no lag, no cuts).
@@ -425,6 +488,8 @@ export class TracksideCamera {
   private c = new Spring(0, 3);
   private lane = new Spring(0, 1.6);
   private q: number | null = null;
+  /** Last follow-cam state; a mode switch re-seats the zoom rung (hysteresis re-arms). */
+  private followOn = false;
   ppm = 100;
   cx = 0;
   laneSpan = 0;
@@ -444,19 +509,31 @@ export class TracksideCamera {
   update(input: CameraInput, dt: number, snap: boolean): void {
     const t = cameraTarget(input);
     this.target = t;
+    const fo = t.follow ?? null;
+    if ((fo !== null) !== this.followOn) {
+      // Mode switch: the rung must jump to the new fit (whole-field zoom can sit far below
+      // the close-up rungs, and the zoom-in hysteresis alone would never reach them). The
+      // springs still ease between the old and new values, so there's no cut.
+      this.q = null;
+      this.followOn = fo !== null;
+    }
     const toQ = input.dpr / SRC_PX_PER_M;
     const qMin = (sizeLimits(input.W, input.runners.length).minLen / input.sprite.lenM) * toQ;
     const q = this.rung(t.ppmFit * toQ, Math.min(qMin, t.ppmFit * toQ));
     const ppmT = q / toQ;
+    // Follow mode re-anchors at the real ladder zoom so the runner lands exactly on the
+    // FOLLOW_AT line; whole-field mode takes the target centre as is.
+    const cxT = fo ? followCx(input.W, input.sprite, fo, ppmT, laneFalloff(crowding(input.W, input.runners.length))) : t.cx;
+    const speedT = fo ? fo.speed : t.speed;
     if (snap) {
       this.z.snap(Math.log(ppmT));
-      this.c.snap(t.cx, t.speed);
+      this.c.snap(cxT, speedT);
       this.lane.snap(t.laneSpan);
     } else {
       // Zoom out a touch faster than in (the field spreading must not wait on the lens).
       this.z.omega = Math.log(ppmT) < this.z.x ? 3.2 : 2.2;
       this.z.step(Math.log(ppmT), dt);
-      this.c.step(t.cx, dt, t.speed);
+      this.c.step(cxT, dt, speedT);
       this.lane.step(t.laneSpan, dt);
     }
     this.ppm = Math.exp(this.z.x);

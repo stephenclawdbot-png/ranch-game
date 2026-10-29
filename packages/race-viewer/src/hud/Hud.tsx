@@ -230,6 +230,9 @@ export interface ControlsProps {
   /** Current view and its toggle (Trackside <-> classic 3D). */
   view?: ViewMode;
   onView?(v: ViewMode): void;
+  /** Trackside "Follow mine" camera (whole field when false). Only shown with a highlight. */
+  follow?: boolean;
+  onFollow?(f: boolean): void;
 }
 
 const CAMERAS: { id: CameraMode; label: string; short: string; title: string }[] = [
@@ -317,7 +320,22 @@ export function Controls(p: ControlsProps) {
           {p.narrow ? (p.view === "classic" ? "Side" : "3D") : p.view === "classic" ? "Trackside" : "3D view"}
         </button>
       )}
-      {p.view !== "classic" && p.onView ? null : p.narrow ? (
+      {p.onView && p.view !== "classic" ? (
+        // Trackside: a two-state camera toggle (whole field / follow mine) replaces the
+        // classic camera presets; only when there is a highlighted horse to follow.
+        p.hasHighlight && p.onFollow ? (
+          <div className="rv-seg" role="group" aria-label="Camera" data-rv-follow={p.follow ? "mine" : "field"}>
+            <button type="button" className="rv-btn" aria-pressed={!p.follow} onClick={() => p.onFollow?.(false)} title="Frame the whole field">
+              {p.narrow && <FieldIcon />}
+              {p.narrow ? "Field" : "Whole field"}
+            </button>
+            <button type="button" className="rv-btn" aria-pressed={!!p.follow} onClick={() => p.onFollow?.(true)} title="Lock on my horse">
+              {p.narrow && <CamIcon />}
+              {p.narrow ? "Mine" : "Follow mine"}
+            </button>
+          </div>
+        ) : null
+      ) : p.narrow ? (
         <button type="button" className="rv-btn" onClick={() => p.onCamera(nextCam.id)} title={`Camera: ${CAMERAS.find((c) => c.id === p.camera)?.title}`} aria-label="Camera mode">
           <CamIcon />
           {CAMERAS.find((c) => c.id === p.camera)?.short}
@@ -347,6 +365,17 @@ function ViewIcon() {
       <rect x="1" y="3" width="14" height="10" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M1 10h14" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="6" width="5" height="3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FieldIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <rect x="1" y="4" width="14" height="8" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="4.5" cy="8" r="1.5" fill="currentColor" />
+      <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+      <circle cx="11.5" cy="8" r="1.5" fill="currentColor" />
     </svg>
   );
 }

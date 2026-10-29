@@ -22,6 +22,7 @@ import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideSce
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
 const VIEW_KEY = "rv:view";
+const FOLLOW_KEY = "rv:follow";
 
 export interface RaceViewerProps {
   /** A finished race (full controls). Provide exactly one of `replay` or `feed`. */
@@ -75,7 +76,8 @@ export interface RaceViewerProps {
    */
   resultsCard?: boolean;
   /**
-   * "trackside" (default): the side-on HD-2D diorama view, every runner always in frame.
+   * "trackside" (default): the side-on HD-2D diorama view (whole-field camera keeps every
+   * runner in frame; "Follow mine" locks the close-up on your horse — rv:follow).
    * "classic": the 3D broadcast with the TV director. When omitted, `?view=classic` /
    * `?view=trackside` on the page URL, then the viewer's last choice (localStorage), decide.
    */
@@ -201,6 +203,27 @@ export function RaceViewer(props: RaceViewerProps) {
       /* storage blocked: the choice lasts for this page only */
     }
   }, []);
+
+  // Trackside "Follow mine" camera. Default whole field; the remembered choice is applied
+  // on the client only so SSR and hydration agree.
+  const [follow, setFollowState] = useState(false);
+  useEffect(() => {
+    try {
+      setFollowState(window.localStorage.getItem(FOLLOW_KEY) === "1");
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+  const setFollow = useCallback((f: boolean) => {
+    setFollowState(f);
+    try {
+      window.localStorage.setItem(FOLLOW_KEY, f ? "1" : "0");
+    } catch {
+      /* storage blocked: the choice lasts for this page only */
+    }
+  }, []);
+  const followRef = useRef(follow);
+  followRef.current = follow;
 
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
@@ -413,7 +436,7 @@ export function RaceViewer(props: RaceViewerProps) {
           return;
         }
         const fr = clock.tick(dt);
-        sc.render({ time: fr.time, realDt: dt, camera: cameraRef.current, frozen: fr.frozen, flash: fr.flash });
+        sc.render({ time: fr.time, realDt: dt, camera: cameraRef.current, follow: followRef.current, frozen: fr.frozen, flash: fr.flash });
         const work = performance.now() - t0;
 
         if (clock instanceof PlaybackClock && clock.ended && !finishedFired.current) {
@@ -640,6 +663,8 @@ export function RaceViewer(props: RaceViewerProps) {
             onLive={onLive}
             view={view ?? "trackside"}
             onView={setView}
+            follow={follow}
+            onFollow={setFollow}
           />
         )}
       </div>

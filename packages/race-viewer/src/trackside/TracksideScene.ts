@@ -11,8 +11,11 @@
  * Horses are palette-index strips + a per-runner LUT (real coat and silks colours),
  * rim-lit from their normal maps and resolved with a "sharp pixel" 2x2 filter, at an
  * exact downsampled level of detail so they never minify. The camera (layout.ts) eases
- * zoom and centre with springs, rests on a pixel-perfect zoom ladder and never cuts;
- * `placeField` guarantees every runner is inside the frame on every frame.
+ * zoom and centre with springs, rests on a pixel-perfect zoom ladder and never cuts.
+ * Whole-field mode: `placeField` guarantees every runner is inside the frame on every
+ * frame. Follow-mine mode (`SceneFrame.follow`): the camera locks the highlighted runner
+ * at ~40 % from the left at the close-up zoom and the rest of the field may leave the
+ * frame (the minimap and standings still show everyone).
  *
  * The scene only renders what it is given: live mode passes the frames received so far
  * (never beyond the live edge) and no result.
@@ -172,7 +175,7 @@ export class TracksideScene {
 
   /** Largest per-frame camera centre jump (m, net of the field's travel): continuity metric. */
   maxCamStep = 0;
-  /** Trackside never needs a picture-in-picture: every runner is always in frame. */
+  /** Trackside never needs a picture-in-picture: the highlighted runner is always in frame. */
   pipShown = false;
 
   /** Loads the Trackside art; rejects when the keyed horse strip is unavailable. */
@@ -661,10 +664,22 @@ export class TracksideScene {
       r.lane = haveFrames ? s.lane : this.data.horses[r.index]!.gate - 1;
     }
 
-    // --- Camera + layout (every runner on screen, guaranteed by placeField) ---------
+    // --- Camera + layout -------------------------------------------------------
+    // Whole field: every runner stays on screen (placeField's guarantee). Follow mine:
+    // the camera locks on the highlighted runner (that guarantee is whole-field only).
     const sprite = this.sprite;
+    const followOn = f.follow === true && this.highlight >= 0;
     this.cam.update(
-      { W: this.W, H: this.H, dpr: this.B, sprite, railLane: this.railLane, finishX: L, runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed })) },
+      {
+        W: this.W,
+        H: this.H,
+        dpr: this.B,
+        sprite,
+        railLane: this.railLane,
+        finishX: L,
+        runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed })),
+        followIndex: followOn ? this.highlight : null,
+      },
       snap ? 0 : realDt,
       snap,
     );
@@ -678,14 +693,18 @@ export class TracksideScene {
       railLane: this.railLane,
       laneSpan: this.cam.laneSpan,
       headroomM: this.highlight >= 0 ? 0.5 : 0.25,
+      follow: followOn ? this.highlight : null,
     });
     this.layout = lay;
     const dcx = snap || Number.isNaN(this.prevCx) ? 0 : lay.cx - this.prevCx;
     if (!snap && simDt > 0) {
+      // Continuity metric: net of the tracked point's own travel (follow mode tracks the
+      // highlighted runner, whole-field tracks the field mean).
       let fieldV = 0;
       for (const r of this.runners) fieldV += r.speed;
       fieldV /= Math.max(1, this.runners.length);
-      if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, Math.abs(dcx - fieldV * simDt));
+      const refV = followOn ? this.runners[this.highlight]!.speed : fieldV;
+      if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, Math.abs(dcx - refV * simDt));
     }
     this.prevCx = lay.cx;
     const v = realDt > 0 && !f.frozen ? dcx / realDt : 0;
