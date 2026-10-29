@@ -56,6 +56,13 @@ export interface AnimItem {
   look?: DioramaHorseLook;
   /** Walks from `from` to `to` (world x of the sprite's left edge) at `speed` px/s, then repeats. */
   walk?: { from: number; to: number; speed: number; offset?: number };
+  /**
+   * Roams a beat of `range` px from x (forward = the way it faces): walk, rest (the `rest` strip,
+   * e.g. grazing) for `pause` s, turn, walk back, rest, repeat. `offset` desyncs a herd.
+   */
+  roam?: { range: number; speed: number; pause: number; offset?: number; rest: Pick<AnimItem, "src" | "fw" | "fh" | "frames" | "fps"> };
+  /** Reported in engine.anchors() (screen box where it was last drawn), e.g. for HTML name tags. */
+  id?: string;
   /** Ignores the camera scroll (gallopers that the camera tracks). */
   follow?: boolean;
   /** Slow drift around x while following (px amplitude, rad/s). */
@@ -675,12 +682,17 @@ export function paddockScene(looks: DioramaHorseLook[]): SceneDef {
 }
 
 // ---------------------------------------------------------------------------- the Ranch
-/** Feet lines of the two herd rows (art px): the far row stands in the field, the near row on the meadow. */
-export const PASTURE_ROWS = { far: 318, near: 352 } as const;
+/**
+ * HD-2.5D pasture: three depth rows. The far row stands small and soft in the field, the mid row
+ * is the sharp focal plane on the meadow, the near row holds the stable's lead horse close to the
+ * camera at full HD size. Feet lines in art px.
+ */
+export const PASTURE_ROWS = { far: 298, mid: 336, near: 364 } as const;
 
 /** The stable's own horses turned out (untacked, keyed strips recoloured to each horse's genes). */
-export function looseHorse(kind: "graze" | "idle" | "walk", size: 2 | 3, x: number, y: number, extra: Partial<AnimItem> = {}): AnimItem {
-  return sheet(`horse-loose-${kind}-s${size}` as AnimName, x, y, { shadow: size === 2 ? 96 : 64, ...extra });
+export function looseHorse(kind: "graze" | "idle" | "walk", size: 1 | 2 | 3, x: number, y: number, extra: Partial<AnimItem> = {}): AnimItem {
+  const name = (size === 1 ? `horse-loose-${kind}` : `horse-loose-${kind}-s${size}`) as AnimName;
+  return sheet(name, x, y, { shadow: size === 1 ? 190 : size === 2 ? 96 : 64, ...extra });
 }
 
 const pastureBase: SceneDef = {
@@ -695,20 +707,20 @@ const pastureBase: SceneDef = {
   parallax: 0.15,
   sky: { src: "race/sky-clear.png", y: 236, drift: 2.4, top: "#3b6ea8", bottom: "#f3d9a4" },
   fog: "#efd6a2",
-  sun: { x: 140, y: 50, r: 230, color: "#ffd98a", alpha: 0.5 },
-  rays: [{ x: -60, y: -60, angle: 50, spread: 24, count: 6, length: 560, width: 28, color: "#ffe2a0", alpha: 0.3, depth: 0.5, seed: 7 }],
-  motes: { count: 50, color: "#fff1c4", glow: "#ffd27a", wind: 7, y0: 60, y1: 360, bokeh: 6 },
-  grade: { top: "#ffcf7a", topA: 0.07, bottom: "#1d140a", bottomA: 0.16, vignette: 0.38 },
+  sun: { x: 140, y: 40, r: 260, color: "#ffd98a", alpha: 0.58 },
+  rays: [{ x: -60, y: -60, angle: 50, spread: 26, count: 8, length: 620, width: 30, color: "#ffe2a0", alpha: 0.36, depth: 0.5, seed: 7 }],
+  motes: { count: 70, color: "#fff1c4", glow: "#ffd27a", wind: 7, y0: 60, y1: 360, bokeh: 7 },
+  grade: { top: "#ffcf7a", topA: 0.08, bottom: "#1d140a", bottomA: 0.18, vignette: 0.42 },
   posterT: 6,
   poster: "diorama/poster-pasture.png",
   overlays: [{ src: "diorama/fg-branch.png", corner: "top-right", dx: -36, dy: -28, flip: true, blur: 2.6, depth: 1.6, sway: 2 }],
   layers: [
-    { id: "country", depth: 0.14, blur: 1.2, haze: 0.32, y0: 100, y1: 266, items: [img("diorama/pasture-far.png", -190, 264, { tile: true })] },
+    { id: "country", depth: 0.14, blur: 1.4, haze: 0.36, y0: 100, y1: 266, items: [img("diorama/pasture-far.png", -190, 264, { tile: true })] },
     {
       id: "shelter",
       depth: 0.4,
-      blur: 0.5,
-      haze: 0.12,
+      blur: 0.8,
+      haze: 0.16,
       y0: 0,
       y1: 266,
       items: [img("race/bb-tree-oak.png", 660, 262), prop("pasture-props", 2, 70, 260, { shadow: 90 })],
@@ -716,16 +728,21 @@ const pastureBase: SceneDef = {
     {
       id: "fence",
       depth: 0.5,
-      haze: 0.06,
+      blur: 0.5,
+      haze: 0.08,
       y0: 170,
       y1: 270,
       fills: [{ y0: 252, y1: 270, stops: [[0, "#6f9447"], [1, "#5d8a3c"]] }],
       items: [img("diorama/pasture-fence.png", -100, 264, { tile: true })],
     },
     {
+      // far row: small, soft (tilt-shift background), a touch of haze
       id: "field",
       depth: 0.62,
-      y0: 248,
+      blur: 0.7,
+      haze: 0.08,
+      bloom: 0.12,
+      y0: 200,
       y1: 330,
       items: [
         img("diorama/pasture-ground-s2.png", -120, 330, { tile: true }),
@@ -735,14 +752,18 @@ const pastureBase: SceneDef = {
       anims: [],
     },
     { id: "meadow", depth: 0.85, y0: 318, y1: 400, items: [img("diorama/pasture-ground.png", -160, 482, { tile: true })] },
-    { id: "herd", depth: 1, y0: 220, y1: 380, items: [], anims: [] },
-    { id: "near", depth: 1.45, blur: 2.4, y0: 300, y1: 420, items: [img("diorama/fg-grass.png", -200, 380, { tile: true })] },
+    // mid row: the sharp focal plane
+    { id: "herd", depth: 1, bloom: 0.1, y0: 200, y1: 380, items: [], anims: [] },
+    // near row: the lead horse at full HD size, closest to the camera
+    { id: "hero", depth: 1.12, y0: 150, y1: 400, items: [], anims: [] },
+    { id: "near", depth: 1.45, blur: 2.4, y0: 300, y1: 420, items: [img("diorama/fg-grass.png", -200, 384, { tile: true })] },
   ],
 };
 
-/** The pasture with the herd placed in (far row in the field, near row on the meadow). */
-export function pastureScene(far: AnimItem[], near: AnimItem[]): SceneDef {
-  return { ...pastureBase, layers: pastureBase.layers.map((l) => (l.id === "field" ? { ...l, anims: far } : l.id === "herd" ? { ...l, anims: near } : l)) };
+/** The pasture with the herd placed in its three rows. */
+export function pastureScene(rows: { far: AnimItem[]; mid: AnimItem[]; near: AnimItem[] }): SceneDef {
+  const byLayer: Record<string, AnimItem[]> = { field: rows.far, herd: rows.mid, hero: rows.near };
+  return { ...pastureBase, layers: pastureBase.layers.map((l) => (byLayer[l.id] ? { ...l, anims: byLayer[l.id] } : l)) };
 }
 
 // ---------------------------------------------------------------------------- the Sales Ring
@@ -795,6 +816,7 @@ export function sceneFiles(s: SceneDef): string[] {
   if (s.sky.src) out.add(s.sky.src);
   const addAnim = (a: AnimItem) => {
     out.add(a.src);
+    if (a.roam) out.add(a.roam.rest.src);
     a.with?.forEach(addAnim);
   };
   for (const l of s.layers) {

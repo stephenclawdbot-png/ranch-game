@@ -39,6 +39,16 @@ interface Sprite {
   /** def size / drawn size (1 = as authored). */
   r: number;
   with: Sprite[];
+  /** Roaming sprites: the walk strip turned round, and the rest strip both ways. */
+  roam?: { walkBack: Sprite; rest: Sprite; restBack: Sprite };
+}
+
+/** Where a sprite with an `id` was last drawn, as fractions of the canvas box. */
+export interface Anchor {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 interface OverlayBaked {
@@ -229,6 +239,7 @@ export class DioramaEngine {
         const v = lodStrip(a, f);
         if (v) files.add(v.src);
       }
+      if (a.roam) files.add(a.roam.rest.src);
       a.with?.forEach(addA);
     };
     for (const l of s.layers) {
@@ -536,7 +547,16 @@ export class DioramaEngine {
       const sp = this.sprite(w);
       if (sp) kids.push(sp);
     }
-    return { def: a, strip, fw: v.fw, fh: v.fh, frames: v.frames, r: v.r, with: kids };
+    let roam: Sprite["roam"];
+    if (a.roam) {
+      const base = { ...a, roam: undefined, with: undefined, id: undefined };
+      const rest = { ...base, ...a.roam.rest };
+      const walkBack = this.sprite({ ...base, flip: !a.flip });
+      const restS = this.sprite(rest);
+      const restBack = this.sprite({ ...rest, flip: !a.flip });
+      if (walkBack && restS && restBack) roam = { walkBack, rest: restS, restBack };
+    }
+    return { def: a, strip, fw: v.fw, fh: v.fh, frames: v.frames, r: v.r, with: kids, roam };
   }
 
   private gradeSprite(c: Cnv) {
@@ -586,6 +606,12 @@ export class DioramaEngine {
     if (this.layers.length) this.buildSprites();
     this.swayBuf = null;
     if (!this.running) this.draw(this.time);
+  }
+
+  private readonly anchorMap = new Map<string, Anchor>();
+  /** Screen boxes of the sprites with an `id`, from the last frame drawn. */
+  anchors(): ReadonlyMap<string, Anchor> {
+    return this.anchorMap;
   }
 
   // ------------------------------------------------------------------ input
@@ -894,8 +920,22 @@ export class DioramaEngine {
     const r = sp.r;
     // centre of the sprite in world x (LOD copies shrink around their centre and feet)
     let cx: number;
+    let use = sp;
     if (parent) cx = parent.cx + (a.x + a.fw / 2 - parent.def.fw / 2) / r;
-    else {
+    else if (a.roam && sp.roam) {
+      // walk out, rest, turn, walk back, rest (forward = the way the sprite faces)
+      const { range, speed, pause } = a.roam;
+      const walkT = range / speed;
+      const period = 2 * walkT + 2 * pause;
+      const u = (((t + (a.roam.offset ?? 0)) % period) + period) % period;
+      const dir = a.flip ? -1 : 1;
+      let along: number;
+      if (u < walkT) along = u * speed;
+      else if (u < walkT + pause) ((along = range), (use = sp.roam.rest));
+      else if (u < 2 * walkT + pause) ((along = range - (u - walkT - pause) * speed), (use = sp.roam.walkBack));
+      else ((along = 0), (use = sp.roam.restBack));
+      cx = a.x + dir * along + a.fw / 2;
+    } else {
       let x = a.x;
       if (a.walk) {
         const speed = a.walk.speed / r; // smaller = further away = slower across the screen
@@ -907,10 +947,10 @@ export class DioramaEngine {
       if (a.surge) x += (Math.sin(t * a.surge.speed + (a.phase ?? 0)) * a.surge.amp) / r;
       cx = x + a.fw / 2;
     }
-    const fw = sp.fw;
-    const fh = sp.fh;
+    const fw = use.fw;
+    const fh = use.fh;
     const left = cx - fw / 2;
-    const frame = Math.floor(t * a.fps + (a.phase ?? 0)) % sp.frames;
+    const frame = Math.floor(t * use.def.fps + (a.phase ?? 0)) % use.frames;
     const crop = Math.round((a.cropBottom ?? 0) / r);
     const dx = Math.round(sx(left, d, a.follow));
     if (!sp.with.length && (dx > this.el.width + 40 || dx + fw * k < -40)) return;
@@ -920,7 +960,8 @@ export class DioramaEngine {
       shadowBlob(c, dx + (fw * k) / 2, sy(a.y - 1, d), (a.shadow / r) * k, 0.3);
       c.imageSmoothingEnabled = false;
     }
-    c.drawImage(sp.strip, frame * fw, 0, fw, fh - crop, dx, dy, fw * k, (fh - crop) * k);
+    c.drawImage(use.strip, frame * fw, 0, fw, fh - crop, dx, dy, fw * k, (fh - crop) * k);
+    if (a.id) this.anchorMap.set(a.id, { x: dx / this.el.width, y: dy / this.el.height, w: (fw * k) / this.el.width, h: ((fh - crop) * k) / this.el.height });
     if (a.dust && this.running && Math.random() < 0.5) this.emitDust(left + fw * 0.25 + (a.follow ? this.scene.scroll * t : 0), a.y, 0);
     for (const w of sp.with) this.drawSprite(w, t, d, sx, sy, { cx, def: a });
   }

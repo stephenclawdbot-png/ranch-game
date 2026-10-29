@@ -4295,3 +4295,7 @@ a.ped-node:focus-visible {
   left: auto;
   right: 0;
 }
+/* HD-2.5D ranch: tags sit just over the horse (frames carry headroom above the back) */
+.ranch-hit {
+  padding-top: 16%;
+}

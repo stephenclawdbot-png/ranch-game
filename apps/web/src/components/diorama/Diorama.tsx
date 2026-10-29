@@ -40,11 +40,13 @@ export interface DioramaProps {
   /** A scene built at runtime (the Ranch herd); memoise it, a new object rebuilds the engine. */
   sceneDef?: SceneDef;
   onStats?: (s: EngineStats) => void;
+  /** The live engine once it has loaded (null when it goes away), e.g. to read sprite anchors. */
+  onEngine?: (e: DioramaEngine | null) => void;
 }
 
 type State = "poster" | "loading" | "live" | "still" | "fallback";
 
-export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats, framing, sceneDef }: DioramaProps) {
+export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "auto", quality, priority, label, children, onStats, framing, sceneDef, onEngine }: DioramaProps) {
   const focusY = framing?.focusY;
   const ground = framing?.ground;
   // One adjusted scene for the poster and the engine, so both frame the same view.
@@ -60,6 +62,8 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
   const [prefersReduced, setPrefersReduced] = useState(false);
   const statsCb = useRef(onStats);
   statsCb.current = onStats;
+  const engineCb = useRef(onEngine);
+  engineCb.current = onEngine;
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -140,6 +144,7 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
           if (still) e.renderStill();
           setState(still ? "still" : "live");
           registry.add(e);
+          engineCb.current?.(e);
           run();
         })
         .catch((err: unknown) => {
@@ -204,6 +209,7 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
       window.clearInterval(statsTimer);
       if (engine) {
         registry.delete(engine);
+        engineCb.current?.(null);
         engine.destroy();
       }
     };

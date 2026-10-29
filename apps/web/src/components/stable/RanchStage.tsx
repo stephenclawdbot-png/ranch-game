@@ -19,6 +19,7 @@ import { Diorama } from "../diorama/Diorama";
 import { computeFrame } from "../diorama/frame";
 import { PASTURE_ROWS, SCENES, looseHorse, pastureScene, type AnimItem } from "../diorama/scenes";
 import { DIORAMA_ATLAS } from "../diorama/atlas.generated";
+import type { DioramaEngine } from "../diorama/engine";
 import { HorsePortrait } from "../HorsePortrait";
 import { PixelIcon } from "../icons";
 
@@ -36,39 +37,78 @@ function hash(s: string): number {
 interface Placed {
   s: StableHorse;
   item: AnimItem;
-  row: "far" | "near";
+  row: "far" | "mid" | "near";
 }
 
 /**
- * One column per horse across the visible art range [l, r], rows alternating near / far, so no
- * two horses share a spot (near horses two columns apart never touch). Youngstock are smaller.
+ * HD-2.5D herd across the visible art range [l, r]: the lead horse (first in the list) close to
+ * the camera at full HD size, then a sharp mid row and a soft far row, one column each. Mid and
+ * far horses roam a short beat of their column (walk, graze, turn, walk back); youngstock are
+ * drawn smaller. Deterministic per horse.
  */
 export function layoutHerd(horses: StableHorse[], l: number, r: number): { placed: Placed[]; inBarn: number } {
   const span = Math.max(0, r - l - 24);
-  const shown = horses.slice(0, Math.max(1, Math.min(horses.length, Math.floor(span / 64))));
-  const slot = span / Math.max(1, shown.length);
-  const placed: Placed[] = shown.map((s, i) => {
+  const placed: Placed[] = [];
+  const look = (s: StableHorse) => ({ coat: s.horse.appearance.coat, appearance: s.horse.appearance });
+  const [lead, ...rest] = horses;
+  if (lead) {
+    const h = hash(lead.id);
+    const size = YOUNG.has(lead.stage) ? 2 : span >= 560 ? 1 : 2;
+    const kind = h % 2 ? "graze" : "idle";
+    const strip = ANIMS[size === 1 ? `horse-loose-${kind}` : `horse-loose-${kind}-s${size}`]!;
+    const cx = l + 12 + span * (span >= 560 ? 0.62 : 0.5);
+    placed.push({
+      s: lead,
+      row: "near",
+      item: looseHorse(kind, size, Math.round(cx - strip.fw / 2), PASTURE_ROWS.near, { id: lead.id, flip: ((h >>> 12) & 1) === 1, phase: (h >>> 16) % strip.frames, look: look(lead) }),
+    });
+  }
+  // one column per horse across the pasture; the lead horse keeps its own column, the rest
+  // alternate mid / far so neighbours stand at different depths
+  const shown = rest.slice(0, Math.max(0, Math.floor(span / 90) - 1));
+  const cols = shown.length + (lead ? 1 : 0);
+  const slot = span / Math.max(1, cols);
+  const leadCol = lead ? Math.min(cols - 1, Math.max(0, Math.round((span >= 560 ? 0.62 : 0.5) * cols - 0.5))) : -1;
+  if (lead) {
+    const p = placed[0]!;
+    const cx = l + 12 + slot * (leadCol + 0.5);
+    p.item = { ...p.item, x: Math.round(cx - p.item.fw / 2) };
+  }
+  const free = Array.from({ length: cols }, (_, i) => i).filter((i) => i !== leadCol);
+  shown.forEach((s, i) => {
+    const row: "far" | "mid" = i % 2 === 0 ? "mid" : "far";
     const h = hash(s.id);
-    const row: "far" | "near" = shown.length > 1 && i % 2 === 1 ? "far" : "near";
-    const size = row === "near" && !YOUNG.has(s.stage) ? 2 : 3;
-    const kind = h % 3 === 1 ? "idle" : "graze";
-    const strip = ANIMS[`horse-loose-${kind}-s${size}`]!;
-    const jitter = ((h >>> 8) % 100) / 100 - 0.5;
-    const cx = l + 12 + slot * (i + 0.5) + jitter * slot * 0.2;
-    const appearance = s.horse.appearance;
-    return {
+    const size = YOUNG.has(s.stage) || row === "far" ? 3 : 2;
+    const restKind = h % 3 === 1 ? "idle" : "graze";
+    const walk = ANIMS[`horse-loose-walk-s${size}`]!;
+    const restStrip = ANIMS[`horse-loose-${restKind}-s${size}`]!;
+    const flip = ((h >>> 12) & 1) === 1;
+    const range = Math.round(Math.min(slot * 0.45, size === 2 ? 70 : 50));
+    const cx = l + 12 + slot * (free[i]! + 0.5);
+    // start so the beat stays centred in the column whichever way the horse faces
+    const x = Math.round(cx - walk.fw / 2 + (flip ? range / 2 : -range / 2));
+    placed.push({
       s,
       row,
-      item: looseHorse(kind, size, Math.round(cx - strip.fw / 2), PASTURE_ROWS[row] + ((h >>> 4) % 5), {
-        flip: ((h >>> 12) & 1) === 1,
-        phase: (h >>> 16) % strip.frames,
-        look: { coat: appearance.coat, appearance },
+      item: looseHorse("walk", size, x, PASTURE_ROWS[row] + ((h >>> 4) % 4), {
+        id: s.id,
+        flip,
+        phase: (h >>> 16) % walk.frames,
+        look: look(s),
+        roam: {
+          range,
+          speed: size === 2 ? 10 : 7,
+          pause: 6 + ((h >>> 20) % 6),
+          offset: (h >>> 8) % 40,
+          rest: { src: `diorama/horse-loose-${restKind}-s${size}.png`, fw: restStrip.fw, fh: restStrip.fh, frames: restStrip.frames, fps: 5 },
+        },
       }),
-    };
+    });
   });
-  // far row first: the engine draws it behind, and its tags/hit areas sit under the near row's
-  placed.sort((a, b) => (a.row === b.row ? 0 : a.row === "far" ? -1 : 1));
-  return { placed, inBarn: horses.length - shown.length };
+  // back to front, so nearer horses' tags and tap areas sit on top
+  const order = { far: 0, mid: 1, near: 2 } as const;
+  placed.sort((a, b) => order[a.row] - order[b.row]);
+  return { placed, inBarn: horses.length - placed.length };
 }
 
 interface View {
@@ -109,18 +149,50 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
   const herd = useMemo(() => (view ? layoutHerd(horses, l, rr) : { placed: [], inBarn: 0 }), [view ? `${l}-${rr}` : "", ids]); // eslint-disable-line react-hooks/exhaustive-deps
   const def = useMemo(
     () =>
-      pastureScene(
-        herd.placed.filter((p) => p.row === "far").map((p) => p.item),
-        herd.placed.filter((p) => p.row === "near").map((p) => p.item),
-      ),
+      pastureScene({
+        far: herd.placed.filter((p) => p.row === "far").map((p) => p.item),
+        mid: herd.placed.filter((p) => p.row === "mid").map((p) => p.item),
+        near: herd.placed.filter((p) => p.row === "near").map((p) => p.item),
+      }),
     [herd],
   );
+  // Name tags ride on the horses: each frame, read where the engine drew them.
+  const engine = useRef<DioramaEngine | null>(null);
+  const tags = useRef(new Map<string, HTMLLIElement>());
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const e = engine.current;
+      const el = box.current;
+      if (!e || !el) return;
+      const W = el.clientWidth;
+      const H = el.clientHeight;
+      for (const [id, a] of e.anchors()) {
+        const li = tags.current.get(id);
+        if (!li) continue;
+        li.style.transform = `translate(${Math.round(a.x * W)}px, ${Math.round(a.y * H)}px)`;
+        li.style.width = `${Math.round(a.w * W)}px`;
+        li.style.height = `${Math.round(a.h * H)}px`;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
   const sel = horses.find((h) => h.id === picked) ?? null;
 
   return (
     <section className="ranch bleed" aria-label="Your horses in the paddocks" data-testid="ranch">
       <div ref={box} className="ranch-stage">
-        <Diorama scene="pasture" sceneDef={def} aspect={null} priority label="Your horses grazing in the paddocks" style={{ position: "absolute", inset: 0 }} />
+        <Diorama
+          scene="pasture"
+          sceneDef={def}
+          aspect={null}
+          priority
+          label="Your horses grazing in the paddocks"
+          style={{ position: "absolute", inset: 0 }}
+          onEngine={(e) => (engine.current = e)}
+        />
         <div className="ranch-greet">
           <p className="eyebrow">{eyebrow}</p>
           <h1 className="ranch-title">{title}</h1>
@@ -128,10 +200,18 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
         {view && (
           <ul className="ranch-tags" aria-label="Horses in the paddocks">
             {herd.placed.map(({ s, item, row }) => {
+              // until the engine reports where it drew the horse: its authored spot
               const left = (item.x - view.vx) * view.u;
               const top = (item.y - item.fh - view.vy) * view.u;
               return (
-                <li key={s.id} style={{ left, top, width: item.fw * view.u, height: item.fh * view.u }}>
+                <li
+                  key={s.id}
+                  ref={(li) => {
+                    if (li) tags.current.set(s.id, li);
+                    else tags.current.delete(s.id);
+                  }}
+                  style={{ left: 0, top: 0, transform: `translate(${Math.round(left)}px, ${Math.round(top)}px)`, width: item.fw * view.u, height: item.fh * view.u }}
+                >
                   <button
                     type="button"
                     className="ranch-hit"
@@ -140,7 +220,7 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
                     data-testid="ranch-horse"
                     onClick={() => setPicked((p) => (p === s.id ? null : s.id))}
                   >
-                    <span className={`ranch-tag ranch-tag-${row} ${s.lockedRaceId ? "is-entered" : s.block || s.condition === "tired" ? "is-resting" : ""}`}>{s.horse.name}</span>
+                    <span className={`ranch-tag ranch-tag-${row === "far" ? "far" : "near"} ${s.lockedRaceId ? "is-entered" : s.block || s.condition === "tired" ? "is-resting" : ""}`}>{s.horse.name}</span>
                   </button>
                 </li>
               );

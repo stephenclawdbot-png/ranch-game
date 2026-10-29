@@ -23,11 +23,16 @@ describe("Ranch herd layout", () => {
     expect(herd.placed.length + herd.inBarn).toBe(12);
   });
 
-  it("draws youngstock smaller and is deterministic", () => {
-    const a = layoutHerd([horse("foal", "foal"), horse("mare")], 0, 880);
-    const b = layoutHerd([horse("foal", "foal"), horse("mare")], 0, 880);
+  it("draws youngstock smaller, the lead horse close up, and is deterministic", () => {
+    const a = layoutHerd([horse("mare"), horse("foal", "foal"), horse("colt")], 0, 880);
+    const b = layoutHerd([horse("mare"), horse("foal", "foal"), horse("colt")], 0, 880);
     expect(a.placed.map((p) => p.item)).toEqual(b.placed.map((p) => p.item));
     const foal = a.placed.find((p) => p.s.id === "foal")!;
     expect(foal.item.src).toMatch(/-s3\.png$/);
+    const lead = a.placed.find((p) => p.s.id === "mare")!;
+    expect(lead.row).toBe("near");
+    expect(lead.item.src).toMatch(/horse-loose-(graze|idle)\.png$/);
+    expect(a.placed[a.placed.length - 1]!.row).toBe("near");
+    for (const p of a.placed.filter((x) => x.row !== "near")) expect(p.item.roam?.range).toBeGreaterThan(0);
   });
 });

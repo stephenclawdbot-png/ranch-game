@@ -52,7 +52,7 @@ function Stable({ state }: { state: PlayerState }) {
   return (
     <div>
       <RanchStage
-        horses={state.horses}
+        horses={best ? [best, ...state.horses.filter((h) => h.id !== best.id)] : state.horses}
         onRace={(id) => entry.open(id)}
         eyebrow={
           <span className="inline-flex items-center gap-2">
