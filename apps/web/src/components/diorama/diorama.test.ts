@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import PALETTE from "../../../public/art/race/palette.json";
 import { DIORAMA_ATLAS } from "./atlas.generated";
 import { applyRecolor, hexToRgb, recolorMap } from "./recolor";
-import { DIORAMA_SCENES, SCENES, sceneFiles, type AnimItem } from "./scenes";
+import { DIORAMA_SCENES, SCENES, paddockScene, sceneFiles, type AnimItem } from "./scenes";
 
 const ART = join(process.cwd(), "public", "art");
 const pngSize = (f: string) => {
@@ -73,5 +73,15 @@ describe("diorama recolour", () => {
     const [r, g, b] = [...data.slice(PALETTE.coat.length * 4 - 4, PALETTE.coat.length * 4 - 1)];
     expect(Math.abs(r! - b!)).toBeLessThan(60);
     expect(g).toBeGreaterThan(80);
+  });
+
+  it("the paddock parades the race's own runners (coat looks), Club string when there are none", () => {
+    expect(paddockScene([])).toBe(SCENES.paddock);
+    const looks = (["grey", "black", "palomino", "roan"] as const).map((coat) => ({ coat }));
+    const s = paddockScene(looks);
+    const focal = s.layers.find((l) => l.id === "focal")!.anims!;
+    const lawn = s.layers.find((l) => l.id === "lawn")!.anims!;
+    expect(focal.map((a) => a.look?.coat)).toEqual(["grey", "black", "palomino"]);
+    expect(lawn.map((a) => a.look?.coat)).toEqual(["roan"]);
   });
 });

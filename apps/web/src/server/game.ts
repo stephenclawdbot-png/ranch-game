@@ -41,6 +41,7 @@ import {
   isGenome,
   listCardRaces,
   listHorseRuns,
+  horseFormFigures,
   listInbox,
   listRaceEntries,
   listStableEntries,
@@ -178,6 +179,7 @@ class Lru<V> {
 }
 
 const replayCache = new Lru<RaceReplay>(128);
+const formCache = new Lru<Map<string, string | null>>(256);
 
 function inputFrom(race: PublicRace, field: LockedField, seed: string) {
   return {
@@ -354,6 +356,8 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
           stableName: stableNameOf(e, r.horseId, r.isHouse, race),
           isPlayer: !r.isHouse,
           mine: !!viewerStableId && r.stableId === viewerStableId,
+          form: null,
+          rating: null,
         };
       })
       .sort((a, b) => a.gate - b.gate);
@@ -365,8 +369,19 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       stableName: stableNameOf(e, e.horseId, e.isHouse, race),
       isPlayer: !e.isHouse,
       mine: !!viewerStableId && e.stableId === viewerStableId,
+      form: null,
+      rating: null,
     }));
   }
+  // Racecard form + rating: form is fixed before the off, so it's cached per race and field.
+  const formKey = `${race.id}:${list.map((e) => e.horse.id).join(",")}`;
+  let form = formCache.get(formKey);
+  if (!form) {
+    const figs = await Promise.all(list.map((e) => horseFormFigures(db, e.horse.id, race.postTime, 3)));
+    form = new Map(list.map((e, i) => [e.horse.id, figs[i]!.length ? [...figs[i]!].reverse().map((p) => (p > 9 ? "0" : String(p))).join("-") : null]));
+    formCache.set(formKey, form);
+  }
+  list = list.map((e) => ({ ...e, form: form!.get(e.horse.id) ?? null, rating: byHorse.get(e.horse.id)?.ratingBefore ?? null }));
   const replay = now >= race.postTime ? await replayFor(db, race, now) : null;
   return {
     id: race.id,

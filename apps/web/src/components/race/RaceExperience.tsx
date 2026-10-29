@@ -3,7 +3,7 @@
 import { trackClient } from "@/lib/telemetry";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MyRaceResult, RaceCard } from "@/lib/types";
 import { fitCheck } from "@/lib/aptitude";
 import { useClockSkew, useNow } from "@/lib/clock";
@@ -15,7 +15,10 @@ import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
 import { Digits } from "../Countdown";
+import { Diorama } from "../diorama/Diorama";
 import { DioramaSlot } from "../diorama/DioramaSlot";
+import { paddockScene } from "../diorama/scenes";
+import { SilksIcon } from "../Silks";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
 import { PhotoFinishCard } from "../results/PhotoFinishCard";
 import { FitList } from "../ui/FitChip";
@@ -282,11 +285,14 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
   const loading = remaining !== null && remaining < 10_000;
   const text = remaining === null ? "–:––" : formatCountdown(remaining);
   const closeText = now === null ? "–:––" : formatCountdown(Math.max(0, localClose - now));
+  // The broadcast before the off: the runners parade in the paddock, then they
+  // canter down to post (last 25 s) and the stalls fill.
+  const toPost = remaining !== null && remaining < 25_000;
   return (
     <div className="relative flex h-full min-h-52 w-full flex-col items-center justify-center overflow-hidden px-4 text-center">
-      <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" />
+      {toPost ? <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" /> : <PaddockParade card={card} />}
       {/* Starting stalls, one per runner, with saddlecloth numbers (empty until the field locks) */}
-      <div className="absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1" aria-hidden>
+      <div className={`absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1 ${toPost ? "" : "hidden"}`} aria-hidden>
         {(card.fieldLocked ? card.field : Array.from({ length: card.targetRunners }, (_, i) => card.field[i] ?? null)).map((e, i) => (
           <div
             key={e ? `${e.horse.id}` : `empty-${i}`}
@@ -302,7 +308,7 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
         ))}
       </div>
       <div className="race-countdown relative -mt-8 sm:-mt-14">
-        <p className="eyebrow">{entriesOpen ? "Entries open" : loading ? "Gates loading" : "Going down to post"}</p>
+        <p className="eyebrow">{entriesOpen ? "Entries open" : loading ? "Gates loading" : toPost ? "Going down to post" : "In the paddock"}</p>
         <p className="t-serif mt-0.5 text-[1.125rem] leading-6 text-cream md:text-[1.375rem] md:leading-7">{card.config.name}</p>
         <p className="score text-[3.75rem] leading-none text-cream" data-testid="countdown">
           <Digits text={entriesOpen ? closeText : text} />
@@ -314,5 +320,39 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
         </p>
       </div>
     </div>
+  );
+}
+
+/** The race's own runners walking the paddock (coats + silks), with a rotating nameplate. */
+function PaddockParade({ card }: { card: RaceCard }) {
+  const ids = card.field.map((e) => e.horse.id).join(",");
+  const def = useMemo(
+    () => paddockScene(card.field.slice(0, 6).map((e) => ({ coat: e.horse.appearance.coat, appearance: e.horse.appearance }))),
+    [ids], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (card.field.length < 2) return;
+    const t = window.setInterval(() => setI((n) => (n + 1) % card.field.length), 3200);
+    return () => window.clearInterval(t);
+  }, [card.field.length]);
+  const e = card.field[i % Math.max(1, card.field.length)];
+  return (
+    <>
+      <Diorama scene="paddock" sceneDef={def} aspect={null} label="The runners parading in the paddock" style={{ position: "absolute", inset: 0 }} />
+      {e && (
+        <p key={e.horse.id} className="paddock-plate" aria-live="off" data-testid="paddock-plate">
+          {e.gate > 0 && <Saddlecloth gate={e.gate} className="!h-6 !w-6 !text-[0.85rem]" />}
+          <SilksIcon silks={e.horse.appearance.silks} className="h-6 w-6" />
+          <span className="min-w-0 text-left">
+            <span className="paddock-name">{e.horse.name}</span>
+            <span className="paddock-meta">
+              {e.stableName}
+              {e.form ? ` · form ${e.form}` : ""}
+            </span>
+          </span>
+        </p>
+      )}
+    </>
   );
 }

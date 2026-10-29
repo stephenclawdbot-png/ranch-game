@@ -62,6 +62,18 @@ export async function listHorseRuns(ex: Executor, horseId: string, limit = 20) {
     .limit(limit);
 }
 
+/** Last `limit` finishing positions before `before` (newest first): the racecard's form figures. */
+export async function horseFormFigures(ex: Executor, horseId: string, before: Date, limit = 3): Promise<number[]> {
+  const rows = await ex
+    .select({ position: raceEntries.finishPosition })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(eq(raceEntries.horseId, horseId), eq(races.status, "settled"), isNotNull(raceEntries.finishPosition), lt(races.postTime, before)))
+    .orderBy(desc(races.postTime))
+    .limit(limit);
+  return rows.map((r) => r.position!);
+}
+
 /** Settled runs of a stable's horses, newest first. */
 export async function listStableRuns(ex: Executor, stableId: string, limit = 20) {
   return ex

@@ -3724,3 +3724,144 @@ a.ped-node:focus-visible {
     inset 0 0 0 2px var(--ink-0),
     inset 0 0 0 4px var(--color-warn);
 }
+
+/* ---------------------------------------------------------------- Racecard + paddock parade (REDESIGN §4.3) */
+.racecard {
+  box-shadow:
+    inset 0 0 0 2px #1d140a,
+    inset 0 0 0 5px #f6ecd3,
+    inset 0 0 0 6px rgba(29, 20, 10, 0.3),
+    0 6px 0 rgba(0, 0, 0, 0.45);
+  border-radius: 0;
+  overflow: hidden;
+}
+.racecard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 56px;
+  padding: 10px 14px 8px;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 2px solid #1d140a;
+}
+.racecard-head::-webkit-details-marker {
+  display: none;
+}
+.racecard-eyebrow {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a5d14;
+}
+.racecard-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1.5rem;
+  color: #1d140a;
+}
+.racecard-table {
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.racecard-table th {
+  padding: 6px 6px;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6548;
+  border-bottom: 1px solid #cbb88f;
+}
+.racecard-table td {
+  padding: 8px 6px;
+  border-top: 1px dashed #cbb88f;
+  vertical-align: middle;
+}
+.racecard-table tbody tr:first-child td {
+  border-top: 0;
+}
+.racecard-table tr.is-mine td {
+  background: rgba(217, 164, 65, 0.22);
+}
+.racecard-table tr.is-mine td:first-child {
+  box-shadow: inset 4px 0 0 #b8862b;
+}
+.racecard-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-name);
+  font-size: 1.375rem;
+  line-height: 1.25rem;
+  color: #1d140a;
+}
+.racecard-name:hover {
+  text-decoration: underline;
+}
+.racecard-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5a4630;
+}
+.racecard-fig {
+  white-space: nowrap;
+  font-family: var(--font-score);
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #1d140a;
+}
+.paddock-plate {
+  position: absolute;
+  z-index: 2;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 20px);
+  padding: 6px 10px;
+  background: var(--color-baize-800);
+  box-shadow:
+    inset 0 0 0 2px var(--ink-0),
+    0 3px 0 var(--ink-0);
+  animation: plate-in 300ms ease-out;
+}
+@keyframes plate-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+}
+.paddock-name {
+  display: block;
+  font-family: var(--font-name);
+  font-size: 1.25rem;
+  line-height: 1.125rem;
+  color: var(--color-on-baize);
+}
+.paddock-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-cream-dim);
+}
+@media (prefers-reduced-motion: reduce) {
+  .paddock-plate {
+    animation: none;
+  }
+}

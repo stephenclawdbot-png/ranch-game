@@ -23,6 +23,10 @@ export interface FieldEntry {
   isPlayer: boolean;
   /** The viewer's own horse. */
   mine: boolean;
+  /** Racecard form figures, oldest -> newest ("3-1-2"; 0 = unplaced beyond 9), null if unraced. */
+  form: string | null;
+  /** Official rating at entry. */
+  rating: number | null;
 }
 
 export interface RaceCard {

@@ -654,6 +654,26 @@ const dusk: SceneDef = {
   ],
 };
 
+/**
+ * The paddock with the race's own runners parading (coat + silks from each horse): the first
+ * three walk the near ring, the next three the far lawn. No runners yet = the Club's string.
+ */
+export function paddockScene(looks: DioramaHorseLook[]): SceneDef {
+  if (!looks.length) return paddock;
+  const near = looks.slice(0, 3);
+  const far = looks.slice(3, 6);
+  return {
+    ...paddock,
+    layers: paddock.layers.map((l) =>
+      l.id === "focal"
+        ? { ...l, anims: (l.anims ?? []).slice(0, near.length).map((a, i) => ({ ...a, look: near[i]! })) }
+        : l.id === "lawn"
+          ? { ...l, anims: (l.anims ?? []).slice(0, far.length).map((a, i) => ({ ...a, look: far[i]! })) }
+          : l,
+    ),
+  };
+}
+
 // ---------------------------------------------------------------------------- the Ranch
 /** Feet lines of the two herd rows (art px): the far row stands in the field, the near row on the meadow. */
 export const PASTURE_ROWS = { far: 318, near: 352 } as const;
