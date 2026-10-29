@@ -673,7 +673,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
     matches the model: a career takes at least 40 days of Live racing. Still out of step: the
     economy sim's credits model gives each horse `GAME.startsPerDay` = `MAX_STARTS_PER_DAY` (3)
     starts a day (tools/economy-sim/lib/constants.ts:54, tools/economy-sim/models/credits.ts:190).
-17. **Weekend Feature band vs qualifying.** `featureQualified` lets a top-3 Qualifier finisher
+17. **Weekend Feature band vs qualifying. Resolved 2026-10-29:** the Weekend Feature has no rating floor now; qualifying is its only gate. Was: `featureQualified` lets a top-3 Qualifier finisher
     in (packages/game-core/src/seasons.ts:181), and Qualifiers are open from OR 85, but the
     Weekend Feature's own band is OR 95+ (packages/db/src/services/card.ts:176, checked by
     `classEligibility`, packages/db/src/services/races.ts:170). A horse rated 85-94 that finishes

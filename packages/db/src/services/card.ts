@@ -173,7 +173,9 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
     name: `${track} ${sp.name}`,
     raceClass: final || weekend ? "graded" : "listed",
     conditions: {
-      minRating: final || weekend ? 95 : 85,
+      // The Weekend Feature's gate is qualifying (a top 3 in a qualifier, or rating 100+), not a
+      // rating floor: a horse rated 85-94 that places in a qualifier must be able to run.
+      ...(weekend ? {} : { minRating: final ? 95 : 85 }),
       distanceM: sp.distanceM,
       surface: sp.surface,
       going: sp.surface === "synthetic" ? "good" : sp.goingForecast,
