@@ -1,7 +1,7 @@
 import * as gc from "@thoroughbred/game-core";
 import { PRIZE_SPLIT_PCT } from "@thoroughbred/racing-engine";
 import { formatCredits } from "@/lib/format";
-import { Callout, Facts, GameLink, H2, H3, Icon, Lead, List, P, Table, WikiLink, pct } from "../kit";
+import { Callout, Facts, GameLink, H2, H3, Icon, Lead, List, P, Table, WikiLink, count, pct } from "../kit";
 
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
@@ -58,7 +58,7 @@ export default function CreditsAndEntriesPage() {
           ["Today's goals", `${gc.DAILY_GOAL_CREDITS} each for running a race, caring for a horse and running the Daily Cup (${gc.DAILY_GOAL_CREDITS * gc.DAILY_GOALS_PER_DAY} a day)`],
           ["Daily Cup", `${gc.CUP_PARTICIPATION_CREDITS} for your run each day`],
           ["Selling a horse", `The price, less a ${pct(gc.MARKET_FEE_PERMILLE)} market fee`],
-          ["Your stallion at stud", `The stud fee you set, less a ${pct(gc.STUD_FEE_BURN_PERMILLE)} cut`],
+          ["Your stallion at stud", `The stud fee you set (at most his appraisal), less a ${pct(gc.STUD_FEE_BURN_PERMILLE)} cut`],
           ["Insurance", `${pct(gc.INSURANCE_PAYOUT_PERMILLE)} of the horse's appraisal if an injury ends its racing career`],
           ["Releasing a horse to the Club", `${gc.RELEASE_TO_CLUB_CREDITS} credits`],
         ]}
@@ -108,6 +108,9 @@ export default function CreditsAndEntriesPage() {
             A Live race costs <b>{gc.entryCost({ tier: "hcp_0_55", kind: "regular" })}</b> entry; a Feature, Group race or the Season Final costs{" "}
             <b>{gc.entryCost({ tier: "g1", kind: "regular" })}</b>. Story races and the Daily Cup are free.
           </>,
+          <>
+            Each horse can run <b>{count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day</b>, so the more horses you have racing, the more of your entries you can use.
+          </>,
           <>If a race is abandoned you get the entries back. If you scratch a horse yourself, the entries are spent.</>,
         ]}
       />
@@ -138,7 +141,8 @@ export default function CreditsAndEntriesPage() {
           ["Most entries a day (entry office)", gc.ENTRY_DAILY_MAX],
           ["Biggest bank (entry office)", gc.ENTRY_BANK_MAX],
           ["Refill", `+${gc.ENTRY_REFILL_AMOUNT} for ${formatCredits(gc.ENTRY_REFILL_COST)}, below ${gc.ENTRY_REFILL_BELOW}`],
-          ["Starts per horse per day, at most", gc.MAX_STARTS_PER_DAY],
+          ["Live races per horse per day", gc.MAX_LIVE_STARTS_PER_DAY],
+          ["Races per horse per day, Live and Story", gc.MAX_STARTS_PER_DAY],
         ]}
       />
       <Callout tone="tip">

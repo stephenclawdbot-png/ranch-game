@@ -1,7 +1,7 @@
 import * as gc from "@thoroughbred/game-core";
 import { RULES, defaultCardSlot, entryCostFor } from "@thoroughbred/db";
 import { STYLE_LABEL, formatCredits } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count, pct, sampleGenome } from "../kit";
 
 /** The riding plan as the entry sheet words it. */
 const PLAN_HINT: Record<"front" | "stalker" | "closer", string> = {
@@ -39,8 +39,8 @@ export default function EnteringARacePage() {
   const styles = styleExamples();
   const risks = riskExample();
   const normal = risks.find((r) => r.v === "normal")!.risk;
-  // Credit entry fees on the Live card (one day of it): normally none, races are paid for in entries.
-  const maxFee = Math.max(...Array.from({ length: gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(10 * gc.SLOTS_PER_DAY + i).entryFee ?? 0));
+  // Credit entry fees on the Live card (one week of it, big days included): normally none, races are paid for in entries.
+  const maxFee = Math.max(...Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i).entryFee ?? 0));
   return (
     <>
       <Lead>
@@ -54,7 +54,10 @@ export default function EnteringARacePage() {
           <>
             Open the <GameLink href="/races">race card</GameLink> and choose a race that is still open. Each race shows its class, trip, surface and going.
           </>,
-          <>Pick a horse. The sheet shows how well this race suits it, and why a horse can&rsquo;t run if it can&rsquo;t (resting, injured, wrong class, rating out of the band).</>,
+          <>
+            Pick a horse. The sheet shows how well this race suits it, and why a horse can&rsquo;t run if it can&rsquo;t: injured, wrong class, rating out of the band, a licence you
+            don&rsquo;t hold yet, already raced Live today, or not qualified for the Weekend Feature.
+          </>,
           <>Choose the riding plan: a tactic and a ride intensity. The sheet shows the injury risk for the ride you picked before you commit.</>,
           <>
             Confirm. The race costs {entryCostFor("scheduled", "maiden")} stable entry ({entryCostFor("feature", "graded")} for Features, Finals and Group races).
@@ -99,6 +102,8 @@ export default function EnteringARacePage() {
           ["Bank holds at most", gc.ENTRY_BANK_BASE],
           ["Daily refill", `+${gc.ENTRY_REFILL_AMOUNT} for ${formatCredits(gc.ENTRY_REFILL_COST)} credits, once a day, while below ${gc.ENTRY_REFILL_BELOW}`],
           ["With every entries upgrade", `up to ${gc.ENTRY_DAILY_MAX} a day, bank of ${gc.ENTRY_BANK_MAX}`],
+          ["Live races per horse per day", gc.MAX_LIVE_STARTS_PER_DAY],
+          ["Races per horse per day, Live and Story", gc.MAX_STARTS_PER_DAY],
         ]}
       />
       <List
@@ -108,7 +113,12 @@ export default function EnteringARacePage() {
           </>,
           <>A stable can never make up more than half of a field.</>,
           <>
-            A horse can start at most <b>{gc.MAX_STARTS_PER_DAY} times a day</b>, Live and Story races together.
+            A horse can run <b>{count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day</b> (by the race&rsquo;s UTC date), and at most <b>{gc.MAX_STARTS_PER_DAY} races a day</b>, Live and
+            Story together. Story races and the Daily Cup don&rsquo;t use up the Live race.
+          </>,
+          <>
+            The Weekend Feature takes only qualified horses, and the Saturday Plate only horses that ran in that week&rsquo;s Qualifiers and missed it. Your status for both is on{" "}
+            <GameLink href="/week">This week</GameLink>; the rules are on <WikiLink slug="race-types" />.
           </>,
           <>Scratching your horse before entries close frees it again, but the entry you spent is gone. If a race is abandoned, your entries come back.</>,
           <>Mares in foal, injured horses and horses that have stopped racing can&rsquo;t be entered.</>,

@@ -1,5 +1,6 @@
 import * as gc from "@thoroughbred/game-core";
-import { Callout, Figure, GameLink, H2, Icon, Lead, List, P, Table, WikiLink } from "../kit";
+import { RULES } from "@thoroughbred/db";
+import { Callout, Figure, GameLink, H2, Icon, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 export default function TheEstatePage() {
   return (
@@ -29,8 +30,8 @@ export default function TheEstatePage() {
             <GameLink key="r" href="/races">
               Racing
             </GameLink>,
-            "Race card · Story",
-            "The Live card everyone shares, and the Story races against the Club.",
+            "This week · Race card · Story",
+            "The week's road to the Weekend Feature, the Live card everyone shares, and the Story races against the Club.",
           ],
           [
             <GameLink key="c" href="/league">
@@ -58,6 +59,9 @@ export default function TheEstatePage() {
       </P>
       <List
         items={[
+          <>
+            <b>Road to Saturday</b>: a tile that opens <GameLink href="/week">This week</GameLink>, with this week&rsquo;s Feature, your Qualifiers and your League line.
+          </>,
           <>
             <b>Today</b>: things ready for you, such as horses to groom, a free Paddock Pack, a mare ready to foal or the Daily Cup.
           </>,
@@ -95,8 +99,14 @@ export default function TheEstatePage() {
       <List
         items={[
           <>
-            <GameLink href="/races">Race card</GameLink>: the Live card all stables share, a race every {Math.round(gc.SLOT_INTERVAL_MS / 60_000)} minutes. Entries close{" "}
-            {Math.round(gc.ENTRY_CLOSE_BEFORE_MS / 1000)} seconds before the off. Live races use stable entries.
+            <GameLink href="/week">This week</GameLink>: the road to Saturday. The Weekend Feature&rsquo;s trip, surface and going (known from Monday), the weekday Feature Qualifiers
+            with your runners&rsquo; places, and each of your horses: in for Saturday (a top 3 in a Qualifier or a rating of 100+), heading for the Saturday Plate, or not yet, with how well
+            it suits Saturday and whether it has already raced today. It also shows your League gap to promotion and one suggested next step.
+          </>,
+          <>
+            <GameLink href="/races">Race card</GameLink>: the Live card all stables share, a race every {Math.round(gc.SLOT_INTERVAL_MS / 60_000)} minutes, published{" "}
+            {Math.round(RULES.cardHorizonMs / gc.MS_PER_HOUR)} hours ahead. Entries close {Math.round(gc.ENTRY_CLOSE_BEFORE_MS / 1000)} seconds before the off. Live races use stable entries,
+            and each horse can run {count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day.
           </>,
           <>
             <GameLink href="/story">Story</GameLink>: {gc.STORY_CHAPTER_DEFS.length} chapters of races against the Club&rsquo;s rival stables (
@@ -113,7 +123,8 @@ export default function TheEstatePage() {
       <List
         items={[
           <>
-            <GameLink href="/league">League</GameLink>: owners ranked on points from their racing, with promotion and relegation. See <WikiLink slug="league" />.
+            <GameLink href="/league">League</GameLink>: owners ranked on points from their racing, with promotion, and relegation from the {gc.RELEGATION_FROM_TIER.charAt(0).toUpperCase() + gc.RELEGATION_FROM_TIER.slice(1)}{" "}
+            League up. See <WikiLink slug="league" />.
           </>,
           <>
             <GameLink href="/cup">Daily Cup</GameLink>: one run a day for every stable. See <WikiLink slug="daily-cup" />.

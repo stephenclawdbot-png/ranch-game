@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
 import * as gc from "@thoroughbred/game-core";
-import { RULES } from "@thoroughbred/db";
+import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES } from "@thoroughbred/db";
 import { FURLONG_MM, GoingSchema, HORSE_LENGTH_MM, SurfaceSchema } from "@thoroughbred/shared";
 import { Callout, Figure, H2, Lead, P, Table, WikiLink } from "../kit";
 
 type Entry = [term: string, meaning: ReactNode, slug: string];
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const CYCLE_HOURS = (CARD_CYCLE_SLOTS * RULES.slotMs) / gc.MS_PER_HOUR;
+const FLOORS = gc.LEAGUE_TIERS.slice(0, gc.LEAGUE_TIERS.indexOf(gc.RELEGATION_FROM_TIER)).map(cap);
 
 const list = (xs: readonly string[]) => xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
 
@@ -31,7 +35,9 @@ const TERMS: Entry[] = [
   ["Easy", "The gentlest ride: a little less kick, a lower injury risk.", "entering-a-race"],
   ["Entries", "The stable entry bank you spend to run in Live races.", "credits-and-entries"],
   ["Family limits", "The lowest and highest a foal's genes can land, set by its family line.", "family-limits"],
-  ["Feature", "The big race of each hour on the Live card, and the Group 1 Weekend Feature on Saturdays.", "race-types"],
+  ["Feature", `The big race of each ${CYCLE_HOURS}-hour cycle on the Live card, and the Group 1 Weekend Feature on Saturdays.`, "race-types"],
+  ["Feature Qualifier", "A weekday Listed race: a top-3 finish gets a horse into that week's Weekend Feature.", "race-types"],
+  ["Floor", `A League tier nobody is relegated from: ${list(FLOORS)}.`, "league"],
   ["Filly", "A young female horse. She becomes a mare once she can breed.", "growing-up"],
   ["Foal", "A newborn horse. It grows up through daily care.", "growing-up"],
   ["Form", "The last three finishes on the racecard, oldest first. 0 means outside the first nine.", "ratings-and-form"],
@@ -46,12 +52,12 @@ const TERMS: Entry[] = [
   ["Handicap", "A race for horses within a rating band.", "race-types"],
   ["In memoriam", "A horse killed by a fatal injury. It rests on the Legacy Farm and is never forgotten.", "legacy-farm"],
   ["Juvenile", `A young racehorse with up to ${gc.JUVENILE_MAX_STARTS} starts.`, "racing-career"],
-  ["League", "Weekly tables of stables, scored from Live races, with promotion and relegation.", "league"],
+  ["League", `Weekly tables of stables, scored from their best ${gc.BEST_RUNS_COUNTED} Live runs, with promotion, and relegation from ${cap(gc.RELEGATION_FROM_TIER)} up.`, "league"],
   ["Legacy Farm", "Where horses retire for good: no racing, no breeding, no stall, no upkeep.", "legacy-farm"],
   ["Length", `A horse's length, ${HORSE_LENGTH_MM / 1000} metres: how winning margins are measured.`, "how-races-are-run"],
   ["Licence", "Earned in Story mode; opens the higher Live race classes.", "race-types"],
   ["Listed race", "The class just below Group races.", "race-types"],
-  ["Live race", `A shared race on the card, every ${RULES.slotMs / 60_000} minutes, that everyone watches together.`, "race-types"],
+  ["Live race", `A shared race on the card, every ${RULES.slotMs / 60_000} minutes, that everyone watches together. A horse can run ${gc.MAX_LIVE_STARTS_PER_DAY === 1 ? "one" : gc.MAX_LIVE_STARTS_PER_DAY} a day.`, "race-types"],
   ["Maiden", "A horse that has never won, and the race class for them.", "race-types"],
   ["Mare", "A grown female horse.", "breeding-basics"],
   ["Maturity type", "Early peaker, normal or late developer: when in its career a horse is at its best.", "racing-career"],
@@ -70,11 +76,15 @@ const TERMS: Entry[] = [
   ["Purse", "A race's prize money, shared among the first few home.", "race-types"],
   ["Quick Pick", "Runs your best-suited fresh horse in a Story race straight away.", "race-types"],
   ["Racecard", "The printed list of a race's runners, with form and ratings.", "entering-a-race"],
+  ["Road to Saturday", "The Estate tile that opens This week: the week's Feature, your Qualifiers and your League line.", "the-estate"],
+  ["Saturday Plate", `A Listed race ${PLATE_AFTER_SLOTS * (RULES.slotMs / 60_000)} minutes after the Weekend Feature, over the same trip, for horses that ran in that week's Qualifiers and didn't qualify.`, "race-types"],
   ["Racing age", `Reached after ${gc.CARE_TO_RACING} care sessions as a youngster, one a day.`, "growing-up"],
   ["Result hash", "A fingerprint of a race's result, so a replay can be checked.", "how-races-are-run"],
   ["Scratch", "Withdraw your horse before entries close. The entry spent is lost.", "entering-a-race"],
   ["Season", `${gc.SEASON_DAYS} days of competition, ending with the Season Final.`, "league"],
   ["Season Final", "The championships on the last day of each season, one per distance division.", "league"],
+  ["Weekend Feature", `Saturday's Group 1, for horses with a top 3 in that week's Qualifiers or a rating of 100+. Needs the ${gc.licenceDef(gc.licenceForTier("g1", true)).name}.`, "race-types"],
+  ["Week recap", "The inbox note after each League week: your finish, your move and the points gap to promotion.", "league"],
   ["Seed", "The secret number that, with the field, decides a race. Sealed before the off, revealed after.", "how-races-are-run"],
   ["Sire", "A horse's father.", "breeding-basics"],
   ["Speed", "Top speed in a race.", "stats-and-aptitudes"],
@@ -84,6 +94,7 @@ const TERMS: Entry[] = [
   ["Stamina", "How long a horse can hold its speed; matters more the longer the trip.", "stats-and-aptitudes"],
   ["Story mode", "A solo campaign of chapters against named rival stables.", "race-types"],
   ["Surface", `What a race is run on: ${list(SurfaceSchema.options)}.`, "stats-and-aptitudes"],
+  ["This week", "The Racing page that follows the road to Saturday: the Weekend Feature's conditions, the Qualifiers, each horse's status and your League gap.", "league"],
   ["Trip", "The distance of a race.", "stats-and-aptitudes"],
   ["Veteran", `A racehorse after start ${gc.PRIME_MAX_STARTS}, in the last part of its career.`, "racing-career"],
   ["Weanling", "A foal that has been weaned, on its way to yearling.", "growing-up"],

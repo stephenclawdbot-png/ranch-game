@@ -85,8 +85,10 @@ export default function BreedingBasicsPage() {
 
       <H2 id="stand-at-stud">Standing a stallion at stud</H2>
       <P>
-        A stallion of yours can stand at stud for other stables at a fee you choose (or free). Each visiting mare uses one of his coverings for the season and one of his lifetime breedings, and
-        you earn the fee. Stallions with a strong race record and good genes get the bookings.
+        A stallion of yours can stand at stud for other stables at a fee you choose (or free), up to his appraisal (never less than {formatCredits(gc.STUD_FEE_MIN_CEILING)} credits).
+        Each visiting mare uses one of his coverings for the season and one of his lifetime breedings, and you earn the fee. Stallions with a strong race record and good genes get the
+        bookings, and a better record raises the most he can stand for. Accounts the game has linked to each other can&rsquo;t pay each other stud fees. See{" "}
+        <WikiLink slug="stud-and-broodmares" />.
       </P>
 
       <H2 id="foals">Where foals go</H2>

@@ -24,16 +24,19 @@ flowchart LR
   subgraph D["Daily (15-30 min)"]
     care[Care: bond, growth, healing]
     train[Training: gain vs injury risk]
-    enter[Spend entries on races that fit]
-    cup[Daily Cup run]
+    week["This week page: Road to Saturday, one next step"]
+    enter["Spend entries on races that fit: one Live race per horse a day"]
+    cup["Daily Cup run (points settled after the day)"]
   end
   subgraph W["Weekly"]
-    lp[League points, best results]
+    lp["League points: best 20 runs, capped"]
     q[Feature Qualifiers Mon-Fri]
     wf[Weekend Feature Sat]
+    plate["Saturday Plate, 30 min later: qualifier runners who missed"]
+    recap[Sunday recap in the inbox]
   end
   subgraph S["Season (4 weeks)"]
-    promo[Promotion / relegation]
+    promo["Promotion; relegation from Gold up (Bronze and Silver are floors)"]
     final[Season Finals per division]
   end
   subgraph L["Long term (months)"]
@@ -42,10 +45,13 @@ flowchart LR
   end
   care --> enter
   train --> enter
+  week --> enter
   enter --> lp
   enter --> q
-  q --> wf
-  lp --> promo
+  q -->|top 3| wf
+  q -->|missed| plate
+  lp --> recap
+  recap --> promo
   wf --> final
   final --> legacy
   promo --> legacy
@@ -53,8 +59,10 @@ flowchart LR
   breed -->|next season's horse| enter
 ```
 
-**Scarcity makes the choices.** 10 entries a day, 3 races per horse per day, a 40-start
-career and 4 lifetime breedings turn every action into a trade-off (KNOBS §2, §3).
+**Scarcity makes the choices.** 10 entries a day, one Live race per horse per day (three
+races counting Story), a 40-start career and 4 lifetime breedings turn every action into a
+trade-off (KNOBS §2, §3). One Live start a day makes a career last at least 40 days and
+makes a bigger string of horses worth having.
 
 ---
 
@@ -146,7 +154,7 @@ flowchart LR
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks
-  wallet <-->|player to player| market[Horse market, stud fees]
+  wallet <-->|"player to player, never between linked accounts"| market["Horse market; stud fees (capped at the stallion's appraisal)"]
 ```
 
 Known imbalance (2026-10-29): live race purses are about 3x the tier purses the economy model
@@ -159,20 +167,31 @@ destroyed per day and per cohort.
 
 ```mermaid
 flowchart TD
-  card["Live card: a race every 15 min, published 6 h ahead"] --> runs[Your starts]
-  runs --> league["League points (weekly cap)"]
+  card["Live card: a race every 15 min, published 6 h ahead"] --> runs["Your starts: one Live race per horse a day"]
+  week["This week (/week): Saturday's conditions from Monday, your Qualifier places, the League gap"] -.->|plans| runs
+  runs --> league["League points: best 20 runs a week, capped at 240"]
   runs --> rating[Official rating 0-140]
-  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC"]
-  quals -->|top 3| wf["Weekend Feature, Sat (Group 1)"]
+  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC (Listed, OR 85+)"]
+  quals -->|top 3| wf["Weekend Feature, Sat 19:00 UTC (Group 1, OR 95+)"]
   rating -->|100+| wf
-  league --> tiers["Tier: Bronze to Champion, top 5 up, bottom 5 down"]
-  wf --> final["Season Final, last day, one per division"]
+  quals -->|ran but missed| plate["Saturday Plate, Sat 19:30 UTC (Listed, no band)"]
+  league --> tiers["Tier: Bronze to Champion; top 5 up; bottom 5 down from Gold up"]
+  tiers --> recap["Sunday recap: finish, move, gap to promotion"]
+  wf --> final["Season Final, last day, one per division (OR 95+)"]
   rating --> final
   final --> hall[Hall of Fame, Trophy Room]
   cupd["Daily Cup: one run a day, same race for all"] --> plaques[Plaques]
-  story["Story chapters"] --> licence[Licences unlock classes]
-  licence --> card
+  cupd --> cpts["Cup points, settled after each day"]
+  story["Story chapters"] --> licence[Licences]
+  licence -->|"Club, County: maidens to handicaps"| card
+  licence -->|"National: Listed, Group 3, the Features, Weekend Feature, Plate"| wf
+  licence -->|"Classics: the Season Final only"| final
 ```
+
+Licences moved on 2026-10-29: the Weekend Feature and the card's Features need the National
+licence (they needed Classics, and no harness stable ever reached a Weekend Feature). A horse
+that finishes in the top 3 of a Qualifier but is rated below 95 is qualified yet still below
+the Weekend Feature's band (KNOBS mismatch 17).
 
 ---
 
@@ -181,7 +200,7 @@ flowchart TD
 ```mermaid
 flowchart LR
   ui["apps/web app + components"] --> api["apps/web/app/api/* routes"]
-  api --> server["apps/web/src/server (game.ts, economy.ts, horseLife.ts, competition.ts, horseView.ts)"]
+  api --> server["apps/web/src/server (game.ts, economy.ts, horseLife.ts, competition.ts, week.ts, horseView.ts)"]
   server --> db["packages/db services (races, card, breeding, market, leagues, ledger, horses)"]
   server --> engine["packages/racing-engine (simulateRace, verifyReplay)"]
   db --> core["packages/game-core (rules: lifecycle, condition, training, genetics, breeding, economy, seasons, leagues)"]

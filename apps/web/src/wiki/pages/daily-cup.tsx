@@ -2,7 +2,7 @@ import * as gc from "@thoroughbred/game-core";
 import { simulateRace } from "@thoroughbred/racing-engine";
 import { formatRaceTime, type RunningStyle } from "@thoroughbred/shared";
 import { STYLE_LABEL, formatCredits, formatDistance } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, HorseCard, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, sampleGenome } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, HorseCard, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count, sampleGenome } from "../kit";
 
 const BADGE_TEXT: Record<gc.CupStanding["badge"], string> = { gold: "Gold", silver: "Silver", bronze: "Bronze", top10: "Top 10%", finisher: "Finisher" };
 const WIKI_SILKS = { pattern: "hoops", primary: "#1f4e9c", secondary: "#f3e7c9", cap: "#1f4e9c" } as const;
@@ -28,6 +28,14 @@ function exampleCup() {
 }
 
 /** Which ranks earn which badge on a board of `n` runs (game-core rankCup). */
+/** Cup points (game-core rankCup) for the best and worst run of a day, and the bonus for beating the whole Club field. */
+function cupPointsScale() {
+  const board = (position: number) => gc.rankCup(Array.from({ length: 1001 }, (_, i) => ({ ownerId: `o${i}`, horseId: `h${i}`, finishTimeUs: 90_000_000 + i * 1000, position, enteredAtMs: i })));
+  const placed = board(2);
+  const won = board(1);
+  return { top: placed[0]!.cupPoints, bottom: placed[placed.length - 1]!.cupPoints, bonus: won[0]!.cupPoints - placed[0]!.cupPoints };
+}
+
 function badgeBands(n: number) {
   const board = gc.rankCup(Array.from({ length: n }, (_, i) => ({ ownerId: `o${String(i).padStart(4, "0")}`, horseId: `h${i}`, finishTimeUs: 90_000_000 + i * 1000, position: 1, enteredAtMs: i })));
   const out: { badge: gc.CupStanding["badge"]; from: number; to: number }[] = [];
@@ -43,6 +51,7 @@ export default function DailyCupPage() {
   const ex = exampleCup();
   const n = 200;
   const bands = badgeBands(n);
+  const points = cupPointsScale();
   const cupPlaques = gc.ACHIEVEMENTS.filter((a) => a.id === "cup_regular" || a.id === "cup_top10");
   return (
     <>
@@ -70,7 +79,8 @@ export default function DailyCupPage() {
         items={[
           <>One run per stable per day, with any one horse. It must be of racing age, still racing and not injured.</>,
           <>
-            The Cup isn&rsquo;t a career start: it doesn&rsquo;t move the career clock, isn&rsquo;t rated, and doesn&rsquo;t count towards the {gc.MAX_STARTS_PER_DAY} starts a day.
+            The Cup isn&rsquo;t a career start: it doesn&rsquo;t move the career clock, isn&rsquo;t rated, and doesn&rsquo;t count towards a horse&rsquo;s races for the day
+            ({count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")}, {gc.MAX_STARTS_PER_DAY} in all), so a horse can run the Cup and a race on the same day.
           </>,
           <>Your horse comes back exactly as it went out: no fatigue, no injury risk.</>,
           <>It is free: no stable entries, no fee.</>,
@@ -130,6 +140,10 @@ export default function DailyCupPage() {
           </span>
         ))}
         . See <WikiLink slug="hall-and-trophies" />.
+      </P>
+      <P>
+        Each run also earns <b>Cup points</b> from where it finished on the day&rsquo;s board: {points.top} for the fastest, falling with rank to {points.bottom} for the slowest, plus{" "}
+        {points.bonus} for a horse that beat the whole Club field. They depend on everyone&rsquo;s runs, so they are worked out once the day is over, when the board is final.
       </P>
 
       <H2 id="sealed">Sealed for the day</H2>

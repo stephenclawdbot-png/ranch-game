@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { Callout, Facts, Figure, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
+import { Callout, Facts, Figure, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, count, pct, sampleGenome } from "../kit";
 
 const TYPE_LABEL: Record<gc.MaturityType, [string, string]> = {
   early: ["Early peaker", "Comes to hand quickly and is at its best in the first half of its career."],
@@ -76,8 +76,9 @@ export default function RacingCareerPage() {
             Only <b>Live races</b> count as starts. Story races and the Daily Cup never move the clock.
           </>,
           <>
-            A horse can start at most {gc.MAX_STARTS_PER_DAY} times a day, so a career takes at least {Math.ceil(gc.CAREER_MAX_STARTS / gc.MAX_STARTS_PER_DAY)} days of racing. Most horses take
-            far longer, and that is fine: nothing decays while you are away.
+            A horse can run {count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day, so a career takes at least{" "}
+            <b>{Math.ceil(gc.CAREER_MAX_STARTS / gc.MAX_LIVE_STARTS_PER_DAY)} days</b> of racing (a season is {gc.SEASON_DAYS} days). Most horses take longer still, and that is
+            fine: nothing decays while you are away. A string of several horses keeps you racing every day while each one rests.
           </>,
           <>
             After {gc.BREED_FROM_STARTS} starts a racing horse may also breed, and a colt becomes a stallion, a filly a mare. See <WikiLink slug="breeding-basics" />.
@@ -152,7 +153,8 @@ export default function RacingCareerPage() {
           ["Juvenile", `0–${gc.JUVENILE_MAX_STARTS} starts`],
           ["Prime", `${gc.JUVENILE_MAX_STARTS + 1}–${gc.PRIME_MAX_STARTS} starts`],
           ["Veteran", `${gc.PRIME_MAX_STARTS + 1}–${gc.CAREER_MAX_STARTS} starts`],
-          ["Starts per day, at most", gc.MAX_STARTS_PER_DAY],
+          ["Live starts per day, at most", gc.MAX_LIVE_STARTS_PER_DAY],
+          ["Shortest possible career", `${Math.ceil(gc.CAREER_MAX_STARTS / gc.MAX_LIVE_STARTS_PER_DAY)} days`],
           ["May breed while racing from", `${gc.BREED_FROM_STARTS} starts`],
         ]}
       />

@@ -1,4 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
+import { formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
 
 /** A real pairing's fragile-legs chance, as the breeding preview shows it, with and without injured parents. */
@@ -16,8 +17,17 @@ function fragileExample() {
   };
 }
 
+/** The stud fee ceiling (game-core studFeeCeiling) of a real colt with BREED_FROM_STARTS starts and no wins. */
+function ceilingExample() {
+  const genome = sampleGenome("stud-sire-2");
+  const born = gc.createHorseState({ id: "wiki-stud", name: "Example", sex: "colt", ownerId: "wiki", sireId: null, damId: null, generation: 0, genome, bornAtMs: 0, bornSeason: 1, careSessions: gc.CARE_TO_RACING });
+  const state: gc.HorseState = { ...born, career: { ...born.career, starts: gc.BREED_FROM_STARTS } };
+  return { appraisal: gc.appraise(state), ceiling: gc.studFeeCeiling(state) };
+}
+
 export default function StudAndBroodmaresPage() {
   const ex = fragileExample();
+  const fee = ceilingExample();
   return (
     <>
       <Lead>
@@ -62,7 +72,10 @@ export default function StudAndBroodmaresPage() {
           <>
             Cover your broodmares from <GameLink href="/breeding">Breeding</GameLink>, with your own stallion (no stud fee), another stable&rsquo;s or a Club stud.
           </>,
-          <>A stallion of yours can also stand at public stud for other stables at a fee you set. Each visiting mare uses one of his breedings.</>,
+          <>
+            A stallion of yours can also stand at public stud for other stables at a fee you set, up to <b>his appraisal</b> (never less than{" "}
+            {formatCredits(gc.STUD_FEE_MIN_CEILING)} credits). Each visiting mare uses one of his breedings.
+          </>,
           <>
             Once a horse has used all {gc.BREEDINGS_LIFETIME} breedings it retires for good to the <WikiLink slug="legacy-farm">Legacy Farm</WikiLink> on its own, freeing its stall: a
             stallion straight after his last covering, a mare once her last foal is born. You get a note in your inbox.
@@ -76,9 +89,16 @@ export default function StudAndBroodmaresPage() {
           ["Mare: coverings per season", gc.MARE_PER_SEASON],
           ["Racing horses may breed from", `${gc.BREED_FROM_STARTS} starts`],
           ["At stud or broodmare: may breed from", "straight away"],
+          ["Highest stud fee", `his appraisal, at least ${formatCredits(gc.STUD_FEE_MIN_CEILING)}`],
           ["A season lasts", `${gc.SEASON_DAYS} days`],
         ]}
       />
+      <P>
+        The cap follows the horse&rsquo;s value: a real colt from the game&rsquo;s own code, after {gc.BREED_FROM_STARTS} starts without a win, is appraised at{" "}
+        {formatCredits(fee.appraisal)} credits, so he can stand for at most {formatCredits(fee.ceiling)}. Wins, earnings and a higher rating raise his appraisal and the cap with it.
+        Two accounts the game has linked to each other can&rsquo;t pay each other stud fees: a paid covering between them is refused, just like a sale on{" "}
+        <WikiLink slug="the-market" />.
+      </P>
       <Callout tone="tip">
         <p>
           You don&rsquo;t have to wait for {gc.CAREER_MAX_STARTS} starts. A horse with a strong record and good genes is often worth more at stud than in its veteran years.

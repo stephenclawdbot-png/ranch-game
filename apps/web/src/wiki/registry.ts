@@ -39,7 +39,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
 export const WIKI_PAGES: WikiPageMeta[] = [
   // Getting started
   { slug: "quick-start", section: "start", title: "Quick start", summary: "Found a stable and win your first race in ten minutes.", keywords: ["new", "begin", "tutorial", "first"] },
-  { slug: "the-estate", section: "start", title: "The estate", summary: "Estate, Stable, Racing, Club and Sales: what each area is for.", keywords: ["navigation", "menu", "areas"] },
+  { slug: "the-estate", section: "start", title: "The estate", summary: "Estate, Stable, Racing, Club and Sales: what each area is for.", keywords: ["navigation", "menu", "areas", "this week", "road to saturday"] },
   { slug: "credits-and-entries", section: "start", title: "Credits & entries", summary: "How you earn and spend Stable Credits, and the daily entry bank.", keywords: ["money", "coins", "currency", "entries", "daily"] },
 
   // Your horses
@@ -50,7 +50,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "injuries-and-insurance", section: "horses", title: "Injuries & insurance", summary: "Injury risk, the four severities, the vet, and what insurance pays.", keywords: ["injury", "vet", "fatal", "career-ending", "insurance", "risk"] },
 
   // Racing
-  { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards and classes.", keywords: ["live", "quick", "story", "class", "maiden"] },
+  { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards and classes.", keywords: ["live", "quick", "story", "class", "maiden", "licence", "qualifier", "weekend feature", "plate"] },
   { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, the entry bank, the paddock and choosing a tactic.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer"] },
   { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands and the form figures on the card.", keywords: ["rating", "or", "form", "band"] },
@@ -65,7 +65,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "fragile-legs", section: "breeding", title: "Fragile legs", summary: "The heritable weakness from career-ending injuries, and the gamble.", keywords: ["fragile", "injury", "inherit", "durability"] },
 
   // Careers & retirement
-  { slug: "racing-career", section: "life", title: "The racing career", summary: "Starts, the career clock, juvenile, prime and veteran stages.", keywords: ["career", "starts", "max starts", "veteran"] },
+  { slug: "racing-career", section: "life", title: "The racing career", summary: "Starts, the career clock, juvenile, prime and veteran stages.", keywords: ["career", "starts", "max starts", "veteran", "per day"] },
   { slug: "stud-and-broodmares", section: "life", title: "Stud & broodmares", summary: "Sending a horse to stud or making a broodmare: no racing, still breeding.", keywords: ["stud", "broodmare", "retire", "gelding"] },
   { slug: "legacy-farm", section: "life", title: "The Legacy Farm", summary: "Retired for good: no racing, no breeding, no upkeep, never forgotten.", keywords: ["legacy", "pasture", "retire", "memoriam", "deceased"] },
 
@@ -75,7 +75,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "packs", section: "economy", title: "Packs", summary: "What packs contain, the odds and the pity counter.", keywords: ["pack", "odds", "pity", "rarity"] },
 
   // Club & glory
-  { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, divisions, promotion and the Season Final.", keywords: ["league", "season", "points", "division"] },
+  { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, promotion, the road to Saturday and the Season Final.", keywords: ["league", "season", "points", "division", "relegation", "floor", "recap", "this week", "saturday", "plate", "weekend feature"] },
   { slug: "daily-cup", section: "club", title: "The Daily Cup", summary: "One run a day through a ladder of races.", keywords: ["cup", "daily", "run"] },
   { slug: "hall-and-trophies", section: "club", title: "Hall of Fame & Trophy Room", summary: "Legends, honours and the silverware on your shelves.", keywords: ["hall", "fame", "trophy", "honours", "legend"] },
   { slug: "glossary", section: "club", title: "Glossary", summary: "Racing and breeding words used in the game, in plain English.", keywords: ["words", "terms", "definitions"] },

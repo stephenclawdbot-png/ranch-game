@@ -1,6 +1,6 @@
 import * as gc from "@thoroughbred/game-core";
 import { formatCredits, formatDistance, STYLE_LABEL, SURFACE_LABEL } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, WikiLink, appearanceOfGenome } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, WikiLink, appearanceOfGenome, count } from "../kit";
 
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", pattern: "hoops", cap: "#1f4e9c" } as const;
 const MINUTES = (ms: number) => Math.round(ms / 60_000);
@@ -94,8 +94,9 @@ export default function QuickStartPage() {
             <b>Today&rsquo;s goals</b> on the Estate: run a race, care for a horse and run the Daily Cup. Each pays <b>{gc.DAILY_GOAL_CREDITS}</b> credits, {goalsPay} in all.
           </>,
           <>
-            <b>Race.</b> A Live race goes off every {MINUTES(gc.SLOT_INTERVAL_MS)} minutes and costs stable entries; Story races are free. A horse can start at most{" "}
-            {gc.MAX_STARTS_PER_DAY} times a day. See <WikiLink slug="credits-and-entries" />.
+            <b>Race.</b> A Live race goes off every {MINUTES(gc.SLOT_INTERVAL_MS)} minutes and costs stable entries; Story races are free. Each horse can run{" "}
+            <b>{count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day</b>, and at most {gc.MAX_STARTS_PER_DAY} races a day counting Story races, so spread your entries across your
+            string. See <WikiLink slug="credits-and-entries" />.
           </>,
           <>
             <b>Train.</b> Each horse has {gc.BASE_SLOTS} training sessions a week. Hard work now sets up a freshness peak a few days later. See <WikiLink slug="training" />.
@@ -112,7 +113,8 @@ export default function QuickStartPage() {
           ["Credits per daily goal", gc.DAILY_GOAL_CREDITS],
           ["Daily goals", gc.DAILY_GOALS_PER_DAY],
           ["Live entries each day", gc.ENTRY_DAILY_BASE],
-          ["Starts per horse per day, at most", gc.MAX_STARTS_PER_DAY],
+          ["Live races per horse per day", gc.MAX_LIVE_STARTS_PER_DAY],
+          ["Races per horse per day, Live and Story", gc.MAX_STARTS_PER_DAY],
           ["Training sessions per horse per week", gc.BASE_SLOTS],
         ]}
       />
@@ -128,6 +130,10 @@ export default function QuickStartPage() {
         items={[
           <>
             Win Story races to earn licences that open better classes on the Live card: <WikiLink slug="race-types" />.
+          </>,
+          <>
+            Aim a horse at Saturday&rsquo;s Weekend Feature: <GameLink href="/week">This week</GameLink> under Racing shows the race, the weekday Qualifiers and where your horses stand.
+            See <WikiLink slug="league" />.
           </>,
           <>
             Breed your own foals once your horses have raced enough: <WikiLink slug="breeding-basics" />.

@@ -1,13 +1,17 @@
 import * as gc from "@thoroughbred/game-core";
-import { RULES, bps, defaultCardSlot, entryCostFor, type RaceConditions } from "@thoroughbred/db";
+import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES, bps, defaultCardSlot, entryCostFor, type RaceConditions } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { raceTier } from "@/server/horseView";
-import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Table, WikiLink } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 const MIN = 60_000;
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
-/** An ordinary hour of the Live card (10:00 UTC on the first day of season 1: no calendar races). */
-const SAMPLE_HOUR_FIRST_SLOT = 10 * (gc.MS_PER_HOUR / RULES.slotMs);
+/** Hours in one class cycle of the Live card. */
+const CYCLE_HOURS = (CARD_CYCLE_SLOTS * RULES.slotMs) / gc.MS_PER_HOUR;
+/** An ordinary cycle of the Live card (the first day of season 1 from 10:00 UTC: no calendar races). */
+const SAMPLE_CYCLE_FIRST_SLOT = Math.ceil((10 * gc.MS_PER_HOUR) / RULES.slotMs / CARD_CYCLE_SLOTS) * CARD_CYCLE_SLOTS;
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const licenceName = (tier: gc.RaceTier, feature: boolean | "final" = false) => gc.licenceDef(gc.licenceForTier(tier, feature)).name;
 
 function whoCanEnter(c: RaceConditions): string {
   const parts: string[] = [];
@@ -20,13 +24,13 @@ function whoCanEnter(c: RaceConditions): string {
   return s ? s[0]!.toUpperCase() + s.slice(1) : "Open";
 }
 
-/** The Live card, grouped by race type (the same calendar the game publishes): one real hour, plus both kinds of hourly Feature. */
-function liveHour() {
-  const slots = Array.from({ length: 20 }, (_, i) => defaultCardSlot(SAMPLE_HOUR_FIRST_SLOT + i));
-  // The hourly Feature is a Listed race or a Group 3: find one of each in the same day's earlier hours.
+/** The Live card, grouped by race type (the same calendar the game publishes): one real cycle, plus both kinds of Feature. */
+function liveCycle() {
+  const slots = Array.from({ length: CARD_CYCLE_SLOTS }, (_, i) => defaultCardSlot(SAMPLE_CYCLE_FIRST_SLOT + i));
+  // The cycle's Feature is a Listed race or a Group 3: find one of each in the earlier cycles.
   const features = new Map<string, ReturnType<typeof defaultCardSlot>>();
-  for (let h = 0; h < 10 && features.size < 2; h++) {
-    const f = defaultCardSlot(h * 20);
+  for (let c = 0; c < 10 && features.size < 2; c++) {
+    const f = defaultCardSlot(c * CARD_CYCLE_SLOTS);
     if (f.kind === "feature") features.set(f.raceClass, f);
   }
   const byLabel = new Map<string, { label: string; conditions: RaceConditions; purse: number; cost: number; count: number; tier: gc.RaceTier; feature: boolean }>();
@@ -50,7 +54,7 @@ const utcClock = (ms: number) => {
 };
 
 export default function RaceTypesPage() {
-  const { rows: hour, feats } = liveHour();
+  const { rows: hour, feats } = liveCycle();
   // the calendar races as the Live card publishes them (its purses and fees)
   const calendar = gc.featureCalendar(SEASON_CLOCK, 1).map((r) => {
     const card = defaultCardSlot(Math.floor((r.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
@@ -60,26 +64,37 @@ export default function RaceTypesPage() {
   const weekend = calendar.find((r) => r.kind === "weekend_feature")!;
   const finals = calendar.filter((r) => r.kind === "season_final");
   const slotStart = (ms: number) => Math.floor((ms - RULES.seasonEpochMs) / RULES.slotMs) * RULES.slotMs + RULES.seasonEpochMs;
+  // the Saturday Plate, as the card publishes it: PLATE_AFTER_SLOTS slots after the Weekend Feature
+  const plateAt = slotStart(weekend.postTimeMs) + PLATE_AFTER_SLOTS * RULES.slotMs;
+  const plate = defaultCardSlot(Math.floor((plateAt - RULES.seasonEpochMs) / RULES.slotMs));
+  const plateTier = raceTier({ kind: plate.kind, raceClass: plate.raceClass, conditions: plate.conditions } as Parameters<typeof raceTier>[0]);
+  const band = (c: { minRating?: number }) => (c.minRating !== undefined ? `rated ${c.minRating}+` : "no rating band");
+  const qualifierCard = defaultCardSlot(Math.floor((qualifier.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
+  const weekendCard = defaultCardSlot(Math.floor((weekend.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
   const split = RULES.purseSplitBps;
   const examplePurse = hour.find((h) => h.label.startsWith("Maiden"))?.purse ?? 0;
   return (
     <>
       <Lead>
         There are three ways to race in Post Time. <b>Live races</b> go off on a shared card every {RULES.slotMs / MIN} minutes and everyone watches together. <b>Quick races</b> and{" "}
-        <b>Story chapters</b> are solo races against the Club&rsquo;s rival stables that you can run whenever you like. On top of that sit the scheduled big days: hourly Features, the Weekend
-        Feature and the Season Final.
+        <b>Story chapters</b> are solo races against the Club&rsquo;s rival stables that you can run whenever you like. On top of that sit the card&rsquo;s Features and the scheduled big
+        days: the weekday Qualifiers, the Weekend Feature, the Saturday Plate and the Season Final.
       </Lead>
-      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs on race day" caption="Kestrel Downs: a Live race goes off every few minutes, all day." focus={0.45} />
+      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs on race day" caption={`Kestrel Downs: a Live race goes off every ${RULES.slotMs / MIN} minutes, all day.`} focus={0.45} />
 
       <H2 id="live">Live races</H2>
       <P>
-        The <GameLink href="/races">race card</GameLink> publishes a race every {RULES.slotMs / MIN} minutes, {gc.SLOTS_PER_DAY} a day. Each race is shared: every stable that enters runs in the
-        same field, and every viewer sees the same race at the same moment. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds before the off, and the Club fills any empty gates
-        with its own horses so a field always has between {RULES.minField} and {RULES.maxField} runners.
+        The <GameLink href="/races">race card</GameLink> runs a race every {RULES.slotMs / MIN} minutes, {gc.SLOTS_PER_DAY} a day, and is published{" "}
+        {RULES.cardHorizonMs / gc.MS_PER_HOUR} hours ahead: entries open as soon as a race is on the card, so you can enter a horse now for a race that suits it later in the day. Each race
+        is shared: every stable that enters runs in the same field, and every viewer sees the same race at the same moment. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds
+        before the off, and the Club fills any empty gates with its own horses so a field always has between {RULES.minField} and {RULES.maxField} runners.
       </P>
       <List
         items={[
           <>A Live race counts as a career start, moves the horse&rsquo;s official rating and adds to its record.</>,
+          <>
+            Each horse can run <b>{count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day</b>, by the race&rsquo;s UTC date.
+          </>,
           <>
             It costs stable entries, not credits: see <WikiLink slug="credits-and-entries" />.
           </>,
@@ -96,20 +111,23 @@ export default function RaceTypesPage() {
         rows={[
           ["A Live race every", `${RULES.slotMs / MIN} minutes`],
           ["Live races a day", gc.SLOTS_PER_DAY],
+          ["Card published ahead", `${RULES.cardHorizonMs / gc.MS_PER_HOUR} hours`],
           ["Entries close before the off", `${RULES.entriesCloseBeforePostMs / 1000} seconds`],
           ["Runners in a Live field", `${RULES.minField}–${RULES.maxField}`],
-          ["Starts per horse per day (any race)", gc.MAX_STARTS_PER_DAY],
+          ["Live races per horse per day", gc.MAX_LIVE_STARTS_PER_DAY],
+          ["Races per horse per day, Live and Story", gc.MAX_STARTS_PER_DAY],
         ]}
       />
 
       <H2 id="classes">Race classes on the card</H2>
       <P>
-        Every hour of the Live card follows the same pattern of {hour.reduce((a, h) => a + h.count, 1)} races. The first race of the hour is the <b>Feature</b>, a Listed race or a Group 3
-        with double prize money. Most of the rest are Maiden and Novice races, which every new horse can run, with the three Handicap bands and a Listed race in between. This is one real hour
-        of the card:
+        The Live card runs in cycles of {hour.reduce((a, h) => a + h.count, 1)} races, one every {CYCLE_HOURS} hours, always in the same pattern. The first race of a cycle is the{" "}
+        <b>Feature</b>, a Listed race or a Group 3 with double prize money. Most of the rest are Maiden and Novice races, which every new horse can run, with the three Handicap bands and a
+        Listed race in between. A Maiden or Novice race that a big-day race pushes out of its slot runs in the next ordinary slot instead, so every trip stays on the card. This is one real
+        cycle of the card:
       </P>
       <Table
-        head={["Race", "Who can enter", "Purse", "Entries", "Per hour", "Licence"]}
+        head={["Race", "Who can enter", "Purse", "Entries", "Per cycle", "Licence"]}
         rows={[
           [
             "Feature (Listed or Group 3)",
@@ -117,9 +135,9 @@ export default function RaceTypesPage() {
             feats.map((f) => formatCredits(f.purse ?? 0)).join(" / "),
             [...new Set(feats.map((f) => entryCostFor(f.kind, f.raceClass)))].join(" / "),
             1,
-            gc.licenceDef(gc.licenceForTier("listed", true)).name,
+            licenceName("listed", true),
           ],
-          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, h.count, gc.licenceDef(gc.licenceForTier(h.tier, h.feature)).name]),
+          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, h.count, licenceName(h.tier, h.feature)]),
         ]}
         caption="Purses in credits. Entries: stable entries spent to run."
       />
@@ -140,19 +158,50 @@ export default function RaceTypesPage() {
         the <GameLink href="/league">League</GameLink> page.
       </P>
       <Table
-        head={["Race", "When", "Purse", "Runners", "Entries", "Entry fee"]}
+        head={["Race", "When", "Who can enter", "Purse", "Runners", "Entries", "Entry fee", "Licence"]}
         rows={[
-          ["Feature Qualifier (Listed)", `Monday to Friday, ${utcClock(slotStart(qualifier.postTimeMs))}`, formatCredits(qualifier.purse), `up to ${qualifier.maxRunners}`, entryCostFor("scheduled", "listed"), `${formatCredits(qualifier.entryFee)} cr`],
-          ["Weekend Feature (Group 1)", `Saturday, ${utcClock(slotStart(weekend.postTimeMs))}`, formatCredits(weekend.purse), `up to ${weekend.maxRunners}`, entryCostFor("feature", "graded"), `${formatCredits(weekend.entryFee)} cr`],
+          [
+            "Feature Qualifier (Listed)",
+            `Monday to Friday, ${utcClock(slotStart(qualifier.postTimeMs))}`,
+            cap(band(qualifierCard.conditions)),
+            formatCredits(qualifier.purse),
+            `up to ${qualifier.maxRunners}`,
+            entryCostFor("scheduled", "listed"),
+            `${formatCredits(qualifier.entryFee)} cr`,
+            licenceName("listed"),
+          ],
+          [
+            "Weekend Feature (Group 1)",
+            `Saturday, ${utcClock(slotStart(weekend.postTimeMs))}`,
+            `Qualified, ${band(weekendCard.conditions)}`,
+            formatCredits(weekend.purse),
+            `up to ${weekend.maxRunners}`,
+            entryCostFor("feature", "graded"),
+            `${formatCredits(weekend.entryFee)} cr`,
+            licenceName("g1", true),
+          ],
+          [
+            "Saturday Plate (Listed)",
+            `Saturday, ${utcClock(plateAt)}`,
+            `Ran in a Qualifier, didn't qualify; ${band(plate.conditions)}`,
+            formatCredits(plate.purse ?? 0),
+            `up to ${plate.maxRunners}`,
+            entryCostFor(plate.kind, plate.raceClass),
+            `${formatCredits(plate.entryFee ?? 0)} cr`,
+            licenceName(plateTier),
+          ],
           [
             "Season Final (one per division)",
             `Last day of the season, ${finals.map((f) => utcClock(slotStart(f.postTimeMs))).join(", ")}`,
+            cap(band(defaultCardSlot(Math.floor((finals[0]!.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs)).conditions)),
             formatCredits(finals[0]!.purse),
             `up to ${finals[0]!.maxRunners}`,
             entryCostFor("final", "graded"),
             `${formatCredits(finals[0]!.entryFee)} cr`,
+            licenceName("g1", "final"),
           ],
         ]}
+        caption="Times are when the race goes off. Purses in credits."
       />
       <P>
         Each week&rsquo;s Feature has a distance division (sprint, mile, middle or staying), and the Season Final runs one championship for each of the {gc.DIVISIONS.length} divisions. More on
@@ -160,9 +209,15 @@ export default function RaceTypesPage() {
       </P>
       <Callout tone="rule" title="Qualifying for the Weekend Feature">
         <p>
-          A horse needs a top-3 finish in one of that week&rsquo;s Feature Qualifiers, or an official rating of 100 or more. The entry sheet tells you if a horse hasn&rsquo;t qualified.
+          A horse needs a top-3 finish in one of that week&rsquo;s Feature Qualifiers, or an official rating of 100 or more, and the race&rsquo;s own band ({band(weekendCard.conditions)}).
+          The entry sheet tells you if a horse hasn&rsquo;t qualified.
         </p>
       </Callout>
+      <P>
+        A horse that ran in a Qualifier that week and missed out gets a second chance in the <b>Saturday Plate</b>, a Listed race over the Weekend Feature&rsquo;s own trip, surface and going,{" "}
+        {PLATE_AFTER_SLOTS * (RULES.slotMs / MIN)} minutes after it. A horse that did qualify runs in the Feature instead. <GameLink href="/week">This week</GameLink> under Racing shows
+        Saturday&rsquo;s conditions from Monday, your places in the Qualifiers and which of your horses are in, in the Plate or not yet.
+      </P>
 
       <H2 id="quick">Quick races and Story chapters</H2>
       <P>
@@ -192,7 +247,10 @@ export default function RaceTypesPage() {
             They don&rsquo;t use up a career start, so they never bring your horse closer to its {gc.CAREER_MAX_STARTS}-start retirement, and they don&rsquo;t add to its race record.
           </>,
           <>An injury is possible, but never a fatal one.</>,
-          <>They still tire your horse, still move its official rating and still count towards the {gc.MAX_STARTS_PER_DAY} starts a day.</>,
+          <>
+            They still tire your horse, still move its official rating and still count towards the {gc.MAX_STARTS_PER_DAY} races a day, but not towards the{" "}
+            {count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day.
+          </>,
         ]}
       />
       <Callout tone="tip">

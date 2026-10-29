@@ -263,5 +263,8 @@ export function Meter({ label, value, max, color = "var(--color-brass)", suffix 
   );
 }
 
+/** "one Live race" / "2 Live races": a rule number in words that reads right if the rule changes. */
+export const count = (n: number, noun: string, plural = `${noun}s`) => `${n === 1 ? "one" : n} ${n === 1 ? noun : plural}`;
+
 /** Format permille as a percentage. */
 export const pct = (permille: number, digits = 0) => `${(permille / 10).toFixed(digits)}%`;
