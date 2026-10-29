@@ -3,7 +3,7 @@
  *
  *   foal ──5 care──▶ weanling ──+7──▶ yearling ──+7──▶ juvenile (racing age)
  *   juvenile 0–6 starts ▶ prime 7–28 ▶ veteran 29–40 ▶ racing retirement (40, or by choice)
- *   ▶ stud (while breedings remain) ▶ pasture / Legend on the Legacy Farm (permanent, no death)
+ *   ▶ stud (while breedings remain) ▶ pasture / Legend on the Legacy Farm (permanent; a fatal race injury also ends here, in memoriam)
  *
  * Nothing here advances from elapsed time alone. `settleIdle` (the only time-driven step)
  * changes nothing but injury healing and pregnancy completion.
