@@ -10,6 +10,44 @@ const STAT_LABEL: Record<gc.StatKey, string> = {
   temperament: "Temperament",
 };
 
+/** The pattern, body and performance genes: how each is inherited and what it does. */
+const V2_GENES: [locus: gc.Genes2Key, name: string, mode: string, effect: string][] = [
+  ["champagne", "Champagne (Ch)", "Dominant", "Gold, amber or sable body, pink freckled skin"],
+  ["silver", "Silver (Z)", "Dominant, black pigment only", "Black turns chocolate with a flaxen mane; invisible on a chestnut"],
+  ["pearl", "Pearl (prl)", "Recessive", "Two copies: pale apricot; one copy shows only next to cream"],
+  ["tobiano", "Tobiano (TO)", "Dominant", "White patches across the back, dark head"],
+  ["leopard", "Leopard complex (LP)", "Incomplete dominant", "One copy: spots with Pattern-1, else varnish roan; two: few-spot"],
+  ["patn1", "Pattern-1 (PATN1)", "Dominant, needs LP", "Turns leopard complex into full leopard spots"],
+  ["splash", "Splash white (SW)", "Incomplete dominant", "Big blaze, white legs, blue eyes; two copies: bald face"],
+  ["height", "Height (Ht)", "Incomplete dominant", "Taller per copy: more speed and stamina, less burst and durability"],
+  ["feather", "Feathering (fe)", "Recessive", "Long hair on the lower legs"],
+  ["mstn", "Speed gene (MSTN C)", "Incomplete dominant", "C/C sprinter, C/T miler, T/T stayer"],
+  ["bigHeart", "Big heart (bh)", "Recessive", "Two copies: extra stamina potential"],
+  ["ironLegs", "Iron legs (IL)", "Dominant", "Lower injury risk"],
+  ["curledEars", "Curled ears (Ce)", "Dominant", "Inward-curling ear tips"],
+  ["dish", "Dished face (Dh)", "Incomplete dominant", "A slight or a classic Arabian dish"],
+];
+
+/** The breeds that carry a gene most often (its non-wild allele frequency, from the breed table). */
+function commonIn(locus: gc.Genes2Key): string {
+  const freqKey = gc.G2_LOCI.find((l) => l[0] === locus)![1];
+  const top = gc.BREEDS.map((b) => [b, gc.BREED_PROFILES[b].genes2[freqKey]] as const)
+    .filter(([, f]) => f > 0)
+    .sort((x, y) => y[1] - x[1])
+    .slice(0, 3);
+  return top.length ? top.map(([b, f]) => `${gc.BREED_LABEL[b]} ${pct(f)}`).join(", ") : "none";
+}
+
+/** Two carriers of pearl and big heart (neither shows them): the preview's exact odds. */
+function carrierExample() {
+  const base = sampleGenome("carrier-example");
+  const carrier: gc.Genome = { ...base, coat: { ...base.coat, cream: ["n", "n"] }, genes2: { ...base.genes2, pearl: ["prl", "n"], bigHeart: ["bh", "n"] } };
+  const mk = (id: string, sex: "colt" | "filly") =>
+    gc.createHorseState({ id, name: id, sex, ownerId: "wiki", sireId: null, damId: null, generation: 0, genome: carrier, bornAtMs: 0, bornSeason: 1, careSessions: gc.CARE_TO_RACING });
+  const p = gc.previewBreeding(mk("wiki-carrier-sire", "colt"), mk("wiki-carrier-dam", "filly"), {}, 1);
+  return { pearl: p.traits.find((t) => t.name === "Pearl")?.permille ?? 0, hidden: p.hidden };
+}
+
 /** A real example pairing: two foundation horses, their exact preview and 400 simulated foals. */
 function examplePairing() {
   // the first seeded horses good enough to be worth breeding from (deterministic)
@@ -43,6 +81,7 @@ function examplePairing() {
 
 export default function GeneticsAndInheritancePage() {
   const ex = examplePairing();
+  const carriers = carrierExample();
   const peak = Math.max(...ex.buckets.map((b) => b.n));
   return (
     <>
@@ -172,6 +211,29 @@ export default function GeneticsAndInheritancePage() {
         <p className="caption">Expected foal potential per stat (the preview also shows each stat&rsquo;s full range).</p>
       </div>
 
+      <H2 id="dominant-recessive">Dominant, recessive and hidden copies</H2>
+      <P>
+        Besides the stats and the coat, every horse carries {V2_GENES.length} more genes for patterns, body and performance. Each comes in two copies like the rest, and how the copies combine
+        depends on the gene. A <b>dominant</b> gene shows with one copy. A <b>recessive</b> gene shows only with two, so a horse can carry one copy without showing it and pass it on. With an{" "}
+        <b>incompletely dominant</b> gene, one copy shows a little and two copies show fully.
+      </P>
+      <Table
+        caption="The pattern, body and performance genes (most common in: share of copies in each breed)"
+        head={["Gene", "Inheritance", "What it does", "Most common in"]}
+        rows={V2_GENES.map(([locus, name, mode, effect]) => [name, mode, effect, commonIn(locus)])}
+      />
+      <Callout tone="rule" title="Hidden copies surface in foals">
+        <p>
+          Two horses that each carry one copy of pearl look plain, yet {pct(carriers.pearl)} of their foals are pearl. The breeding preview lists these surprises under <b>Hidden genes</b>
+          {carriers.hidden.length ? <> (for this pair: &ldquo;{carriers.hidden.join("; ")}&rdquo;)</> : null}, and the horse page marks a copy the horse carries but doesn&rsquo;t show as a{" "}
+          <b>hidden copy</b>.
+        </p>
+      </Callout>
+      <P>
+        Size, the speed gene and big heart change the stat potentials, and the family limits include them. The twelve breeds and what they carry are on <WikiLink slug="breeds" />; the new colours
+        and patterns are on <WikiLink slug="coats-and-markings" />.
+      </P>
+
       <H2 id="other-genes">What else is inherited</H2>
       <List
         items={[
@@ -183,6 +245,12 @@ export default function GeneticsAndInheritancePage() {
           </>,
           <>
             <b>Running style</b> (front-runner, stalker, closer) and <b>maturity</b> (early, normal or late peak).
+          </>,
+          <>
+            <b>Breed</b>: the foal&rsquo;s breed percentages are the exact average of its parents&rsquo;, see <WikiLink slug="breeds" />.
+          </>,
+          <>
+            <b>Size and the speed gene</b>: they move points between stats and shift the best trip, never the total.
           </>,
           <>
             <b>Coat and markings</b>: real horse colour genetics, see <WikiLink slug="coats-and-markings" />.

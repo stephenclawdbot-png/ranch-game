@@ -88,6 +88,18 @@ const TERMS: Entry[] = [
   ["Veteran", `A racehorse after start ${gc.PRIME_MAX_STARTS}, in the last part of its career.`, "racing-career"],
   ["Weanling", "A foal that has been weaned, on its way to yearling.", "growing-up"],
   ["Yearling", "A young horse in its last stage before racing age.", "growing-up"],
+  ["Big heart", `A rare recessive gene: with two copies a horse has +${gc.BIG_HEART_STAMINA} stamina potential.`, "breeds"],
+  ["Breed %", `A horse's mix of the ${gc.BREEDS.length} breeds. A foal's is the exact average of its parents'.`, "breeds"],
+  ["Carrier", "A horse with one copy of a gene it doesn't show but can pass on, marked as a hidden copy on the horse page.", "genetics-and-inheritance"],
+  ["Crossbred", "A horse with no single breed at the purebred mark and no named cross, named by its two biggest breeds.", "breeds"],
+  ["Dominant", "A gene that shows with one copy.", "genetics-and-inheritance"],
+  ["Incomplete dominance", "One copy of a gene shows a little and two copies show fully, like the Height gene or the dished face.", "genetics-and-inheritance"],
+  ["Iron legs", `A dominant gene: the injury risk of every start × ${(gc.IRON_LEGS_RISK / 1000).toFixed(2)}.`, "breeds"],
+  ["MSTN", "The speed gene: C/C sprinter, C/T miler, T/T stayer.", "breeds"],
+  ["Named cross", `A classic two-breed cross with its own name: ${list(gc.NAMED_CROSSES.map(([, , name]) => name))}.`, "breeds"],
+  ["Purebred", `A horse with one breed at ${gc.PUREBRED_PERMILLE / 10}% or more.`, "breeds"],
+  ["Recessive", "A gene that shows only with two copies, so it can hide for generations.", "genetics-and-inheritance"],
+  ["Size", "A horse's height against an average Thoroughbred. Taller moves points into speed and stamina, smaller into burst and durability.", "breeds"],
 ];
 
 const GROUPS: { id: string; title: string; from: string; to: string }[] = [

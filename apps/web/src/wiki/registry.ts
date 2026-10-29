@@ -30,7 +30,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
   { key: "start", title: "Getting started", blurb: "Your first stable, credits, entries and where everything lives.", icon: "stable-door", poster: "/art/diorama/poster-yard.png" },
   { key: "horses", title: "Your horses", blurb: "Stats, aptitudes, growing up, care, training and injuries.", icon: "horse-head", poster: "/art/diorama/poster-barn.png" },
   { key: "racing", title: "Racing", blurb: "Race types, entering, tactics, going and how a race is run.", icon: "flag", poster: "/art/diorama/poster-grandstand.png" },
-  { key: "breeding", title: "Breeding & genetics", blurb: "Pairings, inheritance, family limits, coats and the fragile gene.", icon: "papers", poster: "/art/diorama/poster-pasture.png" },
+  { key: "breeding", title: "Breeding & genetics", blurb: "Pairings, inheritance, the twelve breeds, family limits, coats and the fragile gene.", icon: "papers", poster: "/art/diorama/poster-pasture.png" },
   { key: "life", title: "Careers & retirement", blurb: "Stud, broodmares, the Legacy Farm and in memoriam.", icon: "laurel", poster: "/art/diorama/poster-paddock.png" },
   { key: "economy", title: "Sales & facilities", blurb: "The auction house, appraisal, packs, stalls and staff.", icon: "coin", poster: "/art/diorama/poster-sales-ring.png" },
   { key: "club", title: "Club & glory", blurb: "League, Daily Cup, Hall of Fame and your Trophy Room.", icon: "trophy", poster: "/art/diorama/poster-track-dusk.png" },
@@ -58,6 +58,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   // Breeding & genetics
   { slug: "breeding-basics", section: "breeding", title: "Breeding basics", summary: "Covering a mare, seasons, fees, foaling and standing a stallion.", keywords: ["breed", "cover", "stud", "mare", "foal", "season", "fee"] },
   { slug: "genetics-and-inheritance", section: "breeding", title: "Genetics & inheritance", summary: "Alleles, potential and why a foal can beat, match or fall below its parents.", keywords: ["genes", "allele", "inherit", "mutation", "preview", "odds", "potential"] },
+  { slug: "breeds", section: "breeding", title: "Breeds & body genes", summary: "The twelve breeds, breed %, named crosses, size, the speed gene, big heart and iron legs.", keywords: ["breed", "breeds", "purebred", "crossbred", "cross", "size", "height", "tall", "mstn", "speed gene", "big heart", "iron legs", "arabian", "quarter horse", "warmblood", "friesian"] },
   { slug: "family-limits", section: "breeding", title: "Family limits & lineage", summary: "How the family line sets the lowest and highest a foal can be.", keywords: ["limits", "lineage", "floor", "ceiling", "family", "deep", "rising", "foundation"] },
   { slug: "inbreeding", section: "breeding", title: "Inbreeding & kinship", summary: "Coefficient of inbreeding, blocked pairings and what it costs.", keywords: ["coi", "inbreeding", "kin", "related"] },
   { slug: "coats-and-markings", section: "breeding", title: "Coats & markings", summary: "Every coat colour, the genes behind it and white markings.", keywords: ["coat", "colour", "color", "bay", "chestnut", "grey", "roan", "markings", "sabino", "dun"] },

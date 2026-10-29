@@ -72,7 +72,39 @@ const asHorse = (id: string, sex: "colt" | "filly", genome: gc.Genome) =>
 
 const coatOdds = (sire: gc.Genome, dam: gc.Genome) => gc.previewBreeding(asHorse("wiki-sire", "colt", sire), asHorse("wiki-dam", "filly", dam), {}, 1).coats;
 
-const ODDS_COLOURS = ["#c47a3f", "#8a3b1e", "#2a2422", "#d9b98f", "#8fa592", "#e9dccb"];
+/** The genetics-v2 colour and pattern genes: one copy, two copies. */
+const PATTERN_GENES: [locus: gc.Genes2Key, name: string, one: string, two: string][] = [
+  ["champagne", "Champagne (Ch)", "Gold, amber or sable body, pink freckled skin, amber eyes", "The same"],
+  ["silver", "Silver (Z)", "Black pigment turns chocolate, flaxen mane; hidden on a chestnut", "The same"],
+  ["pearl", "Pearl (prl)", "Hidden, unless the horse also has cream: pale, green or blue eyes", "Pale apricot"],
+  ["tobiano", "Tobiano (TO)", "White patches crossing the back, white legs, dark head", "Tobiano with small ink spots"],
+  ["leopard", "Leopard complex (LP)", "Leopard spots with Pattern-1, varnish roan without", "Few-spot: nearly white"],
+  ["patn1", "Pattern-1 (PATN1)", "Turns the leopard complex into full spots; hidden without it", "The same"],
+  ["splash", "Splash white (SW)", "Big blaze, white legs, blue eyes", "Bald face, white belly"],
+];
+
+/** The three breeds with the most copies of a gene. */
+function topCarriers(locus: gc.Genes2Key): string {
+  const key = gc.G2_LOCI.find((l) => l[0] === locus)![1];
+  return gc.BREEDS.map((b) => [b, gc.BREED_PROFILES[b].genes2[key]] as const)
+    .filter(([, f]) => f > 0)
+    .sort((x, y) => y[1] - x[1])
+    .slice(0, 3)
+    .map(([b, f]) => `${gc.BREED_LABEL[b]} ${Math.round(f / 10)}%`)
+    .join(", ");
+}
+
+/** A seeded horse with plain v2 genes, then the given ones. */
+function withG2(seed: string, over: Partial<gc.Genes2>, coat: Partial<gc.CoatGenes> = {}): gc.Genome {
+  const g = sampleGenome(seed);
+  return { ...g, coat: genes(coat), genes2: { ...gc.WILD_GENES2, ...over } };
+}
+
+/** The preview's odds for a trait in a pairing. */
+const traitOdds = (sire: gc.Genome, dam: gc.Genome, name: string) =>
+  gc.previewBreeding(asHorse("wiki-sire", "colt", sire), asHorse("wiki-dam", "filly", dam), {}, 1).traits.find((t) => t.name === name)?.permille ?? 0;
+
+const ODDS_COLOURS =["#c47a3f", "#8a3b1e", "#2a2422", "#d9b98f", "#8fa592", "#e9dccb"];
 
 const RARE: [string, Partial<gc.CoatGenes>, string][] = [
   ["Palomino", { extension: ["e", "e"], cream: ["Cr", "n"] }, "Chestnut + one cream"],
@@ -147,6 +179,18 @@ export default function CoatsAndMarkingsPage() {
   const bayDam = withGenes("hidden-dam", { extension: ["E", "e"], agouti: ["A", "a"] });
   const hiddenOdds = coatOdds(baySire, bayDam);
   const panel = gc.geneticsSummary(baySire, appearanceOfGenome(baySire), []);
+
+  // Genetics-v2 pattern odds, straight from the preview.
+  const patternOdds: [string, string, number][] = [
+    ["Tobiano (TO/n) × plain", "Tobiano", traitOdds(withG2("to-s", { tobiano: ["TO", "n"] }), withG2("to-d", {}), "Tobiano")],
+    ["Two pearl carriers (prl/n, no cream)", "Pearl", traitOdds(withG2("prl-s", { pearl: ["prl", "n"] }), withG2("prl-d", { pearl: ["prl", "n"] }), "Pearl")],
+    ["Two silver carriers, both chestnut", "Silver", traitOdds(withG2("z-s", { silver: ["Z", "n"] }, { extension: ["e", "e"] }), withG2("z-d", { silver: ["Z", "n"] }, { extension: ["e", "e"] }), "Silver")],
+    [
+      "Two LP/n PATN1/n Appaloosas",
+      "Leopard spots",
+      traitOdds(withG2("lp-s", { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }), withG2("lp-d", { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }), "Leopard spots"),
+    ],
+  ];
 
   // Palomino recipe: cremello x chestnut.
   const palOdds = coatOdds(withGenes("pal-sire", { extension: ["e", "e"], cream: ["Cr", "Cr"] }), withGenes("pal-dam", { extension: ["e", "e"] }));
@@ -279,6 +323,28 @@ export default function CoatsAndMarkingsPage() {
         </p>
       </Callout>
 
+      <H2 id="new-colours">Champagne, silver, pearl and the white patterns</H2>
+      <P>
+        Seven more genes change the colour or add white patterns. They follow the same two-copy rules, and some hide: silver can&rsquo;t show on a chestnut, pearl needs two copies (or one next to
+        cream), and Pattern-1 does nothing without the leopard complex.
+      </P>
+      <Table
+        caption="Colour and pattern genes: share of copies in the breeds that carry them most (from the game's breed table)"
+        head={["Gene", "One copy", "Two copies", "Most common in"]}
+        rows={PATTERN_GENES.map(([locus, name, one, two]) => [name, one, two, topCarriers(locus)])}
+      />
+      <P>Odds the breeding preview gives for some pairings, worked out by the game:</P>
+      <Table
+        head={["Pairing", "Foals that show it"]}
+        rows={patternOdds.map(([label, name, permille]) => [label, `${Math.round(permille / 10)}% ${name.toLowerCase()}`])}
+      />
+      <Callout tone="warn" title="Not drawn yet">
+        <p>
+          The portraits, the race sprites and the yard horses don&rsquo;t draw these seven genes yet. A champagne or tobiano horse looks like its base coat in pictures; the horse page names the
+          pattern under <b>Markings</b>, the card line lists it, and the Genetics panel shows the genes. The pictures will catch up.
+        </p>
+      </Callout>
+
       <H2 id="genetics-panel">Reading the Genetics panel</H2>
       <P>
         Every horse page has a <b>Genetics</b> panel: the stud-book view of the horse. Coat genes are public, so you can read them on anyone&rsquo;s horse, including stallions at stud. Each line is one
@@ -309,7 +375,11 @@ export default function CoatsAndMarkingsPage() {
             <b>Build</b>, the <b>breed mix</b>, <b>Inbreeding</b> (see <WikiLink slug="inbreeding" />), any quirks revealed in races and, if the horse has it, <b>Fragile legs (inherited)</b> (see{" "}
             <WikiLink slug="fragile-legs" />).
           </>,
-          <>Ability genes are not shown here: those stay hidden behind ranges. See <WikiLink slug="genetics-and-inheritance" />.</>,
+          <>
+            <b>Body, pattern and performance genes</b>: one line for each of the {gc.GENES2_KEYS.length} genes above and on <WikiLink slug="breeds" />, with hidden copies marked; <b>Size</b> with what it
+            does to the stats; <b>Markings</b> naming any pattern the pictures don&rsquo;t draw yet. Big heart reads &ldquo;?/?&rdquo; until the horse has raced or had a Pedigree Scan.
+          </>,
+          <>Stat genes are not shown here: those stay hidden behind ranges. See <WikiLink slug="genetics-and-inheritance" />.</>,
         ]}
       />
     </>

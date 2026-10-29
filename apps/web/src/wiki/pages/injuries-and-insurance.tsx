@@ -33,6 +33,7 @@ function riskTable(h: gc.HorseState) {
     { what: `A long trip (${formatDistance(2800)})`, r: gc.injuryRisk(h, { ...base, distanceM: 2800 }) },
     { what: "As a veteran", r: gc.injuryRisk(h, { ...base, stage: "veteran" }) },
     { what: "With fragile legs", r: gc.injuryRisk(fragile, base) },
+    { what: "With iron legs", r: gc.injuryRisk({ ...h, genome: { ...h.genome, genes2: { ...h.genome.genes2, ironLegs: ["IL", "n"] } } }, base) },
     { what: "Tired, heavy going and all-out", r: gc.injuryRisk(gc.withFatigue(h, 800, NOW, true), { ...base, going: "heavy", intensity: "all_out" }) },
   ];
   return { intensities, scenarios, base };
@@ -110,6 +111,10 @@ export default function InjuriesAndInsurancePage() {
           </>,
           <>
             <b>Fragile legs</b> (inherited) ×{(gc.FRAGILE_RISK / 1000).toFixed(1)}. See <WikiLink slug="fragile-legs" />.
+          </>,
+          <>
+            <b>Iron legs</b> (inherited, dominant) ×{(gc.IRON_LEGS_RISK / 1000).toFixed(1)}: the one gene that lowers the risk. A bigger horse also carries a little less durability. See{" "}
+            <WikiLink slug="breeds" />.
           </>,
         ]}
       />

@@ -100,6 +100,10 @@ export default function StatsAndAptitudesPage() {
         head={["Distance gene", "Pulls towards"]}
         rows={(Object.keys(gc.DISTANCE_CENTER_M) as (keyof typeof gc.DISTANCE_CENTER_M)[]).map((d) => [d[0]!.toUpperCase() + d.slice(1), formatDistance(gc.DISTANCE_CENTER_M[d])])}
       />
+      <P>
+        The <b>speed gene</b> (MSTN) then moves it: two sprint copies (C/C) take {gc.MSTN_TRIP_M} m off the best trip, two stay copies (T/T) add {gc.MSTN_TRIP_M} m. A horse&rsquo;s breed and size
+        shape its stats the same way, moving points between speed, stamina, burst and durability without changing the total. See <WikiLink slug="breeds" />.
+      </P>
       <H3>Favourite surface</H3>
       <List
         items={[

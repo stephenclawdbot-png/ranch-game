@@ -14,6 +14,7 @@ import HowRacesAreRunPage from "./pages/how-races-are-run";
 import RatingsAndFormPage from "./pages/ratings-and-form";
 import BreedingBasicsPage from "./pages/breeding-basics";
 import GeneticsAndInheritancePage from "./pages/genetics-and-inheritance";
+import BreedsPage from "./pages/breeds";
 import FamilyLimitsPage from "./pages/family-limits";
 import InbreedingPage from "./pages/inbreeding";
 import CoatsAndMarkingsPage from "./pages/coats-and-markings";
@@ -44,6 +45,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "ratings-and-form": RatingsAndFormPage,
   "breeding-basics": BreedingBasicsPage,
   "genetics-and-inheritance": GeneticsAndInheritancePage,
+  "breeds": BreedsPage,
   "family-limits": FamilyLimitsPage,
   "inbreeding": InbreedingPage,
   "coats-and-markings": CoatsAndMarkingsPage,
