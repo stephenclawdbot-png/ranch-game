@@ -10,6 +10,17 @@ This reverses the earlier rule "nothing bought with money can be turned back int
 horses that are **registered** for the dollar market. Stable Credits themselves stay closed:
 never bought, sold, bridged or transferred for money.
 
+**Status (2026-10-30): built, not deployed.** Contract `packages/contracts/contracts/HorseMarket.sol`
+(+ `scripts/deploy-horse-market.ts`), rules and knobs `packages/game-core/src/usdgMarket.ts`, DB
+`packages/db/src/services/usdgMarket.ts` (migration `0011_usdg_market`), server
+`apps/web/src/server/chain/usdg*.ts`, API `/api/usdg/*` and `/api/admin/usdg`, UI Sales → USDG tab
+and the horse page panel, wiki page `usdg-market`. With `WEB3_ENABLED` off the market runs on a mock
+chain in dev and tests (payments simulated); production shows "coming soon" until
+`HORSE_MARKET_ADDRESS` is set. Implementation choices: registration goes through `HorseMarket.register`
+(one contract, one event scanner, one fulfilment path), not a PremiumStore SKU (the store holds funds
+until a treasurer withdraws; the market never does). Orders also carry the `token` (allow-list check).
+A fixed-price buy reserves the lot for one buyer for 15 minutes so two people can never pay for one horse.
+
 ## Who can sell for USDG
 
 A horse joins the USDG market only once it is **registered**:

@@ -1,0 +1,201 @@
+"use client";
+/**
+ * Pays one USDG order (a horse registration or a purchase) on Robinhood Chain:
+ *   connect the linked wallet -> switch network -> approve exactly the price (only if the current
+ *   allowance is lower) -> HorseMarket.buy / register with the server-signed order -> the server
+ *   verifies the event and delivers. On the mock chain (WEB3_ENABLED off) the payment is simulated.
+ * The contract never holds the money: the seller and the treasury are paid in the same transaction.
+ */
+import { useCallback, useEffect, useState } from "react";
+import { erc20Abi, type Hex } from "viem";
+import { horseMarketAbi } from "@/lib/chain/contracts.generated";
+import { txUrl } from "@/lib/chain/chains";
+import { shortAddress } from "@/lib/chain/format";
+import { TESTNET_FAUCETS, formatUsdgDollars, formatUsdgToken, isTestnet, registrationOrderFromJson, saleOrderFromJson, type UsdgOrderJson } from "@/lib/chain/usdg";
+import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
+import { WalletPicker } from "./WalletPicker";
+import { useWallet } from "./useWallet";
+
+type Settle = { status: "fulfilled"; horseId: string } | { status: "pending" | "paid_waiting" | "rejected"; reason: string };
+
+async function post<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: body === undefined ? undefined : { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store" });
+  const data = (await res.json().catch(() => ({}))) as T & { message?: string };
+  if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
+  return data;
+}
+
+const left = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  if (s >= 3600) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+export function TestnetNote({ chainId, mock }: { chainId: number; mock: boolean }) {
+  if (mock)
+    return (
+      <p className="caption" data-testid="usdg-test-mode">
+        <span className="tag tag-you mr-1">Test mode</span> Payments are simulated on this server: no wallet transaction, no real USDG.
+      </p>
+    );
+  if (!isTestnet(chainId)) return null;
+  return (
+    <p className="caption" data-testid="usdg-testnet">
+      <span className="tag tag-you mr-1">Testnet</span> Test USDG has no value. Get some from the{" "}
+      <a className="underline" href={TESTNET_FAUCETS.usdg} target="_blank" rel="noreferrer">
+        Paxos USDG faucet
+      </a>{" "}
+      and gas from the{" "}
+      <a className="underline" href={TESTNET_FAUCETS.eth} target="_blank" rel="noreferrer">
+        Robinhood testnet ETH faucet
+      </a>
+      .
+    </p>
+  );
+}
+
+export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone: (r: { horseId: string }) => void; label?: string }) {
+  const w = useWallet();
+  const [phase, setPhase] = useState<"idle" | "approving" | "paying" | "confirming" | "done">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [tx, setTx] = useState<string | null>(order.txHash);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const confirm = useCallback(
+    async (hash: string) => {
+      setPhase("confirming");
+      for (let i = 0; i < 90; i++) {
+        try {
+          const r = await post<Settle>(`/api/usdg/orders/${order.orderId}/confirm`, { txHash: hash });
+          if (r.status === "fulfilled") {
+            setPhase("done");
+            onDone({ horseId: r.horseId });
+            return;
+          }
+          if (r.status === "rejected") {
+            setMsg(`The payment didn't match this order (${r.reason}). If USDG left your wallet, contact the organiser with the transaction link.`);
+            setPhase("idle");
+            return;
+          }
+          if (r.status === "paid_waiting") setMsg(`Paid ✓. Waiting for the organiser: ${r.reason}`);
+        } catch (e) {
+          setMsg((e as Error).message);
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      setMsg("Still waiting for the network. Your order is saved: reopen the market later and it will finish.");
+      setPhase("idle");
+    },
+    [order.orderId, onDone],
+  );
+
+  // A payment sent before a reload: keep confirming it.
+  useEffect(() => {
+    if (order.txHash && phase === "idle" && !msg) void confirm(order.txHash);
+  }, [order.txHash]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const payer = order.signed ? (order.kind === "sale" ? order.signed.order.buyer : order.signed.order.owner) : null;
+  const expired = order.deadlineMs <= now;
+
+  async function payMock() {
+    setMsg(null);
+    setPhase("paying");
+    try {
+      const r = await post<Settle>(`/api/usdg/orders/${order.orderId}/mock-pay`);
+      if (r.status === "fulfilled") {
+        setPhase("done");
+        onDone({ horseId: r.horseId });
+      } else {
+        setMsg(`Not settled yet: ${r.reason}`);
+        setPhase("idle");
+      }
+    } catch (e) {
+      setMsg((e as Error).message);
+      setPhase("idle");
+    }
+  }
+
+  async function pay() {
+    if (!order.signed || !w.provider || !w.address) return;
+    setMsg(null);
+    try {
+      await ensureChain(w.provider, order.chainId);
+      const { wallet, pub } = clients(w.provider, order.chainId, w.address);
+      const price = BigInt(order.price);
+      const allowance = await pub.readContract({ address: order.token, abi: erc20Abi, functionName: "allowance", args: [w.address, order.market] });
+      if (allowance < price) {
+        setPhase("approving");
+        // Exactly this order's amount: never an unlimited approval.
+        const ah = await wallet.writeContract({ address: order.token, abi: erc20Abi, functionName: "approve", args: [order.market, price], account: w.address, chain: wallet.chain });
+        await pub.waitForTransactionReceipt({ hash: ah });
+      }
+      setPhase("paying");
+      const hash =
+        order.kind === "sale"
+          ? await wallet.writeContract({ address: order.market, abi: horseMarketAbi, functionName: "buy", args: [saleOrderFromJson(order.signed.order), order.signed.signature], account: w.address, chain: wallet.chain })
+          : await wallet.writeContract({ address: order.market, abi: horseMarketAbi, functionName: "register", args: [registrationOrderFromJson(order.signed.order), order.signed.signature], account: w.address, chain: wallet.chain });
+      setTx(hash);
+      await confirm(hash as Hex);
+    } catch (e) {
+      setMsg(walletErrorText(e));
+      setPhase("idle");
+    }
+  }
+
+  const amount = (
+    <>
+      <span className="t-h2">{formatUsdgDollars(order.price)}</span> <span className="num caption">({formatUsdgToken(order.price)})</span>
+    </>
+  );
+  return (
+    <div className="inset grid gap-2 p-3" data-testid="usdg-pay" data-order={order.orderId}>
+      <p className="text-cream">
+        {label ?? (order.kind === "sale" ? "Pay for the horse" : "Registration fee")}: {amount}
+      </p>
+      {order.kind === "sale" && (
+        <p className="caption">
+          {formatUsdgDollars(order.sellerReceives)} goes straight to the seller and {formatUsdgDollars(order.fee)} to the Club (market fee), in the same transaction. The market contract never holds your money.
+        </p>
+      )}
+      <TestnetNote chainId={order.chainId} mock={order.mock} />
+      {phase === "done" ? (
+        <p className="font-bold text-positive" role="status" data-testid="usdg-paid">
+          ✓ Paid and delivered.
+        </p>
+      ) : phase === "confirming" ? (
+        <p className="text-cream" aria-live="polite" data-testid="usdg-confirming">
+          Payment sent. Confirming on Robinhood Chain…{" "}
+          {tx && txUrl(order.chainId, tx) && (
+            <a className="underline" href={txUrl(order.chainId, tx)!} target="_blank" rel="noreferrer">
+              view transaction
+            </a>
+          )}
+        </p>
+      ) : expired || !order.signed ? (
+        <p className="text-sm font-bold text-negative">This order has expired.</p>
+      ) : order.mock ? (
+        <button type="button" className="btn btn-brass w-fit" onClick={() => void payMock()} disabled={phase !== "idle"} data-testid="usdg-pay-mock">
+          {phase === "paying" ? "Paying…" : `Pay ${formatUsdgDollars(order.price)} (simulated)`}
+        </button>
+      ) : !w.address ? (
+        <WalletPicker label={`Connect ${shortAddress(payer)} to pay`} />
+      ) : payer && w.address.toLowerCase() !== payer.toLowerCase() ? (
+        <p className="text-sm font-bold text-negative">Switch your wallet to your linked address {shortAddress(payer)} to pay.</p>
+      ) : (
+        <button type="button" className="btn btn-brass w-fit" onClick={() => void pay()} disabled={phase !== "idle"} data-testid="usdg-pay-wallet">
+          {phase === "approving" ? "Approve in your wallet…" : phase === "paying" ? "Confirm in your wallet…" : `Pay ${formatUsdgDollars(order.price)} in USDG`}
+        </button>
+      )}
+      {phase !== "done" && !expired && order.signed && <p className="caption">Held for you for {left(order.deadlineMs - now)}.</p>}
+      {msg && (
+        <p role="alert" className="text-sm font-bold text-negative">
+          {msg}
+        </p>
+      )}
+    </div>
+  );
+}

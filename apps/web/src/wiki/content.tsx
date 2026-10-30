@@ -23,6 +23,7 @@ import RacingCareerPage from "./pages/racing-career";
 import StudAndBroodmaresPage from "./pages/stud-and-broodmares";
 import LegacyFarmPage from "./pages/legacy-farm";
 import TheMarketPage from "./pages/the-market";
+import UsdgMarketPage from "./pages/usdg-market";
 import FacilitiesPage from "./pages/facilities";
 import PacksPage from "./pages/packs";
 import LeaguePage from "./pages/league";
@@ -54,6 +55,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "stud-and-broodmares": StudAndBroodmaresPage,
   "legacy-farm": LegacyFarmPage,
   "the-market": TheMarketPage,
+  "usdg-market": UsdgMarketPage,
   "facilities": FacilitiesPage,
   "packs": PacksPage,
   "league": LeaguePage,
