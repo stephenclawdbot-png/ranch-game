@@ -13,7 +13,9 @@
  * exact downsampled level of detail so they never minify. The camera (layout.ts) eases
  * zoom and centre with springs, rests on a pixel-perfect zoom ladder and never cuts.
  * Whole-field mode: `placeField` guarantees every runner is inside the frame on every
- * frame. Follow-mine mode (`SceneFrame.follow`): the camera locks the highlighted runner
+ * frame; a gap it has to squeeze for that gets a soft haze cut and a true-length chip ("8L")
+ * hung on the far rail, so the picture never claims a straggler is closer than it is.
+ * Follow-mine mode (`SceneFrame.follow`): the camera locks the highlighted runner
  * at ~40 % from the left at the close-up zoom and the rest of the field may leave the
  * frame (the minimap and standings still show everyone).
  *
@@ -31,7 +33,8 @@ import { hexToRgb } from "../three/color";
 import { loadTracksideArt, type StripSet, type TracksideArt } from "./art";
 import * as bake from "./bake";
 import { StallGate } from "./gate";
-import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldLayout, type SpriteMetrics } from "./layout";
+import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldGap, type FieldLayout, type SpriteMetrics } from "./layout";
+import { CHIP_H, chipLabel, pickChips, type ChipCandidate } from "./gapMarks";
 import { lookFor, type TracksideLook } from "./looks";
 import { finishTilt, sceneryFor, type SceneryRecipe } from "./scenery";
 import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "./strips";
@@ -75,6 +78,7 @@ const O = {
   ground: 6,
   railFar: 7,
   props: 8,
+  gapHaze: 8.5,
   shadow: 9,
   horse: 100,
   dust: 140,
@@ -83,6 +87,7 @@ const O = {
   rays: 160,
   motes: 161,
   rain: 162,
+  gapChip: 169,
   grade: 170,
   vignette: 171,
   flash: 172,
@@ -106,6 +111,22 @@ interface Runner {
   lod: number;
   rect: { x: number; y: number; w: number; h: number };
 }
+
+interface GapMark {
+  haze: THREE.Mesh;
+  hazeMat: THREE.ShaderMaterial;
+  chip: THREE.Mesh;
+  chipMat: THREE.ShaderMaterial;
+  /** Eased haze / chip opacity (0..1). */
+  a: number;
+  chipA: number;
+  /** Eased screen x (CSS px). */
+  x: number;
+  label: string;
+}
+
+/** Gap markers ease in and out over about this long (s): a squeeze never pops or flickers. */
+const GAP_FADE_S = 0.25;
 
 interface LodTex {
   idx: THREE.DataTexture;
@@ -182,6 +203,11 @@ export class TracksideScene {
   private props: { mesh: THREE.Mesh; x: number; w: number; h: number; post: boolean }[] = [];
   private gate: StallGate | null = null;
   private marker: THREE.Mesh | null = null;
+  /** Gap markers, one slot per runner (the gap in front of it): haze cut + true-length chip. */
+  private gapMarks: GapMark[] = [];
+  private gapCells = new Map<string, { x: number; y: number; w: number; h: number }>();
+  private gapAtlasSize: [number, number] = [1, 1];
+  private gapScratch: (FieldGap | null)[] = [];
   private gradeTop!: THREE.Mesh;
   private gradeBottom!: THREE.Mesh;
   private vig!: THREE.Mesh;
@@ -278,6 +304,7 @@ export class TracksideScene {
       place: (m, x, y, w, h) => this.place(m, x, y, w, h),
     });
     this.buildRunners();
+    this.buildGapMarks();
     const dust = this.points(DUST_MAX, false, O.dust);
     this.dust = { ...dust, state: new Float32Array(DUST_MAX * 8), n: 0 };
     this.into = null;
@@ -573,6 +600,28 @@ export class TracksideScene {
     }
   }
 
+  /**
+   * Gap markers (honest compression): when the whole-field shot squeezes a gap to keep every
+   * runner on screen, a soft haze cut stands on the turf in that gap and a chip gives the
+   * true gap in lengths. One slot per runner (the gap in front of it); all art is baked here.
+   */
+  private buildGapMarks(): void {
+    const atlas = bake.gapChipAtlas();
+    this.gapCells = atlas.cells;
+    this.gapAtlasSize = [atlas.canvas.width, atlas.canvas.height];
+    const chipTex = this.canvasTex(atlas.canvas, { nearest: true });
+    const hazeTex = this.canvasTex(bake.gapHaze());
+    for (let i = 0; i < this.runners.length; i++) {
+      const hazeMat = this.bandMat(hazeTex, 32, 64, { tint: [this.look.fog, 1], opacity: 0 });
+      const chipMat = this.bandMat(chipTex, atlas.canvas.width, atlas.canvas.height, { sharp: true, opacity: 0 });
+      const haze = this.quad(hazeMat, O.gapHaze);
+      const chip = this.quad(chipMat, O.gapChip);
+      haze.visible = false;
+      chip.visible = false;
+      this.gapMarks.push({ haze, hazeMat, chip, chipMat, a: 0, chipA: 0, x: 0, label: "" });
+    }
+  }
+
   private buildFx(): void {
     const look = this.look;
     if (look.rays && this.sun) {
@@ -732,8 +781,9 @@ export class TracksideScene {
     // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
     // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the
     // follow lock's spring would settle 2*v/omega ahead of the runner — enough to push it
-    // out of the close-up frame. (Whole-field keeps its existing framing regardless.)
-    const camV = followOn && simDt === 0 ? 0 : 1;
+    // out of the close-up frame. The whole-field centre drifted the same way (~10 m ahead
+    // of the field while paused), leaving the leader mid-frame and squeezing the rest harder.
+    const camV = simDt === 0 ? 0 : 1;
     this.cam.update(
       {
         W: this.W,
@@ -781,6 +831,7 @@ export class TracksideScene {
     this.drawGround(lay);
     this.drawProps(lay);
     this.drawRunners(lay, simDt, raceT, tS);
+    this.drawGapMarks(lay, snap ? 0 : realDt, snap);
     this.gate?.draw(lay, raceT, this.byLane.map((r) => r.index), O.horse, this.B);
     this.drawFx(lay, realDt, f.frozen, f.flash);
     this.renderer.setRenderTarget(null);
@@ -1034,6 +1085,81 @@ export class TracksideScene {
       const cxm = p.ax * B - 0.62 * p.pxPerM * B;
       this.place(this.marker, Math.round(cxm - 5.5 * m), Math.round(r.rect.y * B + 0.06 * p.pxPerM * B - 10 * m + bob), 11 * m, 9 * m);
     }
+  }
+
+  /** Device px per chip texel: an integer, ~2 CSS px on desktop, ~1.5 on phones. */
+  private chipScale(): number {
+    return Math.max(2, Math.round(this.B * (this.W < 560 ? 1.5 : 2)));
+  }
+
+  /**
+   * Haze cut + true-length chip in every squeezed gap (`FieldGap.strength`), eased so they
+   * fade in and out with the squeeze. Chips never overlap: when two would, the bigger true
+   * gap keeps its number (the other keeps its haze cut). Uses only the current layout, i.e.
+   * the frames already shown.
+   */
+  private drawGapMarks(lay: FieldLayout, dt: number, snap: boolean) {
+    const B = this.B;
+    const marks = this.gapMarks;
+    const byAhead = this.gapScratch;
+    byAhead.length = marks.length;
+    byAhead.fill(null);
+    for (const g of lay.gaps) byAhead[g.ahead] = g;
+    const m = this.chipScale();
+    const cands: ChipCandidate[] = [];
+    const { l: il, r: ir } = lay.insets;
+    for (let i = 0; i < marks.length; i++) {
+      const g = byAhead[i];
+      if (!g || g.strength <= 0.25) continue; // below this the chip stays out (haze only)
+      const label = chipLabel(g.trueM);
+      const cell = label ? this.gapCells.get(label) : undefined;
+      if (!label || !cell) continue;
+      const w = (cell.w * m) / B;
+      cands.push({ key: i, x: Math.min(Math.max(g.x, il + w / 2), this.W - ir - w / 2), w, priority: g.trueM, sticky: marks[i]!.chipA > 0.5 });
+    }
+    const shown = pickChips(cands, 4, this.W < 560 ? 4 : 6);
+    const k = snap ? 1 : 1 - Math.exp(-dt / (GAP_FADE_S / 2.5));
+    const kx = snap ? 1 : 1 - Math.exp(-dt / 0.08);
+    const hazeTop = laneY(lay, this.railLane - 0.45) - 0.3 * lay.ppm;
+    const hazeBottom = lay.y0 + 0.25 * lay.ppm;
+    // Chips hang on the far rail, at the head of their haze column (clear of the bottom HUD
+    // and of the near-lane horses), never above the HUD-safe band.
+    const chipH = (CHIP_H * m) / B;
+    const chipTop = Math.max(lay.insets.t + 2, laneY(lay, this.railLane - 0.45) - chipH - 2);
+    for (let i = 0; i < marks.length; i++) {
+      const st = marks[i]!;
+      const g = byAhead[i];
+      const target = g ? g.strength : 0;
+      st.a += (target - st.a) * k;
+      // The haze follows the squeeze itself; the chip only comes in on a clear squeeze and is
+      // fully opaque from half strength on (a ghostly half-faded number reads as a glitch).
+      const cs = g && shown.has(i) ? Math.min(1, Math.max(0, (g.strength - 0.25) / 0.25)) : 0;
+      st.chipA += (cs * cs * (3 - 2 * cs) - st.chipA) * k;
+      if (g) {
+        const c = cands.find((cc) => cc.key === i);
+        const tx = c ? c.x : g.x;
+        st.x = st.a < 0.02 && st.chipA < 0.02 ? tx : st.x + (tx - st.x) * kx;
+        if (target > 0) st.label = chipLabel(g.trueM) ?? st.label;
+      }
+      if (st.a > 0.01) {
+        const hw = Math.max(12, 0.9 * lay.ppm);
+        st.hazeMat.uniforms.uOpacity!.value = 0.3 * st.a;
+        this.place(st.haze, (st.x - hw / 2) * B, hazeTop * B, hw * B, Math.max(1, hazeBottom - hazeTop) * B);
+      } else st.haze.visible = false;
+      const cell = this.gapCells.get(st.label);
+      if (st.chipA > 0.01 && cell) {
+        const [aw, ah] = this.gapAtlasSize;
+        this.setUv(st.chipMat, cell.x / aw, cell.y / ah, cell.w / aw, cell.h / ah);
+        st.chipMat.uniforms.uOpacity!.value = Math.min(1, st.chipA);
+        const w = cell.w * m;
+        this.place(st.chip, Math.round(st.x * B - w / 2), Math.round(chipTop * B), w, cell.h * m);
+      } else st.chip.visible = false;
+    }
+  }
+
+  /** Gap chips on screen (dev hook): label, centre x (CSS px) and opacity. */
+  debugGapMarks(): { label: string; x: number; alpha: number }[] {
+    return this.gapMarks.filter((g) => g.chipA > 0.05).map((g) => ({ label: g.label, x: g.x, alpha: g.chipA }));
   }
 
   private emitDust(r: Runner, wx: number) {

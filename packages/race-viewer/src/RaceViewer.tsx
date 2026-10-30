@@ -419,6 +419,8 @@ export function RaceViewer(props: RaceViewerProps) {
           camera: () => sc.cameraInfo,
           time: () => clockRef.current?.time ?? 0,
           maxCamStep: () => sc.maxCamStep,
+          // Gap markers on screen (true-length chips in squeezed gaps).
+          gaps: () => sc.debugGapMarks(),
         };
       }
 

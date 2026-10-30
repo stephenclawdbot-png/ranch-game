@@ -10,10 +10,16 @@
  * inside the stage (inside the HUD-safe band), whatever zoom and centre the eased camera has
  * reached. It first clamps the zoom so the lanes fit vertically and one horse fits
  * horizontally; when the field is still wider than the frame it compresses the gaps between
- * runners (big gaps first, order kept) so stragglers stay on screen instead of dropping out.
- * The camera springs normally keep the field inside the linear zone, so compression only
- * shows on very strung-out fields (zoom clamped at the minimum readable size) and for a
- * moment while the zoom is easing out.
+ * runners (big gaps first, `squeezeGaps`; bunched horses keep their true spacing) so
+ * stragglers stay on screen instead of dropping out. The camera springs normally keep the
+ * field inside the linear zone, so compression only shows on strung-out fields (zoom clamped
+ * at the minimum readable size, `sizeLimits`) and for a moment while the zoom is easing out.
+ *
+ * Honest compression: the views must agree on distances (the 3D view, the progress strip,
+ * the course map and the standings' "+NL" all draw true gaps). So the running order on screen
+ * is always the true order (by track position, never swapped by perspective), and every
+ * visibly squeezed gap is reported in `FieldLayout.gaps` with its true length; the scene
+ * marks it with a haze cut and a "8L" chip (gapMarks.ts).
  *
  * "Follow mine" mode (`FieldInput.follow` / `CameraInput.followIndex`) drops that guarantee
  * on purpose: the camera locks the marked runner at ~40 % from the left at the close-up
@@ -22,7 +28,9 @@
  *
  * Units: metres along the track (x), lanes (0 = inner rail, nearest the camera), CSS px.
  */
+import { HORSE_LENGTH_MM } from "@thoroughbred/shared";
 import { Spring } from "../scene/camera";
+import { lengthsLabel } from "../timeline";
 
 /** Source texels per metre of the HD gallop strip (HD pixel standard v2). */
 export const SRC_PX_PER_M = 96;
@@ -145,8 +153,100 @@ export interface FieldLayout {
   horizon: number;
   compressed: boolean;
   placed: Placed[];
+  /**
+   * The gaps between runners next to each other in the running order (by true x, trailing
+   * runner first), with how much each is squeezed on screen. `strength > 0` marks a gap the
+   * view has visibly shortened: the scene draws a true-length chip ("8L") there.
+   */
+  gaps: FieldGap[];
   /** Runner anchors, sorted: linear camera x -> drawn x (for props on the same squeeze). */
   knots: { lin: number[]; out: number[] };
+}
+
+/** One gap of the running order (see `FieldLayout.gaps`). */
+export interface FieldGap {
+  /** Runner index of the trailing runner. */
+  behind: number;
+  /** Runner index of the runner ahead of it. */
+  ahead: number;
+  /** True gap on the track (m): ahead.x - behind.x. */
+  trueM: number;
+  /** Drawn / true on-screen length (1 = true to scale, < 1 = squeezed). */
+  squeeze: number;
+  /** Marker strength 0..1 (continuous, so the chip fades in and out with the squeeze). */
+  strength: number;
+  /** Screen x (CSS px) of the visible gap's middle: between the trailing nose and the tail ahead. */
+  x: number;
+}
+
+/** Metres per horse length: the same definition as the standings' "+NL" gaps (shared HORSE_LENGTH_MM). */
+export const LENGTH_M = HORSE_LENGTH_MM / 1000;
+
+/**
+ * Squeezed gaps keep this share of their length beyond the cap (see `placeField`): bigger
+ * gaps still draw bigger, the chip carries the true length.
+ */
+export const GAP_KEEP = 0.15;
+
+const smooth01 = (v: number) => {
+  const t = Math.min(1, Math.max(0, v));
+  return t * t * (3 - 2 * t);
+};
+
+/** A gap is "squeezed" (marked) once it is drawn below this share of its length... */
+export const MARK_SQUEEZE = 0.85;
+/** ...and hides more than this many lengths. */
+export const MARK_HIDDEN_L = 1;
+
+/**
+ * Gap-marker strength for a gap of `trueM` metres drawn at `squeeze` of its true length.
+ * Zero unless the gap is shortened by more than 15 % AND by more than a length (so bunched
+ * horses nudged by a few centimetres never get a chip); full at 30 % and 2 lengths.
+ * Continuous in both, so markers fade in and out smoothly as compression starts and stops.
+ */
+export function gapMarkerStrength(trueM: number, squeeze: number): number {
+  const hiddenL = (trueM * (1 - squeeze)) / LENGTH_M;
+  return smooth01((MARK_SQUEEZE - squeeze) / 0.15) * smooth01(hiddenL - MARK_HIDDEN_L);
+}
+
+/** Chip text for a gap: true lengths, rounded exactly like the standings' "+NL" (no plus sign). */
+export function gapLabel(trueM: number): string {
+  return lengthsLabel(trueM * 1000).replace(/^\+/, "");
+}
+
+/**
+ * Drawn lengths for gaps `g` (px, >= 0) that must fit `span` px: gaps up to a cap `T` keep
+ * their true length, longer gaps keep `T + keep * (g - T)` (big gaps first; bunched horses
+ * keep their true spacing). `T` is solved so the drawn gaps fill `span` exactly; when even
+ * T = 0 does not fit, every gap scales by the same factor. Continuous in the inputs, so the
+ * squeeze eases with the field instead of popping.
+ */
+export function squeezeGaps(g: readonly number[], span: number, keep = GAP_KEEP): number[] {
+  let total = 0;
+  let gmax = 0;
+  for (const v of g) {
+    total += v;
+    gmax = Math.max(gmax, v);
+  }
+  if (total <= span) return g.slice();
+  if (keep * total >= span) {
+    const s = total > 0 ? Math.max(0, span) / total : 0;
+    return g.map((v) => v * s);
+  }
+  const f = (T: number) => {
+    let s = 0;
+    for (const v of g) s += v <= T ? v : T + keep * (v - T);
+    return s;
+  };
+  let lo = 0;
+  let hi = gmax;
+  for (let i = 0; i < 48; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > span) hi = mid;
+    else lo = mid;
+  }
+  const T = lo;
+  return g.map((v) => (v <= T ? v : T + keep * (v - T)));
 }
 
 /**
@@ -259,46 +359,48 @@ export function placeField(inp: FieldInput): FieldLayout {
   const Lb = insets.l + maxTail;
   const Rb = W - insets.r - maxNose;
   const A = Math.max(0, Rb - Lb);
-  const order = lin.map((_, i) => i).sort((a, b) => lin[a]! - lin[b]! || a - b);
+  // The running order: true track position (what the standings, progress strip and course
+  // map show), trailing runner first. Perspective alone could swap two near-level runners in
+  // different lanes at the edge of the frame; the whole-field layout never draws a runner
+  // behind one it is ahead of.
+  const order = lin.map((_, i) => i).sort((a, b) => runners[a]!.x - runners[b]!.x || lin[a]! - lin[b]! || b - a);
+  const gpx: number[] = [];
+  for (let j = 0; j < n - 1; j++) gpx.push(Math.max(0, lin[order[j + 1]!]! - lin[order[j]!]!));
+  const drawn = gpx.slice();
   const out = lin.slice();
   let compressed = false;
   const followIdx = inp.follow != null && inp.follow >= 0 && inp.follow < n ? inp.follow : null;
   if (followIdx !== null) {
     // Follow-cam: no fitting/compression — the linear mapping stands, so runners other than
     // the followed one may leave the frame by design (the whole-field guarantee above does
-    // not apply in this mode).
+    // not apply in this mode). Gaps are reported unsqueezed.
   } else if (n > 0) {
-    const p0 = lin[order[0]!]!;
-    const p1 = lin[order[n - 1]!]!;
-    const S = p1 - p0;
+    let p1 = -Infinity;
+    for (const v of lin) p1 = Math.max(p1, v);
+    // Drawn extent with the running order enforced (a runner swapped by perspective is drawn
+    // level with the one behind it instead).
+    const S = p1 - lin[order[0]!]!;
     // The leader keeps its camera position where it can (so the gap to the winning post is
     // true); the field slides in, or the gaps behind it are squeezed, to fit [Lb, leader].
     const R = Math.min(Math.max(p1, Lb + Math.min(S, 0.6 * A)), Rb);
     if (R - S >= Lb - 1e-9) {
       const shift = R - p1;
-      for (let i = 0; i < n; i++) out[i] = lin[i]! + shift;
+      let prev = -Infinity;
+      for (const i of order) {
+        out[i] = Math.max(lin[i]! + shift, prev);
+        prev = out[i]!;
+      }
+      for (let j = 0; j < n - 1; j++) drawn[j] = out[order[j + 1]!]! - out[order[j]!]!;
     } else {
       compressed = true;
-      const span = Math.max(0, R - Lb);
-      // Compress gaps above an equal share first (bunched horses keep their spacing).
-      const g0 = span / Math.max(1, n - 1);
-      let base = 0;
-      let excess = 0;
-      const gaps: number[] = [];
-      for (let j = 0; j < n - 1; j++) {
-        const g = lin[order[j + 1]!]! - lin[order[j]!]!;
-        gaps.push(g);
-        base += Math.min(g, g0);
-        excess += Math.max(0, g - g0);
-      }
-      const lambda = base <= span && excess > 0 ? (span - base) / excess : 0;
-      const shrink = base > span && base > 0 ? span / base : 1;
+      // Big gaps first: bunched horses keep their true spacing (squeezeGaps).
+      const d = squeezeGaps(gpx, Math.max(0, R - Lb));
       let pos = Lb;
       out[order[0]!] = pos;
       for (let j = 0; j < n - 1; j++) {
-        const g = gaps[j]!;
-        pos += (Math.min(g, g0) + lambda * Math.max(0, g - g0)) * shrink;
-        out[order[j + 1]!] = Math.min(pos, R);
+        pos = Math.min(pos + d[j]!, R);
+        out[order[j + 1]!] = pos;
+        drawn[j] = d[j]!;
       }
     }
   }
@@ -318,7 +420,17 @@ export function placeField(inp: FieldInput): FieldLayout {
     if (knots.lin[j]! < knots.lin[j - 1]!) knots.lin[j] = knots.lin[j - 1]!;
     if (knots.out[j]! < knots.out[j - 1]!) knots.out[j] = knots.out[j - 1]!;
   }
-  return { W, H, insets, ppm, cx: inp.cx, camH: v.camH, k, y0, horizon, compressed, placed, knots };
+  const gaps: FieldGap[] = [];
+  for (let j = 0; j < n - 1; j++) {
+    const a = order[j]!;
+    const b = order[j + 1]!;
+    const trueM = runners[b]!.x - runners[a]!.x;
+    const squeeze = gpx[j]! > 1e-6 ? Math.min(1, Math.max(0, drawn[j]! / gpx[j]!)) : 1;
+    const nose = placed[a]!.ax;
+    const tail = placed[b]!.rect.x;
+    gaps.push({ behind: a, ahead: b, trueM, squeeze, strength: followIdx !== null ? 0 : gapMarkerStrength(trueM, squeeze), x: nose + Math.max(0, tail - nose) / 2 });
+  }
+  return { W, H, insets, ppm, cx: inp.cx, camH: v.camH, k, y0, horizon, compressed, placed, gaps, knots };
 }
 
 /** Screen y of the ground at lane l for a layout. */
@@ -384,9 +496,18 @@ export interface CameraTarget {
   follow?: CameraRunner | null;
 }
 
+/**
+ * Smallest horse the whole-field shot may zoom out to (CSS px of horse length): desktop
+ * min(120, ~9.3 % of the stage width), phones 56. A third below the original 180 / 84, so a
+ * strung-out field is shown at (or much nearer) its true spacing instead of squeezed; the
+ * pixel art still lands at >= ~0.5 CSS px per source texel (>= 1 device px on HiDPI), on
+ * an exact downsampled level of detail.
+ */
+export const WIDE_MIN_LEN = { desktop: 120, phone: 56, share: 0.14 * (2 / 3) } as const;
+
 /** Minimum readable horse length and the close-up cap (CSS px). */
 export function sizeLimits(W: number, runners = 8): { minLen: number; maxLen: number } {
-  const minLen = Math.min(180, Math.max(84, W * 0.14));
+  const minLen = Math.min(WIDE_MIN_LEN.desktop, Math.max(WIDE_MIN_LEN.phone, W * WIDE_MIN_LEN.share));
   // Big fields on narrow stages may fall back to a smaller horse, still on the ladder.
   const crowded = Math.max(44, Math.round(minLen * (1 - 0.25 * crowding(W, runners))));
   return { minLen: crowded, maxLen: Math.min(520, W * 0.34) };
