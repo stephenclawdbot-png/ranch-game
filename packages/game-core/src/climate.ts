@@ -111,7 +111,7 @@ export const DRAINAGE_BASE = 250;
 /** Turf going by moisture: below 1st firm, below 2nd good, below 3rd soft, else heavy. */
 export const TURF_GOING_BANDS = [250, 500, 750] as const;
 /** Dirt rides good until the ground is very wet, then heavy (sloppy) from this moisture. */
-export const DIRT_HEAVY_FROM = 800;
+export const DIRT_HEAVY_FROM = 900;
 
 /** Going for a surface at this moisture. A wet day is never firm (rain on firm ground reads good). */
 export function goingFor(surface: Surface, moisture: number, wet = false): Going {

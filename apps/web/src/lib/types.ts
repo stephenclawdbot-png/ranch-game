@@ -63,6 +63,8 @@ export interface RaceCard {
   engineVersion: string;
   /** The stable that sponsored this race (its silks go on the racecard header). */
   sponsor?: RaceSponsorView;
+  /** How the ground is moving into race day at its course (game-core climate.ts); null when unknown. */
+  groundTrend?: "drying" | "softening" | "steady" | null;
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */

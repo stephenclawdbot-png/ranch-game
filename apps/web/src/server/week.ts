@@ -5,9 +5,10 @@
  * the Feature, and the stable's League standing with the gap to the promotion line.
  */
 import * as gc from "@thoroughbred/game-core";
-import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, settleUpkeep, stableCalendarRuns, startsOnDay, upkeepThisWeek, type Db } from "@thoroughbred/db";
+import { CALENDAR_HOME_COURSE, CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, settleUpkeep, stableCalendarRuns, startsOnDay, upkeepThisWeek, type Db } from "@thoroughbred/db";
 import { conditionRating, lossGrade } from "@/lib/aptitude";
 import type { WeekView } from "@/lib/competitionTypes";
+import { groundView } from "./ground";
 import { horseFromRow, parseSilks } from "./horseView";
 import type { Session } from "./session";
 
@@ -50,11 +51,21 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
       return { postTimeMs: at, done: at + RULES.slotMs < nowMs, purse: CALENDAR_PURSE.feature_qualifier, mine };
     });
 
+  const ground = groundView(now);
   let feature: WeekView["feature"] = null;
   if (wf) {
     const c = card(wf.postTimeMs);
     const cond = c.conditions as { distanceM: number; surface: string; going: string };
-    feature = { name: c.name, postTimeMs: slotStartMs(wf.postTimeMs), distanceM: cond.distanceM, surface: cond.surface, going: cond.going, division: wf.division, purse: c.purse ?? 0, entryFee: c.entryFee ?? 0 };
+    // The going is the weather on the day: real once the race is on the published card, the
+    // outlook's likely going at its home course before that (the climate is never read ahead).
+    const published = wf.postTimeMs <= nowMs + RULES.cardHorizonMs;
+    const home = ground.courses.find((x) => x.name === CALENDAR_HOME_COURSE.weekend_feature);
+    const raceDay = Math.floor(wf.postTimeMs / DAY);
+    const exact = home?.days.find((d) => d.day === raceDay)?.going[wf.surface] ?? null;
+    const likely = home?.outlook.find((o) => o.day === raceDay)?.likelyGoing[wf.surface] ?? null;
+    const going = published ? cond.going : (exact ?? likely);
+    const name = published ? c.name : `${CALENDAR_HOME_COURSE.weekend_feature} ${wf.name}`;
+    feature = { name, postTimeMs: slotStartMs(wf.postTimeMs), distanceM: cond.distanceM, surface: published ? cond.surface : wf.surface, going, goingSettled: published || exact !== null, division: wf.division, purse: c.purse ?? 0, entryFee: c.entryFee ?? 0 };
   }
 
   const silks = parseSilks(session.stable.silks);
@@ -68,7 +79,7 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
     if (feature) {
       const horse = horseFromRow(row, silks, nowMs);
       const ideal = conditionRating(horse, horse.style, { distanceM: horse.preferredDistanceM, surface: horse.preferredSurface, going: "good" });
-      const here = conditionRating(horse, horse.style, { distanceM: feature.distanceM, surface: feature.surface as never, going: feature.going as never });
+      const here = conditionRating(horse, horse.style, { distanceM: feature.distanceM, surface: feature.surface as never, going: (feature.going ?? "good") as never });
       fit = lossGrade(Math.max(0, ideal - here)) as NonNullable<WeekView["horses"][number]["fit"]>;
     }
     const canRaceToday = (await startsOnDay(db, row.id, now, { liveOnly: true })) < RULES.liveStartsPerDay && !row.lockKind && !(row.injuredUntil && row.injuredUntil > now);
@@ -100,7 +111,7 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
   let headline: string;
   if (!wf && finals.length) headline = "Season Final week: the championships run on the last day of the season.";
   else if (!licenceOk) headline = `Earn the ${gc.licenceDef(gc.licenceForTier("g1", true)).name} in Story mode to run on Saturday.`;
-  else if (qualified.length) headline = `${qualified.map((h) => h.name).join(", ")} ${qualified.length === 1 ? "is" : "are"} in for Saturday${feature ? ` (${feature.distanceM} m, ${feature.surface}, ${feature.going})` : ""}.`;
+  else if (qualified.length) headline = `${qualified.map((h) => h.name).join(", ")} ${qualified.length === 1 ? "is" : "are"} in for Saturday${feature ? ` (${feature.distanceM} m, ${feature.surface}${feature.going ? `, ${feature.goingSettled ? "" : "likely "}${feature.going}` : ""})` : ""}.`;
   else if (nextQ) {
     const best = horses.find((h) => h.canRaceToday && (h.fit === "A" || h.fit === "B"));
     headline = `Not qualified yet. Next Feature Qualifier ${new Date(nextQ.postTimeMs).toUTCString().slice(0, 11)} ${new Date(nextQ.postTimeMs).toISOString().slice(11, 16)} UTC: a top 3 gets you in${best ? `; ${best.name} suits Saturday's trip` : ""}.`;
@@ -118,6 +129,7 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
     horses,
     league,
     upkeep: await upkeepThisWeek(db, session.stable.id, now),
+    ground,
     headline,
   };
 }

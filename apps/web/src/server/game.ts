@@ -111,6 +111,7 @@ import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFr
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
+import { raceGroundTrend } from "./ground";
 
 // ---------------------------------------------------------------------------
 // Hooks, ids, small helpers
@@ -444,6 +445,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     maxRunners: race.maxRunners,
     engineVersion: replay?.engineVersion ?? fieldEngineVersion(field),
     sponsor: await sponsorFor(db, race, viewerStableId),
+    groundTrend: raceGroundTrend(race.conditions as Record<string, unknown>, race.postTime),
   };
 }
 

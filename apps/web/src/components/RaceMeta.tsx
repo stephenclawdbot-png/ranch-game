@@ -10,16 +10,22 @@ export function WeatherGlyph({ weather, className }: { weather: RaceConfig["weat
 
 type MetaRace = Pick<RaceConfig, "distanceM" | "surface" | "going" | "weather" | "raceClass" | "purse">;
 
-/** Distance · surface · going · weather · class tags (flat chips; nothing brass). */
-export function RaceMetaChips({ race, showPurse = false, showClass = true }: { race: MetaRace; showPurse?: boolean; showClass?: boolean }) {
+const TREND_TITLE = { drying: "The ground is drying out since yesterday", softening: "Rain has softened the ground since yesterday" } as const;
+
+/**
+ * Distance · surface · going · weather · class tags (flat chips; nothing brass). `trend` adds the
+ * ground's direction to the going ("soft, drying"); steady ground shows no word.
+ */
+export function RaceMetaChips({ race, showPurse = false, showClass = true, trend = null }: { race: MetaRace; showPurse?: boolean; showClass?: boolean; trend?: "drying" | "softening" | "steady" | null }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       <span className="chip">
         <strong className="num text-cream">{formatDistance(race.distanceM)}</strong>
         <span>{furlongs(race.distanceM)}</span>
       </span>
-      <span className="chip">
+      <span className="chip" data-testid="race-ground" title={trend && trend !== "steady" ? TREND_TITLE[trend] : undefined}>
         {SURFACE_LABEL[race.surface]} · {GOING_LABEL[race.going].toLowerCase()}
+        {trend && trend !== "steady" && <span className="text-cream-dim">, {trend}</span>}
       </span>
       <span className="chip">
         <WeatherGlyph weather={race.weather} className="h-4 w-4" />
