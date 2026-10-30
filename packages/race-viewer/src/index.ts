@@ -13,3 +13,4 @@ export { PlaybackClock, PLAYBACK_RATES, type ClockFrame, type PlaybackOptions } 
 export { CourseMap, describeCourse, type CourseMapProps, type CourseMapRunner } from "./hud/CourseMap";
 export { courseGeometry, pointAt, runnerArcM, startArcM, type CourseGeometry, type CourseInfo, type CourseSceneryId, type CourseShapeId } from "./course/geometry";
 export { SCENERY, sceneryFor, type SceneryRecipe } from "./trackside/scenery";
+export * from "./photo";
