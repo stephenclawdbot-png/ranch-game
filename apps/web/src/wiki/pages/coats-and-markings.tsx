@@ -83,6 +83,18 @@ const PATTERN_GENES: [locus: gc.Genes2Key, name: string, one: string, two: strin
   ["splash", "Splash white (SW)", "Big blaze, white legs, blue eyes", "Bald face, white belly"],
 ];
 
+/** One portrait per v2 colour/pattern gene: [caption, v2 genes, coat genes, line]. */
+const PATTERN_SAMPLES: [string, Partial<gc.Genes2>, Partial<gc.CoatGenes>, string][] = [
+  ["Gold champagne", { champagne: ["Ch", "n"] }, { extension: ["e", "e"] }, "Chestnut + Ch"],
+  ["Classic champagne", { champagne: ["Ch", "n"] }, { agouti: ["a", "a"] }, "Black + Ch"],
+  ["Silver black", { silver: ["Z", "n"] }, { agouti: ["a", "a"] }, "Black + Z"],
+  ["Pearl", { pearl: ["prl", "prl"] }, { extension: ["e", "e"] }, "Chestnut + prl/prl"],
+  ["Tobiano", { tobiano: ["TO", "n"] }, {}, "Bay + TO"],
+  ["Leopard", { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }, { extension: ["e", "e"] }, "Chestnut + LP + PATN1"],
+  ["Few-spot", { leopard: ["LP", "LP"] }, {}, "Bay + LP/LP"],
+  ["Splash white", { splash: ["SW", "n"] }, { extension: ["e", "e"] }, "Chestnut + SW"],
+];
+
 /** The three breeds with the most copies of a gene. */
 function topCarriers(locus: gc.Genes2Key): string {
   const key = gc.G2_LOCI.find((l) => l[0] === locus)![1];
@@ -338,10 +350,17 @@ export default function CoatsAndMarkingsPage() {
         head={["Pairing", "Foals that show it"]}
         rows={patternOdds.map(([label, name, permille]) => [label, `${Math.round(permille / 10)}% ${name.toLowerCase()}`])}
       />
-      <Callout tone="warn" title="Not drawn yet">
+      <P>Each of these horses carries exactly the gene in its caption; the portraits draw it from the genes.</P>
+      <HorseRow>
+        {PATTERN_SAMPLES.map(([label, over, coat, line]) => (
+          <HorseCard key={label} appearance={appearanceOfGenome(withG2(`v2-${label}`, over, coat))} name={label} line={line} size="sm" />
+        ))}
+      </HorseRow>
+      <Callout tone="rule" title="Where they show">
         <p>
-          The portraits, the race sprites and the yard horses don&rsquo;t draw these seven genes yet. A champagne or tobiano horse looks like its base coat in pictures; the horse page names the
-          pattern under <b>Markings</b>, the card line lists it, and the Genetics panel shows the genes. The pictures will catch up.
+          The 3/4 portraits draw all seven: champagne, silver and pearl colour the coat, mane, skin and eyes, and tobiano, the leopard complex and splash white paint their white on the
+          head and neck (a grey still goes white over them). On the race sprites and the yard horses the three colour genes show, but the white patterns are not drawn yet; the horse page names
+          them under <b>Markings</b>.
         </p>
       </Callout>
 
@@ -377,7 +396,7 @@ export default function CoatsAndMarkingsPage() {
           </>,
           <>
             <b>Body, pattern and performance genes</b>: one line for each of the {gc.GENES2_KEYS.length} genes above and on <WikiLink slug="breeds" />, with hidden copies marked; <b>Size</b> with what it
-            does to the stats; <b>Markings</b> naming any pattern the pictures don&rsquo;t draw yet. Big heart reads &ldquo;?/?&rdquo; until the horse has raced or had a Pedigree Scan.
+            does to the stats; <b>Markings</b> naming the colour and pattern genes the horse shows (and any the portrait doesn&rsquo;t draw yet). Big heart reads &ldquo;?/?&rdquo; until the horse has raced or had a Pedigree Scan.
           </>,
           <>Stat genes are not shown here: those stay hidden behind ranges. See <WikiLink slug="genetics-and-inheritance" />.</>,
         ]}

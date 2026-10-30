@@ -1,7 +1,7 @@
 "use client";
 
 import type { HorseAppearance, Silks } from "@thoroughbred/shared";
-import { adultCoatName, appearanceOf, generateFoundationGenome, type CoatGenes } from "@thoroughbred/game-core";
+import { WILD_GENES2, adultCoatName, appearanceOf, generateFoundationGenome, type CoatGenes, type Genes2 } from "@thoroughbred/game-core";
 import { resolveHorseColors } from "@/lib/art";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { GallopSprite } from "@/components/pixel/GallopSprite";
@@ -40,6 +40,8 @@ interface Row {
   label?: string;
   /** Face marking override for the marking cells. */
   face?: HorseAppearance["face"];
+  /** Genetics v2 colour/pattern genes (every other v2 locus stays wild). */
+  g2?: Partial<Genes2>;
 }
 
 const withoutGrey = (g: Partial<CoatGenes>): CoatGenes => ({ ...WILD, ...g, grey: ["n", "n"] });
@@ -82,11 +84,33 @@ const ROWS: Row[] = [
   { genes: aa, face: "stripe", label: "Black + stripe" },
   { genes: {}, face: "bald", label: "Bay + bald" },
   { genes: gg, progress: { racingAge: true, starts: 3, retired: false }, face: "snip", label: "Grey + snip" },
+  // genetics v2 colour genes
+  { genes: ee, g2: { champagne: ["Ch", "n"] }, label: "Gold champagne" },
+  { genes: {}, g2: { champagne: ["Ch", "n"] }, label: "Amber champagne" },
+  { genes: at, g2: { champagne: ["Ch", "n"] }, label: "Sable champagne" },
+  { genes: aa, g2: { champagne: ["Ch", "n"] }, label: "Classic champagne" },
+  { genes: { ...ee, ...cr1 }, g2: { champagne: ["Ch", "n"] }, label: "Gold cream champagne" },
+  { genes: aa, g2: { silver: ["Z", "n"] }, label: "Silver black" },
+  { genes: {}, g2: { silver: ["Z", "n"] }, label: "Silver bay" },
+  { genes: ee, g2: { pearl: ["prl", "prl"] }, label: "Pearl (chestnut)" },
+  { genes: { ...ee, ...cr1 }, g2: { pearl: ["prl", "n"] }, label: "Pearl + cream" },
+  // genetics v2 white patterns
+  { genes: {}, g2: { tobiano: ["TO", "n"] }, label: "Bay tobiano" },
+  { genes: aa, g2: { tobiano: ["TO", "TO"] }, label: "Black tobiano (TO/TO)" },
+  { genes: ee, g2: { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }, label: "Chestnut leopard" },
+  { genes: {}, g2: { leopard: ["LP", "LP"] }, label: "Few-spot (LP/LP)" },
+  { genes: {}, g2: { leopard: ["LP", "n"] }, label: "Varnish roan (LP/n)" },
+  { genes: ee, g2: { splash: ["SW", "n"] }, label: "Chestnut splash (SW/n)" },
+  { genes: {}, g2: { splash: ["SW", "SW"] }, label: "Bay splash (SW/SW)" },
+  { genes: { ...ee, sabino: ["Sb1", "n"] }, face: "stripe", label: "Chestnut sabino 1 + stripe" },
+  { genes: { ...ee, sabino: ["Sb1", "Sb1"] }, face: "blaze", label: "Chestnut max sabino" },
+  { genes: { ...aa, ...dun }, face: "star", label: "Grullo + star" },
 ];
 
 function cellAppearance(row: Row, i: number): HorseAppearance {
   const genes: CoatGenes = { ...WILD, ...row.genes };
-  const genome = { ...generateFoundationGenome(`coat-cell-${i}`, { season: 1 }), coat: genes };
+  // every v2 locus wild unless the row sets it (the seeded genome may carry some)
+  const genome = { ...generateFoundationGenome(`coat-cell-${i}`, { season: 1 }), coat: genes, genes2: { ...WILD_GENES2, ...row.g2 } };
   const a = appearanceOf(genome, row.progress ?? ADULT, SILKS);
   // Pure coat comparison: no white markings unless the row asks for one, no mane override.
   return { ...a, face: row.face ?? "none", legs: ["none", "none", "none", "none"], maneColor: undefined };
@@ -127,7 +151,8 @@ export function CoatsHarness() {
     <main className="min-h-screen bg-[#14100c] p-3 text-neutral-200">
       <h1 className="mb-1 text-lg font-bold text-[#e8d9b0]">Coat anchors v2</h1>
       <p className="mb-3 max-w-3xl text-xs text-neutral-400">
-        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans, grey stages and face markings.
+        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans, grey stages, face markings and the
+        genetics v2 colour and pattern genes (portrait coverage table in docs/genetics-v2.md).
         Each cell: the genetic 3/4 portrait (painted art recoloured from the genes), the small code-drawn
         fallback, a still Trackside gallop frame, and the resolved palette (body · shade · highlight · mane ·
         points · stripe).
