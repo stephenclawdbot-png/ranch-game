@@ -63,6 +63,13 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
   const out: KeyNumber[] = [
     { key: "liveRaces", label: "Live races run", value: t.liveRaces },
     { key: "liveWithPlayers", label: "Live races with a player runner", value: pct(t.liveRacesWithPlayers, t.liveRaces), unit: "%" },
+    { key: "calledOff", label: "Card races called off (no player entered)", value: t.liveRacesCalledOff ?? 0 },
+    {
+      key: "publishedWithPlayers",
+      label: "Published card races with a player runner (called-off races count as without)",
+      value: pct(t.liveRacesWithPlayers, t.liveRaces + (t.liveRacesCalledOff ?? 0)),
+      unit: "%",
+    },
     { key: "avgField", label: "Average Live field", value: t.avgField, unit: " runners" },
     { key: "playerShare", label: "Player share of Live runners", value: t.playerShare, unit: "%" },
     { key: "storyRaces", label: "Story races", value: t.storyRaces },

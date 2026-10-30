@@ -276,6 +276,8 @@ export interface CardRace extends PublicRace {
   entered: number;
   /** Active entries of `stableId` (0 without one). */
   mine: number;
+  /** Player stables with an active entry (Club runners don't count): "N stables entered". */
+  stables: number;
 }
 
 /** Live-card races (slot races) with post time in [from, to], oldest first, with entry counts. */
@@ -285,6 +287,7 @@ export async function listCardRaces(ex: Executor, input: { from: Date; to: Date;
     .select({
       race: races,
       entered: sql<number>`(select count(*)::int from race_entries e where e.race_id = "races"."id" and e.status = 'entered')`,
+      stables: sql<number>`(select count(distinct e.stable_id)::int from race_entries e where e.race_id = "races"."id" and e.status = 'entered' and e.stable_id is not null)`,
       mine: stableId
         ? sql<number>`(select count(*)::int from race_entries e where e.race_id = "races"."id" and e.status = 'entered' and e.stable_id = ${stableId})`
         : sql<number>`0`,
@@ -292,5 +295,5 @@ export async function listCardRaces(ex: Executor, input: { from: Date; to: Date;
     .from(races)
     .where(and(like(races.slotKey, "live:%"), gte(races.postTime, input.from), lte(races.postTime, input.to)))
     .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
-  return rows.map((r) => ({ ...publicRace(r.race), entered: Number(r.entered), mine: Number(r.mine) }));
+  return rows.map((r) => ({ ...publicRace(r.race), entered: Number(r.entered), mine: Number(r.mine), stables: Number(r.stables) }));
 }

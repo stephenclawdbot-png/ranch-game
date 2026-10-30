@@ -15,6 +15,7 @@ regenerate).
 | sinks1 | weekly upkeep 250 / 150, race-day extras, jockeys, race sponsorship | 77.6 | 170 / 46 | 23 | credits held -33%; upkeep 176k, extras 67k, sponsorship 50k, jockeys 30k |
 | sinks2 | upkeep 375 racing / 200 stud | 81.3 | 189 / 52 | 28 | upkeep 262k, but sponsorship (-22k) and stall purchases (-17k) fell; grinder median balance 3.3k → 1.4k while casuals keep 11k |
 | goals45 | daily goals 3 × 45 (was 3 × 60); horse leasing live | **85.2** | 195 / – | 25 | in the healthy range; created -73k; casual median 11.0k → 9.2k, grinders unchanged (1.5k); leasing: 15 offers, 2 leases |
+| meetings1 | race meetings: 3 a day × 8 races (07:00, 13:00, 19:00 UTC), card 24 h ahead, field minimum 5, playerless ordinary races called off; harness entry sheets look at the next meeting(s) | 85.1 | 207 / 55 | 27 | **97.2% of Live races run had a player (was 39.9%), player share of runners 58.1% (was 10.4%)**; 500 races run + 297 called off (61% of published races had a player at the close); avg field 9.8; created 1,181,002 (-5.2% vs goals45); casuals ran a Qualifier 35% (was 20%) and the Weekend Feature 10% (was 0%); grinder median 1.5k → 0.7k; Live injuries 13 → 23; foals above both parents 11 of 31 → 2 of 25 (not explained yet) |
 
 ## Decisions (2026-10-29/30)
 
@@ -27,15 +28,23 @@ regenerate).
 7. Credit sinks (owner picks): weekly upkeep on horses used that week, race-day extras, jockeys,
    race sponsorship; upkeep set to 375 racing / 200 stud after sinks2.
 8. Daily goals trimmed to 3 × 45 (owner, 2026-10-30): goals45 lands at 85.2.
+9. Race meetings (owner-approved plan, 2026-10-30): the Live card concentrates into three meetings of
+   eight races a day, published a day ahead, minimum field 5, ordinary races with no player called
+   off at the close (calendar and sponsored races always run). meetings1 meets the targets (85%+
+   races with a player, 35%+ player share, credits created within ±10%).
 
 ## Open
 
 - **Economy:** 85.2 spent per 100 earned (goals45), inside 85-115 but at its bottom edge.
   Grinders end the season on ~1.5k: if beta players feel squeezed, ease racing upkeep (375)
   before touching anything else. Credit cosmetics remain the next hoarder sink if needed.
-- **Empty races:** ~40% of Live races have a player runner at 50 stables. Agreed plan in
-  `docs/reports/2026-10-30 empty races meeting.md` (race meetings first).
+- **Empty races:** fixed by the race meetings (meetings1: 97% of races run have a player, 58% of
+  runners are players). 37% of published meeting races are still called off at 50 stables: watch
+  it in the beta, and the next steps of the plan (claiming races, Club-seeded markets) in
+  `docs/reports/2026-10-30 empty races meeting.md`.
+- **After the meetings (meetings1), to check:** grinders end on a median 0.7k (was 1.5k); Live
+  injuries 13 → 23 a season (more runs against players, grinders run tired horses); only 2 of 25
+  foals above both parents (was 11 of 31): small sample, but the breeding mix should be looked at
+  before reading anything into it.
 - **Undetected alt groups** still move ~6k a season through stud fees (under the fee cap).
-- **Player share of Live runners** ~10% at 50 stables: fields are mostly Club runners at beta
-  scale; rises with players.
 - Casual stables rarely reach Saturday (10%): expected for one visit a day; watch in the beta.

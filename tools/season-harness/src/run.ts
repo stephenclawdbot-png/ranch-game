@@ -48,6 +48,8 @@ export interface Totals {
   transfers: Record<string, number>;
   liveRaces: number;
   liveRacesWithPlayers: number;
+  /** Ordinary card races called off at the close with no player runner (0 in runs before the race meetings). */
+  liveRacesCalledOff?: number;
   avgField: number;
   playerShare: number;
   storyRaces: number;
@@ -107,6 +109,7 @@ function totalsOf(days: DaySample[], last: Snapshot): Totals {
     transfers: last.transfers,
     liveRaces: live,
     liveRacesWithPlayers: sum(days.map((d) => d.races.liveWithPlayers)),
+    liveRacesCalledOff: sum(days.map((d) => d.races.calledOff ?? 0)),
     avgField: live ? Math.round((10 * sum(days.map((d) => d.races.avgField * d.races.live))) / live) / 10 : 0,
     playerShare: live ? Math.round((10 * sum(days.map((d) => d.races.playerShare * d.races.live * d.races.avgField))) / Math.max(1, sum(days.map((d) => d.races.live * d.races.avgField)))) / 10 : 0,
     storyRaces: sum(days.map((d) => d.races.story)),

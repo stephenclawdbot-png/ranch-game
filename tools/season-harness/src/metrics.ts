@@ -73,6 +73,8 @@ export interface DaySample {
     avgPlayerRunners: number;
     sisters: number;
     cancelled: number;
+    /** Ordinary card races called off at the close because no player entered (race meetings). */
+    calledOff: number;
     story: number;
     cup: number;
     purses: number;
@@ -345,6 +347,7 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
       avgPlayerRunners: round1(live.length ? playerRunners / live.length : 0),
       sisters: live.filter((r) => /^live:\d+:\d+$/.test(r.slot_key ?? "")).length,
       cancelled: raceRows.filter((r) => r.status === "cancelled" && r.kind !== "quick").length,
+      calledOff: raceRows.filter((r) => r.status === "cancelled" && (r.kind === "scheduled" || r.kind === "feature") && /^live:/.test(r.slot_key ?? "") && num(r.n) === 0).length,
       story: raceRows.filter((r) => r.kind === "quick" && r.status === "settled").length,
       cup: num(cup?.n),
       purses: num(purses?.s),

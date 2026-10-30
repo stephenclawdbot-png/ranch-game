@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { RULES } from "../rules";
 import { inboxItems, ledgerTransactions, raceSponsorships, races } from "../schema";
-import { CALENDAR_HORIZON_MS, defaultCardSlot, ensureRaceCard, isCalendarSlot, slotIndexAt, slotPostTime } from "../services/card";
+import { CALENDAR_HORIZON_MS, defaultCardSlot, ensureRaceCard, isCalendarSlot, isCardSlot, slotIndexAt, slotPostTime } from "../services/card";
 import { getBalance, ledgerHealth, systemAccountId } from "../services/ledger";
 import { cancelRace, createRace, enterRace, getRaceForSimulation, lockField, settleRace } from "../services/races";
 import {
@@ -43,10 +43,17 @@ async function burnBalance(): Promise<number> {
   return Number(list[0]!.balance);
 }
 
-/** The first ordinary (non-calendar) slot at or after `from`. */
+/** The first ordinary (non-calendar) meeting race at or after `from`. */
 function ordinarySlot(from: number): number {
   let i = from;
-  while (isCalendarSlot(i)) i++;
+  while (isCalendarSlot(i) || !isCardSlot(i)) i++;
+  return i;
+}
+
+/** The first slot between race meetings at or after `from` (no race runs then). */
+function emptySlot(from: number): number {
+  let i = from;
+  while (isCardSlot(i)) i++;
   return i;
 }
 
@@ -72,16 +79,20 @@ describe("pricing and names", () => {
 });
 
 describe("the sponsor list", () => {
-  it("lists every ordinary slot for the next week at its price; calendar races are not for sale", async () => {
+  it("lists every ordinary meeting race for the next week at its price; calendar races are not for sale", async () => {
     const now = at(2 * DAY);
     const slots = await listSponsorSlots(h.db, now);
     const w = sponsorWindow(now);
     expect(slots[0]!.index).toBeGreaterThanOrEqual(w.first);
     expect(slots.at(-1)!.index).toBeLessThanOrEqual(w.last);
     expect(slots.at(-1)!.postTime.getTime()).toBeLessThanOrEqual(now.getTime() + SPONSORSHIP.windowMs);
-    const calendar = Array.from({ length: w.last - w.first + 1 }, (_, i) => w.first + i).filter(isCalendarSlot);
+    const window = Array.from({ length: w.last - w.first + 1 }, (_, i) => w.first + i);
+    const calendar = window.filter(isCalendarSlot);
     expect(calendar.length).toBeGreaterThan(0); // a week always has Qualifiers
-    expect(slots).toHaveLength(w.last - w.first + 1 - calendar.length);
+    // only meeting races run: 24 a day, not one every 15 minutes
+    expect(slots).toHaveLength(window.filter(isCardSlot).length - calendar.length);
+    expect(slots.length).toBeLessThanOrEqual(7 * 24);
+    expect(slots.length).toBeGreaterThan(7 * 24 - 12);
     for (const s of slots) {
       expect(isCalendarSlot(s.index)).toBe(false);
       expect(s.price).toBe(sponsorshipPrice(defaultCardSlot(s.index).purse!));
@@ -97,8 +108,8 @@ describe("buying a sponsorship", () => {
   it("charges the price once (burned), is idempotent per key, and names the race when it is published", async () => {
     const now = at(3 * DAY);
     const p = await newPlayer(h.db, { credits: 50_000 });
-    // a slot a day ahead: beyond the published card (6 h)
-    const index = ordinarySlot(slotIndexAt(new Date(now.getTime() + DAY)));
+    // a slot two days ahead: beyond the published card (a day)
+    const index = ordinarySlot(slotIndexAt(new Date(now.getTime() + 2 * DAY)));
     const slot = defaultCardSlot(index);
     expect(slot.kind === "scheduled" || slot.kind === "feature").toBe(true);
     const price = sponsorshipPrice(slot.purse!);
@@ -115,7 +126,7 @@ describe("buying a sponsorship", () => {
     const tx = await h.db.select().from(ledgerTransactions).where(eq(ledgerTransactions.kind, "race_sponsorship"));
     expect(tx.filter((t) => t.idempotencyKey === `race-sponsorship:${first.sponsorship.id}`)).toHaveLength(1);
     // the same key for another slot is a conflict, not a second purchase
-    await expect(sponsorRace(h.db, { accountId: p.accountId, slotIndex: index + 1, idempotencyKey: k, now })).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+    await expect(sponsorRace(h.db, { accountId: p.accountId, slotIndex: ordinarySlot(index + 1), idempotencyKey: k, now })).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
 
     // later the card publishes the slot: the race carries the sponsor's name
     const publishAt = new Date(slotPostTime(index).getTime() - RULES.cardHorizonMs + MIN);
@@ -160,6 +171,8 @@ describe("buying a sponsorship", () => {
     let calendar = w.first;
     while (!isCalendarSlot(calendar)) calendar++;
     await expect(buy(calendar)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    // between race meetings no race goes off
+    await expect(buy(emptySlot(w.first))).rejects.toMatchObject({ code: "NOT_ELIGIBLE", message: expect.stringMatching(/race meetings/) });
     await expect(buy(w.last + 1)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
     await expect(buy(w.first - 1)).rejects.toMatchObject({ code: "RACE_CLOSED" });
     // published, entries closed (10 s before the off)
@@ -176,9 +189,30 @@ describe("buying a sponsorship", () => {
     await expect(buy(cheap, now, poor.accountId)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
     expect(await h.db.select().from(raceSponsorships).where(eq(raceSponsorships.slotIndex, cheap))).toHaveLength(0);
     // at most three upcoming sponsorships per stable
-    const picks = [ordinarySlot(w.first + 50), ordinarySlot(w.first + 60), ordinarySlot(w.first + 70), ordinarySlot(w.first + 80)];
+    const p1 = ordinarySlot(cheap + 1);
+    const p2 = ordinarySlot(p1 + 1);
+    const p3 = ordinarySlot(p2 + 1);
+    const picks = [p1, p2, p3, ordinarySlot(p3 + 1)];
     for (const i of picks.slice(0, SPONSORSHIP.maxUpcomingPerStable)) await buy(i);
     await expect(buy(picks[3]!)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+  });
+});
+
+describe("race meetings", () => {
+  it("a sponsorship bought for a slot the meetings left empty is refunded when its time comes round", async () => {
+    const now = at(9 * DAY);
+    const p = await newPlayer(h.db, { credits: 20_000 });
+    const index = emptySlot(slotIndexAt(new Date(now.getTime() + 2 * DAY)));
+    // bought under the old every-15-minutes card (a card that had a race in every slot)
+    const oldCard = (i: number) => ({ ...defaultCardSlot(ordinarySlot(i)), postTime: slotPostTime(i), entriesCloseAt: new Date(slotPostTime(i).getTime() - 30_000), slotKey: `live:${i}` });
+    const bought = await sponsorRace(h.db, { accountId: p.accountId, slotIndex: index, idempotencyKey: key(), now, cardSlot: oldCard });
+    const paid = bought.sponsorship.price;
+    expect(await getBalance(h.db, p.accountId)).toBe(20_000 - paid);
+    await ensureRaceCard(h.db, new Date(slotPostTime(index).getTime() - RULES.cardHorizonMs + MIN));
+    const [after] = await h.db.select().from(raceSponsorships).where(eq(raceSponsorships.id, bought.sponsorship.id));
+    expect(after!.refundedAt).not.toBeNull();
+    expect(await getBalance(h.db, p.accountId)).toBe(20_000);
+    expect(await h.db.select().from(races).where(eq(races.slotKey, `live:${index}`))).toHaveLength(0);
   });
 });
 

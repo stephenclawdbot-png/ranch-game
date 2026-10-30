@@ -94,7 +94,8 @@ export default function QuickStartPage() {
             <b>Today&rsquo;s goals</b> on the Estate: run a race, care for a horse and run the Daily Cup. Each pays <b>{gc.DAILY_GOAL_CREDITS}</b> credits, {goalsPay} in all.
           </>,
           <>
-            <b>Race.</b> A Live race goes off every {MINUTES(gc.SLOT_INTERVAL_MS)} minutes and costs stable entries; Story races are free. Each horse can run{" "}
+            <b>Race.</b> Live races run in {gc.MEETINGS_PER_DAY} race meetings a day ({gc.MEETING_START_TIMES_UTC.join(", ")} UTC, {gc.RACES_PER_MEETING} races{" "}
+            {MINUTES(gc.MEETING_RACE_SPACING_MS)} minutes apart), published a day ahead, and cost stable entries; Story races are free. Each horse can run{" "}
             <b>{count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day</b>, and at most {gc.MAX_STARTS_PER_DAY} races a day counting Story races, so spread your entries across your
             string. See <WikiLink slug="credits-and-entries" />.
           </>,

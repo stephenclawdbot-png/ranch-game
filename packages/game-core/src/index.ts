@@ -34,3 +34,4 @@ export * from "./naming";
 export * from "./usdgMarket";
 export * from "./leasing";
 export * from "./stablePhoto";
+export * from "./meetings";

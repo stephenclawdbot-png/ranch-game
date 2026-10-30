@@ -1,21 +1,21 @@
 /**
  * Content check for the Live card calendar (packages/db `defaultCardSlot`): every starter
  * horse finds a race it may enter (class, licence) that suits its surface and trip (form-guide
- * fit grade C or better) somewhere in the published card (6 hours, 24 races), wherever you
- * start looking.
+ * fit grade C or better) somewhere in the published card (a day: three race meetings, 24 races),
+ * wherever you start looking.
  * Before the fix the card ran turf and dirt only, at up to 2,400 m, and most synthetic or
  * staying starters never found a suitable race.
  */
 import { describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { CALENDAR_PURSE, CARD_CYCLE_SLOTS, RULES, defaultCardSlot, slotIndexAt, type CreateRaceInput } from "@thoroughbred/db";
+import { CALENDAR_PURSE, RULES, cardSlotAt, defaultCardSlot, slotIndexAt, type CreateRaceInput } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceConds, raceTier } from "./horseView";
 
 const SILKS = { pattern: "hoops", primary: "#112233", secondary: "#445566", cap: "#778899" } as const;
 const T = Date.UTC(2026, 10, 2, 12, 0, 7);
-/** The published card: every race a player can enter right now (RULES.cardHorizonMs). */
-const WINDOW = Math.floor(RULES.cardHorizonMs / RULES.slotMs);
+/** The published card: every race a player can enter right now (RULES.cardHorizonMs: a day of meetings). */
+const WINDOW = gc.LIVE_RACES_PER_DAY;
 
 function slotOf(input: CreateRaceInput): gc.RaceSlot {
   const c = raceConds(input);
@@ -42,7 +42,9 @@ function slotOf(input: CreateRaceInput): gc.RaceSlot {
 describe("Live card content fits the horses players actually have", () => {
   it("every starter has an enterable race with grade C fit or better in the published card (B for nearly all)", { timeout: 60_000 }, () => {
     const base = slotIndexAt(new Date(T));
-    const card = Array.from({ length: 24 * 20 * 3 }, (_, i) => defaultCardSlot(base + i));
+    // the meeting races of 60 days in order (slots between meetings have no race)
+    const card = Array.from({ length: gc.SLOTS_PER_DAY * 60 }, (_, i) => cardSlotAt(base + i)).filter((s) => s !== null);
+    expect(card.length).toBeGreaterThan(gc.LIVE_RACES_PER_DAY * 59);
     expect(new Set(card.map((s) => s.conditions.surface))).toEqual(new Set(["turf", "dirt", "synthetic"]));
     let checks = 0;
     let bWithin = 0;
@@ -68,8 +70,8 @@ describe("Live card content fits the horses players actually have", () => {
       }
     }
     expect(checks).toBeGreaterThan(1000);
-    // the published card always holds a whole class cycle
-    expect(WINDOW).toBeGreaterThanOrEqual(CARD_CYCLE_SLOTS);
+    // the published card always holds a day of meetings
+    expect(RULES.cardHorizonMs).toBe(gc.MS_PER_DAY);
     expect(bWithin / checks).toBeGreaterThan(0.9);
   });
 

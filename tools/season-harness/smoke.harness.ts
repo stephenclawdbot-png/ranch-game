@@ -44,7 +44,7 @@ async function freshRun(cfg: HarnessConfig): Promise<RunResult> {
 const comparable = (r: RunResult) => JSON.stringify({ days: r.days, totals: r.totals, outcomes: r.outcomes, farmers: r.farmers, checks: r.checks, errors: r.errors });
 
 it("a short season runs through the real server path, conserves credits and is deterministic", async () => {
-  const { RULES } = await import("@thoroughbred/db");
+  const { RULES, isCardSlot, slotIndexAt } = await import("@thoroughbred/db");
   const run = { ...cfg, stepMs: RULES.slotMs };
   const a = await freshRun(run);
   await writeOutputs(run, a);
@@ -58,8 +58,10 @@ it("a short season runs through the real server path, conserves credits and is d
   expect(a.checks.ok).toBe(true);
 
   const day = a.days[0]!;
-  // Twelve hours of card at RULES.slotMs spacing, all settled (the first slot opens after the start).
-  expect(a.totals.liveRaces).toBeGreaterThanOrEqual(Math.floor((12 * 3_600_000) / RULES.slotMs) - 1);
+  // Twelve hours of race meetings, every race settled or called off (no player entered; the first slot opens after the start).
+  const first = slotIndexAt(new Date(cfg.startMs)) + 1;
+  const cardRaces = Array.from({ length: (12 * 3_600_000) / RULES.slotMs }, (_, i) => first + i).filter(isCardSlot).length;
+  expect(a.totals.liveRaces + (a.totals.liveRacesCalledOff ?? 0)).toBeGreaterThanOrEqual(cardRaces - 1);
   expect(day.races.avgField).toBeGreaterThanOrEqual(RULES.minField);
   expect(sum(Object.values(day.startsPerStable))).toBeGreaterThan(0);
   expect(day.races.liveWithPlayers).toBeGreaterThan(0);

@@ -654,7 +654,7 @@ export const races = pgTable(
     /** Live card slot ("live:<slot index>"): one race per slot, however many instances publish. */
     slotKey: text("slot_key"),
     maxRunners: integer("max_runners").notNull().default(12),
-    /** Field size the lock fills to with house horses (8-12). */
+    /** Field size the lock fills to with house horses (RULES.minField..maxField: 5-12). */
     targetRunners: integer("target_runners").notNull().default(10),
     /** Stable entries consumed per entry (Live 1, feature/graded 2, Story & Daily Cup 0). */
     entryCost: integer("entry_cost").notNull().default(0),

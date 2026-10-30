@@ -7,7 +7,7 @@ import { RULES } from "../rules";
 import { gc } from "../gameCore";
 import { entryMovements, raceEntries, races, stables } from "../schema";
 import { createAccount } from "../services/accounts";
-import { ensureRaceCard, slotIndexAt, tickRaceCard } from "../services/card";
+import { defaultCardSlot, ensureRaceCard, isCalendarSlot, isCardSlot, meetingRaceOf, slotIndexAt, slotPostTime, tickRaceCard } from "../services/card";
 import { listCardRaces } from "../services/player";
 import { getEntryBank, localDate, refillEntries, setTimezone, upgradeEntryTier } from "../services/entries";
 import { getBalance } from "../services/ledger";
@@ -43,28 +43,110 @@ async function bank(accountId: string, now = T0) {
 }
 
 describe("race card", () => {
-  it("publishes one race per slot, idempotently across concurrent instances", async () => {
+  it("publishes the next day's race meetings (and calendar races), one race per slot, idempotently across concurrent instances", async () => {
     const now = at(30 * DAY);
     const cards = await Promise.all([ensureRaceCard(h.db, now), ensureRaceCard(h.db, now), ensureRaceCard(h.db, now)]);
-    const expected = RULES.cardHorizonMs / RULES.slotMs;
-    // the regular horizon, plus calendar races published a week ahead (CALENDAR_HORIZON_MS)
-    const horizonEnd = now.getTime() + RULES.cardHorizonMs;
-    expect(cards[0]!.filter((r) => r.postTime.getTime() <= horizonEnd)).toHaveLength(expected);
-    for (const r of cards[0]!.filter((x) => x.postTime.getTime() > horizonEnd)) expect((r.conditions as { calendar?: unknown }).calendar).toBeTruthy();
-    expect(cards[1]!.map((r) => r.seedCommitment)).toEqual(cards[0]!.map((r) => r.seedCommitment));
     const first = slotIndexAt(now) + 1;
-    expect(await count(h.db, "races", `slot_key in (${Array.from({ length: expected }, (_, i) => `'live:${first + i}'`).join(",")})`)).toBe(expected);
+    const window = Array.from({ length: RULES.cardHorizonMs / RULES.slotMs }, (_, i) => first + i);
+    const expected = window.filter(isCardSlot);
+    // three meetings of eight a day: a day ahead holds 24 meeting races (a calendar race takes one of them)
+    expect(RULES.cardHorizonMs).toBe(gc.CARD_HORIZON_MS);
+    expect(expected.length).toBe(gc.LIVE_RACES_PER_DAY);
+    expect(cards[0]!.map((r) => r.slotKey)).toEqual(expected.map((i) => `live:${i}`));
+    expect(cards[1]!.map((r) => r.seedCommitment)).toEqual(cards[0]!.map((r) => r.seedCommitment));
+    expect(await count(h.db, "races", `slot_key in (${window.map((i) => `'live:${i}'`).join(",")})`)).toBe(expected.length);
     expect(RULES.entriesCloseBeforePostMs).toBe(30_000); // one going-to-post constant, from game-core
     for (const r of cards[0]!) {
       expect(r.entriesCloseAt.getTime()).toBe(r.postTime.getTime() - 30_000);
       expect(r.postTime.getTime() % RULES.slotMs).toBe(RULES.seasonEpochMs % RULES.slotMs);
-      expect(r.targetRunners).toBeGreaterThanOrEqual(8);
-      expect(r.targetRunners).toBeLessThanOrEqual(12);
+      expect(meetingRaceOf(slotIndexAt(r.postTime))).not.toBeNull();
+      expect(r.targetRunners).toBeGreaterThanOrEqual(RULES.minField);
+      expect(r.targetRunners).toBeLessThanOrEqual(RULES.maxField);
       expect(r.entryCost).toBe(r.kind === "feature" || r.kind === "final" || r.raceClass === "graded" ? 2 : 1);
     }
     // Deterministic conditions per slot.
     const again = await ensureRaceCard(h.db, now);
     expect(again.map((r) => [r.name, r.conditions])).toEqual(cards[0]!.map((r) => [r.name, r.conditions]));
+    // A later tick publishes only the new slots.
+    const later = await ensureRaceCard(h.db, new Date(now.getTime() + 6 * 60 * MIN));
+    expect(later.filter((r) => r.postTime > now).length).toBe(later.length);
+    expect(later.length).toBe(gc.LIVE_RACES_PER_DAY);
+  });
+
+  it("every meeting has the class mix: a top race, maidens, novices and all three handicap bands; calendar races only replace a top race or a handicap", () => {
+    const base = slotIndexAt(at(0));
+    const slots = Array.from({ length: gc.SLOTS_PER_DAY * 56 }, (_, i) => base + i).filter(isCardSlot);
+    const meetings = new Map<number, ReturnType<typeof defaultCardSlot>[]>();
+    for (const i of slots) {
+      const m = meetingRaceOf(i)!;
+      expect(m).not.toBeNull(); // calendar races sit inside a meeting
+      meetings.set(m.number, [...(meetings.get(m.number) ?? []), defaultCardSlot(i)]);
+    }
+    expect(meetings.size).toBe(56 * 3);
+    const label = (r: ReturnType<typeof defaultCardSlot>) => ((r.conditions as { calendar?: unknown }).calendar ? "calendar" : r.kind === "feature" ? "feature" : r.raceClass === "handicap" ? `hcp ${r.conditions.minRating ?? 0}-${r.conditions.maxRating}` : r.raceClass);
+    let listed = 0;
+    let features = 0;
+    for (const [n, races] of meetings) {
+      expect(races).toHaveLength(gc.RACES_PER_MEETING);
+      const kinds = races.map(label);
+      // juvenile races are never displaced
+      expect(kinds.filter((k) => k === "maiden")).toHaveLength(2);
+      expect(kinds.filter((k) => k === "novice")).toHaveLength(2);
+      const calendar = kinds.filter((k) => k === "calendar").length;
+      const hcps = ["hcp 0-55", "hcp 50-75", "hcp 70-95"].filter((k) => kinds.includes(k)).length;
+      // every band runs unless a calendar race took its place (Saturday's Plate, Finals day)
+      expect(hcps + calendar).toBeGreaterThanOrEqual(3);
+      if (!calendar) expect(hcps).toBe(3);
+      if (kinds.includes("listed")) listed++;
+      if (kinds.includes("feature")) features++;
+      expect(n % 2 === 0 ? kinds.includes("feature") || calendar > 0 : true).toBe(true);
+    }
+    expect(listed).toBeGreaterThan(40);
+    expect(features).toBeGreaterThan(40);
+    // juvenile races cover every surface and trip zone within a day
+    const juvenile = slots.slice(0, gc.LIVE_RACES_PER_DAY).map(defaultCardSlot).filter((r) => r.raceClass === "maiden" || r.raceClass === "novice");
+    expect(new Set(juvenile.map((r) => `${r.conditions.surface}:${r.conditions.distanceM}`)).size).toBe(12);
+    // maidens alone run every trip over two meetings
+    expect(new Set(slots.slice(0, 16).map(defaultCardSlot).filter((r) => r.raceClass === "maiden").map((r) => r.conditions.distanceM)).size).toBe(4);
+  });
+
+  it("calls off an ordinary race that no player entered; a race with players gets Club horses up to its target; calendar races always run", async () => {
+    const now = at(40 * DAY);
+    await ensureRaceCard(h.db, now);
+    const card = await ensureRaceCard(h.db, now);
+    const ordinary = card.filter((r) => !(r.conditions as { calendar?: unknown }).calendar);
+    const [empty, entered] = [ordinary[0]!, ordinary.find((r) => r.raceClass === "maiden" || r.raceClass === "novice")!];
+    expect(empty.id).not.toBe(entered.id);
+    const players = await Promise.all([newPlayer(h.db), newPlayer(h.db)]);
+    for (const p of players) {
+      const horse = await makeHorse(h.db, p.stableId, { rating: 30, wins: 0, starts: 0 });
+      await enterRace(h.db, { accountId: p.accountId, raceId: entered.id, horseId: horse.id, tactic: "front", now });
+    }
+    // a calendar race with no player runner still runs (published on the same horizon)
+    let calendarIndex = slotIndexAt(now) + 1;
+    while (!isCalendarSlot(calendarIndex)) calendarIndex++;
+    await ensureRaceCard(h.db, new Date(slotPostTime(calendarIndex).getTime() - RULES.cardHorizonMs + MIN));
+    const [calendar] = await h.db.select().from(races).where(eq(races.slotKey, `live:${calendarIndex}`));
+
+    const tick = await tickRaceCard(h.db, entered.entriesCloseAt.getTime() > empty.entriesCloseAt.getTime() ? entered.entriesCloseAt : empty.entriesCloseAt);
+    expect(tick.calledOff).toContain(empty.id);
+    expect(tick.locked).toContain(entered.id);
+    const [off] = await h.db.select().from(races).where(eq(races.id, empty.id));
+    expect(off!.status).toBe("cancelled");
+    expect(off!.field).toBeNull();
+    expect(await count(h.db, "race_entries", `race_id = '${empty.id}'`)).toBe(0);
+    // idempotent: locking again reports the call-off, simulating refuses
+    expect(await lockField(h.db, empty.id, at(41 * DAY))).toBeNull();
+    await expect(getRaceForSimulation(h.db, empty.id, at(41 * DAY))).rejects.toMatchObject({ code: "RACE_CLOSED" });
+    // the entered race: the two players plus Club horses up to the race's own target
+    const [run] = await h.db.select().from(races).where(eq(races.id, entered.id));
+    const field = run!.field as { runners: { isHouse: boolean }[] };
+    expect(field.runners.filter((r) => !r.isHouse)).toHaveLength(2);
+    expect(field.runners).toHaveLength(Math.max(2, run!.targetRunners));
+    // the calendar race locks with Club horses only
+    const fieldCal = await lockField(h.db, calendar!.id, calendar!.entriesCloseAt);
+    expect(fieldCal).not.toBeNull();
+    expect(fieldCal!.runners.every((r) => r.isHouse)).toBe(true);
   });
 });
 
@@ -176,7 +258,7 @@ describe("field lock and settlement", () => {
     await expect(lockField(h.db, race.id, at(8 * MIN))).rejects.toMatchObject({ code: "TOO_EARLY" });
     const closeAt = at(9 * MIN);
     const fields = await Promise.all([lockField(h.db, race.id, closeAt), lockField(h.db, race.id, closeAt), tickRaceCard(h.db, closeAt).then(() => lockField(h.db, race.id, closeAt))]);
-    expect(new Set(fields.map((f) => f.fieldHash)).size).toBe(1);
+    expect(new Set(fields.map((f) => f!.fieldHash)).size).toBe(1);
     const field = fields[0]!;
     expect(field.runners).toHaveLength(9);
     expect(field.runners.filter((r) => r.isHouse)).toHaveLength(6);
@@ -213,8 +295,8 @@ describe("field lock and settlement", () => {
     const r2 = await liveRace({ targetRunners: 8 }, 60 * MIN);
     const close = at(69 * MIN);
     const [f1, f2] = await Promise.all([lockField(h.db, r1.id, close), lockField(h.db, r2.id, close)]);
-    const ids1 = new Set(f1.runners.map((r) => r.horseId));
-    expect(f2.runners.some((r) => ids1.has(r.horseId))).toBe(false);
+    const ids1 = new Set(f1!.runners.map((r) => r.horseId));
+    expect(f2!.runners.some((r) => ids1.has(r.horseId))).toBe(false);
     const houseEntries = await h.db.select().from(raceEntries).where(eq(raceEntries.isHouse, true));
     expect(houseEntries.length).toBeGreaterThanOrEqual(16);
   });
@@ -386,7 +468,7 @@ describe("sister courses", () => {
     expect(sister).toBeDefined();
     const mine = await enter(p.accountId, p.stableId, sister!.id);
     const close = at(10 * MIN - 30_000);
-    const field = await lockField(h.db, sister!.id, close);
+    const field = (await lockField(h.db, sister!.id, close))!;
     expect(field.runners).toHaveLength(4); // 1 player + 3 Club horses
     expect(field.runners.filter((r) => r.isHouse)).toHaveLength(3);
     const sim = await getRaceForSimulation(h.db, sister!.id, at(10 * MIN));

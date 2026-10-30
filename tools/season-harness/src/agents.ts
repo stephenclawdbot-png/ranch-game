@@ -9,11 +9,11 @@
  * Cohorts:
  * - casual: one evening visit (and skips some days): care, the Daily Cup, a Story race, a
  *   couple of Live Quick Picks, the free Paddock Pack; now and then an entry from the sheet
- *   with a vet check (and physio for a tired horse); with credits to spare, now and then
+ *   for the next race meeting with a vet check (and physio for a tired horse); with credits to spare, now and then
  *   sponsors a race (the prestige sink, sponsor.ts); once established (lessee requirements),
  *   sometimes takes a horse on lease from the board and hands it back now and then.
  * - grinder: visits every couple of hours, keeps every fit horse entered in the race that
- *   suits it best (entryOptions fit), goes for Feature Qualifiers and the Weekend Feature when
+ *   suits it best (entryOptions fit) in the next two race meetings, goes for Feature Qualifiers and the Weekend Feature when
  *   a horse can run (with race-day extras and a booked jockey), climbs the Story licences,
  *   trains, refills entries, buys upgrades and the odd horse on the market, takes a lease
  *   when it has a free stall (and hands it back now and then); a rich grinder
@@ -45,6 +45,16 @@ import type { Cohort } from "./config";
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
+
+/**
+ * How far ahead an entry sheet looks: to the end of the `n`-th race meeting from now (game-core
+ * meetings.ts). With the card in race meetings, "the next few hours" can hold no race at all, so
+ * players look at the next meeting(s) instead (one meeting = 8 races; the old 2 h / 3 h / 6 h
+ * windows held 8 / 12 / 24 races of the 15-minute card).
+ */
+function meetingsAheadMs(now: Date, n: number): number {
+  return gc.nthMeetingEndMs({ epochMs: RULES.seasonEpochMs }, now.getTime(), n) - now.getTime();
+}
 
 /** UTC offsets (minutes, November, no DST) of the timezones agents are spread over. */
 const TIMEZONES: readonly [string, number][] = [
@@ -580,7 +590,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       if (a.rng.chance(700)) await dailyCup(c, s);
       if (a.rng.chance(500)) await storyRaces(c, s, 1);
       // Now and then a casual opens the entry sheet instead and adds a vet check (rarely more).
-      if (a.rng.chance(CASUAL_SHEET_PERMILLE)) await sheetEntries(c, s, view, { lookaheadMs: 2 * HOUR, tiredOk: false, raceDay: casualRaceDay, maxEntries: 1 });
+      if (a.rng.chance(CASUAL_SHEET_PERMILLE)) await sheetEntries(c, s, view, { lookaheadMs: meetingsAheadMs(now, 1), tiredOk: false, raceDay: casualRaceDay, maxEntries: 1 });
       await quickPicks(c, s, 1 + a.rng.int(3));
       await freePack(c, s);
       await maybeSponsor(c, s, view.credits, 12_000, 150);
@@ -676,13 +686,13 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
   }
   let v = (await fresh(c, s)) ?? view;
   // Grinders use their entries: tired horses run too (fresh ones are preferred).
-  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true, raceDay: grinderRaceDay(a.rng) });
+  await smartEntries(c, s, v, { lookaheadMs: meetingsAheadMs(now, 2), tiredOk: true, raceDay: grinderRaceDay(a.rng) });
   if (c.last) {
     v = (await fresh(c, s)) ?? v;
     if (v.entries.balance < RULES.entryRefillBelow && v.credits > 2_000) {
       if (await world.act(a, "refill", now, () => refill(world.db, s, now))) a.stats.refills++;
       v = (await fresh(c, s)) ?? v;
-      await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true, raceDay: grinderRaceDay(a.rng) });
+      await smartEntries(c, s, v, { lookaheadMs: meetingsAheadMs(now, 3), tiredOk: true, raceDay: grinderRaceDay(a.rng) });
     }
     // a rich grinder now and then puts the stable's name on a race
     await maybeSponsor(c, s, ((await fresh(c, s)) ?? v).credits, 30_000, 100);
@@ -734,7 +744,7 @@ async function mainVisit(c: VisitCtx, s: Session, view: View): Promise<void> {
   }
   if (c.first && s.stable.licenceLevel < 4) await storyRaces(c, s, 2);
   const v = (await fresh(c, s)) ?? view;
-  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true });
+  await smartEntries(c, s, v, { lookaheadMs: meetingsAheadMs(c.now, 2), tiredOk: true });
 }
 
 async function altVisit(c: VisitCtx, s: Session, view: View, main: Agent | null): Promise<void> {

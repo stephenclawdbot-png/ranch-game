@@ -122,7 +122,7 @@ describe("race-day extras and jockeys", () => {
     const b = await makeHorse(h.db, q.stableId);
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "stalker", now: T0, raceDay: FULL });
     await enterRace(h.db, { accountId: q.accountId, raceId: race.id, horseId: b.id, tactic: "stalker", now: T0, raceDay: { extras: ["vet_check"], jockey: "apprentice" } });
-    const field = await lockField(h.db, race.id, at(9 * MIN));
+    const field = (await lockField(h.db, race.id, at(9 * MIN)))!;
     const ra = field.runners.find((r) => r.horseId === a.id)!;
     const rb = field.runners.find((r) => r.horseId === b.id)!;
     expect(ra.kit).toEqual({ goingPenaltyPermille: 500, formAmpPermille: 800, keenPermille: 500 });
