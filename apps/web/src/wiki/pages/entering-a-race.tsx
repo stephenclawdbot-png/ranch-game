@@ -35,9 +35,45 @@ function riskExample() {
   return RIDES.map((r) => ({ ...r, risk: gc.injuryRisk(state, { nowMs: 0, going: "good", distanceM: 1600, intensity: r.v, stage }) }));
 }
 
+/** Purses of the Live card the price table shows (live card.ts values). */
+const PRICE_PURSES: { label: string; purse: number }[] = [
+  { label: "Maiden", purse: 2_000 },
+  { label: "Handicap 70-95", purse: 5_000 },
+  { label: "Listed", purse: 8_000 },
+  { label: "Feature Qualifier", purse: 16_000 },
+  { label: "Weekend Feature", purse: 48_000 },
+];
+
+/** A share of the purse as the wiki words it ("2% of the purse, 40 to 1,000 credits"). */
+function priceRule(price: gc.RaceDayPrice | null): string {
+  if (!price) return "Free";
+  return `${price.purseBps / 100}% of the purse, ${formatCredits(price.floor)} to ${formatCredits(price.cap)} credits`;
+}
+
+/** The race-day extras for one real horse, a little tired, on heavy ground over a mile. */
+function extrasExample() {
+  const genome = sampleGenome("entry-risk-1");
+  const born = gc.createHorseState({ id: "wiki-extras", name: "Example", sex: "colt", ownerId: "wiki", sireId: null, damId: null, generation: 0, genome, bornAtMs: 0, bornSeason: 1, careSessions: gc.CARE_TO_RACING });
+  const base: gc.HorseState = { ...born, career: { ...born.career, starts: gc.JUVENILE_MAX_STARTS + 4 } };
+  const tired = gc.withFatigue(base, 600, 0, false);
+  const stage = gc.stageOf(tired);
+  const rows: { label: string; extras: gc.RaceExtraKey[] }[] = [
+    { label: "No extras", extras: [] },
+    { label: "Physio session", extras: ["physio"] },
+    { label: "Pre-race vet check", extras: ["vet_check"] },
+    { label: "Soft-ground shoes", extras: ["soft_shoes"] },
+    { label: "All three", extras: ["soft_shoes", "physio", "vet_check"] },
+  ];
+  return rows.map((r) => {
+    const state = gc.withPhysio(tired, { extras: r.extras }, 0);
+    return { ...r, fatigue: gc.fatigueAt(state, 0), risk: gc.injuryRisk(state, { nowMs: 0, going: "heavy", distanceM: 1600, intensity: "normal", stage, raceDay: { extras: r.extras } }) };
+  });
+}
+
 export default function EnteringARacePage() {
   const styles = styleExamples();
   const risks = riskExample();
+  const extras = extrasExample();
   const normal = risks.find((r) => r.v === "normal")!.risk;
   // Credit entry fees on the Live card (one week of it, big days included).
   const week = Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i));
@@ -62,6 +98,9 @@ export default function EnteringARacePage() {
           </>,
           <>Choose the riding plan: a tactic and a ride intensity. The sheet shows the injury risk for the ride you picked before you commit.</>,
           <>
+            Add any race-day extras or book a jockey if you want them (optional, paid in credits). The risk and the total on the Enter button update as you tick them.
+          </>,
+          <>
             Confirm. The race costs {entryCostFor("scheduled", "maiden")} stable entry ({entryCostFor("feature", "graded")} for Features, Finals and Group races).
           </>,
           <>Watch it live, or come back later: the result waits in your inbox.</>,
@@ -81,6 +120,7 @@ export default function EnteringARacePage() {
           ["Form", "The last three finishes, oldest first. 0 means it finished outside the first nine."],
           ["OR", "The official rating going into this race."],
           ["Plan", "How the horse will be ridden: Front, Stalk or Close."],
+          ["Under the stable", "Race-day equipment and a booked jockey, in italics: \"Soft shoes · Vet-checked · Top jockey\". Nothing printed means the stable apprentice and no extras."],
           ["Best trip", "The distance the horse prefers."],
           ["Spd · Sta · Brs", "Grades for speed, stamina and burst."],
         ]}
@@ -173,6 +213,67 @@ export default function EnteringARacePage() {
           you want to keep breeding from.
         </p>
       </Callout>
+
+      <H2 id="extras">Race-day extras &amp; jockeys</H2>
+      <P>
+        When you enter a Live race the sheet offers a few optional extras and a choice of jockey. They are paid in credits with the entry, priced as a share of the race&rsquo;s purse (so a big
+        race costs more), and every effect is small and published here. None of them can make a horse faster than its genes and condition allow on its best day: they only take away part of
+        a cost the race puts on the horse, or steady its run.
+      </P>
+      <Table
+        head={["Extra", "Offered", "What it does", "Price"]}
+        rows={gc.RACE_EXTRA_KEYS.map((k) => {
+          const d = gc.RACE_EXTRAS[k];
+          return [d.label, d.goings ? `${d.goings.join(" or ")} going` : "every Live race", d.effect, priceRule(d.price)];
+        })}
+      />
+      <Table
+        head={["Jockey", "What it does", "Price"]}
+        rows={gc.JOCKEY_KEYS.map((k) => {
+          const j = gc.JOCKEYS[k];
+          return [j.label, j.effect, priceRule(j.price)];
+        })}
+        caption="Day form is each horse's luck on the day, the main source of upsets. A better jockey narrows it both ways: fewer bad days, but fewer lucky ones too, so a long shot may prefer the apprentice."
+      />
+      <Table
+        head={["Race", "Purse", ...gc.RACE_EXTRA_KEYS.filter((k) => k !== "firm_shoes").map((k) => gc.RACE_EXTRAS[k].tag), gc.JOCKEYS.journeyman.label, gc.JOCKEYS.top.label]}
+        rows={PRICE_PURSES.map((r) => [
+          r.label,
+          formatCredits(r.purse),
+          ...gc.RACE_EXTRA_KEYS.filter((k) => k !== "firm_shoes").map((k) => formatCredits(gc.raceDayPrice(gc.RACE_EXTRAS[k].price, r.purse))),
+          formatCredits(gc.raceDayPrice(gc.JOCKEYS.journeyman.price, r.purse)),
+          formatCredits(gc.raceDayPrice(gc.JOCKEYS.top.price, r.purse)),
+        ])}
+        caption="Prices in credits on today's Live card. Firm-ground shoes cost the same as soft-ground shoes."
+      />
+      <P>
+        Here is what the extras do to the injury risk of a real horse in its prime that is still a little tired ({extras[0]!.fatigue} fatigue), on heavy ground over a mile with a normal ride:
+      </P>
+      <Table
+        head={["Extras", "Fatigue at the off", "Injury risk"]}
+        rows={extras.map((r) => [r.label, r.fatigue, `${pct(r.risk.permille, 1)} (${r.risk.label})`])}
+      />
+      <List
+        items={[
+          <>
+            Soft-ground shoes keep {gc.SHOES_KEEP_PERMILLE / 10}% of what soft or heavy going costs a horse that doesn&rsquo;t handle it, and of the going&rsquo;s extra injury risk (heavy
+            &times; {gc.GOING_RISK.heavy / 1000} becomes &times; {(1000 + ((gc.GOING_RISK.heavy - 1000) * gc.SHOES_KEEP_PERMILLE) / 1000) / 1000}). A horse that loves the mud gains little.
+          </>,
+          <>
+            Firm going costs no pace, so firm-ground shoes only cushion the jar: &times; {gc.GOING_RISK.firm / 1000} becomes &times;{" "}
+            {(1000 + ((gc.GOING_RISK.firm - 1000) * gc.SHOES_KEEP_PERMILLE) / 1000) / 1000}.
+          </>,
+          <>
+            A physio session takes {gc.PHYSIO_FATIGUE_OFF} fatigue off before the off, never below zero, so it does nothing for a rested horse. A vet check multiplies the risk by{" "}
+            {gc.VET_CHECK_RISK_PERMILLE / 1000} and shows as a &ldquo;Vet-checked&rdquo; line under the risk.
+          </>,
+          <>The extras and the jockey are printed on the racecard and the result, like headgear on a real card, and they are sealed into the field when entries close, so replays reproduce them.</>,
+          <>
+            Scratch before entries close, or if the race is abandoned, and the extras and the jockey&rsquo;s fee come back in full. Story races don&rsquo;t offer them. They are paid in Stable
+            Credits only.
+          </>,
+        ]}
+      />
     </>
   );
 }

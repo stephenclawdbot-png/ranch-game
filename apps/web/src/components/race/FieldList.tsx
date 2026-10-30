@@ -8,8 +8,9 @@ import { Saddlecloth } from "./Saddlecloth";
 /**
  * The racecard (REDESIGN §4.3): the declared field as printed matter. Cloth number and silks,
  * the horse (age, colour, sex), its connections, form figures and official rating, the plan,
- * best trip and three key grades. Your runner is marked. Form and rating come from the stud
- * book (settled races before this one), never from this race.
+ * best trip and three key grades. Your runner is marked. Race-day equipment and a booked
+ * jockey print under the connections ("Soft shoes · Top jockey"). Form and rating come from the
+ * stud book (settled races before this one), never from this race.
  */
 export function FieldList({ card, highlightHorseId, open = true }: { card: RaceCard; highlightHorseId?: string; open?: boolean }) {
   return (
@@ -81,6 +82,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                         {coatLabel(h.appearance).toLowerCase()} {SEX_LABEL[h.sex].toLowerCase()} · {e.stableName}
                         <span className="sm:hidden"> · {STYLE_SHORT[e.tactic]}</span>
                       </p>
+                      {e.gear.length > 0 && (
+                        <p className="racecard-gear" data-testid="runner-gear" title="Race-day equipment and jockey">
+                          {e.gear.join(" · ")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </td>

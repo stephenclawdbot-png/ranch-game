@@ -8,7 +8,8 @@
 import type { FinishRecord, Going } from "@thoroughbred/shared";
 import type { HorseState, Injury, QuirkKey, RaceSlot, RideIntensity } from "./types";
 import { RACE_EXPERIENCE, applyRealisation } from "./training";
-import { injuryRisk, rollInjury, withFatigue } from "./condition";
+import { injuryRisk, rollInjury, withFatigue, withPhysio } from "./condition";
+import type { RaceDayChoice } from "./raceDay";
 import { CAREER_MAX_STARTS, retireFromRacing, stageOf } from "./lifecycle";
 import { potentialOf, expressedQuirks } from "./genome";
 import { QUIRK_REVEAL_PERMILLE, quirkTriggered } from "./phenotype";
@@ -36,6 +37,8 @@ export interface HorseRunInput {
   vetLevel: number;
   /** OR after the race (from updateRatings); omit for unrated races. */
   newOr?: number;
+  /** Race-day extras bought with the entry (physio, shoes, vet check: raceDay.ts). */
+  raceDay?: RaceDayChoice;
 }
 
 export interface HorseRunResult {
@@ -57,11 +60,13 @@ export function raceFatigue(state: HorseState, distanceM: number): number {
 }
 
 /** Apply one run to one horse. */
-export function applyRun(state: HorseState, cond: RunConditions, run: HorseRunInput): HorseRunResult {
+export function applyRun(prior: HorseState, cond: RunConditions, run: HorseRunInput): HorseRunResult {
   const rule = TIER_RULES[cond.tier];
+  // A physio session takes its fatigue off before the off (the race snapshot did the same).
+  const state = withPhysio(prior, run.raceDay, cond.atMs);
   const stageBefore = stageOf(state);
   // Risk is computed on the pre-race state: the same number the entry sheet showed.
-  const risk = injuryRisk(state, { nowMs: cond.atMs, going: cond.going, distanceM: cond.distanceM, intensity: run.intensity, stage: stageBefore });
+  const risk = injuryRisk(state, { nowMs: cond.atMs, going: cond.going, distanceM: cond.distanceM, intensity: run.intensity, stage: stageBefore, raceDay: run.raceDay });
 
   let next = withFatigue(state, raceFatigue(state, cond.distanceM), cond.atMs, true);
   next = applyRealisation(next, RACE_EXPERIENCE, 1000);
@@ -137,7 +142,7 @@ export function settleField(
   states: readonly HorseState[],
   finish: readonly FinishRecord[],
   cond: RunConditions,
-  perHorse: (id: string) => { intensity: RideIntensity; vetLevel: number },
+  perHorse: (id: string) => { intensity: RideIntensity; vetLevel: number; raceDay?: RaceDayChoice },
   aiRatings: Readonly<Record<string, number>> = {},
 ): HorseRunResult[] {
   const rule = TIER_RULES[cond.tier];
@@ -155,7 +160,7 @@ export function settleField(
     const s = byId.get(f.horseId);
     if (!s) continue;
     const p = perHorse(f.horseId);
-    out.push(applyRun(s, { ...cond, fieldSize: finish.length }, { position: f.position, prize: f.prize, intensity: p.intensity, vetLevel: p.vetLevel, newOr: newOr.get(f.horseId) }));
+    out.push(applyRun(s, { ...cond, fieldSize: finish.length }, { position: f.position, prize: f.prize, intensity: p.intensity, vetLevel: p.vetLevel, newOr: newOr.get(f.horseId), raceDay: p.raceDay }));
   }
   return out;
 }

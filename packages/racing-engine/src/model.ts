@@ -90,7 +90,11 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   // Conditions.
   let cruise = parSpeed(race) + Math.trunc(((s.speed - 650) * SPEED_PER_100) / 100);
   if (h.preferredSurface !== race.surface) cruise -= SURFACE_PEN_BASE + Math.trunc((SURFACE_PEN_ADAPT * adaptGap) / 1000);
-  cruise -= Math.trunc((GOING_HORSE_PEN[race.going] * adaptGap) / 1000);
+  // Race-day kit (engine 1.2.0) only ever scales a penalty or a spread down; absent = 1.1.0.
+  const kit = entry.kit;
+  let goingPen = Math.trunc((GOING_HORSE_PEN[race.going] * adaptGap) / 1000);
+  if (kit?.goingPenaltyPermille !== undefined) goingPen = Math.trunc((goingPen * clamp(kit.goingPenaltyPermille, 0, 1000)) / 1000);
+  cruise -= goingPen;
   const distDelta = D - h.preferredDistanceM;
   if (distDelta < 0) cruise -= Math.trunc((-distDelta * (1100 - s.adaptability)) / 6_000);
 
@@ -101,6 +105,8 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   // Day form: the main source of upsets. Composed horses are more consistent.
   let formAmp = FORM_AMP_BASE + Math.trunc((temperGap * FORM_AMP_TEMPER) / 1000);
   if (race.weather === "rain") formAmp += Math.trunc(formAmp / 4);
+  // A stronger jockey keeps the horse's run closer to its true level (both ways).
+  if (kit?.formAmpPermille !== undefined) formAmp = Math.trunc((formAmp * clamp(kit.formAmpPermille, 0, 1000)) / 1000);
   cruise += form.tri(formAmp);
 
   const top = cruise + 800 + Math.trunc(s.burst);
@@ -132,7 +138,9 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   // Lateral preference: most want the rail, some are happy a little wider.
   const prefLane = Math.min(laneMax, form.int(3) * 500);
 
-  const keenMul = s.temperament < 500 ? 1000 + Math.trunc((500 - s.temperament) / 2) : 1000;
+  let keenMul = s.temperament < 500 ? 1000 + Math.trunc((500 - s.temperament) / 2) : 1000;
+  // ...and settles a keen horse early: only the extra drain shrinks.
+  if (keenMul !== 1000 && kit?.keenPermille !== undefined) keenMul = 1000 + Math.trunc(((keenMul - 1000) * clamp(kit.keenPermille, 0, 1000)) / 1000);
 
   return {
     cruise,

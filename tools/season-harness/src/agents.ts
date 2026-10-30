@@ -8,11 +8,12 @@
  *
  * Cohorts:
  * - casual: one evening visit (and skips some days): care, the Daily Cup, a Story race, a
- *   couple of Live Quick Picks, the free Paddock Pack.
+ *   couple of Live Quick Picks, the free Paddock Pack; now and then an entry from the sheet
+ *   with a vet check (and physio for a tired horse).
  * - grinder: visits every couple of hours, keeps every fit horse entered in the race that
  *   suits it best (entryOptions fit), goes for Feature Qualifiers and the Weekend Feature when
- *   a horse can run, climbs the Story licences, trains, refills entries, buys upgrades and the
- *   odd horse on the market.
+ *   a horse can run (with race-day extras and a booked jockey), climbs the Story licences,
+ *   trains, refills entries, buys upgrades and the odd horse on the market.
  * - breeder: covers every mare the season allows (retiring mares to the paddock), foals and
  *   names, stands a stallion at stud, sells surplus stock once the market lets them, moves
  *   spent horses to the Legacy Farm.
@@ -32,7 +33,7 @@ import { cupView, leagueView, runCup } from "@/server/competition";
 import { createChapterRace, storyView } from "@/server/story";
 import { foundStable } from "@/server/founding";
 import type { Session } from "@/server/session";
-import type { RaceSummary, StableHorse } from "@/lib/types";
+import type { RaceDayOffer, RaceSummary, StableHorse } from "@/lib/types";
 import type { Cohort } from "./config";
 
 const MIN = 60_000;
@@ -71,6 +72,9 @@ export interface AgentStats {
   legacy: number;
   fqEntries: number;
   wfEntries: number;
+  /** Live entries that bought race-day extras or a jockey, and the credits they spent. */
+  raceDayEntries: number;
+  raceDaySpend: number;
   /** Farmer channels: credits passed alt -> main. */
   washStudFees: number;
   washMarket: number;
@@ -82,7 +86,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, washStudFees: 0, washMarket: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, refused: {},
   };
 }
 
@@ -280,29 +284,74 @@ async function quickPicks(c: VisitCtx, s: Session, max: number): Promise<number>
 const isQualifier = (r: Pick<RaceSummary, "name">) => r.name.includes("Feature Qualifier");
 const isWeekendFeature = (r: Pick<RaceSummary, "name">) => r.name.includes("Weekend Feature");
 
+/** What a stable buys on race day for one entry, given the sheet's offer and its credits. */
+type RaceDayPolicy = (race: RaceSummary, horse: StableHorse, offer: RaceDayOffer, credits: number) => gc.RaceDayChoice;
+
+/** Credits a choice costs on this sheet. */
+function raceDayCost(offer: RaceDayOffer, choice: gc.RaceDayChoice): number {
+  return offer.extras.filter((x) => choice.extras.includes(x.key)).reduce((a, x) => a + x.price, 0) + (offer.jockeys.find((j) => j.key === choice.jockey)?.price ?? 0);
+}
+
+/** Never spend the last RACE_DAY_RESERVE credits on extras: drop the jockey first, then everything. */
+const RACE_DAY_RESERVE = 1_500;
+function affordable(offer: RaceDayOffer, choice: gc.RaceDayChoice, credits: number): gc.RaceDayChoice {
+  if (raceDayCost(offer, choice) <= credits - RACE_DAY_RESERVE) return choice;
+  const noJockey = { ...choice, jockey: "apprentice" as const };
+  return raceDayCost(offer, noJockey) <= credits - RACE_DAY_RESERVE ? noJockey : gc.NO_RACE_DAY;
+}
+
+const offered = (offer: RaceDayOffer, k: gc.RaceExtraKey) => offer.extras.some((x) => x.key === k);
+
+/**
+ * Grinders on race day: for a Feature Qualifier or the Weekend Feature, the works (a vet check,
+ * shoes when the going calls for them, physio for a tired horse, a top jockey when they can
+ * afford one, else a journeyman); in an ordinary race, physio for a tired horse half the time.
+ */
+function grinderRaceDay(rng: gc.Rng): RaceDayPolicy {
+  return (race, horse, offer, credits) => {
+    const tired = horse.fatigue > gc.TIRED_THRESHOLD;
+    if (!isQualifier(race) && !isWeekendFeature(race)) {
+      return tired && offered(offer, "physio") && rng.chance(500) ? affordable(offer, { extras: ["physio"], jockey: "apprentice" }, credits) : gc.NO_RACE_DAY;
+    }
+    const extras: gc.RaceExtraKey[] = ["vet_check"];
+    for (const k of ["soft_shoes", "firm_shoes"] as const) if (offered(offer, k)) extras.push(k);
+    if (tired) extras.push("physio");
+    return affordable(offer, { extras, jockey: credits > 8_000 ? "top" : "journeyman" }, credits);
+  };
+}
+
+/** Casuals, the odd time they use the sheet: a vet check, and physio for a tired horse. */
+const casualRaceDay: RaceDayPolicy = (_race, horse, offer, credits) =>
+  affordable(offer, { extras: horse.fatigue > gc.TIRED_THRESHOLD ? ["physio", "vet_check"] : ["vet_check"], jockey: "apprentice" }, credits);
+
 /**
  * The grinder's entry sheet: every free, fit horse goes into the race that suits it best among
  * the next few hours of the card (entryOptions' fit loss, the same number the entry sheet
  * shows). Feature Qualifiers and the Weekend Feature take any eligible horse first.
  */
-async function smartEntries(c: VisitCtx, s: Session, view: { horses: StableHorse[]; entries: { balance: number } }, opts: { lookaheadMs: number; tiredOk: boolean }): Promise<void> {
+async function smartEntries(c: VisitCtx, s: Session, view: SheetView, opts: SheetOpts): Promise<void> {
   const left = await sheetEntries(c, s, view, opts);
   // Nothing on the next few hours suits a fresh horse well: let Live Quick Pick find it a race.
   if (left > 0) await quickPicks(c, s, Math.min(left, 2));
 }
 
+type SheetView = { horses: StableHorse[]; entries: { balance: number }; credits?: number };
+type SheetOpts = { lookaheadMs: number; tiredOk: boolean; raceDay?: RaceDayPolicy; maxEntries?: number };
+
 /** Returns how many free, fit horses are still without a race. */
-async function sheetEntries(c: VisitCtx, s: Session, view: { horses: StableHorse[]; entries: { balance: number } }, opts: { lookaheadMs: number; tiredOk: boolean }): Promise<number> {
+async function sheetEntries(c: VisitCtx, s: Session, view: SheetView, opts: SheetOpts): Promise<number> {
   const free = new Map(view.horses.filter((h) => h.careerStatus === "racing" && !h.block && h.ranToday < RULES.liveStartsPerDay && (opts.tiredOk || h.condition !== "tired")).map((h) => [h.id, h]));
   if (!free.size) return 0;
   let balance = view.entries.balance;
+  let credits = view.credits ?? 0;
+  let made = 0;
   const list = await c.world.act(c.a, "race_list", c.now, () => raceList(c.world.db, c.now, s.stable.id, { upcoming: 64, recent: 0 }));
   const horizon = c.now.getTime() + opts.lookaheadMs;
   const card = (list?.upcoming ?? []).filter((r) => r.phase === "open" && r.mine === 0 && r.entriesCloseAtMs > c.now.getTime() + MIN);
   const features = card.filter((r) => isQualifier(r) || isWeekendFeature(r));
   const regular = card.filter((r) => !isQualifier(r) && !isWeekendFeature(r) && r.postTimeMs <= horizon);
   for (const race of [...features, ...regular]) {
-    if (!free.size || balance < race.entryCost) break;
+    if (!free.size || balance < race.entryCost || made >= (opts.maxEntries ?? Infinity)) break;
     const sheet = await c.world.act(c.a, "entry_options", c.now, () => entryOptions(c.world.db, s, race.id, c.now));
     if (!sheet) continue;
     const special = isQualifier(race) || isWeekendFeature(race);
@@ -312,10 +361,18 @@ async function sheetEntries(c: VisitCtx, s: Session, view: { horses: StableHorse
     const best = fits[0];
     if (!best) continue;
     const horse = free.get(best.horseId)!;
-    const entered = await c.world.act(c.a, "live_enter", c.now, () => enterLive(c.world.db, s, race.id, best.horseId, { tactic: horse.horse.style, intensity: "normal" }, c.now));
+    const raceDay = opts.raceDay ? opts.raceDay(race, horse, sheet.raceDay, credits - race.entryFee) : gc.NO_RACE_DAY;
+    const extrasCost = raceDayCost(sheet.raceDay, raceDay);
+    const entered = await c.world.act(c.a, "live_enter", c.now, () => enterLive(c.world.db, s, race.id, best.horseId, { tactic: horse.horse.style, intensity: "normal" }, c.now, raceDay));
     if (!entered) continue;
     free.delete(best.horseId);
     balance -= race.entryCost;
+    credits -= race.entryFee + extrasCost;
+    made++;
+    if (extrasCost > 0) {
+      c.a.stats.raceDayEntries++;
+      c.a.stats.raceDaySpend += extrasCost;
+    }
     c.a.stats.liveEntries++;
     if (isQualifier(race)) c.a.stats.fqEntries++;
     if (isWeekendFeature(race)) c.a.stats.wfEntries++;
@@ -486,6 +543,8 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       await careAll(c, s, horses);
       if (a.rng.chance(700)) await dailyCup(c, s);
       if (a.rng.chance(500)) await storyRaces(c, s, 1);
+      // Now and then a casual opens the entry sheet instead and adds a vet check (rarely more).
+      if (a.rng.chance(CASUAL_SHEET_PERMILLE)) await sheetEntries(c, s, view, { lookaheadMs: 2 * HOUR, tiredOk: false, raceDay: casualRaceDay, maxEntries: 1 });
       await quickPicks(c, s, 1 + a.rng.int(3));
       await freePack(c, s);
       return;
@@ -499,6 +558,9 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
 }
 
 type View = NonNullable<Awaited<ReturnType<typeof playerView>>>;
+
+/** Chance per visit (permille) that a casual enters from the sheet with race-day extras. */
+const CASUAL_SHEET_PERMILLE = 120;
 
 async function fresh(c: VisitCtx, s: Session): Promise<View | null> {
   return c.world.act(c.a, "player_view", c.now, () => playerView(c.world.db, s, c.now));
@@ -523,13 +585,13 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
   }
   let v = (await fresh(c, s)) ?? view;
   // Grinders use their entries: tired horses run too (fresh ones are preferred).
-  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true });
+  await smartEntries(c, s, v, { lookaheadMs: 3 * HOUR, tiredOk: true, raceDay: grinderRaceDay(a.rng) });
   if (c.last) {
     v = (await fresh(c, s)) ?? v;
     if (v.entries.balance < RULES.entryRefillBelow && v.credits > 2_000) {
       if (await world.act(a, "refill", now, () => refill(world.db, s, now))) a.stats.refills++;
       v = (await fresh(c, s)) ?? v;
-      await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true });
+      await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true, raceDay: grinderRaceDay(a.rng) });
     }
   }
 }

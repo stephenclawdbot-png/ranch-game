@@ -21,7 +21,8 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   result hashes to `resultHash`. It then re-simulates and compares the full result, `totalTicks` and
   every frame. It never throws.
 - Also exported: `marginLabel(mm)`, `splitPurse(purse, runners)`, `PRIZE_SPLIT_PCT`, `TICK_HZ`, `SAMPLE_EVERY`.
-- `resultHash = sha256(JSON.stringify(["thoroughbred-result", 1, ENGINE_VERSION, seed, [[position, horseId, finishTimeUs, marginMm], ...]]))`.
+- `resultHash = sha256(JSON.stringify(["thoroughbred-result", 1, engineVersion, seed, [[position, horseId, finishTimeUs, marginMm], ...]]))`,
+  where `engineVersion = engineVersionFor(entries)` ("1.1.0" without race-day kit, else `ENGINE_VERSION`).
 
 ## Determinism rules
 
@@ -38,6 +39,14 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
 - Any change to the output must bump `ENGINE_VERSION` and update the golden test.
 - 1.1.0 (balance pass, see `docs/balance.md`): narrower day form, smaller tactic-match bonus, softer
   off-surface penalty, durability worth a little more, closers sit a little closer mid-race.
+- 1.2.0 (race-day extras and jockeys, game-core `raceDay.ts`): an optional per-runner `kit` on
+  `RaceEntry` scales three existing quantities down, each a permille share in 0..1000:
+  `goingPenaltyPermille` (the soft/heavy going pace penalty: soft-ground shoes keep 500),
+  `formAmpPermille` (the day-form amplitude: journeyman 900, top jockey 800) and `keenPermille`
+  (the keen-early extra drain: 750 / 500). Kit never adds ability. A race whose entries carry no
+  kit is simulated exactly as 1.1.0 and is labelled and hashed `LEGACY_ENGINE_VERSION` ("1.1.0"),
+  so every older race keeps its replay and result hash; `engineVersionFor(entries)` picks the
+  label and `verifyReplay` checks it.
 
 ## Model summary
 

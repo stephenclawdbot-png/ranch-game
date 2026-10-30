@@ -15,8 +15,8 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
-import { HorseSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
-import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
+import { HorseSchema, RaceKitSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
   cancelRace,
@@ -67,6 +67,7 @@ import {
   classEligibility,
   featureQualificationReason,
   startsOnDay,
+  storedRaceDay,
   type CardHooks,
   type Db,
   type FieldRunner,
@@ -78,6 +79,7 @@ import {
   type RunnerOutcome,
 } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
+import { raceDayRiskKey } from "@/lib/raceDay";
 import { replayStartSec } from "@/lib/replayStart";
 import type {
   ActiveEntry,
@@ -91,6 +93,7 @@ import type {
   RaceCard,
   RaceKind,
   RacePlan,
+  RaceDayOffer,
   RaceSummary,
   RiskView,
   RunView,
@@ -185,12 +188,30 @@ class Lru<V> {
 const replayCache = new Lru<RaceReplay>(128);
 const formCache = new Lru<Map<string, string | null>>(256);
 
+/** A locked runner's race-day kit (jockey, shoes), or none: fields locked before extras have none. */
+function runnerKit(r: FieldRunner) {
+  if (r.kit === undefined) return {};
+  const k = RaceKitSchema.safeParse(r.kit);
+  return k.success ? { kit: k.data } : {};
+}
+
 function inputFrom(race: PublicRace, field: LockedField, seed: string) {
   return {
     race: raceConfig(race),
-    entries: field.runners.map((r) => ({ gate: r.gate, tactic: (RunningStyleSchema.safeParse(r.tactic).success ? r.tactic : "stalker") as Horse["style"], horse: runnerHorse(r, race) })),
+    entries: field.runners.map((r) => ({ gate: r.gate, tactic: (RunningStyleSchema.safeParse(r.tactic).success ? r.tactic : "stalker") as Horse["style"], horse: runnerHorse(r, race), ...runnerKit(r) })),
     seed,
   };
+}
+
+/** The engine version a locked field runs under (1.1.0 unless a runner has race-day kit). */
+function fieldEngineVersion(field: LockedField | null): string {
+  return field ? engineVersionFor(field.runners.map(runnerKit)) : ENGINE_VERSION;
+}
+
+/** Racecard tags for an entry's race-day extras and jockey ("Soft shoes", "Top jockey"). */
+function gearOf(e: RaceEntryRow | undefined): string[] {
+  const rd = e && !e.isHouse ? storedRaceDay(e.snapshot) : null;
+  return rd ? gc.raceDayTags(rd) : [];
 }
 
 /**
@@ -313,7 +334,7 @@ async function settleWithReplay(db: Db, race: PublicRace, replay: RaceReplay, no
       fieldSize: replay.result.finishOrder.length,
       bigCrowd: bigCrowd(race),
     },
-    (id) => ({ intensity: parsePlan(snapshotOf(byHorse.get(id)).plan).intensity, vetLevel: vetOf(id) }),
+    (id) => ({ intensity: parsePlan(snapshotOf(byHorse.get(id)).plan).intensity, vetLevel: vetOf(id), raceDay: storedRaceDay(byHorse.get(id)?.snapshot) ?? undefined }),
   );
   const byId = new Map(results.map((r) => [r.state.id, r]));
   const runners: RunnerOutcome[] = replay.result.finishOrder.map((f) => {
@@ -362,6 +383,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
           mine: !!viewerStableId && r.stableId === viewerStableId,
           form: null,
           rating: null,
+          gear: gearOf(e),
         };
       })
       .sort((a, b) => a.gate - b.gate);
@@ -375,6 +397,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       mine: !!viewerStableId && e.stableId === viewerStableId,
       form: null,
       rating: null,
+      gear: gearOf(e),
     }));
   }
   // Racecard form + rating: form is fixed before the off, so it's cached per race and field.
@@ -399,7 +422,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     entryCost: race.entryCost,
     targetRunners: race.targetRunners,
     maxRunners: race.maxRunners,
-    engineVersion: ENGINE_VERSION,
+    engineVersion: replay?.engineVersion ?? fieldEngineVersion(field),
   };
 }
 
@@ -491,7 +514,7 @@ function headerFromField(race: PublicRace, field: LockedField): RaceBroadcastHea
   const runners = [...field.runners].sort((a, b) => a.gate - b.gate);
   return {
     version: 1,
-    engineVersion: ENGINE_VERSION,
+    engineVersion: fieldEngineVersion(field),
     race: raceConfig(race),
     seedCommitment: race.seedCommitment,
     tickHz: TICK_HZ,
@@ -576,7 +599,7 @@ export async function verifyRace(db: Db, id: string, now: Date, claimed: { commi
   const commitmentOk = commitment === race.seedCommitment && commitment === served.seedCommitment && (claimed.commitment ? claimed.commitment === commitment : true);
   const resultHashOk =
     verifyReplay(input, served) && fresh.result.resultHash === served.result.resultHash && (claimed.resultHash ? claimed.resultHash === fresh.result.resultHash : true);
-  return { commitmentOk, resultHashOk, seed: input.seed, seedCommitment: commitment, resultHash: fresh.result.resultHash, engineVersion: ENGINE_VERSION };
+  return { commitmentOk, resultHashOk, seed: input.seed, seedCommitment: commitment, resultHash: fresh.result.resultHash, engineVersion: fresh.engineVersion };
 }
 
 // ---------------------------------------------------------------------------
@@ -587,7 +610,11 @@ function entryMeta(session: Session, plan: RacePlan) {
   return { plan, silks: parseSilks(session.stable.silks), stableName: session.stable.name, accountId: session.accountId };
 }
 
-export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date) {
+/**
+ * Enters a horse in a Live card race. `raceDay` = optional race-day extras and jockey
+ * (game-core raceDay.ts), priced from the race's purse and charged with the entry.
+ */
+export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date, raceDay: gc.RaceDayChoice = gc.NO_RACE_DAY) {
   if (!isRaceId(raceId)) throw new RaceNotFoundError(raceId);
   await driveCard(db, now);
   let race = await loadRace(db, raceId);
@@ -598,14 +625,14 @@ export async function enterLive(db: Db, session: Session, raceId: string, horseI
   const meta = entryMeta(session, plan);
   let entry: Awaited<ReturnType<typeof enterRace>>;
   try {
-    entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta });
+    entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta, raceDay });
   } catch (e) {
     // A full Live race has a sister course in the same slot (§4d): retry once there.
     if (!isDomainError(e, "RACE_FULL")) throw e;
     const sister = await openSlotRace(db, raceId, now);
     if (!sister) throw e;
     race = await loadRace(db, sister.id);
-    entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta });
+    entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta, raceDay });
   }
   // Racing Live puts the stable in this week's league (idempotent; never blocks the entry).
   await ensureLeagueMembership(db, { accountId: session.accountId, now }).catch((e) => console.error("[game] league join failed", e));
@@ -708,11 +735,41 @@ export interface EntryOption {
   reason: string | null;
   fitLoss: number;
   risk: Record<RacePlan["intensity"], RiskView | null>;
+  /**
+   * The risk for every ride and combination of the risk-changing extras on offer, keyed by
+   * raceDayRiskKey (so the sheet updates live as physio, the vet check or shoes are ticked).
+   */
+  riskBy: Record<string, RiskView | null>;
+}
+
+/** The race-day extras and jockeys on offer for a race, priced (empty for Story races). */
+export function raceDayOffer(race: PublicRace): RaceDayOffer {
+  if (race.kind === "quick" || race.kind === "daily_cup" || race.kind === "trial") return { extras: [], jockeys: [] };
+  const going = raceConds(race).going;
+  return {
+    extras: gc.offeredExtras(going).map((k) => {
+      const d = gc.RACE_EXTRAS[k];
+      return { key: k, label: d.label, tag: d.tag, effect: d.effect, price: gc.raceDayPrice(d.price, race.purse) };
+    }),
+    jockeys: gc.JOCKEY_KEYS.map((k) => {
+      const d = gc.JOCKEYS[k];
+      return { key: k, label: d.label, effect: d.effect, price: gc.raceDayPrice(d.price, race.purse) };
+    }),
+  };
+}
+
+/** Every subset of the extras on offer (each changes injury risk; the jockey doesn't). */
+function riskSubsets(offered: readonly gc.RaceExtraKey[]): gc.RaceExtraKey[][] {
+  let out: gc.RaceExtraKey[][] = [[]];
+  for (const k of offered) out = [...out, ...out.map((xs) => [...xs, k])];
+  return out;
 }
 
 /** Per-horse eligibility, fit and injury risk for a race (the entry sheet). */
-export async function entryOptions(db: Db, session: Session, raceId: string, now: Date): Promise<{ race: RaceSummary; options: EntryOption[] }> {
+export async function entryOptions(db: Db, session: Session, raceId: string, now: Date): Promise<{ race: RaceSummary; options: EntryOption[]; raceDay: RaceDayOffer }> {
   const race = await loadRace(db, raceId);
+  const offer = raceDayOffer(race);
+  const subsets = riskSubsets(offer.extras.map((x) => x.key));
   const silks = parseSilks(session.stable.silks);
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
   const entered = (await listRaceEntries(db, raceId)).filter((e) => e.stableId === session.stable.id);
@@ -728,10 +785,13 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
         normal: raceRisk(row, race, "normal", now.getTime()),
         all_out: raceRisk(row, race, "all_out", now.getTime()),
       },
+      riskBy: Object.fromEntries(
+        (["conservative", "normal", "all_out"] as const).flatMap((i) => subsets.map((xs) => [raceDayRiskKey(i, xs), raceRisk(row, race, i, now.getTime(), { extras: xs })])),
+      ),
     };
   }));
   const summary = await summarize(db, { ...race, entered: (await listRaceEntries(db, raceId)).length, mine: entered.length }, now);
-  return { race: summary, options };
+  return { race: summary, options, raceDay: offer };
 }
 
 export interface LivePick {

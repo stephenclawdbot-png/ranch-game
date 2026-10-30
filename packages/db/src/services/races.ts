@@ -19,6 +19,7 @@ import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks 
 import { bandRatingOf, gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
+import type { RaceKit } from "@thoroughbred/shared";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
@@ -262,6 +263,55 @@ export interface EnterRaceInput {
    * stable name for the race card). Never overrides snapshot fields.
    */
   meta?: Record<string, unknown>;
+  /**
+   * Race-day extras and jockey (game-core raceDay.ts), Live races only. Priced from the race's
+   * purse, charged with the entry (kinds `race_extras` and `jockey_fee`, burned) and stored in
+   * the snapshot as `raceDay` (the choice plus what was paid) for the lock and refunds.
+   */
+  raceDay?: gc.RaceDayChoice;
+}
+
+/** What an entry bought on race day: the choice and the credits paid for it (refunds read this). */
+export interface StoredRaceDay extends gc.RaceDayChoice {
+  paid: { extras: number; jockey: number };
+}
+
+/** The race-day purchase stored with an entry snapshot (null when it bought nothing). */
+export function storedRaceDay(snapshot: unknown): StoredRaceDay | null {
+  const raw = (snapshot as { raceDay?: unknown } | null)?.raceDay as { paid?: { extras?: unknown; jockey?: unknown } } | undefined;
+  if (!raw) return null;
+  const choice = gc.parseRaceDay(raw);
+  const n = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : 0);
+  return { ...choice, paid: { extras: n(raw.paid?.extras), jockey: n(raw.paid?.jockey) } };
+}
+
+/** The going a race runs on (good when missing). */
+export function raceGoing(race: Pick<RaceRow, "conditions">): "firm" | "good" | "soft" | "heavy" {
+  const g = ((race.conditions ?? {}) as RaceConditions).going;
+  return g === "firm" || g === "soft" || g === "heavy" ? g : "good";
+}
+
+/** Pays back what an entry spent on race day (scratch before close, abandoned race). Idempotent. */
+async function refundRaceDay(tx: Tx, accountId: string, raceId: string, horseId: string, snapshot: unknown): Promise<void> {
+  const rd = storedRaceDay(snapshot);
+  if (!rd) return;
+  const burn = await systemAccountId(tx, "burn");
+  const player = await playerLedgerAccountId(tx, accountId);
+  const parts = [
+    ["extras", rd.paid.extras, "race_extras_refund"],
+    ["jockey", rd.paid.jockey, "jockey_fee_refund"],
+  ] as const;
+  for (const [what, amount, kind] of parts) {
+    if (amount <= 0) continue;
+    await post(tx, {
+      idempotencyKey: `race-day-refund:${what}:${raceId}:${horseId}`,
+      kind,
+      postings: [
+        { ledgerAccountId: burn, amount: -amount },
+        { ledgerAccountId: player, amount },
+      ],
+    });
+  }
 }
 
 /**
@@ -307,11 +357,27 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       throw new DomainError("NOT_ELIGIBLE", "one stable may not make up more than half of the field");
     }
 
+    // Race-day extras and jockey: checked against this race (a sister course has the same
+    // conditions) and priced from its purse.
+    const raceDay = input.raceDay ?? gc.NO_RACE_DAY;
+    const raceDayProblem = gc.raceDayProblem(raceDay, { going: raceGoing(race), live: (LIVE_RACE_KINDS as readonly string[]).includes(race.kind) });
+    if (raceDayProblem) throw new DomainError("NOT_ELIGIBLE", raceDayProblem);
+    const quote = gc.raceDayQuote(raceDay, race.purse);
+
     await ensureDailyEntries(tx, stable, input.now);
     await consumeEntries(tx, stable, race.entryCost, race.id, horse.id);
     if (race.entryFee > 0) {
       await spendCreditsTx(tx, { accountId: input.accountId, amount: race.entryFee, idempotencyKey: `entry-fee:${race.id}:${horse.id}`, kind: "entry_fee" });
     }
+    if (quote.extrasTotal > 0) {
+      await spendCreditsTx(tx, { accountId: input.accountId, amount: quote.extrasTotal, idempotencyKey: `race-extras:${race.id}:${horse.id}`, kind: "race_extras", memo: quote.extras.map((x) => x.key).join(",") });
+    }
+    if (quote.jockeyFee > 0) {
+      await spendCreditsTx(tx, { accountId: input.accountId, amount: quote.jockeyFee, idempotencyKey: `jockey-fee:${race.id}:${horse.id}`, kind: "jockey_fee", memo: raceDay.jockey });
+    }
+    const stored: StoredRaceDay | null = gc.hasRaceDay(raceDay)
+      ? { extras: quote.extras.map((x) => x.key), jockey: raceDay.jockey, paid: { extras: quote.extrasTotal, jockey: quote.jockeyFee } }
+      : null;
     const [entry] = await tx
       .insert(raceEntries)
       .values({
@@ -319,7 +385,7 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
         horseId: horse.id,
         stableId: stable.id,
         tactic: input.tactic,
-        snapshot: { ...(input.meta ?? {}), ...horseSnapshot(horse) },
+        snapshot: { ...(input.meta ?? {}), ...horseSnapshot(horse), ...(stored ? { raceDay: stored } : {}) },
         ratingBefore: horse.rating,
         entryCost: race.entryCost,
         enteredAt: input.now,
@@ -332,12 +398,15 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     // Today's "run a race" goal on the wall clock (a no-op once it has already paid today);
     // a cancelled race keeps the day's goal (owner-accepted edge).
     await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.goalNow ?? input.now });
-    await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost } });
+    await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost, ...(stored ? { raceDay: stored } : {}) } });
     return entry!;
   });
 }
 
-/** Owner scratch while entries are open: unlocks the horse; the entry (and any fee) is forfeited. */
+/**
+ * Owner scratch while entries are open: unlocks the horse; the entry (and any fee) is forfeited,
+ * but race-day extras and the jockey's fee are paid back (nothing was used).
+ */
 export async function scratchEntry(db: Db, input: { accountId: string; raceId: string; horseId: string; now: Date }): Promise<void> {
   await runTx(db, async (tx) => {
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
@@ -349,6 +418,7 @@ export async function scratchEntry(db: Db, input: { accountId: string; raceId: s
     if (!entry || entry.stableId !== stable.id) throw new DomainError("NOT_FOUND", "no such entry");
     if (entry.status === "scratched") return;
     await tx.update(raceEntries).set({ status: "scratched", scratchedAt: input.now }).where(eq(raceEntries.id, entry.id));
+    await refundRaceDay(tx, input.accountId, race.id, horse.id, entry.snapshot);
     if (horse.lockKind === "race" && horse.lockRef === race.id) {
       await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: input.now }).where(eq(horses.id, horse.id));
     }
@@ -368,6 +438,12 @@ export interface FieldRunner {
   isHouse: boolean;
   /** Entry snapshot, or the engine-ready horse when hooks.engineHorse is provided. */
   horse: unknown;
+  /**
+   * The engine's per-runner race-day kit (jockey, soft-ground shoes: game-core raceDayKit),
+   * only when the entry bought something that acts on the track. Fields locked before race-day
+   * extras existed never have it, and hash exactly as they did.
+   */
+  kit?: RaceKit;
 }
 
 export interface LockedField {
@@ -484,6 +560,8 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks)
       });
       await tx.update(horses).set({ lockKind: "race", lockRef: race.id }).where(eq(horses.id, p.horseId));
     }
+    const rd = p.isHouse ? null : storedRaceDay(p.snapshot);
+    const kit = rd ? gc.raceDayKit(rd, raceGoing(race)) : undefined;
     runners.push({
       gate,
       tactic: p.tactic,
@@ -491,13 +569,19 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks)
       stableId: p.stableId,
       isHouse: p.isHouse,
       horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse }) : p.snapshot,
+      ...(kit ? { kit } : {}),
     });
   }
-  const fieldHash = sha256Hex(JSON.stringify(runners.map((r) => [r.gate, r.horseId, r.tactic, r.horse])));
+  const fieldHash = fieldHashOf(runners);
   const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, fieldHash };
   await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
   await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash } });
   return field;
+}
+
+/** sha256 of the canonical runner list (a runner's kit is hashed only when it has one). */
+export function fieldHashOf(runners: readonly FieldRunner[]): string {
+  return sha256Hex(JSON.stringify(runners.map((r) => (r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse]))));
 }
 
 /**
@@ -712,7 +796,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]!);
 }
 
-/** Abandons an unsettled race: refunds stable entries and fees, unlocks horses. Idempotent. */
+/** Abandons an unsettled race: refunds stable entries, fees and race-day extras, unlocks horses. Idempotent. */
 export async function cancelRace(db: Db, input: { raceId: string; now: Date; reason: string }): Promise<void> {
   await runTx(db, async (tx) => {
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
@@ -740,6 +824,7 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
           ],
         });
       }
+      await refundRaceDay(tx, await accountIdOfStable(tx, e.stableId), race.id, e.horseId, e.snapshot);
     }
     await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
     await audit(tx, { actor: null, action: "race.cancel", entityType: "race", entityId: race.id, data: { reason: input.reason } });

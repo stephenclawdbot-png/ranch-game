@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RaceDayChoiceSchema } from "@thoroughbred/game-core";
 import { db } from "@/server/db";
 import { enterLive, playerView } from "@/server/game";
 import { errorJson, handleError, json, readJson } from "@/server/http";
@@ -9,9 +10,10 @@ import { trackEvent } from "@/server/playtest";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BodySchema = z.object({ horseId: HorseIdSchema, plan: PlanSchema });
+/** Race-day extras and jockey are optional choices (priced and charged on the server). */
+const BodySchema = z.object({ horseId: HorseIdSchema, plan: PlanSchema, raceDay: RaceDayChoiceSchema.optional() });
 
-/** Enters one of your horses in a Live card race (costs stable entries; idempotent per horse). */
+/** Enters one of your horses in a Live card race (costs stable entries, plus any race-day extras; idempotent per horse). */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const parsed = BodySchema.safeParse(await readJson(req));
@@ -20,7 +22,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const database = await db();
     const session = await requireSession(database);
     const now = new Date();
-    const entry = await enterLive(database, session, decodeURIComponent(id), parsed.data.horseId, parsed.data.plan, now);
+    const entry = await enterLive(database, session, decodeURIComponent(id), parsed.data.horseId, parsed.data.plan, now, parsed.data.raceDay);
     await trackEvent(database, session.accountId, "race_entered", { kind: "live" });
     return json({ entry, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {

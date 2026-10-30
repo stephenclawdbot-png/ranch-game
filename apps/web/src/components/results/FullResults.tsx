@@ -64,6 +64,11 @@ export function FullResults({
                           {me && <span className="you-tag ml-2 align-middle">You</span>}
                         </Link>
                         <p className="line-clamp-2 text-xs font-semibold text-sage">{e?.stableName}</p>
+                        {e && e.gear.length > 0 && (
+                          <p className="text-xs font-bold italic text-cream-dim" data-testid="result-gear">
+                            {e.gear.join(" · ")}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>

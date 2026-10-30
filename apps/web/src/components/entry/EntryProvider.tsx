@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCredits, formatDistance } from "@/lib/format";
 import { api, recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
-import type { RacePlan, RaceSummary, RiskView } from "@/lib/types";
+import type { RaceDayOffer, RacePlan, RaceSummary, RiskView } from "@/lib/types";
+import { raceDayRiskKey } from "@/lib/raceDay";
+import type { RaceDayChoice } from "@thoroughbred/game-core";
 import { Countdown } from "../Countdown";
 import { HorsePortrait } from "../HorsePortrait";
 import { raceMetaLine } from "../RaceMeta";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
-import { EntryForm, HorsePicker, PlanPicker, quickPickRace, type QuickPickResult } from "./EntryForm";
+import { EntryForm, ExtrasPicker, HorsePicker, PlanPicker, quickPickRace, raceDayCost, type QuickPickResult } from "./EntryForm";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -258,15 +260,20 @@ interface EntryOptionView {
   reason: string | null;
   fitLoss: number;
   risk: Record<RacePlan["intensity"], RiskView | null>;
+  /** Risk per ride and set of risk-changing extras (raceDayRiskKey). */
+  riskBy?: Record<string, RiskView | null>;
 }
+
+const NO_EXTRAS: RaceDayChoice = { extras: [], jockey: "apprentice" };
 
 /** Live entry: pick an eligible horse and a plan for a shared card race; shows cost, close time and risk. */
 function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: string; onClose: () => void }) {
   const router = useRouter();
-  const [data, setData] = useState<{ race: RaceSummary; options: EntryOptionView[] } | null>(null);
+  const [data, setData] = useState<{ race: RaceSummary; options: EntryOptionView[]; raceDay?: RaceDayOffer } | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [horseId, setHorseId] = useState<string | null>(null);
   const [plan, setPlan] = useState<RacePlan>({ tactic: "stalker", intensity: "normal" });
+  const [raceDay, setRaceDay] = useState<RaceDayChoice>(NO_EXTRAS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [entered, setEntered] = useState<string | null>(null);
@@ -276,7 +283,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       .then(async (r) => {
         const body = await r.json();
         if (!r.ok) throw new Error(body.message ?? `HTTP ${r.status}`);
-        return body as { race: RaceSummary; options: EntryOptionView[] };
+        return body as { race: RaceSummary; options: EntryOptionView[]; raceDay?: RaceDayOffer };
       })
       .then((d) => {
         setData(d);
@@ -302,7 +309,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
     setBusy(true);
     setError(null);
     try {
-      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan } });
+      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 ? { raceDay } : {}) } });
       setEntered(horse.horse.name);
       router.refresh();
     } catch (e) {
@@ -313,6 +320,11 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   }
 
   const race = data?.race;
+  const extrasCost = raceDayCost(data?.raceDay, raceDay);
+  const creditCost = (race?.entryFee ?? 0) + extrasCost;
+  const short = creditCost > state.credits;
+  // The risk shown follows the extras ticked (physio, vet check, shoes), live.
+  const riskFor = (i: RacePlan["intensity"]) => option?.riskBy?.[raceDayRiskKey(i, raceDay.extras)] ?? option?.risk[i] ?? null;
   if (entered && race) {
     return (
       <div className="grid gap-3" data-testid="live-entered">
@@ -354,13 +366,19 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
         const h = racing.find((x) => x.id === id);
         if (h) setPlan((p) => ({ ...p, tactic: h.horse.style }));
       }} reasons={reasons} />}
-      {data && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={(i) => option?.risk[i] ?? null} />}
+      {data && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={riskFor} />}
+      {data?.raceDay && <ExtrasPicker offer={data.raceDay} choice={raceDay} onChange={setRaceDay} />}
       {error !== null && <ErrorNote error={error} onRetry={go} />}
       <div className="grid [&>.btn]:w-full">
-        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data} onClick={go} data-testid="enter-live">
+        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data || short} onClick={go} data-testid="enter-live">
           <PixelIcon name="flag" size={32} className="-my-2" />
-          {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}${race && race.entryFee > 0 ? ` + ${formatCredits(race.entryFee)} cr` : ""}`}
+          {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}${creditCost > 0 ? ` + ${formatCredits(creditCost)} cr` : ""}`}
         </button>
+        {short && (
+          <p className="mt-2 text-sm font-bold text-negative" data-testid="extras-short">
+            That&rsquo;s {formatCredits(creditCost)} credits and you have {formatCredits(state.credits)}. Drop an extra or the jockey.
+          </p>
+        )}
       </div>
     </div>
   );

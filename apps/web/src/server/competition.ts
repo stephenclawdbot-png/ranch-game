@@ -10,7 +10,7 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { HorseSchema, RunningStyleSchema, type Horse, type RaceReplay } from "@thoroughbred/shared";
-import { ENGINE_VERSION, simulateRace } from "@thoroughbred/racing-engine";
+import { simulateRace } from "@thoroughbred/racing-engine";
 import {
   DomainError,
   RULES,
@@ -162,7 +162,7 @@ export async function runCup(db: Db, session: Session, req: CupRunRequest, now: 
         plan: { tactic, intensity: "normal" },
       }).horse;
       const run = gc.runDailyCup(cup, entrant, tactic, simulateRace);
-      return { finishPosition: run.position, finishTimeUs: run.finishTimeUs, result: { horse: entrant, tactic, engineVersion: ENGINE_VERSION, resultHash: run.replay.result.resultHash } };
+      return { finishPosition: run.position, finishTimeUs: run.finishTimeUs, result: { horse: entrant, tactic, engineVersion: run.replay.engineVersion, resultHash: run.replay.result.resultHash } };
     },
   });
   return { entryId: row.id };
