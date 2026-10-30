@@ -499,16 +499,18 @@ function seededShuffle<T>(xs: T[], seed: string, label: string): T[] {
 }
 
 /**
- * The ability window this race's Club runners come from (game-core clubWindow): the top half of
- * the band, or the players' median and above in a race open to every rating.
+ * The ability window this race's Club runners come from (game-core clubWindow): from just below
+ * the entered players' median real ability mark to 10 above it, inside the race's band (Story: its whole band).
  */
 export async function clubWindowForRace(ex: Executor, race: Pick<RaceRow, "kind" | "conditions" | "raceClass">, playerHorseIds: readonly string[]): Promise<gc.ClubWindow> {
   const c = (race.conditions ?? {}) as RaceConditions;
   const kind = gc.clubFillKind({ kind: race.kind, conditions: c });
   let playerRatings: number[] = [];
-  if (kind === "open" && playerHorseIds.length) {
+  if (kind !== "story" && playerHorseIds.length) {
     const rows = await ex.select().from(horses).where(inArray(horses.id, [...playerHorseIds]));
-    playerRatings = rows.map((h) => bandRatingOf(h).rating);
+    // Their real ability marks: a band rating runs well above it for a new horse (OR 40 for a
+    // ~30-35 novice) and for a horse past its peak, which pitched the Club too high (harness clubfill2).
+    playerRatings = rows.map(trueMarkOf);
   }
   return gc.clubWindow({ kind, minRating: c.minRating, maxRating: c.maxRating, playerRatings, nominal: gc.clubNominalRating(race.raceClass) });
 }

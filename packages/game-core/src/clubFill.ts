@@ -10,9 +10,11 @@
  *      whose genome is searched, deterministically from the race seed, until its ability mark
  *      lands on the target. Before this, minted Club horses were untrained novices stamped with
  *      the band's midpoint as their rating (a "62" ran like a 29).
- *   2. Who fills a race: Club runners come from the top half of the race, spread across a target
- *      window (clubWindow): [band middle, band top] in a banded race, [median, median + span] of
- *      the entered players' band ratings in a race open to every rating.
+ *   2. Who fills a race: Club runners come from the median and above of the race's players: a
+ *      window (clubWindow) from just below P, the entered players' median real ability mark, to 10 above
+ *      it, clipped to the race's band; about half of them sit at or just above P (clubTargets).
+ *      (A first cut, [band middle, band max], put the Club above almost every player in the upper
+ *      bands: players enter near the bottom of a band.)
  *
  * The Club's genomes may sit above the season's mint ceilings (genome.ts potentialCeiling): the
  * rating bands go up to Group class, which no foundation mint reaches, so the search lifts every
@@ -34,20 +36,25 @@ import { STAT_KEYS, type Genome, type HorseState, type MaturityType, type Rarity
 // ---------------------------------------------------------------------------
 
 /**
- * A banded race with a floor and no ceiling (Listed, Group 3): the Club's window is
- * [floor, floor + this].
+ * The Club's window starts this many marks below P, the median real ability mark of the player horses
+ * entered (every race but Story): [P - this, P + CLUB_ABOVE_MEDIAN_SPAN].
  */
-export const CLUB_OPEN_BAND_SPAN = 15;
+export const CLUB_BELOW_MEDIAN = 2;
+
+/** The window reaches this many marks above P (the "contenders" at the top of the Club's pack). */
+export const CLUB_ABOVE_MEDIAN_SPAN = 10;
 
 /**
- * A race open to every rating (Feature Qualifiers, Weekend Feature, Saturday Plate, Season Final):
- * the Club's window is [median, median + this] of the entered players' band ratings.
+ * When the race's own band leaves nothing of [P - 2, P + 12] (P far above the band's max or below
+ * its min), the window is the band's top (or bottom) this many marks: [max - this, max] or
+ * [min, min + this].
  */
-export const CLUB_ABOVE_MEDIAN_SPAN = 12;
+export const CLUB_CLIPPED_SPAN = 8;
 
 /**
- * The level an open race is pitched at when no player entered it (its class's floor on the card:
- * Listed 85, Group 95); other classes use CLUB_OPEN_NOMINAL_DEFAULT.
+ * The level P a race is pitched at when no player entered it (a calendar or sponsored race): its
+ * class's floor on the card (Listed 85, Group 95); other classes use CLUB_OPEN_NOMINAL_DEFAULT, and
+ * a banded race its band's middle.
  */
 export const CLUB_OPEN_NOMINAL_RATING: Readonly<Record<string, number>> = { listed: 85, graded: 95 };
 /** Nominal level of an open race of any other class with no player entered. */
@@ -129,9 +136,10 @@ export const CLUB_POOL_READ_PER_RUNNER = 12;
 export type ClubFillKind = "banded" | "open" | "story";
 
 /**
- * How a race's Club runners are chosen: calendar races (Feature Qualifiers, Weekend Feature,
- * Saturday Plate, Season Final) and races with no rating band around the players entered; Story
- * races (kind "quick") over their whole band; every other race by its band.
+ * What a race's Club window is clipped to: calendar races (Feature Qualifiers, Weekend Feature,
+ * Saturday Plate, Season Final) and races with no rating band are open; Story races (kind
+ * "quick") take their whole band; every other race is banded. Open and banded races both centre
+ * on the players entered (clubWindow).
  */
 export function clubFillKind(race: { kind: string; conditions: { minRating?: number; maxRating?: number; calendar?: unknown } | null }): ClubFillKind {
   const c = race.conditions ?? {};
@@ -143,9 +151,9 @@ export interface ClubWindowInput {
   kind: ClubFillKind;
   minRating?: number;
   maxRating?: number;
-  /** Band ratings of the player horses entered (open races). */
+  /** Real ability marks (ability.ts abilityMark) of the player horses entered. */
   playerRatings?: readonly number[];
-  /** Level of an open race with no player entered (clubNominalRating). */
+  /** Level of an open race with no player entered (clubNominalRating); a banded one uses its band's middle. */
   nominal?: number;
 }
 
@@ -169,46 +177,69 @@ export function clubNominalRating(raceClass: string): number {
 
 /**
  * The ability window Club runners are drawn from (inclusive marks, clamped to what a horse can
- * be: CLUB_MARK_MIN..CLUB_MARK_MAX):
- *   - banded: [middle, max] of the race's band (min defaults to 0); with no max, [min, min + CLUB_OPEN_BAND_SPAN];
- *   - open: [median, median + CLUB_ABOVE_MEDIAN_SPAN] of the players' band ratings (the nominal
- *     level when nobody entered), kept inside the race's own floor and ceiling if it has them;
+ * be: CLUB_MARK_MIN..CLUB_MARK_MAX). P is the median real ability mark of the player horses entered
+ * (with none: an open race's nominal level, a banded race's band middle).
+ *   - banded and open: [P - CLUB_BELOW_MEDIAN, P + CLUB_ABOVE_MEDIAN_SPAN], clipped to the race's
+ *     own band [min, max] (min 0 and max CLUB_MARK_MAX when absent); if nothing is left, the band's
+ *     top or bottom CLUB_CLIPPED_SPAN marks;
  *   - story: the whole band (a Story race's band is already centred on the player's horse).
  */
 export function clubWindow(i: ClubWindowInput): ClubWindow {
   const min = i.minRating ?? 0;
+  const max = i.maxRating ?? CLUB_MARK_MAX;
   let lo: number;
   let hi: number;
-  if (i.kind === "open") {
-    const base = medianRating(i.playerRatings ?? []) ?? i.nominal ?? CLUB_OPEN_NOMINAL_DEFAULT;
-    lo = Math.max(base, min);
-    hi = Math.max(base + CLUB_ABOVE_MEDIAN_SPAN, lo);
-    if (i.maxRating !== undefined) {
-      hi = Math.min(hi, i.maxRating);
-      lo = Math.min(lo, hi);
-    }
-  } else if (i.maxRating === undefined) {
+  if (i.kind === "story") {
     lo = min;
-    hi = min + CLUB_OPEN_BAND_SPAN;
+    hi = i.maxRating ?? min + CLUB_ABOVE_MEDIAN_SPAN;
   } else {
-    hi = i.maxRating;
-    lo = i.kind === "story" ? min : Math.floor((min + i.maxRating + 1) / 2);
+    const nobody = i.kind === "open" ? (i.nominal ?? CLUB_OPEN_NOMINAL_DEFAULT) : i.maxRating === undefined ? min : Math.floor((min + max) / 2);
+    const p = medianRating(i.playerRatings ?? []) ?? nobody;
+    lo = Math.max(p - CLUB_BELOW_MEDIAN, min);
+    hi = Math.min(p + CLUB_ABOVE_MEDIAN_SPAN, max);
+    if (lo > hi) {
+      if (p - CLUB_BELOW_MEDIAN > max) [lo, hi] = [max - CLUB_CLIPPED_SPAN, max];
+      else [lo, hi] = [min, min + CLUB_CLIPPED_SPAN];
+    }
   }
   hi = clampInt(hi, CLUB_MARK_MIN, CLUB_MARK_MAX);
   lo = clampInt(lo, CLUB_MARK_MIN, hi);
   return { lo, hi };
 }
 
-/** The `i`-th of `n` equal slices of a window (never empty: a slice narrower than one mark is that mark). */
-export function clubStratum(w: ClubWindow, n: number, i: number): ClubWindow {
-  const width = w.hi - w.lo + 1;
-  const lo = w.lo + Math.floor((width * i) / n);
-  return { lo, hi: Math.max(lo, w.lo + Math.floor((width * (i + 1)) / n) - 1) };
+/**
+ * How hard the Club's targets lean towards the bottom of the window (P): the k-th of n slice
+ * edges sits (k/n)^CLUB_TARGET_SKEW of the way up. 1 spreads the pack evenly; 2 puts about half
+ * of it in the window's bottom quarter; 3 in its bottom eighth, with a few contenders still
+ * reaching the top.
+ */
+export const CLUB_TARGET_SKEW = 3;
+
+/** Where the k-th of n slice edges sits in a window of `width` marks: (k/n)^CLUB_TARGET_SKEW of the way up. */
+function edge(width: number, n: number, k: number): number {
+  let num = width;
+  let den = 1;
+  for (let e = 0; e < CLUB_TARGET_SKEW; e++) {
+    num *= k;
+    den *= n;
+  }
+  return Math.floor(num / den);
 }
 
 /**
- * `n` target marks spread across the window: one drawn inside each of n equal slices
- * (deterministic in `seed`), lowest first. The pack covers the window instead of bunching.
+ * The `i`-th of `n` slices of a window, narrow at the bottom and wide at the top ((k/n)^2 edges):
+ * about half the slices lie in the window's bottom quarter, near P (never empty: a slice narrower
+ * than one mark is that mark).
+ */
+export function clubStratum(w: ClubWindow, n: number, i: number): ClubWindow {
+  const width = w.hi - w.lo + 1;
+  const lo = w.lo + edge(width, n, i);
+  return { lo, hi: Math.max(lo, w.lo + edge(width, n, i + 1) - 1) };
+}
+
+/**
+ * `n` target marks, one drawn inside each slice (clubStratum; deterministic in `seed`), lowest
+ * first: about half the Club's pack sits at or just above P and a few runners clearly above it.
  */
 export function clubTargets(w: ClubWindow, n: number, seed: string): number[] {
   const rng = new Rng(seedFrom("club-targets", seed, w.lo, w.hi, n));

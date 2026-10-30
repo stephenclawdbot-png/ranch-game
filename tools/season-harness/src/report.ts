@@ -79,6 +79,12 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
           { key: "playerWinPerStart", label: "Player win rate per Live start", value: pct(t.livePlayerWins, t.livePlayerRunners ?? 0), unit: "%" },
         ]
       : []),
+    ...(t.liveSpreadMedianMm !== undefined
+      ? [
+          { key: "liveSpread", label: "Live field winner-to-last, median", value: round1((t.liveSpreadMedianMm ?? 0) / 1000), unit: " m" },
+          { key: "liveWinMargin", label: "Live winning margin, median", value: round1((t.liveWinMarginMedianMm ?? 0) / 1000), unit: " m" },
+        ]
+      : []),
     { key: "storyRaces", label: "Story races", value: t.storyRaces },
     { key: "cupRuns", label: "Daily Cup runs", value: t.cupRuns },
     { key: "created", label: "Credits created", value: created },

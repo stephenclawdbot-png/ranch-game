@@ -82,6 +82,9 @@ export interface DaySample {
     story: number;
     cup: number;
     purses: number;
+    /** Winner-to-last (sum of finish margins) and winning margin of each settled Live race, mm (absent before 2026-10-30). */
+    spreadsMm?: number[];
+    winMarginsMm?: number[];
   };
   /** Live stable entries used per stable (entry cost), and Live starts per stable. */
   entriesPerStable: ByCohort<number>;
@@ -253,6 +256,13 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
     db,
     `select coalesce(sum(e.prize), 0)::bigint s from race_entries e join races r on r.id = e.race_id where e.stable_id is not null and r.kind in ${LIVE_KINDS} and r.post_time >= ${from} and r.post_time < ${to}`,
   );
+  // Field spread of settled Live races: winner to last (sum of the finish margins) and the winning margin, mm.
+  const finishes = await q<{ spread: string; margin: string }>(
+    db,
+    `select (select coalesce(sum((f->>'marginMm')::bigint), 0) from jsonb_array_elements(rr.result->'finishOrder') f) spread,
+            coalesce((rr.result->'finishOrder'->1->>'marginMm')::bigint, 0) margin
+       from race_results rr join races r on r.id = rr.race_id where r.kind in ${LIVE_KINDS} and r.post_time >= ${from} and r.post_time < ${to}`,
+  );
 
   // Entries and starts per stable
   const entries = zeroCohorts(() => 0);
@@ -358,6 +368,8 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
       story: raceRows.filter((r) => r.kind === "quick" && r.status === "settled").length,
       cup: num(cup?.n),
       purses: num(purses?.s),
+      spreadsMm: finishes.map((f) => num(f.spread)),
+      winMarginsMm: finishes.map((f) => num(f.margin)),
     },
     entriesPerStable: per(entries),
     startsPerStable: per(starts),

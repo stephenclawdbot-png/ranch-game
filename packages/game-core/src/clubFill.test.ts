@@ -3,7 +3,8 @@ import {
   CLUB_ABOVE_MEDIAN_SPAN,
   CLUB_MARK_MAX,
   CLUB_MARK_TOLERANCE,
-  CLUB_OPEN_BAND_SPAN,
+  CLUB_BELOW_MEDIAN,
+  CLUB_CLIPPED_SPAN,
   CLUB_SEASONED_STARTS,
   clubFitsRace,
   clubMarkOf,
@@ -22,27 +23,35 @@ import { maturityAt } from "./phenotype";
 import { STAT_KEYS } from "./types";
 
 describe("Club fill window", () => {
-  it("banded races: the band's middle to its top", () => {
-    expect(clubWindow({ kind: "banded", maxRating: 60 })).toEqual({ lo: 30, hi: 60 }); // maiden
-    expect(clubWindow({ kind: "banded", maxRating: 70 })).toEqual({ lo: 35, hi: 70 }); // novice
-    expect(clubWindow({ kind: "banded", minRating: 0, maxRating: 55 })).toEqual({ lo: 28, hi: 55 });
-    expect(clubWindow({ kind: "banded", minRating: 50, maxRating: 75 })).toEqual({ lo: 63, hi: 75 });
-    expect(clubWindow({ kind: "banded", minRating: 70, maxRating: 95 })).toEqual({ lo: 83, hi: 95 });
+  const B = CLUB_BELOW_MEDIAN;
+  const A = CLUB_ABOVE_MEDIAN_SPAN;
+
+  it("every race centres on the entered players' median band rating P: [P - below, P + above]", () => {
+    expect(clubWindow({ kind: "banded", maxRating: 60, playerRatings: [40, 44, 47] })).toEqual({ lo: 44 - B, hi: Math.min(60, 44 + A) }); // maiden
+    expect(clubWindow({ kind: "banded", minRating: 0, maxRating: 55, playerRatings: [30, 38, 41, 50] })).toEqual({ lo: 39 - B, hi: Math.min(55, 39 + A) });
+    expect(clubWindow({ kind: "open", playerRatings: [40, 52, 46] })).toEqual({ lo: 46 - B, hi: 46 + A });
+    expect(clubWindow({ kind: "open", playerRatings: [40, 50] })).toEqual({ lo: 45 - B, hi: 45 + A });
   });
 
-  it("a floor with no ceiling: [floor, floor + span], capped at the highest mark a horse can have", () => {
-    expect(clubWindow({ kind: "banded", minRating: 70 })).toEqual({ lo: 70, hi: 70 + CLUB_OPEN_BAND_SPAN });
-    expect(clubWindow({ kind: "banded", minRating: 85 })).toEqual({ lo: 85, hi: CLUB_MARK_MAX });
-    expect(clubWindow({ kind: "banded", minRating: 95 })).toEqual({ lo: 95, hi: CLUB_MARK_MAX });
-  });
-
-  it("open races: the players' median to median + span; nominal level with nobody entered", () => {
-    expect(clubWindow({ kind: "open", playerRatings: [40, 52, 46] })).toEqual({ lo: 46, hi: 46 + CLUB_ABOVE_MEDIAN_SPAN });
-    expect(clubWindow({ kind: "open", playerRatings: [40, 50] })).toEqual({ lo: 45, hi: 45 + CLUB_ABOVE_MEDIAN_SPAN });
-    expect(clubWindow({ kind: "open", playerRatings: [], nominal: clubNominalRating("listed") })).toEqual({ lo: 85, hi: CLUB_MARK_MAX });
+  it("clipped to the race's own band", () => {
+    // near the top of a 50-75 handicap
+    expect(clubWindow({ kind: "banded", minRating: 50, maxRating: 75, playerRatings: [70, 72, 74] })).toEqual({ lo: 72 - B, hi: 75 });
+    // near its floor
+    expect(clubWindow({ kind: "banded", minRating: 50, maxRating: 75, playerRatings: [50, 51] })).toEqual({ lo: 50, hi: 50 + A });
     // the Season Final keeps its floor
-    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [96, 99] })).toEqual({ lo: 97, hi: CLUB_MARK_MAX });
-    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [60] }).lo).toBe(95);
+    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [96, 97] })).toEqual({ lo: 95, hi: CLUB_MARK_MAX });
+  });
+
+  it("a clip that empties the window: the band's top or bottom CLUB_CLIPPED_SPAN marks", () => {
+    expect(clubWindow({ kind: "banded", minRating: 0, maxRating: 55, playerRatings: [70] })).toEqual({ lo: 55 - CLUB_CLIPPED_SPAN, hi: 55 });
+    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [60] })).toEqual({ lo: 95, hi: CLUB_MARK_MAX });
+    expect(clubWindow({ kind: "banded", minRating: 70, maxRating: 95, playerRatings: [40] })).toEqual({ lo: 70, hi: 70 + CLUB_CLIPPED_SPAN });
+  });
+
+  it("nobody entered: an open race's nominal level, a banded race's middle", () => {
+    expect(clubWindow({ kind: "open", playerRatings: [], nominal: clubNominalRating("listed") })).toEqual({ lo: 85 - B, hi: Math.min(CLUB_MARK_MAX, 85 + A) });
+    expect(clubWindow({ kind: "banded", minRating: 50, maxRating: 75 })).toEqual({ lo: 62 - B, hi: Math.min(75, 62 + A) });
+    expect(clubWindow({ kind: "banded", minRating: 85 })).toEqual({ lo: 85, hi: Math.min(CLUB_MARK_MAX, 85 + A) });
   });
 
   it("story races: the whole band", () => {
@@ -56,16 +65,17 @@ describe("Club fill window", () => {
     expect(medianRating([1, 2])).toBe(1);
   });
 
-  it("targets are spread across the window, one per slice, deterministic", () => {
-    const w = { lo: 63, hi: 75 };
-    const t = clubTargets(w, 5, "seed-a");
-    expect(t).toEqual(clubTargets(w, 5, "seed-a"));
+  it("targets: one per slice, deterministic, half near P and a few clearly above it", () => {
+    const w = { lo: 48, hi: 60 }; // P = 50
+    const t = clubTargets(w, 6, "seed-a");
+    expect(t).toEqual(clubTargets(w, 6, "seed-a"));
     t.forEach((x, i) => {
-      const s = clubStratum(w, 5, i);
+      const s = clubStratum(w, 6, i);
       expect(x).toBeGreaterThanOrEqual(s.lo);
       expect(x).toBeLessThanOrEqual(s.hi);
     });
-    expect(t[0]!).toBeLessThan(t[4]!);
+    expect(t.filter((x) => x <= 52).length).toBeGreaterThanOrEqual(3);
+    expect(t[5]!).toBeGreaterThanOrEqual(55);
     // narrower than the field: every target still inside
     for (const x of clubTargets({ lo: 95, hi: 97 }, 8, "s")) expect(x >= 95 && x <= 97).toBe(true);
   });

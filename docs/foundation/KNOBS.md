@@ -314,11 +314,15 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| Banded window (no knob) | [band middle, band max], min defaults to 0: Maiden 30-60, Novice 35-70, Hcp 28-55 / 63-75 / 83-95 | `clubWindow` | Club runners' real ability marks in a banded race: the top half of the band. | Player win rate (falls sharply in the upper bands), purses minted, rating deflation of players |
-| `CLUB_OPEN_BAND_SPAN` | 15 | `clubWindow` | A band with a floor and no ceiling (Listed 85+, Group 3 95+): window [floor, floor + 15], capped at `CLUB_MARK_MAX`. | Listed/Group player win rate |
-| `CLUB_ABOVE_MEDIAN_SPAN` | 12 | `clubWindow` | Races open to every rating (Feature Qualifiers, Weekend Feature, Saturday Plate, Season Final; and any race with no band): window [median of the entered players' band ratings, median + 12], inside the race's own floor (Final 95). | Qualifier top-3s, Weekend Feature field, calendar purses |
-| `CLUB_OPEN_NOMINAL_RATING` / `_DEFAULT` | Listed 85, Group 95 / 60 | `clubNominalRating` | Window base of an open race no player entered. | Club-only calendar races only |
-| `CLUB_MARK_MIN` / `CLUB_MARK_MAX` | 18 / 97 (ends of `ABILITY_OR_TABLE`) | `clubWindow` | Windows are clamped to marks a horse can have: Group 3's window is 95-97. | Listed/Group fields |
+| P (no knob) | median real ability mark (`abilityMark`) of the player horses entered; nobody entered: a banded race's band middle, an open race's nominal level. (Anchoring on `bandRatingOf` pitched the Club too high, clubfill2/3: a new horse is OR 40 at ~30-35 ability.) | `clubWindow`, db `clubWindowForRace` | What every race's Club window centres on (Story races excepted: their whole band). | Player win rate, purses |
+| `CLUB_BELOW_MEDIAN` | 2 | `clubWindow` | Window starts at P − 2. | Player win rate, median player's share |
+| `CLUB_ABOVE_MEDIAN_SPAN` | 10 (was 12 in the first cut) | `clubWindow` | Window ends at P + 10 (the "contenders"). | Player win rate, Qualifier top-3s |
+| Clip to the race's band | [max(P − 2, min), min(P + 10, max)]; max = 97 when absent | `clubWindow` | Club runners stay inside the band (Season Final keeps 95+). | Upper-band player win rate |
+| `CLUB_CLIPPED_SPAN` | 8 | `clubWindow` | When the clip leaves nothing (P above the band's max or below its min): [max − 8, max] or [min, min + 8]. | Players rated far from their band |
+| `CLUB_TARGET_SKEW` | 3 (cubed) | `clubStratum` / `clubTargets` | Slice edges at (k/n)^3 of the window: about half the pack within ~2 marks of P, the top runner or two near P + 10. | Club pack mean (≈ P + 1.5) |
+| `CLUB_OPEN_NOMINAL_RATING` / `_DEFAULT` | Listed 85, Group 95 / 60 | `clubNominalRating` | P of an open race no player entered. | Club-only calendar races only |
+| `CLUB_MARK_MIN` / `CLUB_MARK_MAX` | 18 / 97 (ends of `ABILITY_OR_TABLE`) | `clubWindow` | Windows are clamped to marks a horse can have. | Listed/Group fields |
+| First cut (superseded 2026-10-30) | banded [band middle, max]; open [P, P + 12]; even spread | | Put the Club above almost every player in the upper bands (Hcp 50-75 2%, 70-95 0%; harness clubfill1: players won 34.7% of their races, purses −44%). | |
 | `CLUB_SEASONED_STARTS` | early 9, normal 13, late 19 (derived: first start with every stat at peak) | `clubSeasonedState` | Starts a minted Club horse has already run (0 wins: it can still run maidens). | Club horse career length (27-31 runs left) |
 | `CLUB_REALISATION` | 1000 (fully trained) | `clubSeasonedState` | Training realisation of a minted Club horse. | Club strength |
 | `CLUB_FITNESS` | 1000 | `clubSeasonedState` | Fitness at mint (racing moves it after). | Club race-day form (+3% vs a 500-fitness horse) |

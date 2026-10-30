@@ -248,13 +248,14 @@ trip and surface, its genome searched from the race seed until its mark is the t
 `clubFill.ts`). Until then a minted Club horse was an untrained novice stamped with the band's
 midpoint, so a "62" ran like a 29, players ran away with races and their ratings inflated; existing
 Club horses were recalibrated to their real marks once (db `services/clubFill.ts`). Which horses:
-targets spread across a window, the top half of a banded race ([middle, max]; Listed and Group
-[floor, floor + 15]), the entered players' median band rating to median + 12 in a race open to every
-rating (the calendar races), the whole band in a Story race. Free Club horses whose real mark is in
-the window are used first; the shortfall is minted. Expect players to win far fewer races in the
-upper bands until their ratings settle at their real ability (`tools/balance/club-fill.report.ts`,
-`HARNESS-LOG.md` clubfill1). Live handicaps carry no handicap weights (KNOBS mismatch 14a), so a
-handicap field is only as tight as its band.
+every race but a Story race centres on P, the median real ability mark of the player horses entered;
+the Club's window is [P − 2, P + 10], clipped to the race's band, and its targets lean to the bottom
+(cubed slices), so about half the Club pack is within a couple of marks of P and one or two
+contenders sit near P + 10. A Story race uses its whole band. Free Club horses whose real mark is
+in the window are used first; the shortfall is minted. (A first cut, [band middle, max], put the
+Club above nearly every player in the upper bands; `HARNESS-LOG.md` clubfill1 vs clubfill2,
+`tools/balance/club-fill.report.ts`.) Live handicaps carry no handicap weights (KNOBS mismatch
+14a), so a handicap field is only as tight as its band.
 
 ---
 

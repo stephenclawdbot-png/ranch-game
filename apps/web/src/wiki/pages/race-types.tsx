@@ -119,9 +119,9 @@ export default function RaceTypesPage() {
         busier races mean you race against other stables, not just the Club. Each race is shared: every stable that enters runs in the same field, and every viewer sees the same race at
         the same moment. The race card shows how many stables have entered each race. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds before the off; then the Club fills
         the empty gates with its own horses up to the race&rsquo;s field size (between {RULES.minField} and {RULES.maxField} runners). An ordinary race that no stable entered is called
-        off quietly; the big days always run. Club horses are seasoned, fully trained and rated at their real ability, and they come from the stronger half of the race: the top half of
-        its rating band, or, in a race open to every rating, from the middle of the entered horses&rsquo; ratings up to {gc.CLUB_ABOVE_MEDIAN_SPAN} above it, so a horse has to be
-        better than the race&rsquo;s middle to beat them.
+        off quietly; the big days always run. Club horses are seasoned, fully trained and rated at their real ability, and they are pitched at the entered horses: most are about as good as
+        the middle horse of the stables&rsquo; runners, a few up to {gc.CLUB_ABOVE_MEDIAN_SPAN} points better, always inside the race&rsquo;s rating band, so to win a horse has to
+        be better than the race&rsquo;s middle.
       </P>
       <List
         items={[

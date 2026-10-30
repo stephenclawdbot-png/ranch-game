@@ -17,7 +17,7 @@ import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } 
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
 import { activity, checks, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
-import { sum } from "./stats";
+import { median, sum } from "./stats";
 
 const DAY = 86_400_000;
 
@@ -56,6 +56,9 @@ export interface Totals {
   livePlayerWins?: number;
   /** Player runners in settled Live races (absent in runs before the Club fill fix). */
   livePlayerRunners?: number;
+  /** Median winner-to-last spread and winning margin of settled Live races, mm (absent before 2026-10-30). */
+  liveSpreadMedianMm?: number;
+  liveWinMarginMedianMm?: number;
   storyRaces: number;
   cupRuns: number;
   born: Record<string, number>;
@@ -118,6 +121,8 @@ function totalsOf(days: DaySample[], last: Snapshot): Totals {
     playerShare: live ? Math.round((10 * sum(days.map((d) => d.races.playerShare * d.races.live * d.races.avgField))) / Math.max(1, sum(days.map((d) => d.races.live * d.races.avgField)))) / 10 : 0,
     livePlayerWins: sum(days.map((d) => d.races.playerWins ?? 0)),
     livePlayerRunners: sum(days.map((d) => d.races.playerRunners ?? 0)),
+    liveSpreadMedianMm: median(days.flatMap((d) => d.races.spreadsMm ?? [])),
+    liveWinMarginMedianMm: median(days.flatMap((d) => d.races.winMarginsMm ?? [])),
     storyRaces: sum(days.map((d) => d.races.story)),
     cupRuns: sum(days.map((d) => d.races.cup)),
     born: last.born,

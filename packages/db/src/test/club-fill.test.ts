@@ -71,21 +71,18 @@ describe("minted Club runners are honest", () => {
 });
 
 describe("the Club's window per race", () => {
-  it("banded races: the band's middle to its top; Listed and Group: floor to floor + span", async () => {
-    expect(await clubWindowForRace(h.db, await race({ maxWins: 0, maxRating: 60 }), [])).toEqual({ lo: 30, hi: 60 });
-    expect(await clubWindowForRace(h.db, await race({ minRating: 50, maxRating: 75 }), [])).toEqual({ lo: 63, hi: 75 });
-    expect(await clubWindowForRace(h.db, await race({ minRating: 70, maxRating: 95 }), [])).toEqual({ lo: 83, hi: 95 });
-    expect(await clubWindowForRace(h.db, await race({ minRating: 85 }, { raceClass: "listed" }), [])).toEqual({ lo: 85, hi: gc.CLUB_MARK_MAX });
-  });
-
-  it("open (calendar) races: the entered players' median band rating and above", async () => {
+  it("banded and open races centre on the entered players' median real ability mark, inside the band", async () => {
     const p = await newPlayer(h.db);
-    const hs = [await makeHorse(h.db, p.stableId, { rating: 40 }), await makeHorse(h.db, p.stableId, { rating: 50 }), await makeHorse(h.db, p.stableId, { rating: 70 })];
-    const bands = hs.map((x) => gc.bandCheck({ or: x.rating, peakOr: x.rating }, trueMarkOf(x)).rating).sort((a, b) => a - b);
-    const r = await race({ calendar: { id: "fq-1", kind: "feature_qualifier" } }, { raceClass: "listed" });
-    expect(await clubWindowForRace(h.db, r, hs.map((x) => x.id))).toEqual({ lo: bands[1]!, hi: bands[1]! + gc.CLUB_ABOVE_MEDIAN_SPAN });
-    // nobody entered: the race's nominal level
-    expect(await clubWindowForRace(h.db, r, [])).toEqual({ lo: 85, hi: gc.CLUB_MARK_MAX });
+    const hs = [await makeHorse(h.db, p.stableId, { rating: 40 }), await makeHorse(h.db, p.stableId, { rating: 50 }), await makeHorse(h.db, p.stableId, { rating: 56 })];
+    const P = hs.map(trueMarkOf).sort((a, b) => a - b)[1]!;
+    const ids = hs.map((x) => x.id);
+    const fq = await race({ calendar: { id: "fq-1", kind: "feature_qualifier" } }, { raceClass: "listed" });
+    expect(await clubWindowForRace(h.db, fq, ids)).toEqual({ lo: P - gc.CLUB_BELOW_MEDIAN, hi: P + gc.CLUB_ABOVE_MEDIAN_SPAN });
+    const hcp = await race({ minRating: 0, maxRating: 55 });
+    expect(await clubWindowForRace(h.db, hcp, ids)).toEqual({ lo: P - gc.CLUB_BELOW_MEDIAN, hi: Math.min(55, P + gc.CLUB_ABOVE_MEDIAN_SPAN) });
+    // nobody entered: an open race's nominal level, a banded race's middle
+    expect(await clubWindowForRace(h.db, fq, [])).toEqual({ lo: 85 - gc.CLUB_BELOW_MEDIAN, hi: Math.min(gc.CLUB_MARK_MAX, 85 + gc.CLUB_ABOVE_MEDIAN_SPAN) });
+    expect(await clubWindowForRace(h.db, await race({ minRating: 50, maxRating: 75 }), [])).toEqual({ lo: 62 - gc.CLUB_BELOW_MEDIAN, hi: Math.min(75, 62 + gc.CLUB_ABOVE_MEDIAN_SPAN) });
   });
 
   it("Story races: the whole band", async () => {
@@ -105,7 +102,7 @@ describe("filling a field", () => {
     const { field } = await getRaceForSimulation(h.db, r.id, r.postTime);
     const club = field.runners.filter((x) => x.isHouse);
     expect(club).toHaveLength(7);
-    const w = { lo: 63, hi: 75 };
+    const w = await clubWindowForRace(h.db, r, [mine.id]);
     const marks: number[] = [];
     for (const x of club) {
       const row = await getHorseRow(h.db, x.horseId);

@@ -19,7 +19,15 @@
  * training realisation 600-1000), suited to the race (players enter races that suit their
  * horses). Each gets a rating in the band's player range below (where the harness's players sit);
  * its real ability is that rating minus 0-8 (the old Club inflated player ratings: they beat
- * horses rated far above their ability), capped by what the player population can reach.
+ * horses rated far above their ability), capped by what the player population can reach
+ * ("today": no season-12 player horse is really better than ~67, so the 70+ bands are out of
+ * reach). "Settled": each player's real ability is its rating (once the Club is honest, ratings
+ * settle there); where no foundation horse is that good, its genome is lifted (a bred horse).
+ *
+ * Measures per band: the Club's real marks vs its window, winner-to-last spread, winning margins,
+ * the share of races a player wins, the win rate per player start, and how often the player at
+ * the players' median wins (fair share = 1 / field). A parity table checks that a Club horse and a
+ * player horse of the same real mark win alike.
  *
  * Handicaps: Live races apply no handicap weights (apps/web horseView.ts engineHorseFromSnapshot
  * never passes extraWeightLb; game-core handicapWeights is used only by ability.report.ts), so
@@ -39,7 +47,6 @@ import {
   Rng,
   STAT_KEYS,
   abilityMark,
-  bandCheck,
   clubFitsRace,
   clubSeasonedState,
   clubTargets,
@@ -49,6 +56,7 @@ import {
   createHorseState,
   generateFoundationGenome,
   handicapWeights,
+  liftGenome,
   mintClubGenome,
   raceSnapshot,
   runningStyle,
@@ -80,7 +88,7 @@ interface Band {
   /** Where the players entered in this band are rated. */
   playerOr: [number, number];
   players: number;
-  field: number;
+
 }
 
 const BANDS: Band[] = [
@@ -104,6 +112,19 @@ function playerHorse(i: number): HorseState {
   return { ...s, career: { ...s.career, starts }, record: { ...s.record, starts }, training: { ...s.training, realisation }, condition: { ...s.condition, fitness: rng.range(600, 1000) } };
 }
 
+/** The player horse with every stat locus moved so its ability mark is about `want` (stands for a bred horse). */
+function liftPlayer(s: HorseState, want: number): HorseState {
+  let lo = -400;
+  let hi = 400;
+  const at = (l: number) => abilityMark({ ...s, genome: liftGenome(s.genome, l) });
+  while (hi - lo > 1) {
+    const mid = lo + ((hi - lo) >> 1);
+    if (at(mid) >= want) hi = mid;
+    else lo = mid;
+  }
+  return { ...s, genome: liftGenome(s.genome, hi) };
+}
+
 /** A Club runner as minted until now: an untrained racing-age novice of the natural mint (gameCore.ts houseHorse before the fix). */
 function oldClubHorse(seed: string, i: number): HorseState {
   const genome = generateFoundationGenome(seedFrom("house", seed, i), { season: SEASON, evenBreeds: true });
@@ -122,6 +143,10 @@ interface Outcome {
   spreadMm: number;
   winMarginMm: number;
   playerWon: boolean;
+  /** The player horse at the players' median rating won. */
+  medianWon: boolean;
+  playerStarts: number;
+  winnerId: string;
 }
 
 function run(runners: Runner[], race: { distanceM: number; surface: Surface; going: Going; course: RaceCourse; seed: string; field: number }, weights: boolean): Outcome {
@@ -145,7 +170,9 @@ function run(runners: Runner[], race: { distanceM: number; surface: Surface; goi
   const fo = replay.result.finishOrder;
   const spreadMm = fo.reduce((s, f) => s + f.marginMm, 0);
   const winner = runners.find((r) => r.state.id === fo[0]!.horseId)!;
-  return { spreadMm, winMarginMm: fo[1]?.marginMm ?? 0, playerWon: winner.player };
+  const ps = runners.filter((x) => x.player).sort((a, b) => a.or - b.or || (a.state.id < b.state.id ? -1 : 1));
+  const median = ps[(ps.length - 1) >> 1];
+  return { spreadMm, winMarginMm: fo[1]?.marginMm ?? 0, playerWon: winner.player, medianWon: winner === median, playerStarts: ps.length, winnerId: winner.state.id };
 }
 
 const q = (xs: number[], p: number) => {
@@ -161,13 +188,18 @@ interface Tally {
   margin: number[];
   playerWins: number;
   races: number;
+  medianWins: number;
+  playerStarts: number;
+
 }
-const blank = (): Tally => ({ spread: [], margin: [], playerWins: 0, races: 0 });
+const blank = (): Tally => ({ spread: [], margin: [], playerWins: 0, races: 0, medianWins: 0, playerStarts: 0 });
 function add(t: Tally, o: Outcome) {
   t.spread.push(o.spreadMm);
   t.margin.push(o.winMarginMm);
   t.races++;
   if (o.playerWon) t.playerWins++;
+  if (o.medianWon) t.medianWins++;
+  t.playerStarts += o.playerStarts;
 }
 function marginBuckets(xs: number[]): string {
   const L = HORSE_LENGTH_MM;
@@ -182,6 +214,7 @@ it("club fill report", async () => {
   const rows: string[] = [];
   const hcpRows: string[] = [];
   const rng = new Rng("club-fill-report");
+  const parity = new Map<string, { starts: number; wins: number }>();
 
   for (const band of BANDS) {
     const before = blank();
@@ -213,7 +246,11 @@ it("club fill report", async () => {
           let best = free[0]!;
           for (const p of free) if (Math.abs(p.mark - want) < Math.abs(best.mark - want)) best = p;
           used.add(best.s.id);
-          out.push({ state: { ...best.s, id: `${best.s.id}-r${r}` }, tactic: runningStyle(best.s.genome), or: inflate ? Math.max(or, best.mark) : best.mark, player: true });
+          // Settled: a horse rated this high really is this good (in the upper bands, a bred
+          // horse no foundation mint reaches yet: the genome is lifted to the rating).
+          const state = !inflate && Math.abs(best.mark - want) > 2 ? liftPlayer(best.s, want) : best.s;
+          const mark = abilityMark(state);
+          out.push({ state: { ...state, id: `${best.s.id}-r${r}` }, tactic: runningStyle(state.genome), or: inflate ? Math.max(or, mark) : mark, player: true });
         }
         return out;
       };
@@ -233,7 +270,7 @@ it("club fill report", async () => {
           kind: band.kind,
           minRating: band.minRating,
           maxRating: band.maxRating,
-          playerRatings: ps.map((p) => bandCheck({ or: p.or, peakOr: p.or }, abilityMark(p.state)).rating),
+          playerRatings: ps.map((p) => abilityMark(p.state)),
           nominal: clubNominalRating(band.raceClass),
         });
         const club = clubTargets(w, nClub, seed).map((target, i) => {
@@ -253,17 +290,30 @@ it("club fill report", async () => {
       const race = { distanceM, surface, going, course, seed, field: band.field };
       add(before, run([...players, ...oldClub], race, false));
       add(after, run([...players, ...newClub], race, false));
-      add(settled, run([...settledPlayers, ...clubFor(settledPlayers, false).club], race, false));
+      const settledField = [...settledPlayers, ...clubFor(settledPlayers, false).club];
+      const so = run(settledField, race, false);
+      add(settled, so);
+      // Parity: win rate by real mark relative to the players' median, Club vs players.
+      const p = settledPlayers.map((x) => abilityMark(x.state)).sort((a, b) => a - b)[(settledPlayers.length - 1) >> 1]!;
+      for (const x of settledField) {
+        const b = Math.max(-8, Math.min(12, Math.floor((abilityMark(x.state) - p) / 4) * 4));
+        const k = `${x.player ? "player" : "club"} ${b}`;
+        const c = parity.get(k) ?? { starts: 0, wins: 0 };
+        c.starts++;
+        if (so.winnerId === x.state.id) c.wins++;
+        parity.set(k, c);
+      }
       if (band.handicap) {
         add(beforeW, run([...players, ...oldClub], race, true));
         add(afterW, run([...players, ...newClub], race, true));
       }
       if (r % 10 === 0) await yieldNow();
     }
-    const wDesc = band.kind === "open" ? `median..+12 (e.g. ${windows.map((w) => `${w.lo}-${w.hi}`).join(", ")})` : `${windows[0]!.lo}-${windows[0]!.hi}`;
+    const wDesc = `e.g. ${windows.map((w) => `${w.lo}-${w.hi}`).join(", ")}`;
     rows.push(
       `${band.label.padEnd(26)} ${wDesc.padEnd(34)} | club real ${q(clubMarksBefore, 0.5)} (${q(clubMarksBefore, 0.1)}-${q(clubMarksBefore, 0.9)}) -> ${q(clubMarksAfter, 0.5)} (${q(clubMarksAfter, 0.1)}-${q(clubMarksAfter, 0.9)}), outside ${outside}, unsuited ${unfitted}` +
-        ` | spread m ${m(q(before.spread, 0.5))} -> ${m(q(after.spread, 0.5))} (settled ${m(q(settled.spread, 0.5))}) | player wins ${pct(before.playerWins, before.races)}% -> ${pct(after.playerWins, after.races)}% (settled ${pct(settled.playerWins, settled.races)}%)`,
+        ` | spread m ${m(q(before.spread, 0.5))} -> ${m(q(after.spread, 0.5))} (settled ${m(q(settled.spread, 0.5))}) | player wins ${pct(before.playerWins, before.races)}% -> ${pct(after.playerWins, after.races)}% (settled ${pct(settled.playerWins, settled.races)}%)` +
+        ` | per start ${pct(after.playerWins, after.playerStarts)}% (settled ${pct(settled.playerWins, settled.playerStarts)}%) | median player ${pct(after.medianWins, after.races)}% (settled ${pct(settled.medianWins, settled.races)}%, fair ${pct(1, band.field)}%)`,
     );
     for (const [label, t] of [
       ["before, as Live (level)", before],
@@ -277,7 +327,7 @@ it("club fill report", async () => {
         : []),
     ]) {
       hcpRows.push(
-        `${band.label.padEnd(24)} ${label.padEnd(24)} | spread ${m(q(t.spread, 0.5)).padStart(5)} m ${len(q(t.spread, 0.5)).padStart(5)} L (p90 ${len(q(t.spread, 0.9)).padStart(5)} L) | win margin median ${len(q(t.margin, 0.5)).padStart(4)} L; <=1L 1-3L 3-6L >6L: ${marginBuckets(t.margin)} | player wins ${pct(t.playerWins, t.races).padStart(5)}%`,
+        `${band.label.padEnd(24)} ${label.padEnd(24)} | spread ${m(q(t.spread, 0.5)).padStart(5)} m ${len(q(t.spread, 0.5)).padStart(5)} L (p90 ${len(q(t.spread, 0.9)).padStart(5)} L) | win margin median ${len(q(t.margin, 0.5)).padStart(4)} L; <=1L 1-3L 3-6L >6L: ${marginBuckets(t.margin)} | player wins ${pct(t.playerWins, t.races).padStart(5)}%, per start ${pct(t.playerWins, t.playerStarts).padStart(5)}%, median player ${pct(t.medianWins, t.races).padStart(5)}%`,
       );
     }
     data[band.key] = {
@@ -310,6 +360,12 @@ it("club fill report", async () => {
   // How much of an OR point one pound cancels: handicap weights take 5 speed and 2 burst per lb
   // (phenotype.ts); the ability score (ability.ts) blends speed and burst by trip, and the OR table
   // maps score to OR.
+  lines.push("", "# Parity (players settled, all bands): win rate per start by real mark minus the players' median, players vs Club (equal marks should win alike)");
+  for (const b of [-8, -4, 0, 4, 8, 12]) {
+    const pl = parity.get(`player ${b}`) ?? { starts: 0, wins: 0 };
+    const cl = parity.get(`club ${b}`) ?? { starts: 0, wins: 0 };
+    lines.push(`${String(b).padStart(3)}..${b + 3}: players ${pct(pl.wins, pl.starts).padStart(5)}% (${pl.starts}), Club ${pct(cl.wins, cl.starts).padStart(5)}% (${cl.starts})`);
+  }
   lines.push("", "# Weight scale vs the ability-to-OR table: ability-score points one lb takes off, vs score points per OR");
   for (const trip of [1000, 1600, 2400]) {
     const lbScore = abilityScore({ speed: 650, stamina: 650, burst: 650 }, trip) - abilityScore({ speed: 650 - HANDICAP_SPEED_PER_LB, stamina: 650, burst: 650 - HANDICAP_BURST_PER_LB }, trip);
