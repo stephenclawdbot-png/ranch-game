@@ -84,21 +84,22 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                         {h.name}
                         {me && <span className="you-tag ml-2 align-middle">You</span>}
                       </Link>
-                      <p className="racecard-meta">
-                        {h.age > 0 ? `${h.age}yo ` : ""}
-                        {coatLabel(h.appearance).toLowerCase()} {SEX_LABEL[h.sex].toLowerCase()} ·{" "}
+                      {/* the connections first, on their own line, so a narrow card never cuts them off */}
+                      <p className="racecard-meta !text-[#2c2116]">
                         {e.isPlayer ? (
-                          <span className="font-bold" data-testid="runner-stable">
-                            {e.stableName}
-                          </span>
+                          <span data-testid="runner-stable">{e.stableName}</span>
                         ) : (
                           <>
-                            <span className="tag !h-[18px] !px-1 align-[1px] !text-[0.625rem] !leading-[18px]" data-testid="club-runner" title="A Club horse: it fills an empty gate">
+                            <span className="tag !h-[16px] !px-1 align-[1px] !text-[0.625rem] !leading-[16px]" data-testid="club-runner" title="A Club horse: it fills an empty gate">
                               Club
                             </span>{" "}
                             {e.stableName}
                           </>
                         )}
+                      </p>
+                      <p className="racecard-meta">
+                        {h.age > 0 ? `${h.age}yo ` : ""}
+                        {coatLabel(h.appearance).toLowerCase()} {SEX_LABEL[h.sex].toLowerCase()}
                         <span className="sm:hidden"> · {STYLE_SHORT[e.tactic]}</span>
                       </p>
                       {e.gear.length > 0 && (

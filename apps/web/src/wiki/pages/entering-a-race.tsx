@@ -119,7 +119,7 @@ export default function EnteringARacePage() {
         head={["Column", "What it tells you"]}
         rows={[
           ["No.", "The saddlecloth number, which is also the starting gate. Gates are drawn from the race's sealed seed when entries close."],
-          ["Horse", "Name and silks, then age, colour, sex and the stable (Club horses are marked Club). Your own runner is marked \"You\"."],
+          ["Horse", "Name and silks, the stable that runs it (Club horses are marked Club), then age, colour and sex. Your own runner is marked \"You\"."],
           ["Form", "The last three finishes, oldest first. 0 means it finished outside the first nine."],
           ["OR", "The official rating going into this race."],
           ["Plan", "How the horse will be ridden: Front, Stalk or Close."],
