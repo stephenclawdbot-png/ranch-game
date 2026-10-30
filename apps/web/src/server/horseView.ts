@@ -102,7 +102,7 @@ export function horseFromRow(row: HorseRow, silks: Silks, nowMs: number): Horse 
  * race conditions and the entry's plan (intensity folds into the stats). This is the
  * `engineHorse` field hook, so the locked field (and its hash) holds exactly what races.
  */
-export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race: RaceLike, isHouse: boolean): Horse {
+export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race: RaceLike, isHouse: boolean, extraWeightLb = 0): Horse {
   const id = String(snapshot.id);
   // Story chapter races: house runners race as the named rival stables' horses (storyField.ts).
   if (isHouse && race.id) {
@@ -125,6 +125,8 @@ export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race:
     race: { going: conds.going, fieldSize: race.targetRunners, bigCrowd: bigCrowd(race), surface: conds.surface, distanceM: conds.distanceM },
     plan,
     ...(raceDay ? { raceDay } : {}),
+    // Handicap weight (Live handicaps locked since engine 1.4.0): 1 lb costs 1 OR of ability.
+    ...(extraWeightLb > 0 ? { extraWeightLb } : {}),
   }).horse;
 }
 

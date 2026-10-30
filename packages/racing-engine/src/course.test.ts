@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RaceReplaySchema, type RaceCourse, type RaceInput, type RaceReplay } from "@thoroughbred/shared";
-import { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, bendGeometry, courseLayout, engineVersionFor, simulateRace, verifyReplay } from "./index";
+import { COURSE_ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, bendGeometry, courseLayout, engineVersionFor, simulateRace, verifyReplay } from "./index";
 import { hillDrainFor } from "./course";
 import { checkFrames, makeInput, seedFor, typicalField, type EntryOpts } from "./test-fixtures";
 
@@ -80,14 +80,14 @@ describe("course profile (engine 1.3.0)", () => {
   );
 
   it("labels the race 1.3.0 (kit or not) and leaves course-less races on their old versions", () => {
-    expect(ENGINE_VERSION).toBe("1.3.0");
+    expect(COURSE_ENGINE_VERSION).toBe("1.3.0");
     expect(engineVersionFor(base.entries)).toBe(LEGACY_ENGINE_VERSION);
-    expect(engineVersionFor(base.entries, KESTREL)).toBe(ENGINE_VERSION);
+    expect(engineVersionFor(base.entries, KESTREL)).toBe(COURSE_ENGINE_VERSION);
     const kitted = clone(base);
     kitted.entries[0]!.kit = { formAmpPermille: 800 };
     expect(engineVersionFor(kitted.entries)).toBe(KIT_ENGINE_VERSION);
-    expect(engineVersionFor(kitted.entries, KESTREL)).toBe(ENGINE_VERSION);
-    expect(simulateRace(withCourse(kitted, KESTREL)).engineVersion).toBe(ENGINE_VERSION);
+    expect(engineVersionFor(kitted.entries, KESTREL)).toBe(COURSE_ENGINE_VERSION);
+    expect(simulateRace(withCourse(kitted, KESTREL)).engineVersion).toBe(COURSE_ENGINE_VERSION);
   });
 
   it("is deterministic, entry-order independent and verifiable", () => {
@@ -129,7 +129,7 @@ describe("course profile (engine 1.3.0)", () => {
     const neutral = simulateRace(withCourse(base, NEUTRAL));
     expect(neutral.frames).toEqual(plain.frames);
     expect(neutral.result.finishOrder).toEqual(plain.result.finishOrder);
-    expect(neutral.engineVersion).toBe(ENGINE_VERSION);
+    expect(neutral.engineVersion).toBe(COURSE_ENGINE_VERSION);
   });
 
   it("extreme courses within the schema still run valid, verifiable races", () => {

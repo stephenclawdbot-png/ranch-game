@@ -1,0 +1,134 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<18000 chars>",
+   "format": "png"
+  },
+  "action": "racehorse at an all-out flat-out gallop in the final furlong, maximum effort, body stretched long and low, neck extended forward, one complete gallop stride cycle; the jockey crouches very low and pushes hard, both hands pumping forward along the horse's neck in rhythm with the stride, elbows working, heels squeezing; no whip; seamless loop, stays in place",
+  "frame_count": 12,
+  "seed": 31104,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "eb7a3b5e-ed9f-4c34-a2b7-41d0de88ae85",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "eb7a3b5e-ed9f-4c34-a2b7-41d0de88ae85",
+  "status": "completed",
+  "created_at": "2026-10-30T18:12:24.759211+00:00",
+  "last_response": {
+   "seed": 31104,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.03339945532215966
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<18000 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<22124 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<22072 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20292 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20768 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20528 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21268 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20468 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20272 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20128 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19736 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20544 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19952 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "fb1ce888-47a0-4004-a46e-a2a73555339e",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:12:55.717528+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-drive-d-0.png",
+  "art-src/race/raw/anims/anim-drive-d-1.png",
+  "art-src/race/raw/anims/anim-drive-d-2.png",
+  "art-src/race/raw/anims/anim-drive-d-3.png",
+  "art-src/race/raw/anims/anim-drive-d-4.png",
+  "art-src/race/raw/anims/anim-drive-d-5.png",
+  "art-src/race/raw/anims/anim-drive-d-6.png",
+  "art-src/race/raw/anims/anim-drive-d-7.png",
+  "art-src/race/raw/anims/anim-drive-d-8.png",
+  "art-src/race/raw/anims/anim-drive-d-9.png",
+  "art-src/race/raw/anims/anim-drive-d-10.png",
+  "art-src/race/raw/anims/anim-drive-d-11.png",
+  "art-src/race/raw/anims/anim-drive-d-12.png"
+ ]
+}

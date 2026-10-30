@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<16612 chars>",
+     "format": "png"
+    },
+    "width": 256,
+    "height": 168
+   }
+  ],
+  "image_size": {
+   "width": 256,
+   "height": 168
+  },
+  "description": "same horse, same jockey, same size and position, same colours and pixel art style, facing right, side view. Transparent empty background, no starting gate, no stalls, no ground. The racehorse stands perfectly still on all four legs, all four hooves flat on the ground under the body, hind legs gathered under the belly, weight back on the hindquarters, head up, ready to jump forward; the jockey crouched low over the withers holding the reins short",
+  "seed": 31004,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "553279e3-7515-4e63-8c73-753a2fe1c378",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "553279e3-7515-4e63-8c73-753a2fe1c378",
+  "status": "completed",
+  "created_at": "2026-10-30T18:12:24.802833+00:00",
+  "last_response": {
+   "seed": 31004,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<22092 chars>",
+     "height": 168
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "65691696-7ac6-4a19-a994-5c0f7c5b34e2",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<22092 chars>",
+     "height": 168
+    }
+   ],
+   "generation_started_at": "2026-10-30T18:12:30.969008+00:00",
+   "original_image_n_colors": 113,
+   "quantized_image_n_colors": 51
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/key-stall-b-0.png"
+ ]
+}

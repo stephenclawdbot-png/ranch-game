@@ -1,5 +1,5 @@
 /**
- * Course character on Live races (racing-engine 1.3.0): the course profile is frozen into the
+ * Course character on Live races (racing-engine 1.3.0, raced under the 1.4.0 model since): the course profile is frozen into the
  * field at the lock, the race runs and is sealed with it, and races locked before courses raced
  * differently keep replaying and verifying exactly as they did.
  */
@@ -57,7 +57,7 @@ async function enteredRace(track: string, extra: Partial<CreateRaceInput> = {}) 
 }
 
 describe("course character on Live races", () => {
-  it("a race on a known course locks with its profile, runs as 1.3.0, verifies and shows its character", async () => {
+  it("a race on a known course locks with its profile (and the 1.4.0 race model), verifies and shows its character", async () => {
     const { p, race } = await enteredRace("Kestrel Downs");
     const kestrel = gc.courseByName("Kestrel Downs")!;
     const open = await raceCard(h.db, race.id, T0, p.stable.id);
@@ -85,8 +85,8 @@ describe("course character on Live races", () => {
   it("a field locked before courses raced differently replays and verifies exactly as before", async () => {
     const { p, race } = await enteredRace("Harrowgate");
     await lockField(h.db, race.id, race.entriesCloseAt, raceHooks);
-    // What a field locked by the previous release looks like: the same race, no course in it.
-    await h.db.execute(`update races set field = field - 'course' where id = '${race.id}'`);
+    // What a field locked by an earlier release looks like: the same race, no course (or model) in it.
+    await h.db.execute(`update races set field = field - 'course' - 'model' where id = '${race.id}'`);
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
     expect(replay.engineVersion).toBe(LEGACY_ENGINE_VERSION);
@@ -96,10 +96,10 @@ describe("course character on Live races", () => {
     expect((await raceCard(h.db, race.id, end, p.stable.id)).course).toBeNull();
   });
 
-  it("a race on an unknown track runs course-less", async () => {
+  it("a race on an unknown track runs course-less (still the Live race model, 1.4.0)", async () => {
     const { p, race } = await enteredRace("Old Vicarage");
     const end = at(30 * MIN);
-    expect((await servedReplay(h.db, race.id, end)).engineVersion).toBe(LEGACY_ENGINE_VERSION);
+    expect((await servedReplay(h.db, race.id, end)).engineVersion).toBe(ENGINE_VERSION);
     expect((await raceCard(h.db, race.id, end, p.stable.id)).course).toBeNull();
   });
 });

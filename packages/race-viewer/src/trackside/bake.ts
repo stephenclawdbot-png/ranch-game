@@ -7,6 +7,7 @@
 import type { BackdropStem } from "./art";
 import type { TracksideLook } from "./looks";
 import type { CourseArtSrc, SceneryRecipe } from "./scenery";
+import { CHIP_FILL, CHIP_INK, CHIP_LABELS, CHIP_NUM, CHIP_UNIT, chipBitmap } from "./gapMarks";
 
 type Cnv = HTMLCanvasElement;
 
@@ -399,5 +400,55 @@ export function chevron(): Cnv {
       x.fillRect(i, y + 1, 1, 1);
     }),
   );
+  return c;
+}
+
+/** Every gap-marker chip ("8L") in one atlas, so nothing is baked or uploaded mid-race. */
+export function gapChipAtlas(): { canvas: Cnv; cells: Map<string, { x: number; y: number; w: number; h: number }> } {
+  const bms = CHIP_LABELS.map((l) => [l, chipBitmap(l)] as const);
+  const cw = Math.max(...bms.map(([, b]) => b.w)) + 1;
+  const ch = Math.max(...bms.map(([, b]) => b.h)) + 1;
+  const cols = 12;
+  const c = canvas(cols * cw, Math.ceil(bms.length / cols) * ch);
+  const x = ctx(c);
+  const colour: Record<number, string> = { [CHIP_INK]: "#0b0f0c", [CHIP_FILL]: "rgba(15,42,29,0.92)", [CHIP_NUM]: "#f2c86a", [CHIP_UNIT]: "#f3e7c9" };
+  const cells = new Map<string, { x: number; y: number; w: number; h: number }>();
+  bms.forEach(([label, b], i) => {
+    const ox = (i % cols) * cw;
+    const oy = Math.floor(i / cols) * ch;
+    for (let py = 0; py < b.h; py++)
+      for (let px = 0; px < b.w; px++) {
+        const v = b.px[py * b.w + px]!;
+        if (!v) continue;
+        x.fillStyle = colour[v]!;
+        x.fillRect(ox + px, oy + py, 1, 1);
+      }
+    cells.set(label, { x: ox, y: oy, w: b.w, h: b.h });
+  });
+  return { canvas: c, cells };
+}
+
+/** Soft vertical haze column (white; tinted at draw time) marking a squeezed gap as a cut. */
+export function gapHaze(): Cnv {
+  const W = 32;
+  const H = 64;
+  const c = canvas(W, H);
+  const x = ctx(c);
+  const img = x.createImageData(W, H);
+  for (let py = 0; py < H; py++) {
+    const v = py / (H - 1);
+    // fades in over the far lanes, holds across the field, fades out in front of it
+    const fy = Math.min(1, v / 0.25) * Math.min(1, (1 - v) / 0.2);
+    for (let px = 0; px < W; px++) {
+      const u = (px + 0.5) / W - 0.5;
+      const a = Math.exp(-(u * u) / (2 * 0.16 * 0.16)) * fy;
+      const o = (py * W + px) * 4;
+      img.data[o] = 255;
+      img.data[o + 1] = 255;
+      img.data[o + 2] = 255;
+      img.data[o + 3] = Math.round(255 * a);
+    }
+  }
+  x.putImageData(img, 0, 0);
   return c;
 }

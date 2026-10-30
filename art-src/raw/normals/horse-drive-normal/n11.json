@@ -1,0 +1,271 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16720 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9a83185a-4c86-4a34-ae86-23d14c3371fe",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "9a83185a-4c86-4a34-ae86-23d14c3371fe",
+  "status": "completed",
+  "created_at": "2026-10-30T18:25:53.536483+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 10,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       73
+      ]
+     },
+     {
+      "axis": 110,
+      "name": "far hind leg",
+      "shape": "cylinder",
+      "regions": [
+       105,
+       103,
+       109
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       75,
+       90,
+       66,
+       74,
+       56,
+       60,
+       82,
+       76,
+       77
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "near hind lower leg",
+      "shape": "cylinder",
+      "regions": [
+       98,
+       93,
+       94
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "chest and neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       79,
+       44,
+       30,
+       35,
+       36,
+       37,
+       38,
+       40,
+       20,
+       29,
+       45,
+       46,
+       47,
+       49,
+       53,
+       91,
+       95,
+       23,
+       34
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       54,
+       55,
+       64,
+       58,
+       41,
+       42,
+       57,
+       63,
+       59,
+       48
+      ]
+     },
+     {
+      "name": "ears",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       12,
+       13,
+       21,
+       24
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "far foreleg",
+      "shape": "cylinder",
+      "regions": [
+       107,
+       110,
+       101,
+       102,
+       104,
+       106,
+       108,
+       113,
+       112
+      ]
+     },
+     {
+      "axis": 100,
+      "name": "near foreleg upper",
+      "shape": "cylinder",
+      "regions": [
+       81,
+       78,
+       83,
+       88
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "near foreleg lower",
+      "shape": "cylinder",
+      "regions": [
+       99,
+       100,
+       97,
+       92,
+       111
+      ]
+     },
+     {
+      "axis": 55,
+      "name": "rider white cloth",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       33,
+       67
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       5,
+       6,
+       22,
+       9,
+       10,
+       15
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider leg",
+      "shape": "cylinder",
+      "regions": [
+       39,
+       62,
+       61,
+       50,
+       69,
+       68
+      ]
+     },
+     {
+      "axis": -30,
+      "name": "rider arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       16,
+       26,
+       27
+      ]
+     },
+     {
+      "name": "rider helmet",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       3,
+       4,
+       7,
+       8,
+       17
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     17
+    ],
+    "painted_light": "top-right"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<41008 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "ec202819-eb4f-4970-ae9a-cce3de76991e",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:25:53.589733+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-drive-normal/n11-0.png"
+ ]
+}

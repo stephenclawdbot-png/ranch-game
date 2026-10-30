@@ -1,0 +1,110 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<49432 chars>",
+   "format": "png"
+  },
+  "action": "the racegoers behind the white rail cheer wildly as the horses pass: they wave their arms and race cards in the air, jump up and down on the spot, clap and punch the air, hats bob; everyone stays in place, the white rail stays perfectly still; seamless loop",
+  "frame_count": 8,
+  "seed": 31501,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "0afcae93-da0e-43f7-9b35-c01af09ab1d1",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 4
+  },
+  "id": "0afcae93-da0e-43f7-9b35-c01af09ab1d1",
+  "status": "completed",
+  "created_at": "2026-10-30T18:11:28.482894+00:00",
+  "last_response": {
+   "seed": 31501,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 4,
+    "cost_if_paid": 0.025742391486962633
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<49432 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<55900 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<55968 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<55944 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<54988 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<54592 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<53480 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<54288 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<51440 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 4
+   },
+   "generation_id": "9345a9de-53d7-4bc8-8482-4a3f0ed91cda",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:11:48.937663+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-crowd-A-0.png",
+  "art-src/race/raw/anims/anim-crowd-A-1.png",
+  "art-src/race/raw/anims/anim-crowd-A-2.png",
+  "art-src/race/raw/anims/anim-crowd-A-3.png",
+  "art-src/race/raw/anims/anim-crowd-A-4.png",
+  "art-src/race/raw/anims/anim-crowd-A-5.png",
+  "art-src/race/raw/anims/anim-crowd-A-6.png",
+  "art-src/race/raw/anims/anim-crowd-A-7.png",
+  "art-src/race/raw/anims/anim-crowd-A-8.png"
+ ]
+}

@@ -374,7 +374,7 @@ describe("no IP-as-device signals", () => {
 
 describe("the per-IP limit", () => {
   it("answers 429 past 30 requests (challenges + verifies) from one IP within the hour", async () => {
-    resetWalletAuthLimit();
+    await resetWalletAuthLimit(h.db);
     const acct = privateKeyToAccount(generatePrivateKey());
     for (let i = 0; i < WALLET_AUTH_LIMIT; i++) {
       const res = await walletAuthChallengeResponse(h.db, { address: acct.address, ...CH, ip: "10.0.0.9", now: at(i * 1000) });

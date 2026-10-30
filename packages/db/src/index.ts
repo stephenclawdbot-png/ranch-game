@@ -47,4 +47,6 @@ export * from "./services/usdgStud";
 export * from "./services/leasing";
 export * from "./services/clubMarket";
 export * from "./services/clubFill";
+export * from "./services/claiming";
 export * from "./services/stablePhoto";
+export * from "./services/rateLimit";

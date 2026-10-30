@@ -27,6 +27,7 @@ import LegacyFarmPage from "./pages/legacy-farm";
 import TheMarketPage from "./pages/the-market";
 import UsdgMarketPage from "./pages/usdg-market";
 import LeasingPage from "./pages/leasing";
+import ClaimingRacesPage from "./pages/claiming-races";
 import FacilitiesPage from "./pages/facilities";
 import PacksPage from "./pages/packs";
 import LeaguePage from "./pages/league";
@@ -61,6 +62,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "legacy-farm": LegacyFarmPage,
   "the-market": TheMarketPage,
   "leasing": LeasingPage,
+  "claiming-races": ClaimingRacesPage,
   "usdg-market": UsdgMarketPage,
   "facilities": FacilitiesPage,
   "packs": PacksPage,

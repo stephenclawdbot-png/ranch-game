@@ -58,6 +58,75 @@ Each has a `*-normal.png` (PixelLab `/normal-map` pro, OpenGL).
 | `jockey-crouch-aligned.png` | **Jockey alone** in racing crouch, magenta/cyan key colours, positioned so it overlays `horse-gallop-pose-aligned.png` exactly (see `composite-check.png`). |
 | `horse-jockey-gallop-pose.png` | The original combined frame both layers were cut from. |
 
+## 1b. Race-day animations (READY, not wired yet)
+
+New strips for the broadcast, all in `race/` and in `manifest.json`, each with a `-normal.png`
+(same size and layout; horses: PixelLab `/normal-map` pro per frame like the gallop; crowd:
+`/normal-map` lite; fx: computed in code). Sources, prompts and the rebuild script:
+`art-src/race/RACEANIMS.md`.
+
+### Horse strips: shared conventions
+
+- **Frame 256×192**, horizontal strip, transparent, alpha 0/255, facing right. Same density as
+  `horse-gallop.png` (one sprite px = one gallop px), so a billboard is **256/229 × 192/146** the
+  size of the gallop's quad.
+- **Recolour exactly like the gallop**: every opaque pixel is one of the `race/palette.json` keys
+  (coat, mane, points, silksPrimary, silksSecondary, cap + `fixed.*`), so the existing per-horse
+  recolour bake works unchanged on these strips. The test enforces it.
+- **Ground**: the lowest hoof of each strip is on **row 191** (anchor y = 1.0). Frames keep their
+  natural bob and suspension (hooves above 191 in some frames).
+- **Anchor** = the gallop's own anchor point (its nose/ground point, x 0.974 of 229) mapped into the
+  new frame: **x = 0.926, y = 1.0** (lunge: **x = 0.879**). Place every horse strip by its anchor at
+  the horse's world position and the body lines up with the gallop. In pixels: gallop pixel (x, y)
+  = race-day pixel (x + 14, y + 47) (lunge: x + 2, generated 12 px left so the stretched nose fits).
+- **Body height**: drive and lunge sit **7 px lower** than the gallop (horse flattened and stretched
+  out, hooves still on the ground); celebrate 4 px higher; the others within 1 px. A cut is fine;
+  to hide it, tween the sprite y over ~3 frames.
+- Hand-ride only: the drive and lunge jockey pushes with hands and heels and **never uses the whip**
+  (welfare-friendly; prompts say "no whip").
+
+| File | Frames | fps | Loop | Enter | Exit |
+|---|---|---|---|---|---|
+| `horse-break.png` | 8 | 12 | no | Frame 0 = standing in the stalls (all four hooves down, weight back, jockey crouched): hold it while the gates are shut. | After frame 7 play **gallop frame 0** (the generation's 9th frame was gallop frame 0 itself and was dropped). |
+| `horse-drive.png` | 12 | 14 (same as gallop) | 11 → 0 | Frame k starts in gallop frame k's leg phase at k = 0: switch at the gallop's frame 0 → drive 0 (any frame works with a small pop). Final furlong / under pressure. | Back to gallop at drive 11 → gallop 0, or into the lunge. |
+| `horse-lunge.png` | 6 | 12 | no | **After drive frame 11** (lunge 0 follows drive 11). Start it ~0.5 s before the post. | Frame 5 = full stretch (head and neck out, jockey's arms extended): **hold it for the photo-finish freeze**. Then ease-up (cut). |
+| `horse-easeup.png` | 13 | 10 (or 12 → 8 across the strip) | no | Frame 0 = gallop frame 0: after gallop frame 11, or cut from drive/lunge after the line. | Gallop strides (0–6), jockey sits up (7–9), trot (10–12). Hold 12 while the sprite slows, or go to celebrate (winner) / idle. |
+| `horse-celebrate.png` | 11 | 10 | 10 → 0 | Winner after the line: from ease-up (any frame, cut) or straight from drive. Jockey stands in the irons, right arm raised, punching the air; horse canters. | Loop. |
+| `horse-pullup.png` | 10 | 10 for 0–4, 6 for 5–9 | no | Frame 0 = gallop frame 0 (enter after gallop 11). Jockey sits up and stops the horse; short uneven steps (favouring the right fore), nothing graphic. | Frame 9: standing still on four hooves. Hold it; bring the sprite speed to 0 by frame 9. |
+
+Note: `horse-idle.png` is drawn ~1.21× larger than the gallop (and these strips). For the stalls,
+use `horse-break` frame 0 (gallop scale) rather than the idle, or scale the idle by 1/1.21.
+
+### Ground effects (`fx-mud.png`, `fx-dust.png`, `fx-divot.png`)
+
+- 8 frames × **48×32**, one-shot (not looping): a burst rising up and **back to the left** (for a
+  right-facing horse; mirror for a left-facing one), then falling/settling. mud 14 fps, dust 12 fps,
+  divot 14 fps (≈ 0.6 s). Same pixel density as the horse.
+- **Anchor** (manifest `anchor`) = the hoof contact point: mud (0.812, 0.812), dust (0.729, 0.812),
+  divot (0.792, 0.844). Spawn at the hoof's ground position when it strikes (4 strikes per stride:
+  one burst per stride from the leading hind hoof reads well; add ±3 px jitter and an occasional
+  horizontal flip), then let it stay in world space while the horse runs on.
+- **Colour by surface**: `race/fx-palette.json`. `keys[strip][role]` are the exact source colours
+  (dark → light; roles `material`, plus `grass` on the divot); `surfaces["<surface>/<going>"][strip][role]`
+  is the target ramp of the same length (recolour by ramp index, like the horses). Surfaces:
+  `turf/firm|good|soft|heavy`, `dirt/firm|good|soft|heavy`, `synthetic/*`. Ramps are sampled from
+  `tex-dirt.png` (soil and dust), with the divot's own greens for grass, darker and more saturated as
+  the going softens.
+- **Which strip where**: `emit["<surface>/<going>"]` (first = main, rest = occasional): turf firm →
+  dust; good → divot; soft → divot + mud; heavy → mud + divot; dirt firm/good → dust; dirt
+  soft/heavy (wet) → mud; synthetic → mud (dark granules) + dust.
+
+### Cheering crowd (`crowd-cheer.png`)
+
+- 10 frames × **320×128** (same size, scale and seamless-x tiling as `crowd.png`), 8 fps, loop
+  (ping-pong baked in: 0 1 2 3 4 5 4 3 2 1). **Frame 0 is pixel-identical to `crowd.png`**, so it drops
+  in for the static strip; play it while the field passes / at the finish, rest on frame 0 otherwise.
+  People wave arms and race cards, jump and clap; the rail stays put.
+
+Previews: contact sheet `/tmp/claude-0/-home-user-ranch-game/0b8609fd-c589-5d91-8b9c-ad4f22ab63cb/scratchpad/raceanims/contact-sheet.png`,
+recolour test (6 coats × 3 silks × 8 frames across the strips) `.../raceanims/recolour-test.png`, fx tints per
+surface `.../raceanims/fx-recolour.png`.
+
 ## 2. Race scene — HD v2 (READY)
 
 All in `race/`, listed in `manifest.json` as `race.<stem>` (same stems as v1, so loaders need no

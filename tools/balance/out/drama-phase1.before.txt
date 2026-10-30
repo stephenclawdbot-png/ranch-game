@@ -1,0 +1,18 @@
+# Phase 1 baseline (measured before any change: engine 1.3.0 as Live ran, the old ABILITY_OR_TABLE, the old 5 speed + 2 burst points per lb). Kept for the record; drama.before.txt reruns the old engine on today's rating scale and weights, with the report's later rows.
+# Race drama (as Live races run now): 2500 even fields, 2500 banded fields run with and without handicap weights, 8 runners
+
+## Winning margin (1st to 2nd), % of races
+field         nose short head    head    neck 1/2-3/4       1 1 1/4-2 2 1/2-3      3+ | <=head  <=1L   >3L | spread mean/median (L) | fav win%
+even           1.8     2.8     4.1     5.9    14.2     6.2    20.6    13.7    30.7 |   8.7  35.0  30.7 |   15.6 /  14.2      |  14.6
+handicap       1.2     3.1     2.8     6.0    11.8     6.7    19.1    13.3    36.0 |   7.1  31.6  36.0 |   17.9 /  16.0      |  22.4
+mixed          1.5     2.3     3.1     4.4    13.1     6.6    19.0    12.2    37.8 |   6.9  31.0  37.8 |   19.9 /  17.8      |  29.8
+  (photo = a head or less; spread = leader to last at the line, lengths; fav = highest ability mark, ties share)
+
+## Upsets
+Mixed 25-OR fields: win % by OR below the field's best runner (1/8 = 12.5%)
+   0 below:  29.1% (2947)   3 below:  16.8% (773)   5 below:  16.3% (797)   7 below:  12.6% (796)  10 below:   9.8% (847)  15 below:   4.4% (742)
+Lone horse d OR below seven equal rivals: 0: 12.8%  3: 6.9%  5: 5.1%  7: 5.4%  10: 1.9%  15: 1.0%   (625 races each)
+68 vs 75 among six at 71-72: the 68 finishes ahead  41.0% of 1500; wins the race   8.1%, the 75 wins  17.7%
+
+Anchors: favourites win ~30-35% of flat races; UK flat handicaps are mostly decided by under a length, with photo finishes routine.
+Jockeys used: apprentice, journeyman, top (75/15/10%); soft shoes on 30% of soft/heavy runners.

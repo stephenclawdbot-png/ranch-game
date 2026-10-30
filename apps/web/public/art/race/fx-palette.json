@@ -1,0 +1,221 @@
+{
+ "_note": "Ground fx recolour keys. keys[strip][role] = exact source colours dark->light; surfaces['<surface>/<going>'][strip][role] = target ramp of the same length (recolour by ramp index). emit = strips to spawn behind the hooves on that ground (first = main, rest = occasional). synthetic/* = any going.",
+ "keys": {
+  "fx-mud": {
+   "material": [
+    "#160d09",
+    "#382319",
+    "#593b29",
+    "#a17c55"
+   ]
+  },
+  "fx-dust": {
+   "material": [
+    "#997951",
+    "#bb9a6d",
+    "#d6bb8e",
+    "#ead6ae"
+   ]
+  },
+  "fx-divot": {
+   "material": [
+    "#241b12",
+    "#50301c",
+    "#795032"
+   ],
+   "grass": [
+    "#32612b",
+    "#61943b"
+   ]
+  }
+ },
+ "surfaces": {
+  "turf/firm": {
+   "fx-dust": {
+    "material": [
+     "#be9071",
+     "#cc9a77",
+     "#e2b28a",
+     "#ffce9f"
+    ]
+   }
+  },
+  "turf/good": {
+   "fx-divot": {
+    "material": [
+     "#240f0b",
+     "#4f2a17",
+     "#653818"
+    ],
+    "grass": [
+     "#265224",
+     "#80ac4a"
+    ]
+   }
+  },
+  "turf/soft": {
+   "fx-divot": {
+    "material": [
+     "#1d0a07",
+     "#3f1e0e",
+     "#51290d"
+    ],
+    "grass": [
+     "#1b4219",
+     "#638a33"
+    ]
+   },
+   "fx-mud": {
+    "material": [
+     "#1d0a07",
+     "#2b120b",
+     "#452310",
+     "#51290d"
+    ]
+   }
+  },
+  "turf/heavy": {
+   "fx-mud": {
+    "material": [
+     "#170705",
+     "#220e08",
+     "#381b0b",
+     "#412008"
+    ]
+   },
+   "fx-divot": {
+    "material": [
+     "#170705",
+     "#33170a",
+     "#412008"
+    ],
+    "grass": [
+     "#143413",
+     "#4e6e26"
+    ]
+   }
+  },
+  "dirt/firm": {
+   "fx-dust": {
+    "material": [
+     "#a17054",
+     "#af7956",
+     "#d0986a",
+     "#ffc187"
+    ]
+   }
+  },
+  "dirt/good": {
+   "fx-dust": {
+    "material": [
+     "#a17054",
+     "#af7956",
+     "#d0986a",
+     "#ffc187"
+    ]
+   }
+  },
+  "dirt/soft": {
+   "fx-mud": {
+    "material": [
+     "#270f0b",
+     "#3c1b12",
+     "#673716",
+     "#7b481e"
+    ]
+   }
+  },
+  "dirt/heavy": {
+   "fx-mud": {
+    "material": [
+     "#200b08",
+     "#30150d",
+     "#532a0f",
+     "#623815"
+    ]
+   }
+  },
+  "synthetic/*": {
+   "fx-mud": {
+    "material": [
+     "#1e1818",
+     "#3e302a",
+     "#624c3c",
+     "#8a6e56"
+    ]
+   },
+   "fx-dust": {
+    "material": [
+     "#1e1818",
+     "#3e302a",
+     "#624c3c",
+     "#8a6e56"
+    ]
+   }
+  }
+ },
+ "emit": {
+  "turf/firm": [
+   "fx-dust"
+  ],
+  "turf/good": [
+   "fx-divot"
+  ],
+  "turf/soft": [
+   "fx-divot",
+   "fx-mud"
+  ],
+  "turf/heavy": [
+   "fx-mud",
+   "fx-divot"
+  ],
+  "dirt/firm": [
+   "fx-dust"
+  ],
+  "dirt/good": [
+   "fx-dust"
+  ],
+  "dirt/soft": [
+   "fx-mud"
+  ],
+  "dirt/heavy": [
+   "fx-mud"
+  ],
+  "synthetic/*": [
+   "fx-mud",
+   "fx-dust"
+  ]
+ },
+ "strips": {
+  "fx-mud": {
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "frameCount": 8,
+   "fps": 14,
+   "anchor": {
+    "x": 0.812,
+    "y": 0.812
+   }
+  },
+  "fx-dust": {
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "frameCount": 8,
+   "fps": 12,
+   "anchor": {
+    "x": 0.729,
+    "y": 0.812
+   }
+  },
+  "fx-divot": {
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "frameCount": 8,
+   "fps": 14,
+   "anchor": {
+    "x": 0.792,
+    "y": 0.844
+   }
+  }
+ }
+}

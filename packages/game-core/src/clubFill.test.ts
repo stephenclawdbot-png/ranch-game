@@ -17,9 +17,8 @@ import {
   medianRating,
   mintClubGenome,
 } from "./clubFill";
-import { abilityMark } from "./ability";
 import { generateFoundationGenome, potentials } from "./genome";
-import { maturityAt } from "./phenotype";
+import { abilityMark, maturityAt } from "./phenotype";
 import { STAT_KEYS } from "./types";
 
 describe("Club fill window", () => {
@@ -39,12 +38,12 @@ describe("Club fill window", () => {
     // near its floor
     expect(clubWindow({ kind: "banded", minRating: 50, maxRating: 75, playerRatings: [50, 51] })).toEqual({ lo: 50, hi: 50 + A });
     // the Season Final keeps its floor
-    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [96, 97] })).toEqual({ lo: 95, hi: CLUB_MARK_MAX });
+    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [96, 97] })).toEqual({ lo: CLUB_MARK_MAX, hi: CLUB_MARK_MAX }); // 95 is above the best mark a horse can have
   });
 
   it("a clip that empties the window: the band's top or bottom CLUB_CLIPPED_SPAN marks", () => {
     expect(clubWindow({ kind: "banded", minRating: 0, maxRating: 55, playerRatings: [70] })).toEqual({ lo: 55 - CLUB_CLIPPED_SPAN, hi: 55 });
-    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [60] })).toEqual({ lo: 95, hi: CLUB_MARK_MAX });
+    expect(clubWindow({ kind: "open", minRating: 95, playerRatings: [60] })).toEqual({ lo: CLUB_MARK_MAX, hi: CLUB_MARK_MAX });
     expect(clubWindow({ kind: "banded", minRating: 70, maxRating: 95, playerRatings: [40] })).toEqual({ lo: 70, hi: 70 + CLUB_CLIPPED_SPAN });
   });
 
@@ -96,7 +95,7 @@ describe("honest Club horses", () => {
   });
 
   it("the mint lands on the target mark (several targets, trip and surface fitted)", () => {
-    for (const target of [30, 42, 55, 63, 70, 80, 88, 95]) {
+    for (const target of [30, 42, 55, 63, 70, 80, 88]) {
       for (const [distanceM, surface] of [[1000, "turf"], [2000, "dirt"], [2800, "synthetic"]] as const) {
         const m = mintClubGenome({ seed: `race-${target}-${distanceM}`, index: 0, target, season: 12, distanceM, surface });
         expect(Math.abs(m.mark - target), `target ${target} at ${distanceM} ${surface}`).toBeLessThanOrEqual(CLUB_MARK_TOLERANCE);

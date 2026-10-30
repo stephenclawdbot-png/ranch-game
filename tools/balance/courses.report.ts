@@ -41,7 +41,7 @@ import {
   type Breed,
   type HorseState,
 } from "../../packages/game-core/src/index";
-import { writeReport, yieldNow } from "./out";
+import { LIVE_MODEL, writeReport, yieldNow } from "./out";
 
 const RACES = Number(process.env.BAL_COURSE_RACES ?? 3000);
 const PROBES = process.env.BAL_COURSE_PROBES === "1";
@@ -137,6 +137,7 @@ it("courses report", async () => {
         ...(v.course ? { course: v.course } : {}),
         entries,
         seed,
+        ...LIVE_MODEL,
       });
       const winnerId = replay.result.finishOrder[0]!.horseId;
       const winner = entries.find((e) => e.horse.id === winnerId)!;

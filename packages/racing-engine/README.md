@@ -22,9 +22,10 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   every frame. It never throws.
 - Also exported: `marginLabel(mm)`, `splitPurse(purse, runners)`, `PRIZE_SPLIT_PCT`, `TICK_HZ`, `SAMPLE_EVERY`.
 - `resultHash = sha256(JSON.stringify(["thoroughbred-result", 1, engineVersion, seed, [[position, horseId, finishTimeUs, marginMm], ...]]))`,
-  where `engineVersion = engineVersionFor(entries, course)`: "1.1.0" with neither race-day kit nor
-  a course, "1.2.0" (`KIT_ENGINE_VERSION`) with kit, `ENGINE_VERSION` ("1.3.0") with a course. A
-  1.3.0 race appends its course tuple `[id, direction, circumferenceM, homeStraightM, bendsPerLap,
+  where `engineVersion = engineVersionFor(entries, course, model)`: "1.1.0" with no race-day kit,
+  course or model, "1.2.0" (`KIT_ENGINE_VERSION`) with kit, "1.3.0" (`COURSE_ENGINE_VERSION`) with a
+  course, `ENGINE_VERSION` ("1.4.0") when the input carries `model: "1.4.0"`. A race with a course
+  appends its course tuple `[id, direction, circumferenceM, homeStraightM, bendsPerLap,
   bendTightness, finishGradientPermille]` to that array, so the course is sealed with the result.
 - Also exported for the course model: `courseLayout(course, distanceM)`, `bendGeometry(course)` and
   its knobs (`BEND_LANE_LOSS_MM`, `BEND_PASS_CUT`, `STRAIGHT_*`, `GRADIENT_DRAIN`).
@@ -65,6 +66,18 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   most, a downhill saves it most. The kick paces itself for both (`kickCostMm`). Direction is
   cosmetic. A race without a course runs exactly as before (1.2.0 with kit, 1.1.0 without);
   `src/fixtures/pre-1.3.0-races.json` holds two races stored by 1.2.0 that must keep verifying.
+- 1.4.0 (close finishes; `src/drama.test.ts`, balance `tools/balance/drama.report.ts`): chosen by an
+  optional race-level `model: "1.4.0"` on `RaceInput` (`RaceModelSchema`; Live races lock with
+  `LIVE_RACE_MODEL`), works with or without a course. Racing in a pack: until its kick, a horse's
+  pace is pulled `PACK_PULL` (half) of the way from its cruise to the field's average, and
+  `PACK_CARRY` (half) of that pull is free (its drain is priced against the pulled cruise). Late
+  battle: once kicking or inside `BATTLE_FROM_MM`, a horse with an unfinished rival up to
+  `BATTLE_AHEAD_MM` ahead or `BATTLE_BEHIND_MM` behind lifts its cruise (and so its kick, and what
+  its drain is priced against) by `battleResponse`: `BATTLE_BASE` + `BATTLE_TEMPER` permille of
+  temperament + 0..`BATTLE_GRIT` drawn once per race from a new stream (purpose 4), so no older draw
+  moves. Day form × `DRAMA_FORM_PERMILLE` (0.85). A race without a model runs exactly as before;
+  `src/fixtures/pre-1.4.0-races.json` holds two Live-like 1.3.0 races (one with kit) simulated by
+  the committed engine before 1.4.0 that must keep verifying.
 
 ## Model summary
 

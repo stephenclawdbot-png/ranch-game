@@ -905,6 +905,8 @@ export interface LeaseMetrics {
   startedThisWeek: number;
   /** Player-to-player market sales this week. */
   marketSalesThisWeek: number;
+  /** Horses claimed in claiming races this week (the race is the market: sales by another road). */
+  claimsThisWeek: number;
   sharesPaidThisWeek: number;
   /** The Club's side (clubMarket.ts), counted apart from the players': leases of Club horses started, Club lots sold, Club offers open. */
   club: { leasesStartedThisWeek: number; salesThisWeek: number; openOffers: number };
@@ -928,6 +930,9 @@ export async function leaseMetrics(ex: Executor, now: Date): Promise<LeaseMetric
     .select({ n: sql<number>`count(*) filter (where not ${trades.club})::int`, club: sql<number>`count(*) filter (where ${trades.club})::int` })
     .from(trades)
     .where(and(gte(trades.createdAt, week.from), sql`${trades.createdAt} < ${week.to}`));
+  const [c] = rowsOf<{ n: number }>(
+    await ex.execute(sql`select count(*)::int as n from race_claims where status = 'claimed' and closed_at >= ${week.from} and closed_at < ${week.to}`),
+  );
   const [s] = rowsOf<{ total: number | string }>(
     await ex.execute(sql`
       select coalesce(sum(p.amount), 0) as total
@@ -939,6 +944,7 @@ export async function leaseMetrics(ex: Executor, now: Date): Promise<LeaseMetric
     openOffers: Number(o?.n ?? 0),
     startedThisWeek: Number(l?.started ?? 0),
     marketSalesThisWeek: Number(t?.n ?? 0),
+    claimsThisWeek: Number(c?.n ?? 0),
     sharesPaidThisWeek: Number(s?.total ?? 0),
     club: { leasesStartedThisWeek: Number(l?.clubStarted ?? 0), salesThisWeek: Number(t?.club ?? 0), openOffers: Number(o?.club ?? 0) },
   };

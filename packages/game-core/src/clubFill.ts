@@ -24,10 +24,10 @@
  * Integer maths only, like the rest of game-core.
  */
 import type { Surface } from "@thoroughbred/shared";
-import { ABILITY_OR_TABLE, abilityMark } from "./ability";
+import { ABILITY_OR_TABLE } from "./ability";
 import { generateFoundationGenome, maturityType, preferredDistanceM, preferredSurface } from "./genome";
 import { CARE_TO_RACING, CAREER_MAX_STARTS, createHorseState } from "./lifecycle";
-import { PEAK_WINDOW, STAT_PEAK_SHIFT } from "./phenotype";
+import { PEAK_WINDOW, STAT_PEAK_SHIFT, abilityMark } from "./phenotype";
 import { Rng, clampInt, seedFrom } from "./rng";
 import { STAT_KEYS, type Genome, type HorseState, type MaturityType, type Rarity, type StatRecord } from "./types";
 
@@ -101,14 +101,14 @@ export const CLUB_LIFT_MAX = 450;
 
 /**
  * Genome rarity tier the mint starts from, by target mark: the tier whose seasoned, fully trained
- * horses have about that mark (season 12 mints: common median 41, uncommon 44, rare 47, epic 49,
- * legendary 55), so the lift stays small. [highest target, tier]; above the last row: legendary.
+ * horses have about that mark (season 12 mints, engine 1.4.0 table: common median 41, uncommon 44,
+ * rare 45, epic 47, legendary 52), so the lift stays small. [highest target, tier]; above the last row: legendary.
  */
 export const CLUB_RARITY_BY_TARGET: readonly (readonly [number, Rarity])[] = [
   [42, "common"],
-  [45, "uncommon"],
-  [48, "rare"],
-  [52, "epic"],
+  [44, "uncommon"],
+  [46, "rare"],
+  [49, "epic"],
 ];
 
 /**
@@ -185,8 +185,10 @@ export function clubNominalRating(raceClass: string): number {
  *   - story: the whole band (a Story race's band is already centred on the player's horse).
  */
 export function clubWindow(i: ClubWindowInput): ClubWindow {
-  const min = i.minRating ?? 0;
-  const max = i.maxRating ?? CLUB_MARK_MAX;
+  // A band floor above the best mark a horse can have (the Season Final's 95 > 92) leaves the
+  // Club its best: the band is cut to what horses can be.
+  const min = Math.min(i.minRating ?? 0, CLUB_MARK_MAX);
+  const max = Math.max(min, Math.min(i.maxRating ?? CLUB_MARK_MAX, CLUB_MARK_MAX));
   let lo: number;
   let hi: number;
   if (i.kind === "story") {
@@ -198,8 +200,8 @@ export function clubWindow(i: ClubWindowInput): ClubWindow {
     lo = Math.max(p - CLUB_BELOW_MEDIAN, min);
     hi = Math.min(p + CLUB_ABOVE_MEDIAN_SPAN, max);
     if (lo > hi) {
-      if (p - CLUB_BELOW_MEDIAN > max) [lo, hi] = [max - CLUB_CLIPPED_SPAN, max];
-      else [lo, hi] = [min, min + CLUB_CLIPPED_SPAN];
+      if (p - CLUB_BELOW_MEDIAN > max) [lo, hi] = [Math.max(min, max - CLUB_CLIPPED_SPAN), max];
+      else [lo, hi] = [min, Math.min(max, min + CLUB_CLIPPED_SPAN)];
     }
   }
   hi = clampInt(hi, CLUB_MARK_MIN, CLUB_MARK_MAX);

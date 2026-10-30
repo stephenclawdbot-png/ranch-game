@@ -11,7 +11,9 @@ import {
   liveEdgeFrame,
   sliceBroadcast,
 } from "./live";
+import { LIVE_WINDOW_FRAMES, liveWindowOf } from "@/lib/liveWindow";
 import { TooEarlyError } from "./errors";
+import { liveWindowHeaders, liveWindowState } from "./liveCache";
 import { handleError } from "./http";
 import { fixtureReplay } from "./testing";
 
@@ -171,3 +173,60 @@ describe("errors", () => {
 });
 
 // The database-backed card, list, replay and verify paths keep the same guarantees; see game.test.ts.
+
+describe("shared live windows (?w=)", () => {
+  const W = LIVE_WINDOW_FRAMES;
+
+  it("a window never holds a frame or event past the live edge, and final only appears once the broadcast is over", { timeout: 30_000 }, () => {
+    const r = quick("window0001");
+    const windows = Math.ceil(r.replay.frames.length / W) + 1;
+    for (let t = r.revealStart - 1000; t <= r.endsAt + 1000; t += 610) {
+      const edge = liveEdgeFrame(r.replay, t);
+      const over = isBroadcastOver(r.replay, t);
+      // Window 0, the windows around the edge and the last ones (the rest behave like these).
+      const ws = new Set([0, 1, liveWindowOf(edge) - 1, liveWindowOf(edge), liveWindowOf(edge) + 1, windows - 1, windows].filter((w) => w >= 0));
+      for (const w of ws) {
+        const chunk = sliceBroadcast(r.replay, w * W, t, W);
+        const state = liveWindowState(w, chunk);
+        if (over) {
+          expect(state).toBe("final");
+          expect(chunk.final).toBe(r.replay);
+          continue;
+        }
+        if (edge < r.last) assertNoLeak(chunk, r);
+        // Every frame run but the result not yet official: still nothing about the outcome.
+        else expect(JSON.stringify(chunk)).not.toMatch(new RegExp(`${r.replay.seed}|"result"|"seed"|"totalTicks"`));
+        expect(chunk.final).toBeNull();
+        expect(chunk.fromFrame).toBe(w * W);
+        expect(chunk.frames.length).toBeLessThanOrEqual(W);
+        if (chunk.frames.length > 0) expect(w * W + chunk.frames.length - 1).toBeLessThanOrEqual(edge);
+        expect(chunk.frames).toEqual(r.replay.frames.slice(w * W, Math.min(edge + 1, (w + 1) * W)));
+        expect(state).toBe(edge < 0 ? "pre" : edge >= (w + 1) * W - 1 ? "complete" : "live");
+      }
+    }
+  });
+
+  it("a complete window's frames never change afterwards (safe to cache as immutable)", () => {
+    const r = quick("window0002");
+    const t = broadcastStartMs(r.postTimeMs) + 12_000;
+    const done = liveWindowOf(liveEdgeFrame(r.replay, t)) - 1;
+    expect(done).toBeGreaterThan(0);
+    for (let w = 0; w <= done; w++) {
+      const now = sliceBroadcast(r.replay, w * W, t, W);
+      expect(liveWindowState(w, now)).toBe("complete");
+      expect(now.frames).toEqual(sliceBroadcast(r.replay, w * W, r.endsAt - 1, W).frames);
+    }
+  });
+
+  it("cache headers by state: immutable when complete or final, ~1 s at the CDN only when live or before the off", () => {
+    expect(liveWindowHeaders("final")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });
+    expect(liveWindowHeaders("complete")).toEqual({ "Cache-Control": "public, max-age=31536000, immutable" });
+    for (const s of ["live", "pre"] as const) {
+      const h = liveWindowHeaders(s);
+      expect(h["CDN-Cache-Control"]).toBe("public, s-maxage=1, stale-while-revalidate=1");
+      // The browser keeps nothing, and nothing in Cache-Control stops Vercel caching it.
+      expect(h["Cache-Control"]).toBe("public, max-age=0, must-revalidate");
+      expect(h["Cache-Control"]).not.toMatch(/private|no-store|no-cache/);
+    }
+  });
+});

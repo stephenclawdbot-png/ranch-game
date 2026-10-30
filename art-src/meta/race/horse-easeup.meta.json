@@ -1,0 +1,142 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 13,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.926,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 14,
+  "y": 47
+ },
+ "bodyDy": 0,
+ "sources": [
+  "art-src/race/raw/anims/anim-easeup-c-0.png",
+  "art-src/race/raw/anims/anim-easeup-c-1.png",
+  "art-src/race/raw/anims/anim-easeup-c-2.png",
+  "art-src/race/raw/anims/anim-easeup-c-3.png",
+  "art-src/race/raw/anims/anim-easeup-c-4.png",
+  "art-src/race/raw/anims/anim-easeup-c-5.png",
+  "art-src/race/raw/anims/anim-easeup-c-6.png",
+  "art-src/race/raw/anims/anim-easeup-c-7.png",
+  "art-src/race/raw/anims/anim-easeup-c-8.png",
+  "art-src/race/raw/anims/anim-easeup-c-9.png",
+  "art-src/race/raw/anims/anim-easeup-c-10.png",
+  "art-src/race/raw/anims/anim-easeup-c-11.png",
+  "art-src/race/raw/anims/anim-easeup-c-12.png"
+ ],
+ "align": "barrel",
+ "alignShift": [
+  0,
+  0,
+  -1,
+  -1,
+  0,
+  1,
+  1,
+  1,
+  1,
+  0,
+  0,
+  -1,
+  0
+ ],
+ "bottoms": [
+  191,
+  191,
+  191,
+  191,
+  188,
+  191,
+  191,
+  191,
+  191,
+  191,
+  191,
+  191,
+  191
+ ],
+ "bboxes": [
+  [
+   20,
+   56,
+   237,
+   191
+  ],
+  [
+   25,
+   56,
+   239,
+   191
+  ],
+  [
+   32,
+   54,
+   236,
+   191
+  ],
+  [
+   38,
+   51,
+   232,
+   191
+  ],
+  [
+   47,
+   50,
+   233,
+   188
+  ],
+  [
+   42,
+   49,
+   236,
+   191
+  ],
+  [
+   34,
+   50,
+   238,
+   191
+  ],
+  [
+   25,
+   48,
+   240,
+   191
+  ],
+  [
+   21,
+   49,
+   239,
+   191
+  ],
+  [
+   22,
+   48,
+   238,
+   191
+  ],
+  [
+   30,
+   45,
+   238,
+   191
+  ],
+  [
+   33,
+   43,
+   235,
+   191
+  ],
+  [
+   39,
+   42,
+   233,
+   191
+  ]
+ ],
+ "colours": 48
+}

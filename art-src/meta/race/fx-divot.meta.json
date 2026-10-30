@@ -1,0 +1,10 @@
+{
+ "frameWidth": 48,
+ "frameHeight": 32,
+ "frameCount": 8,
+ "fps": 14,
+ "anchor": {
+  "x": 0.792,
+  "y": 0.844
+ }
+}

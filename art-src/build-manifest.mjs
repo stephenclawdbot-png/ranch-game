@@ -62,7 +62,46 @@ const R = [
   { id: "horse.body.canter", kind: "horse_body", depthBand: "track", src: "race/horse-canter.png", fpsFrom: "race/horse-canter.meta.json", fps: 10, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-canter.meta.json" },
   { id: "horse.body.idle", kind: "horse_body", depthBand: "track", src: "race/horse-idle.png", fps: 6, anchor: NOSE, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: "race/horse-idle.meta.json" },
   { id: "horse.body.idle.normal", kind: "horse_body", depthBand: "track", src: "race/horse-idle-normal.png", fps: 6, anchor: NOSE, variants: ["normal-opengl"], optimizationTier: "hero", sourcePromptFrom: "race/horse-idle.meta.json", sourcePrompt: "/normal-map mode=pro kind=character per frame of race/horse-idle.png (OpenGL)" },
+  // --- race-day animations (art-src/race/gen-raceanims.mjs + build_raceanims.sh; STATUS.md "Race-day animations")
+  ...raceDay(),
 ];
+
+/** Race-day strips: 256x192, keyed with race/palette.json, anchor = the gallop's nose/ground point. */
+function raceDay() {
+  const SEED = "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py)";
+  const KEYED = "keyed to race/palette.json (art-src/race/process_raceanims.py)";
+  const strips = [
+    ["break", 12, false, `${SEED}; edit-images-v2 stall stance (seed 31004) -> animate-with-text-v3 8 frames with last_frame = gallop frame 0 (seed 31602): 'the starting stalls open: the racehorse springs forward out of the stalls, pushing off powerfully with both hind legs... lands into its first full galloping stride'; ${KEYED}`],
+    ["drive", 14, true, `${SEED}; edit-images-v2 drive key (seed 31003: jockey crouched lower, arms pushing along the neck, no whip) -> animate-with-text-v3 12 frames (seed 31103): 'all-out gallop in the final furlong... jockey pushes hard, both hands pumping forward along the neck, heels squeezing; no whip; seamless loop'; ${KEYED}`],
+    ["lunge", 12, false, `drive frame 11 -> animate-with-text-v3 6 frames with last_frame = edit-images-v2 lunge key (seeds 31005, 31702): 'one last lunge: head and neck stretched far forward and down, jockey throws both hands forward along the neck'; ${KEYED}`],
+    ["easeup", 10, false, `${SEED}; animate-with-text-v3 12 frames with last_frame = a trotting frame (seed 31203): 'after the winning post the racehorse eases down: gallop, relaxed canter, slow bouncy trot; the jockey sits up gradually'; ${KEYED}`],
+    ["celebrate", 10, true, `${SEED}; edit-images-v2 (seed 31002: jockey stands in the stirrups, right arm raised) -> animate-with-text-v3 10 frames (seed 31401): 'the racehorse canters... the winning jockey stands up in the stirrups and waves his raised right arm'; ${KEYED}`],
+    ["pullup", 8, false, `${SEED}; animate-with-text-v3 12 frames (seed 31301): 'the jockey sits up and pulls the racehorse up mid-race... short uneven steps as if favouring its right foreleg' + 6 frames (seed 31302) to a standstill; every 2nd frame + 3 of the stop; ${KEYED}`],
+  ];
+  const out = [];
+  for (const [name, fps, loop, prompt] of strips) {
+    const meta = `race/horse-${name}.meta.json`;
+    const anim = (n) => ({ [name]: { from: 0, to: n - 1, loop } });
+    const n = extraMeta(meta).frameCount ?? 1;
+    out.push(
+      { id: `horse.body.${name}`, kind: "horse_body", depthBand: "track", src: `race/horse-${name}.png`, frameCount: n, fps, palette: horsePalette, variants: COATS, optimizationTier: "hero", sourcePromptFrom: meta, sourcePrompt: prompt, animations: anim(n) },
+      { id: `horse.body.${name}.normal`, kind: "horse_body", depthBand: "track", src: `race/horse-${name}-normal.png`, frameCount: n, fps, variants: ["normal-opengl"], optimizationTier: "hero", sourcePromptFrom: meta, sourcePrompt: `/normal-map mode=pro kind=character per frame of race/horse-${name}.png (OpenGL)`, animations: anim(n) },
+    );
+  }
+  for (const [name, what] of [["mud", "wet mud clods"], ["dust", "a dry dust puff"], ["divot", "turf divots"]]) {
+    const meta = `race/fx-${name}.meta.json`;
+    out.push(
+      { id: `race.fx-${name}`, kind: "vfx", depthBand: "track", src: `race/fx-${name}.png`, frameCount: 8, sourcePromptFrom: meta, variants: ["keyed-recolour"], optimizationTier: "standard", animations: { [`fx-${name}`]: { from: 0, to: 7, loop: false } }, sourcePrompt: `/vfx artist=pro, 48x32, 8 frames: ${what} kicked up backwards behind a galloping hoof (prompts in art-src/race/gen-raceanims.mjs); keyed to a few source colours, tinted per surface/going via race/fx-palette.json (art-src/race/process_fx.py)` },
+      { id: `race.fx-${name}.normal`, kind: "vfx", depthBand: "track", src: `race/fx-${name}-normal.png`, frameCount: 8, sourcePromptFrom: meta, variants: ["normal-opengl"], optimizationTier: "standard", animations: { [`fx-${name}`]: { from: 0, to: 7, loop: false } }, sourcePrompt: "computed in code: silhouette inflated to domes, OpenGL (art-src/race/fx_normals.py)" },
+    );
+  }
+  const cheer = "animate-with-text-v3 8 frames on two overlapping 256 px windows of race/crowd.png (seeds 31501/31502): 'the racegoers behind the white rail cheer wildly... wave their arms and race cards, jump up and down, clap'; stitched with min-cut seams, snapped to crowd.png's palette, frames 0-5 ping-pong (art-src/race/process_crowd.py)";
+  out.push(
+    { id: "race.crowd-cheer", kind: "track_layer", depthBand: "mid", src: "race/crowd-cheer.png", frameCount: 10, fps: 8, anchor: { x: 0.5, y: 1 }, variants: ["seamless-x"], optimizationTier: "standard", sourcePrompt: cheer, animations: { "crowd-cheer": { from: 0, to: 9, loop: true } } },
+    { id: "race.crowd-cheer.normal", kind: "track_layer", depthBand: "mid", src: "race/crowd-cheer-normal.png", frameCount: 10, fps: 8, anchor: { x: 0.5, y: 1 }, variants: ["normal-opengl"], optimizationTier: "standard", sourcePrompt: "/normal-map mode=lite kind=object per unique frame of race/crowd-cheer.png (OpenGL; ping-pong frames reuse their twin's map)", animations: { "crowd-cheer": { from: 0, to: 9, loop: true } } },
+  );
+  return out;
+}
 
 // Generic single-image entries registered by later batches (see art-src/assets.json).
 const extra = existsSync(join(ROOT, "..", "..", "..", "..", "art-src", "assets.json"))

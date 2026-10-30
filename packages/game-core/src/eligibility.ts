@@ -8,7 +8,7 @@
  */
 import type { RaceClass } from "@thoroughbred/shared";
 import type { HorseState, RaceSlot, RaceTier } from "./types";
-import { abilityMark } from "./ability";
+import { abilityMark } from "./phenotype";
 import { CARE_TO_YEARLING, raceBlock, stageOf } from "./lifecycle";
 import { ENTRY_CLOSE_BEFORE_MS } from "./seasons";
 

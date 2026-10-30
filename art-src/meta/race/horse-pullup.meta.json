@@ -1,0 +1,115 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 10,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.926,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 14,
+  "y": 47
+ },
+ "bodyDy": -1,
+ "sources": [
+  "art-src/race/raw/anims/anim-pullup-a-0.png",
+  "art-src/race/raw/anims/anim-pullup-a-2.png",
+  "art-src/race/raw/anims/anim-pullup-a-4.png",
+  "art-src/race/raw/anims/anim-pullup-a-6.png",
+  "art-src/race/raw/anims/anim-pullup-a-8.png",
+  "art-src/race/raw/anims/anim-pullup-a-10.png",
+  "art-src/race/raw/anims/anim-pullup-a-12.png",
+  "art-src/race/raw/anims/anim-pullup-b-2.png",
+  "art-src/race/raw/anims/anim-pullup-b-4.png",
+  "art-src/race/raw/anims/anim-pullup-b-6.png"
+ ],
+ "align": "barrel",
+ "alignShift": [
+  0,
+  -2,
+  0,
+  1,
+  -1,
+  0,
+  1,
+  0,
+  0,
+  0
+ ],
+ "bottoms": [
+  190,
+  190,
+  190,
+  190,
+  190,
+  191,
+  190,
+  190,
+  190,
+  190
+ ],
+ "bboxes": [
+  [
+   20,
+   55,
+   237,
+   190
+  ],
+  [
+   38,
+   58,
+   234,
+   190
+  ],
+  [
+   37,
+   53,
+   229,
+   190
+  ],
+  [
+   21,
+   54,
+   234,
+   190
+  ],
+  [
+   23,
+   49,
+   237,
+   190
+  ],
+  [
+   39,
+   41,
+   233,
+   191
+  ],
+  [
+   36,
+   43,
+   235,
+   190
+  ],
+  [
+   25,
+   39,
+   230,
+   190
+  ],
+  [
+   22,
+   41,
+   230,
+   190
+  ],
+  [
+   28,
+   40,
+   234,
+   190
+  ]
+ ],
+ "colours": 46
+}

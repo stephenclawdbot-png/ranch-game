@@ -1,61 +1,75 @@
 /**
- * The shared sliding-window limiter (src/server/rateLimit.ts): counts per key, over-limit
- * verdicts, window sliding, empty-key eviction and the map cap (oldest keys dropped past
- * 10,000), plus the client-IP header order.
+ * The shared limiter (src/server/rateLimit.ts): counts per key in the database, over-limit
+ * verdicts, two limiter objects with the same name sharing one count (the multi-instance
+ * case: every serverless instance counts against the same quota), and failing OPEN when the
+ * database errors — plus the client-IP header order.
  */
-import { describe, expect, it } from "vitest";
-import { clientIp, slidingWindowLimiter } from "./rateLimit";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { createDb, type Db, type DbHandle } from "@thoroughbred/db";
+import { clientIp, sharedLimiter } from "./rateLimit";
 
 const MIN = 60_000;
+const HOUR = 60 * MIN;
+/** Minute-aligned, so t(0) is the start of a fixed window. */
+const T0 = new Date("2026-11-03T12:00:00.000Z").getTime();
+const t = (ms: number) => T0 + ms;
+
+let h: DbHandle;
+beforeAll(async () => {
+  h = await createDb({ url: null, pglite: "memory" });
+});
+afterAll(async () => {
+  await h.close();
+});
 
 function req(headers: Record<string, string>): Request {
   return new Request("https://beta.example/api", { headers });
 }
 
-describe("slidingWindowLimiter", () => {
-  it("counts hits per key, goes over the limit, slides the window", () => {
-    const l = slidingWindowLimiter({ limit: 2, windowMs: 60 * MIN });
-    expect(l.hit("a", 0)).toBe(false);
-    expect(l.hit("a", MIN)).toBe(false);
-    expect(l.hit("a", 2 * MIN)).toBe(true); // over
-    expect(l.count("a", 2 * MIN)).toBe(3);
-    // The first hit slides out of the window: two fresh ones fit again.
-    expect(l.hit("a", 61 * MIN)).toBe(false);
-    expect(l.hit("a", 61 * MIN)).toBe(true);
+describe("sharedLimiter", () => {
+  it("counts hits per key and goes over the limit", async () => {
+    const l = sharedLimiter({ name: "t-count", limit: 2, windowMs: HOUR });
+    expect(await l.hit(h.db, "a", t(0))).toBe(false);
+    expect(await l.hit(h.db, "a", t(MIN))).toBe(false);
+    expect(await l.hit(h.db, "a", t(2 * MIN))).toBe(true); // over
+    expect(await l.count(h.db, "a", t(2 * MIN))).toBe(3);
     // Other keys are independent.
-    expect(l.hit("b", 61 * MIN)).toBe(false);
-    // reset forgets everything (test hook).
-    l.reset();
-    expect(l.count("a", 61 * MIN)).toBe(0);
+    expect(await l.hit(h.db, "b", t(2 * MIN))).toBe(false);
+    expect(await l.count(h.db, "b", t(2 * MIN))).toBe(1);
   });
 
-  it("counts failures without a verdict (the device-link counter)", () => {
-    const l = slidingWindowLimiter({ limit: 2, windowMs: 60 * MIN });
-    l.fail("a", 0);
-    l.fail("a", MIN);
-    expect(l.count("a", MIN)).toBe(2);
-    l.fail("a", 2 * MIN);
-    expect(l.count("a", 2 * MIN)).toBe(3);
+  it("counts failures without a verdict (the device-link counter)", async () => {
+    const l = sharedLimiter({ name: "t-fail", limit: 2, windowMs: HOUR });
+    await l.fail(h.db, "a", t(0));
+    await l.fail(h.db, "a", t(MIN));
+    expect(await l.count(h.db, "a", t(MIN))).toBe(2);
+    await l.fail(h.db, "a", t(2 * MIN));
+    expect(await l.count(h.db, "a", t(2 * MIN))).toBe(3);
   });
 
-  it("evicts keys once their window is empty", () => {
-    const l = slidingWindowLimiter({ limit: 1, windowMs: MIN });
-    l.hit("a", 0);
-    expect(l.count("a", MIN)).toBe(0); // slid out
-    // An empty key is gone: the next hit starts from zero, not the stale entry.
-    expect(l.hit("a", MIN)).toBe(false);
-    expect(l.count("a", MIN)).toBe(1);
+  it("two limiters with the same name share one count (the multi-instance case)", async () => {
+    const east = sharedLimiter({ name: "t-shared", limit: 2, windowMs: HOUR });
+    const west = sharedLimiter({ name: "t-shared", limit: 2, windowMs: HOUR });
+    expect(await east.hit(h.db, "ip", t(0))).toBe(false);
+    expect(await west.hit(h.db, "ip", t(1))).toBe(false);
+    // The second "instance" sees the first's attempts: the third hit is over the limit.
+    expect(await east.count(h.db, "ip", t(2))).toBe(2);
+    expect(await west.hit(h.db, "ip", t(2))).toBe(true);
   });
 
-  it("caps the map at 10,000 keys, dropping the oldest (a spoofed-IP spray can't grow it)", () => {
-    const l = slidingWindowLimiter({ limit: 10, windowMs: 60 * MIN });
-    l.hit("first", 0);
-    for (let i = 0; i < 10_000; i++) l.hit(`ip-${i}`, 1);
-    // "first" was dropped as the oldest key; the newest key keeps its count.
-    expect(l.count("first", 1)).toBe(0);
-    expect(l.count("ip-9999", 1)).toBe(1);
-    // The limiter still works after the cap.
-    expect(l.hit("another", 1)).toBe(false);
+  it("fails OPEN when the database errors, logging once (a limiter must never take the game down)", async () => {
+    const l = sharedLimiter({ name: "t-open", limit: 1, windowMs: HOUR });
+    const broken = { insert: () => { throw new Error("connection refused"); } } as unknown as Db;
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(await l.hit(broken, "a", t(0))).toBe(false); // allowed
+      await l.fail(broken, "a", t(0));
+      expect(await l.count(broken, "a", t(0))).toBe(0);
+      expect(await l.hit(broken, "a", t(1))).toBe(false); // still allowed
+      expect(errors).toHaveBeenCalledTimes(1); // logged once, then quiet
+    } finally {
+      errors.mockRestore();
+    }
   });
 });
 

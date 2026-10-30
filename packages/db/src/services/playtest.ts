@@ -689,6 +689,7 @@ export const RESET_TABLES = [
   // Leases follow the horses and stables.
   "horse_leases",
   "horse_lease_listings",
+  "race_claims",
   "trades",
   "market_listings",
   "league_members",
@@ -712,6 +713,8 @@ export const RESET_TABLES = [
   "horses",
   // Stable photos follow the stables.
   "stable_photos",
+  // Abuse counters reset with everything else (no foreign keys, order-free).
+  "rate_limits",
   "stables",
   "account_play_days",
   "fraud_events",

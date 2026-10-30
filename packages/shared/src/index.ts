@@ -241,10 +241,22 @@ export const RaceCourseSchema = z.object({
 });
 export type RaceCourse = z.infer<typeof RaceCourseSchema>;
 
+/**
+ * Race models a race can be locked for (engine 1.4.0 onwards): "1.4.0" is the close-finish
+ * model (racing in a pack, late battles, steadier day form). Frozen into a Live field at entry
+ * lock; a race without one runs exactly as before (1.3.0 with a course, 1.2.0 with kit, 1.1.0).
+ */
+export const RaceModelSchema = z.enum(["1.4.0"]);
+export type RaceModel = z.infer<typeof RaceModelSchema>;
+/** The model Live races lock with today. */
+export const LIVE_RACE_MODEL: RaceModel = "1.4.0";
+
 export const RaceInputSchema = z.object({
   race: RaceConfigSchema,
   /** The course's shape (engine 1.3.0). Absent = no course character (1.2.0 / 1.1.0). */
   course: RaceCourseSchema.optional(),
+  /** The race model (engine 1.4.0+), sealed with the result. Absent = the model the kit/course pick. */
+  model: RaceModelSchema.optional(),
   entries: z.array(RaceEntrySchema).min(2).max(16),
   /** Revealed seed, 64 hex chars. Its sha256 is the published commitment. */
   seed: z.string().regex(/^[0-9a-f]{64}$/),

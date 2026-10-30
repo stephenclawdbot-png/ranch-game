@@ -120,6 +120,20 @@
       "when": 1793382144984,
       "tag": "0016_club_market",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793386486590,
+      "tag": "0017_claiming",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793389629481,
+      "tag": "0018_rate_limits",
+      "breakpoints": true
     }
   ]
 }

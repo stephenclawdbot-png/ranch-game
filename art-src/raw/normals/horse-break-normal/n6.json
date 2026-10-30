@@ -1,0 +1,248 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<15772 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f4c96a9b-076d-4e42-91c2-067dc74d10d2",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "f4c96a9b-076d-4e42-91c2-067dc74d10d2",
+  "status": "completed",
+  "created_at": "2026-10-30T18:35:36.413201+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "box": [
+       75,
+       99,
+       139,
+       158
+      ],
+      "axis": 0,
+      "name": "rear body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       90,
+       81,
+       86,
+       87
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rear legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       116,
+       114,
+       119,
+       121
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "dark legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       115
+      ]
+     },
+     {
+      "box": [
+       143,
+       90,
+       193,
+       137
+      ],
+      "axis": 0,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       83,
+       96,
+       84,
+       88,
+       98,
+       103,
+       91,
+       106,
+       70,
+       75,
+       73
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "front legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       95,
+       72,
+       71
+      ]
+     },
+     {
+      "box": [
+       125,
+       65,
+       151,
+       95
+      ],
+      "name": "weapon",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.5,
+       0.5
+      ],
+      "regions": [
+       27
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "upper body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       31,
+       37,
+       41,
+       38,
+       26,
+       39,
+       50,
+       49,
+       36,
+       40,
+       30,
+       34,
+       29,
+       24,
+       20,
+       21,
+       23
+      ]
+     },
+     {
+      "name": "crest",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       22
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       48,
+       25,
+       45,
+       44,
+       42,
+       43,
+       52,
+       53,
+       54,
+       55,
+       56,
+       59,
+       60,
+       61,
+       62
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     15,
+     12,
+     18
+    ],
+    "backdrop": [],
+    "recessed": [
+     45,
+     44,
+     57,
+     58,
+     66,
+     65,
+     79,
+     67
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<42152 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "2543f3b1-7dcd-4767-81d5-a5d86532833d",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:35:36.478924+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-break-normal/n6-0.png"
+ ]
+}

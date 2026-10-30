@@ -154,6 +154,8 @@ export interface CareerView {
   diedAtMs: number | null;
   stages: CareerStageRow[];
   maturity: { type: "early" | "normal" | "late"; label: string; peakFrom: number; peakTo: number; blurb: string };
+  /** An improver's step-up once it has happened (game-core progressionOf): never shown in advance. */
+  progression: { status: "improving" | "improved"; gainOr: number } | null;
   ranges: RangeView[];
   scanned: boolean;
   scanCost: number;

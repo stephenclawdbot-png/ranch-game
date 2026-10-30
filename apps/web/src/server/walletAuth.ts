@@ -15,8 +15,9 @@
  *
  * EOA signatures always verify; ERC-1271 smart wallets too when the chain has an RPC
  * (EvmBetaChain.verifySignature). Challenge+verify are rate-limited per IP (30/hour, like
- * the device-link limiter). The IP is never an identity signal; a stable switch is written
- * to the audit log as `account.switch`.
+ * the device-link limiter), counted in the shared `rate_limits` table so every serverless
+ * instance enforces one quota. The IP is never an identity signal; a stable switch is
+ * written to the audit log as `account.switch`.
  */
 import { randomBytes } from "node:crypto";
 import { getAddress, isAddress, type Address, type Hex } from "viem";
@@ -24,6 +25,7 @@ import { SilksSchema } from "@thoroughbred/shared";
 import {
   accountForWallet,
   audit,
+  clearRateLimits,
   consumeWalletChallenge,
   createDeviceSession,
   createWalletChallenge,
@@ -41,7 +43,7 @@ import { foundStable } from "./founding";
 import { playerView } from "./game";
 import { errorJson, json } from "./http";
 import { trackEvent } from "./playtest";
-import { slidingWindowLimiter } from "./rateLimit";
+import { sharedLimiter } from "./rateLimit";
 import { setSessionCookie, type Session } from "./session";
 import { StableNameSchema } from "@/lib/stableName";
 
@@ -49,11 +51,11 @@ const TTL_MS = 10 * 60_000;
 
 export const WALLET_AUTH_LIMIT = 30;
 /** Wallet challenge+verify attempts per IP per sliding hour. */
-const authHits = slidingWindowLimiter({ limit: WALLET_AUTH_LIMIT, windowMs: 3_600_000 });
+const authHits = sharedLimiter({ name: "wallet-auth", limit: WALLET_AUTH_LIMIT, windowMs: 3_600_000 });
 
 /** Test hook: forget the counted requests. */
-export function resetWalletAuthLimit(): void {
-  authHits.reset();
+export function resetWalletAuthLimit(database: Db): Promise<number> {
+  return clearRateLimits(database, { name: "wallet-auth" });
 }
 
 /**
@@ -90,7 +92,7 @@ export async function walletAuthChallengeResponse(
   database: Db,
   input: { address: string; host: string; proto: string; ip: string; now: Date; env?: Record<string, string | undefined> },
 ) {
-  if (authHits.hit(input.ip, input.now.getTime())) {
+  if (await authHits.hit(database, input.ip, input.now.getTime())) {
     const res = errorJson(429, "too_many_tries", { message: "Too many wallet requests. Wait a few minutes, then try again." });
     res.headers.set("Retry-After", "3600");
     return res;
@@ -137,7 +139,7 @@ export interface WalletAuthVerifyInput {
 export async function walletAuthVerifyResponse(database: Db, input: WalletAuthVerifyInput) {
   const now = input.now ?? new Date();
   const env = input.env ?? process.env;
-  if (authHits.hit(input.ip, now.getTime())) {
+  if (await authHits.hit(database, input.ip, now.getTime())) {
     const res = errorJson(429, "too_many_tries", { message: "Too many wallet requests. Wait a few minutes, then try again." });
     res.headers.set("Retry-After", "3600");
     return res;

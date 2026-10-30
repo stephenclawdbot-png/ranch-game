@@ -1,0 +1,58 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildRaceCall > matches the sample calls > 1200 m, Saltmarsh 1`] = `
+"  0.6  off       And they're off in the Kingsbridge Sprint Stakes, Copper Comet slowly away!
+  9.0  order     Silver Bramble leads from Harbour Light, and then Midnight Ledger and Quiet Riot.
+ 11.5  order     Behind them, Golden Mile, Velvet Thunder and Northern Tide, and the backmarker is Copper Comet.
+ 14.0  you       Your Velvet Thunder is tucked in sixth, out wide, five lengths back.
+ 20.0  fraction  That's 300 metres run in 19.91 seconds.
+ 30.9  position  Silver Bramble remains in charge, Harbour Light chasing, Midnight Ledger handy in third; Quiet Riot fourth. The field is spread over fifteen lengths.
+ 33.4  you       Your Velvet Thunder lies sixth, eleven lengths behind the leader.
+ 38.3  fraction  38.20 seconds at halfway.
+ 43.1  home      Here's the long run home at Saltmarsh, Silver Bramble at the head of it.
+ 47.0  position  Out in front, Silver Bramble; Harbour Light is a length and a half back, then Midnight Ledger, Quiet Riot close up in fourth.
+ 49.5  you       Back in sixth, your Velvet Thunder, out wide.
+ 52.0  home      Two furlongs left, Silver Bramble by a length and a half from Harbour Light!
+ 56.4  move      Midnight Ledger kicks for home!
+ 58.9  move      Your Velvet Thunder launches a run!
+ 62.6  home      One furlong out, Silver Bramble by two lengths, Harbour Light closing!
+ 65.1  challenge Silver Bramble and Midnight Ledger are locked together!
+ 68.5  home      A hundred metres to go!
+ 74.1  photo     Midnight Ledger and Quiet Riot flash past the post together. Photograph!
+ 80.1  result    The photo shows Midnight Ledger has won by a nose, Quiet Riot second, Silver Bramble third.
+ 82.6  you       Your Velvet Thunder completes the course in sixth."
+`;
+
+exports[`buildRaceCall > matches the sample calls > 2400 m, Harrowgate 1`] = `
+"  0.6  off       And they're off! A tardy start from Lucky Lantern.
+  9.2  move      A change in front: Quiet Riot takes over from Silver Bramble.
+ 12.9  order     Quiet Riot leads from Silver Bramble, then Storm Warden, Midnight Ledger, Golden Mile and Lucky Lantern.
+ 15.4  order     Further back, Copper Comet, Velvet Thunder, Rosewood Rebel, Northern Tide and Ashford Arrow, and Harbour Light last of all.
+ 17.9  you       Your Velvet Thunder is tucked in eighth, out wide, six lengths back.
+ 36.9  fraction  They've gone 600 metres in 36.85 seconds.
+ 47.9  position  Quiet Riot still in front, a length and a half up on Silver Bramble, with Lucky Lantern next, Storm Warden in fourth.
+ 50.4  you       Your Velvet Thunder lies eighth, eighteen lengths behind the leader.
+ 58.3  position  Quiet Riot remains in charge, Silver Bramble chasing, Lucky Lantern handy in third, Storm Warden fourth. It's a strung-out field.
+ 69.4  position  Quiet Riot bowls along a length and a half clear of Silver Bramble, and Lucky Lantern is on their heels, and Storm Warden fourth.
+ 71.9  you       Back in eighth, your Velvet Thunder, out wide.
+ 74.4  fraction  The halfway split is 1:12.84.
+ 85.4  position  Quiet Riot from Silver Bramble and Lucky Lantern, the gap two and a half lengths, Storm Warden fourth of them.
+ 87.9  you       And your Velvet Thunder is eighth, 23 lengths off the lead.
+ 90.4  position  Quiet Riot leads by two and a half lengths from Silver Bramble, Lucky Lantern in third; Storm Warden fourth.
+101.4  position  It's Quiet Riot by three lengths, Silver Bramble second, Lucky Lantern third, Golden Mile close up in fourth.
+103.9  you       Your Velvet Thunder is eighth now, out wide.
+109.4  fraction  The clock says 1:49.37 for 1800 metres.
+111.9  move      Ashford Arrow is asked for an effort and responds!
+115.8  move      Harbour Light quickens!
+119.9  move      Quiet Riot is weakening.
+122.4  move      Silver Bramble has nothing left to give.
+124.9  home      Round the home turn at Harrowgate, Quiet Riot still there!
+127.4  you       Your Velvet Thunder is racing in ninth, 25 lengths to find.
+130.4  home      Up the Harrowgate hill they come, Quiet Riot leading!
+134.4  home      Inside the last furlong, Quiet Riot from Silver Bramble!
+139.3  challenge Silver Bramble throws down the challenge to Quiet Riot!
+141.8  home      Quiet Riot! Silver Bramble! Hundred metres left!
+146.9  photo     Quiet Riot and Silver Bramble flash past the post together. Photograph!
+152.9  result    Quiet Riot has prevailed by a nose from Silver Bramble; Golden Mile is third.
+155.4  you       Your Velvet Thunder passes the post in tenth."
+`;

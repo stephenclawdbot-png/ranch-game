@@ -1,0 +1,23 @@
+# Course character: % of races won, 3000 fitted 8-runner fields, the same fields on every course
+course          front stalk close | speediest stoutest | gate1-3 gate6-8 | s/km
+(no course)      37.3  34.4  28.3 |    14.6     10.2 |    29.6    44.8 | 62.11
+Ashcombe         37.6  33.5  28.9 |    14.8     10.2 |    29.5    45.1 | 62.12
+Kestrel Downs    42.2  33.5  24.3 |    16.4      8.8 |    33.0    42.2 | 62.34
+Saltmarsh        32.9  33.7  33.4 |    15.1      9.9 |    30.5    43.7 | 61.89
+Bellmont         37.9  33.8  28.3 |    15.4      9.4 |    31.0    44.1 | 62.18
+Larkspur         41.0  30.9  28.1 |    19.3      7.4 |    31.6    44.2 | 61.77
+Harrowgate       34.9  43.9  21.2 |     9.6     16.3 |    30.7    44.2 | 63.47
+
+# Breed win rate per start over all six courses (1/8 = 12.5%; target 10-15%), with no course, and by course (Ashcombe, Kestrel, Saltmarsh, Bellmont, Larkspur, Harrowgate)
+Thoroughbred    14.6%   (no course  14.5%, 2048 starts per course)  by course  14.3  14.8  14.4  14.7  12.9  16.6
+Arabian         13.2%   (no course  13.3%, 2253 starts per course)  by course  13.7  12.6  13.1  13.3  12.1  14.5
+Quarter Horse   12.8%   (no course  13.1%, 2838 starts per course)  by course  12.8  14.0  12.8  13.5  15.7   8.1
+Akhal-Teke      14.5%   (no course  13.8%, 1938 starts per course)  by course  14.7  14.1  14.4  14.6  13.8  15.4
+Standardbred    13.0%   (no course  12.4%, 1512 starts per course)  by course  13.4  13.0  11.5  12.6  10.8  16.7
+Appaloosa       11.3%   (no course  11.5%, 2153 starts per course)  by course  11.2  11.0  11.7  10.9  10.1  12.7
+Paint Horse     13.4%   (no course  13.4%, 2857 starts per course)  by course  13.4  14.1  13.4  13.4  16.3   9.5
+Mustang         10.7%   (no course  11.3%, 1706 starts per course)  by course  10.9   9.4  10.3  10.7   9.6  13.6
+Andalusian      10.6%   (no course  10.5%, 1920 starts per course)  by course   9.9  11.3  11.0  10.6  11.4   9.4
+Friesian        10.8%   (no course  10.9%, 1913 starts per course)  by course  10.7  10.6  11.2  11.1  11.0  10.1
+Warmblood       12.5%   (no course  12.7%, 1298 starts per course)  by course  12.4  11.9  13.3  11.5  11.7  14.3
+Marwari         11.7%   (no course  11.4%, 1564 starts per course)  by course  11.7  11.0  12.0  11.2  10.4  13.8

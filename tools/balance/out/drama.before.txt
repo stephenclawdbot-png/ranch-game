@@ -1,0 +1,24 @@
+# Race drama (BEFORE: the engine Live races ran before 1.4.0): 2000 even fields, 2000 banded fields run with and without handicap weights, 8 runners
+
+## Winning margin (1st to 2nd), % of races
+field         nose short head    head    neck 1/2-3/4       1 1 1/4-2 2 1/2-3      3+ | <=head  <=1L   >3L | win L mean/med | 1st-3rd L | spread mean/median (L) | fav win% | front/stalk/close win%
+even           1.9     3.3     3.9     6.9    14.6     5.5    18.8    13.6    31.5 |   9.1  36.1  31.5 | 2.84 / 1.81 |   4.96    |   15.5 /  14.1      |  14.2    |  39.9  34.5  25.6
+handicap       1.6     3.2     3.9     5.3    13.3     5.8    18.9    13.8    34.3 |   8.7  33.0  34.3 | 3.05 / 2.02 |   5.38    |   16.5 /  15.1      |  12.2    |  37.6  33.9  28.5
+mixed          1.4     2.4     3.1     5.7    14.7     6.3    16.5    12.4    37.5 |   7.0  33.5  37.5 | 3.63 / 2.12 |   6.47    |   20.9 /  18.4      |  30.3    |  40.1  34.0  25.8
+ident hcp      1.9     3.9     4.0     6.8    14.1     6.0    20.5    13.4    29.4 |   9.8  36.6  29.4 | 2.78 / 1.72 |   4.78    |   13.8 /  12.3      |  12.5    |  37.8  31.6  30.6
+identical      2.2     2.9     3.4     6.3    13.0     5.1    18.1    12.2    36.9 |   8.4  32.8  36.9 | 3.57 / 2.04 |   6.30    |   19.0 /  16.6      |  32.8    |  37.8  31.6  30.6
+  (photo = a head or less; spread = leader to last at the line, lengths; fav = highest ability mark, ties share)
+  (handicap and mixed are the same 25-OR-band fields, gates and seeds with and without weights; ident hcp / identical: the same band with one horse cloned)
+
+## Upsets
+Banded 25-OR fields at level weights: win % by OR below the field's best runner (1/8 = 12.5%)
+  mixed      0 below:  29.5% (2352)   3 below:  17.5% (633)   5 below:  17.5% (628)   7 below:  12.6% (626)  10 below:   9.6% (679)  15 below:   3.7% (598)
+  identical  0 below:  31.7% (2352)   3 below:  19.7% (633)   5 below:  15.3% (628)   7 below:  13.3% (626)  10 below:   9.9% (679)  15 below:   2.0% (598)
+Lone horse d OR below seven equal rivals (mixed horses): 0: 11.6%  3: 9.0%  5: 8.2%  7: 4.6%  10: 3.0%  15: 1.8%   (500 races each)
+Lone horse d OR below seven equal rivals (identical horses): 0: 12.8%  3: 6.4%  5: 5.2%  7: 4.4%  10: 1.8%  15: 0.8%   (500 races each)
+Weights (1 lb = 1 OR): a horse d OR better than seven equal rivals wins d=5: 12.4% carrying 5 lb (26.0% at level weights); d=10: 9.6% carrying 10 lb (42.4% at level weights); d=15: 11.6% carrying 15 lb (52.8% at level weights)   (1/8 = 12.5%)
+68 vs 75 among six at 71-72 (mixed horses): the 68 finishes ahead  38.6% of 1200; wins the race   9.2%, the 75 wins  19.3%
+68 vs 75 among six at 71-72 (identical horses): the 68 finishes ahead  33.6% of 1200; wins the race   6.9%, the 75 wins  20.1%
+
+Anchors: favourites win ~30-35% of flat races; UK flat handicaps are mostly decided by under a length, with photo finishes routine.
+Jockeys used: apprentice, journeyman, top (75/15/10%); soft shoes on 30% of soft/heavy runners.

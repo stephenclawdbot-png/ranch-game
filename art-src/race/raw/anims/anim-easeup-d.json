@@ -1,0 +1,138 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<13040 chars>",
+   "format": "png"
+  },
+  "last_frame": {
+   "type": "base64",
+   "base64": "<18044 chars>",
+   "format": "png"
+  },
+  "action": "after the winning post the racehorse eases down: it gallops, then slows to a relaxed canter, then to a slow bouncy two-beat trot with diagonal legs moving together; the jockey sits up gradually and lets the reins go long; stays in place",
+  "frame_count": 12,
+  "seed": 31204,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5cb9eec4-9d18-4b4b-8034-f698a89743c4",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "5cb9eec4-9d18-4b4b-8034-f698a89743c4",
+  "status": "completed",
+  "created_at": "2026-10-30T18:19:12.306804+00:00",
+  "last_response": {
+   "seed": 31204,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.03399881117211448
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<13040 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<22664 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20388 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20132 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20180 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21492 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21516 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21588 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21256 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21348 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19076 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19356 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<17884 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "05940ede-e52d-4ef0-a787-e2fd5bf28d82",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:19:30.022885+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-easeup-d-0.png",
+  "art-src/race/raw/anims/anim-easeup-d-1.png",
+  "art-src/race/raw/anims/anim-easeup-d-2.png",
+  "art-src/race/raw/anims/anim-easeup-d-3.png",
+  "art-src/race/raw/anims/anim-easeup-d-4.png",
+  "art-src/race/raw/anims/anim-easeup-d-5.png",
+  "art-src/race/raw/anims/anim-easeup-d-6.png",
+  "art-src/race/raw/anims/anim-easeup-d-7.png",
+  "art-src/race/raw/anims/anim-easeup-d-8.png",
+  "art-src/race/raw/anims/anim-easeup-d-9.png",
+  "art-src/race/raw/anims/anim-easeup-d-10.png",
+  "art-src/race/raw/anims/anim-easeup-d-11.png",
+  "art-src/race/raw/anims/anim-easeup-d-12.png"
+ ]
+}

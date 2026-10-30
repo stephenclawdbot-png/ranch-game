@@ -224,7 +224,12 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `ENGINE_VERSION` / `KIT_ENGINE_VERSION` / `LEGACY_ENGINE_VERSION` | "1.3.0" / "1.2.0" / "1.1.0" | packages/racing-engine/src/simulate.ts:28, :30, :32 | Replays verify against `engineVersionFor(entries, course)`: a race with a course profile is 1.3.0; without one, a race whose entries carry race-day `kit` is 1.2.0 and any other runs and hashes exactly as 1.1.0 (every older race keeps its proof). Any model change must bump it. | Replay verification |
+| `ENGINE_VERSION` / `COURSE_ENGINE_VERSION` / `KIT_ENGINE_VERSION` / `LEGACY_ENGINE_VERSION` | "1.4.0" / "1.3.0" / "1.2.0" / "1.1.0" | packages/racing-engine/src/simulate.ts:31, :33, :35, :37 | Replays verify against `engineVersionFor(entries, course, model)`: a race carrying the race `model` is 1.4.0; otherwise one with a course profile is 1.3.0, one whose entries carry race-day `kit` 1.2.0, and any other runs and hashes exactly as 1.1.0 (every older race keeps its proof). Any model change must bump it. | Replay verification |
+| Race model (per race, new 2026-10-30) | `model: "1.4.0"` (`RaceModelSchema`, `LIVE_RACE_MODEL`, packages/shared/src/index.ts:249, :252) | packages/db/src/services/races.ts:490 (`modelForRace`), :661; apps/web/src/server/game.ts (`fieldModel`) | Live card races (scheduled, feature, final) lock with it; the field hashes `[runners, course or null, model]` (`fieldHashOf`, :674) and the result hash seals "1.4.0". Story, Daily Cup and older fields have none. | Which races run the close-finish model |
+| `PACK_PULL` / `PACK_CARRY` (1.4.0) | 500 / 500 permille | packages/racing-engine/src/simulate.ts:77, :83; applied :326, :367 | Racing in a pack: until its kick a horse's pace is pulled half way from its own cruise to the field's average; half of that pull is free (slipstream), the rest costs energy (or, for a faster horse held up, saves some). All free favoured stayers, none free favoured speed horses (breeds report). | Spread at the finish, margins, breed balance |
+| `BATTLE_AHEAD_MM` / `BATTLE_BEHIND_MM` / `BATTLE_FROM_MM` (1.4.0) | 3,600 mm (1.5 L) / 2,400 mm (1 L) / 400 m or the kick | packages/racing-engine/src/simulate.ts:85, :87, :89; applied :324 | A horse is in a late battle with a rival up to 1.5 L ahead or 1 L behind (any lane), once it kicks or inside the last 400 m. | Photo finishes, closer vs front-runner share |
+| `BATTLE_BASE` / `BATTLE_TEMPER` / `BATTLE_GRIT` (1.4.0) | 150 mm/s / 100 permille of temperament / 0..150 mm/s seeded per horse per race (stream 4) | packages/racing-engine/src/simulate.ts:91, :92, :94, :107 | Pace found in a battle, as a lift of cruise that the tank doesn't pay for, so close finishes stay close and who finds most is never certain. | Photo finishes, value of temperament, upsets among close horses |
+| `DRAMA_FORM_PERMILLE` (1.4.0) | 850 | packages/racing-engine/src/model.ts:39, :113 | Day-form swing in a 1.4.0 race (racing in a pack packs fields closer, so the same swing would flip more results; lower than 850 pushed Thoroughbred over 15% of course wins). | Upset rate, margins, breed balance |
 | Race-day kit (per runner) | `goingPenaltyPermille`, `formAmpPermille`, `keenPermille` (0..1000, optional; `RaceKitSchema` in packages/shared) | packages/racing-engine/src/model.ts:95-97, :109, :143 | Scales the going pace penalty, the day-form amplitude and the keen-early extra drain down. Set at the field lock from the entry's race-day choice (packages/db/src/services/races.ts:617); hashed into the field only when present (`fieldHashOf`, :641). | Upsets, going fit |
 | Course profile (per race, new 2026-10-30) | `id`, `direction`, `circumferenceM`, `homeStraightM`, `bendsPerLap`, `bendTightness`, `finishGradientPermille` (`RaceCourseSchema`, packages/shared/src/index.ts:226) | packages/game-core/src/courses.ts:165 (`courseProfile`), packages/db/src/services/races.ts:477, :629 | Live card races (scheduled, feature, final) on a known `conditions.track` get their course's profile frozen into the field at the lock and hashed with it; the engine runs 1.3.0 and seals the course tuple into the result hash. Story, Daily Cup and older fields have none. | Which horses each course suits |
 | Course numbers | Ashcombe tightness 150, straight 500 m, flat; Kestrel Downs 900, 280 m, flat (triangle: 3 bends); Saltmarsh 200, 800 m, flat; Bellmont 500, 450 m, flat; Larkspur 400, 550 m, −0.5%; Harrowgate 400, 450 m, +3.5% | packages/game-core/src/courses.ts:56-58, :71-73, :86-88, :101-103, :116-118, :131-133; bends per shape :159 | The tilt of each course (balance: `tools/balance/courses.report.ts`). | Style, draw and stat-profile win shares per course |
@@ -240,7 +245,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Off-surface penalty | 40 + 110 × (1 − adaptability) mm/s | packages/racing-engine/src/model.ts:29, :30, :92 | Running on a non-preferred surface. | Surface-fit importance |
 | Shorter than preferred trip | cruise − delta × (1100 − adaptability)/6000 | packages/racing-engine/src/model.ts:95 | Distance mismatch (too short). | Distance-fit importance |
 | Longer than preferred trip | drain × (1 + delta × (1100 − adaptability)/3,000,000) | packages/racing-engine/src/model.ts:112 | Distance mismatch (too long) drains energy. | Distance-fit importance |
-| Day form | triangular ± (220 + 200 × (1 − temperament)) mm/s; +25% in rain; × 0.9 journeyman, × 0.8 top jockey | packages/racing-engine/src/model.ts:32, :33, :105-110 | Main source of upsets; composed horses are steadier. | Upset rate, value of temperament |
+| Day form | triangular ± (220 + 200 × (1 − temperament)) mm/s; +25% in rain; × 0.9 journeyman, × 0.8 top jockey; × 0.85 in a 1.4.0 race | packages/racing-engine/src/model.ts:32, :33, :105-113 | Main source of upsets; composed horses are steadier. | Upset rate, value of temperament |
 | Style match | ±15 mm/s cruise, ∓6 permille drain | packages/racing-engine/src/model.ts:35, :36 | Riding the natural style helps. | Tactic choice |
 | `KICK_BASE_M` | front 300, stalker 420, closer 660 m (scaled 0.82-1.4 by trip) | packages/racing-engine/src/model.ts:39, :121 | Where the kick starts. | Tactic outcomes |
 | `KICK_STRENGTH` | front 800, stalker/closer 1000 permille | packages/racing-engine/src/model.ts:41 | Kick intensity. | Tactic outcomes |
@@ -259,8 +264,8 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Quirk triggers / effects | mudlark +150 adaptability +15 speed on soft/heavy; gateShy −90 temperament; lateKick +45 burst; crowdShy −110 temperament in big crowds or fields ≥ 12 | packages/game-core/src/phenotype.ts:160, :165-169 | Hidden traits that fire on conditions. | Upsets |
 | `QUIRK_REVEAL_PERMILLE` | 350 | packages/game-core/src/phenotype.ts:173 | Chance a triggered quirk is revealed. | Information, market value |
 | Big crowd | kind feature/final or class graded | apps/web/src/server/horseView.ts:43 | Triggers crowdShy. | Upsets in Features |
-| `HANDICAP_SPEED_PER_LB` / `HANDICAP_BURST_PER_LB` | 5 / 2 per lb | packages/game-core/src/phenotype.ts:180, :182 | Weight effect. Not applied live (see mismatches). | Handicap competitiveness (model only) |
-| `TOP_WEIGHT_LB` / `BOTTOM_WEIGHT_LB` / `LEVEL_WEIGHT_LB` | 140 / 112 / 126 lb | packages/game-core/src/ratings.ts:79-81 | Handicap weight scale (1 OR = 1 lb). | Model only |
+| `OR_PER_LB` (weight effect, new 2026-10-30) | 1 OR of ability per lb: speed, stamina and burst each lose `weightCostPoints` (the ability-score gap between the horse's mark and the mark lb lower) | packages/game-core/src/ability.ts:84, :91, :102; applied packages/game-core/src/phenotype.ts:306 | Replaces 5 speed + 2 burst points per lb (~0.3 OR). A horse d OR better carrying d lb wins its 1-in-8 share (drama report). | Handicap competitiveness |
+| `TOP_WEIGHT_LB` / `BOTTOM_WEIGHT_LB` / `LEVEL_WEIGHT_LB` | 140 / 112 / 126 lb | packages/game-core/src/ratings.ts:79-81 | Handicap weight scale (1 OR = 1 lb). Applied live since 2026-10-30: Live card handicaps (`handicapWeightsFor`, packages/db/src/services/races.ts:495) weight every runner at the lock from its rating at entry (house horses: at the lock), store `weightLb`/`extraWeightLb` on the runner (hashed) and print the weight on the racecard. | Handicap competitiveness |
 | Morale → temperament | +morale × 0.3 | packages/game-core/src/phenotype.ts:210 | | Race strength |
 
 ### 6a. Seasons, weather and ground (new 2026-10-30)
@@ -301,7 +306,8 @@ like the card's `card-slot:<index>`). Shares quoted are turf going over 25 years
 | `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:48 | | Class entry |
 | `PEAK_DROP` | 10 | packages/game-core/src/eligibility.ts:64 | Band checks use max(OR, peak − 10, ability − 5). | Sandbagging, class access |
 | `ABILITY_MARGIN` | 5 | packages/game-core/src/eligibility.ts:66 | Ability floor tolerance. | Class access of strong newcomers |
-| `ABILITY_OR_TABLE` | score 300 → OR 18 … 900 → OR 97 (13 knots) | packages/game-core/src/ability.ts:36 | Settled OR for a given running ability (ability floor). | Class access, Story difficulty |
+| `ABILITY_OR_TABLE` | score 300 → OR 17, 500 → 41, 700 → 57, 800 → 68, 900 → 92 (13 knots; refit 2026-10-30 under engine 1.4.0 with 1 lb = 1 OR weights; was 700 → 61, 800 → 76) | packages/game-core/src/ability.ts:33 | Settled OR for a given running ability (ability floor); its inverse prices handicap weight. | Class access, Story difficulty, weight cost |
+| Improvers (new 2026-10-30) | `IMPROVER_PERMILLE` early 150 / normal 200 / late 300; step begins after a start drawn in `IMPROVER_FROM_STARTS` early 5-14 / normal 8-20 / late 12-26; `IMPROVER_STEP_OR` 4-8 OR over `IMPROVER_RUNS` 3 runs; "Improving" for `IMPROVER_SHOW_RUNS` 4 runs after | packages/game-core/src/phenotype.ts:130, :132, :134, :136, :138, :156 | Seeded per horse (id + marking seed, never the owner): a mid-career step-up of ability, capped at potential, shown on the career page only once it happens. | Upsets ("sudden growth"), late-developer value |
 | Ability trip weights | stamina 25%→75% (1000→3200 m), burst 30%→5% | packages/game-core/src/ability.ts:23, :24 | Ability score blend. | Ability floor |
 | `TIER_RULES` | maiden ≤0 wins; novice ≤2 wins; hcp 0-55, 50-75, 70-95; listed ≥88; g3 ≥95; g2 ≥102; g1 ≥108; quick rated; trial/cup unrated | packages/game-core/src/eligibility.ts:30-42 | Model class bands (game-core eligibility). | Class access (model; live uses card conditions) |
 | `classBand` | ≥108 g1, ≥102 g2, ≥95 g3, ≥88 listed, ≥70 hcp 70-95, ≥50 hcp 50-75, else 0-55 | packages/game-core/src/eligibility.ts:49-55 | Band a rating belongs in (used in the entry-sheet hint). | Copy, class access hints |
@@ -525,6 +531,9 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |
 | `club_sale` | buyer → burn (a Club lot: the whole price) | packages/db/src/services/market.ts `buyListing` |
 | `lease_fee` | lessee → owner, cut → burn (off in the beta: `LEASE_FEE_MAX` = 0) | packages/db/src/services/leasing.ts `takeLease` |
+| `claim_escrow` | claimant → escrow (the claim price, held until the race) | packages/db/src/services/claiming.ts `lodgeClaim` |
+| `claim_refund` | escrow → claimant (lost the draw, scratch, called-off / abandoned race, fatal injury, no stall) | packages/db/src/services/claiming.ts |
+| `claim_sale` | escrow → old owner (price − 5%), fee → burn | packages/db/src/services/claiming.ts `settleClaimsTx`, called from races.ts `settleRace` |
 
 ### 10d. Balance model
 
@@ -565,6 +574,21 @@ Race meetings plan item 6. Once per UTC day (`runClubMarket` in `runMaintenance`
 | `CLUB_LEASE_OFFERS_MAX` | 4, minus one per open player offer (never below 0) | packages/game-core/src/clubMarket.ts (`clubLeaseCap`) | Club lease offers kept open; free Club racers first, minted when none is free. | Lease board supply |
 | `CLUB_LEASE_TERMS_DAYS` | 7 or 14 days | packages/game-core/src/clubMarket.ts | Club lease terms (welfare defaults: no all-out, `LEASE_WEEKLY_STARTS_DEFAULT`, no fee). | Lease board supply |
 | `CLUB_LEASE_OWNER_SHARE_PCT` | 50% | packages/game-core/src/clubMarket.ts | The Club's purse share on a Club lease, burned (`lease_share` mint → burn + lessee). | Credits created by leased runners |
+
+### 11c. Claiming races (new 2026-10-30)
+
+Race meetings plan item 4: the race is the market. Values in `packages/game-core/src/claiming.ts` (JSDoc on each); slot in `packages/db/src/services/card.ts` (`claimingSlotOfMeeting`), service in `packages/db/src/services/claiming.ts`, claims in `race_claims`, the price on `race_entries.claim_price`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `CLAIMING_RACES_PER_DAY` / `CLAIMING_MEETING_OF_DAY` | 1, in the 19:00 UTC meeting (meeting 2 of the day) | packages/game-core/src/claiming.ts | One evening handicap a day becomes "<Course> Claiming Stakes (<band>)" with that band's conditions, trip and purse. Never over a calendar race; none on the Season Finals' day. Sister courses copy it (they are claiming races too). | Market supply, evening field size |
+| Band rotation (`claimingBandOrder`) | day mod 3 → 0-55, 50-75, 70-95; the next band when a calendar race holds that day's | packages/game-core/src/claiming.ts, card.ts | Which handicap the claiming race replaces. | Which horses are offered |
+| `CLAIM_PRICE_MIN_PERMILLE` / `CLAIM_PRICE_MAX_PERMILLE` | 700 / 3000 (70%-300% of appraisal; = the listing band) | packages/game-core/src/claiming.ts (`claimPriceBounds`) | Claim price the owner sets at entry (required). The entry also runs the market's tradeability checks (`assertTradeableTx`: seller requirements, binding, starts, lease, USDG, in foal, resale lock). | Market prices, RMT risk |
+| Fee | `MARKET_FEE_PERMILLE` (5%, burned) | packages/game-core/src/claiming.ts (`claimSettlement`) | Taken from the price at the transfer; the old owner also keeps this race's purse. | Credit sink |
+| `CLAIMS_PER_STABLE_PER_RACE` | 1 | packages/game-core/src/claiming.ts, unique index on `race_claims` | A stable claims at most one runner per claiming race. A lodged claim holds a stall until decided. | Claim pressure |
+| Draw | seeded from the race seed (`claim-draw:<horseId>`), at the lock | packages/db/src/services/claiming.ts `drawClaimsTx` | Several claims on one horse: one wins, the rest are refunded. | Fairness |
+| `CLAIM_REENTRY_LOCK_DAYS` | 3 days | packages/game-core/src/claiming.ts | A claimed horse can't run in another claiming race for this long (the 72 h resale lock also applies to the claimant). | Flipping through claims |
+| Injury | still transfers; fatal voids (refund) | packages/db/src/services/claiming.ts `settleClaimsTx` | As in real claiming; also void (refund) if the claimant has no free stall at settlement. | Risk for claimants |
 
 ### 11a. Leasing (new 2026-10-30)
 
@@ -676,6 +700,22 @@ live in one place, `packages/game-core/src/stablePhoto.ts`; the re-encode is
 | `STABLE_PHOTO_UPLOADS_PER_DAY` | 5 per UTC day | packages/game-core/src/stablePhoto.ts:20 | Uploads and removals per stable per day (the counter row survives a removal); the 6th change is refused with 429. | Churn, storage writes per account |
 | `STABLE_PHOTO_FORMATS` | png, jpeg, webp | packages/game-core/src/stablePhoto.ts:23 | Input formats accepted, as sharp reports them from the decoded bytes (SVG, GIF, HEIF, TIFF, animation refused). | Attack surface (only re-encoded input) |
 | WebP quality | 82 | apps/web/src/server/stablePhoto.ts:42 | Re-encode quality of the stored photo (all metadata dropped, EXIF orientation applied). | Storage per photo, fidelity |
+
+---
+
+## 16. Abuse limits (accounts and wallet sign-in)
+
+Per-IP limits on the account/wallet routes. The counts are shared in the `rate_limits` table
+(`packages/db/src/services/rateLimit.ts`, written through `apps/web` `src/server/rateLimit.ts`),
+so every serverless instance enforces one quota, not N per instance; a database error fails
+OPEN (the request passes uncounted). The limiter window is the standard two-window estimate
+(current fixed window exact, the previous one decayed linearly).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `LINK_FAIL_LIMIT` | 20 failed redemptions per IP per hour | apps/web/src/server/devices.ts:19 | Failed link-code redemptions per IP over a sliding hour; the 21st is answered 429 with `Retry-After: 3600`. | Code-guessing surface |
+| `WALLET_AUTH_LIMIT` | 30 challenge+verify attempts per IP per hour | apps/web/src/server/walletAuth.ts:52 | Wallet SIWE challenge and verify attempts per IP over a sliding hour; past the limit the endpoint answers 429. | Challenge farming, signature-guessing surface |
+| Rate-limit prune age | 2 hours (two windows of the longest limit) | packages/db/src/services/maintenance.ts (`pruneRateLimits`, `olderThanMs`) | `runMaintenance` deletes `rate_limits` rows whose window is older than two windows of the 1-hour limit. | Table growth |
 
 ---
 
@@ -808,7 +848,8 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
    only apply through `gc.entryBlock`, and the web filters those blocks out
    (`CLASS_BLOCKS`, apps/web/src/server/game.ts:642), then uses the card's conditions
    (`classEligibility`, packages/db/src/services/races.ts:167). Licences gate instead.
-6. **Handicap weights are not applied live.** `handicapWeights` (packages/game-core/src/ratings.ts:94)
+6. **Handicap weights: resolved 2026-10-30.** Live card handicaps now apply them at the lock (1 lb =
+   1 OR of ability) and `ABILITY_OR_TABLE` was refit with them. Was: **Handicap weights are not applied live.** `handicapWeights` (packages/game-core/src/ratings.ts:94)
    is called only by tools/balance/ability.report.ts; `engineHorseFromSnapshot` passes no
    `extraWeightLb` (apps/web/src/server/horseView.ts:105-125). Handicaps run at level weights,
    while `ABILITY_OR_TABLE` (packages/game-core/src/ability.ts:36) was fitted on races with
@@ -854,12 +895,12 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
     ability; they are now honest seasoned horses rated at their real mark (Club fill, §7). The
     house population still grows without a cap as fields lock short, faster now that a pool
     horse must also suit the race's trip and surface.
-14a. **Live handicaps carry no weights.** game-core `handicapWeights` (1 lb per OR point) is used
-    only by tools/balance/ability.report.ts; apps/web horseView.ts `engineHorseFromSnapshot` never
-    passes `extraWeightLb`, so Live handicaps run at level weights. Even applied, 1 lb (5 speed,
-    2 burst) takes 2-3 ability-score points off, a fifth to a third of an OR point below OR 60
-    and about half of one at OR 85-97 (tools/balance/club-fill.report.ts), so the weights would
-    close only part of the gap.
+14a. **Live handicaps carried no weights until engine 1.4.0 (resolved 2026-10-30).** Before,
+    `handicapWeights` was used only by tools/balance/ability.report.ts and Live handicaps ran at
+    level weights, with 1 lb costing only a fifth to a half of an OR point. Since 1.4.0 lockField
+    weights Live handicaps (house runners at their stored rating, now their real mark) and each lb
+    costs 1 OR of ability (game-core `carryWeight`); tools/balance/club-fill.report.ts measures
+    handicaps with the weights as Live races apply them.
 15. **Premium pack credit price.** 2,500 credits (packages/db/src/rules.ts:115) applies only
     with `PREMIUM_PACK_DEMO=1`; the real price is $4.99 in ETH (apps/web/src/server/chain/config.ts:58).
 16. **Starts per day: resolved by `6420a5f`.** The economy model assumed 1-1.5 starts per

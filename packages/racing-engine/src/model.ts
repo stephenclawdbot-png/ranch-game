@@ -31,6 +31,12 @@ const SURFACE_PEN_ADAPT = 110;
 /** Day-form amplitude (mm/s, triangular): base + permille of the temperament gap. */
 const FORM_AMP_BASE = 220;
 const FORM_AMP_TEMPER = 200;
+/**
+ * Day form in the 1.4.0 model (close finishes): the same shape, scaled by this share (permille).
+ * Racing in a pack (simulate.ts) packs the field closer, so the same swing in form would flip
+ * more results; a slightly narrower swing keeps the better horse winning about as often.
+ */
+export const DRAMA_FORM_PERMILLE = 850;
 /** Cruise bonus (mm/s) and drain (permille) when the tactic matches the horse's natural style. */
 const STYLE_MATCH_CRUISE = 15;
 const STYLE_MATCH_DRAIN = 6;
@@ -80,7 +86,7 @@ export function parSpeed(race: RaceConfig): number {
 /**
  * Build the profile. `form` is the horse's "form" PRNG stream; draws happen in a fixed order.
  */
-export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number, form: Rng): Profile {
+export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number, form: Rng, drama = false): Profile {
   const s = entry.horse.stats;
   const h = entry.horse;
   const D = race.distanceM;
@@ -104,6 +110,7 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
 
   // Day form: the main source of upsets. Composed horses are more consistent.
   let formAmp = FORM_AMP_BASE + Math.trunc((temperGap * FORM_AMP_TEMPER) / 1000);
+  if (drama) formAmp = Math.trunc((formAmp * DRAMA_FORM_PERMILLE) / 1000);
   if (race.weather === "rain") formAmp += Math.trunc(formAmp / 4);
   // A stronger jockey keeps the horse's run closer to its true level (both ways).
   if (kit?.formAmpPermille !== undefined) formAmp = Math.trunc((formAmp * clamp(kit.formAmpPermille, 0, 1000)) / 1000);

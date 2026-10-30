@@ -16,7 +16,7 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
+import { activity, checks, claimingTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
 import { median, sum } from "./stats";
 
 const DAY = 86_400_000;
@@ -78,6 +78,8 @@ export interface Totals {
   trainingInjuries: number;
   /** Horse leasing over the run (packages/db leasing.ts). */
   leasing?: LeasingTotals;
+  /** Claiming races over the run (packages/db claiming.ts). */
+  claiming?: ClaimingTotals;
 }
 
 export interface RunResult {
@@ -269,7 +271,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         finishedAt: utcDay(new Date()),
       },
       days,
-      totals: { ...totalsOf(days, last), leasing: await leasingTotals(world) },
+      totals: { ...totalsOf(days, last), leasing: await leasingTotals(world), claiming: await claimingTotals(world) },
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
       notables: await notables(world),

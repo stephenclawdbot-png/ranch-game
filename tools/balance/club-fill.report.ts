@@ -29,20 +29,15 @@
  * the players' median wins (fair share = 1 / field). A parity table checks that a Club horse and a
  * player horse of the same real mark win alike.
  *
- * Handicaps: Live races apply no handicap weights (apps/web horseView.ts engineHorseFromSnapshot
- * never passes extraWeightLb; game-core handicapWeights is used only by ability.report.ts), so
- * the "as Live" rows are level weights. The "weights" rows are a what-if with handicapWeights
- * applied from the stored ratings (1 lb per OR point below top weight).
+ * Races run on the Live race model (engine 1.4.0, LIVE_RACE_MODEL). Handicaps carry weights as
+ * Live handicaps do since 1.4.0 (game-core handicapWeights from the stored ratings at the lock,
+ * 1 lb = 1 OR via carryWeight); the "level weights" rows are the what-if without them.
  */
 import { it, expect } from "vitest";
-import { HORSE_LENGTH_MM, type Going, type RaceCourse, type RunningStyle, type Surface } from "@thoroughbred/shared";
+import { HORSE_LENGTH_MM, LIVE_RACE_MODEL, type Going, type RaceCourse, type RunningStyle, type Surface } from "@thoroughbred/shared";
 import { simulateRace, deriveSeed } from "../../packages/racing-engine/src/index";
 import {
-  ABILITY_OR_TABLE,
   CARE_TO_RACING,
-  HANDICAP_BURST_PER_LB,
-  HANDICAP_SPEED_PER_LB,
-  abilityScore,
   COURSES,
   Rng,
   STAT_KEYS,
@@ -164,6 +159,7 @@ function run(runners: Runner[], race: { distanceM: number; surface: Surface; goi
   const replay = simulateRace({
     race: { id: "cf", name: "Club fill", distanceM: race.distanceM, surface: race.surface, weather: "clear", going: race.going, raceClass: "handicap", postTimeMs: T0, purse: 0 },
     course: race.course,
+    model: LIVE_RACE_MODEL,
     entries,
     seed: race.seed,
   });
@@ -288,10 +284,10 @@ it("club fill report", async () => {
       const { w, club: newClub } = clubFor(players, true);
       if (r < 3) windows.push(w);
       const race = { distanceM, surface, going, course, seed, field: band.field };
-      add(before, run([...players, ...oldClub], race, false));
-      add(after, run([...players, ...newClub], race, false));
+      add(before, run([...players, ...oldClub], race, band.handicap));
+      add(after, run([...players, ...newClub], race, band.handicap));
       const settledField = [...settledPlayers, ...clubFor(settledPlayers, false).club];
-      const so = run(settledField, race, false);
+      const so = run(settledField, race, band.handicap);
       add(settled, so);
       // Parity: win rate by real mark relative to the players' median, Club vs players.
       const p = settledPlayers.map((x) => abilityMark(x.state)).sort((a, b) => a - b)[(settledPlayers.length - 1) >> 1]!;
@@ -304,8 +300,8 @@ it("club fill report", async () => {
         parity.set(k, c);
       }
       if (band.handicap) {
-        add(beforeW, run([...players, ...oldClub], race, true));
-        add(afterW, run([...players, ...newClub], race, true));
+        add(beforeW, run([...players, ...oldClub], race, false));
+        add(afterW, run([...players, ...newClub], race, false));
       }
       if (r % 10 === 0) await yieldNow();
     }
@@ -316,13 +312,13 @@ it("club fill report", async () => {
         ` | per start ${pct(after.playerWins, after.playerStarts)}% (settled ${pct(settled.playerWins, settled.playerStarts)}%) | median player ${pct(after.medianWins, after.races)}% (settled ${pct(settled.medianWins, settled.races)}%, fair ${pct(1, band.field)}%)`,
     );
     for (const [label, t] of [
-      ["before, as Live (level)", before],
-      ["after, as Live (level)", after],
+      ["before, as Live", before],
+      ["after, as Live", after],
       ["after, players settled", settled],
       ...(band.handicap
         ? ([
-            ["before, with weights", beforeW],
-            ["after, with weights", afterW],
+            ["before, level weights", beforeW],
+            ["after, level weights", afterW],
           ] as const)
         : []),
     ]) {
@@ -342,7 +338,7 @@ it("club fill report", async () => {
       settledSpreadMedianMm: q(settled.spread, 0.5),
       ...(band.handicap
         ? {
-            weighted: {
+            levelWeights: {
               spreadMedianMm: { before: q(beforeW.spread, 0.5), after: q(afterW.spread, 0.5) },
               winMarginMedianMm: { before: q(beforeW.margin, 0.5), after: q(afterW.margin, 0.5) },
               playerWinShare: { before: beforeW.playerWins / beforeW.races, after: afterW.playerWins / afterW.races },
@@ -355,25 +351,13 @@ it("club fill report", async () => {
   lines.push(`# Club fill: ${RACES} races per band, field ${BANDS.map((b) => `${b.players}+${b.field - b.players}`).join("/")} (players+Club); before -> after`);
   lines.push(`band                       Club window                        | Club real ability median (p10-p90)            | winner-to-last (median) | player win share`);
   lines.push(...rows);
-  lines.push("", "# Winner-to-last spread and winning margins per band (L = lengths of 2.4 m). Live races carry no handicap weights; 'with weights' is the game-core handicapWeights what-if.");
+  lines.push("", "# Winner-to-last spread and winning margins per band (L = lengths of 2.4 m). Live handicaps carry weights (engine 1.4.0: handicapWeights from the stored ratings, 1 lb = 1 OR); 'level weights' is the what-if without them.");
   lines.push(...hcpRows);
-  // How much of an OR point one pound cancels: handicap weights take 5 speed and 2 burst per lb
-  // (phenotype.ts); the ability score (ability.ts) blends speed and burst by trip, and the OR table
-  // maps score to OR.
   lines.push("", "# Parity (players settled, all bands): win rate per start by real mark minus the players' median, players vs Club (equal marks should win alike)");
   for (const b of [-8, -4, 0, 4, 8, 12]) {
     const pl = parity.get(`player ${b}`) ?? { starts: 0, wins: 0 };
     const cl = parity.get(`club ${b}`) ?? { starts: 0, wins: 0 };
     lines.push(`${String(b).padStart(3)}..${b + 3}: players ${pct(pl.wins, pl.starts).padStart(5)}% (${pl.starts}), Club ${pct(cl.wins, cl.starts).padStart(5)}% (${cl.starts})`);
-  }
-  lines.push("", "# Weight scale vs the ability-to-OR table: ability-score points one lb takes off, vs score points per OR");
-  for (const trip of [1000, 1600, 2400]) {
-    const lbScore = abilityScore({ speed: 650, stamina: 650, burst: 650 }, trip) - abilityScore({ speed: 650 - HANDICAP_SPEED_PER_LB, stamina: 650, burst: 650 - HANDICAP_BURST_PER_LB }, trip);
-    const per = ABILITY_OR_TABLE.slice(1).map(([s1, o1], i) => {
-      const [s0, o0] = ABILITY_OR_TABLE[i]!;
-      return `OR ${o0}-${o1}: ${((s1 - s0) / (o1 - o0)).toFixed(1)} (1 lb = ${((lbScore * (o1 - o0)) / (s1 - s0)).toFixed(2)} OR)`;
-    });
-    lines.push(`${trip} m: 1 lb = ${lbScore} score points; ${per.filter((_, i) => i % 3 === 0 || i === per.length - 1).join("; ")}`);
   }
   writeReport("club-fill", data, lines);
 });
