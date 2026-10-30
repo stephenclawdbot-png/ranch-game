@@ -60,7 +60,8 @@ export const careerStatusEnum = pgEnum("career_status", [
 export const retirementReasonEnum = pgEnum("retirement_reason", ["choice", "max_starts", "injury"]);
 export const maturityTypeEnum = pgEnum("maturity_type", ["early", "normal", "late"]);
 export const horseOriginEnum = pgEnum("horse_origin", ["starter", "bred", "pack", "gift", "house", "admin"]);
-export const horseLockEnum = pgEnum("horse_lock", ["race", "market"]);
+/** race: in a field · market: listed · stud: a mare booked to a USDG-fee stallion while her stud fee is being paid (lock_ref = usdg_orders.id). */
+export const horseLockEnum = pgEnum("horse_lock", ["race", "market", "stud"]);
 export const seasonStatusEnum = pgEnum("season_status", ["upcoming", "active", "closed"]);
 export const pregnancyStatusEnum = pgEnum("pregnancy_status", ["carrying", "foaled", "lost"]);
 /**
@@ -349,8 +350,13 @@ export const horses = pgTable(
     injuredUntil: ts("injured_until"),
     insured: boolean("insured").notNull().default(false),
     breedingCount: integer("breeding_count").notNull().default(0),
-    /** Public stud fee in credits; null = not standing at stud. */
+    /** Public stud fee in credits; null = not standing at stud for credits. */
     studFee: credits("stud_fee"),
+    /**
+     * Public stud fee in micro-USDG for a stallion registered for the USDG market (paid by the
+     * mare's owner through HorseMarket.payStudFee); null = none. Never set together with stud_fee.
+     */
+    studFeeUsdg: bigint("stud_fee_usdg", { mode: "number" }),
     /**
      * Club-bred (starter / free-pack) horses can never be sold, traded or transferred
      * (release to the Club is allowed).
@@ -361,7 +367,7 @@ export const horses = pgTable(
     /** Released to the Club (owner becomes null). Released horses leave the player's stalls. */
     releasedAt: ts("released_at"),
     releasedFromStableId: uuid("released_from_stable_id").references(() => stables.id),
-    /** Exclusive lock: in a race field or listed on the market. */
+    /** Exclusive lock: in a race field, listed on the market, or booked for a USDG covering. */
     lockKind: horseLockEnum("lock_kind"),
     lockRef: uuid("lock_ref"),
     /** Career starts: the career clock (max 40). */
@@ -387,6 +393,7 @@ export const horses = pgTable(
     check("horses_lock_consistent", sql`(${t.lockKind} is null) = (${t.lockRef} is null)`),
     check("horses_rating", sql`${t.rating} between 0 and 140`),
     check("horses_stud_fee", sql`${t.studFee} is null or ${t.studFee} >= 0`),
+    check("horses_stud_fee_usdg", sql`${t.studFeeUsdg} is null or (${t.studFeeUsdg} > 0 and ${t.studFee} is null)`),
     check("horses_name_len", sql`char_length(${t.name}) between 1 and 32`),
     check("horses_starts", sql`${t.starts} between 0 and 40 and ${t.wins} + ${t.places} + ${t.shows} <= ${t.starts}`),
     check(
@@ -1524,8 +1531,10 @@ export const usdgBids = pgTable(
 );
 
 /**
- * Every USDG payment the server signs: a registration fee or a horse sale. Written BEFORE the
- * order is signed; fulfilled once, idempotently, after the chain shows `Registered` / `Sold`.
+ * Every USDG payment the server signs: a registration fee, a horse sale or a stud fee. Written
+ * BEFORE the order is signed; fulfilled once, idempotently, after the chain shows `Registered` /
+ * `Sold` / `StudFeePaid`. A stud order (kind 'stud'): horse_id is the stallion, mare_id the mare,
+ * seller_* the stallion's owner; fulfilment runs the covering (breeding_event_id).
  * Real money: survives the playtest reset (no foreign keys).
  */
 export const usdgOrders = pgTable(
@@ -1534,9 +1543,9 @@ export const usdgOrders = pgTable(
     id: id(),
     /** bytes32 hex (lowercase), the on-chain orderId (single-use in HorseMarket). */
     orderId: text("order_id").notNull(),
-    /** "registration" | "sale" */
+    /** "registration" | "sale" | "stud" */
     kind: text("kind").notNull(),
-    /** Who pays: the owner (registration) or the buyer (sale). */
+    /** Who pays: the owner (registration), the buyer (sale) or the mare's owner (stud). */
     accountId: uuid("account_id").notNull(),
     wallet: text("wallet").notNull(),
     horseId: uuid("horse_id").notNull(),
@@ -1545,7 +1554,14 @@ export const usdgOrders = pgTable(
     bidId: uuid("bid_id"),
     sellerAccountId: uuid("seller_account_id"),
     sellerWallet: text("seller_wallet"),
-    /** Sale price, or the registration fee. */
+    /** Stud orders: the mare to cover and her on-chain ref. */
+    mareId: uuid("mare_id"),
+    mareRef: text("mare_ref"),
+    /** Stud orders: the credits base fee held in escrow at the quote (burned at the covering, released otherwise). */
+    creditsHeld: bigint("credits_held", { mode: "number" }),
+    /** Stud orders: the covering this payment produced. */
+    breedingEventId: uuid("breeding_event_id"),
+    /** Sale price, the registration fee, or the stud fee. */
     price: usdg("price").notNull(),
     /** Marketplace fee to the treasury (registration: the whole fee). */
     fee: usdg("fee").notNull(),
@@ -1572,7 +1588,10 @@ export const usdgOrders = pgTable(
     index("usdg_orders_account_idx").on(t.accountId, t.createdAt),
     index("usdg_orders_status_idx").on(t.status, t.deadline),
     index("usdg_orders_listing_idx").on(t.listingId),
-    check("usdg_orders_kind", sql`${t.kind} in ('registration', 'sale')`),
+    index("usdg_orders_horse_idx").on(t.horseId, t.kind, t.status),
+    uniqueIndex("usdg_orders_breeding_uq").on(t.breedingEventId),
+    check("usdg_orders_kind", sql`${t.kind} in ('registration', 'sale', 'stud')`),
+    check("usdg_orders_stud", sql`(${t.kind} = 'stud') = (${t.mareId} is not null)`),
     check("usdg_orders_status", sql`${t.status} in ('pending', 'paid', 'fulfilled', 'expired')`),
     check("usdg_orders_amounts", sql`${t.price} > 0 and ${t.fee} >= 0 and ${t.fee} <= ${t.price}`),
     check("usdg_orders_order_hex", sql`${t.orderId} ~ '^0x[0-9a-f]{64}$'`),

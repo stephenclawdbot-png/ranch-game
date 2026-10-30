@@ -3,7 +3,7 @@
  * and creation bytecode of PrizePool and PremiumStore (the owner deploys them from the browser
  * on /admin/chain, so no deploy key ever exists on a server), the HorseMarket ABI (deployed with
  * scripts/deploy-horse-market.ts), plus the EIP-712 EthQuote / SaleOrder / RegistrationOrder /
- * Bid definitions and the pool leaf tag the web app must use.
+ * StudOrder / Bid definitions and the pool leaf tag the web app must use.
  *
  *   pnpm --filter @thoroughbred/contracts export:web
  *
@@ -15,7 +15,7 @@ import path from "node:path";
 import { ethQuoteTypes } from "../adapter/ethQuote";
 import { POOL_LEAF_KIND } from "../adapter/prizePool";
 import { STORE_EIP712_NAME, STORE_EIP712_VERSION } from "../adapter/voucher";
-import { MARKET_EIP712_NAME, MARKET_EIP712_VERSION, bidTypes, registrationOrderTypes, saleOrderTypes } from "../adapter/horseMarket";
+import { MARKET_EIP712_NAME, MARKET_EIP712_VERSION, bidTypes, registrationOrderTypes, saleOrderTypes, studOrderTypes } from "../adapter/horseMarket";
 
 export const WEB_CONTRACTS_PATH = path.join(__dirname, "..", "..", "..", "apps", "web", "src", "lib", "chain", "contracts.generated.ts");
 
@@ -44,6 +44,7 @@ export function renderWebContracts(): string {
     `export const MARKET_EIP712_VERSION = ${j(MARKET_EIP712_VERSION)} as const;`,
     `export const saleOrderTypes = ${j(saleOrderTypes)} as const;`,
     `export const registrationOrderTypes = ${j(registrationOrderTypes)} as const;`,
+    `export const studOrderTypes = ${j(studOrderTypes)} as const;`,
     `export const bidTypes = ${j(bidTypes)} as const;`,
     "",
     `export const prizePoolAbi = ${j(pool.abi)} as const;`,

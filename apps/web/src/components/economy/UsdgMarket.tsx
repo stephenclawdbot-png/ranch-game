@@ -134,7 +134,13 @@ function OpenOrders({ orders, onChange }: { orders: UsdgOrderJson[]; onChange: (
       {orders.map((o) => (
         <div key={o.orderId} className="surface grid gap-2 p-3">
           <p className="font-extrabold">
-            {o.kind === "registration" ? `Register ${o.horseName ?? "your horse"}` : o.auction ? `You won ${o.horseName ?? "the auction"}` : `Buying ${o.horseName ?? "a horse"}`}
+            {o.kind === "registration"
+              ? `Register ${o.horseName ?? "your horse"}`
+              : o.kind === "stud"
+                ? `Covering ${o.mareName ?? "your mare"} with ${o.horseName ?? "a stallion"}`
+                : o.auction
+                  ? `You won ${o.horseName ?? "the auction"}`
+                  : `Buying ${o.horseName ?? "a horse"}`}
           </p>
           <UsdgPay order={o} onDone={onChange} label={o.auction ? `Pay your winning bid within the window` : undefined} />
         </div>

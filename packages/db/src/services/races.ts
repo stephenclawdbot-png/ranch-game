@@ -156,7 +156,7 @@ export function racingBlock(h: HorseRow, race: RaceRow, now: Date): DomainError 
   const nursery = stageFor(h.careSessions, h.starts);
   const ofAge = h.careSessions >= RULES.careToRacing || (race.kind === "trial" && nursery === "yearling");
   if (!ofAge) return new DomainError("HORSE_NOT_OF_AGE", "not yet of racing age");
-  if (h.lockKind) return new DomainError("HORSE_LOCKED", h.lockKind === "race" ? "already entered in a race" : "listed on the market");
+  if (h.lockKind) return new DomainError("HORSE_LOCKED", h.lockKind === "race" ? "already entered in a race" : h.lockKind === "stud" ? "booked for a USDG covering" : "listed on the market");
   if (h.injuredUntil && h.injuredUntil > now) return new DomainError("HORSE_INJURED", "recovering from injury");
   return null;
 }
@@ -652,7 +652,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
             ? { careerStatus: "retired" as const, retirementReason: careerEnding ? ("injury" as const) : ("max_starts" as const), retiredAt: input.now }
             : {}),
           // a fatal injury: retired for good (the Legacy Farm keeps the horse's memory; no stall)
-          ...(fatal ? { careerStatus: "pasture" as const, pasturedAt: input.now, retirementReason: "injury" as const, retiredAt: h.retiredAt ?? input.now, studFee: null } : {}),
+          ...(fatal ? { careerStatus: "pasture" as const, pasturedAt: input.now, retirementReason: "injury" as const, retiredAt: h.retiredAt ?? input.now, studFee: null, studFeeUsdg: null } : {}),
           ...(h.lockKind === "race" && h.lockRef === race.id ? { lockKind: null, lockRef: null } : {}),
           updatedAt: input.now,
         })

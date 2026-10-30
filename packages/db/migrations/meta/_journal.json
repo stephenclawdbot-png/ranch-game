@@ -85,6 +85,13 @@
       "when": 1793316572375,
       "tag": "0011_usdg_market",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793329655315,
+      "tag": "0012_usdg_stud_fees",
+      "breakpoints": true
     }
   ]
 }

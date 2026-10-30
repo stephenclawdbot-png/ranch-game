@@ -3,18 +3,36 @@
  * (requirements, signed RegistrationOrder, simulated payment, idempotent fulfilment), sell it at a
  * fixed price, and run an auction with wallet-signed bids, a non-paying winner, the fallback to
  * the next bidder and the non-payer bar. Also: config modes, horseRef parity with viem, and the
- * EVM signer producing orders HorseMarket would accept (recovers to the server key).
+ * EVM signer producing orders HorseMarket would accept (recovers to the server key). USDG stud
+ * fees: a registered stallion stands for a USDG fee, a mare owner books him, pays (simulated) and
+ * the covering happens; the backstop finds a stud payment nobody confirmed.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getAddress, keccak256, recoverTypedDataAddress, toBytes, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
-import { createAccount, createDb, gameCoreHooks, getHorse, insertHorse, linkVerifiedWallet, schema, stableOf, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, gameCoreHooks, getHorse, insertHorse, linkVerifiedWallet, recordAccountSignal, schema, stableOf, type DbHandle } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
-import { bidTypedData, registrationOrderFromJson, saleOrderFromJson, saleOrderTypedData } from "@/lib/chain/usdg";
-import { marketView } from "../economy";
+import { bidTypedData, registrationOrderFromJson, saleOrderFromJson, saleOrderTypedData, studOrderFromJson, studOrderTypedData } from "@/lib/chain/usdg";
+import { breedingPreview, breedingView, marketView } from "../economy";
 import type { Session } from "../session";
 import { BetaConfigError } from "./config";
-import { UsdgUnavailableError, bid, buyFixed, confirmUsdgOrder, listHorseForUsdg, mockPay, myOrder, registerHorse, usdgBackstop, usdgHorseView, usdgMarketView, type UsdgCtx } from "./usdg";
+import {
+  UsdgUnavailableError,
+  bid,
+  bookUsdgStud,
+  buyFixed,
+  confirmUsdgOrder,
+  listHorseForUsdg,
+  mockPay,
+  myOrder,
+  registerHorse,
+  standAtStudForUsdg,
+  usdgAdminView,
+  usdgBackstop,
+  usdgHorseView,
+  usdgMarketView,
+  type UsdgCtx,
+} from "./usdg";
 import { EvmUsdgChain, MockUsdgChain } from "./usdgChain";
 import { MOCK_MARKET, MOCK_USDG, readUsdgConfig } from "./usdgConfig";
 
@@ -100,6 +118,103 @@ describe("config", () => {
     const o = { orderId: `0x${"ab".repeat(32)}` as Hex, horseRef: gc.usdgHorseRef("x") as Hex, seller: getAddress(market), buyer: privateKeyToAccount(generatePrivateKey()).address, token: MOCK_USDG, price: 25n * 10n ** 6n, fee: 1_250_000n, deadline: 2_000_000_000n };
     const sig = await evm.signSale(o);
     expect(await recoverTypedDataAddress({ ...saleOrderTypedData(o, 46630, getAddress(market)), signature: sig })).toBe(privateKeyToAccount(key).address);
+  });
+});
+
+describe("USDG stud fees on the mock chain", () => {
+  /** A registered stallion of `p`, retired (so he can breed). */
+  async function registeredStallion(p: Player): Promise<string> {
+    const id = await registeredHorse(p);
+    await h.db.execute(`update horses set sex = 'male', gelded = false, career_status = 'retired', retirement_reason = 'choice', retired_at = now() where id = '${id}'`);
+    return id;
+  }
+  async function mare(p: Player): Promise<string> {
+    const spec = gameCoreHooks.starterHorse({ seed: `usdg-mare-${++races}`, index: 0, season: 1 });
+    const id = await insertHorse(h.db, { stableId: p.stable.id, spec, origin: "bred", now: T0 });
+    await h.db.execute(`update horses set sex = 'female', gelded = false, career_status = 'retired', retirement_reason = 'choice', retired_at = now(), care_sessions = 40 where id = '${id}'`);
+    return id;
+  }
+
+  it("the owner stands him for USDG; the mare owner sees the dollar fee, books, pays (simulated) and the covering happens", async () => {
+    const owner = await player();
+    const buyer = await player();
+    const stallion = await registeredStallion(owner);
+    // Credits-only horses can't: an unregistered stallion is refused.
+    const plain = await horseWithStarts(owner, 0);
+    await h.db.execute(`update horses set sex = 'male', gelded = false where id = '${plain}'`);
+    await expect(standAtStudForUsdg(ctx, owner, { horseId: plain, fee: 10 * USD }, T0)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    await standAtStudForUsdg(ctx, owner, { horseId: stallion, fee: 40 * USD }, T0);
+    const mine = (await breedingView(h.db, owner, T0)).stallions.find((s) => s.id === stallion)!;
+    expect(mine).toMatchObject({ studFeeUsdg: 40 * USD, studFee: null, usdgRegistered: true });
+
+    const damId = await mare(buyer);
+    const barn = await breedingView(h.db, buyer, T0);
+    expect(barn.usdg).toMatchObject({ mock: true, feeBps: 500, studFeeMin: POLICY.studFeeMin, studFeeMax: POLICY.studFeeMax, quoteMinutes: 15 });
+    expect(barn.studs.find((s) => s.id === stallion)).toMatchObject({ studFeeUsdg: 40 * USD, studFee: 0 });
+    const pv = await breedingPreview(h.db, buyer, { sireId: stallion, damId }, T0);
+    expect(pv).toMatchObject({ block: null, usdgStudFee: 40 * USD, usdgFee: 2 * USD, stallionOwner: owner.stable.name });
+    expect(pv.fees).toMatchObject({ studFee: 0, totalPaidByMareOwner: gc.BREEDING_BASE_FEE });
+
+    const order = await bookUsdgStud(ctx, buyer, { sireId: stallion, damId }, T0);
+    expect(order).toMatchObject({ kind: "stud", price: 40 * USD, fee: 2 * USD, sellerReceives: 38 * USD, mareId: damId, payeeName: owner.stable.name, mock: true });
+    const so = studOrderFromJson(order.signed!.order);
+    expect(so).toMatchObject({ stallionOwner: owner.key.address, payer: buyer.key.address, price: 40_000_000n, fee: 2_000_000n, stallionRef: gc.usdgHorseRef(stallion), mareRef: gc.usdgHorseRef(damId) });
+    // The booking appears among my open USDG orders (resumable after a reload); the mare is held.
+    expect((await usdgMarketView(ctx, buyer, at(MIN))).orders.find((o) => o.orderId === order.orderId)).toMatchObject({ kind: "stud" });
+    expect((await breedingView(h.db, buyer, at(MIN))).mares.find((m) => m.id === damId)).toMatchObject({ block: "booked" });
+    // Only the mare owner's wallet can pay it.
+    expect(() => (ctx.chain as MockUsdgChain).simulateStud(so, { from: owner.key.address })).toThrow(/NotOrderBuyer/);
+
+    const paid = await mockPay(ctx, buyer, order.orderId, at(2 * MIN));
+    expect(paid).toMatchObject({ status: "fulfilled", horseId: stallion, duplicate: false });
+    expect(await mockPay(ctx, buyer, order.orderId, at(3 * MIN))).toMatchObject({ status: "fulfilled", duplicate: true });
+    const after = await breedingView(h.db, buyer, at(3 * MIN));
+    expect(after.pregnancies.find((p) => p.damId === damId)).toMatchObject({ sireId: stallion, status: "carrying" });
+    expect((await myOrder(ctx, buyer, order.orderId, at(3 * MIN))).status).toBe("fulfilled");
+    expect((await usdgAdminView(ctx)).summary).toMatchObject({ studFees: expect.any(Number) });
+  });
+
+  it("linked accounts can't book; the backstop settles a stud payment nobody confirmed", async () => {
+    const owner = await player();
+    const stallion = await registeredStallion(owner);
+    await standAtStudForUsdg(ctx, owner, { horseId: stallion, fee: 5 * USD }, T0);
+    const alt = await player();
+    await recordAccountSignal(h.db, { accountId: owner.accountId, kind: "device", value: `stud-${owner.accountId}` });
+    await recordAccountSignal(h.db, { accountId: alt.accountId, kind: "device", value: `stud-${owner.accountId}` });
+    await expect(bookUsdgStud(ctx, alt, { sireId: stallion, damId: await mare(alt) }, T0)).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
+    const buyer = await player();
+    const damId = await mare(buyer);
+    const order = await bookUsdgStud(ctx, buyer, { sireId: stallion, damId }, T0);
+    (ctx.chain as MockUsdgChain).simulateStud(studOrderFromJson(order.signed!.order));
+    const later = new Date(order.deadlineMs + 3 * MIN);
+    expect((await usdgBackstop(ctx, later)).settled).toBeGreaterThanOrEqual(1);
+    expect((await breedingView(h.db, buyer, later)).pregnancies.some((p) => p.damId === damId)).toBe(true);
+    // An unpaid booking lapses and the mare is free again.
+    const buyer2 = await player();
+    const dam2 = await mare(buyer2);
+    const unpaid = await bookUsdgStud(ctx, buyer2, { sireId: stallion, damId: dam2 }, T0);
+    await usdgBackstop(ctx, later);
+    expect((await myOrder(ctx, buyer2, unpaid.orderId, later)).status).toBe("expired");
+    expect((await breedingView(h.db, buyer2, later)).mares.find((m) => m.id === dam2)?.block).not.toBe("booked");
+  });
+
+  it("the EVM signer signs StudOrders that recover to the server key in HorseMarket's domain", async () => {
+    const key = generatePrivateKey();
+    const market = "0x2222222222222222222222222222222222222222";
+    const evm = new EvmUsdgChain(readUsdgConfig({ WEB3_ENABLED: "true", HORSE_MARKET_ADDRESS: market, ROBINHOOD_RPC_URL: "http://127.0.0.1:1", QUOTE_SIGNER_PRIVATE_KEY: key }));
+    const o = {
+      orderId: `0x${"cd".repeat(32)}` as Hex,
+      stallionRef: gc.usdgHorseRef("s") as Hex,
+      mareRef: gc.usdgHorseRef("m") as Hex,
+      stallionOwner: getAddress(market),
+      payer: privateKeyToAccount(generatePrivateKey()).address,
+      token: MOCK_USDG,
+      price: 40n * 10n ** 6n,
+      fee: 2_000_000n,
+      deadline: 2_000_000_000n,
+    };
+    const sig = await evm.signStud(o);
+    expect(await recoverTypedDataAddress({ ...studOrderTypedData(o, 46630, getAddress(market)), signature: sig })).toBe(privateKeyToAccount(key).address);
   });
 });
 

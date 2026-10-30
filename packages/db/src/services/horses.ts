@@ -188,6 +188,7 @@ export async function moveToLegacyFarm(db: Db, input: { accountId: string; horse
         retiredAt: horse.retiredAt ?? input.now,
         pasturedAt: input.now,
         studFee: null,
+        studFeeUsdg: null,
         updatedAt: input.now,
       })
       .where(eq(horses.id, horse.id))
@@ -205,7 +206,7 @@ export async function releaseToClub(db: Db, input: { accountId: string; horseId:
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "wait until she has foaled");
     await tx
       .update(horses)
-      .set({ ownerStableId: null, releasedAt: input.now, releasedFromStableId: stableId, studFee: null, updatedAt: input.now })
+      .set({ ownerStableId: null, releasedAt: input.now, releasedFromStableId: stableId, studFee: null, studFeeUsdg: null, updatedAt: input.now })
       .where(eq(horses.id, horse.id));
     await grantCreditsTx(tx, { accountId: input.accountId, amount: RULES.releasePayout, idempotencyKey: `release:${horse.id}:${stableId}`, kind: "adjustment", memo: "released to the Club" });
     await audit(tx, { actor: input.accountId, action: "horse.release", entityType: "horse", entityId: horse.id, data: { fromStable: stableId } });
@@ -251,7 +252,7 @@ export async function setStudFee(db: Db, input: { accountId: string; horseId: st
       const ceiling = gc.studFeeCeiling(toHorseState(horse));
       if (input.fee > ceiling) throw new DomainError("INVALID_INPUT", `the stud fee can be at most ${ceiling} credits (his appraisal)`);
     }
-    await tx.update(horses).set({ studFee: input.fee }).where(eq(horses.id, horse.id));
+    await tx.update(horses).set({ studFee: input.fee, studFeeUsdg: null }).where(eq(horses.id, horse.id));
   });
 }
 

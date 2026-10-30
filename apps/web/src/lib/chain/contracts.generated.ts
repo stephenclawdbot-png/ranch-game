@@ -120,6 +120,46 @@ export const registrationOrderTypes = {
     }
   ]
 } as const;
+export const studOrderTypes = {
+  "StudOrder": [
+    {
+      "name": "orderId",
+      "type": "bytes32"
+    },
+    {
+      "name": "stallionRef",
+      "type": "bytes32"
+    },
+    {
+      "name": "mareRef",
+      "type": "bytes32"
+    },
+    {
+      "name": "stallionOwner",
+      "type": "address"
+    },
+    {
+      "name": "payer",
+      "type": "address"
+    },
+    {
+      "name": "token",
+      "type": "address"
+    },
+    {
+      "name": "price",
+      "type": "uint256"
+    },
+    {
+      "name": "fee",
+      "type": "uint256"
+    },
+    {
+      "name": "deadline",
+      "type": "uint64"
+    }
+  ]
+} as const;
 export const bidTypes = {
   "Bid": [
     {
@@ -3791,6 +3831,55 @@ export const horseMarketAbi = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "bytes32",
+        "name": "orderId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "stallionRef",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "mareRef",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "payer",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "stallionOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "StudFeePaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "token",
         "type": "address"
@@ -3931,6 +4020,19 @@ export const horseMarketAbi = [
   {
     "inputs": [],
     "name": "SIGNER_ROLE",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "STUD_ORDER_TYPEHASH",
     "outputs": [
       {
         "internalType": "bytes32",
@@ -4252,6 +4354,72 @@ export const horseMarketAbi = [
   {
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "orderId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "stallionRef",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "mareRef",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "stallionOwner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "payer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct HorseMarket.StudOrder",
+        "name": "o",
+        "type": "tuple"
+      }
+    ],
+    "name": "hashStudOrder",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "orderId",
         "type": "bytes32"
@@ -4305,6 +4473,71 @@ export const horseMarketAbi = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "orderId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "stallionRef",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "mareRef",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "stallionOwner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "payer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct HorseMarket.StudOrder",
+        "name": "order",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "payStudFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

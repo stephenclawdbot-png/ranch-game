@@ -7,7 +7,7 @@
  *
  * Env (addresses default to the deployer, which is fine on testnet only):
  *   DEPLOY_ADMIN_ADDRESS         final DEFAULT_ADMIN + PAUSER (use a Safe multisig on mainnet)
- *   DEPLOY_TREASURY_ADDRESS      receives marketplace fees and registration fees directly
+ *   DEPLOY_TREASURY_ADDRESS      receives marketplace fees (sales and USDG stud fees) and registration fees directly
  *   DEPLOY_STORE_SIGNER_ADDRESS  the game server key that signs orders (QUOTE_SIGNER_PRIVATE_KEY's address)
  *   USDG_TOKEN_ADDRESS           payment token; defaults to Paxos USDG on Robinhood testnet (46630)
  *   DEPLOY_USDG_FEE_BPS          marketplace fee (default 500 = 5 %, hard cap 1000); must equal the

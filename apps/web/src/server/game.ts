@@ -658,7 +658,7 @@ const sentence = (s: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(
  * the database: see entryReasonFull.
  */
 export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): string | null {
-  if (row.lockKind) return row.lockKind === "race" ? "Already entered in a race" : "Listed on the market";
+  if (row.lockKind) return row.lockKind === "race" ? "Already entered in a race" : row.lockKind === "stud" ? "Booked for a covering" : "Listed on the market";
   const licence = licenceLevel === undefined ? null : licenceReason(race, licenceLevel);
   if (licence) return licence;
   if (isGenome(row.genome)) {
@@ -1155,7 +1155,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const regNo = gc.registrationNumber(row.generation, row.regNo);
   // Coat genetics are public stud-book information: any viewer gets them.
   const genetics = geneticsView(row, nowMs);
-  const atStud = row.studFee !== null && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
+  const atStud = (row.studFee !== null || row.studFeeUsdg !== null) && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
   if (!row.ownerStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
@@ -1189,7 +1189,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     pedigree,
     tree,
     genetics,
-    stud: atStud ? { fee: row.studFee!, club: false } : null,
+    stud: atStud ? { fee: row.studFee ?? 0, club: false, feeUsdg: row.studFeeUsdg } : null,
     actions,
   };
 }

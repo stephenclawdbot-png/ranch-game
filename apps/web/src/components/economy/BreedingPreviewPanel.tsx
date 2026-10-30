@@ -7,6 +7,7 @@
 import { BIG_HEART_STAMINA, IRON_LEGS_RISK, MSTN_STAT_SHIFT, MSTN_TRIP_M, SIZE_STAT_PER_PCT } from "@thoroughbred/game-core";
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
+import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
 import { GRADE_COLOR, GRADE_TEXT } from "@/components/StatBars";
 import { Credits } from "./kit";
 
@@ -295,12 +296,21 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
           <span>Breeding fee (base)</span>
           <Credits value={v.fees.baseFee} />
         </div>
-        <div className="flex justify-between">
-          <span>{v.ownSire ? "Stud fee (your own stallion)" : "Stud fee"}</span>
-          <Credits value={v.fees.studFee} />
-        </div>
+        {v.usdgStudFee !== null && v.usdgStudFee !== undefined ? (
+          <div className="flex justify-between" data-testid="preview-usdg-stud-fee">
+            <span>Stud fee (USDG, from your wallet to {v.stallionOwner ?? "his owner"})</span>
+            <span className="num text-cream">
+              {formatUsdgDollars(v.usdgStudFee)} <span className="caption">{formatUsdgToken(v.usdgStudFee)}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-between">
+            <span>{v.ownSire ? "Stud fee (your own stallion)" : "Stud fee"}</span>
+            <Credits value={v.fees.studFee} />
+          </div>
+        )}
         <div className="flex justify-between border-t-2 border-line pt-1 font-extrabold text-cream">
-          <span>You pay</span>
+          <span>You pay{v.usdgStudFee ? " in credits" : ""}</span>
           <Credits value={v.fees.totalPaidByMareOwner} />
         </div>
         <p className="caption">

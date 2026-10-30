@@ -1,4 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
+import { usdgPolicy } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Steps, Table, WikiLink } from "../kit";
 
@@ -7,6 +8,7 @@ const HOURS = (ms: number) => Math.round(ms / 3_600_000);
 export default function BreedingBasicsPage() {
   const ownStud = gc.breedingFees(0, true);
   const example = gc.breedingFees(2_000, false);
+  const usdg = usdgPolicy();
   return (
     <>
       <Lead>
@@ -90,6 +92,13 @@ export default function BreedingBasicsPage() {
         bookings, and a better record raises the most he can stand for. Accounts the game has linked to each other can&rsquo;t pay each other stud fees. See{" "}
         <WikiLink slug="stud-and-broodmares" />.
       </P>
+      <Callout tone="rule" title="USDG stud fees (registered stallions only)">
+        <p>
+          A stallion registered for the <WikiLink slug="usdg-market">USDG market</WikiLink> can stand for a fee in USDG instead of credits: {gc.formatUsdgDollars(usdg.studFeeMin)} to{" "}
+          {gc.formatUsdgDollars(usdg.studFeeMax)} per covering. The mare&rsquo;s owner pays it from their wallet straight to his owner (the Club keeps {usdg.feeBps / 100}%), still pays the{" "}
+          {formatCredits(gc.BREEDING_BASE_FEE)} credits base fee, and the covering happens once the payment is confirmed. Every other stallion, and every other covering, is paid in credits.
+        </p>
+      </Callout>
 
       <H2 id="foals">Where foals go</H2>
       <P>

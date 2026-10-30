@@ -1,7 +1,7 @@
 /**
  * The USDG horse market, server side (docs/usdg-market.md). Rules and persistence live in
  * @thoroughbred/db (services/usdgMarket.ts); this module adds the chain: it signs HorseMarket
- * orders from the order rows the DB wrote first, verifies `Registered` / `Sold` before fulfilling,
+ * orders from the order rows the DB wrote first, verifies `Registered` / `Sold` / `StudFeePaid` before fulfilling,
  * checks EIP-712 bid signatures against the bidder's linked wallet, runs the backstop (close
  * auctions, expire stale orders, settle paid-but-unconfirmed ones) and, on the mock chain,
  * simulates payments so the whole flow is playable with WEB3_ENABLED off.
@@ -14,8 +14,9 @@ import {
   delistUsdg,
   expireUsdgListings,
   expireUsdgOrder,
-  fulfilUsdgOrder,
+  fulfilUsdgPayment,
   getHorse,
+  getStable,
   getUsdgOrder,
   horseNamesByIds,
   isDomainError,
@@ -30,6 +31,8 @@ import {
   placeUsdgBid,
   quoteUsdgRegistration,
   quoteUsdgSale,
+  quoteUsdgStud,
+  setUsdgStudFee,
   usdgBarredUntil,
   usdgBoard,
   usdgOrdersForReview,
@@ -45,12 +48,23 @@ import {
 } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
 import { chainInfo } from "@/lib/chain/chains";
-import { TESTNET_FAUCETS, isTestnet, orderToJson, saleOrderFromJson, registrationOrderFromJson, type RegistrationOrder, type SaleOrder, type UsdgOrderJson } from "@/lib/chain/usdg";
+import {
+  TESTNET_FAUCETS,
+  isTestnet,
+  orderToJson,
+  saleOrderFromJson,
+  registrationOrderFromJson,
+  studOrderFromJson,
+  type RegistrationOrder,
+  type SaleOrder,
+  type StudOrder,
+  type UsdgOrderJson,
+} from "@/lib/chain/usdg";
 import type { UsdgCheckView, UsdgHorseView, UsdgLotView, UsdgMarketView, UsdgNetworkView, UsdgPolicyView, UsdgSellable } from "@/lib/usdgTypes";
-import { ecoHorse, lotNumbers } from "../economy";
+import { ecoHorse, friendlyEconomyError, lotNumbers } from "../economy";
 import { parseSilks } from "../horseView";
 import type { Session } from "../session";
-import type { MockUsdgChain, UsdgChain } from "./usdgChain";
+import type { MockUsdgChain, UsdgChain, UsdgOrderKind } from "./usdgChain";
 import type { UsdgConfig } from "./usdgConfig";
 
 export interface UsdgCtx {
@@ -102,6 +116,9 @@ export function policyView(p: gc.UsdgPolicy): UsdgPolicyView {
     auctionHours: [...p.auctionHours],
     fixedListingDays: [...p.fixedListingDays],
     paymentWindowHours: Math.round(p.paymentWindowMs / 3_600_000),
+    quoteMinutes: Math.round(p.quoteTtlMs / 60_000),
+    studFeeMin: p.studFeeMin,
+    studFeeMax: p.studFeeMax,
     nonPayerBarDays: Math.round(p.nonPayerBarMs / 86_400_000),
     bidIncrementBps: p.bidIncrementBps,
     bidIncrementMin: p.bidIncrementMin,
@@ -125,6 +142,20 @@ const CHECK_LABEL: Record<string, (p: gc.UsdgPolicy, liveStarts: number) => stri
 /** Signs the order a row describes (never stored: re-signed on request, so nothing secret sits in the DB). */
 async function signedOrder(ctx: UsdgCtx, o: UsdgOrderRow): Promise<UsdgOrderJson["signed"]> {
   if (o.status !== "pending") return null;
+  if (o.kind === "stud") {
+    const order: StudOrder = {
+      orderId: o.orderId as Hex,
+      stallionRef: o.horseRef as Hex,
+      mareRef: o.mareRef as Hex,
+      stallionOwner: getAddress(o.sellerWallet!),
+      payer: getAddress(o.wallet),
+      token: getAddress(o.token),
+      price: BigInt(o.price),
+      fee: BigInt(o.fee),
+      deadline: BigInt(Math.floor(o.deadline.getTime() / 1000)),
+    };
+    return { order: orderToJson(order), signature: await ctx.chain.signStud(order) };
+  }
   if (o.kind === "sale") {
     const order: SaleOrder = {
       orderId: o.orderId as Hex,
@@ -151,12 +182,14 @@ async function signedOrder(ctx: UsdgCtx, o: UsdgOrderRow): Promise<UsdgOrderJson
 
 export async function orderJson(ctx: UsdgCtx, o: UsdgOrderRow, now: Date, horseName: string | null = null): Promise<UsdgOrderJson> {
   const name = horseName ?? (await getHorse(ctx.db, o.horseId))?.name ?? null;
+  const stud = o.kind === "stud" && o.mareId ? { mareId: o.mareId, mareName: (await getHorse(ctx.db, o.mareId))?.name ?? null, payeeName: await payeeNameOf(ctx, o) } : {};
   return {
     orderId: o.orderId as Hex,
     kind: o.kind as UsdgOrderJson["kind"],
     status: o.status as UsdgOrderJson["status"],
     horseId: o.horseId,
     horseName: name,
+    ...stud,
     chainId: o.chainId,
     market: getAddress(o.marketAddress) as Address,
     token: getAddress(o.token) as Address,
@@ -169,6 +202,14 @@ export async function orderJson(ctx: UsdgCtx, o: UsdgOrderRow, now: Date, horseN
     mock: ctx.chain.kind === "mock",
     auction: !!o.bidId,
   };
+}
+
+/** The stable that receives a stud fee (the stallion owner's stable name). */
+async function payeeNameOf(ctx: UsdgCtx, o: UsdgOrderRow): Promise<string | null> {
+  if (!o.sellerAccountId) return null;
+  const h = await getHorse(ctx.db, o.horseId);
+  if (!h?.ownerStableId) return null;
+  return (await getStable(ctx.db, h.ownerStableId))?.name ?? null;
 }
 
 export async function usdgMarketView(ctx: UsdgCtx, session: Session, now: Date): Promise<UsdgMarketView> {
@@ -244,7 +285,7 @@ async function resumeMyOrders(ctx: UsdgCtx, session: Session, now: Date): Promis
   if (ctx.cfg.mode === "off") return;
   for (const o of await myUsdgOrders(ctx.db, { accountId: session.accountId, now })) {
     try {
-      const tx = (o.txHash as Hex | null) ?? (await ctx.chain.findPaymentTx(o.kind as "registration" | "sale", o.orderId as Hex));
+      const tx = (o.txHash as Hex | null) ?? (await ctx.chain.findPaymentTx(o.kind as UsdgOrderKind, o.orderId as Hex));
       if (tx) await settleUsdgOrder(ctx, o, tx, now);
     } catch (err) {
       console.error("usdg resume", o.orderId, err);
@@ -259,6 +300,7 @@ async function listBlockOf(ctx: UsdgCtx, session: Session, horseId: string, now:
   if (!(await isUsdgRegistered(ctx.db, horseId))) return "Not registered yet";
   if (h.lockKind === "race") return "Entered in a race";
   if (h.lockKind === "market") return "Listed";
+  if (h.lockKind === "stud") return "Booked for a covering";
   if (h.careerStatus === "pasture") return "On the Legacy Farm";
   const resale = await usdgResaleLock(ctx.db, { horseId, ownerStableId: session.stable.id, ownerAccountId: session.accountId, now });
   if (resale) return `Bought recently: can be listed again after ${resale.until.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC`;
@@ -319,6 +361,25 @@ export async function buyFixed(ctx: UsdgCtx, session: Session, listingId: string
 }
 
 /**
+ * Books a covering by a stallion standing for a USDG stud fee: the DB checks every breeding rule,
+ * holds his slot and the mare, and writes the order; this signs the StudOrder to pay.
+ */
+export async function bookUsdgStud(ctx: UsdgCtx, session: Session, input: { sireId: string; damId: string }, now: Date): Promise<UsdgOrderJson> {
+  assertOpen(ctx);
+  const o = await quoteUsdgStud(ctx.db, { accountId: session.accountId, sireId: input.sireId, damId: input.damId, chain: chainRef(ctx), now }, ctx.policy).catch((e: unknown) => {
+    throw friendlyEconomyError(e);
+  });
+  return orderJson(ctx, o, now);
+}
+
+/** Stand a registered stallion at stud for a USDG fee (micro-USDG), or drop the USDG fee (null). */
+export async function standAtStudForUsdg(ctx: UsdgCtx, session: Session, input: { horseId: string; fee: number | null }, now: Date) {
+  if (input.fee !== null) assertOpen(ctx);
+  await setUsdgStudFee(ctx.db, { accountId: session.accountId, horseId: input.horseId, fee: input.fee, now }, ctx.policy);
+  return { ok: true, horseId: input.horseId, fee: input.fee };
+}
+
+/**
  * A bid signed by the bidder's wallet (EIP-712 Bid in the HorseMarket domain). The claimed
  * bidder is the account's linked wallet: a signature from any other key is refused.
  */
@@ -345,9 +406,10 @@ export type UsdgSettle =
   | { status: "pending" | "paid_waiting" | "rejected"; orderId: string; reason: string };
 
 const expectedOf = (order: UsdgOrderRow) => ({
-  kind: order.kind as "registration" | "sale",
+  kind: order.kind as UsdgOrderKind,
   orderId: order.orderId as Hex,
   horseRef: order.horseRef as Hex,
+  mareRef: (order.mareRef ?? undefined) as Hex | undefined,
   payer: getAddress(order.wallet),
   seller: order.sellerWallet ? getAddress(order.sellerWallet) : undefined,
   price: BigInt(order.price),
@@ -365,8 +427,11 @@ export async function settleUsdgOrder(ctx: UsdgCtx, order: UsdgOrderRow, txHash:
     return { status: "rejected", orderId: order.orderId, reason: v.reason };
   }
   try {
-    const r = await fulfilUsdgOrder(ctx.db, { orderId: order.orderId, txHash, now }, ctx.policy);
-    if (r.status === "paid") return { status: "paid_waiting", orderId: order.orderId, reason: r.order.error ?? "paid; waiting for the organiser" };
+    const r = await fulfilUsdgPayment(ctx.db, { orderId: order.orderId, txHash, now }, ctx.policy);
+    if (r.status === "paid") {
+      if (order.kind === "stud" && r.order.flagged) console.error("usdg stud refund due", order.orderId, r.order.flagReason);
+      return { status: "paid_waiting", orderId: order.orderId, reason: r.order.error ?? "paid; waiting for the organiser" };
+    }
     return { status: "fulfilled", orderId: order.orderId, horseId: order.horseId, duplicate: r.duplicate };
   } catch (e) {
     if (!isDomainError(e)) throw e;
@@ -399,12 +464,17 @@ export async function mockPay(ctx: UsdgCtx, session: Session, orderId: string, n
   if (!o || o.accountId !== session.accountId) throw new DomainError("NOT_FOUND", "order not found");
   if (o.status === "fulfilled") return { status: "fulfilled", orderId: o.orderId, horseId: o.horseId, duplicate: true };
   const mock = ctx.chain as MockUsdgChain;
-  const paid = await mock.findPaymentTx(o.kind as "registration" | "sale", o.orderId as Hex);
+  const paid = await mock.findPaymentTx(o.kind as UsdgOrderKind, o.orderId as Hex);
   if (paid) return confirmUsdgOrder(ctx, session, { orderId: o.orderId, txHash: paid }, now);
   if (o.status !== "pending" || o.deadline <= now) throw new DomainError("LISTING_EXPIRED", "This order has expired.");
   const signed = (await signedOrder(ctx, o))!;
   const nowSec = BigInt(Math.floor(now.getTime() / 1000));
-  const tx = o.kind === "sale" ? mock.simulateSale(saleOrderFromJson(signed.order), { nowSec }) : mock.simulateRegistration(registrationOrderFromJson(signed.order), { nowSec });
+  const tx =
+    o.kind === "sale"
+      ? mock.simulateSale(saleOrderFromJson(signed.order), { nowSec })
+      : o.kind === "stud"
+        ? mock.simulateStud(studOrderFromJson(signed.order), { nowSec })
+        : mock.simulateRegistration(registrationOrderFromJson(signed.order), { nowSec });
   return confirmUsdgOrder(ctx, session, { orderId: o.orderId, txHash: tx }, now);
 }
 
@@ -438,7 +508,7 @@ export async function usdgBackstop(ctx: UsdgCtx, now: Date): Promise<UsdgBacksto
       let r: UsdgSettle | null = o.txHash ? await settleUsdgOrder(ctx, o, o.txHash as Hex, now) : null;
       if (!r || r.status === "rejected" || (r.status === "pending" && r.reason === "unknown_tx")) {
         // No usable hash from the client: look for the payment by orderId (the tab may have closed).
-        const found = await ctx.chain.findPaymentTx(o.kind as "registration" | "sale", o.orderId as Hex);
+        const found = await ctx.chain.findPaymentTx(o.kind as UsdgOrderKind, o.orderId as Hex);
         if (found && found.toLowerCase() !== o.txHash) {
           if (o.txHash) await clearUsdgOrderTx(ctx.db, { orderId: o.orderId, error: `replaced tx ${o.txHash}`, now });
           r = await settleUsdgOrder(ctx, (await getUsdgOrder(ctx.db, o.orderId))!, found, now);
@@ -497,6 +567,7 @@ export async function usdgAdminView(ctx: UsdgCtx) {
       fee: o.fee,
       flagged: o.flagged,
       flagReason: o.flagReason,
+      refundDue: o.kind === "stud" && o.status === "paid" && o.flagged,
       error: o.error,
       txHash: o.txHash,
       createdAtMs: o.createdAt.getTime(),

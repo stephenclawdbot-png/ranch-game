@@ -13,6 +13,8 @@ export default function UsdgMarketPage() {
   const fee = gc.usdgFee(example, p.feeBps);
   const reserve = 10 * gc.USDG_UNIT;
   const second = gc.minNextBid(p, reserve, reserve);
+  const studExample = Math.min(p.studFeeMax, Math.max(p.studFeeMin, 40 * gc.USDG_UNIT));
+  const studCut = gc.usdgFee(studExample, p.feeBps);
   return (
     <>
       <Lead>
@@ -90,6 +92,39 @@ export default function UsdgMarketPage() {
         ]}
       />
       <P>An auction with bids can&rsquo;t be cancelled. A fixed-price listing can be taken down any time, except while a buyer is paying for it.</P>
+
+      <H2 id="stud-fees">USDG stud fees</H2>
+      <P>
+        Ordinary breeding stays in credits for everyone. The one exception: the owner of a stallion that is <b>registered</b> for the USDG market can stand him at stud for a <b>USDG fee</b> instead
+        of a credits fee (never both), from <b>{usd(p.studFeeMin)}</b> to <b>{usd(p.studFeeMax)}</b> per covering. He shows in the stud book with the dollar amount.
+      </P>
+      <Steps
+        items={[
+          <>
+            In the <GameLink href="/breeding">breeding barn</GameLink>, pick your mare and his name. The preview shows the same odds as any covering, plus <b>Pay {usd(studExample)} USDG to</b> his
+            owner&rsquo;s stable.
+          </>,
+          <>
+            Press it. Every breeding rule is checked now (relatives, season and lifetime limits, a mare already in foal, a stall for the foal). His covering slot and your mare are held for you for{" "}
+            {Math.round(p.quoteTtlMs / 60_000)} minutes while you pay, and the {gc.BREEDING_BASE_FEE.toLocaleString("en-GB")} credits base fee every covering costs is set aside.
+          </>,
+          <>Your wallet pays: the fee goes straight to his owner&rsquo;s wallet, minus the market fee to the Club, in one transaction. The covering happens as soon as the payment is confirmed.</>,
+        ]}
+      />
+      <Facts
+        rows={[
+          ["Who can charge one", "The owner of a registered stallion standing at stud"],
+          ["Fee range", `${usd(p.studFeeMin)} to ${usd(p.studFeeMax)}`],
+          [`Example: a ${usd(studExample)} fee`, `${usd(studExample - studCut)} to the stallion's owner, ${usd(studCut)} to the Club`],
+          ["Base fee (credits, as for any covering)", `${gc.BREEDING_BASE_FEE.toLocaleString("en-GB")} credits, burned`],
+          ["Time to pay", `${Math.round(p.quoteTtlMs / 60_000)} minutes; then the booking lapses and the credits come back`],
+        ]}
+      />
+      <P>
+        The foal is an ordinary foal of your mare: it races for credits and can register for the USDG market later like any horse. If a paid covering can&rsquo;t happen after all (a rare
+        clash, such as the stallion leaving the stud in the meantime), the Club refunds the fee from its treasury; the contract itself never holds or returns money. Linked accounts can&rsquo;t book
+        each other&rsquo;s stallions.
+      </P>
 
       <H2 id="fair-play">Fair play</H2>
       <List

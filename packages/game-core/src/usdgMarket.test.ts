@@ -14,6 +14,7 @@ import {
   usdgRegistrationBlock,
   usdgRegistrationChecks,
   usdgSellerReceives,
+  usdgStudFeeBlock,
   type UsdgRegistrationFacts,
 } from "./usdgMarket";
 
@@ -49,6 +50,18 @@ describe("USDG market knobs", () => {
     const bad = usdgPolicyFromEnv({ USDG_MIN_STARTS: "-1", USDG_REGISTRATION_FEE: "abc", USDG_FEE_BPS: "1001", USDG_MIN_PRICE: "0", USDG_PAYMENT_WINDOW_HOURS: "100" });
     expect(bad).toEqual(DEFAULT_USDG_POLICY);
     expect(usdgPolicyFromEnv({})).toEqual(DEFAULT_USDG_POLICY);
+  });
+
+  it("USDG stud fee bounds: defaults $1-$500, env overrides, bad or crossed values fall back", () => {
+    expect(DEFAULT_USDG_POLICY).toMatchObject({ studFeeMin: USDG_UNIT, studFeeMax: 500 * USDG_UNIT });
+    expect(usdgPolicyFromEnv({ USDG_STUD_FEE_MIN: "5", USDG_STUD_FEE_MAX: "50.5" })).toMatchObject({ studFeeMin: 5 * USDG_UNIT, studFeeMax: 50_500_000 });
+    expect(usdgPolicyFromEnv({ USDG_STUD_FEE_MIN: "600" })).toMatchObject({ studFeeMin: USDG_UNIT, studFeeMax: 500 * USDG_UNIT });
+    expect(usdgPolicyFromEnv({ USDG_STUD_FEE_MIN: "0", USDG_STUD_FEE_MAX: "x" })).toEqual(DEFAULT_USDG_POLICY);
+    expect(usdgStudFeeBlock(USDG_UNIT)).toBeNull();
+    expect(usdgStudFeeBlock(500 * USDG_UNIT)).toBeNull();
+    expect(usdgStudFeeBlock(USDG_UNIT - 1)).toBe("below_min");
+    expect(usdgStudFeeBlock(500 * USDG_UNIT + 1)).toBe("above_max");
+    expect(usdgStudFeeBlock(1.5 * USDG_UNIT + 0.5)).toBe("not_integer");
   });
 
   it("parses and formats amounts (6 decimals)", () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseDetailView } from "@/lib/types";
+import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
 import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits, formatDistance } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
@@ -109,7 +110,15 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
             ) : view.stud ? (
               <div className="grid gap-2" data-testid="stud-info">
                 <p className="t-meta">
-                  {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee <span className="num text-cream">{formatCredits(view.stud.fee)}</span> (plus the breeding fee)
+                  {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee{" "}
+                  {view.stud.feeUsdg ? (
+                    <span className="num text-cream" data-testid="stud-fee-usdg">
+                      {formatUsdgDollars(view.stud.feeUsdg)} ({formatUsdgToken(view.stud.feeUsdg)}, paid to his owner)
+                    </span>
+                  ) : (
+                    <span className="num text-cream">{formatCredits(view.stud.fee)}</span>
+                  )}{" "}
+                  (plus the breeding fee)
                 </p>
                 <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
                   Plan a cover with {first}
@@ -130,7 +139,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
                 {view.actions.stud && (
                   <li>
                     <Link href="/breeding#studs" className="btn btn-outline btn-sm" data-testid="stand-at-stud">
-                      {view.stud ? `At stud · ${formatCredits(view.stud.fee)}` : "Stand at stud"}
+                      {view.stud ? `At stud · ${view.stud.feeUsdg ? formatUsdgDollars(view.stud.feeUsdg) : formatCredits(view.stud.fee)}` : "Stand at stud"}
                     </Link>
                   </li>
                 )}

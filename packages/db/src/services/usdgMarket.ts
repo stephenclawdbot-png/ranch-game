@@ -16,9 +16,11 @@
  *   bidding for a while and the next bidder is offered the horse at their own bid.
  * - Linked accounts can't trade (blocked + fraud event); the resale lock applies; sales far from
  *   recent comparable prices are flagged for review (wash-trading signal), not blocked.
+ * - USDG stud fees (kind 'stud') share the orders table, the expiry and the backstop; their quote
+ *   and fulfilment (which runs the covering) live in services/usdgStud.ts.
  */
 import { randomBytes } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import { DomainError, pgError } from "../errors";
 import { gc } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -44,6 +46,7 @@ import type { Db, Executor, Tx } from "../types";
 import { areLinked, assertStallFree, lockStableOf, stableOf } from "./accounts";
 import { verifiedWalletOf } from "./betaMoney";
 import { isCarrying, lockHorse } from "./horses";
+import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { audit, runTx } from "./tx";
 
@@ -73,6 +76,30 @@ export function usdgOrderIsLive(o: Pick<UsdgOrderRow, "status" | "txHash" | "dea
   if (o.status === "paid") return true;
   if (o.status !== "pending") return false;
   return o.txHash !== null || o.deadline.getTime() + USDG_ORDER_GRACE_MS > now.getTime();
+}
+
+/**
+ * Season slots of a stallion held by live USDG stud orders (signed and not yet expired, submitted,
+ * or paid and waiting to be covered), optionally ignoring one order (the one being fulfilled).
+ * A paid order flagged for a refund holds nothing.
+ */
+export async function studHoldsOf(ex: Executor, sireId: string, now: Date, excludeOrderId?: string): Promise<number> {
+  const graceCutoff = new Date(now.getTime() - USDG_ORDER_GRACE_MS);
+  const [r] = await ex
+    .select({ n: sql<number>`count(*)::int` })
+    .from(usdgOrders)
+    .where(
+      and(
+        eq(usdgOrders.kind, "stud"),
+        eq(usdgOrders.horseId, sireId),
+        excludeOrderId ? ne(usdgOrders.orderId, excludeOrderId.toLowerCase()) : undefined,
+        or(
+          and(eq(usdgOrders.status, "paid"), eq(usdgOrders.flagged, false)),
+          and(eq(usdgOrders.status, "pending"), or(sql`${usdgOrders.txHash} is not null`, sql`${usdgOrders.deadline} > ${graceCutoff}`)),
+        ),
+      ),
+    );
+  return Number(r?.n ?? 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -324,6 +351,7 @@ export async function fulfilUsdgOrder(db: Db, input: { orderId: string; txHash: 
   return runTx(db, async (tx) => {
     const [order] = await tx.select().from(usdgOrders).where(eq(usdgOrders.orderId, lower(input.orderId))).for("update");
     if (!order) throw new DomainError("NOT_FOUND", "unknown order (never fulfil an orderId the server did not create)");
+    if (order.kind === "stud") throw new DomainError("INVALID_INPUT", "stud orders are fulfilled by fulfilUsdgStudOrder (services/usdgStud.ts)");
     if (order.txHash && order.txHash !== txHash) throw new DomainError("IDEMPOTENCY_CONFLICT", "order paid by a different transaction");
     if (order.status === "fulfilled") return { order, duplicate: true, status: "fulfilled" as const };
     const wasExpired = order.status === "expired";
@@ -365,7 +393,7 @@ export async function fulfilUsdgOrder(db: Db, input: { orderId: string; txHash: 
       const buyerStable = await stableOf(tx, order.accountId);
       await tx
         .update(horses)
-        .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, updatedAt: input.now })
+        .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, studFeeUsdg: null, updatedAt: input.now })
         .where(eq(horses.id, horse.id));
       await tx.update(usdgListings).set({ status: "sold", closedAt: input.now }).where(eq(usdgListings.id, listing.id));
       if (order.bidId) await tx.update(usdgBids).set({ status: "won" }).where(eq(usdgBids.id, order.bidId));
@@ -406,7 +434,8 @@ export async function usdgOrdersNeedingAttention(ex: Executor, input: { now: Dat
     .from(usdgOrders)
     .where(
       or(
-        eq(usdgOrders.status, "paid"),
+        // A stud order flagged for a refund is settled for good (a human refunds it).
+        and(eq(usdgOrders.status, "paid"), or(ne(usdgOrders.kind, "stud"), eq(usdgOrders.flagged, false))),
         and(eq(usdgOrders.status, "pending"), or(isNotNull(usdgOrders.txHash), sql`${usdgOrders.deadline} < ${new Date(input.now.getTime() - USDG_ORDER_GRACE_MS)}`)),
       ),
     )
@@ -475,7 +504,10 @@ export async function listUsdg(db: Db, input: UsdgListInput, policy: gc.UsdgPoli
     const horse = await lockHorse(tx, input.horseId);
     if (horse.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your horse");
     if (!(await isUsdgRegistered(tx, horse.id))) throw new DomainError("NOT_ELIGIBLE", "Register the horse for the USDG market first.");
-    if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "The horse is entered in a race." : "The horse is already listed.");
+    if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "The horse is entered in a race." : horse.lockKind === "stud" ? "The mare is booked for a covering." : "The horse is already listed.");
+    if (horse.sex === "male" && (await studHoldsOf(tx, horse.id, input.now))) {
+      throw new DomainError("HORSE_LOCKED", "Mare owners are paying his USDG stud fee right now: list him once their coverings are done.");
+    }
     if (horse.careerStatus === "pasture") throw new DomainError("NOT_ELIGIBLE", "Horses on the Legacy Farm can't be sold.");
     if (horse.bound || horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", "Club-bred horses can't be sold.");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "Mares in foal can't be sold.");
@@ -748,6 +780,7 @@ export async function expireUsdgOrder(db: Db, input: { orderId: string; now: Dat
     if (!order || order.status !== "pending") return { expired: false, next: null };
     if (order.deadline.getTime() + USDG_ORDER_GRACE_MS > input.now.getTime()) return { expired: false, next: null };
     await tx.update(usdgOrders).set({ status: "expired", expiredAt: input.now, updatedAt: input.now }).where(eq(usdgOrders.id, order.id));
+    if (order.kind === "stud") await releaseStudBooking(tx, order, input.now);
     let next: UsdgOrderRow | null = null;
     if (order.kind === "sale" && order.listingId) {
       const [listing] = await tx.select().from(usdgListings).where(eq(usdgListings.id, order.listingId)).for("update");
@@ -767,6 +800,33 @@ export async function expireUsdgOrder(db: Db, input: { orderId: string; now: Dat
     }
     return { expired: true, next };
   });
+}
+
+/**
+ * Undoes a stud booking that won't be covered (expired unpaid, or paid but refused at fulfilment):
+ * unlocks the mare (if still locked to this order) and returns the credits base fee held in escrow.
+ * Idempotent (the release posting has its own key).
+ */
+export async function releaseStudBooking(tx: Executor, order: UsdgOrderRow, now: Date): Promise<void> {
+  if (order.kind !== "stud") return;
+  if (order.mareId) {
+    await tx
+      .update(horses)
+      .set({ lockKind: null, lockRef: null, updatedAt: now })
+      .where(and(eq(horses.id, order.mareId), eq(horses.lockKind, "stud"), eq(horses.lockRef, order.id)));
+  }
+  const held = order.creditsHeld ?? 0;
+  if (held > 0) {
+    await post(tx, {
+      idempotencyKey: `usdg-stud-release:${order.orderId}`,
+      kind: "breeding_fee_release",
+      memo: "USDG covering not made: base fee returned",
+      postings: [
+        { ledgerAccountId: await systemAccountId(tx, "escrow"), amount: -held },
+        { ledgerAccountId: await playerLedgerAccountId(tx, order.accountId), amount: held },
+      ],
+    });
+  }
 }
 
 /** Fixed-price listings past their end with no live order: expired, horse unlocked. */
@@ -852,16 +912,18 @@ export async function usdgOrdersForReview(ex: Executor, limit = 50): Promise<Usd
     .limit(limit);
 }
 
-export async function usdgSalesSummary(ex: Executor): Promise<{ registrations: number; sales: number; volume: number; fees: number; flagged: number; open: number }> {
+export async function usdgSalesSummary(ex: Executor): Promise<{ registrations: number; sales: number; volume: number; studFees: number; studVolume: number; fees: number; flagged: number; open: number }> {
   const [r] = await ex
     .select({
       registrations: sql<number>`count(*) filter (where ${usdgOrders.kind} = 'registration' and ${usdgOrders.status} = 'fulfilled')::int`,
       sales: sql<number>`count(*) filter (where ${usdgOrders.kind} = 'sale' and ${usdgOrders.status} = 'fulfilled')::int`,
       volume: sql<number>`coalesce(sum(${usdgOrders.price}) filter (where ${usdgOrders.kind} = 'sale' and ${usdgOrders.status} = 'fulfilled'), 0)::bigint`,
+      studFees: sql<number>`count(*) filter (where ${usdgOrders.kind} = 'stud' and ${usdgOrders.status} = 'fulfilled')::int`,
+      studVolume: sql<number>`coalesce(sum(${usdgOrders.price}) filter (where ${usdgOrders.kind} = 'stud' and ${usdgOrders.status} = 'fulfilled'), 0)::bigint`,
       fees: sql<number>`coalesce(sum(${usdgOrders.fee}) filter (where ${usdgOrders.status} = 'fulfilled'), 0)::bigint`,
       flagged: sql<number>`count(*) filter (where ${usdgOrders.flagged})::int`,
       open: sql<number>`count(*) filter (where ${usdgOrders.status} = 'paid')::int`,
     })
     .from(usdgOrders);
-  return { registrations: Number(r?.registrations ?? 0), sales: Number(r?.sales ?? 0), volume: Number(r?.volume ?? 0), fees: Number(r?.fees ?? 0), flagged: Number(r?.flagged ?? 0), open: Number(r?.open ?? 0) };
+  return { registrations: Number(r?.registrations ?? 0), sales: Number(r?.sales ?? 0), volume: Number(r?.volume ?? 0), studFees: Number(r?.studFees ?? 0), studVolume: Number(r?.studVolume ?? 0), fees: Number(r?.fees ?? 0), flagged: Number(r?.flagged ?? 0), open: Number(r?.open ?? 0) };
 }

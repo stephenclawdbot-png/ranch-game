@@ -10,7 +10,7 @@ chain, using `MockChainAdapter`. The architecture, the threat model and the roll
 | `contracts/RaceProofRegistry.sol` | Write-once Merkle roots of race seed commitments and results. Anyone can verify a race. |
 | `contracts/PremiumStore.sol` | Checkout for premium SKUs: an allow-listed stablecoin (EIP-712 `Order`) **and native ETH** (EIP-712 `EthQuote`, closed beta): `poolBps` (10–50 %) to the PrizePool, 2-level affiliate commissions (≤ 15 % / 5 %) and the rest to the treasury, in the same tx. Optional Chainlink tolerance check. |
 | `contracts/PrizePool.sol` | Closed-beta Prize Pool: ETH only from the store and owner top-ups; weekly Merkle epochs, never over-allocated (`total ≤ maxEpochBps × (balance − outstanding)`); per-account cap; linear vesting; revoke / cancel / expiry return funds **to the pool**; no withdraw or sweep. |
-| `contracts/HorseMarket.sol` | USDG horse market (`docs/usdg-market.md`): `buy(SaleOrder, sig)` pays the seller `price − fee` and the treasury `fee` straight from the buyer in one tx (`Sold`); `register(RegistrationOrder, sig)` pays the registration fee to the treasury (`Registered`). Never holds funds; USDG allow-list, exact amounts, fee ≤ 10 %, single-use orderId, pause. Deployed with `scripts/deploy-horse-market.ts` (not deployed yet). |
+| `contracts/HorseMarket.sol` | USDG horse market (`docs/usdg-market.md`): `buy(SaleOrder, sig)` pays the seller `price − fee` and the treasury `fee` straight from the buyer in one tx (`Sold`); `register(RegistrationOrder, sig)` pays the registration fee to the treasury (`Registered`); `payStudFee(StudOrder, sig)` pays a registered stallion's USDG stud fee to his owner (`price − fee`) and the treasury (`fee`) for one covering (`StudFeePaid`). Never holds funds; USDG allow-list, exact amounts, fee ≤ 10 %, single-use orderId, pause. Deployed with `scripts/deploy-horse-market.ts` (not deployed yet). |
 | `contracts/ThoroughbredToken.sol` | OPTIONAL capped ERC20 + permit, with a genesis mint only. **Not deployed by default.** |
 | `contracts/mocks/*` | Test-only: 6-decimal blocklist/fee stablecoin, reentrant token, ETH receiver (accept/reject/re-enter), Chainlink-style price feed. |
 | `scripts/export-web.ts` | Writes `apps/web/src/lib/chain/contracts.generated.ts` (ABIs + bytecode for the browser deploy on `/admin/chain`, EIP-712 types). `pnpm --filter @thoroughbred/contracts export:web` after any contract change; `test/export-web.test.ts` fails when stale. |
@@ -66,7 +66,7 @@ await chain.getBalances(address);                 // display only
 - Pairs use OpenZeppelin's commutative keccak256. Leaves are sorted, and an odd node is promoted.
 - `seedCommitment = sha256(seed bytes)`, which is the racing engine's `commitSeed`. The contract re-checks it with the sha256 precompile in `verifyRace`.
 
-## What is tested (136 tests; coverage: 100% lines/functions on the 5 production contracts, 94–100% branches)
+## What is tested (145 tests; coverage: 100% lines/functions on the 5 production contracts, 94–100% branches)
 
 **HorseMarket** (`test/horse-market.test.ts`)
 - [x] buy: seller gets `price − fee`, treasury gets `fee`, buyer pays exactly `price`, the contract keeps 0; `Sold` fields; property test over random prices and fee rates
@@ -77,6 +77,7 @@ await chain.getBalances(address);                 // display only
 - [x] signature: tampered fields, non-signer, other contract/chain, garbage; signer rotation
 - [x] token allow-list; fee-on-transfer rejected; frozen buyer/seller/treasury and a missing allowance revert without using the order; zero seller; plain ETH refused
 - [x] reentrancy through a hostile token blocked; pause blocks both entry points, admin-only unpause; treasury changes; constructor validation
+- [x] payStudFee: stallion owner gets `price − fee`, treasury `fee`, contract keeps 0; `StudFeePaid` fields; `hashStudOrder` equals viem's digest; orderId single-use across all three order kinds; deadline / TTL; wrong payer, self-pay, zero owner; fee math (floor/ceiling, property test); tampered fields, other signer/contract/chain, a SaleOrder signature over the same fields; pause, allow-list, fee-on-transfer and frozen accounts leave the order unused; reentrancy
 - [x] `deployHorseMarket` (deploy script) against the in-process network
 
 **PrizePool** (`test/prize-pool.test.ts`)

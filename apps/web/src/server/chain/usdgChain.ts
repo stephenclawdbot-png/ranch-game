@@ -1,8 +1,8 @@
 /**
  * The USDG horse market's chain adapter (server only). `MockUsdgChain` (dev, tests, WEB3 off)
  * mirrors HorseMarket's rules in memory so the whole flow is playable without a node;
- * `EvmUsdgChain` signs orders with the server key and verifies `Sold` / `Registered` logs from
- * OUR market address only.
+ * `EvmUsdgChain` signs orders with the server key and verifies `Sold` / `Registered` /
+ * `StudFeePaid` logs from OUR market address only.
  */
 import {
   concat,
@@ -22,16 +22,22 @@ import {
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { horseMarketAbi } from "@/lib/chain/contracts.generated";
 import { viemChain } from "@/lib/chain/chains";
-import { bidTypedData, registrationOrderTypedData, saleOrderTypedData, type Bid, type RegistrationOrder, type SaleOrder } from "@/lib/chain/usdg";
+import { bidTypedData, registrationOrderTypedData, saleOrderTypedData, studOrderTypedData, type Bid, type RegistrationOrder, type SaleOrder, type StudOrder } from "@/lib/chain/usdg";
 import { usdgPolicy } from "@thoroughbred/db";
 import { readUsdgConfig, type UsdgConfig } from "./usdgConfig";
 
+export type UsdgOrderKind = "registration" | "sale" | "stud";
+
 export interface ExpectedUsdgPayment {
-  kind: "registration" | "sale";
+  kind: UsdgOrderKind;
   orderId: Hex;
+  /** The horse (registration, sale) or the stallion (stud). */
   horseRef: Hex;
-  /** Buyer (sale) or owner (registration). */
+  /** Stud fees: the mare being covered. */
+  mareRef?: Hex;
+  /** Buyer (sale), owner (registration) or the mare's owner (stud). */
   payer: Address;
+  /** Seller (sale) or the stallion's owner (stud). */
   seller?: Address;
   price: bigint;
   fee: bigint;
@@ -57,9 +63,10 @@ export interface UsdgChain {
   readonly token: Address;
   signSale(o: SaleOrder): Promise<Hex>;
   signRegistration(o: RegistrationOrder): Promise<Hex>;
+  signStud(o: StudOrder): Promise<Hex>;
   verifyPayment(txHash: Hex, expected: ExpectedUsdgPayment): Promise<UsdgVerification>;
   /** Backstop: the tx that paid `orderId`, if any (event scan by the indexed orderId). */
-  findPaymentTx(kind: "registration" | "sale", orderId: Hex): Promise<Hex | null>;
+  findPaymentTx(kind: UsdgOrderKind, orderId: Hex): Promise<Hex | null>;
   /** True when `bid.bidder` signed this EIP-712 Bid (EOAs; ERC-1271 smart wallets with an RPC). */
   verifyBid(bid: Bid, signature: Hex): Promise<boolean>;
   marketState(): Promise<MarketState>;
@@ -101,6 +108,10 @@ export class EvmUsdgChain implements UsdgChain {
     return this.signer.signTypedData(registrationOrderTypedData(o, this.chainId, this.market));
   }
 
+  signStud(o: StudOrder): Promise<Hex> {
+    return this.signer.signTypedData(studOrderTypedData(o, this.chainId, this.market));
+  }
+
   async verifyPayment(txHash: Hex, e: ExpectedUsdgPayment): Promise<UsdgVerification> {
     if ((await this.pc.getChainId()) !== this.chainId) return { status: "rejected", reason: "wrong_chain" };
     let receipt;
@@ -127,6 +138,14 @@ export class EvmUsdgChain implements UsdgChain {
       if (!isAddressEqual(a.buyer, e.payer)) return { status: "rejected", reason: "buyer_mismatch" };
       if (e.seller && !isAddressEqual(a.seller, e.seller)) return { status: "rejected", reason: "seller_mismatch" };
       if (a.price !== e.price || a.fee !== e.fee) return { status: "rejected", reason: "amount_mismatch" };
+    } else if (e.kind === "stud") {
+      const ev = parseEventLogs({ abi: horseMarketAbi, eventName: "StudFeePaid", logs: ours }).find((l) => same(l.args.orderId, e.orderId));
+      if (!ev) return { status: "rejected", reason: "event_not_found" };
+      const a = ev.args;
+      if (!same(a.stallionRef, e.horseRef) || (e.mareRef && !same(a.mareRef, e.mareRef))) return { status: "rejected", reason: "horse_mismatch" };
+      if (!isAddressEqual(a.payer, e.payer)) return { status: "rejected", reason: "payer_mismatch" };
+      if (e.seller && !isAddressEqual(a.stallionOwner, e.seller)) return { status: "rejected", reason: "seller_mismatch" };
+      if (a.price !== e.price || a.fee !== e.fee) return { status: "rejected", reason: "amount_mismatch" };
     } else {
       const ev = parseEventLogs({ abi: horseMarketAbi, eventName: "Registered", logs: ours }).find((l) => same(l.args.orderId, e.orderId));
       if (!ev) return { status: "rejected", reason: "event_not_found" };
@@ -141,10 +160,11 @@ export class EvmUsdgChain implements UsdgChain {
     return { status: "confirmed", blockNumber: receipt.blockNumber, confirmations };
   }
 
-  async findPaymentTx(kind: "registration" | "sale", orderId: Hex): Promise<Hex | null> {
+  async findPaymentTx(kind: UsdgOrderKind, orderId: Hex): Promise<Hex | null> {
     const head = await this.pc.getBlockNumber({ cacheTime: 0 });
     const fromBlock = head > this.lookback ? head - this.lookback : 0n;
-    const logs = await this.pc.getContractEvents({ address: this.market, abi: horseMarketAbi, eventName: kind === "sale" ? "Sold" : "Registered", args: { orderId }, fromBlock, toBlock: "latest" });
+    const eventName = kind === "sale" ? "Sold" : kind === "stud" ? "StudFeePaid" : "Registered";
+    const logs = await this.pc.getContractEvents({ address: this.market, abi: horseMarketAbi, eventName, args: { orderId }, fromBlock, toBlock: "latest" });
     return logs[0]?.transactionHash ?? null;
   }
 
@@ -173,9 +193,10 @@ export class EvmUsdgChain implements UsdgChain {
 // ---------------------------------------------------------------------------
 
 interface MockPayment {
-  kind: "registration" | "sale";
+  kind: UsdgOrderKind;
   orderId: Hex;
   horseRef: Hex;
+  mareRef?: Hex;
   payer: Address;
   seller: Address | null;
   price: bigint;
@@ -207,6 +228,10 @@ export class MockUsdgChain implements UsdgChain {
     return keccak256(new TextEncoder().encode(`reg:${JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v))}`));
   }
 
+  async signStud(o: StudOrder): Promise<Hex> {
+    return keccak256(new TextEncoder().encode(`stud:${JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v))}`));
+  }
+
   private record(p: Omit<MockPayment, "block">, nowSec?: bigint, deadline?: bigint): Hex {
     if (this.used.has(p.orderId.toLowerCase())) throw new Error("OrderAlreadyUsed");
     if (nowSec !== undefined && deadline !== undefined && nowSec > deadline) throw new Error("OrderExpired");
@@ -226,6 +251,16 @@ export class MockUsdgChain implements UsdgChain {
     return this.record({ kind: "sale", orderId: o.orderId, horseRef: o.horseRef, payer: o.buyer, seller: o.seller, price: o.price, fee: o.fee }, opts.nowSec, o.deadline);
   }
 
+  /** What a successful HorseMarket.payStudFee would do (dev/test helper). Returns the tx hash. */
+  simulateStud(o: StudOrder, opts: { from?: Address; nowSec?: bigint } = {}): Hex {
+    if ((opts.from ?? o.payer).toLowerCase() !== o.payer.toLowerCase()) throw new Error("NotOrderBuyer");
+    if (o.payer.toLowerCase() === o.stallionOwner.toLowerCase()) throw new Error("SelfTrade");
+    const floor = (o.price * BigInt(this.feeBps)) / 10_000n;
+    const ceil = (o.price * BigInt(this.feeBps) + 9_999n) / 10_000n;
+    if (o.fee !== floor && o.fee !== ceil) throw new Error("FeeMismatch");
+    return this.record({ kind: "stud", orderId: o.orderId, horseRef: o.stallionRef, mareRef: o.mareRef, payer: o.payer, seller: o.stallionOwner, price: o.price, fee: o.fee }, opts.nowSec, o.deadline);
+  }
+
   simulateRegistration(o: RegistrationOrder, opts: { from?: Address; nowSec?: bigint } = {}): Hex {
     if ((opts.from ?? o.owner).toLowerCase() !== o.owner.toLowerCase()) throw new Error("NotOrderBuyer");
     return this.record({ kind: "registration", orderId: o.orderId, horseRef: o.horseRef, payer: o.owner, seller: null, price: o.fee, fee: o.fee }, opts.nowSec, o.deadline);
@@ -236,16 +271,16 @@ export class MockUsdgChain implements UsdgChain {
     if (!tx) return { status: "pending", reason: "unknown_tx" };
     const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
     if (tx.kind !== e.kind || !same(tx.orderId, e.orderId)) return { status: "rejected", reason: "event_not_found" };
-    if (!same(tx.horseRef, e.horseRef)) return { status: "rejected", reason: "horse_mismatch" };
-    if (!same(tx.payer, e.payer)) return { status: "rejected", reason: e.kind === "sale" ? "buyer_mismatch" : "owner_mismatch" };
+    if (!same(tx.horseRef, e.horseRef) || (e.mareRef && tx.mareRef && !same(tx.mareRef, e.mareRef))) return { status: "rejected", reason: "horse_mismatch" };
+    if (!same(tx.payer, e.payer)) return { status: "rejected", reason: e.kind === "sale" ? "buyer_mismatch" : e.kind === "stud" ? "payer_mismatch" : "owner_mismatch" };
     if (e.seller && tx.seller && !same(tx.seller, e.seller)) return { status: "rejected", reason: "seller_mismatch" };
-    if (tx.fee !== e.fee || (e.kind === "sale" && tx.price !== e.price)) return { status: "rejected", reason: "amount_mismatch" };
+    if (tx.fee !== e.fee || (e.kind !== "registration" && tx.price !== e.price)) return { status: "rejected", reason: "amount_mismatch" };
     const confirmations = Number(this.block - tx.block);
     if (confirmations < this.minConfirmations) return { status: "pending", reason: "confirmations" };
     return { status: "confirmed", blockNumber: tx.block, confirmations };
   }
 
-  async findPaymentTx(kind: "registration" | "sale", orderId: Hex): Promise<Hex | null> {
+  async findPaymentTx(kind: UsdgOrderKind, orderId: Hex): Promise<Hex | null> {
     for (const [hash, tx] of this.txs) if (tx.kind === kind && tx.orderId.toLowerCase() === orderId.toLowerCase()) return hash as Hex;
     return null;
   }

@@ -37,10 +37,17 @@ export interface BreedingHorse extends EcoHorse {
   studFee: number | null;
   /** Highest stud fee this stallion may stand at (his appraisal, game-core studFeeCeiling); null for legacy rows. */
   studFeeMax?: number | null;
+  /** Standing at stud for a USDG fee instead (micro-USDG; registered stallions only). */
+  studFeeUsdg?: number | null;
+  /** Registered for the USDG market (may stand for a USDG fee). */
+  usdgRegistered?: boolean;
 }
 
 export interface StudView extends EcoHorse {
+  /** Credits stud fee (0 when he stands for USDG). */
   studFee: number;
+  /** USDG stud fee (micro-USDG), paid on-chain to his owner; null = a credits stud. */
+  studFeeUsdg: number | null;
   stableName: string;
   silks: Silks;
   mine: boolean;
@@ -84,6 +91,8 @@ export interface BreedingView {
   pregnancies: PregnancyCard[];
   credits: number;
   stalls: { used: number; slots: number; overflow: boolean };
+  /** USDG stud fees (registered stallions): null while the USDG market is off. Amounts micro-USDG. */
+  usdg: { mock: boolean; feeBps: number; studFeeMin: number; studFeeMax: number; quoteMinutes: number } | null;
   serverNowMs: number;
 }
 
@@ -98,6 +107,11 @@ export interface PreviewView {
   reason: string | null;
   preview: BreedingPreview;
   fees: BreedingFees;
+  /** The stallion stands for a USDG stud fee (micro-USDG), paid on-chain to his owner: not in credits. */
+  usdgStudFee: number | null;
+  /** The market fee out of it (to the Club), and the stable that receives the rest. */
+  usdgFee: number | null;
+  stallionOwner: string | null;
   parents: { sire: number; dam: number };
   /**
    * Where the predicted foal's overall would rank among the game's horses: "top N%" for its
