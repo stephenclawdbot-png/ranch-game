@@ -40,7 +40,8 @@ export function localDate(tz: string, now: Date): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-async function timezoneOf(ex: Executor, accountId: string): Promise<string> {
+/** The account's IANA timezone (its local day for entries, care and the sponsor list). */
+export async function timezoneOf(ex: Executor, accountId: string): Promise<string> {
   const [a] = await ex.select({ tz: accounts.timezone }).from(accounts).where(eq(accounts.id, accountId));
   return a?.tz ?? "UTC";
 }

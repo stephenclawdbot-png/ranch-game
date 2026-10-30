@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES, bps, defaultCardSlot, entryCostFor, type RaceConditions } from "@thoroughbred/db";
+import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES, SPONSORSHIP, bps, defaultCardSlot, entryCostFor, sponsoredRaceName, sponsorshipPrice, type RaceConditions } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { raceTier } from "@/server/horseView";
 import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Table, WikiLink, count } from "../kit";
@@ -53,8 +53,31 @@ const utcClock = (ms: number) => {
   return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
 };
 
+const SPONSORSHIP_DAYS = Math.round(SPONSORSHIP.windowMs / gc.MS_PER_DAY);
+
+/** Sponsorship prices by race type (the card's own purses through sponsorshipPrice), cheapest first. */
+function sponsorTable(hour: ReturnType<typeof liveCycle>["rows"], feats: ReturnType<typeof liveCycle>["feats"]) {
+  const rows = [
+    ...hour.map((h) => ({ label: h.label, purse: h.purse })),
+    ...feats.map((f) => ({ label: `Feature (${f.raceClass === "graded" ? "Group 3" : "Listed"})`, purse: f.purse ?? 0 })),
+  ];
+  return rows.map((r) => ({ ...r, price: sponsorshipPrice(r.purse) })).sort((a, b) => a.price - b.price || a.label.localeCompare(b.label));
+}
+
+/** A real handicap from the sample cycle, before and after a sponsor's name. */
+function sponsorNameExample() {
+  for (let i = 0; i < CARD_CYCLE_SLOTS; i++) {
+    const s = defaultCardSlot(SAMPLE_CYCLE_FIRST_SLOT + i);
+    if (s.raceClass !== "handicap") continue;
+    return { from: s.name, to: sponsoredRaceName("Glenmorrow House", s.name, String(s.conditions.track ?? "")) };
+  }
+  return { from: "Ashcombe Handicap (0-55)", to: sponsoredRaceName("Glenmorrow House", "Ashcombe Handicap (0-55)", "Ashcombe") };
+}
+
 export default function RaceTypesPage() {
   const { rows: hour, feats } = liveCycle();
+  const sponsorPrices = sponsorTable(hour, feats);
+  const sponsorExample = sponsorNameExample();
   // the calendar races as the Live card publishes them (its purses and fees)
   const calendar = gc.featureCalendar(SEASON_CLOCK, 1).map((r) => {
     const card = defaultCardSlot(Math.floor((r.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs));
@@ -276,6 +299,34 @@ export default function RaceTypesPage() {
           Every race, Live or Story, is an honest simulation. The game chooses who is in the field, never who wins. See <WikiLink slug="how-races-are-run" />.
         </p>
       </Callout>
+
+      <H2 id="sponsor">Sponsor a race</H2>
+      <P>
+        Put your stable&rsquo;s name on a Live race. Choose any ordinary race on the card up to {SPONSORSHIP_DAYS} days ahead and pay for it: for that one race,{" "}
+        {sponsorExample.from} becomes <b>{sponsorExample.to}</b>. Your silks go on the racecard, you get a note with the result, and the race goes up on a plaque in your{" "}
+        <WikiLink slug="hall-and-trophies">Trophy Room</WikiLink>. If other courses run the same race, they keep their own names and say who sponsored it.
+      </P>
+      <Table
+        head={["Race", "Purse", "To sponsor"]}
+        rows={sponsorPrices.map((r) => [r.label, formatCredits(r.purse), formatCredits(r.price)])}
+        caption={`The price is ${SPONSORSHIP.purseMultiple} times the purse, and never less than ${formatCredits(SPONSORSHIP.minPrice)} credits.`}
+      />
+      <List
+        items={[
+          <>One sponsor per race: the first stable to pay gets it.</>,
+          <>
+            A stable can have up to <b>{SPONSORSHIP.maxUpcomingPerStable}</b> sponsored races coming up at a time.
+          </>,
+          <>Big-day races are not for sale: the Feature Qualifiers, the Weekend Feature, the Saturday Plate and the Season Finals.</>,
+          <>You can sponsor a race until its entries close. The credits are spent for good, unless the race is abandoned; then you get them all back.</>,
+        ]}
+      />
+      <Callout tone="rule" title="The name, nothing else">
+        <p>Sponsoring changes nothing about the race: not the field, the purse, the result, or your own horses&rsquo; chances. It is a way to spend credits on your stable&rsquo;s name.</p>
+      </Callout>
+      <P>
+        Start from the <GameLink href="/races/sponsor">Sponsor a race</GameLink> page, linked from the race card.
+      </P>
     </>
   );
 }

@@ -50,7 +50,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "injuries-and-insurance", section: "horses", title: "Injuries & insurance", summary: "Injury risk, the four severities, the vet, and what insurance pays.", keywords: ["injury", "vet", "fatal", "career-ending", "insurance", "risk"] },
 
   // Racing
-  { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards and classes.", keywords: ["live", "quick", "story", "class", "maiden", "licence", "qualifier", "weekend feature", "plate"] },
+  { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards, classes and sponsoring a race.", keywords: ["live", "quick", "story", "class", "maiden", "licence", "qualifier", "weekend feature", "plate", "sponsor"] },
   { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, the entry bank, the paddock and choosing a tactic.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer"] },
   { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands and the form figures on the card.", keywords: ["rating", "or", "form", "band"] },

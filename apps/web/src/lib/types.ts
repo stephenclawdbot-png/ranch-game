@@ -50,6 +50,16 @@ export interface RaceCard {
   targetRunners: number;
   maxRunners: number;
   engineVersion: string;
+  /** The stable that sponsored this race (its silks go on the racecard header). */
+  sponsor?: RaceSponsorView;
+}
+
+/** A race's sponsor as the card shows it ("Sponsor a race"). */
+export interface RaceSponsorView {
+  stableName: string;
+  silks: Silks;
+  /** The viewer's stable is the sponsor. */
+  mine: boolean;
 }
 
 export interface RaceSummary {
@@ -79,6 +89,8 @@ export interface RaceSummary {
   endsAtMs?: number;
   /** Only present once the race has finished on the broadcast clock. */
   winner?: { horseId: string; name: string; stableName: string; timeUs: number };
+  /** The race's sponsor (sister courses show the original's). */
+  sponsor?: RaceSponsorView;
 }
 
 export interface RiskView {

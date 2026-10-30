@@ -397,6 +397,11 @@ Where column.
 | Premium pack (credit demo) | 2,500 (only with `PREMIUM_PACK_DEMO=1`) | packages/db/src/rules.ts:115 | Kind `pack`. | Demo only |
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
+| `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
+| `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
+| `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a slot can be sponsored (beyond the 6 h card: applied on publication). Calendar races (Qualifiers, Weekend Feature, Plate, Finals) are never for sale. | Sink volume (slots on sale ≈ 670 a week) |
+| `SPONSORSHIP.maxUpcomingPerStable` | 3 | packages/db/src/services/sponsorship.ts:47 | Upcoming sponsorships a stable may hold at once (one sponsor per slot, first come first served). | Sink volume per stable, crowding out |
+| `SPONSORSHIP.maxNameChars` | 32 | packages/db/src/services/sponsorship.ts:49 | Stable-name characters kept in "The <Stable> <Class label>" (`sponsoredRaceName`, :101). | Cosmetic |
 
 ### 10c. Ledger kinds as recorded
 
@@ -421,6 +426,8 @@ Where column.
 | `insurance_premium` | player → treasury | packages/db/src/services/horses.ts:237 |
 | `breeding_fee` | player → burn + stud owner (or treasury for Club studs) | packages/db/src/services/breeding.ts:154 |
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
+| `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
+| `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
 
 ### 10d. Balance model
 
