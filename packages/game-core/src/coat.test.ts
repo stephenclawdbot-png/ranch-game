@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { HorseAppearanceSchema } from "@thoroughbred/shared";
 import { adultCoatName, appearanceOf, baseColour, horseColour, resolveCoat, resolveMarkings, resolveMorph, rigLook, RIG_MORPH_RANGE, whiteScore } from "./coat";
 import { generateFoundationGenome } from "./genome";
-import { MORPH_KEYS, RigLookSchema, type CoatGenes, type Genome } from "./types";
+import { MORPH_KEYS, RigLookSchema, WILD_GENES2, type CoatGenes, type Genes2, type Genome } from "./types";
 import { SILKS } from "./test-helpers";
 
 const wild: CoatGenes = {
@@ -17,7 +17,8 @@ const wild: CoatGenes = {
   sabino: ["n", "n"],
 };
 const g0 = generateFoundationGenome("coat", { season: 1 });
-const withCoat = (c: Partial<CoatGenes>): Genome => ({ ...g0, coat: { ...wild, ...c } });
+// v2 colour/pattern genes stay wild unless a test sets them (the seeded genome may carry some)
+const withCoat = (c: Partial<CoatGenes>, g2: Partial<Genes2> = {}): Genome => ({ ...g0, coat: { ...wild, ...c }, genes2: { ...WILD_GENES2, ...g2 } });
 const adult = { racingAge: true, starts: 5, retired: false };
 
 describe("coat colour genetics", () => {
@@ -81,6 +82,25 @@ describe("layered coat genetics (colour)", () => {
     const a = appearanceOf(withCoat(c), adult, SILKS);
     expect(a.colour).toEqual({ ...nocoat, ...want });
     if (want.dun) expect(a.dun).toBe(true);
+  });
+
+  it("genetics v2 colour and pattern genes reach the colour only when they show", () => {
+    const col = (c: Partial<CoatGenes>, g2: Partial<Genes2>) => appearanceOf(withCoat(c, g2), adult, SILKS).colour!;
+    expect(col({}, { champagne: ["Ch", "n"] }).champagne).toBe(true);
+    expect(col({}, { silver: ["Z", "n"] }).silver).toBe(true);
+    expect(col({ extension: ["e", "e"] }, { silver: ["Z", "Z"] }).silver).toBeUndefined(); // hidden on red
+    expect(col({}, { pearl: ["prl", "n"] }).pearl).toBeUndefined(); // one copy without cream hides
+    expect(col({ cream: ["Cr", "n"] }, { pearl: ["prl", "n"] }).pearl).toBe(true);
+    expect(col({}, { pearl: ["prl", "prl"] }).pearl).toBe(true);
+    expect(col({}, { tobiano: ["TO", "TO"] }).tobiano).toBe(2);
+    expect(col({}, { leopard: ["LP", "n"] }).leopard).toBe("varnish");
+    expect(col({}, { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }).leopard).toBe("leopard");
+    expect(col({}, { leopard: ["LP", "LP"] }).leopard).toBe("fewspot");
+    expect(col({}, { patn1: ["PATN1", "PATN1"] }).leopard).toBeUndefined();
+    expect(col({}, { splash: ["SW", "n"] }).splash).toBe(1);
+    // wild type: the same object as before genetics v2
+    expect(Object.keys(col({}, {})).sort()).toEqual(["base", "cream", "dun", "grey", "roan", "sabino"]);
+    expect(HorseAppearanceSchema.parse(appearanceOf(withCoat({}, { tobiano: ["TO", "n"], splash: ["SW", "SW"] }), adult, SILKS)).colour).toMatchObject({ tobiano: 1, splash: 2 });
   });
 
   it("roan rides the base colour: bay roan, blue roan, strawberry roan", () => {

@@ -140,7 +140,7 @@ export function colourBase(c: CoatGenes): HorseColour["base"] {
 /** Layered coat genetics (coat v2) straight from the genome; renderers resolve it to a palette. */
 export function horseColour(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }): HorseColour {
   const c = genome.coat;
-  return {
+  const out: HorseColour = {
     base: colourBase(c),
     cream: count(c.cream, "Cr") as HorseColour["cream"],
     dun: count(c.dun, "D") > 0,
@@ -148,6 +148,23 @@ export function horseColour(genome: Genome, progress: { racingAge: boolean; star
     grey: greyStage(c, progress),
     sabino: count(c.sabino, "Sb1") as HorseColour["sabino"],
   };
+  // Genetics v2 colour/pattern genes, only when they show (same rules as visibleTraits), so
+  // a horse without them keeps the exact same appearance object as before.
+  const g2 = genome.genes2;
+  if (!g2) return out;
+  const red = out.base === "chestnut" || out.base === "liver";
+  if (count(g2.champagne, "Ch") > 0) out.champagne = true;
+  if (count(g2.silver, "Z") > 0 && !red) out.silver = true;
+  const prl = count(g2.pearl, "prl");
+  if (prl === 2 || (prl === 1 && out.cream > 0)) out.pearl = true;
+  const to = count(g2.tobiano, "TO");
+  if (to > 0) out.tobiano = to as 1 | 2;
+  const lp = count(g2.leopard, "LP");
+  if (lp === 2) out.leopard = "fewspot";
+  else if (lp === 1) out.leopard = count(g2.patn1, "PATN1") > 0 ? "leopard" : "varnish";
+  const sw = count(g2.splash, "SW");
+  if (sw > 0) out.splash = sw as 1 | 2;
+  return out;
 }
 
 /**

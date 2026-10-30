@@ -66,6 +66,20 @@ export const HorseColourSchema = z.object({
   grey: z.enum(["none", "greying", "dapple", "white"]),
   /** Sabino-1 copies (white patterning). */
   sabino: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  // Genetics v2 colour and pattern genes, set only when the coat shows them (absent = wild
+  // type or hidden), so horses without them keep the exact same appearance object.
+  /** Champagne (Ch, dominant): gold / amber / sable / classic body, pink freckled skin, amber eye. */
+  champagne: z.literal(true).optional(),
+  /** Silver (Z) on black pigment: chocolate body, flaxen-silver mane (never shown on a red coat). */
+  silver: z.literal(true).optional(),
+  /** Pearl showing (prl/prl, or prl with cream): pale apricot; green or blue eye with cream. */
+  pearl: z.literal(true).optional(),
+  /** Tobiano (TO) copies: white crossing the neck from the crest; two copies add ink spots. */
+  tobiano: z.union([z.literal(1), z.literal(2)]).optional(),
+  /** Leopard complex as shown: LP/n alone (varnish roan), LP/n + PATN1 (leopard), LP/LP (few-spot). */
+  leopard: z.enum(["varnish", "leopard", "fewspot"]).optional(),
+  /** Splash white (SW) copies: big blaze and blue eyes; two copies a bald face and white throat. */
+  splash: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 export type HorseColour = z.infer<typeof HorseColourSchema>;
 

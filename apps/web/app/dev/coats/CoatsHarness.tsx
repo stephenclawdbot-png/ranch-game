@@ -38,6 +38,8 @@ interface Row {
   progress?: Progress;
   /** Overrides adultCoatName (grey stages, where the adult name is just "Grey"). */
   label?: string;
+  /** Face marking override for the marking cells. */
+  face?: HorseAppearance["face"];
 }
 
 const withoutGrey = (g: Partial<CoatGenes>): CoatGenes => ({ ...WILD, ...g, grey: ["n", "n"] });
@@ -74,14 +76,20 @@ const ROWS: Row[] = [
   { genes: gg, progress: { racingAge: true, starts: 3, retired: false }, label: `Dapple Grey (born ${adultCoatName(withoutGrey(gg))})` },
   { genes: gg, progress: { racingAge: false, starts: 0, retired: false }, label: `${adultCoatName(withoutGrey(gg))} (greying foal)` },
   { genes: gg, progress: { racingAge: true, starts: 30, retired: false } },
+  // face markings on the painted portrait
+  { genes: {}, face: "star", label: "Bay + star" },
+  { genes: ee, face: "blaze", label: "Chestnut + blaze" },
+  { genes: aa, face: "stripe", label: "Black + stripe" },
+  { genes: {}, face: "bald", label: "Bay + bald" },
+  { genes: gg, progress: { racingAge: true, starts: 3, retired: false }, face: "snip", label: "Grey + snip" },
 ];
 
 function cellAppearance(row: Row, i: number): HorseAppearance {
   const genes: CoatGenes = { ...WILD, ...row.genes };
   const genome = { ...generateFoundationGenome(`coat-cell-${i}`, { season: 1 }), coat: genes };
   const a = appearanceOf(genome, row.progress ?? ADULT, SILKS);
-  // Pure coat comparison: no white markings, no mane override.
-  return { ...a, face: "none", legs: ["none", "none", "none", "none"], maneColor: undefined };
+  // Pure coat comparison: no white markings unless the row asks for one, no mane override.
+  return { ...a, face: row.face ?? "none", legs: ["none", "none", "none", "none"], maneColor: undefined };
 }
 
 function Swatch({ hex, title }: { hex?: string; title: string }) {
@@ -94,7 +102,11 @@ function CoatCell({ name, appearance }: { name: string; appearance: HorseAppeara
   return (
     <div data-testid="coat-cell" className="flex w-full flex-col items-center gap-1 rounded-md border border-neutral-800 bg-[#171310] p-2" title={name}>
       <div className="min-h-5 text-center text-[11px] font-semibold tracking-wide text-[#e8d9b0]">{name}</div>
-      <HorsePortrait appearance={appearance} scale={1} codeDrawn title={name} />
+      <HorsePortrait appearance={appearance} scale={1} title={name} />
+      <div className="flex items-end gap-2">
+        <HorsePortrait appearance={appearance} codeDrawn className="h-9 w-9 opacity-80" title={`${name} (code-drawn fallback)`} />
+        <span className="text-[9px] uppercase tracking-wide text-neutral-600">fallback</span>
+      </div>
       <div className="w-full bg-[#20180f]">
         <GallopSprite appearance={appearance} still={3} fit />
       </div>
@@ -115,8 +127,9 @@ export function CoatsHarness() {
     <main className="min-h-screen bg-[#14100c] p-3 text-neutral-200">
       <h1 className="mb-1 text-lg font-bold text-[#e8d9b0]">Coat anchors v2</h1>
       <p className="mb-3 max-w-3xl text-xs text-neutral-400">
-        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans and grey stages. Each cell: code-drawn
-        portrait (scale 1), a still Trackside gallop frame, and the resolved palette (body · shade · highlight · mane ·
+        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans, grey stages and face markings.
+        Each cell: the genetic 3/4 portrait (painted art recoloured from the genes), the small code-drawn
+        fallback, a still Trackside gallop frame, and the resolved palette (body · shade · highlight · mane ·
         points · stripe).
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">

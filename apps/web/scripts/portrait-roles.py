@@ -6,7 +6,8 @@ can be derived by comparing the paintings:
 
   roles.png           RGBA, 128x128. R = role id x 28, G = shading LEVEL 0..255
                       (grey-painting luminance normalised inside the role), B = flags
-                      (bit 0: face-front plane). Roles: 0 transparent, 1 outline/ink,
+                      (bit 0: face-front plane, bit 1: the painted star and its fringe).
+                      Roles: 0 transparent, 1 outline/ink,
                       2 bridle leather, 3 bridle metal, 4 eye, 5 coat, 6 mane,
                       7 muzzle/skin, 8 inner ear. Runtime swaps coat/mane/muzzle/ear
                       (and eye, when the genes set it) and keeps fixed roles painted.
@@ -14,8 +15,15 @@ can be derived by comparing the paintings:
                       bald). White pixels, alpha = marking coverage on the 3/4 face,
                       drawn along the face centre line (narrow on the forehead, wider
                       down the nose, wrapping the muzzle for bald).
+  anim/warp/horse-<coat>.png
+                      RGBA, same size as the idle-loop strip anim/horse-<coat>.png:
+                      R, G = the still pixel each frame pixel shows (block matching,
+                      refined to an exact colour within 1 px), B = 255 exact / 128
+                      matched, A = frame opacity. The loop frames re-draw the head, so
+                      the runtime reads roles, marks and patterns through this warp.
 
-Run:  python3 -I apps/web/scripts/portrait-roles.py
+Run after art-src/portrait_anims.py (about 30 s), from the repo root:
+      python3 -I apps/web/scripts/portrait-roles.py
 then  pnpm --filter @thoroughbred/web art-index
 """
 import os
@@ -24,7 +32,8 @@ from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "public", "art", "portraits")
-# Inspection sheets (roles-debug, marks-debug, preview) go here, never into the repo.
+# Inspection sheets (roles-debug, marks-debug) go here, never into the repo. The real
+# recolour is the runtime one (packages/art-pipeline/src/portrait34.ts): see /dev/coats.
 DEBUG_DIR = os.environ.get("PORTRAIT_DEBUG_DIR", "/tmp/portrait-roles")
 FILES = ["bay", "black", "buckskin", "chestnut", "dapple_grey",
          "dark_bay", "grey", "liver_chestnut", "palomino", "roan"]
@@ -32,6 +41,7 @@ FILES = ["bay", "black", "buckskin", "chestnut", "dapple_grey",
 # Role ids (x28 in the R channel)
 R_CLEAR, R_INK, R_LEATHER, R_METAL, R_EYE, R_COAT, R_MANE, R_MUZZLE, R_EAR = range(9)
 FLAG_FACE_FRONT = 1  # B bit 0
+FLAG_PAINTED_STAR = 2  # B bit 1
 
 
 def lum(a):
@@ -179,6 +189,9 @@ def build_roles(L):
                             (20, 50), (26, 38)])
     flags = np.zeros((128, 128), np.uint8)
     flags[face_front & ((role == R_COAT) | (role == R_MUZZLE) | (role == R_EAR))] |= FLAG_FACE_FRONT
+    # Painted-star flag: the star and its fringe carry no painted detail into the recolour
+    # (the runtime adds each painting's own shading detail everywhere else).
+    flags[dilate(star, 2) & (role == R_COAT)] |= FLAG_PAINTED_STAR
 
     # LEVEL per role from the grey painting's luminance, 3..97 percentile normalised;
     # star pixels inherit the average of their coat neighbours (diffusion fill).
@@ -224,14 +237,15 @@ def build_marks(A):
         band[..., 2] = 255
         band[..., 3] = np.where(mask, 255, 0)
 
-    # star: a ragged diamond on the forehead (where the painted star sat).
-    st = ((((xx - 39.0) / 4.2) ** 2 + ((yy - 44.5) / 5.2) ** 2 < 1.0) & (J > 0.12)
-          | ((xx - 39.0) ** 2 + (yy - 44.5) ** 2 < 6.0))
+    # star: a small solid diamond on the forehead (where the painted star sat), with a
+    # ragged rim only (no holes inside: holes read as a dotted disc at 64 px).
+    dia = np.abs(xx + 0.5 - 39.0) / 3.4 + np.abs(yy + 0.5 - 43.5) / 4.4
+    st = (dia < 0.8) | ((dia < 1.05) & (J > 0.45))
     fill_band(0, st)
 
-    # snip: a small patch on the muzzle front, over the nostril lip.
-    sn = ((((xx - 24.0) / 5.5) ** 2 + ((yy - 90.0) / 4.2) ** 2 < 1.0) & (J > 0.15)
-          | ((xx - 24.0) ** 2 + (yy - 90.0) ** 2 < 5.0))
+    # snip: white on the upper lip between the nostrils, at the muzzle front.
+    el = ((xx + 0.5 - 21.0) / 3.2) ** 2 + ((yy + 0.5 - 87.5) / 4.6) ** 2
+    sn = (el < 0.75) | ((el < 1.1) & (J > 0.45))
     fill_band(1, sn)
 
     # stripe / blaze: follow the centre line forehead -> nose; narrow above, wider below,
@@ -260,80 +274,6 @@ def build_marks(A):
     return marks
 
 
-def hx(h):
-    h = h.lstrip("#")
-    return np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], float)
-
-
-def ramp(t, shade, base, hi):
-    t = t[..., None]
-    s, b, h = hx(shade), hx(base), hx(hi)
-    dk = s * 0.55
-    return np.where(t < 0.25, dk + (s - dk) * (t / 0.25),
-                    np.where(t < 0.6, s + (b - s) * ((t - 0.25) / 0.35), b + (h - b) * ((t - 0.6) / 0.4)))
-
-
-def preview(L, role, flags, lv, marks, A):
-    """Mirror of the runtime recolour, for build-time inspection only."""
-    yy, xx = np.mgrid[0:128, 0:128]
-    # Anchor palettes == resolveHorseColors() for the six lead-review /dev/coats cells.
-    P = {
-        "bay": dict(body="#8a4527", shade="#5a2a16", hi="#b5683d", mane="#17100d", muzzle="#3b1000", eye=None),
-        "black": dict(body="#1f1c1c", shade="#0f0d0d", hi="#47403e", mane="#0b0a0a", muzzle="#060404", eye=None),
-        "palomino": dict(body="#d9b56a", shade="#a8843f", hi="#f0d48f", mane="#f3ead2", muzzle="#6d4d00", eye=None),
-        "cremello": dict(body="#efe4c8", shade="#d2c3a0", hi="#fbf4e2", mane="#f6efdd", muzzle="#d9a99a", eye="#7fa8c9"),
-        "chestnut": dict(body="#a4552b", shade="#73371a", hi="#d07f47", mane="#c58a4d", muzzle="#4a1900", eye=None),
-        "grey": dict(body="#b4b3ae", shade="#83827d", hi="#dddcd6", mane="#5f5e5b", muzzle="#4b4846", eye=None),
-        "buckskin": dict(body="#c9a063", shade="#94713b", hi="#e2bf82", mane="#1c1612", muzzle="#4a3a2c", eye=None),
-    }
-
-    def mane_stops(mane):
-        m = hx(mane)
-        hexc = lambda v: "#%02x%02x%02x" % tuple(np.clip(v, 0, 255).astype(int))
-        if m.dot([0.299, 0.587, 0.114]) > 110:  # flaxen/cream: darker shade, pale sheen
-            return hexc(m * 0.55 + hx("#6b5236") * 0.45), mane, hexc(m * 0.8 + 255 * 0.2)
-        return "#000000", mane, hexc(m * 0.75 + hx("#8a6a50") * 0.25)
-
-    def render(p, base, mark=None, roan=False):
-        out = L[base].copy().astype(float)  # fixed roles keep the horse's own painting
-        t = lv / 255.0
-        coat = ramp(t, p["shade"], p["body"], p["hi"])
-        if roan:
-            tick = (role == R_COAT) & ~(flags & 1).astype(bool) & (np.vectorize(jitter_hash)(xx >> 1, yy >> 1) > 0.70)
-            coat = np.where(tick[..., None], coat * 0.45 + np.array([244, 241, 232]) * 0.55, coat)
-        ms, mb, mh = mane_stops(p["mane"])
-        mane = ramp(t, ms, mb, mh)
-        muz = ramp(t, p["muzzle"], p["muzzle"], p["shade"]) * 0.9 + coat * 0.1
-        ear = ramp(np.clip(t * 0.62, 0, 1), p["shade"], p["body"], p["hi"])
-        out[..., :3] = np.where((role == R_COAT)[..., None], coat, out[..., :3])
-        out[..., :3] = np.where((role == R_MANE)[..., None], mane, out[..., :3])
-        out[..., :3] = np.where((role == R_MUZZLE)[..., None], muz, out[..., :3])
-        out[..., :3] = np.where((role == R_EAR)[..., None], ear, out[..., :3])
-        if p["eye"]:
-            e = hx(p["eye"])
-            eye = ramp(t, "#%02x%02x%02x" % tuple((e * 0.5).astype(int)), p["eye"],
-                       "#%02x%02x%02x" % tuple((e * 0.7 + 255 * 0.3).astype(int)))
-            out[..., :3] = np.where((role == R_EYE)[..., None], eye, out[..., :3])
-        if mark is not None:
-            i = ["star", "snip", "stripe", "blaze", "bald"].index(mark)
-            m = marks[i * 128:(i + 1) * 128, :, 3] > 0
-            white = hx("#f3f0e8") * (0.82 + 0.18 * t)[..., None]
-            out[..., :3] = np.where(m[..., None], white, out[..., :3])
-        return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGBA")
-
-    # The six lead-review cells: Bay, Palomino, Blue roan, Chestnut + blaze,
-    # Bay + bald, Black + stripe.
-    cells = [render(P["bay"], "bay"), render(P["palomino"], "palomino"),
-             render(P["black"], "roan", roan=True),
-             render(P["chestnut"], "chestnut", mark="blaze"), render(P["bay"], "bay", mark="bald"),
-             render(P["black"], "black", mark="stripe")]
-    S = 3
-    sheet = Image.new("RGBA", (128 * S * 6 + 20, 128 * S + 30), (23, 18, 14, 255))
-    for i, im in enumerate(cells):
-        sheet.alpha_composite(im.resize((128 * S, 128 * S), Image.NEAREST), (i * 128 * S + 5, 5))
-    sheet.save(os.path.join(DEBUG_DIR, "preview.png"))
-
-
 def debug_outputs(L, role, flags, marks, A):
     cmap = {R_CLEAR: (0, 0, 0), R_INK: (30, 30, 30), R_LEATHER: (160, 70, 210),
             R_METAL: (60, 210, 245), R_EYE: (255, 220, 0), R_COAT: (200, 110, 40),
@@ -360,6 +300,121 @@ def debug_outputs(L, role, flags, marks, A):
     msheet.resize((msheet.width * 2, msheet.height * 2), Image.NEAREST).save(os.path.join(DEBUG_DIR, "marks-debug.png"))
 
 
+WARP_R = 8  # largest per-pixel displacement searched (art px)
+WARP_PATCH = 7  # block-matching window (art px, odd)
+
+
+def box_sum(a, k):
+    """Sum over a k x k window centred on each pixel (zero padded)."""
+    r = k // 2
+    p = np.pad(a, r)
+    c = p.cumsum(0).cumsum(1)
+    c = np.pad(c, ((1, 0), (1, 0)))
+    H, W = a.shape
+    return c[k:k + H, k:k + W] - c[0:H, k:k + W] - c[k:k + H, 0:W] + c[0:H, 0:W]
+
+
+def median3(a, k=5):
+    r = k // 2
+    p = np.pad(a, r, mode="edge")
+    H, W = a.shape
+    stack = np.stack([p[y:y + H, x:x + W] for y in range(k) for x in range(k)])
+    return np.median(stack, axis=0)
+
+
+def build_warp(still, frame):
+    """Per-pixel source in the still for one animation frame (block matching, then a
+    median-smoothed flow refined to an exact colour match within 1 px).
+
+    The PixelLab idle frames re-draw the head (blink, ear flick, a small head turn), so the
+    role map cannot be read at the same (x, y). Each frame pixel instead points at the still
+    pixel it shows; the runtime reads role, LEVEL, flags, marks and patterns there.
+    Returns (sx, sy, exact) arrays; frame-transparent pixels are (0, 0, False).
+    """
+    S = still.astype(float)
+    F = frame.astype(float)
+    fa = F[..., 3] > 0
+    sa = S[..., 3] > 0
+    H, W = fa.shape
+    best = np.full((H, W), np.inf)
+    bdx = np.zeros((H, W), int)
+    bdy = np.zeros((H, W), int)
+    Sp = np.pad(S, ((WARP_R, WARP_R), (WARP_R, WARP_R), (0, 0)))
+    for dy in range(-WARP_R, WARP_R + 1):
+        for dx in range(-WARP_R, WARP_R + 1):
+            sh = Sp[WARP_R + dy:WARP_R + dy + H, WARP_R + dx:WARP_R + dx + W]
+            d = np.abs(F[..., :3] - sh[..., :3]).sum(-1)
+            d = np.where(sh[..., 3] > 0, d, 300.0)  # landing outside the horse
+            d = np.where(fa, d, 0.0)
+            cost = box_sum(d, WARP_PATCH) + 6.0 * (abs(dx) + abs(dy))
+            better = cost < best
+            best = np.where(better, cost, best)
+            bdx = np.where(better, dx, bdx)
+            bdy = np.where(better, dy, bdy)
+    fdx = np.round(median3(bdx.astype(float))).astype(int)
+    fdy = np.round(median3(bdy.astype(float))).astype(int)
+    yy, xx = np.mgrid[0:H, 0:W]
+    sx = np.clip(xx + fdx, 0, W - 1)
+    sy = np.clip(yy + fdy, 0, H - 1)
+    # refine: an exact colour match within 1 px of the smoothed flow wins (nearest first)
+    exact = np.zeros((H, W), bool)
+    rx, ry = sx.copy(), sy.copy()
+    for oy, ox in sorted(((oy, ox) for oy in (-1, 0, 1) for ox in (-1, 0, 1)), key=lambda o: abs(o[0]) + abs(o[1])):
+        cx = np.clip(sx + ox, 0, W - 1)
+        cy = np.clip(sy + oy, 0, H - 1)
+        hit = fa & ~exact & sa[cy, cx] & (np.abs(S[cy, cx, :3] - F[..., :3]).sum(-1) == 0)
+        rx = np.where(hit, cx, rx)
+        ry = np.where(hit, cy, ry)
+        exact |= hit
+    # never point at a transparent still pixel: fall back to the nearest opaque one
+    bad = fa & ~sa[ry, rx]
+    if bad.any():
+        oy, ox = np.nonzero(sa)
+        for y, x in zip(*np.nonzero(bad)):
+            k = np.argmin((oy - ry[y, x]) ** 2 + (ox - rx[y, x]) ** 2)
+            ry[y, x], rx[y, x] = oy[k], ox[k]
+    rx = np.where(fa, rx, 0)
+    ry = np.where(fa, ry, 0)
+    return rx, ry, exact & fa
+
+
+def build_warps(L):
+    """anim/warp/horse-<coat>.png: one warp per animated strip, same size as the strip.
+    R = source x, G = source y in the 128 px still, B = 255 exact colour match / 128
+    block-matched only, A = 255 where the frame is opaque."""
+    anim_dir = os.path.join(OUT, "anim")
+    warp_dir = os.path.join(anim_dir, "warp")
+    os.makedirs(warp_dir, exist_ok=True)
+    stats = {}
+    for f in FILES:
+        p = os.path.join(anim_dir, "horse-%s.png" % f)
+        if not os.path.exists(p):
+            continue
+        strip = np.array(Image.open(p).convert("RGBA")).astype(int)
+        n = strip.shape[1] // 128
+        out = np.zeros((128, 128 * n, 4), np.uint8)
+        cache = {}
+        exact_n = 0
+        total = 0
+        for i in range(n):
+            fr = strip[:, i * 128:(i + 1) * 128]
+            key = fr.tobytes()
+            if key not in cache:  # ping-pong strips repeat frames
+                cache[key] = build_warp(L[f], fr)
+            rx, ry, ex = cache[key]
+            fa = fr[..., 3] > 0
+            band = out[:, i * 128:(i + 1) * 128]
+            band[..., 0] = rx
+            band[..., 1] = ry
+            band[..., 2] = np.where(ex, 255, np.where(fa, 128, 0))
+            band[..., 3] = np.where(fa, 255, 0)
+            exact_n += int(ex.sum())
+            total += int(fa.sum())
+        Image.fromarray(out, "RGBA").save(os.path.join(warp_dir, "horse-%s.png" % f), optimize=True)
+        stats[f] = round(exact_n / max(total, 1), 3)
+    return stats
+
+
 def main():
     os.makedirs(DEBUG_DIR, exist_ok=True)
     L = {f: np.array(Image.open(os.path.join(OUT, "horse-%s.png" % f)).convert("RGBA")).astype(int)
@@ -375,8 +430,8 @@ def main():
     Image.fromarray(out, "RGBA").save(os.path.join(OUT, "roles.png"))
     Image.fromarray(marks, "RGBA").save(os.path.join(OUT, "portrait-marks.png"))
     debug_outputs(L, role, flags, marks, A)
-    preview(L, role, flags, lv, marks, A)
     print("roles", {r: int((role == r).sum()) for r in range(9)}, "star", int(star.sum()))
+    print("warps (share of frame pixels with an exact colour source)", build_warps(L))
 
 
 if __name__ == "__main__":
