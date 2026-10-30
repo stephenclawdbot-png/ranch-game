@@ -99,9 +99,9 @@ export default function TheEstatePage() {
       <List
         items={[
           <>
-            <GameLink href="/week">This week</GameLink>: the road to Saturday. The Weekend Feature&rsquo;s trip, surface and going (known from Monday), the weekday Feature Qualifiers
+            <GameLink href="/week">This week</GameLink>: the road to Saturday. The Weekend Feature&rsquo;s trip and surface (known from Monday, with the likely going), the weekday Feature Qualifiers
             with your runners&rsquo; places, and each of your horses: in for Saturday (a top 3 in a Qualifier or a rating of 100+), heading for the Saturday Plate, or not yet, with how well
-            it suits Saturday and whether it has already raced today. It also shows your League gap to promotion and one suggested next step.
+            it suits Saturday and whether it has already raced today. It also shows your League gap to promotion, one suggested next step, and the ground and weather at every course with a few days&rsquo; outlook.
           </>,
           <>
             <GameLink href="/races">Race card</GameLink>: the Live card all stables share, {gc.MEETINGS_PER_DAY} race meetings a day of {gc.RACES_PER_MEETING} races, published{" "}

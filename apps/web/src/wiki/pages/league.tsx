@@ -122,8 +122,8 @@ export default function LeaguePage() {
       </P>
       <H2 id="road-to-saturday">The road to Saturday</H2>
       <P>
-        Through the season the calendar has its big days: a Feature Qualifier every weekday and a Group 1 Weekend Feature every Saturday. Saturday&rsquo;s trip, surface and going are known
-        from Monday, so you can pick the horse for it early. A top-3 finish in any of that week&rsquo;s Qualifiers gets a horse in, and so does an official rating of 100 or more; the race is still for
+        Through the season the calendar has its big days: a Feature Qualifier every weekday and a Group 1 Weekend Feature every Saturday. Saturday&rsquo;s trip and surface are known
+        from Monday, with the likely going from the weather outlook, so you can pick the horse for it early. A top-3 finish in any of that week&rsquo;s Qualifiers gets a horse in, and so does an official rating of 100 or more; the race is still for
         horses rated {weekendBand}+.
       </P>
       <P>

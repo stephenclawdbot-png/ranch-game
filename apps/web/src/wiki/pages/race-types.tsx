@@ -130,7 +130,14 @@ export default function RaceTypesPage() {
           <>
             It costs stable entries, not credits: see <WikiLink slug="credits-and-entries" />.
           </>,
-          <>When a race is one gate from full, the same race opens on a sister course in the same slot, so nobody is turned away.</>,
+          <>
+            Each race runs at a course that races its surface, on that course&rsquo;s going and weather that day: summer cards ride fast, winter ones heavy. See{" "}
+            <WikiLink slug="weather-and-going" />.
+          </>,
+          <>
+            When a race is one gate from full, the same race (same trip and ground) opens on a sister course in the same slot that races its surface, so nobody is turned away; once every
+            such course has one, a second division opens.
+          </>,
           <>
             Live races are the only races where a career-ending injury can, rarely, be fatal. See <WikiLink slug="injuries-and-insurance" />.
           </>,
@@ -248,9 +255,10 @@ export default function RaceTypesPage() {
         </p>
       </Callout>
       <P>
-        A horse that ran in a Qualifier that week and missed out gets a second chance in the <b>Saturday Plate</b>, a Listed race over the Weekend Feature&rsquo;s own trip, surface and going,{" "}
+        A horse that ran in a Qualifier that week and missed out gets a second chance in the <b>Saturday Plate</b>, a Listed race over the Weekend Feature&rsquo;s own trip and surface,{" "}
         {PLATE_AFTER_SLOTS * (RULES.slotMs / MIN)} minutes after it. A horse that did qualify runs in the Feature instead. <GameLink href="/week">This week</GameLink> under Racing shows
-        Saturday&rsquo;s conditions from Monday, your places in the Qualifiers and which of your horses are in, in the Plate or not yet.
+        Saturday&rsquo;s trip and surface from Monday with its likely going from the weather outlook (the real going once the race is on the card), your places in the Qualifiers and which
+        of your horses are in, in the Plate or not yet. The going on the day is the weather&rsquo;s: see <WikiLink slug="weather-and-going" />.
       </P>
 
       <H2 id="quick">Quick races and Story chapters</H2>

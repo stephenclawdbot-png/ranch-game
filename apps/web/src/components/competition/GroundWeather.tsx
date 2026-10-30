@@ -18,6 +18,8 @@ const SEASON_NOTE: Record<GroundView["yearSeason"], string> = {
 };
 
 type Course = GroundView["courses"][number];
+/** Turf first, as the strip below follows the turf. */
+const SURFACE_ORDER: readonly Surface[] = ["turf", "dirt", "synthetic"];
 
 const weekday = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
 const going = (g: Going | undefined) => (g ? GOING_LABEL[g].toLowerCase() : "–");
@@ -26,7 +28,7 @@ const going = (g: Going | undefined) => (g ? GOING_LABEL[g].toLowerCase() : "–
 function todayLine(c: Course): string {
   const d = c.days[0];
   if (!d) return "";
-  return c.surfaces
+  return SURFACE_ORDER.filter((s) => c.surfaces.includes(s))
     .map((s: Surface) => {
       if (s === "turf" && d.frost) return "Turf frozen off";
       const trend = s !== "synthetic" && d.trend !== "steady" ? `, ${d.trend}` : "";
