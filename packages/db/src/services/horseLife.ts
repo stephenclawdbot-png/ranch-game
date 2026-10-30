@@ -28,7 +28,7 @@ import type { Db, Executor, Tx } from "../types";
 import { lockStableOf, recordPlayDay, stableOf } from "./accounts";
 import { completeGoal } from "./dailyGoals";
 import { localDate } from "./entries";
-import { lockOwnedHorse } from "./horses";
+import { keptBy, lockKeptHorse, lockOwnedHorse } from "./horses";
 import { getBalance, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
 
@@ -247,7 +247,7 @@ async function careTx(tx: Tx, accountId: string, horse: HorseRow, day: string, n
 export async function careForHorse(db: Db, input: { accountId: string; horseId: string; now: Date } & CareActions): Promise<CareSessionResult> {
   return runTx(db, async (tx) => {
     const stable = await stableOf(tx, input.accountId);
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     const day = await careDayOf(tx, input.accountId, input.now);
     const res = await careTx(tx, input.accountId, horse, day, input.now, input, facilityLevels(stable).vet);
     if (res.counted) await recordPlayDay(tx, input.accountId, input.now);
@@ -264,7 +264,7 @@ export async function careForAll(db: Db, input: { accountId: string; now: Date; 
     const rows = await tx
       .select()
       .from(horses)
-      .where(and(eq(horses.ownerStableId, stable.id), ne(horses.careerStatus, "pasture")))
+      .where(and(keptBy(stable.id), ne(horses.careerStatus, "pasture")))
       .orderBy(horses.id)
       .for("update");
     const wanted = input.horseIds ? new Set(input.horseIds) : null;
@@ -298,7 +298,7 @@ export function sessionsUsedThisWeek(state: gc.HorseState, nowMs: number): numbe
 export async function saveTrainingPlan(db: Db, input: { accountId: string; horseId: string; slots: string[]; now: Date }): Promise<gc.TrainingPlan> {
   return runTx(db, async (tx) => {
     const stable = await stableOf(tx, input.accountId);
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     if (!isGenome(horse.genome)) throw new DomainError("NOT_ELIGIBLE", "this horse can't follow a plan");
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "retired horses do not train");
     const slots = gc.slotsFor(facilityLevels(stable).trainer);
@@ -344,7 +344,7 @@ export async function runTrainingSession(
 ): Promise<TrainingSessionResult> {
   return runTx(db, async (tx) => {
     const stable = await stableOf(tx, input.accountId);
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     if (!isGenome(horse.genome)) throw new DomainError("NOT_ELIGIBLE", "this horse can't train");
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "retired horses do not train");
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", "horse is entered in a race or listed");
@@ -414,7 +414,7 @@ export async function runTrainingSession(
 export async function treatHorseInjury(db: Db, input: { accountId: string; horseId: string; now: Date }): Promise<{ horse: HorseRow; treated: boolean; cost: number }> {
   return runTx(db, async (tx) => {
     const stable = await stableOf(tx, input.accountId);
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     const nowMs = input.now.getTime();
     if (!isGenome(horse.genome)) throw new DomainError("NOT_ELIGIBLE", "no treatment available");
     const state = toHorseState(horse);

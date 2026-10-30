@@ -99,6 +99,13 @@
       "when": 1793331864110,
       "tag": "0013_race_sponsorships",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793334099614,
+      "tag": "0014_horse_leasing",
+      "breakpoints": true
     }
   ]
 }

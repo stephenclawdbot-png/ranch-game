@@ -4,12 +4,16 @@
  * cost nothing, so a player who is away pays nothing. The charge never takes a balance below
  * zero (the rest is waived). One charge per stable per week (ledger idempotency key and an
  * inbox note with the breakdown). Runs lazily from the views and from the maintenance cron.
+ *
+ * Leases (leasing.ts): upkeep is paid by the stable that used the horse. Starts count for the
+ * entering stable, paid training for the stable that paid for it, so during a lease the lessee
+ * pays; a stable pays for a horse it still keeps, or held on lease during that week.
  */
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { utcWeekStart } from "../crypto";
 import { gc } from "../gameCore";
-import { horses, inboxItems, stables } from "../schema";
-import type { Db } from "../types";
+import { horseLeases, horses, inboxItems, stables } from "../schema";
+import type { Db, Executor } from "../types";
 import { weekBounds } from "./leagues";
 import { getBalance, spendCreditsTx } from "./ledger";
 import { rowsOf, runTx } from "./tx";
@@ -31,11 +35,14 @@ async function usedHorses(db: Db, from: Date, to: Date): Promise<Map<string, Set
        where e.stable_id is not null and e.status = 'entered' and r.status <> 'cancelled'
          and r.post_time >= ${from} and r.post_time < ${to}
       union
-      select h.owner_stable_id as stable_id, h.id as horse_id
+      select s.id as stable_id, h.id as horse_id
         from ledger_transactions t
         join horses h on h.id::text = split_part(t.idempotency_key, ':', 2)
+        join ledger_postings p on p.transaction_id = t.id and p.amount < 0
+        join ledger_accounts a on a.id = p.ledger_account_id and a.kind = 'player'
+        join stables s on s.account_id = a.owner_account_id
        where t.kind = 'training' and t.idempotency_key like 'training:%'
-         and t.created_at >= ${from} and t.created_at < ${to} and h.owner_stable_id is not null
+         and t.created_at >= ${from} and t.created_at < ${to}
       union
       select b.sire_owner_stable_id as stable_id, b.sire_id as horse_id from breeding_events b
        where b.sire_owner_stable_id is not null and b.created_at >= ${from} and b.created_at < ${to}
@@ -69,9 +76,14 @@ export async function settleUpkeep(db: Db, now: Date, opts: { weeks?: number; st
         const key = `upkeep:${stableId}:${weekStart}`;
         const [done] = await tx.select({ id: inboxItems.id }).from(inboxItems).where(and(eq(inboxItems.accountId, stable.accountId), eq(inboxItems.dedupeKey, key)));
         if (done) return null;
-        const rows = await tx.select({ id: horses.id, name: horses.name, careerStatus: horses.careerStatus, owner: horses.ownerStableId }).from(horses).where(inArray(horses.id, [...ids]));
-        // only horses still in this stable pay (a horse sold since is the buyer's from now on)
-        const paying = rows.filter((h) => h.owner === stableId && gc.upkeepFor(h.careerStatus) > 0);
+        const rows = await tx
+          .select({ id: horses.id, name: horses.name, careerStatus: horses.careerStatus, owner: horses.ownerStableId, lessee: horses.lesseeStableId })
+          .from(horses)
+          .where(inArray(horses.id, [...ids]));
+        // only horses still in this stable pay (a horse sold since is the buyer's from now on),
+        // or horses it held on lease that week (the lessee used them, the lessee pays)
+        const leasedIn = await leasedDuring(tx, stableId, from, to);
+        const paying = rows.filter((h) => (keeps(h, stableId) || leasedIn.has(h.id)) && gc.upkeepFor(h.careerStatus) > 0);
         const due = paying.reduce((s, h) => s + gc.upkeepFor(h.careerStatus), 0);
         const charged = Math.min(due, Math.max(0, await getBalance(tx, stable.accountId)));
         if (charged > 0) await spendCreditsTx(tx, { accountId: stable.accountId, amount: charged, idempotencyKey: key, kind: "upkeep", memo: `Weekly upkeep, ${paying.length} horses` });
@@ -99,7 +111,24 @@ export async function upkeepThisWeek(db: Db, stableId: string, now: Date): Promi
   const from = weekBounds(utcWeekStart(now)).from;
   const used = (await usedHorses(db, from, now)).get(stableId) ?? new Set<string>();
   if (!used.size) return { horses: 0, due: 0 };
-  const rows = await db.select({ careerStatus: horses.careerStatus, owner: horses.ownerStableId }).from(horses).where(and(inArray(horses.id, [...used]), eq(horses.ownerStableId, stableId)));
+  const leasedIn = await leasedDuring(db, stableId, from, now);
+  const rows = (
+    await db.select({ id: horses.id, careerStatus: horses.careerStatus, owner: horses.ownerStableId, lessee: horses.lesseeStableId }).from(horses).where(inArray(horses.id, [...used]))
+  ).filter((h) => keeps(h, stableId) || leasedIn.has(h.id));
   return { horses: rows.filter((h) => gc.upkeepFor(h.careerStatus) > 0).length, due: rows.reduce((s, h) => s + gc.upkeepFor(h.careerStatus), 0) };
 }
 
+
+/** The stable keeps this horse now: owns it and it is at home, or holds it on lease. */
+function keeps(h: { owner: string | null; lessee: string | null }, stableId: string): boolean {
+  return h.lessee === stableId || (h.owner === stableId && h.lessee === null);
+}
+
+/** Horses this stable held on lease at some point in [from, to). */
+async function leasedDuring(ex: Executor, stableId: string, from: Date, to: Date): Promise<Set<string>> {
+  const rows = await ex
+    .select({ horseId: horseLeases.horseId })
+    .from(horseLeases)
+    .where(and(eq(horseLeases.lesseeStableId, stableId), lt(horseLeases.startsAt, to), or(isNull(horseLeases.endedAt), gte(horseLeases.endedAt, from))));
+  return new Set(rows.map((r) => r.horseId));
+}

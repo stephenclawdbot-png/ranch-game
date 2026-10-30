@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { utcWeekStart } from "../crypto";
 import type { Executor } from "../types";
 import { weekBounds } from "./leagues";
+import { leaseMetrics, type LeaseMetrics } from "./leasing";
 import { rowsOf } from "./tx";
 
 export interface EconomyHealth {
@@ -22,6 +23,8 @@ export interface EconomyHealth {
   playerBalances: number;
   horses: { born: number; bornByOrigin: Record<string, number>; retired: number; legacyFarm: number; died: number };
   week: { weekStart: string; qualifierStables: number; featureStables: number; plateStables: number; liveStables: number };
+  /** Horse leasing: leases in force, started this week vs market sales this week, purse shares paid. */
+  leases: LeaseMetrics;
 }
 
 export async function economyHealth(ex: Executor, input: { now: Date; days?: number }): Promise<EconomyHealth> {
@@ -76,5 +79,6 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
     playerBalances: Number(bal?.total ?? 0),
     horses: { born: born.reduce((s, b) => s + Number(b.n), 0), bornByOrigin, retired: Number(out?.retired ?? 0), legacyFarm: Number(out?.legacy ?? 0), died: Number(out?.died ?? 0) },
     week: { weekStart, qualifierStables: Number(loop?.q ?? 0), featureStables: Number(loop?.f ?? 0), plateStables: Number(loop?.p ?? 0), liveStables: Number(loop?.live ?? 0) },
+    leases: await leaseMetrics(ex, input.now),
   };
 }

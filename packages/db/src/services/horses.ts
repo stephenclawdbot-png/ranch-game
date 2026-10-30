@@ -3,10 +3,10 @@
  * insurance, stud listing. Nothing here (or anywhere) changes a horse because time
  * passed, except healing and pregnancy completion (see maintenance.ts).
  */
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { utcDay } from "../crypto";
 import { DomainError } from "../errors";
-import { careLog, horses, pregnancies, trainingPlans, type HorseRow } from "../schema";
+import { careLog, horseLeaseListings, horses, pregnancies, trainingPlans, type HorseRow } from "../schema";
 import { RULES, stageFor } from "../rules";
 import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
 import type { Db, Executor } from "../types";
@@ -20,8 +20,32 @@ export async function getHorse(ex: Executor, horseId: string): Promise<HorseRow 
   return h ?? null;
 }
 
+/**
+ * The horses standing in this stable's barn: its own horses that are at home plus horses it
+ * holds on lease (leasing.ts). Horses it owns that are away on lease are NOT here (they stand in
+ * the lessee's stall): see `listLeasedOutHorses`. Ownership checks never use this list.
+ */
 export async function listStableHorses(ex: Executor, stableId: string): Promise<HorseRow[]> {
-  return ex.select().from(horses).where(eq(horses.ownerStableId, stableId)).orderBy(asc(horses.createdAt), asc(horses.id));
+  return ex.select().from(horses).where(keptBy(stableId)).orderBy(asc(horses.createdAt), asc(horses.id));
+}
+
+/** SQL condition: the horse stands in this stable (owned and at home, or leased in). */
+export function keptBy(stableId: string) {
+  return or(and(eq(horses.ownerStableId, stableId), isNull(horses.lesseeStableId)), eq(horses.lesseeStableId, stableId))!;
+}
+
+/** Horses this stable owns that are away on lease (shown as "On lease to ..."). */
+export async function listLeasedOutHorses(ex: Executor, stableId: string): Promise<HorseRow[]> {
+  return ex
+    .select()
+    .from(horses)
+    .where(and(eq(horses.ownerStableId, stableId), isNotNull(horses.lesseeStableId)))
+    .orderBy(asc(horses.createdAt), asc(horses.id));
+}
+
+/** The stable that may act on a horse day to day (care, training, entries): the lessee while on lease, else the owner. */
+export function keeperOf(h: Pick<HorseRow, "ownerStableId" | "lesseeStableId">): string | null {
+  return h.lesseeStableId ?? h.ownerStableId;
 }
 
 export async function lockHorse(ex: Executor, horseId: string): Promise<HorseRow> {
@@ -30,12 +54,53 @@ export async function lockHorse(ex: Executor, horseId: string): Promise<HorseRow
   return h;
 }
 
-/** Locks the horse and checks the account's stable owns it. */
-export async function lockOwnedHorse(ex: Executor, accountId: string, horseId: string): Promise<{ horse: HorseRow; stableId: string }> {
+/**
+ * Locks the horse and checks the account's stable OWNS it: the owner-only acts (sell, list, breed,
+ * retire, Legacy Farm, release, rename, stud fees, USDG). A horse away on lease is refused
+ * (HORSE_ON_LEASE) unless `allowOnLease` (insurance: the owner's alone, even on lease); the
+ * lessee is never its owner (NOT_OWNER).
+ */
+export async function lockOwnedHorse(ex: Executor, accountId: string, horseId: string, opts: { allowOnLease?: boolean } = {}): Promise<{ horse: HorseRow; stableId: string }> {
   const stable = await stableOf(ex, accountId);
   const horse = await lockHorse(ex, horseId);
-  if (horse.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your horse");
+  if (horse.ownerStableId !== stable.id) {
+    throw new DomainError("NOT_OWNER", horse.lesseeStableId === stable.id ? "this horse is on lease to you: only its owner can do that" : "not your horse");
+  }
+  if (horse.lesseeStableId && !opts.allowOnLease) throw new DomainError("HORSE_ON_LEASE", "this horse is away on lease: wait until it comes home");
   return { horse, stableId: stable.id };
+}
+
+/**
+ * Locks the horse and checks the account's stable KEEPS it (keeperOf): care, vet, training, race
+ * and Cup entries. That is the lessee while the horse is on lease, the owner otherwise.
+ */
+export async function lockKeptHorse(ex: Executor, accountId: string, horseId: string): Promise<{ horse: HorseRow; stableId: string; leased: boolean }> {
+  const stable = await stableOf(ex, accountId);
+  const horse = await lockHorse(ex, horseId);
+  if (keeperOf(horse) !== stable.id) {
+    const away = horse.ownerStableId === stable.id;
+    throw new DomainError(away ? "HORSE_ON_LEASE" : "NOT_OWNER", away ? "this horse is away on lease" : "not your horse");
+  }
+  return { horse, stableId: stable.id, leased: horse.lesseeStableId === stable.id };
+}
+
+/** Withdraws the horse's open lease offer (the horse is retiring, leaving or being listed). */
+export async function withdrawLeaseOffersTx(ex: Executor, horseId: string, now: Date): Promise<number> {
+  const rows = await ex
+    .update(horseLeaseListings)
+    .set({ status: "cancelled", closedAt: now })
+    .where(and(eq(horseLeaseListings.horseId, horseId), eq(horseLeaseListings.status, "active")))
+    .returning({ id: horseLeaseListings.id });
+  return rows.length;
+}
+
+/** The horse's open lease offer id, if any. */
+export async function openLeaseOfferOf(ex: Executor, horseId: string): Promise<string | null> {
+  const [r] = await ex
+    .select({ id: horseLeaseListings.id })
+    .from(horseLeaseListings)
+    .where(and(eq(horseLeaseListings.horseId, horseId), eq(horseLeaseListings.status, "active")));
+  return r?.id ?? null;
 }
 
 export async function isCarrying(ex: Executor, horseId: string): Promise<boolean> {
@@ -67,7 +132,7 @@ export interface CareResult {
 
 export async function recordCare(db: Db, input: CareInput): Promise<CareResult> {
   return runTx(db, async (tx) => {
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     const day = utcDay(input.now);
     const inserted = await tx
       .insert(careLog)
@@ -134,7 +199,7 @@ export async function setTrainingPlan(
   input: { accountId: string; horseId: string; weekStart: string; plan: unknown; cost?: number },
 ): Promise<{ planId: string }> {
   return runTx(db, async (tx) => {
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "retired horses do not train");
     if (input.cost && input.cost > 0) {
       await spendCreditsTx(tx, {
@@ -168,6 +233,7 @@ export async function retireHorse(db: Db, input: { accountId: string; horseId: s
       .set({ careerStatus: "retired", retirementReason: "choice", retiredAt: input.now, updatedAt: input.now })
       .where(eq(horses.id, horse.id))
       .returning();
+    await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await audit(tx, { actor: input.accountId, action: "horse.retire", entityType: "horse", entityId: horse.id, data: { reason: "choice", starts: horse.starts } });
     return h!;
   });
@@ -193,6 +259,7 @@ export async function moveToLegacyFarm(db: Db, input: { accountId: string; horse
       })
       .where(eq(horses.id, horse.id))
       .returning();
+    await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await audit(tx, { actor: input.accountId, action: "horse.legacy_farm", entityType: "horse", entityId: horse.id });
     return h!;
   });
@@ -208,6 +275,7 @@ export async function releaseToClub(db: Db, input: { accountId: string; horseId:
       .update(horses)
       .set({ ownerStableId: null, releasedAt: input.now, releasedFromStableId: stableId, studFee: null, studFeeUsdg: null, updatedAt: input.now })
       .where(eq(horses.id, horse.id));
+    await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await grantCreditsTx(tx, { accountId: input.accountId, amount: RULES.releasePayout, idempotencyKey: `release:${horse.id}:${stableId}`, kind: "adjustment", memo: "released to the Club" });
     await audit(tx, { actor: input.accountId, action: "horse.release", entityType: "horse", entityId: horse.id, data: { fromStable: stableId } });
     return { payout: RULES.releasePayout };
@@ -231,7 +299,8 @@ export async function renameHorse(db: Db, input: { accountId: string; horseId: s
 /** Career-ending-injury insurance (one premium, burned to the treasury). */
 export async function buyInsurance(db: Db, input: { accountId: string; horseId: string }): Promise<void> {
   await runTx(db, async (tx) => {
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    // The owner insures (and is paid out), even while the horse is away on lease.
+    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId, { allowOnLease: true });
     if (horse.insured) return;
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "only racing horses can be insured");
     const premium = isGenome(horse.genome) ? gc.insurancePremium(toHorseState(horse)) : RULES.insurancePremium;
@@ -268,6 +337,7 @@ export async function startsOnDay(ex: Executor, horseId: string, at: Date, opts:
   return Number(list[0]?.n ?? 0);
 }
 
+/** The horse's owner stable (never the lessee). */
 export async function stableIdOfHorse(ex: Executor, horseId: string): Promise<string | null> {
   const [r] = await ex.select({ s: horses.ownerStableId }).from(horses).where(eq(horses.id, horseId));
   return r?.s ?? null;

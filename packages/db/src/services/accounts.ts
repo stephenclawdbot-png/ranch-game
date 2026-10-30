@@ -1,7 +1,7 @@
 /**
  * Accounts, stables, stall capacity, identity links and play days.
  */
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { commitSeed, hashToken, newDeviceToken, newSeed, sha256Hex, utcDay } from "../crypto";
 import { DomainError } from "../errors";
 import { accountDevices, accountLinks, accountPlayDays, accounts, fraudEvents, horses, pregnancies, stables, type StableRow } from "../schema";
@@ -147,7 +147,7 @@ export async function lockStable(ex: Executor, stableId: string): Promise<Stable
 
 export interface Occupancy {
   slots: number;
-  /** Owned horses not on the Legacy Farm. */
+  /** Horses in the stalls: owned horses at home not on the Legacy Farm, plus horses held on lease (an owned horse away on lease frees its stall). */
   horses: number;
   /** Foals on the way (carrying pregnancies of the stable's mares). */
   pendingFoals: number;
@@ -161,7 +161,12 @@ export async function occupancy(ex: Executor, stable: Pick<StableRow, "id" | "st
   const [h] = await ex
     .select({ n: sql<number>`count(*)::int` })
     .from(horses)
-    .where(and(eq(horses.ownerStableId, stable.id), ne(horses.careerStatus, "pasture")));
+    .where(
+      and(
+        ne(horses.careerStatus, "pasture"),
+        or(and(eq(horses.ownerStableId, stable.id), isNull(horses.lesseeStableId)), eq(horses.lesseeStableId, stable.id)),
+      ),
+    );
   const [p] = await ex
     .select({ n: sql<number>`count(*)::int` })
     .from(pregnancies)

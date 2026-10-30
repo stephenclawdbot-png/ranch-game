@@ -4,7 +4,8 @@
  * sweep only:
  *   - heals injuries whose real-time recovery has ended;
  *   - completes due pregnancies (the foal always arrives);
- *   - expires market listings (returning the horse to its owner).
+ *   - expires market listings (returning the horse to its owner);
+ *   - expires lease offers and sends horses home when their lease term is over (leasing.ts).
  */
 import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
@@ -14,12 +15,14 @@ import { defaultHooks } from "../hooks";
 import type { Db } from "../types";
 import { foal, listDuePregnancies } from "./breeding";
 import { expireListings } from "./market";
+import { sweepLeases } from "./leasing";
 import { runTx } from "./tx";
 
 export interface MaintenanceReport {
   healed: number;
   foaled: string[];
   listingsExpired: number;
+  leasesEnded: number;
 }
 
 export async function healInjuries(db: Db, now: Date): Promise<number> {
@@ -41,6 +44,7 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
     if (!r.alreadyFoaled) foaled.push(r.foalId);
   }
   const listingsExpired = await expireListings(db, now);
+  const leases = await sweepLeases(db, now);
   await settleUpkeep(db, now);
-  return { healed, foaled, listingsExpired };
+  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded };
 }

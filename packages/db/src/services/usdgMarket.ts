@@ -45,7 +45,7 @@ import {
 import type { Db, Executor, Tx } from "../types";
 import { areLinked, assertStallFree, lockStableOf, stableOf } from "./accounts";
 import { verifiedWalletOf } from "./betaMoney";
-import { isCarrying, lockHorse } from "./horses";
+import { isCarrying, lockHorse, openLeaseOfferOf } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { audit, runTx } from "./tx";
@@ -248,6 +248,7 @@ export async function quoteUsdgRegistration(
 ): Promise<UsdgOrderRow> {
   return runTx(db, async (tx) => {
     const horse = await lockHorse(tx, input.horseId);
+    if (horse.lesseeStableId) throw new DomainError(horse.lesseeStableId === (await stableOf(tx, input.accountId)).id ? "NOT_OWNER" : "HORSE_ON_LEASE", "Horses on lease can't be registered: only the owner can, once it is home.");
     if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("NOT_ELIGIBLE", "This horse is already registered for the USDG market.");
     const [open] = await tx
       .select()
@@ -503,6 +504,8 @@ export async function listUsdg(db: Db, input: UsdgListInput, policy: gc.UsdgPoli
     const stable = await stableOf(tx, input.accountId);
     const horse = await lockHorse(tx, input.horseId);
     if (horse.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your horse");
+    if (horse.lesseeStableId) throw new DomainError("HORSE_ON_LEASE", "The horse is away on lease: list it once it is home.");
+    if (await openLeaseOfferOf(tx, horse.id)) throw new DomainError("HORSE_LOCKED", "The horse is offered for lease: withdraw the lease offer first.");
     if (!(await isUsdgRegistered(tx, horse.id))) throw new DomainError("NOT_ELIGIBLE", "Register the horse for the USDG market first.");
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "The horse is entered in a race." : horse.lockKind === "stud" ? "The mare is booked for a covering." : "The horse is already listed.");
     if (horse.sex === "male" && (await studHoldsOf(tx, horse.id, input.now))) {
