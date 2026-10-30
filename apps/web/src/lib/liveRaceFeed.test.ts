@@ -9,6 +9,7 @@ const T0 = Date.UTC(2026, 9, 25, 15, 0, 0);
 const SKEW = 5000;
 /** How close the estimated offset must stay to the true skew behind a cache. */
 const MIN_TOLERANCE_MS = 600;
+const ORIGIN_SLACK_MS = 100;
 
 /**
  * A fake origin + CDN for GET /live?w=<n>. `cdnMs` > 0 caches each window URL for that long
@@ -76,10 +77,11 @@ describe("live race feed", () => {
     expect(feed.liveEdgeFrame).toBe(-1);
     expect(feed.frames).toHaveLength(0);
     expect(feed.final).toBeNull();
-    expect(feed.clockOffsetMs).toBe(SKEW);
+    // Within the origin slack (an origin response may be shared with a concurrent request).
+    expect(Math.abs(feed.clockOffsetMs - SKEW)).toBeLessThanOrEqual(ORIGIN_SLACK_MS);
     expect(feed.serverBroadcastStartMs).toBe(broadcastStartMs(s.postTimeMs));
     // broadcastStartMs is in this browser's clock.
-    expect(feed.broadcastStartMs).toBe(broadcastStartMs(s.postTimeMs) - SKEW);
+    expect(feed.broadcastStartMs).toBe(broadcastStartMs(s.postTimeMs) - feed.clockOffsetMs);
     expect(s.requests[0]).toBe(`/api/races/${encodeURIComponent(s.raceId)}/live?w=0`);
     feed.close();
   });
@@ -223,7 +225,7 @@ describe("live race feed", () => {
     // Window 0 is already complete (immutable, any age): a lower bound until a live window lands.
     expect(feed.clockOffsetMs).toBe(SKEW - 450);
     await vi.advanceTimersByTimeAsync(1000);
-    expect(feed.clockOffsetMs).toBe(SKEW);
+    expect(Math.abs(feed.clockOffsetMs - SKEW)).toBeLessThanOrEqual(ORIGIN_SLACK_MS);
     const frameMs = (s.replay.sampleEvery * 1000) / s.replay.tickHz;
     let starved = 0;
     for (let i = 0; i < 100; i++) {
@@ -238,8 +240,8 @@ describe("live race feed", () => {
   });
 
   it("clock bounds: a CDN copy only bounds the offset from below unless its age is known", () => {
-    // Fresh: [server - t1, server - t0].
-    expect(offsetBounds(10_000, { t0: 4_900, t1: 5_100, ageMs: null, source: "fresh" })).toEqual({ lo: 4_900, hi: 5_100 });
+    // Fresh: [server - t1, server - t0 (+ slack)].
+    expect(offsetBounds(10_000, { t0: 4_900, t1: 5_100, ageMs: null, source: "fresh" })).toEqual({ lo: 4_900, hi: 5_100 + ORIGIN_SLACK_MS });
     // Cached with Age 1: generated 1-2 s before it left the CDN.
     expect(offsetBounds(10_000, { t0: 4_900, t1: 5_100, ageMs: 1000, source: "cached" })).toEqual({ lo: 5_900, hi: 7_100 });
     // Cached with Age 0: generated up to 1 s before.

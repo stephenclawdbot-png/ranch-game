@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { RaceBroadcastChunk } from "@thoroughbred/shared";
 import { LIVE_WINDOW_FRAMES, MAX_LIVE_WINDOW, liveWindowStart } from "@/lib/liveWindow";
 import { db } from "@/server/db";
 import { liveChunk } from "@/server/game";
@@ -40,11 +41,30 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   }
 }
 
+/**
+ * Window chunks being generated right now, by race and window. Vercel only collapses
+ * concurrent cache misses for ISR routes, so when a window's CDN copy expires (or a new
+ * window is first asked for) every viewer arriving meanwhile reaches the function; with
+ * Fluid compute many of them land on the same instance and share this one generation (one
+ * database read, identical bodies). Entries leave as soon as they settle: nothing is reused
+ * after the fact, so this never adds staleness beyond the generation time itself.
+ */
+const inflight = new Map<string, Promise<RaceBroadcastChunk>>();
+
+function windowChunk(id: string, w: number): Promise<RaceBroadcastChunk> {
+  const key = `${id}\n${w}`;
+  const pending = inflight.get(key);
+  if (pending) return pending;
+  const p = (async () => liveChunk(await db(), id, liveWindowStart(w), new Date(), LIVE_WINDOW_FRAMES))().finally(() => inflight.delete(key));
+  inflight.set(key, p);
+  return p;
+}
+
 async function windowResponse(id: string, windowParam: string): Promise<NextResponse> {
   if (!WINDOW_RE.test(windowParam) || Number(windowParam) > MAX_LIVE_WINDOW) return errorJson(400, "bad_window");
   const w = Number(windowParam);
   try {
-    const chunk = await liveChunk(await db(), id, liveWindowStart(w), new Date(), LIVE_WINDOW_FRAMES);
+    const chunk = await windowChunk(id, w);
     const res = NextResponse.json(chunk);
     for (const [k, v] of Object.entries(liveWindowHeaders(liveWindowState(w, chunk)))) res.headers.set(k, v);
     return res;

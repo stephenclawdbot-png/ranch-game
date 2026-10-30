@@ -17,8 +17,9 @@
  * Clock skew: every response carries serverNowMs, but a CDN copy may have been generated
  * up to ~2 s before it reaches us. Each sample bounds offset = server - local:
  *   lower: serverNowMs + Age - t1 (the server clock had at least reached that on arrival)
- *   upper: serverNowMs - t0 for a response fresh from the origin, widened by the possible
- *          staleness for a CDN copy (Age, x-vercel-cache).
+ *   upper: serverNowMs - t0 for a response fresh from the origin (plus a little slack: it
+ *          may be shared with a concurrent request), widened by the possible staleness for a
+ *          CDN copy (Age, x-vercel-cache).
  * The feed intersects the bounds of recent samples and uses the middle, then exposes
  * `broadcastStartMs` already converted to THIS browser's clock, so consumers can compare
  * it with Date.now() directly (`serverBroadcastStartMs` is the raw server value).
@@ -57,6 +58,8 @@ const MIN_POLL_GAP_MS = 250;
 const CLOCK_SAMPLES = 16;
 /** Worst staleness assumed for a CDN copy that carries no Age header (s-maxage 1 + stale 1). */
 const CACHED_MAX_AGE_MS = 2500;
+/** An origin response may have been generated for an earlier concurrent request (route single-flight). */
+const ORIGIN_SLACK_MS = 100;
 
 /** One response's timing, for the clock estimate. */
 export interface ChunkTiming {
@@ -115,7 +118,7 @@ async function fetchChunk(doFetch: typeof fetch, now: () => number, raceId: stri
 export function offsetBounds(serverNowMs: number, t: ChunkTiming): { lo: number; hi: number } {
   const lo = serverNowMs + (t.ageMs ?? 0) - t.t1;
   if (t.source === "immutable") return { lo, hi: Infinity };
-  const staleness = t.source === "fresh" ? 0 : t.ageMs !== null ? t.ageMs + 1000 : CACHED_MAX_AGE_MS;
+  const staleness = t.source === "fresh" ? ORIGIN_SLACK_MS : t.ageMs !== null ? t.ageMs + 1000 : CACHED_MAX_AGE_MS;
   return { lo, hi: Math.max(lo, serverNowMs + staleness - t.t0) };
 }
 
