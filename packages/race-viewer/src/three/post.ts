@@ -45,8 +45,8 @@ void main() {
   vec3 sharp = texture2D(tScene, vUv).rgb;
   float depth = texture2D(tDepth, vUv).x;
   float z = -perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
-  // The focal band (the field + nearby rails) stays tack-sharp; only the far
-  // background and the nearest foreground soften, gradually.
+  // The focal band (the whole field + both rails) stays tack-sharp; only the far
+  // background and the nearest foreground soften, gradually. No tilt-shift smear on runners.
   float farC = smoothstep(focusDist + focusRange, focusDist + focusRange + focusDist * 3.0, z);
   float nearC = smoothstep(focusDist - focusRange, max(0.5, (focusDist - focusRange) * 0.35), z);
   float coc = clamp(max(farC, nearC * 0.8) * dofAmount, 0.0, 1.0);
@@ -54,7 +54,8 @@ void main() {
   coc = max(coc, (smoothstep(0.1, 0.0, vUv.y) + smoothstep(0.92, 1.0, vUv.y)) * tiltShift * dofAmount);
   vec3 blur = texture2D(tBlur, vUv).rgb;
   vec3 col = mix(sharp, blur, coc);
-  col += max(blur - bloomThreshold, 0.0) * bloomAmount;
+  // Bloom glows in the far scenery and the sky only: the field and its runners stay crisp.
+  col += max(blur - bloomThreshold, 0.0) * bloomAmount * farC;
   col *= tint;
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, saturation);

@@ -35,14 +35,15 @@ describe("broadcast director (side-on only)", () => {
   it("only ever uses side-on framings", () => {
     for (const seed of [3, 7, 11]) {
       const { changes } = run(seed, "h9");
-      for (const c of changes) expect(["gate", "close", "pack", "judge", "post"]).toContain(c.type);
+      for (const c of changes) expect(["gate", "establish", "close", "pack", "judge", "post"]).toContain(c.type);
     }
   });
 
-  it("starts at the gate, tracks close, uses the judge's line for a photo, holds the post", () => {
+  it("starts at the gate, shows the whole field, tracks close, uses the judge's line for a photo, holds the post", () => {
     const { changes } = run(7, "h9");
     const types = changes.map((c) => c.type);
-    expect(types[0]).toBe("close");
+    expect(types[0]).toBe("establish");
+    expect(types).toContain("close");
     expect(types).toContain("pack");
     expect(types).toContain("judge");
     expect(types[types.length - 1]).toBe("post");
@@ -61,5 +62,30 @@ describe("broadcast director (side-on only)", () => {
       expect(run(seed, "h9", false).unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
       expect(run(seed, "h9", false, true).unseenMax).toBeLessThanOrEqual(MAX_UNSEEN_S + 0.5);
     }
+  });
+
+  it("emits a shared intent and survives a view rebuild (no restart unless time jumps)", async () => {
+    const { intentOf } = await import("./director");
+    expect(intentOf({ type: "establish", subject: null })).toEqual({ kind: "field" });
+    expect(intentOf({ type: "close", subject: "h3" })).toEqual({ kind: "group", subject: "h3" });
+    expect(intentOf({ type: "judge", subject: null })).toEqual({ kind: "line" });
+    expect(intentOf({ type: "post", subject: "h1" })).toEqual({ kind: "pullup", subject: "h1" });
+    const d = new Director();
+    const runners = [{ id: "h1", x: 100 }, { id: "h2", x: 98 }];
+    const base = { runners, trackLengthM: 1200, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null };
+    for (let t = 0; t < 30; t += 0.1) d.update({ ...base, t });
+    const before = d.shot;
+    d.update({ ...base, t: 30.05 }); // a new scene draws its first frame: same shot
+    expect(d.shot).toEqual(before);
+    d.update({ ...base, t: 5 }); // a seek back: direction restarts
+    expect(d.shot.since).toBe(5);
+  });
+
+  it("the post shot follows the winner", () => {
+    const d = new Director();
+    const runners = [{ id: "h1", x: 1250 }, { id: "h2", x: 1240 }];
+    const base = { runners, trackLengthM: 1200, winnerTime: 70, photoFinish: false, newEvents: [], highlightId: null, winnerId: "h2" };
+    for (let t = 69; t < 75; t += 0.1) d.update({ ...base, t });
+    expect(d.shot).toMatchObject({ type: "post", subject: "h2" });
   });
 });

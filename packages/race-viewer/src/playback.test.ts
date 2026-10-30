@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fakeReplay } from "./dev/fakeReplay";
-import { PHOTO_FREEZE_SEC, PRE_ROLL_SEC, PlaybackClock, RUNOUT_SEC, SLOWMO_RATE, timeLeaderReaches } from "./playback";
+import { PHOTO_FREEZE_SEC, POST_RACE_SEC, PRE_ROLL_SEC, PlaybackClock, RUNOUT_SEC, SLOWMO_RATE, timeLeaderReaches } from "./playback";
 import { replayTiming } from "./sampleReplay";
 
 const photo = fakeReplay({ horses: 8, seed: 3, distanceM: 1000, photoFinish: true });
@@ -34,12 +34,16 @@ describe("PlaybackClock (local)", () => {
     expect(c.playing).toBe(false);
   });
 
-  it("stops after the pull-up and never runs past duration + runout", () => {
+  it("runs on through the ease-down after the line, then stops at the run-out end", () => {
     const c = new PlaybackClock(plain, { initialTimeSec: replayTiming(plain).duration - 0.5 });
-    run(c, RUNOUT_SEC + 3);
+    expect(c.runoutEnd).toBeCloseTo(Math.max(c.duration + RUNOUT_SEC, c.winnerTime + POST_RACE_SEC));
+    expect(c.runoutEnd - c.winnerTime).toBeGreaterThanOrEqual(POST_RACE_SEC);
+    run(c, 10);
+    expect(c.playing).toBe(true); // still easing down: no stop 6 s after the last finisher
+    run(c, POST_RACE_SEC + 3);
     expect(c.ended).toBe(true);
     expect(c.playing).toBe(false);
-    expect(c.time).toBeLessThanOrEqual(c.duration + RUNOUT_SEC + 1e-9);
+    expect(c.time).toBeLessThanOrEqual(c.runoutEnd + 1e-9);
   });
 
   it("seek clamps to the race and clears live mode", () => {

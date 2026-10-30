@@ -8,6 +8,8 @@ import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
 import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, type IndexedFrames, type Palette } from "./strips";
+import type { AnimId } from "../stage/motion";
+import type { RaceStage } from "../stage/buildRaceStage";
 
 export const BACKDROP_STEMS = [
   "sky-dusk",
@@ -45,6 +47,8 @@ export interface TracksideArt {
   keys: KeyPalette;
   gallop: StripSet;
   idle: StripSet | null;
+  /** Race-day strips (break, drive, lunge, easeup, celebrate, pullup) that loaded and fit the palette. */
+  strips: Partial<Record<AnimId, StripSet>>;
   images: Map<BackdropStem, HTMLImageElement>;
   /** The race's course scenery art (only that course's files are fetched). */
   course: Map<CourseArtSrc, HTMLImageElement>;
@@ -110,6 +114,44 @@ export async function loadCourseArt(art: ArtSet, recipe: SceneryRecipe | null): 
   return out;
 }
 
+/** Race-day strips: same palette keys and density as the gallop (art STATUS 1b). */
+export const RACE_DAY_STRIPS = ["break", "drive", "lunge", "easeup", "celebrate", "pullup"] as const;
+
+/**
+ * Every stage art file (manifest src: far panorama, midground, stand, rail decor, crowd),
+ * approved files only; missing ones are skipped (the scenes fall back or leave them out).
+ */
+export async function loadStageArt(art: ArtSet, stage: RaceStage): Promise<Map<string, HTMLImageElement>> {
+  const out = new Map<string, HTMLImageElement>();
+  if (!art.manifest || typeof document === "undefined") return out;
+  const sc = stage.scenery;
+  const srcs = new Set<string>([sc.far, sc.stand.src, ...sc.midTemplate.items.map((i) => i.src), ...sc.crowd.map((c) => c.src), stage.landmarks.winningPost.art, "race/furlong-pole.png", ...stage.fx.emit.map((e) => `race/${e}.png`)]);
+  if (sc.railDecor) srcs.add(sc.railDecor.src);
+  await Promise.all(
+    [...srcs].map(async (src) => {
+      const e = approved(art, src);
+      if (!e?.src) return;
+      const im = await loadImg(urlOf(art, e.src));
+      if (im) out.set(src, im);
+    }),
+  );
+  return out;
+}
+
+/** race/fx-palette.json (ground fx recolour keys per surface); null when missing. */
+export async function loadFxPalette(art: ArtSet): Promise<FxPalette | null> {
+  if (!art.manifest || typeof fetch === "undefined") return null;
+  return fetch(urlOf(art, "race/fx-palette.json"))
+    .then((r) => (r.ok ? (r.json() as Promise<FxPalette>) : null))
+    .catch(() => null);
+}
+
+export interface FxPalette {
+  keys: Record<string, Record<string, string[]>>;
+  surfaces: Record<string, Record<string, Record<string, string[]>>>;
+  emit: Record<string, string[]>;
+}
+
 /** Everything the Trackside view needs; null when the keyed gallop strip is unavailable. */
 export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null = null): Promise<TracksideArt | null> {
   if (!art.manifest || typeof document === "undefined") return null;
@@ -126,9 +168,16 @@ export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null
   if (!gallop) return null;
   // The idle strip shares the key palette; its horse is drawn ~8 % larger per texel.
   const idle = await stripSet(art, "horse-idle", palette, 104, keys).catch(() => null);
+  const strips: Partial<Record<AnimId, StripSet>> = {};
+  // One at a time: they share (and may only grow) the palette.
+  for (const id of RACE_DAY_STRIPS) {
+    const st = await stripSet(art, `horse-${id}`, palette, 96, keys).catch(() => null);
+    if (st) strips[id] = st;
+  }
   const primary = primaryIndices(palette, keys);
   gallop.silk = silkBoxes(gallop.lods[0]!, primary);
   if (idle) idle.silk = silkBoxes(idle.lods[0]!, primary);
+  for (const st of Object.values(strips)) st.silk = silkBoxes(st.lods[0]!, primary);
 
   const images = new Map<BackdropStem, HTMLImageElement>();
   const coursePending = loadCourseArt(art, recipe);
@@ -145,5 +194,5 @@ export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null
       if (im) images.set(stem, im);
     }),
   );
-  return { palette, keys, gallop, idle, images, course: await coursePending };
+  return { palette, keys, gallop, idle, strips, images, course: await coursePending };
 }

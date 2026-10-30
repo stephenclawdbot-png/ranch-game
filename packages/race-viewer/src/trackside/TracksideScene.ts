@@ -23,24 +23,27 @@
  * (never beyond the live edge) and no result.
  */
 import type * as THREE from "three";
-import { FURLONG_MM } from "@thoroughbred/shared";
-import { createReplaySampler, type HorseSample, type ReplaySampler } from "../sampleReplay";
-import { legPhase, strideLengthM } from "../scene/horse/gait";
+import type { HorseSample } from "../sampleReplay";
 import type { RenderQuality } from "../types";
 import type { ArtSet } from "../three/art";
 import type { SceneFrame, SceneRaceData } from "../three/HD2DScene";
+import type { Director, DirectorInput } from "../director";
 import { hexToRgb } from "../three/color";
-import { loadTracksideArt, type StripSet, type TracksideArt } from "./art";
+import { loadFxPalette, loadStageArt, loadTracksideArt, type FxPalette, type StripSet, type TracksideArt } from "./art";
 import * as bake from "./bake";
 import { StallGate } from "./gate";
 import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldGap, type FieldLayout, type SpriteMetrics } from "./layout";
 import { CHIP_H, chipLabel, pickChips, type ChipCandidate } from "./gapMarks";
 import { lookFor, type TracksideLook } from "./looks";
-import { finishTilt, sceneryFor, type SceneryRecipe } from "./scenery";
+import { finishTilt, sceneryFor } from "./scenery";
 import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "./strips";
 import * as S from "./shaders";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
+import { buildRaceStage, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
+import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
+import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
+import { tracksideInventory, tracksidePlan, type TracksidePlan } from "./stagePlan";
 
 export interface TracksideOptions {
   quality: RenderQuality;
@@ -48,24 +51,35 @@ export interface TracksideOptions {
   art: ArtSet;
   /** The racecourse: its scenery set and finish gradient. Omitted: today's look, flat. */
   course?: CourseInfo | null;
+  /** The race stage both views render from (built from course + race when omitted). */
+  stage?: RaceStage;
+  /** Horses injured in the race (pulled up after the line). Default: the replay's injury events. */
+  injured?: ReadonlySet<string>;
+}
+
+/** Art the stage needs beyond the strips (loaded once in `create`). */
+interface StageArtSet {
+  images: Map<string, HTMLImageElement>;
+  fx: FxPalette | null;
 }
 
 /**
- * Grandstand: anchored this many metres past the winning post (negative = it faces the
- * run-in), its feet this far above the rail line (art px), and its parallax. It slides a
- * little slower than the midground it stands in front of, so it stays in view for the last
- * hundred metres or so instead of flashing past (the midground is blurred; the cheat reads).
+ * Grandstand: centred where the stage puts it (~30 m before the post, facing the run-in), its
+ * feet this far above the rail line (art px), and its parallax. It slides a little slower than
+ * the midground it stands in front of, so it stays in view for the last hundred metres or so
+ * instead of flashing past (the midground is blurred; the cheat reads).
  */
-const STAND_PAST_POST_M = -20;
 const STAND_LIFT = 26;
 const STAND_DEPTH = 0.16;
 /** Track layers drawn wider/taller than the stage while tilted, so no corner shows through. */
 const TILT_MARGIN = 0.12;
 
-const PULLUP_TAU = 2.6;
 const NEAR_RAIL_LANE = -1.6;
-const IDLE_FPS = 6;
-const DUST_MAX = 260;
+/** Ground-fx bursts alive at once (one per stride per runner, ~0.6 s each). */
+const FX_MAX = 48;
+/** Ground fx: frames, fps per strip (art STATUS 1b). */
+const FX_FPS: Record<string, number> = { "fx-mud": 14, "fx-dust": 12, "fx-divot": 14 };
+const FX_ANCHOR: Record<string, [number, number]> = { "fx-mud": [0.812, 0.812], "fx-dust": [0.729, 0.812], "fx-divot": [0.792, 0.844] };
 
 const O = {
   wash: 0,
@@ -77,6 +91,8 @@ const O = {
   stand: 5.5,
   ground: 6,
   railFar: 7,
+  judge: 6.9,
+  crowd: 6.95,
   props: 8,
   gapHaze: 8.5,
   shadow: 9,
@@ -99,15 +115,14 @@ interface Runner {
   mat: THREE.ShaderMaterial;
   mesh: THREE.Mesh;
   shadow: THREE.Mesh;
-  phase: number;
-  idlePhase: number;
-  lastX: number;
   x: number;
   lane: number;
   speed: number;
-  finishT: number | null;
-  finishSpeed: number;
-  prevLeg: [number, number];
+  /** Shared motion state (stage/motion.ts). */
+  st: RunnerState;
+  /** Stride phase last frame (hoof strikes -> ground fx). */
+  lastPhase: number;
+  strip: StripSet | null;
   lod: number;
   rect: { x: number; y: number; w: number; h: number };
 }
@@ -163,10 +178,13 @@ export class TracksideScene {
   private disposables: { dispose(): void }[] = [];
   private textures: THREE.Texture[] = [];
   private data: SceneRaceData;
-  private sampler: ReplaySampler;
+  private motion: FieldMotion;
+  private states: RunnerState[] = [];
   private samples: HorseSample[] = [];
-  private scratch: HorseSample[] = [];
   private art: TracksideArt;
+  private stage: RaceStage;
+  private plan: TracksidePlan;
+  private stageArt: StageArtSet;
   private look: TracksideLook;
   private quality: RenderQuality;
   private runners: Runner[] = [];
@@ -200,7 +218,10 @@ export class TracksideScene {
   private bands: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; layer: bake.BakedLayer; depth: number; off: number; kind: "backdrop" | "railFar" | "railNear" }[] = [];
   private field: THREE.Mesh | null = null;
   private ground!: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial };
-  private props: { mesh: THREE.Mesh; x: number; w: number; h: number; post: boolean }[] = [];
+  private props: { mesh: THREE.Mesh; x: number; w: number; h: number; lift: number; lane: number }[] = [];
+  private crowd: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; tex: THREE.Texture[]; w: number; h: number; x0: number; x1: number } | null = null;
+  private fx: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; strip: number; x: number; lane: number; age: number; flip: boolean }[] = [];
+  private fxStrips: { tex: THREE.Texture; frames: number; fw: number; fh: number; fps: number; anchor: [number, number] }[] = [];
   private gate: StallGate | null = null;
   private marker: THREE.Mesh | null = null;
   /** Gap markers, one slot per runner (the gap in front of it): haze cut + true-length chip. */
@@ -212,10 +233,8 @@ export class TracksideScene {
   private gradeBottom!: THREE.Mesh;
   private vig!: THREE.Mesh;
   private flash!: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial };
-  private dust: { pts: THREE.Points; pos: Float32Array; size: Float32Array; col: Float32Array; soft: Float32Array; state: Float32Array; n: number; geo: THREE.BufferGeometry };
   // course
   private course: CourseInfo | null;
-  private recipe: SceneryRecipe | null;
   private stand: { mesh: THREE.Mesh; w: number; h: number; pad: number } | null = null;
   /** Everything on the track (ground, rails, posts, stalls, runners, dust) tilts as one for a finish gradient. */
   private trackLayer: THREE.Object3D;
@@ -233,32 +252,31 @@ export class TracksideScene {
 
   /** Loads the Trackside art; rejects when the keyed horse strip is unavailable. */
   static async create(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions): Promise<TracksideScene> {
-    const art = await loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery));
+    const stage = opts.stage ?? buildRaceStage(opts.course, data);
+    const [art, images, fx] = await Promise.all([loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery)), loadStageArt(opts.art, stage), loadFxPalette(opts.art)]);
     if (!art) throw new Error("Trackside art unavailable");
-    return new TracksideScene(T, data, opts, art);
+    return new TracksideScene(T, data, { ...opts, stage }, art, { images, fx });
   }
 
-  private constructor(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions, art: TracksideArt) {
+  private constructor(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions, art: TracksideArt, stageArt: StageArtSet) {
     this.T = T;
     this.data = data;
     this.art = art;
+    this.stageArt = stageArt;
     this.quality = opts.quality;
     this.course = opts.course ?? null;
-    this.recipe = sceneryFor(this.course?.scenery);
-    this.sampler = createReplaySampler(data);
-    this.L = data.trackLengthMm / 1000;
-    this.railLane = Math.max(8, data.laneCount, data.horses.length) + 0.8;
+    this.stage = opts.stage ?? buildRaceStage(this.course, data);
+    this.plan = tracksidePlan(this.stage);
+    this.motion = new FieldMotion(data, { injured: opts.injured ?? injuredFromEvents(data.events) });
+    this.L = this.stage.L;
+    this.railLane = this.stage.lanes.count + 0.8;
     this.highlight = data.horses.findIndex((h) => h.horseId === opts.highlightHorseId);
-    let hour: number | null = null;
-    try {
-      hour = new Date(data.race.postTimeMs).getHours();
-    } catch {
-      hour = null;
-    }
-    this.look = lookFor(data.race.weather, hour);
+    this.look = this.stage.look.trackside;
     this.uSat = { value: this.look.saturation };
     this.uBright = { value: this.look.brightness };
-    this.sprite = unionMetrics(stripMetrics(art.gallop), art.idle ? stripMetrics(art.idle) : null);
+    let sprite = unionMetrics(stripMetrics(art.gallop), art.idle ? stripMetrics(art.idle) : null);
+    for (const st of Object.values(art.strips)) sprite = unionMetrics(sprite, stripMetrics(st));
+    this.sprite = sprite;
     this.applyResult();
 
     const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, stencil: false, depth: false, powerPreference: "high-performance" });
@@ -281,7 +299,7 @@ export class TracksideScene {
     this.scene.add(this.trackLayer);
 
     this.lut = this.dataTex(buildLut(art.palette, art.keys, data.horses.map((h) => h.appearance)), LUT_W, Math.max(1, data.horses.length), T.RGBAFormat);
-    for (const st of [art.gallop, art.idle]) {
+    for (const st of [art.gallop, art.idle, ...Object.values(art.strips)]) {
       if (!st) continue;
       this.lodTex.set(
         st,
@@ -295,7 +313,7 @@ export class TracksideScene {
     this.buildProps();
     // Starting stalls: one bay per runner lane, world-anchored at the start line.
     let startM = 0;
-    for (const s of this.sampler(0, [])) startM = Math.max(startM, s.x / 1000);
+    for (const s of this.motion.stateAt(0)) startM = Math.max(startM, s.x);
     this.gate = StallGate.build(this.art.images, this.look, data, startM, {
       own: (g) => this.own(g),
       canvasTex: (img, o) => this.canvasTex(img, o),
@@ -305,8 +323,7 @@ export class TracksideScene {
     });
     this.buildRunners();
     this.buildGapMarks();
-    const dust = this.points(DUST_MAX, false, O.dust);
-    this.dust = { ...dust, state: new Float32Array(DUST_MAX * 8), n: 0 };
+    this.buildGroundFx();
     this.into = null;
     this.buildFx();
   }
@@ -441,26 +458,27 @@ export class TracksideScene {
     if (look.sun) {
       this.sun = this.quad(this.bandMat(this.canvasTex(bake.glow(look.sun.color)), 128, 128, { additive: true, opacity: look.sun.alpha }), O.sun);
     }
-    // Course scenery (scenery.ts): far panorama, midground, field colours, rail decor and a
-    // grandstand at the post. No known course: the original set, no stand.
-    const rc = this.recipe;
-    const course = this.art.course;
-    const far = rc?.far ? course.get(rc.far) : null;
-    const hills = bake.bakeHills(img, look, far);
-    if (hills) this.addBand(hills, 0.08, O.hills, "backdrop");
-    const fieldTex = this.canvasTex(bake.bakeField(look, rc?.field));
+    // The stage's scenery (course far panorama, midground, field colours, rail decor and the
+    // grandstand ~30 m before the post). No known course: the parkland set.
+    const sc = this.stage.scenery;
+    const get = (src: string) => this.stageArt.images.get(src);
+    const hills = bake.bakeHills(img, look, get(sc.far) ?? null, sc.farIsCourse);
+    if (hills) this.addBand(hills, this.plan.depth.far, O.hills, "backdrop");
+    const fieldTex = this.canvasTex(bake.bakeField(look, sc.field));
     this.field = this.quad(this.bandMat(fieldTex, 4, 64), O.field);
-    const trees = (rc ? bake.bakeMid(course, rc, look) : null) ?? bake.bakeTrees(img, look);
-    if (trees) this.addBand(trees, 0.3, O.trees, "backdrop");
-    const standImg = rc ? course.get(rc.stand) : undefined;
+    const trees = bake.bakeMid(get, sc.midTemplate, look) ?? bake.bakeTrees(img, look);
+    if (trees) this.addBand(trees, this.plan.depth.mid, O.trees, "backdrop");
+    const standImg = get(sc.stand.src);
     if (standImg) {
       const s = bake.bakeStand(standImg, look);
       const mat = this.bandMat(this.canvasTex(s.canvas, { mip: true }), s.canvas.width, s.canvas.height);
       this.stand = { mesh: this.quad(mat, O.stand), w: s.canvas.width, h: s.canvas.height, pad: s.pad };
     }
-    const railFar = bake.bakeRailFar(img, look, rc, course);
+    const decorImg = sc.railDecor ? get(sc.railDecor.src) : undefined;
+    const railFar = bake.bakeRailFar(img, look, { railFill: sc.railFill, decor: decorImg && sc.railDecor ? { img: decorImg, every: sc.railDecor.everyPx, lift: sc.railDecor.liftPx } : null });
     if (railFar) this.addBand(railFar, 1, O.railFar, "railFar");
-    if (this.course && this.course.finishGradientPermille !== 0) {
+    this.buildCrowd();
+    if (this.stage.elevation.gradientPermille !== 0) {
       // On a sloping finish the rail dips below its usual line at the low end of the frame:
       // a level bank of the field's grass covers the backdrop's foot there (drawn before the
       // track, so the tilted ground and rail paint over it wherever they rise).
@@ -507,7 +525,7 @@ export class TracksideScene {
       uPpm: { value: 100 },
       uCamH: { value: 6 },
       uK: { value: LANE_K },
-      uLaneW: { value: LANE_W },
+      uLaneW: { value: this.stage?.lanes.widthM ?? LANE_W },
       uTexPerM: { value: SRC_PX_PER_M },
       uCxMod: { value: 0 },
       uFinishPx: { value: 1e7 },
@@ -523,22 +541,65 @@ export class TracksideScene {
     this.ground = { mesh: this.quad(mat, O.ground), mat };
   }
 
+  /** The stage's landmarks on the far rail: numbered poles, distance boards, judge's box, post. */
   private buildProps(): void {
-    const post = this.art.images.get("finish-post");
-    const pole = this.art.images.get("furlong-pole");
     const tint: [string, number] = this.look.spriteTint;
-    if (post) {
-      const m = this.bandMat(this.canvasTex(post), post.width, post.height, { sharp: true, tint });
-      this.props.push({ mesh: this.quad(m, O.props), x: this.L, w: post.width, h: post.height, post: true });
-    }
-    if (pole) {
-      const tex = this.canvasTex(pole);
-      const furlong = FURLONG_MM / 1000;
-      for (let d = furlong; this.L - d > 20; d += furlong) {
-        const m = this.bandMat(tex, pole.width, pole.height, { sharp: true, tint });
-        this.props.push({ mesh: this.quad(m, O.props), x: this.L - d, w: pole.width, h: pole.height, post: false });
+    const pole = this.art.images.get("furlong-pole");
+    const post = this.art.images.get("finish-post");
+    const add = (c: HTMLCanvasElement | HTMLImageElement, x: number, lift: number, lane: number, order: number = O.props) => {
+      const m = this.bandMat(this.canvasTex(c), c.width, c.height, { sharp: true, tint });
+      this.props.push({ mesh: this.quad(m, order), x, w: c.width, h: c.height, lift, lane });
+    };
+    const poleLane = this.railLane - 0.45;
+    for (const p of this.plan.props) {
+      if (p.kind === "post") {
+        if (post) add(post, p.x, 0, poleLane);
+      } else if (p.kind === "judge") {
+        add(judgeBoxCanvas(), p.x, 0, this.railLane + 1.6, O.judge);
+      } else {
+        const h = pole?.height ?? 142;
+        if (pole) add(pole, p.x, 0, poleLane);
+        // the plate sits on top of the pole (its foot 6 px into the pole's cap)
+        if (p.plate) add(plateCanvas(p.plate), p.x, h - 6, poleLane);
       }
     }
+  }
+
+  /** The cheering crowd strip along the far rail around the line (frame 0 = the static crowd). */
+  private buildCrowd(): void {
+    const c = this.stage.scenery.crowd[0];
+    const img = c ? this.stageArt.images.get(c.src) : undefined;
+    if (!c || !img) return;
+    const frames = stripFrames(img, 320);
+    const tex = frames.map((f) => this.canvasTex(f, { repeatX: true, mip: true }));
+    const mat = this.bandMat(tex[0]!, 320, img.height, { sharp: true, tint: this.look.spriteTint });
+    this.into = this.trackLayer;
+    this.crowd = { mesh: this.quad(mat, O.crowd), mat, tex, w: 320, h: img.height, x0: c.fromX, x1: c.toX };
+    this.into = null;
+  }
+
+  /** Ground fx sprites (mud / dust / divots by surface and going), a small recycled pool. */
+  private buildGroundFx(): void {
+    for (const id of this.stage.fx.emit) {
+      const img = this.stageArt.images.get(`race/${id}.png`);
+      if (!img) continue;
+      const c = fxStripCanvas(img, this.stageArt.fx, id, this.stage.fx.key);
+      this.fxStrips.push({ tex: this.canvasTex(c, { nearest: true }), frames: 8, fw: 48, fh: 32, fps: FX_FPS[id] ?? 12, anchor: FX_ANCHOR[id] ?? [0.8, 0.8] });
+    }
+    if (!this.fxStrips.length) return;
+    const n = this.quality === "high" ? FX_MAX : FX_MAX / 2;
+    for (let i = 0; i < n; i++) {
+      const st = this.fxStrips[0]!;
+      const mat = this.bandMat(st.tex, st.fw * st.frames, st.fh, { sharp: true, tint: this.look.spriteTint });
+      const mesh = this.quad(mat, O.dust);
+      mesh.visible = false;
+      this.fx.push({ mesh, mat, strip: 0, x: 0, lane: 0, age: -1, flip: false });
+    }
+  }
+
+  /** What this scene built from the stage (guard test: must equal the 3D view's). */
+  get inventory(): StageInventory {
+    return tracksideInventory(this.stage, this.plan);
   }
 
   private buildRunners(): void {
@@ -579,15 +640,12 @@ export class TracksideScene {
         mat,
         mesh: this.quad(mat, O.horse + i),
         shadow: this.quad(shadowMat, O.shadow),
-        phase: ((i * 0.37) % 1) + 0.01,
-        idlePhase: (i * 5.3) % 14,
-        lastX: Number.NaN,
         x: 0,
         lane: h.gate - 1,
         speed: 0,
-        finishT: null,
-        finishSpeed: 8,
-        prevLeg: [0, 0],
+        st: { x: 0, lane: h.gate - 1, speed: 0, gait: "stand", phase: 0, anim: "break", frame: 0 },
+        lastPhase: Number.NaN,
+        strip: null,
         lod: 0,
         rect: { x: 0, y: 0, w: 0, h: 0 },
       };
@@ -726,9 +784,8 @@ export class TracksideScene {
   /** The race is over: switch to the official replay (same horses, same scene). */
   setFinal(final: RaceReplay): void {
     this.data = final;
-    this.sampler = createReplaySampler(final);
+    this.motion.setSource(final);
     this.applyResult();
-    for (const r of this.runners) r.finishT = null;
     // No camera reset: a continuous live -> official hand-off keeps easing (a photo-finish
     // replay jumps back in time and is caught by the seek check instead).
   }
@@ -740,7 +797,7 @@ export class TracksideScene {
     const seek = Math.abs(simDt) > 0.6 || simDt < -1e-9;
     if (seek) {
       simDt = 0;
-      this.dust.n = 0;
+      for (const p of this.fx) p.age = -1;
     }
     if (f.frozen) simDt = 0;
     const snap = this.firstFrame || seek || Number.isNaN(this.lastTime);
@@ -750,34 +807,33 @@ export class TracksideScene {
     if (!f.frozen) this.realTime += realDt;
     const L = this.L;
 
-    // --- Runners from the frames (live: only the frames received so far) ----------
-    this.samples = this.sampler(tS, this.samples);
+    // --- Runners: the shared motion (replay x up to the line, the run-out after it) ----
+    this.states = this.motion.stateAt(raceT, this.states);
+    this.samples = this.motion.samples;
     const haveFrames = this.data.frames.length > 0;
     for (const r of this.runners) {
-      const s = this.samples[r.index]!;
-      if (r.finishT === null && s.finishTimeSec !== null) {
-        r.finishT = s.finishTimeSec;
-        const before = this.sampler(Math.max(0, r.finishT - 0.05), this.scratch)[r.index]!;
-        r.finishSpeed = Math.max(8, before.speed / 1000);
-        this.samples = this.sampler(tS, this.samples);
-      }
-      if (!this.data.result && r.finishT !== null) this.winnerTime = Math.min(this.winnerTime, r.finishT);
-      if (r.finishT !== null && tS > r.finishT) {
-        const e = Math.exp(-(tS - r.finishT) / PULLUP_TAU);
-        r.x = L + r.finishSpeed * PULLUP_TAU * (1 - e);
-        r.speed = r.finishSpeed * e;
-      } else {
-        r.x = s.x / 1000;
-        r.speed = raceT < 0 ? 0 : s.speed / 1000;
-      }
-      r.lane = haveFrames ? s.lane : this.data.horses[r.index]!.gate - 1;
+      const st = this.states[r.index]!;
+      r.st = st;
+      const ft = this.motion.finishInfo(r.index).finishT;
+      if (!this.data.result && ft !== null) this.winnerTime = Math.min(this.winnerTime, ft);
+      r.x = st.x;
+      r.speed = st.speed;
+      r.lane = haveFrames ? st.lane : this.data.horses[r.index]!.gate - 1;
     }
 
     // --- Camera + layout -------------------------------------------------------
     // Whole field: every runner stays on screen (placeField's guarantee). Follow mine:
     // the camera locks on the highlighted runner (that guarantee is whole-field only).
     const sprite = this.sprite;
-    const followOn = f.follow === true && this.highlight >= 0;
+    // Shared shot intent: the viewer's one director runs on whichever view is showing (so a
+    // switch keeps its shot); on "pull-up follow" the camera goes with the horse being
+    // celebrated (the 3D view frames the same horse); "Follow mine" always wins.
+    const winner = this.motion.winner();
+    if (f.director) this.direct(f.director, raceT, seek || snap, winner);
+    const intent = f.director ? f.director.intent : null;
+    const followWinner = intent?.kind === "pullup" && winner >= 0 && tS > this.winnerTime + 2;
+    const followIdx = f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
+    const followOn = followIdx >= 0;
     // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
     // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the
     // follow lock's spring would settle 2*v/omega ahead of the runner — enough to push it
@@ -793,7 +849,7 @@ export class TracksideScene {
         railLane: this.railLane,
         finishX: L,
         runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed * camV })),
-        followIndex: followOn ? this.highlight : null,
+        followIndex: followOn ? followIdx : null,
       },
       snap ? 0 : realDt,
       snap,
@@ -808,7 +864,7 @@ export class TracksideScene {
       railLane: this.railLane,
       laneSpan: this.cam.laneSpan,
       headroomM: this.highlight >= 0 ? 0.5 : 0.25,
-      follow: followOn ? this.highlight : null,
+      follow: followOn ? followIdx : null,
     });
     this.layout = lay;
     const dcx = snap || Number.isNaN(this.prevCx) ? 0 : lay.cx - this.prevCx;
@@ -818,7 +874,7 @@ export class TracksideScene {
       let fieldV = 0;
       for (const r of this.runners) fieldV += r.speed;
       fieldV /= Math.max(1, this.runners.length);
-      const refV = followOn ? this.runners[this.highlight]!.speed : fieldV;
+      const refV = followOn ? this.runners[followIdx]!.speed : fieldV;
       if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, Math.abs(dcx - refV * simDt));
     }
     this.prevCx = lay.cx;
@@ -838,18 +894,44 @@ export class TracksideScene {
     this.renderer.render(this.scene, this.camera);
   }
 
+  private dirScan = 0;
+  private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null, winnerId: null };
+  private dirEvents: { type: string; horseId?: string }[] = [];
+
+  /** Feed the shared director the same inputs the 3D view gives it. */
+  private direct(d: Director, raceT: number, jumped: boolean, winner: number) {
+    const evs = this.data.events;
+    const tS = Math.max(0, raceT);
+    if (jumped) {
+      this.dirScan = 0;
+      while (this.dirScan < evs.length && evs[this.dirScan]!.tick / this.data.tickHz < tS) this.dirScan++;
+    }
+    const ne = this.dirEvents;
+    ne.length = 0;
+    for (; this.dirScan < evs.length && evs[this.dirScan]!.tick / this.data.tickHz <= tS; this.dirScan++) ne.push(evs[this.dirScan]!);
+    const inp = this.dirInput;
+    if (inp.runners.length !== this.runners.length) inp.runners = this.runners.map((r) => ({ id: r.horseId, x: r.x }));
+    for (let i = 0; i < this.runners.length; i++) inp.runners[i]!.x = this.runners[i]!.x;
+    inp.t = raceT;
+    inp.trackLengthM = this.L;
+    inp.winnerTime = this.winnerTime;
+    inp.photoFinish = !!this.data.result?.photoFinish;
+    inp.newEvents = ne;
+    inp.highlightId = this.highlight >= 0 ? this.data.horses[this.highlight]!.horseId : null;
+    inp.winnerId = winner >= 0 ? this.data.horses[winner]!.horseId : null;
+    d.compact = this.W < 640;
+    d.update(inp);
+  }
+
   /**
    * Finish gradient (Harrowgate's uphill run-in, Larkspur's gentle drop): once the camera is
    * on the final stretch the whole track layer (ground, rails, posts, runners, dust) tilts
    * against the level backdrop, so the field is seen climbing (or running down) the hill.
    */
   private applyTilt(lay: FieldLayout) {
-    const c = this.course;
+    const e = this.stage.elevation;
     let tilt = 0;
-    if (c && c.finishGradientPermille !== 0) {
-      const foot = this.L - Math.min(this.L, c.homeStraightM);
-      tilt = finishTilt(c.finishGradientPermille, (lay.cx - foot + 40) / 90);
-    }
+    if (e.gradientPermille !== 0) tilt = finishTilt(e.gradientPermille, (lay.cx - e.fromX + 40) / 90);
     this.tilt = tilt;
     const B = this.B;
     const px = (this.W / 2) * B;
@@ -950,7 +1032,7 @@ export class TracksideScene {
     if (this.stand) {
       // World-anchored by the post (STAND_DEPTH parallax).
       const s = this.stand;
-      const sx = (this.W / 2 + (this.L + STAND_PAST_POST_M - lay.cx) * lay.ppm * STAND_DEPTH) * B;
+      const sx = (this.W / 2 + (this.stage.scenery.stand.centreX - lay.cx) * lay.ppm * STAND_DEPTH) * B;
       const w = s.w * k;
       const h = s.h * k;
       const x = sx - w / 2;
@@ -982,14 +1064,19 @@ export class TracksideScene {
     u.uBlurM!.value = Math.min(1.2, this.camSpeed / 60);
   }
 
+  /** Screen x (buffer px) of world x at a lane, through the runners' squeeze. */
+  private screenX(lay: FieldLayout, x: number, lane: number): number {
+    const ls = laneScale(lane, lay.k);
+    return (this.W / 2 + (squeezeX(lay, this.W / 2 + (x - lay.cx) * lay.ppm) - this.W / 2) * ls) * this.B;
+  }
+
   private drawProps(lay: FieldLayout) {
     const B = this.B;
-    const ls = laneScale(this.railLane - 0.45, lay.k);
-    const pxPerM = lay.ppm * ls;
-    const feet = laneY(lay, this.railLane - 0.45);
     for (const p of this.props) {
-      const k = (pxPerM * B) / SRC_PX_PER_M;
-      const sx = (this.W / 2 + (squeezeX(lay, this.W / 2 + (p.x - lay.cx) * lay.ppm) - this.W / 2) * ls) * B;
+      const ls = laneScale(p.lane, lay.k);
+      const k = (lay.ppm * ls * B) / SRC_PX_PER_M;
+      const feet = laneY(lay, p.lane) * B;
+      const sx = this.screenX(lay, p.x, p.lane);
       const w = p.w * k;
       const h = p.h * k;
       const x = Math.round(sx - w / 2);
@@ -997,7 +1084,30 @@ export class TracksideScene {
         p.mesh.visible = false;
         continue;
       }
-      this.place(p.mesh, x, Math.round(feet * B - h), w, h);
+      this.place(p.mesh, x, Math.round(feet - p.lift * k - h), w, h);
+    }
+    // The cheering crowd behind the far rail, world-anchored between its two ends.
+    const c = this.crowd;
+    if (c) {
+      const lane = this.railLane + 0.3;
+      const ls = laneScale(lane, lay.k);
+      const k = (lay.ppm * ls * B) / SRC_PX_PER_M;
+      const x0 = this.screenX(lay, c.x0, lane);
+      const x1 = this.screenX(lay, c.x1, lane);
+      const cl0 = Math.max(-4, x0);
+      const cl1 = Math.min(this.W * B + 4, x1);
+      if (cl1 <= cl0) c.mesh.visible = false;
+      else {
+        const h = c.h * k;
+        const feet = laneY(lay, this.railLane) * B;
+        this.place(c.mesh, Math.round(cl0), Math.round(feet - h + 4 * k), Math.round(cl1 - cl0), Math.round(h));
+        const span = (x1 - x0) / (c.w * k);
+        this.setUv(c.mat, ((cl0 - x0) / (x1 - x0)) * span, 0, ((cl1 - cl0) / (x1 - x0)) * span, 1);
+        let lead = 0;
+        for (const r of this.runners) lead = Math.max(lead, r.x);
+        const tex = c.tex[crowdFrame(crowdCheering(this.L - lead, this.lastTime, this.winnerTime), this.animTime, c.tex.length)]!;
+        if (c.mat.uniforms.uMap!.value !== tex) c.mat.uniforms.uMap!.value = tex;
+      }
     }
   }
 
@@ -1015,30 +1125,35 @@ export class TracksideScene {
     return cur;
   }
 
-  private drawRunners(lay: FieldLayout, simDt: number, raceT: number, tS: number) {
-    const B = this.B;
+  /** The strip for a runner's animation, falling back to the gallop/idle when art is missing. */
+  private stripFor(anim: AnimId): { st: StripSet; idle: boolean } {
     const art = this.art;
+    if (anim === "idle") return art.idle ? { st: art.idle, idle: true } : { st: art.strips.break ?? art.gallop, idle: false };
+    if (anim === "gallop") return { st: art.gallop, idle: false };
+    const s = art.strips[anim];
+    if (s) return { st: s, idle: false };
+    if (anim === "break" && art.idle) return { st: art.idle, idle: true };
+    return { st: anim === "drive" || anim === "lunge" ? art.strips.drive ?? art.gallop : art.gallop, idle: false };
+  }
+
+  private drawRunners(lay: FieldLayout, simDt: number, raceT: number, tS: number) {
+    void tS;
+    const B = this.B;
     // depth order: far lanes first
     this.byLane.sort((a, b) => b.lane - a.lane || a.x - b.x);
     this.byLane.forEach((r, i) => (r.mesh.renderOrder = O.horse + i));
     for (const r of this.runners) {
       const p = lay.placed[r.index]!;
-      const stride = strideLengthM(Math.max(r.speed, 6));
-      if (Number.isNaN(r.lastX) || simDt === 0) r.lastX = r.x;
-      const dx = r.x - r.lastX;
-      r.lastX = r.x;
-      if (dx > 0 && dx < 5) r.phase += dx / stride;
-      const finished = r.finishT !== null && tS >= r.finishT;
-      const standing = art.idle && (raceT < 0 || (finished && r.speed < 1.4));
-      const st = standing ? art.idle! : art.gallop;
+      const s = r.st;
+      const { st } = this.stripFor(s.anim);
       const q = (p.pxPerM * B) / st.pxPerM;
-      if (standing !== (r.mat.userData.idle === true)) r.lod = 0;
-      r.mat.userData.idle = standing;
+      if (st !== r.strip) r.lod = 0;
+      r.strip = st;
       r.lod = this.chooseLod(q, r.lod);
       const lod = st.lods[r.lod - 1]!;
       const tex = this.lodTex.get(st)![r.lod - 1]!;
       const frames = lod.frames;
-      const frame = standing ? Math.floor(this.realTime * IDLE_FPS + r.idlePhase) % frames : Math.floor((r.phase - Math.floor(r.phase)) * frames) % frames;
+      const frame = Math.max(0, Math.min(frames - 1, s.anim === "gallop" || s.anim === "drive" ? Math.floor((s.phase - Math.floor(s.phase)) * frames) % frames : s.frame % frames));
       const [ox, oy] = frameOrigin(lod, frame);
       const k = q * r.lod; // buffer px per LOD texel
       const w = lod.fw * k;
@@ -1064,19 +1179,11 @@ export class TracksideScene {
       const sw = bodyLen * 0.95;
       const sh = sw * 0.25;
       this.place(r.shadow, p.ax * B - bodyLen * 0.52 - sw / 2, p.feetY * B - sh * 0.55, sw, sh);
-      // hoof strikes -> dust
-      if (simDt > 0 && r.speed > 4) {
-        const legs: ["FR" | "HR", number][] = [
-          ["FR", -0.35],
-          ["HR", -1.9],
-        ];
-        legs.forEach(([leg, off], li) => {
-          const ph = legPhase(r.phase, leg);
-          if (ph < r.prevLeg[li]!) this.emitDust(r, r.x + off);
-          r.prevLeg[li] = ph;
-        });
-      }
+      // one ground-fx burst per stride, from the leading hind hoof (~1.9 m behind the nose)
+      if (simDt > 0 && r.speed > 5 && !Number.isNaN(r.lastPhase) && Math.floor(s.phase) > Math.floor(r.lastPhase)) this.emitFx(r, r.x - 1.9);
+      r.lastPhase = s.phase;
     }
+    void raceT;
     if (this.marker && this.highlight >= 0) {
       const r = this.runners[this.highlight]!;
       const p = lay.placed[this.highlight]!;
@@ -1162,17 +1269,22 @@ export class TracksideScene {
     return this.gapMarks.filter((g) => g.chipA > 0.05).map((g) => ({ label: g.label, x: g.x, alpha: g.chipA }));
   }
 
-  private emitDust(r: Runner, wx: number) {
-    const d = this.dust;
-    const per = this.quality === "high" ? 3 : 1;
-    for (let i = 0; i < per; i++) {
-      if (d.n >= DUST_MAX) return;
-      const o = d.n * 8;
-      // x (m), lane, height (m), vx, vy, life, owner, max life
-      const life = 0.5 + Math.random() * 0.7;
-      d.state.set([wx + (Math.random() - 0.5) * 0.4, r.lane + (Math.random() - 0.5) * 0.4, Math.random() * 0.1, -1 - Math.random() * 2.5, 0.4 + Math.random() * 1.1, life, r.index, life], o);
-      d.n++;
-    }
+  /** Deterministic per-runner jitter (no Math.random in what both views show). */
+  private fxCount = 0;
+  private emitFx(r: Runner, wx: number) {
+    if (!this.fx.length) return;
+    const slot = this.fx.find((p) => p.age < 0) ?? null;
+    if (!slot) return;
+    const n = this.fxCount++;
+    // main strip, an occasional second one (1 in 4) when the going has one
+    const strip = this.fxStrips.length > 1 && n % 4 === 3 ? 1 : 0;
+    slot.strip = strip;
+    slot.x = wx + (((n * 37) % 7) - 3) * 0.03;
+    slot.lane = r.lane + (((n * 13) % 5) - 2) * 0.04;
+    slot.age = 0;
+    slot.flip = n % 5 === 2;
+    const st = this.fxStrips[strip]!;
+    if (slot.mat.uniforms.uMap!.value !== st.tex) slot.mat.uniforms.uMap!.value = st.tex;
   }
 
   private drawFx(lay: FieldLayout, dt: number, frozen: boolean, flash: number) {
@@ -1180,39 +1292,31 @@ export class TracksideScene {
     const Wb = this.W * B;
     const Hb = this.H * B;
     const look = this.look;
-    // hoof dust (world-anchored, follows its runner's on-screen squeeze)
-    const d = this.dust;
+    // ground fx sprites: world-anchored where the hoof struck, one-shot frames, whole pixels
     const sdt = frozen ? 0 : dt;
-    let w = 0;
-    const dc = rgb01(look.dust);
-    for (let i = 0; i < d.n; i++) {
-      const o = i * 8;
-      const life = d.state[o + 5]! - sdt;
-      if (life <= 0) continue;
-      const n = w * 8;
-      for (let j = 0; j < 8; j++) d.state[n + j] = d.state[o + j]!;
-      d.state[n] = d.state[n]! + d.state[n + 3]! * sdt;
-      d.state[n + 2] = Math.max(0, d.state[n + 2]! + d.state[n + 4]! * sdt);
-      d.state[n + 4] = d.state[n + 4]! - 2.2 * sdt;
-      d.state[n + 5] = life;
-      const lane = d.state[n + 1]!;
-      const owner = lay.placed[d.state[n + 6]!]!;
-      const ls = laneScale(lane, lay.k);
-      const ppl = lay.ppm * ls;
-      const x = (this.W / 2 + (d.state[n]! - lay.cx) * ppl + owner.shift) * B;
-      const y = (laneY(lay, lane) - d.state[n + 2]! * ppl) * B;
-      d.pos[w * 3] = Math.round(x);
-      d.pos[w * 3 + 1] = Math.round(y);
-      d.pos[w * 3 + 2] = 0;
-      const texel = (ppl * B) / SRC_PX_PER_M;
-      d.size[w] = Math.max(1, Math.round(texel * (life / d.state[n + 7]! > 0.6 ? 3 : 2)));
-      d.col.set([dc[0], dc[1], dc[2], 0.55 * Math.min(1, life * 1.6)], w * 4);
-      d.soft[w] = 0;
-      w++;
+    for (const p of this.fx) {
+      if (p.age < 0) {
+        p.mesh.visible = false;
+        continue;
+      }
+      p.age += sdt;
+      const st = this.fxStrips[p.strip]!;
+      const frame = Math.floor(p.age * st.fps);
+      if (frame >= st.frames) {
+        p.age = -1;
+        p.mesh.visible = false;
+        continue;
+      }
+      const ls = laneScale(p.lane, lay.k);
+      const k = Math.max(1, Math.round((lay.ppm * ls * B) / SRC_PX_PER_M));
+      const sx = this.screenX(lay, p.x, p.lane);
+      const feet = laneY(lay, p.lane) * B;
+      const w = st.fw * k;
+      const h = st.fh * k;
+      const ax = (p.flip ? 1 - st.anchor[0] : st.anchor[0]) * w;
+      this.place(p.mesh, Math.round(sx - ax), Math.round(feet - st.anchor[1] * h), w, h);
+      this.setUv(p.mat, p.flip ? (frame + 1) / st.frames : frame / st.frames, 0, (p.flip ? -1 : 1) / st.frames, 1);
     }
-    d.n = w;
-    d.geo.setDrawRange(0, w);
-    for (const name of ["position", "aSize", "aCol", "aSoft"]) (d.geo.getAttribute(name) as THREE.BufferAttribute).needsUpdate = true;
 
     // motes: crisp sparks in the focal band, soft bokeh near the lens
     if (this.motes) {
@@ -1312,6 +1416,7 @@ export class TracksideScene {
       }
     }
     for (const run of this.runners) run.mesh.visible = true;
+    for (const p of this.fx) p.mesh.visible = true;
     this.render({ time: -1, realDt: 0, camera: "director", frozen: false, flash: 0.5 });
     this.lastTime = Number.NaN;
     this.firstFrame = true;

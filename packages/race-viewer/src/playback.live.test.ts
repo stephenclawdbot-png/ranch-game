@@ -60,6 +60,43 @@ describe("LiveClock", () => {
   });
 });
 
+describe("LiveClock past the data edge", () => {
+  it("keeps running (no freeze, no jump back) once every runner is home, until the final arrives", () => {
+    const s = { broadcastStartMs: T0, liveEdgeFrame: 700, frameDt: 0.1, allFinished: false };
+    const c = new LiveClock(s, true, T0 + 70_000);
+    let now = T0 + 70_000;
+    let prev = c.tick(0.016, now).time;
+    expect(prev).toBeCloseTo(70);
+    // the last runner crosses: no more frames will come
+    s.allFinished = true;
+    for (let i = 0; i < 300; i++) {
+      now += 16;
+      const t = c.tick(0.016, now).time;
+      expect(t).toBeGreaterThanOrEqual(prev); // never back
+      prev = t;
+    }
+    expect(prev).toBeCloseTo(70 + 300 * 0.016, 1); // follows the wall clock past the 70 s data edge
+    expect(c.buffering).toBe(false);
+  });
+
+  it("still holds at the data edge while runners are out on the course (buffering)", () => {
+    const s = { broadcastStartMs: T0, liveEdgeFrame: 300, frameDt: 0.1, allFinished: false };
+    const c = new LiveClock(s, true, T0 + 35_000);
+    expect(c.tick(0.016, T0 + 35_000).time).toBeCloseTo(30);
+  });
+
+  it("extrapolates finished horses with the shared run-out model past the edge", async () => {
+    const { FieldMotion } = await import("./stage/motion");
+    const full = fakeReplay({ horses: 6, seed: 4, distanceM: 1000, photoFinish: false });
+    const live = { ...full, result: null };
+    const m = new FieldMotion(live);
+    const edge = (full.frames.length - 1) * (full.sampleEvery / full.tickHz);
+    const a = m.stateAt(edge).map((r) => r.x);
+    const b = m.stateAt(edge + 4).map((r) => r.x);
+    b.forEach((x, i) => expect(x).toBeGreaterThan(a[i]!));
+  });
+});
+
 describe("live sampling (no result)", () => {
   it("orders finishers by frame-derived crossing time, never reading result", () => {
     // No photo: 10 Hz frames cannot resolve a nose (that is what final.result is for).

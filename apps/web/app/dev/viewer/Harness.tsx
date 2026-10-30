@@ -37,6 +37,14 @@ export interface HarnessParams {
   hour?: string;
   /** "0" hides the frame-time overlay. */
   debug?: string;
+  /** "0": no forced photo finish (default: the first two within a nose). */
+  photo?: string;
+  /** Cruising-speed spread (1 default; 4 = a strung-out field). */
+  spread?: string;
+  /** Comma-separated horse ids injured in the race (pulled up after the line). */
+  pullup?: string;
+  /** "0" hides the results card. */
+  results?: string;
 }
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -53,8 +61,10 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         surface: (params.surface as Surface) ?? "turf",
         name: course ? `${course.name} Sprint Stakes` : undefined,
         postTimeMs: params.hour !== undefined ? new Date().setHours(num(params.hour, 18), 0, 0, 0) : undefined,
+        photoFinish: params.photo !== "0",
+        spread: num(params.spread, 1),
       }),
-    [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour],
+    [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour, params.photo, params.spread],
   );
   const startAtMs = useMemo(() => (params.start !== undefined ? Date.now() + num(params.start, 5) * 1000 : undefined), [params.start]);
 
@@ -86,6 +96,8 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         artBaseUrl={params.art === "none" ? null : "/art"}
         height={params.h !== undefined ? num(params.h, 420) : undefined}
         course={course}
+        injuredHorseIds={params.pullup ? params.pullup.split(",") : undefined}
+        resultsCard={params.results !== "0"}
       />
     </main>
   );
