@@ -651,7 +651,7 @@ export const races = pgTable(
     postTime: ts("post_time").notNull(),
     entriesCloseAt: ts("entries_close_at").notNull(),
     status: raceStatusEnum("status").notNull().default("open"),
-    /** Live card slot ("live:<slot index>"): one race per slot, however many instances publish. */
+    /** Live card slot (card.ts slotKeyOf: "live15m:<slot index>"; "live:<index>" on the old 3-minute card): one race per slot, however many instances publish. */
     slotKey: text("slot_key"),
     maxRunners: integer("max_runners").notNull().default(12),
     /** Field size the lock fills to with house horses (RULES.minField..maxField: 5-12). */
