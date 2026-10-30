@@ -213,6 +213,8 @@ export interface ListingView extends EcoHorse {
   sellerReceives: number;
   sellerStableName: string;
   sellerSilks: Silks;
+  /** A Club lot (the Club seeds the market): the whole price is burned. */
+  club: boolean;
   expiresAtMs: number;
   mine: boolean;
   /** Sale catalogue lot number (stable for the listing's life). */
@@ -299,6 +301,8 @@ export interface LeaseListingView extends EcoHorse, LeaseTermsView {
   expiresAtMs: number;
   /** The owner has never leased a horse out before. */
   newOwner: boolean;
+  /** A Club offer (the Club seeds the lease board): its owner share is burned. */
+  club: boolean;
   mine: boolean;
   /** Why the viewer can't take it (null = they can). */
   takeBlock: string | null;

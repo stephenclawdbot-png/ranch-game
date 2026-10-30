@@ -126,6 +126,7 @@ export async function leaseView(db: Db, session: Session, now: Date): Promise<Le
       wins: b.horse.wins,
       expiresAtMs: b.listing.expiresAt.getTime(),
       newOwner: b.newOwner,
+      club: b.listing.club,
       mine,
       takeBlock,
     };

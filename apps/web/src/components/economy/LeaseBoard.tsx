@@ -160,7 +160,15 @@ function BoardRow({ l, onView }: { l: LeaseListingView; onView: (v: LeaseView) =
       <div className="flex items-baseline justify-between gap-2 border-b border-dashed border-line pb-2">
         <span className="lot-no">{l.termDays}-day lease</span>
         <span className="truncate text-xs font-bold text-cream-dim">
-          {l.newOwner && <span className="tag !h-5 !text-[0.6875rem]">New owner</span>} Owner · {l.ownerStableName}
+          {l.newOwner && <span className="tag !h-5 !text-[0.6875rem]">New owner</span>} Owner ·{" "}
+          {l.club && (
+            <>
+              <span className="tag !h-[16px] !px-1 align-[1px] !text-[0.625rem] !leading-[16px]" data-testid="club-seller" title="A Club horse: the Club offers a few every day">
+                Club
+              </span>{" "}
+            </>
+          )}
+          {l.ownerStableName}
         </span>
       </div>
       <HorseLine h={l} meta={<>OR {l.rating} · form {formLine(l.form)} · {l.wins} {l.wins === 1 ? "win" : "wins"} from {l.starts}</>} />

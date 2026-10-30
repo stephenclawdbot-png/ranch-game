@@ -69,6 +69,7 @@ import {
   storedRaceDay,
   raceSponsor,
   leaseForHorse,
+  CLUB_OWNER_NAME,
   stableLeases,
   type CardHooks,
   type Db,
@@ -1293,7 +1294,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   // Coat genetics are public stud-book information: any viewer gets them.
   const genetics = geneticsView(row, nowMs);
   const atStud = (row.studFee !== null || row.studFeeUsdg !== null) && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
-  if (!row.ownerStableId) {
+  if (!row.ownerStableId && !row.lesseeStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
       return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
@@ -1301,7 +1302,8 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     const house = houseStableFor(row.id);
     return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, tree, genetics, stud: null, actions: null };
   }
-  const stable = await getStable(db, row.ownerStableId);
+  // A Club horse away on lease (owner null) shows under its lessee's colours like any leased horse.
+  const stable = row.ownerStableId ? await getStable(db, row.ownerStableId) : null;
   // On lease the horse races in the lessee's colours; the lessee keeps it, the owner owns it.
   const lessee = row.lesseeStableId ? await getStable(db, row.lesseeStableId) : null;
   const silks = parseSilks((lessee ?? stable)?.silks);
@@ -1338,7 +1340,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     horse: horseFromRow(row, silks, nowMs),
     regNo,
     kind: "player",
-    stableName: stable?.name ?? "Private stable",
+    stableName: stable?.name ?? (row.ownerStableId ? "Private stable" : CLUB_OWNER_NAME),
     trainer: null,
     mine,
     owned,

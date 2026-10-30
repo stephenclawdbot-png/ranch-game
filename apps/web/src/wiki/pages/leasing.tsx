@@ -121,6 +121,13 @@ export default function LeasingPage() {
         </p>
       </Callout>
 
+      <H2 id="club-offers">Club horses on lease</H2>
+      <P>
+        The Club offers some of its own racers on the board too, marked <b>Club</b>: up to {gc.CLUB_LEASE_OFFERS_MAX} at a time, one fewer for every open offer from a player, so it steps
+        back as owners offer their own. Club leases run {gc.CLUB_LEASE_TERMS_DAYS.join(" or ")} days with the usual welfare terms, and the same rules apply to take one. The Club&rsquo;s{" "}
+        {gc.CLUB_LEASE_OWNER_SHARE_PCT}% of the purses is burned, not paid to anyone, and the horse goes back to the Club when the lease ends.
+      </P>
+
       <H2 id="coming-home">When the horse comes home</H2>
       <P>
         The horse always goes home, even to a full stable: like a newborn foal it can sit in the overflow stall, and the owner can&rsquo;t take on more horses until a stall is free. The lease ends

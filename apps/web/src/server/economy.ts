@@ -568,7 +568,8 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
   const lots = lotNumbers(all.map((m) => m.listing.id));
   const view = (m: (typeof all)[number]): ListingView => {
     const sellerSilks = parseSilks(m.sellerSilks);
-    const fee = gc.marketFee(m.listing.price);
+    // A Club lot burns the whole price (packages/db market.ts buyListing).
+    const fee = m.listing.club ? m.listing.price : gc.marketFee(m.listing.price);
     return {
       ...ecoHorse(m.horse, sellerSilks, nowMs),
       listingId: m.listing.id,
@@ -578,6 +579,7 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
       sellerReceives: m.listing.price - fee,
       sellerStableName: m.sellerStableName,
       sellerSilks,
+      club: m.listing.club,
       expiresAtMs: m.listing.expiresAt.getTime(),
       mine: m.listing.sellerStableId === session.stable.id,
       lot: lots.get(m.listing.id)!,

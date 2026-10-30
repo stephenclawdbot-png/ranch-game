@@ -57,6 +57,14 @@ export default function TheMarketPage() {
         A horse you buy can&rsquo;t go back on the market for <b>{Math.round(gc.RESALE_LOCK_MS / 3_600_000)} hours</b> after the sale. The lock only stops it being listed again.
       </P>
 
+      <H2 id="club-lots">Club lots</H2>
+      <P>
+        The Club puts a few of its own racing horses through the ring every day, marked <b>Club</b> in the catalogue: up to {gc.CLUB_SALE_LISTINGS_PER_DAY} new lots a day, at most{" "}
+        {gc.CLUB_SALE_LISTINGS_MAX} at once, and one fewer for every lot players have up, so the Club steps back as stables sell their own. Club lots ask{" "}
+        {gc.CLUB_SALE_PRICE_PERMILLE / 10}% of the appraisal and stay up for {gc.CLUB_SALE_LISTING_HOURS} hours. Everything you pay for one is burned. A horse bought from the Club is yours like any
+        other: it races and breeds for you and can be sold again after the resale lock. It stays Club-bred, so it can never be registered for the <WikiLink slug="usdg-market">USDG market</WikiLink>.
+      </P>
+
       <H2 id="appraisal">The appraisal</H2>
       <P>
         The Club appraises every horse, and that number sets the price band, the insurance premium and the insurance payout. It uses only what the market can see:
