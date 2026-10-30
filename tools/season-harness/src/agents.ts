@@ -20,7 +20,10 @@
  *   occasionally sponsors a race.
  * - breeder: covers every mare the season allows (retiring mares to the paddock), foals and
  *   names, stands a stallion at stud, sells surplus stock once the market lets them, moves
- *   spent horses to the Legacy Farm; offers surplus racing horses for lease (within the owner caps).
+ *   spent horses to the Legacy Farm; offers surplus racing horses for lease (within the owner caps);
+ *   enters a surplus tradeable racer in the day's claiming race at about its appraisal.
+ * - claiming: grinders (daily) and casuals (now and then) with a free stall and spare credits
+ *   look at the day's claiming race and claim a runner that fits their string.
  * - farmer: one main plus alt accounts run by the same person. Alts farm credits on the card
  *   and pass them to the main through the two channels the rules allow: covering their mares
  *   with the main's stallion (the main sets the fee to what the alt holds) and buying the
@@ -30,7 +33,7 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { DomainError, RULES, recordAccountSignal, stableOf, type Db } from "@thoroughbred/db";
-import { enterLive, entryOptions, playerView, quickPickLive, raceList, refill } from "@/server/game";
+import { claimLive, enterLive, entryOptions, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
 import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
 import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
 import { cupView, leagueView, runCup } from "@/server/competition";
@@ -101,6 +104,9 @@ export interface AgentStats {
   leaseOffers: number;
   leasesTaken: number;
   leasesReturned: number;
+  /** Claiming races: horses entered (owners) and claims lodged (claimants). */
+  claimEntries: number;
+  claimsLodged: number;
   /** Refused actions by DomainError code. */
   refused: Record<string, number>;
 }
@@ -109,7 +115,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, refused: {},
   };
 }
 
@@ -372,7 +378,8 @@ async function sheetEntries(c: VisitCtx, s: Session, view: SheetView, opts: Shee
   const horizon = c.now.getTime() + opts.lookaheadMs;
   const card = (list?.upcoming ?? []).filter((r) => r.phase === "open" && r.mine === 0 && r.entriesCloseAtMs > c.now.getTime() + MIN);
   const features = card.filter((r) => isQualifier(r) || isWeekendFeature(r));
-  const regular = card.filter((r) => !isQualifier(r) && !isWeekendFeature(r) && r.postTimeMs <= horizon);
+  // a claiming race puts the horse up for sale: only entered on purpose (enterClaiming)
+  const regular = card.filter((r) => !isQualifier(r) && !isWeekendFeature(r) && !r.claiming && r.postTimeMs <= horizon);
   for (const race of [...features, ...regular]) {
     if (!free.size || balance < race.entryCost || made >= (opts.maxEntries ?? Infinity)) break;
     const sheet = await c.world.act(c.a, "entry_options", c.now, () => entryOptions(c.world.db, s, race.id, c.now));
@@ -571,6 +578,58 @@ async function makeRoom(c: VisitCtx, s: Session): Promise<void> {
   if (spare && (await c.world.act(c.a, "legacy", c.now, () => careerAction(c.world.db, s, spare.id, "legacy", c.now)))) c.a.stats.legacy++;
 }
 
+/**
+ * Claiming races (the race is the market): an owner enters one surplus tradeable racer (not one
+ * of its two best, and one the race suits) in the day's open claiming race, at about its
+ * appraisal (90-115%, inside the band the sheet gives).
+ */
+async function enterClaiming(c: VisitCtx, s: Session, view: SheetView): Promise<void> {
+  const list = await c.world.act(c.a, "race_list", c.now, () => raceList(c.world.db, c.now, s.stable.id, { upcoming: 64, recent: 0 }));
+  const race = (list?.upcoming ?? []).find((r) => r.claiming && r.phase === "open" && r.mine === 0 && r.entriesCloseAtMs > c.now.getTime() + MIN);
+  if (!race || view.entries.balance < race.entryCost) return;
+  const racing = view.horses.filter((h) => h.careerStatus === "racing" && !h.block && h.ranToday < RULES.liveStartsPerDay && h.condition !== "tired");
+  const best = new Set([...view.horses.filter((h) => h.careerStatus === "racing")].sort((x, y) => y.rating - x.rating).slice(0, 2).map((h) => h.id));
+  const surplus = new Set(racing.filter((h) => !best.has(h.id)).map((h) => h.id));
+  if (!surplus.size) return;
+  const sheet = await c.world.act(c.a, "entry_options", c.now, () => entryOptions(c.world.db, s, race.id, c.now));
+  const pick = sheet?.options.filter((o) => o.reason === null && o.claim && surplus.has(o.horseId) && o.fitLoss <= 40).sort((x, y) => x.fitLoss - y.fitLoss)[0];
+  if (!pick?.claim) return;
+  const horse = view.horses.find((h) => h.id === pick.horseId)!;
+  const price = Math.max(pick.claim.min, Math.min(pick.claim.max, Math.round((pick.claim.appraisal * (90 + c.a.rng.int(26))) / 100)));
+  if (await c.world.act(c.a, "claiming_enter", c.now, () => enterLive(c.world.db, s, race.id, pick.horseId, { tactic: horse.horse.style, intensity: "normal" }, c.now, gc.NO_RACE_DAY, price))) {
+    c.a.stats.claimEntries++;
+    c.a.stats.liveEntries++;
+  }
+}
+
+/**
+ * A stable with a free stall and spare credits looks at the day's claiming race and claims a
+ * runner that fits its string (rated at least as well as its own median racer), priced so it keeps
+ * `reserve` back. The server refuses own horses, linked accounts and a second claim.
+ */
+async function maybeClaim(c: VisitCtx, s: Session, view: View, reserve: number): Promise<void> {
+  if (view.stalls.used >= view.stalls.slots || view.credits <= reserve) return;
+  const list = await c.world.act(c.a, "race_list", c.now, () => raceList(c.world.db, c.now, s.stable.id, { upcoming: 64, recent: 0 }));
+  const race = (list?.upcoming ?? []).find((r) => r.claiming && r.phase === "open" && r.entriesCloseAtMs > c.now.getTime() + MIN);
+  if (!race) return;
+  const card = await c.world.act(c.a, "race_card", c.now, () => raceCard(c.world.db, race.id, c.now, s.stable.id));
+  if (!card || card.claiming?.myClaim) return;
+  const ratings = view.horses.filter((h) => h.careerStatus === "racing").map((h) => h.rating).sort((x, y) => x - y);
+  const median = ratings.length ? ratings[Math.floor(ratings.length / 2)]! : 0;
+  const pick = card.field
+    .filter((e) => e.claim && !e.mine && e.isPlayer && (e.rating ?? 0) >= median && view.credits - e.claim.price >= reserve)
+    .sort((x, y) => (y.rating ?? 0) - (x.rating ?? 0) || x.claim!.price - y.claim!.price)[0];
+  if (!pick) return;
+  if (await c.world.act(c.a, "claim", c.now, () => claimLive(c.world.db, s, race.id, pick.horse.id, c.now))) c.a.stats.claimsLodged++;
+}
+
+/** Chance per visit (permille) that a casual with room and savings looks at the claiming race. */
+const CASUAL_CLAIM_PERMILLE = 60;
+/** Chance per day (first visit, permille) that a grinder looks at the claiming race. */
+const GRINDER_CLAIM_PERMILLE = 300;
+/** Chance per day (last visit, permille) that a breeder enters a surplus racer in the claiming race. */
+const BREEDER_CLAIMING_PERMILLE = 500;
+
 // ---------------------------------------------------------------------------
 // Cohort visits
 // ---------------------------------------------------------------------------
@@ -597,6 +656,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       if (a.rng.chance(CASUAL_LEASE_PERMILLE)) await takeALease(c, s);
       // Now and then a casual with a free stall and savings browses the sales (Club lots ask 110%).
       if (a.rng.chance(CASUAL_SHOP_PERMILLE)) await shop(c, s, 4_000, 1.15);
+      if (a.rng.chance(CASUAL_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 4_000);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -681,6 +741,7 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     if (a.rng.chance(300)) await shop(c, s, 2_500, 1.15);
     // Grinders buy stalls, so they are the stables with room for a leased racer.
     if (a.rng.chance(GRINDER_LEASE_PERMILLE)) await takeALease(c, s);
+    if (a.rng.chance(GRINDER_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 2_500);
     // Morning work, after the night's rest: one session for every horse that isn't tired.
     const mv = (await fresh(c, s)) ?? view;
     await train(c, s, mv.horses, 1_500, mv.credits);
@@ -725,6 +786,11 @@ async function breederVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await sellSurplus(c, s, (h) => h.careerStatus === "racing", (h) => h.appraisal * (1 + a.rng.int(30) / 100), 2);
     // Racers it doesn't sell can be leased out instead (rent racers, buy breeders).
     await offerLeases(c, s);
+    // ...or run in the day's claiming race at about their appraisal (the race is the market).
+    if (a.rng.chance(BREEDER_CLAIMING_PERMILLE)) {
+      const v = await fresh(c, s);
+      if (v) await enterClaiming(c, s, v);
+    }
     if (a.rng.chance(200)) await storyRaces(c, s, 1);
   }
 }
