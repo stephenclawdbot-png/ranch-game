@@ -500,6 +500,9 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
     .where(
       and(
         isNull(horses.ownerStableId),
+        // A Club horse away on lease races for its lessee; one on a Club lease offer waits for a taker.
+        isNull(horses.lesseeStableId),
+        sql`not exists (select 1 from horse_lease_listings o where o.horse_id = ${horses.id} and o.status = 'active')`,
         eq(horses.origin, "house"),
         eq(horses.careerStatus, "racing"),
         isNull(horses.lockKind),

@@ -926,9 +926,10 @@ export const marketListings = pgTable(
     horseId: uuid("horse_id")
       .notNull()
       .references(() => horses.id),
-    sellerStableId: uuid("seller_stable_id")
-      .notNull()
-      .references(() => stables.id),
+    /** Null on a Club lot (club = true): the Club sells its own horse (services/clubMarket.ts). */
+    sellerStableId: uuid("seller_stable_id").references(() => stables.id),
+    /** A Club lot: listed by the Club's daily job, proceeds burned. */
+    club: boolean("club").notNull().default(false),
     price: credits("price").notNull(),
     /** Appraised value at listing time; price must be >= 70% of it (anti-dumping floor). */
     appraisal: credits("appraisal").notNull(),
@@ -946,6 +947,7 @@ export const marketListings = pgTable(
     index("market_listings_seller_idx").on(t.sellerStableId),
     check("market_listings_price", sql`${t.price} > 0`),
     check("market_listings_expiry", sql`${t.expiresAt} > ${t.createdAt}`),
+    check("market_listings_club", sql`${t.club} = (${t.sellerStableId} is null)`),
   ],
 );
 
@@ -959,9 +961,9 @@ export const trades = pgTable(
     horseId: uuid("horse_id")
       .notNull()
       .references(() => horses.id),
-    sellerStableId: uuid("seller_stable_id")
-      .notNull()
-      .references(() => stables.id),
+    /** Null on a Club sale (club = true): the price was burned. */
+    sellerStableId: uuid("seller_stable_id").references(() => stables.id),
+    club: boolean("club").notNull().default(false),
     buyerStableId: uuid("buyer_stable_id")
       .notNull()
       .references(() => stables.id),
@@ -1681,9 +1683,9 @@ export const horseLeaseListings = pgTable(
     horseId: uuid("horse_id")
       .notNull()
       .references(() => horses.id),
-    ownerStableId: uuid("owner_stable_id")
-      .notNull()
-      .references(() => stables.id),
+    /** Null on a Club offer (club = true): the Club leases out its own horse (services/clubMarket.ts). */
+    ownerStableId: uuid("owner_stable_id").references(() => stables.id),
+    club: boolean("club").notNull().default(false),
     termDays: integer("term_days").notNull(),
     ownerSharePct: integer("owner_share_pct").notNull(),
     fee: credits("fee").notNull().default(0),
@@ -1709,6 +1711,7 @@ export const horseLeaseListings = pgTable(
       sql`${t.termDays} between 1 and 60 and ${t.ownerSharePct} between 0 and 100 and ${t.fee} >= 0 and ${t.maxLiveStartsPerWeek} between 1 and 21 and (${t.minLesseeRating} is null or ${t.minLesseeRating} between 1 and 5)`,
     ),
     check("horse_lease_listings_expiry", sql`${t.expiresAt} > ${t.createdAt}`),
+    check("horse_lease_listings_club", sql`${t.club} = (${t.ownerStableId} is null)`),
   ],
 );
 
@@ -1729,9 +1732,9 @@ export const horseLeases = pgTable(
     horseId: uuid("horse_id")
       .notNull()
       .references(() => horses.id),
-    ownerStableId: uuid("owner_stable_id")
-      .notNull()
-      .references(() => stables.id),
+    /** Null on a Club lease (club = true): the owner's purse share is burned. */
+    ownerStableId: uuid("owner_stable_id").references(() => stables.id),
+    club: boolean("club").notNull().default(false),
     lesseeStableId: uuid("lessee_stable_id")
       .notNull()
       .references(() => stables.id),
@@ -1776,6 +1779,7 @@ export const horseLeases = pgTable(
     index("horse_leases_due_idx").on(t.status, t.endsAt),
     check("horse_leases_parties", sql`${t.ownerStableId} <> ${t.lesseeStableId}`),
     check("horse_leases_status", sql`${t.status} in ('active', 'ended')`),
+    check("horse_leases_club", sql`${t.club} = (${t.ownerStableId} is null)`),
     check("horse_leases_ended", sql`(${t.status} = 'ended') = (${t.endedAt} is not null)`),
     check("horse_leases_range", sql`${t.endsAt} > ${t.startsAt}`),
     check("horse_leases_rating", sql`${t.ownerRating} is null or (${t.ownerRating} between 1 and 5 and ${t.status} = 'ended')`),
@@ -1814,3 +1818,19 @@ export const stablePhotos = pgTable("stable_photos", {
 });
 
 export type StablePhotoRow = typeof stablePhotos.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// The Club seeds the markets (game-core clubMarket.ts, services/clubMarket.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per UTC day the Club's market job has run: the job inserts its day first and does
+ * nothing when the row already exists, so reruns on the same day never list twice.
+ */
+export const clubMarketDays = pgTable("club_market_days", {
+  day: text("day").primaryKey(),
+  listed: integer("listed").notNull().default(0),
+  offered: integer("offered").notNull().default(0),
+  withdrawn: integer("withdrawn").notNull().default(0),
+  createdAt: createdAt(),
+});

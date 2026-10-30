@@ -113,6 +113,13 @@
       "when": 1793360826874,
       "tag": "0015_stable_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793382144984,
+      "tag": "0016_club_market",
+      "breakpoints": true
     }
   ]
 }

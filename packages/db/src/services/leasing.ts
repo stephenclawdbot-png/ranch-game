@@ -172,8 +172,8 @@ export const LEASE_BLOCK_TEXT: Record<LeaseHorseBlock, string> = {
   cooldown: `Just back from a lease: it can be offered again ${gc.LEASE_RELIST_COOLDOWN_DAYS} days after it came home.`,
 };
 
-/** Whether this horse may be offered (and, re-checked, taken) on lease. Null = it may. */
-export async function leaseHorseBlock(ex: Executor, h: HorseRow, ownerStableId: string, now: Date): Promise<{ block: LeaseHorseBlock; until?: Date } | null> {
+/** Whether this horse may be offered (and, re-checked, taken) on lease. Null = it may. `ownerStableId` null: the Club. */
+export async function leaseHorseBlock(ex: Executor, h: HorseRow, ownerStableId: string | null, now: Date): Promise<{ block: LeaseHorseBlock; until?: Date } | null> {
   if (h.ownerStableId !== ownerStableId) return { block: "not_owner" };
   if (h.lesseeStableId) return { block: "on_lease" };
   if (h.careerStatus !== "racing") return { block: "not_racing" };
@@ -389,8 +389,9 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
     if (listing.status !== "active") throw new DomainError("LISTING_NOT_ACTIVE", "that lease offer is no longer available");
     if (listing.expiresAt <= input.now) throw new DomainError("LISTING_EXPIRED", "that lease offer has lapsed");
     if (listing.ownerStableId === lesseeStable.id) throw new DomainError("CANNOT_BUY_OWN", "that is your own horse");
-    const ownerAccountId = await accountIdOfStable(tx, listing.ownerStableId);
-    if (await areLinked(tx, input.accountId, ownerAccountId)) {
+    // A Club offer (owner null) has no counterparty: nothing to link, no owner caps, the owner's share is burned.
+    const ownerAccountId = listing.ownerStableId ? await accountIdOfStable(tx, listing.ownerStableId) : null;
+    if (ownerAccountId && (await areLinked(tx, input.accountId, ownerAccountId))) {
       await tx.insert(fraudEvents).values({
         accountId: input.accountId,
         relatedAccountId: ownerAccountId,
@@ -416,8 +417,8 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
       await tx.update(horseLeaseListings).set({ status: "cancelled", closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
       return new DomainError("LISTING_NOT_ACTIVE", `that lease offer is no longer available (${LEASE_BLOCK_TEXT[block.block]})`);
     }
-    const caps = await ownerLeaseCaps(tx, listing.ownerStableId);
-    if (caps.out >= caps.maxOut) {
+    const caps = listing.ownerStableId ? await ownerLeaseCaps(tx, listing.ownerStableId) : null;
+    if (caps && caps.out >= caps.maxOut) {
       await tx.update(horseLeaseListings).set({ status: "cancelled", closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
       return new DomainError("LEASE_LIMIT", "that owner has as many horses out on lease as allowed");
     }
@@ -433,7 +434,7 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
           meta: { listingId: listing.id, horseId: horse.id },
           postings: [
             { ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -listing.fee },
-            ...(split.ownerReceives > 0 ? [{ ledgerAccountId: await playerLedgerAccountId(tx, ownerAccountId), amount: split.ownerReceives }] : []),
+            ...(split.ownerReceives > 0 ? [{ ledgerAccountId: ownerAccountId ? await playerLedgerAccountId(tx, ownerAccountId) : await systemAccountId(tx, "burn"), amount: split.ownerReceives }] : []),
             ...(split.cut > 0 ? [{ ledgerAccountId: await systemAccountId(tx, "burn"), amount: split.cut }] : []),
           ],
         })
@@ -446,6 +447,7 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
         listingId: listing.id,
         horseId: horse.id,
         ownerStableId: listing.ownerStableId,
+        club: listing.club,
         lesseeStableId: lesseeStable.id,
         termDays: listing.termDays,
         ownerSharePct: listing.ownerSharePct,
@@ -464,18 +466,20 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
     await tx.update(horses).set({ lesseeStableId: lesseeStable.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
 
     // Reciprocal leases (A to B, then B to A) within the window: flagged for review, not blocked.
-    const [reverse] = await tx
-      .select({ id: horseLeases.id })
-      .from(horseLeases)
-      .where(
-        and(
-          eq(horseLeases.ownerStableId, lesseeStable.id),
-          eq(horseLeases.lesseeStableId, listing.ownerStableId),
-          gte(horseLeases.createdAt, new Date(input.now.getTime() - gc.LEASE_RECIPROCAL_WINDOW_DAYS * DAY_MS)),
-        ),
-      )
-      .limit(1);
-    if (reverse) {
+    const [reverse] = listing.ownerStableId
+      ? await tx
+          .select({ id: horseLeases.id })
+          .from(horseLeases)
+          .where(
+            and(
+              eq(horseLeases.ownerStableId, lesseeStable.id),
+              eq(horseLeases.lesseeStableId, listing.ownerStableId),
+              gte(horseLeases.createdAt, new Date(input.now.getTime() - gc.LEASE_RECIPROCAL_WINDOW_DAYS * DAY_MS)),
+            ),
+          )
+          .limit(1)
+      : [];
+    if (reverse && ownerAccountId) {
       await tx.insert(fraudEvents).values({
         accountId: input.accountId,
         relatedAccountId: ownerAccountId,
@@ -486,26 +490,32 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
     }
     const ownerName = await stableName(tx, listing.ownerStableId);
     const until = utcDay(endsAt);
-    await inbox(tx, ownerAccountId, `lease-start:${lease!.id}`, "lease_start", `${horse.name} is on lease to ${lesseeStable.name} until ${until}`, horse.id, input.now, {
-      leaseId: lease!.id,
-      role: "owner",
-      ownerSharePct: listing.ownerSharePct,
-      endsAtMs: endsAt.getTime(),
-    });
+    if (ownerAccountId) {
+      await inbox(tx, ownerAccountId, `lease-start:${lease!.id}`, "lease_start", `${horse.name} is on lease to ${lesseeStable.name} until ${until}`, horse.id, input.now, {
+        leaseId: lease!.id,
+        role: "owner",
+        ownerSharePct: listing.ownerSharePct,
+        endsAtMs: endsAt.getTime(),
+      });
+    }
     await inbox(tx, input.accountId, `lease-start:${lease!.id}`, "lease_start", `${horse.name} joins your stable on lease from ${ownerName} until ${until}`, horse.id, input.now, {
       leaseId: lease!.id,
       role: "lessee",
       lesseeSharePct: 100 - listing.ownerSharePct,
       endsAtMs: endsAt.getTime(),
     });
-    await audit(tx, { actor: input.accountId, action: "lease.take", entityType: "lease", entityId: lease!.id, data: { horseId: horse.id, owner: listing.ownerStableId, fee: listing.fee, reciprocal: !!reverse } });
+    await audit(tx, { actor: input.accountId, action: "lease.take", entityType: "lease", entityId: lease!.id, data: { horseId: horse.id, owner: listing.ownerStableId, club: listing.club, fee: listing.fee, reciprocal: !!reverse } });
     return { lease: lease!, duplicate: false };
   });
   if (outcome instanceof DomainError) throw outcome;
   return outcome;
 }
 
-async function stableName(ex: Executor, stableId: string): Promise<string> {
+/** How the Club appears as the owner of a lease (and the seller of a market lot). */
+export const CLUB_OWNER_NAME = "The Club";
+
+async function stableName(ex: Executor, stableId: string | null): Promise<string> {
+  if (!stableId) return CLUB_OWNER_NAME;
   const [s] = await ex.select({ name: stables.name }).from(stables).where(eq(stables.id, stableId));
   return s?.name ?? "another stable";
 }
@@ -545,10 +555,10 @@ export async function endLeaseTx(tx: Executor, lease: HorseLeaseRow, reason: Lea
     .where(and(eq(horseLeases.id, lease.id), eq(horseLeases.status, "active")))
     .returning();
   if (!ended) return lease;
-  const [ownerAccount, lesseeAccount] = [await accountIdOfStable(tx, lease.ownerStableId), await accountIdOfStable(tx, lease.lesseeStableId)];
+  const [ownerAccount, lesseeAccount] = [lease.ownerStableId ? await accountIdOfStable(tx, lease.ownerStableId) : null, await accountIdOfStable(tx, lease.lesseeStableId)];
   const totals = `${ended.races} ${ended.races === 1 ? "race" : "races"}`;
   const data = { leaseId: lease.id, reason, races: ended.races, ownerEarned: ended.ownerEarned, lesseeEarned: ended.lesseeEarned, condition: condition.label, startCondition: (lease.startCondition as LeaseCondition | null)?.label ?? null };
-  await inbox(tx, ownerAccount, `lease-end:${lease.id}`, "lease_end", `${horse.name} is home (${END_TEXT[reason]}): ${totals}, ${ended.ownerEarned} cr to you, returned ${condition.label}`, horse.id, now, { ...data, role: "owner" });
+  if (ownerAccount) await inbox(tx, ownerAccount, `lease-end:${lease.id}`, "lease_end", `${horse.name} is home (${END_TEXT[reason]}): ${totals}, ${ended.ownerEarned} cr to you, returned ${condition.label}`, horse.id, now, { ...data, role: "owner" });
   await inbox(tx, lesseeAccount, `lease-end:${lease.id}`, "lease_end", `${horse.name} has gone home (${END_TEXT[reason]}): ${totals}, ${ended.lesseeEarned} cr to you`, horse.id, now, { ...data, role: "lessee" });
   await audit(tx, { actor: null, action: "lease.end", entityType: "lease", entityId: lease.id, data: { reason, races: ended.races, ownerEarned: ended.ownerEarned, lesseeEarned: ended.lesseeEarned } });
   return ended;
@@ -658,7 +668,8 @@ export async function assertLeaseInForceTx(tx: Executor, horseId: string, now: D
 
 export interface LeasedRunner {
   lease: HorseLeaseRow;
-  ownerAccountId: string;
+  /** Null for a Club lease: the owner's share is burned. */
+  ownerAccountId: string | null;
   lesseeAccountId: string;
 }
 
@@ -681,7 +692,7 @@ export async function leasedRunnersTx(tx: Executor, entries: { horseId: string; 
   for (const l of leases) {
     const e = entries.find((x) => x.horseId === l.horseId);
     if (!e || e.stableId !== l.lesseeStableId) continue;
-    out.set(l.horseId, { lease: l, ownerAccountId: await accountIdOfStable(tx, l.ownerStableId), lesseeAccountId: await accountIdOfStable(tx, l.lesseeStableId) });
+    out.set(l.horseId, { lease: l, ownerAccountId: l.ownerStableId ? await accountIdOfStable(tx, l.ownerStableId) : null, lesseeAccountId: await accountIdOfStable(tx, l.lesseeStableId) });
   }
   return out;
 }
@@ -689,7 +700,7 @@ export async function leasedRunnersTx(tx: Executor, entries: { horseId: string; 
 /**
  * Pays a leased runner's purse, split (game-core leaseShareSplit: owner's share rounded down, the
  * rest to the lessee): one `lease_share` transaction, mint -> owner + lessee, so the purse is split
- * exactly and no extra credits exist. Idempotent per (race, horse).
+ * exactly and no extra credits exist. A Club lease's owner share goes to burn. Idempotent per (race, horse).
  */
 export async function payLeasedPurseTx(tx: Executor, input: { raceId: string; horseId: string; prize: number; runner: LeasedRunner }): Promise<{ owner: number; lessee: number }> {
   const split = gc.leaseShareSplit(input.prize, input.runner.lease.ownerSharePct);
@@ -700,7 +711,9 @@ export async function payLeasedPurseTx(tx: Executor, input: { raceId: string; ho
       meta: { raceId: input.raceId, horseId: input.horseId, leaseId: input.runner.lease.id, ownerSharePct: input.runner.lease.ownerSharePct },
       postings: [
         { ledgerAccountId: await systemAccountId(tx, "mint"), amount: -input.prize },
-        ...(split.owner > 0 ? [{ ledgerAccountId: await playerLedgerAccountId(tx, input.runner.ownerAccountId), amount: split.owner }] : []),
+        ...(split.owner > 0
+          ? [{ ledgerAccountId: input.runner.ownerAccountId ? await playerLedgerAccountId(tx, input.runner.ownerAccountId) : await systemAccountId(tx, "burn"), amount: split.owner }]
+          : []),
         ...(split.lessee > 0 ? [{ ledgerAccountId: await playerLedgerAccountId(tx, input.runner.lesseeAccountId), amount: split.lessee }] : []),
       ],
     });
@@ -814,15 +827,16 @@ export async function leaseBoard(ex: Executor, now: Date, limit = 60): Promise<L
     .select({ listing: horseLeaseListings, horse: horses, ownerStableName: stables.name, ownerSilks: stables.silks })
     .from(horseLeaseListings)
     .innerJoin(horses, eq(horses.id, horseLeaseListings.horseId))
-    .innerJoin(stables, eq(stables.id, horseLeaseListings.ownerStableId))
+    .leftJoin(stables, eq(stables.id, horseLeaseListings.ownerStableId))
     .where(and(eq(horseLeaseListings.status, "active"), sql`${horseLeaseListings.expiresAt} > ${now}`))
     .limit(500);
-  const owners = [...new Set(rows.map((r) => r.listing.ownerStableId))];
+  const owners = [...new Set(rows.map((r) => r.listing.ownerStableId).filter((s): s is string => !!s))];
   const experienced = owners.length
     ? new Set((await ex.selectDistinct({ s: horseLeases.ownerStableId }).from(horseLeases).where(inArray(horseLeases.ownerStableId, owners))).map((r) => r.s))
     : new Set<string>();
   const day = utcDay(now);
-  const board = rows.map((r) => ({ ...r, newOwner: !experienced.has(r.listing.ownerStableId) }));
+  // Club offers (owner null) are never "new owner" offers.
+  const board = rows.map((r) => ({ ...r, ownerStableName: r.ownerStableName ?? CLUB_OWNER_NAME, newOwner: !!r.listing.ownerStableId && !experienced.has(r.listing.ownerStableId) }));
   return orderLeaseBoard(board, day).slice(0, limit);
 }
 
@@ -846,7 +860,8 @@ export interface StableLeaseRow {
   lease: HorseLeaseRow;
   horse: HorseRow;
   role: "owner" | "lessee";
-  otherStableId: string;
+  /** Null when the other side is the Club (a Club lease). */
+  otherStableId: string | null;
   otherStableName: string;
 }
 
@@ -863,12 +878,12 @@ export async function stableLeases(ex: Executor, stableId: string, now: Date): P
       ),
     )
     .orderBy(desc(horseLeases.createdAt));
-  const others = [...new Set(rows.map((r) => (r.lease.ownerStableId === stableId ? r.lease.lesseeStableId : r.lease.ownerStableId)))];
+  const others = [...new Set(rows.map((r) => (r.lease.ownerStableId === stableId ? r.lease.lesseeStableId : r.lease.ownerStableId)).filter((s): s is string => !!s))];
   const names = new Map(others.length ? (await ex.select({ id: stables.id, name: stables.name }).from(stables).where(inArray(stables.id, others))).map((s) => [s.id, s.name]) : []);
   return rows.map((r) => {
     const role = r.lease.ownerStableId === stableId ? ("owner" as const) : ("lessee" as const);
     const other = role === "owner" ? r.lease.lesseeStableId : r.lease.ownerStableId;
-    return { lease: r.lease, horse: r.horse, role, otherStableId: other, otherStableName: names.get(other) ?? "another stable" };
+    return { lease: r.lease, horse: r.horse, role, otherStableId: other, otherStableName: other ? (names.get(other) ?? "another stable") : CLUB_OWNER_NAME };
   });
 }
 
@@ -886,23 +901,31 @@ export async function myLeaseOffers(ex: Executor, stableId: string): Promise<(Ho
 export interface LeaseMetrics {
   active: number;
   openOffers: number;
+  /** Player leases (a player's horse) started this week. */
   startedThisWeek: number;
+  /** Player-to-player market sales this week. */
   marketSalesThisWeek: number;
   sharesPaidThisWeek: number;
+  /** The Club's side (clubMarket.ts), counted apart from the players': leases of Club horses started, Club lots sold, Club offers open. */
+  club: { leasesStartedThisWeek: number; salesThisWeek: number; openOffers: number };
 }
 
-/** Admin health: leases in force and started this week vs market sales this week (UTC week). */
+/** Admin health: leases in force and started this week vs market sales this week (UTC week), players and Club apart. */
 export async function leaseMetrics(ex: Executor, now: Date): Promise<LeaseMetrics> {
   const week = weekBounds(utcWeekStart(now));
-  const [l] = rowsOf<{ active: number; started: number }>(
+  const [l] = rowsOf<{ active: number; started: number; clubStarted: number }>(
     await ex.execute(sql`
       select count(*) filter (where status = 'active')::int as active,
-             count(*) filter (where starts_at >= ${week.from} and starts_at < ${week.to})::int as started
+             count(*) filter (where not club and starts_at >= ${week.from} and starts_at < ${week.to})::int as started,
+             count(*) filter (where club and starts_at >= ${week.from} and starts_at < ${week.to})::int as "clubStarted"
         from horse_leases`),
   );
-  const [o] = await ex.select({ n: sql<number>`count(*)::int` }).from(horseLeaseListings).where(and(eq(horseLeaseListings.status, "active"), sql`${horseLeaseListings.expiresAt} > ${now}`));
+  const [o] = await ex
+    .select({ n: sql<number>`count(*) filter (where not ${horseLeaseListings.club})::int`, club: sql<number>`count(*) filter (where ${horseLeaseListings.club})::int` })
+    .from(horseLeaseListings)
+    .where(and(eq(horseLeaseListings.status, "active"), sql`${horseLeaseListings.expiresAt} > ${now}`));
   const [t] = await ex
-    .select({ n: sql<number>`count(*)::int` })
+    .select({ n: sql<number>`count(*) filter (where not ${trades.club})::int`, club: sql<number>`count(*) filter (where ${trades.club})::int` })
     .from(trades)
     .where(and(gte(trades.createdAt, week.from), sql`${trades.createdAt} < ${week.to}`));
   const [s] = rowsOf<{ total: number | string }>(
@@ -917,6 +940,7 @@ export async function leaseMetrics(ex: Executor, now: Date): Promise<LeaseMetric
     startedThisWeek: Number(l?.started ?? 0),
     marketSalesThisWeek: Number(t?.n ?? 0),
     sharesPaidThisWeek: Number(s?.total ?? 0),
+    club: { leasesStartedThisWeek: Number(l?.clubStarted ?? 0), salesThisWeek: Number(t?.club ?? 0), openOffers: Number(o?.club ?? 0) },
   };
 }
 
