@@ -1,7 +1,16 @@
 import * as gc from "@thoroughbred/game-core";
 import {
+  BATTLE_AHEAD_MM,
+  BATTLE_BASE,
+  BATTLE_BEHIND_MM,
+  BATTLE_FROM_MM,
+  BATTLE_GRIT,
+  BATTLE_TEMPER,
   BEND_LANE_LOSS_MM,
   BEND_PASS_CUT,
+  DRAMA_FORM_PERMILLE,
+  PACK_CARRY,
+  PACK_PULL,
   GRADIENT_DRAIN,
   PRIZE_SPLIT_PCT,
   STRAIGHT_EASE_MAX,
@@ -12,7 +21,7 @@ import {
   simulateRace,
   verifyReplay,
 } from "@thoroughbred/racing-engine";
-import { HORSE_LENGTH_MM, PHOTO_FINISH_MM, formatRaceTime, type RaceInput, type RunningStyle } from "@thoroughbred/shared";
+import { HORSE_LENGTH_MM, LIVE_RACE_MODEL, PHOTO_FINISH_MM, formatRaceTime, type RaceInput, type RunningStyle } from "@thoroughbred/shared";
 import { STYLE_LABEL, formatDistance, shortHash } from "@/lib/format";
 import { Callout, Facts, Figure, H2, Lead, List, P, Steps, Table, WikiLink } from "../kit";
 
@@ -28,6 +37,7 @@ function exampleRace() {
   const input: RaceInput = {
     race: { id: "wiki-example", name: "Wiki Example Stakes", distanceM, surface: "turf", weather: "clear", going: "good", raceClass: "novice", postTimeMs: 0, purse: 0 },
     course: gc.courseProfile(EXAMPLE_COURSE),
+    model: LIVE_RACE_MODEL,
     entries: field.map((horse, i) => ({ gate: i + 1, tactic: horse.style, horse })),
     seed,
   };
@@ -100,6 +110,50 @@ export default function HowRacesAreRunPage() {
       <P>
         The course&rsquo;s shape is locked into the field with the runners when entries close, and sealed into the result hash with the seed, so it can&rsquo;t change after the off. Story races, the
         Daily Cup and races run before courses raced differently have no course character.
+      </P>
+
+      <H2 id="close-finishes">Close finishes</H2>
+      <P>
+        Real races are rarely processions, and Post Time&rsquo;s aren&rsquo;t either. Two things in the engine keep evenly matched horses together to the line, so a narrow win, or a narrow
+        defeat you can hope to turn round next time, is common. Neither looks at who owns a horse: they apply to every runner alike.
+      </P>
+      <List
+        items={[
+          <>
+            <b>Racing in a pack.</b> Until a horse starts its finishing run, its pace is pulled {PACK_PULL / 10}% of the way towards the average pace of the field. A slightly slower horse is
+            carried along in the slipstream (only {(1000 - PACK_CARRY) / 10}% of the extra effort costs it energy); a faster one is held up by the pace and saves a little for later. The field
+            stays together instead of stringing out from the start, and the best horse shows it where it matters: at the finish.
+          </>,
+          <>
+            <b>A battle to the line.</b> From the start of its finishing run (or the last {BATTLE_FROM_MM / 1_000_000 >= 1 ? `${BATTLE_FROM_MM / 1_000_000} km` : `${BATTLE_FROM_MM / 1000} m`}), a
+            horse with a rival up to {(BATTLE_AHEAD_MM / HORSE_LENGTH_MM).toFixed(1)} lengths ahead to run down, or one within {(BATTLE_BEHIND_MM / HORSE_LENGTH_MM).toFixed(1)} length behind to
+            hold off, finds more: about {(BATTLE_BASE / 1000).toFixed(2)} m/s, plus up to {(BATTLE_TEMPER / 1000).toFixed(2)} m/s more the more composed it is (a genuine horse fights harder),
+            plus up to {(BATTLE_GRIT / 1000).toFixed(2)} m/s of fight on the day that nobody knows in advance. That effort doesn&rsquo;t drain its tank. So when two horses come to the last
+            furlong together they usually stay together, and which one finds most decides it.
+          </>,
+        ]}
+      />
+
+      <H2 id="form">Form on the day</H2>
+      <P>
+        No horse runs to exactly the same level every time. Before each race the seed gives every runner its form on the day, a small rise or fall in its cruising pace, so a horse a few
+        points below the best in the field still wins its share. Composed horses (high temperament) vary less; rain makes every horse vary a little more; a hired jockey keeps the run closer to
+        the horse&rsquo;s true level. In Live races the swing is {DRAMA_FORM_PERMILLE / 10}% of what it was before close finishes came in, because the pack would otherwise turn it into too many
+        upsets: a horse 7 points of rating below a rival still beats it about one time in three, and one 15 points below the best in an eight-runner field wins rarely.
+      </P>
+      <P>
+        In a Live <b>handicap</b> the better horses carry more weight: the top-rated runner carries {gc.formatWeight(gc.TOP_WEIGHT_LB)}, and each of the others {gc.OR_PER_LB} lb less for every
+        point of rating below it (never under {gc.formatWeight(gc.BOTTOM_WEIGHT_LB)}). Every pound costs a horse one point of rating&rsquo;s worth of ability, so on the ratings the weights put
+        the whole field level, and handicaps finish closest of all. The weights are printed on the racecard when entries close.
+      </P>
+
+      <H2 id="improvement">Improvement</H2>
+      <P>
+        Horses improve as they mature (see the maturity type on a horse&rsquo;s career page) and with training. Some go further: about one horse in five is an <b>improver</b> (
+        {gc.IMPROVER_PERMILLE.late / 10}% of late developers, {gc.IMPROVER_PERMILLE.normal / 10}% of normal ones, {gc.IMPROVER_PERMILLE.early / 10}% of early types). At a point in its career
+        that nobody can see coming, an improver steps up {gc.IMPROVER_STEP_OR[0]}-{gc.IMPROVER_STEP_OR[1]} points of rating&rsquo;s worth of ability over {gc.IMPROVER_RUNS} runs and keeps it,
+        filling out its genes sooner (never beyond its potential). The career page shows <b>Improving</b> once it has happened. Who improves is fixed for each horse and is the same whoever
+        owns it; races already run are never changed.
       </P>
 
       <H2 id="sealed">Sealed before the off</H2>

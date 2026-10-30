@@ -240,6 +240,25 @@ speed). A course moves a running style's win share by 5 points or so (Harrowgate
 under 20% or over 45% anywhere, and breed win rates stay where they were (`tools/balance/courses.report.ts`;
 knobs in `KNOBS.md` §6). Story, Daily Cup and older races run course-less, as before.
 
+Close finishes, handicap weights and improvers (2026-10-30, racing-engine 1.4.0): the owner wants
+narrow wins between near-equal horses to be common and a 68 to have a real chance against a 75
+(players enjoy narrow wins most; foregone races are the top complaint, see
+`docs/reports/2026-10-30 race experience research.md`). Live card races now lock with the race model
+1.4.0 (`LIVE_RACE_MODEL`, sealed in the field and the result hash; older races replay as they ran).
+Three levers: horses race in a pack until their kick (pace pulled halfway to the field's, half of
+that free), a late battle (a horse with a rival just ahead or at its quarters in the closing stage
+finds 150-400 mm/s, more if composed, plus a seeded fight on the day), and a day-form swing x0.85.
+In evenly matched fields 58% of races are now won by a length or less (36% before) and 14% by a
+head or less (9%); the median leader-to-last spread is 9.7 lengths (14.1). Live handicaps now carry
+weights: `handicapWeights` at the field lock (1 lb per OR below the top-rated) and each lb costs 1 OR
+of ability on the `ABILITY_OR_TABLE` scale (game-core `carryWeight`), so a horse 10 OR better carrying
+10 lb wins its fair 1-in-8 share; the racecard prints the weight. The ability table was refit under
+the new model and weights (the top end is flatter: ability 800 settles at OR 68, was 76). Improvers:
+about one horse in five (late developers 30%) steps up 4-8 OR over three runs at a seeded point of
+its career (never past its potential), and the career page says "Improving" once it has happened.
+Numbers: `tools/balance/drama.report.ts` (before/after in `tools/balance/out/drama.*.txt`), knobs in
+`KNOBS.md` §6.
+
 ---
 
 ## 6. Code map: where each system lives
