@@ -55,15 +55,16 @@ Where column.
 | `MEETING_CLASSES` (class pattern of every meeting, live; was the 20-slot `CYCLE`) | race 1 top race; 2, 4, 6, 8 juvenile (2 Maiden + 2 Novice, which positions are Maidens alternates per meeting); 3 Hcp 0-55; 5 Hcp 50-75; 7 Hcp 70-95 | packages/db/src/services/card.ts | Steps per meeting race, not per wall-clock slot, so every meeting has every class. Half the races are juvenile-friendly (was 12 of 20). Calendar races only ever land on race 1 or a handicap (tested), so juvenile races are never displaced (the old `CARRY_LOOKBACK` carry is gone). | Field size per class, credits/day, League movement, qualifier count |
 | Top race | even-numbered meetings: Feature (50% Listed / 50% Group 3, `h[30] % 2`, double purse); odd: Listed | packages/db/src/services/card.ts | About 1.5 Features and 1.5 Listed races a day (the evening's is replaced by a calendar race Mon-Sat). Was a Feature and a Listed every 5 h (≈ 4.8 + 4.8 a day). | Credits/day (Feature pays 2×), National licence demand |
 | `JUVENILE_TRIPS` | 1000, 1500, 2000, 2400 m | packages/db/src/services/card.ts | Trips of maiden/novice races; the k-th juvenile race (4 a meeting, counted over meetings) runs surface k mod 3, trip k mod 4, so a day's 12 juvenile races cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
-| Juvenile going / weather | turf: good, good, firm; others good; weather clear, clear, overcast, dusk | packages/db/src/services/card.ts:229, :234 | Juvenile races never run soft/heavy or in rain. | Injury rate (going), upset rate (rain) |
+| Juvenile going / weather | from the climate model (§6a), like every card race (was turf good/good/firm, others good; weather clear/clear/overcast/dusk) | packages/db/src/services/card.ts:148 (`placeRace`) | Juvenile races now run soft/heavy and in rain when the course is wet that day. | Injury rate (going), upset rate (rain), juvenile fit (web cardFit.test: grade C on the day's going in ~80% of 24-race windows from November) |
 | `OPEN_TRIPS` | 1000..3200 m (10 trips) | packages/db/src/services/card.ts:101 | Trips for handicaps, Listed and Features. | Distance-fit, stayers' opportunities |
-| `GOING` (open races) | turf firm/good/good/soft/heavy; dirt good×3/heavy; synthetic good | packages/db/src/services/card.ts:102 | Going draw for non-juvenile races. | Injury rate (firm 1.3×, heavy 1.4×), quirk reveals (mudlark) |
-| `WEATHER` (open races) | clear, clear, overcast, rain, dusk | packages/db/src/services/card.ts:103 | Weather draw; rain widens day-form noise by 25% in the engine. | Upset rate |
+| Card going / weather (all races) | the race's course on the race day (game-core climate.ts, §6a); the random `GOING`/`WEATHER` draws are gone | packages/db/src/services/card.ts:148 (`placeRace`) | Going and weather always agree (never rain on firm) and follow the time of year. | Injury rate (firm 1.3×, heavy 1.4×), quirk reveals (mudlark), upset rate (rain +25% day-form noise) |
 | Open-race surface | `SURFACES[(meeting*8 + race + h[28]%3) % 3]` | packages/db/src/services/card.ts | Surface of non-juvenile races. | Surface-fit |
-| `TRACKS` | Ashcombe, Kestrel Downs, Saltmarsh, Bellmont, Larkspur, Harrowgate | packages/db/src/services/card.ts:92 | Course names; also the order sister courses are opened in. | Max sister courses (6 courses) |
+| `TRACKS` | `gc.COURSES` names: Ashcombe, Kestrel Downs, Saltmarsh, Bellmont, Larkspur, Harrowgate | packages/db/src/services/card.ts:122 | Course names; also the order sister courses are opened in. | Max sister courses (6 courses) |
+| Course choice | a course that races the surface that day (`coursesFor`, minus frost-stopped turf), picked by a slot-hash byte; no turf course racing → the race moves to synthetic | packages/db/src/services/card.ts:137, :148 | Track and surface always agree: synthetic only at Kestrel Downs and Bellmont, dirt at Ashcombe, Bellmont, Larkspur, Harrowgate, turf everywhere. | Races per course, which ground a surface gets |
+| Sister course choice (`sisterCourse`) | next course in `TRACKS` racing the surface that day, preferring one whose own going is the race's; when all are used, a further division ("(division 2)") at the least-used one | packages/db/src/services/card.ts:504 | Sisters keep the original's ground (§4d). Synthetic has 2 courses, dirt 4, turf 6, so divisions keep "never turns players away". | Field size per slot, credits/day |
 | `SISTER_MAX` | 5 sisters per slot | packages/db/src/services/card.ts:319 | A slot can spawn up to 5 copies on other courses (6 races total). | Field size cap per slot (6 × 12 = 72 runners), credits/day (each sister pays a full purse) |
 | Sister trigger | when entries reach `maxRunners − 1` | packages/db/src/services/races.ts:331 | A sister course opens when a race is one gate from full. | Field size, credits/day |
-| Calendar track | Final/Weekend Feature/Saturday Plate at Ashcombe, Qualifiers at Bellmont | packages/db/src/services/card.ts:170, :141 | Course of calendar races. | Cosmetic |
+| `CALENDAR_HOME_COURSE` | Final/Weekend Feature/Saturday Plate at Ashcombe, Qualifiers at Bellmont; frost on its turf moves the race to another course | packages/db/src/services/card.ts:180 | Course of calendar races, so their ground is that course's. | Going of the big days |
 | `featureCalendar` qualifiers | Mon-Fri 19:01:30 UTC, Listed, `PURSE_BY_TIER.listed` (model) | packages/game-core/src/seasons.ts:167 | Five Feature Qualifiers per week (not on the season's last day). | Qualifier count, Weekend Feature field |
 | `featureCalendar` Weekend Feature | Saturday 19:01:30 UTC, G1, `WEEKEND_FEATURE_PURSE` (model) | packages/game-core/src/seasons.ts:169 | One Weekend Feature per week; division drawn per week. | League points (G1 bonus), credits |
 | Feature division | one division per week, seeded | packages/game-core/src/seasons.ts:160 | Sprint/mile/middle/staying for that week's Qualifiers and Feature; trip = middle of the division's list. | Which horses can compete |
@@ -74,11 +75,11 @@ Where column.
 | `CALENDAR_PURSE` (live) | Qualifier 16,000; Weekend Feature 48,000; Final 72,000 | packages/db/src/services/card.ts:63 | Live purses of calendar races (Listed ×2, G3 ×2 ×2, G3 ×2 ×3). | Credits created/week |
 | Calendar min rating (live) | Final/Weekend Feature 95; Qualifier 85; Saturday Plate none | packages/db/src/services/card.ts:176 | Entry conditions of calendar races. A top-3 Qualifier finisher rated 85-94 is qualified for the Weekend Feature but still below its 95 band. | Who can enter, qualifier count |
 | `PLATE_AFTER_SLOTS` | 2 slots (30 min at 15-min slots) | packages/db/src/services/card.ts:124 | The Saturday Plate runs this many slots after the Weekend Feature (`plateSlotAt`, :131; skipped if another calendar race holds that slot). | Second chance for qualifier runners, Saturday credits |
-| Saturday Plate conditions (live) | kind `scheduled`, class Listed (1 entry, 120 fee, National licence), the Weekend Feature's trip, surface and going, `RULES.maxField` 12 runners, purse `CALENDAR_PURSE.feature_qualifier` 16,000 | packages/db/src/services/card.ts:139-164 | The consolation race for horses that ran in that week's Qualifiers and did not qualify (calendar kind `weekend_plate`). | Credits created/week, League points (Listed bonus) |
+| Saturday Plate conditions (live) | kind `scheduled`, class Listed (1 entry, 120 fee, National licence), the Weekend Feature's trip and surface (going and weather from its course that day, §6a), `RULES.maxField` 12 runners, purse `CALENDAR_PURSE.feature_qualifier` 16,000 | packages/db/src/services/card.ts:139-164 | The consolation race for horses that ran in that week's Qualifiers and did not qualify (calendar kind `weekend_plate`). | Credits created/week, League points (Listed bonus) |
 | `TIER_CYCLE` (model only) | 20-slot rotation incl. 4 Quick, G3 at slot 18 | packages/game-core/src/seasons.ts:25 | The model rotation used by `regularSlot`; not used by the live card. | Model only (economy-sim, tests) |
 | `G2_HOURS` / `G1_HOURS` (model only) | 2, 8, 14, 20 / 21 UTC | packages/game-core/src/seasons.ts:48, :49 | Model upgrades slot 18 to G2/G1; the live card has no hourly G2/G1. | Model only |
 | `DISTANCES` | sprint 1000-1200, mile 1400-1600, middle 1800-2200, staying 2400-3200 | packages/game-core/src/seasons.ts:51 | Division trip lists (calendar races, Daily Cup, model slots). | Distance-fit |
-| Model weather/going | weather 3/7 clear, 2/7 overcast, 1/7 rain, 1/7 dusk; rain → heavy 40% else soft; firm 25% turf / 15% dirt | packages/game-core/src/seasons.ts:61-64 | Going for calendar races and the Daily Cup is drawn here. | Injury rate in calendar races |
+| Model weather/going | weather 3/7 clear, 2/7 overcast, 1/7 rain, 1/7 dusk; rain → heavy 40% else soft; firm 25% turf / 15% dirt | packages/game-core/src/seasons.ts:61-64 | Model slots and `goingForecast` of `featureCalendar` only: the Live card's calendar races take the climate's going since 2026-10-30. (The Daily Cup has its own picks.) | Model only |
 
 ## 2. Entries
 
@@ -255,6 +256,32 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `HANDICAP_SPEED_PER_LB` / `HANDICAP_BURST_PER_LB` | 5 / 2 per lb | packages/game-core/src/phenotype.ts:180, :182 | Weight effect. Not applied live (see mismatches). | Handicap competitiveness (model only) |
 | `TOP_WEIGHT_LB` / `BOTTOM_WEIGHT_LB` / `LEVEL_WEIGHT_LB` | 140 / 112 / 126 lb | packages/game-core/src/ratings.ts:79-81 | Handicap weight scale (1 OR = 1 lb). | Model only |
 | Morale → temperament | +morale × 0.3 | packages/game-core/src/phenotype.ts:210 | | Race strength |
+
+### 6a. Seasons, weather and ground (new 2026-10-30)
+
+game-core `climate.ts`, read by the Live card (`placeRace`), the forecast (`GET /api/ground`, This
+week) and the racecard trend. Integer maths, seeded `seedFrom("climate", courseId, season)` (public,
+like the card's `card-slot:<index>`). Shares quoted are turf going over 25 years at all six courses.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `YEAR_SEASON_PHASE` | 3 (season n is `[spring, summer, autumn, winter][(n + 3) mod 4]`) | packages/game-core/src/climate.ts:45 | Time of year per 4-week racing season; season 11 (Oct-Nov 2026) is autumn, a year is 16 weeks. | Which climate applies |
+| `SEASON_CLIMATE.spring` | rain after dry 220, after rain 500, rainfall 70 + 0..100, drying 160, overcast 450 | packages/game-core/src/climate.ts:91 | Showery: ~32% wet days; firm 20 / good 37 / soft 26 / heavy 17%. | Going mix, injury rate |
+| `SEASON_CLIMATE.summer` | 100 / 400, 80 + 0..100, drying 110, overcast 300 | packages/game-core/src/climate.ts:92 | Long dry spells: ~14% wet; firm 57 / good 30 / soft 10 / heavy 3%. | Firm-ground injuries (1.3×) |
+| `SEASON_CLIMATE.autumn` | 300 / 580, 80 + 0..120, drying 115, overcast 500 | packages/game-core/src/climate.ts:93 | ~42% wet; starts from summer's ground; firm 16 / good 26 / soft 25 / heavy 33%. | Soft/heavy share, mudlark value |
+| `SEASON_CLIMATE.winter` | 330 / 600, 80 + 0..120, drying 85, overcast 550, frost 400 | packages/game-core/src/climate.ts:94 | ~45% wet, slowest drying; good 11 / soft 24 / heavy 63%; frost on ~10% of days per course. | Heavy-ground injuries (1.4×), turf abandonments |
+| `startMoisture` | spring 450, summer 250, autumn 600, winter 700 | packages/game-core/src/climate.ts:91-94 | Ground before season 1 only; the chain runs continuously from launch after that. | First season only |
+| Course `rainBias` | 900..1200 (Saltmarsh 1200, was 1300; Harrowgate 1150, was 1200) | packages/game-core/src/courses.ts:61-136 | Scales the rain-after-dry chance fully and the rain-after-rain chance by half its offset (climate.ts:152). | Wet days per course |
+| Course `drainage` | 400..900 (Harrowgate 400, was 300) | packages/game-core/src/courses.ts:60-135 | Drying ×`(DRAINAGE_BASE + drainage)/(DRAINAGE_BASE + 500)`. | How fast a course dries |
+| `DRAINAGE_BASE` | 250 | packages/game-core/src/climate.ts:105 | Flattens the drainage effect (400 → 0.87×, 900 → 1.53×). | Spread between courses |
+| `MAX_RAIN_CHANCE` | 900 | packages/game-core/src/climate.ts:98 | Cap on any day's rain chance after rainBias. | Wet-spell length |
+| `OVERCAST_DRYING_PERMILLE` | 600 | packages/game-core/src/climate.ts:100 | An overcast day dries 60% of a clear day; a wet day none. | Drying speed |
+| `TURF_GOING_BANDS` | firm < 250 ≤ good < 500 ≤ soft < 750 ≤ heavy | packages/game-core/src/climate.ts:112 | Turf going from moisture; a wet day is never firm (`goingFor`, :117). | Going mix |
+| `DIRT_HEAVY_FROM` | 900 | packages/game-core/src/climate.ts:114 | Dirt is good below, heavy from here (synthetic always good). | Dirt going (heavy mostly in winter wet spells) |
+| `DUSK_FROM_HOUR_UTC` | spring 20, summer none, autumn 17, winter 16 | packages/game-core/src/climate.ts:247 | A clear day's races from this hour show "dusk" (lighting only; dry). | Broadcast look |
+| `TREND_STEP` | 50 moisture | packages/game-core/src/climate.ts:272 | Change from the day before that reads "drying" / "softening" on the racecard. | Information |
+| `OUTLOOK_DAYS` | 4 | packages/game-core/src/climate.ts:282 | Forecast days after the published card (rain chance, likely going), computed from the last published day's state, never the real future (`forecast`, :338). | Planning information |
+| `CACHE_MAX` | 600 (course, season) chains | packages/game-core/src/climate.ts:180 | Memo size; a cold start walks every season since launch once per course. | Server CPU (tiny) |
 
 ## 7. Ratings
 
@@ -652,7 +679,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Live class cycle | `CYCLE` (not exported) | packages/db/src/services/card.ts:82 |
 | Feature Listed/G3 coin flip | `h[30] % 2` | packages/db/src/services/card.ts:223 |
 | Target runners draw | `8 + h[29] % 5` | packages/db/src/services/card.ts:260 |
-| Juvenile trips, open trips, going, weather, tracks | lists | packages/db/src/services/card.ts:92-103, :229, :234 |
+| Juvenile trips, open trips, tracks | lists | packages/db/src/services/card.ts:122-131 |
 | Sister cap | 5 | packages/db/src/services/card.ts:319 |
 | Calendar min ratings | 95 / 85 | packages/db/src/services/card.ts:176 |
 | Displaced-juvenile lookback | 16 slots | packages/db/src/services/card.ts:271 |

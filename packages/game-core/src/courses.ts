@@ -88,7 +88,7 @@ export const COURSES: readonly Course[] = [
     finishGradientPermille: 0,
     surfaces: ["turf"],
     drainage: 900,
-    rainBias: 1300,
+    rainBias: 1200,
     scenery: "coastal",
   },
   {
@@ -132,8 +132,8 @@ export const COURSES: readonly Course[] = [
     bendTightness: 600,
     finishGradientPermille: 30,
     surfaces: ["turf", "dirt"],
-    drainage: 300,
-    rainBias: 1200,
+    drainage: 400,
+    rainBias: 1150,
     scenery: "moorland",
   },
 ];

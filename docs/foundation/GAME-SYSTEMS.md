@@ -186,7 +186,8 @@ owner-picked sinks followed (upkeep, race-day extras, jockeys, sponsorship). Lat
 ```mermaid
 flowchart TD
   card["Live card: 3 race meetings a day (07:00, 13:00, 19:00 UTC) of 8 races, published 24 h ahead; Club horses fill to 5-12 at the close; empty ordinary races called off"] --> runs["Your starts: one Live race per horse a day"]
-  week["This week (/week): Saturday's conditions from Monday, your Qualifier places, the League gap"] -.->|plans| runs
+  week["This week (/week): Saturday's trip and likely going from Monday, ground and weather per course, your Qualifier places, the League gap"] -.->|plans| runs
+  climate["Climate: time of year by season, weather and ground per course per day"] --> card
   runs --> league["League points: best 20 runs a week, capped at 240"]
   runs --> rating[Official rating 0-140]
   card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC, opening the evening meeting (Listed purse x2, open to every rating)"]
@@ -211,6 +212,18 @@ Race meetings (2026-10-30): the 15-minute card ran 96 races a day for ~100 playe
 meeting races a day; every calendar race sits in the evening meeting (on the season's last day it
 opens at 18:00 for the four Finals). See `HARNESS-LOG.md` (meetings1) for the effect.
 
+Seasons, weather and ground (2026-10-30): the year turns with the racing season (spring, summer,
+autumn, winter; season 11 is autumn, a year is 16 weeks). Each of the six courses has its own
+weather, a wet/dry Markov chain scaled by its `rainBias`, and a ground moisture that rain raises and
+dry days lower (faster where `drainage` is high and in summer); the going follows from moisture and
+surface, so a race's weather and going always agree, and frost in winter stops a course's turf for
+the day (game-core `climate.ts`, knobs in KNOBS §6a). The Live card puts every race at a course that
+races its surface that day with that course's going and weather, calendar races included. The
+forecast (This week, `GET /api/ground`) shows the published card's days exactly and a 4-day outlook
+computed from the last published day. The climate is seeded from public values, like the card, so
+the outlook is a choice of what to show, not a secret. Planning loop: a horse that hates soft ground
+waits for a dry spell or runs on the all-weather; a mudlark's season is autumn and winter.
+
 Licences moved on 2026-10-29: the Weekend Feature and the card's Features need the National
 licence (they needed Classics, and no harness stable reached a Weekend Feature then). Since
 fixes4 the funnel fills: about 180 Qualifier runs and 20-28 Weekend Feature runners a season in
@@ -224,10 +237,10 @@ or OR 100+), not a rating floor; only the Season Final keeps OR 95+.
 ```mermaid
 flowchart LR
   ui["apps/web app + components"] --> api["apps/web/app/api/* routes"]
-  api --> server["apps/web/src/server (game.ts, economy.ts, horseLife.ts, competition.ts, week.ts, horseView.ts)"]
+  api --> server["apps/web/src/server (game.ts, economy.ts, horseLife.ts, competition.ts, week.ts, ground.ts, horseView.ts)"]
   server --> db["packages/db services (races, card, breeding, market, leagues, ledger, horses)"]
   server --> engine["packages/racing-engine (simulateRace, verifyReplay)"]
-  db --> core["packages/game-core (rules: lifecycle, condition, training, genetics, breeding, economy, seasons, leagues)"]
+  db --> core["packages/game-core (rules: lifecycle, condition, training, genetics, breeding, economy, seasons, courses, climate, leagues)"]
   server --> core
   engine --> shared["packages/shared (Horse, schemas)"]
   db --> pg[("Postgres / PGlite")]

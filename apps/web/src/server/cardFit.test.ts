@@ -1,8 +1,9 @@
 /**
  * Content check for the Live card calendar (packages/db `defaultCardSlot`): every starter
  * horse finds a race it may enter (class, licence) that suits its surface and trip (form-guide
- * fit grade C or better) somewhere in the published card (a day: three race meetings, 24 races),
- * wherever you start looking.
+ * fit grade C or better, judged on good ground) somewhere in the published card (a day: three
+ * race meetings, 24 races), wherever you start looking. The going itself comes from the climate
+ * model since 2026-10-30, so it is checked separately, as a floor.
  * Before the fix the card ran turf and dirt only, at up to 2,400 m, and most synthetic or
  * staying starters never found a suitable race.
  */
@@ -48,24 +49,26 @@ describe("Live card content fits the horses players actually have", () => {
     expect(new Set(card.map((s) => s.conditions.surface))).toEqual(new Set(["turf", "dirt", "synthetic"]));
     let checks = 0;
     let bWithin = 0;
+    let cOnTheDay = 0;
     for (let s = 0; s < 120; s++) {
       for (const state of gc.createStarterStable({ ownerId: `owner-${s}`, seed: `card-fit-${s}`, nowMs: T, season: 1 })) {
         const horse = gc.toSharedHorse(state, T, SILKS);
         const ideal = conditionRating(horse, horse.style, { distanceM: horse.preferredDistanceM, surface: horse.preferredSurface, going: "good" });
         for (let off = 0; off + WINDOW < card.length; off += 37) {
-          const first = (maxLoss: number) =>
+          const first = (maxLoss: number, onTheDay: boolean) =>
             card.slice(off, off + WINDOW).findIndex((input) => {
               const slot = slotOf(input);
               const now = slot.entryCloseMs - 60_000;
               if (gc.entryBlock(state, slot, now) !== null) return false;
               if (gc.licenceBlock(1, slot.tier, input.kind === "feature" || input.kind === "final")) return false;
-              const loss = ideal - conditionRating(horse, horse.style, { distanceM: slot.distanceM, surface: slot.surface, going: slot.goingForecast });
+              const loss = ideal - conditionRating(horse, horse.style, { distanceM: slot.distanceM, surface: slot.surface, going: onTheDay ? slot.goingForecast : "good" });
               return loss <= maxLoss;
             });
           checks++;
-          const c = first(45);
+          const c = first(45, false);
           if (c < 0) throw new Error(`${horse.name} (${horse.preferredDistanceM} m, ${horse.preferredSurface}) found no suitable race in slots ${off}..${off + WINDOW}`);
-          if (first(25) >= 0) bWithin++;
+          if (first(25, false) >= 0) bWithin++;
+          if (first(45, true) >= 0) cOnTheDay++;
         }
       }
     }
@@ -73,6 +76,11 @@ describe("Live card content fits the horses players actually have", () => {
     // the published card always holds a day of meetings
     expect(RULES.cardHorizonMs).toBe(gc.MS_PER_DAY);
     expect(bWithin / checks).toBeGreaterThan(0.9);
+    // The going is the day's weather (game-core climate.ts): soft and heavy ground in autumn and
+    // winter costs horses that dislike it, as it should, and the forecast lets players plan for
+    // it. Most windows still hold a grade C race on the day's actual going (about 0.8 from
+    // November: autumn into winter; synthetic always rides good).
+    expect(cOnTheDay / checks).toBeGreaterThan(0.72);
   });
 
   it("the season calendar's Weekend Feature and Season Final are on the card", () => {

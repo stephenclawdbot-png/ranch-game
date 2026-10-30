@@ -44,7 +44,7 @@ const TERMS: Entry[] = [
   ["Front-runner", "A horse ridden to lead from the start.", "entering-a-race"],
   ["Furlong", `An old racing distance of ${FURLONG_MM / 1000} metres. Trips are shown in metres and furlongs.`, "race-types"],
   ["Gelding", "A male horse that can't breed.", "stud-and-broodmares"],
-  ["Going", `The state of the ground: ${list(GoingSchema.options)}.`, "stats-and-aptitudes"],
+  ["Going", `The state of the ground: ${list(GoingSchema.options)}. It comes from each course's weather on the day.`, "weather-and-going"],
   ["Grade", `A letter for a horse's overall potential, from ${gc.GRADE_FLOORS[gc.GRADE_FLOORS.length - 1]![0]} up to ${gc.GRADE_FLOORS[0]![0]}.`, "genetics-and-inheritance"],
   ["Group race", "The top class: Group 3, Group 2 and Group 1.", "race-types"],
   ["Hall of Fame", "The Club's permanent roll of honour.", "hall-and-trophies"],

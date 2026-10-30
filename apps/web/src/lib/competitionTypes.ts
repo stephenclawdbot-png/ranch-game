@@ -3,6 +3,7 @@
  * chapters). Types only: safe to import from client components.
  */
 import type { Going, Horse, RaceReplay, RunningStyle, Silks, Surface, Weather } from "@thoroughbred/shared";
+import type { CourseForecast, GroundTrend, YearSeason } from "@thoroughbred/game-core";
 import type { Grade } from "./aptitude";
 
 // ---------------------------------------------------------------------------
@@ -277,8 +278,12 @@ export interface StoryRaceCreated {
 export interface WeekView {
   serverNowMs: number;
   weekStartMs: number;
-  /** This week's Weekend Feature (null in a Season Final week). */
-  feature: { name: string; postTimeMs: number; distanceM: number; surface: string; going: string; division: string | null; purse: number; entryFee: number } | null;
+  /**
+   * This week's Weekend Feature (null in a Season Final week). The going is the real one once
+   * the race is on the published card (`goingSettled`); before that it is the outlook's likely
+   * going at its home course, or null when Saturday is beyond the outlook.
+   */
+  feature: { name: string; postTimeMs: number; distanceM: number; surface: string; going: string | null; goingSettled: boolean; division: string | null; purse: number; entryFee: number } | null;
   /** The Saturday Plate after it, for horses that tried and missed. */
   plate: { postTimeMs: number; purse: number } | null;
   /** The Season Final, when it falls in this week. */
@@ -303,4 +308,20 @@ export interface WeekView {
   upkeep: { horses: number; due: number };
   /** One plain-English line: what to do next. */
   headline: string;
+  /** Ground & weather at every course: the published days and the outlook. */
+  ground: GroundView;
 }
+
+/**
+ * Ground & weather (game-core climate.ts): per course, the exact going and weather for the days
+ * the card has published, then a 4-day outlook (rain chance, likely going). Never more: the
+ * outlook is a forecast from the last published day, not the real future.
+ */
+export interface GroundView {
+  serverNowMs: number;
+  season: number;
+  yearSeason: YearSeason;
+  courses: (CourseForecast & { character: string })[];
+}
+
+export type { GroundTrend };

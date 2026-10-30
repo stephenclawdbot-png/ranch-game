@@ -1,6 +1,6 @@
 /**
  * Road to Saturday (beta loop): the week's target race and how to get in. Monday shows
- * Saturday's conditions; Mon-Fri Feature Qualifiers (a top 3 gets a horse in, or a rating of
+ * Saturday's trip and the likely going (the real going once the race is on the card); Mon-Fri Feature Qualifiers (a top 3 gets a horse in, or a rating of
  * 100+); the Saturday Plate catches the horses that tried and missed; the League line shows the
  * gap to promotion. Honest near-misses: real places and points, nothing manufactured.
  */
@@ -10,6 +10,7 @@ import type { WeekView } from "@/lib/competitionTypes";
 import { formatCredits, formatDistance } from "@/lib/format";
 import { PixelIcon } from "../icons";
 import { SceneBand } from "../ui/Page";
+import { GroundWeather } from "./GroundWeather";
 
 const day = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const clock = (ms: number) => `${new Date(ms).toISOString().slice(11, 16)} UTC`;
@@ -47,7 +48,8 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
             <div>
               <dt className="label">Trip</dt>
               <dd className="font-bold">
-                {formatDistance(f.distanceM)} · {f.surface} · {f.going}
+                {formatDistance(f.distanceM)} · {f.surface}
+                {f.going ? ` · ${f.goingSettled ? "" : "likely "}${f.going}` : ""}
               </dd>
             </div>
             <div>
@@ -98,6 +100,8 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
           </p>
         </section>
       )}
+
+      <GroundWeather ground={view.ground} />
 
       <section className="surface grid gap-2 p-4" aria-labelledby="h-h">
         <h2 id="h-h" className="t-h2">

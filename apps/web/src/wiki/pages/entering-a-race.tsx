@@ -92,7 +92,8 @@ export default function EnteringARacePage() {
           <>
             Open the <GameLink href="/races">race card</GameLink> and choose a race that is still open. The card shows the next day of race meetings ({gc.MEETINGS_PER_DAY} a
             day, {gc.RACES_PER_MEETING} races each). Each race shows its class, trip, surface and going, and how many stables have entered so far: sort by &ldquo;Most stables&rdquo; to
-            find the busiest races.
+            find the busiest races. The going is the real ground at that course on the day; the race page adds whether it is <b>drying</b> or <b>softening</b>, and{" "}
+            <GameLink href="/week">This week</GameLink> forecasts the days after the card (see <WikiLink slug="weather-and-going" />).
           </>,
           <>
             Pick a horse. The sheet shows how well this race suits it, and why a horse can&rsquo;t run if it can&rsquo;t: injured, wrong class, rating out of the band, a licence you

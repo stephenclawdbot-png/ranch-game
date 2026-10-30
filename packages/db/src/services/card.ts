@@ -118,8 +118,10 @@ const JUVENILE_PER_MEETING = MEETING_CLASSES.filter((x) => x === "juvenile").len
 /** Races in one meeting of the class pattern above (game-core RACES_PER_MEETING). */
 export const CARD_MEETING_RACES = MEETING_CLASSES.length;
 
-const TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
+/** The six courses (game-core courses.ts) in card order: sisters take the next one that races the surface. */
+const TRACKS = gc.COURSES.map((c) => c.name);
 const SURFACES = ["turf", "dirt", "synthetic"] as const;
+type CardSurface = (typeof SURFACES)[number];
 /**
  * Juvenile-slot trips, one per distance zone. Every trip a horse can prefer (1,000–2,900 m for
  * starters and pack foals) is within about 450 m below or 130 m above one of these, which keeps
@@ -128,10 +130,31 @@ const SURFACES = ["turf", "dirt", "synthetic"] as const;
 const JUVENILE_TRIPS = [1000, 1500, 2000, 2400];
 /** Older horses' races use the whole range, including the long trips bred stayers want. */
 const OPEN_TRIPS = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
-const GOING: Record<string, string[]> = { turf: ["firm", "good", "good", "soft", "heavy"], dirt: ["good", "good", "good", "heavy"], synthetic: ["good"] };
-const WEATHER = ["clear", "clear", "overcast", "rain", "dusk"];
 
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
+
+/** Courses that race this surface on the day of `postTimeMs` (turf stopped by frost is not). */
+export function coursesRacing(surface: CardSurface, postTimeMs: number): gc.Course[] {
+  return gc.coursesFor(surface).filter((c) => !(surface === "turf" && gc.turfAbandoned(SEASON_CLOCK, c.id, postTimeMs)));
+}
+
+/**
+ * Where a card race runs (game-core climate.ts): a course that races `surface` that day, the
+ * `preferred` one when it can, else one picked by `roll` (a slot-hash byte). Frost can stop the
+ * turf at every course at once (rare); the race then moves to the all-weather (synthetic), as
+ * British racing does. Going and weather are that course's on the race day, so they always agree
+ * (never rain on firm ground).
+ */
+export function placeRace(surface: CardSurface, postTimeMs: number, roll: number, preferred?: string): { track: string; surface: CardSurface; going: string; weather: string } {
+  let options = coursesRacing(surface, postTimeMs);
+  if (!options.length) {
+    surface = "synthetic";
+    options = coursesRacing(surface, postTimeMs);
+  }
+  const course = options.find((c) => c.name === preferred) ?? options[roll % options.length]!;
+  const ground = gc.raceGround(SEASON_CLOCK, course.id, surface, postTimeMs);
+  return { track: course.name, surface, going: ground.going, weather: ground.weather };
+}
 const calendarCache = new Map<number, Map<number, gc.RaceSlot>>();
 
 /**
@@ -148,6 +171,18 @@ export function specialSlotAt(index: number): gc.RaceSlot | null {
   }
   return bySlot.get(index) ?? null;
 }
+
+/**
+ * Home course of each calendar race: the Weekend Feature, its Plate and the Season Finals run at
+ * Ashcombe, the Feature Qualifiers at Bellmont. Frost on the turf there moves the race to
+ * another course that day (placeRace).
+ */
+export const CALENDAR_HOME_COURSE: Record<"feature_qualifier" | "weekend_feature" | "weekend_plate" | "season_final", string> = {
+  feature_qualifier: "Bellmont",
+  weekend_feature: "Ashcombe",
+  weekend_plate: "Ashcombe",
+  season_final: "Ashcombe",
+};
 
 /** The Saturday Plate runs this many slots after the Weekend Feature (30 minutes). */
 export const PLATE_AFTER_SLOTS = 2;
@@ -167,18 +202,18 @@ export const isCalendarSlot = (index: number) => specialSlotAt(index) !== null |
 
 function plateCardSlot(index: number, wf: gc.RaceSlot): CreateRaceInput {
   const postTime = slotPostTime(index);
-  const track = "Ashcombe";
+  const place = placeRace(wf.surface, postTime.getTime(), index, CALENDAR_HOME_COURSE.weekend_plate);
   const division = wf.division ?? "mile";
   return {
     kind: "scheduled",
-    name: `${track} Saturday Plate (${division})`,
+    name: `${place.track} Saturday Plate (${division})`,
     raceClass: "listed",
     conditions: {
       distanceM: wf.distanceM,
-      surface: wf.surface,
-      going: wf.surface === "synthetic" ? "good" : wf.goingForecast,
-      weather: wf.weather,
-      track,
+      surface: place.surface,
+      going: place.going,
+      weather: place.weather,
+      track: place.track,
       calendar: { id: `${wf.id}-plate`, kind: "weekend_plate", division: wf.division },
     },
     postTime,
@@ -196,10 +231,11 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
   const postTime = slotPostTime(index);
   const final = sp.kind === "season_final";
   const weekend = sp.kind === "weekend_feature";
-  const track = final || weekend ? "Ashcombe" : "Bellmont";
+  const home = CALENDAR_HOME_COURSE[final ? "season_final" : weekend ? "weekend_feature" : "feature_qualifier"];
+  const place = placeRace(sp.surface, postTime.getTime(), index, home);
   return {
     kind: final ? "final" : weekend ? "feature" : "scheduled",
-    name: `${track} ${sp.name}`,
+    name: `${place.track} ${sp.name}`,
     raceClass: final || weekend ? "graded" : "listed",
     conditions: {
       // The Weekend Feature's gate is qualifying (a top 3 in a qualifier, or rating 100+), not a
@@ -208,10 +244,10 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
       // season); a top 3 is the test. Only the Season Final keeps a floor.
       ...(final ? { minRating: 95 } : {}),
       distanceM: sp.distanceM,
-      surface: sp.surface,
-      going: sp.surface === "synthetic" ? "good" : sp.goingForecast,
-      weather: sp.weather,
-      track,
+      surface: place.surface,
+      going: place.going,
+      weather: place.weather,
+      track: place.track,
       calendar: { id: sp.id, kind: sp.kind, division: sp.division },
     },
     postTime,
@@ -245,8 +281,10 @@ export const isCardSlot = (index: number): boolean => meetingRaceOf(index) !== n
  * consecutive juvenile races (three meetings) cover all 12 pairs, on good or firm ground. Every
  * horse that can run maidens or novices therefore finds a race that suits its surface and trip
  * within a day's card, which is always published (RULES.cardHorizonMs; tested in the web app
- * with the form-guide rating). The other classes draw surface (all three, synthetic included),
- * trip (1,000–3,200 m) and going from the slot hash. Calendar races (Weekend Feature,
+ * with the form-guide rating). The other classes draw surface (all three, synthetic included)
+ * and trip (1,000–3,200 m) from the slot hash. Every race's course is one that races its
+ * surface that day, and its going and weather are that course's on the race day (game-core
+ * climate.ts, via placeRace): the time of year shows on the card. Calendar races (Weekend Feature,
  * Qualifiers, the Saturday Plate, Season Finals) take over their slots (`specialSlotAt`,
  * `plateSlotAt`); they only ever land on a meeting's top race or a handicap.
  */
@@ -271,29 +309,28 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     const j = MEETING_CLASSES.slice(0, pos).filter((x) => x === "juvenile").length;
     const k = m * JUVENILE_PER_MEETING + j;
     def = (j + m) % 2 === 0 ? MAIDEN : NOVICE;
-    const surface = SURFACES[((k % 3) + 3) % 3]!;
-    const weather = pick(["clear", "clear", "overcast", "dusk"]);
+    const where = placeRace(SURFACES[((k % 3) + 3) % 3]!, postTime.getTime(), h[byte++]!);
     conditions = {
       ...def.conditions,
       distanceM: JUVENILE_TRIPS[((k % 4) + 4) % 4]!,
-      surface,
-      going: surface === "turf" ? pick(["good", "good", "firm"]) : "good",
-      weather,
-      track: pick(TRACKS),
+      surface: where.surface,
+      going: where.going,
+      weather: where.weather,
+      track: where.track,
     };
   } else {
     def = place === "top" ? (feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : LISTED) : place;
-    const surface = SURFACES[(((m * 8 + pos + (h[28]! % 3)) % 3) + 3) % 3]!;
+    const distanceM = pick(OPEN_TRIPS);
+    const where = placeRace(SURFACES[(((m * 8 + pos + (h[28]! % 3)) % 3) + 3) % 3]!, postTime.getTime(), h[byte++]!);
     conditions = {
       ...def.conditions,
-      distanceM: pick(OPEN_TRIPS),
-      surface,
-      going: pick(GOING[surface]!),
-      weather: pick(WEATHER),
-      track: pick(TRACKS),
+      distanceM,
+      surface: where.surface,
+      going: where.going,
+      weather: where.weather,
+      track: where.track,
     };
   }
-  if (conditions.surface === "synthetic") conditions.going = "good";
   return {
     kind: feature ? "feature" : "scheduled",
     name: `${conditions.track} ${feature ? "Feature " : ""}${def.label}`,
@@ -403,8 +440,15 @@ function hasFreeGate(r: RaceRow, entered: number, now: Date): boolean {
 /**
  * Sister course (§4d): when a Live card race is one gate from full, the same race is created
  * once on another course in the same slot — identical class, trip, ground, purse, post time
- * and entry close, the next course in TRACKS the slot hasn't used, its own fresh seed
- * commitment, slotKey live:<index>:<n> (n = 2, 3 …). Called inside the entry transaction;
+ * and entry close, its own fresh seed commitment, slotKey live:<index>:<n> (n = 2, 3 …).
+ *
+ * The course (sisterCourse): the next in TRACKS the slot hasn't used that races the surface
+ * that day (no frost-stopped turf), preferring one whose own going that day is the race's, so
+ * the ground usually matches the course too. When every course racing the surface already has
+ * a race in the slot (synthetic has two, dirt four), the next race is a second division at one
+ * of them ("… (division 2)"), so the slot still never turns players away.
+ *
+ * Called inside the entry transaction;
  * the slot advisory lock plus the unique slot_key make it exactly-once under concurrency.
  * No-op when another race in the slot still has a free gate, or at the 5-sister cap.
  */
@@ -420,10 +464,9 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
   if (slot.some((r) => r.id !== race.id && hasFreeGate(r, entered.get(r.id) ?? 0, now))) return null;
   const original = slot.find((r) => r.slotKey === slotKeyOf(index)) ?? race;
   const origTrack = String((original.conditions as RaceConditions).track ?? "");
-  const used = new Set(slot.map((r) => String((r.conditions as RaceConditions).track ?? "")));
-  const start = Math.max(0, TRACKS.indexOf(origTrack));
-  const track = [...TRACKS.slice(start + 1), ...TRACKS.slice(0, start + 1)].find((t) => !used.has(t));
-  if (!track) return null;
+  const place = sisterCourse(original, slot.map((r) => String((r.conditions as RaceConditions).track ?? "")));
+  if (!place) return null;
+  const { track, division } = place;
   // a sponsored original keeps its own name on the sponsor's record: sisters use the course's name
   const origName = baseRaceName(original);
   const bare = origName.startsWith(`${origTrack} `) ? origName.slice(origTrack.length + 1) : origName;
@@ -432,7 +475,7 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
     .values(
       raceValues({
         kind: race.kind,
-        name: `${track} ${bare}`,
+        name: `${track} ${bare}${division > 1 ? ` (division ${division})` : ""}`,
         raceClass: race.raceClass,
         conditions: { ...withoutSponsor(race.conditions as RaceConditions), track },
         postTime: race.postTime,
@@ -452,6 +495,36 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
     await audit(tx, { actor: null, action: "race.sister", entityType: "race", entityId: sister.id, data: { slot: index, of: original.id, track } });
   }
   return sister ?? null;
+}
+
+/**
+ * The course for a slot's next sister (see ensureSisterRace), and its division there (1 = the
+ * course's first race in the slot). Null when no course fits.
+ */
+export function sisterCourse(original: Pick<RaceRow, "conditions" | "postTime">, slotTracks: readonly string[]): { track: string; division: number } | null {
+  const cond = original.conditions as RaceConditions;
+  const origTrack = String(cond.track ?? "");
+  const start = Math.max(0, TRACKS.indexOf(origTrack));
+  const order = [...TRACKS.slice(start + 1), ...TRACKS.slice(0, start + 1)];
+  const used = new Set(slotTracks);
+  const surface = SURFACES.find((x) => x === cond.surface);
+  // a race without a known surface (old rows, fixtures) may go to any course, as before
+  if (!surface) {
+    const track = order.find((t) => !used.has(t));
+    return track ? { track, division: 1 } : null;
+  }
+  const postMs = original.postTime.getTime();
+  const racing = new Set(coursesRacing(surface, postMs).map((c) => c.name));
+  const fits = order.filter((t) => racing.has(t));
+  const sameGoing = (t: string) => cond.going === undefined || gc.raceGround(SEASON_CLOCK, gc.courseByName(t)!.id, surface, postMs).going === cond.going;
+  const fresh = fits.filter((t) => !used.has(t));
+  const track = fresh.find(sameGoing) ?? fresh[0];
+  if (track) return { track, division: 1 };
+  // every course racing the surface has a race here: a further division at the least used one
+  const count = (t: string) => slotTracks.filter((x) => x === t).length;
+  const pool = fits.length ? fits : order.filter((t) => t === origTrack);
+  const next = [...pool].sort((a, b) => count(a) - count(b))[0];
+  return next ? { track: next, division: count(next) + 1 } : null;
 }
 
 /** The next race in the same slot with a free gate (the sister course a full race retries on). */

@@ -236,7 +236,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
         <p className="t-meta">
           {card.kind === "story" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
         </p>
-        <RaceMetaChips race={config} showPurse={card.kind === "live"} showClass={false} />
+        <RaceMetaChips race={config} showPurse={card.kind === "live"} showClass={false} trend={card.groundTrend} />
         {card.status === "open" && state && card.kind === "live" && (
           <button type="button" className="btn btn-sm" onClick={() => entry.enterLive(card.id)} data-testid="enter-this-race">
             Enter a horse
