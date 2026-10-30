@@ -164,7 +164,8 @@ export default function RaceTypesPage() {
         Every meeting runs the same pattern of {gc.RACES_PER_MEETING} races. The first is the meeting&rsquo;s top race: at every other meeting the <b>Feature</b>, a Listed race or a
         Group 3 with double prize money, and a Listed race at the others. Then Maiden and Novice races, which every new horse can run, alternate with the three Handicap bands. Between
         them, a day&rsquo;s {gc.MEETINGS_PER_DAY} meetings run Maidens and Novices over every trip and surface. In the evening meeting a big-day race (a Qualifier, the Weekend Feature,
-        the Saturday Plate or a Season Final) takes the place of the top race or a Handicap. These are real meetings from the card:
+        the Saturday Plate or a Season Final) takes the place of the top race or a Handicap, and one evening Handicap a day is a claiming race, where every runner is for sale (see{" "}
+        <WikiLink slug="claiming-races" />). These are real meetings from the card:
       </P>
       <Table
         head={["Race", "Who can enter", "Purse", "Entries", "Per meeting", "Licence"]}
