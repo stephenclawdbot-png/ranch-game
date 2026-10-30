@@ -39,6 +39,30 @@ The other exports are `CameraMode` (`"leader" | "mine" | "wide"`), `sampleReplay
 `import()` inside an effect, so the component is safe under SSR. Init is StrictMode-safe,
 and everything is disposed on unmount.
 
+## One race stage for both views (`src/stage/`)
+
+Trackside and the 3D view must show the same race. Both render from one pure, unit-tested
+description and keep only their projection:
+
+- `buildRaceStage(course, race)` -> `RaceStage`: lanes (one lateral scale), the finish
+  elevation (Harrowgate climbs, Larkspur drops), ONE look from weather + post hour (sky art and
+  gradient, the sun on the right of the picture and a front key light, fog, grade, sprite tint,
+  rain, motes), landmarks in world metres on the far rail (numbered colour-coded furlong poles,
+  200 m / 100 m boards, winning post with roundel, judge's box, finish line, stalls) and the
+  course scenery in world metres (far panorama, midground items along the course, field and rail
+  colours, rail decor, the stand ~30 m before the line, the cheering crowd around the line).
+  No known course: the parkland set.
+- `FieldMotion` / `runnerState` (`motion.ts`): each horse's x is the replay's x up to its own
+  finish, untouched; after the line a deterministic run-out (0.8 m/s^2 to a canter, then trot and
+  walk, ~19 s and ~175 m from 17 m/s), with gait and animation strip per runner: break out of the
+  stalls, gallop, drive in the last 300 m, lunge for the leaders of a close finish, ease-up, the
+  winner's celebration, pull-up for an injured horse (`injuredHorseIds`). Ground fx by going.
+- `trackside/stagePlan.ts` and `three/stagePlan.ts` list what each scene builds; both scenes
+  expose it as `inventory`, and `stage/guard.test.ts` checks that both views register the same
+  landmarks, scenery, look and sun side at every course.
+- One `Director` per viewer (shared by both views): its shot intent (whole field / group around a
+  horse / the line / pull-up follow) is honoured by whichever view is showing.
+
 ## Trackside view (default)
 
 `src/trackside/`: the real race drawn like the "track-dusk" diorama (big side-on pixel
@@ -98,9 +122,11 @@ HUD, minimap, clocks, live rules and results flow as the classic view; only rend
     and nothing can pass it.
 - Live standings come from frames only. Finishers are ordered by crossing time from the
   frames, and gaps under 30 ms read "photo".
-- When `feed.final` arrives and the playhead is at the end, the scene switches to the
-  official replay in place. On a photo finish it replays the finish in slow-mo with the
-  PHOTO freeze. Then the results card shows and full replay controls unlock.
+- Once every runner is home in the received frames, the playhead keeps running past the last
+  frame (no freeze): finished horses ease down with the shared run-out model.
+- When `feed.final` arrives the scene switches to the official replay in place and playback
+  carries on from the same moment (no jump back). Then the results card shows (after the
+  run-out) and full replay controls unlock.
 - `fakeLiveFeed(replay, startMs)` in `/dev` simulates the server. Use `?live=-30` on the
   harness to open 30 s into a live race.
 
