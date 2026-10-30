@@ -86,6 +86,13 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "wfRunners", label: "Weekend Feature player runners", value: t.wfPlayerRunners },
     { key: "injuries", label: "Live race injuries", value: sum(Object.values(t.injuries)) },
     { key: "trainingInjuries", label: "Training injuries", value: t.trainingInjuries },
+    { key: "leaseOffers", label: "Lease offers", value: t.leasing?.offers ?? 0 },
+    { key: "leases", label: "Leases taken", value: t.leasing?.leases ?? 0 },
+    { key: "leaseRaces", label: "Races run on lease", value: t.leasing?.racesOnLease ?? 0 },
+    { key: "leaseSharesOwners", label: "Lease shares paid to owners", value: t.leasing?.sharesToOwners ?? 0 },
+    { key: "leaseSharesLessees", label: "Lease shares paid to lessees", value: t.leasing?.sharesToLessees ?? 0 },
+    { key: "leaseInjuryReturns", label: "Leases ended by injury", value: t.leasing?.ended.injured ?? 0 },
+    { key: "leaseReciprocal", label: "Reciprocal lease flags", value: t.leasing?.reciprocalFlags ?? 0 },
   ];
   for (const c of COHORTS) {
     if (!r.meta.cohorts[c]) continue;

@@ -34,6 +34,8 @@ export const FRIENDLY: Record<string, string> = {
   ENTRY_REFILL_UNAVAILABLE: "A refill isn't available right now.",
   NAME_TAKEN: "That name is taken. Try another.",
   ALREADY_SPONSORED: "Another stable has already sponsored that race.",
+  HORSE_ON_LEASE: "That horse is away on lease.",
+  LEASE_LIMIT: "That's as many leases as allowed at once.",
   unauthorized: "Found a stable first.",
   race_not_found: "We couldn't find that race.",
   too_early: "The race hasn't started yet.",

@@ -69,6 +69,8 @@ import {
   startsOnDay,
   storedRaceDay,
   raceSponsor,
+  leaseForHorse,
+  stableLeases,
   type CardHooks,
   type Db,
   type FieldRunner,
@@ -106,6 +108,7 @@ import { houseOwnerFor, settleStoryRace } from "./storyField";
 import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
+import { maybeSweepLeases } from "./leasing";
 
 // ---------------------------------------------------------------------------
 // Hooks, ids, small helpers
@@ -1073,9 +1076,13 @@ async function maybeGiftFoal(db: Db, session: Session, now: Date): Promise<void>
 export async function playerView(db: Db, session: Session, now: Date): Promise<PlayerView> {
   await driveCard(db, now);
   await maybeGiftFoal(db, session, now);
+  await maybeSweepLeases(db, now);
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
   const rows = await listStableHorses(db, session.stable.id);
+  // Leases either way: chips on horses held on lease, and the stable's own horses away on lease.
+  const leases = (await stableLeases(db, session.stable.id, now)).filter((l) => l.lease.status === "active");
+  const leasedIn = new Map(leases.filter((l) => l.role === "lessee").map((l) => [l.horse.id, l]));
   const names = new Map(rows.map((r) => [r.id, r.name]));
   const [credits, bank, occ, entries, inbox, runs, goals] = [
     await getBalance(db, session.accountId),
@@ -1119,7 +1126,41 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     credits,
     entries: { balance: bank.balance, cap: bank.cap, allowance: bank.allowance, refillAvailable: bank.refillAvailable, refillPrice: RULES.entryRefillPrice },
     stalls: { slots: occ.slots, used: occ.used },
-    horses: rows.filter((r) => r.careerStatus !== "pasture").map((r) => stableHorseView(r, silks, nowMs)),
+    horses: rows
+      .filter((r) => r.careerStatus !== "pasture")
+      .map((r) => {
+        const v = stableHorseView(r, silks, nowMs);
+        const l = leasedIn.get(r.id);
+        return l
+          ? {
+              ...v,
+              lease: {
+                leaseId: l.lease.id,
+                fromStable: l.otherStableName,
+                endsAtMs: l.lease.endsAt.getTime(),
+                sharePct: 100 - l.lease.ownerSharePct,
+                earned: l.lease.lesseeEarned,
+                races: l.lease.races,
+                allowAllOut: l.lease.allowAllOut,
+                maxLiveStartsPerWeek: l.lease.maxLiveStartsPerWeek,
+                returnPending: !!l.lease.endRequestedAt,
+              },
+            }
+          : v;
+      }),
+    leasedOut: leases
+      .filter((l) => l.role === "owner")
+      .map((l) => ({
+        id: l.horse.id,
+        leaseId: l.lease.id,
+        horse: horseFromRow(l.horse, silks, nowMs),
+        toStable: l.otherStableName,
+        endsAtMs: l.lease.endsAt.getTime(),
+        ownerSharePct: l.lease.ownerSharePct,
+        earned: l.lease.ownerEarned,
+        races: l.lease.races,
+        returnPending: !!l.lease.endRequestedAt,
+      })),
     active,
     inbox: inboxView,
     runs: runs.map((r) => runView(r, names)),
@@ -1236,10 +1277,30 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, tree, genetics, stud: null, actions: null };
   }
   const stable = await getStable(db, row.ownerStableId);
-  const silks = parseSilks(stable?.silks);
-  const mine = session?.stable.id === row.ownerStableId;
+  // On lease the horse races in the lessee's colours; the lessee keeps it, the owner owns it.
+  const lessee = row.lesseeStableId ? await getStable(db, row.lesseeStableId) : null;
+  const silks = parseSilks((lessee ?? stable)?.silks);
+  const owned = session?.stable.id === row.ownerStableId;
+  const mine = session?.stable.id === (row.lesseeStableId ?? row.ownerStableId);
+  const active = row.lesseeStableId ? await leaseForHorse(db, row.id) : null;
+  const lease: HorseDetailView["lease"] = active
+    ? {
+        leaseId: active.id,
+        role: owned ? "owner" : mine ? "lessee" : "public",
+        ownerStableName: active.ownerStableName,
+        lesseeStableName: active.lesseeStableName,
+        endsAtMs: active.endsAt.getTime(),
+        ownerSharePct: active.ownerSharePct,
+        races: active.races,
+        ownerEarned: owned ? active.ownerEarned : 0,
+        lesseeEarned: mine ? active.lesseeEarned : 0,
+        allowAllOut: active.allowAllOut,
+        maxLiveStartsPerWeek: active.maxLiveStartsPerWeek,
+        returnPending: !!active.endRequestedAt,
+      }
+    : null;
   let actions: HorseDetailView["actions"] = null;
-  if (mine && row.careerStatus !== "pasture") {
+  if (owned && !row.lesseeStableId && row.careerStatus !== "pasture") {
     const breeding = await breedingStatus(db, row, now);
     const trade = await tradeStatus(db, row, now);
     actions = {
@@ -1255,6 +1316,8 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     stableName: stable?.name ?? "Private stable",
     trainer: null,
     mine,
+    owned,
+    lease,
     status: mine ? stableHorseView(row, silks, nowMs) : null,
     runs,
     pedigree,

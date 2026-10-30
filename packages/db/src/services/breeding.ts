@@ -141,6 +141,9 @@ export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCov
   if (!sire || !dam) throw new DomainError("NOT_FOUND", "horse not found");
 
   if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "you must own the mare");
+  // Horses on lease never breed (rent racers, buy breeders): neither the owner nor the lessee.
+  if (dam.lesseeStableId) throw new DomainError("HORSE_ON_LEASE", "the mare is away on lease");
+  if (sire.lesseeStableId) throw new DomainError("HORSE_ON_LEASE", "the stallion is away on lease");
   const ownSire = sire.ownerStableId === stable.id;
   if (usdg) {
     // Paid in USDG for this stallion: honoured even if his owner changed his fee since.

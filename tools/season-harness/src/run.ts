@@ -16,7 +16,7 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, createCohortTable, farmerReport, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type Snapshot } from "./metrics";
+import { activity, checks, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
 import { sum } from "./stats";
 
 const DAY = 86_400_000;
@@ -67,6 +67,8 @@ export interface Totals {
   wfPlayerRunners: number;
   injuries: Record<string, number>;
   trainingInjuries: number;
+  /** Horse leasing over the run (packages/db leasing.ts). */
+  leasing?: LeasingTotals;
 }
 
 export interface RunResult {
@@ -88,7 +90,7 @@ function freshServer(): void {
   // game.ts and competition.ts hold these objects from module load: reset them in place.
   if (g.__tbTick) Object.assign(g.__tbTick, { at: 0, inflight: null });
   if (g.__tbHall) Object.assign(g.__tbHall, { at: 0 });
-  for (const k of ["__tbGiftDone", "__tbHouseStudsAt", "__tbPopulation"]) delete g[k];
+  for (const k of ["__tbGiftDone", "__tbHouseStudsAt", "__tbPopulation", "__tbLeaseSweepAt"]) delete g[k];
 }
 
 function addInto(into: Record<string, number>, from: Record<string, number>): void {
@@ -253,7 +255,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         finishedAt: utcDay(new Date()),
       },
       days,
-      totals: totalsOf(days, last),
+      totals: { ...totalsOf(days, last), leasing: await leasingTotals(world) },
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
       notables: await notables(world),

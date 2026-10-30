@@ -32,3 +32,4 @@ export * from "./onboarding";
 export * from "./story";
 export * from "./naming";
 export * from "./usdgMarket";
+export * from "./leasing";

@@ -25,7 +25,8 @@ import { ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
-import { isCarrying, lockHorse, startsOnDay } from "./horses";
+import { isCarrying, keeperOf, lockHorse, startsOnDay } from "./horses";
+import { afterLeasedRaceTx, leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseTx } from "./leasing";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { audit, runTx } from "./tx";
@@ -325,7 +326,10 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     if (!race) throw new DomainError("NOT_FOUND", "race not found");
     const stable = await lockStableOf(tx, input.accountId);
     const horse = await lockHorse(tx, input.horseId);
-    if (horse.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your horse");
+    // The keeper enters: the lessee while the horse is on lease (leasing.ts), else the owner.
+    if (keeperOf(horse) !== stable.id) {
+      throw new DomainError(horse.ownerStableId === stable.id ? "HORSE_ON_LEASE" : "NOT_OWNER", horse.ownerStableId === stable.id ? "this horse is away on lease" : "not your horse");
+    }
 
     const [existing] = await tx.select().from(raceEntries).where(and(eq(raceEntries.raceId, race.id), eq(raceEntries.horseId, horse.id)));
     if (existing?.status === "entered") return existing;
@@ -363,6 +367,11 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     const raceDay = input.raceDay ?? gc.NO_RACE_DAY;
     const raceDayProblem = gc.raceDayProblem(raceDay, { going: raceGoing(race), live: (LIVE_RACE_KINDS as readonly string[]).includes(race.kind) });
     if (raceDayProblem) throw new DomainError("NOT_ELIGIBLE", raceDayProblem);
+    // A leased horse: the owner's welfare terms (not tired, all-out only if allowed, weekly cap, term).
+    if (horse.lesseeStableId === stable.id) {
+      const plan = (input.meta as { plan?: { intensity?: unknown } } | undefined)?.plan;
+      await leasedEntryCheckTx(tx, { horse, stableId: stable.id, race, intensity: typeof plan?.intensity === "string" ? plan.intensity : null, now: input.now });
+    }
     const quote = gc.raceDayQuote(raceDay, race.purse);
 
     await ensureDailyEntries(tx, stable, input.now);
@@ -669,16 +678,25 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       throw new DomainError("INVALID_INPUT", "outcome must cover exactly the locked field");
     }
 
-    // Purses: minted to each placed player runner's owner, in one ledger transaction.
+    // Purses: minted to each placed player runner's stable, in one ledger transaction. A horse
+    // racing on lease (leasing.ts) is paid apart: its purse is split between owner and lessee
+    // in a `lease_share` transaction (the same credits, split exactly).
     const prizes: Record<string, number> = {};
     const owners = new Map<string, string>();
     for (const e of entries) if (e.stableId && !owners.has(e.stableId)) owners.set(e.stableId, await accountIdOfStable(tx, e.stableId));
+    const leased = await leasedRunnersTx(tx, entries);
+    const leaseSplits = new Map<string, { owner: number; lessee: number }>();
     const postings: Posting[] = [];
     let minted = 0;
     for (const e of entries) {
       const r = byHorse.get(e.horseId)!;
       const prize = bps(race.purse, RULES.purseSplitBps[r.position - 1] ?? 0);
       prizes[e.horseId] = prize;
+      const lease = leased.get(e.horseId);
+      if (lease) {
+        leaseSplits.set(e.horseId, await payLeasedPurseTx(tx, { raceId: race.id, horseId: e.horseId, prize, runner: lease }));
+        continue;
+      }
       if (prize > 0 && e.stableId) {
         postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: prize });
         minted += prize;
@@ -747,14 +765,27 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
         .set({ finishPosition: r.position, finishTimeUs: r.finishTimeUs ?? null, prize: prizes[h.id] ?? 0, ratingAfter: r.ratingAfter ?? h.rating })
         .where(eq(raceEntries.id, e.id));
       if (careerEnding && h.insured && e.stableId) {
+        // Insurance is the owner's (bought by the owner, paid to the owner even on lease).
         const payout = isGenome(h.genome) ? gc.insurancePayout(toHorseState(h)) : RULES.insurancePayout;
+        const insuredBy = h.ownerStableId && h.ownerStableId !== e.stableId ? await accountIdOfStable(tx, h.ownerStableId) : owners.get(e.stableId)!;
         await post(tx, {
           idempotencyKey: `insurance-payout:${h.id}`,
           kind: "insurance_payout",
           postings: [
             { ledgerAccountId: await systemAccountId(tx, "mint"), amount: -payout },
-            { ledgerAccountId: await playerLedgerAccountId(tx, owners.get(e.stableId)!), amount: payout },
+            { ledgerAccountId: await playerLedgerAccountId(tx, insuredBy), amount: payout },
           ],
+        });
+      }
+      const leasedRun = leased.get(h.id);
+      if (leasedRun) {
+        await afterLeasedRaceTx(tx, {
+          runner: leasedRun,
+          split: leaseSplits.get(h.id) ?? { owner: 0, lessee: 0 },
+          injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null,
+          retired: mustRetire,
+          fatal,
+          now: input.now,
         });
       }
       // Inbox: the result waits for owners who were away.

@@ -10,15 +10,17 @@
  * - casual: one evening visit (and skips some days): care, the Daily Cup, a Story race, a
  *   couple of Live Quick Picks, the free Paddock Pack; now and then an entry from the sheet
  *   with a vet check (and physio for a tired horse); with credits to spare, now and then
- *   sponsors a race (the prestige sink, sponsor.ts).
+ *   sponsors a race (the prestige sink, sponsor.ts); once established (lessee requirements),
+ *   sometimes takes a horse on lease from the board and hands it back now and then.
  * - grinder: visits every couple of hours, keeps every fit horse entered in the race that
  *   suits it best (entryOptions fit), goes for Feature Qualifiers and the Weekend Feature when
  *   a horse can run (with race-day extras and a booked jockey), climbs the Story licences,
- *   trains, refills entries, buys upgrades and the odd horse on the market; a rich grinder
+ *   trains, refills entries, buys upgrades and the odd horse on the market, takes a lease
+ *   when it has a free stall (and hands it back now and then); a rich grinder
  *   occasionally sponsors a race.
  * - breeder: covers every mare the season allows (retiring mares to the paddock), foals and
  *   names, stands a stallion at stud, sells surplus stock once the market lets them, moves
- *   spent horses to the Legacy Farm.
+ *   spent horses to the Legacy Farm; offers surplus racing horses for lease (within the owner caps).
  * - farmer: one main plus alt accounts run by the same person. Alts farm credits on the card
  *   and pass them to the main through the two channels the rules allow: covering their mares
  *   with the main's stallion (the main sets the fee to what the alt holds) and buying the
@@ -34,6 +36,7 @@ import { careAction, careerAction, facilitiesView, facilityAction, graduateActio
 import { cupView, leagueView, runCup } from "@/server/competition";
 import { createChapterRace, storyView } from "@/server/story";
 import { sponsorAction, sponsorView } from "@/server/sponsor";
+import { handBack, leaseView, offerForLease, takeOffer } from "@/server/leasing";
 import { foundStable } from "@/server/founding";
 import type { Session } from "@/server/session";
 import type { RaceDayOffer, RaceSummary, StableHorse } from "@/lib/types";
@@ -84,6 +87,10 @@ export interface AgentStats {
   /** Races sponsored and the credits spent on them. */
   sponsorships: number;
   sponsorSpend: number;
+  /** Leasing: offers made (owners), leases taken and handed back early (lessees). */
+  leaseOffers: number;
+  leasesTaken: number;
+  leasesReturned: number;
   /** Refused actions by DomainError code. */
   refused: Record<string, number>;
 }
@@ -92,7 +99,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, refused: {},
   };
 }
 
@@ -577,6 +584,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       await quickPicks(c, s, 1 + a.rng.int(3));
       await freePack(c, s);
       await maybeSponsor(c, s, view.credits, 12_000, 150);
+      if (a.rng.chance(CASUAL_LEASE_PERMILLE)) await takeALease(c, s);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -591,6 +599,57 @@ type View = NonNullable<Awaited<ReturnType<typeof playerView>>>;
 
 /** Chance per visit (permille) that a casual enters from the sheet with race-day extras. */
 const CASUAL_SHEET_PERMILLE = 120;
+/** Chance per visit (permille) that a casual looks at the lease board (most casuals' stalls are full). */
+const CASUAL_LEASE_PERMILLE = 200;
+/** Chance per day (first visit, permille) that a grinder looks at the lease board. */
+const GRINDER_LEASE_PERMILLE = 350;
+
+/**
+ * A casual on the lease board: hands back a held horse now and then (1 in 6), else takes the
+ * best-rated offer it may take (the server checks eligibility: account age, Live starts, two
+ * leases at most, a free stall, the owner's minimum rating).
+ */
+async function takeALease(c: VisitCtx, s: Session): Promise<void> {
+  const { a, now, world } = c;
+  const v = await world.act(a, "lease_view", now, () => leaseView(world.db, s, now));
+  if (!v) return;
+  const held = v.leases.find((l) => l.role === "lessee" && l.status === "active" && !l.returnPending);
+  if (held && a.rng.chance(170)) {
+    if (await world.act(a, "lease_return", now, () => handBack(world.db, s, held.leaseId, now))) a.stats.leasesReturned++;
+    return;
+  }
+  if (!v.me.eligible || v.stalls.free <= 0) return;
+  const pick = v.board.filter((l) => !l.takeBlock).sort((x, y) => y.rating - x.rating || y.lesseeSharePct - x.lesseeSharePct)[0];
+  if (!pick) return;
+  if (await world.act(a, "lease_take", now, () => takeOffer(world.db, s, pick.listingId, now))) a.stats.leasesTaken++;
+}
+
+/**
+ * A breeder's surplus racers go on the lease board: horses it can offer (the server's caps: a
+ * quarter of its racing horses out on lease, 3 open offers), keeping its two best at home.
+ */
+async function offerLeases(c: VisitCtx, s: Session): Promise<void> {
+  const { a, now, world } = c;
+  const v = await world.act(a, "lease_view", now, () => leaseView(world.db, s, now));
+  if (!v) return;
+  const caps = v.me.caps;
+  if (caps.out + caps.openOffers >= caps.maxOut || caps.openOffers >= caps.maxOpenOffers) return;
+  const free = v.horses.filter((h) => !h.offerId);
+  const best = new Set([...free].sort((x, y) => y.rating - x.rating).slice(0, 2).map((h) => h.id));
+  const surplus = free.filter((h) => !h.block && !best.has(h.id));
+  const horse = surplus[a.rng.int(Math.max(1, surplus.length))];
+  if (!horse) return;
+  const cfg = v.config;
+  const input = {
+    horseId: horse.id,
+    termDays: cfg.terms[a.rng.int(cfg.terms.length)]!,
+    ownerSharePct: cfg.shareMin + 5 * a.rng.int((cfg.shareMax - cfg.shareMin) / 5 + 1),
+    allowAllOut: a.rng.chance(200),
+    maxLiveStartsPerWeek: cfg.weeklyDefault,
+    minLesseeRating: null,
+  };
+  if (await world.act(a, "lease_offer", now, () => offerForLease(world.db, s, input, now))) a.stats.leaseOffers++;
+}
 
 async function fresh(c: VisitCtx, s: Session): Promise<View | null> {
   return c.world.act(c.a, "player_view", c.now, () => playerView(c.world.db, s, c.now));
@@ -606,6 +665,8 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await freePack(c, s);
     await upgrade(c, s, ["entries", "trainer", "stableHand", "stalls"], 3_000);
     if (a.rng.chance(300)) await shop(c, s, 2_500, 1.15);
+    // Grinders buy stalls, so they are the stables with room for a leased racer.
+    if (a.rng.chance(GRINDER_LEASE_PERMILLE)) await takeALease(c, s);
     // Morning work, after the night's rest: one session for every horse that isn't tired.
     const mv = (await fresh(c, s)) ?? view;
     await train(c, s, mv.horses, 1_500, mv.credits);
@@ -648,6 +709,8 @@ async function breederVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await foalDue(c, s);
     // Surplus: every tradeable youngster beyond the two best racers, at the appraisal plus a margin.
     await sellSurplus(c, s, (h) => h.careerStatus === "racing", (h) => h.appraisal * (1 + a.rng.int(30) / 100), 2);
+    // Racers it doesn't sell can be leased out instead (rent racers, buy breeders).
+    await offerLeases(c, s);
     if (a.rng.chance(200)) await storyRaces(c, s, 1);
   }
 }

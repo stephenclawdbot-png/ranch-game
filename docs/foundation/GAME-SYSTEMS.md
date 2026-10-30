@@ -156,7 +156,16 @@ flowchart LR
   Faucets --> wallet((Stable balances))
   wallet --> Sinks
   wallet <-->|"player to player, never between linked accounts"| market["Horse market; stud fees (capped at the stallion's appraisal)"]
+  purses -->|"a leased runner's purse, split 30-80% owner / rest lessee (lease_share)"| lease["Horse leasing"]
+  lease --> wallet
 ```
+
+Leasing (2026-10-30, KNOBS 11a) creates no credits and, in the beta, moves none between players
+directly: there is no upfront fee (`LEASE_FEE_MAX` = 0), so the only flow is a leased runner's
+own purse, minted once and split between owner and lessee in one `lease_share` transaction at
+settlement (the runner's share of the race's `purse` transaction moves there). Upkeep for a
+leased horse is paid by the lessee (the stable that used it). Linked accounts can't lease to each
+other; lessees need a 7-day-old account with 10 Live starts; reciprocal leases are flagged.
 
 Known imbalance (2026-10-29): live race purses are about 3x the tier purses the economy model
 was balanced on (KNOBS "Live vs model mismatches"). The harness measures created vs

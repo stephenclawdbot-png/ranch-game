@@ -119,6 +119,7 @@ export async function quoteUsdgStud(db: Db, input: { accountId: string; sireId: 
     const dam = locked.find((h) => h.id === input.damId);
     if (!sire || !dam) throw new DomainError("NOT_FOUND", "horse not found");
     if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "You must own the mare.");
+    if (dam.lesseeStableId || sire.lesseeStableId) throw new DomainError("HORSE_ON_LEASE", "Horses on lease don't breed: wait until they are home.");
 
     const again = await liveBookingOf(tx, dam, input.now);
     if (again) {

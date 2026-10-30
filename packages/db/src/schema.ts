@@ -292,6 +292,14 @@ export const horses = pgTable(
     id: id(),
     /** Single owner column: a horse can never be owned by two stables. Null = house/system horse. */
     ownerStableId: uuid("owner_stable_id").references(() => stables.id),
+    /**
+     * The stable racing the horse on lease (services/leasing.ts), null when it is at home. Ownership
+     * never moves: owner_stable_id stays the owner. While set, the horse stands in the lessee's
+     * stall (it frees the owner's), the lessee cares for, trains and races it, and every owner-only
+     * act (sell, breed, retire, release, rename, stud, USDG) is refused. The horse's "keeper" (who
+     * may act on it day to day) is coalesce(lessee_stable_id, owner_stable_id).
+     */
+    lesseeStableId: uuid("lessee_stable_id").references(() => stables.id),
     name: text("name").notNull(),
     /**
      * Public registration sequence, shown as G<generation>-<reg_no zero-padded>. Assigned by
@@ -407,6 +415,8 @@ export const horses = pgTable(
     check("horses_pasture_consistent", sql`(${t.careerStatus} = 'pasture') = (${t.pasturedAt} is not null)`),
     check("horses_mandatory_retirement", sql`${t.starts} < 40 or ${t.careerStatus} <> 'racing'`),
     index("horses_owner_status_idx").on(t.ownerStableId, t.careerStatus),
+    index("horses_lessee_idx").on(t.lesseeStableId),
+    check("horses_lessee_not_owner", sql`${t.lesseeStableId} is null or ${t.lesseeStableId} is distinct from ${t.ownerStableId}`),
   ],
 );
 
@@ -1643,3 +1653,130 @@ export type UsdgRegistrationRow = typeof usdgRegistrations.$inferSelect;
 export type UsdgListingRow = typeof usdgListings.$inferSelect;
 export type UsdgBidRow = typeof usdgBids.$inferSelect;
 export type UsdgOrderRow = typeof usdgOrders.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Horse leasing (services/leasing.ts; the numbers live in game-core leasing.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * An owner's open offer to lease one racing horse: term, the owner's share of the prizes and an
+ * optional upfront fee. One active offer per horse (partial unique index). The horse is NOT locked
+ * while on offer (it can still race at home); taking the lease re-checks everything.
+ * status: active -> sold (taken: lease_id set) | cancelled (withdrawn, or the horse stopped
+ * qualifying) | expired.
+ */
+export const horseLeaseListings = pgTable(
+  "horse_lease_listings",
+  {
+    id: id(),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    ownerStableId: uuid("owner_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    termDays: integer("term_days").notNull(),
+    ownerSharePct: integer("owner_share_pct").notNull(),
+    fee: credits("fee").notNull().default(0),
+    /** Welfare terms the owner sets (game-core leasing.ts): all-out rides allowed, weekly Live-start cap. */
+    allowAllOut: boolean("allow_all_out").notNull().default(false),
+    maxLiveStartsPerWeek: integer("max_live_starts_per_week").notNull().default(4),
+    /** Minimum lessee rating in stars (1..5), null = anyone eligible. */
+    minLesseeRating: integer("min_lessee_rating"),
+    status: listingStatusEnum("status").notNull().default("active"),
+    leaseId: uuid("lease_id"),
+    createdAt: createdAt(),
+    expiresAt: ts("expires_at").notNull(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [
+    uniqueIndex("horse_lease_listings_horse_active_uq")
+      .on(t.horseId)
+      .where(sql`${t.status} = 'active'`),
+    index("horse_lease_listings_status_idx").on(t.status, t.expiresAt),
+    index("horse_lease_listings_owner_idx").on(t.ownerStableId, t.status),
+    check(
+      "horse_lease_listings_terms",
+      sql`${t.termDays} between 1 and 60 and ${t.ownerSharePct} between 0 and 100 and ${t.fee} >= 0 and ${t.maxLiveStartsPerWeek} between 1 and 21 and (${t.minLesseeRating} is null or ${t.minLesseeRating} between 1 and 5)`,
+    ),
+    check("horse_lease_listings_expiry", sql`${t.expiresAt} > ${t.createdAt}`),
+  ],
+);
+
+/**
+ * A lease in force ('active') or finished ('ended'). One active lease per horse (partial unique
+ * index); horses.lessee_stable_id mirrors the active lease. Running totals of the purse shares
+ * (owner_earned / lessee_earned, races) feed the stable views and the end-of-lease inbox notes.
+ * end_requested_at: the lessee handed the horse back while it was entered in a race; it goes home
+ * once that race settles (or is abandoned).
+ */
+export const horseLeases = pgTable(
+  "horse_leases",
+  {
+    id: id(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => horseLeaseListings.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    ownerStableId: uuid("owner_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    lesseeStableId: uuid("lessee_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    termDays: integer("term_days").notNull(),
+    ownerSharePct: integer("owner_share_pct").notNull(),
+    fee: credits("fee").notNull().default(0),
+    /** Platform cut of the fee (burned). */
+    feeCut: credits("fee_cut").notNull().default(0),
+    allowAllOut: boolean("allow_all_out").notNull().default(false),
+    maxLiveStartsPerWeek: integer("max_live_starts_per_week").notNull().default(4),
+    /** Condition report { fitness, fatigue, injury, rating } at the start and at the return. */
+    startCondition: jsonb("start_condition"),
+    endCondition: jsonb("end_condition"),
+    startsAt: ts("starts_at").notNull(),
+    endsAt: ts("ends_at").notNull(),
+    /** active | ended */
+    status: text("status").notNull().default("active"),
+    /** term | returned | injured | retired | died */
+    endReason: text("end_reason"),
+    endRequestedAt: ts("end_requested_at"),
+    endedAt: ts("ended_at"),
+    races: integer("races").notNull().default(0),
+    ownerEarned: credits("owner_earned").notNull().default(0),
+    lesseeEarned: credits("lessee_earned").notNull().default(0),
+    /** Lessee record: entries made on lease, the horse's fatigue summed over them, injuries on lease. */
+    entries: integer("entries").notNull().default(0),
+    fatigueAtEntrySum: integer("fatigue_at_entry_sum").notNull().default(0),
+    injuries: integer("injuries").notNull().default(0),
+    /** The owner's 1-5 star rating of the lessee, once the lease has ended (once). */
+    ownerRating: integer("owner_rating"),
+    ratedAt: ts("rated_at"),
+    feeTransactionId: uuid("fee_transaction_id").references(() => ledgerTransactions.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("horse_leases_listing_uq").on(t.listingId),
+    uniqueIndex("horse_leases_horse_active_uq")
+      .on(t.horseId)
+      .where(sql`${t.status} = 'active'`),
+    index("horse_leases_owner_idx").on(t.ownerStableId, t.status),
+    index("horse_leases_lessee_idx").on(t.lesseeStableId, t.status),
+    index("horse_leases_due_idx").on(t.status, t.endsAt),
+    check("horse_leases_parties", sql`${t.ownerStableId} <> ${t.lesseeStableId}`),
+    check("horse_leases_status", sql`${t.status} in ('active', 'ended')`),
+    check("horse_leases_ended", sql`(${t.status} = 'ended') = (${t.endedAt} is not null)`),
+    check("horse_leases_range", sql`${t.endsAt} > ${t.startsAt}`),
+    check("horse_leases_rating", sql`${t.ownerRating} is null or (${t.ownerRating} between 1 and 5 and ${t.status} = 'ended')`),
+    check("horse_leases_record", sql`${t.entries} >= 0 and ${t.fatigueAtEntrySum} >= 0 and ${t.injuries} >= 0`),
+    check(
+      "horse_leases_money",
+      sql`${t.fee} >= 0 and ${t.feeCut} >= 0 and ${t.feeCut} <= ${t.fee} and ${t.ownerEarned} >= 0 and ${t.lesseeEarned} >= 0 and ${t.races} >= 0`,
+    ),
+  ],
+);
+
+export type HorseLeaseListingRow = typeof horseLeaseListings.$inferSelect;
+export type HorseLeaseRow = typeof horseLeases.$inferSelect;

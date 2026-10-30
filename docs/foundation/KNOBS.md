@@ -455,6 +455,8 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `race_extras_refund` / `jockey_fee_refund` | burn → player | packages/db/src/services/races.ts:295 (scratch :421, abandoned race :827) |
 | `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
 | `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
+| `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |
+| `lease_fee` | lessee → owner, cut → burn (off in the beta: `LEASE_FEE_MAX` = 0) | packages/db/src/services/leasing.ts `takeLease` |
 
 ### 10d. Balance model
 
@@ -480,6 +482,30 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Verified email to sell | game-core default true; DB default false (env `MARKET_REQUIRE_VERIFIED_EMAIL`) | packages/game-core/src/economy.ts:194, packages/db/src/rules.ts:254 | Live default is off (no email flow). | Market supply |
 | Bindings | Club-bred (starters, gift, free packs) never; their foals after 5 starts | packages/game-core/src/economy.ts:207-208, packages/game-core/src/packs.ts:169 | Untradeable horses. | Market supply |
 | Linked accounts | trades blocked; paid stud coverings blocked too | packages/game-core/src/economy.ts:231, packages/db/src/services/market.ts:149, packages/db/src/services/breeding.ts:136 | Anti credit-transfer. | RMT risk |
+
+### 11a. Leasing (new 2026-10-30)
+
+Owner request: rent racers, buy breeders. An owner offers a racing horse for a fixed term; the lessee keeps it in its own stall, races it in its silks and every purse is split. All values in `packages/game-core/src/leasing.ts` (JSDoc on each); services in `packages/db/src/services/leasing.ts`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `LEASE_TERMS_DAYS` | 7, 14, 28 days | packages/game-core/src/leasing.ts:30 | Lease terms on offer; nothing longer. | How long racers stay away from their owners (market vs lease) |
+| `LEASE_OWNER_SHARE_MIN_PCT` / `_MAX_PCT` | 30% / 80% (default 50%) | packages/game-core/src/leasing.ts:34-38 | Owner's share of every purse won on lease; the lessee gets the rest, rounding to the lessee (`leaseShareSplit`). | Credits owner vs lessee; alt→main value via prize shares |
+| `LEASE_FEE_MAX` | 0 (beta: no upfront fee) | packages/game-core/src/leasing.ts:46 | Upfront fee cap. 0 disables the fee path; when enabled the fee is capped at `LEASE_FEE_APPRAISAL_PERMILLE` (10%) of the appraisal and `LEASE_FEE_CUT_PERMILLE` (10%) is burned. | Direct credit transfers between players (RMT/alt risk) |
+| `LEASE_OFFER_DAYS` | 7 days | packages/game-core/src/leasing.ts:53 | An open offer lapses after this. | Board supply |
+| `LEASE_MIN_STARTS_LEFT` | 5 of 40 | packages/game-core/src/leasing.ts:59 | A horse needs this many career starts left to be leased. | Lease supply |
+| `MAX_LEASES_OUT_PER_OWNER` / `LEASES_OUT_SHARE_PERMILLE` / `MIN_LEASES_OUT_PER_OWNER` | min(3, 25% of the owner's racing horses rounded down), at least 1 | packages/game-core/src/leasing.ts:66-70 (`maxLeasesOut`) | Horses one owner may have out on lease at once (checked at offer and at take). | Market vs lease (breeders still sell), board concentration |
+| `MAX_OPEN_LEASE_OFFERS` | 3 | packages/game-core/src/leasing.ts:72 | Open offers per owner. | Board concentration |
+| `MAX_LEASES_PER_LESSEE` | 2 (plus a free stall each) | packages/game-core/src/leasing.ts:74 | Leases one stable may hold. | Cornering the board |
+| `LEASE_RELIST_COOLDOWN_DAYS` | 7 days | packages/game-core/src/leasing.ts:76 | A horse back from a lease can't be offered again before this. | Lease churn |
+| `LESSEE_MIN_ACCOUNT_DAYS` / `LESSEE_MIN_LIVE_STARTS` | 7 days / 10 settled Live starts | packages/game-core/src/leasing.ts:83-85 | Lessee eligibility (fresh alts can't lease). | Sybil cost, alt→main via shares |
+| `LEASE_RECIPROCAL_WINDOW_DAYS` | 14 days | packages/game-core/src/leasing.ts:87 | A to B then B to A inside the window records a `lease_reciprocal` fraud event (not blocked). Linked accounts are refused (`linked_lease_blocked`). | Review queue |
+| `LEASE_WEEKLY_STARTS_MIN` / `_MAX` / `_DEFAULT` | 2 / 7 / 4 Live starts per UTC week | packages/game-core/src/leasing.ts:94-98 | Owner's weekly Live-start cap for the leased horse. | Welfare, lessee earnings |
+| Tired entry block | fatigue > `TIRED_THRESHOLD` (300) | packages/db/src/services/leasing.ts `leasedEntryCheckTx` | A leased horse can't be entered tired; all-out only if the owner allowed it; no race after the term. | Welfare, injuries on lease |
+| `LEASE_INJURY_RETURNS` | moderate, career-ending, fatal | packages/game-core/src/leasing.ts:108 | Injuries that end the lease straight after the race. | Welfare |
+| `LEASE_RATING_MIN` / `_MAX` / `LEASE_UNRATED_STARS` | 1..5 stars; unrated lessee counts as 3 | packages/game-core/src/leasing.ts:100-106 | Owner ratings (once per ended lease) and the listing's minimum lessee rating. | Lessee reputation |
+| Board order | 10-rating-point bands best first, shuffled within a band by sha256(day, listing id); new-owner offers lifted to every third place | packages/db/src/services/leasing.ts `orderLeaseBoard` | Default lease-board sort. | Board concentration |
+| Lease sweep throttle | 30 s per instance | apps/web/src/server/leasing.ts `SWEEP_EVERY_MS` | Lazy end-of-term sweep from the views (the maintenance cron is the backstop). | Return latency |
 
 ## 12. Packs
 

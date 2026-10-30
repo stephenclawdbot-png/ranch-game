@@ -136,6 +136,53 @@ export interface StableHorse {
   block: string | null;
   /** Injury risk for a normal ride at its best trip on good going. */
   risk: RiskView;
+  /** Held on lease from another stable (the stable view's "Leased from" chip). */
+  lease?: LeaseChip | null;
+}
+
+/** A horse held on lease, as the lessee's stable shows it. */
+export interface LeaseChip {
+  leaseId: string;
+  fromStable: string;
+  endsAtMs: number;
+  /** The lessee's share of every purse, percent. */
+  sharePct: number;
+  earned: number;
+  races: number;
+  allowAllOut: boolean;
+  maxLiveStartsPerWeek: number;
+  returnPending: boolean;
+}
+
+/** One of the stable's own horses away on lease ("On lease to ..."). */
+export interface LeasedOutHorse {
+  id: string;
+  leaseId: string;
+  horse: Horse;
+  toStable: string;
+  endsAtMs: number;
+  ownerSharePct: number;
+  /** The owner's share earned so far. */
+  earned: number;
+  races: number;
+  returnPending: boolean;
+}
+
+/** Lease details on the horse page (owner, lessee, or anyone: it races in the lessee's colours). */
+export interface HorseLeaseInfo {
+  leaseId: string;
+  /** The viewer's side, or "public". */
+  role: "owner" | "lessee" | "public";
+  ownerStableName: string;
+  lesseeStableName: string;
+  endsAtMs: number;
+  ownerSharePct: number;
+  races: number;
+  ownerEarned: number;
+  lesseeEarned: number;
+  allowAllOut: boolean;
+  maxLiveStartsPerWeek: number;
+  returnPending: boolean;
 }
 
 export interface ActiveEntry {
@@ -199,6 +246,8 @@ export interface PlayerView {
   entries: EntryBankView;
   stalls: { slots: number; used: number };
   horses: StableHorse[];
+  /** The stable's own horses away on lease (they stand in the lessee's stall). */
+  leasedOut?: LeasedOutHorse[];
   active: ActiveEntry[];
   inbox: InboxView[];
   runs: RunView[];
@@ -216,8 +265,13 @@ export interface HorseDetailView {
   kind: "player" | "house";
   stableName: string;
   trainer: string | null;
+  /** The viewer keeps the horse: may care for, train and race it (the owner, or the lessee while on lease). */
   mine: boolean;
-  /** Present for the owner's own horses. */
+  /** The viewer owns the horse (owner-only acts: sell, breed, retire, lease out). */
+  owned?: boolean;
+  /** The active lease, when the horse is on lease. */
+  lease?: HorseLeaseInfo | null;
+  /** Present for the viewer's own (kept) horses. */
   status: StableHorse | null;
   runs: RunView[];
   pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };

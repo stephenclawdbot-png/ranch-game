@@ -249,7 +249,7 @@ export async function usdgMarketView(ctx: UsdgCtx, session: Session, now: Date):
     };
   };
   const all = board.map(view);
-  const rows = (await listStableHorses(ctx.db, session.stable.id)).filter((r) => r.careerStatus !== "pasture");
+  const rows = (await listStableHorses(ctx.db, session.stable.id)).filter((r) => r.careerStatus !== "pasture" && r.ownerStableId === session.stable.id);
   const regs = await usdgRegisteredIds(ctx.db, rows.map((r) => r.id));
   const silks = parseSilks(session.stable.silks);
   const registered: UsdgSellable[] = [];

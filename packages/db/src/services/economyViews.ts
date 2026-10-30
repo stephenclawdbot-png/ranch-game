@@ -36,7 +36,7 @@ import {
 import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
 import { foal, grandparentsOf, pedigreeIndex, withStudHolds } from "./breeding";
-import { renameHorse } from "./horses";
+import { openLeaseOfferOf, renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
 import { isUsdgRegistered, studHoldsOf } from "./usdgMarket";
 
@@ -77,7 +77,7 @@ export async function breedingStateOf(ex: Executor, horse: HorseRow, now?: Date)
 export interface BreedingStatus {
   horseId: string;
   /** game-core BreedBlock (or a lock: "in_race" / "listed" / "booked" for a USDG covering), null when the horse can breed now. */
-  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "no_genome" | null;
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "no_genome" | null;
   used: number;
   lifetime: number;
   usedThisSeason: number;
@@ -104,6 +104,7 @@ export async function breedingStatus(ex: Executor, horse: HorseRow, now: Date): 
   const state = await breedingStateOf(ex, horse, now);
   const usedThisSeason = gc.usedInSeason(state, season);
   let block: BreedingStatus["block"] = gc.breedingEligibility(state, season);
+  if (!block && horse.lesseeStableId) block = "on_lease";
   if (!block && horse.lockKind === "race" && female) block = "in_race";
   if (!block && horse.lockKind === "market") block = "listed";
   if (!block && horse.lockKind === "stud") block = "booked";
@@ -113,7 +114,7 @@ export async function breedingStatus(ex: Executor, horse: HorseRow, now: Date): 
 export interface PairingPreview {
   preview: gc.BreedingPreview;
   /** Block for this exact pairing (kinship, sexes, eligibility of either horse, locks). */
-  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "not_at_stud" | "not_your_mare" | null;
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "not_at_stud" | "not_your_mare" | null;
   fees: gc.BreedingFees;
   /** Someone else's stallion standing for a USDG stud fee (micro-USDG): paid on-chain, not in credits. */
   usdgStudFee: number | null;
@@ -147,6 +148,7 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   if (dam.ownerStableId !== stable.id) block = "not_your_mare";
   else if (!ownSire && !standsAtStud(sire)) block = "not_at_stud";
   else if (preview.blocked) block = preview.blocked;
+  else if (dam.lesseeStableId || sire.lesseeStableId) block = "on_lease";
   else if (dam.lockKind === "race") block = "in_race";
   else if (dam.lockKind === "market" || sire.lockKind === "market") block = "listed";
   else if (dam.lockKind === "stud") block = "booked";
@@ -440,7 +442,7 @@ export async function sellerStatus(ex: Executor, input: { accountId: string; sta
   };
 }
 
-export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "booked" | "usdg_only" | "in_foal" | "legacy_farm" | "resale_lock" | null;
+export type TradeLock = "club_bred" | "until_starts" | "on_lease" | "lease_offered" | "in_race" | "listed" | "booked" | "usdg_only" | "in_foal" | "legacy_farm" | "resale_lock" | null;
 
 export interface TradeStatus {
   horseId: string;
@@ -500,12 +502,14 @@ export async function tradeStatus(
   if (horse.bound) lock = "club_bred";
   else if (horse.starts < horse.tradeMinStarts) lock = "until_starts";
   else if (horse.careerStatus === "pasture") lock = "legacy_farm";
+  else if (horse.lesseeStableId) lock = "on_lease";
   else if (horse.lockKind === "race") lock = "in_race";
   else if (horse.lockKind === "market") lock = "listed";
   else if (horse.lockKind === "stud") lock = "booked";
   else if (usdgRegisteredIn ?? (await isUsdgRegistered(ex, horse.id))) lock = "usdg_only";
   else if (carrying) lock = "in_foal";
   else if (resale) lock = "resale_lock";
+  else if (await openLeaseOfferOf(ex, horse.id)) lock = "lease_offered";
   return { horseId: horse.id, lock, startsNeeded: Math.max(0, horse.tradeMinStarts - horse.starts), appraisal, floor, ceiling, boughtAt: resale?.boughtAt ?? null, resaleUntil: resale?.until ?? null };
 }
 

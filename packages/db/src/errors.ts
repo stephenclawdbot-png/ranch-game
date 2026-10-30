@@ -50,7 +50,11 @@ export type DomainErrorCode =
   /** Barred from USDG bidding after not paying for a won auction. */
   | "USDG_BARRED"
   /** Another stable already sponsors that Live card slot (services/sponsorship.ts). */
-  | "ALREADY_SPONSORED";
+  | "ALREADY_SPONSORED"
+  /** The horse is away on lease (or the act is the owner's alone while it is): services/leasing.ts. */
+  | "HORSE_ON_LEASE"
+  /** Too many leases at once (game-core MAX_LEASES_PER_OWNER / MAX_LEASES_PER_LESSEE). */
+  | "LEASE_LIMIT";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -118,6 +122,9 @@ const CONSTRAINT_CODES: Record<string, DomainErrorCode> = {
   pregnancies_dam_carrying_uq: "HORSE_IN_FOAL",
   market_listings_horse_active_uq: "HORSE_LOCKED",
   usdg_listings_horse_open_uq: "HORSE_LOCKED",
+  horse_lease_listings_horse_active_uq: "HORSE_LOCKED",
+  horse_leases_horse_active_uq: "HORSE_ON_LEASE",
+  horses_lessee_not_owner: "CANNOT_BUY_OWN",
   race_entries_race_horse_uq: "HORSE_LOCKED",
   horses_mandatory_retirement: "HORSE_RETIRED",
   foal_crop_bounds: "CROP_SOLD_OUT",

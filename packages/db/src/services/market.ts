@@ -20,7 +20,7 @@ import { bps, defaultAppraise, gcSellerPolicy, RULES, sellerPolicy, type GameHoo
 import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStableOf } from "./accounts";
-import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
+import { isCarrying, lockHorse, lockOwnedHorse, openLeaseOfferOf } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 import { isUsdgRegistered } from "./usdgMarket";
@@ -93,6 +93,7 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : horse.lockKind === "stud" ? "the mare is booked for a USDG covering" : "already listed");
     // A horse registered for the USDG market trades only for USDG (no credits/USDG arbitrage).
     if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("USDG_ONLY", "this horse is registered for the USDG market and sells only for USDG");
+    if (await openLeaseOfferOf(tx, horse.id)) throw new DomainError("HORSE_LOCKED", "this horse is offered for lease: withdraw the lease offer first");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
     const resale = await resaleLock(tx, horse.id, stableId, input.now);
     if (resale) throw new DomainError("RESALE_LOCKED", `bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}`, { until: resale.until.getTime() });
@@ -161,7 +162,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
     }
     await assertStallFree(tx, buyerStable);
     const horse = await lockHorse(tx, listing.horseId);
-    if (horse.ownerStableId !== listing.sellerStableId || horse.lockKind !== "market" || horse.lockRef !== listing.id) {
+    if (horse.ownerStableId !== listing.sellerStableId || horse.lesseeStableId || horse.lockKind !== "market" || horse.lockRef !== listing.id) {
       throw new DomainError("LISTING_NOT_ACTIVE", "listing is no longer valid");
     }
     const fee = gc.marketFee(listing.price);

@@ -16,6 +16,7 @@ import { EmptyState } from "../ui/Page";
 import { HorseStage } from "./HorseStage";
 import { PedigreeTree } from "./PedigreeTree";
 import { UsdgHorsePanel } from "./UsdgHorsePanel";
+import { HorseLeasePanel } from "./HorseLeasePanel";
 import { PositionBadge } from "../ui/PositionBadge";
 
 export { PositionBadge };
@@ -157,6 +158,8 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
       />
       {tabs}
 
+      {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-4" aria-labelledby="apt-h">
           <h2 id="apt-h" className="t-h2">
@@ -220,7 +223,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         </section>
       )}
 
-      {isMine && <UsdgHorsePanel horseId={horse.id} />}
+      {isMine && (view.owned ?? true) && !view.lease && <UsdgHorsePanel horseId={horse.id} />}
 
       <section aria-labelledby="ped-h" data-testid="pedigree">
         <h2 id="ped-h" className="t-h2 mb-3">

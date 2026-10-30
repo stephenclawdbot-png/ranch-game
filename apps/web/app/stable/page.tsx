@@ -12,7 +12,7 @@ import { ActionBar } from "@/components/ui/ActionBar";
 import { RanchStage } from "@/components/stable/RanchStage";
 import { Section } from "@/components/ui/Page";
 import { aptitudes } from "@/lib/aptitude";
-import { SEX_LABEL, STYLE_LABEL, formatDistance } from "@/lib/format";
+import { SEX_LABEL, STYLE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { recommendHorse, type PlayerState } from "@/lib/player";
 import type { StableHorse } from "@/lib/types";
 
@@ -95,6 +95,29 @@ function Stable({ state }: { state: PlayerState }) {
               </li>
             )}
           </ul>
+          {!!state.leasedOut?.length && (
+            <Section title="Away on lease">
+              <ul className="surface rows" data-testid="leased-out">
+                {state.leasedOut.map((l) => (
+                  <li key={l.id}>
+                    <Link href={`/horse/${l.id}`} className="row-link gap-3 px-4 py-3">
+                      <span className="well grid shrink-0 place-items-center overflow-hidden">
+                        <HorsePortrait appearance={l.horse.appearance} scale="thumb" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="t-title block">{l.horse.name}</span>
+                        <span className="t-meta block" data-testid="lease-out-chip">
+                          On lease to {l.toStable} · back {shortDay(l.endsAtMs)}
+                          {l.returnPending ? " (after its race)" : ""} · your share {l.ownerSharePct}% · {formatCredits(l.earned)} earned in {l.races} {l.races === 1 ? "race" : "races"}
+                        </span>
+                      </span>
+                      <span className="chev">›</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
           {best && (
             <div className="mt-4">
               <ActionBar>
@@ -130,6 +153,10 @@ function Stable({ state }: { state: PlayerState }) {
       </div>
     </div>
   );
+}
+
+function shortDay(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 function YardRow({ icon, title, text, href }: { icon: IconName; title: string; text: string; href: string }) {
@@ -175,6 +202,11 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
           )}
           <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] font-bold text-cream-dim">
             {recommended && <span className="tag tag-you !h-5 !text-[0.6875rem]">★ Best fit</span>}
+            {s.lease && (
+              <span className="tag !h-5 !text-[0.6875rem]" data-testid="lease-chip">
+                Leased from {s.lease.fromStable} · ends {shortDay(s.lease.endsAtMs)} · your share {s.lease.sharePct}%
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5" title={`Injury risk next start: ${riskText(s.risk)}`}>
               <i className={`dot ${dot}`} aria-hidden />
               {s.lockedRaceId ? "Entered" : cond.text}

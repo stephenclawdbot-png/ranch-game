@@ -9,7 +9,7 @@ import { achievements, dailyCupEntries, economyConfig, hallOfFame, leagueMembers
 import { RULES, seasonBounds, seasonNumberAt } from "../rules";
 import type { Db, Executor } from "../types";
 import { recordPlayDay } from "./accounts";
-import { lockOwnedHorse } from "./horses";
+import { lockKeptHorse } from "./horses";
 import { horseSnapshot } from "./races";
 import { audit, runTx } from "./tx";
 
@@ -57,7 +57,7 @@ export async function enterDailyCup(db: Db, input: DailyCupInput) {
       .from(dailyCupEntries)
       .where(and(eq(dailyCupEntries.accountId, input.accountId), eq(dailyCupEntries.day, day)));
     if (existing) throw new DomainError("DAILY_CUP_ALREADY_ENTERED", "one Cup Run per day");
-    const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
+    const { horse } = await lockKeptHorse(tx, input.accountId, input.horseId);
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "retired horses cannot run");
     if (horse.careSessions < RULES.careToRacing) throw new DomainError("HORSE_NOT_OF_AGE", "not yet of racing age");
     if (horse.injuredUntil && horse.injuredUntil > input.now) throw new DomainError("HORSE_INJURED", "recovering from injury");
