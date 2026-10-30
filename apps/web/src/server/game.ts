@@ -63,6 +63,7 @@ import {
   tickRaceCard,
   toHorseState,
   RULES,
+  CALENDAR_HORIZON_MS,
   classEligibility,
   featureQualificationReason,
   startsOnDay,
@@ -455,9 +456,16 @@ async function playerStableName(db: Db, race: PublicRace, horseId: string): Prom
 export async function raceList(db: Db, now: Date, viewerStableId: string | null, opts: { upcoming?: number; recent?: number } = {}) {
   await driveCard(db, now);
   const nowMs = now.getTime();
-  const ahead = await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: viewerStableId });
+  // the regular card (6 h) plus calendar races published a day ahead (Qualifiers, Feature, Plate, Finals)
+  const regularAhead = await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: viewerStableId });
+  const calendarAhead = (await listCardRaces(db, { from: new Date(nowMs + RULES.cardHorizonMs + 1), to: new Date(nowMs + CALENDAR_HORIZON_MS), stableId: viewerStableId })).filter(
+    (r) => !!(r.conditions as { calendar?: unknown } | null)?.calendar,
+  );
+  // calendar races first among the upcoming so a short list still shows them
+  const ahead = [...calendarAhead, ...regularAhead].sort((x, y) => x.postTime.getTime() - y.postTime.getTime());
   const behind = await listCardRaces(db, { from: new Date(nowMs - 8 * RULES.slotMs), to: now, stableId: viewerStableId });
-  const rows = ahead.slice(0, opts.upcoming ?? 6);
+  const limit = opts.upcoming ?? 6;
+  const rows = [...ahead.filter((r) => !calendarAhead.includes(r)).slice(0, Math.max(0, limit - calendarAhead.length)), ...calendarAhead.slice(0, limit)].sort((x, y) => x.postTime.getTime() - y.postTime.getTime());
   const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now)));
   // Sister courses (§4d) sort right after their original: name them under the original's row.
   for (const [i, r] of rows.entries()) {
