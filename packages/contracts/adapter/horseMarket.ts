@@ -2,8 +2,8 @@ import { keccak256, toBytes, type Address, type Hex, type TypedDataDefinition } 
 
 // EIP-712 definitions for HorseMarket.sol (the USDG horse market, docs/usdg-market.md). MUST
 // match the contract (EIP712("PostTimeHorseMarket", "1"), SALE_ORDER_TYPEHASH,
-// REGISTRATION_ORDER_TYPEHASH). test/horse-market.test.ts checks hashSaleOrder() and
-// hashRegistrationOrder() against viem's digests. apps/web/src/lib/chain/contracts.generated.ts
+// REGISTRATION_ORDER_TYPEHASH, STUD_ORDER_TYPEHASH). test/horse-market.test.ts checks
+// hashSaleOrder(), hashRegistrationOrder() and hashStudOrder() against viem's digests. apps/web/src/lib/chain/contracts.generated.ts
 // carries a copy (scripts/export-web.ts; freshness tested in test/export-web.test.ts).
 //
 // `Bid` is never sent to the contract: the bidder's wallet signs it and the game server checks it
@@ -32,6 +32,21 @@ export const registrationOrderTypes = {
     { name: "horseRef", type: "bytes32" },
     { name: "owner", type: "address" },
     { name: "token", type: "address" },
+    { name: "fee", type: "uint256" },
+    { name: "deadline", type: "uint64" },
+  ],
+} as const;
+
+/** A registered stallion's USDG stud fee for one covering (HorseMarket.payStudFee). */
+export const studOrderTypes = {
+  StudOrder: [
+    { name: "orderId", type: "bytes32" },
+    { name: "stallionRef", type: "bytes32" },
+    { name: "mareRef", type: "bytes32" },
+    { name: "stallionOwner", type: "address" },
+    { name: "payer", type: "address" },
+    { name: "token", type: "address" },
+    { name: "price", type: "uint256" },
     { name: "fee", type: "uint256" },
     { name: "deadline", type: "uint64" },
   ],
@@ -68,6 +83,22 @@ export interface RegistrationOrder {
   deadline: bigint;
 }
 
+export interface StudOrder {
+  orderId: Hex;
+  /** horseRef(stallion id) */
+  stallionRef: Hex;
+  /** horseRef(mare id) */
+  mareRef: Hex;
+  /** Receives price - fee. */
+  stallionOwner: Address;
+  /** The mare's owner: must be msg.sender. */
+  payer: Address;
+  token: Address;
+  price: bigint;
+  fee: bigint;
+  deadline: bigint;
+}
+
 export interface Bid {
   /** The game's listing UUID, readable in the wallet prompt. */
   listingId: string;
@@ -84,6 +115,10 @@ export function saleOrderTypedData(o: SaleOrder, chainId: number, market: Addres
 
 export function registrationOrderTypedData(o: RegistrationOrder, chainId: number, market: Address): TypedDataDefinition<typeof registrationOrderTypes, "RegistrationOrder"> {
   return { domain: domain(chainId, market), types: registrationOrderTypes, primaryType: "RegistrationOrder", message: { ...o } };
+}
+
+export function studOrderTypedData(o: StudOrder, chainId: number, market: Address): TypedDataDefinition<typeof studOrderTypes, "StudOrder"> {
+  return { domain: domain(chainId, market), types: studOrderTypes, primaryType: "StudOrder", message: { ...o } };
 }
 
 export function bidTypedData(b: Bid, chainId: number, market: Address): TypedDataDefinition<typeof bidTypes, "Bid"> {

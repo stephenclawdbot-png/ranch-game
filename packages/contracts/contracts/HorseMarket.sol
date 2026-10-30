@@ -19,9 +19,12 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 ///    balances, no withdrawals, no refunds, and no function that moves tokens out of it.
 ///  - `register(RegistrationOrder, sig)`: the owner pays the registration fee straight to the
 ///    treasury (a sink that makes farming free-credit horses for cash unprofitable).
+///  - `payStudFee(StudOrder, sig)`: a mare owner pays a registered stallion's USDG stud fee:
+///    `price - fee` straight to the stallion's owner, `fee` to the treasury. The game server runs
+///    the covering only after verifying `StudFeePaid` (docs/usdg-market.md, "USDG stud fees").
 ///  - Every order is signed by the game server (SIGNER_ROLE, EIP-712) only after its off-chain
-///    checks (listing, both accounts, linked accounts, resale lock, price bounds). `orderId` is
-///    single-use across both kinds, bound to `msg.sender`, and has a deadline.
+///    checks (listing, both accounts, linked accounts, resale lock, price bounds, breeding rules).
+///    `orderId` is single-use across ALL order kinds, bound to `msg.sender`, and has a deadline.
 ///  - Tokens are allow-listed (USDG, 6 decimals) and every transfer is checked for the exact
 ///    amount received (fee-on-transfer / rebasing tokens are rejected).
 ///  - The marketplace fee is `feeBps` of the price (admin-set, hard cap 10 %); the signed fee must
@@ -44,6 +47,9 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     );
     bytes32 public constant REGISTRATION_ORDER_TYPEHASH =
         keccak256("RegistrationOrder(bytes32 orderId,bytes32 horseRef,address owner,address token,uint256 fee,uint64 deadline)");
+    bytes32 public constant STUD_ORDER_TYPEHASH = keccak256(
+        "StudOrder(bytes32 orderId,bytes32 stallionRef,bytes32 mareRef,address stallionOwner,address payer,address token,uint256 price,uint256 fee,uint64 deadline)"
+    );
 
     struct SaleOrder {
         bytes32 orderId; // server-generated, single-use (shared with RegistrationOrder)
@@ -65,6 +71,18 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint64 deadline;
     }
 
+    struct StudOrder {
+        bytes32 orderId; // single-use, shared with SaleOrder and RegistrationOrder
+        bytes32 stallionRef; // horseRef of the stallion (registered for the USDG market)
+        bytes32 mareRef; // horseRef of the mare being covered
+        address stallionOwner; // receives price - fee
+        address payer; // the mare's owner; must be msg.sender
+        address token;
+        uint256 price; // the stud fee, base units
+        uint256 fee; // to the treasury; must match feeBps within rounding
+        uint64 deadline;
+    }
+
     address public treasury;
     uint16 public feeBps;
     mapping(address token => bool) public acceptedToken;
@@ -73,6 +91,9 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
     event Sold(bytes32 indexed orderId, bytes32 indexed horseRef, address indexed seller, address buyer, uint256 price, uint256 fee);
     event Registered(bytes32 indexed orderId, bytes32 indexed horseRef, address indexed owner, uint256 fee);
+    event StudFeePaid(
+        bytes32 indexed orderId, bytes32 indexed stallionRef, bytes32 mareRef, address payer, address indexed stallionOwner, uint256 price, uint256 fee
+    );
     event FeeBpsSet(uint16 oldBps, uint16 newBps);
     event TreasurySet(address indexed oldTreasury, address indexed newTreasury);
     event TokenAcceptedSet(address indexed token, bool accepted);
@@ -116,11 +137,7 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         if (!acceptedToken[order.token]) revert TokenNotAccepted(order.token);
         if (order.seller == address(0)) revert ZeroAddress();
         if (order.seller == order.buyer) revert SelfTrade();
-        if (order.price == 0) revert ZeroPrice();
-        if (order.fee > order.price) revert FeeAbovePrice(order.fee, order.price);
-        uint256 floorFee = (order.price * feeBps) / BPS;
-        uint256 ceilFee = (order.price * feeBps + BPS - 1) / BPS;
-        if (order.fee != floorFee && order.fee != ceilFee) revert FeeMismatch(order.fee, floorFee);
+        _checkFee(order.price, order.fee);
         _checkSigner(hashSaleOrder(order), signature);
 
         // Effects (before any external call)
@@ -145,6 +162,35 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
         _pay(IERC20(order.token), msg.sender, treasury, order.fee);
         emit Registered(order.orderId, order.horseRef, msg.sender, order.fee);
+    }
+
+    /// @notice Pays a registered stallion's USDG stud fee for one covering. The payer (the mare's
+    /// owner) must have approved `order.price` of `order.token`. `price - fee` goes to the stallion's
+    /// owner and `fee` to the treasury, in this tx; the game server runs the covering afterwards.
+    function payStudFee(StudOrder calldata order, bytes calldata signature) external nonReentrant whenNotPaused {
+        if (order.payer != msg.sender) revert NotOrderBuyer(order.payer, msg.sender);
+        _checkWindow(order.orderId, order.deadline);
+        if (!acceptedToken[order.token]) revert TokenNotAccepted(order.token);
+        if (order.stallionOwner == address(0)) revert ZeroAddress();
+        if (order.stallionOwner == order.payer) revert SelfTrade();
+        _checkFee(order.price, order.fee);
+        _checkSigner(hashStudOrder(order), signature);
+
+        orderPayer[order.orderId] = msg.sender;
+
+        IERC20 token = IERC20(order.token);
+        _pay(token, msg.sender, order.stallionOwner, order.price - order.fee);
+        _pay(token, msg.sender, treasury, order.fee);
+        emit StudFeePaid(order.orderId, order.stallionRef, order.mareRef, msg.sender, order.stallionOwner, order.price, order.fee);
+    }
+
+    /// @dev Non-zero price; the signed fee is the floor or the ceiling of price × feeBps.
+    function _checkFee(uint256 price, uint256 fee) private view {
+        if (price == 0) revert ZeroPrice();
+        if (fee > price) revert FeeAbovePrice(fee, price);
+        uint256 floorFee = (price * feeBps) / BPS;
+        uint256 ceilFee = (price * feeBps + BPS - 1) / BPS;
+        if (fee != floorFee && fee != ceilFee) revert FeeMismatch(fee, floorFee);
     }
 
     function _checkWindow(bytes32 orderId, uint64 deadline) private view {
@@ -179,6 +225,12 @@ contract HorseMarket is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     /// @notice EIP-712 digest of a RegistrationOrder.
     function hashRegistrationOrder(RegistrationOrder calldata o) public view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(REGISTRATION_ORDER_TYPEHASH, o.orderId, o.horseRef, o.owner, o.token, o.fee, o.deadline)));
+    }
+
+    /// @notice EIP-712 digest of a StudOrder. All fields are static, so abi.encode(typehash, o)
+    /// is exactly typehash ‖ each field (the EIP-712 encodeData).
+    function hashStudOrder(StudOrder calldata o) public view returns (bytes32) {
+        return _hashTypedDataV4(keccak256(abi.encode(STUD_ORDER_TYPEHASH, o)));
     }
 
     function isUsed(bytes32 orderId) external view returns (bool) {

@@ -8,8 +8,10 @@ import {
   horseRef,
   registrationOrderTypedData,
   saleOrderTypedData,
+  studOrderTypedData,
   type RegistrationOrder,
   type SaleOrder,
+  type StudOrder,
 } from "../adapter/horseMarket";
 import { newOrderId, parseTokenAmount } from "../adapter/voucher";
 import { expectAnyRevert, expectRevert, latestTimestamp, ZERO_ADDRESS } from "./helpers";
@@ -19,6 +21,8 @@ const PRICE = parseTokenAmount("25", 6); // 25 USDG
 const FEE_BPS = 500;
 const REG_FEE = parseTokenAmount("2", 6);
 const HORSE = horseRef("6f1c1f9e-2d0c-4f43-9b4c-2b2f1d7e8a10");
+const MARE = horseRef("0a9b8c7d-6e5f-4a3b-8c2d-1e0f9a8b7c6d");
+const STUD_FEE = parseTokenAmount("40", 6); // 40 USDG
 
 async function fixture() {
   const [admin, treasury, signer, buyer, seller, other] = await hre.viem.getWalletClients();
@@ -67,8 +71,27 @@ async function fixture() {
   async function signReg(o: RegistrationOrder, by = signer!, verifyingContract: Address = market.address, cid = chainId): Promise<Hex> {
     return by.signTypedData({ account: by.account, ...registrationOrderTypedData(o, cid, verifyingContract) });
   }
+  /** A stud fee: the buyer (mare owner) pays the seller (stallion owner). */
+  async function stud(overrides: Partial<StudOrder> = {}): Promise<StudOrder> {
+    const price = overrides.price ?? STUD_FEE;
+    return {
+      orderId: newOrderId(),
+      stallionRef: HORSE,
+      mareRef: MARE,
+      stallionOwner: getAddress(seller!.account.address),
+      payer: getAddress(buyer!.account.address),
+      token: getAddress(usd.address),
+      price,
+      fee: horseMarketFee(price, FEE_BPS),
+      deadline: (await latestTimestamp()) + 900n,
+      ...overrides,
+    };
+  }
+  async function signStud(o: StudOrder, by = signer!, verifyingContract: Address = market.address, cid = chainId): Promise<Hex> {
+    return by.signTypedData({ account: by.account, ...studOrderTypedData(o, cid, verifyingContract) });
+  }
   const bal = (a: Address) => usd.read.balanceOf([a]);
-  return { admin: admin!, treasury: treasury!, signer: signer!, buyer: buyer!, seller: seller!, other: other!, usd, market, asBuyer, asSeller, asOther, publicClient, chainId, sale, reg, signSale, signReg, bal };
+  return { admin: admin!, treasury: treasury!, signer: signer!, buyer: buyer!, seller: seller!, other: other!, usd, market, asBuyer, asSeller, asOther, publicClient, chainId, sale, reg, stud, signSale, signReg, signStud, bal };
 }
 
 describe("HorseMarket", () => {
@@ -275,6 +298,177 @@ describe("HorseMarket", () => {
       const other = await hre.viem.deployContract("MockStablecoin", []);
       const t = await reg({ token: other.address });
       await expectRevert(asSeller.write.register([t, await signReg(t)]), "TokenNotAccepted");
+    });
+  });
+
+  describe("payStudFee (USDG stud fees for registered stallions)", () => {
+    it("pays the stallion owner price - fee and the treasury the fee, holds nothing, emits StudFeePaid", async () => {
+      const { market, asBuyer, buyer, seller, treasury, publicClient, stud, signStud, bal } = await loadFixture(fixture);
+      const o = await stud();
+      const [b0, s0, t0] = await Promise.all([bal(buyer.account.address), bal(seller.account.address), bal(treasury.account.address)]);
+      const hash = await asBuyer.write.payStudFee([o, await signStud(o)]);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const fee = (STUD_FEE * 500n) / 10_000n;
+      expect(fee).to.equal(2_000_000n);
+      expect(b0 - (await bal(buyer.account.address))).to.equal(STUD_FEE);
+      expect((await bal(seller.account.address)) - s0).to.equal(STUD_FEE - fee);
+      expect((await bal(treasury.account.address)) - t0).to.equal(fee);
+      expect(await bal(market.address)).to.equal(0n);
+      expect(await market.read.orderPayer([o.orderId])).to.equal(getAddress(buyer.account.address));
+      const [ev] = await market.getEvents.StudFeePaid({ orderId: o.orderId }, { fromBlock: receipt.blockNumber });
+      expect(ev!.args).to.deep.equal({
+        orderId: o.orderId,
+        stallionRef: HORSE,
+        mareRef: MARE,
+        payer: getAddress(buyer.account.address),
+        stallionOwner: getAddress(seller.account.address),
+        price: STUD_FEE,
+        fee,
+      });
+      console.log(`      payStudFee gas: ${receipt.gasUsed}`);
+    });
+
+    it("hashStudOrder equals viem's EIP-712 digest (adapter byte parity) and binds every field", async () => {
+      const { market, stud, chainId } = await loadFixture(fixture);
+      const o = await stud();
+      const digest = await market.read.hashStudOrder([o]);
+      expect(digest).to.equal(hashTypedData(studOrderTypedData(o, chainId, market.address)));
+      for (const tweak of [{ mareRef: HORSE }, { stallionRef: MARE }, { price: o.price + 1n }, { deadline: o.deadline + 1n }] as Partial<StudOrder>[]) {
+        const t = { ...o, ...tweak };
+        expect(await market.read.hashStudOrder([t])).to.equal(hashTypedData(studOrderTypedData(t, chainId, market.address)));
+        expect(await market.read.hashStudOrder([t])).to.not.equal(digest);
+      }
+    });
+
+    it("replay: an orderId is single-use, also across buy, register and payStudFee", async () => {
+      const { asBuyer, asSeller, stud, sale, reg, signStud, signSale, signReg } = await loadFixture(fixture);
+      const o = await stud();
+      const sig = await signStud(o);
+      await asBuyer.write.payStudFee([o, sig]);
+      await expectRevert(asBuyer.write.payStudFee([o, sig]), "OrderAlreadyUsed");
+      const s = await sale({ orderId: o.orderId });
+      await expectRevert(asBuyer.write.buy([s, await signSale(s)]), "OrderAlreadyUsed");
+      const r = await reg({ orderId: o.orderId });
+      await expectRevert(asSeller.write.register([r, await signReg(r)]), "OrderAlreadyUsed");
+      // A sale's orderId can't be reused for a stud fee either.
+      const s2 = await sale();
+      await asBuyer.write.buy([s2, await signSale(s2)]);
+      const o2 = await stud({ orderId: s2.orderId });
+      await expectRevert(asBuyer.write.payStudFee([o2, await signStud(o2)]), "OrderAlreadyUsed");
+    });
+
+    it("deadline: expired and too-far orders revert", async () => {
+      const { asBuyer, stud, signStud } = await loadFixture(fixture);
+      const now = await latestTimestamp();
+      const old = await stud({ deadline: now - 1n });
+      await expectRevert(asBuyer.write.payStudFee([old, await signStud(old)]), "OrderExpired");
+      const far = await stud({ deadline: now + 5n * 86_400n });
+      await expectRevert(asBuyer.write.payStudFee([far, await signStud(far)]), "OrderTtlTooLong");
+    });
+
+    it("wrong payer: only the named mare owner can pay; the stallion owner can't pay himself", async () => {
+      const { asOther, asSeller, asBuyer, stud, signStud, seller } = await loadFixture(fixture);
+      const o = await stud();
+      const sig = await signStud(o);
+      await expectRevert(asOther.write.payStudFee([o, sig]), "NotOrderBuyer");
+      await expectRevert(asSeller.write.payStudFee([o, sig]), "NotOrderBuyer");
+      const self = await stud({ payer: getAddress(seller.account.address) });
+      await expectRevert(asSeller.write.payStudFee([self, await signStud(self)]), "SelfTrade");
+      const zero = await stud({ stallionOwner: ZERO_ADDRESS });
+      await expectRevert(asBuyer.write.payStudFee([zero, await signStud(zero)]), "ZeroAddress");
+    });
+
+    it("fee math: floor or ceiling only, fee <= price, non-zero price; a fee change kills old orders", async () => {
+      const { market, asBuyer, stud, signStud, seller, treasury, bal } = await loadFixture(fixture);
+      const price = 1_000_001n;
+      for (const fee of [50_000n, 50_001n]) {
+        const ok = await stud({ price, fee });
+        await asBuyer.write.payStudFee([ok, await signStud(ok)]);
+      }
+      expect(await bal(treasury.account.address)).to.equal(100_001n);
+      for (const fee of [49_999n, 50_002n, 0n]) {
+        const bad = await stud({ price, fee });
+        await expectRevert(asBuyer.write.payStudFee([bad, await signStud(bad)]), "FeeMismatch");
+      }
+      const above = await stud({ price: 10n, fee: 11n });
+      await expectRevert(asBuyer.write.payStudFee([above, await signStud(above)]), "FeeAbovePrice");
+      const z = await stud({ price: 0n, fee: 0n });
+      await expectRevert(asBuyer.write.payStudFee([z, await signStud(z)]), "ZeroPrice");
+      const o = await stud();
+      const sig = await signStud(o);
+      await market.write.setFeeBps([700]);
+      await expectRevert(asBuyer.write.payStudFee([o, sig]), "FeeMismatch");
+      // Property: owner + treasury == price at random fee rates, and the contract keeps nothing.
+      let seed = 777n;
+      const rnd = (m: bigint) => {
+        seed = (seed * 6364136223846793005n + 1442695040888963407n) % 2n ** 64n;
+        return seed % m;
+      };
+      for (let i = 0; i < 8; i++) {
+        const bps = Number(rnd(1001n));
+        await market.write.setFeeBps([bps]);
+        const p = 1n + rnd(parseTokenAmount("50", 6));
+        const fee = (p * BigInt(bps)) / 10_000n;
+        const [s0, t0] = [await bal(seller.account.address), await bal(treasury.account.address)];
+        const x = await stud({ price: p, fee });
+        await asBuyer.write.payStudFee([x, await signStud(x)]);
+        const ds = (await bal(seller.account.address)) - s0;
+        const dt = (await bal(treasury.account.address)) - t0;
+        expect(ds + dt).to.equal(p);
+        expect(dt).to.equal(fee);
+        expect(await bal(market.address)).to.equal(0n);
+      }
+    });
+
+    it("signatures: tampered fields, a non-signer, another contract or chain, or a SaleOrder signature are refused", async () => {
+      const { asBuyer, stud, signStud, signSale, sale, other, chainId } = await loadFixture(fixture);
+      const o = await stud();
+      const sig = await signStud(o);
+      await expectRevert(asBuyer.write.payStudFee([{ ...o, mareRef: horseRef("another-mare") }, sig]), "InvalidSignature");
+      await expectRevert(asBuyer.write.payStudFee([{ ...o, stallionOwner: getAddress(other.account.address) }, sig]), "InvalidSignature");
+      await expectRevert(asBuyer.write.payStudFee([{ ...o, price: o.price * 2n, fee: horseMarketFee(o.price * 2n, FEE_BPS) }, sig]), "InvalidSignature");
+      await expectRevert(asBuyer.write.payStudFee([o, await signStud(o, other)]), "InvalidSignature");
+      await expectRevert(asBuyer.write.payStudFee([o, await signStud(o, undefined, "0x000000000000000000000000000000000000dEaD")]), "InvalidSignature");
+      await expectRevert(asBuyer.write.payStudFee([o, await signStud(o, undefined, undefined, chainId + 1)]), "InvalidSignature");
+      // Cross-kind: a valid SaleOrder signature over the same ids and amounts is not a StudOrder signature.
+      const s = await sale({ orderId: o.orderId, horseRef: o.stallionRef, price: o.price, fee: o.fee, deadline: o.deadline });
+      await expectRevert(asBuyer.write.payStudFee([o, await signSale(s)]), "InvalidSignature");
+    });
+
+    it("pause blocks payStudFee; allow-list and exact amounts apply; failures leave the order unused", async () => {
+      const { market, asBuyer, stud, signStud, usd, seller } = await loadFixture(fixture);
+      await market.write.pause();
+      const o = await stud();
+      const sig = await signStud(o);
+      await expectRevert(asBuyer.write.payStudFee([o, sig]), "EnforcedPause");
+      await market.write.unpause();
+      const other = await hre.viem.deployContract("MockStablecoin", []);
+      const t = await stud({ token: other.address });
+      await expectRevert(asBuyer.write.payStudFee([t, await signStud(t)]), "TokenNotAccepted");
+      await usd.write.setFeeBps([100n]);
+      await expectRevert(asBuyer.write.payStudFee([o, sig]), "UnexpectedAmountReceived");
+      expect(await market.read.isUsed([o.orderId])).to.equal(false);
+      await usd.write.setFeeBps([0n]);
+      await usd.write.setBlocked([seller.account.address, true]);
+      await expectAnyRevert(asBuyer.write.payStudFee([o, sig]));
+      expect(await market.read.isUsed([o.orderId])).to.equal(false);
+      await usd.write.setBlocked([seller.account.address, false]);
+      await asBuyer.write.payStudFee([o, sig]);
+      expect(await market.read.isUsed([o.orderId])).to.equal(true);
+    });
+
+    it("a hostile allow-listed token cannot re-enter payStudFee", async () => {
+      const { market, asBuyer, buyer, stud, signStud } = await loadFixture(fixture);
+      const evil = await hre.viem.deployContract("MockReentrantToken", []);
+      await market.write.setAcceptedToken([evil.address, true]);
+      await evil.write.mint([buyer.account.address, 10n ** 12n]);
+      const evilAsBuyer = await hre.viem.getContractAt("MockReentrantToken", evil.address, { client: { wallet: buyer } });
+      await evilAsBuyer.write.approve([market.address, 10n ** 12n]);
+      const inner = await stud({ token: evil.address });
+      const payload = encodeFunctionData({ abi: market.abi, functionName: "payStudFee", args: [inner, await signStud(inner)] });
+      await evil.write.arm([market.address, payload]);
+      const outer = await stud({ token: evil.address });
+      await expectRevert(asBuyer.write.payStudFee([outer, await signStud(outer)]), "ReentrancyGuardReentrantCall");
     });
   });
 
