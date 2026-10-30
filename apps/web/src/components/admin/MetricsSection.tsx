@@ -23,7 +23,15 @@ interface Economy {
   horses: { born: number; bornByOrigin: Record<string, number>; retired: number; legacyFarm: number; died: number };
   week: { weekStart: string; qualifierStables: number; featureStables: number; plateStables: number; liveStables: number };
   /** Horse leasing (packages/db leasing.ts leaseMetrics); absent on older servers. */
-  leases?: { active: number; openOffers: number; startedThisWeek: number; marketSalesThisWeek: number; sharesPaidThisWeek: number };
+  leases?: {
+    active: number;
+    openOffers: number;
+    startedThisWeek: number;
+    marketSalesThisWeek: number;
+    sharesPaidThisWeek: number;
+    /** The Club's lots and offers (clubMarket.ts), counted apart; absent on older servers. */
+    club?: { leasesStartedThisWeek: number; salesThisWeek: number; openOffers: number };
+  };
 }
 
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
@@ -48,7 +56,14 @@ function EconomyHealth({ e }: { e: Economy }) {
           <Tile
             label="Leases vs sales"
             value={`${e.leases.startedThisWeek} leased · ${e.leases.marketSalesThisWeek} sold`}
-            sub={`this week · ${e.leases.active} leases active · ${e.leases.openOffers} on offer · ${n0(e.leases.sharesPaidThisWeek)} cr shares paid`}
+            sub={`players, this week · ${e.leases.active} leases active · ${e.leases.openOffers} on offer · ${n0(e.leases.sharesPaidThisWeek)} cr shares paid`}
+          />
+        )}
+        {e.leases?.club && (
+          <Tile
+            label="Club lots"
+            value={`${e.leases.club.leasesStartedThisWeek} leased · ${e.leases.club.salesThisWeek} sold`}
+            sub={`this week · ${e.leases.club.openOffers} Club lease offers open`}
           />
         )}
       </ul>

@@ -183,7 +183,7 @@ export interface GameHooks {
   /** Extra race eligibility (class, rating band, conditions). Return a reason to refuse, or null. */
   raceEligibility?(input: RaceEligibilityInput): string | null;
   /** A house (Club AI) horse for a Live field, deterministic from the race seed. */
-  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number; season?: number }): HorseSpec;
+  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number; season?: number; rarity?: gc.Rarity }): HorseSpec;
   /** Appraised market value in credits (listing floor = 70% of it). */
   appraise?(horse: HorseRow): number;
 }

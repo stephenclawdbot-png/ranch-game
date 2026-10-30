@@ -68,6 +68,9 @@ it("a short season runs through the real server path, conserves credits and is d
   expect(a.totals.created.starter_grant).toBe(a.meta.stables * STARTER_GRANT);
   expect(a.totals.created.purse ?? 0).toBeGreaterThan(0);
   expect(day.credits.playerTotal).toBe(sum(Object.values(a.totals.created)) - sum(Object.values(a.totals.destroyed)));
+  // The Club seeds the market and the lease board on the first maintenance of the day.
+  expect(a.totals.leasing?.club.lots).toBeGreaterThan(0);
+  expect(a.totals.leasing?.club.offers).toBeGreaterThan(0);
 
   const b = await freshRun(run);
   expect(comparable(b)).toBe(comparable(a));

@@ -167,7 +167,16 @@ function BuyRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: M
     <li className="lot-card print grid gap-2 p-4" id={`lot-${l.lot}`} data-testid="listing">
       <div className="flex items-baseline justify-between gap-2 border-b border-dashed border-line pb-2">
         <span className="lot-no">Lot {l.lot}</span>
-        <span className="truncate text-xs font-bold text-cream-dim">Vendor · {l.sellerStableName}</span>
+        <span className="truncate text-xs font-bold text-cream-dim">
+          Vendor · {l.club && (
+            <>
+              <span className="tag !h-[16px] !px-1 align-[1px] !text-[0.625rem] !leading-[16px]" data-testid="club-seller" title="A Club horse: the Club lists a few every day">
+                Club
+              </span>{" "}
+            </>
+          )}
+          {l.sellerStableName}
+        </span>
       </div>
       <HorseLine h={l} meta={<ListingMeta l={l} />} aside={<span className="lot-price">{formatCredits(l.price)}</span>} />
       <p className="lot-ped">{pedigreeLine(l)}</p>
@@ -184,7 +193,10 @@ function BuyRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: M
           <p className="font-extrabold">
             Buy {l.horse.name} for {formatCredits(l.price)} credits?
           </p>
-          <p className="text-sm">The horse moves to your stable at once. {formatCredits(l.fee)} of the price is burned; the seller gets {formatCredits(l.sellerReceives)}.</p>
+          <p className="text-sm">
+            The horse moves to your stable at once.{" "}
+            {l.club ? "The whole price is burned: the Club keeps nothing." : <>{formatCredits(l.fee)} of the price is burned; the seller gets {formatCredits(l.sellerReceives)}.</>}
+          </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-brass" onClick={buyNow} disabled={busy} data-testid="buy-confirm">
               {busy ? "Buying…" : `Confirm · ${formatCredits(l.price)}`}

@@ -11,6 +11,9 @@
  * - Purchase is one transaction: buyer pays, seller receives 95%, 5% is burned, ownership
  *   moves, the listing closes. Linked accounts cannot trade (blocked + fraud event).
  * - There are no direct credit transfers between players.
+ * - Club lots (club = true, seller null; services/clubMarket.ts) sell the same way, but the whole
+ *   price is burned (no seller account) and there is no counterparty to link. The buyer's stall
+ *   cap and the resale lock apply as to any purchase.
  */
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { DomainError, type DomainErrorCode } from "../errors";
@@ -149,8 +152,8 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
     if (listing.expiresAt <= input.now) throw new DomainError("LISTING_EXPIRED", "listing has expired");
     const buyerStable = await lockStableOf(tx, input.accountId);
     if (buyerStable.id === listing.sellerStableId) throw new DomainError("CANNOT_BUY_OWN", "that is your own horse");
-    const sellerAccountId = await accountIdOfStable(tx, listing.sellerStableId);
-    if (await areLinked(tx, input.accountId, sellerAccountId)) {
+    const sellerAccountId = listing.sellerStableId ? await accountIdOfStable(tx, listing.sellerStableId) : null;
+    if (sellerAccountId && (await areLinked(tx, input.accountId, sellerAccountId))) {
       await tx.insert(fraudEvents).values({
         accountId: input.accountId,
         relatedAccountId: sellerAccountId,
@@ -165,14 +168,15 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
     if (horse.ownerStableId !== listing.sellerStableId || horse.lesseeStableId || horse.lockKind !== "market" || horse.lockRef !== listing.id) {
       throw new DomainError("LISTING_NOT_ACTIVE", "listing is no longer valid");
     }
-    const fee = gc.marketFee(listing.price);
+    // A Club lot: the whole price is burned (fee = price), recorded as its own ledger kind.
+    const fee = sellerAccountId ? gc.marketFee(listing.price) : listing.price;
     const { transactionId } = await post(tx, {
       idempotencyKey: `trade:${listing.id}`,
-      kind: "market_sale",
+      kind: sellerAccountId ? "market_sale" : "club_sale",
       meta: { listingId: listing.id, horseId: horse.id },
       postings: [
         { ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -listing.price },
-        { ledgerAccountId: await playerLedgerAccountId(tx, sellerAccountId), amount: listing.price - fee },
+        ...(sellerAccountId && listing.price - fee > 0 ? [{ ledgerAccountId: await playerLedgerAccountId(tx, sellerAccountId), amount: listing.price - fee }] : []),
         ...(fee > 0 ? [{ ledgerAccountId: await systemAccountId(tx, "burn"), amount: fee }] : []),
       ],
     });
@@ -187,6 +191,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
         listingId: listing.id,
         horseId: horse.id,
         sellerStableId: listing.sellerStableId,
+        club: listing.club,
         buyerStableId: buyerStable.id,
         price: listing.price,
         fee,
@@ -194,14 +199,14 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
         createdAt: input.now,
       })
       .returning({ id: trades.id });
-    await audit(tx, { actor: input.accountId, action: "market.buy", entityType: "trade", entityId: trade!.id, data: { listingId: listing.id, horseId: horse.id, price: listing.price, fee } });
+    await audit(tx, { actor: input.accountId, action: "market.buy", entityType: "trade", entityId: trade!.id, data: { listingId: listing.id, horseId: horse.id, price: listing.price, fee, club: listing.club } });
     return { tradeId: trade!.id, horseId: horse.id, price: listing.price, fee };
   });
   if (outcome instanceof DomainError) throw outcome;
   return outcome;
 }
 
-async function closeListing(tx: Executor, listing: ListingRow, status: "cancelled" | "expired", now: Date): Promise<void> {
+export async function closeListing(tx: Executor, listing: ListingRow, status: "cancelled" | "expired", now: Date): Promise<void> {
   const h = await lockHorse(tx, listing.horseId);
   if (h.lockKind === "market" && h.lockRef === listing.id) {
     await tx.update(horses).set({ lockKind: null, lockRef: null }).where(eq(horses.id, h.id));
@@ -214,7 +219,7 @@ export async function cancelListing(db: Db, input: { accountId: string; listingI
     const [listing] = await tx.select().from(marketListings).where(eq(marketListings.id, input.listingId)).for("update");
     if (!listing) throw new DomainError("NOT_FOUND", "listing not found");
     if (listing.status !== "active") return;
-    const sellerAccountId = await accountIdOfStable(tx, listing.sellerStableId);
+    const sellerAccountId = listing.sellerStableId ? await accountIdOfStable(tx, listing.sellerStableId) : null;
     if (sellerAccountId !== input.accountId) throw new DomainError("NOT_OWNER", "not your listing");
     await closeListing(tx, listing, "cancelled", input.now);
     await audit(tx, { actor: input.accountId, action: "market.cancel", entityType: "listing", entityId: listing.id });

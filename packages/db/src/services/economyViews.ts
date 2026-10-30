@@ -38,6 +38,7 @@ import { stableOf } from "./accounts";
 import { foal, grandparentsOf, pedigreeIndex, withStudHolds } from "./breeding";
 import { openLeaseOfferOf, renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
+import { CLUB_OWNER_NAME } from "./leasing";
 import { isUsdgRegistered, studHoldsOf } from "./usdgMarket";
 
 export type PackPullRow = typeof packPulls.$inferSelect;
@@ -534,7 +535,8 @@ export async function listMarket(ex: Executor, input: { now: Date; sellerStableI
     .select({ listing: marketListings, horse: horses, sellerStableName: stables.name, sellerSilks: stables.silks })
     .from(marketListings)
     .innerJoin(horses, eq(horses.id, marketListings.horseId))
-    .innerJoin(stables, eq(stables.id, marketListings.sellerStableId))
+    // Club lots (clubMarket.ts) have no seller stable: they show as the Club's.
+    .leftJoin(stables, eq(stables.id, marketListings.sellerStableId))
     .where(
       and(
         eq(marketListings.status, "active"),
@@ -544,5 +546,5 @@ export async function listMarket(ex: Executor, input: { now: Date; sellerStableI
     )
     .orderBy(asc(marketListings.expiresAt))
     .limit(input.limit ?? 60);
-  return rows;
+  return rows.map((r) => ({ ...r, sellerStableName: r.sellerStableName ?? CLUB_OWNER_NAME, sellerSilks: r.sellerSilks ?? null }));
 }

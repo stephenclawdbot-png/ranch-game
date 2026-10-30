@@ -574,15 +574,21 @@ export interface LeasingTotals {
   /** Fraud events: linked leases refused, reciprocal leases flagged. */
   linkedBlocked: number;
   reciprocalFlags: number;
+  /** The Club seeding the markets (packages/db clubMarket.ts): its lots and lease offers, Club horses bought and leased. */
+  club: { lots: number; offers: number; sales: number; leases: number };
+  /** Market sales between players (not Club lots). */
+  playerSales: number;
 }
 
 /** Horse leasing over the run, from the lease tables and fraud events. */
 export async function leasingTotals(world: World): Promise<LeasingTotals> {
   const db = world.db;
-  const [o] = await q<{ n: number }>(db, `select count(*)::int n from horse_lease_listings`);
-  const [l] = await q<{ n: number; active: number; races: number; owner: string; lessee: string }>(
+  const [o] = await q<{ n: number; club: number }>(db, `select count(*)::int n, count(*) filter (where club)::int club from horse_lease_listings`);
+  const [cl] = await q<{ lots: number }>(db, `select count(*)::int lots from market_listings where club`);
+  const [tr] = await q<{ club: number; player: number }>(db, `select count(*) filter (where club)::int club, count(*) filter (where not club)::int player from trades`);
+  const [l] = await q<{ n: number; club: number; active: number; races: number; owner: string; lessee: string }>(
     db,
-    `select count(*)::int n, count(*) filter (where status = 'active')::int active, coalesce(sum(races), 0)::int races,
+    `select count(*)::int n, count(*) filter (where club)::int club, count(*) filter (where status = 'active')::int active, coalesce(sum(races), 0)::int races,
             coalesce(sum(owner_earned), 0)::bigint owner, coalesce(sum(lessee_earned), 0)::bigint lessee from horse_leases`,
   );
   const ended: Record<string, number> = {};
@@ -601,6 +607,8 @@ export async function leasingTotals(world: World): Promise<LeasingTotals> {
     sharesToLessees: num(l?.lessee),
     linkedBlocked: num(f?.linked),
     reciprocalFlags: num(f?.recip),
+    club: { lots: num(cl?.lots), offers: num(o?.club), sales: num(tr?.club), leases: num(l?.club) },
+    playerSales: num(tr?.player),
   };
 }
 

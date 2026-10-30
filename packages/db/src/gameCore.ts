@@ -206,9 +206,10 @@ export const gameCoreHooks: GameHooks = {
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });
   },
-  houseHorse: ({ seed, index, rating, season }) => {
+  houseHorse: ({ seed, index, rating, season, rarity }) => {
     // Even breed weights so Live fields look varied (owner: "genetics aren't seen in race").
-    const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true });
+    // `rarity`: a target tier (Club sale horses, clubMarket.ts); default the natural mint.
+    const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true, ...(rarity ? { rarity } : {}) });
     const rng = new gc.Rng(`${seed}|house|${index}`);
     return { ...specFromGenome({ genome, name: gc.clubHorseName(rng), sex: rng.chance(500) ? "colt" : "filly", careSessions: gc.CARE_TO_RACING, season: season ?? 1 }), rating };
   },

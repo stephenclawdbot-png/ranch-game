@@ -33,6 +33,7 @@ export * from "./story";
 export * from "./naming";
 export * from "./usdgMarket";
 export * from "./leasing";
+export * from "./clubMarket";
 export * from "./stablePhoto";
 export * from "./meetings";
 export * from "./courses";
