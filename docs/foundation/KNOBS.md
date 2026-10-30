@@ -9,7 +9,10 @@ it moves. Built for planning balance changes and wiring a simulation harness.
   pre-`89e8d9a` value is noted as "was". The beta loop commits that followed (`6420a5f` one Live
   start a day, National licence for the Weekend Feature, stud fee ceiling; `0110fe7` This week,
   Saturday Plate, League floors and best-20 scoring, Sunday recap; `3659516` Cup points settled
-  daily) are folded in, and every file:line was re-checked against `3659516`. A companion map
+  daily) are folded in, and every file:line was re-checked against `3659516`. **Race meetings
+  (2026-10-30)** replaced the race-every-15-minutes card with three meetings of eight races a day,
+  published 24 h ahead, minimum field 5, playerless ordinary races called off: the §1 rows below
+  are updated for it (old values as "was"). A companion map
   of loops and flows is [`GAME-SYSTEMS.md`](GAME-SYSTEMS.md).
 - **Units:** credits are Stable Credits (never cashable). "permille" = parts per 1,000, "bps" =
   parts per 10,000. Stats, potentials and realisation are on a 0..1000 scale (650 = a plain
@@ -35,26 +38,28 @@ Where column.
 | `SEASON_DAYS` | 28 days | packages/game-core/src/time.ts:12 | Length of a competition season (leagues, Features, Final, titles, breeding cap, crop cap). | Season Final frequency, breeding covers per mare per year, foal crop per season, potential ceiling growth |
 | `RULES.seasonEpochMs` | 2026-01-05 00:00 UTC (a Monday) | packages/db/src/rules.ts:86 | Start of season 1; slot indices and season numbers count from here. | Which season it is (mint ceilings), calendar alignment |
 | `RULES.seasonMs` | 28 × 24 h (literal) | packages/db/src/rules.ts:87 | Season length on the database side. Duplicates `SEASON_DAYS`. | Same as `SEASON_DAYS` |
-| `SLOT_INTERVAL_MS` | 15 min (was 3 min) | packages/game-core/src/seasons.ts:20 | Time between Live races; `RULES.slotMs` now reads it. | Races/day, credits created/day, field size (players spread over fewer or more races), house-horse minting |
-| `RULES.slotMs` | `gc.SLOT_INTERVAL_MS` (was a literal 3 min) | packages/db/src/rules.ts:73 | Slot length the live card and slot keys use. | As above |
-| `SLOTS_PER_DAY` | 96 (was 480) | packages/game-core/src/seasons.ts:22 | Derived races per day per course. | Credits created/day, entries demand |
+| `SLOT_INTERVAL_MS` | 15 min (was 3 min) | packages/game-core/src/seasons.ts:20 | The slot grid: slot indices, slot keys (`live:<n>`), replays and idempotency count it. Since the race meetings only meeting slots carry a race. | Slot identity; spacing of races inside a meeting |
+| `RULES.slotMs` | `gc.SLOT_INTERVAL_MS` (was a literal 3 min) | packages/db/src/rules.ts | Slot length the live card and slot keys use. | As above |
+| `SLOTS_PER_DAY` | 96 (was 480) | packages/game-core/src/seasons.ts:22 | Slots a day on the grid (not races: see `LIVE_RACES_PER_DAY`). | Model only since the meetings |
+| `MEETING_START_TIMES_UTC` | 07:00, 13:00, 19:00 (new 2026-10-30) | packages/game-core/src/meetings.ts | Start of each day's race meetings. Calendar races sit inside the 19:00 meeting. | Races/day, field size (players concentrate), which time zones get a meeting at a good hour |
+| `RACES_PER_MEETING` | 8 | packages/game-core/src/meetings.ts | Live races in a meeting, `MEETING_RACE_SPACING_MS` (= one slot, 15 min) apart. | Races/day (`LIVE_RACES_PER_DAY` = 24, was 96), field size, credits created/day |
+| `FINALS_DAY_EVENING_START_UTC` | 18:00 | packages/game-core/src/meetings.ts | On a season's last day the evening meeting opens an hour early so all four Season Finals (18:00-19:30) run inside it. | Calendar alignment |
+| `CARD_HORIZON_MS` / `RULES.cardHorizonMs` | 24 h (was 6 h; 30 min before `89e8d9a`) | packages/game-core/src/meetings.ts, packages/db/src/rules.ts | How far ahead the card is published (entries open at publication): a day of meetings, so a once-a-day visit reaches every meeting before the next visit. `CALENDAR_HORIZON_MS` (card.ts) now equals it. | Field size (entries accumulate longer), how far ahead players plan, casual participation |
 | `ENTRY_CLOSE_BEFORE_MS` / `RULES.entriesCloseBeforePostMs` | 30 s | packages/game-core/src/seasons.ts:21, packages/db/src/rules.ts:74 | Entries close this long before the off; fields lock then. | Last-minute entries, field size |
-| `RULES.cardHorizonMs` | 6 h (was 30 min) | packages/db/src/rules.ts:80 | How far ahead the card is published (entries open at publication). 6 h = 24 races at 15 min. | Field size (entries accumulate longer), how far ahead players plan |
 | `RULES.settleAfterPostMs` | 150 s | packages/db/src/rules.ts:84 | Cron backstop settles races this long after the off (the web tick settles as soon as the broadcast ends). | Result latency |
 | `TICK_EVERY_MS` | 4 s | apps/web/src/server/game.ts:219 | Per-instance throttle on the lazy card tick. | Server load, lock/settle latency |
-| `RULES.minField` | 8 | packages/db/src/rules.ts:81 | Lowest target field for an ordinary card race (house horses fill to the target). | Field size, house-horse population, purse share per runner |
+| `RULES.minField` | 5 (was 8) | packages/db/src/rules.ts | Lowest target field for an ordinary card race. Club (house) horses fill the empty gates up to the race's target at the lock (entry close), never at publication. | Field size, Club runners per race, player share, purse share per runner |
+| Call-off rule (`callsOffWithoutPlayers`) | ordinary card race with 0 player runners at the lock → cancelled quietly | packages/db/src/services/races.ts (`lockFieldTx`) | No Club-only ordinary races: status `cancelled`, no field, no result, nothing to refund. Calendar races and sponsored races always run. | Club-only races (were 60%), house-horse form/ratings move less, results list |
 | `RULES.maxField` | 12 | packages/db/src/rules.ts:82 | Gate count of an ordinary card race; also the target for calendar races. | Field size, sister-course trigger |
-| Target runners per slot | `8 + h[29] % 5` → 8..12 | packages/db/src/services/card.ts:260 | Each slot's target field is drawn from the slot hash. | Field size, expected prize per run |
-| `CARD_CYCLE_SLOTS` | 20 | packages/db/src/services/card.ts:87 | Length of the class cycle (5 h at 15 min; was 1 h at 3 min). | Class mix per day |
-| `CYCLE` (class pattern of each 5-hour cycle, live) | slot 0 Feature; Maiden ×6 (1,4,7,10,13,16); Novice ×6 (2,5,8,12,15,18); Hcp 0-55 ×2 (3,14); Hcp 50-75 ×2 (6,17); Hcp 70-95 ×2 (9,19); Listed ×1 (11) | packages/db/src/services/card.ts:82 | The live class rotation: 12 of 20 slots are juvenile-friendly (maiden/novice). | Field size per class, credits/day, League movement (tier bonus races), qualifier count |
-| Feature class | 50% Listed / 50% Group 3 (`h[30] % 2`) | packages/db/src/services/card.ts:223 | Slot 0 of each cycle is a Feature of a random class. | Credits/day (Feature pays 2×), National licence (level 3) demand |
-| `JUVENILE_TRIPS` | 1000, 1500, 2000, 2400 m | packages/db/src/services/card.ts:99 | Trips of maiden/novice slots; the k-th juvenile slot runs surface k mod 3, trip k mod 4, so 12 juvenile slots cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
+| Target runners per race | `minField + h[29] % 8` → 5..12 (was 8..12) | packages/db/src/services/card.ts (`defaultCardSlot`) | Each race's target field is drawn from the slot hash. | Field size, Club runners, expected prize per run |
+| `MEETING_CLASSES` (class pattern of every meeting, live; was the 20-slot `CYCLE`) | race 1 top race; 2, 4, 6, 8 juvenile (2 Maiden + 2 Novice, which positions are Maidens alternates per meeting); 3 Hcp 0-55; 5 Hcp 50-75; 7 Hcp 70-95 | packages/db/src/services/card.ts | Steps per meeting race, not per wall-clock slot, so every meeting has every class. Half the races are juvenile-friendly (was 12 of 20). Calendar races only ever land on race 1 or a handicap (tested), so juvenile races are never displaced (the old `CARRY_LOOKBACK` carry is gone). | Field size per class, credits/day, League movement, qualifier count |
+| Top race | even-numbered meetings: Feature (50% Listed / 50% Group 3, `h[30] % 2`, double purse); odd: Listed | packages/db/src/services/card.ts | About 1.5 Features and 1.5 Listed races a day (the evening's is replaced by a calendar race Mon-Sat). Was a Feature and a Listed every 5 h (≈ 4.8 + 4.8 a day). | Credits/day (Feature pays 2×), National licence demand |
+| `JUVENILE_TRIPS` | 1000, 1500, 2000, 2400 m | packages/db/src/services/card.ts | Trips of maiden/novice races; the k-th juvenile race (4 a meeting, counted over meetings) runs surface k mod 3, trip k mod 4, so a day's 12 juvenile races cover all 12 surface×trip pairs. | Form-guide fit for new horses, entries per horse |
 | Juvenile going / weather | turf: good, good, firm; others good; weather clear, clear, overcast, dusk | packages/db/src/services/card.ts:229, :234 | Juvenile races never run soft/heavy or in rain. | Injury rate (going), upset rate (rain) |
 | `OPEN_TRIPS` | 1000..3200 m (10 trips) | packages/db/src/services/card.ts:101 | Trips for handicaps, Listed and Features. | Distance-fit, stayers' opportunities |
 | `GOING` (open races) | turf firm/good/good/soft/heavy; dirt good×3/heavy; synthetic good | packages/db/src/services/card.ts:102 | Going draw for non-juvenile races. | Injury rate (firm 1.3×, heavy 1.4×), quirk reveals (mudlark) |
 | `WEATHER` (open races) | clear, clear, overcast, rain, dusk | packages/db/src/services/card.ts:103 | Weather draw; rain widens day-form noise by 25% in the engine. | Upset rate |
-| Open-race surface | `SURFACES[(cycle*8 + pos + h[28]%3) % 3]` | packages/db/src/services/card.ts:239 | Surface of non-juvenile slots. | Surface-fit |
-| `CARRY_LOOKBACK` | 16 slots | packages/db/src/services/card.ts:271 | A juvenile race displaced by a calendar race (Qualifier, Weekend Feature, Saturday Plate, Final; `isCalendarSlot`, :137) runs in the next ordinary handicap/Listed slot, looking back 16 slots. | Juvenile trip coverage on Feature/Final days |
+| Open-race surface | `SURFACES[(meeting*8 + race + h[28]%3) % 3]` | packages/db/src/services/card.ts | Surface of non-juvenile races. | Surface-fit |
 | `TRACKS` | Ashcombe, Kestrel Downs, Saltmarsh, Bellmont, Larkspur, Harrowgate | packages/db/src/services/card.ts:92 | Course names; also the order sister courses are opened in. | Max sister courses (6 courses) |
 | `SISTER_MAX` | 5 sisters per slot | packages/db/src/services/card.ts:319 | A slot can spawn up to 5 copies on other courses (6 races total). | Field size cap per slot (6 × 12 = 72 runners), credits/day (each sister pays a full purse) |
 | Sister trigger | when entries reach `maxRunners − 1` | packages/db/src/services/races.ts:331 | A sister course opens when a race is one gate from full. | Field size, credits/day |
@@ -389,7 +394,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Live purses (ClassDef, **live**) | Maiden 2,000; Novice 2,500; Hcp 0-55 3,000; Hcp 50-75 4,000; Hcp 70-95 5,000; Listed 8,000; Group 3 12,000 | packages/db/src/services/card.ts:47-53 | Purse of each Live race. | Credits created/day (the biggest faucet) |
 | `FEATURE_PURSE_MULTIPLIER` | ×2 (Listed Feature 16,000; G3 Feature 24,000) | packages/db/src/services/card.ts:55, :257 | Cycle Feature pays double. | Credits created/day |
 | `CALENDAR_PURSE` | Qualifier 16,000; Weekend Feature 48,000; Final 72,000 | packages/db/src/services/card.ts:63 | Calendar purses (live). | Credits created/week |
-| Purse per 20-slot cycle | 79,000 (avg Feature 20,000) → 379,200/day at 15 min (was 1,896,000/day at 3 min), per course, before sisters | derived from card.ts:47-55, :82 | Gross purse posted. Only placed **player** runners are minted. | Credits created/day |
+| Purse per meeting | 1,000×2 + 1,250×2 + 1,500 + 2,000 + 2,500 + top race (Listed 4,000, or a Feature at 8,000 or 12,000: 7,000 on average) ≈ 17,500 → ≈ 52,500/day before calendar races and sisters (the 15-minute card posted 379,200/day; 1,896,000 at 3 min) | derived from card.ts | Gross purse posted. Only placed **player** runners are minted, so the faucet follows player starts, not the card. | Credits created/day |
 | `RULES.purseSplitBps` | 5500 / 2000 / 1200 / 700 / 400 / 200 | packages/db/src/rules.ts:35, packages/db/src/services/races.ts:595 | Split to the first 6; house runners' shares are not minted. | Credits per finish, expected prize = purse/field |
 | `PURSE_BY_TIER` (**model**) | maiden 600, novice 750, quick 240, hcp 800/1,100/1,500, listed 2,600, g3 4,000, g2 6,000, g1 10,000 | packages/game-core/src/economy.ts:24 | Model purses (game-core `regularSlot`, `weeklyFlow`, economy-sim). Not paid live. | Model only |
 | `WEEKEND_FEATURE_PURSE` / `SEASON_FINAL_PURSE` (**model**) | 20,000 / 30,000 | packages/game-core/src/economy.ts:38, :39 | Model calendar purses; the card overrides them. | Model only |
@@ -424,7 +429,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Jockey fees | journeyman 2.5% (50..1,500), top 5% (100..3,000) of purse | packages/game-core/src/raceDay.ts:111, packages/db/src/services/races.ts:376 | Kind `jockey_fee` (burn), refunded as `jockey_fee_refund` (§2a). | Credit sink |
 | `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
 | `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
-| `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a slot can be sponsored (beyond the 6 h card: applied on publication). Calendar races (Qualifiers, Weekend Feature, Plate, Finals) are never for sale. | Sink volume (slots on sale ≈ 670 a week) |
+| `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a race can be sponsored (beyond the day-ahead card: applied on publication). Only meeting races are for sale; calendar races (Qualifiers, Weekend Feature, Plate, Finals) never are. A sponsored race runs even with no player runner. Sponsorships bought for slots the meetings left empty are refunded when their time comes round. | Sink volume (races on sale ≈ 160 a week, was ≈ 670) |
 | `SPONSORSHIP.maxUpcomingPerStable` | 3 | packages/db/src/services/sponsorship.ts:47 | Upcoming sponsorships a stable may hold at once (one sponsor per slot, first come first served). | Sink volume per stable, crowding out |
 | `SPONSORSHIP.maxNameChars` | 32 | packages/db/src/services/sponsorship.ts:49 | Stable-name characters kept in "The <Stable> <Class label>" (`sponsoredRaceName`, :101). | Cosmetic |
 
@@ -609,8 +614,7 @@ These must stay in sync (or be derived from one source).
 | Mutation step 30 | packages/game-core/src/genetics.ts:16, packages/game-core/src/breeding.ts:571 (preview literal) | |
 | Affiliate and pool rules | packages/db/src/services/affiliates.ts:68-77, packages/db/src/services/betaMoney.ts:476-485, mirrored in tools/economy-sim/lib/constants.ts:90-130 (checked by `checkSync`) | |
 | Referral caps 1500 / 500 | packages/db/src/services/affiliates.ts:76-77, packages/contracts/contracts/PremiumStore.sol:75-76 | |
-| Slot cadence in copy | packages/game-core/src/seasons.ts:20 vs UI text apps/web/app/races/page.tsx:30, :49 and apps/web/app/layout.tsx:20 ("every 15 minutes") | Copy is hard-coded. |
-| Card horizon in copy | packages/db/src/rules.ts:80 vs apps/web/src/components/competition/RoadToSaturday.tsx:96 ("published 6 hours ahead") | Copy is hard-coded. |
+| Meetings in copy | packages/game-core/src/meetings.ts read live by apps/web/app/races/page.tsx, apps/web/app/layout.tsx, RoadToSaturday.tsx and the wiki; still literal: "a day ahead" and "30 seconds" on apps/web/app/races/page.tsx, "Three race meetings a day" in apps/web/src/components/home/HomeView.tsx (client copy) | Mostly read from code since 2026-10-30. |
 | Weekend Feature rating-by-right 100 | packages/game-core/src/seasons.ts:182 (`featureQualified`), apps/web/src/server/week.ts:63 (`row.rating >= 100`), apps/web/src/components/competition/RoadToSaturday.tsx:58 ("rating 100+") | The This week view re-derives qualification instead of calling `featureQualified`. |
 | Market rules in copy | apps/web/src/components/economy/MarketScreen.tsx:60 (70%, 3x, 72 hours) | Copy is hard-coded. |
 | Pregnancy in copy | apps/web/src/components/economy/BreedingBarn.tsx:48 ("24 hours") | |
@@ -639,7 +643,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | One-per-stable, half-field, sister trigger | rules | packages/db/src/services/races.ts:301, :306, :331 |
 | Qualifying window | 7 days | packages/db/src/services/races.ts:185 |
 | Recap points gap | line = rank `PROMOTE`, gap = line points − yours + 1 | packages/db/src/services/leagues.ts:158-161 |
-| RULES literals | insurance 300/2,000; listing 14 d; release 50; starters 3; overflow 1; care heal 12 h; horizon 6 h; field 8/12; settle 150 s; epoch 2026-01-05; premium 2,500 | packages/db/src/rules.ts:36-87, :115 |
+| RULES literals | insurance 300/2,000; listing 14 d; release 50; starters 3; overflow 1; care heal 12 h; horizon 24 h (game-core); field 5/12; settle 150 s; epoch 2026-01-05; premium 2,500 | packages/db/src/rules.ts:36-87, :115 |
 | Fallback appraisal | `(400 + OR × 40)(0.5 + career left) + 300 × breedings left`, min 100 | packages/db/src/rules.ts:218 |
 | Story generator | trips list, 3-in-4 fit, OR ±12, 8-10 runners, class by wins, purse 0, max 12 | apps/web/src/server/game.ts:814, :877-878, :925-946 |
 | Story Quick Pick | −40 per run today, −60 if tired | apps/web/src/server/game.ts:845 |
@@ -692,9 +696,9 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
    - Appraisal adds `earnings / 10` (packages/game-core/src/economy.ts:142), so live earnings
      push appraisals, listing floors/ceilings and insurance premiums/payouts up faster than
      modelled.
-2. **The cadence change multiplies the gross faucet.** At 15-minute slots the card posts
+2. **The cadence change multiplies the gross faucet.** At 15-minute slots the card posted
    379,200 credits of purses per day per course (79,000 per 20-slot cycle); the old 3-minute
-   slots posted 1,896,000. Only placed player runners are minted, so per-player income is
+   slots posted 1,896,000; the race meetings (2026-10-30) post about 52,500 plus calendar races. Only placed player runners are minted, so per-player income is
    bounded by entries (10-15/day) and Live starts (1 per horse per day since `6420a5f`, see 16),
    not by the card, but the number of rich races (Features, Listed) a player can reach per day
    falls 5x.

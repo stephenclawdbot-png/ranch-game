@@ -25,7 +25,7 @@ flowchart LR
     care[Care: bond, growth, healing]
     train[Training: gain vs injury risk]
     week["This week page: Road to Saturday, one next step"]
-    enter["Spend entries on races that fit: one Live race per horse a day"]
+    enter["Spend entries on races that fit in the day's race meetings: one Live race per horse a day"]
     cup["Daily Cup run (points settled after the day)"]
   end
   subgraph W["Weekly"]
@@ -58,6 +58,12 @@ flowchart LR
   enter -->|starts, rating| breed
   breed -->|next season's horse| enter
 ```
+
+**Race meetings make the races social.** The Live card runs three meetings a day (07:00, 13:00,
+19:00 UTC) of eight races 15 minutes apart, published a day ahead, so one visit a day can enter any
+meeting before the next visit. 24 races a day instead of 96 put the same player starts into fewer,
+fuller fields: the race list shows how many stables have entered each race, and an ordinary race
+nobody entered is called off rather than run by the Club alone (game-core `meetings.ts`, KNOBS §1).
 
 **Scarcity makes the choices.** 10 entries a day, one Live race per horse per day (three
 races counting Story), a 40-start career and 4 lifetime breedings turn every action into a
@@ -179,11 +185,11 @@ owner-picked sinks followed (upkeep, race-day extras, jockeys, sponsorship). Lat
 
 ```mermaid
 flowchart TD
-  card["Live card: a race every 15 min, published 6 h ahead"] --> runs["Your starts: one Live race per horse a day"]
+  card["Live card: 3 race meetings a day (07:00, 13:00, 19:00 UTC) of 8 races, published 24 h ahead; Club horses fill to 5-12 at the close; empty ordinary races called off"] --> runs["Your starts: one Live race per horse a day"]
   week["This week (/week): Saturday's conditions from Monday, your Qualifier places, the League gap"] -.->|plans| runs
   runs --> league["League points: best 20 runs a week, capped at 240"]
   runs --> rating[Official rating 0-140]
-  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC (Listed purse x2, open to every rating)"]
+  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC, opening the evening meeting (Listed purse x2, open to every rating)"]
   quals -->|top 3| wf["Weekend Feature, Sat 19:00 UTC (Group 1; qualified horses only, no rating floor)"]
   rating -->|100+| wf
   quals -->|ran but missed| plate["Saturday Plate, Sat 19:30 UTC (Listed, no band)"]
@@ -199,6 +205,11 @@ flowchart TD
   licence -->|"National: Listed, Group 3, the Features, Weekend Feature, Plate"| wf
   licence -->|"Classics: the Season Final only"| final
 ```
+
+Race meetings (2026-10-30): the 15-minute card ran 96 races a day for ~100 player starts, so only
+40% of races had a player and players were 10% of runners (harness goals45). The card now runs 24
+meeting races a day; every calendar race sits in the evening meeting (on the season's last day it
+opens at 18:00 for the four Finals). See `HARNESS-LOG.md` (meetings1) for the effect.
 
 Licences moved on 2026-10-29: the Weekend Feature and the card's Features need the National
 licence (they needed Classics, and no harness stable reached a Weekend Feature then). Since
@@ -257,7 +268,7 @@ flowchart LR
 |---|---|---|
 | Credits destroyed / created | 0.85 to 1.15 over a season | `credits.created`, `credits.destroyed` |
 | Horses leaving / horses born | about 1 | `horses.*` |
-| Real-player runners per Live race | rising; fields not mostly Club runners | `races.fieldSize`, `races.playerShare` |
+| Real-player runners per Live race | rising; fields not mostly Club runners (beta target since the meetings: 85%+ of Live races with a player, player share 35%+) | `races.fieldSize`, `races.playerShare`, `races.calledOff` |
 | Stables that try a Feature Qualifier each week | most grinders, some casuals | `competition.qualifierEntrants` |
 | Weekend Feature qualifiers per week | a handful, not zero, not everyone | `competition.featureQualified` |
 | Foals below / between / above parents | about 50 / few / 45 (the gamble) | `breeding.foalVsParents` |
