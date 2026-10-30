@@ -15,7 +15,8 @@
  * - grinder: visits every couple of hours, keeps every fit horse entered in the race that
  *   suits it best (entryOptions fit), goes for Feature Qualifiers and the Weekend Feature when
  *   a horse can run (with race-day extras and a booked jockey), climbs the Story licences,
- *   trains, refills entries, buys upgrades and the odd horse on the market; a rich grinder
+ *   trains, refills entries, buys upgrades and the odd horse on the market, takes a lease
+ *   when it has a free stall (and hands it back now and then); a rich grinder
  *   occasionally sponsors a race.
  * - breeder: covers every mare the season allows (retiring mares to the paddock), foals and
  *   names, stands a stallion at stud, sells surplus stock once the market lets them, moves
@@ -598,8 +599,10 @@ type View = NonNullable<Awaited<ReturnType<typeof playerView>>>;
 
 /** Chance per visit (permille) that a casual enters from the sheet with race-day extras. */
 const CASUAL_SHEET_PERMILLE = 120;
-/** Chance per visit (permille) that a casual looks at the lease board. */
+/** Chance per visit (permille) that a casual looks at the lease board (most casuals' stalls are full). */
 const CASUAL_LEASE_PERMILLE = 200;
+/** Chance per day (first visit, permille) that a grinder looks at the lease board. */
+const GRINDER_LEASE_PERMILLE = 350;
 
 /**
  * A casual on the lease board: hands back a held horse now and then (1 in 6), else takes the
@@ -662,6 +665,8 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await freePack(c, s);
     await upgrade(c, s, ["entries", "trainer", "stableHand", "stalls"], 3_000);
     if (a.rng.chance(300)) await shop(c, s, 2_500, 1.15);
+    // Grinders buy stalls, so they are the stables with room for a leased racer.
+    if (a.rng.chance(GRINDER_LEASE_PERMILLE)) await takeALease(c, s);
     // Morning work, after the night's rest: one session for every horse that isn't tired.
     const mv = (await fresh(c, s)) ?? view;
     await train(c, s, mv.horses, 1_500, mv.credits);
