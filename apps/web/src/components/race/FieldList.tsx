@@ -25,6 +25,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
           <h2 id="field-h" className="racecard-title">
             The field
           </h2>
+          {card.course && (
+            <span className="caption block" data-testid="course-character">
+              {card.course.name}: {card.course.character}
+            </span>
+          )}
         </span>
         <span className="text-sm font-bold text-cream-dim">
           <span data-testid="field-stables">

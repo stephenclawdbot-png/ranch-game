@@ -9,7 +9,7 @@
  *
  * Integer maths only, like the rest of game-core (permille, metres).
  */
-import type { Surface } from "@thoroughbred/shared";
+import type { RaceCourse, Surface } from "@thoroughbred/shared";
 
 export type CourseId = "ashcombe" | "kestrel_downs" | "saltmarsh" | "bellmont" | "larkspur" | "harrowgate";
 
@@ -54,7 +54,7 @@ export const COURSES: readonly Course[] = [
     shape: "oval",
     circumferenceM: 2400,
     homeStraightM: 500,
-    bendTightness: 350,
+    bendTightness: 150,
     finishGradientPermille: 0,
     surfaces: ["turf", "dirt"],
     drainage: 500,
@@ -68,8 +68,8 @@ export const COURSES: readonly Course[] = [
     direction: "left",
     shape: "triangle",
     circumferenceM: 1800,
-    homeStraightM: 300,
-    bendTightness: 850,
+    homeStraightM: 280,
+    bendTightness: 900,
     finishGradientPermille: 0,
     surfaces: ["turf", "synthetic"],
     drainage: 800,
@@ -115,7 +115,7 @@ export const COURSES: readonly Course[] = [
     circumferenceM: 2200,
     homeStraightM: 550,
     bendTightness: 400,
-    finishGradientPermille: -10,
+    finishGradientPermille: -5,
     surfaces: ["turf", "dirt"],
     drainage: 600,
     rainBias: 1000,
@@ -128,9 +128,9 @@ export const COURSES: readonly Course[] = [
     direction: "right",
     shape: "horseshoe",
     circumferenceM: 2600,
-    homeStraightM: 400,
-    bendTightness: 600,
-    finishGradientPermille: 30,
+    homeStraightM: 450,
+    bendTightness: 400,
+    finishGradientPermille: 35,
     surfaces: ["turf", "dirt"],
     drainage: 400,
     rainBias: 1150,
@@ -153,4 +153,23 @@ export function courseById(id: CourseId): Course {
 /** Courses that race on this surface (the card picks a track from these). */
 export function coursesFor(surface: Surface): Course[] {
   return COURSES.filter((c) => c.surfaces.includes(surface));
+}
+
+/** Bends per lap by shape (a triangle turns three times, the rest twice). */
+export const BENDS_PER_LAP: Record<CourseShape, number> = { oval: 2, pear: 2, triangle: 3, horseshoe: 2 };
+
+/**
+ * The engine's course profile (racing-engine 1.3.0 course character) for a course. Frozen into
+ * a Live race's field at entry lock, so later tuning here never changes a race already run.
+ */
+export function courseProfile(course: Course): RaceCourse {
+  return {
+    id: course.id,
+    direction: course.direction,
+    circumferenceM: course.circumferenceM,
+    homeStraightM: course.homeStraightM,
+    bendsPerLap: BENDS_PER_LAP[course.shape],
+    bendTightness: course.bendTightness,
+    finishGradientPermille: course.finishGradientPermille,
+  };
 }

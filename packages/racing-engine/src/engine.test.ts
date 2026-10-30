@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RaceReplaySchema } from "@thoroughbred/shared";
 import { sha256 } from "@noble/hashes/sha2";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
-import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed, marginLabel, simulateRace, splitPurse, verifyReplay } from "./index";
+import { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed, marginLabel, simulateRace, splitPurse, verifyReplay } from "./index";
 import { checkFrames, makeInput, seedFor, typicalField } from "./test-fixtures";
 
 function clone<T>(x: T): T {
@@ -44,9 +44,11 @@ describe("determinism", () => {
     // If this fails, simulation output changed: bump ENGINE_VERSION (old replays will no longer
     // verify against the new engine) and update these literals deliberately.
     const r = simulateRace(makeInput(typicalField(8, 1600), { seed: seedFor(2024) }));
-    // 1.2.0 only added the optional per-runner kit: a race without kit is the 1.1.0 race,
-    // bit for bit, and keeps its 1.1.0 label and result hash (old fairness proofs still hold).
-    expect(ENGINE_VERSION).toBe("1.2.0");
+    // 1.2.0 only added the optional per-runner kit and 1.3.0 the optional course profile: a race
+    // with neither is the 1.1.0 race, bit for bit, and keeps its 1.1.0 label and result hash (old
+    // fairness proofs still hold).
+    expect(ENGINE_VERSION).toBe("1.3.0");
+    expect(KIT_ENGINE_VERSION).toBe("1.2.0");
     expect(LEGACY_ENGINE_VERSION).toBe("1.1.0");
     expect(r.engineVersion).toBe("1.1.0");
     expect(r.result.finishOrder[0]!.horseId).toBe("h8");

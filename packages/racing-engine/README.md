@@ -22,7 +22,12 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   every frame. It never throws.
 - Also exported: `marginLabel(mm)`, `splitPurse(purse, runners)`, `PRIZE_SPLIT_PCT`, `TICK_HZ`, `SAMPLE_EVERY`.
 - `resultHash = sha256(JSON.stringify(["thoroughbred-result", 1, engineVersion, seed, [[position, horseId, finishTimeUs, marginMm], ...]]))`,
-  where `engineVersion = engineVersionFor(entries)` ("1.1.0" without race-day kit, else `ENGINE_VERSION`).
+  where `engineVersion = engineVersionFor(entries, course)`: "1.1.0" with neither race-day kit nor
+  a course, "1.2.0" (`KIT_ENGINE_VERSION`) with kit, `ENGINE_VERSION` ("1.3.0") with a course. A
+  1.3.0 race appends its course tuple `[id, direction, circumferenceM, homeStraightM, bendsPerLap,
+  bendTightness, finishGradientPermille]` to that array, so the course is sealed with the result.
+- Also exported for the course model: `courseLayout(course, distanceM)`, `bendGeometry(course)` and
+  its knobs (`BEND_LANE_LOSS_MM`, `BEND_PASS_CUT`, `STRAIGHT_*`, `GRADIENT_DRAIN`).
 
 ## Determinism rules
 
@@ -47,6 +52,19 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   kit is simulated exactly as 1.1.0 and is labelled and hashed `LEGACY_ENGINE_VERSION` ("1.1.0"),
   so every older race keeps its replay and result hash; `engineVersionFor(entries)` picks the
   label and `verifyReplay` checks it.
+- 1.3.0 (course character, `src/course.ts`; the six courses are game-core `courses.ts`): an
+  optional race-level `course` on `RaceInput` (`RaceCourseSchema`). The course is laid out back
+  from the post (home straight, bend, straight, bend ... `bendsPerLap` equal bends a lap), so the
+  bends a race runs depend on its distance. Round a bend a horse loses `BEND_LANE_LOSS_MM` ×
+  tightness² × (2 / bendsPerLap) of ground per lane out (a lap always turns 360 degrees), and a
+  blocked horse tries to switch out `BEND_PASS_CUT` × tightness less often (same single draw, so
+  no stream shifts). On the home straight a kicking horse's drain changes by
+  `STRAIGHT_EASE_PER_100M` per 100 m of straight away from `STRAIGHT_REF_M` (less on a long
+  straight, more on a short one), and every horse's by gradient × `GRADIENT_DRAIN`, scaled by its
+  stamina (`HILL_STAMINA_SPREAD` per point below 650): an uphill finish costs a stamina-poor horse
+  most, a downhill saves it most. The kick paces itself for both (`kickCostMm`). Direction is
+  cosmetic. A race without a course runs exactly as before (1.2.0 with kit, 1.1.0 without);
+  `src/fixtures/pre-1.3.0-races.json` holds two races stored by 1.2.0 that must keep verifying.
 
 ## Model summary
 

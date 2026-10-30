@@ -5,29 +5,36 @@ import {
   PHOTO_FINISH_MM,
   formatRaceTime,
   type FinishRecord,
+  type RaceCourse,
   type RaceEntry,
   type RaceEvent,
   type RaceInput,
   type RaceReplay,
 } from "@thoroughbred/shared";
 import { Commentator, finishLine, photoLine } from "./commentary";
+import { bendAt, courseLayout, courseTuple, hillDrainFor, kickCostMm, straightDrain, type CourseLayout } from "./course";
 import { commitSeed, sha256Hex, streamSeedBytes } from "./hash";
 import { ENERGY_MAX, MAX_TICKS, SAMPLE_EVERY, TICK_HZ, US_PER_TICK, buildProfile, type Profile } from "./model";
 import { Rng } from "./prng";
 import { marginLabel, splitPurse } from "./results";
 
 /**
- * The current engine model. 1.2.0 adds the optional per-runner `kit` (jockey and race-day
- * equipment). A race whose entries carry no kit runs exactly as 1.1.0 did and is labelled
- * LEGACY_ENGINE_VERSION, so every older race keeps its replay and its result hash.
+ * The current engine model. 1.3.0 adds the optional race-level `course` profile (course
+ * character: bends, home straight, gradient). 1.2.0 added the optional per-runner `kit`
+ * (jockey and race-day equipment). A race without a course runs exactly as before: labelled
+ * KIT_ENGINE_VERSION when a runner has kit, LEGACY_ENGINE_VERSION otherwise, so every older
+ * race keeps its replay and its result hash.
  */
-export const ENGINE_VERSION = "1.2.0";
-/** The model a race without any kit runs (bit-identical to 1.1.0). */
+export const ENGINE_VERSION = "1.3.0";
+/** The model a race with kit but no course runs (bit-identical to 1.2.0). */
+export const KIT_ENGINE_VERSION = "1.2.0";
+/** The model a race without any kit or course runs (bit-identical to 1.1.0). */
 export const LEGACY_ENGINE_VERSION = "1.1.0";
 
-/** The engine version a race with these entries is simulated (and hashed) under. */
-export function engineVersionFor(entries: readonly Pick<RaceEntry, "kit">[]): string {
-  return entries.some((e) => e.kit !== undefined) ? ENGINE_VERSION : LEGACY_ENGINE_VERSION;
+/** The engine version a race with these entries (and course) is simulated (and hashed) under. */
+export function engineVersionFor(entries: readonly Pick<RaceEntry, "kit">[], course?: RaceCourse | null): string {
+  if (course) return ENGINE_VERSION;
+  return entries.some((e) => e.kit !== undefined) ? KIT_ENGINE_VERSION : LEGACY_ENGINE_VERSION;
 }
 
 // Positions are tracked in "sub-mm" units: mm * TICK_HZ. Advancing one tick at speed v (mm/s)
@@ -102,26 +109,35 @@ function clamp(x: number, lo: number, hi: number): number {
   return x < lo ? lo : x > hi ? hi : x;
 }
 
-export function canonicalResult(seed: string, finishOrder: readonly FinishRecord[], engineVersion: string): string {
-  return JSON.stringify([
+/**
+ * The text the result hash is taken over. A 1.3.0 race also seals its course profile (appended,
+ * so a course-less race hashes exactly as it always did).
+ */
+export function canonicalResult(seed: string, finishOrder: readonly FinishRecord[], engineVersion: string, course?: RaceCourse | null): string {
+  const body: unknown[] = [
     "thoroughbred-result",
     1,
     engineVersion,
     seed,
     finishOrder.map((f) => [f.position, f.horseId, f.finishTimeUs, f.marginMm]),
-  ]);
+  ];
+  if (course) body.push(courseTuple(course));
+  return JSON.stringify(body);
 }
 
 /** Core simulation. `input` must already be schema-validated. */
 export function runRace(input: RaceInput): RaceReplay {
   const race = input.race;
   const entries = normalizeEntries(input.entries);
-  const version = engineVersionFor(entries);
+  const course = input.course ?? null;
+  const version = engineVersionFor(entries, course);
   const n = entries.length;
   const laneCount = Math.max(6, n);
   const laneMax = (laneCount - 1) * 1000;
   const L = race.distanceM * 1000;
   const LU = L * SUB;
+  // Course character (1.3.0): null for a course-less race, which then runs exactly as before.
+  const layout: CourseLayout | null = course ? courseLayout(course, race.distanceM) : null;
 
   const profiles: Profile[] = [];
   const pace: Rng[] = [];
@@ -134,6 +150,8 @@ export function runRace(input: RaceInput): RaceReplay {
     choice.push(new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_CHOICE)));
   }
   const names = entries.map((e) => e.horse.name);
+  // Each horse's extra drain climbing (or saved running down) the home straight, permille.
+  const hillDrain = entries.map((e) => hillDrainFor(layout, e.horse.stats.stamina));
 
   // --- state ---------------------------------------------------------------
   // Int32 is ample: positions stay below 2^31 sub-mm even at the tick cap.
@@ -265,7 +283,8 @@ export function runRace(input: RaceInput): RaceReplay {
         // Energy-budgeted kick: the fastest pace the remaining tank can pay for to the line.
         const cap = cr + Math.floor(((p.top - cr) * p.kickStrength) / 1000);
         const avail = E - KICK_RESERVE;
-        const cost = Math.floor((Math.floor((remaining * BASE_BUDGET) / L) * p.drainMul) / 1000);
+        // On a course the kick is paced for the home straight still to come (its length and gradient).
+        const cost = Math.floor((Math.floor((kickCostMm(layout, hillDrain[i]!, remaining, L) * BASE_BUDGET) / L) * p.drainMul) / 1000);
         const F = cost > 0 ? Math.floor((Math.max(0, avail) * 1000) / cost) : 5000;
         let sustain: number;
         if (F >= 1000) sustain = cr + isqrt(Math.floor((Math.min(F, 5000) - 1000) * DRAIN_OVER_S2 / 1000));
@@ -292,6 +311,11 @@ export function runRace(input: RaceInput): RaceReplay {
       }
       // Running wide costs ground.
       target -= Math.floor((target * lane[i]!) / WIDE_COST_DIV);
+      if (layout) {
+        // ...and more of it round a bend: the loss per lane over the bend, spread along it.
+        const bend = bendAt(layout, posMm);
+        if (bend) target -= Math.floor((target * bend.lossPerLaneMm * lane[i]!) / (bend.lengthMm * 1000));
+      }
 
       // --- traffic ------------------------------------------------------------
       let blocker = -1;
@@ -314,7 +338,9 @@ export function runRace(input: RaceInput): RaceReplay {
       if (blocked) {
         if (passTarget[i]! < 0 && tick >= decideAt[i]!) {
           decideAt[i] = tick + 10;
-          const pPass = kicking[i] ? 850 : tactic === "front" ? 350 : 550;
+          let pPass = kicking[i] ? 850 : tactic === "front" ? 350 : 550;
+          // Switching out round a bend is harder (one draw either way, so the stream never shifts).
+          if (layout && bendAt(layout, posMm)) pPass -= Math.floor((pPass * layout.bendPassCut) / 1000);
           if (choice[i]!.chance(pPass)) {
             const out = lane[i]! + 1000 <= laneMax ? lane[i]! + 1000 : -1;
             const inn = lane[i]! - 1000 >= 0 ? lane[i]! - 1000 : -1;
@@ -399,6 +425,12 @@ export function runRace(input: RaceInput): RaceReplay {
         drain = Math.floor((drain * factor) / 1000);
         drain = Math.floor((drain * p.drainMul) / 1000);
         if (early && p.keenMul !== 1000) drain = Math.floor((drain * p.keenMul) / 1000);
+        // The home straight: climbing it costs energy (stamina-poor horses fade), a downhill saves a
+        // little, and a long straight lets a kick run more economically (a short one less).
+        if (layout && posMm >= layout.straightFromMm) {
+          const change = straightDrain(layout, hillDrain[i]!, kicking[i]!);
+          if (change !== 0) drain = Math.floor((drain * (1000 + change)) / 1000);
+        }
         for (let q = k - 1; q >= 0; q--) {
           const j = order[q]!;
           if (oldPos[j]! - myOld > (DRAFT_MAX_MM + 1) * SUB) break;
@@ -568,7 +600,7 @@ export function runRace(input: RaceInput): RaceReplay {
       finishOrder: finishRecords,
       winningTimeUs: finishUs[winner]!,
       photoFinish,
-      resultHash: sha256Hex(canonicalResult(input.seed, finishRecords, version)),
+      resultHash: sha256Hex(canonicalResult(input.seed, finishRecords, version, course)),
     },
   };
 

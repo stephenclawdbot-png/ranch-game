@@ -217,8 +217,34 @@ export const RaceEntrySchema = z.object({
 });
 export type RaceEntry = z.infer<typeof RaceEntrySchema>;
 
+/**
+ * Optional course profile (engine 1.3.0): the racecourse's shape as the engine sees it, frozen
+ * into the field at entry lock (game-core `courseProfile`, from courses.ts). A race without
+ * `course` runs exactly as before (1.2.0 with kit, 1.1.0 without). The profile is part of the
+ * hashed result of a 1.3.0 race, so a course cannot be swapped after the off.
+ */
+export const RaceCourseSchema = z.object({
+  /** Course id (game-core CourseId), sealed with the result. */
+  id: z.string().min(1).max(32),
+  /** Which way the field runs round the bends. Cosmetic: no horse prefers a direction. */
+  direction: z.enum(["left", "right"]),
+  /** One lap, metres. */
+  circumferenceM: z.number().int().min(1000).max(5000),
+  /** Last bend to the line, metres. */
+  homeStraightM: z.number().int().min(150).max(1500),
+  /** Bends per lap (an oval has two, a triangle three). */
+  bendsPerLap: z.number().int().min(1).max(4),
+  /** 0 = sweeping, 1000 = very tight. */
+  bendTightness: z.number().int().min(0).max(1000),
+  /** Rise of the home straight, permille (positive = uphill finish). */
+  finishGradientPermille: z.number().int().min(-50).max(50),
+});
+export type RaceCourse = z.infer<typeof RaceCourseSchema>;
+
 export const RaceInputSchema = z.object({
   race: RaceConfigSchema,
+  /** The course's shape (engine 1.3.0). Absent = no course character (1.2.0 / 1.1.0). */
+  course: RaceCourseSchema.optional(),
   entries: z.array(RaceEntrySchema).min(2).max(16),
   /** Revealed seed, 64 hex chars. Its sha256 is the published commitment. */
   seed: z.string().regex(/^[0-9a-f]{64}$/),

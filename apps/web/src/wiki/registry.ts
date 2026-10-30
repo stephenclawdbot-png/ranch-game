@@ -53,7 +53,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards, classes and sponsoring a race.", keywords: ["live", "quick", "story", "class", "maiden", "licence", "qualifier", "weekend feature", "plate", "sponsor"] },
   { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, the entry bank, the paddock, choosing a tactic, race-day extras and jockeys.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer", "extras", "jockey", "shoes", "physio", "vet check"] },
   { slug: "weather-and-going", section: "racing", title: "Weather & going", summary: "Seasons of the year, each course's weather, how the going is worked out, frost and the forecast.", keywords: ["weather", "going", "rain", "ground", "firm", "soft", "heavy", "frost", "forecast", "spring", "summer", "autumn", "winter", "drying", "course"] },
-  { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify"] },
+  { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify", "course character", "bends", "draw", "home straight", "uphill"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands and the form figures on the card.", keywords: ["rating", "or", "form", "band"] },
 
   // Breeding & genetics

@@ -230,6 +230,16 @@ fixes4 the funnel fills: about 180 Qualifier runs and 20-28 Weekend Feature runn
 the harness (`HARNESS-LOG.md`). The Weekend Feature's gate is qualifying (top 3 in a Qualifier,
 or OR 100+), not a rating floor; only the Season Final keeps OR 95+.
 
+Course character (2026-10-30, racing-engine 1.3.0): the six courses (game-core `courses.ts`) race
+differently. A Live card race's course profile is frozen into the field at entry close and sealed
+in the result hash; the engine lays the course out back from the post, so the trip decides the
+bends. Tight bends cost wide runners ground and make passing harder (Kestrel Downs: front-runners
+and low draws), a long home straight lets a kick run cheaper (Saltmarsh: closers), an uphill finish
+costs stamina-poor horses most (Harrowgate: stayers) and a downhill one saves them most (Larkspur:
+speed). A course moves a running style's win share by 5 points or so (Harrowgate's climb up to 10); no style wins
+under 20% or over 45% anywhere, and breed win rates stay where they were (`tools/balance/courses.report.ts`;
+knobs in `KNOBS.md` §6). Story, Daily Cup and older races run course-less, as before.
+
 ---
 
 ## 6. Code map: where each system lives
