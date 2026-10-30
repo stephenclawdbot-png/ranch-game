@@ -20,7 +20,7 @@ import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks 
 import { bandRatingOf, gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
-import type { RaceCourse, RaceKit } from "@thoroughbred/shared";
+import { LIVE_RACE_MODEL, type RaceCourse, type RaceKit, type RaceModel } from "@thoroughbred/shared";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { LIVE_SLOT_KEY_RE, ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
@@ -455,6 +455,14 @@ export interface FieldRunner {
    * extras existed never have it, and hash exactly as they did.
    */
   kit?: RaceKit;
+  /**
+   * Handicap weight (Live handicaps locked since engine 1.4.0): the lb this runner carries
+   * (ratings.handicapWeights: top-rated carries top weight, 1 lb less per OR below) and the lb
+   * above the lightest, which the engine horse carries (1 lb = 1 OR of ability). Absent for
+   * level-weight races and fields locked before weights were applied; hashed only when present.
+   */
+  weightLb?: number;
+  extraWeightLb?: number;
 }
 
 export interface LockedField {
@@ -469,8 +477,23 @@ export interface LockedField {
    * exactly as they did; later tuning of courses.ts never touches a field already locked.
    */
   course?: RaceCourse;
+  /**
+   * The engine's race model (racing-engine 1.4.0, close finishes), frozen at the lock for Live card
+   * races (LIVE_RACE_MODEL). Fields locked before it existed never have it and replay as they ran.
+   */
+  model?: RaceModel;
   /** sha256 of the canonical runner list (and course, when there is one); published so the field is provably fixed. */
   fieldHash: string;
+}
+
+/** The race model a Live card race (scheduled, feature, final) locks with (engine 1.4.0); none otherwise. */
+export function modelForRace(race: Pick<RaceRow, "kind">): RaceModel | undefined {
+  return (LIVE_RACE_KINDS as readonly string[]).includes(race.kind) ? LIVE_RACE_MODEL : undefined;
+}
+
+/** Live card handicaps carry weights (1 OR = 1 lb, applied as 1 OR of ability each); other races run at level weights. */
+export function handicapWeightsFor(race: Pick<RaceRow, "kind" | "raceClass">): boolean {
+  return (LIVE_RACE_KINDS as readonly string[]).includes(race.kind) && race.raceClass === "handicap";
 }
 
 /** The course profile a Live card race (scheduled, feature, final) on a known course runs with; none otherwise. */
@@ -482,7 +505,7 @@ export function courseForRace(race: Pick<RaceRow, "kind" | "conditions">): RaceC
 
 export interface FieldHooks extends Partial<GameHooks> {
   /** Maps an entry snapshot to the engine's Horse (shared HorseSchema). */
-  engineHorse?(input: { snapshot: Record<string, unknown>; race: RaceRow; isHouse: boolean }): unknown;
+  engineHorse?(input: { snapshot: Record<string, unknown>; race: RaceRow; isHouse: boolean; extraWeightLb?: number }): unknown;
 }
 
 const TACTICS = ["front", "stalker", "closer"] as const;
@@ -584,10 +607,10 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   const target = Math.max(players.length, Math.min(race.maxRunners, race.targetRunners));
   const house = await pickHouseHorses(tx, race, target - players.length, hooks, now);
 
-  type Pending = { horseId: string; stableId: string | null; isHouse: boolean; tactic: string; snapshot: Record<string, unknown>; entryId?: string };
-  const pending: Pending[] = players.map((e) => ({ horseId: e.horseId, stableId: e.stableId, isHouse: false, tactic: e.tactic, snapshot: e.snapshot as Record<string, unknown>, entryId: e.id }));
+  type Pending = { horseId: string; stableId: string | null; isHouse: boolean; tactic: string; snapshot: Record<string, unknown>; entryId?: string; or: number };
+  const pending: Pending[] = players.map((e) => ({ horseId: e.horseId, stableId: e.stableId, isHouse: false, tactic: e.tactic, snapshot: e.snapshot as Record<string, unknown>, entryId: e.id, or: e.ratingBefore }));
   const u = seededUniform(race.seed, "house-tactic");
-  for (const h of house) pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: TACTICS[Math.floor(u() * 3)]!, snapshot: horseSnapshot(h) });
+  for (const h of house) pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: TACTICS[Math.floor(u() * 3)]!, snapshot: horseSnapshot(h), or: h.rating });
 
   // Gate draw from the committed seed (deterministic, verifiable after the reveal).
   const drawn = seededShuffle(
@@ -595,6 +618,8 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
     race.seed,
     "gate-draw",
   );
+  // Handicap weights (Live handicaps): from the ratings at entry (house horses: at the lock).
+  const weights = handicapWeightsFor(race) ? new Map(gc.handicapWeights(pending.map((p) => ({ horseId: p.horseId, or: p.or })), true).map((w) => [w.horseId, w])) : null;
   const runners: FieldRunner[] = [];
   for (let i = 0; i < drawn.length; i++) {
     const p = drawn[i]!;
@@ -616,6 +641,7 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
       });
       await tx.update(horses).set({ lockKind: "race", lockRef: race.id }).where(eq(horses.id, p.horseId));
     }
+    const w = weights?.get(p.horseId);
     const rd = p.isHouse ? null : storedRaceDay(p.snapshot);
     const kit = rd ? gc.raceDayKit(rd, raceGoing(race)) : undefined;
     runners.push({
@@ -624,29 +650,40 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
       horseId: p.horseId,
       stableId: p.stableId,
       isHouse: p.isHouse,
-      horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse }) : p.snapshot,
+      horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse, ...(w ? { extraWeightLb: w.extraLb } : {}) }) : p.snapshot,
       ...(kit ? { kit } : {}),
+      ...(w ? { weightLb: w.weightLb, extraWeightLb: w.extraLb } : {}),
     });
   }
   // Course character: the course's shape is frozen into the field with the runners.
   const course = courseForRace(race);
-  const fieldHash = fieldHashOf(runners, course);
-  const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, ...(course ? { course } : {}), fieldHash };
+  // The race model (engine 1.4.0 close finishes) is frozen with it.
+  const model = modelForRace(race);
+  const fieldHash = fieldHashOf(runners, course, model);
+  const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, ...(course ? { course } : {}), ...(model ? { model } : {}), fieldHash };
   await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
   await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash, ...(course ? { course: course.id } : {}) } });
   return field;
 }
 
 /**
- * sha256 of the canonical runner list (a runner's kit is hashed only when it has one); a field
- * with a course profile hashes [runners, course], one without hashes exactly as before.
+ * sha256 of the canonical runner list (a runner's kit and handicap weight are hashed only when it
+ * has them); a field with a race model hashes [runners, course or null, model], one with only a
+ * course profile [runners, course], one with neither hashes exactly as before.
  */
-export function fieldHashOf(runners: readonly FieldRunner[], course?: RaceCourse | null): string {
-  const list = runners.map((r) => (r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse]));
-  if (!course) return sha256Hex(JSON.stringify(list));
+export function fieldHashOf(runners: readonly FieldRunner[], course?: RaceCourse | null, model?: RaceModel | null): string {
+  const list = runners.map((r) => {
+    const row: unknown[] = r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse];
+    if (r.weightLb !== undefined) row.push(["weight", r.weightLb, r.extraWeightLb ?? 0]);
+    return row;
+  });
   // The course as a fixed-order tuple (stored JSON may reorder object keys).
   const c = course;
-  return sha256Hex(JSON.stringify([list, [c.id, c.direction, c.circumferenceM, c.homeStraightM, c.bendsPerLap, c.bendTightness, c.finishGradientPermille]]));
+  const courseRow = c ? [c.id, c.direction, c.circumferenceM, c.homeStraightM, c.bendsPerLap, c.bendTightness, c.finishGradientPermille] : null;
+  // A field with a race model hashes [runners, course or null, model]; older shapes hash exactly as before.
+  if (model) return sha256Hex(JSON.stringify([list, courseRow, model]));
+  if (!courseRow) return sha256Hex(JSON.stringify(list));
+  return sha256Hex(JSON.stringify([list, courseRow]));
 }
 
 /**

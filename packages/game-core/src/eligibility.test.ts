@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import type { HorseState, RaceSlot, RaceTier } from "./types";
 import { applyRun, type RunConditions } from "./career";
 import { ABILITY_MARGIN, PEAK_DROP, bandCheck, bandRating, classBand, eligibleTiers, entryBlock } from "./eligibility";
-import { abilityMark, abilityOrOf, abilityScore } from "./ability";
+import { abilityOrOf, abilityScore } from "./ability";
+import { abilityMark } from "./phenotype";
 import { currentStats } from "./phenotype";
 import { seedFrom } from "./rng";
 import { DAY, T0, makeHorse, v2Neutral } from "./test-helpers";
@@ -67,7 +68,7 @@ describe("bandRating: today's OR, never far below the peak or the settled abilit
 
 describe("peak rule (max checks use the peak, min checks keep current OR)", () => {
   it("OR 52 / peak 66 can't drop into 0-55 but fits 50-75", () => {
-    const h = horseOf({ speed: 600, stamina: 600, burst: 600 }, { or: 52, ratedRuns: 12, peakOr: 66 });
+    const h = horseOf({ speed: 650, stamina: 650, burst: 650 }, { or: 52, ratedRuns: 12, peakOr: 66 });
     expect(entryBlock(h, slotOf("hcp_0_55", NOW), NOW)).toBe("rating_too_high");
     expect(entryBlock(h, slotOf("hcp_50_75", NOW), NOW)).toBeNull();
     expect(eligibleTiers(h, NOW)).not.toContain("hcp_0_55");
@@ -97,14 +98,14 @@ describe("peak rule (max checks use the peak, min checks keep current OR)", () =
 });
 
 describe("ability mark (the OR a horse of its current running ability settles at)", () => {
-  it("the calibrated table: starter grade settles near the entry OR, a grade is worth ~10 OR", () => {
+  it("the calibrated table: starter grade settles near the entry OR, a grade is worth ~6-12 OR", () => {
     expect(abilityMark(horseOf({ speed: 500, stamina: 500, burst: 500 }))).toBe(41);
-    expect(abilityMark(horseOf({ speed: 700, stamina: 700, burst: 700 }))).toBe(61);
-    expect(abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))).toBe(76);
+    expect(abilityMark(horseOf({ speed: 700, stamina: 700, burst: 700 }))).toBe(57);
+    expect(abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))).toBe(68);
     // Equal stats make the score trip-independent; tilts pick up the trip weighting.
     expect(abilityScore({ speed: 900, stamina: 300, burst: 100 }, 1100)).toBeGreaterThan(abilityScore({ speed: 900, stamina: 300, burst: 100 }, 3200));
-    expect(abilityOrOf(0)).toBe(18);
-    expect(abilityOrOf(1000)).toBe(97);
+    expect(abilityOrOf(0)).toBe(17);
+    expect(abilityOrOf(1000)).toBe(92);
   });
 
   it("a strong newcomer (800 current stats, OR 40) is blocked from the low band, not the novice", () => {
@@ -116,10 +117,10 @@ describe("ability mark (the OR a horse of its current running ability settles at
     expect(eligibleTiers(h, NOW)).not.toContain("hcp_0_55");
   });
 
-  it("a B-grade (700, settles at OR 61) newcomer is blocked from 0-55; starter grade (500) is not", () => {
-    // ~10 OR per grade: ABILITY_MARGIN 5 (half a grade) keeps a horse that settles above the
-    // band top out of it, so its edge over the band is at most half a grade.
-    const b = horseOf({ speed: 700, stamina: 700, burst: 700 });
+  it("a strong (750, settles at OR 62) newcomer is blocked from 0-55; starter grade (500) is not", () => {
+    // ABILITY_MARGIN 5 (about half a grade) keeps a horse that settles more than 5 above the band
+    // top out of it, so its edge over the band is at most half a grade.
+    const b = horseOf({ speed: 750, stamina: 750, burst: 750 });
     expect(entryBlock(b, slotOf("hcp_0_55", NOW), NOW)).toBe("rating_too_high");
     expect(entryBlock(b, slotOf("novice", NOW), NOW)).toBeNull();
     for (const stats of [500, 600]) {
@@ -130,7 +131,8 @@ describe("ability mark (the OR a horse of its current running ability settles at
   });
 
   it("the band the copy suggests is the one the band rating belongs in", () => {
-    expect(classBand(bandRating({ or: 40, peakOr: 40 }, abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))))).toBe("hcp_70_95");
+    expect(classBand(bandRating({ or: 40, peakOr: 40 }, abilityMark(horseOf({ speed: 800, stamina: 800, burst: 800 }))))).toBe("hcp_50_75");
+    expect(classBand(bandRating({ or: 40, peakOr: 40 }, abilityMark(horseOf({ speed: 900, stamina: 900, burst: 900 }))))).toBe("hcp_70_95");
   });
 
   it("is deterministic (no Date, no Math.random)", () => {

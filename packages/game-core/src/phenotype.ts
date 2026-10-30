@@ -25,6 +25,7 @@ import { conditionReport, withPhysio } from "./condition";
 import type { RaceDayChoice } from "./raceDay";
 import { appearanceOf } from "./coat";
 import { Rng, clampInt } from "./rng";
+import { abilityOrOf, abilityScore, carryWeight } from "./ability";
 
 // ---------------------------------------------------------------------------
 // Maturity curves over the career clock
@@ -76,6 +77,14 @@ export const TRAINING_WEIGHT_PERMILLE = 200;
 export function trainingFactor(realisation: number, careBonusPermille = 0): number {
   const r = Math.min(1000, realisation + careBonusPermille);
   return 1000 - Math.floor(((1000 - r) * TRAINING_WEIGHT_PERMILLE) / 1000);
+}
+
+/**
+ * Ability mark: the OR a horse of the horse's CURRENT running ability settles at (ability.ts
+ * ABILITY_OR_TABLE), from its current stats at its best trip, on today's maturity.
+ */
+export function abilityMark(state: HorseState): number {
+  return abilityOrOf(abilityScore(currentStats(state), preferredDistanceM(state.genome)));
 }
 
 /** Current (resting, unmodified) stats: potential × maturity × training factor (incl. care bonus). */
@@ -177,17 +186,16 @@ export const QUIRK_REVEAL_PERMILLE = 350;
 // Race snapshot (shared Horse)
 // ---------------------------------------------------------------------------
 
-/** Speed stat points per lb carried above the lightest weight in the race. */
-export const HANDICAP_SPEED_PER_LB = 5;
-/** Burst stat points per lb (weight blunts the kick too). */
-export const HANDICAP_BURST_PER_LB = 2;
 
 export interface SnapshotContext {
   nowMs: number;
   silks: Silks;
   /** Race conditions; omit for a resting snapshot (no quirks). */
   race?: QuirkContext & { surface: Surface; distanceM: number };
-  /** lb carried above the lightest horse in a handicap (see ratings.handicapWeights). */
+  /**
+   * lb carried above the lightest horse in a handicap (ratings.handicapWeights). Each lb costs
+   * OR_PER_LB (1) OR of ability on the ABILITY_OR_TABLE scale (ability.ts carryWeight).
+   */
   extraWeightLb?: number;
   plan?: RacePlan;
   /** Race-day extras (raceDay.ts): a physio session takes fatigue off before the race. */
@@ -222,8 +230,7 @@ export function raceSnapshot(state: HorseState, ctx: SnapshotContext): Snapshot 
     }
   }
   const lb = Math.max(0, ctx.extraWeightLb ?? 0);
-  s.speed -= lb * HANDICAP_SPEED_PER_LB;
-  s.burst -= lb * HANDICAP_BURST_PER_LB;
+  if (lb > 0) Object.assign(s, carryWeight(s, preferredDistanceM(state.genome), lb));
 
   if (ctx.plan) {
     if (ctx.plan.intensity === "all_out") {

@@ -29,6 +29,8 @@ export interface FieldEntry {
   form: string | null;
   /** Official rating at entry. */
   rating: number | null;
+  /** Handicap weight carried, lb (Live handicaps, set when the field locks); null at level weights or before the lock. */
+  weightLb?: number | null;
   /** Race-day equipment and a hired jockey, as racecard tags ("Soft shoes", "Vet-checked", "Top jockey"); empty for none. */
   gear: string[];
 }

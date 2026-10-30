@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RaceCard } from "@/lib/types";
 import { SEX_LABEL, STYLE_SHORT, coatLabel, formatDistance } from "@/lib/format";
+import { formatWeight } from "@thoroughbred/game-core";
 import { SilksIcon } from "../Silks";
 import { StableBadge } from "../StableBadge";
 import { GradeBadge } from "../StatBars";
@@ -17,6 +18,8 @@ const stables = (n: number) => `${n} ${n === 1 ? "stable" : "stables"}`;
  * stable; the Club's horses (house runners that fill the gates at the close) are marked Club.
  */
 export function FieldList({ card, highlightHorseId, open = true }: { card: RaceCard; highlightHorseId?: string; open?: boolean }) {
+  // Handicap weights print once the field is locked (Live handicaps).
+  const weighted = card.field.some((e) => !!e.weightLb);
   return (
     <details className="racecard print group" open={open} aria-labelledby="field-h">
       <summary className="racecard-head">
@@ -55,6 +58,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
             <th scope="col" className="text-right" title="Official rating">
               OR
             </th>
+            {weighted && (
+              <th scope="col" className="text-right" title="Handicap weight: the top-rated horse carries the most, 1 lb less for every point of rating below it">
+                Wgt
+              </th>
+            )}
             <th scope="col" className="hidden sm:table-cell">
               Plan
             </th>
@@ -70,7 +78,7 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
         <tbody>
           {card.field.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-3 text-cream-dim">
+              <td colSpan={weighted ? 8 : 7} className="px-3 py-3 text-cream-dim">
                 No entries yet. Empty gates are filled by the Club&rsquo;s horses when entries close.
               </td>
             </tr>
@@ -124,6 +132,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                   {e.form ?? "–"}
                 </td>
                 <td className="racecard-fig text-right">{e.rating ?? "–"}</td>
+                {weighted && (
+                  <td className="racecard-fig whitespace-nowrap text-right" data-testid="runner-weight">
+                    {e.weightLb ? formatWeight(e.weightLb) : "–"}
+                  </td>
+                )}
                 <td className="hidden whitespace-nowrap font-semibold text-cream-dim sm:table-cell">{STYLE_SHORT[e.tactic]}</td>
                 <td className="hidden whitespace-nowrap font-semibold text-cream-dim md:table-cell">{formatDistance(h.preferredDistanceM)}</td>
                 <td className="pr-3">

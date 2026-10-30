@@ -129,9 +129,9 @@ describe("race-day extras and jockeys", () => {
     expect(rb.kit).toBeUndefined(); // a vet check acts on the injury roll, not on the track
     expect("kit" in rb).toBe(false);
     for (const r of field.runners.filter((x) => x.isHouse)) expect(r.kit).toBeUndefined();
-    expect(field.fieldHash).toBe(fieldHashOf(field.runners));
-    // A runner list without kit hashes exactly as the old formula did.
-    const old = field.runners.map(({ kit: _k, ...r }) => r);
+    expect(field.fieldHash).toBe(fieldHashOf(field.runners, null, field.model));
+    // A runner list without kit (or weights) hashes exactly as the old formula did.
+    const old = field.runners.map(({ kit: _k, weightLb: _w, extraWeightLb: _x, ...r }) => r);
     const { sha256Hex } = await import("../crypto");
     expect(fieldHashOf(old)).toBe(sha256Hex(JSON.stringify(old.map((r) => [r.gate, r.horseId, r.tactic, r.horse]))));
   });
