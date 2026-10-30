@@ -240,6 +240,22 @@ speed). A course moves a running style's win share by 5 points or so (Harrowgate
 under 20% or over 45% anywhere, and breed win rates stay where they were (`tools/balance/courses.report.ts`;
 knobs in `KNOBS.md` §6). Story, Daily Cup and older races run course-less, as before.
 
+How fields are filled (Club fill, 2026-10-30; owner: "the Club horses that fill in the race are
+median and above median"). At entry close the Club fills the empty gates up to the race's target
+(5-12). Its runners are honest: a Club horse's stored rating is its real ability mark (ability.ts).
+A minted one is seasoned (at the start of its peak window, fully trained, fit), suited to the race's
+trip and surface, its genome searched from the race seed until its mark is the target (game-core
+`clubFill.ts`). Until then a minted Club horse was an untrained novice stamped with the band's
+midpoint, so a "62" ran like a 29, players ran away with races and their ratings inflated; existing
+Club horses were recalibrated to their real marks once (db `services/clubFill.ts`). Which horses:
+targets spread across a window, the top half of a banded race ([middle, max]; Listed and Group
+[floor, floor + 15]), the entered players' median band rating to median + 12 in a race open to every
+rating (the calendar races), the whole band in a Story race. Free Club horses whose real mark is in
+the window are used first; the shortfall is minted. Expect players to win far fewer races in the
+upper bands until their ratings settle at their real ability (`tools/balance/club-fill.report.ts`,
+`HARNESS-LOG.md` clubfill1). Live handicaps carry no handicap weights (KNOBS mismatch 14a), so a
+handicap field is only as tight as its band.
+
 ---
 
 ## 6. Code map: where each system lives
