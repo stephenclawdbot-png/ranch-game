@@ -100,6 +100,11 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "leaseSharesLessees", label: "Lease shares paid to lessees", value: t.leasing?.sharesToLessees ?? 0 },
     { key: "leaseInjuryReturns", label: "Leases ended by injury", value: t.leasing?.ended.injured ?? 0 },
     { key: "leaseReciprocal", label: "Reciprocal lease flags", value: t.leasing?.reciprocalFlags ?? 0 },
+    { key: "clubLots", label: "Club lots listed", value: t.leasing?.club?.lots ?? 0 },
+    { key: "clubSales", label: "Club horses sold", value: t.leasing?.club?.sales ?? 0 },
+    { key: "clubLeaseOffers", label: "Club lease offers", value: t.leasing?.club?.offers ?? 0 },
+    { key: "clubLeases", label: "Club horses leased", value: t.leasing?.club?.leases ?? 0 },
+    { key: "playerSales", label: "Player-to-player sales", value: t.leasing?.playerSales ?? 0 },
   ];
   for (const c of COHORTS) {
     if (!r.meta.cohorts[c]) continue;

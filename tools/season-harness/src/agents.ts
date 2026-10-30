@@ -595,6 +595,8 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       await freePack(c, s);
       await maybeSponsor(c, s, view.credits, 12_000, 150);
       if (a.rng.chance(CASUAL_LEASE_PERMILLE)) await takeALease(c, s);
+      // Now and then a casual with a free stall and savings browses the sales (Club lots ask 110%).
+      if (a.rng.chance(CASUAL_SHOP_PERMILLE)) await shop(c, s, 4_000, 1.15);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -611,6 +613,8 @@ type View = NonNullable<Awaited<ReturnType<typeof playerView>>>;
 const CASUAL_SHEET_PERMILLE = 120;
 /** Chance per visit (permille) that a casual looks at the lease board (most casuals' stalls are full). */
 const CASUAL_LEASE_PERMILLE = 200;
+/** Chance per visit (permille) that a casual browses the horses for sale (`shop` needs a free stall and the credits). */
+const CASUAL_SHOP_PERMILLE = 60;
 /** Chance per day (first visit, permille) that a grinder looks at the lease board. */
 const GRINDER_LEASE_PERMILLE = 350;
 
