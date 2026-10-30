@@ -77,13 +77,17 @@ function subNavFor(pathname: string): { section: Section; active: string } | nul
 }
 
 /** The POST TIME lockup (pixel wordmark at 2x); the stopwatch mark alone on very narrow phones. */
-export function Wordmark({ className }: { className?: string }) {
+/**
+ * The wordmark, or the square icon on narrow screens. `topbar`: switch earlier (below 440 px), so
+ * the purse pills and the stable badge fit beside it on a 390-px phone.
+ */
+export function Wordmark({ className, topbar = false }: { className?: string; topbar?: boolean }) {
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/post-time-wordmark.svg" width={152} height={32} alt="Post Time" className={`pixelated max-[379px]:hidden ${className ?? ""}`} draggable={false} />
+      <img src="/brand/post-time-wordmark.svg" width={152} height={32} alt="Post Time" className={`pixelated ${topbar ? "max-[439px]:hidden" : "max-[379px]:hidden"} ${className ?? ""}`} draggable={false} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/icon-32.png" width={32} height={32} alt="Post Time" className="pixelated min-[380px]:hidden" draggable={false} />
+      <img src="/brand/icon-32.png" width={32} height={32} alt="Post Time" className={`pixelated ${topbar ? "min-[440px]:hidden" : "min-[380px]:hidden"}`} draggable={false} />
     </>
   );
 }
@@ -152,7 +156,7 @@ export function SiteNav() {
       <header className="topbar sticky top-0 z-40">
         <div className="mx-auto flex h-[var(--topbar-h)] max-w-[75rem] items-center gap-2 px-[var(--gutter)]">
           <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label="Post Time: your estate">
-            <Wordmark />
+            <Wordmark topbar />
           </Link>
           <nav className="tabs ml-4 hidden h-full !min-h-0 !gap-1 !p-0 ![mask-image:none] md:flex lg:ml-8" aria-label="Main">
             {SECTIONS.map(({ href, label, match }) => {

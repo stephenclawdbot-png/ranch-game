@@ -5,8 +5,10 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { removeStablePhoto, saveStablePhoto } from "@thoroughbred/db";
+import { db } from "@/server/db";
 import { withPlayer } from "@/server/economyHttp";
 import { errorJson, requireSameOrigin } from "@/server/http";
+import { getSession } from "@/server/session";
 import { processStablePhoto, type PhotoProblem } from "@/server/stablePhoto";
 
 export const runtime = "nodejs";
@@ -30,6 +32,13 @@ function uploadMessage(problem: PhotoProblem): string {
 export async function POST(req: Request) {
   const sameOrigin = requireSameOrigin(req);
   if (sameOrigin) return sameOrigin;
+  // Signed in before any byte is read or decoded (no image work for anonymous callers), and a
+  // body that declares itself too big is refused before it is buffered (form overhead allowed).
+  if (!(await getSession(await db()))) return errorJson(401, "unauthorized");
+  const declared = Number(req.headers.get("Content-Length") ?? 0);
+  if (declared > gc.STABLE_PHOTO_MAX_UPLOAD_BYTES + 64 * 1024) {
+    return errorJson(413, "too_large", { message: uploadMessage("too_large") });
+  }
 
   let form: FormData;
   try {

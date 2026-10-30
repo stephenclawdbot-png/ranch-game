@@ -154,6 +154,18 @@ describe("stable photo refusals", () => {
     expect(((await res.json()) as { error: string }).error).toBe("format");
   });
 
+  it("refuses a request that declares a body over the cap before parsing it", async () => {
+    jar.token = (await founded("Longfield Rise")).token;
+    const res = await POST(
+      new Request("https://tb.example/api/account/photo", {
+        method: "POST",
+        body: "x",
+        headers: { "content-type": "multipart/form-data; boundary=x", "content-length": String(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES * 4) },
+      }),
+    );
+    expect(res.status).toBe(413);
+  });
+
   it("refuses a body over the size cap before reading it", async () => {
     jar.token = (await founded("Smallbarn")).token;
     const res = await upload(Buffer.alloc(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES + 1024, 1), "photo.png", "image/png");
