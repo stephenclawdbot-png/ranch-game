@@ -29,6 +29,7 @@ import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, lockStable, lockStableOf, occupancy } from "./accounts";
 import { assertTradeableTx } from "./market";
+import { isUsdgRegistered } from "./usdgMarket";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 
@@ -234,7 +235,9 @@ export async function settleClaimsTx(tx: Tx, race: RaceRow, fatal: ReadonlySet<s
     const name = h?.name ?? "the horse";
     const stable = await lockStable(tx, c.claimantStableId);
     const full = (await occupancy(tx, stable)).used + 1 > stable.stallSlots;
-    if (!h || fatal.has(c.horseId) || h.ownerStableId !== c.ownerStableId || full) {
+    // belt and braces: a horse can't be registered for USDG while entered, but never sell one for credits
+    const gone = !h || h.ownerStableId !== c.ownerStableId || (await isUsdgRegistered(tx, c.horseId));
+    if (gone || fatal.has(c.horseId) || full) {
       const reason = fatal.has(c.horseId) ? "fatal injury" : full ? "no free stall" : "the horse is no longer available";
       await refundClaimTx(tx, c, "void", now, reason);
       await note(tx, claimantAccountId, "claim_void", `claim:${c.id}:void`, `Your claim on ${name} in the ${race.name} is void (${reason}): refunded`, { price: c.price, reason }, race.id, c.horseId, now);
