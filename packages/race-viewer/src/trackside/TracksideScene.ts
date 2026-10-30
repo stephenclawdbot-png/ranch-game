@@ -919,6 +919,7 @@ export class TracksideScene {
     inp.newEvents = ne;
     inp.highlightId = this.highlight >= 0 ? this.data.horses[this.highlight]!.horseId : null;
     inp.winnerId = winner >= 0 ? this.data.horses[winner]!.horseId : null;
+    d.compact = this.W < 640;
     d.update(inp);
   }
 

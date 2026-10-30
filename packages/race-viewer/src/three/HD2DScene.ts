@@ -1049,6 +1049,8 @@ export class HD2DScene {
     let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
     const seek = Math.abs(simDt) > 0.6 || simDt < -1e-9;
     this.director = f.director ?? this.ownDirector;
+    // Phones: the director keeps to close tracking shots (no tiny-horse aerials).
+    this.director.compact = this.W < 640;
     if (seek || Number.isNaN(this.lastTime)) {
       this.dirEventScan = 0;
       const tickNow = Math.max(0, raceT) * this.replay.tickHz;
@@ -1291,7 +1293,7 @@ export class HD2DScene {
 
     if (this.marker && this.ring && this.highlight >= 0) {
       const r = this.runners[this.highlight]!;
-      this.marker.position.set(r.bodyX + 0.3, r.y + 2.7 + Math.sin(performance.now() / 250) * 0.06, r.bodyZ);
+      this.marker.position.set(r.bodyX + 0.3, r.y + 2.05 + Math.sin(performance.now() / 250) * 0.06, r.bodyZ);
       this.ring.position.set(r.bodyX, r.y + 0.016, r.bodyZ);
     }
 
