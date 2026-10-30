@@ -7,15 +7,20 @@
  *    falls a couple of seconds behind at the line and never skips anything.
  *  - local: race time advances by real dt x speed (after pause, scrub, speed change).
  *
- * Race time may run past `duration` (up to `duration + RUNOUT_SEC`) so horses can
- * pull up after the line; the HUD clamps what it shows.
+ * Race time may run past `duration` (to `runoutEnd`: at least RUNOUT_SEC after the last
+ * finisher and POST_RACE_SEC after the winner) so horses can ease down after the line
+ * (stage/motion.ts); the HUD clamps what it shows.
  */
 import { type RaceReplay } from "@thoroughbred/shared";
 import { createReplaySampler, replayTiming } from "./sampleReplay";
 
 export const PLAYBACK_RATES = [0.5, 1, 2, 4] as const;
-/** Extra seconds of pull-up animation after the last horse finishes. */
-export const RUNOUT_SEC = 6;
+/** Extra seconds of run-out animation after the last horse finishes... */
+export const RUNOUT_SEC = 8;
+/** ...and after the winner (the ease-down to a walk takes ~15-20 s). */
+export const POST_RACE_SEC = 22;
+/** Live: how long the clock may run past the last data frame once every runner is home. */
+export const LIVE_RUNOUT_SEC = POST_RACE_SEC + 8;
 /** Pre-roll (s) before the off when playing a replay without a start time. */
 export const PRE_ROLL_SEC = 1.6;
 export const SLOWMO_RATE = 0.3;
@@ -63,6 +68,8 @@ export function timeLeaderReaches(replay: RaceReplay, metresToGo: number): numbe
 export class PlaybackClock {
   readonly duration: number;
   readonly winnerTime: number;
+  /** Race time at which the run-out animation is over and playback stops. */
+  readonly runoutEnd: number;
   readonly startAtMs: number | undefined;
   private slowFrom: number | null;
   private slowTo: number;
@@ -80,6 +87,7 @@ export class PlaybackClock {
     const timing = replayTiming(replay);
     this.duration = timing.duration;
     this.winnerTime = timing.winnerTime;
+    this.runoutEnd = Math.max(this.duration + RUNOUT_SEC, this.winnerTime + POST_RACE_SEC);
     this.startAtMs = opts.startAtMs;
     this.slowFrom = replay.result.photoFinish ? timeLeaderReaches(replay, SLOWMO_FROM_M) : null;
     this.slowTo = this.winnerTime + SLOWMO_AFTER_S;
@@ -92,7 +100,7 @@ export class PlaybackClock {
       const wall = (nowMs - opts.startAtMs) / 1000;
       if (wall >= this.duration) {
         // Already over: open on the result, settled, with replay controls.
-        this.time = this.duration + RUNOUT_SEC;
+        this.time = this.runoutEnd;
         this.playing = false;
         this.photoDone = true;
       } else {
@@ -111,7 +119,7 @@ export class PlaybackClock {
 
   /** Can "go live" (a start time exists and the race isn't over on the wall clock). */
   canGoLive(nowMs = Date.now()): boolean {
-    return this.startAtMs !== undefined && (nowMs - this.startAtMs) / 1000 < this.duration + RUNOUT_SEC;
+    return this.startAtMs !== undefined && (nowMs - this.startAtMs) / 1000 < this.runoutEnd;
   }
 
   private inSlowmo(t: number): boolean {
@@ -121,7 +129,7 @@ export class PlaybackClock {
   /** Advance by `dt` real seconds. */
   tick(dt: number, nowMs = Date.now()): ClockFrame {
     dt = Math.max(0, Math.min(dt, 0.25));
-    const end = this.duration + RUNOUT_SEC;
+    const end = this.runoutEnd;
     let frozen = false;
     if (this.freezeLeft > 0 && this.playing) {
       this.freezeLeft = Math.max(0, this.freezeLeft - dt);
@@ -161,7 +169,7 @@ export class PlaybackClock {
   }
 
   play(): void {
-    if (this.time >= this.duration + RUNOUT_SEC - 1e-6 || this.ended) this.restart();
+    if (this.time >= this.runoutEnd - 1e-6 || this.ended) this.restart();
     this.playing = true;
   }
 
@@ -223,12 +231,20 @@ export interface LiveClockSource {
   /** Highest frame index received (-1 before the off). */
   liveEdgeFrame: number;
   frameDt: number;
+  /**
+   * True once every runner is home in the frames received (the server sends no frames after
+   * the last finisher). The clock then keeps running past the data edge, for the run-out
+   * (stage/motion.ts extrapolates finished horses), until the final result arrives.
+   */
+  readonly allFinished?: boolean;
 }
 
 /**
  * Live playback: the playhead follows the broadcast clock, may be paused or rewound,
  * may catch up at up to 4x after a rewind, but can never pass the live edge
- * (= min(wall clock, last received frame)). No duration / result is known.
+ * (= min(wall clock, last received frame)). No duration / result is known. Once every runner
+ * is home in the received frames, the edge follows the wall clock on past the last frame
+ * (up to LIVE_RUNOUT_SEC): finished horses ease down, nothing new is revealed, no freeze.
  */
 export class LiveClock {
   time: number;
@@ -265,7 +281,9 @@ export class LiveClock {
     const w = this.wallTime(nowMs);
     // Before the off the countdown runs on the wall clock alone.
     if (w < 0) return w;
-    return Math.max(0, Math.min(w, this.dataEdge()));
+    const data = this.dataEdge();
+    if (this.src.allFinished && Number.isFinite(data)) return Math.max(0, Math.min(w, data + LIVE_RUNOUT_SEC));
+    return Math.max(0, Math.min(w, data));
   }
 
   get ended(): boolean {
@@ -294,7 +312,7 @@ export class LiveClock {
       this.time = Math.min(this.time, edge);
     }
     // Only flag buffering when holding persists (polling jitter is normal).
-    const starved = this.live && wall > 0 && wall - this.dataEdge() > 0.5;
+    const starved = this.live && wall > 0 && !this.src.allFinished && wall - this.dataEdge() > 0.5;
     this.starvedFor = starved ? this.starvedFor + dt : 0;
     this.buffering = this.starvedFor > 0.6;
     return { time: this.time, frozen: false, flash: 0, slowmo: false };
