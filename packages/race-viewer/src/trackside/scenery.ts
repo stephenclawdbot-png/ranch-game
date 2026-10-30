@@ -176,12 +176,14 @@ export const SCENERY: Record<CourseSceneryId, SceneryRecipe> = {
       height: H,
       blur: 1,
       haze: 0.36,
+      // the rowans first: heather drawn over their rocky bases hides where the sprite is cut
       items: [
-        { src: "course/mid-heather.png", x: 0, bottom: 270 },
         { src: "course/mid-rowan.png", x: 200, bottom: 262 },
+        { src: "course/mid-rowan.png", x: 930, bottom: 264, flip: true },
+        { src: "course/mid-heather.png", x: 0, bottom: 270 },
         { src: "course/mid-heather.png", x: 420, bottom: 272, flip: true },
         { src: "course/mid-heather.png", x: 760, bottom: 270 },
-        { src: "course/mid-rowan.png", x: 930, bottom: 264, flip: true },
+        { src: "course/mid-heather.png", x: 1000, bottom: 271, flip: true },
       ],
     },
     field: ["#6e5a4a", "#55503a"],

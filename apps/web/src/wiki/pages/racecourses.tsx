@@ -71,7 +71,7 @@ export default function RacecoursesPage() {
           </P>
           <div className="my-3 grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
             <SceneryThumb course={c} className="w-full" />
-            <figure className="inset m-0 p-2">
+            <figure className="inset m-0 w-full max-w-56 justify-self-center p-2 sm:max-w-none">
               <CourseMap course={c} distanceM={SAMPLE_M} cells={56} className="h-auto w-full" />
               <figcaption className="caption mt-1">
                 {SHAPE[c.shape]}, {c.direction}-handed. Green: where a {formatDistance(SAMPLE_M)} race starts.

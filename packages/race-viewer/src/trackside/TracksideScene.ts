@@ -196,6 +196,7 @@ export class TracksideScene {
   /** Where new quads go (the scene, or the tilting track layer while it is being built). */
   private into: THREE.Object3D | null = null;
   private tilt = 0;
+  private bank: THREE.Mesh | null = null;
   private motes: { pts: THREE.Points; pos: Float32Array; size: Float32Array; col: Float32Array; soft: Float32Array; state: Float32Array; geo: THREE.BufferGeometry } | null = null;
   private rain: { lines: THREE.LineSegments; pos: Float32Array; alpha: Float32Array; state: Float32Array; geo: THREE.BufferGeometry } | null = null;
 
@@ -420,7 +421,8 @@ export class TracksideScene {
     const far = rc?.far ? course.get(rc.far) : null;
     const hills = bake.bakeHills(img, look, far);
     if (hills) this.addBand(hills, 0.08, O.hills, "backdrop");
-    this.field = this.quad(this.bandMat(this.canvasTex(bake.bakeField(look, rc?.field)), 4, 64), O.field);
+    const fieldTex = this.canvasTex(bake.bakeField(look, rc?.field));
+    this.field = this.quad(this.bandMat(fieldTex, 4, 64), O.field);
     const trees = (rc ? bake.bakeMid(course, rc, look) : null) ?? bake.bakeTrees(img, look);
     if (trees) this.addBand(trees, 0.3, O.trees, "backdrop");
     const standImg = rc ? course.get(rc.stand) : undefined;
@@ -431,6 +433,14 @@ export class TracksideScene {
     }
     const railFar = bake.bakeRailFar(img, look, rc, course);
     if (railFar) this.addBand(railFar, 1, O.railFar, "railFar");
+    if (this.course && this.course.finishGradientPermille !== 0) {
+      // On a sloping finish the rail dips below its usual line at the low end of the frame:
+      // a level bank of the field's grass covers the backdrop's foot there (drawn before the
+      // track, so the tilted ground and rail paint over it wherever they rise).
+      const bank = this.bandMat(fieldTex, 4, 64);
+      this.setUv(bank, 0, 0.96, 1, 0.04); // the field strip's own bottom colour, hazed alike
+      this.bank = this.quad(bank, O.ground - 0.1);
+    }
     const railNear = bake.bakeRailNear(img);
     if (railNear) this.addBand(railNear, 1, O.railNear, "railNear");
   }
@@ -880,6 +890,12 @@ export class TracksideScene {
     // The field strip reaches under a tilted far rail too (its low end drops below the line).
     const drop = Math.abs(Math.sin(this.tilt)) * Wb * 0.6;
     if (this.field) this.place(this.field, 0, railY - 40 * k, Wb, 40 * k + 2 * B + drop);
+    if (this.bank) {
+      // Level, from just above the midground's foot down past the dipped rail; the tilted
+      // ground and rail draw over it wherever they rise.
+      if (this.tilt === 0) this.place(this.bank, 0, 0, 0, 0);
+      else this.place(this.bank, 0, railY - 24 * k, Wb, 24 * k + drop + 4 * B);
+    }
     if (this.stand) {
       // World-anchored by the post (STAND_DEPTH parallax).
       const s = this.stand;
