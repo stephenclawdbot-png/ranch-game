@@ -189,7 +189,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           {status}
           <div className="min-w-0 flex-1">
             <p className="eyebrow !text-[0.625rem] !text-sage">
-              {card.kind === "story" ? "Story race" : "Live · Kestrel Downs card"} · {CLASS_LABEL[config.raceClass]}
+              {card.kind === "story" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]}
             </p>
             <h1 id="race-name" className="t-serif text-[1.25rem] leading-6 line-clamp-2 md:text-[1.625rem] md:leading-8" data-testid="race-name">
               {config.name}
