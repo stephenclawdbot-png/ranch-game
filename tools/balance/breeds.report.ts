@@ -36,7 +36,7 @@ import {
   type Breed,
   type HorseState,
 } from "../../packages/game-core/src/index";
-import { writeReport, yieldNow } from "./out";
+import { LIVE_MODEL, writeReport, yieldNow } from "./out";
 
 const RACES = Number(process.env.BAL_BREED_RACES ?? 1500);
 const PER_BREED = 150;
@@ -85,6 +85,7 @@ it("breeds report", async () => {
         race: { id: `br-${m.mode}-${r}`, name: "Breeds", distanceM, surface, weather: "clear", going, raceClass: "listed", postTimeMs: T0, purse: 0 },
         entries,
         seed: deriveSeed("breeds-report", `${m.mode}:${r}`),
+        ...LIVE_MODEL,
       });
       const winner = replay.result.finishOrder.find((f) => f.position === 1)!.horseId;
       for (const h of runners) {

@@ -5,10 +5,12 @@
  */
 import { RaceInputSchema, type RaceInput, type RaceReplay } from "@thoroughbred/shared";
 import { commitSeed, deriveSeed } from "./hash";
-import { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
+import { COURSE_ENGINE_VERSION, ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
 import { sha256Hex } from "./hash";
 
-export { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
+export { ENGINE_VERSION, COURSE_ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
+export { BATTLE_AHEAD_MM, BATTLE_BASE, BATTLE_BEHIND_MM, BATTLE_FROM_MM, BATTLE_GRIT, BATTLE_TEMPER, PACK_CARRY, PACK_PULL, battleResponse, packCarried, packPull } from "./simulate";
+export { DRAMA_FORM_PERMILLE } from "./model";
 export {
   BEND_LANE_LOSS_MM,
   GRADIENT_DRAIN,
@@ -39,9 +41,9 @@ export function simulateRace(input: RaceInput): RaceReplay {
  */
 export function verifyReplay(input: RaceInput, replay: RaceReplay): boolean {
   try {
-    // Races without kit or course run (and hash) as before: older replays stay verifiable.
+    // Races without kit, course or model run (and hash) as before: older replays stay verifiable.
     const course = input.course ?? null;
-    if (replay.engineVersion !== engineVersionFor(input.entries, course)) return false;
+    if (replay.engineVersion !== engineVersionFor(input.entries, course, input.model)) return false;
     if (replay.seed !== input.seed) return false;
     if (replay.seedCommitment !== commitSeed(input.seed)) return false;
     // The replay's own claims must hash to its resultHash.
