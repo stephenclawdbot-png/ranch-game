@@ -1,18 +1,33 @@
 import * as gc from "@thoroughbred/game-core";
-import { ENGINE_VERSION, PRIZE_SPLIT_PCT, TICK_HZ, marginLabel, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
+import {
+  BEND_LANE_LOSS_MM,
+  BEND_PASS_CUT,
+  GRADIENT_DRAIN,
+  PRIZE_SPLIT_PCT,
+  STRAIGHT_EASE_MAX,
+  STRAIGHT_EASE_PER_100M,
+  STRAIGHT_REF_M,
+  TICK_HZ,
+  marginLabel,
+  simulateRace,
+  verifyReplay,
+} from "@thoroughbred/racing-engine";
 import { HORSE_LENGTH_MM, PHOTO_FINISH_MM, formatRaceTime, type RaceInput, type RunningStyle } from "@thoroughbred/shared";
 import { STYLE_LABEL, formatDistance, shortHash } from "@/lib/format";
 import { Callout, Facts, Figure, H2, Lead, List, P, Steps, Table, WikiLink } from "../kit";
 
 const STYLES: RunningStyle[] = ["front", "stalker", "closer", "stalker", "front", "closer", "stalker", "closer"];
 
-/** A real race: eight honest Club runners, a fixed seed, the game's own engine. */
+const EXAMPLE_COURSE = gc.courseById("ashcombe");
+
+/** A real race: eight honest Club runners, a fixed seed, the game's own engine, at Ashcombe. */
 function exampleRace() {
   const seed = gc.seedFrom("wiki", "example-race");
   const distanceM = 1600;
   const field = STYLES.map((style, i) => gc.clubRunner(seed, { id: `wiki-runner-${i + 1}`, strength: 480 + ((i * 37) % 60), distanceM, surface: "turf", style }));
   const input: RaceInput = {
     race: { id: "wiki-example", name: "Wiki Example Stakes", distanceM, surface: "turf", weather: "clear", going: "good", raceClass: "novice", postTimeMs: 0, purse: 0 },
+    course: gc.courseProfile(EXAMPLE_COURSE),
     entries: field.map((horse, i) => ({ gate: i + 1, tactic: horse.style, horse })),
     seed,
   };
@@ -45,6 +60,48 @@ export default function HowRacesAreRunPage() {
         whole-number maths only, so there is no rounding that could differ between machines. The seed supplies the small doses of luck a real race has: who breaks well, who gets a gap.
       </P>
 
+      <H2 id="courses">Every course races differently</H2>
+      <P>
+        Live races are run on one of {gc.COURSES.length} racecourses, and the engine knows each one&rsquo;s shape: how tight its bends are, how long the run from the last bend to the post is,
+        and whether the finish climbs or falls. The course is laid out back from the winning post, so a race&rsquo;s trip decides how many bends it runs. A course tilts a race towards a type of
+        horse; it never decides it, and the best horse still usually wins anywhere.
+      </P>
+      <List
+        items={[
+          <>
+            <b>Bends.</b> A horse racing wide covers extra ground round a bend: on the tightest bend up to {(BEND_LANE_LOSS_MM / 1000).toFixed(1)} metres for every lane out from the rail over a
+            half-turn. Passing is harder while turning too (up to {BEND_PASS_CUT / 10}% fewer tries to switch out). Front-runners on the rail and horses drawn low gain on tight courses; a closer
+            making its run round the turn loses.
+          </>,
+          <>
+            <b>The home straight.</b> A long straight gives a finishing kick room: a horse kicking down it spends {STRAIGHT_EASE_PER_100M / 10}% less energy for every 100 metres of straight over{" "}
+            {STRAIGHT_REF_M} m (at most {STRAIGHT_EASE_MAX / 10}%), and more on a shorter one. Closers, whose run is the longest, like long straights; on a short one it pays to be handy.
+          </>,
+          <>
+            <b>An uphill finish</b> costs energy all the way up the straight ({GRADIENT_DRAIN / 10}% more for each 0.1% of rise, for a horse of average stamina), and the less stamina a horse has the
+            more it pays: stayers come into their own. A slight downhill saves energy instead, which suits the speedier, shorter-winded horses.
+          </>,
+          <>
+            <b>Left- or right-handed</b> is only how the course looks: no horse prefers a way round.
+          </>,
+        ]}
+      />
+      <Table
+        head={["Course", "Bends", "Home straight", "Finish", "Character"]}
+        rows={gc.COURSES.map((c) => [
+          c.name,
+          `${c.bendTightness >= 800 ? "Very tight" : c.bendTightness >= 500 ? "Tight" : c.bendTightness >= 300 ? "Fair" : "Sweeping"} (${c.bendTightness / 10}%)`,
+          `${c.homeStraightM} m`,
+          c.finishGradientPermille > 0 ? `Uphill ${(c.finishGradientPermille / 10).toFixed(1)}%` : c.finishGradientPermille < 0 ? `Downhill ${(-c.finishGradientPermille / 10).toFixed(1)}%` : "Flat",
+          c.character,
+        ])}
+        caption="Bend tightness runs from 0% (sweeping) to 100% (very tight). The course is set on the racecard."
+      />
+      <P>
+        The course&rsquo;s shape is locked into the field with the runners when entries close, and sealed into the result hash with the seed, so it can&rsquo;t change after the off. Story races, the
+        Daily Cup and races run before courses raced differently have no course character.
+      </P>
+
       <H2 id="sealed">Sealed before the off</H2>
       <Steps
         items={[
@@ -71,8 +128,8 @@ export default function HowRacesAreRunPage() {
 
       <H2 id="example">A real race, run on this page</H2>
       <P>
-        This race was run by the game&rsquo;s own engine while this page was built: eight Club horses over {formatDistance(ex.input.race.distanceM)} on good turf. Run it again with the same seed
-        and you get the same result every time.
+        This race was run by the game&rsquo;s own engine while this page was built: eight Club horses over {formatDistance(ex.input.race.distanceM)} on good turf at {EXAMPLE_COURSE.name}. Run it
+        again with the same seed and you get the same result every time.
       </P>
       <Table
         head={["Pos.", "Horse", "Gate", "Tactic", "Time", "Beaten by"]}
@@ -91,7 +148,7 @@ export default function HowRacesAreRunPage() {
           ["Re-run and checked", ex.verified ? "Yes: same result, frame for frame" : "No"],
           ["Same race, runners listed in another order", ex.sameAgain ? "Same result" : "Different result"],
           ["Photo finish", r.photoFinish ? "Yes" : "No"],
-          ["Engine version", ENGINE_VERSION],
+          ["Engine version", ex.replay.engineVersion],
         ]}
       />
 
