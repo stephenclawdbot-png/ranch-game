@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { defaultCardSlot } from "@thoroughbred/db";
+import { cardSlotAt } from "@thoroughbred/db";
 import { Callout, Facts, H2, H3, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, sampleGenome } from "../kit";
 
 /** Form figures as the racecard prints them: last three finishes, oldest first, 0 = outside the first nine. */
@@ -28,11 +28,12 @@ function ratingExample() {
   return field.map((f) => ({ ...f, change: changes.find((c) => c.horseId === f.horseId)! }));
 }
 
-/** The rating bands on the Live card (one real hour of it). */
+/** The rating bands on the Live card (its first two days). */
 function cardBands() {
   const seen = new Map<string, { min?: number; max?: number; maxWins?: number }>();
-  for (let i = 0; i < 200; i++) {
-    const s = defaultCardSlot(i);
+  for (let i = 0; i < 2 * gc.SLOTS_PER_DAY; i++) {
+    const s = cardSlotAt(i);
+    if (!s) continue;
     const track = String(s.conditions.track ?? "");
     const label = (s.name.startsWith(`${track} `) ? s.name.slice(track.length + 1) : s.name).replace(/^Feature /, "");
     if (!seen.has(label)) seen.set(label, { min: s.conditions.minRating, max: s.conditions.maxRating, maxWins: s.conditions.maxWins });

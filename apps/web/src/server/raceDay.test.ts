@@ -114,7 +114,7 @@ describe("race-day extras on a Live race", () => {
     expect(open.field.find((e) => e.horse.id === ph)!.gear).toEqual(["Soft shoes", "Physio", "Vet-checked", "Top jockey"]);
     expect(open.field.find((e) => e.horse.id === qh)!.gear).toEqual([]);
 
-    const field: LockedField = await lockField(h.db, race.id, race.entriesCloseAt, raceHooks);
+    const field: LockedField = (await lockField(h.db, race.id, race.entriesCloseAt, raceHooks))!;
     expect(field.runners.find((r) => r.horseId === ph)!.kit).toEqual({ goingPenaltyPermille: 500, formAmpPermille: 800, keenPermille: 500 });
     expect(field.runners.find((r) => r.horseId === qh)!.kit).toBeUndefined();
     // Before the off the broadcast header names the engine the race will run on, and nothing else new.

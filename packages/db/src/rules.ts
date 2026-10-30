@@ -69,16 +69,26 @@ export const RULES = {
   entryRefillBelow: gc.ENTRY_REFILL_BELOW,
   entryRefillPrice: gc.ENTRY_REFILL_COST,
   timezoneChangeMs: gc.TZ_CHANGE_MIN_DAYS * 24 * 60 * 60 * 1000,
-  /** Live card (§4d): a race every 15 minutes (game-core SLOT_INTERVAL_MS); entries close 30 s before the off. */
+  /**
+   * Live card (§4d): a 15-minute slot grid (game-core SLOT_INTERVAL_MS; slot keys count it);
+   * ordinary races run only in the slots of a race meeting (game-core meetings.ts: three
+   * meetings of eight a day). Entries close 30 s before the off.
+   */
   slotMs: gc.SLOT_INTERVAL_MS,
   entriesCloseBeforePostMs: gc.ENTRY_CLOSE_BEFORE_MS,
   /**
-   * How far ahead the card is published (entries open at publication). Six hours = 24 races
-   * at 15-minute spacing: one whole class cycle (20 races) is always open, so every horse can
-   * be entered now in a race that suits it later in the day.
+   * How far ahead the card is published (entries open at publication): a day (game-core
+   * CARD_HORIZON_MS), so every meeting (24 races, all juvenile trips and surfaces) is open
+   * before a once-a-day player's next visit. Calendar races use the same horizon.
    */
-  cardHorizonMs: 6 * 60 * 60 * 1000,
-  minField: 8,
+  cardHorizonMs: gc.CARD_HORIZON_MS,
+  /**
+   * Lowest target field of an ordinary card race (each race draws its target from
+   * minField..maxField). The Club fills empty gates up to the target when entries close, so a
+   * race with four player runners shows four players and a few Club horses (8 until the race
+   * meetings, 2026-10-30).
+   */
+  minField: 5,
   maxField: 12,
   /** Settle once the broadcast is surely over (races run < 150 s). */
   settleAfterPostMs: 150 * 1000,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { formatRaceTime } from "@thoroughbred/shared";
 import type { RaceSummary } from "@/lib/types";
 import { CLASS_LABEL, SURFACE_LABEL, formatClock, formatDistance } from "@/lib/format";
@@ -22,8 +23,13 @@ export function TrackTile({ surface, children, className }: { surface: RaceSumma
   );
 }
 
-/** Racecard row: track tile with the time · name (never truncated) · two facts · Enter. */
-export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: string[]; featured?: boolean }) {
+/** "3 stables entered" (Club runners never count). */
+export function stablesLabel(n: number): string {
+  return n === 0 ? "No stables entered yet" : `${n} ${n === 1 ? "stable" : "stables"} entered`;
+}
+
+/** Racecard row: track tile with the time · name (never truncated) · two facts · Enter. `busy` flags one of the busiest races on the card. */
+export function UpcomingRaceRow({ race, alsoAt, busy = false }: { race: RaceSummary; alsoAt?: string[]; featured?: boolean; busy?: boolean }) {
   const entry = useEntry();
   const now = useNow(1000);
   const open = race.phase === "open" && (now === null || now < race.entriesCloseAtMs);
@@ -33,6 +39,7 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
       data-testid="upcoming-race"
       data-race-id={race.id}
       data-sponsored={race.sponsor ? (race.sponsor.mine ? "mine" : "1") : undefined}
+      data-stables={race.stables}
     >
       <Link href={`/race/${race.id}`} className="group flex min-w-0 flex-1 items-center gap-3">
         <TrackTile surface={race.surface}>
@@ -45,6 +52,11 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
           <span className="t-title group-hover:underline">
             {race.name}
             {race.mine > 0 && <span className="tag tag-you ml-2 !h-5 align-middle !text-[0.6875rem]">{race.mine > 1 ? `You ×${race.mine}` : "You"}</span>}
+            {busy && (
+              <span className="tag tag-good ml-2 !h-5 align-middle !text-[0.6875rem]" data-testid="busy-race" title="One of the busiest races on the card">
+                Busy
+              </span>
+            )}
           </span>
           <span className="t-meta">
             {formatDistance(race.distanceM)} {SURFACE_LABEL[race.surface].toLowerCase()} · {CLASS_LABEL[race.raceClass]}
@@ -52,10 +64,12 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
           <span className="caption">
             {open ? (
               <>
-                {race.fieldSize} entered · closes in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" />
+                <span data-testid="stables-entered">{stablesLabel(race.stables)}</span> · closes in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" />
               </>
             ) : (
-              <>Field locked · {race.fieldSize} runners</>
+              <>
+                Field locked · {race.fieldSize} runners, {race.stables} from stables
+              </>
             )}
           </span>
           {race.sponsor && <SponsorLine sponsor={race.sponsor} />}
@@ -72,6 +86,75 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
         </button>
       )}
     </li>
+  );
+}
+
+/** How many of the busiest races (2+ stables) carry the Busy flag. */
+const BUSY_FLAGS = 3;
+
+/** The busiest races on the card: the most stables entered, at least two, soonest first on a tie. */
+export function busiestRaces(races: readonly RaceSummary[], n = BUSY_FLAGS): Set<string> {
+  return new Set(
+    races
+      .filter((r) => r.phase === "open" && r.stables >= 2)
+      .sort((a, b) => b.stables - a.stables || a.postTimeMs - b.postTimeMs)
+      .slice(0, n)
+      .map((r) => r.id),
+  );
+}
+
+const meetingDay = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short" });
+
+/**
+ * The published card (a day of race meetings): by meeting, soonest first, or every race sorted by
+ * the stables entered so far ("Most stables"), with the busiest flagged either way.
+ */
+export function UpcomingCard({ races, note }: { races: RaceSummary[]; note?: string }) {
+  const [sort, setSort] = useState<"meeting" | "busy">("meeting");
+  const busy = busiestRaces(races);
+  const meetings: { startMs: number; races: RaceSummary[] }[] = [];
+  for (const r of races) {
+    const m = meetings.find((x) => x.startMs === r.meetingStartMs);
+    if (m) m.races.push(r);
+    else meetings.push({ startMs: r.meetingStartMs, races: [r] });
+  }
+  const byStables = [...races].sort((a, b) => b.stables - a.stables || a.postTimeMs - b.postTimeMs);
+  const row = (r: RaceSummary) => <UpcomingRaceRow key={r.id} race={r} alsoAt={r.alsoAt} busy={busy.has(r.id)} />;
+  return (
+    <Section title="Coming up" aside={note ? <span className="caption hidden sm:block">{note}</span> : undefined} className="min-w-0 !mt-0" testId="upcoming-card">
+      <div className="segmented mb-3" role="group" aria-label="Order the card">
+        <button type="button" aria-pressed={sort === "meeting"} onClick={() => setSort("meeting")} data-testid="sort-meeting">
+          By meeting
+        </button>
+        <button type="button" aria-pressed={sort === "busy"} onClick={() => setSort("busy")} data-testid="sort-busy">
+          Most stables
+        </button>
+      </div>
+      {sort === "meeting" ? (
+        <div className="grid gap-5">
+          {meetings.map((m) => {
+            const entered = m.races.reduce((a, r) => a + r.stables, 0);
+            return (
+              <section key={m.startMs} aria-label={`Race meeting from ${formatClock(m.startMs)}`} data-testid="meeting">
+                <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2">
+                  <span className="t-title">
+                    Race meeting · {meetingDay(m.startMs)} {formatClock(m.startMs)}
+                  </span>
+                  <span className="caption">
+                    {m.races.length} {m.races.length === 1 ? "race" : "races"} · {entered} {entered === 1 ? "stable entry" : "stable entries"}
+                  </span>
+                </h3>
+                <ul className="surface rows">{m.races.map(row)}</ul>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <ul className="surface rows" data-testid="busiest-list">
+          {byStables.map(row)}
+        </ul>
+      )}
+    </Section>
   );
 }
 

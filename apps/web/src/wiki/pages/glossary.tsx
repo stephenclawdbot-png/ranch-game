@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 import * as gc from "@thoroughbred/game-core";
-import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES } from "@thoroughbred/db";
+import { PLATE_AFTER_SLOTS, RULES } from "@thoroughbred/db";
 import { FURLONG_MM, GoingSchema, HORSE_LENGTH_MM, SurfaceSchema } from "@thoroughbred/shared";
 import { Callout, Figure, H2, Lead, P, Table, WikiLink } from "../kit";
 
 type Entry = [term: string, meaning: ReactNode, slug: string];
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const CYCLE_HOURS = (CARD_CYCLE_SLOTS * RULES.slotMs) / gc.MS_PER_HOUR;
 const FLOORS = gc.LEAGUE_TIERS.slice(0, gc.LEAGUE_TIERS.indexOf(gc.RELEGATION_FROM_TIER)).map(cap);
 
 const list = (xs: readonly string[]) => xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
@@ -35,7 +34,7 @@ const TERMS: Entry[] = [
   ["Easy", "The gentlest ride: a little less kick, a lower injury risk.", "entering-a-race"],
   ["Entries", "The stable entry bank you spend to run in Live races.", "credits-and-entries"],
   ["Family limits", "The lowest and highest a foal's genes can land, set by its family line.", "family-limits"],
-  ["Feature", `The big race of each ${CYCLE_HOURS}-hour cycle on the Live card, and the Group 1 Weekend Feature on Saturdays.`, "race-types"],
+  ["Feature", "The top race of every other race meeting on the Live card (Listed or Group 3, double prize money), and the Group 1 Weekend Feature on Saturdays.", "race-types"],
   ["Feature Qualifier", "A weekday Listed race: a top-3 finish gets a horse into that week's Weekend Feature.", "race-types"],
   ["Floor", `A League tier nobody is relegated from: ${list(FLOORS)}.`, "league"],
   ["Filly", "A young female horse. She becomes a mare once she can breed.", "growing-up"],
@@ -57,7 +56,7 @@ const TERMS: Entry[] = [
   ["Length", `A horse's length, ${HORSE_LENGTH_MM / 1000} metres: how winning margins are measured.`, "how-races-are-run"],
   ["Licence", "Earned in Story mode; opens the higher Live race classes.", "race-types"],
   ["Listed race", "The class just below Group races.", "race-types"],
-  ["Live race", `A shared race on the card, every ${RULES.slotMs / 60_000} minutes, that everyone watches together. A horse can run ${gc.MAX_LIVE_STARTS_PER_DAY === 1 ? "one" : gc.MAX_LIVE_STARTS_PER_DAY} a day.`, "race-types"],
+  ["Live race", `A shared race on the card, run in race meetings (${gc.MEETINGS_PER_DAY} a day, ${gc.RACES_PER_MEETING} races each), that everyone watches together. A horse can run ${gc.MAX_LIVE_STARTS_PER_DAY === 1 ? "one" : gc.MAX_LIVE_STARTS_PER_DAY} a day.`, "race-types"],
   ["Maiden", "A horse that has never won, and the race class for them.", "race-types"],
   ["Mare", "A grown female horse.", "breeding-basics"],
   ["Maturity type", "Early peaker, normal or late developer: when in its career a horse is at its best.", "racing-career"],
@@ -75,6 +74,7 @@ const TERMS: Entry[] = [
   ["Provisional", `A horse in its first ${gc.PROVISIONAL_RUNS} rated runs, whose rating moves faster.`, "ratings-and-form"],
   ["Purse", "A race's prize money, shared among the first few home.", "race-types"],
   ["Quick Pick", "Runs your best-suited fresh horse in a Story race straight away.", "race-types"],
+  ["Race meeting", `A block of ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / 60_000} minutes apart. There are ${gc.MEETINGS_PER_DAY} a day, from ${gc.MEETING_START_TIMES_UTC.join(", ")} UTC.`, "race-types"],
   ["Racecard", "The printed list of a race's runners, with form and ratings.", "entering-a-race"],
   ["Road to Saturday", "The Estate tile that opens This week: the week's Feature, your Qualifiers and your League line.", "the-estate"],
   ["Saturday Plate", `A Listed race ${PLATE_AFTER_SLOTS * (RULES.slotMs / 60_000)} minutes after the Weekend Feature, over the same trip, for horses that ran in that week's Qualifiers and didn't qualify.`, "race-types"],

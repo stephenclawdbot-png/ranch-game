@@ -23,7 +23,7 @@ import { DomainError } from "../errors";
 import { inboxItems, raceSponsorships, races, type RaceRow, type RaceSponsorshipRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { lockStableOf } from "./accounts";
-import { defaultCardSlot, isCalendarSlot, slotIndexAt, slotIndexOf, slotPostTime } from "./card";
+import { cardSlotAt, isCalendarSlot, isCardSlot, slotIndexAt, slotIndexOf, slotPostTime } from "./card";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import type { CreateRaceInput, RaceConditions, RaceKind } from "./races";
 import { audit, runTx } from "./tx";
@@ -129,11 +129,13 @@ export interface SponsorSlot {
   block: "sponsored" | "closed" | null;
 }
 
-type CardSlotFn = (index: number) => CreateRaceInput;
+/** A slot's race, or null for a slot between race meetings (no race to sponsor). */
+type CardSlotFn = (index: number) => CreateRaceInput | null;
 
 function slotOf(index: number, published: RaceRow | undefined, sponsor: RaceSponsorshipRow | undefined, now: Date, make: CardSlotFn): SponsorSlot | null {
   if (isCalendarSlot(index) && !published) return null;
   const made = published ? null : make(index);
+  if (!published && !made) return null; // between race meetings: no race runs then
   const src: Pick<RaceRow, "name" | "kind" | "raceClass" | "conditions" | "postTime" | "entriesCloseAt" | "purse" | "status"> = published ?? {
     ...made!,
     purse: made!.purse ?? 0,
@@ -175,7 +177,7 @@ export async function listSponsorSlots(ex: Executor, now: Date, opts: { from?: D
   const first = Math.max(w.first, opts.from ? slotIndexAt(new Date(opts.from.getTime() - 1)) + 1 : w.first);
   const last = Math.min(w.last, opts.to ? slotIndexAt(opts.to) : w.last);
   if (last < first) return [];
-  const make = opts.cardSlot ?? defaultCardSlot;
+  const make = opts.cardSlot ?? cardSlotAt;
   const published = await ex
     .select()
     .from(races)
@@ -230,8 +232,9 @@ export async function sponsorRace(db: Db, input: SponsorRaceInput): Promise<Spon
     if (index < w.first) throw new DomainError("RACE_CLOSED", "that race has already gone");
     if (index > w.last) throw new DomainError("NOT_ELIGIBLE", `races can be sponsored up to ${Math.round(SPONSORSHIP.windowMs / 86_400_000)} days ahead`);
     const [published] = await tx.select().from(races).where(eq(races.slotKey, slotKeyOf(index))).for("update");
-    const make = input.cardSlot ?? defaultCardSlot;
+    const make = input.cardSlot ?? cardSlotAt;
     const slot = slotOf(index, published, undefined, now, make);
+    if (!slot && !published && !isCardSlot(index)) throw new DomainError("NOT_ELIGIBLE", "no race goes off at that time: the card runs in race meetings");
     if (!slot) throw new DomainError("NOT_ELIGIBLE", "calendar races (Feature Qualifiers, the Weekend Feature, the Saturday Plate and Season Finals) can't be sponsored");
     if (slot.block === "closed") throw new DomainError("RACE_CLOSED", "entries for that race have closed");
 
@@ -291,8 +294,9 @@ async function byKey(ex: Executor, accountId: string, key: string): Promise<Race
 async function duplicateOf(ex: Executor, s: RaceSponsorshipRow, index: number): Promise<SponsorRaceResult> {
   if (s.slotIndex !== index) throw new DomainError("IDEMPOTENCY_CONFLICT", "that key was used to sponsor another race");
   const [race] = s.raceId ? await ex.select({ name: races.name }).from(races).where(eq(races.id, s.raceId)) : [];
-  const slot = race ? null : defaultCardSlot(s.slotIndex);
-  return { sponsorship: s, raceId: s.raceId, raceName: race?.name ?? sponsoredRaceName(s.stableName, slot!.name, String(slot!.conditions.track ?? "")), duplicate: true };
+  const slot = race ? null : cardSlotAt(s.slotIndex);
+  const raceName = race?.name ?? (slot ? sponsoredRaceName(s.stableName, slot.name, String(slot.conditions.track ?? "")) : `The ${sanitiseSponsorName(s.stableName)} race`);
+  return { sponsorship: s, raceId: s.raceId, raceName, duplicate: true };
 }
 
 /**
@@ -357,7 +361,15 @@ export async function applyPendingSponsorships(db: Db, firstIndex: number, lastI
   for (const p of pending) {
     await runTx(db, async (tx) => {
       const [race] = await tx.select().from(races).where(eq(races.slotKey, slotKeyOf(p.slotIndex))).for("update");
-      if (!race) return;
+      if (!race) {
+        // Bought for a slot that the race meetings left empty (the card ran every 15 minutes
+        // until 2026-10-30): that race will never run, so the price goes back.
+        if (!isCardSlot(p.slotIndex)) {
+          const [s] = await tx.select().from(raceSponsorships).where(eq(raceSponsorships.id, p.id)).for("update");
+          if (s && !s.raceId && !s.refundedAt) await refundTx(tx, s, now, "the card now runs in race meetings and no race goes off at that time");
+        }
+        return;
+      }
       const [s] = await tx.select().from(raceSponsorships).where(eq(raceSponsorships.id, p.id)).for("update");
       if (!s || s.raceId || s.refundedAt) return;
       if (await applyToRace(tx, s, race, now)) applied++;

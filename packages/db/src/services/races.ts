@@ -2,7 +2,8 @@
  * Races (game-design §4d): every Live race is shared and live.
  *
  *   publish (card.ts, seed committed)  →  enterRace (open until post − 30 s)
- *   →  lockField at entry close (snapshot, house horses fill to 8–12, gate draw from seed)
+ *   →  lockField at entry close (snapshot, house horses fill to the race's 5–12 target, gate
+ *       draw from seed; an ordinary card race with no player runner is called off instead)
  *   →  getRaceForSimulation at post time (seed revealed)  →  engine (web app)
  *   →  settleRace after the broadcast (idempotent: purses, ratings, records, unlock, inbox;
  *       Story races pay and fatigue as usual but skip the career clock and record).
@@ -526,15 +527,43 @@ function defaultHouseHorse(input: { seed: string; index: number; raceClass: stri
   return { ...spec, rating: input.rating };
 }
 
-async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks): Promise<LockedField> {
+/**
+ * An ordinary Live card race (a meeting race or its sister course; not a calendar race, not a
+ * sponsored one) is called off when entries close with no player runner: the Club doesn't race
+ * itself (race meetings, 2026-10-30). Calendar races always run; a sponsored race runs for its
+ * sponsor.
+ */
+export function callsOffWithoutPlayers(race: Pick<RaceRow, "kind" | "slotKey" | "conditions">): boolean {
+  const c = (race.conditions ?? {}) as RaceConditions;
+  return (race.kind === "scheduled" || race.kind === "feature") && /^live:\d+(:\d+)?$/.test(race.slotKey ?? "") && !c.calendar && !c.sponsor;
+}
+
+/**
+ * Calls off a race nobody entered: status cancelled, nothing to refund (no player entry, no
+ * sponsor), no field, no result. Inside the lock transaction (race row locked).
+ */
+async function callOffTx(tx: Tx, race: RaceRow, now: Date): Promise<void> {
+  await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
+  await audit(tx, { actor: null, action: "race.call_off", entityType: "race", entityId: race.id, data: { reason: "no_player_runners", at: now.toISOString() } });
+}
+
+/** Null when the race was called off (no player runner: callsOffWithoutPlayers). */
+async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks, opts: { callOff?: boolean } = {}): Promise<LockedField | null> {
   const [race] = await tx.select().from(races).where(eq(races.id, raceId)).for("update");
   if (!race) throw new DomainError("NOT_FOUND", "race not found");
   if (race.field) return race.field as LockedField; // already locked: idempotent
-  if (race.status === "cancelled") throw new DomainError("RACE_CLOSED", "race was abandoned");
+  if (race.status === "cancelled") {
+    if (opts.callOff !== false && callsOffWithoutPlayers(race)) return null; // called off before: idempotent
+    throw new DomainError("RACE_CLOSED", "race was abandoned");
+  }
   if (now < race.entriesCloseAt) throw new DomainError("TOO_EARLY", "entries are still open");
 
   const entries = await listRaceEntries(tx, race.id);
   const players = entries.filter((e) => !e.isHouse);
+  if (!players.length && opts.callOff !== false && callsOffWithoutPlayers(race)) {
+    await callOffTx(tx, race, now);
+    return null;
+  }
   const target = Math.max(players.length, Math.min(race.maxRunners, race.targetRunners));
   const house = await pickHouseHorses(tx, race, target - players.length, hooks, now);
 
@@ -595,11 +624,13 @@ export function fieldHashOf(runners: readonly FieldRunner[]): string {
 }
 
 /**
- * Locks the field at entry close: snapshot, house horses fill empty gates (deterministic
- * from the race seed), gates drawn from the seed. Idempotent and safe under concurrency
- * (race row lock; the stored field is returned to every later caller).
+ * Locks the field at entry close: snapshot, house horses fill empty gates up to the race's
+ * target (deterministic from the race seed), gates drawn from the seed. Idempotent and safe
+ * under concurrency (race row lock; the stored field is returned to every later caller).
+ * Returns null when the race is called off instead (an ordinary card race with no player
+ * runner: callsOffWithoutPlayers).
  */
-export async function lockField(db: Db, raceId: string, now: Date, hooks: FieldHooks = {}): Promise<LockedField> {
+export async function lockField(db: Db, raceId: string, now: Date, hooks: FieldHooks = {}): Promise<LockedField | null> {
   return runTx(db, (tx) => lockFieldTx(tx, raceId, now, hooks));
 }
 
@@ -615,6 +646,7 @@ export async function getRaceForSimulation(db: Db, raceId: string, now: Date, ho
   if (!race) throw new DomainError("NOT_FOUND", "race not found");
   if (now < race.postTime) throw new DomainError("TOO_EARLY", "the seed is revealed at post time");
   const field = (race.field as LockedField | null) ?? (await lockField(db, raceId, now, hooks));
+  if (!field) throw new DomainError("RACE_CLOSED", "race was called off: no runners entered");
   return { race: { ...race, status: race.status === "open" ? "locked" : race.status }, field };
 }
 
@@ -670,7 +702,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     }
     if (race.status === "cancelled") throw new DomainError("RACE_CLOSED", "race was abandoned");
     if (input.now < race.postTime) throw new DomainError("TOO_EARLY", "race has not run yet");
-    if (!race.field) await lockFieldTx(tx, race.id, input.now, {});
+    // the field is normally locked (or the race called off) by the card tick; settling never calls a race off
+    if (!race.field) await lockFieldTx(tx, race.id, input.now, {}, { callOff: false });
     const entries = await listRaceEntries(tx, race.id);
 
     const byHorse = new Map(input.runners.map((r) => [r.horseId, r]));

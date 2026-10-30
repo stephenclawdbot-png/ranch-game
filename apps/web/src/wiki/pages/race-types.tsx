@@ -1,15 +1,17 @@
 import * as gc from "@thoroughbred/game-core";
-import { CARD_CYCLE_SLOTS, PLATE_AFTER_SLOTS, RULES, SPONSORSHIP, bps, defaultCardSlot, entryCostFor, sponsoredRaceName, sponsorshipPrice, type RaceConditions } from "@thoroughbred/db";
+import { PLATE_AFTER_SLOTS, RULES, SPONSORSHIP, bps, defaultCardSlot, entryCostFor, sponsoredRaceName, sponsorshipPrice, type RaceConditions } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { raceTier } from "@/server/horseView";
 import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 const MIN = 60_000;
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
-/** Hours in one class cycle of the Live card. */
-const CYCLE_HOURS = (CARD_CYCLE_SLOTS * RULES.slotMs) / gc.MS_PER_HOUR;
-/** An ordinary cycle of the Live card (the first day of season 1 from 10:00 UTC: no calendar races). */
-const SAMPLE_CYCLE_FIRST_SLOT = Math.ceil((10 * gc.MS_PER_HOUR) / RULES.slotMs / CARD_CYCLE_SLOTS) * CARD_CYCLE_SLOTS;
+const slotAt = (ms: number) => Math.floor((ms - RULES.seasonEpochMs) / RULES.slotMs);
+/** The first two meetings of season 1 (a Monday: the calendar races are in the evening meeting). */
+const SAMPLE_MEETINGS = gc.meetingsBetween(SEASON_CLOCK, RULES.seasonEpochMs, RULES.seasonEpochMs + gc.MS_PER_DAY).slice(0, 2);
+const meetingRaces = (m: gc.Meeting) => Array.from({ length: gc.RACES_PER_MEETING }, (_, i) => defaultCardSlot(slotAt(m.startMs) + i));
+/** The meeting start times, "07:00, 13:00 and 19:00 UTC". */
+const MEETING_TIMES = `${gc.MEETING_START_TIMES_UTC.slice(0, -1).join(", ")} and ${gc.MEETING_START_TIMES_UTC.at(-1)} UTC`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const licenceName = (tier: gc.RaceTier, feature: boolean | "final" = false) => gc.licenceDef(gc.licenceForTier(tier, feature)).name;
 
@@ -24,13 +26,18 @@ function whoCanEnter(c: RaceConditions): string {
   return s ? s[0]!.toUpperCase() + s.slice(1) : "Open";
 }
 
-/** The Live card, grouped by race type (the same calendar the game publishes): one real cycle, plus both kinds of Feature. */
+/**
+ * The Live card, grouped by race type (the same calendar the game publishes): two real meetings
+ * (the top race alternates between a Feature and a Listed race), plus both kinds of Feature.
+ * `count` is per two meetings.
+ */
 function liveCycle() {
-  const slots = Array.from({ length: CARD_CYCLE_SLOTS }, (_, i) => defaultCardSlot(SAMPLE_CYCLE_FIRST_SLOT + i));
-  // The cycle's Feature is a Listed race or a Group 3: find one of each in the earlier cycles.
+  const slots = SAMPLE_MEETINGS.flatMap(meetingRaces);
+  // The Feature is a Listed race or a Group 3: find one of each in the first days' meetings.
   const features = new Map<string, ReturnType<typeof defaultCardSlot>>();
-  for (let c = 0; c < 10 && features.size < 2; c++) {
-    const f = defaultCardSlot(c * CARD_CYCLE_SLOTS);
+  for (const m of gc.meetingsBetween(SEASON_CLOCK, RULES.seasonEpochMs, RULES.seasonEpochMs + 10 * gc.MS_PER_DAY)) {
+    if (features.size >= 2) break;
+    const f = defaultCardSlot(slotAt(m.startMs));
     if (f.kind === "feature") features.set(f.raceClass, f);
   }
   const byLabel = new Map<string, { label: string; conditions: RaceConditions; purse: number; cost: number; count: number; tier: gc.RaceTier; feature: boolean }>();
@@ -66,8 +73,7 @@ function sponsorTable(hour: ReturnType<typeof liveCycle>["rows"], feats: ReturnT
 
 /** A real handicap from the sample cycle, before and after a sponsor's name. */
 function sponsorNameExample() {
-  for (let i = 0; i < CARD_CYCLE_SLOTS; i++) {
-    const s = defaultCardSlot(SAMPLE_CYCLE_FIRST_SLOT + i);
+  for (const s of meetingRaces(SAMPLE_MEETINGS[0]!)) {
     if (s.raceClass !== "handicap") continue;
     return { from: s.name, to: sponsoredRaceName("Glenmorrow House", s.name, String(s.conditions.track ?? "")) };
   }
@@ -99,18 +105,21 @@ export default function RaceTypesPage() {
   return (
     <>
       <Lead>
-        There are three ways to race in Post Time. <b>Live races</b> go off on a shared card every {RULES.slotMs / MIN} minutes and everyone watches together. <b>Quick races</b> and{" "}
+        There are three ways to race in Post Time. <b>Live races</b> go off on a shared card in race meetings, {gc.MEETINGS_PER_DAY} a day, and everyone watches together. <b>Quick races</b> and{" "}
         <b>Story chapters</b> are solo races against the Club&rsquo;s rival stables that you can run whenever you like. On top of that sit the card&rsquo;s Features and the scheduled big
         days: the weekday Qualifiers, the Weekend Feature, the Saturday Plate and the Season Final.
       </Lead>
-      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs on race day" caption={`Kestrel Downs: a Live race goes off every ${RULES.slotMs / MIN} minutes, all day.`} focus={0.45} />
+      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs on race day" caption={`Kestrel Downs on a meeting day: ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart.`} focus={0.45} />
 
       <H2 id="live">Live races</H2>
       <P>
-        The <GameLink href="/races">race card</GameLink> runs a race every {RULES.slotMs / MIN} minutes, {gc.SLOTS_PER_DAY} a day, and is published{" "}
-        {RULES.cardHorizonMs / gc.MS_PER_HOUR} hours ahead: entries open as soon as a race is on the card, so you can enter a horse now for a race that suits it later in the day. Each race
-        is shared: every stable that enters runs in the same field, and every viewer sees the same race at the same moment. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds
-        before the off, and the Club fills any empty gates with its own horses so a field always has between {RULES.minField} and {RULES.maxField} runners.
+        The <GameLink href="/races">race card</GameLink> runs in <b>race meetings</b>: {gc.MEETINGS_PER_DAY} a day, starting at {MEETING_TIMES}, each of{" "}
+        {gc.RACES_PER_MEETING} races {gc.MEETING_RACE_SPACING_MS / MIN} minutes apart ({gc.LIVE_RACES_PER_DAY} Live races a day). The card is published{" "}
+        {RULES.cardHorizonMs / gc.MS_PER_HOUR} hours ahead: entries open as soon as a race is on the card, so one visit a day is enough to enter any meeting before your next visit. Fewer,
+        busier races mean you race against other stables, not just the Club. Each race is shared: every stable that enters runs in the same field, and every viewer sees the same race at
+        the same moment. The race card shows how many stables have entered each race. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds before the off; then the Club fills
+        the empty gates with its own horses up to the race&rsquo;s field size (between {RULES.minField} and {RULES.maxField} runners). An ordinary race that no stable entered is called
+        off quietly; the big days always run.
       </P>
       <List
         items={[
@@ -132,8 +141,9 @@ export default function RaceTypesPage() {
       />
       <Facts
         rows={[
-          ["A Live race every", `${RULES.slotMs / MIN} minutes`],
-          ["Live races a day", gc.SLOTS_PER_DAY],
+          ["Race meetings a day", `${gc.MEETINGS_PER_DAY}, from ${MEETING_TIMES}`],
+          ["Races in a meeting", `${gc.RACES_PER_MEETING}, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart`],
+          ["Live races a day", gc.LIVE_RACES_PER_DAY],
           ["Card published ahead", `${RULES.cardHorizonMs / gc.MS_PER_HOUR} hours`],
           ["Entries close before the off", `${RULES.entriesCloseBeforePostMs / 1000} seconds`],
           ["Runners in a Live field", `${RULES.minField}–${RULES.maxField}`],
@@ -144,23 +154,23 @@ export default function RaceTypesPage() {
 
       <H2 id="classes">Race classes on the card</H2>
       <P>
-        The Live card runs in cycles of {hour.reduce((a, h) => a + h.count, 1)} races, one every {CYCLE_HOURS} hours, always in the same pattern. The first race of a cycle is the{" "}
-        <b>Feature</b>, a Listed race or a Group 3 with double prize money. Most of the rest are Maiden and Novice races, which every new horse can run, with the three Handicap bands and a
-        Listed race in between. A Maiden or Novice race that a big-day race pushes out of its slot runs in the next ordinary slot instead, so every trip stays on the card. This is one real
-        cycle of the card:
+        Every meeting runs the same pattern of {gc.RACES_PER_MEETING} races. The first is the meeting&rsquo;s top race: at every other meeting the <b>Feature</b>, a Listed race or a
+        Group 3 with double prize money, and a Listed race at the others. Then Maiden and Novice races, which every new horse can run, alternate with the three Handicap bands. Between
+        them, a day&rsquo;s {gc.MEETINGS_PER_DAY} meetings run Maidens and Novices over every trip and surface. In the evening meeting a big-day race (a Qualifier, the Weekend Feature,
+        the Saturday Plate or a Season Final) takes the place of the top race or a Handicap. These are real meetings from the card:
       </P>
       <Table
-        head={["Race", "Who can enter", "Purse", "Entries", "Per cycle", "Licence"]}
+        head={["Race", "Who can enter", "Purse", "Entries", "Per meeting", "Licence"]}
         rows={[
           [
             "Feature (Listed or Group 3)",
             feats.map((f) => whoCanEnter(f.conditions)).join(" / "),
             feats.map((f) => formatCredits(f.purse ?? 0)).join(" / "),
             [...new Set(feats.map((f) => entryCostFor(f.kind, f.raceClass)))].join(" / "),
-            1,
+            "every other meeting",
             licenceName("listed", true),
           ],
-          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, h.count, licenceName(h.tier, h.feature)]),
+          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, h.count === 1 ? "every other meeting" : h.count / SAMPLE_MEETINGS.length, licenceName(h.tier, h.feature)]),
         ]}
         caption="Purses in credits. Entries: stable entries spent to run."
       />
@@ -177,7 +187,8 @@ export default function RaceTypesPage() {
 
       <H2 id="scheduled">Scheduled cards: the big days</H2>
       <P>
-        A season lasts {gc.SEASON_DAYS} days. Its calendar of special races is fixed in advance, and each one takes over the Live slot it falls in. Find them under &ldquo;Big days&rdquo; on
+        A season lasts {gc.SEASON_DAYS} days. Its calendar of special races is fixed in advance, and each one runs in the evening meeting, taking the place of one of its races (on
+        the season&rsquo;s last day the evening meeting starts at {gc.FINALS_DAY_EVENING_START_UTC} UTC so all {gc.DIVISIONS.length} Season Finals are part of it). Find them under &ldquo;Big days&rdquo; on
         the <GameLink href="/league">League</GameLink> page.
       </P>
       <Table

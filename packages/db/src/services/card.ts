@@ -1,6 +1,7 @@
 /**
- * The Live race card (§4d): a race every 15 minutes (RULES.slotMs), published ahead from a deterministic
- * calendar, plus the tick that drives the card forward.
+ * The Live race card (§4d): three race meetings a day of eight races 15 minutes apart
+ * (game-core meetings.ts) on the 15-minute slot grid (RULES.slotMs), published a day ahead
+ * from a deterministic calendar, plus the tick that drives the card forward.
  *
  * Publishing is idempotent across serverless instances: each slot has a unique
  * `slot_key`, inserts use ON CONFLICT DO NOTHING, and the seed commitment is fixed by the
@@ -8,8 +9,9 @@
  *
  * Driving the card: call `tickRaceCard` lazily on reads (race list, race page) and from a
  * cron backstop (`GET /api/cron/race-card`, every minute, guarded by CRON_SECRET):
- *   1. publish the next `cardHorizonMs` of slots;
- *   2. lock every field whose entries have closed;
+ *   1. publish the card slots of the next `cardHorizonMs` (meeting and calendar races);
+ *   2. lock every field whose entries have closed (an ordinary race with no player runner is
+ *      called off instead: lockField);
  *   3. return the races due for simulation + settlement; the web app runs the engine
  *      (getRaceForSimulation → simulateRace) and calls settleRace for each.
  */
@@ -83,19 +85,24 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?
 }
 
 /**
- * One class cycle of the card (20 slots: 5 hours at 15-minute spacing). Slot 0 is the cycle's
- * Feature (Listed or Group 3). 12 of the other 19 are maiden / novice races ("juvenile slots":
- * every new horse can run them), then the handicap bands and a Listed race.
+ * The class pattern of a race meeting (8 races, game-core RACES_PER_MEETING), stepped per
+ * meeting race, never per wall-clock slot, so every meeting has the full mix:
+ *
+ *   race 1   the meeting's top race: a Feature (Listed or Group 3, double purse) at even-numbered
+ *            meetings, a Listed race at odd ones. A calendar race (Qualifier, Weekend Feature,
+ *            Season Final) takes this place in the evening meeting.
+ *   2, 4, 6, 8  juvenile races (maidens and novices: every new horse can run them), two of each;
+ *            which are maidens alternates from one meeting to the next, so maidens run every trip.
+ *   3, 5, 7  the three handicap bands (0-55, 50-75, 70-95). The Saturday Plate takes race 3 and
+ *            the Season Finals races 1, 3, 5 and 7 of their evening meetings: calendar races
+ *            never land on a juvenile race (tested), so no trip or surface ever drops out.
  */
-const CYCLE: readonly (ClassDef | "feature")[] = [
-  "feature", MAIDEN, NOVICE, HCP_55, MAIDEN, NOVICE, HCP_75, MAIDEN, NOVICE, HCP_95,
-  MAIDEN, LISTED, NOVICE, MAIDEN, HCP_55, NOVICE, MAIDEN, HCP_75, NOVICE, HCP_95,
-];
-/** Slots in one class cycle. */
-export const CARD_CYCLE_SLOTS = 20;
-/** Index of each juvenile slot inside the cycle (-1 for the others). */
-const JUVENILE_ORDINAL = CYCLE.map((d, i) => (d === MAIDEN || d === NOVICE ? CYCLE.slice(0, i).filter((x) => x === MAIDEN || x === NOVICE).length : -1));
-const JUVENILE_PER_CYCLE = JUVENILE_ORDINAL.filter((x) => x >= 0).length; // 12
+type MeetingPlace = "top" | "juvenile" | ClassDef;
+const MEETING_CLASSES: readonly MeetingPlace[] = ["top", "juvenile", HCP_55, "juvenile", HCP_75, "juvenile", HCP_95, "juvenile"];
+/** Juvenile races per meeting (4): the k-th juvenile race runs surface k mod 3, trip k mod 4. */
+const JUVENILE_PER_MEETING = MEETING_CLASSES.filter((x) => x === "juvenile").length;
+/** Races in one meeting of the class pattern above (game-core RACES_PER_MEETING). */
+export const CARD_MEETING_RACES = MEETING_CLASSES.length;
 
 const TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 const SURFACES = ["turf", "dirt", "synthetic"] as const;
@@ -204,39 +211,52 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
   };
 }
 
+/** The meeting race in this slot (game-core meetings.ts), or null between meetings. */
+export function meetingRaceOf(index: number): gc.MeetingRace | null {
+  return gc.meetingRaceAt(SEASON_CLOCK, slotPostTime(index).getTime());
+}
+
 /**
- * Deterministic conditions for a card slot.
+ * A Live race runs in this slot: a meeting race, or a calendar race (which always sits inside
+ * the evening meeting). Every other slot of the 15-minute grid stays empty.
+ */
+export const isCardSlot = (index: number): boolean => meetingRaceOf(index) !== null || isCalendarSlot(index);
+
+/**
+ * Deterministic conditions for a card slot (a meeting race or a calendar race; throws for a
+ * slot between meetings: use `cardSlotAt` or check `isCardSlot` first).
  *
- * Juvenile slots cycle through every (surface, trip zone) pair: the k-th juvenile slot runs on
- * surface k mod 3 at trip zone k mod 4, so any 12 consecutive juvenile slots (one cycle) cover
- * all 12 pairs, on good or firm ground. Every horse that can run maidens or novices therefore
- * finds a race that suits its surface and trip within one cycle, which the published card
- * always covers (RULES.cardHorizonMs; tested in the web app with the
- * form-guide rating). The other classes draw surface (all three, synthetic included), trip
- * (1,000–3,200 m) and going from the slot hash. Calendar races (Weekend Feature, qualifiers,
- * Season Final) take over their slots (`specialSlotAt`); a juvenile race they displace moves to
- * the next ordinary handicap / Listed slot (`carriedJuvenile`), so no trip ever drops out.
+ * Juvenile races cycle through every (surface, trip zone) pair: the k-th juvenile race (four a
+ * meeting, k counted over meetings) runs on surface k mod 3 at trip zone k mod 4, so any 12
+ * consecutive juvenile races (three meetings) cover all 12 pairs, on good or firm ground. Every
+ * horse that can run maidens or novices therefore finds a race that suits its surface and trip
+ * within a day's card, which is always published (RULES.cardHorizonMs; tested in the web app
+ * with the form-guide rating). The other classes draw surface (all three, synthetic included),
+ * trip (1,000–3,200 m) and going from the slot hash. Calendar races (Weekend Feature,
+ * Qualifiers, the Saturday Plate, Season Finals) take over their slots (`specialSlotAt`,
+ * `plateSlotAt`); they only ever land on a meeting's top race or a handicap.
  */
 export function defaultCardSlot(index: number): CreateRaceInput {
   const sp = specialSlotAt(index);
   if (sp) return specialCardSlot(index, sp);
   const plate = plateSlotAt(index);
   if (plate) return plateCardSlot(index, plate);
+  const meeting = meetingRaceOf(index);
+  if (!meeting) throw new Error(`card slot ${index} is between race meetings: no race runs then`);
   const h = createHash("sha256").update(`card-slot:${index}`).digest();
   let byte = 0;
   const pick = <T>(xs: readonly T[]): T => xs[h[byte++]! % xs.length]!;
   const postTime = slotPostTime(index);
-  // a juvenile race displaced by a calendar race runs here instead of this slot's own class
-  const source = carriedJuvenile(index) ?? index;
-  const pos = cyclePos(source);
-  const cycle = Math.floor(source / CARD_CYCLE_SLOTS);
-  const slot = CYCLE[pos]!;
-  const feature = slot === "feature";
-  const def: ClassDef = feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : slot;
+  const m = meeting.number;
+  const pos = meeting.race;
+  const place = MEETING_CLASSES[pos]!;
+  const feature = place === "top" && m % 2 === 0;
+  let def: ClassDef;
   let conditions: RaceConditions;
-  const juvenile = JUVENILE_ORDINAL[pos]!;
-  if (juvenile >= 0) {
-    const k = cycle * JUVENILE_PER_CYCLE + juvenile;
+  if (place === "juvenile") {
+    const j = MEETING_CLASSES.slice(0, pos).filter((x) => x === "juvenile").length;
+    const k = m * JUVENILE_PER_MEETING + j;
+    def = (j + m) % 2 === 0 ? MAIDEN : NOVICE;
     const surface = SURFACES[((k % 3) + 3) % 3]!;
     const weather = pick(["clear", "clear", "overcast", "dusk"]);
     conditions = {
@@ -248,7 +268,8 @@ export function defaultCardSlot(index: number): CreateRaceInput {
       track: pick(TRACKS),
     };
   } else {
-    const surface = SURFACES[(cycle * 8 + pos + (h[28]! % 3)) % 3]!;
+    def = place === "top" ? (feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : LISTED) : place;
+    const surface = SURFACES[(((m * 8 + pos + (h[28]! % 3)) % 3) + 3) % 3]!;
     conditions = {
       ...def.conditions,
       distanceM: pick(OPEN_TRIPS),
@@ -275,74 +296,53 @@ export function defaultCardSlot(index: number): CreateRaceInput {
   };
 }
 
-const cyclePos = (index: number) => ((index % CARD_CYCLE_SLOTS) + CARD_CYCLE_SLOTS) % CARD_CYCLE_SLOTS;
-const isJuvenileSlot = (index: number) => JUVENILE_ORDINAL[cyclePos(index)]! >= 0;
-/** An ordinary (non-juvenile, non-Feature, non-calendar) slot: one that can carry a displaced juvenile race. */
-const isCarrierSlot = (index: number) => !isJuvenileSlot(index) && CYCLE[cyclePos(index)] !== "feature" && !isCalendarSlot(index);
-/** How far back a displaced juvenile race can be (calendar races cluster within 7 slots on Season Final day). */
-const CARRY_LOOKBACK = 16;
-
-/**
- * The slot index of a juvenile race that a calendar race displaced and that runs in this slot
- * instead. Displaced juvenile races queue in order and each takes the next carrier slot after
- * it, so several calendar races in a row (Season Final day) still keep every trip on the card.
- * Null for every other slot.
- */
-function carriedJuvenile(index: number): number | null {
-  if (!isCarrierSlot(index)) return null;
-  const queue: number[] = [];
-  for (let t = index - CARRY_LOOKBACK; t <= index; t++) {
-    if (isCalendarSlot(t)) {
-      if (isJuvenileSlot(t)) queue.push(t);
-    } else if (isCarrierSlot(t) && queue.length) {
-      const carried = queue.shift()!;
-      if (t === index) return carried;
-    }
-  }
-  return null;
+/** The race a slot publishes, or null for a slot between meetings. */
+export function cardSlotAt(index: number): CreateRaceInput | null {
+  return isCardSlot(index) ? defaultCardSlot(index) : null;
 }
 
 export interface CardHooks extends FieldHooks {
-  /** game-core calendar: conditions for a slot (defaults to defaultCardSlot). */
-  cardSlot?(index: number): CreateRaceInput;
+  /** Conditions for a slot, null for no race (defaults to cardSlotAt: meetings and calendar races). */
+  cardSlot?(index: number): CreateRaceInput | null;
 }
 
-/** Publishes every slot from now to now + horizon (idempotent). Returns the open card. */
 /**
- * Calendar races (Feature Qualifiers, the Weekend Feature, the Plate, Season Finals) are
- * published a day ahead, so a morning visit can enter that evening's 19:00 Qualifier (with one
- * Live start a day, a horse raced in the morning could otherwise never make it; the season
- * harness found almost nobody running Qualifiers when they appeared only 6 h ahead). Not a
- * week: an entry locks the horse until the race. The week's conditions are on This week.
+ * Calendar races (Feature Qualifiers, the Weekend Feature, the Plate, Season Finals) publish on
+ * the same day-ahead horizon as the meetings (they did before the meetings, when the rest of
+ * the card was 6 h ahead). Kept as its own name for the callers that mean calendar races.
  */
-export const CALENDAR_HORIZON_MS = 24 * 60 * 60 * 1000;
+export const CALENDAR_HORIZON_MS = RULES.cardHorizonMs;
 
+/**
+ * Publishes every card slot from now to now + horizon (idempotent) and returns the open card.
+ * Cheap on the steady state: one read of the published card; only slots missing from it are
+ * built and inserted (ON CONFLICT DO NOTHING keeps concurrent instances safe), which after the
+ * first tick is the one new slot every 15 minutes.
+ */
 export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, horizonMs = RULES.cardHorizonMs): Promise<PublicRace[]> {
   const first = slotIndexAt(now) + 1;
   const last = slotIndexAt(new Date(now.getTime() + horizonMs));
-  const lastCalendar = slotIndexAt(new Date(now.getTime() + Math.max(horizonMs, CALENDAR_HORIZON_MS)));
-  const make = hooks.cardSlot ?? defaultCardSlot;
+  const make = hooks.cardSlot ?? cardSlotAt;
+  const readCard = () =>
+    db
+      .select()
+      .from(races)
+      .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs)), like(races.slotKey, "live:%")))
+      .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
+  let card = await readCard();
+  const published = new Set(card.map((r) => r.slotKey));
   const rows = [];
-  for (let i = first; i <= last; i++) rows.push(raceValues({ ...make(i), slotKey: `live:${i}` }));
-  // calendar races beyond the regular horizon (only with the default card: custom cards in tests decide their own)
-  if (!hooks.cardSlot) for (let i = last + 1; i <= lastCalendar; i++) if (isCalendarSlot(i)) rows.push(raceValues({ ...make(i), slotKey: `live:${i}` }));
+  for (let i = first; i <= last; i++) {
+    if (published.has(`live:${i}`)) continue;
+    const input = make(i);
+    if (input) rows.push(raceValues({ ...input, slotKey: `live:${i}` }));
+  }
   if (rows.length) await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey });
-  // sponsorships bought before their slot was on the card take the name now (sponsorship.ts)
-  await applyPendingSponsorships(db, first, last, now);
-  const card = await db
-    .select()
-    .from(races)
-    .where(
-      and(
-        gte(races.postTime, now),
-        or(
-          lte(races.postTime, new Date(now.getTime() + horizonMs)),
-          and(lte(races.postTime, new Date(now.getTime() + Math.max(horizonMs, CALENDAR_HORIZON_MS))), sql`${races.conditions}->'calendar' is not null`),
-        ),
-      ),
-    )
-    .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
-  return card.filter((r) => r.slotKey?.startsWith("live:")).map(publicRace);
+  // sponsorships bought before their slot was on the card take the name now (sponsorship.ts;
+  // one indexed read when there are none)
+  const named = await applyPendingSponsorships(db, first, last, now);
+  if (rows.length || named) card = await readCard();
+  return card.map(publicRace);
 }
 
 // ---------------------------------------------------------------------------
@@ -452,6 +452,8 @@ export async function openSlotRace(db: Db, raceId: string, now: Date): Promise<P
 export interface TickReport {
   card: PublicRace[];
   locked: string[];
+  /** Ordinary races called off at the close: no player runner (races.ts callsOffWithoutPlayers). */
+  calledOff: string[];
   /** Locked races whose broadcast is over: simulate + settleRace them. */
   dueForSettlement: PublicRace[];
   maintenance?: MaintenanceReport;
@@ -466,9 +468,10 @@ export async function tickRaceCard(db: Db, now: Date, hooks: CardHooks = {}, opt
     .orderBy(asc(races.postTime))
     .limit(50);
   const locked: string[] = [];
+  const calledOff: string[] = [];
   for (const r of closing) {
-    await lockField(db, r.id, now, hooks);
-    locked.push(r.id);
+    if (await lockField(db, r.id, now, hooks)) locked.push(r.id);
+    else calledOff.push(r.id);
   }
   const due = await db
     .select()
@@ -477,5 +480,5 @@ export async function tickRaceCard(db: Db, now: Date, hooks: CardHooks = {}, opt
     .orderBy(asc(races.postTime))
     .limit(50);
   const maintenance = opts.maintenance ? await runMaintenance(db, now) : undefined;
-  return { card, locked, dueForSettlement: due.map(publicRace), maintenance };
+  return { card, locked, calledOff, dueForSettlement: due.map(publicRace), maintenance };
 }

@@ -63,7 +63,6 @@ import {
   tickRaceCard,
   toHorseState,
   RULES,
-  CALENDAR_HORIZON_MS,
   classEligibility,
   featureQualificationReason,
   startsOnDay,
@@ -438,7 +437,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
   };
 }
 
-async function summarize(db: Db, race: PublicRace & { entered: number; mine: number }, now: Date, viewerStableId: string | null = null): Promise<RaceSummary> {
+async function summarize(db: Db, race: PublicRace & { entered: number; mine: number; stables: number }, now: Date, viewerStableId: string | null = null): Promise<RaceSummary> {
   const c = raceConds(race);
   const base: RaceSummary = {
     id: race.id,
@@ -456,6 +455,8 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
     entryFee: race.entryFee,
     fieldSize: race.field ? (race.field as LockedField).runners.length : race.entered,
     targetRunners: race.targetRunners,
+    stables: race.stables,
+    meetingStartMs: meetingStartOf(race.postTime.getTime()),
     phase: phaseOf(race, now, null),
     mine: race.mine,
   };
@@ -489,20 +490,29 @@ async function playerStableName(db: Db, race: PublicRace, horseId: string): Prom
   return stableNameOf(e, horseId, !e?.stableId, race);
 }
 
-/** The Live card: the next races (entries open or closed) and the latest ones (live first, then results). */
+/** The meeting a Live race belongs to (game-core meetings.ts), for grouping the card. */
+const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
+export function meetingStartOf(postTimeMs: number): number {
+  return gc.meetingFor(SEASON_CLOCK, postTimeMs).startMs;
+}
+
+const isCalendarRace = (r: Pick<PublicRace, "conditions">) => !!(r.conditions as { calendar?: unknown } | null)?.calendar;
+
+/**
+ * The Live card: the next races (entries open or closed) and the latest ones (live first, then
+ * results). The card is the whole published day: three race meetings (game-core meetings.ts)
+ * with the calendar races inside the evening meeting. `upcoming` caps the list: the soonest
+ * races, with every calendar race on the card kept in (a short list still shows the evening's
+ * Qualifier). Races called off at the close (nobody entered) are left out.
+ */
 export async function raceList(db: Db, now: Date, viewerStableId: string | null, opts: { upcoming?: number; recent?: number } = {}) {
   await driveCard(db, now);
   const nowMs = now.getTime();
-  // the regular card (6 h) plus calendar races published a day ahead (Qualifiers, Feature, Plate, Finals)
-  const regularAhead = await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: viewerStableId });
-  const calendarAhead = (await listCardRaces(db, { from: new Date(nowMs + RULES.cardHorizonMs + 1), to: new Date(nowMs + CALENDAR_HORIZON_MS), stableId: viewerStableId })).filter(
-    (r) => !!(r.conditions as { calendar?: unknown } | null)?.calendar,
-  );
-  // calendar races first among the upcoming so a short list still shows them
-  const ahead = [...calendarAhead, ...regularAhead].sort((x, y) => x.postTime.getTime() - y.postTime.getTime());
-  const behind = await listCardRaces(db, { from: new Date(nowMs - 8 * RULES.slotMs), to: now, stableId: viewerStableId });
+  const ahead = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: viewerStableId })).filter((r) => r.status !== "cancelled");
+  const calendarAhead = ahead.filter(isCalendarRace);
   const limit = opts.upcoming ?? 6;
-  const rows = [...ahead.filter((r) => !calendarAhead.includes(r)).slice(0, Math.max(0, limit - calendarAhead.length)), ...calendarAhead.slice(0, limit)].sort((x, y) => x.postTime.getTime() - y.postTime.getTime());
+  const order = (x: PublicRace, y: PublicRace) => x.postTime.getTime() - y.postTime.getTime() || String(x.slotKey).localeCompare(String(y.slotKey));
+  const rows = [...ahead.filter((r) => !isCalendarRace(r)).slice(0, Math.max(0, limit - calendarAhead.length)), ...calendarAhead.slice(0, limit)].sort(order);
   const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now, viewerStableId)));
   // Sister courses (§4d) sort right after their original: name them under the original's row.
   for (const [i, r] of rows.entries()) {
@@ -513,6 +523,8 @@ export async function raceList(db: Db, now: Date, viewerStableId: string | null,
       .filter(Boolean);
     if (courses.length) upcoming[i]!.alsoAt = courses;
   }
+  // The latest results: the last meeting can be hours ago, so look back a day.
+  const behind = await listCardRaces(db, { from: new Date(nowMs - RULES.cardHorizonMs), to: now, stableId: viewerStableId });
   const recent = await Promise.all(
     behind
       .filter((r) => r.status !== "cancelled")
@@ -552,7 +564,8 @@ export async function liveChunk(db: Db, id: string, fromFrame: number, now: Date
   await driveCard(db, now);
   const race = await loadRace(db, id);
   if (now < race.postTime) {
-    const field = (race.field as LockedField | null) ?? (now >= race.entriesCloseAt ? await lockField(db, id, now, raceHooks) : null);
+    if (!race.field && now >= race.entriesCloseAt && !(await lockField(db, id, now, raceHooks))) throw new RaceNotFoundError(id); // called off: nobody entered
+    const field = (await dbGetRace(db, id))?.field as LockedField | null;
     if (!field) throw new TooEarlyError(race.postTime.getTime());
     return {
       raceId: race.id,
@@ -804,7 +817,8 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
       ),
     };
   }));
-  const summary = await summarize(db, { ...race, entered: (await listRaceEntries(db, raceId)).length, mine: entered.length }, now, session.stable.id);
+  const all = await listRaceEntries(db, raceId);
+  const summary = await summarize(db, { ...race, entered: all.length, mine: entered.length, stables: new Set(all.map((e) => e.stableId).filter(Boolean)).size }, now, session.stable.id);
   return { race: summary, options, raceDay: offer };
 }
 

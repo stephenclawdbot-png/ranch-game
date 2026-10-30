@@ -89,6 +89,10 @@ export interface RaceSummary {
   /** Entered so far (open) or the locked field size. */
   fieldSize: number;
   targetRunners: number;
+  /** Player stables entered (Club runners never count): "N stables entered". */
+  stables: number;
+  /** First post time of the race meeting the race belongs to (game-core meetings.ts). */
+  meetingStartMs: number;
   phase: "open" | "closed" | "live" | "finished";
   /** The viewer's horses entered in this race. */
   mine: number;

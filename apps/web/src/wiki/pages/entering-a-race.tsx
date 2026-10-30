@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { CARD_ENTRY_FEE_PERMILLE, RULES, defaultCardSlot, entryCostFor } from "@thoroughbred/db";
+import { CARD_ENTRY_FEE_PERMILLE, RULES, cardSlotAt, entryCostFor } from "@thoroughbred/db";
 import { STYLE_LABEL, formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count, pct, sampleGenome } from "../kit";
 
@@ -76,9 +76,9 @@ export default function EnteringARacePage() {
   const extras = extrasExample();
   const normal = risks.find((r) => r.v === "normal")!.risk;
   // Credit entry fees on the Live card (one week of it, big days included).
-  const week = Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i));
+  const week = Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => cardSlotAt(7 * gc.SLOTS_PER_DAY + i)).filter((s) => s !== null);
   const minFee = Math.min(...week.map((s) => s.entryFee ?? 0));
-  const maxFee = Math.max(...Array.from({ length: 7 * gc.SLOTS_PER_DAY }, (_, i) => defaultCardSlot(7 * gc.SLOTS_PER_DAY + i).entryFee ?? 0));
+  const maxFee = Math.max(...week.map((s) => s.entryFee ?? 0));
   return (
     <>
       <Lead>
@@ -90,7 +90,9 @@ export default function EnteringARacePage() {
       <Steps
         items={[
           <>
-            Open the <GameLink href="/races">race card</GameLink> and choose a race that is still open. Each race shows its class, trip, surface and going.
+            Open the <GameLink href="/races">race card</GameLink> and choose a race that is still open. The card shows the next day of race meetings ({gc.MEETINGS_PER_DAY} a
+            day, {gc.RACES_PER_MEETING} races each). Each race shows its class, trip, surface and going, and how many stables have entered so far: sort by &ldquo;Most stables&rdquo; to
+            find the busiest races.
           </>,
           <>
             Pick a horse. The sheet shows how well this race suits it, and why a horse can&rsquo;t run if it can&rsquo;t: injured, wrong class, rating out of the band, a licence you
@@ -109,14 +111,15 @@ export default function EnteringARacePage() {
 
       <H2 id="racecard">Reading the racecard</H2>
       <P>
-        Every race page has a racecard listing the field, printed like the real thing. Before entries close it shows who has entered so far and says the Club will fill the field; once the field
-        locks, every runner has its saddlecloth number and gate.
+        Every race page has a racecard listing the field, printed like the real thing. Before entries close it shows which stables have entered so far and says the Club will fill the field
+        up to its size; once the field locks, every runner has its saddlecloth number and gate. Club horses are marked <b>Club</b>; every other runner shows its owner&rsquo;s stable. An
+        ordinary race that no stable entered is called off when entries close.
       </P>
       <Table
         head={["Column", "What it tells you"]}
         rows={[
           ["No.", "The saddlecloth number, which is also the starting gate. Gates are drawn from the race's sealed seed when entries close."],
-          ["Horse", "Name and silks, then age, colour, sex and the stable. Your own runner is marked \"You\"."],
+          ["Horse", "Name and silks, then age, colour, sex and the stable (Club horses are marked Club). Your own runner is marked \"You\"."],
           ["Form", "The last three finishes, oldest first. 0 means it finished outside the first nine."],
           ["OR", "The official rating going into this race."],
           ["Plan", "How the horse will be ridden: Front, Stalk or Close."],
