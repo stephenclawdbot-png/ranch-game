@@ -5,10 +5,22 @@
  */
 import { RaceInputSchema, type RaceInput, type RaceReplay } from "@thoroughbred/shared";
 import { commitSeed, deriveSeed } from "./hash";
-import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
+import { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
 import { sha256Hex } from "./hash";
 
-export { ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
+export { ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
+export {
+  BEND_LANE_LOSS_MM,
+  GRADIENT_DRAIN,
+  BEND_PASS_CUT,
+  STRAIGHT_EASE_MAX,
+  STRAIGHT_EASE_PER_100M,
+  STRAIGHT_REF_M,
+  bendGeometry,
+  courseLayout,
+  type Bend,
+  type CourseLayout,
+} from "./course";
 export { marginLabel, splitPurse, PRIZE_SPLIT_PCT } from "./results";
 export { TICK_HZ, SAMPLE_EVERY } from "./model";
 
@@ -27,12 +39,14 @@ export function simulateRace(input: RaceInput): RaceReplay {
  */
 export function verifyReplay(input: RaceInput, replay: RaceReplay): boolean {
   try {
-    // Races without kit run (and hash) as LEGACY_ENGINE_VERSION: older replays stay verifiable.
-    if (replay.engineVersion !== engineVersionFor(input.entries)) return false;
+    // Races without kit or course run (and hash) as before: older replays stay verifiable.
+    const course = input.course ?? null;
+    if (replay.engineVersion !== engineVersionFor(input.entries, course)) return false;
     if (replay.seed !== input.seed) return false;
     if (replay.seedCommitment !== commitSeed(input.seed)) return false;
     // The replay's own claims must hash to its resultHash.
-    if (sha256Hex(canonicalResult(replay.seed, replay.result.finishOrder, replay.engineVersion)) !== replay.result.resultHash) return false;
+    // A 1.3.0 result also seals the course profile: a swapped course fails here.
+    if (sha256Hex(canonicalResult(replay.seed, replay.result.finishOrder, replay.engineVersion, course)) !== replay.result.resultHash) return false;
     const fresh = simulateRace(input);
     if (fresh.result.resultHash !== replay.result.resultHash) return false;
     if (JSON.stringify(fresh.result) !== JSON.stringify(replay.result)) return false;

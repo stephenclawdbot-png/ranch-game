@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RaceInputSchema, type RaceInput, type RaceKit } from "@thoroughbred/shared";
-import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, simulateRace, verifyReplay } from "./index";
+import { KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, simulateRace, verifyReplay } from "./index";
 import { streamSeedBytes } from "./hash";
 import { buildProfile } from "./model";
 import { Rng } from "./prng";
@@ -36,7 +36,7 @@ describe("race-day kit (engine 1.2.0)", () => {
     const neutral = withKit(base, 3, { goingPenaltyPermille: 1000, formAmpPermille: 1000, keenPermille: 1000 });
     const a = simulateRace(base);
     const b = simulateRace(neutral);
-    expect(b.engineVersion).toBe(ENGINE_VERSION);
+    expect(b.engineVersion).toBe(KIT_ENGINE_VERSION);
     expect(b.frames).toEqual(a.frames);
     expect(b.result.finishOrder).toEqual(a.result.finishOrder);
     // The version is part of the hashed result, so the two proofs differ.
