@@ -605,9 +605,10 @@ function headerFromField(race: PublicRace, field: LockedField): RaceBroadcastHea
 /**
  * The live broadcast chunk. Before the off: header only (the field must be locked); from the
  * off: live.ts slices the replay up to "now" (no result, seed or later frames until the
- * finish has been broadcast).
+ * finish has been broadcast). At most `maxFrames` frames from `fromFrame`. Reads nothing
+ * viewer-specific, so the windowed route can share one response between all viewers.
  */
-export async function liveChunk(db: Db, id: string, fromFrame: number, now: Date): Promise<RaceBroadcastChunk> {
+export async function liveChunk(db: Db, id: string, fromFrame: number, now: Date, maxFrames?: number): Promise<RaceBroadcastChunk> {
   if (!isRaceId(id)) throw new RaceNotFoundError(id);
   await driveCard(db, now);
   const race = await loadRace(db, id);
@@ -629,7 +630,7 @@ export async function liveChunk(db: Db, id: string, fromFrame: number, now: Date
   }
   const replay = await replayFor(db, race, now);
   if (isBroadcastOver(replay, now.getTime()) && race.status === "locked") await settleIfDue(db, id, now);
-  return sliceBroadcast(replay, fromFrame, now.getTime());
+  return sliceBroadcast(replay, fromFrame, now.getTime(), maxFrames);
 }
 
 /** Full replay with the revealed seed: only once the finish has been broadcast. */
