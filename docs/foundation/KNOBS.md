@@ -497,6 +497,9 @@ like the card's `card-slot:<index>`). Shares quoted are turf going over 25 years
 | `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |
 | `club_sale` | buyer → burn (a Club lot: the whole price) | packages/db/src/services/market.ts `buyListing` |
 | `lease_fee` | lessee → owner, cut → burn (off in the beta: `LEASE_FEE_MAX` = 0) | packages/db/src/services/leasing.ts `takeLease` |
+| `claim_escrow` | claimant → escrow (the claim price, held until the race) | packages/db/src/services/claiming.ts `lodgeClaim` |
+| `claim_refund` | escrow → claimant (lost the draw, scratch, called-off / abandoned race, fatal injury, no stall) | packages/db/src/services/claiming.ts |
+| `claim_sale` | escrow → old owner (price − 5%), fee → burn | packages/db/src/services/claiming.ts `settleClaimsTx`, called from races.ts `settleRace` |
 
 ### 10d. Balance model
 
@@ -537,6 +540,21 @@ Race meetings plan item 6. Once per UTC day (`runClubMarket` in `runMaintenance`
 | `CLUB_LEASE_OFFERS_MAX` | 4, minus one per open player offer (never below 0) | packages/game-core/src/clubMarket.ts (`clubLeaseCap`) | Club lease offers kept open; free Club racers first, minted when none is free. | Lease board supply |
 | `CLUB_LEASE_TERMS_DAYS` | 7 or 14 days | packages/game-core/src/clubMarket.ts | Club lease terms (welfare defaults: no all-out, `LEASE_WEEKLY_STARTS_DEFAULT`, no fee). | Lease board supply |
 | `CLUB_LEASE_OWNER_SHARE_PCT` | 50% | packages/game-core/src/clubMarket.ts | The Club's purse share on a Club lease, burned (`lease_share` mint → burn + lessee). | Credits created by leased runners |
+
+### 11c. Claiming races (new 2026-10-30)
+
+Race meetings plan item 4: the race is the market. Values in `packages/game-core/src/claiming.ts` (JSDoc on each); slot in `packages/db/src/services/card.ts` (`claimingSlotOfMeeting`), service in `packages/db/src/services/claiming.ts`, claims in `race_claims`, the price on `race_entries.claim_price`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `CLAIMING_RACES_PER_DAY` / `CLAIMING_MEETING_OF_DAY` | 1, in the 19:00 UTC meeting (meeting 2 of the day) | packages/game-core/src/claiming.ts | One evening handicap a day becomes "<Course> Claiming Stakes (<band>)" with that band's conditions, trip and purse. Never over a calendar race; none on the Season Finals' day. Sister courses copy it (they are claiming races too). | Market supply, evening field size |
+| Band rotation (`claimingBandOrder`) | day mod 3 → 0-55, 50-75, 70-95; the next band when a calendar race holds that day's | packages/game-core/src/claiming.ts, card.ts | Which handicap the claiming race replaces. | Which horses are offered |
+| `CLAIM_PRICE_MIN_PERMILLE` / `CLAIM_PRICE_MAX_PERMILLE` | 700 / 3000 (70%-300% of appraisal; = the listing band) | packages/game-core/src/claiming.ts (`claimPriceBounds`) | Claim price the owner sets at entry (required). The entry also runs the market's tradeability checks (`assertTradeableTx`: seller requirements, binding, starts, lease, USDG, in foal, resale lock). | Market prices, RMT risk |
+| Fee | `MARKET_FEE_PERMILLE` (5%, burned) | packages/game-core/src/claiming.ts (`claimSettlement`) | Taken from the price at the transfer; the old owner also keeps this race's purse. | Credit sink |
+| `CLAIMS_PER_STABLE_PER_RACE` | 1 | packages/game-core/src/claiming.ts, unique index on `race_claims` | A stable claims at most one runner per claiming race. A lodged claim holds a stall until decided. | Claim pressure |
+| Draw | seeded from the race seed (`claim-draw:<horseId>`), at the lock | packages/db/src/services/claiming.ts `drawClaimsTx` | Several claims on one horse: one wins, the rest are refunded. | Fairness |
+| `CLAIM_REENTRY_LOCK_DAYS` | 3 days | packages/game-core/src/claiming.ts | A claimed horse can't run in another claiming race for this long (the 72 h resale lock also applies to the claimant). | Flipping through claims |
+| Injury | still transfers; fatal voids (refund) | packages/db/src/services/claiming.ts `settleClaimsTx` | As in real claiming; also void (refund) if the claimant has no free stall at settlement. | Risk for claimants |
 
 ### 11a. Leasing (new 2026-10-30)
 
