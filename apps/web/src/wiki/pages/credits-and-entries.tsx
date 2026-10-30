@@ -86,8 +86,20 @@ export default function CreditsAndEntriesPage() {
           ["Vet", gc.FACILITY_COSTS.vet.map(formatCredits).join(" / "), <WikiLink key="f3" slug="facilities" />],
           ["Entry office", gc.ENTRY_TIER_COST.map(formatCredits).join(" / "), <a key="o" href="#entry-office" className="link">The entry office</a>],
           ["A horse at auction", "The seller's price", <WikiLink key="m" slug="the-market" />],
+          [
+            "Weekly upkeep",
+            `${formatCredits(gc.UPKEEP_RACING_PER_WEEK)} per racing horse and ${formatCredits(gc.UPKEEP_STUD_PER_WEEK)} per horse at stud, only for horses you used that week`,
+            <a key="u" href="#upkeep" className="link">Upkeep</a>,
+          ],
         ]}
       />
+      <H3>Upkeep</H3>
+      <P>
+        <span id="upkeep" />
+        After each week ends, your stable pays upkeep for the horses you actually used: any horse that raced (Live or Story), had a paid training session, or covered or was covered.
+        Horses you leave alone that week cost nothing, so a week away is free. Upkeep never takes your balance below zero: what you can&rsquo;t pay is waived. The{" "}
+        <GameLink href="/week">This week</GameLink> page shows it building up, and a note in your inbox shows the breakdown.
+      </P>
       <P>
         Every free Paddock Pack is earned by playing: one for every {gc.FREE_PADDOCK_EVERY_PLAY_DAYS} days you play. See <WikiLink slug="packs" />.
       </P>
