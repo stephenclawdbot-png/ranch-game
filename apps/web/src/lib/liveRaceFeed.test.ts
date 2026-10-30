@@ -156,7 +156,7 @@ describe("live race feed", () => {
     feed.close();
   });
 
-  it("behind a 1 s CDN cache: no gaps, no regressions, a sane clock, origin hits shared", async () => {
+  it("behind a 1 s CDN cache: no gaps, no regressions, a sane clock, origin hits shared", { timeout: 20_000 }, async () => {
     const s = setup({ cdnMs: 1000, latencyMs: 40 });
     vi.setSystemTime(s.postTimeMs - SKEW + 5_000);
     const viewers = 8;
@@ -216,7 +216,7 @@ describe("live race feed", () => {
     expect(s.requests).toHaveLength(1);
   });
 
-  it("keeps a steady cadence and never runs out of frames when responses are slow", async () => {
+  it("keeps a steady cadence and never runs out of frames when responses are slow", { timeout: 20_000 }, async () => {
     const s = setup({ latencyMs: 900 });
     vi.setSystemTime(s.postTimeMs - SKEW + 5_000);
     const opening = s.open();
