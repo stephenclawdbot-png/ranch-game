@@ -61,6 +61,8 @@ export interface RaceCard {
   targetRunners: number;
   maxRunners: number;
   engineVersion: string;
+  /** The course the race runs with (course character, engine 1.3.0), or null when it runs course-less. */
+  course?: { name: string; character: string } | null;
   /** The stable that sponsored this race (its silks go on the racecard header). */
   sponsor?: RaceSponsorView;
 }

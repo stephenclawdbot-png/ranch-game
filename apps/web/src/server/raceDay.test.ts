@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
 import { createAccount, createDb, createRace, getBalance, listRaceEntries, listStableHorses, lockField, stableOf, type CreateRaceInput, type DbHandle, type LockedField } from "@thoroughbred/db";
-import { LEGACY_ENGINE_VERSION, ENGINE_VERSION } from "@thoroughbred/racing-engine";
+import { LEGACY_ENGINE_VERSION, KIT_ENGINE_VERSION } from "@thoroughbred/racing-engine";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { enterLive, entryOptions, liveChunk, raceCard, raceHooks, scratchLive, servedReplay, settleIfDue, verifyRace } from "./game";
 import { engineHorseFromSnapshot } from "./horseView";
@@ -42,7 +42,8 @@ function liveRace(going: "good" | "soft" | "firm", extra: Partial<CreateRaceInpu
     kind: "scheduled",
     name: `Ashcombe Handicap ${++slotN}`,
     raceClass: "handicap",
-    conditions: { minRating: 0, maxRating: 55, distanceM: 1600, surface: "turf", going, weather: "clear", track: "Ashcombe" },
+    // No course (engine 1.3.0 course character): these races test the kit alone, as 1.2.0 / 1.1.0.
+    conditions: { minRating: 0, maxRating: 55, distanceM: 1600, surface: "turf", going, weather: "clear" },
     postTime: at(10 * MIN),
     entriesCloseAt: at(10 * MIN - 30_000),
     purse: 16_000,
@@ -120,17 +121,17 @@ describe("race-day extras on a Live race", () => {
     expect(field.runners.find((r) => r.horseId === qh)!.kit).toBeUndefined();
     // Before the off the broadcast header names the engine the race will run on, and nothing else new.
     const pre = await liveChunk(h.db, race.id, 0, race.entriesCloseAt);
-    expect(pre.header.engineVersion).toBe(ENGINE_VERSION);
+    expect(pre.header.engineVersion).toBe(KIT_ENGINE_VERSION);
     expect(pre.final).toBeNull();
     expect(JSON.stringify(pre)).not.toMatch(/"(kit|raceDay|result|seed|finishOrder)"/);
 
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
-    expect(replay.engineVersion).toBe(ENGINE_VERSION);
+    expect(replay.engineVersion).toBe(KIT_ENGINE_VERSION);
     const v = await verifyRace(h.db, race.id, end, { commitment: race.seedCommitment, resultHash: replay.result.resultHash });
-    expect(v).toMatchObject({ commitmentOk: true, resultHashOk: true, engineVersion: ENGINE_VERSION });
+    expect(v).toMatchObject({ commitmentOk: true, resultHashOk: true, engineVersion: KIT_ENGINE_VERSION });
     const card = await raceCard(h.db, race.id, end, p.stable.id);
-    expect(card.engineVersion).toBe(ENGINE_VERSION);
+    expect(card.engineVersion).toBe(KIT_ENGINE_VERSION);
     expect(card.field.find((e) => e.horse.id === ph)!.gear).toContain("Top jockey");
     await settleIfDue(h.db, race.id, end);
   });

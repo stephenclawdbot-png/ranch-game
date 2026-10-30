@@ -15,7 +15,7 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
-import { HorseSchema, RaceKitSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { HorseSchema, RaceCourseSchema, RaceKitSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
@@ -30,6 +30,7 @@ import {
   getRaceResult,
   isDomainError,
   bandRatingOf,
+  courseForRace,
   facilityLevels,
   goalsForToday,
   breedingStatus,
@@ -202,17 +203,39 @@ function runnerKit(r: FieldRunner) {
   return k.success ? { kit: k.data } : {};
 }
 
+/**
+ * The course profile frozen into a locked field (Live card races locked since course character
+ * shipped), or none: older fields and Story/Quick/Daily Cup races run course-less, exactly as
+ * they were simulated and hashed.
+ */
+function fieldCourse(field: LockedField) {
+  if (field.course === undefined) return {};
+  const c = RaceCourseSchema.safeParse(field.course);
+  return c.success ? { course: c.data } : {};
+}
+
 function inputFrom(race: PublicRace, field: LockedField, seed: string) {
   return {
     race: raceConfig(race),
+    ...fieldCourse(field),
     entries: field.runners.map((r) => ({ gate: r.gate, tactic: (RunningStyleSchema.safeParse(r.tactic).success ? r.tactic : "stalker") as Horse["style"], horse: runnerHorse(r, race), ...runnerKit(r) })),
     seed,
   };
 }
 
-/** The engine version a locked field runs under (1.1.0 unless a runner has race-day kit). */
+/**
+ * The racecard's course line: the course the race runs with (frozen in a locked field; before
+ * the lock, the one it will lock with), or null when it runs course-less.
+ */
+function courseLine(race: PublicRace, field: LockedField | null): RaceCard["course"] {
+  const profile = field ? fieldCourse(field).course : courseForRace(race);
+  const course = profile ? gc.COURSES.find((c) => c.id === profile.id) : undefined;
+  return course ? { name: course.name, character: course.character } : null;
+}
+
+/** The engine version a locked field runs under (1.1.0; 1.2.0 with race-day kit; 1.3.0 with a course). */
 function fieldEngineVersion(field: LockedField | null): string {
-  return field ? engineVersionFor(field.runners.map(runnerKit)) : ENGINE_VERSION;
+  return field ? engineVersionFor(field.runners.map(runnerKit), fieldCourse(field).course) : ENGINE_VERSION;
 }
 
 /** Racecard tags for an entry's race-day extras and jockey ("Soft shoes", "Top jockey"). */
@@ -443,6 +466,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     targetRunners: race.targetRunners,
     maxRunners: race.maxRunners,
     engineVersion: replay?.engineVersion ?? fieldEngineVersion(field),
+    course: courseLine(race, field),
     sponsor: await sponsorFor(db, race, viewerStableId),
   };
 }

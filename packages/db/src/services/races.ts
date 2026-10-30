@@ -20,7 +20,7 @@ import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks 
 import { bandRatingOf, gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
-import type { RaceKit } from "@thoroughbred/shared";
+import type { RaceCourse, RaceKit } from "@thoroughbred/shared";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { LIVE_SLOT_KEY_RE, ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
@@ -462,8 +462,22 @@ export interface LockedField {
   seedCommitment: string;
   lockedAt: string;
   runners: FieldRunner[];
-  /** sha256 of the canonical runner list; published so the field is provably fixed. */
+  /**
+   * The engine's course profile (racing-engine 1.3.0 course character), frozen at the lock from
+   * the race's `conditions.track` (game-core courseProfile): Live card races on a known course
+   * only. Fields locked before courses raced differently never have it, and replay and hash
+   * exactly as they did; later tuning of courses.ts never touches a field already locked.
+   */
+  course?: RaceCourse;
+  /** sha256 of the canonical runner list (and course, when there is one); published so the field is provably fixed. */
   fieldHash: string;
+}
+
+/** The course profile a Live card race (scheduled, feature, final) on a known course runs with; none otherwise. */
+export function courseForRace(race: Pick<RaceRow, "kind" | "conditions">): RaceCourse | undefined {
+  if (!(LIVE_RACE_KINDS as readonly string[]).includes(race.kind)) return undefined;
+  const course = gc.courseByName(String((race.conditions as RaceConditions | null)?.track ?? ""));
+  return course ? gc.courseProfile(course) : undefined;
 }
 
 export interface FieldHooks extends Partial<GameHooks> {
@@ -611,16 +625,25 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
       ...(kit ? { kit } : {}),
     });
   }
-  const fieldHash = fieldHashOf(runners);
-  const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, fieldHash };
+  // Course character: the course's shape is frozen into the field with the runners.
+  const course = courseForRace(race);
+  const fieldHash = fieldHashOf(runners, course);
+  const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, ...(course ? { course } : {}), fieldHash };
   await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
-  await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash } });
+  await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash, ...(course ? { course: course.id } : {}) } });
   return field;
 }
 
-/** sha256 of the canonical runner list (a runner's kit is hashed only when it has one). */
-export function fieldHashOf(runners: readonly FieldRunner[]): string {
-  return sha256Hex(JSON.stringify(runners.map((r) => (r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse]))));
+/**
+ * sha256 of the canonical runner list (a runner's kit is hashed only when it has one); a field
+ * with a course profile hashes [runners, course], one without hashes exactly as before.
+ */
+export function fieldHashOf(runners: readonly FieldRunner[], course?: RaceCourse | null): string {
+  const list = runners.map((r) => (r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse]));
+  if (!course) return sha256Hex(JSON.stringify(list));
+  // The course as a fixed-order tuple (stored JSON may reorder object keys).
+  const c = course;
+  return sha256Hex(JSON.stringify([list, [c.id, c.direction, c.circumferenceM, c.homeStraightM, c.bendsPerLap, c.bendTightness, c.finishGradientPermille]]));
 }
 
 /**
