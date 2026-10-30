@@ -1,7 +1,7 @@
 "use client";
 
 import type { HorseAppearance, Silks } from "@thoroughbred/shared";
-import { adultCoatName, appearanceOf, generateFoundationGenome, type CoatGenes } from "@thoroughbred/game-core";
+import { WILD_GENES2, adultCoatName, appearanceOf, generateFoundationGenome, type CoatGenes, type Genes2 } from "@thoroughbred/game-core";
 import { resolveHorseColors } from "@/lib/art";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { GallopSprite } from "@/components/pixel/GallopSprite";
@@ -38,6 +38,10 @@ interface Row {
   progress?: Progress;
   /** Overrides adultCoatName (grey stages, where the adult name is just "Grey"). */
   label?: string;
+  /** Face marking override for the marking cells. */
+  face?: HorseAppearance["face"];
+  /** Genetics v2 colour/pattern genes (every other v2 locus stays wild). */
+  g2?: Partial<Genes2>;
 }
 
 const withoutGrey = (g: Partial<CoatGenes>): CoatGenes => ({ ...WILD, ...g, grey: ["n", "n"] });
@@ -74,14 +78,42 @@ const ROWS: Row[] = [
   { genes: gg, progress: { racingAge: true, starts: 3, retired: false }, label: `Dapple Grey (born ${adultCoatName(withoutGrey(gg))})` },
   { genes: gg, progress: { racingAge: false, starts: 0, retired: false }, label: `${adultCoatName(withoutGrey(gg))} (greying foal)` },
   { genes: gg, progress: { racingAge: true, starts: 30, retired: false } },
+  // face markings on the painted portrait
+  { genes: {}, face: "star", label: "Bay + star" },
+  { genes: ee, face: "blaze", label: "Chestnut + blaze" },
+  { genes: aa, face: "stripe", label: "Black + stripe" },
+  { genes: {}, face: "bald", label: "Bay + bald" },
+  { genes: gg, progress: { racingAge: true, starts: 3, retired: false }, face: "snip", label: "Grey + snip" },
+  // genetics v2 colour genes
+  { genes: ee, g2: { champagne: ["Ch", "n"] }, label: "Gold champagne" },
+  { genes: {}, g2: { champagne: ["Ch", "n"] }, label: "Amber champagne" },
+  { genes: at, g2: { champagne: ["Ch", "n"] }, label: "Sable champagne" },
+  { genes: aa, g2: { champagne: ["Ch", "n"] }, label: "Classic champagne" },
+  { genes: { ...ee, ...cr1 }, g2: { champagne: ["Ch", "n"] }, label: "Gold cream champagne" },
+  { genes: aa, g2: { silver: ["Z", "n"] }, label: "Silver black" },
+  { genes: {}, g2: { silver: ["Z", "n"] }, label: "Silver bay" },
+  { genes: ee, g2: { pearl: ["prl", "prl"] }, label: "Pearl (chestnut)" },
+  { genes: { ...ee, ...cr1 }, g2: { pearl: ["prl", "n"] }, label: "Pearl + cream" },
+  // genetics v2 white patterns
+  { genes: {}, g2: { tobiano: ["TO", "n"] }, label: "Bay tobiano" },
+  { genes: aa, g2: { tobiano: ["TO", "TO"] }, label: "Black tobiano (TO/TO)" },
+  { genes: ee, g2: { leopard: ["LP", "n"], patn1: ["PATN1", "n"] }, label: "Chestnut leopard" },
+  { genes: {}, g2: { leopard: ["LP", "LP"] }, label: "Few-spot (LP/LP)" },
+  { genes: {}, g2: { leopard: ["LP", "n"] }, label: "Varnish roan (LP/n)" },
+  { genes: ee, g2: { splash: ["SW", "n"] }, label: "Chestnut splash (SW/n)" },
+  { genes: {}, g2: { splash: ["SW", "SW"] }, label: "Bay splash (SW/SW)" },
+  { genes: { ...ee, sabino: ["Sb1", "n"] }, face: "stripe", label: "Chestnut sabino 1 + stripe" },
+  { genes: { ...ee, sabino: ["Sb1", "Sb1"] }, face: "blaze", label: "Chestnut max sabino" },
+  { genes: { ...aa, ...dun }, face: "star", label: "Grullo + star" },
 ];
 
 function cellAppearance(row: Row, i: number): HorseAppearance {
   const genes: CoatGenes = { ...WILD, ...row.genes };
-  const genome = { ...generateFoundationGenome(`coat-cell-${i}`, { season: 1 }), coat: genes };
+  // every v2 locus wild unless the row sets it (the seeded genome may carry some)
+  const genome = { ...generateFoundationGenome(`coat-cell-${i}`, { season: 1 }), coat: genes, genes2: { ...WILD_GENES2, ...row.g2 } };
   const a = appearanceOf(genome, row.progress ?? ADULT, SILKS);
-  // Pure coat comparison: no white markings, no mane override.
-  return { ...a, face: "none", legs: ["none", "none", "none", "none"], maneColor: undefined };
+  // Pure coat comparison: no white markings unless the row asks for one, no mane override.
+  return { ...a, face: row.face ?? "none", legs: ["none", "none", "none", "none"], maneColor: undefined };
 }
 
 function Swatch({ hex, title }: { hex?: string; title: string }) {
@@ -94,7 +126,11 @@ function CoatCell({ name, appearance }: { name: string; appearance: HorseAppeara
   return (
     <div data-testid="coat-cell" className="flex w-full flex-col items-center gap-1 rounded-md border border-neutral-800 bg-[#171310] p-2" title={name}>
       <div className="min-h-5 text-center text-[11px] font-semibold tracking-wide text-[#e8d9b0]">{name}</div>
-      <HorsePortrait appearance={appearance} scale={1} codeDrawn title={name} />
+      <HorsePortrait appearance={appearance} scale={1} title={name} />
+      <div className="flex items-end gap-2">
+        <HorsePortrait appearance={appearance} codeDrawn className="h-9 w-9 opacity-80" title={`${name} (code-drawn fallback)`} />
+        <span className="text-[9px] uppercase tracking-wide text-neutral-600">fallback</span>
+      </div>
       <div className="w-full bg-[#20180f]">
         <GallopSprite appearance={appearance} still={3} fit />
       </div>
@@ -115,8 +151,10 @@ export function CoatsHarness() {
     <main className="min-h-screen bg-[#14100c] p-3 text-neutral-200">
       <h1 className="mb-1 text-lg font-bold text-[#e8d9b0]">Coat anchors v2</h1>
       <p className="mb-3 max-w-3xl text-xs text-neutral-400">
-        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans and grey stages. Each cell: code-drawn
-        portrait (scale 1), a still Trackside gallop frame, and the resolved palette (body · shade · highlight · mane ·
+        Every anchor row of docs/brand-v2/coats/coat-anchors-v2.png, plus roans, grey stages, face markings and the
+        genetics v2 colour and pattern genes (portrait coverage table in docs/genetics-v2.md).
+        Each cell: the genetic 3/4 portrait (painted art recoloured from the genes), the small code-drawn
+        fallback, a still Trackside gallop frame, and the resolved palette (body · shade · highlight · mane ·
         points · stripe).
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">

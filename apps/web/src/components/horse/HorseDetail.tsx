@@ -22,7 +22,9 @@ import { PositionBadge } from "../ui/PositionBadge";
 export { PositionBadge };
 
 const FACE_LABEL = { none: "No face markings", star: "Star", snip: "Snip", stripe: "Stripe", blaze: "Blaze", bald: "Bald face" } as const;
-const LEG_LABEL: Record<LegMarking, string> = { none: "", coronet: "coronet", sock: "sock", stocking: "stocking" };
+/** Visible genetics v2 traits (game-core visibleTraits) that the genetic 3/4 portrait draws. */
+const PORTRAIT_DRAWN_TRAITS = new Set(["Champagne", "Silver", "Pearl", "Tobiano", "Few-spot", "Leopard", "Varnish roan", "Splash white"]);
+const LEG_LABEL: Record<LegMarking, string> ={ none: "", coronet: "coronet", sock: "sock", stocking: "stocking" };
 const LEG_NAMES = ["near fore", "off fore", "near hind", "off hind"];
 
 function legsText(legs: readonly LegMarking[]): string {
@@ -310,8 +312,11 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
                 <dt className="label self-center">Markings</dt>
                 <dd className="min-w-0" data-testid="genetics-traits">
                   <span className="font-bold">{gen.traits.join(", ")}</span>
-                  {/* No renderer draws the genetics-v2 patterns and colours yet (docs/genetics-v2.md). */}
-                  <span className="t-meta block">Not shown on the portrait yet</span>
+                  {/* The genetic 3/4 portrait draws the v2 colours and white patterns; the
+                      breed looks (feathering, curled ears, dish) are not drawn yet (docs/genetics-v2.md). */}
+                  {gen.traits.some((t) => !PORTRAIT_DRAWN_TRAITS.has(t)) && (
+                    <span className="t-meta block">Not shown on the portrait yet: {gen.traits.filter((t) => !PORTRAIT_DRAWN_TRAITS.has(t)).join(", ")}</span>
+                  )}
                 </dd>
               </>
             )}

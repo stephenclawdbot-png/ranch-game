@@ -108,8 +108,11 @@ describe("upgradeGenome (v1 rows are upgraded on read, never rewritten)", () => 
       expect(phenotypeDelta(g)).toEqual({ speed: 0, stamina: 0, burst: 0, durability: 0, adaptability: 0, temperament: 0 });
       expect(preferredDistanceM(g)).toBe(v1Trip(v1));
       // The v1 breed shares and old profiles are unchanged, so look and rig look are the v1 ones.
+      // (The upgrade leaves every v2 colour gene wild, so the appearance carries none of them;
+      // the genetic portrait draws the v2 colour genes, so a carrier would look different.)
       const alt = { ...g, genes2: { ...WILD_GENES2, champagne: ["Ch", "n"] as ["Ch", "n"] } };
-      expect(appearanceOf(g, progress, SILKS)).toEqual(appearanceOf(alt, progress, SILKS));
+      expect(appearanceOf(g, progress, SILKS)).toEqual(appearanceOf({ ...g, genes2: WILD_GENES2 }, progress, SILKS));
+      expect(appearanceOf(alt, progress, SILKS).colour?.champagne).toBe(true);
       expect(rigLook(g)).toEqual(rigLook(alt));
       expect(visibleTraits(g)).toEqual([]);
     }

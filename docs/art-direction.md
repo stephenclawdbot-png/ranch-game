@@ -119,6 +119,8 @@ consistent pixel density**, not bigger chunky pixels.
 | `race/tex-{turf,dirt,grass,gravel,hedge}.png` | **Seamless top-down tiles** (32–64 px) for the 3D ground planes | PNG |
 | `race/bb-{tree-oak,tree-poplar,bush,crowd-a,crowd-b,flag,grandstand}.png` | Billboard sprites placed in 3D | PNG |
 | `portraits/horse-<coat>.png` | Head-and-neck portrait facing left, one per coat in `CoatSchema` | PNG |
+| `portraits/anim/horse-<coat>.png`, `anim/thumb/…`, `anim/index.json` | Idle loop (blink, ear flick, breath) per coat, ping-pong strip of 128 px frames, and its 64 px thumbs (`art-src/portrait_anims.py`) | PNG strip |
+| `portraits/roles.png`, `portraits/portrait-marks.png`, `portraits/anim/warp/horse-<coat>.png` | Genetic portrait data (`apps/web/scripts/portrait-roles.py`): role map + shading level + flags, the five face-marking masks, and per-frame warps from each idle-loop pixel to the still pixel it shows | PNG (data) |
 | `ui/*.png` | Panel 9-slice frames, buttons, icons (coin, trophy, horseshoe, stopwatch, flag, star, rosette), logo emblem | PNG |
 | `scenes/*.png` | Wide page backdrops: stable yard, paddock, grandstand/finish line, barn interior | PNG |
 
@@ -130,6 +132,28 @@ palette is reduced so each role uses a small fixed set of exact colours, listed 
 `race/palette.json`. The viewer bakes a recoloured texture per horse appearance at load
 time: coat ramp from `COAT_PALETTES`, silks from the horse's silks. One gallop cycle gives
 every coat and silks combination with identical animation quality.
+
+### Genetic 3/4 portraits (one painting, every coat)
+
+The ten painted 3/4 portraits share one silhouette, so a pixel's meaning is found by comparing
+them. `python3 -I apps/web/scripts/portrait-roles.py` (run after any portrait or idle loop
+changes, after `art-src/portrait_anims.py`, then `pnpm --filter @thoroughbred/web art-index`)
+writes:
+
+- `roles.png`: R = role x 28 (clear, outline ink, bridle leather, bridle metal, eye, coat, mane,
+  muzzle skin, inner ear), G = shading LEVEL (the grey painting's luminance, normalised per
+  role), B = flags (bit 0 face-front plane, bit 1 the painted star and its fringe);
+- `portrait-marks.png`: star, snip, stripe, blaze and bald masks (five 128 px bands);
+- `anim/warp/horse-<coat>.png`: for each idle-loop frame pixel, the still pixel it shows
+  (R = x, G = y; block matching, then an exact-colour refine). The PixelLab frames re-draw
+  the head, so roles, markings and patterns are read through the warp and ride with it.
+
+At runtime `paintGeneticPortrait` (`@thoroughbred/art-pipeline`, pure) recolours every frame:
+the gene palette's ramp by LEVEL plus the painting's own achromatic detail (its luminance
+minus its median at that LEVEL), white patterns from masks in still space, and fixed roles
+(outline, bridle, painted eye) untouched. `HorsePortrait` swaps the result in after hydration
+in the same box, caches it per genes, and keeps the painted file if anything fails. Legacy
+appearances (no layered `colour`) keep the painting. `/dev/coats` has a cell per coat and gene.
 
 ## Budget
 

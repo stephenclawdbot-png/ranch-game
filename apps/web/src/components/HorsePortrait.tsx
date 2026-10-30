@@ -1,8 +1,10 @@
 "use client";
 
 import type { HorseAppearance } from "@thoroughbred/shared";
+import { portraitRecolours } from "@thoroughbred/art-pipeline";
 import { ART_SLOTS, MARKING_WHITE, artUrl, resolveHorseColors } from "@/lib/art";
 import { useArt } from "./pixel/ArtProvider";
+import { useGeneticPortrait } from "./pixel/geneticPortrait";
 import { PixelGrid, mix } from "./pixel/PixelGrid";
 import ANIM_INDEX from "../../public/art/portraits/anim/index.json";
 import { FACE_MARKS, HEAD_ROWS, HEAD_SIZE } from "./pixel/horseHeadData";
@@ -80,7 +82,7 @@ export function usePortraitNative(coat: HorseAppearance["coat"]): number {
 }
 
 /** Frame counts of the animated 3/4 portraits (art-src/portrait_anims.py). */
-const ANIM = ANIM_INDEX as Record<string, { frames: number; size: number }>;
+const ANIM = ANIM_INDEX as Record<string, { frames: number; kept?: number; size: number }>;
 /** Seconds per frame of the idle loop (blink, ear flick, breath). */
 const FRAME_S = 0.16;
 
@@ -95,6 +97,9 @@ function phaseOf(a: HorseAppearance): number {
  * Horse head-and-neck portrait (facing left): the 3/4 pixel portrait for the coat, animated like
  * a gif (an idle loop: blink, ear flick, breath) where the coat has a loop, else the still 3/4
  * portrait. Never the flat code-drawn head (that stays for dev galleries via `codeDrawn`).
+ * Horses with layered coat genetics are recoloured from their genes (coat, dilutions,
+ * patterns, face marking) after hydration (`useGeneticPortrait`); until then, and if that
+ * fails, the painted file for the nearest coat shows in the same box.
  * Pass `scale` to lock it to an integer multiple of the native art (one pixel density per
  * screen); otherwise it is sized by its container (`className`). Reduced motion holds frame 0.
  */
@@ -116,16 +121,20 @@ export function HorsePortrait({
 }) {
   const full = useArt(ART_SLOTS.portrait(appearance.coat));
   const thumb = useArt(ART_SLOTS.thumb(appearance.coat));
+  const coat = appearance.coat;
+  const anim = ANIM[coat];
+  const animated = !!anim && anim.frames > 1;
+  // native 128 px art only: the role map is drawn for it
+  const genetic = useGeneticPortrait(appearance, scale === "thumb", animated ? anim : null, !codeDrawn && (full?.w ?? 128) === 128 && portraitRecolours(appearance));
   if (codeDrawn) return <PixelHead appearance={appearance} className={`shrink-0 ${className ?? ""}`} title={title} />;
   const native = full?.w ?? 128;
   const px = scale === undefined ? undefined : scale === "thumb" ? native / 2 : native * scale;
   const box = px ? { width: px, height: px } : undefined;
-  const coat = appearance.coat;
-  // the still 3/4 portrait: from the art manifest, or straight from the served file
-  const still = scale === "thumb" ? (thumb ? artUrl(thumb) : `/art/portraits/thumb/horse-${coat}.png`) : full ? artUrl(full) : `/art/portraits/horse-${coat}.png`;
-  const anim = ANIM[coat];
-  if (anim && anim.frames > 1) {
-    const strip = scale === "thumb" ? `/art/portraits/anim/thumb/horse-${coat}.png` : `/art/portraits/anim/horse-${coat}.png`;
+  // the still 3/4 portrait: the genetic recolour, else from the art manifest, or straight from the served file
+  const painted = scale === "thumb" ? (thumb ? artUrl(thumb) : `/art/portraits/thumb/horse-${coat}.png`) : full ? artUrl(full) : `/art/portraits/horse-${coat}.png`;
+  const still = genetic?.still ?? painted;
+  if (animated) {
+    const strip = genetic?.strip ?? (scale === "thumb" ? `/art/portraits/anim/thumb/horse-${coat}.png` : `/art/portraits/anim/horse-${coat}.png`);
     const dur = anim.frames * FRAME_S;
     return (
       <span
@@ -136,6 +145,7 @@ export function HorsePortrait({
         aria-hidden={title ? undefined : true}
         data-testid="horse-portrait"
         data-still={still}
+        data-genetic={genetic ? "" : undefined}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -160,6 +170,7 @@ export function HorsePortrait({
       className={`pixelated shrink-0 object-contain object-bottom ${className ?? ""}`}
       data-testid="horse-portrait"
       data-still={still}
+      data-genetic={genetic ? "" : undefined}
       draggable={false}
     />
   );

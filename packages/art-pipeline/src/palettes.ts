@@ -310,8 +310,83 @@ export function coatPaletteOf(appearance: HorseAppearance): CoatPalette {
     p.muzzle = PINK_MUZZLE;
     if (!col.dun) p.eye = BLUE_EYE;
   }
+  if (col.champagne) p = champagneOf(p, col);
+  if (col.silver) p = silverOf(p, col);
+  if (col.pearl) p = pearlOf(p, col);
+  if (col.splash) p.eye = BLUE_EYE; // splash white: blue eyes
   p.texture = col.grey === "greying" ? "dapple" : col.roan ? "roan" : "none";
   return p;
+}
+
+// --- Genetics v2 colour genes (champagne, silver, pearl) ---------------------------------
+
+/** Champagne anchors by base (gold on red, amber on bay, sable on seal brown, classic on black). */
+const CHAMPAGNE_ANCHORS: Record<HorseColour["base"], CoatAnchor> = {
+  chestnut: { body: "#d6ad6e", shade: "#a8814a", highlight: "#ecd29e", mane: "#efdcb4", points: "#c79d62" },
+  liver: { body: "#b98f5c", shade: "#8a693f", highlight: "#d6b07e", mane: "#e2cca2", points: "#a87f4e" },
+  bay: { body: "#c99f66", shade: "#9a7446", highlight: "#e2c08c", mane: "#5e4130", points: "#6a4a34" },
+  seal_brown: { body: "#94704f", shade: "#694e37", highlight: "#b38f6e", mane: "#4d3628", points: "#4d3628" },
+  black: { body: "#8f7d73", shade: "#665750", highlight: "#b09f93", mane: "#4a3d38", points: "#4a3d38" },
+};
+/** Champagne skin: pink with darker freckles (the portrait freckles it), amber eyes. */
+export const CHAMPAGNE_SKIN = "#b88a7f";
+const AMBER_EYE = "#b5852f";
+/** Cream on champagne (ivory champagne, "gold cream" etc.) lightens toward ivory. */
+const IVORY = "#f2e6cc";
+
+function champagneOf(p: CoatPalette, col: HorseColour): CoatPalette {
+  const a = CHAMPAGNE_ANCHORS[col.base];
+  const lift = col.cream === 2 ? 0.55 : col.cream === 1 ? 0.3 : col.dun ? 0.12 : 0;
+  const tone = (hex: string) => (lift > 0 ? mixOklab(hex, IVORY, lift) : hex);
+  return {
+    ...p,
+    body: tone(a.body),
+    shade: tone(a.shade),
+    highlight: tone(a.highlight),
+    mane: lift > 0 ? mixOklab(a.mane, IVORY, lift * 0.6) : a.mane,
+    points: tone(a.points),
+    hoof: scaleLightness(a.points, 0.75, "#2a2320"),
+    muzzle: CHAMPAGNE_SKIN,
+    eye: AMBER_EYE,
+    ...(p.stripe ? { stripe: scaleLightness(a.points, 0.85) } : {}),
+  };
+}
+
+/** Silver turns black pigment chocolate and the mane flaxen-silver; red coats never show it. */
+const SILVER_MANE = "#d9cfc0";
+const SILVER_BODY: CoatAnchor = { body: "#5a3c2e", shade: "#3a261c", highlight: "#7e5a46", mane: SILVER_MANE, points: "#4a3226" };
+
+function silverOf(p: CoatPalette, col: HorseColour): CoatPalette {
+  const out = { ...p, mane: col.cream === 2 ? p.mane : SILVER_MANE };
+  if (col.base === "black" && !col.champagne) {
+    // silver dapple: the black body turns chocolate (lighter again under cream)
+    const t = col.cream > 0 ? 0.35 : 0;
+    out.body = mixOklab(SILVER_BODY.body, p.body, t);
+    out.shade = mixOklab(SILVER_BODY.shade, p.shade, t);
+    out.highlight = mixOklab(SILVER_BODY.highlight, p.highlight, t);
+  }
+  out.points = mixOklab(p.points, SILVER_BODY.points, 0.6);
+  return out;
+}
+
+/** Pearl: pale apricot (prl/prl); with cream a very pale coat and green-blue eyes. */
+const APRICOT = "#e8c49e";
+const PEARL_CREAM = "#f3e1c6";
+const PEARL_EYE = "#8fb09f";
+
+function pearlOf(p: CoatPalette, col: HorseColour): CoatPalette {
+  const to = col.cream > 0 ? PEARL_CREAM : APRICOT;
+  const t = col.cream > 0 ? 0.55 : 0.45;
+  return {
+    ...p,
+    body: mixOklab(p.body, to, t),
+    shade: mixOklab(p.shade, to, t * 0.85),
+    highlight: mixOklab(p.highlight, to, t),
+    mane: mixOklab(p.mane, to, t * 0.5),
+    points: mixOklab(p.points, to, t * 0.5),
+    muzzle: col.cream > 0 ? PINK_MUZZLE : p.muzzle,
+    eye: col.cream > 0 ? PEARL_EYE : p.eye,
+  };
 }
 
 export interface HorseColors extends CoatPalette {
