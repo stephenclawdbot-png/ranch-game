@@ -3667,6 +3667,478 @@
    "src": "scenes/stable-yard.png"
   },
   {
+   "id": "course.far-downs",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 158,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: rolling English chalk downland: smooth round grassy whale-backed hills, a huge white chalk horse figure cut into the turf on the side of the biggest hill, small beech copses on the hilltops, pale chalk tracks, sheep dots, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream | post: sky cut to alpha, mirror-tiled (seamless x)",
+   "optimizationTier": "background",
+   "src": "course/far-downs.png"
+  },
+  {
+   "id": "course.far-coast",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 111,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: the open sea seen from the shore: a calm blue-green sea filling the band to a perfectly straight flat horizon, a white lighthouse on a low grassy headland on the left, a distant sailing boat, a strip of golden sand dunes and saltmarsh creeks along the bottom edge, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream | post: hard cut at the sea horizon, mirror-tiled (seamless x)",
+   "optimizationTier": "background",
+   "src": "course/far-coast.png"
+  },
+  {
+   "id": "course.far-city",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 121,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: a distant city skyline: tall office towers, a grand domed cathedral, a Victorian clock tower, church spires, rows of rooftops and chimneys, two construction cranes, a few lit windows, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream | post: sky cut to alpha, mirror-tiled (seamless x)",
+   "optimizationTier": "background",
+   "src": "course/far-city.png"
+  },
+  {
+   "id": "course.far-meadow",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 113,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: gentle low English meadow hills covered in wildflowers: patches of red poppies, yellow buttercups and purple cornflowers, soft hedgerows, a white windmill with sails on a low rise, a thatched cottage, warm summer haze, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream | post: sky cut to alpha, mirror-tiled (seamless x)",
+   "optimizationTier": "background",
+   "src": "course/far-meadow.png"
+  },
+  {
+   "id": "course.far-moor",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 1376,
+   "frameHeight": 95,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "/generate-image-v2: bleak upland moorland: long sweeping purple and russet heather moors rising to jagged grey granite tors and rocky crags, a lonely stone farmhouse, dry-stone walls climbing the slopes, brooding, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream | post: sky cut to alpha, mirror-tiled (seamless x)",
+   "optimizationTier": "background",
+   "src": "course/far-moor.png"
+  },
+  {
+   "id": "course.mid-hawthorn",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 183,
+   "frameHeight": 187,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a single windswept hawthorn tree on the chalk downs, bent and leaning to the left by the wind, dense dark green crown, twisted grey trunk, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-hawthorn.png"
+  },
+  {
+   "id": "course.mid-gorse",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 116,
+   "frameHeight": 61,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a low round gorse bush covered in bright yellow flowers, spiky dark green, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-gorse.png"
+  },
+  {
+   "id": "course.mid-dunes",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 86,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a long low sand dune covered in tufts of pale green marram grass, golden sand, a few wooden fence posts, wide and low, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-dunes.png"
+  },
+  {
+   "id": "course.mid-huts",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 383,
+   "frameHeight": 117,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a row of five colourful wooden seaside beach huts with pitched roofs, pastel blue, yellow, red, mint and white stripes, standing on sand, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-huts.png"
+  },
+  {
+   "id": "course.mid-terrace",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 640,
+   "frameHeight": 256,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a long row of tall Victorian red brick city terrace houses and a corner pub with shop fronts, slate roofs, chimney pots, sash windows lit warm, flat front elevation, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-terrace.png"
+  },
+  {
+   "id": "course.mid-lamp",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 40,
+   "frameHeight": 160,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a single tall black cast iron Victorian street lamp post with a glowing lantern, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-lamp.png"
+  },
+  {
+   "id": "course.mid-willow",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 236,
+   "frameHeight": 224,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a single large weeping willow tree with long drooping pale green branches lit gold, thick trunk, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-willow.png"
+  },
+  {
+   "id": "course.mid-flowers",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 376,
+   "frameHeight": 96,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a long low strip of wildflower meadow seen from the side: tall grasses, red poppies, white ox-eye daisies, blue cornflowers and yellow buttercups, wide and low, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-flowers.png"
+  },
+  {
+   "id": "course.mid-wall",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 363,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a long straight dry-stone wall of stacked grey and brown flat stones with moss and a few tufts of grass, wide and low, no gate, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-wall.png"
+  },
+  {
+   "id": "course.mid-heather",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 244,
+   "frameHeight": 69,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a low wide clump of purple flowering heather and brown bracken on a mossy bank, wide and low, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-heather.png"
+  },
+  {
+   "id": "course.mid-rowan",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 164,
+   "frameHeight": 193,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "far",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a single small windswept moorland rowan tree leaning right, sparse crown with clusters of red berries, gnarled trunk growing from rocks, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/mid-rowan.png"
+  },
+  {
+   "id": "course.rail-boards",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 384,
+   "frameHeight": 48,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a long low row of plain racecourse trackside advertising boards on short legs, alternating racing green, cream, brass yellow and oxblood red panels with simple blank white stripes, no letters, no text, flat front elevation, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/rail-boards.png"
+  },
+  {
+   "id": "course.stand-downs",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 512,
+   "frameHeight": 256,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a small country racecourse grandstand: white painted weatherboard and flint walls, a green corrugated tin roof, one tier of wooden benches, a little weather vane, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/stand-downs.png"
+  },
+  {
+   "id": "course.stand-coast",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 604,
+   "frameHeight": 314,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: an Art Deco seaside racecourse grandstand: white rendered walls with sea-blue trim, curved streamline balconies, a flat roof with flagpoles and pennants, porthole windows, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/stand-coast.png"
+  },
+  {
+   "id": "course.stand-city",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 640,
+   "frameHeight": 320,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a big modern city racecourse grandstand of steel and glass: three tiers of seating under a sweeping white cantilever roof, glass-fronted hospitality boxes, a large blank video screen on the side, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/stand-city.png"
+  },
+  {
+   "id": "course.stand-meadow",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 640,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a summer country racecourse enclosure: a small thatched wooden pavilion with a veranda flanked by two striped cream and green marquee tents with bunting, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/stand-meadow.png"
+  },
+  {
+   "id": "course.stand-moor",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 640,
+   "frameHeight": 320,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "/generate-image-v2: a sturdy old northern racecourse grandstand built of dark grey millstone grit stone with a grey slate roof, arched openings, tall chimneys, a stone clock gable, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background | post: binary alpha, trimmed (bottom = ground line)",
+   "optimizationTier": "standard",
+   "src": "course/stand-moor.png"
+  },
+  {
    "id": "diorama.barn-floor",
    "kind": "track_layer",
    "origin": "pixellab",

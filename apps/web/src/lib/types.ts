@@ -63,6 +63,8 @@ export interface RaceCard {
   engineVersion: string;
   /** The stable that sponsored this race (its silks go on the racecard header). */
   sponsor?: RaceSponsorView;
+  /** Racecourse name (`conditions.track`; game-core `courseByName` maps it to its course). */
+  track?: string;
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */

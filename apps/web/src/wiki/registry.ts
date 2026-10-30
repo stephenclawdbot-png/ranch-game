@@ -53,6 +53,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "race-types", section: "racing", title: "Race types", summary: "Live races, quick races, Story chapters, scheduled cards, classes and sponsoring a race.", keywords: ["live", "quick", "story", "class", "maiden", "licence", "qualifier", "weekend feature", "plate", "sponsor"] },
   { slug: "entering-a-race", section: "racing", title: "Entering a race", summary: "The racecard, the entry bank, the paddock, choosing a tactic, race-day extras and jockeys.", keywords: ["enter", "racecard", "paddock", "tactic", "front", "closer", "extras", "jockey", "shoes", "physio", "vet check"] },
   { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify"] },
+  { slug: "racecourses", section: "racing", title: "Racecourses", summary: "The six courses: their shapes, way round, home straights, gradients, surfaces and scenery, with maps.", keywords: ["course", "track", "racecourse", "map", "left-handed", "right-handed", "straight", "uphill", "gradient", "ashcombe", "kestrel downs", "saltmarsh", "bellmont", "larkspur", "harrowgate"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands and the form figures on the card.", keywords: ["rating", "or", "form", "band"] },
 
   // Breeding & genetics

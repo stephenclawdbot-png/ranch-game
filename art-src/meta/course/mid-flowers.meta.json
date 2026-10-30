@@ -1,0 +1,8 @@
+{
+ "source": "course/raw/mid-flowers-0.png",
+ "anchor": {
+  "x": 0.5,
+  "y": 1
+ },
+ "post": "binary alpha, trimmed (bottom = ground line)"
+}

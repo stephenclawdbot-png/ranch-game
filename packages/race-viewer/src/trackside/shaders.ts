@@ -100,11 +100,17 @@ uniform float uStripes;
 uniform vec3 uFog;
 uniform float uHaze;
 uniform vec4 uTint;
+// Finish-gradient tilt of the track layer: undo it (about uPivot, buffer px, y down) so the
+// screen-space ground maths sees the level track.
+uniform vec2 uPivot;
+uniform vec2 uRotCS;
 varying vec2 vUv;
 ${GRADE}
 void main() {
-  float fx = gl_FragCoord.x;
-  float fy = uView.y - gl_FragCoord.y;
+  float sx = gl_FragCoord.x - uPivot.x;
+  float sy = (uView.y - gl_FragCoord.y) - uPivot.y;
+  float fx = uRotCS.x * sx + uRotCS.y * sy + uPivot.x;
+  float fy = -uRotCS.y * sx + uRotCS.x * sy + uPivot.y;
   float hz = uY0 - uPpm * uCamH;
   float ls = (fy - hz) / max(1e-3, uY0 - hz);
   if (ls <= 0.0) discard;

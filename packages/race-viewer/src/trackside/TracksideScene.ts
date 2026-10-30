@@ -33,15 +33,31 @@ import * as bake from "./bake";
 import { StallGate } from "./gate";
 import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldLayout, type SpriteMetrics } from "./layout";
 import { lookFor, type TracksideLook } from "./looks";
+import { finishTilt, sceneryFor, type SceneryRecipe } from "./scenery";
 import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "./strips";
 import * as S from "./shaders";
 import type { RaceReplay } from "@thoroughbred/shared";
+import type { CourseInfo } from "../course/geometry";
 
 export interface TracksideOptions {
   quality: RenderQuality;
   highlightHorseId?: string;
   art: ArtSet;
+  /** The racecourse: its scenery set and finish gradient. Omitted: today's look, flat. */
+  course?: CourseInfo | null;
 }
+
+/**
+ * Grandstand: anchored this many metres past the winning post (negative = it faces the
+ * run-in), its feet this far above the rail line (art px), and its parallax. It slides a
+ * little slower than the midground it stands in front of, so it stays in view for the last
+ * hundred metres or so instead of flashing past (the midground is blurred; the cheat reads).
+ */
+const STAND_PAST_POST_M = -20;
+const STAND_LIFT = 26;
+const STAND_DEPTH = 0.16;
+/** Track layers drawn wider/taller than the stage while tilted, so no corner shows through. */
+const TILT_MARGIN = 0.12;
 
 const PULLUP_TAU = 2.6;
 const NEAR_RAIL_LANE = -1.6;
@@ -55,6 +71,7 @@ const O = {
   hills: 3,
   field: 4,
   trees: 5,
+  stand: 5.5,
   ground: 6,
   railFar: 7,
   props: 8,
@@ -170,6 +187,15 @@ export class TracksideScene {
   private vig!: THREE.Mesh;
   private flash!: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial };
   private dust: { pts: THREE.Points; pos: Float32Array; size: Float32Array; col: Float32Array; soft: Float32Array; state: Float32Array; n: number; geo: THREE.BufferGeometry };
+  // course
+  private course: CourseInfo | null;
+  private recipe: SceneryRecipe | null;
+  private stand: { mesh: THREE.Mesh; w: number; h: number; pad: number } | null = null;
+  /** Everything on the track (ground, rails, posts, stalls, runners, dust) tilts as one for a finish gradient. */
+  private trackLayer: THREE.Object3D;
+  /** Where new quads go (the scene, or the tilting track layer while it is being built). */
+  private into: THREE.Object3D | null = null;
+  private tilt = 0;
   private motes: { pts: THREE.Points; pos: Float32Array; size: Float32Array; col: Float32Array; soft: Float32Array; state: Float32Array; geo: THREE.BufferGeometry } | null = null;
   private rain: { lines: THREE.LineSegments; pos: Float32Array; alpha: Float32Array; state: Float32Array; geo: THREE.BufferGeometry } | null = null;
 
@@ -180,7 +206,7 @@ export class TracksideScene {
 
   /** Loads the Trackside art; rejects when the keyed horse strip is unavailable. */
   static async create(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions): Promise<TracksideScene> {
-    const art = await loadTracksideArt(opts.art);
+    const art = await loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery));
     if (!art) throw new Error("Trackside art unavailable");
     return new TracksideScene(T, data, opts, art);
   }
@@ -190,6 +216,8 @@ export class TracksideScene {
     this.data = data;
     this.art = art;
     this.quality = opts.quality;
+    this.course = opts.course ?? null;
+    this.recipe = sceneryFor(this.course?.scenery);
     this.sampler = createReplaySampler(data);
     this.L = data.trackLengthMm / 1000;
     this.railLane = Math.max(8, data.laneCount, data.horses.length) + 0.8;
@@ -220,6 +248,10 @@ export class TracksideScene {
     const geo = new T.PlaneGeometry(1, 1);
     geo.translate(0.5, 0.5, 0);
     this.geo = this.own(geo);
+    // A plain Object3D (not a Group): its children keep sorting by their own renderOrder.
+    this.trackLayer = new T.Object3D();
+    this.trackLayer.matrixAutoUpdate = false;
+    this.scene.add(this.trackLayer);
 
     this.lut = this.dataTex(buildLut(art.palette, art.keys, data.horses.map((h) => h.appearance)), LUT_W, Math.max(1, data.horses.length), T.RGBAFormat);
     for (const st of [art.gallop, art.idle]) {
@@ -231,6 +263,7 @@ export class TracksideScene {
       this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
     }
     this.buildBackdrop();
+    this.into = this.trackLayer;
     this.buildGround();
     this.buildProps();
     // Starting stalls: one bay per runner lane, world-anchored at the start line.
@@ -244,9 +277,10 @@ export class TracksideScene {
       place: (m, x, y, w, h) => this.place(m, x, y, w, h),
     });
     this.buildRunners();
-    this.buildFx();
     const dust = this.points(DUST_MAX, false, O.dust);
     this.dust = { ...dust, state: new Float32Array(DUST_MAX * 8), n: 0 };
+    this.into = null;
+    this.buildFx();
   }
 
   // -------------------------------------------------------------------------- building
@@ -333,7 +367,7 @@ export class TracksideScene {
     const mesh = new this.T.Mesh(this.geo, m);
     mesh.renderOrder = order;
     mesh.frustumCulled = false;
-    this.scene.add(mesh);
+    (this.into ?? this.scene).add(mesh);
     return mesh;
   }
 
@@ -363,7 +397,7 @@ export class TracksideScene {
     const pts = new T.Points(geo, m);
     pts.frustumCulled = false;
     pts.renderOrder = order;
-    this.scene.add(pts);
+    (this.into ?? this.scene).add(pts);
     return { pts, pos, size, col, soft, geo };
   }
 
@@ -379,12 +413,23 @@ export class TracksideScene {
     if (look.sun) {
       this.sun = this.quad(this.bandMat(this.canvasTex(bake.glow(look.sun.color)), 128, 128, { additive: true, opacity: look.sun.alpha }), O.sun);
     }
-    const hills = bake.bakeHills(img, look);
+    // Course scenery (scenery.ts): far panorama, midground, field colours, rail decor and a
+    // grandstand at the post. No known course: the original set, no stand.
+    const rc = this.recipe;
+    const course = this.art.course;
+    const far = rc?.far ? course.get(rc.far) : null;
+    const hills = bake.bakeHills(img, look, far);
     if (hills) this.addBand(hills, 0.08, O.hills, "backdrop");
-    this.field = this.quad(this.bandMat(this.canvasTex(bake.bakeField(look)), 4, 64), O.field);
-    const trees = bake.bakeTrees(img, look);
+    this.field = this.quad(this.bandMat(this.canvasTex(bake.bakeField(look, rc?.field)), 4, 64), O.field);
+    const trees = (rc ? bake.bakeMid(course, rc, look) : null) ?? bake.bakeTrees(img, look);
     if (trees) this.addBand(trees, 0.3, O.trees, "backdrop");
-    const railFar = bake.bakeRailFar(img, look);
+    const standImg = rc ? course.get(rc.stand) : undefined;
+    if (standImg) {
+      const s = bake.bakeStand(standImg, look);
+      const mat = this.bandMat(this.canvasTex(s.canvas, { mip: true }), s.canvas.width, s.canvas.height);
+      this.stand = { mesh: this.quad(mat, O.stand), w: s.canvas.width, h: s.canvas.height, pad: s.pad };
+    }
+    const railFar = bake.bakeRailFar(img, look, rc, course);
     if (railFar) this.addBand(railFar, 1, O.railFar, "railFar");
     const railNear = bake.bakeRailNear(img);
     if (railNear) this.addBand(railNear, 1, O.railNear, "railNear");
@@ -394,7 +439,10 @@ export class TracksideScene {
     const sharp = kind === "railFar";
     const tex = this.canvasTex(layer.canvas, { repeatX: true, mip: kind !== "backdrop" });
     const mat = this.bandMat(tex, layer.canvas.width, layer.canvas.height, { sharp });
+    // Rails belong to the track: they tilt with it on a sloping finish.
+    if (kind !== "backdrop") this.into = this.trackLayer;
     this.bands.push({ mesh: this.quad(mat, order), mat, layer, depth, off: 0, kind });
+    this.into = null;
   }
 
   private buildGround(): void {
@@ -432,6 +480,8 @@ export class TracksideScene {
       uFog: { value: new T.Vector3(fog[0], fog[1], fog[2]) },
       uHaze: { value: 0.5 * this.look.hazeMul },
       uTint: { value: new T.Vector4(tc[0], tc[1], tc[2], tint[1] as number) },
+      uPivot: { value: new T.Vector2(0, 0) },
+      uRotCS: { value: new T.Vector2(1, 0) },
     });
     this.ground = { mesh: this.quad(mat, O.ground), mat };
   }
@@ -716,6 +766,7 @@ export class TracksideScene {
     this.camSpeed += (Math.abs(v) - this.camSpeed) * (snap ? 1 : 1 - Math.exp(-realDt * 8));
     this.firstFrame = false;
 
+    this.applyTilt(lay);
     this.drawBackdrop(lay, dcx, realDt, f.frozen);
     this.drawGround(lay);
     this.drawProps(lay);
@@ -724,6 +775,41 @@ export class TracksideScene {
     this.drawFx(lay, realDt, f.frozen, f.flash);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /**
+   * Finish gradient (Harrowgate's uphill run-in, Larkspur's gentle drop): once the camera is
+   * on the final stretch the whole track layer (ground, rails, posts, runners, dust) tilts
+   * against the level backdrop, so the field is seen climbing (or running down) the hill.
+   */
+  private applyTilt(lay: FieldLayout) {
+    const c = this.course;
+    let tilt = 0;
+    if (c && c.finishGradientPermille !== 0) {
+      const foot = this.L - Math.min(this.L, c.homeStraightM);
+      tilt = finishTilt(c.finishGradientPermille, (lay.cx - foot + 40) / 90);
+    }
+    this.tilt = tilt;
+    const B = this.B;
+    const px = (this.W / 2) * B;
+    const py = laneY(lay, this.railLane * 0.5) * B;
+    const m = this.trackLayer.matrix;
+    if (tilt === 0) m.identity();
+    else {
+      // p' = R(-tilt) (p - pivot) + pivot   (y down: a negative angle lifts the right side)
+      const cs = Math.cos(-tilt);
+      const sn = Math.sin(-tilt);
+      m.set(cs, -sn, 0, px - cs * px + sn * py, sn, cs, 0, py - sn * px - cs * py, 0, 0, 1, 0, 0, 0, 0, 1);
+    }
+    this.trackLayer.matrixWorldNeedsUpdate = true;
+    const u = this.ground.mat.uniforms;
+    (u.uPivot!.value as THREE.Vector2).set(px, py);
+    (u.uRotCS!.value as THREE.Vector2).set(Math.cos(-tilt), Math.sin(-tilt));
+  }
+
+  /** Extra width (CSS px, each side) the track layers draw while tilted. */
+  private tiltMargin(): number {
+    return this.tilt === 0 ? 0 : Math.ceil(this.W * TILT_MARGIN + Math.abs(Math.sin(this.tilt)) * this.H);
   }
 
   private setUv(m: THREE.ShaderMaterial, u0: number, v0: number, du: number, dv: number) {
@@ -784,13 +870,26 @@ export class TracksideScene {
           top = Math.max(lay.y0 + 0.1 * lay.ppm, maxFeet + 3) * B;
         }
         // The near rail runs on to the bottom of the frame (its blurred grass row repeats).
-        const hh = b.kind === "railNear" ? Math.max(h * kr, this.H * B - top) : h * kr;
-        this.place(b.mesh, 0, top, Wb, hh);
-        this.setUv(b.mat, centre / P - Wb / 2 / (kr * P), 0, Wb / (kr * P), hh / (h * kr));
+        const mx = this.tiltMargin() * B;
+        const hh = b.kind === "railNear" ? Math.max(h * kr, this.H * B - top + mx) : h * kr;
+        this.place(b.mesh, -mx, top, Wb + mx * 2, hh);
+        this.setUv(b.mat, centre / P - (Wb / 2 + mx) / (kr * P), 0, (Wb + mx * 2) / (kr * P), hh / (h * kr));
         b.mat.uniforms.uBlur!.value = blurM * SRC_PX_PER_M;
       }
     }
-    if (this.field) this.place(this.field, 0, railY - 40 * k, Wb, 40 * k + 2 * B);
+    // The field strip reaches under a tilted far rail too (its low end drops below the line).
+    const drop = Math.abs(Math.sin(this.tilt)) * Wb * 0.6;
+    if (this.field) this.place(this.field, 0, railY - 40 * k, Wb, 40 * k + 2 * B + drop);
+    if (this.stand) {
+      // World-anchored by the post (STAND_DEPTH parallax).
+      const s = this.stand;
+      const sx = (this.W / 2 + (this.L + STAND_PAST_POST_M - lay.cx) * lay.ppm * STAND_DEPTH) * B;
+      const w = s.w * k;
+      const h = s.h * k;
+      const x = sx - w / 2;
+      if (x > Wb || x + w < 0) s.mesh.visible = false;
+      else this.place(s.mesh, Math.round(x), Math.round(railY - (STAND_LIFT - s.pad) * k - h), Math.round(w), Math.round(h));
+    }
     // light shafts from the sun
     this.rays.forEach((r, i) => {
       const size = 1040 * k;
@@ -804,7 +903,8 @@ export class TracksideScene {
     const B = this.B;
     const u = this.ground.mat.uniforms;
     const railY = laneY(lay, this.railLane) * B;
-    this.place(this.ground.mesh, 0, railY - 2 * B, this.W * B, this.H * B - railY + 2 * B);
+    const mx = this.tiltMargin() * B;
+    this.place(this.ground.mesh, -mx, railY - 2 * B, this.W * B + mx * 2, this.H * B - railY + 2 * B + mx);
     (u.uView!.value as THREE.Vector2).set(this.W * B, this.H * B);
     u.uY0!.value = lay.y0 * B;
     u.uPpm!.value = lay.ppm * B;

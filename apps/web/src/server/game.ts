@@ -444,6 +444,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     maxRunners: race.maxRunners,
     engineVersion: replay?.engineVersion ?? fieldEngineVersion(field),
     sponsor: await sponsorFor(db, race, viewerStableId),
+    track: raceConds(race).track,
   };
 }
 
