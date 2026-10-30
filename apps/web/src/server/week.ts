@@ -5,7 +5,7 @@
  * the Feature, and the stable's League standing with the gap to the promotion line.
  */
 import * as gc from "@thoroughbred/game-core";
-import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, stableCalendarRuns, startsOnDay, type Db } from "@thoroughbred/db";
+import { CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, settleUpkeep, stableCalendarRuns, startsOnDay, upkeepThisWeek, type Db } from "@thoroughbred/db";
 import { conditionRating, lossGrade } from "@/lib/aptitude";
 import type { WeekView } from "@/lib/competitionTypes";
 import { horseFromRow, parseSilks } from "./horseView";
@@ -24,6 +24,8 @@ function weekStartMs(nowMs: number): number {
 }
 
 export async function weekView(db: Db, session: Session, now: Date): Promise<WeekView> {
+  // last week's upkeep is charged lazily on the first look at the new week (idempotent)
+  await settleUpkeep(db, now, { stableId: session.stable.id }).catch((e) => console.error("[upkeep] settle failed", e));
   const nowMs = now.getTime();
   const from = weekStartMs(nowMs);
   const to = from + 7 * DAY;
@@ -115,6 +117,7 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
     licenceNeeded: gc.licenceDef(gc.licenceForTier("g1", true)).name,
     horses,
     league,
+    upkeep: await upkeepThisWeek(db, session.stable.id, now),
     headline,
   };
 }

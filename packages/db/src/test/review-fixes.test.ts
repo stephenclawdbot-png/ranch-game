@@ -10,6 +10,8 @@ import { RULES } from "../rules";
 import { dailyCupEntries, horses, inboxItems } from "../schema";
 import { runCupEntry, settleCupDays } from "../services/dailyCup";
 import { economyHealth } from "../services/health";
+import { settleUpkeep } from "../services/upkeep";
+import { getBalance } from "../services/ledger";
 import { breed, foal } from "../services/breeding";
 import { CALENDAR_PURSE, CARD_ENTRY_FEE_PERMILLE, PLATE_AFTER_SLOTS, defaultCardSlot, plateSlotAt, specialSlotAt } from "../services/card";
 import { runPoints } from "../services/leagues";
@@ -199,5 +201,33 @@ describe("economy health (admin)", () => {
     expect(hh.playerBalances).toBeGreaterThan(0);
     expect(hh.horses.born).toBeGreaterThan(0);
     expect(hh.week.weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("weekly upkeep", () => {
+  it("charges only horses used last week, once, never below zero, with an inbox note", async () => {
+    const p = await newPlayer(h.db, { credits: 5_000 });
+    const used = await makeHorse(h.db, p.stableId);
+    const idle = await makeHorse(h.db, p.stableId);
+    const race = await createRace(h.db, { kind: "scheduled", name: "Upkeep race", raceClass: "maiden", conditions: {}, postTime: at(10 * MIN), entriesCloseAt: at(9 * MIN) });
+    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: used.id, tactic: "front", now: T0 });
+    const before = await getBalance(h.db, p.accountId);
+    const nextWeek = at(8 * DAY);
+    const first = await settleUpkeep(h.db, nextWeek, { stableId: p.stableId });
+    expect(first).toEqual([expect.objectContaining({ horses: 1, due: gc.UPKEEP_RACING_PER_WEEK, charged: gc.UPKEEP_RACING_PER_WEEK })]);
+    expect(await getBalance(h.db, p.accountId)).toBe(before - gc.UPKEEP_RACING_PER_WEEK);
+    expect(await settleUpkeep(h.db, nextWeek, { stableId: p.stableId })).toEqual([]); // once
+    const [note] = await h.db.select().from(inboxItems).where(eq(inboxItems.kind, "upkeep"));
+    expect(note!.title).toMatch(/1 horse/);
+    expect(idle.id).not.toBe(used.id);
+
+    // a broke stable: charged what it has, the rest waived
+    const q = await newPlayer(h.db, { credits: 100 });
+    const hq = await makeHorse(h.db, q.stableId);
+    const race2 = await createRace(h.db, { kind: "scheduled", name: "Upkeep race 2", raceClass: "maiden", conditions: {}, postTime: at(20 * MIN), entriesCloseAt: at(19 * MIN) });
+    await enterRace(h.db, { accountId: q.accountId, raceId: race2.id, horseId: hq.id, tactic: "front", now: T0 });
+    const [c] = await settleUpkeep(h.db, nextWeek, { stableId: q.stableId });
+    expect(c!.charged).toBeLessThan(c!.due);
+    expect(await getBalance(h.db, q.accountId)).toBe(0);
   });
 });

@@ -124,6 +124,12 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
         )}
       </section>
 
+      <p className="caption" data-testid="week-upkeep">
+        {view.upkeep.horses > 0
+          ? `Upkeep this week so far: ${formatCredits(view.upkeep.due)} cr for ${view.upkeep.horses} ${view.upkeep.horses === 1 ? "horse" : "horses"} you used (charged after Sunday; horses you leave alone are free).`
+          : "No upkeep this week yet: you pay only for horses you race, train or breed."}
+      </p>
+
       {view.league && (
         <section className="surface grid gap-1 p-4" aria-labelledby="l-h" data-testid="week-league">
           <h2 id="l-h" className="t-h2">

@@ -295,6 +295,8 @@ export interface WeekView {
     canRaceToday: boolean;
   }[];
   league: { tierName: string; rank: number; of: number; points: number; promoteLine: number | null; gapToPromotion: number | null; floor: boolean } | null;
+  /** Upkeep for the horses used so far this week (charged after the week ends; unused horses are free). */
+  upkeep: { horses: number; due: number };
   /** One plain-English line: what to do next. */
   headline: string;
 }

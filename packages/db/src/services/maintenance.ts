@@ -6,6 +6,7 @@
  *   - completes due pregnancies (the foal always arrives);
  *   - expires market listings (returning the horse to its owner).
  */
+import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
 import { horses } from "../schema";
 import {type GameHooks } from "../rules";
@@ -40,5 +41,6 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
     if (!r.alreadyFoaled) foaled.push(r.foalId);
   }
   const listingsExpired = await expireListings(db, now);
+  await settleUpkeep(db, now);
   return { healed, foaled, listingsExpired };
 }

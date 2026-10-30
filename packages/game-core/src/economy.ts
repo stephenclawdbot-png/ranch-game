@@ -54,6 +54,20 @@ export const ENTRY_FEE_BY_TIER: Record<RaceTier, number> = {
   daily_cup: 0,
 };
 
+/**
+ * Weekly upkeep (beta sink, owner pick 2026-10-30): charged once a week, after the week ends,
+ * only for horses the stable actually used that week (raced, trained or bred), so being away
+ * costs nothing. Never runs a balance negative: what can't be paid is waived. Values tuned with
+ * the season harness (target: 85-115 credits spent per 100 earned).
+ */
+export const UPKEEP_RACING_PER_WEEK = 250;
+export const UPKEEP_STUD_PER_WEEK = 150;
+
+/** Upkeep for one used horse: racing horses (in training) and horses at stud / broodmares. */
+export function upkeepFor(careerStatus: "racing" | "retired" | "pasture"): number {
+  return careerStatus === "racing" ? UPKEEP_RACING_PER_WEEK : careerStatus === "retired" ? UPKEEP_STUD_PER_WEEK : 0;
+}
+
 /** Three daily goals; credits per completed goal. Goals never "break" a streak. */
 export const DAILY_GOAL_CREDITS = 60;
 export const DAILY_GOALS_PER_DAY = 3;
