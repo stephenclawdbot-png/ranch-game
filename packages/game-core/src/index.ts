@@ -35,3 +35,4 @@ export * from "./usdgMarket";
 export * from "./leasing";
 export * from "./stablePhoto";
 export * from "./meetings";
+export * from "./courses";
