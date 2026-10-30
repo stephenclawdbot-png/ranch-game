@@ -34,7 +34,7 @@ import { accountIdOfStable, areLinked, assertStallFree, lockStable, stableOf } f
 import { verifiedWalletOf } from "./betaMoney";
 import { BREED_BLOCK_CODES, coverTx, pedigreeIndex } from "./breeding";
 import { breedingStateOf } from "./economyViews";
-import { lockOwnedHorse } from "./horses";
+import { lockOwnedHorse, withdrawLeaseOffersTx } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 import { fulfilUsdgOrder, getUsdgOrder, isUsdgRegistered, releaseStudBooking, usdgOrderIsLive, usdgPolicy, type UsdgChainRef, type UsdgFulfilResult } from "./usdgMarket";
@@ -68,6 +68,7 @@ export async function setUsdgStudFee(db: Db, input: { accountId: string; horseId
     if (block === "below_min") throw new DomainError("PRICE_BELOW_FLOOR", `The lowest USDG stud fee is ${gc.formatUsdgDollars(policy.studFeeMin)}.`, { floor: policy.studFeeMin });
     if (block === "above_max") throw new DomainError("PRICE_ABOVE_CEILING", `The highest USDG stud fee is ${gc.formatUsdgDollars(policy.studFeeMax)}.`, { ceiling: policy.studFeeMax });
     await tx.update(horses).set({ studFeeUsdg: input.fee, studFee: null, updatedAt: input.now }).where(eq(horses.id, horse.id));
+    await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await audit(tx, { actor: input.accountId, action: "usdg.stud_fee", entityType: "horse", entityId: horse.id, data: { fee: input.fee } });
   });
 }

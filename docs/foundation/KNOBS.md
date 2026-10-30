@@ -471,7 +471,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 |---|---|---|---|---|
 | Appraisal base | 400 + (mean revealed potential − 300)² / 12 | packages/game-core/src/economy.ts:137 | Value from revealed ranges (midpoints), never the hidden genotype. | Market prices, insurance |
 | Stage factor | foal 70%, weanling 75%, yearling 85%, juvenile/prime 100%, veteran 75%, stud 60%, pasture 10% | packages/game-core/src/economy.ts:139 | Stage discount. | Market prices |
-| Appraisal adders | +150 per breeding left, +120 per win, + earnings/10, + peak OR × 15; min 100 | packages/game-core/src/economy.ts:142 | Record and breeding value. Earnings come from live purses (3x the model). | Market prices, insurance premium/payout |
+| Appraisal adders | +150 per breeding left, +120 per win, + earnings/10, + peak OR × 15; min 100 | packages/game-core/src/economy.ts:142 | Record and breeding value. Earnings come from live purses (about 1.7x the model since the 2026-10-29 halving). | Market prices, insurance premium/payout |
 | `LISTING_FLOOR_PERMILLE` | 700 (70% of appraisal) | packages/game-core/src/economy.ts:74 | Lowest list price. | Market prices |
 | `LISTING_CEILING_PERMILLE` | 3000 (3× appraisal) | packages/game-core/src/economy.ts:76 | Highest list price (anti credit-transfer). | Market prices, RMT risk |
 | `MARKET_FEE_PERMILLE` | 50 (5% burned) | packages/game-core/src/economy.ts:73 | Fee on each sale. | Credit sink |
@@ -672,7 +672,9 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 
 ## Live vs model mismatches
 
-1. **Purses: live is about 3x the model.** The live card is built by `defaultCardSlot`
+1. **Purses: live was about 3x the model; halved on 2026-10-29, now about 1.7x** (maiden
+   1,000 vs 600; Qualifier 8,000, Weekend Feature 24,000, Final 36,000). The figures below are
+   from before the halving and are kept for the record. The live card is built by `defaultCardSlot`
    (packages/db/src/services/card.ts) because the web hooks pass no `cardSlot`
    (`raceHooks`, apps/web/src/server/game.ts:109; `tickRaceCard` at :244). Settlement pays
    `race.purse` (packages/db/src/services/races.ts:595). Live vs `PURSE_BY_TIER`:

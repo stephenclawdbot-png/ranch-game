@@ -80,10 +80,11 @@ export async function settleUpkeep(db: Db, now: Date, opts: { weeks?: number; st
           .select({ id: horses.id, name: horses.name, careerStatus: horses.careerStatus, owner: horses.ownerStableId, lessee: horses.lesseeStableId })
           .from(horses)
           .where(inArray(horses.id, [...ids]));
-        // only horses still in this stable pay (a horse sold since is the buyer's from now on),
-        // or horses it held on lease that week (the lessee used them, the lessee pays)
+        // only horses this stable still owns or keeps pay (a horse sold since is the buyer's from
+        // now on); an owner pays for a horse it used before leasing it out, a lessee for a horse it
+        // held on lease that week
         const leasedIn = await leasedDuring(tx, stableId, from, to);
-        const paying = rows.filter((h) => (keeps(h, stableId) || leasedIn.has(h.id)) && gc.upkeepFor(h.careerStatus) > 0);
+        const paying = rows.filter((h) => (ownsOrKeeps(h, stableId) || leasedIn.has(h.id)) && gc.upkeepFor(h.careerStatus) > 0);
         const due = paying.reduce((s, h) => s + gc.upkeepFor(h.careerStatus), 0);
         const charged = Math.min(due, Math.max(0, await getBalance(tx, stable.accountId)));
         if (charged > 0) await spendCreditsTx(tx, { accountId: stable.accountId, amount: charged, idempotencyKey: key, kind: "upkeep", memo: `Weekly upkeep, ${paying.length} horses` });
@@ -114,14 +115,14 @@ export async function upkeepThisWeek(db: Db, stableId: string, now: Date): Promi
   const leasedIn = await leasedDuring(db, stableId, from, now);
   const rows = (
     await db.select({ id: horses.id, careerStatus: horses.careerStatus, owner: horses.ownerStableId, lessee: horses.lesseeStableId }).from(horses).where(inArray(horses.id, [...used]))
-  ).filter((h) => keeps(h, stableId) || leasedIn.has(h.id));
+  ).filter((h) => ownsOrKeeps(h, stableId) || leasedIn.has(h.id));
   return { horses: rows.filter((h) => gc.upkeepFor(h.careerStatus) > 0).length, due: rows.reduce((s, h) => s + gc.upkeepFor(h.careerStatus), 0) };
 }
 
 
-/** The stable keeps this horse now: owns it and it is at home, or holds it on lease. */
-function keeps(h: { owner: string | null; lessee: string | null }, stableId: string): boolean {
-  return h.lessee === stableId || (h.owner === stableId && h.lessee === null);
+/** The stable owns this horse (at home or away on lease) or holds it on lease now. */
+function ownsOrKeeps(h: { owner: string | null; lessee: string | null }, stableId: string): boolean {
+  return h.owner === stableId || h.lessee === stableId;
 }
 
 /** Horses this stable held on lease at some point in [from, to). */

@@ -40,6 +40,7 @@ import { accounts, fraudEvents, horseLeaseListings, horseLeases, horses, inboxIt
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStableOf, stableOf } from "./accounts";
 import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
+import { studHoldsOf } from "./usdgMarket";
 import { LIVE_RACE_KINDS, weekBounds } from "./leagues";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, rowsOf, runTx } from "./tx";
@@ -181,6 +182,8 @@ export async function leaseHorseBlock(ex: Executor, h: HorseRow, ownerStableId: 
   if (h.lockKind === "race") return { block: "in_race" };
   if (h.lockKind === "market") return { block: "listed" };
   if (h.lockKind === "stud") return { block: "booked" };
+  // a stallion with live USDG stud bookings: a mare owner may already be paying for the covering
+  if (h.sex === "male" && (await studHoldsOf(ex, h.id, now)) > 0) return { block: "booked" };
   if (h.studFee !== null || h.studFeeUsdg !== null) return { block: "at_stud" };
   if (h.injuredUntil && h.injuredUntil > now) return { block: "injured" };
   if (h.sex === "female" && (await isCarrying(ex, h.id))) return { block: "in_foal" };
@@ -367,14 +370,18 @@ export interface TakeLeaseResult {
 
 /**
  * Takes a lease. Idempotent (the same stable taking the same offer again gets its lease back) and
- * first come first served (the offer row lock). Lock order: offer -> lessee stable -> horse.
+ * first come first served (the offer row lock). Lock order: lessee stable -> horse -> offer, the
+ * same horse-before-offer order as retire / Legacy Farm / release (withdrawLeaseOffersTx).
  * A refused linked-account lease still records its fraud event (committed), then throws.
  */
 export async function takeLease(db: Db, input: { accountId: string; listingId: string; now: Date }): Promise<TakeLeaseResult> {
   const outcome = await runTx(db, async (tx): Promise<TakeLeaseResult | DomainError> => {
+    const [peek] = await tx.select({ horseId: horseLeaseListings.horseId }).from(horseLeaseListings).where(eq(horseLeaseListings.id, input.listingId));
+    if (!peek) throw new DomainError("NOT_FOUND", "lease offer not found");
+    const lesseeStable = await lockStableOf(tx, input.accountId);
+    const horse = await lockHorse(tx, peek.horseId);
     const [listing] = await tx.select().from(horseLeaseListings).where(eq(horseLeaseListings.id, input.listingId)).for("update");
     if (!listing) throw new DomainError("NOT_FOUND", "lease offer not found");
-    const lesseeStable = await lockStableOf(tx, input.accountId);
     if (listing.status === "sold" && listing.leaseId) {
       const [mine] = await tx.select().from(horseLeases).where(eq(horseLeases.id, listing.leaseId));
       if (mine && mine.lesseeStableId === lesseeStable.id) return { lease: mine, duplicate: true };
@@ -402,7 +409,6 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
       }
     }
     await assertStallFree(tx, lesseeStable);
-    const horse = await lockHorse(tx, listing.horseId);
     const block = await leaseHorseBlock(tx, horse, listing.ownerStableId, input.now);
     if (block) {
       // Entered in a race at home: try again after it runs. Anything else: the offer is void.
@@ -554,6 +560,10 @@ export async function endLeaseTx(tx: Executor, lease: HorseLeaseRow, reason: Lea
  */
 export async function returnLease(db: Db, input: { accountId: string; leaseId: string; now: Date }): Promise<{ ended: boolean; pending: boolean }> {
   return runTx(db, async (tx) => {
+    // lock order horse -> lease, as in enterRace and settleRace
+    const [peek] = await tx.select({ horseId: horseLeases.horseId }).from(horseLeases).where(eq(horseLeases.id, input.leaseId));
+    if (!peek) throw new DomainError("NOT_FOUND", "lease not found");
+    const horse = await lockHorse(tx, peek.horseId);
     const [lease] = await tx.select().from(horseLeases).where(eq(horseLeases.id, input.leaseId)).for("update");
     if (!lease) throw new DomainError("NOT_FOUND", "lease not found");
     const stable = await stableOf(tx, input.accountId);
@@ -561,7 +571,6 @@ export async function returnLease(db: Db, input: { accountId: string; leaseId: s
       throw new DomainError("NOT_OWNER", lease.ownerStableId === stable.id ? "only the lessee can end a lease early: the horse comes home at the end of the term" : "not your lease");
     }
     if (lease.status !== "active") return { ended: true, pending: false };
-    const horse = await lockHorse(tx, lease.horseId);
     if (horse.lockKind === "race") {
       if (!lease.endRequestedAt) await tx.update(horseLeases).set({ endRequestedAt: input.now }).where(eq(horseLeases.id, lease.id));
       return { ended: false, pending: true };
@@ -636,6 +645,17 @@ export async function leasedEntryCheckTx(
     .where(eq(horseLeases.id, lease.id));
 }
 
+/**
+ * A lessee using a leased horse outside a race entry (the Daily Cup): refused once the horse has
+ * been handed back or the term is over, even before the sweep has sent it home.
+ */
+export async function assertLeaseInForceTx(tx: Executor, horseId: string, now: Date): Promise<void> {
+  const lease = await lockActiveLeaseOfHorse(tx, horseId);
+  if (!lease) return;
+  if (lease.endRequestedAt) throw new DomainError("NOT_ELIGIBLE", "you have handed this horse back: it goes home after its race");
+  if (lease.endsAt <= now) throw new DomainError("NOT_ELIGIBLE", "this lease is over: the horse is going home");
+}
+
 export interface LeasedRunner {
   lease: HorseLeaseRow;
   ownerAccountId: string;
@@ -647,6 +667,11 @@ export async function leasedRunnersTx(tx: Executor, entries: { horseId: string; 
   const ids = entries.filter((e) => e.stableId).map((e) => e.horseId);
   const out = new Map<string, LeasedRunner>();
   if (!ids.length) return out;
+  // lock order horse -> lease (enterRace, returnLease and the sweep take them in that order)
+  const leasedIds = (await tx.select({ horseId: horseLeases.horseId }).from(horseLeases).where(and(inArray(horseLeases.horseId, ids), eq(horseLeases.status, "active"))))
+    .map((r) => r.horseId)
+    .sort();
+  for (const id of leasedIds) await lockHorse(tx, id);
   const leases = await tx
     .select()
     .from(horseLeases)
@@ -739,7 +764,7 @@ export async function sweepLeases(db: Db, now: Date): Promise<LeaseSweep> {
     .where(and(eq(horseLeaseListings.status, "active"), lte(horseLeaseListings.expiresAt, now)))
     .returning({ id: horseLeaseListings.id });
   const due = await db
-    .select({ id: horseLeases.id })
+    .select({ id: horseLeases.id, horseId: horseLeases.horseId })
     .from(horseLeases)
     .innerJoin(horses, eq(horses.id, horseLeases.horseId))
     .where(
@@ -752,9 +777,9 @@ export async function sweepLeases(db: Db, now: Date): Promise<LeaseSweep> {
   let ended = 0;
   for (const d of due) {
     const done = await runTx(db, async (tx) => {
+      const horse = await lockHorse(tx, d.horseId);
       const [lease] = await tx.select().from(horseLeases).where(eq(horseLeases.id, d.id)).for("update");
       if (!lease || lease.status !== "active") return false;
-      const horse = await lockHorse(tx, lease.horseId);
       if (horse.lockKind === "race") return false;
       const reason: LeaseEndReason = horse.careerStatus !== "racing" ? "retired" : lease.endRequestedAt ? "returned" : "term";
       if (reason === "term" && lease.endsAt > now) return false;

@@ -167,9 +167,11 @@ settlement (the runner's share of the race's `purse` transaction moves there). U
 leased horse is paid by the lessee (the stable that used it). Linked accounts can't lease to each
 other; lessees need a 7-day-old account with 10 Live starts; reciprocal leases are flagged.
 
-Known imbalance (2026-10-29): live race purses are about 3x the tier purses the economy model
-was balanced on (KNOBS "Live vs model mismatches"). The harness measures created vs
-destroyed per day and per cohort.
+Purses were halved and a 5% entry fee added on 2026-10-29 (live purses were about 3x the
+model's; now about 1.7x for ordinary races, KNOBS "Live vs model mismatches" 1), and the
+owner-picked sinks followed (upkeep, race-day extras, jockeys, sponsorship). Latest harness
+(sinks2): 81 credits spent per 100 earned, purses 58% of credits earned in play; see
+`HARNESS-LOG.md`.
 
 ---
 
@@ -181,8 +183,8 @@ flowchart TD
   week["This week (/week): Saturday's conditions from Monday, your Qualifier places, the League gap"] -.->|plans| runs
   runs --> league["League points: best 20 runs a week, capped at 240"]
   runs --> rating[Official rating 0-140]
-  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC (Listed, OR 85+)"]
-  quals -->|top 3| wf["Weekend Feature, Sat 19:00 UTC (Group 1, OR 95+)"]
+  card --> quals["Feature Qualifiers, Mon-Fri 19:00 UTC (Listed purse x2, open to every rating)"]
+  quals -->|top 3| wf["Weekend Feature, Sat 19:00 UTC (Group 1; qualified horses only, no rating floor)"]
   rating -->|100+| wf
   quals -->|ran but missed| plate["Saturday Plate, Sat 19:30 UTC (Listed, no band)"]
   league --> tiers["Tier: Bronze to Champion; top 5 up; bottom 5 down from Gold up"]
@@ -199,9 +201,10 @@ flowchart TD
 ```
 
 Licences moved on 2026-10-29: the Weekend Feature and the card's Features need the National
-licence (they needed Classics, and no harness stable ever reached a Weekend Feature). A horse
-that finishes in the top 3 of a Qualifier but is rated below 95 is qualified yet still below
-the Weekend Feature's band (KNOBS mismatch 17).
+licence (they needed Classics, and no harness stable reached a Weekend Feature then). Since
+fixes4 the funnel fills: about 180 Qualifier runs and 20-28 Weekend Feature runners a season in
+the harness (`HARNESS-LOG.md`). The Weekend Feature's gate is qualifying (top 3 in a Qualifier,
+or OR 100+), not a rating floor; only the Season Final keeps OR 95+.
 
 ---
 

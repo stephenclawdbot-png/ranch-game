@@ -4,9 +4,10 @@ import type { DbHandle } from "../client";
 import { isDomainError } from "../errors";
 import { gc } from "../gameCore";
 import { RULES, bps } from "../rules";
-import { accounts, fraudEvents, horseLeases, horses, inboxItems, ledgerTransactions, raceEntries, races, stables } from "../schema";
+import { accounts, fraudEvents, horseLeaseListings, horseLeases, horses, inboxItems, ledgerTransactions, raceEntries, races, stables, usdgOrders } from "../schema";
 import { occupancy, recordAccountSignal } from "../services/accounts";
 import { breed } from "../services/breeding";
+import { runCupEntry } from "../services/dailyCup";
 import { careForHorse } from "../services/horseLife";
 import {
   buyInsurance,
@@ -481,5 +482,71 @@ describe("leasing: board and metrics", () => {
     expect(m.openOffers).toBeGreaterThan(0);
     expect(m.sharesPaidThisWeek).toBeGreaterThanOrEqual(0); // postings carry the wall clock
     expect(m.marketSalesThisWeek).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("leasing: review fixes (2026-10-30)", () => {
+  it("a stallion with a live USDG stud booking can't be offered or taken on lease", async () => {
+    const o = await owner(4);
+    const x = o.horses[0]!;
+    expect((await getHorseRow(h.db, x.id)).sex).toBe("male");
+    const l = await offer(o.accountId, x.id);
+    const mareOwner = await newPlayer(h.db);
+    const mare = await makeHorse(h.db, mareOwner.stableId, { sex: "female" });
+    await h.db.insert(usdgOrders).values({
+      orderId: `0x${"ab".repeat(32)}`,
+      kind: "stud",
+      accountId: mareOwner.accountId,
+      wallet: `0x${"11".repeat(20)}`,
+      horseId: x.id,
+      mareId: mare.id,
+      horseRef: `0x${"cd".repeat(32)}`,
+      price: 5_000_000,
+      fee: 250_000,
+      token: `0x${"22".repeat(20)}`,
+      chainId: 46630,
+      marketAddress: `0x${"33".repeat(20)}`,
+      deadline: at(15 * MIN),
+    });
+    const t = await lessee();
+    await expect(takeLease(h.db, { accountId: t.accountId, listingId: l.id, now: T0 })).rejects.toMatchObject({ code: "LISTING_NOT_ACTIVE" });
+    expect((await getHorseRow(h.db, x.id)).lesseeStableId).toBeNull();
+    await expect(offer(o.accountId, x.id)).rejects.toMatchObject({ code: "HORSE_LOCKED" });
+  });
+
+  it("standing a horse at stud withdraws its open lease offer", async () => {
+    const o = await owner(4);
+    const x = o.horses[0]!;
+    const l = await offer(o.accountId, x.id);
+    await setStudFee(h.db, { accountId: o.accountId, horseId: x.id, fee: 500, now: T0 });
+    const [row] = await h.db.select().from(horseLeaseListings).where(eq(horseLeaseListings.id, l.id));
+    expect(row!.status).toBe("cancelled");
+  });
+
+  it("no Daily Cup run on a horse that was handed back or whose term is over", async () => {
+    const o = await owner(8);
+    const [x, y] = o.horses;
+    const t = await lessee();
+    const { lease: a } = await takeLease(h.db, { accountId: t.accountId, listingId: (await offer(o.accountId, x!.id)).id, now: T0 });
+    const race = await liveRace(at(30 * MIN));
+    await enterRace(h.db, { accountId: t.accountId, raceId: race.id, horseId: x!.id, tactic: "front", now: T0 });
+    expect(await returnLease(h.db, { accountId: t.accountId, leaseId: a.id, now: at(MIN) })).toMatchObject({ pending: true });
+    const cup = (horseId: string, now: Date) => runCupEntry(h.db, { accountId: t.accountId, horseId, now, credits: 0, run: () => ({ finishPosition: 1, finishTimeUs: 1, result: {} }) });
+    await expect(cup(x!.id, at(2 * MIN))).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    // term over (7 days) but not swept yet
+    await takeLease(h.db, { accountId: t.accountId, listingId: (await offer(o.accountId, y!.id)).id, now: T0 });
+    await expect(cup(y!.id, at(7 * DAY + MIN))).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+  });
+
+  it("an owner who raced a horse before leasing it out pays that week's upkeep for it", async () => {
+    const o = await owner(4);
+    const x = o.horses[0]!;
+    const race = await liveRace(at(30 * MIN));
+    await enterRace(h.db, { accountId: o.accountId, raceId: race.id, horseId: x.id, tactic: "front", now: T0 });
+    await runRace(race.id, at(31 * MIN), [x.id]);
+    const t = await lessee();
+    await takeLease(h.db, { accountId: t.accountId, listingId: (await offer(o.accountId, x.id, { now: at(DAY) })).id, now: at(DAY) });
+    const charges = await settleUpkeep(h.db, at(8 * DAY), { stableId: o.stableId });
+    expect(charges.find((c) => c.weekStart === "2026-11-02")).toMatchObject({ horses: 1, due: gc.UPKEEP_RACING_PER_WEEK });
   });
 });

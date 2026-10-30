@@ -310,7 +310,7 @@ export async function buyInsurance(db: Db, input: { accountId: string; horseId: 
 }
 
 /** Stand a stallion at public stud (fee in credits) or withdraw him (null). */
-export async function setStudFee(db: Db, input: { accountId: string; horseId: string; fee: number | null }): Promise<void> {
+export async function setStudFee(db: Db, input: { accountId: string; horseId: string; fee: number | null; now?: Date }): Promise<void> {
   await runTx(db, async (tx) => {
     const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
     if (input.fee !== null && (horse.sex !== "male" || horse.gelded || horse.careerStatus === "pasture")) {
@@ -322,6 +322,8 @@ export async function setStudFee(db: Db, input: { accountId: string; horseId: st
       if (input.fee > ceiling) throw new DomainError("INVALID_INPUT", `the stud fee can be at most ${ceiling} credits (his appraisal)`);
     }
     await tx.update(horses).set({ studFee: input.fee, studFeeUsdg: null }).where(eq(horses.id, horse.id));
+    // standing at stud can't be leased: withdraw an open lease offer instead of leaving it stale
+    if (input.fee !== null) await withdrawLeaseOffersTx(tx, horse.id, input.now ?? new Date());
   });
 }
 
