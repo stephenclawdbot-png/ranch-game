@@ -47,7 +47,10 @@ describe("race card", () => {
     const now = at(30 * DAY);
     const cards = await Promise.all([ensureRaceCard(h.db, now), ensureRaceCard(h.db, now), ensureRaceCard(h.db, now)]);
     const expected = RULES.cardHorizonMs / RULES.slotMs;
-    expect(cards[0]).toHaveLength(expected);
+    // the regular horizon, plus calendar races published a week ahead (CALENDAR_HORIZON_MS)
+    const horizonEnd = now.getTime() + RULES.cardHorizonMs;
+    expect(cards[0]!.filter((r) => r.postTime.getTime() <= horizonEnd)).toHaveLength(expected);
+    for (const r of cards[0]!.filter((x) => x.postTime.getTime() > horizonEnd)) expect((r.conditions as { calendar?: unknown }).calendar).toBeTruthy();
     expect(cards[1]!.map((r) => r.seedCommitment)).toEqual(cards[0]!.map((r) => r.seedCommitment));
     const first = slotIndexAt(now) + 1;
     expect(await count(h.db, "races", `slot_key in (${Array.from({ length: expected }, (_, i) => `'live:${first + i}'`).join(",")})`)).toBe(expected);
@@ -57,7 +60,7 @@ describe("race card", () => {
       expect(r.postTime.getTime() % RULES.slotMs).toBe(RULES.seasonEpochMs % RULES.slotMs);
       expect(r.targetRunners).toBeGreaterThanOrEqual(8);
       expect(r.targetRunners).toBeLessThanOrEqual(12);
-      expect(r.entryCost).toBe(r.kind === "feature" ? 2 : 1);
+      expect(r.entryCost).toBe(r.kind === "feature" || r.kind === "final" || r.raceClass === "graded" ? 2 : 1);
     }
     // Deterministic conditions per slot.
     const again = await ensureRaceCard(h.db, now);

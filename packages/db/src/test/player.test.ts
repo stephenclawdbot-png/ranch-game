@@ -60,7 +60,7 @@ describe("inbox, card listing, profile", () => {
     const target = card.find((r) => r.raceClass !== "listed" && r.raceClass !== "graded" && r.entriesCloseAt > T0)!;
     await enterRace(h.db, { accountId: p.accountId, raceId: target.id, horseId: horse.id, tactic: "front", now: T0, meta: { plan: { tactic: "front", intensity: "normal" } } });
     const list = await listCardRaces(h.db, { from: T0, to: at(RULES.cardHorizonMs), stableId: p.stableId });
-    expect(list.length).toBe(card.length);
+    expect(list.length).toBe(card.filter((r) => r.postTime.getTime() <= at(RULES.cardHorizonMs).getTime()).length);
     expect(list.find((r) => r.id === target.id)).toMatchObject({ entered: 1, mine: 1 });
     expect(list.every((r) => !("seed" in r))).toBe(true);
   });

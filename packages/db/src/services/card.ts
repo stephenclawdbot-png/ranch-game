@@ -307,17 +307,37 @@ export interface CardHooks extends FieldHooks {
 }
 
 /** Publishes every slot from now to now + horizon (idempotent). Returns the open card. */
+/**
+ * Calendar races (Feature Qualifiers, the Weekend Feature, the Plate, Season Finals) are
+ * published a day ahead, so a morning visit can enter that evening's 19:00 Qualifier (with one
+ * Live start a day, a horse raced in the morning could otherwise never make it; the season
+ * harness found almost nobody running Qualifiers when they appeared only 6 h ahead). Not a
+ * week: an entry locks the horse until the race. The week's conditions are on This week.
+ */
+export const CALENDAR_HORIZON_MS = 24 * 60 * 60 * 1000;
+
 export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, horizonMs = RULES.cardHorizonMs): Promise<PublicRace[]> {
   const first = slotIndexAt(now) + 1;
   const last = slotIndexAt(new Date(now.getTime() + horizonMs));
+  const lastCalendar = slotIndexAt(new Date(now.getTime() + Math.max(horizonMs, CALENDAR_HORIZON_MS)));
   const make = hooks.cardSlot ?? defaultCardSlot;
   const rows = [];
   for (let i = first; i <= last; i++) rows.push(raceValues({ ...make(i), slotKey: `live:${i}` }));
+  // calendar races beyond the regular horizon (only with the default card: custom cards in tests decide their own)
+  if (!hooks.cardSlot) for (let i = last + 1; i <= lastCalendar; i++) if (isCalendarSlot(i)) rows.push(raceValues({ ...make(i), slotKey: `live:${i}` }));
   if (rows.length) await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey });
   const card = await db
     .select()
     .from(races)
-    .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs))))
+    .where(
+      and(
+        gte(races.postTime, now),
+        or(
+          lte(races.postTime, new Date(now.getTime() + horizonMs)),
+          and(lte(races.postTime, new Date(now.getTime() + Math.max(horizonMs, CALENDAR_HORIZON_MS))), sql`${races.conditions}->'calendar' is not null`),
+        ),
+      ),
+    )
     .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
   return card.filter((r) => r.slotKey?.startsWith("live:")).map(publicRace);
 }
