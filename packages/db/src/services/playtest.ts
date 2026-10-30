@@ -710,6 +710,8 @@ export const RESET_TABLES = [
   "care_log",
   "lineage_edges",
   "horses",
+  // Stable photos follow the stables.
+  "stable_photos",
   "stables",
   "account_play_days",
   "fraud_events",

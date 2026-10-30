@@ -54,7 +54,9 @@ export type DomainErrorCode =
   /** The horse is away on lease (or the act is the owner's alone while it is): services/leasing.ts. */
   | "HORSE_ON_LEASE"
   /** Too many leases at once (game-core MAX_LEASES_PER_OWNER / MAX_LEASES_PER_LESSEE). */
-  | "LEASE_LIMIT";
+  | "LEASE_LIMIT"
+  /** Too many changes of a daily-capped thing (stable photo uploads; services/stablePhoto.ts). */
+  | "RATE_LIMITED";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -81,6 +83,8 @@ export function httpStatusFor(code: DomainErrorCode): number {
       return 400;
     case "TOO_EARLY":
       return 425;
+    case "RATE_LIMITED":
+      return 429;
     case "INSUFFICIENT_FUNDS":
       return 402;
     default:
