@@ -106,6 +106,7 @@ const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used
   in_race: () => "Entered in a race.",
   listed: () => "Listed on the market.",
   booked: () => "Booked for a USDG covering: waiting for the stud fee payment.",
+  on_lease: () => "On lease: horses on lease don't breed.",
   no_genome: () => "No pedigree record for this horse.",
   not_at_stud: () => "That stallion isn't standing at stud.",
   not_your_mare: () => "That mare isn't in your stable.",
@@ -127,6 +128,8 @@ const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
   in_foal: () => "In foal: she can be sold after foaling.",
   resale_lock: () => "Bought on the market: it can be listed again once the 72-hour resale lock ends.",
   usdg_only: () => "Registered for the USDG market: it sells only for USDG (Sales → USDG).",
+  on_lease: () => "Away on lease: it can be sold once it is home.",
+  lease_offered: () => "Offered for lease: withdraw the lease offer first (Sales → Lease).",
 };
 
 /** Player-facing messages for the economy's domain errors (details stay attached). */
@@ -154,6 +157,7 @@ export function friendlyEconomyError(err: unknown): unknown {
       case "INSUFFICIENT_FUNDS":
         return "Not enough credits.";
       case "SELLER_REQUIREMENTS":
+        if (/lease/.test(err.message) && Array.isArray(d.problems)) return `To take a lease you need ${(d.problems as string[]).join("; ")}.`;
         return Array.isArray(d.problems) ? `To sell you need: ${(d.problems as string[]).join("; ")}.` : "Your account doesn't meet the seller requirements yet.";
       case "HORSE_BOUND":
         return "That horse is Club-bred and can't be sold.";
@@ -167,12 +171,16 @@ export function friendlyEconomyError(err: unknown): unknown {
           : "A horse bought on the market can be listed again after 72 hours.";
       case "LISTING_NOT_ACTIVE":
       case "LISTING_EXPIRED":
-        return "That listing is no longer available.";
+        return /lease/.test(err.message) ? sentence(err.message) : "That listing is no longer available.";
       case "CANNOT_BUY_OWN":
         return "That's your own horse.";
       case "LINKED_ACCOUNTS":
-        return "Trades between linked accounts aren't allowed.";
+        return /lease/.test(err.message) ? "Leases between linked accounts aren't allowed." : "Trades between linked accounts aren't allowed.";
+      case "HORSE_ON_LEASE":
+      case "LEASE_LIMIT":
+        return sentence(err.message);
       case "HORSE_LOCKED":
+        if (/lease/.test(err.message)) return sentence(err.message);
         if (/booked/.test(err.message)) return "That mare is booked for a USDG covering: wait until it's paid or the booking lapses.";
         return /listed/.test(err.message) ? "That horse is listed on the market." : "That horse is entered in a race or listed.";
       default:
@@ -180,6 +188,10 @@ export function friendlyEconomyError(err: unknown): unknown {
     }
   })();
   return msg ? new DomainError(err.code, msg, err.details) : err;
+}
+
+function sentence(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1) + (/[.!?]$/.test(s) ? "" : ".");
 }
 
 async function stallsOf(db: Db, session: Session) {
@@ -241,7 +253,8 @@ async function keepHouseStuds(db: Db, now: Date): Promise<void> {
 export async function breedingView(db: Db, session: Session, now: Date): Promise<BreedingView> {
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);
-  const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus !== "pasture" && !r.gelded);
+  // Owned horses at home only: horses held on lease never breed.
+  const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus !== "pasture" && !r.gelded && r.ownerStableId === session.stable.id);
   const mares: BreedingHorse[] = [];
   const stallions: BreedingHorse[] = [];
   const registered = await usdgRegisteredIds(db, rows.filter((r) => r.sex === "male").map((r) => r.id));
@@ -577,7 +590,8 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
   const horses: SellableHorse[] = [];
   // One resale-locks query for the whole stable (tradeStatus takes the map's entries).
   const resales = await resaleLocksOf(db, session.stable.id, now);
-  const stableRows = await listStableHorses(db, session.stable.id);
+  // Owned horses only: a horse held on lease is not the lessee's to sell.
+  const stableRows = (await listStableHorses(db, session.stable.id)).filter((r) => r.ownerStableId === session.stable.id);
   // One query for the stable's USDG registrations (registered horses sell only for USDG).
   const usdgOnly = await usdgRegisteredIds(db, stableRows.map((r) => r.id));
   for (const r of stableRows) {

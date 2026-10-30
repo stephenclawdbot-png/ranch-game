@@ -903,6 +903,25 @@ export async function leaseForHorse(ex: Executor, horseId: string): Promise<(Hor
   return { ...l, ownerStableName: await stableName(ex, l.ownerStableId), lesseeStableName: await stableName(ex, l.lesseeStableId) };
 }
 
+/** Last `n` finishing positions per horse (newest first), in one query: the board's form figures. */
+export async function recentFormOf(ex: Executor, horseIds: string[], n = 3): Promise<Map<string, number[]>> {
+  const out = new Map<string, number[]>();
+  if (!horseIds.length) return out;
+  const rows = await ex
+    .select({ horseId: raceEntries.horseId, position: raceEntries.finishPosition })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(inArray(raceEntries.horseId, [...new Set(horseIds)]), eq(races.status, "settled"), isNotNull(raceEntries.finishPosition)))
+    .orderBy(desc(races.postTime))
+    .limit(horseIds.length * 12);
+  for (const r of rows) {
+    const list = out.get(r.horseId) ?? [];
+    if (list.length < n && r.position !== null) list.push(r.position);
+    out.set(r.horseId, list);
+  }
+  return out;
+}
+
 /** Whether a horse has an open lease offer (market listing guard). */
 export async function hasOpenLeaseOffer(ex: Executor, horseId: string): Promise<boolean> {
   const [r] = await ex

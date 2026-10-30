@@ -40,6 +40,7 @@ describe("wiki", () => {
   it("search finds pages by title and keyword", () => {
     expect(searchWiki("foal").map((p) => p.slug)).toContain("breeding-basics");
     expect(searchWiki("fragile")[0]?.slug).toBe("fragile-legs");
+    expect(searchWiki("lease").map((p) => p.slug)).toContain("leasing");
     expect(searchWiki("zzzz")).toEqual([]);
   });
 });

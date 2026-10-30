@@ -179,7 +179,13 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
     freshness: gc.freshnessBar(state, nowMs),
     condition: fatigue > gc.TIRED_THRESHOLD ? "tired" : fatigue > 120 ? "ok" : "fresh",
     ranToday,
-    block: base.lockedRaceId ? "Entered in a race" : block ? (BLOCK_TEXT[block] ?? block) : null,
+    block: base.lockedRaceId
+      ? "Entered in a race"
+      : block
+        ? (BLOCK_TEXT[block] ?? block)
+        : row.lesseeStableId && fatigue > gc.TIRED_THRESHOLD
+          ? "Tired: a leased horse races only when fresh"
+          : null,
     risk: riskView(risk),
   };
 }

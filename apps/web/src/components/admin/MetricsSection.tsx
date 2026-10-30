@@ -22,6 +22,8 @@ interface Economy {
   playerBalances: number;
   horses: { born: number; bornByOrigin: Record<string, number>; retired: number; legacyFarm: number; died: number };
   week: { weekStart: string; qualifierStables: number; featureStables: number; plateStables: number; liveStables: number };
+  /** Horse leasing (packages/db leasing.ts leaseMetrics); absent on older servers. */
+  leases?: { active: number; openOffers: number; startedThisWeek: number; marketSalesThisWeek: number; sharesPaidThisWeek: number };
 }
 
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
@@ -42,6 +44,13 @@ function EconomyHealth({ e }: { e: Economy }) {
         <Tile label="Horses out" value={String(e.horses.retired + e.horses.legacyFarm)} sub={`${e.horses.retired} retired · ${e.horses.legacyFarm} Legacy Farm · ${e.horses.died} died`} />
         <Tile label="Tried a Qualifier" value={`${e.week.qualifierStables} / ${e.week.liveStables}`} sub="stables this week / racing Live" />
         <Tile label="Saturday" value={`${e.week.featureStables} Feature · ${e.week.plateStables} Plate`} sub="stables this week" />
+        {e.leases && (
+          <Tile
+            label="Leases vs sales"
+            value={`${e.leases.startedThisWeek} leased · ${e.leases.marketSalesThisWeek} sold`}
+            sub={`this week · ${e.leases.active} leases active · ${e.leases.openOffers} on offer · ${n0(e.leases.sharesPaidThisWeek)} cr shares paid`}
+          />
+        )}
       </ul>
       <table className="w-full text-sm">
         <thead>

@@ -267,10 +267,11 @@ async function careerView(db: Db, row: HorseRow, state: gc.HorseState): Promise<
   };
 }
 
+/** The viewer's kept horse: owned and at home, or held on lease (leasing: the lessee cares, trains and races). */
 async function ownedRow(db: Db, session: Session, horseId: string): Promise<HorseRow | null> {
   if (!UUID_RE.test(horseId)) return null;
   const row = await getHorse(db, horseId);
-  if (!row || row.ownerStableId !== session.stable.id || !isGenome(row.genome)) return null;
+  if (!row || (row.lesseeStableId ?? row.ownerStableId) !== session.stable.id || !isGenome(row.genome)) return null;
   return row;
 }
 
@@ -294,7 +295,10 @@ export async function horseLifeView(db: Db, session: Session, horseId: string, n
     care: careView(row, day, last, nowMs),
     condition: await conditionView(db, row, state, horse, day, nowMs),
     training: await trainingView(db, row, state, horse, stable, nowMs, balance),
-    career: await careerView(db, row, state),
+    career: row.lesseeStableId
+      ? // on lease: the owner's acts (rename, retire, Legacy Farm, release) stay with the owner
+        { ...(await careerView(db, row, state)), canRename: false, canRetire: false, canLegacy: false, canRelease: false, lockReason: "On lease: only its owner can retire, rename or release it" }
+      : await careerView(db, row, state),
     credits: balance,
     stableHand: facilityLevels(stable).stableHand > 0,
     serverNowMs: nowMs,

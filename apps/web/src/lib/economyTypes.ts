@@ -261,3 +261,129 @@ export interface MarketView {
   stalls: { used: number; slots: number; free: number };
   serverNowMs: number;
 }
+
+// ---------------------------------------------------------------------------
+// Leasing (Sales > Lease; packages/db leasing.ts, numbers in game-core leasing.ts)
+// ---------------------------------------------------------------------------
+
+/** A lessee's public record (lease board, owners' views). */
+export interface LesseeRecordView {
+  leases: number;
+  races: number;
+  injuries: number;
+  /** Average fatigue (0..1000) of horses when entered on lease; null = none yet. */
+  avgFatigueAtEntry: number | null;
+  ratings: number;
+  /** Average stars in tenths (43 = 4.3); null when unrated. */
+  starsTenths: number | null;
+}
+
+export interface LeaseTermsView {
+  termDays: number;
+  ownerSharePct: number;
+  lesseeSharePct: number;
+  fee: number;
+  allowAllOut: boolean;
+  maxLiveStartsPerWeek: number;
+  minLesseeRating: number | null;
+}
+
+/** One open offer on the lease board. */
+export interface LeaseListingView extends EcoHorse, LeaseTermsView {
+  listingId: string;
+  ownerStableName: string;
+  ownerSilks: Silks;
+  /** Last three finishing positions, newest first. */
+  form: number[];
+  wins: number;
+  expiresAtMs: number;
+  /** The owner has never leased a horse out before. */
+  newOwner: boolean;
+  mine: boolean;
+  /** Why the viewer can't take it (null = they can). */
+  takeBlock: string | null;
+}
+
+/** One of the viewer's own horses on the Offer list. */
+export interface LeaseOfferable extends EcoHorse {
+  /** Why it can't be offered right now (null = it can). */
+  block: string | null;
+  /** Its open offer, if any. */
+  offerId: string | null;
+  feeCap: number;
+}
+
+/** A lease the viewer is part of (as owner or lessee): active, or ended in the last 30 days. */
+export interface LeaseRowView {
+  leaseId: string;
+  role: "owner" | "lessee";
+  horse: EcoHorse;
+  otherStableName: string;
+  status: "active" | "ended";
+  endReason: string | null;
+  startsAtMs: number;
+  endsAtMs: number;
+  endedAtMs: number | null;
+  ownerSharePct: number;
+  allowAllOut: boolean;
+  maxLiveStartsPerWeek: number;
+  races: number;
+  ownerEarned: number;
+  lesseeEarned: number;
+  returnPending: boolean;
+  startCondition: string | null;
+  endCondition: string | null;
+  ownerRating: number | null;
+  /** The owner may rate this (ended, not yet rated). */
+  canRate: boolean;
+  /** The lessee's record (owners see who has their horse). */
+  lesseeRecord: LesseeRecordView | null;
+}
+
+export interface LeaseOfferRow extends LeaseTermsView {
+  listingId: string;
+  horseId: string;
+  horseName: string;
+  expiresAtMs: number;
+}
+
+export interface LeaseView {
+  board: LeaseListingView[];
+  offers: LeaseOfferRow[];
+  leases: LeaseRowView[];
+  horses: LeaseOfferable[];
+  me: {
+    /** Can this stable take leases (account age, Live starts, lease cap)? */
+    eligible: boolean;
+    problems: string[];
+    accountAgeDays: number;
+    liveStarts: number;
+    activeLeases: number;
+    record: LesseeRecordView;
+    caps: { racingHorses: number; maxOut: number; out: number; openOffers: number; maxOpenOffers: number };
+  };
+  config: LeaseConfigView;
+  stalls: { used: number; slots: number; free: number };
+  serverNowMs: number;
+}
+
+export interface LeaseConfigView {
+  terms: number[];
+  shareMin: number;
+  shareMax: number;
+  shareDefault: number;
+  weeklyMin: number;
+  weeklyMax: number;
+  weeklyDefault: number;
+  feeMax: number;
+  offerDays: number;
+  cooldownDays: number;
+  maxLesseeLeases: number;
+  maxOpenOffers: number;
+  maxOutCap: number;
+  outSharePct: number;
+  minAccountDays: number;
+  minLiveStarts: number;
+  unratedStars: number;
+  minStartsLeft: number;
+}

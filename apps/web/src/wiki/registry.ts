@@ -32,7 +32,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
   { key: "racing", title: "Racing", blurb: "Race types, entering, tactics, going and how a race is run.", icon: "flag", poster: "/art/diorama/poster-grandstand.png" },
   { key: "breeding", title: "Breeding & genetics", blurb: "Pairings, inheritance, the twelve breeds, family limits, coats and the fragile gene.", icon: "papers", poster: "/art/diorama/poster-pasture.png" },
   { key: "life", title: "Careers & retirement", blurb: "Stud, broodmares, the Legacy Farm and in memoriam.", icon: "laurel", poster: "/art/diorama/poster-paddock.png" },
-  { key: "economy", title: "Sales & facilities", blurb: "The auction house, the USDG market, appraisal, packs, stalls and staff.", icon: "coin", poster: "/art/diorama/poster-sales-ring.png" },
+  { key: "economy", title: "Sales & facilities", blurb: "The auction house, leasing, the USDG market, appraisal, packs, stalls and staff.", icon: "coin", poster: "/art/diorama/poster-sales-ring.png" },
   { key: "club", title: "Club & glory", blurb: "League, Daily Cup, Hall of Fame and your Trophy Room.", icon: "trophy", poster: "/art/diorama/poster-track-dusk.png" },
 ];
 
@@ -71,6 +71,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
 
   // Sales & facilities
   { slug: "the-market", section: "economy", title: "The auction house", summary: "Buying and selling horses: lots, appraisal, floors, ceilings and seller rules.", keywords: ["market", "sell", "buy", "auction", "lot", "appraisal", "price"] },
+  { slug: "leasing", section: "economy", title: "Leasing horses", summary: "Lease a racer from another stable, or lease yours out: terms, the prize split and the rules.", keywords: ["lease", "leasing", "rent", "lessee", "share", "split", "prize share", "term"] },
   { slug: "usdg-market", section: "economy", title: "USDG market", summary: "Registered horses sold and auctioned for USDG: registration, fees, bids and payment windows.", keywords: ["usdg", "dollar", "stablecoin", "wallet", "register", "auction", "bid", "robinhood", "testnet", "money"] },
   { slug: "facilities", section: "economy", title: "Facilities", summary: "Stalls, the trainer and the vet: what each upgrade does and costs.", keywords: ["stalls", "trainer", "vet", "upgrade"] },
   { slug: "packs", section: "economy", title: "Packs", summary: "What packs contain, the odds and the pity counter.", keywords: ["pack", "odds", "pity", "rarity"] },

@@ -15,8 +15,9 @@ import { api } from "@/lib/player";
 import { Check, Credits, HorseLine, Skeleton, refreshPurse, stageLabel, useEcoView } from "./kit";
 import { SalesRing, pedigreeLine } from "./SalesRing";
 import { UsdgMarket } from "./UsdgMarket";
+import { LeaseBoard } from "./LeaseBoard";
 
-type Tab = "buy" | "sell" | "mine" | "usdg";
+type Tab = "buy" | "sell" | "mine" | "lease" | "usdg";
 
 function expiresIn(ms: number): string {
   const h = Math.max(0, Math.round(ms / 3_600_000));
@@ -37,7 +38,7 @@ export function MarketScreen() {
   useEffect(() => {
     const fromHash = () => {
       const h = window.location.hash.slice(1);
-      if (h === "buy" || h === "sell" || h === "mine" || h === "usdg") setTab(h);
+      if (h === "buy" || h === "sell" || h === "mine" || h === "lease" || h === "usdg") setTab(h);
     };
     fromHash();
     window.addEventListener("hashchange", fromHash);
@@ -53,7 +54,9 @@ export function MarketScreen() {
         eyebrow={
           tab === "usdg"
             ? `USDG market · registered horses · ${v.stalls.used} of ${v.stalls.slots} stalls`
-            : `Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`
+            : tab === "lease"
+              ? `Lease · rent racers, share the prizes · ${v.stalls.used} of ${v.stalls.slots} stalls`
+              : `Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`
         }
         onSeeLot={(l) => {
           setTab("buy");
@@ -80,6 +83,9 @@ export function MarketScreen() {
         <button type="button" role="tab" aria-selected={tab === "mine"} onClick={() => setTab("mine")} data-testid="tab-mine">
           Your listings ({v.mine.length})
         </button>
+        <button type="button" role="tab" aria-selected={tab === "lease"} onClick={() => setTab("lease")} data-testid="tab-lease">
+          Lease
+        </button>
         <button type="button" role="tab" aria-selected={tab === "usdg"} onClick={() => setTab("usdg")} data-testid="tab-usdg">
           USDG
         </button>
@@ -87,6 +93,7 @@ export function MarketScreen() {
       {tab === "buy" && <Buy v={v} onView={setData} />}
       {tab === "sell" && <Sell v={v} onView={setData} onListed={() => setTab("mine")} />}
       {tab === "mine" && <Mine v={v} onView={setData} />}
+      {tab === "lease" && <LeaseBoard />}
       {tab === "usdg" && <UsdgMarket />}
     </div>
   );
