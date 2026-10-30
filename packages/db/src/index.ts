@@ -46,3 +46,4 @@ export * from "./services/upkeep";
 export * from "./services/usdgStud";
 export * from "./services/leasing";
 export * from "./services/stablePhoto";
+export * from "./services/rateLimit";

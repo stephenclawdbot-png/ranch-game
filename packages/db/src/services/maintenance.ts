@@ -5,7 +5,8 @@
  *   - heals injuries whose real-time recovery has ended;
  *   - completes due pregnancies (the foal always arrives);
  *   - expires market listings (returning the horse to its owner);
- *   - expires lease offers and sends horses home when their lease term is over (leasing.ts).
+ *   - expires lease offers and sends horses home when their lease term is over (leasing.ts);
+ *   - prunes rate-limit counters past the oldest window anyone counts (rateLimit.ts).
  */
 import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
@@ -15,6 +16,7 @@ import { defaultHooks } from "../hooks";
 import type { Db } from "../types";
 import { foal, listDuePregnancies } from "./breeding";
 import { expireListings } from "./market";
+import { pruneRateLimits } from "./rateLimit";
 import { sweepLeases } from "./leasing";
 import { runTx } from "./tx";
 
@@ -46,5 +48,7 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   const listingsExpired = await expireListings(db, now);
   const leases = await sweepLeases(db, now);
   await settleUpkeep(db, now);
+  // Two windows of the longest limit (1 h): nothing reads a counter this old again.
+  await pruneRateLimits(db, { olderThanMs: 2 * 3_600_000, now: now.getTime() });
   return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded };
 }

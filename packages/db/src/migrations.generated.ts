@@ -97,5 +97,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793360826874,
     "hash": "70ea5716a62115a61f8bd4424b2b7300c874514f8f379278523ae09e50a5088f",
     "sql": "CREATE TABLE \"stable_photos\" (\n\t\"stable_id\" uuid PRIMARY KEY NOT NULL,\n\t\"image\" \"bytea\" NOT NULL,\n\t\"hash\" text NOT NULL,\n\t\"bytes\" integer NOT NULL,\n\t\"updated_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\t\"uploads_day\" text NOT NULL,\n\t\"uploads_today\" integer DEFAULT 0 NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE \"stables\" ADD COLUMN \"photo_hash\" text;--> statement-breakpoint\nALTER TABLE \"stable_photos\" ADD CONSTRAINT \"stable_photos_stable_id_stables_id_fk\" FOREIGN KEY (\"stable_id\") REFERENCES \"public\".\"stables\"(\"id\") ON DELETE no action ON UPDATE no action;"
+  },
+  {
+    "tag": "0016_rate_limits",
+    "when": 1793382065904,
+    "hash": "4284960b4bdee01b2d0b2ea2614be5137f851f5705722d9dc5cb0c3c3d8b34c8",
+    "sql": "CREATE TABLE \"rate_limits\" (\n\t\"key\" text NOT NULL,\n\t\"window_start\" bigint NOT NULL,\n\t\"count\" integer DEFAULT 0 NOT NULL,\n\tCONSTRAINT \"rate_limits_key_window_start_pk\" PRIMARY KEY(\"key\",\"window_start\")\n);\n"
   }
 ];
