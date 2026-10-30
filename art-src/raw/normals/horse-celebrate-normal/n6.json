@@ -1,0 +1,287 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17312 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f3ac227a-35c6-440f-bf02-4e5838fdb6a3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "f3ac227a-35c6-440f-bf02-4e5838fdb6a3",
+  "status": "completed",
+  "created_at": "2026-10-30T18:31:20.884261+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 70,
+      "name": "far legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       90
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       75
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse hindquarters",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       78
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       81,
+       37,
+       42,
+       49,
+       60,
+       88,
+       91,
+       82,
+       77,
+       85,
+       86,
+       92,
+       93,
+       94,
+       95,
+       61,
+       53,
+       54
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "horse neck and head",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       35,
+       34,
+       43,
+       44,
+       45,
+       56,
+       55,
+       50,
+       41,
+       39,
+       26,
+       27,
+       28,
+       32,
+       38,
+       40,
+       69,
+       62,
+       64,
+       68,
+       67,
+       63
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "horse near foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       70,
+       80,
+       65,
+       66,
+       74,
+       76,
+       84,
+       87,
+       96,
+       97
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "horse near legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       89
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey breeches",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       36,
+       73,
+       71,
+       59
+      ]
+     },
+     {
+      "name": "jockey boot",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0.3,
+       0
+      ],
+      "regions": [
+       58
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       21,
+       15,
+       20,
+       19,
+       23,
+       18,
+       22,
+       16
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "jockey far arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       31,
+       33,
+       25,
+       24
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       12,
+       13,
+       14,
+       17
+      ]
+     },
+     {
+      "name": "cap brim",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.8
+      ],
+      "regions": [
+       9
+      ]
+     },
+     {
+      "axis": 120,
+      "name": "jockey near arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       10,
+       11,
+       3
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     19,
+     23,
+     28,
+     32,
+     38,
+     40,
+     47,
+     51,
+     52,
+     62,
+     64,
+     67,
+     68,
+     72,
+     79
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<42440 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "779d2d8d-2eac-424e-b9b7-be98d28ee81e",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:31:20.971758+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-celebrate-normal/n6-0.png"
+ ]
+}

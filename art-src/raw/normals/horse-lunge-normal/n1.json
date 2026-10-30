@@ -1,0 +1,262 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16392 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "24661d67-ba1c-4cee-86d9-29cad7b85190",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "24661d67-ba1c-4cee-86d9-29cad7b85190",
+  "status": "completed",
+  "created_at": "2026-10-30T18:32:34.597330+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 60,
+      "name": "far hindquarters and tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       72
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "far hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       82,
+       87,
+       88
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       68,
+       73,
+       77,
+       79,
+       61
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       55,
+       74,
+       76,
+       90
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.3,
+       0.4
+      ],
+      "regions": [
+       26
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "chest and foreleg marking",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       62,
+       63,
+       70
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "near foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       89,
+       91,
+       83,
+       84,
+       85,
+       86
+      ]
+     },
+     {
+      "axis": 55,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       32,
+       39,
+       43,
+       46,
+       47
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       34,
+       25,
+       40,
+       44,
+       48,
+       54,
+       65
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "reins",
+      "round": 0.5,
+      "shape": "cylinder",
+      "regions": [
+       35,
+       36,
+       37,
+       38
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "jockey torso",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       3,
+       4,
+       5,
+       6,
+       15,
+       45
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey arm",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       16,
+       23,
+       24,
+       28,
+       29
+      ]
+     },
+     {
+      "name": "jockey helmet",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       7,
+       8,
+       9,
+       10,
+       12,
+       14,
+       17,
+       18,
+       19,
+       20,
+       21,
+       31,
+       33
+      ]
+     },
+     {
+      "name": "jockey cap",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.5
+      ],
+      "regions": [
+       1,
+       2,
+       11,
+       13
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     1,
+     2,
+     22,
+     27,
+     30,
+     56,
+     67,
+     69,
+     71
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<39644 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "2eeed7e5-ec27-41c7-bc04-e93d11ec00d0",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:32:34.655474+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-lunge-normal/n1-0.png"
+ ]
+}

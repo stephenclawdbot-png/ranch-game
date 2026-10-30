@@ -1,0 +1,276 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16312 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b97654e6-911f-4ed9-9634-b83d0aa57a45",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "b97654e6-911f-4ed9-9634-b83d0aa57a45",
+  "status": "completed",
+  "created_at": "2026-10-30T18:32:55.134406+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 90,
+      "name": "far legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       96,
+       97,
+       103,
+       104,
+       106,
+       107,
+       108,
+       109,
+       110,
+       111
+      ]
+     },
+     {
+      "name": "hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       84,
+       65,
+       85
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       79,
+       75,
+       89
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       40,
+       41,
+       39,
+       55,
+       42,
+       36,
+       37,
+       47,
+       29,
+       53,
+       61,
+       62,
+       45,
+       46
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near foreleg and chest",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       78,
+       91,
+       87,
+       92,
+       93,
+       98,
+       99,
+       100,
+       101,
+       102,
+       105,
+       83,
+       86
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       31,
+       57,
+       56,
+       70,
+       68,
+       69,
+       63,
+       30,
+       64,
+       24,
+       20
+      ]
+     },
+     {
+      "name": "saddle",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.8
+      ],
+      "regions": [
+       51,
+       50,
+       52,
+       66,
+       67,
+       59,
+       81,
+       90,
+       73,
+       76,
+       80,
+       44,
+       43,
+       48
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider breeches",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       32,
+       71,
+       72,
+       74,
+       82
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider silks",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       8,
+       21,
+       22,
+       9,
+       16,
+       17,
+       33
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "rider arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       27,
+       15,
+       28,
+       34,
+       35,
+       38
+      ]
+     },
+     {
+      "name": "rider head",
+      "shape": "ball",
+      "regions": [
+       18,
+       10,
+       11,
+       12,
+       13,
+       19,
+       23
+      ]
+     },
+     {
+      "name": "rider cap",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       1,
+       2,
+       4,
+       5,
+       6,
+       7
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     70
+    ],
+    "backdrop": [],
+    "recessed": [
+     3,
+     14,
+     26,
+     33,
+     49,
+     77,
+     88
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<40932 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "ab1ce5e8-4c0e-44dd-8f73-1addaac46366",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:32:55.18446+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-break-normal/n1-0.png"
+ ]
+}

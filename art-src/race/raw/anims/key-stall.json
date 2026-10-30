@@ -1,0 +1,75 @@
+{
+ "endpoint": "/edit-images-v2",
+ "request": {
+  "method": "edit_with_text",
+  "edit_images": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<16612 chars>",
+     "format": "png"
+    },
+    "width": 256,
+    "height": 168
+   }
+  ],
+  "image_size": {
+   "width": 256,
+   "height": 168
+  },
+  "description": "same horse, same jockey, same size and position, same colours and pixel art style, facing right, side view. The racehorse stands still in the starting stalls ready to break: all four hooves planted on the ground, hind legs gathered under the body, weight sitting back on the hindquarters, head up and alert; the jockey crouched low over the withers holding the reins short",
+  "seed": 31001,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4619e123-00c7-4191-8996-456ce83512cc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "4619e123-00c7-4191-8996-456ce83512cc",
+  "status": "completed",
+  "created_at": "2026-10-30T18:09:52.141972+00:00",
+  "last_response": {
+   "seed": 31001,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<32520 chars>",
+     "height": 168
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "2ceee432-a163-4a9a-a6f2-22890dfab31a",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "generation_mode": "edit_images",
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 256,
+     "base64": "<32520 chars>",
+     "height": 168
+    }
+   ],
+   "generation_started_at": "2026-10-30T18:09:58.314156+00:00",
+   "original_image_n_colors": 112,
+   "quantized_image_n_colors": 57
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/key-stall-0.png"
+ ]
+}

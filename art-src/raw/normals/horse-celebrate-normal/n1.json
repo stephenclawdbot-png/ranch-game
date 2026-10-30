@@ -1,0 +1,268 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<18024 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9a1c4336-5fa7-424d-97e6-8ae7a3c0a4b2",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "9a1c4336-5fa7-424d-97e6-8ae7a3c0a4b2",
+  "status": "completed",
+  "created_at": "2026-10-30T18:27:38.850782+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       74
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "far legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       96
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       72,
+       62,
+       71,
+       76,
+       80,
+       81,
+       73,
+       88
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.2,
+       0.6
+      ],
+      "regions": [
+       64
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       39,
+       40,
+       41,
+       45,
+       50
+      ]
+     },
+     {
+      "axis": 25,
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       35,
+       37,
+       36,
+       42,
+       43,
+       46,
+       52,
+       53,
+       54,
+       58,
+       59,
+       65,
+       25,
+       28,
+       30,
+       33,
+       34
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "near front legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       97,
+       78,
+       83,
+       85,
+       77,
+       89,
+       90,
+       91,
+       92,
+       93,
+       98,
+       99,
+       100,
+       101
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       31,
+       55
+      ]
+     },
+     {
+      "name": "boot and stirrup",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0.3,
+       0
+      ],
+      "regions": [
+       68,
+       48,
+       44,
+       49,
+       51,
+       70
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       19,
+       21,
+       20,
+       22,
+       16,
+       17,
+       18
+      ]
+     },
+     {
+      "axis": 120,
+      "name": "raised left arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       4,
+       7,
+       8
+      ]
+     },
+     {
+      "name": "left glove",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "right arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       23,
+       27,
+       29
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       5,
+       6,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     54
+    ],
+    "backdrop": [],
+    "recessed": [
+     12
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<45080 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "e28f1619-9100-49e7-a691-d32535320519",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:27:38.906088+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-celebrate-normal/n1-0.png"
+ ]
+}

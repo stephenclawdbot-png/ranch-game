@@ -1,0 +1,66 @@
+{
+ "endpoint": "/vfx",
+ "request": {
+  "description": "Small pixel-art particle effect for a side-view horse race game, seen from the side: a burst of wet mud clods kicked up backwards by a galloping hoof. 5 to 8 chunky lumps of dark wet mud of different sizes (2 to 6 px) fly up and backwards to the LEFT in an arc, tumble, then fall to the ground; a few tiny splatter droplets. Dark brown mud, glossy highlight pixel on each clod, 1 px darker outline. No smoke, no glow. 8 frames, canvas about 48x32 px, not looping, transparent background, crisp hard pixels, no anti-aliasing.",
+  "artist": "pro",
+  "name": "race-fx-mud"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6fc1eb50-e0cc-405a-8275-2c3f0201d3b9",
+  "status": "processing",
+  "quoted_generations": 8
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "6fc1eb50-e0cc-405a-8275-2c3f0201d3b9",
+  "status": "completed",
+  "created_at": "2026-10-30T18:11:16.804116+00:00",
+  "last_response": {
+   "fps": 14,
+   "kind": "new",
+   "loop": false,
+   "name": "race-fx-mud",
+   "files": {
+    "race-fx-mud.gif": "https://api.pixellab.ai/mcp/pixel-tools/2d8c3c96-ceb7-46c5-9070-07f14b66cbe1/race-fx-mud.gif",
+    "race-fx-mud.png": "https://api.pixellab.ai/mcp/pixel-tools/2d8c3c96-ceb7-46c5-9070-07f14b66cbe1/race-fx-mud.png",
+    "race-fx-mud.json": "https://api.pixellab.ai/mcp/pixel-tools/2d8c3c96-ceb7-46c5-9070-07f14b66cbe1/race-fx-mud.json"
+   },
+   "parts": [
+    "mud",
+    "splatter"
+   ],
+   "anchor": {
+    "x": 39,
+    "y": 26,
+    "kind": "origin"
+   },
+   "artist": "pro",
+   "canvas": {
+    "h": 32,
+    "w": 48
+   },
+   "frames": 8,
+   "message": "Made an 8-frame, 48×32 transparent hoof-kick burst: seven tumbling mud clods arc left and land, with dark outlines, glossy highlight pixels, and tiny splatters. Crisp pixels throughout—no smoke or glow.",
+   "edit_url": "https://pixellab.ai/create-vfx?effect=b52530ee-50bd-4b44-8623-1ebfd14b501e",
+   "effect_id": "b52530ee-50bd-4b44-8623-1ebfd14b501e",
+   "gif_exact": true,
+   "result_id": "2d8c3c96-ceb7-46c5-9070-07f14b66cbe1",
+   "conversation": "3hYlDx1SDqhH6aH9Rg1cHQ.bc1a8b11c919ba75504c99484b8ef629a323b550eecfc495a696e1171f03b85b",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "b3539b75-e5ec-419b-a168-ca6cae254188",
+   "billing_charged": true,
+   "generation_mode": "vfx",
+   "pixel_tools_image": true,
+   "quoted_generations": 8
+  }
+ },
+ "files": []
+}

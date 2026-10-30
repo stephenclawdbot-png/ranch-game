@@ -1,0 +1,66 @@
+{
+ "endpoint": "/vfx",
+ "request": {
+  "description": "Small pixel-art particle effect for a side-view horse race game, seen from the side: a turf divot kicked out by a galloping hoof. 2 or 3 small chunks of grass turf (green grass blades on top, dark brown soil underneath) and a few loose grass blades flip up and backwards to the LEFT in an arc, tumble and fall to the ground. 1 px darker outline. No smoke, no glow. 8 frames, canvas about 48x32 px, not looping, transparent background, crisp hard pixels, no anti-aliasing.",
+  "artist": "pro",
+  "name": "race-fx-divot"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "90a6e403-fb9d-4a9d-8ffc-855085a249de",
+  "status": "processing",
+  "quoted_generations": 8
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "90a6e403-fb9d-4a9d-8ffc-855085a249de",
+  "status": "completed",
+  "created_at": "2026-10-30T18:11:16.484523+00:00",
+  "last_response": {
+   "fps": 14,
+   "kind": "new",
+   "loop": false,
+   "name": "race-fx-divot",
+   "files": {
+    "race-fx-divot.gif": "https://api.pixellab.ai/mcp/pixel-tools/a5bf627f-ed56-483a-af8f-3f679e337b5a/race-fx-divot.gif",
+    "race-fx-divot.png": "https://api.pixellab.ai/mcp/pixel-tools/a5bf627f-ed56-483a-af8f-3f679e337b5a/race-fx-divot.png",
+    "race-fx-divot.json": "https://api.pixellab.ai/mcp/pixel-tools/a5bf627f-ed56-483a-af8f-3f679e337b5a/race-fx-divot.json"
+   },
+   "parts": [
+    "turf",
+    "grass"
+   ],
+   "anchor": {
+    "x": 38,
+    "y": 27,
+    "kind": "origin"
+   },
+   "artist": "pro",
+   "canvas": {
+    "h": 32,
+    "w": 48
+   },
+   "frames": 8,
+   "message": "Made an 8-frame, 48×32 turf kick with three grass-topped soil chunks and four loose blades tumbling up and left, then falling to the ground. Crisp pixels, dark 1 px outlines, transparent background—no smoke or glow.",
+   "edit_url": "https://pixellab.ai/create-vfx?effect=a456999e-3338-437a-900e-d67372d78005",
+   "effect_id": "a456999e-3338-437a-900e-d67372d78005",
+   "gif_exact": true,
+   "result_id": "a5bf627f-ed56-483a-af8f-3f679e337b5a",
+   "conversation": "RrfPI6uTx15_lo1SJH15Kw.8a43cb9c12cfe7bf7ae79434033bc7178d9bb43b71d3c1103d675e792d24893a",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "c045325d-b6d3-4e6c-b288-45db7ac6aac5",
+   "billing_charged": true,
+   "generation_mode": "vfx",
+   "pixel_tools_image": true,
+   "quoted_generations": 8
+  }
+ },
+ "files": []
+}

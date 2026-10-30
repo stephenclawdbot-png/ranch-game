@@ -1,0 +1,79 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 6,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.879,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 2,
+  "y": 47
+ },
+ "bodyDy": 7,
+ "sources": [
+  "art-src/race/raw/anims/anim-lunge-b-1.png",
+  "art-src/race/raw/anims/anim-lunge-b-2.png",
+  "art-src/race/raw/anims/anim-lunge-b-3.png",
+  "art-src/race/raw/anims/anim-lunge-b-4.png",
+  "art-src/race/raw/anims/anim-lunge-b-5.png",
+  "art-src/race/raw/anims/anim-lunge-b-6.png"
+ ],
+ "align": "silks",
+ "alignShift": [
+  -1.8,
+  -3.3,
+  -3.9,
+  -4.3,
+  -3.0,
+  -2.7
+ ],
+ "bottoms": [
+  191,
+  191,
+  187,
+  191,
+  191,
+  191
+ ],
+ "bboxes": [
+  [
+   10,
+   64,
+   221,
+   191
+  ],
+  [
+   15,
+   59,
+   217,
+   191
+  ],
+  [
+   20,
+   57,
+   218,
+   187
+  ],
+  [
+   13,
+   57,
+   225,
+   191
+  ],
+  [
+   8,
+   60,
+   233,
+   191
+  ],
+  [
+   5,
+   63,
+   238,
+   191
+  ]
+ ],
+ "colours": 43
+}

@@ -1,0 +1,122 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<17360 chars>",
+   "format": "png"
+  },
+  "action": "the racehorse canters smoothly in a relaxed three-beat canter cycle; the winning jockey stands up in the stirrups and waves his raised right arm in celebration, punching the air; seamless loop, stays in place",
+  "frame_count": 10,
+  "seed": 31401,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "144cbd8c-a695-4b26-9b7f-877f36219080",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "144cbd8c-a695-4b26-9b7f-877f36219080",
+  "status": "completed",
+  "created_at": "2026-10-30T18:12:24.777323+00:00",
+  "last_response": {
+   "seed": 31401,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.0344443099366294
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<17360 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21456 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20472 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20448 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20140 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20476 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20072 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20524 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19956 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20936 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20692 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.9411764705882353,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "09ebd8d3-14fd-4b47-8185-53787dcb3501",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:12:55.608416+00:00",
+   "estimated_wait_seconds": 0
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-celebrate-a-0.png",
+  "art-src/race/raw/anims/anim-celebrate-a-1.png",
+  "art-src/race/raw/anims/anim-celebrate-a-2.png",
+  "art-src/race/raw/anims/anim-celebrate-a-3.png",
+  "art-src/race/raw/anims/anim-celebrate-a-4.png",
+  "art-src/race/raw/anims/anim-celebrate-a-5.png",
+  "art-src/race/raw/anims/anim-celebrate-a-6.png",
+  "art-src/race/raw/anims/anim-celebrate-a-7.png",
+  "art-src/race/raw/anims/anim-celebrate-a-8.png",
+  "art-src/race/raw/anims/anim-celebrate-a-9.png",
+  "art-src/race/raw/anims/anim-celebrate-a-10.png"
+ ]
+}

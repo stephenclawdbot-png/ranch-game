@@ -1,0 +1,279 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17456 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5cdfabab-2446-4ffb-ba3f-41ab9b8eef2e",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "5cdfabab-2446-4ffb-ba3f-41ab9b8eef2e",
+  "status": "completed",
+  "created_at": "2026-10-30T18:39:14.597139+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 90,
+      "name": "far hind legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       88,
+       100
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       70
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       68,
+       61,
+       65,
+       69,
+       56
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "near hind legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       82,
+       85,
+       89,
+       95,
+       96,
+       97,
+       98,
+       99
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "front legs and chest",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       72,
+       83,
+       78,
+       79,
+       80,
+       81,
+       84,
+       86,
+       87,
+       90,
+       91,
+       92,
+       93,
+       94,
+       101
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       53
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       36,
+       37,
+       43,
+       38,
+       39,
+       44,
+       45,
+       49,
+       54,
+       55,
+       31,
+       32,
+       46,
+       57,
+       58,
+       59,
+       60,
+       64,
+       27
+      ]
+     },
+     {
+      "name": "ear",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       18,
+       21
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.5
+      ],
+      "regions": [
+       48,
+       42
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "jockey far leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       50,
+       52
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey near leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       62,
+       63
+      ]
+     },
+     {
+      "axis": 65,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       12,
+       16,
+       17,
+       20,
+       23,
+       24,
+       25,
+       26,
+       28,
+       29,
+       30,
+       33,
+       34,
+       35,
+       40,
+       41,
+       47,
+       51
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey arm",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       22
+      ]
+     },
+     {
+      "name": "jockey head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       13,
+       14,
+       15
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     18,
+     21
+    ],
+    "backdrop": [],
+    "recessed": [
+     6,
+     9
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<40912 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "dd130c64-8bd0-4d8c-9ece-8897a77760ed",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:39:14.703733+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-easeup-normal/n11-0.png"
+ ]
+}

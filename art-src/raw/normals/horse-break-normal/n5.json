@@ -1,0 +1,212 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16032 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "edb86e9a-f959-4ec7-bdc3-cc401901c1ab",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "edb86e9a-f959-4ec7-bdc3-cc401901c1ab",
+  "status": "completed",
+  "created_at": "2026-10-30T18:35:09.077254+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 80,
+      "name": "back legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       106,
+       107,
+       102,
+       104
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       83,
+       86,
+       84,
+       92,
+       74,
+       75,
+       87,
+       94,
+       96,
+       69,
+       81,
+       93,
+       98,
+       101,
+       62,
+       76,
+       65,
+       71,
+       61
+      ]
+     },
+     {
+      "name": "white cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.6,
+       0.2
+      ],
+      "regions": [
+       29,
+       63,
+       64,
+       5,
+       43,
+       56,
+       57
+      ]
+     },
+     {
+      "name": "neck and head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       34,
+       28,
+       36,
+       40,
+       41,
+       45,
+       46,
+       47,
+       33,
+       39,
+       44,
+       51,
+       25,
+       38,
+       37,
+       42,
+       35,
+       52,
+       58,
+       59,
+       60,
+       53
+      ]
+     },
+     {
+      "name": "magenta hood",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       7,
+       14,
+       19,
+       20,
+       21,
+       1,
+       4,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       16,
+       18,
+       22,
+       23
+      ]
+     },
+     {
+      "name": "cyan scarf",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.4
+      ],
+      "regions": [
+       26,
+       15,
+       30,
+       31,
+       32
+      ]
+     },
+     {
+      "name": "snout tip",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       47,
+       17,
+       23
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     47,
+     17,
+     23
+    ],
+    "backdrop": [],
+    "recessed": [
+     72,
+     55
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<41312 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "00791f32-7bc8-4148-83a7-aff8759346da",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:35:09.188731+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-break-normal/n5-0.png"
+ ]
+}

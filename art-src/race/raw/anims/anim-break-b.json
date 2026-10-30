@@ -1,0 +1,114 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<22092 chars>",
+   "format": "png"
+  },
+  "last_frame": {
+   "type": "base64",
+   "base64": "<13040 chars>",
+   "format": "png"
+  },
+  "action": "the starting stalls open: the racehorse springs forward out of the stalls, pushing off powerfully with both hind legs, front legs lifting, then lands into its first full galloping stride; the jockey stays crouched low and goes with the horse; stays in place",
+  "frame_count": 8,
+  "seed": 31602,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "3d2c62e1-6003-40c9-b7b5-99d9f6515fd1",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 6
+  },
+  "id": "3d2c62e1-6003-40c9-b7b5-99d9f6515fd1",
+  "status": "completed",
+  "created_at": "2026-10-30T18:19:12.266314+00:00",
+  "last_response": {
+   "seed": 31602,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 6,
+    "cost_if_paid": 0.02684292170074251
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<22092 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<23176 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<23248 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<23628 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<22888 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<24000 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<24096 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<25912 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<17148 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.8666666666666667,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 6
+   },
+   "generation_id": "8d0ca0f5-e504-4f4a-9561-3b62887cf51e",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:19:26.030491+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-break-b-0.png",
+  "art-src/race/raw/anims/anim-break-b-1.png",
+  "art-src/race/raw/anims/anim-break-b-2.png",
+  "art-src/race/raw/anims/anim-break-b-3.png",
+  "art-src/race/raw/anims/anim-break-b-4.png",
+  "art-src/race/raw/anims/anim-break-b-5.png",
+  "art-src/race/raw/anims/anim-break-b-6.png",
+  "art-src/race/raw/anims/anim-break-b-7.png",
+  "art-src/race/raw/anims/anim-break-b-8.png"
+ ]
+}

@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "race-fx-mud 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 1.png",
+   "frame": {
+    "x": 48,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 2.png",
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 3.png",
+   "frame": {
+    "x": 0,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 4.png",
+   "frame": {
+    "x": 48,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 5.png",
+   "frame": {
+    "x": 96,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 6.png",
+   "frame": {
+    "x": 0,
+    "y": 64,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-mud 7.png",
+   "frame": {
+    "x": 48,
+    "y": 64,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.8125,
+    "y": 0.8125
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "race-fx-mud.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 144,
+   "h": 96
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 39,
+   "y": 26
+  },
+  "frameTags": [
+   {
+    "name": "race-fx-mud",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

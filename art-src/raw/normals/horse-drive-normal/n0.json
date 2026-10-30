@@ -1,0 +1,262 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<13044 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "32fd2eaf-a04e-4132-bc57-385a00f39cf7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "32fd2eaf-a04e-4132-bc57-385a00f39cf7",
+  "status": "completed",
+  "created_at": "2026-10-30T18:20:03.790982+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 15,
+      "name": "tail",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       92
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "far legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       122,
+       127,
+       130,
+       131,
+       134,
+       137
+      ]
+     },
+     {
+      "axis": 5,
+      "name": "hindquarters and body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       98,
+       107,
+       58
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "near hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       97,
+       89,
+       104
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "chest and shoulder",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       88,
+       53,
+       99,
+       72,
+       80,
+       64
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       95,
+       101,
+       100,
+       105,
+       106,
+       91,
+       103
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "foreleg lower",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       117,
+       118,
+       119,
+       120,
+       114,
+       115,
+       116,
+       123,
+       125,
+       126,
+       128,
+       129,
+       132,
+       135,
+       136
+      ]
+     },
+     {
+      "name": "neck and head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       38,
+       40,
+       57,
+       45,
+       46,
+       44,
+       37,
+       43,
+       49,
+       50,
+       55,
+       56,
+       65,
+       66,
+       67,
+       73,
+       81
+      ]
+     },
+     {
+      "name": "horse ear",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       12,
+       13,
+       14
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       -0.4,
+       0.6
+      ],
+      "regions": [
+       34,
+       27
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       16,
+       28,
+       33,
+       36,
+       32,
+       24,
+       26,
+       25
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey arm",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       23,
+       30,
+       31,
+       9,
+       10,
+       11,
+       20
+      ]
+     },
+     {
+      "name": "jockey head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       18
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     21
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<43440 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "4ad771e5-f28c-4bb0-af83-a29a37b14ca4",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:20:03.850912+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-drive-normal/n0-0.png"
+ ]
+}

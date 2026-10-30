@@ -1,0 +1,262 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16620 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "19fa0e92-f63b-4cef-a43a-33ed03680a9b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "19fa0e92-f63b-4cef-a43a-33ed03680a9b",
+  "status": "completed",
+  "created_at": "2026-10-30T18:32:44.223377+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 115,
+      "name": "tail",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       70
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "far hind leg",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       82
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "near hind leg",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       83,
+       87
+      ]
+     },
+     {
+      "name": "hooves",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.3
+      ],
+      "regions": [
+       91,
+       93,
+       94,
+       95,
+       96,
+       97
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       63,
+       73,
+       45,
+       71
+      ]
+     },
+     {
+      "name": "saddle",
+      "shape": "plane",
+      "facing": [
+       0,
+       0.8
+      ],
+      "regions": [
+       57,
+       46,
+       58
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "neck",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       40,
+       42,
+       34
+      ]
+     },
+     {
+      "name": "ears",
+      "round": 0.7,
+      "shape": "ball",
+      "regions": [
+       14,
+       16,
+       19,
+       20,
+       29,
+       37
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       33,
+       43,
+       44,
+       49,
+       50,
+       60,
+       61,
+       65
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "front legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       74,
+       85,
+       88,
+       72,
+       77,
+       78,
+       79,
+       80,
+       86,
+       89,
+       92
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "rider boot",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       48
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       24,
+       18,
+       25,
+       26,
+       27,
+       35,
+       31,
+       21,
+       9
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "rider arm and leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       22,
+       55
+      ]
+     },
+     {
+      "name": "rider helmet",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       3,
+       4,
+       7,
+       1,
+       2,
+       5,
+       6,
+       11,
+       12,
+       13
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     39,
+     57,
+     34,
+     46,
+     52,
+     60,
+     66,
+     67,
+     68
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<39844 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "b61d9db1-479c-4c6e-a02b-43242baa9479",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:32:44.281678+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-pullup-normal/n1-0.png"
+ ]
+}

@@ -301,6 +301,858 @@
    }
   },
   {
+   "id": "horse.body.break",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 12,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py); edit-images-v2 stall stance (seed 31004) -> animate-with-text-v3 8 frames with last_frame = gallop frame 0 (seed 31602): 'the starting stalls open: the racehorse springs forward out of the stalls, pushing off powerfully with both hind legs... lands into its first full galloping stride'; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-break.png",
+   "animations": {
+    "break": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.break.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 12,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-break.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-break-normal.png",
+   "animations": {
+    "break": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.drive",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 14,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py); edit-images-v2 drive key (seed 31003: jockey crouched lower, arms pushing along the neck, no whip) -> animate-with-text-v3 12 frames (seed 31103): 'all-out gallop in the final furlong... jockey pushes hard, both hands pumping forward along the neck, heels squeezing; no whip; seamless loop'; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-drive.png",
+   "animations": {
+    "drive": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.drive.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 12,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 14,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-drive.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-drive-normal.png",
+   "animations": {
+    "drive": {
+     "from": 0,
+     "to": 11,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.lunge",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 12,
+   "anchor": {
+    "x": 0.879,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "drive frame 11 -> animate-with-text-v3 6 frames with last_frame = edit-images-v2 lunge key (seeds 31005, 31702): 'one last lunge: head and neck stretched far forward and down, jockey throws both hands forward along the neck'; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-lunge.png",
+   "animations": {
+    "lunge": {
+     "from": 0,
+     "to": 5,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.lunge.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 6,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 12,
+   "anchor": {
+    "x": 0.879,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-lunge.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-lunge-normal.png",
+   "animations": {
+    "lunge": {
+     "from": 0,
+     "to": 5,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.easeup",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 13,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 10,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py); animate-with-text-v3 12 frames with last_frame = a trotting frame (seed 31203): 'after the winning post the racehorse eases down: gallop, relaxed canter, slow bouncy trot; the jockey sits up gradually'; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-easeup.png",
+   "animations": {
+    "easeup": {
+     "from": 0,
+     "to": 12,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.easeup.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 13,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 10,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-easeup.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-easeup-normal.png",
+   "animations": {
+    "easeup": {
+     "from": 0,
+     "to": 12,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.celebrate",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 11,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 10,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py); edit-images-v2 (seed 31002: jockey stands in the stirrups, right arm raised) -> animate-with-text-v3 10 frames (seed 31401): 'the racehorse canters... the winning jockey stands up in the stirrups and waves his raised right arm'; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-celebrate.png",
+   "animations": {
+    "celebrate": {
+     "from": 0,
+     "to": 10,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.celebrate.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 11,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 10,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-celebrate.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-celebrate-normal.png",
+   "animations": {
+    "celebrate": {
+     "from": 0,
+     "to": 10,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "horse.body.pullup",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 10,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 8,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [
+    "#270b11",
+    "#401115",
+    "#561511",
+    "#682213",
+    "#7c0a66",
+    "#843216",
+    "#6a4a3c",
+    "#a44519",
+    "#ed8f39",
+    "#02010c",
+    "#010113",
+    "#110f1e",
+    "#242229",
+    "#4c4747",
+    "#02010d",
+    "#010114",
+    "#171721",
+    "#363234",
+    "#760960",
+    "#90097b",
+    "#ab1495",
+    "#c112a7",
+    "#f344cc",
+    "#025f7f",
+    "#0e8dac",
+    "#15b2cd",
+    "#36e1ec",
+    "#36e1ed",
+    "#84096f",
+    "#ae1397",
+    "#f344cd",
+    "#fb72a8"
+   ],
+   "variants": [
+    "bay",
+    "dark_bay",
+    "chestnut",
+    "liver_chestnut",
+    "black",
+    "grey",
+    "dapple_grey",
+    "palomino",
+    "buckskin",
+    "roan"
+   ],
+   "sourcePrompt": "seed = race/horse-gallop.png frames pasted at a fixed offset (art-src/race/prep_raceanims.py); animate-with-text-v3 12 frames (seed 31301): 'the jockey sits up and pulls the racehorse up mid-race... short uneven steps as if favouring its right foreleg' + 6 frames (seed 31302) to a standstill; every 2nd frame + 3 of the stop; keyed to race/palette.json (art-src/race/process_raceanims.py)",
+   "optimizationTier": "hero",
+   "src": "race/horse-pullup.png",
+   "animations": {
+    "pullup": {
+     "from": 0,
+     "to": 9,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "horse.body.pullup.normal",
+   "kind": "horse_body",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 10,
+   "frameWidth": 256,
+   "frameHeight": 192,
+   "fps": 8,
+   "anchor": {
+    "x": 0.926,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=pro kind=character per frame of race/horse-pullup.png (OpenGL)",
+   "optimizationTier": "hero",
+   "src": "race/horse-pullup-normal.png",
+   "animations": {
+    "pullup": {
+     "from": 0,
+     "to": 9,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-mud",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 14,
+   "anchor": {
+    "x": 0.812,
+    "y": 0.812
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "/vfx artist=pro, 48x32, 8 frames: wet mud clods kicked up backwards behind a galloping hoof (prompts in art-src/race/gen-raceanims.mjs); keyed to a few source colours, tinted per surface/going via race/fx-palette.json (art-src/race/process_fx.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-mud.png",
+   "animations": {
+    "fx-mud": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-mud.normal",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 14,
+   "anchor": {
+    "x": 0.812,
+    "y": 0.812
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "computed in code: silhouette inflated to domes, OpenGL (art-src/race/fx_normals.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-mud-normal.png",
+   "animations": {
+    "fx-mud": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-dust",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 12,
+   "anchor": {
+    "x": 0.729,
+    "y": 0.812
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "/vfx artist=pro, 48x32, 8 frames: a dry dust puff kicked up backwards behind a galloping hoof (prompts in art-src/race/gen-raceanims.mjs); keyed to a few source colours, tinted per surface/going via race/fx-palette.json (art-src/race/process_fx.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-dust.png",
+   "animations": {
+    "fx-dust": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-dust.normal",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 12,
+   "anchor": {
+    "x": 0.729,
+    "y": 0.812
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "computed in code: silhouette inflated to domes, OpenGL (art-src/race/fx_normals.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-dust-normal.png",
+   "animations": {
+    "fx-dust": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-divot",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 14,
+   "anchor": {
+    "x": 0.792,
+    "y": 0.844
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "keyed-recolour"
+   ],
+   "sourcePrompt": "/vfx artist=pro, 48x32, 8 frames: turf divots kicked up backwards behind a galloping hoof (prompts in art-src/race/gen-raceanims.mjs); keyed to a few source colours, tinted per surface/going via race/fx-palette.json (art-src/race/process_fx.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-divot.png",
+   "animations": {
+    "fx-divot": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.fx-divot.normal",
+   "kind": "vfx",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 8,
+   "frameWidth": 48,
+   "frameHeight": 32,
+   "fps": 14,
+   "anchor": {
+    "x": 0.792,
+    "y": 0.844
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "computed in code: silhouette inflated to domes, OpenGL (art-src/race/fx_normals.py)",
+   "optimizationTier": "standard",
+   "src": "race/fx-divot-normal.png",
+   "animations": {
+    "fx-divot": {
+     "from": 0,
+     "to": 7,
+     "loop": false
+    }
+   }
+  },
+  {
+   "id": "race.crowd-cheer",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 10,
+   "frameWidth": 320,
+   "frameHeight": 128,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "seamless-x"
+   ],
+   "sourcePrompt": "animate-with-text-v3 8 frames on two overlapping 256 px windows of race/crowd.png (seeds 31501/31502): 'the racegoers behind the white rail cheer wildly... wave their arms and race cards, jump up and down, clap'; stitched with min-cut seams, snapped to crowd.png's palette, frames 0-5 ping-pong (art-src/race/process_crowd.py)",
+   "optimizationTier": "standard",
+   "src": "race/crowd-cheer.png",
+   "animations": {
+    "crowd-cheer": {
+     "from": 0,
+     "to": 9,
+     "loop": true
+    }
+   }
+  },
+  {
+   "id": "race.crowd-cheer.normal",
+   "kind": "track_layer",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 10,
+   "frameWidth": 320,
+   "frameHeight": 128,
+   "fps": 8,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [
+    "normal-opengl"
+   ],
+   "sourcePrompt": "/normal-map mode=lite kind=object per unique frame of race/crowd-cheer.png (OpenGL; ping-pong frames reuse their twin's map)",
+   "optimizationTier": "standard",
+   "src": "race/crowd-cheer-normal.png",
+   "animations": {
+    "crowd-cheer": {
+     "from": 0,
+     "to": 9,
+     "loop": true
+    }
+   }
+  },
+  {
    "id": "race.bb-bush-b-normal",
    "kind": "prop",
    "origin": "pixellab",

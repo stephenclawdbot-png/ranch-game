@@ -1,0 +1,133 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<19804 chars>",
+   "format": "png"
+  },
+  "action": "the racehorse slows down from a canter to a relaxed, bouncy two-beat trot: diagonal pairs of legs move together, shorter steps, head and neck relax and lower slightly; the jockey sits upright in the saddle with long loose reins; one smooth slowing movement, stays in place",
+  "frame_count": 12,
+  "seed": 31202,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a368fa28-0100-49ea-bd02-8972015ed974",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "a368fa28-0100-49ea-bd02-8972015ed974",
+  "status": "completed",
+  "created_at": "2026-10-30T18:14:50.110414+00:00",
+  "last_response": {
+   "seed": 31202,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.02765713662571377
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<19804 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19412 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19372 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19944 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19980 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20008 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19564 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18480 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18044 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18184 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18464 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18964 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18812 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 0.9473684210526315,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "80d787c5-9935-4aa2-8668-2900bbca49c2",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:15:05.054981+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-easeup-b-0.png",
+  "art-src/race/raw/anims/anim-easeup-b-1.png",
+  "art-src/race/raw/anims/anim-easeup-b-2.png",
+  "art-src/race/raw/anims/anim-easeup-b-3.png",
+  "art-src/race/raw/anims/anim-easeup-b-4.png",
+  "art-src/race/raw/anims/anim-easeup-b-5.png",
+  "art-src/race/raw/anims/anim-easeup-b-6.png",
+  "art-src/race/raw/anims/anim-easeup-b-7.png",
+  "art-src/race/raw/anims/anim-easeup-b-8.png",
+  "art-src/race/raw/anims/anim-easeup-b-9.png",
+  "art-src/race/raw/anims/anim-easeup-b-10.png",
+  "art-src/race/raw/anims/anim-easeup-b-11.png",
+  "art-src/race/raw/anims/anim-easeup-b-12.png"
+ ]
+}

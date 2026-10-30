@@ -1,0 +1,203 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<15476 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5a538aad-c32c-4843-9bbf-4e126ba3b59c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "5a538aad-c32c-4843-9bbf-4e126ba3b59c",
+  "status": "completed",
+  "created_at": "2026-10-30T18:23:28.117242+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       68,
+       70,
+       39
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       23,
+       48,
+       34,
+       36,
+       32
+      ]
+     },
+     {
+      "box": [
+       76,
+       123,
+       139,
+       189
+      ],
+      "axis": 90,
+      "name": "horse hind legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       83
+      ]
+     },
+     {
+      "box": [
+       140,
+       123,
+       190,
+       189
+      ],
+      "axis": 90,
+      "name": "horse front legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       83,
+       72,
+       79,
+       81
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       25,
+       43,
+       37,
+       38,
+       22
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       17,
+       28,
+       29
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       12,
+       3,
+       5,
+       6,
+       7
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       26
+      ]
+     },
+     {
+      "name": "rider hand",
+      "shape": "ball",
+      "regions": [
+       59
+      ]
+     },
+     {
+      "name": "rider head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       4,
+       8,
+       9,
+       10,
+       11,
+       13,
+       14,
+       15,
+       16,
+       19,
+       20
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [
+     69
+    ],
+    "recessed": [
+     60,
+     84
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<36252 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "9eaf464e-6a99-4bc6-89a7-39dc0fc5dd20",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:23:28.174887+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-drive-normal/n7-0.png"
+ ]
+}

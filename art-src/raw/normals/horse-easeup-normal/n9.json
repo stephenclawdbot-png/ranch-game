@@ -1,0 +1,250 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17748 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "aa7fb11d-1b7f-49f1-8a82-b00f9f1c5c10",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "aa7fb11d-1b7f-49f1-8a82-b00f9f1c5c10",
+  "status": "completed",
+  "created_at": "2026-10-30T18:38:13.035436+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 20,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       70,
+       79,
+       75,
+       83
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "belly and back legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       87,
+       89,
+       93,
+       94,
+       95,
+       66,
+       65
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       64,
+       72,
+       71,
+       63,
+       60
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "front leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       73,
+       74,
+       85,
+       86,
+       88,
+       81,
+       78,
+       69,
+       91,
+       90,
+       92,
+       96,
+       97,
+       98,
+       99
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       31,
+       32,
+       37,
+       49,
+       43,
+       45,
+       44,
+       42,
+       41,
+       36
+      ]
+     },
+     {
+      "name": "horse head",
+      "shape": "ball",
+      "regions": [
+       33,
+       38,
+       24,
+       34,
+       39,
+       50,
+       46,
+       54,
+       58,
+       55,
+       59
+      ]
+     },
+     {
+      "name": "horse ears",
+      "shape": "ball",
+      "regions": [
+       11,
+       13,
+       18,
+       22,
+       9,
+       14,
+       23
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "rider legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       61,
+       53,
+       40,
+       57,
+       62,
+       67,
+       76
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       10,
+       5,
+       19,
+       48
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider back arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       8,
+       12,
+       15,
+       17
+      ]
+     },
+     {
+      "axis": 10,
+      "name": "rider front arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       16,
+       20,
+       28,
+       29
+      ]
+     },
+     {
+      "name": "rider head",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       6,
+       7
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     46
+    ],
+    "backdrop": [],
+    "recessed": [
+     30,
+     52,
+     68
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<41540 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "e122e56d-0ad0-4407-bb30-ac1a79d9c942",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:38:13.0886+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-easeup-normal/n9-0.png"
+ ]
+}

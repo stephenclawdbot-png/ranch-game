@@ -1,0 +1,296 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17484 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "3c9ef547-b661-401d-aea6-61252d5a59cf",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "3c9ef547-b661-401d-aea6-61252d5a59cf",
+  "status": "completed",
+  "created_at": "2026-10-30T18:34:00.212819+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 10,
+      "name": "tail",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       85,
+       92,
+       105
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "far hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       145,
+       144,
+       141
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       99,
+       86,
+       106,
+       81,
+       82,
+       109,
+       52,
+       93,
+       107,
+       101,
+       96,
+       100,
+       80,
+       65,
+       111,
+       112,
+       102,
+       97,
+       115,
+       113,
+       98,
+       103,
+       108,
+       74,
+       91,
+       132,
+       134,
+       137,
+       133
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "near hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       138,
+       116,
+       124,
+       107
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "far foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       117,
+       125,
+       110
+      ]
+     },
+     {
+      "axis": 50,
+      "name": "neck and head",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       11,
+       12,
+       13,
+       29,
+       30,
+       31,
+       32,
+       37,
+       38,
+       39,
+       44,
+       45,
+       46,
+       50,
+       54,
+       55,
+       56,
+       57,
+       58,
+       59,
+       60,
+       61,
+       66,
+       67,
+       68,
+       69,
+       70,
+       72,
+       73,
+       140,
+       143,
+       146,
+       147,
+       148,
+       149
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       -0.2,
+       0.6
+      ],
+      "regions": [
+       83,
+       63,
+       94
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "near foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       139,
+       118,
+       121,
+       126,
+       127,
+       128,
+       129,
+       130,
+       131,
+       135,
+       136,
+       119,
+       120,
+       122,
+       114,
+       150
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "jockey leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       47,
+       77,
+       53,
+       49,
+       62,
+       89,
+       71,
+       75,
+       76,
+       88,
+       87
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       14,
+       9,
+       16,
+       25,
+       24,
+       22,
+       17,
+       8,
+       1,
+       6,
+       34,
+       15,
+       26,
+       28,
+       36,
+       40,
+       42,
+       5
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       2,
+       3,
+       4,
+       10,
+       18,
+       19,
+       21,
+       23,
+       27,
+       33,
+       35,
+       41,
+       48
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<41432 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "65e7484b-cc50-43eb-a82a-68208bedfd58",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:34:00.268457+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-pullup-normal/n3-0.png"
+ ]
+}

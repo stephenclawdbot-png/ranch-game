@@ -1,0 +1,97 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<21964 chars>",
+   "format": "png"
+  },
+  "action": "on the winning line the racehorse makes one last lunging stride: it stretches its head and neck far forward and down, nose reaching out as far as possible, front legs reaching; the jockey throws both hands forward along the neck to give the horse its head; stays in place",
+  "frame_count": 6,
+  "seed": 31701,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "476e58f7-da5c-4067-9733-cf5bbcd1ca29",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 4
+  },
+  "id": "476e58f7-da5c-4067-9733-cf5bbcd1ca29",
+  "status": "completed",
+  "created_at": "2026-10-30T18:19:12.287049+00:00",
+  "last_response": {
+   "seed": 31701,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 4,
+    "cost_if_paid": 0.032342240379916294
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<21964 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<22332 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20624 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20820 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20336 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21560 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21432 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 4
+   },
+   "generation_id": "0952dabd-eb49-46d0-b277-fd55f043eec4",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:19:31.969993+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-lunge-a-0.png",
+  "art-src/race/raw/anims/anim-lunge-a-1.png",
+  "art-src/race/raw/anims/anim-lunge-a-2.png",
+  "art-src/race/raw/anims/anim-lunge-a-3.png",
+  "art-src/race/raw/anims/anim-lunge-a-4.png",
+  "art-src/race/raw/anims/anim-lunge-a-5.png",
+  "art-src/race/raw/anims/anim-lunge-a-6.png"
+ ]
+}

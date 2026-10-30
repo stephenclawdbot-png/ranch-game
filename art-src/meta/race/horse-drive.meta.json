@@ -1,0 +1,133 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 12,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.926,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 14,
+  "y": 47
+ },
+ "bodyDy": 7,
+ "sources": [
+  "art-src/race/raw/anims/anim-drive-c-0.png",
+  "art-src/race/raw/anims/anim-drive-c-1.png",
+  "art-src/race/raw/anims/anim-drive-c-2.png",
+  "art-src/race/raw/anims/anim-drive-c-3.png",
+  "art-src/race/raw/anims/anim-drive-c-4.png",
+  "art-src/race/raw/anims/anim-drive-c-5.png",
+  "art-src/race/raw/anims/anim-drive-c-6.png",
+  "art-src/race/raw/anims/anim-drive-c-7.png",
+  "art-src/race/raw/anims/anim-drive-c-8.png",
+  "art-src/race/raw/anims/anim-drive-c-9.png",
+  "art-src/race/raw/anims/anim-drive-c-10.png",
+  "art-src/race/raw/anims/anim-drive-c-11.png"
+ ],
+ "align": "silks",
+ "alignShift": [
+  -2.3,
+  -1.8,
+  -1.4,
+  -1.1,
+  -1.0,
+  -1.1,
+  -0.7,
+  -0.9,
+  -1.3,
+  -1.5,
+  -2.4,
+  -1.6
+ ],
+ "bottoms": [
+  191,
+  191,
+  191,
+  191,
+  191,
+  184,
+  184,
+  189,
+  191,
+  191,
+  191,
+  191
+ ],
+ "bboxes": [
+  [
+   18,
+   63,
+   235,
+   191
+  ],
+  [
+   23,
+   62,
+   234,
+   191
+  ],
+  [
+   35,
+   60,
+   233,
+   191
+  ],
+  [
+   43,
+   58,
+   231,
+   191
+  ],
+  [
+   40,
+   56,
+   228,
+   191
+  ],
+  [
+   33,
+   56,
+   228,
+   184
+  ],
+  [
+   27,
+   57,
+   230,
+   184
+  ],
+  [
+   19,
+   59,
+   232,
+   189
+  ],
+  [
+   16,
+   63,
+   234,
+   191
+  ],
+  [
+   14,
+   65,
+   235,
+   191
+  ],
+  [
+   14,
+   65,
+   236,
+   191
+  ],
+  [
+   16,
+   63,
+   235,
+   191
+  ]
+ ],
+ "colours": 47
+}
