@@ -69,7 +69,7 @@ export function upkeepFor(careerStatus: "racing" | "retired" | "pasture"): numbe
 }
 
 /** Three daily goals; credits per completed goal. Goals never "break" a streak. */
-export const DAILY_GOAL_CREDITS = 60;
+export const DAILY_GOAL_CREDITS = 45; // owner decision 2026-10-30 (was 60): closes the credit sink gap (harness sinks2)
 export const DAILY_GOALS_PER_DAY = 3;
 /** Daily Cup participation credits (ranked rewards are cosmetic + cup points). */
 export const DAILY_CUP_CREDITS = 80;

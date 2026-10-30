@@ -1,5 +1,5 @@
 /**
- * Daily goals (AUDIT §6, owner decision 2026-10-26: pay 3 × 60): three small jobs per player
+ * Daily goals (AUDIT §6, owner decisions 2026-10-26: pay 3 × 60; 2026-10-30: 3 × 45): three small jobs per player
  * per LOCAL day — run a race, care for a horse, run the Daily Cup — each paying its credits
  * automatically when the action completes. No streaks, no missed-day notices: the goals
  * reset quietly each local day (the same boundary as care sessions, `careDayOf`).

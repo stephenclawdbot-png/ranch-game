@@ -1,5 +1,5 @@
 /**
- * Daily goals (AUDIT §6, 3 × 60): each goal pays once per player per LOCAL day, resets the
+ * Daily goals (AUDIT §6, 3 × 45): each goal pays once per player per LOCAL day, resets the
  * next day, and is completed by the real actions (enterRace, careForHorse, runCupEntry).
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -43,7 +43,7 @@ async function doneGoals(accountId: string, now: Date): Promise<string[]> {
 }
 
 describe("daily goals", () => {
-  it("pays 60 once per goal per local day (a double call pays once)", async () => {
+  it("pays the goal reward once per goal per local day (a double call pays once)", async () => {
     const p = await newPlayer(h.db, { credits: 0 });
     const first = await runTx(h.db, (tx) => completeGoal(tx, { accountId: p.accountId, goal: "race", now: T0 }));
     const again = await runTx(h.db, (tx) => completeGoal(tx, { accountId: p.accountId, goal: "race", now: T0 }));

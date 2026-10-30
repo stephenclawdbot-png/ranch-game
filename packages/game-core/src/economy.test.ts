@@ -38,9 +38,9 @@ describe("weekly faucet/sink balance (active player)", () => {
     expect(idle.spent).toBe(0);
     expect(idle.earned).toBe(0);
   });
-  it("three daily goals at 60 credits each (owner decision 2026-10-26: implement at 3 × 60)", () => {
+  it("three daily goals at 45 credits each (owner decisions 2026-10-26: 3 × 60; 2026-10-30: trimmed to 3 × 45)", () => {
     expect(DAILY_GOALS_PER_DAY).toBe(3);
-    expect(DAILY_GOAL_CREDITS).toBe(60);
+    expect(DAILY_GOAL_CREDITS).toBe(45);
     const f = weeklyFlow({ ...ACTIVE_PLAYER, dailyGoalsPerWeek: DAILY_GOALS_PER_DAY * 7 });
     expect(f.faucets.dailyGoals).toBe(3 * 7 * DAILY_GOAL_CREDITS);
   });
