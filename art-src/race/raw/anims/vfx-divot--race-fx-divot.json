@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "race-fx-divot 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 1.png",
+   "frame": {
+    "x": 48,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 2.png",
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 3.png",
+   "frame": {
+    "x": 0,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 4.png",
+   "frame": {
+    "x": 48,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 5.png",
+   "frame": {
+    "x": 96,
+    "y": 32,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 6.png",
+   "frame": {
+    "x": 0,
+    "y": 64,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  },
+  {
+   "filename": "race-fx-divot 7.png",
+   "frame": {
+    "x": 48,
+    "y": 64,
+    "w": 48,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 32
+   },
+   "pivot": {
+    "x": 0.7916666666666666,
+    "y": 0.84375
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "race-fx-divot.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 144,
+   "h": 96
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 38,
+   "y": 27
+  },
+  "frameTags": [
+   {
+    "name": "race-fx-divot",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

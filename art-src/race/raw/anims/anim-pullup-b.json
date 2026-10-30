@@ -1,0 +1,97 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<18864 chars>",
+   "format": "png"
+  },
+  "action": "the racehorse takes one more short careful step and comes to a complete stop, then stands still with all four hooves on the ground, weight off its right foreleg; the jockey sits upright and still holding the reins; stays in place",
+  "frame_count": 6,
+  "seed": 31302,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "58d54878-1f0f-49f6-bb12-ffd7899aad6e",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 4
+  },
+  "id": "58d54878-1f0f-49f6-bb12-ffd7899aad6e",
+  "status": "completed",
+  "created_at": "2026-10-30T18:19:12.297035+00:00",
+  "last_response": {
+   "seed": 31302,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 4,
+    "cost_if_paid": 0.023712053332063887
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<18864 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19732 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18628 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20040 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19668 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19552 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19100 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 4
+   },
+   "generation_id": "dade3501-b775-40ee-ab45-4efdb8c4b417",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:19:26.338445+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-pullup-b-0.png",
+  "art-src/race/raw/anims/anim-pullup-b-1.png",
+  "art-src/race/raw/anims/anim-pullup-b-2.png",
+  "art-src/race/raw/anims/anim-pullup-b-3.png",
+  "art-src/race/raw/anims/anim-pullup-b-4.png",
+  "art-src/race/raw/anims/anim-pullup-b-5.png",
+  "art-src/race/raw/anims/anim-pullup-b-6.png"
+ ]
+}

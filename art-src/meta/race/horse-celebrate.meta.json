@@ -1,0 +1,124 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 11,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.926,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 14,
+  "y": 47
+ },
+ "bodyDy": -4,
+ "sources": [
+  "art-src/race/raw/anims/anim-celebrate-a-0.png",
+  "art-src/race/raw/anims/anim-celebrate-a-1.png",
+  "art-src/race/raw/anims/anim-celebrate-a-2.png",
+  "art-src/race/raw/anims/anim-celebrate-a-3.png",
+  "art-src/race/raw/anims/anim-celebrate-a-4.png",
+  "art-src/race/raw/anims/anim-celebrate-a-5.png",
+  "art-src/race/raw/anims/anim-celebrate-a-6.png",
+  "art-src/race/raw/anims/anim-celebrate-a-7.png",
+  "art-src/race/raw/anims/anim-celebrate-a-8.png",
+  "art-src/race/raw/anims/anim-celebrate-a-9.png",
+  "art-src/race/raw/anims/anim-celebrate-a-10.png"
+ ],
+ "align": "silks",
+ "alignShift": [
+  0.6,
+  0.5,
+  0.0,
+  0.0,
+  -0.9,
+  -0.9,
+  -1.1,
+  -1.1,
+  -0.5,
+  0.4,
+  1.5
+ ],
+ "bottoms": [
+  191,
+  191,
+  191,
+  190,
+  189,
+  189,
+  189,
+  190,
+  191,
+  191,
+  191
+ ],
+ "bboxes": [
+  [
+   20,
+   9,
+   237,
+   191
+  ],
+  [
+   23,
+   16,
+   238,
+   191
+  ],
+  [
+   26,
+   9,
+   236,
+   191
+  ],
+  [
+   29,
+   17,
+   235,
+   190
+  ],
+  [
+   29,
+   10,
+   232,
+   189
+  ],
+  [
+   27,
+   15,
+   231,
+   189
+  ],
+  [
+   23,
+   22,
+   229,
+   189
+  ],
+  [
+   20,
+   24,
+   229,
+   190
+  ],
+  [
+   19,
+   13,
+   231,
+   191
+  ],
+  [
+   16,
+   8,
+   232,
+   191
+  ],
+  [
+   17,
+   16,
+   236,
+   191
+  ]
+ ],
+ "colours": 44
+}

@@ -1,0 +1,331 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<18112 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "762e195b-3e90-4f94-9c54-56c1df01a810",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "762e195b-3e90-4f94-9c54-56c1df01a810",
+  "status": "completed",
+  "created_at": "2026-10-30T18:36:41.938864+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 30,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       81,
+       73,
+       93,
+       98,
+       103
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "far hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       62,
+       89,
+       90,
+       108
+      ]
+     },
+     {
+      "name": "horse hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       82,
+       74,
+       95,
+       83,
+       68,
+       69,
+       75,
+       84
+      ]
+     },
+     {
+      "axis": 15,
+      "name": "horse barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       87,
+       99,
+       96,
+       42,
+       43,
+       21,
+       50
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       37,
+       38,
+       44,
+       47,
+       51,
+       59,
+       52,
+       64,
+       55,
+       56,
+       57,
+       58,
+       53,
+       60
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       40,
+       61,
+       39,
+       45,
+       46,
+       48,
+       65,
+       66,
+       67,
+       72,
+       78,
+       17,
+       18,
+       22,
+       25,
+       30
+      ]
+     },
+     {
+      "axis": 66,
+      "name": "dark hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       111
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "plane",
+      "facing": [
+       0,
+       0.6
+      ],
+      "regions": [
+       49,
+       76,
+       85
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "jockey leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       70,
+       63,
+       77,
+       79
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       11,
+       12,
+       13,
+       15,
+       16,
+       26,
+       31,
+       41,
+       54
+      ]
+     },
+     {
+      "axis": -50,
+      "name": "jockey arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       19,
+       20,
+       23,
+       24,
+       28,
+       29,
+       33,
+       35,
+       34
+      ]
+     },
+     {
+      "box": [
+       150,
+       70,
+       158,
+       95
+      ],
+      "axis": -55,
+      "name": "jockey near arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       27
+      ]
+     },
+     {
+      "name": "jockey hand",
+      "shape": "ball",
+      "regions": [
+       36
+      ]
+     },
+     {
+      "name": "jockey head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       7,
+       8,
+       9,
+       14
+      ]
+     },
+     {
+      "name": "helmet",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       10
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "front horse legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       86,
+       88,
+       91,
+       97,
+       100,
+       101,
+       102,
+       104,
+       105,
+       106,
+       107,
+       110,
+       112,
+       113,
+       114,
+       115,
+       116,
+       117,
+       120,
+       80,
+       92
+      ]
+     },
+     {
+      "name": "hooves",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       118,
+       119,
+       121,
+       122,
+       123
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     7,
+     9,
+     14,
+     63,
+     85
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<41844 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "720a5085-31db-48ef-a4af-586da738dbe9",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:36:41.993218+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-easeup-normal/n7-0.png"
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "endpoint": "/vfx",
+ "request": {
+  "description": "Small pixel-art particle effect for a side-view horse race game, seen from the side: a dust puff kicked up behind a galloping hoof on a dry dirt track. A low cloud of dry sandy dust bursts from the ground, billows up and drifts backwards to the LEFT, grows, thins out and dissolves into a few specks. Soft beige-tan dust in 3-4 flat shades, chunky pixel clusters, no outline, no glow. 8 frames, canvas about 48x32 px, not looping, transparent background, crisp hard pixels, no anti-aliasing.",
+  "artist": "pro",
+  "name": "race-fx-dust"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "00d7ecea-2198-4598-9d34-5c9e96374540",
+  "status": "processing",
+  "quoted_generations": 8
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "00d7ecea-2198-4598-9d34-5c9e96374540",
+  "status": "completed",
+  "created_at": "2026-10-30T18:11:16.879697+00:00",
+  "last_response": {
+   "fps": 12,
+   "kind": "new",
+   "loop": false,
+   "name": "race-fx-dust",
+   "files": {
+    "race-fx-dust.gif": "https://api.pixellab.ai/mcp/pixel-tools/d28bf378-2294-4c2b-b34e-f96c09b42d83/race-fx-dust.gif",
+    "race-fx-dust.png": "https://api.pixellab.ai/mcp/pixel-tools/d28bf378-2294-4c2b-b34e-f96c09b42d83/race-fx-dust.png",
+    "race-fx-dust.json": "https://api.pixellab.ai/mcp/pixel-tools/d28bf378-2294-4c2b-b34e-f96c09b42d83/race-fx-dust.json"
+   },
+   "parts": [
+    "dust_puff"
+   ],
+   "anchor": {
+    "x": 35,
+    "y": 26,
+    "kind": "origin"
+   },
+   "artist": "pro",
+   "canvas": {
+    "h": 32,
+    "w": 48
+   },
+   "frames": 8,
+   "message": "Made an 8-frame, non-looping dust puff on a transparent 48×32 canvas. It billows low, drifts left, and breaks into specks using four sandy shades with crisp pixels, no outline, and no glow.",
+   "edit_url": "https://pixellab.ai/create-vfx?effect=d6d6ac29-a128-4e3c-9a62-40d3e85f2832",
+   "effect_id": "d6d6ac29-a128-4e3c-9a62-40d3e85f2832",
+   "gif_exact": true,
+   "result_id": "d28bf378-2294-4c2b-b34e-f96c09b42d83",
+   "conversation": "_rk5GB8YFQ1-TfYwfaKBAg.3fff2219409ca20e9003ed238402374c3d44de1c2bbb83309fb38d87a760a884",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "df040d29-80fb-4137-8681-bdc4f3275c66",
+   "billing_charged": true,
+   "generation_mode": "vfx",
+   "pixel_tools_image": true,
+   "quoted_generations": 8
+  }
+ },
+ "files": []
+}

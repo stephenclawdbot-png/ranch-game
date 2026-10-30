@@ -1,0 +1,315 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<18316 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d10f6378-9fb0-470f-ab80-c9c300de9a23",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "d10f6378-9fb0-470f-ab80-c9c300de9a23",
+  "status": "completed",
+  "created_at": "2026-10-30T18:32:27.962431+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 15,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       76
+      ]
+     },
+     {
+      "name": "hindquarters",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       71,
+       62,
+       68,
+       54
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "underbelly",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       87
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "hind leg",
+      "shape": "cylinder",
+      "regions": [
+       83,
+       91,
+       99,
+       103,
+       96,
+       79
+      ]
+     },
+     {
+      "axis": 10,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       77,
+       85,
+       57
+      ]
+     },
+     {
+      "name": "chest",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       44,
+       78,
+       84
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "mane",
+      "round": 0.4,
+      "shape": "cylinder",
+      "regions": [
+       24
+      ]
+     },
+     {
+      "axis": 50,
+      "name": "neck",
+      "shape": "cylinder",
+      "regions": [
+       33,
+       37,
+       50
+      ]
+     },
+     {
+      "axis": -40,
+      "name": "horse head",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       29,
+       38,
+       41,
+       52,
+       53,
+       40,
+       39,
+       59,
+       60,
+       64,
+       66,
+       67,
+       61,
+       51,
+       49,
+       46,
+       45,
+       58
+      ]
+     },
+     {
+      "name": "ears",
+      "round": 0.5,
+      "shape": "ball",
+      "regions": [
+       17,
+       20,
+       25
+      ]
+     },
+     {
+      "axis": 75,
+      "name": "far foreleg",
+      "shape": "cylinder",
+      "regions": [
+       100,
+       97,
+       93,
+       95,
+       98
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "near foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       101,
+       92,
+       102,
+       104,
+       94,
+       88,
+       89,
+       90,
+       82,
+       86
+      ]
+     },
+     {
+      "name": "stirrup and girth",
+      "round": 0.4,
+      "shape": "ball",
+      "regions": [
+       42,
+       47,
+       48,
+       56,
+       63,
+       69,
+       72,
+       81,
+       43,
+       34
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 3,
+      "facing": [
+       0,
+       0.4
+      ],
+      "regions": [
+       26,
+       70
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "jockey leg",
+      "shape": "cylinder",
+      "regions": [
+       55
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       1,
+       3,
+       6,
+       7,
+       10,
+       12,
+       13,
+       15,
+       16,
+       18
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey arm",
+      "shape": "cylinder",
+      "regions": [
+       14,
+       19,
+       21,
+       22,
+       23,
+       27,
+       28,
+       30,
+       35
+      ]
+     },
+     {
+      "name": "jockey head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       2,
+       4,
+       5,
+       8,
+       9,
+       11
+      ]
+     },
+     {
+      "name": "reins and hand",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       31,
+       32,
+       36
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     51,
+     61,
+     39
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<42796 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "5bf09f28-fff8-45be-9486-5994f97e1b9d",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:32:28.025317+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-easeup-normal/n1-0.png"
+ ]
+}

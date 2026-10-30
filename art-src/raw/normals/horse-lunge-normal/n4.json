@@ -1,0 +1,232 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17280 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ae5c1fef-2c48-426b-9ead-6526ef8e619d",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "ae5c1fef-2c48-426b-9ead-6526ef8e619d",
+  "status": "completed",
+  "created_at": "2026-10-30T18:34:07.646775+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 0,
+      "name": "horse barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       68
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "horse neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       64
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "hind leg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       87,
+       83,
+       86,
+       92,
+       96
+      ]
+     },
+     {
+      "box": [
+       72,
+       120,
+       125,
+       191
+      ],
+      "axis": 90,
+      "name": "far foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       85,
+       89,
+       94
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "rider white breeches",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       53,
+       58
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       2,
+       3,
+       4,
+       7,
+       12
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider white sleeve",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       21
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider cyan arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       13,
+       19
+      ]
+     },
+     {
+      "box": [
+       150,
+       120,
+       192,
+       191
+      ],
+      "axis": 90,
+      "name": "near foreleg",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       88,
+       90,
+       91,
+       93,
+       95
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       29,
+       30,
+       35,
+       38,
+       44,
+       27,
+       39,
+       45,
+       25,
+       24,
+       14,
+       16,
+       17,
+       20
+      ]
+     },
+     {
+      "name": "rider head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       6,
+       8,
+       9,
+       10,
+       15
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     39,
+     45
+    ],
+    "backdrop": [
+     23,
+     60,
+     67
+    ],
+    "recessed": [
+     41,
+     40,
+     51,
+     54,
+     65,
+     52,
+     43,
+     50,
+     47,
+     33,
+     37
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<37044 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "249982ad-0958-412f-a376-bccbbfe41b23",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:34:07.721264+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-lunge-normal/n4-0.png"
+ ]
+}

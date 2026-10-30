@@ -1,0 +1,300 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17796 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b1e3e8ab-9f6f-4202-b7b4-6a24cbc765bd",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "b1e3e8ab-9f6f-4202-b7b4-6a24cbc765bd",
+  "status": "completed",
+  "created_at": "2026-10-30T18:34:43.442303+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 10,
+      "name": "tail",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       85,
+       45,
+       77,
+       78
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far hind leg",
+      "shape": "cylinder",
+      "regions": [
+       108,
+       102,
+       104
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "hind leg",
+      "shape": "cylinder",
+      "regions": [
+       101
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "horse body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       86,
+       89,
+       90,
+       93,
+       95,
+       96,
+       52,
+       53,
+       56,
+       64,
+       72,
+       73,
+       75,
+       79,
+       82,
+       105
+      ]
+     },
+     {
+      "axis": -60,
+      "name": "far front leg",
+      "shape": "cylinder",
+      "regions": [
+       92,
+       94,
+       98,
+       99,
+       100,
+       109,
+       106,
+       110,
+       111,
+       112,
+       113
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "near front leg",
+      "shape": "cylinder",
+      "regions": [
+       88,
+       91,
+       97,
+       103,
+       107,
+       83
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       43,
+       44,
+       48,
+       49,
+       54,
+       55,
+       59,
+       60,
+       61
+      ]
+     },
+     {
+      "axis": -30,
+      "name": "horse head",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       38,
+       50,
+       51,
+       62,
+       63,
+       37,
+       67,
+       68,
+       69,
+       70,
+       71,
+       76
+      ]
+     },
+     {
+      "name": "horse ears",
+      "shape": "ball",
+      "regions": [
+       14,
+       17,
+       19,
+       20,
+       21,
+       24,
+       25,
+       31
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "rider legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       46,
+       58,
+       65,
+       66,
+       74,
+       81
+      ]
+     },
+     {
+      "axis": -20,
+      "name": "reins",
+      "round": 0.5,
+      "shape": "cylinder",
+      "regions": [
+       32,
+       34,
+       35,
+       36,
+       47,
+       80,
+       87,
+       57
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       11,
+       15,
+       22,
+       26,
+       27
+      ]
+     },
+     {
+      "axis": 30,
+      "name": "rider arm",
+      "shape": "cylinder",
+      "regions": [
+       16,
+       18,
+       23,
+       28,
+       29,
+       30,
+       33,
+       39,
+       40,
+       41,
+       42
+      ]
+     },
+     {
+      "name": "rider head",
+      "shape": "ball",
+      "regions": [
+       3,
+       6,
+       7,
+       9,
+       10,
+       12,
+       13
+      ]
+     },
+     {
+      "name": "cap",
+      "round": 0.7,
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       4,
+       5,
+       8
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     68,
+     69
+    ],
+    "backdrop": [],
+    "recessed": [
+     37,
+     57,
+     67,
+     87
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<42268 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "86af2026-717d-401b-82d0-0dce9ca44b55",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:34:43.53044+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-pullup-normal/n4-0.png"
+ ]
+}

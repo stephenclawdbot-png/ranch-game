@@ -1,0 +1,307 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16456 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9a03944b-81cc-4651-b450-e715fcee8de3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "9a03944b-81cc-4651-b450-e715fcee8de3",
+  "status": "completed",
+  "created_at": "2026-10-30T18:39:48.628131+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 53,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       88,
+       96,
+       97
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "far hind legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       98,
+       105,
+       92,
+       107,
+       113,
+       115,
+       116,
+       99
+      ]
+     },
+     {
+      "axis": 0,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       83,
+       87,
+       84,
+       61,
+       89
+      ]
+     },
+     {
+      "axis": 90,
+      "name": "front legs",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       100,
+       101,
+       102,
+       103,
+       104,
+       106,
+       108,
+       109,
+       110,
+       111,
+       112,
+       114,
+       117,
+       90,
+       91,
+       94,
+       95,
+       86
+      ]
+     },
+     {
+      "name": "saddle cloth",
+      "shape": "bevel",
+      "width": 2,
+      "facing": [
+       0,
+       0.5
+      ],
+      "regions": [
+       76
+      ]
+     },
+     {
+      "name": "reins",
+      "shape": "bevel",
+      "width": 1,
+      "facing": [
+       0,
+       0.3
+      ],
+      "regions": [
+       49,
+       56
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       40,
+       45,
+       38,
+       44,
+       39,
+       50,
+       58,
+       66,
+       57,
+       51,
+       43,
+       73
+      ]
+     },
+     {
+      "axis": 140,
+      "name": "head",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       42,
+       46,
+       47,
+       48,
+       35,
+       53,
+       54,
+       41,
+       34,
+       52,
+       59,
+       67,
+       69,
+       70,
+       71,
+       72,
+       74,
+       19,
+       18,
+       23,
+       29,
+       60,
+       68
+      ]
+     },
+     {
+      "axis": 10,
+      "name": "rider legs",
+      "round": 0.6,
+      "shape": "cylinder",
+      "regions": [
+       80,
+       63,
+       62,
+       77,
+       64,
+       85,
+       81,
+       93
+      ]
+     },
+     {
+      "name": "stirrup",
+      "shape": "bevel",
+      "width": 1,
+      "facing": [
+       0,
+       -0.5
+      ],
+      "regions": [
+       78
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "rider torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       26,
+       33,
+       31,
+       28,
+       37,
+       32,
+       27,
+       17,
+       14,
+       30,
+       36,
+       20,
+       22,
+       25
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "rider left arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       13,
+       24
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "rider right arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       21,
+       65
+      ]
+     },
+     {
+      "name": "rider head",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       15,
+       16
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     4,
+     6,
+     16,
+     22,
+     36
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<39812 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "e4a89418-0483-4f2f-8476-73ff2da6a25c",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:39:48.684716+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-easeup-normal/n12-0.png"
+ ]
+}

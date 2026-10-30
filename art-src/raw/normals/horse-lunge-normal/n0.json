@@ -1,0 +1,244 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<17224 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "5c21c8f5-ed3d-4305-9efd-49064125bb58",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "5c21c8f5-ed3d-4305-9efd-49064125bb58",
+  "status": "completed",
+  "created_at": "2026-10-30T18:31:55.072503+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 10,
+      "name": "tail",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       62
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "hind legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       80,
+       70,
+       73,
+       76,
+       84,
+       89
+      ]
+     },
+     {
+      "axis": 5,
+      "name": "body",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       64,
+       67,
+       40,
+       51,
+       63,
+       75
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "near foreleg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       69,
+       68,
+       72,
+       74,
+       77,
+       78,
+       81,
+       86,
+       90,
+       79,
+       82,
+       83,
+       85,
+       91,
+       92
+      ]
+     },
+     {
+      "axis": 35,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       32,
+       22,
+       36,
+       31,
+       49
+      ]
+     },
+     {
+      "name": "head",
+      "round": 0.7,
+      "shape": "ball",
+      "regions": [
+       34,
+       37,
+       33,
+       41,
+       42,
+       43,
+       44,
+       47,
+       50,
+       53,
+       54,
+       55,
+       56,
+       61
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey white leg",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       28,
+       58,
+       59,
+       65,
+       35,
+       52,
+       60,
+       71,
+       46
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey torso",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       20,
+       7,
+       8,
+       17,
+       11,
+       21,
+       19,
+       27,
+       23
+      ]
+     },
+     {
+      "axis": 20,
+      "name": "jockey arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       24,
+       13,
+       30,
+       26,
+       16,
+       14
+      ]
+     },
+     {
+      "name": "jockey helmet",
+      "round": 0.8,
+      "shape": "ball",
+      "regions": [
+       4,
+       3,
+       10,
+       9,
+       1,
+       2,
+       5,
+       6,
+       12,
+       15,
+       18,
+       25
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [
+     47
+    ],
+    "backdrop": [],
+    "recessed": [
+     2,
+     9,
+     12,
+     15,
+     25,
+     29,
+     38,
+     39,
+     56,
+     82,
+     87
+    ],
+    "painted_light": "top-left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<40376 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "bb256fab-18d9-4a59-89db-90e505088735",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:31:55.166496+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-lunge-normal/n0-0.png"
+ ]
+}

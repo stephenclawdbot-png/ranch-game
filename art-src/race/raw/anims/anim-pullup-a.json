@@ -1,0 +1,133 @@
+{
+ "endpoint": "/animate-with-text-v3",
+ "request": {
+  "first_frame": {
+   "type": "base64",
+   "base64": "<13040 chars>",
+   "format": "png"
+  },
+  "action": "the jockey sits up and pulls the racehorse up mid-race: the horse slows from a gallop to a trot to a walk, taking short uneven steps as if it is favouring its right foreleg, then stops and stands still with all four hooves on the ground; the jockey sits upright looking down at the leg; stays in place",
+  "frame_count": 12,
+  "seed": 31301,
+  "no_background": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e28a876c-805e-489d-80e3-60c4a0b17979",
+  "status": "processing",
+  "enhanced_prompt": null,
+  "enhance_usage": null
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 8
+  },
+  "id": "e28a876c-805e-489d-80e3-60c4a0b17979",
+  "status": "completed",
+  "created_at": "2026-10-30T18:09:52.164918+00:00",
+  "last_response": {
+   "seed": 31301,
+   "type": "message_done",
+   "usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 8,
+    "cost_if_paid": 0.04759275641043981
+   },
+   "images": [
+    {
+     "type": "base64",
+     "base64": "<13040 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20872 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19332 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19968 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19876 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20672 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20024 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21388 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<21068 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<20356 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19296 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<19096 chars>",
+     "format": "png"
+    },
+    {
+     "type": "base64",
+     "base64": "<18864 chars>",
+     "format": "png"
+    }
+   ],
+   "status": "completed",
+   "progress": 1,
+   "flow_kind": "animation",
+   "billing_usage": {
+    "type": "generations",
+    "generations": 8
+   },
+   "generation_id": "fcdd3685-e2c8-4415-91ca-838e9d915b4c",
+   "queue_position": 0,
+   "billing_charged": true,
+   "generation_started_at": "2026-10-30T18:10:21.319166+00:00"
+  }
+ },
+ "files": [
+  "art-src/race/raw/anims/anim-pullup-a-0.png",
+  "art-src/race/raw/anims/anim-pullup-a-1.png",
+  "art-src/race/raw/anims/anim-pullup-a-2.png",
+  "art-src/race/raw/anims/anim-pullup-a-3.png",
+  "art-src/race/raw/anims/anim-pullup-a-4.png",
+  "art-src/race/raw/anims/anim-pullup-a-5.png",
+  "art-src/race/raw/anims/anim-pullup-a-6.png",
+  "art-src/race/raw/anims/anim-pullup-a-7.png",
+  "art-src/race/raw/anims/anim-pullup-a-8.png",
+  "art-src/race/raw/anims/anim-pullup-a-9.png",
+  "art-src/race/raw/anims/anim-pullup-a-10.png",
+  "art-src/race/raw/anims/anim-pullup-a-11.png",
+  "art-src/race/raw/anims/anim-pullup-a-12.png"
+ ]
+}

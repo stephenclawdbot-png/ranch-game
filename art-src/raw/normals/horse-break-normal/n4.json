@@ -1,0 +1,233 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<15540 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "55265b66-d4bf-407a-8766-3dd970254969",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "55265b66-d4bf-407a-8766-3dd970254969",
+  "status": "completed",
+  "created_at": "2026-10-30T18:34:30.942245+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 50,
+      "name": "tail",
+      "shape": "cylinder",
+      "regions": [
+       82
+      ]
+     },
+     {
+      "axis": 80,
+      "name": "hind legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       102,
+       59,
+       70,
+       84,
+       96,
+       92,
+       71,
+       60,
+       89
+      ]
+     },
+     {
+      "axis": 5,
+      "name": "barrel",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       79,
+       85,
+       52,
+       65,
+       83,
+       93,
+       94,
+       98
+      ]
+     },
+     {
+      "axis": 85,
+      "name": "front legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       101,
+       86,
+       77,
+       91,
+       97,
+       95,
+       81
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       33,
+       34,
+       35,
+       25,
+       30,
+       41,
+       32,
+       14,
+       13,
+       48,
+       40
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey white legs",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       66,
+       68
+      ]
+     },
+     {
+      "axis": 40,
+      "name": "jockey torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       8,
+       15,
+       17,
+       18,
+       19,
+       21,
+       16,
+       20,
+       22,
+       23
+      ]
+     },
+     {
+      "axis": 60,
+      "name": "jockey cyan arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       24,
+       28,
+       29,
+       31,
+       39
+      ]
+     },
+     {
+      "axis": 70,
+      "name": "jockey grey arm",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       26
+      ]
+     },
+     {
+      "name": "jockey head",
+      "shape": "ball",
+      "regions": [
+       6,
+       9,
+       10,
+       11
+      ]
+     },
+     {
+      "name": "jockey helmet",
+      "shape": "ball",
+      "regions": [
+       1,
+       2,
+       3,
+       5,
+       7
+      ]
+     },
+     {
+      "name": "horse head",
+      "round": 0.9,
+      "shape": "ball",
+      "regions": [
+       43,
+       42,
+       58,
+       38,
+       37,
+       36,
+       50
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     36,
+     45,
+     53
+    ],
+    "painted_light": "top"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<39848 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "ae3cf5d9-f370-4f65-b43b-a94cb5a5d7d9",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:34:31.013152+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-break-normal/n4-0.png"
+ ]
+}

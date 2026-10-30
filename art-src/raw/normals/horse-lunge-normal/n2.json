@@ -1,0 +1,214 @@
+{
+ "endpoint": "/normal-map",
+ "request": {
+  "image": {
+   "type": "base64",
+   "base64": "<16700 chars>",
+   "format": "png"
+  },
+  "mode": "pro",
+  "kind": "character"
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "90b5cab7-a2aa-4c9e-ae03-0f3c9926cc7a",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 0.5
+  },
+  "id": "90b5cab7-a2aa-4c9e-ae03-0f3c9926cc7a",
+  "status": "completed",
+  "created_at": "2026-10-30T18:33:02.223621+00:00",
+  "last_response": {
+   "look": {
+    "strength": 1,
+    "part_shapes": 0.3,
+    "surface_detail": 1,
+    "detail_softness": 0.6,
+    "outline_rounding": 1
+   },
+   "mode": "pro",
+   "plan": {
+    "kind": "character",
+    "parts": [
+     {
+      "axis": 20,
+      "name": "tail",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       69
+      ]
+     },
+     {
+      "box": [
+       60,
+       93,
+       194,
+       166
+      ],
+      "axis": 0,
+      "name": "torso",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       64,
+       68,
+       76,
+       29,
+       39,
+       43,
+       44,
+       45
+      ]
+     },
+     {
+      "box": [
+       65,
+       116,
+       168,
+       183
+      ],
+      "axis": 90,
+      "name": "legs",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       84,
+       52,
+       66,
+       67,
+       71,
+       74,
+       79,
+       83
+      ]
+     },
+     {
+      "name": "hooves",
+      "shape": "ball",
+      "regions": [
+       87,
+       88
+      ]
+     },
+     {
+      "box": [
+       130,
+       94,
+       140,
+       114
+      ],
+      "axis": 60,
+      "name": "neck",
+      "round": 0.9,
+      "shape": "cylinder",
+      "regions": [
+       59
+      ]
+     },
+     {
+      "axis": 45,
+      "name": "mane",
+      "round": 0.7,
+      "shape": "cylinder",
+      "regions": [
+       24
+      ]
+     },
+     {
+      "axis": 50,
+      "name": "raised limb",
+      "round": 0.8,
+      "shape": "cylinder",
+      "regions": [
+       31,
+       36,
+       47,
+       48,
+       34,
+       38,
+       22,
+       12
+      ]
+     },
+     {
+      "name": "head",
+      "shape": "ball",
+      "regions": [
+       58,
+       60,
+       53,
+       70,
+       25
+      ]
+     },
+     {
+      "name": "magenta crest",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       3,
+       5,
+       6,
+       7,
+       9,
+       11,
+       14
+      ]
+     },
+     {
+      "name": "cyan ornament",
+      "round": 0.6,
+      "shape": "ball",
+      "regions": [
+       15,
+       26,
+       27,
+       28,
+       32,
+       37
+      ]
+     }
+    ],
+    "detail": 0.15,
+    "raised": [],
+    "backdrop": [],
+    "recessed": [
+     33,
+     50,
+     63,
+     46,
+     80
+    ],
+    "painted_light": "left"
+   },
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 256,
+    "base64": "<38392 chars>",
+    "height": 192
+   },
+   "action": "Shaping the parts",
+   "frames": 1,
+   "progress": 0.9,
+   "convention": "opengl",
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 0.5
+   },
+   "generation_id": "911be675-5250-45ab-8bf1-f74de5519c8f",
+   "billing_charged": true,
+   "generation_mode": "normal_map",
+   "generation_started_at": "2026-10-30T18:33:02.282578+00:00"
+  }
+ },
+ "files": [
+  "art-src/raw/normals/horse-lunge-normal/n2-0.png"
+ ]
+}

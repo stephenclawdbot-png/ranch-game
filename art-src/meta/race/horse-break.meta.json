@@ -1,0 +1,97 @@
+{
+ "frameWidth": 256,
+ "frameHeight": 192,
+ "frameCount": 8,
+ "groundY": 191,
+ "anchor": {
+  "x": 0.926,
+  "y": 1.0
+ },
+ "gallopOffset": {
+  "x": 14,
+  "y": 47
+ },
+ "bodyDy": -1,
+ "sources": [
+  "art-src/race/raw/anims/anim-break-b-0.png",
+  "art-src/race/raw/anims/anim-break-b-1.png",
+  "art-src/race/raw/anims/anim-break-b-2.png",
+  "art-src/race/raw/anims/anim-break-b-3.png",
+  "art-src/race/raw/anims/anim-break-b-4.png",
+  "art-src/race/raw/anims/anim-break-b-5.png",
+  "art-src/race/raw/anims/anim-break-b-6.png",
+  "art-src/race/raw/anims/anim-break-b-7.png"
+ ],
+ "align": "silks",
+ "alignShift": [
+  0.2,
+  -0.4,
+  -2.6,
+  -1.0,
+  0.3,
+  1.9,
+  2.1,
+  -0.4
+ ],
+ "bottoms": [
+  190,
+  189,
+  190,
+  177,
+  181,
+  190,
+  191,
+  191
+ ],
+ "bboxes": [
+  [
+   39,
+   43,
+   235,
+   190
+  ],
+  [
+   42,
+   40,
+   233,
+   189
+  ],
+  [
+   44,
+   39,
+   226,
+   190
+  ],
+  [
+   40,
+   41,
+   227,
+   177
+  ],
+  [
+   32,
+   43,
+   227,
+   181
+  ],
+  [
+   28,
+   46,
+   231,
+   190
+  ],
+  [
+   17,
+   49,
+   234,
+   191
+  ],
+  [
+   18,
+   52,
+   237,
+   191
+  ]
+ ],
+ "colours": 48
+}
