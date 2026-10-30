@@ -62,6 +62,15 @@ export async function pruneRateLimits(ex: Executor, input: { olderThanMs: number
   return rows.length;
 }
 
+/** Deletes every counter of one limiter (`${name}:…`); test hook. Returns rows removed. */
+export async function clearRateLimits(ex: Executor, input: { name: string }): Promise<number> {
+  const rows = await ex
+    .delete(rateLimits)
+    .where(sql`${rateLimits.key} like ${`${input.name.slice(0, MAX_KEY_CHARS)}:%`}`)
+    .returning({ key: rateLimits.key });
+  return rows.length;
+}
+
 /** Count of one fixed window (0 when the key has no row in it). */
 async function windowCount(ex: Executor, key: string, windowStart: number): Promise<number> {
   const [row] = await ex

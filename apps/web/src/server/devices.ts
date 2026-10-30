@@ -3,25 +3,26 @@
  * one (which sets the session cookie), and listing / revoking linked devices. The handlers
  * under app/api/account delegate here, so tests drive the logic without Next's cookie jar.
  *
- * Abuse limit: failed redemptions are counted per IP over a sliding hour in memory (codes are
- * random and short-lived, so there is no per-code lockout); at 20 failures the endpoint
- * answers 429. The client IP is a counter key only — it is never an identity signal, so
- * testers on one Wi-Fi aren't linked. A browser that switches stables (this device now
- * belongs to another account) is written to the audit log as `account.switch`.
+ * Abuse limit: failed redemptions are counted per IP over a sliding hour in the shared
+ * `rate_limits` table (codes are random and short-lived, so there is no per-code lockout);
+ * at 20 failures the endpoint answers 429. The client IP is a counter key only — it is
+ * never an identity signal, so testers on one Wi-Fi aren't linked. A browser that switches
+ * stables (this device now belongs to another account) is written to the audit log as
+ * `account.switch`.
  */
-import { audit, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
+import { audit, clearRateLimits, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
 import { playerView } from "./game";
 import { errorJson, json } from "./http";
-import { clientIp, slidingWindowLimiter } from "./rateLimit";
+import { clientIp, sharedLimiter } from "./rateLimit";
 import { setSessionCookie, type Session } from "./session";
 
 export const LINK_FAIL_LIMIT = 20;
 /** Failed redemptions per IP per sliding hour. */
-const linkFailures = slidingWindowLimiter({ limit: LINK_FAIL_LIMIT, windowMs: 3_600_000 });
+const linkFailures = sharedLimiter({ name: "link-failures", limit: LINK_FAIL_LIMIT, windowMs: 3_600_000 });
 
 /** Test hook: forget the counted failures. */
-export function resetLinkFailures(): void {
-  linkFailures.reset();
+export function resetLinkFailures(database: Db): Promise<number> {
+  return clearRateLimits(database, { name: "link-failures" });
 }
 
 export { clientIp };
@@ -50,7 +51,7 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   const code = typeof body.code === "string" ? body.code : "";
   const replace = body.replace === true;
   const label = typeof body.label === "string" ? body.label : null;
-  if (linkFailures.count(input.ip, now) >= LINK_FAIL_LIMIT) {
+  if ((await linkFailures.count(database, input.ip, now)) >= LINK_FAIL_LIMIT) {
     const res = errorJson(429, "too_many_tries", { message: "Too many tries. Wait a few minutes, then get a fresh code." });
     res.headers.set("Retry-After", "3600");
     return res;
@@ -60,7 +61,7 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   }
   const linked = await redeemLinkCode(database, { code, label });
   if (!linked) {
-    linkFailures.fail(input.ip, now);
+    await linkFailures.fail(database, input.ip, now);
     return errorJson(400, "link_code_invalid", { message: "That code didn't work. Check it and try again." });
   }
   if (input.session && input.session.accountId !== linked.accountId) {
