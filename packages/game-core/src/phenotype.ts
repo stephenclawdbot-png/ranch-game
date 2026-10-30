@@ -25,7 +25,7 @@ import { conditionReport, withPhysio } from "./condition";
 import type { RaceDayChoice } from "./raceDay";
 import { appearanceOf } from "./coat";
 import { Rng, clampInt } from "./rng";
-import { abilityOrOf, abilityScore, carryWeight } from "./ability";
+import { abilityOrOf, abilityScore, abilityScoreOfOr, carryWeight } from "./ability";
 
 // ---------------------------------------------------------------------------
 // Maturity curves over the career clock
@@ -87,8 +87,26 @@ export function abilityMark(state: HorseState): number {
   return abilityOrOf(abilityScore(currentStats(state), preferredDistanceM(state.genome)));
 }
 
-/** Current (resting, unmodified) stats: potential × maturity × training factor (incl. care bonus). */
+/**
+ * Current (resting, unmodified) stats: potential × maturity × training factor (incl. care bonus),
+ * plus an improver's step-up once it has come (progressionOf).
+ */
 export function currentStats(state: HorseState): StatRecord<number> {
+  const out = baseStats(state);
+  const step = progressionOf(state);
+  if (step.orNow > 0) {
+    // The step is measured in OR on the ability scale, so it is worth the same wherever the horse
+    // sits. It fills out the horse's genes sooner, never past them: no stat beyond its potential.
+    const pot = potentials(state.genome);
+    const mark = abilityOrOf(abilityScore(out, preferredDistanceM(state.genome)));
+    const points = Math.max(0, abilityScoreOfOr(mark + step.orNow) - abilityScoreOfOr(mark));
+    for (const k of ["speed", "stamina", "burst"] as const) out[k] = Math.max(out[k], Math.min(pot[k], out[k] + points));
+  }
+  return out;
+}
+
+/** Current stats before any improver step-up: potential × maturity × training factor (incl. care bonus). */
+function baseStats(state: HorseState): StatRecord<number> {
   const pot = potentials(state.genome);
   const cb = careBonus(state);
   const out = {} as StatRecord<number>;
@@ -98,6 +116,61 @@ export function currentStats(state: HorseState): StatRecord<number> {
   // Versatile (heterozygous surface) types adapt a little better.
   if (preferredSurface(state.genome) === "synthetic") out.adaptability = Math.min(1000, out.adaptability + SURFACE_HET_ADAPT_BONUS);
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Progression: improvers ("sudden growth")
+// ---------------------------------------------------------------------------
+
+/**
+ * Chance (permille) that a horse is an improver, by maturity type: late developers most often.
+ * Drawn once per horse from its id and marking seed, never from its owner, and never shown until
+ * it happens (the maturity type, already on the horse page, is the only hint).
+ */
+export const IMPROVER_PERMILLE: Record<MaturityType, number> = { early: 150, normal: 200, late: 300 };
+/** The start count after which an improver's step-up begins, drawn in this window by maturity type. */
+export const IMPROVER_FROM_STARTS: Record<MaturityType, [number, number]> = { early: [5, 14], normal: [8, 20], late: [12, 26] };
+/** Size of the step-up, OR of ability (drawn per horse, inclusive). */
+export const IMPROVER_STEP_OR: [number, number] = [4, 8];
+/** The step arrives over this many runs (a third each run), then stays for the rest of the career. */
+export const IMPROVER_RUNS = 3;
+/** Runs after the step has fully arrived that the horse page still calls the horse "improving". */
+export const IMPROVER_SHOW_RUNS = 4;
+
+export interface Progression {
+  /** OR of ability the step-up adds today (0 before it begins, or for a horse that never improves). */
+  orNow: number;
+  /**
+   * "improving": stepping up now or in the last few runs (shown on the horse page); "improved":
+   * done; null: nothing (yet). The step is capped at the horse's potential (currentStats), so a
+   * horse already at its full potential gains nothing: progressionGainOr says what it actually got.
+   */
+  status: "improving" | "improved" | null;
+}
+
+/**
+ * An improver's step-up at the horse's current career position. Deterministic (seeded per horse),
+ * on the career clock (starts), the same for every owner. Races already run are never affected:
+ * their snapshots were sealed at the lock.
+ */
+export function progressionOf(state: Pick<HorseState, "id" | "genome" | "career">): Progression {
+  const type = maturityType(state.genome);
+  const rng = new Rng(`progress|${state.id}|${state.genome.markingSeed}`);
+  const improver = rng.chance(IMPROVER_PERMILLE[type]);
+  const [lo, hi] = IMPROVER_FROM_STARTS[type];
+  const from = rng.range(lo, hi);
+  const step = rng.range(IMPROVER_STEP_OR[0], IMPROVER_STEP_OR[1]);
+  const runs = state.career.starts - from;
+  if (!improver || runs <= 0) return { orNow: 0, status: null };
+  const orNow = runs >= IMPROVER_RUNS ? step : Math.floor((step * runs) / IMPROVER_RUNS);
+  return { orNow, status: runs <= IMPROVER_RUNS + IMPROVER_SHOW_RUNS ? "improving" : "improved" };
+}
+
+/** OR of ability an improver has actually gained by now (its step, capped at its potential); 0 for any other horse. */
+export function progressionGainOr(state: HorseState): number {
+  if (progressionOf(state).orNow === 0) return 0;
+  const trip = preferredDistanceM(state.genome);
+  return Math.max(0, abilityOrOf(abilityScore(currentStats(state), trip)) - abilityOrOf(abilityScore(baseStats(state), trip)));
 }
 
 // ---------------------------------------------------------------------------

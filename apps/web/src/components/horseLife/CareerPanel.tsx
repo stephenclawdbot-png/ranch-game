@@ -87,6 +87,12 @@ export function CareerPanel({ view }: { view: HorseLifeView }) {
             {c.maturity.label} <span className="text-sm font-bold text-positive">· peak around starts {c.maturity.peakFrom}–{c.maturity.peakTo}</span>
           </p>
           <p className="text-sm text-cream-dim">{c.maturity.blurb} Horses only age by racing, never by calendar time.</p>
+          {c.progression && (
+            <p className="text-sm font-bold text-positive" data-testid="improving">
+              {c.progression.status === "improving" ? "Improving" : "Improved"}: has stepped up about {c.progression.gainOr} lb in recent runs, more than its
+              age alone explains.
+            </p>
+          )}
         </div>
       </section>
 
