@@ -27,8 +27,8 @@ export interface PlateGrid {
   colours: { rim: string; plate: string; glyph: string };
 }
 
-/** Source pixels per plate texel when painted at the horses' 96 px/m (0.052 m texels). */
-export const PLATE_TEXEL_PX = 5;
+/** Source pixels per plate texel when painted at the horses' 96 px/m (0.0625 m texels). */
+export const PLATE_TEXEL_PX = 6;
 
 export function plateGrid(label: string, plate: string, glyph = "#f6f4ee", rim = "#1a1612"): PlateGrid {
   const chars = [...label].filter((c) => FONT[c]);

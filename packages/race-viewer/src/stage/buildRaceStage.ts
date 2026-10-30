@@ -215,7 +215,7 @@ function midItems(t: MidTemplate, L: number): StageMidItem[] {
       const [w, h] = size(it.src);
       const xM = n * periodM + (it.x + w / 2) / MID_SPREAD_PX_PER_M;
       if (xM < from || xM > to) continue;
-      out.push({ src: it.src, xM, depthM: 40 + Math.max(0, t.height - it.bottom) * 2, widthM: w / MID_PX_PER_M, heightM: h / MID_PX_PER_M, flip: !!it.flip });
+      out.push({ src: it.src, xM, depthM: 22 + Math.max(0, t.height - it.bottom) * 1.5, widthM: w / MID_PX_PER_M, heightM: h / MID_PX_PER_M, flip: !!it.flip });
     }
   }
   return out.sort((a, b) => a.xM - b.xM || a.depthM - b.depthM);

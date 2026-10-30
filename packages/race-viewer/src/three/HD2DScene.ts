@@ -1,42 +1,37 @@
 /**
- * HD-2D race scene (Three.js): a real 3D racecourse with code-drawn pixel textures,
- * pixel-art billboards for horses / trees / stands, warm sun + hemisphere fill + fog,
- * a directed camera and a screen-space lens (DOF, bloom, grade).
+ * HD-2D race scene (Three.js): the 3D broadcast view. It renders the race STAGE
+ * (stage/buildRaceStage.ts) that Trackside renders too: the same course scenery, the same
+ * light (sun on the right, front key light), the same far-rail landmarks, the same runner
+ * motion and animation strips (stage/motion.ts), only through a perspective broadcast camera.
  *
  * World units are metres. x runs along the track (start at 0, finish at trackLength),
  * y is up, z is across: the inner rail is at z = 0 (nearest the camera) and lanes run
- * away from the camera towards -z. The grandstand stands beyond the outer rail.
+ * away from the camera towards -z. The grandstand stands beyond the far (outer) rail.
+ *
+ * Crisp pixels in motion: horse, jockey and ground-fx billboards face the camera square-on,
+ * pick an exact integer level of detail, snap their scale towards whole screen pixels per
+ * texel and their anchor onto the pixel grid; the camera itself moves in whole pixels at the
+ * focal plane. Depth of field and bloom only touch the far scenery, never the field.
  */
 import type * as THREE from "three";
-import { FURLONG_MM, type RaceReplay } from "@thoroughbred/shared";
-import { createReplaySampler, type HorseSample, type ReplaySampler } from "../sampleReplay";
+import type { RaceReplay } from "@thoroughbred/shared";
+import type { HorseSample } from "../sampleReplay";
 import { Spring } from "../scene/camera";
-import { legPhase, strideLengthM } from "../scene/horse/gait";
 import { pipRect, type CameraMode, type RenderQuality } from "../types";
 import type { ArtSet } from "./art";
 import type { HorseRig, HorseRigFactory, LitHorseRig, RigKind } from "./horseRig";
-import { hexToRgb, mixHex, rng } from "./color";
-import {
-  LOOKS,
-  blobShadow,
-  cloudSprite,
-  flagStrip,
-  gatePanelTile,
-  grandstandSprite,
-  railCrowdSprite,
-  grassTile,
-  hedgeTile,
-  hillsStrip,
-  roundelSprite,
-  signSprite,
-  skyStrip,
-  sunSprite,
-  surfaceTile,
-  treeSprite,
-  type Look,
-} from "./pixelTextures";
+import { hexToRgb, rng } from "./color";
+import { blobShadow, cloudSprite, gatePanelTile, grassTile, hedgeTile, hillsStrip, skyStrip, sunSprite, surfaceTile, type Look } from "./pixelTextures";
 import { PostFX } from "./post";
-import { PixelParticles, PixelRain } from "./vfx";
+import { PixelRain } from "./vfx";
+import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
+import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
+import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
+import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
+import { TRACK_POST, TRACK_PRE, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
+import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
+import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "../trackside/strips";
+import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
 
 /**
  * Race data the scene renders. A finished `RaceReplay` satisfies it; a live broadcast
@@ -63,6 +58,8 @@ export interface SceneFrame {
   follow?: boolean;
   frozen: boolean;
   flash: number;
+  /** The viewer's one director (shared by both views, so a switch keeps the shot's subject). */
+  director?: Director;
 }
 
 export interface HD2DSceneOptions {
@@ -73,50 +70,58 @@ export interface HD2DSceneOptions {
   art: ArtSet;
   rigs: HorseRigFactory;
   rigKind: RigKind;
-  /** The racecourse's far panorama and grandstand (trackside/scenery.ts); default art when missing. */
-  courseFar?: HTMLImageElement;
-  courseStand?: HTMLImageElement;
+  /** The race stage (both views). Built from the race alone (default look) when omitted. */
+  stage?: RaceStage;
+  /** Stage art by manifest src (trackside/art.ts loadStageArt). */
+  stageArt?: Map<string, HTMLImageElement>;
+  /** Palette-index horse strips (the same frames and colours as Trackside); null = rig sprites. */
+  strips?: TracksideArt | null;
+  fxPalette?: FxPalette | null;
+  /** Horses injured in the race (pulled up after the line). */
+  injured?: ReadonlySet<string>;
 }
 
-/** Visual lane width (cosmetic; wider than real so lanes separate on screen). */
-const LANE_W = 2.2;
-const RAIL_GAP = 1.2;
 /**
  * Pixel density (HD pixel standard v2): texels per metre by depth plane, so one texel
  * covers about the same screen area across a plane. Focal plane = horses, props, ground.
  */
 const FOCAL_PX_PER_M = 96;
-const MID_PX_PER_M = 32;
-const BG_PX_PER_M = 10;
 /** Nose-to-tail length of a racehorse (m); low-density strips are scaled to it. */
 const HORSE_LEN_M = 2.4;
-const PULLUP_TAU = 2.6;
-const CONFETTI = ["#d9a441", "#f3e7c9", "#c8102e", "#1d3f8f", "#2e9259", "#ffffff"];
-const TRACK_PRE = 180;
-const TRACK_POST = 340;
-const x0Track = (_L: number) => -TRACK_PRE;
+/** Ground fx pool. */
+const FX_MAX = 48;
+const FX_FPS: Record<string, number> = { "fx-mud": 14, "fx-dust": 12, "fx-divot": 14 };
+const FX_ANCHOR: Record<string, [number, number]> = { "fx-mud": [0.812, 0.812], "fx-dust": [0.729, 0.812], "fx-divot": [0.792, 0.844] };
+
+/** The 3D horse shader: Trackside's palette/LUT horse, linearised for the 3D pipeline. */
+const HORSE_FRAG_3D = HORSE_FRAG.replace(
+  "gl_FragColor = col * uOpacity;\n}",
+  `vec4 o = col * uOpacity;
+  o.rgb = pow(max(o.rgb, vec3(0.0)), vec3(2.2));
+  gl_FragColor = o;
+  #include <colorspace_fragment>
+}`,
+);
 
 interface Runner {
   index: number;
   horseId: string;
-  rig: HorseRig;
+  /** Rig sprite (fallback path) or null when drawn from the shared strips. */
+  rig: HorseRig | null;
   group: THREE.Group;
   plane: THREE.Mesh;
   mat: THREE.Material;
   shadow: THREE.Mesh;
-  phase: number;
-  lastX: number;
   x: number;
+  y: number;
   z: number;
   bodyX: number;
   bodyZ: number;
   speed: number;
-  drive: number;
-  finishT: number | null;
-  finishSpeed: number;
-  kickT: number | null;
-  prevLeg: [number, number];
-  rand: () => number;
+  st: RunnerState;
+  lastPhase: number;
+  strip: StripSet | null;
+  lod: number;
 }
 
 class Spring3 {
@@ -143,7 +148,13 @@ class Spring3 {
   }
 }
 
-import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
+/** Field/rail colour as a multiplier over the grass tile (brightest channel -> ~1). */
+function tintOver(hex: string, lift = 1): string {
+  const [r, g, b] = hexToRgb(hex);
+  const m = Math.max(r, g, b, 1);
+  const f = (c: number) => Math.round(Math.min(255, (c / m) * 255 * lift));
+  return `#${((1 << 24) | (f(r) << 16) | (f(g) << 8) | f(b)).toString(16).slice(1)}`;
+}
 
 export class HD2DScene {
   readonly canvas: HTMLCanvasElement;
@@ -153,36 +164,41 @@ export class HD2DScene {
   private camera: THREE.PerspectiveCamera;
   private post: PostFX | null = null;
   private replay: SceneRaceData;
-  private kickScan = 0;
-  private kicks = new Map<string, number>();
-  private sampler: ReplaySampler;
+  private stage: RaceStage;
+  private plan: Hd2dPlan;
+  private stageArt: Map<string, HTMLImageElement>;
+  private strips: TracksideArt | null;
+  private motion: FieldMotion;
+  private states: RunnerState[] = [];
   private samples: HorseSample[] = [];
-  private scratch: HorseSample[] = [];
   private look: Look;
   private runners: Runner[] = [];
   private disposables: { dispose(): void }[] = [];
   private rigs: HorseRigFactory;
-  private particles: PixelParticles;
   private rain: PixelRain | null = null;
   private sky: THREE.Mesh;
   private sun: THREE.Sprite | null = null;
   private sunLight: THREE.DirectionalLight;
   private sunDir: THREE.Vector3;
-  private crowdTex: THREE.Texture[] = [];
-  private stand: THREE.Mesh | null = null;
-  private flagTex: THREE.Texture[] = [];
-  private railCrowdTex: THREE.Texture[] = [];
-  private railCrowd: THREE.Mesh | null = null;
+  private keyDir: THREE.Vector3;
+  private nearRail: THREE.Material[] = [];
+  private nearRailA = 1;
+  private crowd: { mesh: THREE.Mesh; tex: THREE.Texture[] } | null = null;
+  private fx: { mesh: THREE.Mesh; mats: THREE.MeshBasicMaterial[]; strip: number; x: number; y: number; z: number; age: number; flip: boolean }[] = [];
+  private fxPal: FxPalette | null;
+  private fxStrips: { tex: THREE.Texture; frames: number; fw: number; fh: number; fps: number; anchor: [number, number] }[] = [];
+  private fxCount = 0;
   private doors: THREE.Group[] = [];
   private marker: THREE.Sprite | null = null;
   private ring: THREE.Mesh | null = null;
   private camPos: Spring3;
   private camLook: Spring3;
   private fov: Spring;
-  private director = new Director();
+  private ownDirector = new Director();
+  private director: Director = this.ownDirector;
   private byX: Runner[] = [];
   private dirEvents: { type: string; horseId?: string }[] = [];
-  private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null };
+  private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null, winnerId: null };
   private dirEventScan = 0;
   private shotType: ShotType = "gate";
   private shotSubject: string | null = null;
@@ -201,20 +217,23 @@ export class HD2DScene {
   private highlight: number;
   private L: number;
   private trackW: number;
-  private laneCount: number;
   /** Official winner time once the result is known, else the first frame-derived crossing. */
   private winnerTime = Number.POSITIVE_INFINITY;
   private photoFinish = false;
-  private confettiDone = false;
-  private confettiLeft = 0;
   private nearBuf: Runner[] = [];
   private W = 1;
   private H = 1;
   private v1: THREE.Vector3;
   private v2: THREE.Vector3;
+  private v3: THREE.Vector3;
+  private v4: THREE.Vector3;
+  private v5: THREE.Vector3;
   private buf: THREE.Vector2;
   private focusDist = 15;
   private focusRange = 4;
+  private lodTex = new Map<StripSet, { idx: THREE.DataTexture; nrm: THREE.DataTexture | null }[]>();
+  private mskTex = new Map<StripSet, THREE.DataTexture>();
+  private lut: THREE.DataTexture | null = null;
 
   constructor(T: typeof THREE, replay: SceneRaceData, opts: HD2DSceneOptions) {
     this.T = T;
@@ -222,15 +241,22 @@ export class HD2DScene {
     this.quality = opts.quality;
     this.pixelated = !!opts.pixelated;
     this.rigs = opts.rigs;
-    this.sampler = createReplaySampler(replay);
-    this.look = LOOKS[replay.race.weather] ?? LOOKS.clear;
-    this.L = replay.trackLengthMm / 1000;
-    this.laneCount = Math.max(2, replay.laneCount);
-    this.trackW = RAIL_GAP * 2 + (this.laneCount - 1) * LANE_W;
+    this.stage = opts.stage ?? buildRaceStage(null, replay);
+    this.plan = hd2dPlan(this.stage);
+    this.stageArt = opts.stageArt ?? new Map();
+    this.strips = opts.strips ?? null;
+    this.fxPal = opts.fxPalette ?? null;
+    this.motion = new FieldMotion(replay, { injured: opts.injured ?? injuredFromEvents(replay.events) });
+    this.look = this.stage.look.three;
+    this.L = this.stage.L;
+    this.trackW = this.plan.trackW;
     this.applyResult();
     this.highlight = replay.horses.findIndex((h) => h.horseId === opts.highlightHorseId);
     this.v1 = new T.Vector3();
     this.v2 = new T.Vector3();
+    this.v3 = new T.Vector3();
+    this.v4 = new T.Vector3();
+    this.v5 = new T.Vector3();
     this.buf = new T.Vector2();
 
     const renderer = new T.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: false, stencil: false });
@@ -250,8 +276,10 @@ export class HD2DScene {
     scene.background = new T.Color(this.look.fog);
     this.camera = new T.PerspectiveCamera(34, 16 / 9, 0.3, 2400);
 
-    // --- Light -----------------------------------------------------------------
-    this.sunDir = new T.Vector3(...this.look.sunDir).normalize();
+    // --- Light: the sun disc on the right beyond the far rail (as Trackside's glow), the
+    // key light from the camera side on the same side, so the flank we see is lit.
+    this.sunDir = new T.Vector3(...this.stage.look.sunDir).normalize();
+    this.keyDir = new T.Vector3(...this.stage.look.keyDir).normalize();
     this.sunLight = new T.DirectionalLight(this.look.sunColor, this.look.sunIntensity);
     this.sunLight.castShadow = opts.quality === "high";
     this.sunLight.shadow.mapSize.set(2048, 2048);
@@ -268,17 +296,14 @@ export class HD2DScene {
 
     this.sky = this.buildSky(opts.art);
     this.buildGround(opts.art, replay.race.surface);
-    this.buildBackdrop(opts.art, opts.courseFar, opts.courseStand);
+    this.buildBackdrop(opts.art);
     this.buildRails();
-    this.buildPoles();
+    this.buildLandmarks(opts.art);
     this.buildGate();
     this.buildHorses(opts);
+    this.buildGroundFx();
     this.buildMarker();
 
-    this.particles = new PixelParticles(T, opts.quality === "high" ? 900 : 300);
-    this.particles.density = opts.quality === "high" ? 1 : 0.4;
-    scene.add(this.particles.points);
-    this.disposables.push(this.particles);
     if (this.look.rain) {
       this.rain = new PixelRain(T, opts.quality === "high" ? 900 : 350);
       scene.add(this.rain.lines);
@@ -304,13 +329,21 @@ export class HD2DScene {
   // Construction helpers
   // ---------------------------------------------------------------------------
 
+  private el(x: number): number {
+    return elevationAt(this.stage.elevation, x);
+  }
+
+  private laneZ(lane: number): number {
+    return stageLaneZ(this.stage, lane);
+  }
+
   private tex(src: HTMLCanvasElement | HTMLImageElement, opts: { repeat?: boolean; mip?: boolean } = {}): THREE.Texture {
     const T = this.T;
     const t = src instanceof HTMLCanvasElement ? new T.CanvasTexture(src) : new T.Texture(src);
     t.colorSpace = T.SRGBColorSpace;
     t.magFilter = T.NearestFilter;
-    // Ground tiles: crisp nearest magnification up close, trilinear minification far
-    // away (no aliasing or blocky smudge on distant ground).
+    // Ground tiles and far scenery: crisp nearest magnification up close, trilinear
+    // minification far away. Sprites on the field plane never get mipmaps.
     t.minFilter = opts.mip ? T.LinearMipmapLinearFilter : T.NearestFilter;
     t.generateMipmaps = !!opts.mip;
     if (opts.mip) t.anisotropy = Math.min(8, this.renderer?.capabilities.getMaxAnisotropy?.() ?? 4);
@@ -323,6 +356,19 @@ export class HD2DScene {
     return t;
   }
 
+  private dataTex(data: Uint8Array, w: number, h: number, format: THREE.PixelFormat): THREE.DataTexture {
+    const T = this.T;
+    const t = new T.DataTexture(data, w, h, format, T.UnsignedByteType);
+    t.unpackAlignment = 1;
+    t.magFilter = T.NearestFilter;
+    t.minFilter = T.NearestFilter;
+    t.generateMipmaps = false;
+    t.flipY = false;
+    t.colorSpace = T.NoColorSpace;
+    t.needsUpdate = true;
+    return this.own(t);
+  }
+
   private own<G extends { dispose(): void }>(g: G): G {
     this.disposables.push(g);
     return g;
@@ -330,14 +376,15 @@ export class HD2DScene {
 
   private buildSky(art: ArtSet): THREE.Mesh {
     const T = this.T;
-    const weather = this.replay.race.weather;
-    const artSky = art.images.get(weather === "dusk" ? "sky-dusk" : weather === "clear" ? "sky-clear" : "sky-overcast");
+    const artSky = art.images.get(this.stage.look.sky.art);
     const map = this.tex(artSky ?? skyStrip(this.look));
-    if (!artSky) map.magFilter = T.NearestFilter;
+    // The sky is a soft backdrop stretched over a dome: filtered, never blocky.
+    map.magFilter = T.LinearFilter;
+    map.minFilter = T.LinearFilter;
     const sky = new T.Mesh(this.own(new T.SphereGeometry(1800, 24, 24)), this.own(new T.MeshBasicMaterial({ map, side: T.BackSide, fog: false, depthWrite: false })));
     sky.renderOrder = -10;
     this.scene.add(sky);
-    if (this.look.sunDisc) {
+    if (this.look.sunDisc && this.stage.look.sun) {
       this.sun = new T.Sprite(this.own(new T.SpriteMaterial({ map: this.tex(sunSprite(this.look)), fog: false, depthWrite: false, transparent: true })));
       this.sun.scale.set(150, 150, 1);
       this.sun.renderOrder = -9;
@@ -357,51 +404,81 @@ export class HD2DScene {
     return sky;
   }
 
+  /** A plane in x/z subdivided along x, its vertices lifted onto the finish slope. */
+  private groundPlane(x0: number, x1: number, z0: number, z1: number, segM: number, lift: number): THREE.BufferGeometry {
+    const T = this.T;
+    const nx = Math.max(1, Math.ceil((x1 - x0) / segM));
+    const g = new T.PlaneGeometry(x1 - x0, z1 - z0, nx, 1);
+    g.rotateX(-Math.PI / 2);
+    g.translate((x0 + x1) / 2, 0, (z0 + z1) / 2);
+    const pos = g.getAttribute("position") as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) pos.setY(i, this.el(pos.getX(i)) + lift);
+    pos.needsUpdate = true;
+    g.computeVertexNormals();
+    return this.own(g);
+  }
+
   private buildGround(art: ArtSet, surface: RaceReplay["race"]["surface"]): void {
     const T = this.T;
     const L = this.L;
     const len = L + TRACK_PRE + TRACK_POST;
     const cx = (L - TRACK_PRE + L + TRACK_POST) / 2;
-    // Outfield / infield grass (tiles at focal density, mipmapped for distance).
+    const sc = this.stage.scenery;
+    // Outfield and the field beyond the far rail in the course's colours (stage), the inner
+    // field in front of the track plain grass.
     const grassImg = art.images.get("tex-grass");
     const gCanvas = grassImg ?? grassTile(this.look);
-    const gTex = this.tex(gCanvas, { repeat: true, mip: true });
     const gTile = gCanvas.width / FOCAL_PX_PER_M;
-    const gW = len + 1600;
-    const gD = 1700;
-    gTex.repeat.set(gW / gTile, gD / gTile);
-    const grass = new T.Mesh(this.own(new T.PlaneGeometry(gW, gD)), this.own(new T.MeshLambertMaterial({ map: gTex })));
-    grass.rotation.x = -Math.PI / 2;
-    grass.position.set(cx, 0, -gD / 2 + 80);
-    grass.receiveShadow = true;
-    this.scene.add(grass);
-    // Racing surface: fine tile + broad mowing stripes / harrow bands as vertex colours.
-    // Synthetic has its own code-drawn granular tile (the dirt art is the wrong material).
+    const field = (x0: number, x1: number, z0: number, z1: number, tint: string, seg: number) => {
+      const tex = this.tex(gCanvas, { repeat: true, mip: true });
+      tex.repeat.set((x1 - x0) / gTile, (z1 - z0) / gTile);
+      const m = new T.Mesh(this.groundPlane(x0, x1, z0, z1, seg, 0), this.own(new T.MeshLambertMaterial({ map: tex, color: tint })));
+      m.receiveShadow = true;
+      this.scene.add(m);
+    };
+    const far = -this.trackW;
+    field(cx - len / 2 - 800, cx + len / 2 + 800, far - 1600, far - 4, tintOver(sc.field[1], 0.95), 20);
+    field(cx - len / 2 - 800, cx + len / 2 + 800, far - 4, far - 0.2, tintOver(sc.railFill[0], 0.95), 20);
+    field(cx - len / 2 - 800, cx + len / 2 + 800, 0.25, 120, "#ffffff", 20);
+    // Racing surface: fine tile + soft mowing bands (vertex colours), on the slope.
     const sImg = surface === "synthetic" ? undefined : art.images.get(surface === "turf" ? "tex-turf" : "tex-dirt");
     const sCanvas = sImg ?? surfaceTile(this.look, surface);
     const sTex = this.tex(sCanvas, { repeat: true, mip: true });
     const tile = sCanvas.width / FOCAL_PX_PER_M;
     const tileD = sCanvas.height / FOCAL_PX_PER_M;
-    this.scene.add(this.stripedStrip(sTex, x0Track(L), len, tile, tileD, surface === "turf" ? 6 : 3, surface === "turf" ? 0.84 : 0.95));
+    this.scene.add(this.stripedStrip(sTex, -TRACK_PRE, len, tile, tileD, 4, surface === "turf" ? 0.955 : 0.98));
     // Finish line across the track.
     const line = new T.Mesh(this.own(new T.PlaneGeometry(0.2, this.trackW)), this.own(new T.MeshLambertMaterial({ color: 0xf6f6f0 })));
     line.rotation.x = -Math.PI / 2;
-    line.position.set(L, 0.012, -this.trackW / 2);
+    line.position.set(L, this.el(L) + 0.012, -this.trackW / 2);
     line.receiveShadow = true;
     this.scene.add(line);
-    // Infield hedge in the foreground (camera side).
+    // Infield hedge in the foreground (camera side), in segments on the slope.
     const hImg = art.images.get("tex-hedge");
     const hTex = this.tex(hImg ?? hedgeTile(this.look), { repeat: true, mip: true });
     const hImgW = (hImg ?? { width: 64 }).width / FOCAL_PX_PER_M;
-    hTex.repeat.set(len / hImgW, 0.75 / hImgW);
-    const hedge = new T.Mesh(this.own(new T.BoxGeometry(len, 0.75, 0.8)), this.own(new T.MeshLambertMaterial({ map: hTex })));
-    hedge.position.set(cx, 0.375, 3.4);
+    const seg = 20;
+    hTex.repeat.set(seg / hImgW, 0.75 / hImgW);
+    const n = Math.ceil(len / seg);
+    const hedge = new T.InstancedMesh(this.own(new T.BoxGeometry(seg, 0.75, 0.8)), this.own(new T.MeshLambertMaterial({ map: hTex })), n);
+    const d = new T.Object3D();
+    for (let i = 0; i < n; i++) {
+      const x = -TRACK_PRE + (i + 0.5) * seg;
+      d.position.set(x, this.el(x) + 0.375, 3.4);
+      d.rotation.z = Math.atan(this.slopeAt(x));
+      d.updateMatrix();
+      hedge.setMatrixAt(i, d.matrix);
+    }
     hedge.castShadow = true;
     hedge.receiveShadow = true;
     this.scene.add(hedge);
   }
 
-  /** Track surface as quads of alternating tint (hard-edged stripes), UVs in world metres. */
+  private slopeAt(x: number): number {
+    return x > this.stage.elevation.fromX ? this.stage.elevation.gradientPermille / 1000 : 0;
+  }
+
+  /** Track surface as quads of alternating tint, UVs in world metres, on the slope. */
   private stripedStrip(map: THREE.Texture, x0: number, len: number, tileW: number, tileD: number, stripe: number, dark: number): THREE.Mesh {
     const T = this.T;
     const n = Math.ceil(len / stripe);
@@ -424,12 +501,11 @@ export class HD2DScene {
       ];
       v.forEach(([x, z], k) => {
         const o = i * 4 + k;
-        pos.set([x!, 0.006, z!], o * 3);
+        pos.set([x!, this.el(x!) + 0.006, z!], o * 3);
         uv.set([x! / tileW, -z! / tileD], o * 2);
         col.set([c, c, c], o * 3);
       });
       const b = i * 4;
-      // Counter-clockwise seen from above (normal +y), so the strip isn't back-face culled.
       idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
     }
     const g = this.own(new T.BufferGeometry());
@@ -443,191 +519,175 @@ export class HD2DScene {
     return mesh;
   }
 
-  private billboardMat(map: THREE.Texture, tint = this.look.billboardTint): THREE.MeshBasicMaterial {
-    return this.own(new this.T.MeshBasicMaterial({ map, alphaTest: 0.5, color: tint, side: this.T.DoubleSide }));
+  private billboardMat(map: THREE.Texture, tint = this.look.billboardTint, fog = true): THREE.MeshBasicMaterial {
+    return this.own(new this.T.MeshBasicMaterial({ map, alphaTest: 0.5, color: tint, side: this.T.DoubleSide, fog }));
   }
 
-  private buildBackdrop(art: ArtSet, courseFar?: HTMLImageElement, courseStand?: HTMLImageElement): void {
+  /** An upright billboard plane with its bottom-centre at the origin. */
+  private uprightGeo(w: number, h: number, ax = 0.5): THREE.PlaneGeometry {
+    const g = this.own(new this.T.PlaneGeometry(w, h));
+    g.translate((0.5 - ax) * w, h / 2, 0);
+    return g;
+  }
+
+  /** The stage's scenery: course far panorama, midground, grandstand, crowd, rail decor. */
+  private buildBackdrop(art: ArtSet): void {
     const T = this.T;
     const L = this.L;
-    const far = -this.trackW;
-    // Distant hills (or the course's own panorama): a long plane well beyond the fog (own
-    // haze baked in). A course panorama keeps the default strip's texel stretch, so its
-    // height follows its aspect; its foot stays where the hills' foot was.
-    const hImg = courseFar ?? art.images.get("far-hills");
-    const hTex = this.tex(hImg ?? hillsStrip(this.look), { repeat: true });
+    const sc = this.stage.scenery;
+    const plan = this.plan;
+    // Far panorama: a long plane well beyond the fog (own haze baked in). Its height follows
+    // its aspect at the default strip's texel stretch; its foot stays where the hills' foot was.
+    const farImg = this.stageArt.get(sc.far) ?? art.images.get("far-hills");
+    const hTex = this.tex(farImg ?? hillsStrip(this.look), { repeat: true, mip: true });
     hTex.wrapT = T.ClampToEdgeWrapping;
     const hw = L + 5000;
     hTex.repeat.set(hw / 760, 1);
-    const hh = courseFar ? Math.min(320, 150 * (courseFar.height / courseFar.width) / (86 / 1376)) : 150;
-    const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, hh)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false })));
+    const hh = farImg ? Math.min(320, (150 * (farImg.height / farImg.width)) / (86 / 1376)) : 150;
+    const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, hh)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false, color: this.look.billboardTint })));
     hills.position.set(L / 2, 58 - 75 + hh / 2, -1000);
     hills.renderOrder = -7;
     this.scene.add(hills);
 
-    // Grandstand along the home straight beyond the outer rail, with crowd animation.
-    const standImg = courseStand ?? art.images.get("bb-grandstand");
-    this.crowdTex = standImg ? [this.tex(standImg, { repeat: true })] : [0, 1].map((f) => this.tex(grandstandSprite(this.look, f), { repeat: true }));
-    for (const t of this.crowdTex) t.wrapT = T.ClampToEdgeWrapping;
-    const standSrc = standImg ?? { width: 256, height: 128 };
-    const modW = standSrc.width / BG_PX_PER_M;
-    const mods = Math.max(3, Math.round(200 / modW));
-    const standH = standSrc.height / BG_PX_PER_M;
-    for (const t of this.crowdTex) t.repeat.set(mods, 1);
-    this.stand = new T.Mesh(this.own(new T.PlaneGeometry(modW * mods, standH)), this.billboardMat(this.crowdTex[0]!));
-    this.stand.position.set(L - 50, standH / 2, far - 30);
-    this.stand.receiveShadow = false;
-    this.scene.add(this.stand);
-    // Bunting flags on the roof.
-    const flagColors = ["#c8102e", "#f2c230", "#1d3f8f", "#ffffff", "#0f6b3a"];
-    this.flagTex = flagColors.map((c) => {
-      const t = this.tex(flagStrip(c));
-      t.repeat.set(1 / 4, 1);
-      return t;
-    });
-    const flagGeo = this.own(new T.PlaneGeometry(1.8, 1.5));
-    const poleGeo = this.own(new T.BoxGeometry(0.08, 2.4, 0.08));
-    const poleMat = this.own(new T.MeshLambertMaterial({ color: 0x8b8f93 }));
-    for (let i = 0; i < 16; i++) {
-      const x = L - 50 - (modW * mods) / 2 + 6 + i * ((modW * mods - 12) / 15);
-      const pole = new T.Mesh(poleGeo, poleMat);
-      pole.position.set(x, standH + 1.0, far - 30.2);
-      const flag = new T.Mesh(flagGeo, this.billboardMat(this.flagTex[i % this.flagTex.length]!, "#ffffff"));
-      flag.position.set(x + 0.95, standH + 1.6, far - 30.2);
-      this.scene.add(pole, flag);
-    }
-
-    // Spectators along the outer rail through the last ~200 m, with a lawn apron.
-    this.railCrowdTex = [0, 1].map((f) => {
-      const t = this.tex(railCrowdSprite(this.look, f), { repeat: true });
-      t.wrapT = T.ClampToEdgeWrapping;
-      return t;
-    });
-    const crowdLen = 230;
-    for (const t of this.railCrowdTex) t.repeat.set(crowdLen / 10.7, 1);
-    this.railCrowd = new T.Mesh(this.own(new T.PlaneGeometry(crowdLen, 2.0)), this.billboardMat(this.railCrowdTex[0]!));
-    this.railCrowd.position.set(L - crowdLen / 2 + 30, 1.0, far - 2.6);
-    this.scene.add(this.railCrowd);
-
-    // Trees: instanced pixel billboards beyond the outer rail and around the stand.
-    const kinds: [string, number][] = [
-      ["bb-tree-oak", 0],
-      ["bb-tree-poplar", 1],
-      ["bb-bush", 2],
-    ];
-    const r = rng(61);
+    // Midground billboards (instanced per art file), on the slope, with aerial fog.
     const dummy = new T.Object3D();
-    kinds.forEach(([stem, kind]) => {
-      const img = art.images.get(stem);
-      const canvas = img ?? treeSprite(this.look, kind, 51 + kind);
-      const map = this.tex(canvas);
-      const w = canvas.width / BG_PX_PER_M;
-      const h = canvas.height / BG_PX_PER_M;
-      const geo = this.own(new T.PlaneGeometry(w, h));
-      geo.translate(0, h / 2, 0);
-      const count = kind === 2 ? 90 : 55;
-      const mesh = new T.InstancedMesh(geo, this.billboardMat(map), count);
-      let n = 0;
-      for (let i = 0; i < count; i++) {
-        const x = -TRACK_PRE - 60 + r() * (L + TRACK_PRE + TRACK_POST + 120);
-        const behindStand = x > L - 50 - 110 && x < L - 50 + 110;
-        let z = kind === 2 ? far - 8 - r() * 14 : far - (behindStand ? 46 : 30) - r() * 120;
-        if (kind === 2 && behindStand) z = far - 40 - r() * 20;
-        const s = 0.75 + r() * 0.6;
-        dummy.position.set(x, 0, z);
-        dummy.scale.set(s, s, 1);
+    const bySrc = new Map<string, Hd2dPlan["mid"]>();
+    for (const m of plan.mid) {
+      const list = bySrc.get(m.src) ?? [];
+      list.push(m);
+      bySrc.set(m.src, list);
+    }
+    for (const [src, list] of bySrc) {
+      const img = this.stageArt.get(src);
+      if (!img) continue;
+      const first = list[0]!;
+      const mesh = new T.InstancedMesh(this.uprightGeo(first.widthM, first.heightM), this.billboardMat(this.tex(img, { mip: true })), list.length);
+      list.forEach((m, i) => {
+        dummy.position.set(m.xM, m.y, m.z);
+        dummy.scale.set(m.flip ? -1 : 1, 1, 1);
         dummy.updateMatrix();
-        mesh.setMatrixAt(n++, dummy.matrix);
-      }
-      mesh.count = n;
+        mesh.setMatrixAt(i, dummy.matrix);
+      });
       mesh.frustumCulled = false;
       this.scene.add(mesh);
-    });
+    }
+
+    // The course's grandstand, centred ~30 m before the line, facing the run-in.
+    const st = plan.stand;
+    const standImg = this.stageArt.get(st.src);
+    if (standImg) {
+      const stand = new T.Mesh(this.uprightGeo(st.w, st.h), this.billboardMat(this.tex(standImg, { mip: true })));
+      stand.position.set(st.x, st.y, st.z);
+      this.scene.add(stand);
+    }
+
+    // Rail spectators (the cheering crowd strip) behind the far rail around the line.
+    const c = plan.crowd[0];
+    const cImg = c ? this.stageArt.get(c.src) : undefined;
+    if (c && cImg) {
+      const frames = stripFrames(cImg, 320);
+      const len = c.x1 - c.x0;
+      const tex = frames.map((f) => {
+        const t = this.tex(f, { repeat: true });
+        t.wrapT = T.ClampToEdgeWrapping;
+        t.repeat.set(len / (320 / FOCAL_PX_PER_M), 1);
+        return t;
+      });
+      const mesh = new T.Mesh(this.uprightGeo(len, c.h), this.billboardMat(tex[0]!));
+      mesh.position.set((c.x0 + c.x1) / 2, c.y, c.z);
+      this.scene.add(mesh);
+      this.crowd = { mesh, tex };
+    }
+
+    // Rail decor (gorse, boards, flowers, walls) along the far rail, behind it.
+    const d0 = plan.railDecor[0];
+    const dImg = d0 ? this.stageArt.get(d0.src) : undefined;
+    if (d0 && dImg) {
+      const mesh = new T.InstancedMesh(this.uprightGeo(d0.w, d0.h), this.billboardMat(this.tex(dImg)), plan.railDecor.length);
+      plan.railDecor.forEach((d, i) => {
+        dummy.position.set(d.x, d.y, d.z);
+        dummy.scale.set(d.flip ? -1 : 1, 1, 1);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      });
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+    }
   }
 
+  /** White rails: the far rail solid; the near rail fades out in the low close shots. */
   private buildRails(): void {
     const T = this.T;
     const L = this.L;
     const x0 = -TRACK_PRE + 20;
     const x1 = L + TRACK_POST - 20;
-    const white = this.own(new T.MeshLambertMaterial({ color: 0xf4f4ef }));
     const spacing = 2.5;
     const per = Math.floor((x1 - x0) / spacing) + 1;
-    const postGeo = this.own(new T.BoxGeometry(0.09, 1.05, 0.09));
-    postGeo.translate(0, 0.525, 0);
-    const posts = new T.InstancedMesh(postGeo, white, per * 2);
+    const seg = 5;
+    const nSeg = Math.ceil((x1 - x0) / seg);
     const dummy = new T.Object3D();
-    let n = 0;
     for (const z of [0, -this.trackW]) {
+      const near = z === 0;
+      const mat = this.own(new T.MeshLambertMaterial({ color: 0xf4f4ef, transparent: near, opacity: 1 }));
+      if (near) this.nearRail.push(mat);
+      const postGeo = this.own(new T.BoxGeometry(0.09, 1.05, 0.09));
+      postGeo.translate(0, 0.525, 0);
+      const posts = new T.InstancedMesh(postGeo, mat, per);
       for (let i = 0; i < per; i++) {
-        dummy.position.set(x0 + i * spacing, 0, z);
+        const x = x0 + i * spacing;
+        dummy.position.set(x, this.el(x), z);
+        dummy.rotation.set(0, 0, 0);
         dummy.updateMatrix();
-        posts.setMatrixAt(n++, dummy.matrix);
+        posts.setMatrixAt(i, dummy.matrix);
       }
-      const bar = new T.Mesh(this.own(new T.BoxGeometry(x1 - x0, 0.1, 0.16)), white);
-      bar.position.set((x0 + x1) / 2, 1.06, z + (z === 0 ? 0.05 : -0.05));
-      bar.castShadow = true;
-      this.scene.add(bar);
+      const bars = new T.InstancedMesh(this.own(new T.BoxGeometry(seg + 0.02, 0.1, 0.16)), mat, nSeg);
+      for (let i = 0; i < nSeg; i++) {
+        const x = x0 + (i + 0.5) * seg;
+        dummy.position.set(x, this.el(x) + 1.06, z + (near ? 0.05 : -0.05));
+        dummy.rotation.set(0, 0, Math.atan(this.slopeAt(x)));
+        dummy.updateMatrix();
+        bars.setMatrixAt(i, dummy.matrix);
+      }
+      for (const m of [posts, bars]) {
+        m.castShadow = !near;
+        m.frustumCulled = false;
+        if (near) m.renderOrder = 5;
+        this.scene.add(m);
+      }
     }
-    posts.castShadow = true;
-    posts.frustumCulled = false;
-    this.scene.add(posts);
   }
 
-  private stripes(colors: string[], bands: number): THREE.Texture {
-    const c = document.createElement("canvas");
-    c.width = 2;
-    c.height = bands;
-    const ctx = c.getContext("2d")!;
-    for (let i = 0; i < bands; i++) {
-      ctx.fillStyle = colors[i % colors.length]!;
-      ctx.fillRect(0, i, 2, 1);
-    }
-    return this.tex(c);
-  }
-
-  private buildPoles(): void {
+  /** The stage's landmarks, all on the far rail: numbered poles, 200/100 boards, judge's box, post. */
+  private buildLandmarks(art: ArtSet): void {
     const T = this.T;
-    const L = this.L;
-    const furlong = FURLONG_MM / 1000;
-    const poleMat = this.own(new T.MeshLambertMaterial({ map: this.stripes(["#f4f4f2", "#c8102e"], 8) }));
-    const poleGeo = this.own(new T.CylinderGeometry(0.06, 0.06, 2.3, 6));
-    poleGeo.translate(0, 1.15, 0);
-    for (let i = 1; L - i * furlong > 1; i++) {
-      const x = L - i * furlong;
-      const pole = new T.Mesh(poleGeo, poleMat);
-      pole.position.set(x, 0, 0.3);
-      pole.castShadow = true;
-      const sign = signSprite(`${i}f`);
-      const sw = sign.width / FOCAL_PX_PER_M;
-      const sh = sign.height / FOCAL_PX_PER_M;
-      const plate = new T.Mesh(this.own(new T.PlaneGeometry(sw, sh)), this.billboardMat(this.tex(sign), "#ffffff"));
-      plate.position.set(x, 2.3 + sh / 2, 0.36);
-      this.scene.add(pole, plate);
+    const poleImg = this.stageArt.get("race/furlong-pole.png") ?? art.images.get("furlong-pole");
+    const postImg = this.stageArt.get(this.stage.landmarks.winningPost.art) ?? art.images.get("finish-post");
+    const tint = this.look.billboardTint;
+    const add = (src: HTMLCanvasElement | HTMLImageElement, x: number, y: number, z: number, cast = true) => {
+      const m = new T.Mesh(this.uprightGeo(src.width / FOCAL_PX_PER_M, src.height / FOCAL_PX_PER_M), this.billboardMat(this.tex(src), tint));
+      m.position.set(x, y, z);
+      m.castShadow = cast;
+      this.scene.add(m);
+    };
+    for (const p of this.plan.props) {
+      if (p.kind === "post") {
+        if (postImg) add(postImg, p.x, p.y, p.z);
+      } else if (p.kind === "judge") {
+        add(judgeBoxCanvas(), p.x, p.y, p.z);
+      } else {
+        const h = (poleImg?.height ?? 142) / FOCAL_PX_PER_M;
+        if (poleImg) add(poleImg, p.x, p.y, p.z);
+        if (p.plate) add(plateCanvas(p.plate), p.x, p.y + h - 6 / FOCAL_PX_PER_M, p.z + 0.02, false);
+      }
     }
-    // Winning post (far side, by the stands) with roundel; short post on the near side.
-    const wpMat = this.own(new T.MeshLambertMaterial({ map: this.stripes(["#ffffff", "#d71920"], 12) }));
-    const wp = new T.Mesh(this.own(new T.CylinderGeometry(0.09, 0.09, 3.6, 8)), wpMat);
-    wp.position.set(L, 1.8, -this.trackW - 0.5);
-    wp.castShadow = true;
-    const rs = roundelSprite();
-    const roundel = new T.Mesh(this.own(new T.PlaneGeometry(rs.width / FOCAL_PX_PER_M, rs.height / FOCAL_PX_PER_M)), this.billboardMat(this.tex(rs), "#ffffff"));
-    roundel.position.set(L, 3.6 + 0.6, -this.trackW - 0.45);
-    const np = new T.Mesh(this.own(new T.CylinderGeometry(0.07, 0.07, 1.8, 8)), wpMat);
-    np.position.set(L, 0.9, 0.35);
-    np.castShadow = true;
-    this.scene.add(wp, roundel, np);
-  }
-
-  private laneZ(lane: number): number {
-    return -(RAIL_GAP + lane * LANE_W);
   }
 
   private buildGate(): void {
     const T = this.T;
+    const lw = this.stage.lanes.widthM;
     // Starting lanes: frame 0 if we have it (live: maybe not yet), else gate order.
     const maxLane = this.replay.frames.length
-      ? Math.max(0, ...this.sampler(0).map((s) => Math.round(s.lane)))
+      ? Math.max(0, ...this.motion.stateAt(0).map((s) => Math.round(s.lane)))
       : Math.max(0, ...this.replay.horses.map((h) => h.gate - 1));
     const BACK = -3.4;
     const FRONT = 0.35;
@@ -655,7 +715,6 @@ export class HD2DScene {
       for (const m of [p, a, b, top]) m.castShadow = true;
       g.add(p, a, b, top);
     }
-    // Cross beams over the stalls.
     const span = Math.abs(zs[zs.length - 1]! - zs[0]!);
     for (const x of [BACK, FRONT]) {
       const beam = new T.Mesh(this.own(new T.BoxGeometry(0.12, 0.14, span)), frameMat);
@@ -664,7 +723,7 @@ export class HD2DScene {
       g.add(beam);
     }
     // Front doors: two leaves per stall, hinged on the partitions.
-    const leafW = LANE_W / 2 - 0.04;
+    const leafW = lw / 2 - 0.04;
     const leafGeo = this.own(new T.BoxGeometry(0.05, 1.35, leafW));
     for (let i = 0; i < zs.length - 1; i++) {
       for (const side of [0, 1]) {
@@ -687,39 +746,99 @@ export class HD2DScene {
     const T = this.T;
     const shadowTex = this.tex(blobShadow());
     const shadowGeo = this.own(new T.PlaneGeometry(1, 1));
+    const strips = this.strips;
+    if (strips) {
+      this.lut = this.dataTex(buildLut(strips.palette, strips.keys, this.replay.horses.map((h) => h.appearance)), LUT_W, Math.max(1, this.replay.horses.length), T.RGBAFormat);
+      for (const st of [strips.gallop, strips.idle, ...Object.values(strips.strips)]) {
+        if (!st) continue;
+        this.lodTex.set(
+          st,
+          st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
+        );
+        this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
+      }
+    }
+    // Unit quad, bottom-left at the origin, v flipped (row 0 = the frame's top, as in Trackside).
+    const quad = this.own(new T.PlaneGeometry(1, 1));
+    quad.translate(0.5, 0.5, 0);
+    const uv = quad.getAttribute("uv") as THREE.BufferAttribute;
+    for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
+    const ts = this.stage.look.trackside;
+    const rim = hexToRgb(ts.rim.color).map((c) => c / 255) as [number, number, number];
+    const tint = hexToRgb(ts.spriteTint[0]).map((c) => c / 255) as [number, number, number];
     this.replay.horses.forEach((h, i) => {
-      const rig = opts.rigs.create(h.appearance, { gate: h.gate });
-      // HD strips (>= 200 px frames) sit at the focal density; low-res strips are scaled
-      // so the horse is still life-size (nose-to-tail ~93% of the frame).
-      const WUPP = rig.width >= 200 ? 1 / FOCAL_PX_PER_M : HORSE_LEN_M / (rig.width * 0.93);
-      const w = rig.width * WUPP;
-      const hh = rig.height * WUPP;
-      const geo = this.own(new T.PlaneGeometry(w, hh));
-      // Put the rig's ground-contact anchor at the group origin.
-      // Anchor pixel (y down from the top) -> group origin on the ground.
-      geo.translate((rig.width / 2 - rig.anchor.x) * WUPP, (rig.anchor.y - rig.height / 2) * WUPP, 0);
-      // Strip rigs with a normal map are lit by the scene's sun + sky (rim light on the
-      // gallop); rigs that light themselves (pixel-rig) use an unlit material.
-      const normalMap = (rig as LitHorseRig).normalMap;
-      const mat = normalMap
-        ? this.own(
-            new T.MeshStandardMaterial({
-              map: rig.texture,
-              normalMap,
-              normalScale: new T.Vector2(1, 1),
-              alphaTest: 0.5,
-              roughness: 0.75,
-              metalness: 0,
-              emissive: new T.Color(this.look.billboardTint),
-              emissiveMap: rig.texture,
-              emissiveIntensity: 0.35,
-            }),
-          )
-        : this.own(new T.MeshBasicMaterial({ map: rig.texture, alphaTest: 0.5, color: this.look.billboardTint }));
-      const plane = new T.Mesh(geo, mat);
+      let rig: HorseRig | null = null;
+      let plane: THREE.Mesh;
+      let mat: THREE.Material;
       const group = new T.Group();
-      group.add(plane);
-      this.scene.add(group);
+      if (strips && this.lut) {
+        const g = strips.gallop;
+        const l0 = g.lods[0]!;
+        const lt = this.lodTex.get(g)![0]!;
+        mat = this.own(
+          new T.ShaderMaterial({
+            vertexShader: QUAD_VERT,
+            fragmentShader: HORSE_FRAG_3D,
+            transparent: true,
+            premultipliedAlpha: true,
+            depthWrite: true,
+            depthTest: true,
+            side: T.DoubleSide,
+            uniforms: {
+              uIdx: { value: lt.idx },
+              uNrm: { value: lt.nrm ?? lt.idx },
+              uLut: { value: this.lut },
+              uMsk: { value: this.mskTex.get(g) },
+              uIdxSize: { value: new T.Vector2(l0.width, l0.height) },
+              uMskSize: { value: new T.Vector2(l0.width, l0.height) },
+              uMskOrigin: { value: new T.Vector2(0, 0) },
+              uFrame: { value: new T.Vector4(0, 0, l0.fw, l0.fh) },
+              uLodS: { value: 1 },
+              uSilk: { value: new T.Vector4(0, 0, 1, 1) },
+              uPattern: { value: PATTERN_ID[h.appearance.silks.pattern] ?? 0 },
+              uRow: { value: i },
+              uLutRows: { value: Math.max(1, this.replay.horses.length) },
+              uUseNrm: { value: lt.nrm ? 1 : 0 },
+              uLight: { value: new T.Vector3(...ts.rim.dir) },
+              uRimCol: { value: new T.Vector3(...rim) },
+              uRimAmt: { value: ts.rim.amount },
+              uTint: { value: new T.Vector4(tint[0], tint[1], tint[2], ts.spriteTint[1]) },
+              uOpacity: { value: 1 },
+              uSat: { value: 1 },
+              uBright: { value: 1 },
+            },
+          }),
+        );
+        plane = new T.Mesh(quad, mat);
+        plane.frustumCulled = false;
+        this.scene.add(plane);
+      } else {
+        rig = opts.rigs.create(h.appearance, { gate: h.gate });
+        // HD strips (>= 200 px frames) sit at the focal density; low-res strips are scaled
+        // so the horse is still life-size (nose-to-tail ~93% of the frame).
+        const WUPP = rig.width >= 200 ? 1 / FOCAL_PX_PER_M : HORSE_LEN_M / (rig.width * 0.93);
+        const geo = this.own(new T.PlaneGeometry(rig.width * WUPP, rig.height * WUPP));
+        geo.translate((rig.width / 2 - rig.anchor.x) * WUPP, (rig.anchor.y - rig.height / 2) * WUPP, 0);
+        const normalMap = (rig as LitHorseRig).normalMap;
+        mat = normalMap
+          ? this.own(
+              new T.MeshStandardMaterial({
+                map: rig.texture,
+                normalMap,
+                normalScale: new T.Vector2(1, 1),
+                alphaTest: 0.5,
+                roughness: 0.75,
+                metalness: 0,
+                emissive: new T.Color(this.look.billboardTint),
+                emissiveMap: rig.texture,
+                emissiveIntensity: 0.35,
+              }),
+            )
+          : this.own(new T.MeshBasicMaterial({ map: rig.texture, alphaTest: 0.5, color: this.look.billboardTint }));
+        plane = new T.Mesh(geo, mat);
+        group.add(plane);
+        this.scene.add(group);
+      }
       const shadow = new T.Mesh(shadowGeo, this.own(new T.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 1 })));
       shadow.rotation.x = -Math.PI / 2;
       shadow.renderOrder = 1;
@@ -732,21 +851,46 @@ export class HD2DScene {
         plane,
         mat,
         shadow,
-        phase: rng(i * 977 + 13)(),
-        lastX: Number.NaN,
         x: 0,
+        y: 0,
         z: 0,
         bodyX: 0,
         bodyZ: 0,
         speed: 0,
-        drive: 0,
-        finishT: null,
-        finishSpeed: 8,
-        kickT: null,
-        prevLeg: [0, 0],
-        rand: rng(i * 7919 + 1),
+        st: { x: 0, lane: h.gate - 1, speed: 0, gait: "stand", phase: 0, anim: "break", frame: 0 },
+        lastPhase: Number.NaN,
+        strip: null,
+        lod: 0,
       });
     });
+  }
+
+  /** Ground fx sprites (the same recoloured strips as Trackside), a small recycled pool. */
+  private buildGroundFx(): void {
+    const T = this.T;
+    for (const id of this.stage.fx.emit) {
+      const img = this.stageArt.get(`race/${id}.png`);
+      if (!img) continue;
+      const c = fxStripCanvas(img, this.fxPal, id, this.stage.fx.key);
+      this.fxStrips.push({ tex: this.tex(c), frames: 8, fw: 48, fh: 32, fps: FX_FPS[id] ?? 12, anchor: FX_ANCHOR[id] ?? [0.8, 0.8] });
+    }
+    if (!this.fxStrips.length) return;
+    const quad = this.own(new T.PlaneGeometry(1, 1));
+    quad.translate(0.5, 0.5, 0);
+    const n = this.quality === "high" ? FX_MAX : FX_MAX / 2;
+    for (let i = 0; i < n; i++) {
+      // One material per strip per slot (each with its own frame offset; the image is shared).
+      const mats = this.fxStrips.map((st) => {
+        const map = this.own(st.tex.clone());
+        map.repeat.set(1 / st.frames, 1);
+        return this.own(new T.MeshBasicMaterial({ map, alphaTest: 0.5, color: this.look.billboardTint, side: T.DoubleSide }));
+      });
+      const mesh = new T.Mesh(quad, mats[0]!);
+      mesh.visible = false;
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+      this.fx.push({ mesh, mats, strip: 0, x: 0, y: 0, z: 0, age: -1, flip: false });
+    }
   }
 
   private buildMarker(): void {
@@ -796,7 +940,6 @@ export class HD2DScene {
   setQuality(q: RenderQuality): void {
     if (q === this.quality) return;
     this.quality = q;
-    this.particles.density = q === "high" ? 1 : 0.4;
     this.renderer.shadowMap.enabled = q === "high";
     this.sunLight.castShadow = q === "high";
     if (q === "low" && this.post) {
@@ -810,6 +953,7 @@ export class HD2DScene {
   resize(W: number, H: number): void {
     // Phones: the director keeps to close tracking shots (no tiny-horse aerials).
     this.director.compact = W < 640;
+    this.ownDirector.compact = W < 640;
     this.W = Math.max(1, W);
     this.H = Math.max(1, H);
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -836,78 +980,119 @@ export class HD2DScene {
     return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shotSubject ? `${this.shotType}:${this.shotSubject}` : this.shotType };
   }
 
+  /** What this scene built from the stage (guard test: must equal Trackside's). */
+  get inventory(): StageInventory {
+    return hd2dInventory(this.stage, this.plan);
+  }
+
+  /** The strip for an animation (fallbacks when a strip is missing). */
+  private stripFor(anim: AnimId): StripSet {
+    const a = this.strips!;
+    if (anim === "idle") return a.idle ?? a.strips.break ?? a.gallop;
+    if (anim === "gallop") return a.gallop;
+    return a.strips[anim] ?? (anim === "lunge" ? a.strips.drive : undefined) ?? (anim === "break" ? a.idle ?? a.gallop : a.gallop);
+  }
+
+  private chooseLod(q: number, cur: number): number {
+    let ideal = 4;
+    for (let s = 1; s <= 4; s++) {
+      if (q * s >= 1) {
+        ideal = s;
+        break;
+      }
+    }
+    if (!cur) return ideal;
+    if (ideal > cur) return q * cur < 0.92 ? ideal : cur;
+    if (ideal < cur) return q * ideal >= 1.08 ? ideal : cur;
+    return cur;
+  }
+
+  /**
+   * Screen-square billboard of a strip frame with its anchor on the world point (x, y, z):
+   * exact LOD, scale pulled towards whole screen pixels per texel, anchor snapped to the
+   * pixel grid. Returns the scale used (buffer px per LOD texel).
+   */
+  private placeSprite(mesh: THREE.Object3D, wx: number, wy: number, wz: number, fw: number, fh: number, ax: number, ay: number, texelM: number, snapScale: boolean): number {
+    const cam = this.camera;
+    const buf = this.renderer.getDrawingBufferSize(this.buf);
+    const right = this.v3.setFromMatrixColumn(cam.matrixWorld, 0);
+    const up = this.v4.setFromMatrixColumn(cam.matrixWorld, 1);
+    const p = this.v1.set(wx, wy, wz);
+    const depth = -this.v5.copy(p).applyMatrix4(cam.matrixWorldInverse).z;
+    const wpp = (2 * Math.max(0.1, depth) * Math.tan((cam.fov * Math.PI) / 360)) / buf.y; // metres per buffer px
+    let k = texelM / wpp; // buffer px per texel
+    if (snapScale) {
+      const n = Math.max(1, Math.round(k));
+      const w = Math.max(0, 1 - Math.abs(k - n) / (0.15 * n));
+      k = k + (n - k) * w;
+    }
+    const sw = fw * k * wpp;
+    const sh = fh * k * wpp;
+    // Anchor -> whole pixels.
+    const ndc = this.v5.copy(p).project(cam);
+    const px = ((ndc.x + 1) / 2) * buf.x;
+    const py = ((ndc.y + 1) / 2) * buf.y;
+    const dx = (Math.round(px) - px) * wpp;
+    const dy = (Math.round(py) - py) * wpp;
+    mesh.quaternion.copy(cam.quaternion);
+    mesh.scale.set(sw, sh, 1);
+    mesh.position.copy(p).addScaledVector(right, dx - ax * sw).addScaledVector(up, dy - (1 - ay) * sh);
+    return k;
+  }
+
   render(f: SceneFrame): void {
-    const T = this.T;
     const raceT = f.time;
     const tS = Math.max(0, raceT);
     let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
     const seek = Math.abs(simDt) > 0.6 || simDt < -1e-9;
+    this.director = f.director ?? this.ownDirector;
     if (seek || Number.isNaN(this.lastTime)) {
-      this.director.reset(raceT);
       this.dirEventScan = 0;
       const tickNow = Math.max(0, raceT) * this.replay.tickHz;
       while (this.dirEventScan < this.replay.events.length && this.replay.events[this.dirEventScan]!.tick < tickNow) this.dirEventScan++;
     }
     if (seek) {
       simDt = 0;
-      this.particles.clear();
-      if (raceT < this.winnerTime) this.confettiDone = false;
+      for (const p of this.fx) p.age = -1;
     }
     if (f.frozen) simDt = 0;
     this.lastTime = raceT;
     this.animTime += simDt;
     const realDt = Math.min(0.1, Math.max(0, f.realDt));
     const L = this.L;
-    const furlong = FURLONG_MM / 1000;
 
-    this.samples = this.sampler(tS, this.samples);
+    // --- Runners: the shared motion (replay x up to the line, the run-out after it) -------
+    this.states = this.motion.stateAt(raceT, this.states);
+    this.samples = this.motion.samples;
     let lead: Runner | null = null;
     let last: Runner | null = null;
-    let zSum = 0;
-    // New kick events (live: events grow).
-    const evs = this.replay.events;
-    for (; this.kickScan < evs.length; this.kickScan++) {
-      const ev = evs[this.kickScan]!;
-      if (ev.type === "kick" && ev.horseId && !this.kicks.has(ev.horseId)) this.kicks.set(ev.horseId, ev.tick / this.replay.tickHz);
-    }
+    const haveFrames = this.replay.frames.length > 0;
     for (const r of this.runners) {
-      const s = this.samples[r.index]!;
-      // Finish time: official when the result is known, else frame-derived (sampler).
-      if (r.finishT === null && s.finishTimeSec !== null) {
-        r.finishT = s.finishTimeSec;
-        const before = this.sampler(Math.max(0, r.finishT - 0.05), this.scratch)[r.index]!;
-        r.finishSpeed = Math.max(8, before.speed / 1000);
-        this.samples = this.sampler(tS, this.samples);
-      }
-      if (r.kickT === null) r.kickT = this.kicks.get(r.horseId) ?? null;
-      if (!this.replay.result && r.finishT !== null) this.winnerTime = Math.min(this.winnerTime, r.finishT);
-      if (r.finishT !== null && tS > r.finishT) {
-        const e = Math.exp(-(tS - r.finishT) / PULLUP_TAU);
-        r.x = L + r.finishSpeed * PULLUP_TAU * (1 - e);
-        r.speed = r.finishSpeed * e;
-      } else {
-        r.x = s.x / 1000;
-        r.speed = raceT < 0 ? 0 : s.speed / 1000;
-      }
-      r.z = this.laneZ(this.replay.frames.length ? s.lane : this.replay.horses[r.index]!.gate - 1);
-      zSum += r.z;
+      const st = this.states[r.index]!;
+      r.st = st;
+      const ft = this.motion.finishInfo(r.index).finishT;
+      if (!this.replay.result && ft !== null) this.winnerTime = Math.min(this.winnerTime, ft);
+      r.x = st.x;
+      r.y = this.el(st.x);
+      r.speed = st.speed;
+      r.z = this.laneZ(haveFrames ? st.lane : this.replay.horses[r.index]!.gate - 1);
       if (!lead || r.x > lead.x) lead = r;
       if (!last || r.x < last.x) last = r;
     }
     if (!lead || !last) return;
-    const fieldZ = zSum / this.runners.length;
+    const winnerIdx = this.motion.winner();
+    const winner = winnerIdx >= 0 ? this.runners[winnerIdx]! : null;
 
     // --- Camera direction -------------------------------------------------------
-    // Side-on broadcast camera. The director only changes what it frames (close / pack /
-    // finish line) and around whom; the camera always eases there with critically damped
-    // springs (position, aim, FOV), so there are no cuts. Hot path: no per-frame allocs.
+    // Side-on broadcast camera. The (shared) director only changes what it frames and
+    // around whom; the camera always eases there with critically damped springs.
     const mine = this.highlight >= 0 ? this.runners[this.highlight]! : null;
     let mode = f.camera;
     if (mode === "mine" && !mine) mode = "director";
     const byX = this.byX;
     if (byX.length !== this.runners.length) byX.splice(0, byX.length, ...this.runners);
     byX.sort((a, b) => b.x - a.x);
-    // Events that have just happened (for motivated re-framing).
+    const evs = this.replay.events;
     const newEvents = this.dirEvents;
     newEvents.length = 0;
     for (; this.dirEventScan < evs.length && evs[this.dirEventScan]!.tick / this.replay.tickHz <= tS; this.dirEventScan++) newEvents.push(evs[this.dirEventScan]!);
@@ -920,6 +1105,7 @@ export class HD2DScene {
     dirInput.photoFinish = this.photoFinish;
     dirInput.newEvents = newEvents;
     dirInput.highlightId = mine?.horseId ?? null;
+    dirInput.winnerId = winner?.horseId ?? null;
     let shotType: ShotType;
     let subjectId: string | null;
     if (mode === "director") {
@@ -928,8 +1114,9 @@ export class HD2DScene {
       subjectId = r.shot.subject;
     } else {
       const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
-      shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "wide" : tS > this.winnerTime + 0.9 && mode !== "mine" ? "post" : "close";
-      subjectId = mode === "mine" ? mine!.horseId : null;
+      const after = tS > this.winnerTime + 0.9;
+      shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
+      subjectId = mode === "mine" ? mine!.horseId : shotType === "post" ? (winner?.horseId ?? null) : null;
     }
     this.shotType = shotType;
     this.shotSubject = subjectId;
@@ -954,22 +1141,43 @@ export class HD2DScene {
     const pz = cam.position.z;
     this.camPos.into(cam.position);
     cam.lookAt(this.camLook.into(this.v2));
-    // Continuity check (debug): camera displacement this frame beyond the subject's own
-    // travel. A cut would show up as a multi-metre step.
-    if (!this.firstFrame && !seek && simDt >= 0) {
-      const step = Math.hypot(cam.position.x - px - subject.speed * simDt, cam.position.y - py, cam.position.z - pz);
-      if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, step);
-    }
     const vfov = this.vfovFor(this.fov.x);
     if (Math.abs(cam.fov - vfov) > 1e-3) {
       cam.fov = vfov;
       cam.updateProjectionMatrix();
     }
-    this.focusDist = cam.position.distanceTo(this.v1.set((sc.x0 + sc.x1) / 2, 1.0, (sc.z0 + sc.z1) / 2));
-    // Keep the framed horses plus the near rail in the sharp band.
-    this.focusRange = Math.max(5, (sc.z1 - sc.z0) * 0.6 + (sc.x1 - sc.x0) * 0.25 + 4);
-    const shot = shotType;
+    // Whole pixels: move the camera in its own plane so the focal plane lands on the pixel
+    // grid (no sub-pixel shimmer on the rails, poles and turf while tracking).
+    {
+      cam.updateMatrixWorld();
+      const buf = this.renderer.getDrawingBufferSize(this.buf);
+      const fd = Math.max(1, cam.position.distanceTo(this.v2));
+      const wpp = (2 * fd * Math.tan((cam.fov * Math.PI) / 360)) / Math.max(1, buf.y);
+      const right = this.v3.setFromMatrixColumn(cam.matrixWorld, 0);
+      const up = this.v4.setFromMatrixColumn(cam.matrixWorld, 1);
+      const pr = cam.position.dot(right) / wpp;
+      const pu = cam.position.dot(up) / wpp;
+      cam.position.addScaledVector(right, (Math.round(pr) - pr) * wpp).addScaledVector(up, (Math.round(pu) - pu) * wpp);
+      cam.updateMatrixWorld();
+    }
+    if (!this.firstFrame && !seek && simDt >= 0) {
+      const step = Math.hypot(cam.position.x - px - subject.speed * simDt, cam.position.y - py, cam.position.z - pz);
+      if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, step);
+    }
+    this.focusDist = cam.position.distanceTo(this.v1.set((sc.x0 + sc.x1) / 2, this.el((sc.x0 + sc.x1) / 2) + 1.0, (sc.z0 + sc.z1) / 2));
+    // The whole field depth plus the far rail and its landmarks stay in the sharp band.
+    this.focusRange = Math.max(8, this.trackW * 0.7 + (sc.x1 - sc.x0) * 0.25 + 6);
     const focus = subject;
+
+    // The near rail would cut across the horses in the low shots: fade it there.
+    const lowShot = shotType !== "establish" && shotType !== "wide" && shotType !== "gate";
+    const aim = lowShot ? 0 : 1;
+    this.nearRailA += (aim - this.nearRailA) * (1 - Math.exp(-(realDt || 0.016) * 4));
+    for (const m of this.nearRail) {
+      (m as THREE.MeshLambertMaterial).opacity = this.nearRailA;
+      m.visible = this.nearRailA > 0.02;
+      (m as THREE.MeshLambertMaterial).depthWrite = this.nearRailA > 0.98;
+    }
 
     // Picture-in-picture: my horse, when the director isn't showing it (desktop/high only).
     this.pipActive = false;
@@ -996,92 +1204,92 @@ export class HD2DScene {
     // --- World animation ---------------------------------------------------------
     this.sky.position.copy(cam.position);
     if (this.sun) this.sun.position.copy(cam.position).addScaledVector(this.sunDir, 1500);
-    this.sunLight.target.position.set(focus.x, 0, -this.trackW / 2);
-    this.sunLight.position.copy(this.sunLight.target.position).addScaledVector(this.sunDir, 80);
-    if (this.crowdTex.length > 1 && this.stand) {
-      const m = this.stand.material as THREE.MeshBasicMaterial;
-      const next = this.crowdTex[Math.floor(this.animTime * 3) % 2]!;
-      if (m.map !== next) {
-        m.map = next;
-      }
+    this.sunLight.target.position.set(focus.x, this.el(focus.x), -this.trackW / 2);
+    this.sunLight.position.copy(this.sunLight.target.position).addScaledVector(this.keyDir, 80);
+    if (this.crowd) {
+      const m = this.crowd.mesh.material as THREE.MeshBasicMaterial;
+      const next = this.crowd.tex[crowdFrame(crowdCheering(L - lead.x, tS, this.winnerTime), this.animTime, this.crowd.tex.length)]!;
+      if (m.map !== next) m.map = next;
     }
-    if (this.railCrowd && this.railCrowdTex.length > 1) {
-      const excite = tS > this.winnerTime - 8 ? 6 : 1.5;
-      (this.railCrowd.material as THREE.MeshBasicMaterial).map = this.railCrowdTex[Math.floor(this.animTime * excite) % 2]!;
-    }
-    const ff = Math.floor(this.animTime * 8 + 0.0001);
-    this.flagTex.forEach((t, i) => (t.offset.x = ((ff + i) % 4) / 4));
     const open = Math.min(1, Math.max(0, raceT / 0.3));
     for (const d of this.doors) d.rotation.y = (d.userData.side === 0 ? 1 : -1) * open * 1.45;
 
     // --- Horses ------------------------------------------------------------------
-    const lightDir = this.sunDir;
+    cam.updateMatrixWorld();
     for (const r of this.runners) {
-      const stride = strideLengthM(Math.max(r.speed, 6));
-      if (seek || Number.isNaN(r.lastX)) r.lastX = r.x;
-      const dx = r.x - r.lastX;
-      r.lastX = r.x;
-      if (dx > 0 && dx < 5) r.phase += dx / stride;
-      const finished = r.finishT !== null && tS >= r.finishT;
-      const kicked = r.kickT !== null && tS >= r.kickT;
-      let driveT = 0;
-      if (!finished && raceT > 0) driveT = L - r.x < furlong ? (kicked ? 1 : 0.7) : kicked ? 0.55 : 0;
-      r.drive += (driveT - r.drive) * (1 - Math.exp(-4 * simDt));
-      r.rig.update(this.renderer, { phase: r.phase, speedMs: r.speed, drive: r.drive, lightDir, time: this.animTime });
-      r.group.position.set(r.x, 0, r.z);
-      // Axis-locked billboard, limited yaw so side-view sprites never turn edge-on.
-      const yaw = Math.atan2(cam.position.x - r.x, cam.position.z - r.z);
-      const ry = Math.max(-0.62, Math.min(0.62, yaw));
-      // Lean the sprite back towards an elevated camera so it isn't squashed.
-      const horiz = Math.hypot(cam.position.x - r.x, cam.position.z - r.z);
-      const tilt = Math.min(0.55, Math.max(0, Math.atan2(cam.position.y - 1.0, horiz) * 0.75));
-      r.group.rotation.order = "YXZ";
-      r.group.rotation.y = ry;
-      r.group.rotation.x = -tilt;
-      // Body centre follows the yawed sprite plane.
-      r.bodyX = r.x - 1.25 * Math.cos(ry);
-      r.bodyZ = r.z + 1.25 * Math.sin(ry);
-      // Contact shadow: under the barrel, nudged away from the sun.
-      r.shadow.position.set(r.bodyX - this.sunDir.x * 0.5, 0.014, r.bodyZ - this.sunDir.z * 0.35);
-      r.shadow.rotation.z = ry;
-      r.shadow.scale.set(2.7, 0.95, 1);
-      // Hoof strikes -> pixel dust / turf.
-      if (simDt > 0 && r.speed > 4) {
-        const legs: ["FR" | "HR", number][] = [
-          ["FR", -0.35],
-          ["HR", -2.0],
-        ];
-        legs.forEach(([leg, off], li) => {
-          const ph = legPhase(r.phase, leg);
-          if (ph < r.prevLeg[li]!) this.hoofStrike(r, r.x + off);
-          r.prevLeg[li] = ph;
-        });
+      const s = r.st;
+      if (r.rig) {
+        // Fallback rig sprites: upright, facing the camera.
+        r.rig.update(this.renderer, { phase: s.phase, speedMs: r.speed, drive: s.anim === "drive" || s.anim === "lunge" ? 1 : 0, lightDir: this.keyDir, time: this.animTime });
+        r.group.position.set(r.x, r.y, r.z);
+        r.group.quaternion.copy(cam.quaternion);
+      } else {
+        const st = this.stripFor(s.anim);
+        const texelM = 1 / st.pxPerM;
+        // Choose the LOD from the on-screen size of a source texel at this depth.
+        const buf = this.renderer.getDrawingBufferSize(this.buf);
+        const depth = -this.v1.set(r.x, r.y, r.z).applyMatrix4(cam.matrixWorldInverse).z;
+        const q = texelM / ((2 * Math.max(0.1, depth) * Math.tan((cam.fov * Math.PI) / 360)) / buf.y);
+        if (st !== r.strip) r.lod = 0;
+        r.strip = st;
+        r.lod = this.chooseLod(q, r.lod);
+        const lod = st.lods[r.lod - 1]!;
+        const tex = this.lodTex.get(st)![r.lod - 1]!;
+        const frames = lod.frames;
+        const frame = Math.max(0, Math.min(frames - 1, s.anim === "gallop" || s.anim === "drive" ? Math.floor((s.phase - Math.floor(s.phase)) * frames) % frames : s.frame % frames));
+        const [ox, oy] = frameOrigin(lod, frame);
+        const u = (r.mat as THREE.ShaderMaterial).uniforms;
+        u.uIdx!.value = tex.idx;
+        u.uNrm!.value = tex.nrm ?? tex.idx;
+        u.uUseNrm!.value = tex.nrm ? 1 : 0;
+        u.uMsk!.value = this.mskTex.get(st);
+        (u.uIdxSize!.value as THREE.Vector2).set(lod.width, lod.height);
+        (u.uMskSize!.value as THREE.Vector2).set(st.lods[0]!.width, st.lods[0]!.height);
+        (u.uMskOrigin!.value as THREE.Vector2).set(...frameOrigin(st.lods[0]!, frame));
+        (u.uFrame!.value as THREE.Vector4).set(ox, oy, lod.fw, lod.fh);
+        u.uLodS!.value = r.lod;
+        const sb = st.silk;
+        (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
+        this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true);
       }
+      r.bodyX = r.x - 1.25;
+      r.bodyZ = r.z;
+      r.shadow.position.set(r.bodyX - this.keyDir.x * 0.4, r.y + 0.014, r.bodyZ - 0.15);
+      r.shadow.rotation.z = 0;
+      r.shadow.scale.set(2.7, 0.95, 1);
+      // one ground-fx burst per stride, from the leading hind hoof
+      if (simDt > 0 && r.speed > 5 && !Number.isNaN(r.lastPhase) && Math.floor(s.phase) > Math.floor(r.lastPhase)) this.emitFx(r, r.x - 1.9);
+      r.lastPhase = s.phase;
     }
 
-    // Confetti as the winner hits the line.
-    if (!this.confettiDone && tS >= this.winnerTime && simDt > 0) {
-      this.confettiDone = true;
-      this.confettiLeft = 260;
-    }
-    // Confetti is released over several frames (no single-frame spike).
-    if (this.confettiLeft > 0 && simDt > 0) {
-      const cols = CONFETTI;
-      const n = Math.min(this.confettiLeft, 30);
-      for (let i = 0; i < n; i++) {
-        this.particles.emit("confetti", L - 4 + Math.random() * 10, 5 + Math.random() * 5, -this.trackW * Math.random(), (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, cols[(this.confettiLeft - i) % cols.length]!, 0.09, 5 + Math.random() * 3);
+    // --- Ground fx: world-anchored bursts, screen-square, whole pixels ---------------
+    const sdt = f.frozen ? 0 : simDt;
+    for (const p of this.fx) {
+      if (p.age < 0) {
+        p.mesh.visible = false;
+        continue;
       }
-      this.confettiLeft -= n;
+      p.age += sdt;
+      const st = this.fxStrips[p.strip]!;
+      const frame = Math.floor(p.age * st.fps);
+      if (frame >= st.frames) {
+        p.age = -1;
+        p.mesh.visible = false;
+        continue;
+      }
+      p.mesh.visible = true;
+      const map = p.mats[p.strip]!.map!;
+      map.repeat.set((p.flip ? -1 : 1) / st.frames, 1);
+      map.offset.set((p.flip ? frame + 1 : frame) / st.frames, 0);
+      const ax = p.flip ? 1 - st.anchor[0] : st.anchor[0];
+      this.placeSprite(p.mesh, p.x, p.y, p.z, st.fw, st.fh, ax, st.anchor[1], 1 / FOCAL_PX_PER_M, true);
     }
-    this.particles.update(simDt);
-    const buf = this.renderer.getDrawingBufferSize(this.buf);
-    this.particles.setPxScale(buf.y / (2 * Math.tan((cam.fov * Math.PI) / 360)));
     if (this.rain) this.rain.update(f.frozen ? 0 : realDt, cam.position.x, cam.position.z - 12);
 
     if (this.marker && this.ring && this.highlight >= 0) {
       const r = this.runners[this.highlight]!;
-      this.marker.position.set(r.bodyX + 0.3, 2.7 + Math.sin(performance.now() / 250) * 0.06, r.bodyZ);
-      this.ring.position.set(r.bodyX, 0.016, r.bodyZ);
+      this.marker.position.set(r.bodyX + 0.3, r.y + 2.7 + Math.sin(performance.now() / 250) * 0.06, r.bodyZ);
+      this.ring.position.set(r.bodyX, r.y + 0.016, r.bodyZ);
     }
 
     // --- Draw ----------------------------------------------------------------------
@@ -1091,7 +1299,7 @@ export class HD2DScene {
         focusDist: this.focusDist,
         focusRange: this.focusRange,
         dofAmount: this.W < 640 ? 0.22 : 0.45,
-        tiltShift: 0.12,
+        tiltShift: 0,
         bloom: this.look.bloom,
         tint: g.tint,
         saturation: g.saturation,
@@ -1126,7 +1334,21 @@ export class HD2DScene {
       r.setScissorTest(false);
       r.setViewport(0, 0, this.W, this.H);
     }
-    void T;
+  }
+
+  private emitFx(r: Runner, wx: number): void {
+    if (!this.fx.length) return;
+    const slot = this.fx.find((p) => p.age < 0);
+    if (!slot) return;
+    const n = this.fxCount++;
+    const strip = this.fxStrips.length > 1 && n % 4 === 3 ? 1 : 0;
+    slot.strip = strip;
+    slot.mesh.material = slot.mats[strip]!;
+    slot.x = wx + (((n * 37) % 7) - 3) * 0.03;
+    slot.z = r.z + (((n * 13) % 5) - 2) * 0.05 + 0.2;
+    slot.y = this.el(slot.x);
+    slot.age = 0;
+    slot.flip = n % 5 === 2;
   }
 
   /**
@@ -1135,11 +1357,11 @@ export class HD2DScene {
    * the full pipeline (shadows, post passes, PiP) from a camera that sees the whole course.
    */
   warmup(): void {
-    const T = this.T;
     const r = this.renderer;
     const tex: THREE.Texture[] = [];
     for (const d of this.disposables) if ((d as THREE.Texture).isTexture) tex.push(d as THREE.Texture);
     for (const run of this.runners) {
+      if (!run.rig) continue;
       tex.push(run.rig.texture);
       const nm = (run.rig as LitHorseRig).normalMap;
       if (nm) tex.push(nm);
@@ -1153,6 +1375,7 @@ export class HD2DScene {
     }
     const cam = this.camera;
     const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
+    for (const p of this.fx) p.mesh.visible = true;
     r.compile(this.scene, cam);
     // One full frame from high over the middle of the course: every object in view once.
     cam.position.set(this.L / 2, 260, 520);
@@ -1161,7 +1384,7 @@ export class HD2DScene {
     cam.lookAt(this.L / 2, 0, -this.trackW / 2);
     const g = this.look.grade;
     if (this.post) {
-      this.post.render(this.scene, cam, { focusDist: 50, focusRange: 10, dofAmount: 0.45, tiltShift: 0.12, bloom: this.look.bloom, tint: g.tint, saturation: g.saturation, contrast: g.contrast, vignette: 0.42, flash: 0.5 });
+      this.post.render(this.scene, cam, { focusDist: 50, focusRange: 10, dofAmount: 0.45, tiltShift: 0, bloom: this.look.bloom, tint: g.tint, saturation: g.saturation, contrast: g.contrast, vignette: 0.42, flash: 0.5 });
     } else {
       r.setRenderTarget(null);
       r.render(this.scene, cam);
@@ -1171,11 +1394,11 @@ export class HD2DScene {
       this.pipCam.quaternion.copy(cam.quaternion);
       r.compile(this.scene, this.pipCam);
     }
+    for (const p of this.fx) p.mesh.visible = false;
     cam.position.copy(saved.pos);
     cam.quaternion.copy(saved.quat);
     cam.fov = saved.fov;
     cam.updateProjectionMatrix();
-    void T;
   }
 
   /** Largest per-frame camera jump (m, net of subject motion) since load: continuity metric. */
@@ -1193,14 +1416,8 @@ export class HD2DScene {
   /** The race is over: switch to the official replay (same horses, same scene). */
   setFinal(final: RaceReplay): void {
     this.replay = final;
-    this.sampler = createReplaySampler(final);
+    this.motion.setSource(final);
     this.applyResult();
-    for (const r of this.runners) {
-      r.finishT = null;
-      r.kickT = null;
-    }
-    this.kickScan = 0;
-    this.kicks.clear();
     this.lastTime = Number.NaN;
   }
 
@@ -1246,11 +1463,11 @@ export class HD2DScene {
         // Side-on at the stalls, a touch higher before the off, settling at the off.
         const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
         group = byX;
-        elev = 16 - 6 * k;
+        elev = 14 - 4 * k;
         yaw = -4;
         fillX = 0.8;
         fillY = 0.62;
-        fov = 32;
+        fov = 30;
         vel = 0;
         maxSpan = 1e9;
         composeShift = 0.16;
@@ -1268,7 +1485,7 @@ export class HD2DScene {
         break;
       case "pack":
         group = near(SHOT_REACH.pack, 7);
-        elev = 12;
+        elev = 10;
         yaw = -6;
         fillX = 0.9;
         fillY = 0.58;
@@ -1277,15 +1494,20 @@ export class HD2DScene {
         composeShift = 0.14;
         break;
       case "wide":
+      case "establish":
+        // The whole field at ~11 degrees, the course's scenery above it (as Trackside frames it).
+        // A wider lens aimed above the field: the field sits in the lower half, the course's
+        // midground, stand and sky above it.
         group = byX;
-        elev = 20;
-        yaw = -4;
-        fillX = 0.86;
-        fillY = 0.55;
-        fov = 30;
-        leadPad = 4;
-        maxSpan = 80;
-        composeShift = 0.16;
+        elev = 11;
+        yaw = -3;
+        fillX = 0.92;
+        fillY = 0.24;
+        fov = 36;
+        leadPad = 3;
+        maxSpan = 56;
+        composeShift = 0.42;
+        vel = (byX[0]!.speed + byX[byX.length - 1]!.speed) / 2;
         break;
       case "judge":
         group = byX.filter((r) => Math.abs(r.x - L) < 5);
@@ -1301,13 +1523,13 @@ export class HD2DScene {
         composeShift = 0.06;
         break;
       case "post":
-        group = byX.filter((r) => r.x > L - 40);
-        if (group.length < 3) group = byX.slice(0, 3);
-        elev = 12;
-        yaw = -2;
-        fov = 28;
-        vel = 0;
-        maxSpan = 30;
+        // Pull-up follow: tracks the horse being celebrated as it eases down.
+        group = near(16, 4);
+        elev = 9;
+        yaw = -3;
+        fov = 24;
+        vel = sub.speed;
+        maxSpan = 16;
         break;
     }
     let x0 = Infinity;
@@ -1326,11 +1548,14 @@ export class HD2DScene {
       z0 = Math.min(z0, this.laneZ(-0.5));
       z1 = Math.max(z1, this.laneZ(-0.5));
     }
+    if (type === "establish" || type === "wide") {
+      // Take in the far rail and its landmarks too.
+      z0 = Math.min(z0, -this.trackW);
+    }
     // Narrow screens: less track, a little more elevation to separate the lanes.
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
-    // Phones: close tracking frames ~1.5 lengths so the horse reads clearly at 390 px.
     maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
-    if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 12);
+    if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 8);
     fillY *= 0.85 + 0.15 * narrowK;
     if (x1 - x0 > maxSpan) {
       // Keep the subject in the frame, trimmed towards the front of the group.
@@ -1342,7 +1567,8 @@ export class HD2DScene {
       x0 = Math.min(x0, L - 2.5);
       x1 = Math.max(x1, L + 2.5);
     }
-    at.set((x0 + x1) / 2 + leadPad * 0.5, 0.9, (z0 + z1) / 2);
+    const cx = (x0 + x1) / 2 + leadPad * 0.5;
+    at.set(cx, this.el(cx) + 0.9, (z0 + z1) / 2);
     const D = this.fitDistance(x0, x1, z0, z1, at, elev, yaw, fov, fillX, fillY);
     const e = (elev * Math.PI) / 180;
     const a = (yaw * Math.PI) / 180;
@@ -1365,11 +1591,9 @@ export class HD2DScene {
   private fitDistance(x0: number, x1: number, z0: number, z1: number, at: THREE.Vector3, elevDeg: number, yawDeg: number, fov: number, fillX: number, fillY: number): number {
     const e = (elevDeg * Math.PI) / 180;
     const a = (yawDeg * Math.PI) / 180;
-    // d: unit vector from the target towards the camera; f = -d (view direction).
     const dx = Math.sin(a) * Math.cos(e);
     const dy = Math.sin(e);
     const dz = Math.cos(a) * Math.cos(e);
-    // right = f x up, up' = right x f
     const fx = -dx;
     const fy = -dy;
     const fz = -dz;
@@ -1385,9 +1609,10 @@ export class HD2DScene {
     const uz = rx * fy - ry * fx;
     const tanV = Math.tan(((this.vfovFor(fov) * Math.PI) / 180) / 2);
     const tanH = tanV * this.camera.aspect;
+    const y0 = at.y - 0.9;
     let D = 10;
     for (const x of [x0, x1]) {
-      for (const y of [0, 2.6]) {
+      for (const y of [y0, y0 + 2.6]) {
         for (const z of [z0 - 0.6, z1 + 0.6]) {
           const qx = x - at.x;
           const qy = y - at.y;
@@ -1399,31 +1624,11 @@ export class HD2DScene {
         }
       }
     }
-    return Math.min(D, 160);
-  }
-
-  private hoofStrike(r: Runner, x: number): void {
-    const turf = this.replay.race.surface === "turf";
-    const power = Math.min(1, r.speed / 15);
-    const z = r.z + (r.rand() - 0.5) * 0.3;
-    if (turf) {
-      const n = r.rand() < 0.5 ? 1 : 2;
-      for (let i = 0; i < n; i++) {
-        const col = r.rand() < 0.5 ? this.look.turf[1]! : "#4a3220";
-        this.particles.emit("clod", x, 0.05, z, (-1.5 - r.rand() * 3) * power, (1.6 + r.rand() * 2.2) * power, (r.rand() - 0.5) * 0.6, col, 0.07, 0.9);
-      }
-      this.particles.emit("dust", x, 0.08, z, -1, 0.4, 0, this.look.turf[3]!, 0.06, 0.45, 0.4);
-    } else {
-      const dust = mixHex(this.look.dirt[3]!, "#ffffff", 0.2);
-      for (let i = 0; i < 2; i++) {
-        this.particles.emit("dust", x - r.rand() * 0.3, 0.1 + r.rand() * 0.1, z, (-0.8 - r.rand() * 1.6) * power, (0.35 + r.rand() * 0.5) * power, (r.rand() - 0.5) * 0.4, dust, 0.035 + r.rand() * 0.03, 0.7 + r.rand() * 0.4, 0.45);
-      }
-      if (r.rand() < 0.5) this.particles.emit("clod", x, 0.05, z, -2 * power, 1.4 * power, 0, this.look.dirt[0]!, 0.06, 0.7);
-    }
+    return Math.min(D, 220);
   }
 
   destroy(): void {
-    for (const r of this.runners) r.rig.dispose();
+    for (const r of this.runners) r.rig?.dispose();
     this.rigs.dispose();
     for (const d of this.disposables) {
       try {
@@ -1436,6 +1641,5 @@ export class HD2DScene {
     this.scene.clear();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
-    void hexToRgb;
   }
 }
