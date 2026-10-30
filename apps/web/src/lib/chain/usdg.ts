@@ -5,7 +5,7 @@
  */
 import type { Address, Hex } from "viem";
 import { formatUsdgDollars, formatUsdgToken } from "@thoroughbred/game-core";
-import { MARKET_EIP712_NAME, MARKET_EIP712_VERSION, bidTypes, registrationOrderTypes, saleOrderTypes } from "./contracts.generated";
+import { MARKET_EIP712_NAME, MARKET_EIP712_VERSION, bidTypes, registrationOrderTypes, saleOrderTypes, studOrderTypes } from "./contracts.generated";
 import { ROBINHOOD_TESTNET } from "./chains";
 
 export interface SaleOrder {
@@ -28,6 +28,19 @@ export interface RegistrationOrder {
   deadline: bigint;
 }
 
+/** A registered stallion's USDG stud fee for one covering (HorseMarket.payStudFee). */
+export interface StudOrder {
+  orderId: Hex;
+  stallionRef: Hex;
+  mareRef: Hex;
+  stallionOwner: Address;
+  payer: Address;
+  token: Address;
+  price: bigint;
+  fee: bigint;
+  deadline: bigint;
+}
+
 export interface Bid {
   listingId: string;
   amount: bigint;
@@ -45,6 +58,10 @@ export function registrationOrderTypedData(o: RegistrationOrder, chainId: number
   return { domain: domain(chainId, market), types: registrationOrderTypes, primaryType: "RegistrationOrder" as const, message: o };
 }
 
+export function studOrderTypedData(o: StudOrder, chainId: number, market: Address) {
+  return { domain: domain(chainId, market), types: studOrderTypes, primaryType: "StudOrder" as const, message: o };
+}
+
 export function bidTypedData(b: Bid, chainId: number, market: Address) {
   return { domain: domain(chainId, market), types: bidTypes, primaryType: "Bid" as const, message: b };
 }
@@ -52,10 +69,15 @@ export function bidTypedData(b: Bid, chainId: number, market: Address) {
 /** What the browser receives for a payable order: the signed struct (bigints as strings) and its context. */
 export interface UsdgOrderJson {
   orderId: Hex;
-  kind: "registration" | "sale";
+  kind: "registration" | "sale" | "stud";
   status: "pending" | "paid" | "fulfilled" | "expired";
+  /** The horse (registration, sale) or the stallion (stud). */
   horseId: string;
   horseName: string | null;
+  /** Stud orders: the mare being covered, and the stallion owner's stable (who receives the fee). */
+  mareId?: string | null;
+  mareName?: string | null;
+  payeeName?: string | null;
   chainId: number;
   market: Address;
   token: Address;
@@ -90,7 +112,26 @@ export function registrationOrderFromJson(o: Record<string, string>): Registrati
   return { orderId: o.orderId as Hex, horseRef: o.horseRef as Hex, owner: o.owner as Address, token: o.token as Address, fee: BigInt(o.fee!), deadline: BigInt(o.deadline!) };
 }
 
-export function orderToJson(o: SaleOrder | RegistrationOrder): Record<string, string> {
+export function studOrderFromJson(o: Record<string, string>): StudOrder {
+  return {
+    orderId: o.orderId as Hex,
+    stallionRef: o.stallionRef as Hex,
+    mareRef: o.mareRef as Hex,
+    stallionOwner: o.stallionOwner as Address,
+    payer: o.payer as Address,
+    token: o.token as Address,
+    price: BigInt(o.price!),
+    fee: BigInt(o.fee!),
+    deadline: BigInt(o.deadline!),
+  };
+}
+
+/** The wallet that must send the payment for a signed order. */
+export function orderPayer(kind: UsdgOrderJson["kind"], o: Record<string, string>): string | null {
+  return (kind === "sale" ? o.buyer : kind === "stud" ? o.payer : o.owner) ?? null;
+}
+
+export function orderToJson(o: SaleOrder | RegistrationOrder | StudOrder): Record<string, string> {
   return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : String(v)]));
 }
 

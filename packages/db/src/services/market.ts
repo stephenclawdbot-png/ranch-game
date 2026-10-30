@@ -90,7 +90,7 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     if (problems.length) throw new DomainError("SELLER_REQUIREMENTS", problems.join("; "), { problems });
     if (horse.bound) throw new DomainError("HORSE_BOUND", "Club-bred horses cannot be sold");
     if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
-    if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : "already listed");
+    if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : horse.lockKind === "stud" ? "the mare is booked for a USDG covering" : "already listed");
     // A horse registered for the USDG market trades only for USDG (no credits/USDG arbitrage).
     if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("USDG_ONLY", "this horse is registered for the USDG market and sells only for USDG");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
@@ -177,7 +177,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
     });
     await tx
       .update(horses)
-      .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, updatedAt: input.now })
+      .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, studFeeUsdg: null, updatedAt: input.now })
       .where(eq(horses.id, horse.id));
     await tx.update(marketListings).set({ status: "sold", closedAt: input.now }).where(eq(marketListings.id, listing.id));
     const [trade] = await tx

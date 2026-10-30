@@ -20,6 +20,7 @@ import {
   getBalance,
   getHorse,
   getPackState,
+  getStable,
   horsesByIds,
   isDomainError,
   isGenome,
@@ -41,6 +42,7 @@ import {
   pullPack,
   renameHorse,
   resaleLocksOf,
+  usdgPolicy,
   usdgRegisteredIds,
   sellerStatus,
   setStudFee,
@@ -70,6 +72,7 @@ import type {
   SellableHorse,
   StudView,
 } from "@/lib/economyTypes";
+import { readUsdgConfig } from "./chain/usdgConfig";
 import { geneticsLineOf, horseFromRow, parseSilks } from "./horseView";
 import type { Session } from "./session";
 
@@ -102,6 +105,7 @@ const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used
   dam_in_foal: () => "In foal.",
   in_race: () => "Entered in a race.",
   listed: () => "Listed on the market.",
+  booked: () => "Booked for a USDG covering: waiting for the stud fee payment.",
   no_genome: () => "No pedigree record for this horse.",
   not_at_stud: () => "That stallion isn't standing at stud.",
   not_your_mare: () => "That mare isn't in your stable.",
@@ -119,6 +123,7 @@ const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
   legacy_farm: () => "On the Legacy Farm.",
   in_race: () => "Entered in a race.",
   listed: () => "Already listed.",
+  booked: () => "Booked for a USDG covering: wait until it's paid or the booking lapses.",
   in_foal: () => "In foal: she can be sold after foaling.",
   resale_lock: () => "Bought on the market: it can be listed again once the 72-hour resale lock ends.",
   usdg_only: () => "Registered for the USDG market: it sells only for USDG (Sales → USDG).",
@@ -168,6 +173,7 @@ export function friendlyEconomyError(err: unknown): unknown {
       case "LINKED_ACCOUNTS":
         return "Trades between linked accounts aren't allowed.";
       case "HORSE_LOCKED":
+        if (/booked/.test(err.message)) return "That mare is booked for a USDG covering: wait until it's paid or the booking lapses.";
         return /listed/.test(err.message) ? "That horse is listed on the market." : "That horse is entered in a race or listed.";
       default:
         return null;
@@ -185,7 +191,7 @@ async function stallsOf(db: Db, session: Session) {
 // Breeding barn + stud book
 // ---------------------------------------------------------------------------
 
-function breedingHorse(row: HorseRow, status: BreedingStatus, silks: Silks, nowMs: number): BreedingHorse {
+function breedingHorse(row: HorseRow, status: BreedingStatus, silks: Silks, nowMs: number, usdgRegistered = false): BreedingHorse {
   return {
     ...ecoHorse(row, silks, nowMs),
     block: status.block,
@@ -196,7 +202,21 @@ function breedingHorse(row: HorseRow, status: BreedingStatus, silks: Silks, nowM
     perSeason: status.perSeason,
     studFee: row.studFee,
     studFeeMax: isGenome(row.genome) ? gc.studFeeCeiling(toHorseState(row)) : null,
+    studFeeUsdg: row.studFeeUsdg,
+    usdgRegistered,
   };
+}
+
+/** The USDG stud-fee settings the barn needs (null while the USDG market is off or misconfigured). */
+export function usdgStudSettings(): BreedingView["usdg"] {
+  try {
+    const cfg = readUsdgConfig();
+    if (cfg.mode === "off") return null;
+    const p = usdgPolicy();
+    return { mock: cfg.mode === "mock", feeBps: p.feeBps, studFeeMin: p.studFeeMin, studFeeMax: p.studFeeMax, quoteMinutes: Math.round(p.quoteTtlMs / 60_000) };
+  } catch {
+    return null;
+  }
 }
 
 /** How long recently foaled pregnancies stay on the barn board (for the reveal and naming). */
@@ -224,9 +244,10 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus !== "pasture" && !r.gelded);
   const mares: BreedingHorse[] = [];
   const stallions: BreedingHorse[] = [];
+  const registered = await usdgRegisteredIds(db, rows.filter((r) => r.sex === "male").map((r) => r.id));
   for (const r of rows) {
     const st = await breedingStatus(db, r, now);
-    (r.sex === "female" ? mares : stallions).push(breedingHorse(r, st, silks, nowMs));
+    (r.sex === "female" ? mares : stallions).push(breedingHorse(r, st, silks, nowMs, registered.has(r.id)));
   }
   const rank = (h: BreedingHorse) => (h.block === null ? 0 : h.block === "not_breeding_eligible" ? 1 : 2);
   mares.sort((a, b) => rank(a) - rank(b) || b.starts - a.starts);
@@ -241,6 +262,7 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
     studs.push({
       ...ecoHorse(s.horse, sSilks, nowMs),
       studFee: s.horse.studFee ?? 0,
+      studFeeUsdg: s.horse.studFeeUsdg,
       stableName: s.stableName,
       silks: sSilks,
       mine: false,
@@ -251,7 +273,8 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
       lifetime: st.lifetime,
     });
   }
-  studs.sort((a, b) => (a.block === null ? 0 : 1) - (b.block === null ? 0 : 1) || a.studFee - b.studFee);
+  // Credits studs first (cheapest first), then USDG studs (cheapest first).
+  studs.sort((a, b) => (a.block === null ? 0 : 1) - (b.block === null ? 0 : 1) || (a.studFeeUsdg === null ? 0 : 1) - (b.studFeeUsdg === null ? 0 : 1) || a.studFee - b.studFee || (a.studFeeUsdg ?? 0) - (b.studFeeUsdg ?? 0));
 
   const pregs = await listStablePregnancies(db, session.stable.id, new Date(nowMs - FOALED_VISIBLE_MS));
   const { season, endsAt } = breedingSeason(now);
@@ -283,6 +306,7 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
     })),
     credits: await getBalance(db, session.accountId),
     stalls: { used: occ.used, slots: occ.slots, overflow: occ.overflow },
+    usdg: usdgStudSettings(),
     serverNowMs: nowMs,
   };
 }
@@ -315,6 +339,11 @@ export function topPercent(sortedAsc: number[], v: number): number {
 /** Minimum population before a percentile means anything. */
 const MIN_POPULATION = 10;
 
+async function stableNameOfHorse(db: Db, h: HorseRow): Promise<string | null> {
+  if (!h.ownerStableId) return null;
+  return (await getStable(db, h.ownerStableId))?.name ?? null;
+}
+
 export async function breedingPreview(db: Db, session: Session, input: { sireId: string; damId: string }, now: Date): Promise<PreviewView> {
   const pv = await previewPairing(db, { accountId: session.accountId, sireId: input.sireId, damId: input.damId, now });
   let reason: string | null = null;
@@ -336,6 +365,9 @@ export async function breedingPreview(db: Db, session: Session, input: { sireId:
     reason,
     preview: pv.preview,
     fees: pv.fees,
+    usdgStudFee: pv.usdgStudFee,
+    usdgFee: pv.usdgStudFee !== null ? gc.usdgFee(pv.usdgStudFee, usdgPolicy().feeBps) : null,
+    stallionOwner: pv.usdgStudFee !== null ? await stableNameOfHorse(db, pv.sire) : null,
     parents: pv.parents,
     topPercent: pop.length >= MIN_POPULATION ? { p10: topPercent(pop, o.p10), p50: topPercent(pop, o.p50), p90: topPercent(pop, o.p90) } : null,
     populationSize: pop.length,

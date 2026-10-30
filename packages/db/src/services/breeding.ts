@@ -8,6 +8,12 @@
  *   - one pregnancy at a time: partial unique index on carrying pregnancies;
  *   - self-breeding: CHECK on breeding_events and horses.
  * Kinship (parent/child, full siblings) is checked from the pedigree.
+ *
+ * USDG stud fees (docs/usdg-market.md): a stallion registered for the USDG market may stand at
+ * stud for a USDG fee instead of credits (horses.stud_fee_usdg). Booking him goes through a signed
+ * StudOrder (services/usdgStud.ts); the covering runs here (`coverTx` with `usdg`) only after the
+ * payment is verified. Live stud orders hold one of his season (and lifetime) slots each, so
+ * neither a credits covering nor another booking can take the slot a mare owner is paying for.
  */
 import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
@@ -20,6 +26,7 @@ import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
 import { playerLedgerAccountId, post, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
+import { studHoldsOf } from "./usdgMarket";
 
 /** Max pedigree depth stored in the closure table (game-core COI depth). */
 export const LINEAGE_MAX_DEPTH = gc.COI_MAX_DEPTH;
@@ -50,7 +57,16 @@ async function coversBySeason(ex: Executor, horseId: string, role: "sire" | "dam
   return rows.map((r) => ({ season: r.season, count: Number(r.count) }));
 }
 
-const BREED_BLOCK_CODES: Record<gc.BreedBlock, DomainErrorCode> = {
+/** A stallion's breeding state with `held` booked slots counted as used this season (and for life). */
+export function withStudHolds(state: gc.HorseState, season: number, held: number): gc.HorseState {
+  if (held <= 0) return state;
+  const bySeason = state.breeding.bySeason.some((b) => b.season === season)
+    ? state.breeding.bySeason.map((b) => (b.season === season ? { ...b, count: b.count + held } : b))
+    : [...state.breeding.bySeason, { season, count: held }];
+  return { ...state, breeding: { ...state.breeding, used: state.breeding.used + held, bySeason } };
+}
+
+export const BREED_BLOCK_CODES: Record<gc.BreedBlock, DomainErrorCode> = {
   self: "SELF_BREEDING",
   parent_child: "KIN_BREEDING",
   full_siblings: "KIN_BREEDING",
@@ -74,6 +90,15 @@ export interface BreedInput {
   baseFee?: number;
 }
 
+/** A covering whose USDG stud fee was paid on-chain and verified (services/usdgStud.ts). */
+export interface UsdgCoverInput {
+  /** usdg_orders.id: the mare is locked to it (lock_kind 'stud'). */
+  orderRowId: string;
+  orderId: string;
+  /** Credits base fee held in escrow at the quote: burned now. */
+  creditsHeld: number;
+}
+
 export interface BreedResult {
   breedingEventId: string;
   pregnancyId: string;
@@ -84,113 +109,140 @@ export interface BreedResult {
 }
 
 export async function breed(db: Db, input: BreedInput): Promise<BreedResult> {
-  return runTx(db, async (tx) => {
-    const prior = await tx.select().from(breedingEvents).where(eq(breedingEvents.idempotencyKey, input.idempotencyKey));
-    if (prior[0]) {
-      const [p] = await tx.select().from(pregnancies).where(eq(pregnancies.breedingEventId, prior[0].id));
-      return { breedingEventId: prior[0].id, pregnancyId: p!.id, dueAt: p!.dueAt, seedCommitment: p!.seedCommitment, coiBp: prior[0].coiBp, duplicate: true };
+  return runTx(db, (tx) => coverTx(tx, input));
+}
+
+/**
+ * The covering, inside the caller's transaction. Without `usdg`: an ordinary covering paid in
+ * credits (base fee + the stallion's credits stud fee). With `usdg`: the stud fee was paid in USDG
+ * (verified on-chain); the base fee comes out of the escrow hold and the mare's booking lock is
+ * accepted. Every breeding rule is checked the same way in both cases.
+ */
+export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCoverInput }): Promise<BreedResult> {
+  const usdg = input.usdg;
+  const prior = await tx.select().from(breedingEvents).where(eq(breedingEvents.idempotencyKey, input.idempotencyKey));
+  if (prior[0]) {
+    const [p] = await tx.select().from(pregnancies).where(eq(pregnancies.breedingEventId, prior[0].id));
+    return { breedingEventId: prior[0].id, pregnancyId: p!.id, dueAt: p!.dueAt, seedCommitment: p!.seedCommitment, coiBp: prior[0].coiBp, duplicate: true };
+  }
+  if (input.sireId === input.damId) throw new DomainError("SELF_BREEDING", "a horse cannot breed with itself");
+
+  // Stable first, then horses in id order: one global lock order.
+  const stable = await stableOf(tx, input.accountId);
+  const lockedStable = await lockStable(tx, stable.id);
+  const locked = await tx
+    .select()
+    .from(horses)
+    .where(inArray(horses.id, [input.sireId, input.damId]))
+    .orderBy(asc(horses.id))
+    .for("update");
+  const sire = locked.find((h) => h.id === input.sireId);
+  const dam = locked.find((h) => h.id === input.damId);
+  if (!sire || !dam) throw new DomainError("NOT_FOUND", "horse not found");
+
+  if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "you must own the mare");
+  const ownSire = sire.ownerStableId === stable.id;
+  if (usdg) {
+    // Paid in USDG for this stallion: honoured even if his owner changed his fee since.
+    if (ownSire) throw new DomainError("NOT_ELIGIBLE", "a USDG stud fee is never paid to yourself");
+  } else if (!ownSire && sire.studFeeUsdg !== null) {
+    throw new DomainError("USDG_ONLY", "this stallion stands at stud for a USDG fee: book him with Pay in USDG");
+  } else if (!ownSire && (sire.studFee === null || (sire.ownerStableId === null && sire.origin !== "house"))) {
+    throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
+  }
+  const bookedForThis = !!usdg && dam.lockKind === "stud" && dam.lockRef === usdg.orderRowId;
+  if (dam.lockKind && !bookedForThis) {
+    throw new DomainError("HORSE_LOCKED", dam.lockKind === "stud" ? "the mare is booked for a USDG covering" : "the mare is entered in a race or listed");
+  }
+  if (sire.lockKind === "market") throw new DomainError("HORSE_LOCKED", "the stallion is listed for sale");
+
+  // The rules (kinship, sexes, racing age, 25 starts or retired, Legacy Farm, lifetime 4,
+  // mare 1 / stallion 4 per season, mare in foal) are game-core's pairingBlock over states
+  // built from the locked rows and the breeding tables.
+  const season = seasonNumberAt(input.now);
+  const [carrying] = await tx.select().from(pregnancies).where(and(eq(pregnancies.damId, dam.id), eq(pregnancies.status, "carrying")));
+  // Slots held by other live USDG bookings count as used (the one being fulfilled excluded).
+  const held = await studHoldsOf(tx, sire.id, input.now, usdg?.orderId);
+  const sireState = withStudHolds(toHorseState(sire, { bySeason: await coversBySeason(tx, sire.id, "sire") }), season, held);
+  const damState = toHorseState(dam, { bySeason: await coversBySeason(tx, dam.id, "dam"), pregnancy: carrying ?? null });
+  const ped = await pedigreeIndex(tx, [sire.id, dam.id]);
+  const block = gc.pairingBlock(sireState, damState, ped, season);
+  if (block) throw new DomainError(BREED_BLOCK_CODES[block], `breeding blocked: ${block}`, { block });
+
+  // The foal needs a stall, or the single nursery overflow slot.
+  await assertStallFree(tx, lockedStable, { allowOverflow: true });
+
+  // Fees (game-core breedingFees): base fee burned; stud fee to the sire's owner minus the 10% burn.
+  // A USDG covering has no credits stud fee (paid on-chain); its base fee was held at the quote.
+  const fees = gc.breedingFees(usdg ? 0 : (sire.studFee ?? 0), ownSire);
+  // Paid coverings between linked accounts would move credits between them (as market sales
+  // between linked accounts would): refused, like the market's guard. (USDG bookings are
+  // refused between linked accounts at the quote, services/usdgStud.ts.)
+  if (!usdg && !ownSire && fees.studFee > 0 && sire.ownerStableId) {
+    const sireAccount = await accountIdOfStable(tx, sire.ownerStableId);
+    if (await areLinked(tx, input.accountId, sireAccount)) throw new DomainError("LINKED_ACCOUNTS", "paid coverings between linked accounts are not allowed");
+  }
+  const baseFee = usdg ? usdg.creditsHeld : (input.baseFee ?? fees.baseFee);
+  const burned = fees.burned - fees.baseFee + baseFee;
+  const total = baseFee + fees.studFee;
+  const postings: Posting[] = [];
+  let ledgerTransactionId: string | null = null;
+  if (usdg) {
+    if (baseFee > 0) {
+      postings.push({ ledgerAccountId: await systemAccountId(tx, "escrow"), amount: -baseFee }, { ledgerAccountId: await systemAccountId(tx, "burn"), amount: baseFee });
+      ledgerTransactionId = (await post(tx, { idempotencyKey: `usdg-stud-base:${usdg.orderId}`, kind: "breeding_fee", postings })).transactionId;
     }
-    if (input.sireId === input.damId) throw new DomainError("SELF_BREEDING", "a horse cannot breed with itself");
-
-    // Stable first, then horses in id order: one global lock order.
-    const stable = await stableOf(tx, input.accountId);
-    const lockedStable = await lockStable(tx, stable.id);
-    const locked = await tx
-      .select()
-      .from(horses)
-      .where(inArray(horses.id, [input.sireId, input.damId]))
-      .orderBy(asc(horses.id))
-      .for("update");
-    const sire = locked.find((h) => h.id === input.sireId);
-    const dam = locked.find((h) => h.id === input.damId);
-    if (!sire || !dam) throw new DomainError("NOT_FOUND", "horse not found");
-
-    if (dam.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "you must own the mare");
-    const ownSire = sire.ownerStableId === stable.id;
-    if (!ownSire && (sire.studFee === null || (sire.ownerStableId === null && sire.origin !== "house"))) {
-      throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
+  } else if (total > 0) {
+    postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -total });
+    if (burned > 0) postings.push({ ledgerAccountId: await systemAccountId(tx, "burn"), amount: burned });
+    if (fees.toStallionOwner > 0) {
+      // A Club house stallion's share goes to the Club treasury (houseStuds.ts).
+      const owner =
+        sire.ownerStableId === null
+          ? await systemAccountId(tx, "treasury")
+          : await playerLedgerAccountId(tx, await accountIdOfStable(tx, sire.ownerStableId));
+      postings.push({ ledgerAccountId: owner, amount: fees.toStallionOwner });
     }
-    if (dam.lockKind) throw new DomainError("HORSE_LOCKED", "the mare is entered in a race or listed");
-    if (sire.lockKind === "market") throw new DomainError("HORSE_LOCKED", "the stallion is listed for sale");
-
-    // The rules (kinship, sexes, racing age, 25 starts or retired, Legacy Farm, lifetime 4,
-    // mare 1 / stallion 4 per season, mare in foal) are game-core's pairingBlock over states
-    // built from the locked rows and the breeding tables.
-    const season = seasonNumberAt(input.now);
-    const [carrying] = await tx.select().from(pregnancies).where(and(eq(pregnancies.damId, dam.id), eq(pregnancies.status, "carrying")));
-    const sireState = toHorseState(sire, { bySeason: await coversBySeason(tx, sire.id, "sire") });
-    const damState = toHorseState(dam, { bySeason: await coversBySeason(tx, dam.id, "dam"), pregnancy: carrying ?? null });
-    const ped = await pedigreeIndex(tx, [sire.id, dam.id]);
-    const block = gc.pairingBlock(sireState, damState, ped, season);
-    if (block) throw new DomainError(BREED_BLOCK_CODES[block], `breeding blocked: ${block}`, { block });
-
-    // The foal needs a stall, or the single nursery overflow slot.
-    await assertStallFree(tx, lockedStable, { allowOverflow: true });
-
-    // Fees (game-core breedingFees): base fee burned; stud fee to the sire's owner minus the 10% burn.
-    const fees = gc.breedingFees(sire.studFee ?? 0, ownSire);
-    // Paid coverings between linked accounts would move credits between them (as market sales
-    // between linked accounts would): refused, like the market's guard.
-    if (!ownSire && fees.studFee > 0 && sire.ownerStableId) {
-      const sireAccount = await accountIdOfStable(tx, sire.ownerStableId);
-      if (await areLinked(tx, input.accountId, sireAccount)) throw new DomainError("LINKED_ACCOUNTS", "paid coverings between linked accounts are not allowed");
-    }
-    const baseFee = input.baseFee ?? fees.baseFee;
-    const burned = fees.burned - fees.baseFee + baseFee;
-    const total = baseFee + fees.studFee;
-    const postings: Posting[] = [];
-    let ledgerTransactionId: string | null = null;
-    if (total > 0) {
-      postings.push({ ledgerAccountId: await playerLedgerAccountId(tx, input.accountId), amount: -total });
-      if (burned > 0) postings.push({ ledgerAccountId: await systemAccountId(tx, "burn"), amount: burned });
-      if (fees.toStallionOwner > 0) {
-        // A Club house stallion's share goes to the Club treasury (houseStuds.ts).
-        const owner =
-          sire.ownerStableId === null
-            ? await systemAccountId(tx, "treasury")
-            : await playerLedgerAccountId(tx, await accountIdOfStable(tx, sire.ownerStableId));
-        postings.push({ ledgerAccountId: owner, amount: fees.toStallionOwner });
-      }
-      ledgerTransactionId = (await post(tx, { idempotencyKey: `breed:${input.idempotencyKey}`, kind: "breeding_fee", postings })).transactionId;
-    }
-    const studFee = fees.studFee;
-    const coi = gc.coiOf(sire.id, dam.id, ped);
-    const coiBp = coi * 10;
-    const [event] = await tx
-      .insert(breedingEvents)
-      .values({
-        sireId: sire.id,
-        damId: dam.id,
-        requestedBy: input.accountId,
-        sireOwnerStableId: sire.ownerStableId,
-        damOwnerStableId: dam.ownerStableId,
-        seasonNumber: season,
-        baseFee,
-        studFee,
-        coiBp,
-        ledgerTransactionId,
-        idempotencyKey: input.idempotencyKey,
-        createdAt: input.now,
-      })
-      .returning();
-    await tx.update(horses).set({ breedingCount: sql`${horses.breedingCount} + 1`, updatedAt: input.now }).where(inArray(horses.id, [sire.id, dam.id]));
-    // the stallion's last covering retires him for good now (the mare goes once she has foaled)
-    await retireSpentBreeders(tx, [sire.id], input.now);
-    const seed = newSeed();
-    const dueAt = new Date(input.now.getTime() + RULES.pregnancyMs);
-    const [preg] = await tx
-      .insert(pregnancies)
-      .values({ breedingEventId: event!.id, sireId: sire.id, damId: dam.id, conceivedAt: input.now, dueAt, seed, seedCommitment: commitSeed(seed), coi })
-      .returning();
-    await audit(tx, {
-      actor: input.accountId,
-      action: "breeding.cover",
-      entityType: "breeding_event",
-      entityId: event!.id,
-      data: { sireId: sire.id, damId: dam.id, season, coiBp, seedCommitment: preg!.seedCommitment },
-    });
-    return { breedingEventId: event!.id, pregnancyId: preg!.id, dueAt, seedCommitment: preg!.seedCommitment, coiBp, duplicate: false };
+    ledgerTransactionId = (await post(tx, { idempotencyKey: `breed:${input.idempotencyKey}`, kind: "breeding_fee", postings })).transactionId;
+  }
+  const studFee = fees.studFee;
+  const coi = gc.coiOf(sire.id, dam.id, ped);
+  const coiBp = coi * 10;
+  const [event] = await tx
+    .insert(breedingEvents)
+    .values({
+      sireId: sire.id,
+      damId: dam.id,
+      requestedBy: input.accountId,
+      sireOwnerStableId: sire.ownerStableId,
+      damOwnerStableId: dam.ownerStableId,
+      seasonNumber: season,
+      baseFee,
+      studFee,
+      coiBp,
+      ledgerTransactionId,
+      idempotencyKey: input.idempotencyKey,
+      createdAt: input.now,
+    })
+    .returning();
+  await tx.update(horses).set({ breedingCount: sql`${horses.breedingCount} + 1`, updatedAt: input.now }).where(inArray(horses.id, [sire.id, dam.id]));
+  if (bookedForThis) await tx.update(horses).set({ lockKind: null, lockRef: null }).where(eq(horses.id, dam.id));
+  // the stallion's last covering retires him for good now (the mare goes once she has foaled)
+  await retireSpentBreeders(tx, [sire.id], input.now);
+  const seed = newSeed();
+  const dueAt = new Date(input.now.getTime() + RULES.pregnancyMs);
+  const [preg] = await tx
+    .insert(pregnancies)
+    .values({ breedingEventId: event!.id, sireId: sire.id, damId: dam.id, conceivedAt: input.now, dueAt, seed, seedCommitment: commitSeed(seed), coi })
+    .returning();
+  await audit(tx, {
+    actor: input.accountId,
+    action: "breeding.cover",
+    entityType: "breeding_event",
+    entityId: event!.id,
+    data: { sireId: sire.id, damId: dam.id, season, coiBp, seedCommitment: preg!.seedCommitment, ...(usdg ? { usdgOrderId: usdg.orderId } : {}) },
   });
+  return { breedingEventId: event!.id, pregnancyId: preg!.id, dueAt, seedCommitment: preg!.seedCommitment, coiBp, duplicate: false };
 }
 
 /**
@@ -202,7 +254,7 @@ async function retireSpentBreeders(ex: Executor, ids: readonly string[], now: Da
   if (!ids.length) return [];
   const spent = await ex
     .update(horses)
-    .set({ careerStatus: "pasture", pasturedAt: now, studFee: null, updatedAt: now })
+    .set({ careerStatus: "pasture", pasturedAt: now, studFee: null, studFeeUsdg: null, updatedAt: now })
     .where(and(inArray(horses.id, [...ids]), eq(horses.careerStatus, "retired"), gte(horses.breedingCount, RULES.breedingLifetimeLimit), isNull(horses.lockKind)))
     .returning();
   for (const h of spent) {

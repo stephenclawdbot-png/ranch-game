@@ -15,6 +15,14 @@
  *   USDG_MIN_PRICE               lowest price / reserve in USDG (default 1)
  *   USDG_PAYMENT_WINDOW_HOURS    an auction winner's time to pay (default 24, max 72)
  *   USDG_NONPAYER_BAR_DAYS       USDG bidding bar after a missed payment (default 7)
+ *   USDG_STUD_FEE_MIN            lowest USDG stud fee a registered stallion can stand at (default 1)
+ *   USDG_STUD_FEE_MAX            highest USDG stud fee (default 500)
+ *
+ * USDG stud fees (owner decision 2026-10-30): ordinary breeding stays in Stable Credits for
+ * everyone; only the owner of a stallion REGISTERED for the USDG market may stand him at stud for
+ * a USDG fee instead of a credits fee (never both). The mare's owner pays it through
+ * HorseMarket.payStudFee (stallion owner gets price - fee, the treasury the fee) and the covering
+ * runs after the payment is verified. The credits base fee is still paid (burned) as for any covering.
  */
 import { keccak_256 } from "@noble/hashes/sha3";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
@@ -63,6 +71,9 @@ export const USDG_REVIEW_RATIO = 3;
 /** How many recent sales the review compares against (needs at least USDG_REVIEW_MIN_COMPARABLES). */
 export const USDG_REVIEW_COMPARABLES = 20;
 export const USDG_REVIEW_MIN_COMPARABLES = 3;
+/** Bounds of a registered stallion's USDG stud fee (per covering, paid by the mare's owner). */
+export const USDG_STUD_FEE_MIN = 1 * USDG_UNIT;
+export const USDG_STUD_FEE_MAX = 500 * USDG_UNIT;
 
 export interface UsdgPolicy {
   minLiveStarts: number;
@@ -78,6 +89,9 @@ export interface UsdgPolicy {
   bidIncrementBps: number;
   bidIncrementMin: number;
   reviewRatio: number;
+  /** USDG stud fee bounds (micro-USDG). The stud order uses `quoteTtlMs` as its payment window. */
+  studFeeMin: number;
+  studFeeMax: number;
 }
 
 export const DEFAULT_USDG_POLICY: UsdgPolicy = {
@@ -94,6 +108,8 @@ export const DEFAULT_USDG_POLICY: UsdgPolicy = {
   bidIncrementBps: USDG_BID_INCREMENT_BPS,
   bidIncrementMin: USDG_BID_INCREMENT_MIN,
   reviewRatio: USDG_REVIEW_RATIO,
+  studFeeMin: USDG_STUD_FEE_MIN,
+  studFeeMax: USDG_STUD_FEE_MAX,
 };
 
 /** "2", "2.5", "0.000001" USDG -> micro-USDG. Null when malformed or more than 6 decimals. */
@@ -127,6 +143,14 @@ export function usdgPolicyFromEnv(env: Record<string, string | undefined>): Usdg
   if (win !== null && win >= 1 && win <= 72) p.paymentWindowMs = Math.round(win * MS_PER_HOUR);
   const bar = envNum(env, "USDG_NONPAYER_BAR_DAYS");
   if (bar !== null && bar <= 365) p.nonPayerBarMs = Math.round(bar * MS_PER_DAY);
+  const sMin = env.USDG_STUD_FEE_MIN ? usdgFromDecimal(env.USDG_STUD_FEE_MIN) : null;
+  const sMax = env.USDG_STUD_FEE_MAX ? usdgFromDecimal(env.USDG_STUD_FEE_MAX) : null;
+  const lo = sMin !== null && sMin > 0 ? sMin : p.studFeeMin;
+  const hi = sMax !== null && sMax > 0 && sMax <= p.maxPrice ? sMax : p.studFeeMax;
+  if (lo <= hi) {
+    p.studFeeMin = lo;
+    p.studFeeMax = hi;
+  }
   return p;
 }
 
@@ -137,6 +161,14 @@ export function usdgFee(price: number, feeBps: number): number {
 
 export function usdgSellerReceives(price: number, feeBps: number): number {
   return price - usdgFee(price, feeBps);
+}
+
+/** Why a USDG stud fee can't be set (null = fine): a whole micro-USDG amount within the policy's bounds. */
+export function usdgStudFeeBlock(fee: number, policy: Pick<UsdgPolicy, "studFeeMin" | "studFeeMax"> = DEFAULT_USDG_POLICY): "below_min" | "above_max" | "not_integer" | null {
+  if (!Number.isSafeInteger(fee)) return "not_integer";
+  if (fee < policy.studFeeMin) return "below_min";
+  if (fee > policy.studFeeMax) return "above_max";
+  return null;
 }
 
 /** The lowest acceptable next bid: the reserve, or the best bid plus the increment. */

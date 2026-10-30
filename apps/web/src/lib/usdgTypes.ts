@@ -14,7 +14,12 @@ export interface UsdgPolicyView {
   auctionHours: number[];
   fixedListingDays: number[];
   paymentWindowHours: number;
+  /** How long a fixed-price buy, a registration or a stud booking holds its signed order. */
+  quoteMinutes: number;
   nonPayerBarDays: number;
+  /** USDG stud fee bounds for registered stallions (micro-USDG). */
+  studFeeMin: number;
+  studFeeMax: number;
   bidIncrementBps: number;
   bidIncrementMin: number;
 }

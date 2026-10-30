@@ -35,10 +35,10 @@ import {
 } from "../schema";
 import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
-import { foal, grandparentsOf, pedigreeIndex } from "./breeding";
+import { foal, grandparentsOf, pedigreeIndex, withStudHolds } from "./breeding";
 import { renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
-import { isUsdgRegistered } from "./usdgMarket";
+import { isUsdgRegistered, studHoldsOf } from "./usdgMarket";
 
 export type PackPullRow = typeof packPulls.$inferSelect;
 
@@ -63,17 +63,21 @@ async function coversBySeason(ex: Executor, horseId: string, role: "sire" | "dam
   return rows.map((r) => ({ season: r.season, count: Number(r.count) }));
 }
 
-/** The game-core state `breed` builds for a horse (covers per season, carrying pregnancy). */
-export async function breedingStateOf(ex: Executor, horse: HorseRow): Promise<gc.HorseState> {
+/**
+ * The game-core state `breed` builds for a horse (covers per season, carrying pregnancy). With
+ * `now`, a stallion's slots held by live USDG stud bookings count as used this season, as in `breed`.
+ */
+export async function breedingStateOf(ex: Executor, horse: HorseRow, now?: Date): Promise<gc.HorseState> {
   const role = horse.sex === "female" ? "dam" : "sire";
   const [carrying] = role === "dam" ? await ex.select().from(pregnancies).where(and(eq(pregnancies.damId, horse.id), eq(pregnancies.status, "carrying"))) : [];
-  return toHorseState(horse, { bySeason: await coversBySeason(ex, horse.id, role), pregnancy: carrying ?? null });
+  const state = toHorseState(horse, { bySeason: await coversBySeason(ex, horse.id, role), pregnancy: carrying ?? null });
+  return role === "sire" && now ? withStudHolds(state, seasonNumberAt(now), await studHoldsOf(ex, horse.id, now)) : state;
 }
 
 export interface BreedingStatus {
   horseId: string;
-  /** game-core BreedBlock (or a lock: "in_race" / "listed"), null when the horse can breed now. */
-  block: gc.BreedBlock | "in_race" | "listed" | "no_genome" | null;
+  /** game-core BreedBlock (or a lock: "in_race" / "listed" / "booked" for a USDG covering), null when the horse can breed now. */
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "no_genome" | null;
   used: number;
   lifetime: number;
   usedThisSeason: number;
@@ -97,19 +101,22 @@ export async function breedingStatus(ex: Executor, horse: HorseRow, now: Date): 
     retired: horse.careerStatus !== "racing",
   };
   if (!isGenome(horse.genome)) return { ...base, block: "no_genome", usedThisSeason: 0 };
-  const state = await breedingStateOf(ex, horse);
+  const state = await breedingStateOf(ex, horse, now);
   const usedThisSeason = gc.usedInSeason(state, season);
   let block: BreedingStatus["block"] = gc.breedingEligibility(state, season);
   if (!block && horse.lockKind === "race" && female) block = "in_race";
   if (!block && horse.lockKind === "market") block = "listed";
+  if (!block && horse.lockKind === "stud") block = "booked";
   return { ...base, block, usedThisSeason };
 }
 
 export interface PairingPreview {
   preview: gc.BreedingPreview;
   /** Block for this exact pairing (kinship, sexes, eligibility of either horse, locks). */
-  block: gc.BreedBlock | "in_race" | "listed" | "not_at_stud" | "not_your_mare" | null;
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "not_at_stud" | "not_your_mare" | null;
   fees: gc.BreedingFees;
+  /** Someone else's stallion standing for a USDG stud fee (micro-USDG): paid on-chain, not in credits. */
+  usdgStudFee: number | null;
   ownSire: boolean;
   sire: HorseRow;
   dam: HorseRow;
@@ -132,7 +139,7 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   if (!isGenome(sire.genome) || !isGenome(dam.genome)) throw new DomainError("NOT_ELIGIBLE", "these horses have no pedigree record");
   const ownSire = sire.ownerStableId === stable.id;
   const season = seasonNumberAt(input.now);
-  const [sireState, damState] = [await breedingStateOf(ex, sire), await breedingStateOf(ex, dam)];
+  const [sireState, damState] = [await breedingStateOf(ex, sire, input.now), await breedingStateOf(ex, dam, input.now)];
   const ped = await pedigreeIndex(ex, [sire.id, dam.id]);
   const family = (await grandparentsOf(ex, sire, dam)).map((r) => genomeOf(r.genome)).filter((g): g is gc.Genome => g !== null);
   const preview = gc.previewBreeding(sireState, damState, ped, season, family);
@@ -142,10 +149,13 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   else if (preview.blocked) block = preview.blocked;
   else if (dam.lockKind === "race") block = "in_race";
   else if (dam.lockKind === "market" || sire.lockKind === "market") block = "listed";
+  else if (dam.lockKind === "stud") block = "booked";
+  const usdgStudFee = !ownSire && sire.studFeeUsdg !== null ? sire.studFeeUsdg : null;
   return {
     preview,
     block,
-    fees: gc.breedingFees(sire.studFee ?? 0, ownSire),
+    fees: gc.breedingFees(usdgStudFee !== null ? 0 : (sire.studFee ?? 0), ownSire),
+    usdgStudFee,
     ownSire,
     sire,
     dam,
@@ -206,7 +216,7 @@ export async function listStuds(ex: Executor, opts: { limit?: number } = {}): Pr
     .leftJoin(stables, eq(stables.id, horses.ownerStableId))
     .where(
       and(
-        isNotNull(horses.studFee),
+        or(isNotNull(horses.studFee), isNotNull(horses.studFeeUsdg)),
         eq(horses.sex, "male"),
         eq(horses.gelded, false),
         ne(horses.careerStatus, "pasture"),
@@ -219,8 +229,9 @@ export async function listStuds(ex: Executor, opts: { limit?: number } = {}): Pr
   return rows.map((r) => ({ horse: r.horse, stableName: r.stableName ?? CLUB_STUD_NAME, silks: r.silks ?? null, club: r.horse.ownerStableId === null }));
 }
 
-/** A horse that stands at public stud: a player's stallion with a fee, or a Club house stallion. */
-export function standsAtStud(h: Pick<HorseRow, "studFee" | "ownerStableId" | "origin">): boolean {
+/** A horse that stands at public stud: a player's stallion with a fee (credits or USDG), or a Club house stallion. */
+export function standsAtStud(h: Pick<HorseRow, "studFee" | "studFeeUsdg" | "ownerStableId" | "origin">): boolean {
+  if (h.studFeeUsdg !== null) return h.ownerStableId !== null;
   return h.studFee !== null && (h.ownerStableId !== null || h.origin === "house");
 }
 
@@ -429,7 +440,7 @@ export async function sellerStatus(ex: Executor, input: { accountId: string; sta
   };
 }
 
-export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "usdg_only" | "in_foal" | "legacy_farm" | "resale_lock" | null;
+export type TradeLock = "club_bred" | "until_starts" | "in_race" | "listed" | "booked" | "usdg_only" | "in_foal" | "legacy_farm" | "resale_lock" | null;
 
 export interface TradeStatus {
   horseId: string;
@@ -491,6 +502,7 @@ export async function tradeStatus(
   else if (horse.careerStatus === "pasture") lock = "legacy_farm";
   else if (horse.lockKind === "race") lock = "in_race";
   else if (horse.lockKind === "market") lock = "listed";
+  else if (horse.lockKind === "stud") lock = "booked";
   else if (usdgRegisteredIn ?? (await isUsdgRegistered(ex, horse.id))) lock = "usdg_only";
   else if (carrying) lock = "in_foal";
   else if (resale) lock = "resale_lock";

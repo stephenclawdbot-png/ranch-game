@@ -200,6 +200,7 @@ async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: 
   else if (stage === "foal" || stage === "weanling") blockedReason = `Training opens at yearling (${gc.CARE_TO_YEARLING} care sessions; ${row.careSessions} so far).`;
   else if (row.lockKind === "race") blockedReason = "Entered in a race: training resumes after it.";
   else if (row.lockKind === "market") blockedReason = "Listed on the market.";
+  else if (row.lockKind === "stud") blockedReason = "Booked for a USDG covering: waiting for the stud fee payment.";
   return {
     available: blockedReason === null,
     blockedReason,
@@ -233,7 +234,7 @@ async function careerView(db: Db, row: HorseRow, state: gc.HorseState): Promise<
   const type = gc.maturityType(state.genome) as "early" | "normal" | "late";
   const [peakFrom, peakTo] = gc.PEAK_WINDOW[type];
   const carrying = await isCarrying(db, row.id);
-  const lockReason = row.lockKind === "race" ? "Entered in a race" : row.lockKind === "market" ? "Listed on the market" : carrying ? "In foal" : null;
+  const lockReason = row.lockKind === "race" ? "Entered in a race" : row.lockKind === "market" ? "Listed on the market" : row.lockKind === "stud" ? "Booked for a covering" : carrying ? "In foal" : null;
   const racingStage = row.careSessions >= gc.CARE_TO_RACING;
   const starts = row.starts;
   const current = (from: number, to: number) => row.careerStatus === "racing" && racingStage && starts >= from && starts <= to;

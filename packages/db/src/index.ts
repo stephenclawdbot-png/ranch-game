@@ -41,3 +41,4 @@ export * from "./services/affiliates";
 export * from "./services/naming";
 export * from "./services/health";
 export * from "./services/usdgMarket";
+export * from "./services/usdgStud";

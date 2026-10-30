@@ -72,6 +72,58 @@ sealed second chance instead:
 4. If they don't pay, the order expires, they are barred from USDG bidding for a period, and the
    next bidder is offered the horse at their own bid.
 
+## USDG stud fees for registered stallions
+
+**Owner decision (2026-10-30):** ordinary breeding stays in Stable Credits for everyone. The owner of
+a stallion **registered** for the USDG market may stand him at stud for a **USDG fee instead of a
+credits fee** (never both: `horses.stud_fee_usdg`, a CHECK keeps it exclusive with `stud_fee`). A
+mare owner who wants that covering pays the fee straight to the stallion's owner, minus the same
+`USDG_FEE_BPS` market fee to the treasury, through `HorseMarket.payStudFee(StudOrder, sig)`: the same
+no-custody pattern as a sale. **Status (2026-10-30): built, not deployed** (ships with the market).
+
+```mermaid
+flowchart LR
+  mare[Mare owner wallet] -- "payStudFee(order, sig): fee in USDG" --> M[HorseMarket]
+  M -- "fee minus market fee" --> owner[Stallion owner wallet]
+  M -- "market fee" --> T[Treasury]
+  M -. "event StudFeePaid(orderId)" .-> S[Game server]
+  S -- "runs the covering (DB)" --> G[(Game DB)]
+```
+
+- **Setting the fee** (`setUsdgStudFee`, `POST /api/usdg/stud-fee`): entire stallion, not on the Legacy
+  Farm, registered, owner has a linked wallet; fee within `USDG_STUD_FEE_MIN`..`USDG_STUD_FEE_MAX`
+  (default $1-$500). Setting a credits fee (`setStudFee`) clears the USDG fee and vice versa; a sale,
+  release to the Club, death or the Legacy Farm clears both.
+- **Booking (quote)** (`quoteUsdgStud`, `POST /api/usdg/stud`): every rule `breed()` applies (kinship,
+  sexes, eligibility, mare once per season and in foal, stallion per-season and lifetime limits, stall
+  for the foal) plus linked accounts refused (`areLinked` + fraud event) and both wallets present and
+  different. The order row (`usdg_orders.kind = 'stud'`, `horse_id` = stallion, `mare_id`, seller =
+  the stallion owner and his wallet) is written first. It **holds a slot**: live stud orders count as
+  used coverings of the stallion for this season and for life (`studHoldsOf`), in `breed()`, in the
+  next booking and in the barn's status, so nobody can over-book him. The **mare is locked** to the
+  order (`lock_kind 'stud'`) for the payment window (`USDG_QUOTE_TTL_MS`, 15 min): she can't race, be
+  listed, sold or covered meanwhile. The **credits base fee** every covering pays is held in escrow.
+  A stallion with live bookings can't be listed for sale.
+- **Fulfilment** (`fulfilUsdgStudOrder`) only after `StudFeePaid` is verified (our market, orderId,
+  stallionRef, mareRef, payer, stallion owner, price, fee, confirmations). One transaction; the
+  covering runs through `breeding.ts coverTx` with every rule re-checked, the escrowed base fee is
+  burned, the mare unlocked; idempotent per order (`usdg-stud:<orderId>` idempotency key on the
+  breeding event, `usdg_orders.breeding_event_id` unique). The stallion owner gets an inbox note.
+- **When the covering can't happen at fulfilment** (rare races: the stallion died or went to the
+  Legacy Farm, a stall filled, the payment arrived after the booking lapsed...): the order stays
+  `paid`, flagged `refund due: <why>` for an admin refund from the treasury (**no on-chain refund**:
+  money flows one way), the booking is released (mare unlocked, base fee returned), and an alert is
+  raised (`fraud_events.kind = 'usdg_stud_refund_due'`, severity 3, the admin attention list, an
+  inbox note to the payer, a server log line).
+- **Expiry and backstop:** unpaid bookings expire after deadline + grace and release the booking;
+  the backstop scanner looks for `StudFeePaid` by orderId like the other kinds.
+- **Foals** of USDG coverings are ordinary foals of the mare's owner; they can register later like
+  any horse.
+- **UI:** the stud book and the barn show the dollar fee; the preview for a USDG stallion shows "Pay
+  N USDG to <stable>" with the USDG pay widget (simulated on the mock chain); the stallion owner's stud
+  form switches a registered stallion between a credits and a USDG fee. Wiki: `usdg-market#stud-fees`
+  and `breeding-basics`.
+
 ## Contract: `HorseMarket.sol` (packages/contracts)
 
 - AccessControl (admin, signer), Pausable, ReentrancyGuard, EIP712 ("PostTimeHorseMarket", "1").
@@ -85,6 +137,11 @@ sealed second chance instead:
 - Token allow-list: USDG only (6 decimals), exact-amount checks (fee-on-transfer safety).
 - Admin: set fee bps (cap 10 %), treasury, pause. No function moves funds out of the contract
   because it never holds any.
+- `payStudFee(StudOrder order, bytes sig)`: `StudOrder {orderId, stallionRef, mareRef, stallionOwner,
+  payer, token, price, fee, deadline}`; same checks as `buy` (payer = msg.sender, window, allow-list,
+  fee within rounding, no self-pay, signer), then `price - fee` to the stallion owner and `fee` to the
+  treasury; emits `StudFeePaid(orderId, stallionRef, mareRef, payer, stallionOwner, price, fee)`.
+  OrderIds are single-use across all three kinds.
 - Tests: signature, replay, deadline, wrong buyer, pause, fee math, exact amounts; the
   byte-compatible TypeScript adapter (`packages/contracts/adapter`) for hashing orders.
 
@@ -118,5 +175,5 @@ sealed second chance instead:
 
 ## Knobs (to add to docs/foundation/KNOBS.md when built)
 
-`USDG_MIN_STARTS` 5 · registration fee 2 USDG · `USDG_FEE_BPS` 500 (5 %) · auction 24-72 h ·
+`USDG_STUD_FEE_MIN` 1 USDG · `USDG_STUD_FEE_MAX` 500 USDG · `USDG_MIN_STARTS` 5 · registration fee 2 USDG · `USDG_FEE_BPS` 500 (5 %) · auction 24-72 h ·
 payment window 24 h · non-payment bar 7 days · `USDG_MIN_PRICE` 1 USDG.
