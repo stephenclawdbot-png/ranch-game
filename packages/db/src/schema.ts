@@ -709,6 +709,45 @@ export const raceResults = pgTable("race_results", {
   settledAt: createdAt(),
 });
 
+/**
+ * Race sponsorships (services/sponsorship.ts): a stable pays credits (burned) to have a future
+ * Live card slot carry its name. One sponsor per slot (unique slot index, first come first
+ * served); one row per (account, idempotency key). `raceId` is set when the sponsor is applied
+ * to the slot's published race; `refundedAt` when the race was abandoned (or could no longer
+ * be named) and the price went back.
+ */
+export const raceSponsorships = pgTable(
+  "race_sponsorships",
+  {
+    id: id(),
+    /** Live card slot index (slot key `live:<index>`). */
+    slotIndex: integer("slot_index").notNull(),
+    postTime: ts("post_time").notNull(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    /** Snapshots at purchase: the race keeps the name and silks it was sold under. */
+    stableName: text("stable_name").notNull(),
+    silks: jsonb("silks"),
+    price: credits("price").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    ledgerTransactionId: uuid("ledger_transaction_id").references(() => ledgerTransactions.id),
+    raceId: uuid("race_id").references(() => races.id),
+    refundedAt: ts("refunded_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("race_sponsorships_slot_uq").on(t.slotIndex),
+    uniqueIndex("race_sponsorships_key_uq").on(t.accountId, t.idempotencyKey),
+    index("race_sponsorships_stable_idx").on(t.stableId, t.postTime),
+    index("race_sponsorships_race_idx").on(t.raceId),
+    check("race_sponsorships_price", sql`${t.price} > 0`),
+  ],
+);
+
 /** Append-only log of entry-bank changes; grants are unique per (stable, local date, kind). */
 export const entryMovements = pgTable(
   "entry_movements",
@@ -1409,6 +1448,7 @@ export type StableRow = typeof stables.$inferSelect;
 export type HorseRow = typeof horses.$inferSelect;
 export type NewHorseRow = typeof horses.$inferInsert;
 export type RaceRow = typeof races.$inferSelect;
+export type RaceSponsorshipRow = typeof raceSponsorships.$inferSelect;
 export type RaceEntryRow = typeof raceEntries.$inferSelect;
 export type ListingRow = typeof marketListings.$inferSelect;
 export type PregnancyRow = typeof pregnancies.$inferSelect;
