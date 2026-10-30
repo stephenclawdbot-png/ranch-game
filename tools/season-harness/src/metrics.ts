@@ -612,6 +612,55 @@ export async function leasingTotals(world: World): Promise<LeasingTotals> {
   };
 }
 
+export interface ClaimingTotals {
+  /** Claiming races that ran (settled), and those called off with no player runner. */
+  racesRun: number;
+  calledOff: number;
+  /** Claim-priced runners that ran. */
+  horsesEntered: number;
+  claimsLodged: number;
+  /** Claims decided by the draw (horses with more than one claim). */
+  drawnFromSeveral: number;
+  horsesClaimed: number;
+  /** Credits paid for claimed horses, and the fee burned out of them. */
+  creditsMoved: number;
+  feesBurned: number;
+  /** Claims voided after the race (fatal injury, no stall) and refunded (scratch, abandoned). */
+  voided: number;
+  refunded: number;
+}
+
+/** Claiming races over the run (packages/db claiming.ts), from the race and claim tables. */
+export async function claimingTotals(world: World): Promise<ClaimingTotals> {
+  const db = world.db;
+  const [r] = await q<{ run: number; off: number }>(
+    db,
+    `select count(*) filter (where status = 'settled')::int run, count(*) filter (where status = 'cancelled')::int off from races where (conditions->>'claiming')::boolean is true`,
+  );
+  const [e] = await q<{ n: number }>(
+    db,
+    `select count(*)::int n from race_entries e join races r on r.id = e.race_id where e.claim_price is not null and e.status = 'entered' and r.status = 'settled'`,
+  );
+  const [c] = await q<{ n: number; claimed: number; moved: string; fees: string; voided: number; refunded: number }>(
+    db,
+    `select count(*)::int n, count(*) filter (where status = 'claimed')::int claimed, coalesce(sum(price) filter (where status = 'claimed'), 0)::bigint moved,
+            coalesce(sum(fee), 0)::bigint fees, count(*) filter (where status = 'void')::int voided, count(*) filter (where status = 'refunded')::int refunded from race_claims`,
+  );
+  const [d] = await q<{ n: number }>(db, `select count(*)::int n from (select race_id, horse_id from race_claims group by 1, 2 having count(*) > 1) x`);
+  return {
+    racesRun: num(r?.run),
+    calledOff: num(r?.off),
+    horsesEntered: num(e?.n),
+    claimsLodged: num(c?.n),
+    drawnFromSeveral: num(d?.n),
+    horsesClaimed: num(c?.claimed),
+    creditsMoved: num(c?.moved),
+    feesBurned: num(c?.fees),
+    voided: num(c?.voided),
+    refunded: num(c?.refunded),
+  };
+}
+
 /** Refused actions by cohort and code, plus attempted actions (for the activity table). */
 export function activity(world: World): { attempted: Record<string, number>; refused: ByCohort<Record<string, number>>; counters: ByCohort<Partial<AgentStats>> } {
   const refused = zeroCohorts<Record<string, number>>(() => ({}));

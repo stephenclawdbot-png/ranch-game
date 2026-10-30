@@ -49,6 +49,11 @@ import {
   listStableHorses,
   listStableRuns,
   lockField,
+  claimingCard,
+  claimPriceBand,
+  isClaimingRace,
+  lodgeClaim,
+  myClaim,
   markInboxRead,
   occupancy,
   openSlotRace,
@@ -88,6 +93,7 @@ import {
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { replayStartSec } from "@/lib/replayStart";
+import { CLAIMING_RULES } from "@/lib/claiming";
 import type {
   ActiveEntry,
   FieldEntry,
@@ -98,6 +104,7 @@ import type {
   MyRacesView,
   PlayerView,
   RaceCard,
+  ClaimStatus,
   RaceKind,
   RacePlan,
   RaceDayOffer,
@@ -464,6 +471,14 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     formCache.set(formKey, form);
   }
   list = list.map((e) => ({ ...e, form: form!.get(e.horse.id) ?? null, rating: byHorse.get(e.horse.id)?.ratingBefore ?? null }));
+  // A claiming race: each runner's claim price and how many claims it has (never who).
+  let claiming: RaceCard["claiming"];
+  if (isClaimingRace(race)) {
+    const claims = await claimingCard(db, race.id);
+    for (const e of list) e.claim = claims.get(e.horse.id) ?? null;
+    const mine = viewerStableId ? await myClaim(db, race.id, viewerStableId) : null;
+    claiming = { rules: CLAIMING_RULES, myClaim: mine ? { horseId: mine.horseId, price: mine.price, status: mine.status as ClaimStatus } : null };
+  }
   const replay = now >= race.postTime ? await replayFor(db, race, now) : null;
   return {
     id: race.id,
@@ -482,7 +497,15 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     sponsor: await sponsorFor(db, race, viewerStableId),
     groundTrend: raceGroundTrend(race.conditions as Record<string, unknown>, race.postTime),
     track: raceConds(race).track,
+    ...(claiming ? { claiming } : {}),
   };
+}
+
+/** Lodges a claim on a runner of a claiming race (the price goes into escrow until the race). */
+export async function claimLive(db: Db, session: Session, raceId: string, horseId: string, now: Date) {
+  if (!isRaceId(raceId)) throw new RaceNotFoundError(raceId);
+  await driveCard(db, now);
+  return lodgeClaim(db, { accountId: session.accountId, raceId, horseId, now });
 }
 
 async function summarize(db: Db, race: PublicRace & { entered: number; mine: number; stables: number }, now: Date, viewerStableId: string | null = null): Promise<RaceSummary> {
@@ -507,6 +530,7 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
     meetingStartMs: meetingStartOf(race.postTime.getTime()),
     phase: phaseOf(race, now, null),
     mine: race.mine,
+    ...(isClaimingRace(race) ? { claiming: true } : {}),
   };
   const sponsor = await sponsorFor(db, race, viewerStableId);
   if (sponsor) base.sponsor = sponsor;
@@ -690,7 +714,7 @@ function entryMeta(session: Session, plan: RacePlan) {
  * Enters a horse in a Live card race. `raceDay` = optional race-day extras and jockey
  * (game-core raceDay.ts), priced from the race's purse and charged with the entry.
  */
-export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date, raceDay: gc.RaceDayChoice = gc.NO_RACE_DAY) {
+export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date, raceDay: gc.RaceDayChoice = gc.NO_RACE_DAY, claimPrice?: number) {
   if (!isRaceId(raceId)) throw new RaceNotFoundError(raceId);
   await driveCard(db, now);
   let race = await loadRace(db, raceId);
@@ -701,14 +725,14 @@ export async function enterLive(db: Db, session: Session, raceId: string, horseI
   const meta = entryMeta(session, plan);
   let entry: Awaited<ReturnType<typeof enterRace>>;
   try {
-    entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta, raceDay });
+    entry = await enterRace(db, { accountId: session.accountId, raceId, horseId, tactic: plan.tactic, now, meta, raceDay, claimPrice });
   } catch (e) {
     // A full Live race has a sister course in the same slot (§4d): retry once there.
     if (!isDomainError(e, "RACE_FULL")) throw e;
     const sister = await openSlotRace(db, raceId, now);
     if (!sister) throw e;
     race = await loadRace(db, sister.id);
-    entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta, raceDay });
+    entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta, raceDay, claimPrice });
   }
   // Racing Live puts the stable in this week's league (idempotent; never blocks the entry).
   await ensureLeagueMembership(db, { accountId: session.accountId, now }).catch((e) => console.error("[game] league join failed", e));
@@ -816,6 +840,8 @@ export interface EntryOption {
    * raceDayRiskKey (so the sheet updates live as physio, the vet check or shoes are ticked).
    */
   riskBy: Record<string, RiskView | null>;
+  /** Claiming races: the horse's appraisal and the claim price band (70%-300%). */
+  claim?: { appraisal: number; min: number; max: number };
 }
 
 /** The race-day extras and jockeys on offer for a race, priced (empty for Story races). */
@@ -849,12 +875,15 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
   const silks = parseSilks(session.stable.silks);
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
   const entered = (await listRaceEntries(db, raceId)).filter((e) => e.stableId === session.stable.id);
+  const claiming = isClaimingRace(race);
   const options = await Promise.all(rows.map(async (row) => {
     const horse = horseFromRow(row, silks, now.getTime());
     const already = entered.some((e) => e.horseId === row.id);
+    const claimBlock = claiming ? claimingReason(row) : null;
     return {
       horseId: row.id,
-      reason: already ? "Entered" : race.kind === "quick" ? null : await entryReasonFull(db, row, race, now, session.stable.licenceLevel),
+      reason: already ? "Entered" : race.kind === "quick" ? null : (claimBlock ?? (await entryReasonFull(db, row, race, now, session.stable.licenceLevel))),
+      ...(claiming ? { claim: claimPriceBand(row) } : {}),
       fitLoss: fitLoss(horse, race),
       risk: {
         conservative: raceRisk(row, race, "conservative", now.getTime()),
@@ -869,6 +898,17 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
   const all = await listRaceEntries(db, raceId);
   const summary = await summarize(db, { ...race, entered: all.length, mine: entered.length, stables: new Set(all.map((e) => e.stableId).filter(Boolean)).size }, now, session.stable.id);
   return { race: summary, options, raceDay: offer };
+}
+
+/**
+ * Quick reasons a horse can't run in a claiming race (it must be sellable for credits today); the
+ * entry itself runs the market's full checks (seller requirements, resale lock, USDG, in foal).
+ */
+function claimingReason(row: HorseRow): string | null {
+  if (row.bound) return "Club-bred horses can't be sold, so they don't run in claiming races";
+  if (row.starts < row.tradeMinStarts) return `Can run in claiming races after ${row.tradeMinStarts} starts`;
+  if (row.lesseeStableId) return "On lease: only its owner can sell it";
+  return null;
 }
 
 export interface LivePick {
@@ -910,7 +950,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
     return n;
   };
   const card = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: session.stable.id }))
-    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.mine === 0) // full races stay (their sister takes the entry); one horse per stable per race
+    .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.mine === 0 && !isClaimingRace(r)) // a claiming race needs a price the owner sets // full races stay (their sister takes the entry); one horse per stable per race
     .slice(0, 8);
   let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; score: number } | null = null;
   for (const [i, race] of card.entries()) {

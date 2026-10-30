@@ -31,7 +31,12 @@ export interface FieldEntry {
   rating: number | null;
   /** Race-day equipment and a hired jockey, as racecard tags ("Soft shoes", "Vet-checked", "Top jockey"); empty for none. */
   gear: string[];
+  /** Claiming races: the runner's claim price and the number of claims lodged on it (never who). */
+  claim?: { price: number; claims: number } | null;
 }
+
+/** A claim's state (services/claiming.ts): lodged → drawn / lost at the lock → claimed / void after the race; refunded on a scratch or abandoned race. */
+export type ClaimStatus = "lodged" | "drawn" | "lost" | "claimed" | "void" | "refunded";
 
 /** Race-day extras and jockeys on offer for one race, priced in credits (entry sheet). */
 export interface RaceDayOffer {
@@ -69,6 +74,8 @@ export interface RaceCard {
   groundTrend?: "drying" | "softening" | "steady" | null;
   /** Racecourse name (`conditions.track`; game-core `courseByName` maps it to its course). */
   track?: string;
+  /** A claiming race: the rules in one line and the viewer's own claim (if any). */
+  claiming?: { rules: string; myClaim: { horseId: string; price: number; status: ClaimStatus } | null };
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */
@@ -112,6 +119,8 @@ export interface RaceSummary {
   winner?: { horseId: string; name: string; stableName: string; timeUs: number };
   /** The race's sponsor (sister courses show the original's). */
   sponsor?: RaceSponsorView;
+  /** A claiming race (every runner is for sale at its claim price). */
+  claiming?: boolean;
 }
 
 export interface RiskView {

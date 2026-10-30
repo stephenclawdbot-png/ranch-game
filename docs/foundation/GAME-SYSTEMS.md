@@ -161,7 +161,7 @@ flowchart LR
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks
-  wallet <-->|"player to player, never between linked accounts"| market["Horse market; stud fees (capped at the stallion's appraisal)"]
+  wallet <-->|"player to player, never between linked accounts"| market["Horse market; claiming races; stud fees (capped at the stallion's appraisal)"]
   purses -->|"a leased runner's purse, split 30-80% owner / rest lessee (lease_share)"| lease["Horse leasing"]
   lease --> wallet
 ```
@@ -172,6 +172,13 @@ own purse, minted once and split between owner and lessee in one `lease_share` t
 settlement (the runner's share of the race's `purse` transaction moves there). Upkeep for a
 leased horse is paid by the lessee (the stable that used it). Linked accounts can't lease to each
 other; lessees need a 7-day-old account with 10 Live starts; reciprocal leases are flagged.
+
+Claiming races (2026-10-30, KNOBS 11c) are the market run through a race: one evening handicap a
+day where every runner carries a claim price (70-300% of appraisal, the listing band). A claim
+holds the price in escrow (`claim_escrow`); after the race the horse moves and the old owner gets
+the price less the 5% market fee (`claim_sale`, fee burned) while keeping the purse. Losing draws,
+scratches, abandoned races and fatal injuries refund (`claim_refund`). No credits are created;
+linked accounts are refused as in the market.
 
 Purses were halved and a 5% entry fee added on 2026-10-29 (live purses were about 3x the
 model's; now about 1.7x for ordinary races, KNOBS "Live vs model mismatches" 1), and the

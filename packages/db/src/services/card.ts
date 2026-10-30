@@ -107,7 +107,8 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?
  *            Season Final) takes this place in the evening meeting.
  *   2, 4, 6, 8  juvenile races (maidens and novices: every new horse can run them), two of each;
  *            which are maidens alternates from one meeting to the next, so maidens run every trip.
- *   3, 5, 7  the three handicap bands (0-55, 50-75, 70-95). The Saturday Plate takes race 3 and
+ *   3, 5, 7  the three handicap bands (0-55, 50-75, 70-95). One evening handicap a day is the
+ *            claiming race instead (claimingSlotOfMeeting). The Saturday Plate takes race 3 and
  *            the Season Finals races 1, 3, 5 and 7 of their evening meetings: calendar races
  *            never land on a juvenile race (tested), so no trip or surface ever drops out.
  */
@@ -266,6 +267,30 @@ export function meetingRaceOf(index: number): gc.MeetingRace | null {
   return gc.meetingRaceAt(SEASON_CLOCK, slotPostTime(index).getTime());
 }
 
+/** Meeting places of the three handicap bands (0-55, 50-75, 70-95), in band order. */
+const HANDICAP_PLACES: readonly number[] = MEETING_CLASSES.flatMap((p, i) => (typeof p === "object" && p.raceClass === "handicap" ? [i] : []));
+
+/**
+ * The claiming race's slot in this evening meeting (game-core claiming.ts): one of its three
+ * handicaps, the band rotating day by day (claimingBandOrder from the UTC day); a calendar race on
+ * that band's slot moves it to the next band, and a day whose handicaps are all calendar races
+ * (the Season Finals) has none. Null for the other meetings.
+ */
+export function claimingSlotOfMeeting(m: gc.Meeting): number | null {
+  if (m.ofDay !== gc.CLAIMING_MEETING_OF_DAY) return null;
+  for (const band of gc.claimingBandOrder(Math.floor(m.startMs / 86_400_000))) {
+    const index = slotIndexAt(new Date(m.startMs + HANDICAP_PLACES[band]! * RULES.slotMs));
+    if (!isCalendarSlot(index)) return index;
+  }
+  return null;
+}
+
+/** This slot carries the day's claiming race (an evening handicap, see claimingSlotOfMeeting). */
+export function isClaimingSlot(index: number): boolean {
+  const m = meetingRaceOf(index);
+  return !!m && HANDICAP_PLACES.includes(m.race) && claimingSlotOfMeeting(m) === index;
+}
+
 /**
  * A Live race runs in this slot: a meeting race, or a calendar race (which always sits inside
  * the evening meeting). Every other slot of the 15-minute grid stays empty.
@@ -322,8 +347,11 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     def = place === "top" ? (feature ? (h[30]! % 2 === 0 ? LISTED : GROUP3) : LISTED) : place;
     const distanceM = pick(OPEN_TRIPS);
     const where = placeRace(SURFACES[(((m * 8 + pos + (h[28]! % 3)) % 3) + 3) % 3]!, postTime.getTime(), h[byte++]!);
+    // The day's claiming race: that handicap band's conditions, trip and course, renamed.
+    if (place !== "top" && isClaimingSlot(index)) def = { ...def, label: `Claiming Stakes (${def.label.replace(/^Handicap \((.*)\)$/, "$1")})` };
     conditions = {
       ...def.conditions,
+      ...(def.label.startsWith("Claiming") ? { claiming: true } : {}),
       distanceM,
       surface: where.surface,
       going: where.going,

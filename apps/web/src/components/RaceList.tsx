@@ -52,6 +52,11 @@ export function UpcomingRaceRow({ race, alsoAt, busy = false }: { race: RaceSumm
           <span className="t-title group-hover:underline">
             {race.name}
             {race.mine > 0 && <span className="tag tag-you ml-2 !h-5 align-middle !text-[0.6875rem]">{race.mine > 1 ? `You ×${race.mine}` : "You"}</span>}
+            {race.claiming && (
+              <span className="tag ml-2 !h-5 align-middle !text-[0.6875rem]" data-testid="claiming-race" title="A claiming race: every runner is for sale at its claim price">
+                Claiming
+              </span>
+            )}
             {busy && (
               <span className="tag tag-good ml-2 !h-5 align-middle !text-[0.6875rem]" data-testid="busy-race" title="One of the busiest races on the card">
                 Busy

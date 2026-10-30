@@ -709,6 +709,8 @@ export const raceEntries = pgTable(
     prize: credits("prize").notNull().default(0),
     ratingBefore: integer("rating_before").notNull(),
     ratingAfter: integer("rating_after"),
+    /** Claim price the owner set at entry: claiming races only (services/claiming.ts). */
+    claimPrice: credits("claim_price"),
     enteredAt: createdAt(),
     scratchedAt: ts("scratched_at"),
   },
@@ -1834,3 +1836,56 @@ export const clubMarketDays = pgTable("club_market_days", {
   withdrawn: integer("withdrawn").notNull().default(0),
   createdAt: createdAt(),
 });
+
+// ---------------------------------------------------------------------------
+// Claiming races (game-core claiming.ts, services/claiming.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * A claim lodged on a runner in a claiming race. The claimant's credits are held in escrow from
+ * the claim. Status: `lodged` until the lock, then `drawn` (won the draw) or `lost` (refunded);
+ * at settlement `claimed` (the horse moved) or `void` (fatal injury, or no free stall: refunded);
+ * `refunded` when the horse was scratched or the race abandoned. One claim per stable per race.
+ */
+export const raceClaims = pgTable(
+  "race_claims",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => raceEntries.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** The owner who entered the horse (receives the price minus the fee). */
+    ownerStableId: uuid("owner_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    claimantStableId: uuid("claimant_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    price: credits("price").notNull(),
+    status: text("status").notNull().default("lodged"),
+    /** Burned at the transfer (the market's 5%); 0 until then. */
+    fee: credits("fee").notNull().default(0),
+    escrowTransactionId: uuid("escrow_transaction_id")
+      .notNull()
+      .references(() => ledgerTransactions.id),
+    /** The sale (escrow → owner + burn) or the refund (escrow → claimant). */
+    closeTransactionId: uuid("close_transaction_id").references(() => ledgerTransactions.id),
+    createdAt: createdAt(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [
+    uniqueIndex("race_claims_race_claimant_uq").on(t.raceId, t.claimantStableId),
+    index("race_claims_horse_idx").on(t.horseId, t.status),
+    index("race_claims_claimant_idx").on(t.claimantStableId, t.status),
+    check("race_claims_status", sql`${t.status} in ('lodged', 'drawn', 'lost', 'claimed', 'void', 'refunded')`),
+    check("race_claims_price", sql`${t.price} > 0`),
+  ],
+);
+
+export type RaceClaimRow = typeof raceClaims.$inferSelect;

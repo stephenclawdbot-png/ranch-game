@@ -18,7 +18,7 @@
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { DomainError, type DomainErrorCode } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
-import { accounts, fraudEvents, horses, marketListings, raceEntries, races, trades, type ListingRow } from "../schema";
+import { accounts, fraudEvents, horses, marketListings, raceClaims, raceEntries, races, trades, type HorseRow, type ListingRow } from "../schema";
 import { bps, defaultAppraise, gcSellerPolicy, RULES, sellerPolicy, type GameHooks, type SellerPolicy } from "../rules";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
@@ -69,7 +69,10 @@ export interface ListInput {
   durationMs?: number;
 }
 
-/** While a horse this stable bought on the market is inside its resale lock: when it was bought and when the lock ends. */
+/**
+ * While a horse this stable bought on the market (or claimed in a claiming race) is inside its
+ * resale lock: when it was bought and when the lock ends.
+ */
 export async function resaleLock(ex: Executor, horseId: string, ownerStableId: string, now: Date): Promise<{ boughtAt: Date; until: Date } | null> {
   const [t] = await ex
     .select({ createdAt: trades.createdAt })
@@ -77,9 +80,62 @@ export async function resaleLock(ex: Executor, horseId: string, ownerStableId: s
     .where(and(eq(trades.horseId, horseId), eq(trades.buyerStableId, ownerStableId)))
     .orderBy(desc(trades.createdAt))
     .limit(1);
-  if (!t) return null;
-  const until = new Date(t.createdAt.getTime() + RULES.resaleLockMs);
-  return until.getTime() > now.getTime() ? { boughtAt: t.createdAt, until } : null;
+  const [c] = await ex
+    .select({ closedAt: raceClaims.closedAt })
+    .from(raceClaims)
+    .where(and(eq(raceClaims.horseId, horseId), eq(raceClaims.claimantStableId, ownerStableId), eq(raceClaims.status, "claimed")))
+    .orderBy(desc(raceClaims.closedAt))
+    .limit(1);
+  const at = Math.max(t?.createdAt.getTime() ?? 0, c?.closedAt?.getTime() ?? 0);
+  if (!at) return null;
+  const until = new Date(at + RULES.resaleLockMs);
+  return until.getTime() > now.getTime() ? { boughtAt: new Date(at), until } : null;
+}
+
+/**
+ * The market's tradeability checks for a horse its owner wants to sell for `price` credits today
+ * (seller requirements, binding and starts, locks, USDG registration, lease offer, in foal, resale
+ * lock, the 70%-300% appraisal band). Shared by listing and by claiming-race entries (a claiming
+ * race is a sale: services/claiming.ts). Throws the first problem; returns the appraisal.
+ */
+export async function assertTradeableTx(
+  tx: Executor,
+  input: { accountId: string; stableId: string; horse: HorseRow; price: number; now: Date },
+  hooks: GameHooks = defaultHooks,
+): Promise<number> {
+  const { horse, stableId } = input;
+  const policy = sellerPolicy();
+  const problems = await sellerEligibility(tx, input.accountId, stableId, input.now, policy);
+  if (problems.length) throw new DomainError("SELLER_REQUIREMENTS", problems.join("; "), { problems });
+  if (horse.bound) throw new DomainError("HORSE_BOUND", "Club-bred horses cannot be sold");
+  if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
+  if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : horse.lockKind === "stud" ? "the mare is booked for a USDG covering" : "already listed");
+  // A horse registered for the USDG market trades only for USDG (no credits/USDG arbitrage).
+  if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("USDG_ONLY", "this horse is registered for the USDG market and sells only for USDG");
+  if (await openLeaseOfferOf(tx, horse.id)) throw new DomainError("HORSE_LOCKED", "this horse is offered for lease: withdraw the lease offer first");
+  if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
+  const resale = await resaleLock(tx, horse.id, stableId, input.now);
+  if (resale) throw new DomainError("RESALE_LOCKED", `bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}`, { until: resale.until.getTime() });
+  const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
+  if (isGenome(horse.genome)) {
+    // game-core's market rules on the locked state (binding, location, floor, seller).
+    const [acc] = await tx.select().from(accounts).where(eq(accounts.id, input.accountId));
+    const block = gc.listBlock(
+      toHorseState(horse),
+      { createdAtMs: acc!.createdAt.getTime(), racesRun: await settledRacesForStable(tx, stableId), emailVerified: !!acc!.emailVerifiedAt },
+      input.price,
+      input.now.getTime(),
+      { enteredInRace: horse.lockKind === "race", locked: horse.lockKind === "market" },
+      gcSellerPolicy(policy),
+    );
+    if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)), ceiling: gc.listingCeiling(toHorseState(horse)) });
+  }
+  const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
+  if (input.price < floor) throw new DomainError("PRICE_BELOW_FLOOR", `minimum price is ${floor}`, { floor, appraisal });
+  // Never below the floor (or 1), so a degenerate appraisal can't invert the band.
+  const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : Math.max(bps(appraisal, RULES.listingCeilingBps), floor, 1);
+  if (input.price > ceiling) throw new DomainError("PRICE_ABOVE_CEILING", `maximum price is ${ceiling}`, { ceiling, appraisal });
+  return appraisal;
 }
 
 export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = defaultHooks): Promise<ListingRow> {
@@ -88,37 +144,7 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
   if (duration <= 0 || duration > RULES.maxListingMs) throw new DomainError("INVALID_INPUT", "listing duration out of range");
   return runTx(db, async (tx) => {
     const { horse, stableId } = await lockOwnedHorse(tx, input.accountId, input.horseId);
-    const policy = sellerPolicy();
-    const problems = await sellerEligibility(tx, input.accountId, stableId, input.now, policy);
-    if (problems.length) throw new DomainError("SELLER_REQUIREMENTS", problems.join("; "), { problems });
-    if (horse.bound) throw new DomainError("HORSE_BOUND", "Club-bred horses cannot be sold");
-    if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
-    if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : horse.lockKind === "stud" ? "the mare is booked for a USDG covering" : "already listed");
-    // A horse registered for the USDG market trades only for USDG (no credits/USDG arbitrage).
-    if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("USDG_ONLY", "this horse is registered for the USDG market and sells only for USDG");
-    if (await openLeaseOfferOf(tx, horse.id)) throw new DomainError("HORSE_LOCKED", "this horse is offered for lease: withdraw the lease offer first");
-    if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
-    const resale = await resaleLock(tx, horse.id, stableId, input.now);
-    if (resale) throw new DomainError("RESALE_LOCKED", `bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}`, { until: resale.until.getTime() });
-    const appraisal = (hooks.appraise ?? defaultAppraise)(horse);
-    if (isGenome(horse.genome)) {
-      // game-core's market rules on the locked state (binding, location, floor, seller).
-      const [acc] = await tx.select().from(accounts).where(eq(accounts.id, input.accountId));
-      const block = gc.listBlock(
-        toHorseState(horse),
-        { createdAtMs: acc!.createdAt.getTime(), racesRun: await settledRacesForStable(tx, stableId), emailVerified: !!acc!.emailVerifiedAt },
-        input.price,
-        input.now.getTime(),
-        { enteredInRace: horse.lockKind === "race", locked: horse.lockKind === "market" },
-        gcSellerPolicy(policy),
-      );
-      if (block) throw new DomainError(LIST_BLOCK_CODES[block], `cannot list: ${block}`, { block, floor: gc.listingFloor(toHorseState(horse)), ceiling: gc.listingCeiling(toHorseState(horse)) });
-    }
-    const floor = isGenome(horse.genome) ? gc.listingFloor(toHorseState(horse)) : bps(appraisal, RULES.listingFloorBps);
-    if (input.price < floor) throw new DomainError("PRICE_BELOW_FLOOR", `minimum price is ${floor}`, { floor, appraisal });
-    // Never below the floor (or 1), so a degenerate appraisal can't invert the band.
-    const ceiling = isGenome(horse.genome) ? gc.listingCeiling(toHorseState(horse)) : Math.max(bps(appraisal, RULES.listingCeilingBps), floor, 1);
-    if (input.price > ceiling) throw new DomainError("PRICE_ABOVE_CEILING", `maximum price is ${ceiling}`, { ceiling, appraisal });
+    const appraisal = await assertTradeableTx(tx, { accountId: input.accountId, stableId, horse, price: input.price, now: input.now }, hooks);
     const [listing] = await tx
       .insert(marketListings)
       .values({

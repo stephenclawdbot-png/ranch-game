@@ -1,12 +1,22 @@
 import Link from "next/link";
 import type { RaceCard } from "@/lib/types";
-import { SEX_LABEL, STYLE_SHORT, coatLabel, formatDistance } from "@/lib/format";
+import { SEX_LABEL, STYLE_SHORT, coatLabel, formatCredits, formatDistance } from "@/lib/format";
 import { SilksIcon } from "../Silks";
 import { StableBadge } from "../StableBadge";
 import { GradeBadge } from "../StatBars";
+import { ClaimButton } from "./ClaimButton";
 import { Saddlecloth } from "./Saddlecloth";
 
 const stables = (n: number) => `${n} ${n === 1 ? "stable" : "stables"}`;
+const claimsLabel = (n: number) => (n === 0 ? "no claims" : `${n} ${n === 1 ? "claim" : "claims"}`);
+const CLAIM_STATUS: Record<string, string> = {
+  lodged: "lodged",
+  drawn: "won the draw: the horse is yours after the race",
+  lost: "lost the draw (refunded)",
+  claimed: "claimed",
+  void: "void (refunded)",
+  refunded: "refunded",
+};
 
 /**
  * The racecard (REDESIGN §4.3): the declared field as printed matter. Cloth number and silks,
@@ -15,6 +25,8 @@ const stables = (n: number) => `${n} ${n === 1 ? "stable" : "stables"}`;
  * jockey print under the connections ("Soft shoes · Top jockey"). Form and rating come from the
  * stud book (settled races before this one), never from this race. Every runner shows its
  * stable; the Club's horses (house runners that fill the gates at the close) are marked Club.
+ * A claiming race prints each runner's claim price and how many claims it has (never who), the
+ * rules in one line and, while entries are open, a Claim button on other stables' runners.
  */
 export function FieldList({ card, highlightHorseId, open = true }: { card: RaceCard; highlightHorseId?: string; open?: boolean }) {
   return (
@@ -37,11 +49,29 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
               ? `${card.field.length} runners · ${stables(card.field.filter((e) => e.isPlayer).length)}`
               : `${stables(card.field.filter((e) => e.isPlayer).length)} entered · the Club fills the field to ${card.targetRunners}`}
           </span>{" "}
+          {card.claiming && (
+            <span className="tag" data-testid="claiming-tag">
+              Claiming
+            </span>
+          )}{" "}
           <span aria-hidden className="inline-block group-open:rotate-90">
             ▸
           </span>
         </span>
       </summary>
+      {card.claiming && (
+        <p className="caption px-3 py-2" data-testid="claiming-rules">
+          {card.claiming.rules}
+          {card.claiming.myClaim && (
+            <>
+              {" "}
+              <strong data-testid="my-claim">
+                Your claim ({formatCredits(card.claiming.myClaim.price)} cr on {card.field.find((e) => e.horse.id === card.claiming!.myClaim!.horseId)?.horse.name ?? "a runner"}): {CLAIM_STATUS[card.claiming.myClaim.status]}.
+              </strong>
+            </>
+          )}
+        </p>
+      )}
       <table className="racecard-table" data-testid="field-table">
         <thead>
           <tr>
@@ -112,6 +142,17 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                         {coatLabel(h.appearance).toLowerCase()} {SEX_LABEL[h.sex].toLowerCase()}
                         <span className="sm:hidden"> · {STYLE_SHORT[e.tactic]}</span>
                       </p>
+                      {e.claim && (
+                        <p className="racecard-gear" data-testid="runner-claim">
+                          Claim {formatCredits(e.claim.price)} cr · {claimsLabel(e.claim.claims)}
+                          {card.status === "open" && !card.fieldLocked && !e.mine && e.isPlayer && !card.claiming?.myClaim && (
+                            <>
+                              {" "}
+                              <ClaimButton raceId={card.id} horseId={h.id} horseName={h.name} price={e.claim.price} />
+                            </>
+                          )}
+                        </p>
+                      )}
                       {e.gear.length > 0 && (
                         <p className="racecard-gear" data-testid="runner-gear" title="Race-day equipment and jockey">
                           {e.gear.join(" · ")}
