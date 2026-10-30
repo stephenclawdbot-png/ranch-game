@@ -9,12 +9,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
-import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
+import { LiveClock, PlaybackClock } from "./playback";
+import { Director } from "./director";
+import { buildRaceStage } from "./stage/buildRaceStage";
+import { injuredFromEvents } from "./stage/motion";
 import { perfReport, type PerfReport } from "./perfReport";
 import { replayTiming } from "./sampleReplay";
 import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
 import { pipRect, type CameraMode, type QualitySetting, type RenderQuality, type ViewMode } from "./types";
-import { FURLONG_MM } from "@thoroughbred/shared";
+import { FRAME_FIELD, FRAME_STRIDE, FURLONG_MM } from "@thoroughbred/shared";
 import { Controls, Countdown, Minimap, PhotoStamp, ResultsCard, Ticker, TopHud, type MinimapDot } from "./hud/Hud";
 import type { CourseMapRunner } from "./hud/CourseMap";
 import { CourseMapPanel } from "./hud/CourseMapPanel";
@@ -91,11 +94,28 @@ export interface RaceViewerProps {
    * the default scenery and no course map.
    */
   course?: CourseInfo | null;
+  /**
+   * Horses that suffered an injury in the race: after the line they are pulled up (pull-up
+   * strip) instead of easing down. Default: the replay's injury events. Only pass what the
+   * broadcast may already show (never before the race is over on a live broadcast).
+   */
+  injuredHorseIds?: readonly string[];
 }
 
 /** Minimap dots as course-map runners (distance covered from each dot's share of the race). */
 function mapRunners(dots: readonly MinimapDot[], distanceM: number): CourseMapRunner[] {
   return dots.map((d) => ({ id: d.id, coveredM: d.p * distanceM, color: d.primary, me: d.me, leader: d.leader }));
+}
+
+/** The pixel rig is opt-in (`?rig=1` / NEXT_PUBLIC_PIXEL_RIG=1, three/horseRig.ts). */
+function rigOptIn(): boolean {
+  if (process.env.NEXT_PUBLIC_PIXEL_RIG === "1") return true;
+  if (typeof window === "undefined") return false;
+  try {
+    return new URLSearchParams(window.location.search).get("rig") === "1";
+  } catch {
+    return false;
+  }
 }
 
 /** `?view=` on the page URL, then the remembered choice, then the default (trackside). */
@@ -129,6 +149,8 @@ interface HudState {
   live: boolean;
   rate: number;
   ended: boolean;
+  /** The run-out (horses easing down after the line) is over. */
+  settled: boolean;
   frozen: boolean;
   slowmo: boolean;
   canGoLive: boolean;
@@ -173,6 +195,8 @@ function liveData(feed: LiveRaceFeed): SceneRaceData & TimelineSource {
 
 function liveClockSource(feed: LiveRaceFeed) {
   const frameDt = feed.header.sampleEvery / feed.header.tickHz;
+  const L = feed.header.trackLengthMm;
+  const n = feed.header.horses.length;
   return {
     get broadcastStartMs() {
       return feed.broadcastStartMs;
@@ -181,6 +205,13 @@ function liveClockSource(feed: LiveRaceFeed) {
       return feed.liveEdgeFrame;
     },
     frameDt,
+    /** Every runner is home in the frames received: the clock may run on (run-out). */
+    get allFinished() {
+      const last = feed.frames[feed.frames.length - 1];
+      if (!last || n === 0) return false;
+      for (let h = 0; h < n; h++) if ((last[h * FRAME_STRIDE + FRAME_FIELD.distanceMm] ?? 0) < L) return false;
+      return true;
+    },
   };
 }
 
@@ -204,6 +235,7 @@ export function RaceViewer(props: RaceViewerProps) {
     hudTitle = true,
     resultsCard = true,
     course = null,
+    injuredHorseIds,
   } = props;
   // Resolved on the client only (URL / localStorage), so SSR and hydration agree.
   const [view, setViewState] = useState<ViewMode | null>(props.view ?? null);
@@ -278,6 +310,16 @@ export function RaceViewer(props: RaceViewerProps) {
   const downgradedRef = useRef(false);
   const perfRef = useRef({ ft: new Float32Array(240), n: 0, playedMs: 0, reported: false });
   const duration = useMemo(() => (final ? replayTiming(final).duration : 0), [final]);
+  // ONE stage (course, light, landmarks) and ONE director for both views: switching views
+  // keeps the same picture and the same shot subject.
+  const stageData = initialFinal ?? live!;
+  const raceStage = useMemo(() => buildRaceStage(course, stageData), [course, stageData]);
+  const injuredKey = injuredHorseIds?.join(",") ?? "";
+  const injured = useMemo(() => (injuredHorseIds ? new Set(injuredHorseIds) : injuredFromEvents(stageData.events)), [injuredKey, stageData]); // eslint-disable-line react-hooks/exhaustive-deps
+  const directorRef = useRef<Director>(new Director());
+  useEffect(() => {
+    directorRef.current = new Director();
+  }, [stageData]);
 
   useEffect(() => injectViewerCss(), []);
 
@@ -331,6 +373,7 @@ export function RaceViewer(props: RaceViewerProps) {
       live: clock.live,
       rate: clock.rate,
       ended: clock.ended,
+      settled: clock instanceof PlaybackClock ? clock.time >= clock.runoutEnd - 1e-6 : false,
       frozen: frameFlags.current.frozen,
       slowmo: frameFlags.current.slowmo,
       canGoLive: clock.canGoLive(),
@@ -371,7 +414,7 @@ export function RaceViewer(props: RaceViewerProps) {
       if (view === "trackside") {
         try {
           const { TracksideScene } = await import("./trackside/TracksideScene");
-          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course });
+          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured });
           artNote = "trackside";
         } catch (err) {
           console.warn("[RaceViewer] Trackside view unavailable, using the classic view", err);
@@ -382,27 +425,30 @@ export function RaceViewer(props: RaceViewerProps) {
         }
       }
       if (!scene) {
-        const [{ HD2DScene }, { createRigFactory }, { loadCourseArt }, { sceneryFor }] = await Promise.all([
+        const [{ HD2DScene }, { createRigFactory }, { loadStageArt, loadTracksideArt, loadFxPalette }] = await Promise.all([
           import("./three/HD2DScene"),
           import("./three/horseRig"),
           import("./trackside/art"),
-          import("./trackside/scenery"),
         ]);
-        const recipe = sceneryFor(course?.scenery);
-        const [rigs, courseArt] = await Promise.all([createRigFactory(T, artBaseUrl, art), loadCourseArt(art, recipe)]);
+        const [rigs, stageArt, strips, fx] = await Promise.all([
+          createRigFactory(T, artBaseUrl, art),
+          loadStageArt(art, raceStage),
+          // The same palette-index strips as Trackside (same frames, same colours); the
+          // pixel rig (?rig=1) keeps its own path.
+          rigOptIn() ? Promise.resolve(null) : loadTracksideArt(art).catch(() => null),
+          loadFxPalette(art),
+        ]);
         if (disposed) {
           rigs.factory.dispose();
           return;
         }
         try {
-          const courseFar = recipe?.far ? courseArt.get(recipe.far) : undefined;
-          const courseStand = recipe ? courseArt.get(recipe.stand) : undefined;
-          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, courseFar, courseStand });
+          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, stage: raceStage, stageArt, strips, fxPalette: fx, injured });
         } catch (err) {
           rigs.factory.dispose();
           throw err;
         }
-        artNote = `${rigs.kind}${art.manifest ? ` +${art.images.size} art` : " (code art)"}`;
+        artNote = `${strips ? "strips" : rigs.kind}${art.manifest ? ` +${art.images.size} art` : " (code art)"}`;
       }
       const sc: AnyScene = scene;
       host.appendChild(sc.canvas);
@@ -448,20 +494,19 @@ export function RaceViewer(props: RaceViewerProps) {
         const t0 = performance.now();
         const dt = deltaMS / 1000;
         // Live -> final: once the result exists and the playhead has reached the end of
-        // the broadcast, hand the scene the official replay and run the finish flow.
+        // the broadcast, hand the scene the official replay and carry on from the same
+        // moment (no jump back: the run-out keeps playing; the photo replay is Phase B).
         if (clock instanceof LiveClock && feed?.final && clock.time >= clock.dataEdge() - feed.header.sampleEvery / feed.header.tickHz - 1e-6) {
           const fin = feed.final;
           sc.setFinal(fin);
           finalRef.current = fin;
           setFinal(fin);
-          const slowFrom = fin.result.photoFinish ? timeLeaderReaches(fin, 14) : null;
-          const t0 = slowFrom !== null ? Math.max(0, slowFrom - 1.5) : clock.time;
-          clockRef.current = new PlaybackClock(fin, { autoplay: true, initialTimeSec: t0 });
-          setReplayBadge(slowFrom !== null);
+          clockRef.current = new PlaybackClock(fin, { autoplay: clock.playing || clock.live, initialTimeSec: clock.time });
+          setReplayBadge(false);
           return;
         }
         const fr = clock.tick(dt);
-        sc.render({ time: fr.time, realDt: dt, camera: cameraRef.current, follow: followRef.current, frozen: fr.frozen, flash: fr.flash });
+        sc.render({ time: fr.time, realDt: dt, camera: cameraRef.current, follow: followRef.current, frozen: fr.frozen, flash: fr.flash, director: directorRef.current });
         const work = performance.now() - t0;
 
         if (clock instanceof PlaybackClock && clock.ended && !finishedFired.current) {
@@ -550,7 +595,7 @@ export function RaceViewer(props: RaceViewerProps) {
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course]);
+  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course, raceStage, injured]);
 
   // Unmount: send a report for viewers that left before the 20 s mark (>= 150 frames drawn).
   useEffect(() => () => sendPerfReport(), [sendPerfReport]);
@@ -613,7 +658,8 @@ export function RaceViewer(props: RaceViewerProps) {
   narrowRef.current = narrow;
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
-  const showResults = resultsCard && !!h && !!final && h.mode === "replay" && h.ended && !dismissed && !h.frozen;
+  // The results card waits for the horses to ease down (the run-out is part of the finish).
+  const showResults = resultsCard && !!h && !!final && h.mode === "replay" && h.settled && !dismissed && !h.frozen;
   const isLive = h?.mode === "live";
   const pip = pipRect(width, stageRef.current?.clientHeight ?? 0);
   const furlongs = useMemo(() => {

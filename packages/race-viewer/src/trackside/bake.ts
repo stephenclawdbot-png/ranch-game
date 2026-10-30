@@ -6,7 +6,8 @@
  */
 import type { BackdropStem } from "./art";
 import type { TracksideLook } from "./looks";
-import type { CourseArtSrc, SceneryRecipe } from "./scenery";
+import type { CourseArtSrc } from "./scenery";
+import type { MidTemplate } from "../stage/buildRaceStage";
 import { CHIP_FILL, CHIP_INK, CHIP_LABELS, CHIP_NUM, CHIP_UNIT, chipBitmap } from "./gapMarks";
 
 type Cnv = HTMLCanvasElement;
@@ -134,13 +135,13 @@ export function bakeSky(images: Img, look: TracksideLook): { canvas: Cnv; top: s
 }
 
 /** Far hills (period = image width), DOF blur 1.4 and haze. Baseline: hills sit 36 art px above the rail. */
-export function bakeHills(images: Img, look: TracksideLook, far?: HTMLImageElement | null): BakedLayer | null {
+export function bakeHills(images: Img, look: TracksideLook, far?: HTMLImageElement | null, isCourse = !!far): BakedLayer | null {
   const im = far ?? images.get("far-hills");
   if (!im) return null;
   const c = canvas(im.width, im.height + 8);
   ctx(c).drawImage(im, 0, 4);
   // A course panorama is the course's signature (white horse, sea, skyline): a lighter haze.
-  haze(c, look.fog, (far ? 0.36 : 0.5) * look.hazeMul);
+  haze(c, look.fog, (isCourse ? 0.36 : 0.5) * look.hazeMul);
   return { canvas: blurPeriodic(c, 1.4), baseline: 4 + im.height + 36, period: im.width };
 }
 
@@ -183,11 +184,11 @@ export function bakeTrees(images: Img, look: TracksideLook): BakedLayer | null {
  * recolour the grass and set decor along the rail, behind it (gorse, boards, flowers, a
  * dry-stone wall), at the rail's own scale; the tile then repeats over a longer period.
  */
-export function bakeRailFar(images: Img, look: TracksideLook, recipe?: SceneryRecipe | null, course?: CourseImg): BakedLayer | null {
+export function bakeRailFar(images: Img, look: TracksideLook, opts: { railFill?: [string, string]; decor?: { img: HTMLImageElement; every: number; lift: number } | null } = {}): BakedLayer | null {
   const im = images.get("rail-far");
   if (!im) return null;
-  const decor = recipe?.railDecor && course ? course.get(recipe.railDecor.src) : undefined;
-  const every = recipe?.railDecor?.every ?? im.width;
+  const decor = opts.decor?.img;
+  const every = opts.decor?.every ?? im.width;
   // Period: whole rail tiles that also hold whole decor spacings (at most 8 tiles).
   let tiles = 1;
   if (decor) {
@@ -205,15 +206,15 @@ export function bakeRailFar(images: Img, look: TracksideLook, recipe?: SceneryRe
   const c = canvas(W, base + 8);
   const x = ctx(c);
   x.imageSmoothingEnabled = false;
-  const fill = recipe?.railFill ?? ["#4a5a34", "#3f5530"];
+  const fill = opts.railFill ?? ["#4a5a34", "#3f5530"];
   const g = x.createLinearGradient(0, base - 30, 0, base + 8);
   g.addColorStop(0, fill[0]);
   g.addColorStop(1, fill[1]);
   x.fillStyle = g;
   x.fillRect(0, base - 30, c.width, 38);
-  if (decor && recipe?.railDecor) {
+  if (decor && opts.decor) {
     const n = Math.max(1, Math.round(W / every));
-    const y = base - decor.height + 2 - recipe.railDecor.lift;
+    const y = base - decor.height + 2 - opts.decor.lift;
     for (let i = 0; i < n; i++) {
       const dx = Math.round((i * W) / n);
       for (const off of [-W, 0, W]) {
@@ -257,19 +258,18 @@ export function bakeField(look: TracksideLook, colours: [string, string] = ["#5f
 }
 
 /**
- * A course's midground band (period and placements from its scenery recipe), with the same
- * depth-of-field blur and aerial haze as the original tree line. Baseline 292 like the trees.
+ * The stage's midground band (period and placements from its template: a course's own set or
+ * the parkland oak line), with the depth-of-field blur and aerial haze of the original tree
+ * line. Baseline 292 like the trees.
  */
-export function bakeMid(course: CourseImg, recipe: SceneryRecipe, look: TracksideLook): BakedLayer | null {
-  if (recipe.mid === "trees") return null;
-  const m = recipe.mid;
+export function bakeMid(get: (src: string) => HTMLImageElement | undefined, m: MidTemplate, look: TracksideLook): BakedLayer | null {
   const P = m.period;
   const c = canvas(P, m.height);
   const x = ctx(c);
   x.imageSmoothingEnabled = false;
   let drawn = 0;
   for (const it of m.items) {
-    const im = course.get(it.src);
+    const im = get(it.src);
     if (!im) continue;
     drawn++;
     for (const off of [-P, 0, P]) {

@@ -32,6 +32,8 @@ export interface FakeReplayOptions {
   postTimeMs?: number;
   /** Force the first two home within a photo margin (default true). */
   photoFinish?: boolean;
+  /** Spread of the runners' cruising speeds (1 = default; 4 = a strung-out field). */
+  spread?: number;
 }
 
 function mulberry32(seed: number) {
@@ -193,7 +195,7 @@ export function fakeReplay(opts: FakeReplayOptions = {}): RaceReplay {
         silks: { primary, secondary, cap, pattern: PATTERNS[i % PATTERNS.length]! },
       },
     });
-    const base = 16.2 + goingPenalty + (rand() - 0.5) * 0.7;
+    const base = 16.2 + goingPenalty + (rand() - 0.5) * 0.7 * (opts.spread ?? 1);
     plans.push({
       base,
       early: tactic === "front" ? 1.035 : tactic === "stalker" ? 1.0 : 0.965,
