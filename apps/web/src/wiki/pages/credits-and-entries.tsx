@@ -98,7 +98,8 @@ export default function CreditsAndEntriesPage() {
         <span id="upkeep" />
         After each week ends, your stable pays upkeep for the horses you actually used: any horse that raced (Live or Story), had a paid training session, or covered or was covered.
         Horses you leave alone that week cost nothing, so a week away is free. Upkeep never takes your balance below zero: what you can&rsquo;t pay is waived. The{" "}
-        <GameLink href="/week">This week</GameLink> page shows it building up, and a note in your inbox shows the breakdown.
+        <GameLink href="/week">This week</GameLink> page shows it building up, and a note in your inbox shows the breakdown. The first week charged is the week starting{" "}
+        {new Date(`${gc.UPKEEP_FIRST_WEEK}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}.
       </P>
       <P>
         Every free Paddock Pack is earned by playing: one for every {gc.FREE_PADDOCK_EVERY_PLAY_DAYS} days you play. See <WikiLink slug="packs" />.

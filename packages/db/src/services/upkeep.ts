@@ -67,6 +67,7 @@ export async function settleUpkeep(db: Db, now: Date, opts: { weeks?: number; st
     const from = new Date(current.getTime() - w * 7 * 86_400_000);
     const to = new Date(from.getTime() + 7 * 86_400_000);
     const weekStart = from.toISOString().slice(0, 10);
+    if (weekStart < gc.UPKEEP_FIRST_WEEK) continue; // before upkeep existed: never charged
     const used = await usedHorses(db, from, to);
     for (const [stableId, ids] of used) {
       if (opts.stableId && opts.stableId !== stableId) continue;
@@ -110,6 +111,7 @@ export async function settleUpkeep(db: Db, now: Date, opts: { weeks?: number; st
 /** What this stable's upkeep would be for the current week so far (shown on This week). */
 export async function upkeepThisWeek(db: Db, stableId: string, now: Date): Promise<{ horses: number; due: number }> {
   const from = weekBounds(utcWeekStart(now)).from;
+  if (from.toISOString().slice(0, 10) < gc.UPKEEP_FIRST_WEEK) return { horses: 0, due: 0 };
   const used = (await usedHorses(db, from, now)).get(stableId) ?? new Set<string>();
   if (!used.size) return { horses: 0, due: 0 };
   const leasedIn = await leasedDuring(db, stableId, from, now);

@@ -62,6 +62,12 @@ export const ENTRY_FEE_BY_TIER: Record<RaceTier, number> = {
  */
 export const UPKEEP_RACING_PER_WEEK = 375; // 250 in harness sinks1 (77.6 spent per 100 earned)
 export const UPKEEP_STUD_PER_WEEK = 200; // 150 in harness sinks1
+/**
+ * The first week upkeep is charged for (UTC Monday, "YYYY-MM-DD"). Upkeep shipped on 2026-10-30:
+ * weeks before this one are never charged, so the first settlement can't bill players for weeks
+ * before upkeep existed.
+ */
+export const UPKEEP_FIRST_WEEK = "2026-11-02";
 
 /** Upkeep for one used horse: racing horses (in training) and horses at stud / broodmares. */
 export function upkeepFor(careerStatus: "racing" | "retired" | "pasture"): number {

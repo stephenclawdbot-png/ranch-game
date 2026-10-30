@@ -230,4 +230,16 @@ describe("weekly upkeep", () => {
     expect(c!.charged).toBeLessThan(c!.due);
     expect(await getBalance(h.db, q.accountId)).toBe(0);
   });
+
+  it("never charges weeks before upkeep existed (UPKEEP_FIRST_WEEK)", async () => {
+    const p = await newPlayer(h.db, { credits: 5_000 });
+    const horse = await makeHorse(h.db, p.stableId);
+    const earlier = new Date(T0.getTime() - 7 * DAY); // the week before the first charged week
+    const race = await createRace(h.db, { kind: "scheduled", name: "Pre-upkeep race", raceClass: "maiden", conditions: {}, postTime: new Date(earlier.getTime() + 10 * MIN), entriesCloseAt: new Date(earlier.getTime() + 9 * MIN) });
+    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "front", now: earlier });
+    const before = await getBalance(h.db, p.accountId);
+    // the first settlement after the ship looks two weeks back: the pre-upkeep week stays free
+    expect(await settleUpkeep(h.db, T0, { stableId: p.stableId })).toEqual([]);
+    expect(await getBalance(h.db, p.accountId)).toBe(before);
+  });
 });
