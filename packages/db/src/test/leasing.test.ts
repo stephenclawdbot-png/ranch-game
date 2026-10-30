@@ -109,13 +109,14 @@ describe("leasing: offers", () => {
     const l = await offer(o.accountId, a!.id);
     expect(l).toMatchObject({ status: "active", termDays: 7, ownerSharePct: 50, fee: 0, maxLiveStartsPerWeek: gc.LEASE_WEEKLY_STARTS_DEFAULT, allowAllOut: false });
     await expect(offer(o.accountId, a!.id)).rejects.toMatchObject({ code: "HORSE_LOCKED" });
-    // someone else's horse, a retired horse, a bound starter, a stallion at stud
+    // someone else's horse, a retired horse, a stallion at stud, too few starts left; a Club-bred starter may be leased
     const other = await newPlayer(h.db);
     await expect(offer(other.accountId, b!.id)).rejects.toMatchObject({ code: "NOT_OWNER" });
     const retired = await makeHorse(h.db, o.stableId, { careerStatus: "retired", retirementReason: "choice", retiredAt: T0 });
     await expect(offer(o.accountId, retired.id)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
     const bound = await makeHorse(h.db, o.stableId, { bound: true });
-    await expect(offer(o.accountId, bound.id)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    const boundOffer = await offer(o.accountId, bound.id);
+    await withdrawLeaseOffer(h.db, { accountId: o.accountId, listingId: boundOffer.id, now: T0 });
     const stud = await makeHorse(h.db, o.stableId, { studFee: 300 });
     await expect(offer(o.accountId, stud.id)).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
     const old = await makeHorse(h.db, o.stableId, { starts: 36 });

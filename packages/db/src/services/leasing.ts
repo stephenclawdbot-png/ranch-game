@@ -23,8 +23,10 @@
  *   - The horse always goes home at the end, even into a full stable (like a foal: the nursery
  *     overflow rule; the owner can't acquire more horses until a stall is free). Bounded by the
  *     owner's lease cap (at most 3 horses out).
- *   - USDG-registered horses may be leased (ownership does not move and nothing is paid in USDG);
- *     Club-bred (bound) horses may not ("they stay with the stable that raised them").
+ *   - USDG-registered horses may be leased (ownership does not move and nothing is paid in USDG).
+ *     So may Club-bred (bound) horses: binding stops a free horse being SOLD for credits; a lease
+ *     moves no ownership and (with no upfront fee) no credits, and the horse comes home. Without
+ *     them nobody could lease in a stable's first weeks (the 2026-10-30 harness run: 0 offers).
  *   - The horse is not locked while on offer: it may still race at home; taking re-checks all.
  *   - Story races and the Daily Cup are allowed on lease; Story rewards and Cup credits are not
  *     purses and stay with the lessee (they are capped per stable).
@@ -146,7 +148,6 @@ export type LeaseHorseBlock =
   | "not_racing"
   | "not_of_age"
   | "few_starts_left"
-  | "club_bred"
   | "in_race"
   | "listed"
   | "booked"
@@ -161,7 +162,6 @@ export const LEASE_BLOCK_TEXT: Record<LeaseHorseBlock, string> = {
   not_racing: "Only racing horses can be leased.",
   not_of_age: "Not yet of racing age.",
   few_starts_left: `Needs at least ${gc.LEASE_MIN_STARTS_LEFT} career starts left.`,
-  club_bred: "Club-bred: it stays with the stable that raised it.",
   in_race: "Entered in a race: offer it after the race.",
   listed: "Listed on the market: take it off first.",
   booked: "Booked for a USDG covering.",
@@ -178,7 +178,6 @@ export async function leaseHorseBlock(ex: Executor, h: HorseRow, ownerStableId: 
   if (h.careerStatus !== "racing") return { block: "not_racing" };
   if (h.careSessions < RULES.careToRacing) return { block: "not_of_age" };
   if (RULES.maxStarts - h.starts < gc.LEASE_MIN_STARTS_LEFT) return { block: "few_starts_left" };
-  if (h.bound || h.starts < h.tradeMinStarts) return { block: "club_bred" };
   if (h.lockKind === "race") return { block: "in_race" };
   if (h.lockKind === "market") return { block: "listed" };
   if (h.lockKind === "stud") return { block: "booked" };

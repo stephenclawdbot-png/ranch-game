@@ -110,8 +110,8 @@ export default function LeasingPage() {
         ]}
       />
       <P>
-        Only racing horses of racing age can be leased: not Club-bred starters (they stay with the stable that raised them), not a horse entered in a race, listed for sale, in foal, injured or
-        standing at stud. A horse on offer can still race at home until someone takes the lease. Horses registered for the <WikiLink slug="usdg-market">USDG market</WikiLink> can be leased: nothing
+        Only racing horses of racing age can be leased: not a horse entered in a race, listed for sale, in foal, injured or standing at stud. Club-bred starters can be leased even though
+        they can never be sold: a lease changes no ownership and they always come home. A horse on offer can still race at home until someone takes the lease. Horses registered for the <WikiLink slug="usdg-market">USDG market</WikiLink> can be leased: nothing
         changes hands and nothing is paid in USDG.
       </P>
       <Callout tone="tip" title="Fair play">

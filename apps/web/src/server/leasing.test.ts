@@ -66,9 +66,8 @@ beforeAll(async () => {
   h = await dbHandle();
   owner = await founded("Lease Owner Yard");
   lessee = await founded("Borrowing Barn");
-  // starters are Club-bred (bound): free one to lease
+  // starters are Club-bred: they may be leased (never sold)
   horseId = await firstHorseOf(owner);
-  await h.db.execute(`update horses set bound = false where id = '${horseId}'`);
 });
 afterAll(() => {
   jar.token = null;
@@ -86,7 +85,7 @@ describe("/api/leases", () => {
     expect(before.config).toMatchObject({ terms: [7, 14, 28], shareMin: 30, shareMax: 80, feeMax: 0, maxLesseeLeases: 2, cooldownDays: 7 });
     const mine = before.horses.find((x) => x.id === horseId)!;
     expect(mine.block).toBeNull();
-    expect(before.horses.filter((x) => x.id !== horseId).every((x) => x.block !== null)).toBe(true); // bound starters
+    expect(before.horses.every((x) => x.block === null)).toBe(true); // Club-bred starters can be leased
     const res = await OFFER(new Request("https://tb.example/api/leases/offer", { method: "POST", body: JSON.stringify({ horseId, termDays: 14, ownerSharePct: 60, maxLiveStartsPerWeek: 3 }), headers: { "content-type": "application/json" } }));
     expect(res.status).toBe(201);
     const v = ((await res.json()) as { view: LeaseView }).view;
