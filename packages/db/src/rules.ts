@@ -202,6 +202,8 @@ export interface GameHooks {
     season?: number;
     rarity?: gc.Rarity;
     target?: number;
+    /** The race's Club window: the minted mark stays inside it. */
+    window?: { lo: number; hi: number };
     distanceM?: number;
     surface?: string;
   }): HorseSpec;

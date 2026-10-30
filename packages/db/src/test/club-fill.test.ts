@@ -111,8 +111,8 @@ describe("filling a field", () => {
       const row = await getHorseRow(h.db, x.horseId);
       const mark = trueMarkOf(row);
       marks.push(mark);
-      expect(mark).toBeGreaterThanOrEqual(w.lo - gc.CLUB_MARK_TOLERANCE);
-      expect(mark).toBeLessThanOrEqual(w.hi + gc.CLUB_MARK_TOLERANCE);
+      expect(mark).toBeGreaterThanOrEqual(w.lo);
+      expect(mark).toBeLessThanOrEqual(w.hi);
       const g = gc.upgradeGenome(row.genome)!;
       expect(gc.clubFitsRace(g, { distanceM: 1400, surface: "turf" })).toBe(true);
       // ridden to its natural style

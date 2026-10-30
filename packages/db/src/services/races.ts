@@ -577,7 +577,7 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
   const season = race.seasonNumber ?? seasonNumberAt(now);
   for (let i = 0; i < needed; i++) {
     if (slot[i]) continue;
-    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: targets[i]!, target: targets[i]!, season, ...fit });
+    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: targets[i]!, target: targets[i]!, window: w, season, ...fit });
     const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", birthSeasonNumber: season, now });
     slot[i] = (await lockHorse(tx, id))!;
   }

@@ -192,8 +192,8 @@ export const CLUB_MARK_KEY = "clubMark";
  * its ability mark is about `target`, suited to the race's trip and surface; stored with the
  * starts, training and fitness the mark assumes, and rated at that mark.
  */
-export function clubRunnerSpec(input: { seed: string; index: number; target: number; season: number; distanceM?: number; surface?: string }): HorseSpec {
-  const mint = gc.mintClubGenome({ seed: input.seed, index: input.index, target: input.target, season: input.season, distanceM: input.distanceM, surface: input.surface });
+export function clubRunnerSpec(input: { seed: string; index: number; target: number; window?: { lo: number; hi: number }; season: number; distanceM?: number; surface?: string }): HorseSpec {
+  const mint = gc.mintClubGenome({ seed: input.seed, index: input.index, target: input.target, window: input.window, season: input.season, distanceM: input.distanceM, surface: input.surface });
   const rng = new gc.Rng(`${input.seed}|club-runner|${input.index}`);
   const sex = rng.chance(500) ? "colt" : "filly";
   const name = gc.clubHorseName(rng);
@@ -245,8 +245,8 @@ export const gameCoreHooks: GameHooks = {
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });
   },
-  houseHorse: ({ seed, index, rating, season, rarity, target, distanceM, surface }) => {
-    if (target !== undefined) return clubRunnerSpec({ seed, index, target, season: season ?? 1, distanceM, surface });
+  houseHorse: ({ seed, index, rating, season, rarity, target, window, distanceM, surface }) => {
+    if (target !== undefined) return clubRunnerSpec({ seed, index, target, window, season: season ?? 1, distanceM, surface });
     // Even breed weights so Live fields look varied (owner: "genetics aren't seen in race").
     // `rarity`: a target tier (Club sale horses, clubMarket.ts); default the natural mint.
     const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true, ...(rarity ? { rarity } : {}) });

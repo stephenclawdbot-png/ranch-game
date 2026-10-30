@@ -322,6 +322,8 @@ export interface ClubMintRequest extends ClubRaceFit {
   index: number;
   /** Target ability mark. */
   target: number;
+  /** The window the mark must stay inside (the race's Club window); a mark outside it is never accepted. */
+  window?: { lo: number; hi: number };
   /** Competition season (the foundation mint's ceilings). */
   season?: number;
 }
@@ -368,7 +370,8 @@ export function mintClubGenome(req: ClubMintRequest): ClubMint {
     // Only a candidate that suits the race at least as well as the best so far is worth lifting.
     if (best && fitMiss > best.fitMiss) continue;
     const { lift, mark } = liftFor(g0, target);
-    const markMiss = Math.abs(mark - target);
+    // Outside the window counts as a big miss: never accepted, only kept as a last resort.
+    const markMiss = Math.abs(mark - target) + (req.window && (mark < req.window.lo || mark > req.window.hi) ? 1000 : 0);
     if (!best || fitMiss < best.fitMiss || markMiss < best.markMiss) best = { g0, fitMiss, markMiss, lift, mark };
     if (fitMiss === 0 && markMiss <= CLUB_MARK_TOLERANCE) break;
   }

@@ -237,7 +237,7 @@ it("club fill report", async () => {
           nominal: clubNominalRating(band.raceClass),
         });
         const club = clubTargets(w, nClub, seed).map((target, i) => {
-          const mint = mintClubGenome({ seed, index: i, target, season: SEASON, distanceM, surface });
+          const mint = mintClubGenome({ seed, index: i, target, window: w, season: SEASON, distanceM, surface });
           const st = { ...clubSeasonedState(mint.genome), id: `club-${i}` };
           if (record) {
             clubMarksAfter.push(mint.mark);

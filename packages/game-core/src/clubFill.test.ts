@@ -106,6 +106,14 @@ describe("honest Club horses", () => {
     expect(mintClubGenome({ seed: "det", index: 4, target: 72, season: 12, distanceM: 1600, surface: "turf" }).genome).not.toEqual(a.genome);
   });
 
+  it("a mark at the edge of the window never lands outside it", () => {
+    for (let i = 0; i < 40; i++) {
+      const w = { lo: 63 + (i % 5), hi: 63 + (i % 5) };
+      const m = mintClubGenome({ seed: `edge-${i}`, index: i, target: w.lo, window: w, season: 12, distanceM: 1600, surface: "dirt" });
+      expect(m.mark).toBe(w.lo);
+    }
+  });
+
   it("an out-of-reach target settles for the closest mark", () => {
     const m = mintClubGenome({ seed: "far", index: 0, target: 140, season: 1 });
     expect(m.mark).toBe(CLUB_MARK_MAX);
