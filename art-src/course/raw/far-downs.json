@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "rolling English chalk downland: smooth round grassy whale-backed hills, a huge white chalk horse figure cut into the turf on the side of the biggest hill, small beech copses on the hilltops, pale chalk tracks, sheep dots, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream",
+  "image_size": {
+   "width": 688,
+   "height": 224
+  },
+  "seed": 31001,
+  "no_background": false,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<33968 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 688,
+    "height": 224
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ec724cac-db35-43e2-85cd-a864c1de92c7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "ec724cac-db35-43e2-85cd-a864c1de92c7",
+  "status": "completed",
+  "created_at": "2026-10-30T17:41:56.063911+00:00",
+  "last_response": {
+   "seed": 31001,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<44608 chars>",
+     "height": 224
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "1e6ef855-0ca4-4e2c-8a56-41a92c085aab",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:02.494438+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 36
+  }
+ },
+ "files": [
+  "art-src/course/raw/far-downs-0.png"
+ ]
+}

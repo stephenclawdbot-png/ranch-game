@@ -6,6 +6,7 @@
  */
 import type { BackdropStem } from "./art";
 import type { TracksideLook } from "./looks";
+import type { CourseArtSrc, SceneryRecipe } from "./scenery";
 
 type Cnv = HTMLCanvasElement;
 
@@ -92,6 +93,8 @@ export interface BakedLayer {
 }
 
 type Img = Map<BackdropStem, HTMLImageElement>;
+/** Course scenery art (art/course, plus the parkland grandstand), keyed by manifest src. */
+export type CourseImg = Map<CourseArtSrc, HTMLImageElement>;
 
 /** Sky strip mirror-doubled for a seamless drift, with a feathered flat top. */
 export function bakeSky(images: Img, look: TracksideLook): { canvas: Cnv; top: string; feather: number } | null {
@@ -130,12 +133,13 @@ export function bakeSky(images: Img, look: TracksideLook): { canvas: Cnv; top: s
 }
 
 /** Far hills (period = image width), DOF blur 1.4 and haze. Baseline: hills sit 36 art px above the rail. */
-export function bakeHills(images: Img, look: TracksideLook): BakedLayer | null {
-  const im = images.get("far-hills");
+export function bakeHills(images: Img, look: TracksideLook, far?: HTMLImageElement | null): BakedLayer | null {
+  const im = far ?? images.get("far-hills");
   if (!im) return null;
   const c = canvas(im.width, im.height + 8);
   ctx(c).drawImage(im, 0, 4);
-  haze(c, look.fog, 0.5 * look.hazeMul);
+  // A course panorama is the course's signature (white horse, sea, skyline): a lighter haze.
+  haze(c, look.fog, (far ? 0.36 : 0.5) * look.hazeMul);
   return { canvas: blurPeriodic(c, 1.4), baseline: 4 + im.height + 36, period: im.width };
 }
 
@@ -173,20 +177,59 @@ export function bakeTrees(images: Img, look: TracksideLook): BakedLayer | null {
   return { canvas: blurPeriodic(c, 1), baseline: 292, period: P };
 }
 
-/** Far rail tile (sharp) on its grass fill band. Baseline = the rail's bottom. */
-export function bakeRailFar(images: Img, look: TracksideLook): BakedLayer | null {
+/**
+ * Far rail tile (sharp) on its grass fill band. Baseline = the rail's bottom. A course can
+ * recolour the grass and set decor along the rail, behind it (gorse, boards, flowers, a
+ * dry-stone wall), at the rail's own scale; the tile then repeats over a longer period.
+ */
+export function bakeRailFar(images: Img, look: TracksideLook, recipe?: SceneryRecipe | null, course?: CourseImg): BakedLayer | null {
   const im = images.get("rail-far");
   if (!im) return null;
-  const c = canvas(im.width, im.height + 8);
+  const decor = recipe?.railDecor && course ? course.get(recipe.railDecor.src) : undefined;
+  const every = recipe?.railDecor?.every ?? im.width;
+  // Period: whole rail tiles that also hold whole decor spacings (at most 8 tiles).
+  let tiles = 1;
+  if (decor) {
+    tiles = 8;
+    for (let t = 1; t <= 8; t++) {
+      if ((t * im.width) % every === 0) {
+        tiles = t;
+        break;
+      }
+    }
+  }
+  const W = im.width * tiles;
+  const top = decor ? Math.max(0, decor.height - im.height + 4) : 0;
+  const base = top + im.height;
+  const c = canvas(W, base + 8);
   const x = ctx(c);
-  const g = x.createLinearGradient(0, im.height - 30, 0, im.height + 8);
-  g.addColorStop(0, "#4a5a34");
-  g.addColorStop(1, "#3f5530");
+  x.imageSmoothingEnabled = false;
+  const fill = recipe?.railFill ?? ["#4a5a34", "#3f5530"];
+  const g = x.createLinearGradient(0, base - 30, 0, base + 8);
+  g.addColorStop(0, fill[0]);
+  g.addColorStop(1, fill[1]);
   x.fillStyle = g;
-  x.fillRect(0, im.height - 30, c.width, 38);
-  x.drawImage(im, 0, 0);
+  x.fillRect(0, base - 30, c.width, 38);
+  if (decor && recipe?.railDecor) {
+    const n = Math.max(1, Math.round(W / every));
+    const y = base - decor.height + 2 - recipe.railDecor.lift;
+    for (let i = 0; i < n; i++) {
+      const dx = Math.round((i * W) / n);
+      for (const off of [-W, 0, W]) {
+        if (dx + off > W || dx + off + decor.width < 0) continue;
+        if (i % 2 === 1) {
+          x.save();
+          x.translate(dx + off + decor.width, y);
+          x.scale(-1, 1);
+          x.drawImage(decor, 0, 0);
+          x.restore();
+        } else x.drawImage(decor, dx + off, y);
+      }
+    }
+  }
+  for (let t = 0; t < tiles; t++) x.drawImage(im, t * im.width, top);
   haze(c, look.fog, 0.2 * look.hazeMul);
-  return { canvas: c, baseline: im.height, period: im.width };
+  return { canvas: c, baseline: base, period: W };
 }
 
 /** Out-of-focus near rail (blur 2.8, in shadow). Baseline = the top of the rail bar. */
@@ -200,16 +243,59 @@ export function bakeRailNear(images: Img): BakedLayer | null {
 }
 
 /** A strip of distant field between the hills and the far rail (no sky gap at any zoom). */
-export function bakeField(look: TracksideLook): Cnv {
+export function bakeField(look: TracksideLook, colours: [string, string] = ["#5f6b3a", "#46582f"]): Cnv {
   const c = canvas(4, 64);
   const x = ctx(c);
   const g = x.createLinearGradient(0, 0, 0, 64);
-  g.addColorStop(0, "#5f6b3a");
-  g.addColorStop(1, "#46582f");
+  g.addColorStop(0, colours[0]);
+  g.addColorStop(1, colours[1]);
   x.fillStyle = g;
   x.fillRect(0, 0, 4, 64);
   haze(c, look.fog, 0.45 * look.hazeMul);
   return c;
+}
+
+/**
+ * A course's midground band (period and placements from its scenery recipe), with the same
+ * depth-of-field blur and aerial haze as the original tree line. Baseline 292 like the trees.
+ */
+export function bakeMid(course: CourseImg, recipe: SceneryRecipe, look: TracksideLook): BakedLayer | null {
+  if (recipe.mid === "trees") return null;
+  const m = recipe.mid;
+  const P = m.period;
+  const c = canvas(P, m.height);
+  const x = ctx(c);
+  x.imageSmoothingEnabled = false;
+  let drawn = 0;
+  for (const it of m.items) {
+    const im = course.get(it.src);
+    if (!im) continue;
+    drawn++;
+    for (const off of [-P, 0, P]) {
+      const dx = it.x + off;
+      if (dx > P || dx + im.width < 0) continue;
+      if (it.flip) {
+        x.save();
+        x.translate(dx + im.width, it.bottom - im.height);
+        x.scale(-1, 1);
+        x.drawImage(im, 0, 0);
+        x.restore();
+      } else x.drawImage(im, dx, it.bottom - im.height);
+    }
+  }
+  if (!drawn) return null;
+  haze(c, look.fog, m.haze * look.hazeMul);
+  return { canvas: blurPeriodic(c, m.blur), baseline: 292, period: P };
+}
+
+/** A grandstand with a touch of the midground's haze and blur (it stands just in front of it). */
+export function bakeStand(im: HTMLImageElement, look: TracksideLook): { canvas: Cnv; pad: number } {
+  const c = canvas(im.width, im.height);
+  const x = ctx(c);
+  x.imageSmoothingEnabled = false;
+  x.drawImage(im, 0, 0);
+  haze(c, look.fog, 0.24 * look.hazeMul);
+  return blurred(c, 0.6);
 }
 
 function rand(seed: number) {

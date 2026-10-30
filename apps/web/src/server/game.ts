@@ -481,6 +481,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     course: courseLine(race, field),
     sponsor: await sponsorFor(db, race, viewerStableId),
     groundTrend: raceGroundTrend(race.conditions as Record<string, unknown>, race.postTime),
+    track: raceConds(race).track,
   };
 }
 

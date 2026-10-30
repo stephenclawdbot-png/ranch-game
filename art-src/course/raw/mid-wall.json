@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a long straight dry-stone wall of stacked grey and brown flat stones with moss and a few tufts of grass, wide and low, no gate, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 384,
+   "height": 64
+  },
+  "seed": 31019,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f41dbeca-30e4-49b3-9ff4-b79b1ea4b3aa",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "f41dbeca-30e4-49b3-9ff4-b79b1ea4b3aa",
+  "status": "completed",
+  "created_at": "2026-10-30T17:45:07.622790+00:00",
+  "last_response": {
+   "seed": 31019,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 384,
+     "base64": "<43572 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "862691fe-7feb-49b9-9038-96ce8ae43e1f",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:45:13.843581+00:00",
+   "original_image_n_colors": 35,
+   "quantized_image_n_colors": 32
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-wall-0.png"
+ ]
+}

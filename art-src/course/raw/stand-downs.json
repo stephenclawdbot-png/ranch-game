@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small country racecourse grandstand: white painted weatherboard and flint walls, a green corrugated tin roof, one tier of wooden benches, a little weather vane, seen from the racetrack side as a flat side elevation, the whole building in view standing on a flat ground line, packed crowd of racegoers in the seats, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 512,
+   "height": 256
+  },
+  "seed": 31021,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186228 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 640,
+    "height": 319
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "49a6ebca-a6c8-444f-97dc-99dec95bda9b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "49a6ebca-a6c8-444f-97dc-99dec95bda9b",
+  "status": "completed",
+  "created_at": "2026-10-30T17:42:00.224306+00:00",
+  "last_response": {
+   "seed": 31021,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 512,
+     "base64": "<146040 chars>",
+     "height": 256
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "cb258963-ceaa-4cb6-b570-fcc7f289bc83",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:06.620381+00:00",
+   "original_image_n_colors": 37,
+   "quantized_image_n_colors": 36
+  }
+ },
+ "files": [
+  "art-src/course/raw/stand-downs-0.png"
+ ]
+}

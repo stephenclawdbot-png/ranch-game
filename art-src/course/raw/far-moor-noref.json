@@ -1,0 +1,57 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "bleak upland moorland: long sweeping purple and russet heather moors rising to jagged grey granite tors and rocky crags, a lonely stone farmhouse, dry-stone walls climbing the slopes, brooding, wide side view panorama strip seen from far away, soft hazy aerial perspective, golden-hour light from the right; the landscape fills only the bottom half of the image, the entire upper half is empty plain flat pale cream sky with nothing in it, no clouds, no birds, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream",
+  "image_size": {
+   "width": 688,
+   "height": 224
+  },
+  "seed": 31005,
+  "no_background": false
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "3b510e68-5eb5-4414-9a8e-cfab01bfedec",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "3b510e68-5eb5-4414-9a8e-cfab01bfedec",
+  "status": "completed",
+  "created_at": "2026-10-30T17:45:02.199823+00:00",
+  "last_response": {
+   "seed": 31005,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<120116 chars>",
+     "height": 224
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "508df8c7-0831-46fe-9aac-e66aa2363447",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "general_no_background_341x341_5.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_341x341_5.png",
+   "generation_started_at": "2026-10-30T17:45:08.627788+00:00",
+   "original_image_n_colors": 125,
+   "quantized_image_n_colors": 34
+  }
+ },
+ "files": [
+  "art-src/course/raw/far-moor-noref-0.png"
+ ]
+}

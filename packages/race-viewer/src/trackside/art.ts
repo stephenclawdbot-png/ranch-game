@@ -6,6 +6,7 @@
  */
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
+import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
 import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, type IndexedFrames, type Palette } from "./strips";
 
 export const BACKDROP_STEMS = [
@@ -45,6 +46,8 @@ export interface TracksideArt {
   gallop: StripSet;
   idle: StripSet | null;
   images: Map<BackdropStem, HTMLImageElement>;
+  /** The race's course scenery art (only that course's files are fetched). */
+  course: Map<CourseArtSrc, HTMLImageElement>;
 }
 
 const base = (art: ArtSet) => art.base.replace(/\/$/, "");
@@ -92,8 +95,23 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
   return { lods, silk: new Float32Array(0), mask: buildMarkMasks(l1, palette, keys), pxPerM };
 }
 
+/** A course's scenery art (manifest src paths), approved files only; missing ones are skipped. */
+export async function loadCourseArt(art: ArtSet, recipe: SceneryRecipe | null): Promise<Map<CourseArtSrc, HTMLImageElement>> {
+  const out = new Map<CourseArtSrc, HTMLImageElement>();
+  if (!recipe || !art.manifest || typeof document === "undefined") return out;
+  await Promise.all(
+    sceneryArt(recipe).map(async (src) => {
+      const e = approved(art, src);
+      if (!e?.src) return;
+      const im = await loadImg(urlOf(art, e.src));
+      if (im) out.set(src, im);
+    }),
+  );
+  return out;
+}
+
 /** Everything the Trackside view needs; null when the keyed gallop strip is unavailable. */
-export async function loadTracksideArt(art: ArtSet): Promise<TracksideArt | null> {
+export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null = null): Promise<TracksideArt | null> {
   if (!art.manifest || typeof document === "undefined") return null;
   const gEntry = approved(art, "horse-gallop.png");
   if (!gEntry?.src) return null;
@@ -113,6 +131,7 @@ export async function loadTracksideArt(art: ArtSet): Promise<TracksideArt | null
   if (idle) idle.silk = silkBoxes(idle.lods[0]!, primary);
 
   const images = new Map<BackdropStem, HTMLImageElement>();
+  const coursePending = loadCourseArt(art, recipe);
   await Promise.all(
     BACKDROP_STEMS.map(async (stem) => {
       const have = art.images.get(stem);
@@ -126,5 +145,5 @@ export async function loadTracksideArt(art: ArtSet): Promise<TracksideArt | null
       if (im) images.set(stem, im);
     }),
   );
-  return { palette, keys, gallop, idle, images };
+  return { palette, keys, gallop, idle, images, course: await coursePending };
 }

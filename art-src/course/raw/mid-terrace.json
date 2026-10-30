@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a long row of tall Victorian red brick city terrace houses and a corner pub with shop fronts, slate roofs, chimney pots, sash windows lit warm, flat front elevation, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 640,
+   "height": 256
+  },
+  "seed": 31015,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1e29dd73-d419-4d93-8daa-720a39248e14",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "1e29dd73-d419-4d93-8daa-720a39248e14",
+  "status": "completed",
+  "created_at": "2026-10-30T17:42:00.084232+00:00",
+  "last_response": {
+   "seed": 31015,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 640,
+     "base64": "<145600 chars>",
+     "height": 256
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "796f7007-1e33-477d-9383-c4c29d17fd05",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:06.578684+00:00",
+   "original_image_n_colors": 121,
+   "quantized_image_n_colors": 31
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-terrace-0.png"
+ ]
+}

@@ -13,6 +13,7 @@ import EnteringARacePage from "./pages/entering-a-race";
 import HowRacesAreRunPage from "./pages/how-races-are-run";
 import WeatherAndGoingPage from "./pages/weather-and-going";
 import RatingsAndFormPage from "./pages/ratings-and-form";
+import RacecoursesPage from "./pages/racecourses";
 import BreedingBasicsPage from "./pages/breeding-basics";
 import GeneticsAndInheritancePage from "./pages/genetics-and-inheritance";
 import BreedsPage from "./pages/breeds";
@@ -47,6 +48,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "weather-and-going": WeatherAndGoingPage,
   "how-races-are-run": HowRacesAreRunPage,
   "ratings-and-form": RatingsAndFormPage,
+  "racecourses": RacecoursesPage,
   "breeding-basics": BreedingBasicsPage,
   "genetics-and-inheritance": GeneticsAndInheritancePage,
   "breeds": BreedsPage,

@@ -16,7 +16,10 @@ import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type Timeli
 import { pipRect, type CameraMode, type QualitySetting, type RenderQuality, type ViewMode } from "./types";
 import { FURLONG_MM } from "@thoroughbred/shared";
 import { Controls, Countdown, Minimap, PhotoStamp, ResultsCard, Ticker, TopHud, type MinimapDot } from "./hud/Hud";
+import type { CourseMapRunner } from "./hud/CourseMap";
+import { CourseMapPanel } from "./hud/CourseMapPanel";
 import { injectViewerCss } from "./hud/styles";
+import type { CourseInfo } from "./course/geometry";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideScene";
 
@@ -82,6 +85,17 @@ export interface RaceViewerProps {
    * `?view=trackside` on the page URL, then the viewer's last choice (localStorage), decide.
    */
   view?: ViewMode;
+  /**
+   * The racecourse (`courseByName(conditions.track)` from @thoroughbred/game-core): its
+   * scenery, finish gradient and the overhead course map in the HUD. Omitted or null:
+   * the default scenery and no course map.
+   */
+  course?: CourseInfo | null;
+}
+
+/** Minimap dots as course-map runners (distance covered from each dot's share of the race). */
+function mapRunners(dots: readonly MinimapDot[], distanceM: number): CourseMapRunner[] {
+  return dots.map((d) => ({ id: d.id, coveredM: d.p * distanceM, color: d.primary, me: d.me, leader: d.leader }));
 }
 
 /** `?view=` on the page URL, then the remembered choice, then the default (trackside). */
@@ -189,6 +203,7 @@ export function RaceViewer(props: RaceViewerProps) {
     pixelated = false,
     hudTitle = true,
     resultsCard = true,
+    course = null,
   } = props;
   // Resolved on the client only (URL / localStorage), so SSR and hydration agree.
   const [view, setViewState] = useState<ViewMode | null>(props.view ?? null);
@@ -356,7 +371,7 @@ export function RaceViewer(props: RaceViewerProps) {
       if (view === "trackside") {
         try {
           const { TracksideScene } = await import("./trackside/TracksideScene");
-          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art });
+          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course });
           artNote = "trackside";
         } catch (err) {
           console.warn("[RaceViewer] Trackside view unavailable, using the classic view", err);
@@ -367,14 +382,22 @@ export function RaceViewer(props: RaceViewerProps) {
         }
       }
       if (!scene) {
-        const [{ HD2DScene }, { createRigFactory }] = await Promise.all([import("./three/HD2DScene"), import("./three/horseRig")]);
-        const rigs = await createRigFactory(T, artBaseUrl, art);
+        const [{ HD2DScene }, { createRigFactory }, { loadCourseArt }, { sceneryFor }] = await Promise.all([
+          import("./three/HD2DScene"),
+          import("./three/horseRig"),
+          import("./trackside/art"),
+          import("./trackside/scenery"),
+        ]);
+        const recipe = sceneryFor(course?.scenery);
+        const [rigs, courseArt] = await Promise.all([createRigFactory(T, artBaseUrl, art), loadCourseArt(art, recipe)]);
         if (disposed) {
           rigs.factory.dispose();
           return;
         }
         try {
-          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind });
+          const courseFar = recipe?.far ? courseArt.get(recipe.far) : undefined;
+          const courseStand = recipe ? courseArt.get(recipe.stand) : undefined;
+          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, courseFar, courseStand });
         } catch (err) {
           rigs.factory.dispose();
           throw err;
@@ -525,7 +548,7 @@ export function RaceViewer(props: RaceViewerProps) {
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view]);
+  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course]);
 
   // Unmount: send a report for viewers that left before the 20 s mark (>= 150 frames drawn).
   useEffect(() => () => sendPerfReport(), [sendPerfReport]);
@@ -600,7 +623,13 @@ export function RaceViewer(props: RaceViewerProps) {
   const maxStandings = narrow ? 3 : width < 900 ? 6 : 16;
 
   return (
-    <div className={`rv-root${narrow ? " rv-narrow" : ""}${className ? ` ${className}` : ""}`} tabIndex={0} onKeyDown={onKey} data-race-viewer="">
+    <div
+      className={`rv-root${narrow ? " rv-narrow" : ""}${course ? " rv-has-cmap" : ""}${className ? ` ${className}` : ""}`}
+      style={{ ["--rv-cmap-top" as string]: `${hudTitle ? (narrow ? 84 : 98) : narrow ? 50 : 56}px` }}
+      tabIndex={0}
+      onKeyDown={onKey}
+      data-race-viewer=""
+    >
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
         {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
@@ -626,6 +655,15 @@ export function RaceViewer(props: RaceViewerProps) {
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}
         {h && !showResults && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
+        {course && h && !showResults && !h.frozen && (
+          <CourseMapPanel
+            course={course}
+            distanceM={info.trackLengthMm / 1000}
+            runners={mapRunners(h.dots, info.trackLengthMm / 1000)}
+            narrow={narrow}
+            onSlope={h.time > 0 && h.toGoM > 0 && h.toGoM <= course.homeStraightM}
+          />
+        )}
         {h?.pip && pip && (
           <div className="rv-pip" style={{ right: pip.right, bottom: pip.bottom, width: pip.w, height: pip.h }}>
             <span>My horse</span>

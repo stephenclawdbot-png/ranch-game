@@ -111,6 +111,19 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-badge{bottom:72px}
 .rv-narrow .rv-minimap{bottom:48px;height:30px;left:6px;right:6px;width:calc(100% - 12px)}
 .rv-narrow .rv-debug{bottom:auto;top:92px;font-size:9px}
+.rv-cmap{position:absolute;right:10px;top:var(--rv-cmap-top,98px);width:176px;background:rgba(11,15,12,.78);border:2px solid var(--rv-ink);box-shadow:inset 1px 1px 0 rgba(242,200,106,.25),2px 2px 0 rgba(0,0,0,.35);pointer-events:auto}
+.rv-cmap-tab{appearance:none;display:flex;align-items:center;gap:6px;width:100%;min-height:24px;padding:3px 6px 2px;background:var(--rv-green2);color:var(--rv-cream);border:0;border-bottom:2px solid var(--rv-ink);font:10px/1 var(--rv-f-pixel);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;text-align:left}
+.rv-cmap-tab:focus-visible{outline:2px solid var(--rv-brass2);outline-offset:1px}
+.rv-cmap-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-cmap-slope{flex:none;padding:2px 4px 1px;background:#e0902f;color:var(--rv-ink)}
+.rv-cmap-down{background:#7fb6d9}
+.rv-cmap-svg{width:100%;height:auto;max-height:124px;padding:4px}
+.rv-cmap-shut{width:auto}
+.rv-cmap-shut .rv-cmap-tab{border-bottom:0}
+.rv-has-cmap .rv-debug{right:auto;left:8px}
+.rv-narrow .rv-cmap{right:6px;top:var(--rv-cmap-top,84px);width:118px}
+.rv-narrow .rv-cmap-tab{font-size:9px;min-height:22px;padding:2px 5px 1px;gap:4px}
+.rv-narrow .rv-cmap-svg{padding:3px;max-height:70px}
 `;
 
 let injected = false;

@@ -67,6 +67,8 @@ export interface RaceCard {
   sponsor?: RaceSponsorView;
   /** How the ground is moving into race day at its course (game-core climate.ts); null when unknown. */
   groundTrend?: "drying" | "softening" | "steady" | null;
+  /** Racecourse name (`conditions.track`; game-core `courseByName` maps it to its course). */
+  track?: string;
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */

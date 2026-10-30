@@ -73,6 +73,9 @@ export interface HD2DSceneOptions {
   art: ArtSet;
   rigs: HorseRigFactory;
   rigKind: RigKind;
+  /** The racecourse's far panorama and grandstand (trackside/scenery.ts); default art when missing. */
+  courseFar?: HTMLImageElement;
+  courseStand?: HTMLImageElement;
 }
 
 /** Visual lane width (cosmetic; wider than real so lanes separate on screen). */
@@ -265,7 +268,7 @@ export class HD2DScene {
 
     this.sky = this.buildSky(opts.art);
     this.buildGround(opts.art, replay.race.surface);
-    this.buildBackdrop(opts.art);
+    this.buildBackdrop(opts.art, opts.courseFar, opts.courseStand);
     this.buildRails();
     this.buildPoles();
     this.buildGate();
@@ -444,23 +447,26 @@ export class HD2DScene {
     return this.own(new this.T.MeshBasicMaterial({ map, alphaTest: 0.5, color: tint, side: this.T.DoubleSide }));
   }
 
-  private buildBackdrop(art: ArtSet): void {
+  private buildBackdrop(art: ArtSet, courseFar?: HTMLImageElement, courseStand?: HTMLImageElement): void {
     const T = this.T;
     const L = this.L;
     const far = -this.trackW;
-    // Distant hills: a long plane well beyond the fog (own haze baked in).
-    const hImg = art.images.get("far-hills");
+    // Distant hills (or the course's own panorama): a long plane well beyond the fog (own
+    // haze baked in). A course panorama keeps the default strip's texel stretch, so its
+    // height follows its aspect; its foot stays where the hills' foot was.
+    const hImg = courseFar ?? art.images.get("far-hills");
     const hTex = this.tex(hImg ?? hillsStrip(this.look), { repeat: true });
     hTex.wrapT = T.ClampToEdgeWrapping;
     const hw = L + 5000;
     hTex.repeat.set(hw / 760, 1);
-    const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, 150)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false })));
-    hills.position.set(L / 2, 58, -1000);
+    const hh = courseFar ? Math.min(320, 150 * (courseFar.height / courseFar.width) / (86 / 1376)) : 150;
+    const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, hh)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false })));
+    hills.position.set(L / 2, 58 - 75 + hh / 2, -1000);
     hills.renderOrder = -7;
     this.scene.add(hills);
 
     // Grandstand along the home straight beyond the outer rail, with crowd animation.
-    const standImg = art.images.get("bb-grandstand");
+    const standImg = courseStand ?? art.images.get("bb-grandstand");
     this.crowdTex = standImg ? [this.tex(standImg, { repeat: true })] : [0, 1].map((f) => this.tex(grandstandSprite(this.look, f), { repeat: true }));
     for (const t of this.crowdTex) t.wrapT = T.ClampToEdgeWrapping;
     const standSrc = standImg ?? { width: 256, height: 128 };

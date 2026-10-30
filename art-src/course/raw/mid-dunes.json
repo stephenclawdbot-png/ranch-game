@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a long low sand dune covered in tufts of pale green marram grass, golden sand, a few wooden fence posts, wide and low, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 384,
+   "height": 112
+  },
+  "seed": 31013,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ca2dc252-a951-4c58-ae66-20d737eb3bdd",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "ca2dc252-a951-4c58-ae66-20d737eb3bdd",
+  "status": "completed",
+  "created_at": "2026-10-30T17:42:00.042828+00:00",
+  "last_response": {
+   "seed": 31013,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 384,
+     "base64": "<34424 chars>",
+     "height": 112
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "950d0d6f-bec4-4470-86a5-d08913e929a9",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:06.192026+00:00",
+   "original_image_n_colors": 122,
+   "quantized_image_n_colors": 31
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-dunes-0.png"
+ ]
+}

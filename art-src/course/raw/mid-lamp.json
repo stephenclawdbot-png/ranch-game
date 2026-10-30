@@ -1,0 +1,90 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a single tall black cast iron Victorian street lamp post with a glowing lantern, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 40,
+   "height": 160
+  },
+  "seed": 31016,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1de1e640-fa79-4cc9-8d10-00482eb5e9af",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "1de1e640-fa79-4cc9-8d10-00482eb5e9af",
+  "status": "completed",
+  "created_at": "2026-10-30T17:42:00.122108+00:00",
+  "last_response": {
+   "seed": 31016,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 40,
+     "base64": "<7224 chars>",
+     "height": 160
+    },
+    {
+     "type": "base64",
+     "width": 40,
+     "base64": "<9336 chars>",
+     "height": 160
+    },
+    {
+     "type": "base64",
+     "width": 40,
+     "base64": "<7908 chars>",
+     "height": 160
+    },
+    {
+     "type": "base64",
+     "width": 40,
+     "base64": "<7600 chars>",
+     "height": 160
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "da5677e8-db44-4144-995c-fcb776d59f32",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:06.295148+00:00",
+   "original_image_n_colors": 97,
+   "quantized_image_n_colors": 38
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-lamp-0.png",
+  "art-src/course/raw/mid-lamp-1.png",
+  "art-src/course/raw/mid-lamp-2.png",
+  "art-src/course/raw/mid-lamp-3.png"
+ ]
+}

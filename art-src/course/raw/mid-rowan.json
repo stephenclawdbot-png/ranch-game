@@ -1,0 +1,69 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a single small windswept moorland rowan tree leaning right, sparse crown with clusters of red berries, gnarled trunk growing from rocks, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 180,
+   "height": 200
+  },
+  "seed": 31026,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "dc3d69d2-31d4-418f-aa55-ea7893f1d0a8",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "dc3d69d2-31d4-418f-aa55-ea7893f1d0a8",
+  "status": "completed",
+  "created_at": "2026-10-30T17:45:07.646131+00:00",
+  "last_response": {
+   "seed": 31026,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 180,
+     "base64": "<34844 chars>",
+     "height": 200
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "1f46556e-fe26-4d69-9940-19f08dfad18d",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:45:13.86588+00:00",
+   "original_image_n_colors": 123,
+   "quantized_image_n_colors": 31
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-rowan-0.png"
+ ]
+}

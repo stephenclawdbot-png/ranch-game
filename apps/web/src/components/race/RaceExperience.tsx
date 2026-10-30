@@ -26,6 +26,8 @@ import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
 import { FieldList } from "./FieldList";
 import { ShareReplay } from "./ShareReplay";
+import { CourseStrip } from "./CourseMap";
+import { courseByName } from "@thoroughbred/game-core";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -221,7 +223,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
             <PreRace localPost={localPost} localClose={localClose} now={now} card={card} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
-              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} initialTimeSec={initialTimeSec} autoplay />
+              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} initialTimeSec={initialTimeSec} autoplay course={courseByName(card.track)} />
             </div>
           ) : (
             <div className="flex h-full min-h-56 flex-col items-center justify-center gap-2 text-cream-dim">
@@ -244,6 +246,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
         )}
         {phase === "result" && <ShareReplay card={card} horseName={mine?.horse.name ?? winnerName ?? "The winner"} />}
       </div>
+
+      <CourseStrip track={card.track} distanceM={config.distanceM} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid min-w-0 content-start gap-4">

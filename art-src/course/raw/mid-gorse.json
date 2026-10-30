@@ -1,0 +1,90 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a low round gorse bush covered in bright yellow flowers, spiky dark green, side view game sprite, HD pixel art with fine detail and many small pixels, high-res pixel art, crisp hand-pixelled look, selective dark outlines, rich shading, warm golden-hour English racecourse palette: honey sunlight, deep greens, cream, transparent background",
+  "image_size": {
+   "width": 120,
+   "height": 72
+  },
+  "seed": 31012,
+  "no_background": true,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<37296 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 240,
+    "height": 226
+   },
+   "usage_description": "match ONLY this pixel art style, pixel density, palette, line weight and golden-hour lighting; draw the new subject described, not this picture's subject"
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "0e558157-9865-4af0-9e86-68abc5943de7",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "0e558157-9865-4af0-9e86-68abc5943de7",
+  "status": "completed",
+  "created_at": "2026-10-30T17:42:00.006569+00:00",
+  "last_response": {
+   "seed": 31012,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 120,
+     "base64": "<12748 chars>",
+     "height": 72
+    },
+    {
+     "type": "base64",
+     "width": 120,
+     "base64": "<13276 chars>",
+     "height": 72
+    },
+    {
+     "type": "base64",
+     "width": 120,
+     "base64": "<14216 chars>",
+     "height": 72
+    },
+    {
+     "type": "base64",
+     "width": 120,
+     "base64": "<11812 chars>",
+     "height": 72
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "196e5a31-205a-4d65-b09d-686353340183",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-30T17:42:05.92957+00:00",
+   "original_image_n_colors": 96,
+   "quantized_image_n_colors": 38
+  }
+ },
+ "files": [
+  "art-src/course/raw/mid-gorse-0.png",
+  "art-src/course/raw/mid-gorse-1.png",
+  "art-src/course/raw/mid-gorse-2.png",
+  "art-src/course/raw/mid-gorse-3.png"
+ ]
+}

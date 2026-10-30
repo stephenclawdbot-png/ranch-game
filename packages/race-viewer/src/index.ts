@@ -10,3 +10,6 @@ export { perfReport, type PerfReport } from "./perfReport";
 export { sampleReplay, createReplaySampler, replayTiming, type HorseSample, type ReplaySampler, type ReplayTiming } from "./sampleReplay";
 export { standingsAt, distanceToGoM, commentaryAt, lengthsLabel, type StandingRow } from "./timeline";
 export { PlaybackClock, PLAYBACK_RATES, type ClockFrame, type PlaybackOptions } from "./playback";
+export { CourseMap, describeCourse, type CourseMapProps, type CourseMapRunner } from "./hud/CourseMap";
+export { courseGeometry, pointAt, runnerArcM, startArcM, type CourseGeometry, type CourseInfo, type CourseSceneryId, type CourseShapeId } from "./course/geometry";
+export { SCENERY, sceneryFor, type SceneryRecipe } from "./trackside/scenery";

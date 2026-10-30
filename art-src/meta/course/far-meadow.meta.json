@@ -1,0 +1,8 @@
+{
+ "source": "course/raw/far-meadow-noref-0.png",
+ "anchor": {
+  "x": 0.5,
+  "y": 1
+ },
+ "post": "sky cut to alpha, mirror-tiled (seamless x)"
+}
