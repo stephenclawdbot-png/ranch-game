@@ -14,6 +14,7 @@ regenerate).
 | fixes4 | race list shows calendar races | **60.8** | **182 / 51** | **20** | every grinder qualified and ran on Saturday; casuals 10% |
 | sinks1 | weekly upkeep 250 / 150, race-day extras, jockeys, race sponsorship | 77.6 | 170 / 46 | 23 | credits held -33%; upkeep 176k, extras 67k, sponsorship 50k, jockeys 30k |
 | sinks2 | upkeep 375 racing / 200 stud | 81.3 | 189 / 52 | 28 | upkeep 262k, but sponsorship (-22k) and stall purchases (-17k) fell; grinder median balance 3.3k → 1.4k while casuals keep 11k |
+| goals45 | daily goals 3 × 45 (was 3 × 60); horse leasing live | **85.2** | 195 / – | 25 | in the healthy range; created -73k; casual median 11.0k → 9.2k, grinders unchanged (1.5k); leasing: 15 offers, 2 leases |
 
 ## Decisions (2026-10-29/30)
 
@@ -25,14 +26,15 @@ regenerate).
 6. Calendar races published a day ahead (`CALENDAR_HORIZON_MS`) and shown in the race list.
 7. Credit sinks (owner picks): weekly upkeep on horses used that week, race-day extras, jockeys,
    race sponsorship; upkeep set to 375 racing / 200 stud after sinks2.
+8. Daily goals trimmed to 3 × 45 (owner, 2026-10-30): goals45 lands at 85.2.
 
 ## Open
 
-- **Economy:** 81 spent per 100 earned (starter grants excluded) against a healthy 85-115.
-  More upkeep is the wrong lever from here: it lands on grinders (median 1.4k in sinks2) and
-  displaces optional spending, while casual and farmer stables keep 9-11k with nothing they need
-  to buy. The last ~4 points need a hoarder sink (credit cosmetics) or a smaller fixed faucet
-  (daily goals 3 × 60, an owner decision).
+- **Economy:** 85.2 spent per 100 earned (goals45), inside 85-115 but at its bottom edge.
+  Grinders end the season on ~1.5k: if beta players feel squeezed, ease racing upkeep (375)
+  before touching anything else. Credit cosmetics remain the next hoarder sink if needed.
+- **Empty races:** ~40% of Live races have a player runner at 50 stables. Agreed plan in
+  `docs/reports/2026-10-30 empty races meeting.md` (race meetings first).
 - **Undetected alt groups** still move ~6k a season through stud fees (under the fee cap).
 - **Player share of Live runners** ~10% at 50 stables: fields are mostly Club runners at beta
   scale; rises with players.

@@ -127,7 +127,7 @@ export function flags(r: RunResult): string[] {
   const farm = sum(r.farmers.groups.map((g) => g.studFeesToMain + g.marketToMain));
   if (farm > 0) out.push(`Farmer alts passed ${fmt(farm)} credits to their mains (stud fees ${fmt(sum(r.farmers.groups.map((g) => g.studFeesToMain)))}, market ${fmt(sum(r.farmers.groups.map((g) => g.marketToMain)))}).`);
   const bestOr = Math.max(0, ...r.days.flatMap((d) => COHORTS.filter((c) => r.meta.cohorts[c]).map((c) => d.ratings[c].max)));
-  if (bestOr < 85) out.push(`No racing horse reached OR 85, the Feature Qualifier floor (best ${bestOr}).`);
+  if (bestOr < 85) out.push(`No racing horse reached OR 85, the Listed band (best ${bestOr}): Qualifiers are open to every rating, but Listed and Group races are not.`);
   const wfDays = r.days.filter((d) => d.features.wfRaces > 0).length;
   if (wfDays && t.wfPlayerRunners === 0 && (t.fqQualifiers > 0 || r.days.some((d) => d.features.ratedHundred > 0))) {
     out.push(`Weekend Features ran on ${wfDays} day(s) with no player runner although ${t.fqQualifiers} qualifier top-3 finish(es) and up to ${Math.max(...r.days.map((d) => d.features.ratedHundred))} horse(s) rated 100+ existed: check the Classics licence (Story chapter 4) and whether qualified horses were still racing (40-start careers).`);
