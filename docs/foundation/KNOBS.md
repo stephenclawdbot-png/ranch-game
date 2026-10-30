@@ -327,7 +327,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `CLUB_CLIPPED_SPAN` | 8 | `clubWindow` | When the clip leaves nothing (P above the band's max or below its min): [max − 8, max] or [min, min + 8]. | Players rated far from their band |
 | `CLUB_TARGET_SKEW` | 3 (cubed) | `clubStratum` / `clubTargets` | Slice edges at (k/n)^3 of the window: about half the pack within ~2 marks of P, the top runner or two near P + 10. | Club pack mean (≈ P + 1.5) |
 | `CLUB_OPEN_NOMINAL_RATING` / `_DEFAULT` | Listed 85, Group 95 / 60 | `clubNominalRating` | P of an open race no player entered. | Club-only calendar races only |
-| `CLUB_MARK_MIN` / `CLUB_MARK_MAX` | 18 / 97 (ends of `ABILITY_OR_TABLE`) | `clubWindow` | Windows are clamped to marks a horse can have. | Listed/Group fields |
+| `CLUB_MARK_MIN` / `CLUB_MARK_MAX` | 17 / 92 (ends of `ABILITY_OR_TABLE`, engine 1.4.0 refit; were 18 / 97) | `clubWindow` | Windows are clamped to marks a horse can have; a band floor above 92 (Season Final 95) leaves the Club at 92. | Listed/Group fields |
 | First cut (superseded 2026-10-30) | banded [band middle, max]; open [P, P + 12]; even spread | | Put the Club above almost every player in the upper bands (Hcp 50-75 2%, 70-95 0%; harness clubfill1: players won 34.7% of their races, purses −44%). | |
 | `CLUB_SEASONED_STARTS` | early 9, normal 13, late 19 (derived: first start with every stat at peak) | `clubSeasonedState` | Starts a minted Club horse has already run (0 wins: it can still run maidens). | Club horse career length (27-31 runs left) |
 | `CLUB_REALISATION` | 1000 (fully trained) | `clubSeasonedState` | Training realisation of a minted Club horse. | Club strength |
@@ -335,7 +335,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `CLUB_MARK_TOLERANCE` | ±2 | `mintClubGenome` | A candidate genome is accepted when its mark is this close to the target. | Club strength precision |
 | `CLUB_MINT_SEARCH_CAP` | 256 candidates | `mintClubGenome` | Most candidate genomes tried before settling for the closest (most of them only to find one that suits a turf sprint or a 2,800 m+ trip). | Mint CPU per Club runner |
 | `CLUB_LIFT_MAX` | ±450 potential points | `liftFor` | Every stat locus of the candidate foundation genome is moved by one amount to hit the target: Club genomes may sit above the season's mint ceilings (needed for marks above ~65). | Reachable marks (all of 18-97) |
-| `CLUB_RARITY_BY_TARGET` | ≤42 common, ≤45 uncommon, ≤48 rare, ≤52 epic, else legendary | `clubRarityFor` | Tier the search starts from (natural seasoned medians 41/44/47/49/55), so the lift stays small. | Club genome look/breed mix only |
+| `CLUB_RARITY_BY_TARGET` | ≤42 common, ≤44 uncommon, ≤46 rare, ≤49 epic, else legendary (refit to the 1.4.0 table) | `clubRarityFor` | Tier the search starts from (natural seasoned medians 41/44/45/47/52), so the lift stays small. | Club genome look/breed mix only |
 | `CLUB_TRIP_FIT_M` | 400 m (and the preferred surface) | `clubFitsRace` | Club runners picked or minted suit the race's trip and surface, as players' entries do. | Club strength on the day, pool reuse (more mints) |
 | `CLUB_POOL_RATING_SLACK` | 15 | `pickHouseHorses` | The pool query reads free Club horses rated within 15 of the window; their real mark decides. | Pool reuse |
 | `CLUB_POOL_READ_PER_RUNNER` | 12 | `pickHouseHorses` | Pool rows read per Club runner needed (order: md5(id ‖ seed commitment), so the whole pool rotates). | Pool reuse, lock cost |
