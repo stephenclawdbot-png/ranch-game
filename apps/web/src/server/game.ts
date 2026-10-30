@@ -262,7 +262,16 @@ export interface DriveReport {
  * broadcast is over. Throttled per server instance unless `force` (the cron); every step is
  * idempotent in the database, so concurrent instances are safe.
  */
+/**
+ * Preview deployments share production's database (Vercel's Neon integration gives both the same
+ * DATABASE_URL), so a preview build's unreleased rules or engine must never publish, lock or
+ * settle real races: only production drives the card. PREVIEW_DRIVES_CARD=1 opts a preview back
+ * in (e.g. one with its own database branch).
+ */
+export const cardFrozen = (): boolean => process.env.VERCEL_ENV === "preview" && process.env.PREVIEW_DRIVES_CARD !== "1";
+
 export async function driveCard(db: Db, now: Date, opts: { force?: boolean; maintenance?: boolean } = {}): Promise<DriveReport | null> {
+  if (cardFrozen()) return null;
   if (!opts.force) {
     if (tickState.inflight) {
       await tickState.inflight.catch(() => undefined);
@@ -300,6 +309,7 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
  * race is left alone. Returns true when this call settled it.
  */
 export async function settleIfDue(db: Db, raceId: string, now: Date): Promise<boolean> {
+  if (cardFrozen()) return false;
   const race = await dbGetRace(db, raceId);
   if (!race || race.status === "settled" || race.status === "cancelled") return false;
   if (now < race.postTime) return false;
@@ -377,7 +387,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
   await driveCard(db, now);
   let race = await loadRace(db, id);
   // Entries have closed but the (throttled) tick hasn't locked this field yet: lock it now.
-  if (!race.field && now >= race.entriesCloseAt && race.status === "open") {
+  if (!race.field && now >= race.entriesCloseAt && race.status === "open" && !cardFrozen()) {
     await lockField(db, id, now, raceHooks);
     race = await loadRace(db, id);
   }
@@ -577,7 +587,7 @@ export async function liveChunk(db: Db, id: string, fromFrame: number, now: Date
   await driveCard(db, now);
   const race = await loadRace(db, id);
   if (now < race.postTime) {
-    if (!race.field && now >= race.entriesCloseAt && !(await lockField(db, id, now, raceHooks))) throw new RaceNotFoundError(id); // called off: nobody entered
+    if (!race.field && now >= race.entriesCloseAt && !cardFrozen() && !(await lockField(db, id, now, raceHooks))) throw new RaceNotFoundError(id); // called off: nobody entered
     const field = (await dbGetRace(db, id))?.field as LockedField | null;
     if (!field) throw new TooEarlyError(race.postTime.getTime());
     return {
