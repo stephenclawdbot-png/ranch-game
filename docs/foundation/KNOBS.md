@@ -578,6 +578,24 @@ testnet first). All defaults live in one place, `packages/game-core/src/usdgMark
 
 ---
 
+## 15. Stable photo
+
+A player's uploaded stable photo (owner decision 2026-10-30): re-encoded server-side into a
+fresh 256x256 WebP before it is stored, so no uploaded byte is ever stored or served. All knobs
+live in one place, `packages/game-core/src/stablePhoto.ts`; the re-encode is
+`apps/web/src/server/stablePhoto.ts`, the storage `packages/db/src/services/stablePhoto.ts`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `STABLE_PHOTO_MAX_UPLOAD_BYTES` | 2 MB | packages/game-core/src/stablePhoto.ts:11 | Largest upload accepted, checked before any byte is read (413 in the route). | Abuse surface (storage, decode time) |
+| `STABLE_PHOTO_MAX_INPUT_PIXELS` | 24,000,000 px | packages/game-core/src/stablePhoto.ts:14 | Decoded pixel cap (width x height), against decompression bombs. | Server CPU/memory per upload |
+| `STABLE_PHOTO_SIZE` | 256 px | packages/game-core/src/stablePhoto.ts:17 | Stored size: square WebP, cropped `cover` (`attention`). | Storage per photo, badge sharpness |
+| `STABLE_PHOTO_UPLOADS_PER_DAY` | 5 per UTC day | packages/game-core/src/stablePhoto.ts:20 | Uploads and removals per stable per day (the counter row survives a removal); the 6th change is refused with 429. | Churn, storage writes per account |
+| `STABLE_PHOTO_FORMATS` | png, jpeg, webp | packages/game-core/src/stablePhoto.ts:23 | Input formats accepted, as sharp reports them from the decoded bytes (SVG, GIF, HEIF, TIFF, animation refused). | Attack surface (only re-encoded input) |
+| WebP quality | 82 | apps/web/src/server/stablePhoto.ts:42 | Re-encode quality of the stored photo (all metadata dropped, EXIF orientation applied). | Storage per photo, fidelity |
+
+---
+
 ## Values duplicated in more than one place
 
 These must stay in sync (or be derived from one source).

@@ -211,6 +211,8 @@ export interface LeagueRow {
   accountId: string;
   stableName: string;
   silks: unknown;
+  /** The stable's photo, if it has one (game-core stablePhotoUrl; null = silks show). */
+  photoUrl: string | null;
   points: number;
   wins: number;
   bestFinish: number;
@@ -236,16 +238,16 @@ export async function leagueTable(ex: Executor, leagueId: string): Promise<Leagu
   const [league] = await ex.select().from(leagues).where(eq(leagues.id, leagueId));
   if (!league) return null;
   const members = await ex
-    .select({ m: leagueMembers, stableName: stables.name, silks: stables.silks })
+    .select({ m: leagueMembers, stableName: stables.name, silks: stables.silks, stableId: stables.id, photoHash: stables.photoHash })
     .from(leagueMembers)
     .innerJoin(stables, eq(stables.accountId, leagueMembers.accountId))
     .where(eq(leagueMembers.leagueId, leagueId));
   const settled = members.length > 0 && members.every((x) => x.m.finalRank !== null);
   const { from, to } = weekBounds(league.weekStart);
   const scores = scoresByAccount(await liveRunsBetween(ex, { from, to, accountIds: members.map((x) => x.m.accountId) }));
-  const rows: LeagueRow[] = members.map(({ m, stableName, silks }) => {
+  const rows: LeagueRow[] = members.map(({ m, stableName, silks, stableId, photoHash }) => {
     const s = scores.get(m.accountId);
-    return { accountId: m.accountId, stableName, silks, points: settled ? m.points : (s?.points ?? 0), wins: s?.wins ?? 0, bestFinish: s?.bestFinish ?? 0, runs: s?.runs ?? 0, finalRank: m.finalRank, movement: m.movement };
+    return { accountId: m.accountId, stableName, silks, photoUrl: gc.stablePhotoUrl(stableId, photoHash), points: settled ? m.points : (s?.points ?? 0), wins: s?.wins ?? 0, bestFinish: s?.bestFinish ?? 0, runs: s?.runs ?? 0, finalRank: m.finalRank, movement: m.movement };
   });
   const order = gc.standings({ id: league.id, week: 0, tier: tierName(league.tier), members: rows.map((r) => ({ ownerId: r.accountId, points: r.points, wins: r.wins, bestFinish: r.bestFinish })) });
   const pos = new Map(order.map((m, i) => [m.ownerId, i]));
@@ -288,6 +290,8 @@ export interface SeasonStanding {
   accountId: string;
   stableName: string;
   silks: unknown;
+  /** The stable's photo, if it has one (game-core stablePhotoUrl; null = silks show). */
+  photoUrl: string | null;
   points: number;
   wins: number;
   runs: number;
@@ -325,9 +329,12 @@ export async function seasonStandings(ex: Executor, input: { season: number; now
   const keep = totals.slice(0, input.limit ?? 20);
   const mineIdx = input.accountId ? totals.findIndex((t) => t.accountId === input.accountId) : -1;
   const ids = [...new Set([...keep.map((k) => k.accountId), ...(mineIdx >= 0 ? [totals[mineIdx]!.accountId] : [])])];
-  const names = ids.length ? await ex.select({ accountId: stables.accountId, name: stables.name, silks: stables.silks }).from(stables).where(inArray(stables.accountId, ids)) : [];
+  const names = ids.length ? await ex.select({ accountId: stables.accountId, name: stables.name, silks: stables.silks, stableId: stables.id, photoHash: stables.photoHash }).from(stables).where(inArray(stables.accountId, ids)) : [];
   const nameOf = new Map(names.map((n) => [n.accountId, n]));
-  const row = (t: (typeof totals)[number], i: number): SeasonStanding => ({ ...t, stableName: nameOf.get(t.accountId)?.name ?? "A stable", silks: nameOf.get(t.accountId)?.silks ?? null, rank: i + 1 });
+  const row = (t: (typeof totals)[number], i: number): SeasonStanding => {
+    const stable = nameOf.get(t.accountId);
+    return { ...t, stableName: stable?.name ?? "A stable", silks: stable?.silks ?? null, photoUrl: stable ? gc.stablePhotoUrl(stable.stableId, stable.photoHash) : null, rank: i + 1 };
+  };
   return {
     season: input.season,
     startsAt,

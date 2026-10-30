@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
+import * as gc from "@thoroughbred/game-core";
 import { PlayerGate } from "@/components/PlayerGate";
+import { StableBadge } from "@/components/StableBadge";
 import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
 import { disconnectWallet } from "@/components/chain/useWallet";
@@ -16,7 +18,7 @@ import { NAME_RE, NameField, SilksEditor, SilksStand } from "@/components/onboar
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { ErrorNote } from "@/components/ui/ErrorNote";
-import { api, signOut, updateProfile, type PlayerState } from "@/lib/player";
+import { ApiFailure, api, refreshPlayer, signOut, updateProfile, type PlayerState } from "@/lib/player";
 import { saveSettings, useSettings, type MotionPref, type TextSize } from "@/lib/settings";
 
 const TEXT_SIZES: { v: TextSize; label: string }[] = [
@@ -102,6 +104,8 @@ function Profile({ state }: { state: PlayerState }) {
           <SilksStand silks={silks} name={name} caption="Registered colours" />
         </div>
       </section>
+
+      <StablePhotoCard state={state} />
 
       <section className="surface grid gap-5 p-4" aria-labelledby="access-h">
         <h2 id="access-h" className="t-h2">
@@ -196,6 +200,88 @@ function Profile({ state }: { state: PlayerState }) {
         </div>
       </details>
     </div>
+  );
+}
+
+/** The stable's photo: shows next to the stable name wherever the silks show (upload, remove). */
+function StablePhotoCard({ state }: { state: PlayerState }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  async function upload(file: File) {
+    setError(null);
+    if (file.size > gc.STABLE_PHOTO_MAX_UPLOAD_BYTES) {
+      setError(new ApiFailure(413, "too_large", `Upload a PNG, JPEG or WebP image up to ${Math.floor(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES / (1024 * 1024))} MB.`));
+      return;
+    }
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("photo", file);
+      const res = await fetch("/api/account/photo", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? "That photo didn't upload. Try another image.");
+      await refreshPlayer(); // the badge reads photoUrl from the player state
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/account/photo", { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+        throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? "That didn't work. Try again in a moment.");
+      }
+      await refreshPlayer();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="surface grid gap-4 p-4" aria-labelledby="photo-h" data-testid="stable-photo">
+      <h2 id="photo-h" className="t-h2">
+        Stable photo
+      </h2>
+      <div className="flex items-center gap-4">
+        <StableBadge silks={state.silks} photoUrl={state.photoUrl} cap={false} className="h-[52px] w-16" alt={`${state.stableName} stable photo`} />
+        <div className="grid gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-brass" disabled={busy} onClick={() => inputRef.current?.click()} data-testid="photo-choose">
+              <PixelIcon name="pencil" className="h-5 w-5" /> {busy ? "Uploading…" : state.photoUrl ? "Change photo" : "Upload photo"}
+            </button>
+            {state.photoUrl && (
+              <button type="button" className="btn btn-ghost btn-danger-text" disabled={busy} onClick={() => void remove()} data-testid="photo-remove">
+                Remove photo
+              </button>
+            )}
+          </div>
+          <p className="t-meta">PNG, JPEG or WebP up to {Math.floor(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES / (1024 * 1024))} MB. It&rsquo;s cropped to a square. You can change it {gc.STABLE_PHOTO_UPLOADS_PER_DAY} times a day.</p>
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="sr-only"
+        aria-label="Choose a stable photo"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ""; // let the same file be picked again after a fix
+          if (file) void upload(file);
+        }}
+      />
+      {error !== null && <ErrorNote error={error} />}
+    </section>
   );
 }
 

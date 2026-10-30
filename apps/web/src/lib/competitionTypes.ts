@@ -100,6 +100,8 @@ export interface LeagueRowView {
   rank: number;
   stableName: string;
   silks: Silks;
+  /** The stable's photo, if it has one (else the silks show). */
+  photoUrl: string | null;
   points: number;
   wins: number;
   runs: number;
@@ -112,6 +114,8 @@ export interface SeasonRowView {
   rank: number;
   stableName: string;
   silks: Silks;
+  /** The stable's photo, if it has one (else the silks show). */
+  photoUrl: string | null;
   points: number;
   wins: number;
   runs: number;

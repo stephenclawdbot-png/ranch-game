@@ -20,6 +20,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -40,6 +41,12 @@ const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const credits = (name: string) => bigint(name, { mode: "number" });
+/** Postgres bytea: raw binary (stable photos). Node-side type is Buffer. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -227,6 +234,8 @@ export const stables = pgTable(
       .notNull()
       .references(() => accounts.id),
     name: text("name").notNull(),
+    /** sha256 hex of the stored stable photo; null = no photo (silks show). */
+    photoHash: text("photo_hash"),
     /** Silks: { primary, secondary, pattern, cap } (shared SilksSchema). */
     silks: jsonb("silks").notNull(),
     /**
@@ -1780,3 +1789,28 @@ export const horseLeases = pgTable(
 
 export type HorseLeaseListingRow = typeof horseLeaseListings.$inferSelect;
 export type HorseLeaseRow = typeof horseLeases.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Stable photos (owner decision 2026-10-30; the rules live in game-core stablePhoto.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * A stable's stored photo: the re-encoded 256x256 WebP (services/stablePhoto.ts) plus the daily
+ * upload counter. One row per stable, kept across removals (image emptied) so the rate limit
+ * survives a removal; `stables.photo_hash` is what says a photo is currently set.
+ */
+export const stablePhotos = pgTable("stable_photos", {
+  stableId: uuid("stable_id")
+    .primaryKey()
+    .references(() => stables.id),
+  /** The stored WebP bytes; an empty buffer when no photo is set (the counter row survives). */
+  image: bytea("image").notNull(),
+  hash: text("hash").notNull(),
+  bytes: integer("bytes").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  /** UTC day the upload counter counts ("YYYY-MM-DD"); a new day resets uploadsToday. */
+  uploadsDay: text("uploads_day").notNull(),
+  uploadsToday: integer("uploads_today").notNull().default(0),
+});
+
+export type StablePhotoRow = typeof stablePhotos.$inferSelect;

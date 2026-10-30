@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { LeagueView, LeagueRowView, SeasonRowView } from "@/lib/competitionTypes";
 import { SURFACE_LABEL, formatDistance, ordinal } from "@/lib/format";
 import { LocalTime, TimeLeft } from "./LocalTime";
-import { Silks } from "../Silks";
+import { StableBadge } from "../StableBadge";
 import { PixelIcon } from "../icons";
 import { tierLabel } from "./bits";
 import { DateBlock } from "./LocalTime";
@@ -16,7 +16,7 @@ function LeagueRow({ r }: { r: LeagueRowView }) {
   return (
     <li className={`flex items-center gap-3 px-4 py-3 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="league-row" data-mine={r.mine || undefined} data-zone={r.zone ?? undefined}>
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
-      <Silks silks={r.silks} cap={false} className="h-[26px] w-8 shrink-0" />
+      <StableBadge silks={r.silks} photoUrl={r.photoUrl} cap={false} className="h-[26px] w-8 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="t-title truncate text-cream">
           {r.stableName}
@@ -36,7 +36,7 @@ function SeasonRow({ r }: { r: SeasonRowView }) {
   return (
     <li className={`flex items-center gap-3 px-2 py-2 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="season-row">
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
-      <Silks silks={r.silks} cap={false} className="h-[26px] w-8 shrink-0" />
+      <StableBadge silks={r.silks} photoUrl={r.photoUrl} cap={false} className="h-[26px] w-8 shrink-0" />
       <p className="t-title min-w-0 flex-1 truncate text-cream">
         {r.stableName}
         {r.mine && <span className="you-tag ml-2 align-middle">You</span>}

@@ -77,3 +77,21 @@ export async function readJson(req: Request): Promise<unknown | null> {
     return null;
   }
 }
+
+/**
+ * Same-origin check for state-changing routes (stable photo upload, removal): compares the
+ * request's Origin host with the Host header and refuses a mismatch. Multipart form posts are
+ * "simple" cross-site requests — a hostile page can make a browser send one with its cookies —
+ * so this check matters exactly where the body is form data. A missing Origin (same-origin
+ * fetch() or a non-browser client) passes: non-browser clients have no session cookie.
+ */
+export function requireSameOrigin(req: Request): NextResponse | null {
+  const origin = req.headers.get("Origin");
+  if (origin === null) return null;
+  const host = req.headers.get("Host");
+  try {
+    return new URL(origin).host === host ? null : errorJson(403, "cross_origin", { message: "That request didn't come from this site." });
+  } catch {
+    return errorJson(403, "cross_origin", { message: "That request didn't come from this site." });
+  }
+}

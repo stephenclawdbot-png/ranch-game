@@ -242,6 +242,8 @@ export interface PlayerView {
   accountId: string;
   stableName: string;
   silks: Silks;
+  /** The stable's photo, if it has one (else the silks show). */
+  photoUrl: string | null;
   credits: number;
   entries: EntryBankView;
   stalls: { slots: number; used: number };

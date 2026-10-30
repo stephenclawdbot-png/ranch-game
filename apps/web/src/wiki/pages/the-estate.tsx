@@ -166,6 +166,13 @@ export default function TheEstatePage() {
           </>,
         ]}
       />
+      <H2 id="profile">Profile and settings</H2>
+      <P>
+        Your <GameLink href="/me">profile</GameLink> is where your stable&rsquo;s name and colours live, and where you set a <b>stable photo</b>: upload a PNG, JPEG or WebP up
+        to {Math.floor(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES / (1024 * 1024))} MB and it shows next to your stable name wherever your silks show. It&rsquo;s cropped to a square, and you can
+        change it {count(gc.STABLE_PHOTO_UPLOADS_PER_DAY, "time")} a day; remove it and the silks come back.
+      </P>
+
       <Callout tone="tip">
         <p>
           New here? Start with the <WikiLink slug="quick-start" />. The Estate always shows the next sensible thing to do, so it is a good place to come back to.
