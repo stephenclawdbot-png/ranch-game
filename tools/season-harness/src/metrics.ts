@@ -558,6 +558,49 @@ export async function checks(world: World, last: Snapshot): Promise<Checks> {
   return { ledger, conservation, unexpectedErrors: world.errors.length, ok: ledgerOk && conservation.ok && world.errors.length === 0 };
 }
 
+export interface LeasingTotals {
+  offers: number;
+  leases: number;
+  activeAtEnd: number;
+  /** Leases ended by reason (term, returned, injured, retired, died). */
+  ended: Record<string, number>;
+  racesOnLease: number;
+  /** Purse shares paid (kind lease_share): to owners and to lessees. */
+  sharesToOwners: number;
+  sharesToLessees: number;
+  /** Fraud events: linked leases refused, reciprocal leases flagged. */
+  linkedBlocked: number;
+  reciprocalFlags: number;
+}
+
+/** Horse leasing over the run, from the lease tables and fraud events. */
+export async function leasingTotals(world: World): Promise<LeasingTotals> {
+  const db = world.db;
+  const [o] = await q<{ n: number }>(db, `select count(*)::int n from horse_lease_listings`);
+  const [l] = await q<{ n: number; active: number; races: number; owner: string; lessee: string }>(
+    db,
+    `select count(*)::int n, count(*) filter (where status = 'active')::int active, coalesce(sum(races), 0)::int races,
+            coalesce(sum(owner_earned), 0)::bigint owner, coalesce(sum(lessee_earned), 0)::bigint lessee from horse_leases`,
+  );
+  const ended: Record<string, number> = {};
+  for (const r of await q<{ reason: string; n: number }>(db, `select end_reason reason, count(*)::int n from horse_leases where status = 'ended' group by 1`)) ended[r.reason] = num(r.n);
+  const [f] = await q<{ linked: number; recip: number }>(
+    db,
+    `select count(*) filter (where kind = 'linked_lease_blocked')::int linked, count(*) filter (where kind = 'lease_reciprocal')::int recip from fraud_events`,
+  );
+  return {
+    offers: num(o?.n),
+    leases: num(l?.n),
+    activeAtEnd: num(l?.active),
+    ended,
+    racesOnLease: num(l?.races),
+    sharesToOwners: num(l?.owner),
+    sharesToLessees: num(l?.lessee),
+    linkedBlocked: num(f?.linked),
+    reciprocalFlags: num(f?.recip),
+  };
+}
+
 /** Refused actions by cohort and code, plus attempted actions (for the activity table). */
 export function activity(world: World): { attempted: Record<string, number>; refused: ByCohort<Record<string, number>>; counters: ByCohort<Partial<AgentStats>> } {
   const refused = zeroCohorts<Record<string, number>>(() => ({}));
