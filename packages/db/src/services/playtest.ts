@@ -689,6 +689,7 @@ export const RESET_TABLES = [
   // Leases follow the horses and stables.
   "horse_leases",
   "horse_lease_listings",
+  "race_claims",
   "trades",
   "market_listings",
   "league_members",

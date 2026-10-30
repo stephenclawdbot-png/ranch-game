@@ -25,6 +25,8 @@ export interface EconomyHealth {
   week: { weekStart: string; qualifierStables: number; featureStables: number; plateStables: number; liveStables: number };
   /** Horse leasing: leases in force, started this week vs market sales this week, purse shares paid. */
   leases: LeaseMetrics;
+  /** Claiming races in the window: races run, horses entered, claims lodged, horses claimed, credits paid for them. */
+  claiming: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
 }
 
 export async function economyHealth(ex: Executor, input: { now: Date; days?: number }): Promise<EconomyHealth> {
@@ -80,5 +82,24 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
     horses: { born: born.reduce((s, b) => s + Number(b.n), 0), bornByOrigin, retired: Number(out?.retired ?? 0), legacyFarm: Number(out?.legacy ?? 0), died: Number(out?.died ?? 0) },
     week: { weekStart, qualifierStables: Number(loop?.q ?? 0), featureStables: Number(loop?.f ?? 0), plateStables: Number(loop?.p ?? 0), liveStables: Number(loop?.live ?? 0) },
     leases: await leaseMetrics(ex, input.now),
+    claiming: await claimingMetrics(ex, from),
   };
+}
+
+/** Claiming races settled since `from`, their claim-priced runners, claims lodged and horses claimed (with the credits paid). */
+async function claimingMetrics(ex: Executor, from: Date): Promise<EconomyHealth["claiming"]> {
+  const [r] = rowsOf<{ races: number; entered: number }>(
+    await ex.execute(sql`
+      select count(distinct r.id)::int as races, count(e.id)::int as entered
+        from races r join race_entries e on e.race_id = r.id and e.claim_price is not null and e.status = 'entered'
+       where r.status = 'settled' and r.settled_at >= ${from}`),
+  );
+  const [c] = rowsOf<{ lodged: number; claimed: number; moved: number | string }>(
+    await ex.execute(sql`
+      select count(*)::int as lodged,
+             count(*) filter (where status = 'claimed')::int as claimed,
+             coalesce(sum(price) filter (where status = 'claimed'), 0) as moved
+        from race_claims where created_at >= ${from}`),
+  );
+  return { racesRun: Number(r?.races ?? 0), horsesEntered: Number(r?.entered ?? 0), claimsLodged: Number(c?.lodged ?? 0), horsesClaimed: Number(c?.claimed ?? 0), creditsMoved: Number(c?.moved ?? 0) };
 }

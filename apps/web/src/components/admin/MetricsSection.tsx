@@ -28,10 +28,13 @@ interface Economy {
     openOffers: number;
     startedThisWeek: number;
     marketSalesThisWeek: number;
+    claimsThisWeek?: number;
     sharesPaidThisWeek: number;
     /** The Club's lots and offers (clubMarket.ts), counted apart; absent on older servers. */
     club?: { leasesStartedThisWeek: number; salesThisWeek: number; openOffers: number };
   };
+  /** Claiming races in the window (packages/db health.ts); absent on older servers. */
+  claiming?: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
 }
 
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
@@ -55,8 +58,15 @@ function EconomyHealth({ e }: { e: Economy }) {
         {e.leases && (
           <Tile
             label="Leases vs sales"
-            value={`${e.leases.startedThisWeek} leased · ${e.leases.marketSalesThisWeek} sold`}
+            value={`${e.leases.startedThisWeek} leased · ${e.leases.marketSalesThisWeek} sold · ${e.leases.claimsThisWeek ?? 0} claimed`}
             sub={`players, this week · ${e.leases.active} leases active · ${e.leases.openOffers} on offer · ${n0(e.leases.sharesPaidThisWeek)} cr shares paid`}
+          />
+        )}
+        {e.claiming && (
+          <Tile
+            label="Claiming races"
+            value={`${e.claiming.horsesClaimed} claimed · ${n0(e.claiming.creditsMoved)} cr`}
+            sub={`${e.claiming.racesRun} races · ${e.claiming.horsesEntered} runners · ${e.claiming.claimsLodged} claims lodged`}
           />
         )}
         {e.leases?.club && (

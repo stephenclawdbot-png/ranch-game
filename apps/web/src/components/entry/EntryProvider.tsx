@@ -7,6 +7,7 @@ import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCredits, formatDistance 
 import { api, recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
 import type { RaceDayOffer, RacePlan, RaceSummary, RiskView } from "@/lib/types";
 import { raceDayRiskKey } from "@/lib/raceDay";
+import { CLAIMING_ENTRY_NOTE } from "@/lib/claiming";
 import type { RaceDayChoice } from "@thoroughbred/game-core";
 import { Countdown } from "../Countdown";
 import { HorsePortrait } from "../HorsePortrait";
@@ -262,6 +263,8 @@ interface EntryOptionView {
   risk: Record<RacePlan["intensity"], RiskView | null>;
   /** Risk per ride and set of risk-changing extras (raceDayRiskKey). */
   riskBy?: Record<string, RiskView | null>;
+  /** Claiming races: appraisal and the claim price band. */
+  claim?: { appraisal: number; min: number; max: number };
 }
 
 const NO_EXTRAS: RaceDayChoice = { extras: [], jockey: "apprentice" };
@@ -277,6 +280,8 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [entered, setEntered] = useState<string | null>(null);
+  /** Claim price per horse (claiming races; defaults to the appraisal). */
+  const [claimPrices, setClaimPrices] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch(`/api/races/${encodeURIComponent(raceId)}/options`, { cache: "no-store" })
@@ -303,13 +308,16 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   const reasons = Object.fromEntries((data?.options ?? []).map((o) => [o.horseId, o.reason]));
   const horse = racing.find((h) => h.id === horseId);
   const option = data?.options.find((o) => o.horseId === horseId);
+  const claimBand = option?.claim;
+  const claimPrice = claimBand ? (claimPrices[option!.horseId] ?? claimBand.appraisal) : undefined;
+  const claimBad = !!claimBand && (!Number.isInteger(claimPrice) || claimPrice! < claimBand.min || claimPrice! > claimBand.max);
 
   async function go() {
     if (!horse) return;
     setBusy(true);
     setError(null);
     try {
-      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 ? { raceDay } : {}) } });
+      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 ? { raceDay } : {}), ...(claimPrice !== undefined ? { claimPrice } : {}) } });
       setEntered(horse.horse.name);
       router.refresh();
     } catch (e) {
@@ -368,9 +376,30 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       }} reasons={reasons} />}
       {data && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={riskFor} />}
       {data?.raceDay && <ExtrasPicker offer={data.raceDay} choice={raceDay} onChange={setRaceDay} />}
+      {race?.claiming && (
+        <div className="surface-2 grid gap-2 p-3" data-testid="claim-price">
+          <p className="text-sm text-cream-dim">{CLAIMING_ENTRY_NOTE}</p>
+          {claimBand && (
+            <label className="grid gap-1 text-sm font-bold">
+              Claim price (credits, {formatCredits(claimBand.min)} to {formatCredits(claimBand.max)}; appraisal {formatCredits(claimBand.appraisal)})
+              <input
+                type="number"
+                inputMode="numeric"
+                className="field min-h-11"
+                min={claimBand.min}
+                max={claimBand.max}
+                step={1}
+                value={claimPrice}
+                onChange={(e) => setClaimPrices((p) => ({ ...p, [option!.horseId]: Math.round(Number(e.target.value)) }))}
+                data-testid="claim-price-input"
+              />
+            </label>
+          )}
+        </div>
+      )}
       {error !== null && <ErrorNote error={error} onRetry={go} />}
       <div className="grid [&>.btn]:w-full">
-        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data || short} onClick={go} data-testid="enter-live">
+        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data || short || claimBad} onClick={go} data-testid="enter-live">
           <PixelIcon name="flag" size={32} className="-my-2" />
           {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}${creditCost > 0 ? ` + ${formatCredits(creditCost)} cr` : ""}`}
         </button>
