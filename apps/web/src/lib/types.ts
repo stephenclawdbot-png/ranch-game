@@ -21,6 +21,8 @@ export interface FieldEntry {
   stableName: string;
   /** A player's horse (not a house horse). */
   isPlayer: boolean;
+  /** The player stable's photo (null: show the silks). */
+  stablePhotoUrl?: string | null;
   /** The viewer's own horse. */
   mine: boolean;
   /** Racecard form figures, oldest -> newest ("3-1-2"; 0 = unplaced beyond 9), null if unraced. */

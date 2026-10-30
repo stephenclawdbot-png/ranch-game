@@ -42,9 +42,14 @@ regenerate).
   runners are players). 37% of published meeting races are still called off at 50 stables: watch
   it in the beta, and the next steps of the plan (claiming races, Club-seeded markets) in
   `docs/reports/2026-10-30 empty races meeting.md`.
-- **After the meetings (meetings1), to check:** grinders end on a median 0.7k (was 1.5k); Live
-  injuries 13 → 23 a season (more runs against players, grinders run tired horses); only 2 of 25
-  foals above both parents (was 11 of 31): small sample, but the breeding mix should be looked at
-  before reading anything into it.
+- **After the meetings (meetings1), lead's read:**
+  - *Grinders 1.5k → 0.7k* is the meetings working: with 58% of runners players, grinders now
+    beat each other for purses instead of beating Club horses (purses paid -66k, -10%). If beta
+    grinders feel squeezed, ease racing upkeep (375) first.
+  - *Foals above both parents 11/31 → 2/25:* no breeding code, breeding agent or genetics changed
+    (the metric reads genomes only); the pairings differ because balances and stud choices differ.
+    25 foals is too few to read; rerun with another seed before acting.
+  - *Live injuries 13 → 23:* borderline at these counts (Poisson). Watch in the next run; if it
+    holds, look at tired entries (grinders enter with `tiredOk`) and the going at meeting times.
 - **Undetected alt groups** still move ~6k a season through stud fees (under the fee cap).
 - Casual stables rarely reach Saturday (10%): expected for one visit a day; watch in the beta.

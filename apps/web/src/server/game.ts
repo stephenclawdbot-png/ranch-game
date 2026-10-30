@@ -79,6 +79,7 @@ import {
   type RaceConditions,
   type RaceEntryRow,
   type RunnerOutcome,
+  stablePhotoHashes,
 } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
@@ -409,6 +410,13 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       rating: null,
       gear: gearOf(e),
     }));
+  }
+  // Player stables' photos, one read for the field.
+  const stableOfRunner = new Map<string, string | null>([...entries.map((e) => [e.horseId, e.stableId] as const), ...(field?.runners.map((r) => [r.horseId, r.stableId ?? null] as const) ?? [])]);
+  const photos = await stablePhotoHashes(db, [...stableOfRunner.values()].filter((x): x is string => !!x));
+  for (const e of list) {
+    const sid = e.isPlayer ? stableOfRunner.get(e.horse.id) : null;
+    e.stablePhotoUrl = sid ? gc.stablePhotoUrl(sid, photos.get(sid) ?? null) : null;
   }
   // Racecard form + rating: form is fixed before the off, so it's cached per race and field.
   const formKey = `${race.id}:${list.map((e) => e.horse.id).join(",")}`;

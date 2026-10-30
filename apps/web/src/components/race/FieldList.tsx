@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { RaceCard } from "@/lib/types";
 import { SEX_LABEL, STYLE_SHORT, coatLabel, formatDistance } from "@/lib/format";
 import { SilksIcon } from "../Silks";
+import { StableBadge } from "../StableBadge";
 import { GradeBadge } from "../StatBars";
 import { Saddlecloth } from "./Saddlecloth";
 
@@ -78,7 +79,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                 <td className="pl-3">{e.gate > 0 ? <Saddlecloth gate={e.gate} /> : <span className="text-cream-dim">–</span>}</td>
                 <td className="w-full max-w-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    <SilksIcon silks={h.appearance.silks} className="h-9 w-9 shrink-0" />
+                    {e.stablePhotoUrl ? (
+                      <StableBadge silks={h.appearance.silks} photoUrl={e.stablePhotoUrl} className="h-9 w-9 shrink-0" alt={e.stableName} />
+                    ) : (
+                      <SilksIcon silks={h.appearance.silks} className="h-9 w-9 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <Link href={`/horse/${h.id}`} className="racecard-name">
                         {h.name}

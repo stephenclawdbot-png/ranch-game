@@ -204,7 +204,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 
 ## 4d. ALL LIVE RACES ARE LIVE AND SHARED (user decision; solo races live on as Story mode, §4e)
 
-- **The core loop is a shared race card.** A race goes off every 15 minutes in the beta (it was 3; game-core SLOT_INTERVAL_MS) across tracks,
+- **The core loop is a shared race card.** In the beta the card runs in three race meetings a day (07:00, 13:00 and 19:00 UTC, 8 races 15 minutes apart, published a day ahead; game-core meetings.ts; it was a race every 15 minutes, and every 3 before that) across tracks,
   distances, surfaces and classes. Every viewer sees the same race at the same moment, live.
 - **Entries** are open from when the card is published until 30 seconds before the off. The
   seed commitment is published when entries open. At entry close, the field snapshot is
@@ -306,7 +306,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
     the field. It's the handicapper's mark.
   - **Handicaps** assign weights (a small speed penalty) by rating, so mid-level horses win
     too. A field of equals is the most exciting.
-- **Race calendar.** The schedule runs every 15 minutes in the beta (published 6 hours ahead), with conditions published in advance
+- **Race calendar.** The schedule runs in three race meetings a day in the beta (published a day ahead; an ordinary race with no player at the off is called off), with conditions published in advance
   (distance, surface, going forecast).
   - Entries close 30 seconds before the off.
   - Each horse has a limit on runs per day, to protect it and to stop farming.

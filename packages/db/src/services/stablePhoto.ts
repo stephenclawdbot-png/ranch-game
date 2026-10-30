@@ -12,7 +12,7 @@
  * Lock order (as everywhere): the stable row, then its stable_photos row. Both writers act only
  * on the caller's own stable, taken from the account id, so no other account can touch it.
  */
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { utcDay } from "../crypto";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
@@ -76,6 +76,14 @@ export async function saveStablePhoto(
     });
     return { hash: input.hash };
   });
+}
+
+/** Current photo hashes of these stables (stables without a photo are left out). */
+export async function stablePhotoHashes(ex: Executor, stableIds: readonly string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(stableIds)];
+  if (!ids.length) return new Map();
+  const rows = await ex.select({ id: stables.id, hash: stables.photoHash }).from(stables).where(inArray(stables.id, ids));
+  return new Map(rows.filter((r) => r.hash).map((r) => [r.id, r.hash!]));
 }
 
 /** Clears the stable's photo (silks show again). Removal counts against the day's cap. */

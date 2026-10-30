@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { isDomainError } from "../errors";
 import { stables } from "../schema";
-import { getStablePhoto, removeStablePhoto, saveStablePhoto } from "../services/stablePhoto";
+import { getStablePhoto, removeStablePhoto, saveStablePhoto, stablePhotoHashes } from "../services/stablePhoto";
 import { DAY, T0, at, memoryDb, newPlayer } from "./helpers";
 
 let h: DbHandle;
@@ -93,5 +93,14 @@ describe("stable photo storage", () => {
     await removeStablePhoto(h.db, { accountId: other.accountId, now: T0 });
     expect(await photoHashOf(p.stableId)).toBe(hashOf(buf));
     expect(await photoHashOf(other.stableId)).toBeNull();
+  });
+
+  it("stablePhotoHashes returns current hashes for stables with a photo (racecards read it once per field)", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    await saveStablePhoto(h.db, { accountId: a.accountId, image: Buffer.from([1, 2, 3]), hash: "f".repeat(64), now: T0 });
+    const m = await stablePhotoHashes(h.db, [a.stableId, b.stableId, a.stableId]);
+    expect([...m.entries()]).toEqual([[a.stableId, "f".repeat(64)]]);
+    expect((await stablePhotoHashes(h.db, [])).size).toBe(0);
   });
 });
