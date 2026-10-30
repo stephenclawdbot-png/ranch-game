@@ -194,6 +194,12 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
             <h1 id="race-name" className="t-serif text-[1.25rem] leading-6 line-clamp-2 md:text-[1.625rem] md:leading-8" data-testid="race-name">
               {config.name}
             </h1>
+            {card.sponsor && (
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-cream-dim" data-testid="race-sponsor-header">
+                <SilksIcon silks={card.sponsor.silks} className="h-6 w-6" />
+                {card.sponsor.mine ? "Sponsored by your stable" : `Sponsored by ${card.sponsor.stableName}`}
+              </p>
+            )}
           </div>
           <a
             href="#fair-h"

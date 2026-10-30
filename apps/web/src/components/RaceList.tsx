@@ -7,6 +7,7 @@ import { CLASS_LABEL, SURFACE_LABEL, formatClock, formatDistance } from "@/lib/f
 import { useNow } from "@/lib/clock";
 import { usePlayerState } from "@/lib/player";
 import { Countdown } from "./Countdown";
+import { SilksIcon } from "./Silks";
 import { useEntry } from "./entry/EntryProvider";
 import { PixelIcon } from "./icons";
 import { ActionBar } from "./ui/ActionBar";
@@ -27,7 +28,12 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
   const now = useNow(1000);
   const open = race.phase === "open" && (now === null || now < race.entriesCloseAtMs);
   return (
-    <li className={`flex items-center gap-3 px-3 py-3 sm:px-4 ${race.mine > 0 ? "yours" : ""}`} data-testid="upcoming-race" data-race-id={race.id}>
+    <li
+      className={`flex items-center gap-3 px-3 py-3 sm:px-4 ${race.mine > 0 ? "yours" : ""} ${race.sponsor ? "shadow-[inset_3px_0_0_var(--color-brass)]" : ""}`}
+      data-testid="upcoming-race"
+      data-race-id={race.id}
+      data-sponsored={race.sponsor ? (race.sponsor.mine ? "mine" : "1") : undefined}
+    >
       <Link href={`/race/${race.id}`} className="group flex min-w-0 flex-1 items-center gap-3">
         <TrackTile surface={race.surface}>
           <span className="score block text-[1.375rem] leading-none">{formatClock(race.postTimeMs)}</span>
@@ -52,6 +58,7 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
               <>Field locked · {race.fieldSize} runners</>
             )}
           </span>
+          {race.sponsor && <SponsorLine sponsor={race.sponsor} />}
           {alsoAt && alsoAt.length > 0 && (
             <span className="caption">
               Also running at {alsoAt.join(", ")}
@@ -65,6 +72,16 @@ export function UpcomingRaceRow({ race, alsoAt }: { race: RaceSummary; alsoAt?: 
         </button>
       )}
     </li>
+  );
+}
+
+/** "Sponsored by ..." with the sponsor's silks (Sponsor a race). */
+export function SponsorLine({ sponsor, className }: { sponsor: NonNullable<RaceSummary["sponsor"]>; className?: string }) {
+  return (
+    <span className={`caption inline-flex items-center gap-1.5 ${className ?? ""}`} data-testid="race-sponsor">
+      <SilksIcon silks={sponsor.silks} className="h-5 w-5" />
+      {sponsor.mine ? "Sponsored by you" : `Sponsored by ${sponsor.stableName}`}
+    </span>
   );
 }
 

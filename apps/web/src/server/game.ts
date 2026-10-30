@@ -68,6 +68,7 @@ import {
   featureQualificationReason,
   startsOnDay,
   storedRaceDay,
+  raceSponsor,
   type CardHooks,
   type Db,
   type FieldRunner,
@@ -94,6 +95,7 @@ import type {
   RaceKind,
   RacePlan,
   RaceDayOffer,
+  RaceSponsorView,
   RaceSummary,
   RiskView,
   RunView,
@@ -351,6 +353,12 @@ async function settleWithReplay(db: Db, race: PublicRace, replay: RaceReplay, no
 // Race card, list, broadcast, replay, verify
 // ---------------------------------------------------------------------------
 
+/** A Live race's sponsor for the card (sister courses show the original's). */
+async function sponsorFor(db: Db, race: PublicRace, viewerStableId: string | null): Promise<RaceSponsorView | undefined> {
+  const s = await raceSponsor(db, race);
+  return s ? { stableName: s.stableName, silks: parseSilks(s.silks), mine: !!viewerStableId && s.stableId === viewerStableId } : undefined;
+}
+
 function phaseOf(race: PublicRace, now: Date, replay: RaceReplay | null): RaceCard["status"] {
   if (now < race.postTime) return race.field || now >= race.entriesCloseAt ? "closed" : "open";
   return replay && isBroadcastOver(replay, now.getTime()) ? "finished" : "live";
@@ -423,10 +431,11 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     targetRunners: race.targetRunners,
     maxRunners: race.maxRunners,
     engineVersion: replay?.engineVersion ?? fieldEngineVersion(field),
+    sponsor: await sponsorFor(db, race, viewerStableId),
   };
 }
 
-async function summarize(db: Db, race: PublicRace & { entered: number; mine: number }, now: Date): Promise<RaceSummary> {
+async function summarize(db: Db, race: PublicRace & { entered: number; mine: number }, now: Date, viewerStableId: string | null = null): Promise<RaceSummary> {
   const c = raceConds(race);
   const base: RaceSummary = {
     id: race.id,
@@ -447,6 +456,8 @@ async function summarize(db: Db, race: PublicRace & { entered: number; mine: num
     phase: phaseOf(race, now, null),
     mine: race.mine,
   };
+  const sponsor = await sponsorFor(db, race, viewerStableId);
+  if (sponsor) base.sponsor = sponsor;
   if (now < race.postTime) return base;
   const winnerOf = (horseId: string, timeUs: number) => {
     const runner = (race.field as LockedField | null)?.runners.find((r) => r.horseId === horseId);
@@ -489,7 +500,7 @@ export async function raceList(db: Db, now: Date, viewerStableId: string | null,
   const behind = await listCardRaces(db, { from: new Date(nowMs - 8 * RULES.slotMs), to: now, stableId: viewerStableId });
   const limit = opts.upcoming ?? 6;
   const rows = [...ahead.filter((r) => !calendarAhead.includes(r)).slice(0, Math.max(0, limit - calendarAhead.length)), ...calendarAhead.slice(0, limit)].sort((x, y) => x.postTime.getTime() - y.postTime.getTime());
-  const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now)));
+  const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now, viewerStableId)));
   // Sister courses (§4d) sort right after their original: name them under the original's row.
   for (const [i, r] of rows.entries()) {
     if (!r.slotKey || !/^live:\d+$/.test(r.slotKey)) continue;
@@ -504,7 +515,7 @@ export async function raceList(db: Db, now: Date, viewerStableId: string | null,
       .filter((r) => r.status !== "cancelled")
       .reverse()
       .slice(0, opts.recent ?? 6)
-      .map((r) => summarize(db, r, now)),
+      .map((r) => summarize(db, r, now, viewerStableId)),
   );
   return { upcoming, recent };
 }
@@ -790,7 +801,7 @@ export async function entryOptions(db: Db, session: Session, raceId: string, now
       ),
     };
   }));
-  const summary = await summarize(db, { ...race, entered: (await listRaceEntries(db, raceId)).length, mine: entered.length }, now);
+  const summary = await summarize(db, { ...race, entered: (await listRaceEntries(db, raceId)).length, mine: entered.length }, now, session.stable.id);
   return { race: summary, options, raceDay: offer };
 }
 

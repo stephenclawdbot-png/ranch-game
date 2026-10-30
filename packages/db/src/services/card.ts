@@ -20,6 +20,7 @@ import { RULES, seasonNumberAt } from "../rules";
 import { gc } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
 import { runMaintenance, type MaintenanceReport } from "./maintenance";
+import { applyPendingSponsorships, baseRaceName, withoutSponsor } from "./sponsorship";
 import { audit } from "./tx";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
 
@@ -140,8 +141,8 @@ export function plateSlotAt(index: number): gc.RaceSlot | null {
   return wf && wf.kind === "weekend_feature" && !specialSlotAt(index) ? wf : null;
 }
 
-/** A calendar race (special or Plate) takes over this slot. */
-const isCalendarSlot = (index: number) => specialSlotAt(index) !== null || plateSlotAt(index) !== null;
+/** A calendar race (special or Plate) takes over this slot (not for sale to sponsors either). */
+export const isCalendarSlot = (index: number) => specialSlotAt(index) !== null || plateSlotAt(index) !== null;
 
 function plateCardSlot(index: number, wf: gc.RaceSlot): CreateRaceInput {
   const postTime = slotPostTime(index);
@@ -326,6 +327,8 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
   // calendar races beyond the regular horizon (only with the default card: custom cards in tests decide their own)
   if (!hooks.cardSlot) for (let i = last + 1; i <= lastCalendar; i++) if (isCalendarSlot(i)) rows.push(raceValues({ ...make(i), slotKey: `live:${i}` }));
   if (rows.length) await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey });
+  // sponsorships bought before their slot was on the card take the name now (sponsorship.ts)
+  await applyPendingSponsorships(db, first, last, now);
   const card = await db
     .select()
     .from(races)
@@ -405,7 +408,9 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
   const start = Math.max(0, TRACKS.indexOf(origTrack));
   const track = [...TRACKS.slice(start + 1), ...TRACKS.slice(0, start + 1)].find((t) => !used.has(t));
   if (!track) return null;
-  const bare = original.name.startsWith(`${origTrack} `) ? original.name.slice(origTrack.length + 1) : original.name;
+  // a sponsored original keeps its own name on the sponsor's record: sisters use the course's name
+  const origName = baseRaceName(original);
+  const bare = origName.startsWith(`${origTrack} `) ? origName.slice(origTrack.length + 1) : origName;
   const [sister] = await tx
     .insert(races)
     .values(
@@ -413,7 +418,7 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
         kind: race.kind,
         name: `${track} ${bare}`,
         raceClass: race.raceClass,
-        conditions: { ...(race.conditions as RaceConditions), track },
+        conditions: { ...withoutSponsor(race.conditions as RaceConditions), track },
         postTime: race.postTime,
         entriesCloseAt: race.entriesCloseAt,
         purse: race.purse,

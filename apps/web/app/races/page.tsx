@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
 import { EmptyState, HowItWorks, SceneBand, Section } from "@/components/ui/Page";
@@ -31,6 +32,14 @@ export default async function RacesPage() {
           <p>Enter your horses until 30 seconds before the off (one stable entry each; you get +10 at local midnight). The Club fills any empty gates with its own horses.</p>
           <p>Every result is sealed before the off and can be replayed and verified afterwards.</p>
         </HowItWorks>
+        {session && (
+          <p className="mt-3">
+            <Link href="/races/sponsor" className="btn btn-sm" data-testid="sponsor-entry">
+              Sponsor a race
+            </Link>{" "}
+            <span className="t-meta">Put your stable&rsquo;s name on a race this week.</span>
+          </p>
+        )}
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <RaceBoard title="Coming up" note="Entries close 30 seconds before the off">
             {upcoming.map((r) => (

@@ -48,7 +48,9 @@ export type DomainErrorCode =
   /** A horse registered for the USDG market trades only for USDG (docs/usdg-market.md). */
   | "USDG_ONLY"
   /** Barred from USDG bidding after not paying for a won auction. */
-  | "USDG_BARRED";
+  | "USDG_BARRED"
+  /** Another stable already sponsors that Live card slot (services/sponsorship.ts). */
+  | "ALREADY_SPONSORED";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

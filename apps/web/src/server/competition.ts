@@ -21,6 +21,7 @@ import {
   dayNumber,
   famousBloodlines,
   hallEntries,
+  listStableSponsorships,
   horseNamesByIds,
   inductHallOfFame,
   induct,
@@ -346,6 +347,11 @@ export function trophyTier(kind: string, raceClass: string, position: number): T
   return "first";
 }
 
+/** Trophy Room plaque for a sponsored race: "Sponsored the Glenmorrow House Handicap (0-55)". */
+export function sponsorPlaque(raceName: string): string {
+  return `Sponsored the ${raceName.replace(/^The /, "")}`;
+}
+
 const TIER_ORDER: Record<TrophyTier, number> = { gold: 0, silver: 1, bronze: 2, first: 3, second: 4, third: 5 };
 
 export async function trophyRoomView(db: Db, session: Session, now: Date): Promise<TrophyRoomView> {
@@ -376,6 +382,11 @@ export async function trophyRoomView(db: Db, session: Session, now: Date): Promi
   for (const e of await hallEntries(db)) {
     if (e.stableName !== session.stable.name) continue;
     honours.push({ key: e.entry.entryKey, title: e.entry.title, detail: "Hall of Fame", atMs: e.entry.inductedAt.getTime() });
+  }
+  // Sponsor a race: a plaque for every sponsored race that has been run.
+  for (const s of await listStableSponsorships(db, stableId)) {
+    if (s.refunded || s.raceStatus !== "settled" || !s.raceName) continue;
+    honours.push({ key: `sponsor:${s.id}`, title: sponsorPlaque(s.raceName), detail: "Race sponsor", atMs: s.postTime.getTime() });
   }
   const nowMs = now.getTime();
   const silks = parseSilks(session.stable.silks);

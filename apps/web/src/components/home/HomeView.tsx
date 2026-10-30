@@ -167,7 +167,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const now = useNow(1000);
   // Your own race: about to start or running -> watch it; finished but unseen -> see the result (no spoilers).
   const upcomingMine = now === null ? undefined : [...state.active].sort((a, b) => a.postTimeMs - b.postTimeMs).find((a) => a.postTimeMs > now - WATCH_WINDOW_MS);
-  const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId);
+  const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId && i.kind !== SPONSOR_NOTE);
   const rec = recommendHorse(state);
   const entry = useEntry();
   // The hero features one horse's run: skip that run below, not every horse in the same race.
@@ -505,7 +505,24 @@ function YourRaces({ state, now, skip }: { state: PlayerState; now: number | nul
   );
 }
 
+/** Inbox kind of a sponsored race's result note (packages/db sponsorship.ts). */
+const SPONSOR_NOTE = "race_sponsor";
+
 function InboxRow({ item, horseName }: { item: InboxView; horseName?: string }) {
+  if (item.kind === SPONSOR_NOTE) {
+    return (
+      <li>
+        <Link href={`/race/${item.raceId}`} className="row-link gap-3 px-4 py-3" data-testid="inbox-sponsor" data-read={item.read ? "1" : "0"}>
+          <span className="tag tag-ready shrink-0">Sponsor</span>
+          <span className="min-w-0 flex-1">
+            <span className="t-title block">Your sponsored race</span>
+            <span className="t-meta block line-clamp-2">{item.read ? item.title : "It has been run: watch the finish."}</span>
+          </span>
+          <span className="chev">›</span>
+        </Link>
+      </li>
+    );
+  }
   const pos = typeof item.data?.position === "number" ? (item.data.position as number) : null;
   const prize = typeof item.data?.prize === "number" ? (item.data.prize as number) : 0;
   return (

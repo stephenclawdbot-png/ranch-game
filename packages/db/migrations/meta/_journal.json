@@ -92,6 +92,13 @@
       "when": 1793329655315,
       "tag": "0012_usdg_stud_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793331864110,
+      "tag": "0013_race_sponsorships",
+      "breakpoints": true
     }
   ]
 }

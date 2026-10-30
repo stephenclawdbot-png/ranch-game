@@ -421,6 +421,11 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
 | Race-day extras | shoes / physio / vet check, 2% of purse each (40..1,000) | packages/game-core/src/raceDay.ts:75, packages/db/src/services/races.ts:373 | Kind `race_extras` (burn), refunded as `race_extras_refund` on a scratch before close or an abandoned race (§2a). | Credit sink |
 | Jockey fees | journeyman 2.5% (50..1,500), top 5% (100..3,000) of purse | packages/game-core/src/raceDay.ts:111, packages/db/src/services/races.ts:376 | Kind `jockey_fee` (burn), refunded as `jockey_fee_refund` (§2a). | Credit sink |
+| `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
+| `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
+| `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a slot can be sponsored (beyond the 6 h card: applied on publication). Calendar races (Qualifiers, Weekend Feature, Plate, Finals) are never for sale. | Sink volume (slots on sale ≈ 670 a week) |
+| `SPONSORSHIP.maxUpcomingPerStable` | 3 | packages/db/src/services/sponsorship.ts:47 | Upcoming sponsorships a stable may hold at once (one sponsor per slot, first come first served). | Sink volume per stable, crowding out |
+| `SPONSORSHIP.maxNameChars` | 32 | packages/db/src/services/sponsorship.ts:49 | Stable-name characters kept in "The <Stable> <Class label>" (`sponsoredRaceName`, :101). | Cosmetic |
 
 ### 10c. Ledger kinds as recorded
 
@@ -447,6 +452,8 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
 | `race_extras` / `jockey_fee` | player → burn | packages/db/src/services/races.ts:373, :376 |
 | `race_extras_refund` / `jockey_fee_refund` | burn → player | packages/db/src/services/races.ts:295 (scratch :421, abandoned race :827) |
+| `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
+| `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
 
 ### 10d. Balance model
 

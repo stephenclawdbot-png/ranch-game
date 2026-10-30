@@ -9,11 +9,13 @@
  * Cohorts:
  * - casual: one evening visit (and skips some days): care, the Daily Cup, a Story race, a
  *   couple of Live Quick Picks, the free Paddock Pack; now and then an entry from the sheet
- *   with a vet check (and physio for a tired horse).
+ *   with a vet check (and physio for a tired horse); with credits to spare, now and then
+ *   sponsors a race (the prestige sink, sponsor.ts).
  * - grinder: visits every couple of hours, keeps every fit horse entered in the race that
  *   suits it best (entryOptions fit), goes for Feature Qualifiers and the Weekend Feature when
  *   a horse can run (with race-day extras and a booked jockey), climbs the Story licences,
- *   trains, refills entries, buys upgrades and the odd horse on the market.
+ *   trains, refills entries, buys upgrades and the odd horse on the market; a rich grinder
+ *   occasionally sponsors a race.
  * - breeder: covers every mare the season allows (retiring mares to the paddock), foals and
  *   names, stands a stallion at stud, sells surplus stock once the market lets them, moves
  *   spent horses to the Legacy Farm.
@@ -31,6 +33,7 @@ import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX
 import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
 import { cupView, leagueView, runCup } from "@/server/competition";
 import { createChapterRace, storyView } from "@/server/story";
+import { sponsorAction, sponsorView } from "@/server/sponsor";
 import { foundStable } from "@/server/founding";
 import type { Session } from "@/server/session";
 import type { RaceDayOffer, RaceSummary, StableHorse } from "@/lib/types";
@@ -78,6 +81,9 @@ export interface AgentStats {
   /** Farmer channels: credits passed alt -> main. */
   washStudFees: number;
   washMarket: number;
+  /** Races sponsored and the credits spent on them. */
+  sponsorships: number;
+  sponsorSpend: number;
   /** Refused actions by DomainError code. */
   refused: Record<string, number>;
 }
@@ -86,7 +92,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, refused: {},
   };
 }
 
@@ -380,6 +386,29 @@ async function sheetEntries(c: VisitCtx, s: Session, view: SheetView, opts: Shee
   return balance > 0 ? free.size : 0;
 }
 
+/**
+ * Sponsor a race (the prestige sink): with more than `threshold` credits, a `permille` chance
+ * per visit of sponsoring one race the stable can afford while keeping `threshold / 2` back.
+ * The pick is uniform: a random day of the week ahead, then a random race on sale that day.
+ */
+async function maybeSponsor(c: VisitCtx, s: Session, credits: number, threshold: number, permille: number): Promise<void> {
+  if (credits <= threshold || !c.a.rng.chance(permille)) return;
+  const first = await c.world.act(c.a, "sponsor_view", c.now, () => sponsorView(c.world.db, s, c.now));
+  if (!first || first.rules.upcoming >= first.rules.maxUpcoming) return;
+  // a random day of the week ahead, then a random race on it that leaves half the threshold
+  const day = first.days.filter((d) => d.onSale > 0);
+  if (!day.length) return;
+  const date = c.a.rng.pick(day).date;
+  const v = date === first.date ? first : await c.world.act(c.a, "sponsor_view", c.now, () => sponsorView(c.world.db, s, c.now, { date }));
+  const options = (v?.slots ?? []).filter((x) => x.block === null && credits - x.price >= threshold / 2);
+  if (!options.length) return;
+  const pick = c.a.rng.pick(options);
+  const r = await c.world.act(c.a, "sponsor", c.now, () => sponsorAction(c.world.db, s, { slot: pick.slot, key: c.world.key(c.a, `sponsor-${pick.slot}`, c.now) }, c.now));
+  if (!r) return;
+  c.a.stats.sponsorships++;
+  c.a.stats.sponsorSpend += r.price;
+}
+
 /** Light work only (open to yearlings), cycled to fill the plan's slots. */
 const LIGHT_PLAN = ["gate_practice", "swimming", "rest", "swimming"];
 
@@ -547,6 +576,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       if (a.rng.chance(CASUAL_SHEET_PERMILLE)) await sheetEntries(c, s, view, { lookaheadMs: 2 * HOUR, tiredOk: false, raceDay: casualRaceDay, maxEntries: 1 });
       await quickPicks(c, s, 1 + a.rng.int(3));
       await freePack(c, s);
+      await maybeSponsor(c, s, view.credits, 12_000, 150);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -593,6 +623,8 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
       v = (await fresh(c, s)) ?? v;
       await smartEntries(c, s, v, { lookaheadMs: 6 * HOUR, tiredOk: true, raceDay: grinderRaceDay(a.rng) });
     }
+    // a rich grinder now and then puts the stable's name on a race
+    await maybeSponsor(c, s, ((await fresh(c, s)) ?? v).credits, 30_000, 100);
   }
 }
 

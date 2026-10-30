@@ -27,6 +27,7 @@ import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
 import { isCarrying, lockHorse, startsOnDay } from "./horses";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
+import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { audit, runTx } from "./tx";
 
 export type RaceKind = RaceRow["kind"];
@@ -785,6 +786,16 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       ledgerTransactionId,
     });
     await tx.update(races).set({ status: "settled", settledAt: input.now }).where(eq(races.id, race.id));
+    // A sponsored race: the sponsor hears who won their race (sponsorship.ts).
+    const winnerEntry = entries.find((e) => byHorse.get(e.horseId)!.position === 1);
+    const winnerSnap = (winnerEntry?.snapshot ?? {}) as { name?: unknown; stableName?: unknown };
+    await noteSponsorResult(
+      tx,
+      race,
+      winnerEntry ? { horseId: winnerEntry.horseId, name: typeof winnerSnap.name === "string" ? winnerSnap.name : "The winner", stableName: winnerEntry.stableId && typeof winnerSnap.stableName === "string" ? winnerSnap.stableName : null } : null,
+      entries.length,
+      input.now,
+    );
     await audit(tx, { actor: null, action: "race.settle", entityType: "race", entityId: race.id, data: { prizes, retired, resultHash: input.resultHash } });
     return { alreadySettled: false, prizes, retired };
   });
@@ -826,6 +837,7 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
       }
       await refundRaceDay(tx, await accountIdOfStable(tx, e.stableId), race.id, e.horseId, e.snapshot);
     }
+    await refundSponsorshipForRace(tx, race, input.now);
     await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
     await audit(tx, { actor: null, action: "race.cancel", entityType: "race", entityId: race.id, data: { reason: input.reason } });
   });

@@ -20,6 +20,7 @@ export * from "./services/horses";
 export * from "./services/races";
 export * from "./services/entries";
 export * from "./services/card";
+export * from "./services/sponsorship";
 export * from "./services/breeding";
 export * from "./services/packs";
 export * from "./services/market";
