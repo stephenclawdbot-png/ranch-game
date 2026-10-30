@@ -462,6 +462,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
 | `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
 | `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |
+| `club_sale` | buyer → burn (a Club lot: the whole price) | packages/db/src/services/market.ts `buyListing` |
 | `lease_fee` | lessee → owner, cut → burn (off in the beta: `LEASE_FEE_MAX` = 0) | packages/db/src/services/leasing.ts `takeLease` |
 
 ### 10d. Balance model
@@ -488,6 +489,21 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Verified email to sell | game-core default true; DB default false (env `MARKET_REQUIRE_VERIFIED_EMAIL`) | packages/game-core/src/economy.ts:194, packages/db/src/rules.ts:254 | Live default is off (no email flow). | Market supply |
 | Bindings | Club-bred (starters, gift, free packs) never; their foals after 5 starts | packages/game-core/src/economy.ts:207-208, packages/game-core/src/packs.ts:169 | Untradeable horses. | Market supply |
 | Linked accounts | trades blocked; paid stud coverings blocked too | packages/game-core/src/economy.ts:231, packages/db/src/services/market.ts:149, packages/db/src/services/breeding.ts:136 | Anti credit-transfer. | RMT risk |
+
+### 11b. The Club seeds the markets (new 2026-10-30)
+
+Race meetings plan item 6. Once per UTC day (`runClubMarket` in `runMaintenance`, keyed by a `club_market_days` row) the Club lists horses for sale and offers horses on lease, and backs off as players supply their own. Values in `packages/game-core/src/clubMarket.ts` (JSDoc on each); service in `packages/db/src/services/clubMarket.ts`. Club rows carry seller/owner null and `club = true`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `CLUB_SALE_LISTINGS_PER_DAY` | 3 | packages/game-core/src/clubMarket.ts | Club horses minted (the Live-runner minting: breeds, genetics v2) and listed each day while under the cap. | Market supply, price discovery |
+| `CLUB_SALE_LISTINGS_MAX` | 6, minus one per live player lot (never below 0) | packages/game-core/src/clubMarket.ts (`clubSaleCap`) | Most Club lots live at once; extra Club lots are withdrawn at the daily run. | Market supply vs player sellers |
+| `CLUB_SALE_PRICE_PERMILLE` | 1100 (110% of appraisal, clamped to the 70%-300% band) | packages/game-core/src/clubMarket.ts | Club asking price. The whole price is burned (ledger kind `club_sale`). | Credit sink, price anchor |
+| `CLUB_SALE_LISTING_HOURS` | 72 h | packages/game-core/src/clubMarket.ts | Club lot length; unsold horses go back to the Club's Live-runner pool. | Market supply |
+| `CLUB_RATING_MIN` / `_MAX`, `CLUB_BETTER_HORSE_PERMILLE`, `CLUB_BETTER_RATING_MIN` / `_MAX` | 30-70; 15% chance of 71-90 | packages/game-core/src/clubMarket.ts (`clubSaleRating`) | Rating spread of Club sale horses (also the band Club lease horses are drawn from, 30-90). | Market quality mix |
+| `CLUB_LEASE_OFFERS_MAX` | 4, minus one per open player offer (never below 0) | packages/game-core/src/clubMarket.ts (`clubLeaseCap`) | Club lease offers kept open; free Club racers first, minted when none is free. | Lease board supply |
+| `CLUB_LEASE_TERMS_DAYS` | 7 or 14 days | packages/game-core/src/clubMarket.ts | Club lease terms (welfare defaults: no all-out, `LEASE_WEEKLY_STARTS_DEFAULT`, no fee). | Lease board supply |
+| `CLUB_LEASE_OWNER_SHARE_PCT` | 50% | packages/game-core/src/clubMarket.ts | The Club's purse share on a Club lease, burned (`lease_share` mint → burn + lessee). | Credits created by leased runners |
 
 ### 11a. Leasing (new 2026-10-30)
 
