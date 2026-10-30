@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { PlayerGate } from "@/components/PlayerGate";
-import { Silks } from "@/components/Silks";
+import { StableBadge } from "@/components/StableBadge";
 import { conditionLabel, riskText } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon, type IconName } from "@/components/icons";
@@ -56,7 +56,7 @@ function Stable({ state }: { state: PlayerState }) {
         onRace={(id) => entry.open(id)}
         eyebrow={
           <span className="inline-flex items-center gap-2">
-            <Silks silks={state.silks} cap={false} className="h-[26px] w-8" />
+            <StableBadge silks={state.silks} photoUrl={state.photoUrl} cap={false} className="h-[26px] w-8" />
             <span>
               <span data-testid="stable-name">{state.stableName}</span> · {state.stalls.used} of {state.stalls.slots} stalls
             </span>

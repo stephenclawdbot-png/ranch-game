@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { formatCredits } from "@/lib/format";
 import { usePlayerState } from "@/lib/player";
 import { PixelIcon, type IconName } from "./icons";
-import { Silks } from "./Silks";
+import { StableBadge } from "./StableBadge";
 
 type Section = { href: string; label: string; icon: IconName; match: (p: string) => boolean; sub?: { href: string; label: string }[] };
 
@@ -139,7 +139,7 @@ export function SiteNav() {
           aria-label={`${state.stableName}: profile and settings`}
           aria-current={pathname.startsWith("/me") ? "page" : undefined}
         >
-          <Silks silks={state.silks} cap={false} className="h-6 w-6" />
+          <StableBadge silks={state.silks} photoUrl={state.photoUrl} cap={false} className="h-6 w-6" />
         </Link>
       </div>
     );
