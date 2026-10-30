@@ -13,6 +13,7 @@ import { formatCredits } from "@/lib/format";
 import { DIORAMA_ATLAS } from "../diorama/atlas.generated";
 import { HorsePortrait } from "../HorsePortrait";
 import { Silks } from "../Silks";
+import { InwardCard } from "./InwardCard";
 
 const RECTS = DIORAMA_ATLAS.props.trophies as unknown as readonly (readonly [number, number, number, number])[];
 const SHEET = DIORAMA_ATLAS.files.trophies;
@@ -37,17 +38,19 @@ const when = (ms: number | null) => (ms ? new Date(ms).toLocaleDateString("en-GB
 function Prize({ t }: { t: TrophyView }) {
   return (
     <li>
-      <Link href={`/race/${t.raceId}?at=finish`} className="trophy" data-testid={`trophy-${t.tier}`}>
-        <Sprite piece={t.tier} />
-        <span className="trophy-card">
-          <span className="trophy-card-tier">{TIER_TEXT[t.tier]}</span>
-          <span className="trophy-card-race">{t.raceName}</span>
-          <span className="trophy-card-meta">
-            {t.horseName} · {when(t.atMs)}
-            {t.prize > 0 ? ` · ${formatCredits(t.prize)} cr` : ""}
+      <InwardCard>
+        <Link href={`/race/${t.raceId}?at=finish`} className="trophy" data-testid={`trophy-${t.tier}`}>
+          <Sprite piece={t.tier} />
+          <span className="trophy-card">
+            <span className="trophy-card-tier">{TIER_TEXT[t.tier]}</span>
+            <span className="trophy-card-race">{t.raceName}</span>
+            <span className="trophy-card-meta">
+              {t.horseName} · {when(t.atMs)}
+              {t.prize > 0 ? ` · ${formatCredits(t.prize)} cr` : ""}
+            </span>
           </span>
-        </span>
-      </Link>
+        </Link>
+      </InwardCard>
     </li>
   );
 }
@@ -174,14 +177,16 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
         <Shelf title="Plaques" note={`${earned} of ${view.achievements.length} achievements. The dimmed ones say what earns them.`}>
           {view.achievements.map((a) => (
             <li key={a.id}>
-              <span className={`plaque-piece ${a.earned ? "" : "is-locked"}`} tabIndex={0} data-testid={a.earned ? "plaque-earned" : "plaque-locked"}>
-                <Sprite piece="plaque" dim={!a.earned} />
-                <span className="trophy-card">
-                  <span className="trophy-card-tier">{a.earned ? `Earned ${when(a.earnedAtMs)}` : "Still to win"}</span>
-                  <span className="trophy-card-race">{a.title}</span>
-                  <span className="trophy-card-meta">{a.description}</span>
+              <InwardCard>
+                <span className={`plaque-piece ${a.earned ? "" : "is-locked"}`} tabIndex={0} data-testid={a.earned ? "plaque-earned" : "plaque-locked"}>
+                  <Sprite piece="plaque" dim={!a.earned} />
+                  <span className="trophy-card">
+                    <span className="trophy-card-tier">{a.earned ? `Earned ${when(a.earnedAtMs)}` : "Still to win"}</span>
+                    <span className="trophy-card-race">{a.title}</span>
+                    <span className="trophy-card-meta">{a.description}</span>
+                  </span>
                 </span>
-              </span>
+              </InwardCard>
             </li>
           ))}
         </Shelf>
@@ -190,14 +195,16 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
           <Shelf title="Honours">
             {view.honours.map((h) => (
               <li key={h.key}>
-                <span className="plaque-piece" tabIndex={0}>
-                  <Sprite piece="medal" />
-                  <span className="trophy-card">
-                    <span className="trophy-card-tier">{h.detail}</span>
-                    <span className="trophy-card-race">{h.title}</span>
-                    <span className="trophy-card-meta">{when(h.atMs)}</span>
+                <InwardCard>
+                  <span className="plaque-piece" tabIndex={0}>
+                    <Sprite piece="medal" />
+                    <span className="trophy-card">
+                      <span className="trophy-card-tier">{h.detail}</span>
+                      <span className="trophy-card-race">{h.title}</span>
+                      <span className="trophy-card-meta">{when(h.atMs)}</span>
+                    </span>
                   </span>
-                </span>
+                </InwardCard>
               </li>
             ))}
           </Shelf>
