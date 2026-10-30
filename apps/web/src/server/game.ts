@@ -15,7 +15,7 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
-import { HorseSchema, RaceCourseSchema, RaceKitSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
@@ -128,7 +128,7 @@ import { raceGroundTrend } from "./ground";
 
 /** Field hooks: entry snapshots become engine Horses (game-core raceSnapshot) when the field locks. */
 export const raceHooks: CardHooks = {
-  engineHorse: ({ snapshot, race, isHouse }) => engineHorseFromSnapshot(snapshot, race, isHouse),
+  engineHorse: ({ snapshot, race, isHouse, extraWeightLb }) => engineHorseFromSnapshot(snapshot, race, isHouse, extraWeightLb ?? 0),
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -171,7 +171,7 @@ function snapshotOf(e: RaceEntryRow | undefined): Record<string, unknown> {
 /** A locked runner's engine Horse (the field stores it; older fields may hold raw snapshots). */
 function runnerHorse(r: FieldRunner, race: PublicRace): Horse {
   const parsed = HorseSchema.safeParse(r.horse);
-  return parsed.success ? parsed.data : engineHorseFromSnapshot(r.horse as Record<string, unknown>, race, r.isHouse);
+  return parsed.success ? parsed.data : engineHorseFromSnapshot(r.horse as Record<string, unknown>, race, r.isHouse, r.extraWeightLb ?? 0);
 }
 
 function stableNameOf(e: RaceEntryRow | undefined, horseId: string, isHouse: boolean, race?: Pick<PublicRace, "kind" | "conditions">): string {
@@ -223,10 +223,18 @@ function fieldCourse(field: LockedField) {
   return c.success ? { course: c.data } : {};
 }
 
+/** The race model frozen into a locked field (Live races locked since engine 1.4.0), or none. */
+function fieldModel(field: LockedField) {
+  if (field.model === undefined) return {};
+  const m = RaceModelSchema.safeParse(field.model);
+  return m.success ? { model: m.data } : {};
+}
+
 function inputFrom(race: PublicRace, field: LockedField, seed: string) {
   return {
     race: raceConfig(race),
     ...fieldCourse(field),
+    ...fieldModel(field),
     entries: field.runners.map((r) => ({ gate: r.gate, tactic: (RunningStyleSchema.safeParse(r.tactic).success ? r.tactic : "stalker") as Horse["style"], horse: runnerHorse(r, race), ...runnerKit(r) })),
     seed,
   };
@@ -242,9 +250,9 @@ function courseLine(race: PublicRace, field: LockedField | null): RaceCard["cour
   return course ? { name: course.name, character: course.character } : null;
 }
 
-/** The engine version a locked field runs under (1.1.0; 1.2.0 with race-day kit; 1.3.0 with a course). */
+/** The engine version a locked field runs under (1.1.0; 1.2.0 with race-day kit; 1.3.0 with a course; 1.4.0 with the race model). */
 function fieldEngineVersion(field: LockedField | null): string {
-  return field ? engineVersionFor(field.runners.map(runnerKit), fieldCourse(field).course) : ENGINE_VERSION;
+  return field ? engineVersionFor(field.runners.map(runnerKit), fieldCourse(field).course, fieldModel(field).model) : ENGINE_VERSION;
 }
 
 /** Racecard tags for an entry's race-day extras and jockey ("Soft shoes", "Top jockey"). */
@@ -432,7 +440,10 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
         return {
           gate: r.gate,
           tactic: r.tactic as FieldEntry["tactic"],
-          horse: runnerHorse(r, race),
+          // A weighted runner's sealed horse has the weight folded into its stats: the card shows
+          // the horse itself (grades as entered) and the weight in its own column.
+          horse: r.weightLb !== undefined && e ? engineHorseFromSnapshot(snapshotOf(e), race, r.isHouse) : runnerHorse(r, race),
+          weightLb: r.weightLb ?? null,
           stableName: stableNameOf(e, r.horseId, r.isHouse, race),
           isPlayer: !r.isHouse,
           mine: !!viewerStableId && r.stableId === viewerStableId,
@@ -447,6 +458,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       gate: 0,
       tactic: e.tactic as FieldEntry["tactic"],
       horse: engineHorseFromSnapshot(snapshotOf(e), race, e.isHouse),
+      weightLb: null,
       stableName: stableNameOf(e, e.horseId, e.isHouse, race),
       isPlayer: !e.isHouse,
       mine: !!viewerStableId && e.stableId === viewerStableId,

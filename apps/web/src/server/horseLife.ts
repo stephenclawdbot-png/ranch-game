@@ -229,6 +229,13 @@ async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: 
   };
 }
 
+/** An improver's step-up, only once it has started and only if it actually lifted the horse. */
+function progressionView(state: gc.HorseState): CareerView["progression"] {
+  const p = gc.progressionOf(state);
+  const gainOr = gc.progressionGainOr(state);
+  return p.status && gainOr > 0 ? { status: p.status, gainOr } : null;
+}
+
 async function careerView(db: Db, row: HorseRow, state: gc.HorseState): Promise<CareerView> {
   const stage = gc.stageOf(state);
   const type = gc.maturityType(state.genome) as "early" | "normal" | "late";
@@ -252,6 +259,7 @@ async function careerView(db: Db, row: HorseRow, state: gc.HorseState): Promise<
       { key: "veteran", label: "Veteran", from: gc.PRIME_MAX_STARTS + 1, to: gc.CAREER_MAX_STARTS, current: current(gc.PRIME_MAX_STARTS + 1, gc.CAREER_MAX_STARTS) },
     ],
     maturity: { type, label: MATURITY_TEXT[type][0], peakFrom, peakTo, blurb: MATURITY_TEXT[type][1] },
+    progression: progressionView(state),
     ranges: rangesOf(state),
     scanned: row.scanned,
     scanCost: gc.PEDIGREE_SCAN_COST,

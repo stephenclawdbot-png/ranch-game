@@ -9,6 +9,7 @@ import {
   type RaceEntry,
   type RaceEvent,
   type RaceInput,
+  type RaceModel,
   type RaceReplay,
 } from "@thoroughbred/shared";
 import { Commentator, finishLine, photoLine } from "./commentary";
@@ -19,21 +20,26 @@ import { Rng } from "./prng";
 import { marginLabel, splitPurse } from "./results";
 
 /**
- * The current engine model. 1.3.0 adds the optional race-level `course` profile (course
- * character: bends, home straight, gradient). 1.2.0 added the optional per-runner `kit`
- * (jockey and race-day equipment). A race without a course runs exactly as before: labelled
- * KIT_ENGINE_VERSION when a runner has kit, LEGACY_ENGINE_VERSION otherwise, so every older
- * race keeps its replay and its result hash.
+ * The current engine model. 1.4.0 is the close-finish model (racing in a pack, late battles,
+ * steadier day form), chosen by the race's own `model` field: Live races lock with it. 1.3.0 added
+ * the optional race-level `course` profile (course character: bends, home straight, gradient).
+ * 1.2.0 added the optional per-runner `kit` (jockey and race-day equipment). A race without a
+ * model runs exactly as before: COURSE_ENGINE_VERSION with a course, KIT_ENGINE_VERSION when a
+ * runner has kit, LEGACY_ENGINE_VERSION otherwise, so every older race keeps its replay and its
+ * result hash.
  */
-export const ENGINE_VERSION = "1.3.0";
-/** The model a race with kit but no course runs (bit-identical to 1.2.0). */
+export const ENGINE_VERSION = "1.4.0";
+/** The model a race with a course but no model runs (bit-identical to 1.3.0). */
+export const COURSE_ENGINE_VERSION = "1.3.0";
+/** The model a race with kit but no course or model runs (bit-identical to 1.2.0). */
 export const KIT_ENGINE_VERSION = "1.2.0";
-/** The model a race without any kit or course runs (bit-identical to 1.1.0). */
+/** The model a race without any kit, course or model runs (bit-identical to 1.1.0). */
 export const LEGACY_ENGINE_VERSION = "1.1.0";
 
-/** The engine version a race with these entries (and course) is simulated (and hashed) under. */
-export function engineVersionFor(entries: readonly Pick<RaceEntry, "kit">[], course?: RaceCourse | null): string {
-  if (course) return ENGINE_VERSION;
+/** The engine version a race with these entries (course and model) is simulated (and hashed) under. */
+export function engineVersionFor(entries: readonly Pick<RaceEntry, "kit">[], course?: RaceCourse | null, model?: RaceModel | null): string {
+  if (model) return model;
+  if (course) return COURSE_ENGINE_VERSION;
   return entries.some((e) => e.kit !== undefined) ? KIT_ENGINE_VERSION : LEGACY_ENGINE_VERSION;
 }
 
@@ -59,6 +65,48 @@ const SEG_TICKS = 40;
 const PURPOSE_FORM = 1;
 const PURPOSE_PACE = 2;
 const PURPOSE_CHOICE = 3;
+/** 1.4.0 only: each horse's fight on the day (a new stream, so no older draw ever moves). */
+const PURPOSE_DRAMA = 4;
+
+// --- 1.4.0 close-finish model (only races whose input carries `model`) ------------------------
+/**
+ * Racing in a pack: until its kick, each horse's pace is pulled this share (permille) of the way
+ * from its own cruising speed towards the field's average, so the field races together instead
+ * of strung out in ability order from the start. Who is best still shows, at the finish.
+ */
+export const PACK_PULL = 500;
+/**
+ * Share (permille) of that pull the pack gives for free: a slower horse is carried along in the
+ * slipstream and pays only for the rest of the extra pace; a faster one held up by the pace saves
+ * only that part of what it would. (All of it free favoured stayers, none of it speed horses.)
+ */
+export const PACK_CARRY = 500;
+/** Late battle: a rival up to this far ahead (mm, 1.5 lengths) to run down... */
+export const BATTLE_AHEAD_MM = 3600;
+/** ...or up to this close behind (mm, 1 length) to hold off, puts a horse in a battle. */
+export const BATTLE_BEHIND_MM = 2400;
+/** Battles happen in the closing stage: once a horse kicks, or within this many mm of the line. */
+export const BATTLE_FROM_MM = 400_000;
+/** Pace a horse finds in a battle, mm/s: base + this share (permille) of its temperament (a genuine, composed horse fights on)... */
+export const BATTLE_BASE = 150;
+export const BATTLE_TEMPER = 100;
+/** ...plus its fight on the day, drawn per race (0..BATTLE_GRIT mm/s), so who finds most in a photo is never certain. */
+export const BATTLE_GRIT = 150;
+
+/** Racing in a pack: how far (mm/s) a horse cruising at `cruise` is pulled towards the field's average pace. */
+export function packPull(fieldCruise: number, cruise: number): number {
+  return Math.trunc(((fieldCruise - cruise) * PACK_PULL) / 1000);
+}
+
+/** The part of a pack pull (mm/s) that is free: the horse's energy is priced against its cruise plus this. */
+export function packCarried(pull: number): number {
+  return Math.trunc((pull * PACK_CARRY) / 1000);
+}
+
+/** A horse's pace (mm/s) found in a late battle: base + temperament share + its fight on the day (one draw from `rng`). */
+export function battleResponse(temperament: number, rng: Rng): number {
+  return BATTLE_BASE + Math.trunc((temperament * BATTLE_TEMPER) / 1000) + rng.range(0, BATTLE_GRIT);
+}
 
 /** Entries sorted by gate; throws on duplicate gates / horse ids. */
 export function normalizeEntries(entries: readonly RaceEntry[]): RaceEntry[] {
@@ -130,7 +178,8 @@ export function runRace(input: RaceInput): RaceReplay {
   const race = input.race;
   const entries = normalizeEntries(input.entries);
   const course = input.course ?? null;
-  const version = engineVersionFor(entries, course);
+  const version = engineVersionFor(entries, course, input.model);
+  const drama = version === ENGINE_VERSION;
   const n = entries.length;
   const laneCount = Math.max(6, n);
   const laneMax = (laneCount - 1) * 1000;
@@ -145,13 +194,18 @@ export function runRace(input: RaceInput): RaceReplay {
   for (let i = 0; i < n; i++) {
     const e = entries[i]!;
     const form = new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_FORM));
-    profiles.push(buildProfile(e, race, laneMax, form));
+    profiles.push(buildProfile(e, race, laneMax, form, drama));
     pace.push(new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_PACE)));
     choice.push(new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_CHOICE)));
   }
   const names = entries.map((e) => e.horse.name);
   // Each horse's extra drain climbing (or saved running down) the home straight, permille.
   const hillDrain = entries.map((e) => hillDrainFor(layout, e.horse.stats.stamina));
+  // 1.4.0: the field's average cruising pace (racing in a pack) and each horse's battle response.
+  let fieldCruise = 0;
+  for (const p of profiles) fieldCruise += p.cruise;
+  fieldCruise = Math.floor(fieldCruise / n);
+  const battle = entries.map((e) => (drama ? battleResponse(e.horse.stats.temperament, new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_DRAMA))) : 0));
 
   // --- state ---------------------------------------------------------------
   // Int32 is ample: positions stay below 2^31 sub-mm even at the tick cap.
@@ -264,7 +318,14 @@ export function runRace(input: RaceInput): RaceReplay {
       if ((tick - p.reactTicks) % SEG_TICKS === 1) segNoise[i] = pace[i]!.range(-p.segAmp, p.segAmp);
 
       // --- desired speed ------------------------------------------------------
-      const cr = p.cruise;
+      // 1.4.0 late battle: with a rival just ahead to run down, or one at its quarters to hold off,
+      // a horse finds more. Its cruising pace lifts while the battle lasts, and the effort is not
+      // paid for from the tank (that is what "finding more" means), so close finishes stay close.
+      const lift = drama && battle[i]! > 0 && (kicking[i] || remaining <= BATTLE_FROM_MM) && inBattle(k) ? battle[i]! : 0;
+      // Racing in a pack: until its kick, pace pulled towards the field's; the carried part is free.
+      const pull = drama && !kicking[i] && remaining > p.kickAtMm ? packPull(fieldCruise, p.cruise) : 0;
+      const carried = packCarried(pull);
+      const cr = p.cruise + lift + carried;
       const isLeader = i === lead;
       const gapLead = lead >= 0 ? Math.floor((oldPos[lead]! - myOld) / SUB) : 0;
       const leadBy = isLeader && second >= 0 ? Math.floor((myOld - oldPos[second]!) / SUB) : 0;
@@ -302,6 +363,8 @@ export function runRace(input: RaceInput): RaceReplay {
         if (early) target = cr - 320;
         else target = gapLead > 12 * HORSE_LENGTH_MM ? cr - 40 : cr - 180;
       }
+      // Racing in a pack (1.4.0, before the kick): the part of the pull the horse pays for.
+      target += pull - carried;
       target += segNoise[i]!;
 
       // Fatigue caps the achievable speed.
@@ -603,6 +666,22 @@ export function runRace(input: RaceInput): RaceReplay {
       resultHash: sha256Hex(canonicalResult(input.seed, finishRecords, version, course)),
     },
   };
+
+  /** Horse at order index k has an unfinished rival within BATTLE_AHEAD_MM ahead or BATTLE_BEHIND_MM behind (any lane). */
+  function inBattle(k: number): boolean {
+    const me = oldPos[order[k]!]!;
+    for (let q = k - 1; q >= 0; q--) {
+      const j = order[q]!;
+      if (oldPos[j]! - me > BATTLE_AHEAD_MM * SUB) break;
+      if (!finPrev[j]) return true;
+    }
+    for (let q = k + 1; q < n; q++) {
+      const j = order[q]!;
+      if (me - oldPos[j]! > BATTLE_BEHIND_MM * SUB) break;
+      if (!finPrev[j]) return true;
+    }
+    return false;
+  }
 
   /** Is the lane band around `cand` clear for a sideways move by horse i? */
   function pathFree(i: number, k: number, cand: number): boolean {

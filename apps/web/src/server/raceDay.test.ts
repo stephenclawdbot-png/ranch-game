@@ -1,13 +1,14 @@
 /**
  * Race-day extras and jockeys at the web layer: offered and priced on the entry sheet (risk per
  * extra), charged with a Live entry, refunded on a scratch, sealed in the locked field (the
- * engine kit and the physio'd snapshot), shown on the racecard, replayed and verified under
- * engine 1.2.0, while a race without extras stays a 1.1.0 race.
+ * engine kit and the physio'd snapshot), shown on the racecard, replayed and verified (a Live
+ * race locks with the 1.4.0 race model; a field locked before it, with kit, replays as 1.2.0 and
+ * one without as 1.1.0). Live handicaps also seal each runner's weight and print it on the card.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
 import { createAccount, createDb, createRace, getBalance, listRaceEntries, listStableHorses, lockField, stableOf, type CreateRaceInput, type DbHandle, type LockedField } from "@thoroughbred/db";
-import { LEGACY_ENGINE_VERSION, KIT_ENGINE_VERSION } from "@thoroughbred/racing-engine";
+import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, KIT_ENGINE_VERSION } from "@thoroughbred/racing-engine";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { enterLive, entryOptions, liveChunk, raceCard, raceHooks, scratchLive, servedReplay, settleIfDue, verifyRace } from "./game";
 import { engineHorseFromSnapshot } from "./horseView";
@@ -42,7 +43,7 @@ function liveRace(going: "good" | "soft" | "firm", extra: Partial<CreateRaceInpu
     kind: "scheduled",
     name: `Ashcombe Handicap ${++slotN}`,
     raceClass: "handicap",
-    // No course (engine 1.3.0 course character): these races test the kit alone, as 1.2.0 / 1.1.0.
+    // No course (engine 1.3.0 course character): these races test the kit alone.
     conditions: { minRating: 0, maxRating: 55, distanceM: 1600, surface: "turf", going, weather: "clear" },
     postTime: at(10 * MIN),
     entriesCloseAt: at(10 * MIN - 30_000),
@@ -103,7 +104,7 @@ describe("race-day extras on a Live race", () => {
     expect(await getBalance(h.db, p.accountId)).toBe(before + goal - race.entryFee);
   });
 
-  it("are sealed at the lock, shown on the racecard, and the race replays and verifies (engine 1.2.0)", async () => {
+  it("are sealed at the lock, shown on the racecard, and the race replays and verifies (engine 1.4.0)", async () => {
     const p = await player("Kit Stable");
     const q = await player("Plain Stable");
     const race = await liveRace("soft");
@@ -121,30 +122,46 @@ describe("race-day extras on a Live race", () => {
     expect(field.runners.find((r) => r.horseId === qh)!.kit).toBeUndefined();
     // Before the off the broadcast header names the engine the race will run on, and nothing else new.
     const pre = await liveChunk(h.db, race.id, 0, race.entriesCloseAt);
-    expect(pre.header.engineVersion).toBe(KIT_ENGINE_VERSION);
+    expect(pre.header.engineVersion).toBe(ENGINE_VERSION);
     expect(pre.final).toBeNull();
     expect(JSON.stringify(pre)).not.toMatch(/"(kit|raceDay|result|seed|finishOrder)"/);
 
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
-    expect(replay.engineVersion).toBe(KIT_ENGINE_VERSION);
+    expect(replay.engineVersion).toBe(ENGINE_VERSION);
     const v = await verifyRace(h.db, race.id, end, { commitment: race.seedCommitment, resultHash: replay.result.resultHash });
-    expect(v).toMatchObject({ commitmentOk: true, resultHashOk: true, engineVersion: KIT_ENGINE_VERSION });
+    expect(v).toMatchObject({ commitmentOk: true, resultHashOk: true, engineVersion: ENGINE_VERSION });
     const card = await raceCard(h.db, race.id, end, p.stable.id);
-    expect(card.engineVersion).toBe(KIT_ENGINE_VERSION);
+    expect(card.engineVersion).toBe(ENGINE_VERSION);
     expect(card.field.find((e) => e.horse.id === ph)!.gear).toContain("Top jockey");
+    // A Live handicap: every runner carries its weight, sealed in the field and printed on the card.
+    for (const r of field.runners) expect(r.weightLb).toBeGreaterThan(0);
+    for (const e of card.field) expect(e.weightLb).toBe(field.runners.find((r) => r.horseId === e.horse.id)!.weightLb);
+    expect(Math.max(...card.field.map((e) => e.weightLb ?? 0))).toBe(gc.TOP_WEIGHT_LB);
     await settleIfDue(h.db, race.id, end);
   });
 
-  it("a race nobody bought extras for stays a 1.1.0 race (old proofs unchanged)", async () => {
+  it("fields locked before the 1.4.0 model replay as they ran: 1.2.0 with kit, 1.1.0 without (old proofs unchanged)", async () => {
     const p = await player("Legacy Stable");
     const race = await liveRace("good");
     await enterLive(h.db, p, race.id, await freeHorse(p), PLAN, T0);
+    await lockField(h.db, race.id, race.entriesCloseAt, raceHooks);
+    // What a field locked by an earlier release looks like: no race model, no weights.
+    await h.db.execute(`update races set field = field - 'model' where id = '${race.id}'`);
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
     expect(replay.engineVersion).toBe(LEGACY_ENGINE_VERSION);
     const v = await verifyRace(h.db, race.id, end, { resultHash: replay.result.resultHash });
     expect(v).toMatchObject({ resultHashOk: true, engineVersion: LEGACY_ENGINE_VERSION });
+
+    const q = await player("Old Kit Stable");
+    const kitted = await liveRace("soft");
+    await enterLive(h.db, q, kitted.id, await freeHorse(q), PLAN, T0, FULL);
+    await lockField(h.db, kitted.id, kitted.entriesCloseAt, raceHooks);
+    await h.db.execute(`update races set field = field - 'model' where id = '${kitted.id}'`);
+    const old = await servedReplay(h.db, kitted.id, end);
+    expect(old.engineVersion).toBe(KIT_ENGINE_VERSION);
+    expect(await verifyRace(h.db, kitted.id, end, { resultHash: old.result.resultHash })).toMatchObject({ resultHashOk: true, engineVersion: KIT_ENGINE_VERSION });
   });
 
   it("physio lifts a tired horse's race snapshot, never past the same horse rested", async () => {

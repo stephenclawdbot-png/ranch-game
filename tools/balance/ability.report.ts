@@ -32,8 +32,9 @@ import { expect, it } from "vitest";
 import type { Going, HorseStats, RunningStyle, Surface } from "@thoroughbred/shared";
 import { simulateRace } from "../../packages/racing-engine/src/index";
 import { makeInput, seedFor, type EntryOpts } from "../../packages/racing-engine/src/test-fixtures";
-import { ABILITY_OR_TABLE, CAREER_MAX_STARTS, HANDICAP_BURST_PER_LB, HANDICAP_SPEED_PER_LB, Rng, abilityOrOf, abilityScore, handicapWeights, seedFrom, updateRatings } from "../../packages/game-core/src/index";
-import { writeReport, yieldNow } from "./out";
+import { ABILITY_OR_TABLE, CAREER_MAX_STARTS, Rng, abilityOrOf, abilityScore, carryWeight, handicapWeights, seedFrom, updateRatings } from "../../packages/game-core/src/index";
+
+import { LIVE_MODEL, writeReport, yieldNow } from "./out";
 
 const ROUNDS = Number(process.env.BAL_ABILITY_ROUNDS ?? 600);
 const MIN_RACES = 3000;
@@ -199,16 +200,16 @@ it("ability mark calibration", async () => {
           if (!house.includes(h)) house.push(h);
           field.push(h);
         }
-        // Handicap bands: 1 OR = 1 lb off speed and burst (game-core handicapWeights).
+        // Handicap bands: 1 OR = 1 lb, each lb costing 1 OR of ability (game-core handicapWeights, carryWeight).
         const lb = new Map(handicapWeights(field.map((r) => ({ horseId: r.id, or: r.or })), band.handicap).map((w) => [w.horseId, w.extraLb]));
         const entries: EntryOpts[] = field.map((r) => ({
           id: r.id,
-          stats: { ...r.stats, speed: r.stats.speed - (lb.get(r.id) ?? 0) * HANDICAP_SPEED_PER_LB, burst: r.stats.burst - (lb.get(r.id) ?? 0) * HANDICAP_BURST_PER_LB },
+          stats: carryWeight(r.stats, r.trip, lb.get(r.id) ?? 0),
           style: r.style,
           tactic: r.style,
           preferredDistanceM: r.trip,
         }));
-        const result = simulateRace(makeInput(entries, { distanceM: distanceOf(field), surface: SURFACE, going: GOING, seed: seedFor(900_000 + races) })).result;
+        const result = simulateRace({ ...makeInput(entries, { distanceM: distanceOf(field), surface: SURFACE, going: GOING, seed: seedFor(900_000 + races) }), ...LIVE_MODEL }).result;
         races++;
         const pos = new Map(result.finishOrder.map((f) => [f.horseId, f.position]));
         for (const c of updateRatings(field.map((r) => ({ horseId: r.id, or: r.or, ratedRuns: r.ratedRuns, position: pos.get(r.id) ?? 1 })))) {
@@ -261,7 +262,7 @@ it("ability mark calibration", async () => {
         preferredDistanceM: 1600,
         gate: ((i + k) % 8) + 1,
       }));
-      const r = simulateRace(makeInput(entries, { distanceM: 1600, surface: SURFACE, going: GOING, seed: seedFor(700_000 + k) })).result;
+      const r = simulateRace({ ...makeInput(entries, { distanceM: 1600, surface: SURFACE, going: GOING, seed: seedFor(700_000 + k) }), ...LIVE_MODEL }).result;
       if (r.finishOrder[0]!.horseId === "h1") wins++; // makeHorse ids: h1..h8
     }
     return wins / n;
