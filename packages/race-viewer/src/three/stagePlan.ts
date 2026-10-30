@@ -4,7 +4,7 @@
  * far rail's z); the items, their x along the course and their art come from the stage, so the
  * guard test can compare `hd2dInventory` with Trackside's.
  */
-import { elevationAt, inventoryOf, landmarkKey, type RaceStage, type StageInventory, type StageMidItem } from "../stage/buildRaceStage";
+import { MID_SPREAD_PX_PER_M, elevationAt, inventoryOf, landmarkKey, type RaceStage, type StageInventory, type StageMidItem } from "../stage/buildRaceStage";
 import type { PlateGrid } from "../stage/plates";
 
 export const TRACK_PRE = 180;
@@ -54,7 +54,7 @@ export function hd2dPlan(stage: RaceStage): Hd2dPlan {
     { kind: "post", label: "post", x: lm.winningPost.x, y: el(lm.winningPost.x), z: inside, side: "far", art: lm.winningPost.art, plate: null },
   ];
   const sc = stage.scenery;
-  const periodM = sc.mid.length > 1 ? sc.midTemplate.period / 8 : 100;
+  const periodM = sc.mid.length > 1 ? sc.midTemplate.period / MID_SPREAD_PX_PER_M : 100;
   const mid = [
     ...sc.mid.map((m) => ({ ...m, y: el(m.xM), z: farZ - m.depthM })),
     ...sc.mid.map((m) => ({ ...m, xM: m.xM + periodM / 2, depthM: m.depthM * 1.8 + 40, y: el(m.xM + periodM / 2), z: farZ - (m.depthM * 1.8 + 40) })),

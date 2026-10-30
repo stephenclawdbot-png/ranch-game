@@ -60,7 +60,7 @@ const size = (src: StageArt): [number, number] => ART_SIZE[src] ?? [64, 64];
 export const FOCAL_PX_PER_M = 96;
 /** Midground items: px per metre of height, and of spacing along the course. */
 export const MID_PX_PER_M = 16;
-export const MID_SPREAD_PX_PER_M = 8;
+export const MID_SPREAD_PX_PER_M = 12;
 /** Grandstands: px per metre. */
 export const STAND_PX_PER_M = 10;
 /** The stand faces the run-in: centred this far before the winning post. */
