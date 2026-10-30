@@ -239,7 +239,10 @@ export async function insertHorse(ex: Executor, input: InsertHorseInput): Promis
       maturityType: input.spec.maturityType ?? "normal",
       rating: input.spec.rating ?? 0,
       careSessions,
-      stage: stageFor(careSessions, 0),
+      stage: stageFor(careSessions, input.spec.starts ?? 0),
+      ...(input.spec.starts ? { starts: input.spec.starts } : {}),
+      ...(input.spec.fitness !== undefined ? { fitness: input.spec.fitness } : {}),
+      ...(input.spec.dynamics ? { dynamics: input.spec.dynamics } : {}),
       bound: input.bound ?? false,
       tradeMinStarts: input.tradeMinStarts ?? 0,
     })

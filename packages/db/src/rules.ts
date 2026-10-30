@@ -165,6 +165,12 @@ export interface HorseSpec {
   rating?: number;
   /** Nursery progress at creation (starters arrive at racing age = 19; pack horses are foals = 0). */
   careSessions?: number;
+  /** Career starts already run (a seasoned Club runner, game-core clubFill.ts); 0 when omitted. */
+  starts?: number;
+  /** Fitness at creation (permille); the column default when omitted. */
+  fitness?: number;
+  /** Initial horses.dynamics (training realisation, rated runs, peak, Club mark); {} when omitted. */
+  dynamics?: Record<string, unknown>;
 }
 
 export interface RaceEligibilityInput {
@@ -182,8 +188,23 @@ export interface GameHooks {
   breedFoal(input: { seed: string; sire: HorseRow; dam: HorseRow; name?: string; coi?: number; season?: number; family?: HorseRow[] }): HorseSpec;
   /** Extra race eligibility (class, rating band, conditions). Return a reason to refuse, or null. */
   raceEligibility?(input: RaceEligibilityInput): string | null;
-  /** A house (Club AI) horse for a Live field, deterministic from the race seed. */
-  houseHorse?(input: { seed: string; index: number; raceClass: string; rating: number; season?: number; rarity?: gc.Rarity }): HorseSpec;
+  /**
+   * A house (Club AI) horse, deterministic from the seed. With `target`: an honest seasoned Club
+   * runner whose real ability mark is about `target` (game-core mintClubGenome), suited to the
+   * race's trip and surface when given; its stored rating is that mark. Without `target` (Club
+   * sale lots, clubMarket.ts): a racing-age horse of `rarity`, stored at `rating`.
+   */
+  houseHorse?(input: {
+    seed: string;
+    index: number;
+    raceClass: string;
+    rating: number;
+    season?: number;
+    rarity?: gc.Rarity;
+    target?: number;
+    distanceM?: number;
+    surface?: string;
+  }): HorseSpec;
   /** Appraised market value in credits (listing floor = 70% of it). */
   appraise?(horse: HorseRow): number;
 }

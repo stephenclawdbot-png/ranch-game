@@ -52,6 +52,10 @@ export interface Totals {
   liveRacesCalledOff?: number;
   avgField: number;
   playerShare: number;
+  /** Live races won by a player horse (absent in runs before the Club fill fix). */
+  livePlayerWins?: number;
+  /** Player runners in settled Live races (absent in runs before the Club fill fix). */
+  livePlayerRunners?: number;
   storyRaces: number;
   cupRuns: number;
   born: Record<string, number>;
@@ -112,6 +116,8 @@ function totalsOf(days: DaySample[], last: Snapshot): Totals {
     liveRacesCalledOff: sum(days.map((d) => d.races.calledOff ?? 0)),
     avgField: live ? Math.round((10 * sum(days.map((d) => d.races.avgField * d.races.live))) / live) / 10 : 0,
     playerShare: live ? Math.round((10 * sum(days.map((d) => d.races.playerShare * d.races.live * d.races.avgField))) / Math.max(1, sum(days.map((d) => d.races.live * d.races.avgField)))) / 10 : 0,
+    livePlayerWins: sum(days.map((d) => d.races.playerWins ?? 0)),
+    livePlayerRunners: sum(days.map((d) => d.races.playerRunners ?? 0)),
     storyRaces: sum(days.map((d) => d.races.story)),
     cupRuns: sum(days.map((d) => d.races.cup)),
     born: last.born,

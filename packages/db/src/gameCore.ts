@@ -180,6 +180,45 @@ function placeholderFallback(seed: string, label: string, careSessions: number, 
   return specFromGenome({ genome, name: name ?? gc.clubHorseName(rng), sex: rng.chance(500) ? "colt" : "filly", careSessions, season: 1 });
 }
 
+/**
+ * The Club marks a horse whose rating it has made honest (dynamics.clubMark = the ability mark it
+ * was set to): every minted Club runner, and every older Club horse once recalibrated
+ * (services/clubFill.ts). After that its rating moves with results like any horse's.
+ */
+export const CLUB_MARK_KEY = "clubMark";
+
+/**
+ * An honest seasoned Club runner (game-core clubFill.ts): a genome searched from the seed until
+ * its ability mark is about `target`, suited to the race's trip and surface; stored with the
+ * starts, training and fitness the mark assumes, and rated at that mark.
+ */
+export function clubRunnerSpec(input: { seed: string; index: number; target: number; season: number; distanceM?: number; surface?: string }): HorseSpec {
+  const mint = gc.mintClubGenome({ seed: input.seed, index: input.index, target: input.target, season: input.season, distanceM: input.distanceM, surface: input.surface });
+  const rng = new gc.Rng(`${input.seed}|club-runner|${input.index}`);
+  const sex = rng.chance(500) ? "colt" : "filly";
+  const name = gc.clubHorseName(rng);
+  const state = gc.clubSeasonedState(mint.genome, { name, sex, season: input.season });
+  const starts = state.career.starts;
+  return {
+    name,
+    sex: sex === "filly" ? "female" : "male",
+    genome: mint.genome,
+    appearance: gc.appearanceOf(mint.genome, { racingAge: true, starts, retired: false }, DEFAULT_SILKS as Parameters<typeof gc.appearanceOf>[2]),
+    stats: gc.currentStats(state),
+    maturityType: gc.maturityType(mint.genome),
+    rating: state.rating.or,
+    careSessions: gc.CARE_TO_RACING,
+    starts,
+    fitness: state.condition.fitness,
+    dynamics: {
+      training: state.training,
+      ratedRuns: state.rating.ratedRuns,
+      peakOr: state.rating.peakOr,
+      [CLUB_MARK_KEY]: state.rating.or,
+    },
+  };
+}
+
 /** Production hooks: every horse, foal and rule decision comes from game-core. */
 export const gameCoreHooks: GameHooks = {
   starterHorse: ({ seed, index, season }) => {
@@ -206,7 +245,8 @@ export const gameCoreHooks: GameHooks = {
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });
   },
-  houseHorse: ({ seed, index, rating, season, rarity }) => {
+  houseHorse: ({ seed, index, rating, season, rarity, target, distanceM, surface }) => {
+    if (target !== undefined) return clubRunnerSpec({ seed, index, target, season: season ?? 1, distanceM, surface });
     // Even breed weights so Live fields look varied (owner: "genetics aren't seen in race").
     // `rarity`: a target tier (Club sale horses, clubMarket.ts); default the natural mint.
     const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true, ...(rarity ? { rarity } : {}) });

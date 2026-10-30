@@ -6,7 +6,8 @@
  *   - completes due pregnancies (the foal always arrives);
  *   - expires market listings (returning the horse to its owner);
  *   - expires lease offers and sends horses home when their lease term is over (leasing.ts);
- *   - once per UTC day, lets the Club list horses for sale and offer horses on lease (clubMarket.ts).
+ *   - once per UTC day, lets the Club list horses for sale and offer horses on lease (clubMarket.ts);
+ *   - sets any Club horse still carrying a stamped rating to its real ability mark (clubFill.ts).
  */
 import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
@@ -18,6 +19,7 @@ import { foal, listDuePregnancies } from "./breeding";
 import { expireListings } from "./market";
 import { sweepLeases } from "./leasing";
 import { runClubMarket, type ClubMarketRun } from "./clubMarket";
+import { sweepClubRatings } from "./clubFill";
 import { runTx } from "./tx";
 
 export interface MaintenanceReport {
@@ -26,6 +28,8 @@ export interface MaintenanceReport {
   listingsExpired: number;
   leasesEnded: number;
   club: ClubMarketRun;
+  /** Club horses whose stamped rating was set to their real ability mark this run. */
+  clubRecalibrated: number;
 }
 
 export async function healInjuries(db: Db, now: Date): Promise<number> {
@@ -51,5 +55,7 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   await settleUpkeep(db, now);
   // After the expiries and the sweep, so the day's caps see today's real supply.
   const club = await runClubMarket(db, now, hooks);
-  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club };
+  // After the expiries: a Club lot that didn't sell is back in the pool, and honest from here.
+  const clubRecalibrated = await sweepClubRatings(db, now);
+  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated };
 }

@@ -6,6 +6,7 @@ import { RULES, bps } from "../rules";
 import { accounts, clubMarketDays, horseLeaseListings, horseLeases, horses, ledgerAccounts, marketListings, raceEntries, races, stables, trades } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { clubSupplyCounts, runClubMarket } from "../services/clubMarket";
+import { trueMarkOf } from "../services/clubFill";
 import { leaseBoard, leaseMetrics, offerLease, sweepLeases, takeLease, withdrawLeaseOffer } from "../services/leasing";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { runMaintenance } from "../services/maintenance";
@@ -148,23 +149,21 @@ describe("the Club's daily market job", () => {
     for (const l of lots) {
       expect(await getHorseRow(h.db, l.horseId)).toMatchObject({ ownerStableId: null, lockKind: null, careerStatus: "racing" });
     }
-    // back in the pool: a Live race filled by the Club can pick them again
-    const ratings = (await Promise.all(lots.map((l) => getHorseRow(h.db, l.horseId)))).map((x) => x.rating);
+    // back in the pool, at its real ability (clubFill.ts): a Live race whose Club window holds
+    // that mark picks it again (no trip or surface given, so any horse suits the race)
+    const mark = trueMarkOf(await getHorseRow(h.db, lots[0]!.horseId));
     const race = await createRace(h.db, {
       kind: "scheduled",
       name: "Fill",
-      raceClass: "maiden",
-      conditions: { distanceM: 1200, surface: "turf", minRating: Math.min(...ratings), maxRating: Math.max(...ratings) },
+      raceClass: "handicap",
+      conditions: { minRating: mark, maxRating: mark },
       postTime: at(80 * HOUR),
       entriesCloseAt: at(80 * HOUR - MIN),
-      targetRunners: 3,
+      targetRunners: RULES.minField,
     });
-    const p = await newPlayer(h.db);
-    const mine = await makeHorse(h.db, p.stableId, { rating: Math.min(...ratings) });
-    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: mine.id, tactic: "front", now: at(79 * HOUR) });
     const { field } = await getRaceForSimulation(h.db, race.id, at(80 * HOUR));
-    const ids = field.runners.map((r) => r.horseId);
-    expect(lots.some((l) => ids.includes(l.horseId))).toBe(true);
+    expect(field.runners.map((r) => r.horseId)).toContain(lots[0]!.horseId);
+    expect((await getHorseRow(h.db, lots[0]!.horseId)).rating).toBe(mark);
   });
 });
 

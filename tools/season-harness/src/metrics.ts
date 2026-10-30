@@ -71,6 +71,10 @@ export interface DaySample {
     /** Share of all Live runners that belong to players (%). */
     playerShare: number;
     avgPlayerRunners: number;
+    /** Live races won by a player horse (absent in runs before 2026-10-30). */
+    playerWins?: number;
+    /** Player runners in settled Live races (absent in runs before 2026-10-30). */
+    playerRunners?: number;
     sisters: number;
     cancelled: number;
     /** Ordinary card races called off at the close because no player entered (race meetings). */
@@ -233,10 +237,11 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
   const [stud] = await q<{ n: number }>(db, `select count(*)::int n from horses where stud_fee is not null and owner_stable_id is not null and career_status <> 'pasture'`);
 
   // Races
-  const raceRows = await q<{ kind: string; slot_key: string | null; status: string; n: number; p: number; purse: number; ck: string | null }>(
+  const raceRows = await q<{ kind: string; slot_key: string | null; status: string; n: number; p: number; pw: number; purse: number; ck: string | null }>(
     db,
     `select r.kind, r.slot_key, r.status, r.purse, r.conditions->'calendar'->>'kind' ck,
-            count(e.id) filter (where e.status = 'entered')::int n, count(e.id) filter (where e.status = 'entered' and e.stable_id is not null)::int p
+            count(e.id) filter (where e.status = 'entered')::int n, count(e.id) filter (where e.status = 'entered' and e.stable_id is not null)::int p,
+            count(e.id) filter (where e.status = 'entered' and e.stable_id is not null and e.finish_position = 1)::int pw
        from races r left join race_entries e on e.race_id = r.id
       where r.post_time >= ${from} and r.post_time < ${to} group by r.id`,
   );
@@ -345,6 +350,8 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
       avgField: round1(live.length ? runners / live.length : 0),
       playerShare: pct(playerRunners, runners),
       avgPlayerRunners: round1(live.length ? playerRunners / live.length : 0),
+      playerWins: sum(live.map((r) => num(r.pw))),
+      playerRunners,
       sisters: live.filter((r) => /^live(?:\d+m)?:\d+:\d+$/.test(r.slot_key ?? "")).length,
       cancelled: raceRows.filter((r) => r.status === "cancelled" && r.kind !== "quick").length,
       calledOff: raceRows.filter((r) => r.status === "cancelled" && (r.kind === "scheduled" || r.kind === "feature") && /^live(?:\d+m)?:/.test(r.slot_key ?? "") && num(r.n) === 0).length,
