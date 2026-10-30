@@ -90,7 +90,8 @@ Where column.
 | `ENTRY_REFILL_COST` | 250 credits | packages/game-core/src/entries.ts:23 | Refill price (burned). | Credit sink |
 | `entryCost` (model) | Story/Cup/Trial 0; Weekend Feature, Final, G1-G3 2; else 1 | packages/game-core/src/entries.ts:66-70 | Entries a race costs in the model. | Starts/day |
 | `entryCostFor` (live) | Story (`quick`), Cup, Trial 0; kind `feature`/`final` or class `graded` 2; else 1 | packages/db/src/services/races.ts:34 | Entries a Live race costs. The cycle's Listed Features cost 2 here. | Starts/day, Feature participation |
-| `cardEntryFee` (credits, live) | Listed 120, Group 3 200, G1 (Weekend Feature, Final) 500; else 0 | packages/db/src/services/card.ts:70 | Credit entry fee on top of stable entries (burned; refunded if abandoned). | Credit sink |
+| `cardEntryFee` / `CARD_ENTRY_FEE_PERMILLE` (credits, live) | the larger of 5% of the purse (50 permille) and the tier fee (Listed 120, Group 3 200, G1 500) on every Live race | packages/db/src/services/card.ts:78 | Credit entry fee on top of stable entries (burned; refunded if abandoned). | Credit sink |
+| `UPKEEP_RACING_PER_WEEK` / `UPKEEP_STUD_PER_WEEK` | 375 / 200 credits a week (250 / 150 until harness sinks1) | packages/game-core/src/economy.ts:63, packages/db/src/services/upkeep.ts:56 | Weekly upkeep, charged after the week only for horses raced, trained or bred that week; waived where the balance can't cover it. | Credit sink (scales with string size) |
 | `ENTRY_FEE_BY_TIER` | listed 120, g3 200, g2 320, g1 500, others 0 | packages/game-core/src/economy.ts:42 | Fee table `cardEntryFee` reads. | Credit sink |
 | `TZ_CHANGE_MIN_DAYS` | 30 days | packages/game-core/src/entries.ts:96 | Timezone (local-day boundary) change cooldown. | Daily-grant gaming |
 | One horse per stable per Live race | rule | packages/db/src/services/races.ts:301 | A stable can enter one horse in each Live race. | Field diversity, starts/day |
