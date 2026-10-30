@@ -62,7 +62,7 @@ describe("POST /api/account/link", () => {
   });
 
   it("rejects the 21st failed redemption from one IP within the hour; others unaffected", async () => {
-    resetLinkFailures();
+    await resetLinkFailures(h.db);
     for (let i = 0; i < LINK_FAIL_LIMIT; i++) {
       const res = await linkDeviceResponse(h.db, { body: { code: "BAD1-CODE" }, ip: "3.3.3.3", session: null });
       expect(res.status).toBe(400);

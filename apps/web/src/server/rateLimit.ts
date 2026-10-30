@@ -1,58 +1,60 @@
 /**
- * Abuse limiting for the account/wallet routes: one process-local sliding-window limiter
- * shared by device linking (failures) and wallet sign-in (hits). Keys are emptied when their
- * window slides past, and the map is capped (oldest keys dropped) so a spray of spoofed
- * IPs can't grow it without bound. Serverless instances are interchangeable, so counts are
- * per-instance hints, not shared quotas.
+ * Abuse limiting for the account/wallet routes: shared sliding-window limiters for device
+ * linking (failures) and wallet sign-in (hits). The counts live in the database (the
+ * `rate_limits` table, via @thoroughbred/db's rateLimit service), so every serverless
+ * instance counts against the same quota — a limit of N per hour is N once, not N per
+ * instance. The window is the standard two-window estimate: the current fixed window exact,
+ * the previous one decayed linearly.
+ *
+ * If the database ever errors, every method fails OPEN (the request is allowed): a rate
+ * limiter must never take the game down. The first error is logged, then the limiter stays
+ * quiet until one succeeds again.
  */
-export interface SlidingWindowLimiter {
+import { rateLimitCount, rateLimitHit, type Db } from "@thoroughbred/db";
+
+export interface SharedLimiter {
   /** Counts one attempt; true when the key is over the limit and must be answered 429. */
-  hit(key: string, now: number): boolean;
+  hit(db: Db, key: string, now: number): Promise<boolean>;
   /** Counts one attempt without a verdict (e.g. a failed redemption). */
-  fail(key: string, now: number): void;
-  /** Attempts currently inside the window (expired entries dropped, empty keys evicted). */
-  count(key: string, now: number): number;
-  /** Test hook: forget everything counted. */
-  reset(): void;
+  fail(db: Db, key: string, now: number): Promise<void>;
+  /** Attempts currently estimated inside the window (no attempt counted). */
+  count(db: Db, key: string, now: number): Promise<number>;
 }
 
-/** Oldest keys are dropped beyond this many, so spoofed IPs can't grow the map forever. */
-const MAX_KEYS = 10_000;
-
-export function slidingWindowLimiter(opts: { limit: number; windowMs: number }): SlidingWindowLimiter {
-  const attempts = new Map<string, number[]>();
-  const fresh = (key: string, now: number): number[] => {
-    const list = (attempts.get(key) ?? []).filter((t) => now - t < opts.windowMs);
-    if (list.length) attempts.set(key, list);
-    else attempts.delete(key);
-    return list;
-  };
-  const cap = (): void => {
-    // Map keeps insertion order: the oldest keys go first.
-    for (const key of attempts.keys()) {
-      if (attempts.size <= MAX_KEYS) break;
-      attempts.delete(key);
+export function sharedLimiter(opts: { name: string; limit: number; windowMs: number }): SharedLimiter {
+  const keyed = (key: string) => `${opts.name}:${key}`;
+  let dbBroken = false;
+  /** Runs a counting query, failing OPEN (the fallback answer) if the database errors. */
+  const open = async <T>(run: () => Promise<T>, fallback: T): Promise<T> => {
+    try {
+      const out = await run();
+      dbBroken = false;
+      return out;
+    } catch (err) {
+      if (!dbBroken) {
+        console.error(`rate limiter "${opts.name}" is failing; requests pass uncounted`, err);
+        dbBroken = true;
+      }
+      return fallback;
     }
   };
   return {
-    hit(key, now) {
-      const list = fresh(key, now);
-      list.push(now);
-      attempts.set(key, list);
-      cap();
-      return list.length > opts.limit;
+    async hit(db, key, now) {
+      const res = await open(
+        () => rateLimitHit(db, { key: keyed(key), limit: opts.limit, windowMs: opts.windowMs, now }),
+        { count: 0, limited: false },
+      );
+      return res.limited;
     },
-    fail(key, now) {
-      const list = fresh(key, now);
-      list.push(now);
-      attempts.set(key, list);
-      cap();
+    async fail(db, key, now) {
+      // The verdict is discarded: this only counts the attempt.
+      await open(
+        () => rateLimitHit(db, { key: keyed(key), limit: opts.limit, windowMs: opts.windowMs, now }).then(() => undefined),
+        undefined,
+      );
     },
-    count(key, now) {
-      return fresh(key, now).length;
-    },
-    reset() {
-      attempts.clear();
+    async count(db, key, now) {
+      return open(() => rateLimitCount(db, { key: keyed(key), windowMs: opts.windowMs, now }), 0);
     },
   };
 }

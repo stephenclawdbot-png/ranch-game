@@ -669,6 +669,22 @@ live in one place, `packages/game-core/src/stablePhoto.ts`; the re-encode is
 
 ---
 
+## 16. Abuse limits (accounts and wallet sign-in)
+
+Per-IP limits on the account/wallet routes. The counts are shared in the `rate_limits` table
+(`packages/db/src/services/rateLimit.ts`, written through `apps/web` `src/server/rateLimit.ts`),
+so every serverless instance enforces one quota, not N per instance; a database error fails
+OPEN (the request passes uncounted). The limiter window is the standard two-window estimate
+(current fixed window exact, the previous one decayed linearly).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `LINK_FAIL_LIMIT` | 20 failed redemptions per IP per hour | apps/web/src/server/devices.ts:19 | Failed link-code redemptions per IP over a sliding hour; the 21st is answered 429 with `Retry-After: 3600`. | Code-guessing surface |
+| `WALLET_AUTH_LIMIT` | 30 challenge+verify attempts per IP per hour | apps/web/src/server/walletAuth.ts:52 | Wallet SIWE challenge and verify attempts per IP over a sliding hour; past the limit the endpoint answers 429. | Challenge farming, signature-guessing surface |
+| Rate-limit prune age | 2 hours (two windows of the longest limit) | packages/db/src/services/maintenance.ts (`pruneRateLimits`, `olderThanMs`) | `runMaintenance` deletes `rate_limits` rows whose window is older than two windows of the 1-hour limit. | Table growth |
+
+---
+
 ## Values duplicated in more than one place
 
 These must stay in sync (or be derived from one source).

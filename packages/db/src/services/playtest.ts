@@ -713,6 +713,8 @@ export const RESET_TABLES = [
   "horses",
   // Stable photos follow the stables.
   "stable_photos",
+  // Abuse counters reset with everything else (no foreign keys, order-free).
+  "rate_limits",
   "stables",
   "account_play_days",
   "fraud_events",

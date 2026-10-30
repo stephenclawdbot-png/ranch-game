@@ -1889,3 +1889,25 @@ export const raceClaims = pgTable(
 );
 
 export type RaceClaimRow = typeof raceClaims.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Shared rate limits (apps/web src/server/rateLimit.ts counts here; services/rateLimit.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Shared rate-limit counters, one row per key per fixed window (rateLimit service).
+ * Keys are opaque `${limiter}:${subject}` strings, so every serverless instance counts
+ * against the same quota instead of its own memory.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").notNull(),
+    /** Start of the fixed window, in ms since epoch. */
+    windowStart: bigint("window_start", { mode: "number" }).notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
+);
+
+export type RateLimitRow = typeof rateLimits.$inferSelect;
