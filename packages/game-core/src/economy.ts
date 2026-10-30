@@ -60,7 +60,7 @@ export const ENTRY_FEE_BY_TIER: Record<RaceTier, number> = {
  * costs nothing. Never runs a balance negative: what can't be paid is waived. Values tuned with
  * the season harness (target: 85-115 credits spent per 100 earned).
  */
-export const UPKEEP_RACING_PER_WEEK = 375; // 250 in harness sinks1 (77.6 spent per 100 earned)
+export const UPKEEP_RACING_PER_WEEK = 300; // 375 squeezed grinders to ~0 once races filled with players (harness courses1); 250 in sinks1
 export const UPKEEP_STUD_PER_WEEK = 200; // 150 in harness sinks1
 /**
  * The first week upkeep is charged for (UTC Monday, "YYYY-MM-DD"). Upkeep shipped on 2026-10-30:
