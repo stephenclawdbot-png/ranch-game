@@ -1123,6 +1123,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     accountId: session.accountId,
     stableName: session.stable.name,
     silks,
+    photoUrl: gc.stablePhotoUrl(session.stable.id, session.stable.photoHash),
     credits,
     entries: { balance: bank.balance, cap: bank.cap, allowance: bank.allowance, refillAvailable: bank.refillAvailable, refillPrice: RULES.entryRefillPrice },
     stalls: { slots: occ.slots, used: occ.used },

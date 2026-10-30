@@ -12,7 +12,7 @@
  */
 import { createHash } from "node:crypto";
 import * as gc from "@thoroughbred/game-core";
-import sharp from "sharp";
+import sharp, { type Metadata } from "sharp";
 
 export type PhotoProblem = "too_large" | "not_an_image" | "format" | "too_many_pixels";
 
@@ -21,7 +21,7 @@ export async function processStablePhoto(
 ): Promise<{ ok: true; image: Buffer; hash: string } | { ok: false; problem: PhotoProblem }> {
   if (bytes.length > gc.STABLE_PHOTO_MAX_UPLOAD_BYTES) return { ok: false, problem: "too_large" };
 
-  let metadata: sharp.Metadata;
+  let metadata: Metadata;
   try {
     metadata = await sharp(bytes, { limitInputPixels: gc.STABLE_PHOTO_MAX_INPUT_PIXELS, failOn: "error" }).metadata();
   } catch (e) {

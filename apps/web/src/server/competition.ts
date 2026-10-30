@@ -247,6 +247,7 @@ export async function leagueView(db: Db, session: Session | null, now: Date): Pr
       rank: i + 1,
       stableName: r.stableName,
       silks: parseSilks(r.silks),
+      photoUrl: r.photoUrl,
       points: r.points,
       wins: r.wins,
       runs: r.runs,
@@ -257,7 +258,7 @@ export async function leagueView(db: Db, session: Session | null, now: Date): Pr
   }
   const season = seasonNumberAt(now);
   const st = await seasonStandings(db, { season, now, accountId: viewer, limit: 10 });
-  const seasonRow = (r: (typeof st.rows)[number]): SeasonRowView => ({ rank: r.rank, stableName: r.stableName, silks: parseSilks(r.silks), points: r.points, wins: r.wins, runs: r.runs, mine: r.accountId === viewer });
+  const seasonRow = (r: (typeof st.rows)[number]): SeasonRowView => ({ rank: r.rank, stableName: r.stableName, silks: parseSilks(r.silks), photoUrl: r.photoUrl, points: r.points, wins: r.wins, runs: r.runs, mine: r.accountId === viewer });
   const history = viewer ? await leagueHistory(db, viewer) : [];
   return {
     serverNowMs: now.getTime(),

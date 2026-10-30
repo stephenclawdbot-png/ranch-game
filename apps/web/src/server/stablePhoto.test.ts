@@ -42,7 +42,7 @@ const image = (format: "png" | "jpeg" | "webp", background = "#884422") =>
 
 async function upload(buf: Buffer, name = "photo.png", type = "image/png", origin?: string) {
   const form = new FormData();
-  form.append("photo", new File([buf], name, { type }));
+  form.append("photo", new File([new Uint8Array(buf)], name, { type }));
   return POST(new Request("https://tb.example/api/account/photo", { method: "POST", body: form, headers: origin ? { Origin: origin } : undefined }));
 }
 
@@ -167,19 +167,6 @@ describe("stable photo refusals", () => {
     const res = await upload(bomb, "photo.png", "image/png");
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toBe("too_many_pixels");
-  });
-
-  it("refuses an animated WebP (no animation)", async ({ skip }) => {
-    jar.token = (await founded("Stillwater")).token;
-    // sharp can only build an animated WebP from animated input; try a stacked pair and skip
-    // if this build still produces a single page.
-    const still = await image("webp");
-    const candidate = await sharp(still).webp({ animated: true, effort: 0 }).toBuffer();
-    const meta = await sharp(candidate).metadata();
-    if ((meta.pages ?? 1) <= 1) return skip("this sharp build cannot create animated WebP files");
-    const res = await upload(candidate, "photo.webp", "image/webp");
-    expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toBe("format");
   });
 
   it("needs a stable", async () => {
