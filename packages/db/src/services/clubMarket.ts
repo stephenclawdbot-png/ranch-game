@@ -67,11 +67,12 @@ export async function clubSupplyCounts(ex: Executor, now: Date): Promise<{ clubL
   return { clubLots: Number(lots?.club ?? 0), playerLots: Number(lots?.player ?? 0), clubOffers: Number(offers?.club ?? 0), playerOffers: Number(offers?.player ?? 0) };
 }
 
-/** Mints one racing-age Club horse (the Live-runner minting) at `rating`. */
-async function mintClubHorse(tx: Executor, input: { seed: string; index: number; rating: number; now: Date }, hooks: GameHooks): Promise<HorseRow> {
+/** Mints one racing-age Club horse (the Live-runner minting) of the day's quality (game-core clubSaleQuality). */
+async function mintClubHorse(tx: Executor, input: { seed: string; index: number; day: string; now: Date }, hooks: GameHooks): Promise<HorseRow> {
   const season = seasonNumberAt(input.now);
   const make = hooks.houseHorse ?? defaultHooks.houseHorse!;
-  const spec = make({ seed: input.seed, index: input.index, raceClass: "club", rating: input.rating, season });
+  const { rating, rarity } = gc.clubSaleQuality(input.day, input.index);
+  const spec = make({ seed: input.seed, index: input.index, raceClass: "club", rating, rarity, season });
   const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", birthSeasonNumber: season, now: input.now });
   return lockHorse(tx, id);
 }
@@ -105,7 +106,7 @@ export async function runClubMarket(db: Db, now: Date, hooks: GameHooks = defaul
     const appraise = hooks.appraise ?? defaultAppraise;
     let listed = 0;
     for (let i = 0; i < toList; i++) {
-      const horse = await mintClubHorse(tx, { seed, index: i, rating: gc.clubSaleRating(day, i), now }, hooks);
+      const horse = await mintClubHorse(tx, { seed, index: i, day, now }, hooks);
       const appraisal = appraise(horse);
       let price = gc.clubSalePrice(appraisal);
       if (isGenome(horse.genome)) {
@@ -163,7 +164,7 @@ export async function runClubMarket(db: Db, now: Date, hooks: GameHooks = defaul
         if (chosen.length >= need) break;
         if (!(await leaseHorseBlock(tx, h, null, now))) chosen.push(h);
       }
-      for (let i = chosen.length; i < need; i++) chosen.push(await mintClubHorse(tx, { seed, index: 100 + i, rating: gc.clubSaleRating(day, 100 + i), now }, hooks));
+      for (let i = chosen.length; i < need; i++) chosen.push(await mintClubHorse(tx, { seed, index: 100 + i, day, now }, hooks));
       for (const [i, h] of chosen.entries()) {
         const [offer] = await tx
           .insert(horseLeaseListings)

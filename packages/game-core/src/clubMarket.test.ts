@@ -10,7 +10,7 @@ import {
   clubSaleCap,
   clubSaleLotsToList,
   clubSalePrice,
-  clubSaleRating,
+  clubSaleQuality,
 } from "./clubMarket";
 import { LEASE_OWNER_SHARE_MAX_PCT, LEASE_OWNER_SHARE_MIN_PCT, LEASE_TERMS_DAYS } from "./leasing";
 import { LISTING_CEILING_PERMILLE, LISTING_FLOOR_PERMILLE } from "./economy";
@@ -51,11 +51,13 @@ describe("Club market knobs", () => {
   });
 
   it("spreads ratings, mostly 30-70, deterministically", () => {
-    const rs = Array.from({ length: 400 }, (_, i) => clubSaleRating("2026-11-01", i));
+    const qs = Array.from({ length: 400 }, (_, i) => clubSaleQuality("2026-11-01", i));
+    const rs = qs.map((q) => q.rating);
+    expect(qs.every((q) => (q.rating > 70) === (q.rarity === "uncommon"))).toBe(true);
     expect(rs.every((r) => r >= 30 && r <= 90)).toBe(true);
     const better = rs.filter((r) => r > 70).length;
     expect(better).toBeGreaterThan(20);
     expect(better).toBeLessThan(120);
-    expect(clubSaleRating("2026-11-01", 3)).toBe(rs[3]);
+    expect(clubSaleQuality("2026-11-01", 3)).toEqual(qs[3]);
   });
 });

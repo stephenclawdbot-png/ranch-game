@@ -13,6 +13,7 @@
  * Integer maths only, like the rest of game-core.
  */
 import { Rng, seedFrom } from "./rng";
+import type { Rarity } from "./types";
 
 /** Club horses minted and listed for sale each UTC day (while there is room under the cap). */
 export const CLUB_SALE_LISTINGS_PER_DAY = 3;
@@ -31,6 +32,10 @@ export const CLUB_LEASE_OWNER_SHARE_PCT = 50;
 /** Rating band most Club horses come from (inclusive). */
 export const CLUB_RATING_MIN = 30;
 export const CLUB_RATING_MAX = 70;
+/** Genome rarity of an ordinary Club horse (its ability, so its appraisal and price). */
+export const CLUB_RARITY: Rarity = "common";
+/** Genome rarity of the occasional better Club horse. */
+export const CLUB_BETTER_RARITY: Rarity = "uncommon";
 /** Chance (per mille) that a Club sale horse comes from the better band instead. */
 export const CLUB_BETTER_HORSE_PERMILLE = 150;
 /** The better band (inclusive). */
@@ -57,10 +62,15 @@ export function clubSalePrice(appraisal: number): number {
   return Math.max(1, Math.floor((appraisal * CLUB_SALE_PRICE_PERMILLE) / 1000));
 }
 
-/** The rating of the `index`-th Club sale horse minted on `day`: mostly 30-70, now and then better. Deterministic. */
-export function clubSaleRating(day: string, index: number): number {
+/**
+ * The quality of the `index`-th Club horse minted on `day`: mostly a common horse rated 30-70, now
+ * and then an uncommon one rated 71-90. Deterministic.
+ */
+export function clubSaleQuality(day: string, index: number): { rating: number; rarity: Rarity } {
   const rng = new Rng(seedFrom("club-sale-rating", day, index));
-  return rng.chance(CLUB_BETTER_HORSE_PERMILLE) ? rng.range(CLUB_BETTER_RATING_MIN, CLUB_BETTER_RATING_MAX) : rng.range(CLUB_RATING_MIN, CLUB_RATING_MAX);
+  return rng.chance(CLUB_BETTER_HORSE_PERMILLE)
+    ? { rating: rng.range(CLUB_BETTER_RATING_MIN, CLUB_BETTER_RATING_MAX), rarity: CLUB_BETTER_RARITY }
+    : { rating: rng.range(CLUB_RATING_MIN, CLUB_RATING_MAX), rarity: CLUB_RARITY };
 }
 
 /** The lease term of the `index`-th Club offer made on `day`. */
