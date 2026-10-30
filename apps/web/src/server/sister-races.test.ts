@@ -10,6 +10,7 @@ import { conditionRating } from "@/lib/aptitude";
 import { enterLive, quickPickLive, raceList } from "./game";
 import { DEFAULT_SILKS, horseFromRow } from "./horseView";
 import type { Session } from "./session";
+import { SLOT_KEY_PREFIX } from "@thoroughbred/db";
 
 let h: DbHandle;
 const T0 = new Date(Date.UTC(2026, 10, 2, 12, 0, 7));
@@ -44,7 +45,7 @@ function slotRace(extra: Partial<CreateRaceInput> = {}) {
     purse: 2_000,
     maxRunners: 3,
     targetRunners: 3,
-    slotKey: `live:9${String(++slotN).padStart(6, "0")}`,
+    slotKey: `${SLOT_KEY_PREFIX}9${String(++slotN).padStart(6, "0")}`,
     ...extra,
   });
 }

@@ -22,7 +22,7 @@ import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import type { RaceKit } from "@thoroughbred/shared";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
-import { ensureSisterRace } from "./card";
+import { LIVE_SLOT_KEY_RE, ensureSisterRace } from "./card";
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
@@ -535,7 +535,7 @@ function defaultHouseHorse(input: { seed: string; index: number; raceClass: stri
  */
 export function callsOffWithoutPlayers(race: Pick<RaceRow, "kind" | "slotKey" | "conditions">): boolean {
   const c = (race.conditions ?? {}) as RaceConditions;
-  return (race.kind === "scheduled" || race.kind === "feature") && /^live:\d+(:\d+)?$/.test(race.slotKey ?? "") && !c.calendar && !c.sponsor;
+  return (race.kind === "scheduled" || race.kind === "feature") && LIVE_SLOT_KEY_RE.test(race.slotKey ?? "") && !c.calendar && !c.sponsor;
 }
 
 /**

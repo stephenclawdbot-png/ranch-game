@@ -12,6 +12,7 @@ import { raceDayRiskKey } from "@/lib/raceDay";
 import { enterLive, entryOptions, liveChunk, raceCard, raceHooks, scratchLive, servedReplay, settleIfDue, verifyRace } from "./game";
 import { engineHorseFromSnapshot } from "./horseView";
 import type { Session } from "./session";
+import { SLOT_KEY_PREFIX } from "@thoroughbred/db";
 
 let h: DbHandle;
 const T0 = new Date(Date.UTC(2026, 10, 2, 12, 0, 7));
@@ -47,7 +48,7 @@ function liveRace(going: "good" | "soft" | "firm", extra: Partial<CreateRaceInpu
     purse: 16_000,
     maxRunners: 12,
     targetRunners: 6,
-    slotKey: `live:8${String(slotN).padStart(6, "0")}`,
+    slotKey: `${SLOT_KEY_PREFIX}8${String(slotN).padStart(6, "0")}`,
     ...extra,
   });
 }

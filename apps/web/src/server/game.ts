@@ -79,6 +79,8 @@ import {
   type RaceConditions,
   type RaceEntryRow,
   type RunnerOutcome,
+  slotIndexOf,
+  slotKeyOf,
   stablePhotoHashes,
 } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
@@ -524,7 +526,7 @@ export async function raceList(db: Db, now: Date, viewerStableId: string | null,
   const upcoming = await Promise.all(rows.map((r) => summarize(db, r, now, viewerStableId)));
   // Sister courses (§4d) sort right after their original: name them under the original's row.
   for (const [i, r] of rows.entries()) {
-    if (!r.slotKey || !/^live:\d+$/.test(r.slotKey)) continue;
+    if (!r.slotKey || slotIndexOf(r.slotKey) === null || r.slotKey !== slotKeyOf(slotIndexOf(r.slotKey)!)) continue;
     const courses = rows
       .filter((s) => s.slotKey?.startsWith(`${r.slotKey}:`))
       .map((s) => String((s.conditions as RaceConditions).track ?? ""))

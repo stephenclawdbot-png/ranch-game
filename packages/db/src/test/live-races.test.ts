@@ -13,6 +13,7 @@ import { getEntryBank, localDate, refillEntries, setTimezone, upgradeEntryTier }
 import { getBalance } from "../services/ledger";
 import { cancelRace, createRace, enterRace, getRaceForSimulation, lockField, scratchEntry, settleRace, type CreateRaceInput } from "../services/races";
 import { at, count, DAY, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
+import { SLOT_KEY_PREFIX } from "../services/card";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -43,6 +44,30 @@ async function bank(accountId: string, now = T0) {
 }
 
 describe("race card", () => {
+  it("publishes meetings over a card left by an older slot length (3-minute keys) without clashing or doubling", async () => {
+    const now = at(60 * DAY);
+    const first = slotIndexAt(now) + 1;
+    const window = Array.from({ length: RULES.cardHorizonMs / RULES.slotMs }, (_, i) => first + i);
+    const meeting = window.filter(isCardSlot);
+    // The 3-minute card (production until 2026-10-30) keyed its races "live:<3-minute index>": those
+    // numbers include today's 15-minute indices, on races long past.
+    const old = (key: string, postTime: Date) =>
+      createRace(h.db, { kind: "scheduled", name: `Old card ${key}`, raceClass: "maiden", conditions: {}, postTime, entriesCloseAt: new Date(postTime.getTime() - 30_000), slotKey: key });
+    for (const i of meeting.slice(0, 3)) {
+      const r = await old(`live:${i}`, new Date(now.getTime() - 40 * DAY));
+      await h.db.update(races).set({ status: "settled" }).where(eq(races.id, r.id));
+    }
+    // ...and one race the old card published at what is now a meeting slot's post time
+    const takenSlot = meeting[3]!;
+    await old(`live:${takenSlot * 5}`, slotPostTime(takenSlot));
+    const card = await ensureRaceCard(h.db, now);
+    const keys = new Set(card.map((r) => r.slotKey));
+    for (const i of meeting.filter((i) => i !== takenSlot)) expect(keys.has(`${SLOT_KEY_PREFIX}${i}`)).toBe(true);
+    // the old race keeps its time: no second race at the same post time
+    expect(card.filter((r) => r.postTime.getTime() === slotPostTime(takenSlot).getTime())).toHaveLength(1);
+    expect(keys.has(`live:${takenSlot * 5}`)).toBe(true);
+  });
+
   it("publishes the next day's race meetings (and calendar races), one race per slot, idempotently across concurrent instances", async () => {
     const now = at(30 * DAY);
     const cards = await Promise.all([ensureRaceCard(h.db, now), ensureRaceCard(h.db, now), ensureRaceCard(h.db, now)]);
@@ -52,9 +77,9 @@ describe("race card", () => {
     // three meetings of eight a day: a day ahead holds 24 meeting races (a calendar race takes one of them)
     expect(RULES.cardHorizonMs).toBe(gc.CARD_HORIZON_MS);
     expect(expected.length).toBe(gc.LIVE_RACES_PER_DAY);
-    expect(cards[0]!.map((r) => r.slotKey)).toEqual(expected.map((i) => `live:${i}`));
+    expect(cards[0]!.map((r) => r.slotKey)).toEqual(expected.map((i) => `${SLOT_KEY_PREFIX}${i}`));
     expect(cards[1]!.map((r) => r.seedCommitment)).toEqual(cards[0]!.map((r) => r.seedCommitment));
-    expect(await count(h.db, "races", `slot_key in (${window.map((i) => `'live:${i}'`).join(",")})`)).toBe(expected.length);
+    expect(await count(h.db, "races", `slot_key in (${window.map((i) => `'${SLOT_KEY_PREFIX}${i}'`).join(",")})`)).toBe(expected.length);
     expect(RULES.entriesCloseBeforePostMs).toBe(30_000); // one going-to-post constant, from game-core
     for (const r of cards[0]!) {
       expect(r.entriesCloseAt.getTime()).toBe(r.postTime.getTime() - 30_000);
@@ -126,7 +151,7 @@ describe("race card", () => {
     let calendarIndex = slotIndexAt(now) + 1;
     while (!isCalendarSlot(calendarIndex)) calendarIndex++;
     await ensureRaceCard(h.db, new Date(slotPostTime(calendarIndex).getTime() - RULES.cardHorizonMs + MIN));
-    const [calendar] = await h.db.select().from(races).where(eq(races.slotKey, `live:${calendarIndex}`));
+    const [calendar] = await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${calendarIndex}`));
 
     const tick = await tickRaceCard(h.db, entered.entriesCloseAt.getTime() > empty.entriesCloseAt.getTime() ? entered.entriesCloseAt : empty.entriesCloseAt);
     expect(tick.calledOff).toContain(empty.id);
@@ -393,7 +418,7 @@ describe("sister courses", () => {
       purse: 2_000,
       maxRunners: 4,
       targetRunners: 4,
-      slotKey: `live:9000${String(++slotN).padStart(3, "0")}`,
+      slotKey: `${SLOT_KEY_PREFIX}9000${String(++slotN).padStart(3, "0")}`,
       ...extra,
     });
   }

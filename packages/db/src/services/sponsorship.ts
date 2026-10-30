@@ -23,7 +23,7 @@ import { DomainError } from "../errors";
 import { inboxItems, raceSponsorships, races, type RaceRow, type RaceSponsorshipRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { lockStableOf } from "./accounts";
-import { cardSlotAt, isCalendarSlot, isCardSlot, slotIndexAt, slotIndexOf, slotPostTime } from "./card";
+import { SLOT_KEY_PREFIX, cardSlotAt, isCalendarSlot, isCardSlot, slotIndexAt, slotIndexOf, slotKeyOf, slotPostTime } from "./card";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import type { CreateRaceInput, RaceConditions, RaceKind } from "./races";
 import { audit, runTx } from "./tx";
@@ -105,7 +105,6 @@ export function sponsoredRaceName(stableName: string, baseName: string, track?: 
   return `The ${sanitiseSponsorName(stableName)} ${label}`;
 }
 
-const slotKeyOf = (index: number) => `live:${index}`;
 const isSponsorableKind = (kind: RaceKind) => kind === "scheduled" || kind === "feature";
 
 /** A Live card slot on the sponsor list. */
@@ -181,7 +180,7 @@ export async function listSponsorSlots(ex: Executor, now: Date, opts: { from?: D
   const published = await ex
     .select()
     .from(races)
-    .where(and(gte(races.postTime, slotPostTime(first)), lte(races.postTime, slotPostTime(last)), sql`${races.slotKey} ~ '^live:[0-9]+$'`));
+    .where(and(gte(races.postTime, slotPostTime(first)), lte(races.postTime, slotPostTime(last)), sql`${races.slotKey} ~ ${`^${SLOT_KEY_PREFIX}[0-9]+$`}`));
   const byIndex = new Map(published.map((r) => [slotIndexOf(r.slotKey)!, r]));
   const sold = await ex
     .select()

@@ -34,9 +34,23 @@ export function slotPostTime(index: number): Date {
   return new Date(RULES.seasonEpochMs + index * RULES.slotMs);
 }
 
+/**
+ * Live card slot keys: `<prefix><index>`, sisters `<prefix><index>:<n>`. The prefix carries the slot
+ * length because the index counts slots from the season epoch: production ran 3-minute slots keyed
+ * `live:<index>` until 2026-10-30, and a 15-minute index reuses those numbers (races.slot_key is
+ * unique), so a new slot length must get a new prefix.
+ */
+export const SLOT_KEY_PREFIX = `live${RULES.slotMs / 60_000}m:`;
+export const slotKeyOf = (index: number): string => `${SLOT_KEY_PREFIX}${index}`;
+const SLOT_KEY_RE = new RegExp(`^${SLOT_KEY_PREFIX}(\\d+)(?::\\d+)?$`);
+/** Any Live card slot key, this slot length or an earlier one (`live:` = the old 3-minute card). */
+export const LIVE_SLOT_KEY_RE = /^live(?:\d+m)?:\d+(?::\d+)?$/;
+/** SQL LIKE pattern matching every Live card slot key, old and new. */
+export const LIVE_SLOT_KEY_LIKE = "live%:%";
+
 /** Slot index of a Live card slot key (sisters share the original's index); null for anything else. */
 export function slotIndexOf(slotKey: string | null): number | null {
-  const m = /^live:(\d+)(?::\d+)?$/.exec(slotKey ?? "");
+  const m = SLOT_KEY_RE.exec(slotKey ?? "");
   return m ? Number(m[1]!) : null;
 }
 
@@ -174,7 +188,7 @@ function plateCardSlot(index: number, wf: gc.RaceSlot): CreateRaceInput {
     maxRunners: RULES.maxField,
     targetRunners: RULES.maxField,
     seasonNumber: wf.season,
-    slotKey: `live:${index}`,
+    slotKey: slotKeyOf(index),
   };
 }
 
@@ -207,7 +221,7 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
     maxRunners: Math.min(16, sp.maxRunners),
     targetRunners: RULES.maxField,
     seasonNumber: sp.season,
-    slotKey: `live:${index}`,
+    slotKey: slotKeyOf(index),
   };
 }
 
@@ -292,7 +306,7 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     maxRunners: RULES.maxField,
     targetRunners: RULES.minField + (h[29]! % (RULES.maxField - RULES.minField + 1)),
     seasonNumber: seasonNumberAt(postTime),
-    slotKey: `live:${index}`,
+    slotKey: slotKeyOf(index),
   };
 }
 
@@ -327,15 +341,17 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
     db
       .select()
       .from(races)
-      .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs)), like(races.slotKey, "live:%")))
+      .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs)), like(races.slotKey, LIVE_SLOT_KEY_LIKE)))
       .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
   let card = await readCard();
   const published = new Set(card.map((r) => r.slotKey));
+  // a post time that already has a card race (e.g. one published under an older slot length) is taken
+  const taken = new Set(card.filter((r) => !/:\d+:\d+$/.test(r.slotKey ?? "")).map((r) => r.postTime.getTime()));
   const rows = [];
   for (let i = first; i <= last; i++) {
-    if (published.has(`live:${i}`)) continue;
+    if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime())) continue;
     const input = make(i);
-    if (input) rows.push(raceValues({ ...input, slotKey: `live:${i}` }));
+    if (input) rows.push(raceValues({ ...input, slotKey: slotKeyOf(i) }));
   }
   if (rows.length) await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey });
   // sponsorships bought before their slot was on the card take the name now (sponsorship.ts;
@@ -361,12 +377,12 @@ export async function lockSlot(tx: Tx, index: number): Promise<void> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`slot:${index}`}))`);
 }
 
-/** A slot's races: the original (live:<i>) first, then its sisters (live:<i>:n) in order. */
+/** A slot's races: the original (slotKeyOf(i)) first, then its sisters (`<key>:n`) in order. */
 async function slotRaces(ex: Executor, index: number): Promise<RaceRow[]> {
   return ex
     .select()
     .from(races)
-    .where(or(eq(races.slotKey, `live:${index}`), like(races.slotKey, `live:${index}:%`)))
+    .where(or(eq(races.slotKey, slotKeyOf(index)), like(races.slotKey, `${slotKeyOf(index)}:%`)))
     .orderBy(asc(races.slotKey));
 }
 
@@ -398,11 +414,11 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
   if (now >= race.entriesCloseAt) return null;
   await lockSlot(tx, index);
   const slot = await slotRaces(tx, index);
-  const sisters = slot.filter((r) => r.slotKey !== `live:${index}`);
+  const sisters = slot.filter((r) => r.slotKey !== slotKeyOf(index));
   if (sisters.length >= SISTER_MAX) return null;
   const entered = await playerEntryCounts(tx, slot.map((r) => r.id));
   if (slot.some((r) => r.id !== race.id && hasFreeGate(r, entered.get(r.id) ?? 0, now))) return null;
-  const original = slot.find((r) => r.slotKey === `live:${index}`) ?? race;
+  const original = slot.find((r) => r.slotKey === slotKeyOf(index)) ?? race;
   const origTrack = String((original.conditions as RaceConditions).track ?? "");
   const used = new Set(slot.map((r) => String((r.conditions as RaceConditions).track ?? "")));
   const start = Math.max(0, TRACKS.indexOf(origTrack));
@@ -427,7 +443,7 @@ export async function ensureSisterRace(tx: Tx, race: RaceRow, now: Date): Promis
         targetRunners: race.targetRunners,
         entryCost: race.entryCost,
         seasonNumber: race.seasonNumber,
-        slotKey: `live:${index}:${sisters.length + 2}`,
+        slotKey: `${slotKeyOf(index)}:${sisters.length + 2}`,
       }),
     )
     .onConflictDoNothing({ target: races.slotKey }) // the lock's belt and braces

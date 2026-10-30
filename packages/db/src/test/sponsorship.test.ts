@@ -24,6 +24,7 @@ import {
   sponsorWindow,
 } from "../services/sponsorship";
 import { at, DAY, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
+import { SLOT_KEY_PREFIX } from "../services/card";
 
 let h: DbHandle;
 beforeAll(async () => {
@@ -131,7 +132,7 @@ describe("buying a sponsorship", () => {
     // later the card publishes the slot: the race carries the sponsor's name
     const publishAt = new Date(slotPostTime(index).getTime() - RULES.cardHorizonMs + MIN);
     await ensureRaceCard(h.db, publishAt);
-    const [race] = await h.db.select().from(races).where(eq(races.slotKey, `live:${index}`));
+    const [race] = await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${index}`));
     expect(race!.name).toBe(first.raceName);
     expect(sponsorOf(race!)).toMatchObject({ sponsorshipId: first.sponsorship.id, stableId: p.stableId, baseName: slot.name });
     expect(sponsorOf(race!)!.silks).toMatchObject({ pattern: "solid" });
@@ -139,7 +140,7 @@ describe("buying a sponsorship", () => {
     expect(row!.raceId).toBe(race!.id);
     // publishing again changes nothing
     await ensureRaceCard(h.db, new Date(publishAt.getTime() + MIN));
-    const [same] = await h.db.select().from(races).where(eq(races.slotKey, `live:${index}`));
+    const [same] = await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${index}`));
     expect(same!.name).toBe(first.raceName);
     // the slot shows as sponsored on the list
     const listed = (await listSponsorSlots(h.db, now)).find((s) => s.index === index);
@@ -204,7 +205,7 @@ describe("race meetings", () => {
     const p = await newPlayer(h.db, { credits: 20_000 });
     const index = emptySlot(slotIndexAt(new Date(now.getTime() + 2 * DAY)));
     // bought under the old every-15-minutes card (a card that had a race in every slot)
-    const oldCard = (i: number) => ({ ...defaultCardSlot(ordinarySlot(i)), postTime: slotPostTime(i), entriesCloseAt: new Date(slotPostTime(i).getTime() - 30_000), slotKey: `live:${i}` });
+    const oldCard = (i: number) => ({ ...defaultCardSlot(ordinarySlot(i)), postTime: slotPostTime(i), entriesCloseAt: new Date(slotPostTime(i).getTime() - 30_000), slotKey: `${SLOT_KEY_PREFIX}${i}` });
     const bought = await sponsorRace(h.db, { accountId: p.accountId, slotIndex: index, idempotencyKey: key(), now, cardSlot: oldCard });
     const paid = bought.sponsorship.price;
     expect(await getBalance(h.db, p.accountId)).toBe(20_000 - paid);
@@ -212,7 +213,7 @@ describe("race meetings", () => {
     const [after] = await h.db.select().from(raceSponsorships).where(eq(raceSponsorships.id, bought.sponsorship.id));
     expect(after!.refundedAt).not.toBeNull();
     expect(await getBalance(h.db, p.accountId)).toBe(20_000);
-    expect(await h.db.select().from(races).where(eq(races.slotKey, `live:${index}`))).toHaveLength(0);
+    expect(await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${index}`))).toHaveLength(0);
   });
 });
 
@@ -232,7 +233,7 @@ describe("a published race", () => {
       purse: 1_000,
       maxRunners: 4,
       targetRunners: 4,
-      slotKey: `live:${index}`,
+      slotKey: `${SLOT_KEY_PREFIX}${index}`,
     });
     const res = await sponsorRace(h.db, { accountId: sponsor.accountId, slotIndex: index, idempotencyKey: key(), now: T0 });
     const name = `The ${await stableName(sponsor.accountId)} Maiden Stakes`;
@@ -248,7 +249,7 @@ describe("a published race", () => {
       const horse = await makeHorse(h.db, p.stableId, { rating: 40, wins: 0, starts: 0, name: `Sponsor Runner ${i}` });
       await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "front", meta: { stableName: `Owner ${i}` }, now: T0 });
     }
-    const [sister] = await h.db.select().from(races).where(like(races.slotKey, `live:${index}:%`));
+    const [sister] = await h.db.select().from(races).where(like(races.slotKey, `${SLOT_KEY_PREFIX}${index}:%`));
     expect(sister!.name).toBe("Kestrel Downs Maiden Stakes");
     expect(sponsorOf(sister!)).toBeNull();
     expect(await raceSponsor(h.db, sister!)).toMatchObject({ stableId: sponsor.stableId });
@@ -278,7 +279,7 @@ describe("a published race", () => {
       postTime: slotPostTime(index),
       entriesCloseAt: new Date(slotPostTime(index).getTime() - 30_000),
       purse: 1_500,
-      slotKey: `live:${index}`,
+      slotKey: `${SLOT_KEY_PREFIX}${index}`,
     });
     await sponsorRace(h.db, { accountId: sponsor.accountId, slotIndex: index, idempotencyKey: key(), now: T0 });
     expect(await getBalance(h.db, sponsor.accountId)).toBe(10_000 - 4_500);
