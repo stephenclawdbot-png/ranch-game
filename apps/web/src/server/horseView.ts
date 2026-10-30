@@ -5,7 +5,7 @@
 import type { Horse, Silks } from "@thoroughbred/shared";
 import { SilksSchema } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
-import { isGenome, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
+import { isGenome, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
 import type { RacePlan, RiskView, StableHorse } from "@/lib/types";
 import { houseOwnerFor, storyHouseHorse } from "./storyField";
 
@@ -116,11 +116,15 @@ export function engineHorseFromSnapshot(snapshot: Record<string, unknown>, race:
   const conds = raceConds(race);
   const natural = gc.runningStyle(state.genome) as Horse["style"];
   const plan = parsePlan(snapshot.plan, natural);
+  // Race-day extras bought with the entry (a physio session lifts fatigue before the off).
+  // House horses and entries made before extras existed have none: their snapshot is unchanged.
+  const raceDay = isHouse ? undefined : storedRaceDay(snapshot) ?? undefined;
   return gc.raceSnapshot(state, {
     nowMs: race.postTime.getTime(),
     silks,
     race: { going: conds.going, fieldSize: race.targetRunners, bigCrowd: bigCrowd(race), surface: conds.surface, distanceM: conds.distanceM },
     plan,
+    ...(raceDay ? { raceDay } : {}),
   }).horse;
 }
 
@@ -193,10 +197,13 @@ export function geneticsLineOf(row: HorseRow): string | null {
   return isGenome(row.genome) ? gc.geneticsLine(toHorseState(row).genome) : null;
 }
 
-/** Injury risk for a specific race and ride (the entry sheet). */
-export function raceRisk(row: HorseRow, race: Pick<PublicRace, "conditions">, intensity: RacePlan["intensity"], nowMs: number): RiskView | null {
+/**
+ * Injury risk for a specific race and ride (the entry sheet), with any race-day extras: physio
+ * takes its fatigue off first, shoes and a vet check are factor lines (game-core injuryRisk).
+ */
+export function raceRisk(row: HorseRow, race: Pick<PublicRace, "conditions">, intensity: RacePlan["intensity"], nowMs: number, raceDay?: Pick<gc.RaceDayChoice, "extras">): RiskView | null {
   if (!isGenome(row.genome)) return null;
-  const state = toHorseState(row);
+  const state = gc.withPhysio(toHorseState(row), raceDay, nowMs);
   const c = raceConds(race);
-  return riskView(gc.injuryRisk(state, { nowMs, going: c.going, distanceM: c.distanceM, intensity, stage: gc.stageOf(state) }));
+  return riskView(gc.injuryRisk(state, { nowMs, going: c.going, distanceM: c.distanceM, intensity, stage: gc.stageOf(state), ...(raceDay ? { raceDay } : {}) }));
 }

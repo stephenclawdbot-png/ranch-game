@@ -21,7 +21,8 @@ import {
   SURFACE_HET_ADAPT_BONUS,
 } from "./genome";
 import { CAREER_MAX_STARTS, CARE_TO_RACING, careBonus, displayAge, sexLabel, sharedLifeStage, stageOf } from "./lifecycle";
-import { conditionReport } from "./condition";
+import { conditionReport, withPhysio } from "./condition";
+import type { RaceDayChoice } from "./raceDay";
 import { appearanceOf } from "./coat";
 import { Rng, clampInt } from "./rng";
 
@@ -189,6 +190,8 @@ export interface SnapshotContext {
   /** lb carried above the lightest horse in a handicap (see ratings.handicapWeights). */
   extraWeightLb?: number;
   plan?: RacePlan;
+  /** Race-day extras (raceDay.ts): a physio session takes fatigue off before the race. */
+  raceDay?: Pick<RaceDayChoice, "extras">;
 }
 
 export interface Snapshot {
@@ -204,7 +207,8 @@ export interface Snapshot {
  */
 export function raceSnapshot(state: HorseState, ctx: SnapshotContext): Snapshot {
   const base = currentStats(state);
-  const cond = conditionReport(state, ctx.nowMs);
+  // Physio only lifts a fatigue penalty: the condition multiplier can't pass a rested horse's.
+  const cond = conditionReport(withPhysio(state, ctx.raceDay, ctx.nowMs), ctx.nowMs);
   const s = { ...base };
   for (const k of ["speed", "stamina", "burst"] as const) s[k] = (s[k] * cond.multiplier) / 1000;
   s.temperament += Math.round((cond.morale * 30) / 100);

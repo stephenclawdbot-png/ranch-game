@@ -16,7 +16,19 @@ import { ENERGY_MAX, MAX_TICKS, SAMPLE_EVERY, TICK_HZ, US_PER_TICK, buildProfile
 import { Rng } from "./prng";
 import { marginLabel, splitPurse } from "./results";
 
-export const ENGINE_VERSION = "1.1.0";
+/**
+ * The current engine model. 1.2.0 adds the optional per-runner `kit` (jockey and race-day
+ * equipment). A race whose entries carry no kit runs exactly as 1.1.0 did and is labelled
+ * LEGACY_ENGINE_VERSION, so every older race keeps its replay and its result hash.
+ */
+export const ENGINE_VERSION = "1.2.0";
+/** The model a race without any kit runs (bit-identical to 1.1.0). */
+export const LEGACY_ENGINE_VERSION = "1.1.0";
+
+/** The engine version a race with these entries is simulated (and hashed) under. */
+export function engineVersionFor(entries: readonly Pick<RaceEntry, "kit">[]): string {
+  return entries.some((e) => e.kit !== undefined) ? ENGINE_VERSION : LEGACY_ENGINE_VERSION;
+}
 
 // Positions are tracked in "sub-mm" units: mm * TICK_HZ. Advancing one tick at speed v (mm/s)
 // adds exactly v units, so no rounding ever accumulates.
@@ -90,11 +102,11 @@ function clamp(x: number, lo: number, hi: number): number {
   return x < lo ? lo : x > hi ? hi : x;
 }
 
-export function canonicalResult(seed: string, finishOrder: readonly FinishRecord[]): string {
+export function canonicalResult(seed: string, finishOrder: readonly FinishRecord[], engineVersion: string): string {
   return JSON.stringify([
     "thoroughbred-result",
     1,
-    ENGINE_VERSION,
+    engineVersion,
     seed,
     finishOrder.map((f) => [f.position, f.horseId, f.finishTimeUs, f.marginMm]),
   ]);
@@ -104,6 +116,7 @@ export function canonicalResult(seed: string, finishOrder: readonly FinishRecord
 export function runRace(input: RaceInput): RaceReplay {
   const race = input.race;
   const entries = normalizeEntries(input.entries);
+  const version = engineVersionFor(entries);
   const n = entries.length;
   const laneCount = Math.max(6, n);
   const laneMax = (laneCount - 1) * 1000;
@@ -533,7 +546,7 @@ export function runRace(input: RaceInput): RaceReplay {
 
   return {
     version: 1,
-    engineVersion: ENGINE_VERSION,
+    engineVersion: version,
     race,
     seedCommitment: commitSeed(input.seed),
     seed: input.seed,
@@ -555,7 +568,7 @@ export function runRace(input: RaceInput): RaceReplay {
       finishOrder: finishRecords,
       winningTimeUs: finishUs[winner]!,
       photoFinish,
-      resultHash: sha256Hex(canonicalResult(input.seed, finishRecords)),
+      resultHash: sha256Hex(canonicalResult(input.seed, finishRecords, version)),
     },
   };
 

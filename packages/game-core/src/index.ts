@@ -10,6 +10,7 @@ export * from "./coat";
 export * from "./genetics";
 export * from "./geneticsSummary";
 export * from "./condition";
+export * from "./raceDay";
 export * from "./lifecycle";
 export * from "./phenotype";
 export * from "./training";

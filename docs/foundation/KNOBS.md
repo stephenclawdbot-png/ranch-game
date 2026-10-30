@@ -97,6 +97,26 @@ Where column.
 | Half-field cap | stable ≤ `floor(targetRunners/2)` | packages/db/src/services/races.ts:306 | One stable may not fill more than half a field. | Field size |
 | `STABLE_DAILY_ENTRIES` / refill size (dead proposal) | 10 / 5 | packages/game-core/src/eligibility.ts:117, :120 | Older per-day budget helper; not used by the live bank. | None (duplicate) |
 
+### 2a. Race-day extras and jockeys (new 2026-10-30)
+
+Optional paid choices on the Live entry sheet (Extras step). Prices are `max(floor, min(cap, purse × share))`, rounded to 10 credits (`raceDayPrice`, packages/game-core/src/raceDay.ts:155). Charged with the entry, burned; refunded on a scratch before entries close or when the race is abandoned (packages/db/src/services/races.ts:295, :421, :827). Live races only (`raceDayProblem`). Stored in the entry snapshot as `raceDay` (choice + paid) and applied when the field locks.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| Soft-ground shoes | 2% of purse, 40..1,000; offered on soft/heavy only | packages/game-core/src/raceDay.ts:76 | Keeps `SHOES_KEEP_PERMILLE` of the going pace penalty (engine kit `goingPenaltyPermille`) and of the going's extra injury risk (soft 1.10 → 1.05, heavy 1.40 → 1.20). | Upsets on soft/heavy, injury rate, credit sink |
+| Firm-ground shoes | 2% of purse, 40..1,000; offered on firm only | packages/game-core/src/raceDay.ts:84 | Firm costs no pace; halves firm's extra injury risk (1.30 → 1.15). | Injury rate, credit sink |
+| `SHOES_KEEP_PERMILLE` | 500 | packages/game-core/src/raceDay.ts:68 | Share of what the going costs that still applies with shoes. | As above |
+| Physio session | 2% of purse, 40..1,000; every Live race | packages/game-core/src/raceDay.ts:92 | `PHYSIO_FATIGUE_OFF` fatigue off at the off (`withPhysio`, packages/game-core/src/condition.ts:47): race snapshot, injury risk and post-race fatigue. | Race strength of tired horses (never above rested), injury rate, credit sink |
+| `PHYSIO_FATIGUE_OFF` | 150 (not below 0) | packages/game-core/src/raceDay.ts:70 | Fatigue a physio session removes. | As above |
+| Pre-race vet check | 2% of purse, 40..1,000; every Live race | packages/game-core/src/raceDay.ts:100 | A "Vet-checked" injury factor line (packages/game-core/src/condition.ts:195). | Injury rate, credit sink |
+| `VET_CHECK_RISK_PERMILLE` | 750 (risk × 0.75) | packages/game-core/src/raceDay.ts:72 | Vet check multiplier. | Injury rate |
+| Jockey: stable apprentice | free (default) | packages/game-core/src/raceDay.ts:111 | Rides as every horse did before (no kit). | None |
+| Jockey: journeyman | 2.5% of purse, 50..1,500 | packages/game-core/src/raceDay.ts:121 | Day-form amplitude × 0.9, keen-early extra drain × 0.75 (engine kit). | Upset rate (both ways), value of temperament, credit sink |
+| Jockey: top jockey | 5% of purse, 100..3,000 | packages/game-core/src/raceDay.ts:130 | Day-form amplitude × 0.8, keen-early extra drain × 0.5. | As above |
+| Example prices | Maiden 2,000: 40 / 40 / 40, jockeys 50 / 100; Feature Qualifier 16,000: 320 each, jockeys 400 / 800; Weekend Feature 48,000: 960 each, jockeys 1,200 / 2,400 | derived | Shoes / physio / vet check, then journeyman / top. All-in at a Qualifier: 1,760 (plus the 800 entry fee). | Credit sink per Feature entry |
+| Harness: grinder | Qualifier / Weekend Feature: vet check, shoes when offered, physio if fatigue > 300, top jockey above 8,000 credits else journeyman; ordinary race: physio for a tired horse half the time; keeps 1,500 credits back | tools/season-harness/src/agents.ts (`grinderRaceDay`) | Simulated demand for the sink. | `credits.destroyed.race_extras`, `.jockey_fee` |
+| Harness: casual | 12% of visits enter one race from the sheet with a vet check (+ physio when tired) | tools/season-harness/src/agents.ts (`CASUAL_SHEET_PERMILLE`, `casualRaceDay`) | | As above |
+
 ## 3. Horse lifecycle
 
 | Knob | Value | Where | What it does | Moves which outcomes |
@@ -172,7 +192,7 @@ Where column.
 | Durability factor | `1600 − durability` permille (1.6× at 0, 0.6× at 1000) | packages/game-core/src/condition.ts:158 | Sound horses get hurt less. | Injury rate, value of durability breeding |
 | Fatigue factor | 1 + 2 × (fatigue − 300)/700 (up to 3×) | packages/game-core/src/condition.ts:161 | Tired horses get hurt more. | Injury rate |
 | Frequency factor | +0.4 per run already today; +0.1 per run over 6 in 7 days | packages/game-core/src/condition.ts:166 | Racing often is risky. | Injury rate, starts/day |
-| `GOING_RISK` | firm 1.3, good 1.0, soft 1.1, heavy 1.4 | packages/game-core/src/condition.ts:120 | Going factor. | Injury rate |
+| `GOING_RISK` | firm 1.3, good 1.0, soft 1.1, heavy 1.4 (halved excess with shoes for the going: §2a) | packages/game-core/src/condition.ts:120 | Going factor. | Injury rate |
 | `INTENSITY_RISK` | conservative 0.7, normal 1.0, all_out 1.5 | packages/game-core/src/condition.ts:121 | Ride factor. | Injury rate |
 | Distance factor | ×1.1 over 2400 m | packages/game-core/src/condition.ts:172 | Long trips are riskier. | Injury rate |
 | `FRAGILE_RISK` | ×1.3 | packages/game-core/src/condition.ts:127 | Inherited fragile legs. | Injury rate |
@@ -184,6 +204,7 @@ Where column.
 | `FATAL_SHARE_OF_CAREER_ENDING` | 200 permille (Live races only) | packages/game-core/src/condition.ts:125 | 20% of career-ending injuries in Live races are fatal. | Fatality rate, population |
 | `INJURY_DAYS` | minor 2-4, moderate 6-12, career-ending 14-21, fatal 21 days | packages/game-core/src/condition.ts:187 | Recovery time by severity. | Starts/day, entries used |
 | Vet healing | +25% speed per vet level (max 3) | packages/game-core/src/condition.ts:200, :206 | Vet facility speeds healing. | Injury downtime |
+| Vet check (race day) | × 0.75, "Vet-checked" factor | packages/game-core/src/condition.ts:195 | Bought per entry (§2a). | Injury rate |
 | `VET_HEAL_BONUS_H` / `VET_TREATMENT_COST` | +24 h per treatment / 150 credits (once per injury per local day) | packages/game-core/src/condition.ts:220, packages/game-core/src/economy.ts:68 | Paid treatment. | Credit sink, downtime |
 | Story races | never fatal; unrated trials carry no injury roll | packages/game-core/src/career.ts (applyRun) | Fatal roll only when tier ≠ quick. | Fatality rate |
 | `INSURANCE_PREMIUM_PERMILLE` | 50 (5% of appraisal), one-off, to treasury | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Insure a racing horse once. | Credit sink |
@@ -195,16 +216,17 @@ Where column.
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `ENGINE_VERSION` | "1.1.0" | packages/racing-engine/src/simulate.ts:19 | Replays verify against this; any model change must bump it. | Replay verification |
+| `ENGINE_VERSION` / `LEGACY_ENGINE_VERSION` | "1.2.0" / "1.1.0" | packages/racing-engine/src/simulate.ts:24, :26 | Replays verify against `engineVersionFor(entries)`: a race whose entries carry no race-day `kit` runs and hashes exactly as 1.1.0 (every older race keeps its proof); with any kit it is 1.2.0. Any model change must bump it. | Replay verification |
+| Race-day kit (per runner) | `goingPenaltyPermille`, `formAmpPermille`, `keenPermille` (0..1000, optional; `RaceKitSchema` in packages/shared) | packages/racing-engine/src/model.ts:95-97, :109, :143 | Scales the going pace penalty, the day-form amplitude and the keen-early extra drain down. Set at the field lock from the entry's race-day choice (packages/db/src/services/races.ts:564); hashed into the field only when present (`fieldHashOf`, :583). | Upsets, going fit |
 | `TICK_HZ` / `MAX_TICKS` | 20 Hz / 600 s | packages/racing-engine/src/model.ts:11, :16 | Simulation step and cap. | Determinism |
 | `PAR_AT_1000` / `PAR_SLOPE` | 16,920 mm/s; −800 mm/s per 1000 m (+250/km beyond 2400 m) | packages/racing-engine/src/model.ts:20, :22, :77 | Par cruising speed by trip. | Race times, record times (Hall of Fame) |
 | `SPEED_PER_100` | 105 mm/s per 100 speed above 650 | packages/racing-engine/src/model.ts:24 | Value of the speed stat. | Which stat wins races |
 | `GOING_ADJ` | firm +120, good 0, soft −320, heavy −680 mm/s | packages/racing-engine/src/model.ts:26 | Track speed by going. | Race times |
-| `GOING_HORSE_PEN` | soft 140, heavy 300 × (1 − adaptability) | packages/racing-engine/src/model.ts:27 | Going hurts non-adaptable horses. | Upsets on soft/heavy |
+| `GOING_HORSE_PEN` | soft 140, heavy 300 × (1 − adaptability); × 0.5 with soft-ground shoes | packages/racing-engine/src/model.ts:27 | Going hurts non-adaptable horses. | Upsets on soft/heavy |
 | Off-surface penalty | 40 + 110 × (1 − adaptability) mm/s | packages/racing-engine/src/model.ts:29, :30, :92 | Running on a non-preferred surface. | Surface-fit importance |
 | Shorter than preferred trip | cruise − delta × (1100 − adaptability)/6000 | packages/racing-engine/src/model.ts:95 | Distance mismatch (too short). | Distance-fit importance |
 | Longer than preferred trip | drain × (1 + delta × (1100 − adaptability)/3,000,000) | packages/racing-engine/src/model.ts:112 | Distance mismatch (too long) drains energy. | Distance-fit importance |
-| Day form | triangular ± (220 + 200 × (1 − temperament)) mm/s; +25% in rain | packages/racing-engine/src/model.ts:32, :33, :102-104 | Main source of upsets; composed horses are steadier. | Upset rate, value of temperament |
+| Day form | triangular ± (220 + 200 × (1 − temperament)) mm/s; +25% in rain; × 0.9 journeyman, × 0.8 top jockey | packages/racing-engine/src/model.ts:32, :33, :105-110 | Main source of upsets; composed horses are steadier. | Upset rate, value of temperament |
 | Style match | ±15 mm/s cruise, ∓6 permille drain | packages/racing-engine/src/model.ts:35, :36 | Riding the natural style helps. | Tactic choice |
 | `KICK_BASE_M` | front 300, stalker 420, closer 660 m (scaled 0.82-1.4 by trip) | packages/racing-engine/src/model.ts:39, :121 | Where the kick starts. | Tactic outcomes |
 | `KICK_STRENGTH` | front 800, stalker/closer 1000 permille | packages/racing-engine/src/model.ts:41 | Kick intensity. | Tactic outcomes |
@@ -213,7 +235,7 @@ Where column.
 | Durability drain | 1000 + (600 − durability)/6 | packages/racing-engine/src/model.ts:113 | | |
 | Drain clamp | 450..2500 permille | packages/racing-engine/src/model.ts:119 | | |
 | Gate break | react 2-5 ticks + temperament gap/250; slow start chance 1.5% + gap/10 permille (+6..14 ticks) | packages/racing-engine/src/model.ts:128-130 | Starts. | Upsets, value of temperament |
-| Keen | temperament < 500: drain × (1 + (500 − t)/2000) in the first quarter | packages/racing-engine/src/model.ts:135, packages/racing-engine/src/simulate.ts:231 | Keen horses waste energy early. | Value of temperament |
+| Keen | temperament < 500: drain × (1 + (500 − t)/2000) in the first quarter; the extra × 0.75 journeyman, × 0.5 top jockey | packages/racing-engine/src/model.ts:141-143, packages/racing-engine/src/simulate.ts | Keen horses waste energy early. | Value of temperament |
 | `DRAFT_MUL` | 870 permille drain in a slipstream | packages/racing-engine/src/simulate.ts:31 | Drafting saves energy. | Tactic outcomes |
 | `BASE_BUDGET` / `TIRE_E` / `KICK_RESERVE` | 960,000 / 60,000 / 20,000 energy units | packages/racing-engine/src/simulate.ts:32, :36, :38 | Energy model. | Finishing order |
 | `WIDE_COST_DIV` | 1 permille speed per lane wide | packages/racing-engine/src/simulate.ts:37 | Ground lost wide. | Draw bias |
@@ -397,6 +419,8 @@ Where column.
 | Premium pack (credit demo) | 2,500 (only with `PREMIUM_PACK_DEMO=1`) | packages/db/src/rules.ts:115 | Kind `pack`. | Demo only |
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
+| Race-day extras | shoes / physio / vet check, 2% of purse each (40..1,000) | packages/game-core/src/raceDay.ts:75, packages/db/src/services/races.ts:373 | Kind `race_extras` (burn), refunded as `race_extras_refund` on a scratch before close or an abandoned race (§2a). | Credit sink |
+| Jockey fees | journeyman 2.5% (50..1,500), top 5% (100..3,000) of purse | packages/game-core/src/raceDay.ts:111, packages/db/src/services/races.ts:376 | Kind `jockey_fee` (burn), refunded as `jockey_fee_refund` (§2a). | Credit sink |
 
 ### 10c. Ledger kinds as recorded
 
@@ -421,6 +445,8 @@ Where column.
 | `insurance_premium` | player → treasury | packages/db/src/services/horses.ts:237 |
 | `breeding_fee` | player → burn + stud owner (or treasury for Club studs) | packages/db/src/services/breeding.ts:154 |
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
+| `race_extras` / `jockey_fee` | player → burn | packages/db/src/services/races.ts:373, :376 |
+| `race_extras_refund` / `jockey_fee_refund` | burn → player | packages/db/src/services/races.ts:295 (scratch :421, abandoned race :827) |
 
 ### 10d. Balance model
 

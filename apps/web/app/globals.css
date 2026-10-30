@@ -3821,6 +3821,16 @@ a.ped-node:focus-visible {
   font-weight: 700;
   color: #5a4630;
 }
+/* Race-day equipment and a booked jockey, printed like headgear codes on a real card. */
+.racecard-gear {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-style: italic;
+  font-weight: 800;
+  color: #7a4b12;
+}
 .racecard-fig {
   white-space: nowrap;
   font-family: var(--font-score);

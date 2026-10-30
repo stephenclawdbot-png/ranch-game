@@ -174,6 +174,23 @@ export const RaceConfigSchema = z.object({
 });
 export type RaceConfig = z.infer<typeof RaceConfigSchema>;
 
+/**
+ * Optional per-runner race-day settings (engine 1.2.0): what a hired jockey and race-day
+ * equipment change. Each field is the share (permille) of an existing cost or variance that
+ * still applies, so 1000 = no change and lower = less. Kit can only take away a penalty or
+ * narrow the day-form spread; it never adds ability beyond the horse's stats. An entry without
+ * `kit` runs exactly as in engine 1.1.0.
+ */
+export const RaceKitSchema = z.object({
+  /** Share of the going's pace penalty (soft/heavy ground, scaled by adaptability) that applies. */
+  goingPenaltyPermille: z.number().int().min(0).max(1000).optional(),
+  /** Share of the day-form amplitude (the main source of upsets) that applies. */
+  formAmpPermille: z.number().int().min(0).max(1000).optional(),
+  /** Share of the keen-early extra energy drain (low temperament) that applies. */
+  keenPermille: z.number().int().min(0).max(1000).optional(),
+});
+export type RaceKit = z.infer<typeof RaceKitSchema>;
+
 export const RaceEntrySchema = z.object({
   /** Starting gate, 1-based. Gate 1 is nearest the rail. */
   gate: z.number().int().min(1).max(16),
@@ -181,6 +198,8 @@ export const RaceEntrySchema = z.object({
   tactic: RunningStyleSchema,
   /** Immutable copy of the horse at entry lock. */
   horse: HorseSchema,
+  /** Jockey and equipment for this race (engine 1.2.0). Absent = the 1.1.0 ride. */
+  kit: RaceKitSchema.optional(),
 });
 export type RaceEntry = z.infer<typeof RaceEntrySchema>;
 

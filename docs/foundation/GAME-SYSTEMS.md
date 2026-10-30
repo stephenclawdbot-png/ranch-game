@@ -151,6 +151,7 @@ flowchart LR
     refill[Entry refills]
     prem[Insurance premiums]
     mfee[Market fee]
+    extras["Race-day extras, jockey fees (refunded on a scratch)"]
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks

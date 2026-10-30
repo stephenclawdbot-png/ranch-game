@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { RunningStyle } from "@thoroughbred/shared";
 import { pronoun } from "@/lib/aptitude";
-import { STYLE_LABEL, SURFACE_LABEL, formatDistance } from "@/lib/format";
+import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { api, type PlayerState } from "@/lib/player";
-import type { RacePlan, RideIntensity, RiskView, StableHorse } from "@/lib/types";
+import type { RaceDayOffer, RacePlan, RideIntensity, RiskView, StableHorse } from "@/lib/types";
+import type { JockeyKey, RaceDayChoice, RaceExtraKey } from "@thoroughbred/game-core";
 import { HorsePortrait } from "../HorsePortrait";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
@@ -41,6 +42,12 @@ function PackDiagram({ pos }: { pos: number }) {
       <span className="ml-1 h-3.5 w-[3px] bg-cream" />
     </span>
   );
+}
+
+/** The risk factor lines the sheet has room for: race-day extras first (they are the player's choice), then the rest. */
+function riskLines(factors: readonly string[]): string[] {
+  const chosen = (f: string) => f === "Vet-checked" || f.includes("(shod");
+  return [...factors.filter(chosen), ...factors.filter((f) => !chosen(f))].slice(0, 3);
 }
 
 export function riskText(r: RiskView | null | undefined): string {
@@ -199,11 +206,79 @@ export function PlanPicker({
           <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm" data-testid="injury-risk">
             <PixelIcon name="shield" size={16} />
             <span className={current.label === "low" ? "text-cream" : "font-bold text-negative"}>Injury risk {riskText(current)}</span>
-            {current.factors.length > 0 && <span className="text-cream-dim">· {current.factors.slice(0, 3).join(" · ")}</span>}
+            {current.factors.length > 0 && <span className="text-cream-dim">· {riskLines(current.factors).join(" · ")}</span>}
           </p>
         )}
       </fieldset>
     </>
+  );
+}
+
+/** Credits a race-day choice costs in this race (the offer carries the server's prices). */
+export function raceDayCost(offer: RaceDayOffer | null | undefined, choice: RaceDayChoice): number {
+  if (!offer) return 0;
+  const extras = offer.extras.filter((x) => choice.extras.includes(x.key)).reduce((a, x) => a + x.price, 0);
+  return extras + (offer.jockeys.find((j) => j.key === choice.jockey)?.price ?? 0);
+}
+
+/**
+ * The entry sheet's Extras step (Live races): optional race-day extras and a jockey, each with
+ * its price and what it does in plain words. Charged with the entry, refunded on a scratch
+ * before entries close or if the race is abandoned. Nothing here makes a horse better than
+ * its genes: extras only take away part of a cost or narrow the day-form swing.
+ */
+export function ExtrasPicker({ offer, choice, onChange }: { offer: RaceDayOffer; choice: RaceDayChoice; onChange: (c: RaceDayChoice) => void }) {
+  if (!offer.jockeys.length && !offer.extras.length) return null;
+  const toggle = (k: RaceExtraKey) => onChange({ ...choice, extras: choice.extras.includes(k) ? choice.extras.filter((x) => x !== k) : [...choice.extras, k] });
+  const jockey = offer.jockeys.find((j) => j.key === choice.jockey);
+  const total = raceDayCost(offer, choice);
+  return (
+    <fieldset className="min-w-0" data-testid="extras-step">
+      <legend className="t-title mb-1">Extras</legend>
+      <p className="mb-2 text-sm text-cream-dim">
+        Optional, paid in credits with the entry and refunded if you scratch before entries close. Small, published effects: none makes a horse faster than its genes allow.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {offer.extras.map((x) => {
+          const on = choice.extras.includes(x.key);
+          return (
+            <label
+              key={x.key}
+              className={`surface-2 flex min-h-11 cursor-pointer items-start gap-2 p-2.5 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brass-bright ${on ? "is-selected" : "hover:brightness-110"}`}
+              data-testid={`extra-${x.key}`}
+            >
+              <input type="checkbox" checked={on} onChange={() => toggle(x.key)} className="mt-1 h-4 w-4 shrink-0 accent-[#f2c86a]" />
+              <span className="min-w-0">
+                <span className="flex items-center justify-between gap-2 font-extrabold">
+                  {x.label}
+                  <span className="num shrink-0 text-sm text-cream">{formatCredits(x.price)} cr</span>
+                </span>
+                <span className="block text-sm leading-snug text-cream-dim">{x.effect}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {offer.jockeys.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1 text-sm font-bold text-cream">Jockey</p>
+          <div className="segmented flex-wrap" role="group" aria-label="Jockey">
+            {offer.jockeys.map((j) => (
+              <button key={j.key} type="button" aria-pressed={choice.jockey === j.key} onClick={() => onChange({ ...choice, jockey: j.key as JockeyKey })} data-testid={`jockey-${j.key}`}>
+                {j.label}
+                {j.price > 0 ? ` · ${formatCredits(j.price)} cr` : " · free"}
+              </button>
+            ))}
+          </div>
+          {jockey && <p className="mt-2 text-sm text-cream-dim">{jockey.effect}</p>}
+        </div>
+      )}
+      {total > 0 && (
+        <p className="mt-2 text-sm font-bold text-cream" data-testid="extras-total">
+          Extras: {formatCredits(total)} credits
+        </p>
+      )}
+    </fieldset>
   );
 }
 

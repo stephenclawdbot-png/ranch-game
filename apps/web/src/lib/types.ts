@@ -3,7 +3,7 @@
  * components (the server modules that build them never are).
  */
 import type { Horse, RaceClass, RaceConfig, RunningStyle, Silks, Surface, Going, Weather } from "@thoroughbred/shared";
-import type { GeneticsSummary } from "@thoroughbred/game-core";
+import type { GeneticsSummary, JockeyKey, RaceExtraKey } from "@thoroughbred/game-core";
 
 export type RaceKind = "live" | "story";
 export type RideIntensity = "conservative" | "normal" | "all_out";
@@ -27,6 +27,15 @@ export interface FieldEntry {
   form: string | null;
   /** Official rating at entry. */
   rating: number | null;
+  /** Race-day equipment and a hired jockey, as racecard tags ("Soft shoes", "Vet-checked", "Top jockey"); empty for none. */
+  gear: string[];
+}
+
+/** Race-day extras and jockeys on offer for one race, priced in credits (entry sheet). */
+export interface RaceDayOffer {
+  extras: { key: RaceExtraKey; label: string; tag: string; effect: string; price: number }[];
+  /** Always the three jockeys for a Live race (the apprentice is free); empty for Story races. */
+  jockeys: { key: JockeyKey; label: string; effect: string; price: number }[];
 }
 
 export interface RaceCard {

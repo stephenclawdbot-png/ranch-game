@@ -10,6 +10,7 @@ import type { GameStage, HorseState, Injury, InjurySeverity, RideIntensity } fro
 import { MS_PER_DAY, MS_PER_HOUR, dayIndex } from "./time";
 import { IRON_LEGS_RISK, hasIronLegs, isFragile, potentialOf } from "./genome";
 import { Rng, clampInt } from "./rng";
+import { PHYSIO_FATIGUE_OFF, SHOES_KEEP_PERMILLE, VET_CHECK_RISK_PERMILLE, shoesFor, type RaceDayChoice } from "./raceDay";
 
 // ---------------------------------------------------------------------------
 // Fatigue and freshness
@@ -37,6 +38,15 @@ export function withFatigue<T extends Pick<HorseState, "condition">>(state: T, a
     ...state,
     condition: { ...state.condition, fatigue: f, fatigueAtMs: nowMs, lastHardWorkMs: hard ? nowMs : state.condition.lastHardWorkMs },
   };
+}
+
+/**
+ * A race-day physio session (raceDay.ts): PHYSIO_FATIGUE_OFF fatigue off at `nowMs`, never below
+ * 0. Unchanged state without physio. Recovery is settled first, so it is the same at any time.
+ */
+export function withPhysio<T extends Pick<HorseState, "condition">>(state: T, raceDay: Pick<RaceDayChoice, "extras"> | null | undefined, nowMs: number): T {
+  if (!raceDay?.extras.includes("physio")) return state;
+  return withFatigue(state, -PHYSIO_FATIGUE_OFF, nowMs, false);
 }
 
 /**
@@ -127,7 +137,7 @@ export const FATAL_SHARE_OF_CAREER_ENDING = 200;
 export const FRAGILE_RISK = 1300;
 
 export interface RiskFactor {
-  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran" | "fragile" | "ironLegs";
+  key: "durability" | "fatigue" | "frequency" | "going" | "intensity" | "distance" | "veteran" | "fragile" | "ironLegs" | "vetCheck";
   /** Multiplier permille applied by this factor (1000 = neutral). */
   multiplier: number;
   /** One short line for the entry sheet. */
@@ -149,6 +159,12 @@ export interface RiskContext {
   distanceM: number;
   intensity: RideIntensity;
   stage: GameStage;
+  /**
+   * Race-day extras (raceDay.ts): shoes that suit the going halve its extra risk; a vet check
+   * multiplies the risk by VET_CHECK_RISK_PERMILLE. Physio acts on the state: pass the state
+   * through withPhysio first. Omit for none.
+   */
+  raceDay?: Pick<RaceDayChoice, "extras">;
 }
 
 /** Injury risk for the next start — the number shown on the entry sheet. Pure; no roll. */
@@ -165,8 +181,9 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   const week = state.recentRuns.filter((r) => ctx.nowMs - r.atMs < 7 * MS_PER_DAY).length;
   const freqM = 1000 + today * 400 + Math.max(0, week - 6) * 100;
   if (freqM > 1000) factors.push({ key: "frequency", multiplier: freqM, text: today > 0 ? `Already ran ${today}x today` : "Busy week" });
-  const goingM = GOING_RISK[ctx.going];
-  if (goingM !== 1000) factors.push({ key: "going", multiplier: goingM, text: `${ctx.going} going` });
+  const shod = !!ctx.raceDay && shoesFor(ctx.raceDay, ctx.going);
+  const goingM = shod ? 1000 + Math.round(((GOING_RISK[ctx.going] - 1000) * SHOES_KEEP_PERMILLE) / 1000) : GOING_RISK[ctx.going];
+  if (goingM !== 1000) factors.push({ key: "going", multiplier: goingM, text: shod ? `${ctx.going} going (shod for it)` : `${ctx.going} going` });
   const intM = INTENSITY_RISK[ctx.intensity];
   if (intM !== 1000) factors.push({ key: "intensity", multiplier: intM, text: ctx.intensity === "all_out" ? "All-out ride" : "Conservative ride" });
   const distM = ctx.distanceM > 2400 ? 1100 : 1000;
@@ -175,6 +192,7 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   if (hasIronLegs(state.genome)) factors.push({ key: "ironLegs", multiplier: IRON_LEGS_RISK, text: "Iron legs (inherited)" });
   const vetM = ctx.stage === "veteran" ? 1200 : 1000;
   if (vetM !== 1000) factors.push({ key: "veteran", multiplier: vetM, text: "Veteran legs" });
+  if (ctx.raceDay?.extras.includes("vet_check")) factors.push({ key: "vetCheck", multiplier: VET_CHECK_RISK_PERMILLE, text: "Vet-checked" });
 
   let p = BASE_INJURY_PERMILLE * 1000; // in micro (permille * 1000)
   for (const f of factors) p = Math.round((p * f.multiplier) / 1000);

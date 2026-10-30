@@ -5,10 +5,10 @@
  */
 import { RaceInputSchema, type RaceInput, type RaceReplay } from "@thoroughbred/shared";
 import { commitSeed, deriveSeed } from "./hash";
-import { ENGINE_VERSION, canonicalResult, runRace } from "./simulate";
+import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
 import { sha256Hex } from "./hash";
 
-export { ENGINE_VERSION, commitSeed, deriveSeed };
+export { ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
 export { marginLabel, splitPurse, PRIZE_SPLIT_PCT } from "./results";
 export { TICK_HZ, SAMPLE_EVERY } from "./model";
 
@@ -22,16 +22,17 @@ export function simulateRace(input: RaceInput): RaceReplay {
 }
 
 /**
- * Re-simulate `input` and check the replay: same engine version, seed, commitment,
+ * Re-simulate `input` and check the replay: the engine version its entries run under, seed, commitment,
  * result (order, times, margins, prizes, hash), total ticks and frames.
  */
 export function verifyReplay(input: RaceInput, replay: RaceReplay): boolean {
   try {
-    if (replay.engineVersion !== ENGINE_VERSION) return false;
+    // Races without kit run (and hash) as LEGACY_ENGINE_VERSION: older replays stay verifiable.
+    if (replay.engineVersion !== engineVersionFor(input.entries)) return false;
     if (replay.seed !== input.seed) return false;
     if (replay.seedCommitment !== commitSeed(input.seed)) return false;
     // The replay's own claims must hash to its resultHash.
-    if (sha256Hex(canonicalResult(replay.seed, replay.result.finishOrder)) !== replay.result.resultHash) return false;
+    if (sha256Hex(canonicalResult(replay.seed, replay.result.finishOrder, replay.engineVersion)) !== replay.result.resultHash) return false;
     const fresh = simulateRace(input);
     if (fresh.result.resultHash !== replay.result.resultHash) return false;
     if (JSON.stringify(fresh.result) !== JSON.stringify(replay.result)) return false;
