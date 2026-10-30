@@ -536,16 +536,18 @@ export class HD2DScene {
     const L = this.L;
     const sc = this.stage.scenery;
     const plan = this.plan;
-    // Far panorama: a long plane well beyond the fog (own haze baked in). Its height follows
-    // its aspect at the default strip's texel stretch; its foot stays where the hills' foot was.
+    // Far panorama: a long plane well beyond the fog (own haze baked in), square texels (the
+    // same proportions as Trackside's far band), its foot on the horizon.
     const farImg = this.stageArt.get(sc.far) ?? art.images.get("far-hills");
-    const hTex = this.tex(farImg ?? hillsStrip(this.look), { repeat: true, mip: true });
+    const farSrc = farImg ?? hillsStrip(this.look);
+    const hTex = this.tex(farSrc, { repeat: true, mip: true });
     hTex.wrapT = T.ClampToEdgeWrapping;
     const hw = L + 5000;
+    const mPerPx = 760 / farSrc.width;
     hTex.repeat.set(hw / 760, 1);
-    const hh = farImg ? Math.min(320, (150 * (farImg.height / farImg.width)) / (86 / 1376)) : 150;
+    const hh = farSrc.height * mPerPx;
     const hills = new T.Mesh(this.own(new T.PlaneGeometry(hw, hh)), this.own(new T.MeshBasicMaterial({ map: hTex, transparent: true, alphaTest: 0.5, fog: false, depthWrite: false, color: this.look.billboardTint })));
-    hills.position.set(L / 2, 58 - 75 + hh / 2, -1000);
+    hills.position.set(L / 2, hh / 2 - 3, -1000);
     hills.renderOrder = -7;
     this.scene.add(hills);
 
@@ -663,10 +665,11 @@ export class HD2DScene {
     const poleImg = this.stageArt.get("race/furlong-pole.png") ?? art.images.get("furlong-pole");
     const postImg = this.stageArt.get(this.stage.landmarks.winningPost.art) ?? art.images.get("finish-post");
     const tint = this.look.billboardTint;
-    const add = (src: HTMLCanvasElement | HTMLImageElement, x: number, y: number, z: number, cast = true) => {
+    // Flat billboards cast no shadow-map shadows (an alpha-tested caster would also need its
+    // own depth program the first time it entered the light's frustum: a mid-race hitch).
+    const add = (src: HTMLCanvasElement | HTMLImageElement, x: number, y: number, z: number) => {
       const m = new T.Mesh(this.uprightGeo(src.width / FOCAL_PX_PER_M, src.height / FOCAL_PX_PER_M), this.billboardMat(this.tex(src), tint));
       m.position.set(x, y, z);
-      m.castShadow = cast;
       this.scene.add(m);
     };
     for (const p of this.plan.props) {
@@ -677,7 +680,7 @@ export class HD2DScene {
       } else {
         const h = (poleImg?.height ?? 142) / FOCAL_PX_PER_M;
         if (poleImg) add(poleImg, p.x, p.y, p.z);
-        if (p.plate) add(plateCanvas(p.plate), p.x, p.y + h - 6 / FOCAL_PX_PER_M, p.z + 0.02, false);
+        if (p.plate) add(plateCanvas(p.plate), p.x, p.y + h - 6 / FOCAL_PX_PER_M, p.z + 0.02);
       }
     }
   }
@@ -1390,11 +1393,62 @@ export class HD2DScene {
       r.render(this.scene, cam);
     }
     if (this.pipCam) {
+      // A real (tiny) picture-in-picture draw: it renders straight to the screen, so its
+      // program variants and shadow pass must exist before the first time it shows mid-race.
       this.pipCam.position.copy(cam.position);
       this.pipCam.quaternion.copy(cam.quaternion);
-      r.compile(this.scene, this.pipCam);
+      const rect = pipRect(this.W, this.H) ?? { right: 12, bottom: 100, w: 320, h: 180 };
+      const x = Math.max(0, this.W - rect.right - rect.w);
+      this.pipCam.aspect = rect.w / rect.h;
+      this.pipCam.updateProjectionMatrix();
+      r.setRenderTarget(null);
+      r.setScissorTest(true);
+      r.setScissor(x, rect.bottom, rect.w, rect.h);
+      r.setViewport(x, rect.bottom, rect.w, rect.h);
+      const auto = r.autoClear;
+      r.autoClear = false;
+      r.clear(true, true, false);
+      r.render(this.scene, this.pipCam);
+      r.autoClear = auto;
+      r.setScissorTest(false);
+      r.setViewport(0, 0, this.W, this.H);
     }
     for (const p of this.fx) p.mesh.visible = false;
+    // Draw one horse quad with every strip level of detail bound (and every fx material), so
+    // the first close-up never pays for a first-use texture or sampler setup mid-race.
+    const run0 = this.runners.find((x) => !x.rig);
+    if (run0) {
+      const T = this.T;
+      const tiny = new T.WebGLRenderTarget(4, 4);
+      const sc = new T.Scene();
+      const probe = new T.Mesh(run0.plane.geometry, run0.mat);
+      probe.frustumCulled = false;
+      sc.add(probe);
+      for (const p of this.fx) for (const m of p.mats) sc.add(new T.Mesh(p.mesh.geometry, m));
+      const cam2 = new T.OrthographicCamera(-1, 1, 1, -1, -10, 10);
+      const u = (run0.mat as THREE.ShaderMaterial).uniforms;
+      // Into an offscreen target (the post path) and onto the screen (low quality, PiP).
+      for (const target of [tiny, null]) {
+        r.setRenderTarget(target);
+        if (!target) {
+          r.setScissorTest(true);
+          r.setScissor(0, 0, 2, 2);
+          r.setViewport(0, 0, 2, 2);
+        }
+        for (const [st, lts] of this.lodTex) {
+          for (const lt of lts) {
+            u.uIdx!.value = lt.idx;
+            u.uNrm!.value = lt.nrm ?? lt.idx;
+            u.uMsk!.value = this.mskTex.get(st);
+            r.render(sc, cam2);
+          }
+        }
+      }
+      r.setScissorTest(false);
+      r.setViewport(0, 0, this.W, this.H);
+      r.setRenderTarget(null);
+      tiny.dispose();
+    }
     cam.position.copy(saved.pos);
     cam.quaternion.copy(saved.quat);
     cam.fov = saved.fov;
