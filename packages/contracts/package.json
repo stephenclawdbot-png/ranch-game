@@ -9,6 +9,7 @@
     "typecheck": "hardhat compile --quiet && tsc -p . --noEmit",
     "coverage": "SOLIDITY_COVERAGE=true hardhat coverage",
     "deploy:robinhood": "hardhat run scripts/deploy.ts --network robinhood",
+    "deploy:horse-market": "hardhat run scripts/deploy-horse-market.ts --network robinhood",
     "export:web": "hardhat compile --quiet && hardhat run scripts/export-web.ts"
   },
   "devDependencies": {

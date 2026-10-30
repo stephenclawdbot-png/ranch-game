@@ -3,6 +3,8 @@ import { settleReferralActivations } from "@thoroughbred/db";
 import { errorJson, json } from "@/server/http";
 import { checkoutBackstop } from "@/server/chain/checkout";
 import { chainCtx } from "@/server/chain/context";
+import { usdgBackstop } from "@/server/chain/usdg";
+import { usdgCtx } from "@/server/chain/usdgHttp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +12,9 @@ export const maxDuration = 60;
 
 /**
  * Beta-money backstop (Vercel Cron, `Authorization: Bearer $CRON_SECRET`): settles paid
- * orders whose client never confirmed, expires dead quotes, grants affiliate activity rewards.
+ * orders whose client never confirmed, expires dead quotes, grants affiliate activity rewards,
+ * and runs the USDG market backstop (close auctions, offer to the next bidder after a missed
+ * payment, settle paid-but-unconfirmed sales and registrations, expire stale orders).
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -21,5 +25,12 @@ export async function GET(req: Request) {
   const now = new Date();
   const orders = await checkoutBackstop(ctx, now);
   const activations = await settleReferralActivations(ctx.db, { now });
-  return json({ ok: true, orders, activations });
+  let usdg: unknown;
+  try {
+    usdg = await usdgBackstop(await usdgCtx(), now);
+  } catch (err) {
+    console.error("usdg backstop", err);
+    usdg = { error: (err as Error).message };
+  }
+  return json({ ok: true, orders, activations, usdg });
 }

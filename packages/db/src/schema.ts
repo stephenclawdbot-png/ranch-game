@@ -1417,3 +1417,170 @@ export type TesterRow = typeof testers.$inferSelect;
 export type FeedbackRow = typeof feedback.$inferSelect;
 export type BetaRewardRow = typeof betaRewards.$inferSelect;
 export type BetaRewardRuleRow = typeof betaRewardRules.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// USDG horse market (docs/usdg-market.md; services/usdgMarket.ts)
+// ---------------------------------------------------------------------------
+
+/** micro-USDG (6 decimals): 1 USDG = 1_000_000. Safe integers up to the 1,000,000 USDG cap. */
+const usdg = (name: string) => bigint(name, { mode: "number" });
+
+/**
+ * A horse registered for the USDG market (registration fee paid on-chain, verified). Once
+ * registered, a horse trades only for USDG. Follows the horse through the playtest reset (the
+ * paid order itself lives in usdg_orders, which survives it).
+ */
+export const usdgRegistrations = pgTable(
+  "usdg_registrations",
+  {
+    id: id(),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** The account that registered (and paid). */
+    accountId: uuid("account_id").notNull(),
+    orderId: text("order_id").notNull(),
+    wallet: text("wallet").notNull(),
+    fee: usdg("fee").notNull(),
+    txHash: text("tx_hash"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("usdg_registrations_horse_uq").on(t.horseId), uniqueIndex("usdg_registrations_order_uq").on(t.orderId)],
+);
+
+/**
+ * A registered horse for sale for USDG: a fixed price or an auction (price = reserve). The horse
+ * is locked to the listing (horses.lock_kind 'market', lock_ref = this id) while it is `active`
+ * or `closed` (an auction that ended and is being offered to its bidders in turn).
+ */
+export const usdgListings = pgTable(
+  "usdg_listings",
+  {
+    id: id(),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    sellerAccountId: uuid("seller_account_id").notNull(),
+    sellerStableId: uuid("seller_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    /** The seller's verified wallet at listing time: where `price - fee` is paid. */
+    sellerWallet: text("seller_wallet").notNull(),
+    /** "fixed" | "auction" */
+    kind: text("kind").notNull(),
+    /** Fixed price, or the auction's reserve. */
+    price: usdg("price").notNull(),
+    /** Credits appraisal at listing time (the price review compares price per appraisal). */
+    appraisal: credits("appraisal").notNull(),
+    /** active -> sold | cancelled | expired (fixed) ; active -> closed (offering) -> sold | unsold (auction). */
+    status: text("status").notNull().default("active"),
+    endsAt: ts("ends_at").notNull(),
+    /** The sale order currently offered/reserved for this listing (usdg_orders.order_id). */
+    offerOrderId: text("offer_order_id"),
+    createdAt: createdAt(),
+    closedAt: ts("closed_at"),
+  },
+  (t) => [
+    uniqueIndex("usdg_listings_horse_open_uq")
+      .on(t.horseId)
+      .where(sql`${t.status} in ('active', 'closed')`),
+    index("usdg_listings_status_idx").on(t.status, t.endsAt),
+    index("usdg_listings_seller_idx").on(t.sellerStableId),
+    check("usdg_listings_kind", sql`${t.kind} in ('fixed', 'auction')`),
+    check("usdg_listings_status", sql`${t.status} in ('active', 'closed', 'sold', 'cancelled', 'expired', 'unsold')`),
+    check("usdg_listings_price", sql`${t.price} > 0`),
+    check("usdg_listings_ends", sql`${t.endsAt} > ${t.createdAt}`),
+  ],
+);
+
+/**
+ * An auction bid, signed off-chain by the bidder's linked wallet (EIP-712 Bid, checked by the
+ * server). No money moves until the auction closes and the winner pays a SaleOrder.
+ */
+export const usdgBids = pgTable(
+  "usdg_bids",
+  {
+    id: id(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => usdgListings.id),
+    accountId: uuid("account_id").notNull(),
+    wallet: text("wallet").notNull(),
+    amount: usdg("amount").notNull(),
+    /** uint256 nonce as a decimal string (from the bidder's wallet prompt). */
+    nonce: text("nonce").notNull(),
+    signature: text("signature").notNull(),
+    /** active | offered (won the close, payment window open) | won (paid) | defaulted (didn't pay) | void (bidder ineligible) */
+    status: text("status").notNull().default("active"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("usdg_bids_signature_uq").on(t.signature),
+    uniqueIndex("usdg_bids_nonce_uq").on(t.listingId, t.accountId, t.nonce),
+    index("usdg_bids_listing_idx").on(t.listingId, t.amount),
+    check("usdg_bids_amount", sql`${t.amount} > 0`),
+    check("usdg_bids_status", sql`${t.status} in ('active', 'offered', 'won', 'defaulted', 'void')`),
+  ],
+);
+
+/**
+ * Every USDG payment the server signs: a registration fee or a horse sale. Written BEFORE the
+ * order is signed; fulfilled once, idempotently, after the chain shows `Registered` / `Sold`.
+ * Real money: survives the playtest reset (no foreign keys).
+ */
+export const usdgOrders = pgTable(
+  "usdg_orders",
+  {
+    id: id(),
+    /** bytes32 hex (lowercase), the on-chain orderId (single-use in HorseMarket). */
+    orderId: text("order_id").notNull(),
+    /** "registration" | "sale" */
+    kind: text("kind").notNull(),
+    /** Who pays: the owner (registration) or the buyer (sale). */
+    accountId: uuid("account_id").notNull(),
+    wallet: text("wallet").notNull(),
+    horseId: uuid("horse_id").notNull(),
+    horseRef: text("horse_ref").notNull(),
+    listingId: uuid("listing_id"),
+    bidId: uuid("bid_id"),
+    sellerAccountId: uuid("seller_account_id"),
+    sellerWallet: text("seller_wallet"),
+    /** Sale price, or the registration fee. */
+    price: usdg("price").notNull(),
+    /** Marketplace fee to the treasury (registration: the whole fee). */
+    fee: usdg("fee").notNull(),
+    token: text("token").notNull(),
+    chainId: integer("chain_id").notNull(),
+    marketAddress: text("market_address").notNull(),
+    deadline: ts("deadline").notNull(),
+    /** pending (signed, maybe submitted: tx_hash set) -> paid (verified on-chain) -> fulfilled ; or expired. */
+    status: text("status").notNull().default("pending"),
+    txHash: text("tx_hash"),
+    /** Price review (wash-trading signal): far from recent comparable sales. The sale still stands. */
+    flagged: boolean("flagged").notNull().default(false),
+    flagReason: text("flag_reason"),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+    paidAt: ts("paid_at"),
+    fulfilledAt: ts("fulfilled_at"),
+    expiredAt: ts("expired_at"),
+  },
+  (t) => [
+    uniqueIndex("usdg_orders_order_uq").on(t.orderId),
+    uniqueIndex("usdg_orders_tx_uq").on(t.txHash),
+    index("usdg_orders_account_idx").on(t.accountId, t.createdAt),
+    index("usdg_orders_status_idx").on(t.status, t.deadline),
+    index("usdg_orders_listing_idx").on(t.listingId),
+    check("usdg_orders_kind", sql`${t.kind} in ('registration', 'sale')`),
+    check("usdg_orders_status", sql`${t.status} in ('pending', 'paid', 'fulfilled', 'expired')`),
+    check("usdg_orders_amounts", sql`${t.price} > 0 and ${t.fee} >= 0 and ${t.fee} <= ${t.price}`),
+    check("usdg_orders_order_hex", sql`${t.orderId} ~ '^0x[0-9a-f]{64}$'`),
+    check("usdg_orders_tx_hex", sql`${t.txHash} is null or ${t.txHash} ~ '^0x[0-9a-f]{64}$'`),
+  ],
+);
+
+export type UsdgRegistrationRow = typeof usdgRegistrations.$inferSelect;
+export type UsdgListingRow = typeof usdgListings.$inferSelect;
+export type UsdgBidRow = typeof usdgBids.$inferSelect;
+export type UsdgOrderRow = typeof usdgOrders.$inferSelect;

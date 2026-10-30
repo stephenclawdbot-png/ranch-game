@@ -14,6 +14,7 @@ import { ActionBar } from "../ui/ActionBar";
 import { EmptyState } from "../ui/Page";
 import { HorseStage } from "./HorseStage";
 import { PedigreeTree } from "./PedigreeTree";
+import { UsdgHorsePanel } from "./UsdgHorsePanel";
 import { PositionBadge } from "../ui/PositionBadge";
 
 export { PositionBadge };
@@ -209,6 +210,8 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
           )}
         </section>
       )}
+
+      {isMine && <UsdgHorsePanel horseId={horse.id} />}
 
       <section aria-labelledby="ped-h" data-testid="pedigree">
         <h2 id="ped-h" className="t-h2 mb-3">

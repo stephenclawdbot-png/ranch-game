@@ -23,6 +23,7 @@ import { accountIdOfStable, areLinked, assertStallFree, lockStableOf } from "./a
 import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
+import { isUsdgRegistered } from "./usdgMarket";
 
 const LIST_BLOCK_CODES: Record<gc.ListBlock, DomainErrorCode> = {
   account_too_new: "SELLER_REQUIREMENTS",
@@ -90,6 +91,8 @@ export async function listHorse(db: Db, input: ListInput, hooks: GameHooks = def
     if (horse.bound) throw new DomainError("HORSE_BOUND", "Club-bred horses cannot be sold");
     if (horse.starts < horse.tradeMinStarts) throw new DomainError("HORSE_BOUND", `tradeable after ${horse.tradeMinStarts} starts`);
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", horse.lockKind === "race" ? "horse is entered in a race" : "already listed");
+    // A horse registered for the USDG market trades only for USDG (no credits/USDG arbitrage).
+    if (await isUsdgRegistered(tx, horse.id)) throw new DomainError("USDG_ONLY", "this horse is registered for the USDG market and sells only for USDG");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "mares in foal cannot be sold");
     const resale = await resaleLock(tx, horse.id, stableId, input.now);
     if (resale) throw new DomainError("RESALE_LOCKED", `bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}`, { until: resale.until.getTime() });

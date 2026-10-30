@@ -44,7 +44,11 @@ export type DomainErrorCode =
   | "INSUFFICIENT_ENTRIES"
   | "ENTRY_REFILL_UNAVAILABLE"
   | "TIMEZONE_LOCKED"
-  | "NAME_TAKEN";
+  | "NAME_TAKEN"
+  /** A horse registered for the USDG market trades only for USDG (docs/usdg-market.md). */
+  | "USDG_ONLY"
+  /** Barred from USDG bidding after not paying for a won auction. */
+  | "USDG_BARRED";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -111,6 +115,7 @@ const CONSTRAINT_CODES: Record<string, DomainErrorCode> = {
   breeding_events_not_self: "SELF_BREEDING",
   pregnancies_dam_carrying_uq: "HORSE_IN_FOAL",
   market_listings_horse_active_uq: "HORSE_LOCKED",
+  usdg_listings_horse_open_uq: "HORSE_LOCKED",
   race_entries_race_horse_uq: "HORSE_LOCKED",
   horses_mandatory_retirement: "HORSE_RETIRED",
   foal_crop_bounds: "CROP_SOLD_OUT",

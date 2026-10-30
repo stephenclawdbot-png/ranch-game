@@ -41,6 +41,7 @@ import {
   pullPack,
   renameHorse,
   resaleLocksOf,
+  usdgRegisteredIds,
   sellerStatus,
   setStudFee,
   toHorseState,
@@ -120,6 +121,7 @@ const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
   listed: () => "Already listed.",
   in_foal: () => "In foal: she can be sold after foaling.",
   resale_lock: () => "Bought on the market: it can be listed again once the 72-hour resale lock ends.",
+  usdg_only: () => "Registered for the USDG market: it sells only for USDG (Sales → USDG).",
 };
 
 /** Player-facing messages for the economy's domain errors (details stay attached). */
@@ -543,9 +545,12 @@ export async function marketView(db: Db, session: Session, now: Date): Promise<M
   const horses: SellableHorse[] = [];
   // One resale-locks query for the whole stable (tradeStatus takes the map's entries).
   const resales = await resaleLocksOf(db, session.stable.id, now);
-  for (const r of await listStableHorses(db, session.stable.id)) {
+  const stableRows = await listStableHorses(db, session.stable.id);
+  // One query for the stable's USDG registrations (registered horses sell only for USDG).
+  const usdgOnly = await usdgRegisteredIds(db, stableRows.map((r) => r.id));
+  for (const r of stableRows) {
     if (r.careerStatus === "pasture") continue;
-    const ts = await tradeStatus(db, r, now, defaultHooks, resales.get(r.id) ?? null);
+    const ts = await tradeStatus(db, r, now, defaultHooks, resales.get(r.id) ?? null, usdgOnly.has(r.id));
     horses.push({
       ...ecoHorse(r, silks, nowMs),
       appraisal: ts.appraisal,

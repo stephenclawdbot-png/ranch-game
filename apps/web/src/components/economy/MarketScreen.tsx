@@ -14,8 +14,9 @@ import type { ListingView, MarketView, SellableHorse } from "@/lib/economyTypes"
 import { api } from "@/lib/player";
 import { Check, Credits, HorseLine, Skeleton, refreshPurse, stageLabel, useEcoView } from "./kit";
 import { SalesRing, pedigreeLine } from "./SalesRing";
+import { UsdgMarket } from "./UsdgMarket";
 
-type Tab = "buy" | "sell" | "mine";
+type Tab = "buy" | "sell" | "mine" | "usdg";
 
 function expiresIn(ms: number): string {
   const h = Math.max(0, Math.round(ms / 3_600_000));
@@ -36,7 +37,7 @@ export function MarketScreen() {
   useEffect(() => {
     const fromHash = () => {
       const h = window.location.hash.slice(1);
-      if (h === "buy" || h === "sell" || h === "mine") setTab(h);
+      if (h === "buy" || h === "sell" || h === "mine" || h === "usdg") setTab(h);
     };
     fromHash();
     window.addEventListener("hashchange", fromHash);
@@ -49,14 +50,24 @@ export function MarketScreen() {
     <div className="grid gap-5">
       <SalesRing
         lot={v.listings.find((l) => !l.mine) ?? v.listings[0] ?? null}
-        eyebrow={`Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`}
+        eyebrow={
+          tab === "usdg"
+            ? `USDG market · registered horses · ${v.stalls.used} of ${v.stalls.slots} stalls`
+            : `Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`
+        }
         onSeeLot={(l) => {
           setTab("buy");
           requestAnimationFrame(() => document.getElementById(`lot-${l.lot}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
         }}
       />
       <HowItWorks className="-mt-2">
-        <p>Horses change hands for Stable Credits only, never real money. {v.feePermille / 10}% of every sale is burned.</p>
+        <p>
+          Horses change hands for Stable Credits, never real money. {v.feePermille / 10}% of every sale is burned. Horses registered for the{" "}
+          <a href="#usdg" className="underline">
+            USDG market
+          </a>{" "}
+          trade for USDG only, on their own tab.
+        </p>
         <p>Buying needs a free stall. Sellers set a price between 70% and 3x the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them; a bought horse can&rsquo;t be relisted for 72 hours.</p>
       </HowItWorks>
       <div className="tabs baize-scope -mx-[var(--gutter)] !px-[var(--gutter)]" role="tablist" aria-label="Market">
@@ -69,10 +80,14 @@ export function MarketScreen() {
         <button type="button" role="tab" aria-selected={tab === "mine"} onClick={() => setTab("mine")} data-testid="tab-mine">
           Your listings ({v.mine.length})
         </button>
+        <button type="button" role="tab" aria-selected={tab === "usdg"} onClick={() => setTab("usdg")} data-testid="tab-usdg">
+          USDG
+        </button>
       </div>
       {tab === "buy" && <Buy v={v} onView={setData} />}
       {tab === "sell" && <Sell v={v} onView={setData} onListed={() => setTab("mine")} />}
       {tab === "mine" && <Mine v={v} onView={setData} />}
+      {tab === "usdg" && <UsdgMarket />}
     </div>
   );
 }

@@ -486,6 +486,33 @@ Where column.
 | ETH price service | divergence ≤ 200 bps, $100-$100,000 sanity band, 45 s TTL | apps/web/src/server/chain/price.ts:116-119 | Quote pricing safety. | Checkout availability |
 | `PLAYTEST_TESTER_CAP` | 60 (env) | packages/db/src/services/playtest.ts:35 | Testers admitted. | Population |
 
+## 14. USDG market
+
+Registered horses sold and auctioned for USDG (`docs/usdg-market.md`, owner decision 2026-10-29,
+testnet first). All defaults live in one place, `packages/game-core/src/usdgMarket.ts`
+(`DEFAULT_USDG_POLICY`); `usdgPolicyFromEnv` applies the env overrides (read by
+`usdgPolicy()` in `packages/db/src/services/usdgMarket.ts`). Amounts are micro-USDG (6 decimals).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `USDG_MIN_STARTS` | 5 Live starts (env `USDG_MIN_STARTS`) | packages/game-core/src/usdgMarket.ts | Settled Live starts (scheduled, Feature, Final) a horse needs to register. | Supply of dollar horses, farming cost |
+| `USDG_REGISTRATION_FEE` | 2 USDG (env `USDG_REGISTRATION_FEE`, decimal USDG) | packages/game-core/src/usdgMarket.ts | One-off fee per horse, paid to the treasury on-chain (`HorseMarket.register`). | Farming profit per alt (sink), treasury income |
+| `USDG_FEE_BPS` | 500 = 5% (env `USDG_FEE_BPS`, max 1000) | packages/game-core/src/usdgMarket.ts; on-chain `HorseMarket.feeBps` (deploy `DEPLOY_USDG_FEE_BPS`) | Marketplace fee on every sale, to the treasury. Server and contract must match or signed orders revert (`/api/admin/usdg` shows a mismatch). | Seller proceeds, treasury income |
+| `USDG_FEE_BPS_CAP` / `MAX_FEE_BPS` | 1000 = 10% | packages/game-core/src/usdgMarket.ts, packages/contracts/contracts/HorseMarket.sol | Hard cap on the fee. | |
+| `USDG_MIN_PRICE` | 1 USDG (env `USDG_MIN_PRICE`) | packages/game-core/src/usdgMarket.ts | Lowest fixed price, reserve or bid. | Dust trades |
+| `USDG_MAX_PRICE` | 1,000,000 USDG | packages/game-core/src/usdgMarket.ts | Technical ceiling (safe integers); prices are otherwise free. | |
+| `USDG_AUCTION_HOURS` | 24, 48, 72 h | packages/game-core/src/usdgMarket.ts | Auction lengths a seller can pick. | Auction pace |
+| `USDG_FIXED_LISTING_DAYS` | 3, 7, 14 days | packages/game-core/src/usdgMarket.ts | Fixed-price listing lengths (14 = the credits market's limit). | Supply |
+| `USDG_PAYMENT_WINDOW_MS` | 24 h (env `USDG_PAYMENT_WINDOW_HOURS`, 1-72) | packages/game-core/src/usdgMarket.ts | Auction winner's time to pay before the next bidder is offered the horse. | Settlement time, non-payment |
+| `USDG_NONPAYER_BAR_MS` | 7 days (env `USDG_NONPAYER_BAR_DAYS`) | packages/game-core/src/usdgMarket.ts | USDG bidding bar after not paying a won auction. | Fake bidding |
+| `USDG_QUOTE_TTL_MS` | 15 min | packages/game-core/src/usdgMarket.ts | How long a fixed-price buy (and a registration order) is held; the lot is reserved for that buyer meanwhile. | Checkout, lot blocking |
+| `USDG_BID_INCREMENT_BPS` / `_MIN` | 5% / 0.50 USDG | packages/game-core/src/usdgMarket.ts | A bid must beat the best by this much. | Auction pace |
+| `USDG_REVIEW_RATIO` | 3x (vs the median of the last 20 sales, price per appraisal credit; needs 3) | packages/game-core/src/usdgMarket.ts | Sales this far from comparable prices are flagged (`usdg_price_review` fraud event), not blocked. | Wash-trading review load |
+| `USDG_ORDER_GRACE_MS` | 2 min | packages/db/src/services/usdgMarket.ts | A signed order counts as dead only this long after its deadline (sequencer / clock skew). | |
+| `MAX_ORDER_TTL` | 4 days | packages/contracts/contracts/HorseMarket.sol | On-chain cap on an order's deadline. | |
+| Resale lock | 72 h (`RESALE_LOCK_MS`, shared with credits) | packages/db/src/services/usdgMarket.ts (`usdgResaleLock`) | A bought horse (credits or USDG) can't be listed for USDG for 72 h. | Flipping |
+| Lazy tick | every 20 s per instance | apps/web/src/server/chain/usdg.ts (`usdgTick`) | The USDG views close ended auctions and expire stale orders; the daily cron is the backstop. | Auction close latency |
+
 ---
 
 ## Values duplicated in more than one place

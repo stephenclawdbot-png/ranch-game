@@ -78,6 +78,13 @@
       "when": 1793085525057,
       "tag": "0010_talented_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793316572375,
+      "tag": "0011_usdg_market",
+      "breakpoints": true
     }
   ]
 }
