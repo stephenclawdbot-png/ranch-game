@@ -86,6 +86,7 @@ export const ledgerAccountKindEnum = pgEnum("ledger_account_kind", [
   "burn", // system sink: fees, packs, upkeep (credits leave circulation)
   "treasury", // studio revenue
   "escrow", // held funds (e.g. future stud bookings / bids)
+  "tote_house", // the tote's house take (game-core TOTE_TAKEOUT_PERMILLE): never spendable by any player path
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "sold", "cancelled", "expired"]);
 export const rarityEnum = pgEnum("rarity", ["common", "uncommon", "rare", "epic", "legendary"]);
@@ -2180,3 +2181,120 @@ export const raceTargets = pgTable(
 );
 
 export type RaceTargetRow = typeof raceTargets.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// The tote: spectator pool betting on Live card races (services/tote.ts, game-core tote.ts)
+// ---------------------------------------------------------------------------
+
+export const totePoolEnum = pgEnum("tote_pool", ["win", "place"]);
+/**
+ * open: stake held in escrow until settlement. won / lost: settled (payout may be 0).
+ * returned: nobody backed a paying runner, the net pool came back pro rata. void: refunded in
+ * full (non-runner, abandoned race, no place pool, or a conflict of interest found later).
+ */
+export const toteBetStatusEnum = pgEnum("tote_bet_status", ["open", "won", "lost", "returned", "void"]);
+
+/**
+ * One bet: a stake on one runner in one pool (WIN or PLACE) in one currency ("CR" Stable Credits,
+ * "TUSDG" practice T-USDG). The stake moves player -> escrow when placed and is paid out (or
+ * refunded) from escrow at settlement. Never accepted at or after the off.
+ */
+export const toteBets = pgTable(
+  "tote_bets",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    stableId: uuid("stable_id").references(() => stables.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    pool: totePoolEnum("pool").notNull(),
+    currency: text("currency").notNull(),
+    stake: credits("stake").notNull(),
+    status: toteBetStatusEnum("status").notNull().default("open"),
+    payout: credits("payout").notNull().default(0),
+    voidReason: text("void_reason"),
+    /** Client key for one bet slip submission: a double tap places one bet. */
+    clientKey: text("client_key").notNull(),
+    placedAt: ts("placed_at").notNull(),
+    settledAt: ts("settled_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("tote_bets_client_key_uq").on(t.accountId, t.clientKey),
+    index("tote_bets_race_idx").on(t.raceId, t.pool, t.currency, t.status),
+    index("tote_bets_account_idx").on(t.accountId, t.placedAt),
+    index("tote_bets_open_idx")
+      .on(t.raceId)
+      .where(sql`${t.status} = 'open'`),
+    check("tote_bets_stake_positive", sql`${t.stake} > 0`),
+    check("tote_bets_payout_non_negative", sql`${t.payout} >= 0`),
+    check("tote_bets_currency", sql`${t.currency} in ('CR', 'TUSDG')`),
+  ],
+);
+
+/**
+ * One settled pool (race x pool x currency): the public "Tote audit". Written once, in the
+ * settlement transaction; total = paid + takeout + remainder exactly (CHECK).
+ */
+export const totePools = pgTable(
+  "tote_pools",
+  {
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    pool: totePoolEnum("pool").notNull(),
+    currency: text("currency").notNull(),
+    /** paid | no_winner | void | empty | abandoned */
+    outcome: text("outcome").notNull(),
+    places: integer("places").notNull(),
+    takeoutPermille: integer("takeout_permille").notNull(),
+    total: credits("total").notNull(),
+    takeout: credits("takeout").notNull(),
+    paid: credits("paid").notNull(),
+    remainder: credits("remainder").notNull(),
+    /** Stakes returned in full, outside the pool (non-runners, void pools, abandoned races). */
+    refunded: credits("refunded").notNull(),
+    tickets: integer("tickets").notNull(),
+    winningTickets: integer("winning_tickets").notNull(),
+    bettors: integer("bettors").notNull(),
+    /** [{horseId, name, position, stake, amount, perUnitMilli}] */
+    dividends: jsonb("dividends").notNull(),
+    ledgerTransactionId: uuid("ledger_transaction_id"),
+    settledAt: ts("settled_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.raceId, t.pool, t.currency] }),
+    index("tote_pools_settled_idx").on(t.settledAt),
+    check("tote_pools_balanced", sql`${t.total} = ${t.paid} + ${t.takeout} + ${t.remainder}`),
+  ],
+);
+
+/**
+ * A player's betting settings: the 18+ confirmation, their own (lower) limits and any
+ * self-exclusion. Lowering a limit is immediate; a raise waits TOTE_LIMIT_RAISE_DELAY_MS
+ * (`pending_limits` from `pending_at`). A self-exclusion can't be shortened or lifted early;
+ * `excluded_permanent` never ends.
+ */
+export const toteSettings = pgTable("tote_settings", {
+  accountId: uuid("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+  adultConfirmedAt: ts("adult_confirmed_at"),
+  /** {CR: {perRace, perDay}, TUSDG: {perRace, perDay}}, base units, null = the game's limit. */
+  limits: jsonb("limits").notNull().default({}),
+  pendingLimits: jsonb("pending_limits"),
+  pendingAt: ts("pending_at"),
+  excludedUntil: ts("excluded_until"),
+  excludedPermanent: boolean("excluded_permanent").notNull().default(false),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export type ToteBetRow = typeof toteBets.$inferSelect;
+export type TotePoolRow = typeof totePools.$inferSelect;
+export type ToteSettingsRow = typeof toteSettings.$inferSelect;
