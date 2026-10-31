@@ -27,12 +27,12 @@ import { randomBytes } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { DomainError, isDomainError, pgError } from "../errors";
 import { gc } from "../gameCore";
-import { seasonNumberAt } from "../rules";
+import { RULES, seasonNumberAt } from "../rules";
 import { fraudEvents, horses, inboxItems, pregnancies, usdgOrders, type HorseRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStable, stableOf } from "./accounts";
 import { verifiedWalletOf } from "./betaMoney";
-import { BREED_BLOCK_CODES, coverTx, pedigreeIndex } from "./breeding";
+import { BREED_BLOCK_CODES, coverTx, pedigreeIndex, studRestingError, studRestingUntilOf } from "./breeding";
 import { breedingStateOf } from "./economyViews";
 import { lockOwnedHorse, withdrawLeaseOffersTx } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
@@ -60,6 +60,9 @@ export async function setUsdgStudFee(db: Db, input: { accountId: string; horseId
     }
     if (horse.sex !== "male" || horse.gelded || horse.careerStatus === "pasture") {
       throw new DomainError("BREEDING_NOT_ELIGIBLE", "Only entire stallions not on the Legacy Farm can stand at stud.");
+    }
+    if (horse.breedingCount >= RULES.breedingLifetimeLimit) {
+      throw new DomainError("BREEDING_LIMIT", `${horse.name} has used every breeding and can't stand at stud.`, { block: "lifetime_limit" });
     }
     if (!(await isUsdgRegistered(tx, horse.id))) throw new DomainError("NOT_ELIGIBLE", "Only a stallion registered for the USDG market can stand for a USDG fee.");
     if (!(await verifiedWalletOf(tx, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first: stud fees are paid to it.");
@@ -140,6 +143,9 @@ export async function quoteUsdgStud(db: Db, input: { accountId: string; sireId: 
     const ped = await pedigreeIndex(tx, [sire.id, dam.id]);
     const block = gc.pairingBlock(sireState, damState, ped, season);
     if (block) throw new DomainError(BREED_BLOCK_CODES[block], `breeding blocked: ${block}`, { block });
+    // Resting after a covering, or already booked by another mare: not bookable until then.
+    const restingUntil = await studRestingUntilOf(tx, sire.id, input.now);
+    if (restingUntil !== null) throw studRestingError(sire.name, restingUntil, input.now);
     await assertStallFree(tx, lockedStable, { allowOverflow: true });
 
     const ownerAccount = await accountIdOfStable(tx, sire.ownerStableId);

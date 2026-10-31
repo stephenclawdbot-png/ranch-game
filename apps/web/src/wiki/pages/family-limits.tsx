@@ -10,7 +10,7 @@ const STAT_LABEL: Record<gc.StatKey, string> = {
   temperament: "Temperament",
 };
 
-/** The same lineage tags the breeding preview shows. */
+/** The lineage names the breeding preview uses. */
 const LINE_TAG: Record<"deep" | "rising" | "foundation", string> = { deep: "Established line", rising: "Rising line", foundation: "Foundation stock" };
 
 const mint = (seed: string, rarity: gc.Rarity) => gc.generateFoundationGenome(gc.seedFrom("wiki", "family", seed), { season: 1, rarity });
@@ -171,7 +171,7 @@ export default function FamilyLimitsPage() {
       </P>
 
       <H2 id="lineage">Established, rising or foundation</H2>
-      <P>The breeding preview tags every pairing with the kind of line it comes from:</P>
+      <P>The breeding preview names the kind of line a pairing comes from, in words (it judges a &ldquo;rising&rdquo; line from what is public about the parents and grandparents):</P>
       <Table
         head={["Tag", "What it means"]}
         rows={[
@@ -193,7 +193,7 @@ export default function FamilyLimitsPage() {
       />
       <H3>Same parents, weaker grandparents</H3>
       <P>
-        Swap the four grandparents for ordinary horses and the parents become a one-generation jump. The ceilings come down (less headroom), the floors hold, and the preview&rsquo;s tag reads{" "}
+        Swap the four grandparents for ordinary horses and the parents become a one-generation jump. The ceilings come down (less headroom), the floors hold, and the line counts as{" "}
         <b>{LINE_TAG[ex.pRise.limits.lineage]}</b>. Add inbreeding at half-sibling level instead and the floors drop.
       </P>
       <Table
@@ -201,7 +201,7 @@ export default function FamilyLimitsPage() {
         rows={gc.STAT_KEYS.map((k) => [STAT_LABEL[k], ex.established[k].ceiling, ex.rising[k].ceiling, ex.established[k].floor, ex.rising[k].floor, ex.inbred[k].floor])}
       />
       <Facts
-        title="What the breeding preview shows"
+        title="What the rules give for this example"
         rows={[
           [`${LINE_TAG[ex.pEst.limits.lineage]}: lowest to highest possible`, `${ex.pEst.limits.overall.floor} (${gc.gradeOf(ex.pEst.limits.overall.floor)}) to ${ex.pEst.limits.overall.ceiling} (${gc.gradeOf(ex.pEst.limits.overall.ceiling)})`],
           [`${LINE_TAG[ex.pRise.limits.lineage]}: lowest to highest possible`, `${ex.pRise.limits.overall.floor} (${gc.gradeOf(ex.pRise.limits.overall.floor)}) to ${ex.pRise.limits.overall.ceiling} (${gc.gradeOf(ex.pRise.limits.overall.ceiling)})`],
@@ -212,13 +212,13 @@ export default function FamilyLimitsPage() {
 
       <H2 id="in-the-preview">Reading the preview</H2>
       <P>
-        On the <WikiLink slug="breeding-basics">breeding screen</WikiLink>, the <b>Family limits</b> box shows the lowest and highest overall potential a foal could possibly have, with every mutation
-        going its way, and the line tag. The bar shows that full span with the middle 80% of foals inside it. In the stat ranges below, the faint band behind each stat is the same limit for that stat.
+        On the <WikiLink slug="breeding-basics">breeding screen</WikiLink>, the preview names the line (established, rising or foundation) in a sentence under the outlook. It shows no limits or
+        ranges as numbers: the numbers on this page are the rules at work on example horses. The preview is worked out only from what is public about the two horses, so it can&rsquo;t give away
+        their hidden genes, and the real foal is a surprise.
       </P>
       <Callout tone="rule" title="Limits are the extremes, not the odds">
         <p>
-          The lowest and highest possible are what the dice could do at their most extreme. Most foals land in the middle 80%. Read both: the odds tell you what to expect, the limits tell you what can
-          never happen.
+          The lowest and highest possible are what the dice could do at their most extreme; most foals land well inside them. The limits tell you what can never happen, not what to expect.
         </p>
       </Callout>
     </>

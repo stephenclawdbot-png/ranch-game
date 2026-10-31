@@ -2,7 +2,9 @@ import * as gc from "@thoroughbred/game-core";
 import { formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
 
-/** A real pairing's fragile-legs chance, as the breeding preview shows it, with and without injured parents. */
+const HOURS = (ms: number) => Math.round(ms / 3_600_000);
+
+/** An example pairing's fragile-legs chance under the rules, with and without injured parents. */
 function fragileExample() {
   const sire = sampleGenome("stud-sire-2");
   const dam = sampleGenome("stud-dam-5");
@@ -77,6 +79,15 @@ export default function StudAndBroodmaresPage() {
             {formatCredits(gc.STUD_FEE_MIN_CEILING)} credits). Each visiting mare uses one of his breedings.
           </>,
           <>
+            After every covering a stallion <b>rests {HOURS(gc.STUD_COOLDOWN_MS)} hours</b> (half a pregnancy) before he can cover again, your mares included. He stays listed,
+            marked &ldquo;Resting · available again in &hellip; h&rdquo;, and can be booked once the rest is over. A booking paid in USDG counts as a covering about to happen, so he
+            takes one booking at a time. A broodmare&rsquo;s rest is her pregnancy ({HOURS(gc.PREGNANCY_MS)} hours, one foal at a time).
+          </>,
+          <>
+            A horse that has used all {gc.BREEDINGS_LIFETIME} breedings <b>no longer stands at stud</b>: his fee (credits or USDG) is withdrawn by the covering that used the last one,
+            he leaves the stud book and the stallion finder, and he can&rsquo;t be stood again. A stallion still racing keeps racing. You get a note in your inbox.
+          </>,
+          <>
             Once a horse has used all {gc.BREEDINGS_LIFETIME} breedings it retires for good to the <WikiLink slug="legacy-farm">Legacy Farm</WikiLink> on its own, freeing its stall: a
             stallion straight after his last covering, a mare once her last foal is born. You get a note in your inbox.
           </>,
@@ -90,6 +101,8 @@ export default function StudAndBroodmaresPage() {
           ["Racing horses may breed from", `${gc.BREED_FROM_STARTS} starts`],
           ["At stud or broodmare: may breed from", "straight away"],
           ["Highest stud fee", `his appraisal, at least ${formatCredits(gc.STUD_FEE_MIN_CEILING)}`],
+          ["Stallion's rest after a covering", `${HOURS(gc.STUD_COOLDOWN_MS)} hours`],
+          ["Mare's rest", `her pregnancy, ${HOURS(gc.PREGNANCY_MS)} hours`],
           ["A season lasts", `${gc.SEASON_DAYS} days`],
         ]}
       />
@@ -112,13 +125,13 @@ export default function StudAndBroodmaresPage() {
       </P>
       <P>
         There is a catch. A parent whose career ended in an injury passes <WikiLink slug="fragile-legs" /> to each foal {pct(gc.FRAGILE_FROM_INJURY_PERMILLE)} of the time, on top of any fragile
-        gene it already carries. The breeding preview shows the chance before you pay. For these two real horses:
+        gene it already carries. The breeding preview warns you in words before you pay. Under the rules, for two example horses:
       </P>
       <Table head={["Pairing", "Chance the foal has fragile legs"]} rows={ex.rows.map(([k, v]) => [k, pct(v)])} />
       <Callout tone="gamble">
         <p>
-          Breeding from an injured champion is a gamble on the bloodline against the legs. Fragile legs raise a horse&rsquo;s injury risk for its whole career, so weigh the preview&rsquo;s odds
-          before you cover.
+          Breeding from an injured champion is a gamble on the bloodline against the legs. Fragile legs raise a horse&rsquo;s injury risk for its whole career, so weigh the preview&rsquo;s
+          warning before you cover.
         </p>
       </Callout>
       <P>

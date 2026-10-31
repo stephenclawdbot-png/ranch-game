@@ -5,7 +5,7 @@
  * a rule before the player acts:
  *
  *   - breeding: each horse's eligibility (game-core breedingEligibility over the same state
- *     `breed` builds), the exact pairing preview (game-core previewBreeding) with fees, the
+ *     `breed` builds), the pairing preview from public facts (game-core pairingOutlook) with fees, the
  *     stable's pregnancies, public studs, and naming a foal at foaling;
  *   - packs: pull history, play days, and the proof of a pull (the revealed seed chain, so
  *     the browser can re-derive pity and the foal's genome);
@@ -14,7 +14,7 @@
  *
  * Reads never change state, except `nameFoal` (which wraps the idempotent `foal`).
  */
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc, genomeOf, isGenome, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -35,7 +35,7 @@ import {
 } from "../schema";
 import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
-import { foal, grandparentsOf, pedigreeIndex, withStudHolds } from "./breeding";
+import { foal, grandparentsOf, pedigreeIndex, studRestingUntilOf, withStudHolds } from "./breeding";
 import { openLeaseOfferOf, renameHorse } from "./horses";
 import { resaleLock, settledRacesForStable } from "./market";
 import { CLUB_OWNER_NAME } from "./leasing";
@@ -77,8 +77,14 @@ export async function breedingStateOf(ex: Executor, horse: HorseRow, now?: Date)
 
 export interface BreedingStatus {
   horseId: string;
-  /** game-core BreedBlock (or a lock: "in_race" / "listed" / "booked" for a USDG covering), null when the horse can breed now. */
-  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "no_genome" | null;
+  /**
+   * game-core BreedBlock (or a lock: "in_race" / "listed" / "booked" for a USDG covering, or
+   * "stud_resting": a stallion resting after a covering), null when the horse can breed now.
+   */
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "no_genome" | "stud_resting" | null;
+  /** A stallion resting after a covering: when he can cover again, and the whole hours to go. */
+  restingUntilMs: number | null;
+  restingHours: number | null;
   used: number;
   lifetime: number;
   usedThisSeason: number;
@@ -101,7 +107,7 @@ export async function breedingStatus(ex: Executor, horse: HorseRow, now: Date): 
     fromStarts: RULES.breedingMinStarts,
     retired: horse.careerStatus !== "racing",
   };
-  if (!isGenome(horse.genome)) return { ...base, block: "no_genome", usedThisSeason: 0 };
+  if (!isGenome(horse.genome)) return { ...base, block: "no_genome", usedThisSeason: 0, restingUntilMs: null, restingHours: null };
   const state = await breedingStateOf(ex, horse, now);
   const usedThisSeason = gc.usedInSeason(state, season);
   let block: BreedingStatus["block"] = gc.breedingEligibility(state, season);
@@ -109,13 +115,28 @@ export async function breedingStatus(ex: Executor, horse: HorseRow, now: Date): 
   if (!block && horse.lockKind === "race" && female) block = "in_race";
   if (!block && horse.lockKind === "market") block = "listed";
   if (!block && horse.lockKind === "stud") block = "booked";
-  return { ...base, block, usedThisSeason };
+  const restingUntilMs = female ? null : await studRestingUntilOf(ex, horse.id, now);
+  if (!block && restingUntilMs !== null) block = "stud_resting";
+  return { ...base, block, usedThisSeason, restingUntilMs, restingHours: restingUntilMs === null ? null : gc.hoursUntil(restingUntilMs, now.getTime()) };
 }
 
 export interface PairingPreview {
-  preview: gc.BreedingPreview;
+  /** What the player sees: the outlook in words, the nick word, warnings and the foal's breed. */
+  outlook: gc.PairingOutlook;
+  /**
+   * The numbers behind the words (game-core outlookNumbers), from public facts only. Server-side:
+   * the stallion finder ranks with them. Never send them to a browser.
+   */
+  quality: gc.OutlookNumbers;
+  /** The public facts about each parent (for the possible looks). */
+  publicSire: gc.PublicParent;
+  publicDam: gc.PublicParent;
+  /** UTC day number the looks are seeded with (the same samples all day). */
+  day: number;
   /** Block for this exact pairing (kinship, sexes, eligibility of either horse, locks). */
-  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "not_at_stud" | "not_your_mare" | null;
+  block: gc.BreedBlock | "in_race" | "listed" | "booked" | "on_lease" | "not_at_stud" | "not_your_mare" | "stud_resting" | null;
+  /** The stallion is resting after a covering until then (null: he can cover now). */
+  sireRestingUntilMs: number | null;
   fees: gc.BreedingFees;
   /** Someone else's stallion standing for a USDG stud fee (micro-USDG): paid on-chain, not in credits. */
   usdgStudFee: number | null;
@@ -123,13 +144,14 @@ export interface PairingPreview {
   sire: HorseRow;
   dam: HorseRow;
   season: number;
-  /** The sire's and dam's own overall potentials (game-core overallPotential). */
-  parents: { sire: number; dam: number };
 }
 
 /**
- * The exact breeding preview of a mare of yours with your own stallion or a stallion standing
- * at stud. Read-only: nothing is locked or charged; `breed` re-checks everything.
+ * The breeding preview of a mare of yours with your own stallion or a stallion standing at
+ * stud: the outlook in words and the public facts the possible looks are drawn from. Built from
+ * what is public about each horse (game-core publicParentOf), never from the true genotypes, so
+ * previewing can't reveal hidden alleles. Read-only: nothing is locked or charged; `breed`
+ * re-checks everything, and the real foal is still drawn from the true genotypes at the cover.
  */
 export async function previewPairing(ex: Executor, input: { accountId: string; sireId: string; damId: string; now: Date }): Promise<PairingPreview> {
   if (input.sireId === input.damId) throw new DomainError("SELF_BREEDING", "a horse cannot breed with itself");
@@ -143,19 +165,29 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
   const season = seasonNumberAt(input.now);
   const [sireState, damState] = [await breedingStateOf(ex, sire, input.now), await breedingStateOf(ex, dam, input.now)];
   const ped = await pedigreeIndex(ex, [sire.id, dam.id]);
-  const family = (await grandparentsOf(ex, sire, dam)).map((r) => genomeOf(r.genome)).filter((g): g is gc.Genome => g !== null);
-  const preview = gc.previewBreeding(sireState, damState, ped, season, family);
+  const grandparents = (await grandparentsOf(ex, sire, dam)).filter((r) => isGenome(r.genome)).map((r) => gc.publicParentOf(toHorseState(r)));
+  const publicSire = gc.publicParentOf(sireState);
+  const publicDam = gc.publicParentOf(damState);
+  const opts = { coi: gc.coiOf(sire.id, dam.id, ped), grandparents };
+  const pairBlock = gc.pairingBlock(sireState, damState, ped, season);
   let block: PairingPreview["block"] = null;
   if (dam.ownerStableId !== stable.id) block = "not_your_mare";
   else if (!ownSire && !standsAtStud(sire)) block = "not_at_stud";
-  else if (preview.blocked) block = preview.blocked;
+  else if (pairBlock) block = pairBlock;
   else if (dam.lesseeStableId || sire.lesseeStableId) block = "on_lease";
   else if (dam.lockKind === "race") block = "in_race";
   else if (dam.lockKind === "market" || sire.lockKind === "market") block = "listed";
   else if (dam.lockKind === "stud") block = "booked";
+  const sireRestingUntilMs = await studRestingUntilOf(ex, sire.id, input.now);
+  if (!block && sireRestingUntilMs !== null) block = "stud_resting";
   const usdgStudFee = !ownSire && sire.studFeeUsdg !== null ? sire.studFeeUsdg : null;
   return {
-    preview,
+    sireRestingUntilMs,
+    outlook: gc.pairingOutlook(publicSire, publicDam, opts),
+    quality: gc.outlookNumbers(publicSire, publicDam, opts),
+    publicSire,
+    publicDam,
+    day: Math.floor(input.now.getTime() / 86_400_000),
     block,
     fees: gc.breedingFees(usdgStudFee !== null ? 0 : (sire.studFee ?? 0), ownSire),
     usdgStudFee,
@@ -163,7 +195,6 @@ export async function previewPairing(ex: Executor, input: { accountId: string; s
     sire,
     dam,
     season,
-    parents: { sire: gc.overallPotential(sireState.genome), dam: gc.overallPotential(damState.genome) },
   };
 }
 
@@ -224,6 +255,7 @@ export async function listStuds(ex: Executor, opts: { limit?: number } = {}): Pr
         eq(horses.gelded, false),
         ne(horses.careerStatus, "pasture"),
         isNull(horses.releasedAt),
+        lt(horses.breedingCount, RULES.breedingLifetimeLimit),
         or(isNotNull(horses.ownerStableId), eq(horses.origin, "house")),
       ),
     )
@@ -233,7 +265,8 @@ export async function listStuds(ex: Executor, opts: { limit?: number } = {}): Pr
 }
 
 /** A horse that stands at public stud: a player's stallion with a fee (credits or USDG), or a Club house stallion. */
-export function standsAtStud(h: Pick<HorseRow, "studFee" | "studFeeUsdg" | "ownerStableId" | "origin">): boolean {
+export function standsAtStud(h: Pick<HorseRow, "studFee" | "studFeeUsdg" | "ownerStableId" | "origin" | "breedingCount">): boolean {
+  if (h.breedingCount >= RULES.breedingLifetimeLimit) return false; // capped = delisted
   if (h.studFeeUsdg !== null) return h.ownerStableId !== null;
   return h.studFee !== null && (h.ownerStableId !== null || h.origin === "house");
 }

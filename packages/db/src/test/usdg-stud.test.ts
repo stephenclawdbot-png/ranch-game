@@ -204,33 +204,51 @@ describe("USDG stud fee: quote", () => {
     await expect(quote(full, stallion.id, fullMare.id)).rejects.toMatchObject({ code: "STABLE_FULL" });
   });
 
-  it("season and lifetime limits count live bookings: no over-booking, and the owner's own covers respect held slots", async () => {
+  it("one live booking at a time (the stud rest), lifetime limits count it, and a lapsed booking frees him", async () => {
     const owner = await player();
     const stallion = await registeredStallion(owner, { breedingCount: RULES.breedingLifetimeLimit - 2 });
     await setUsdgStudFee(h.db, { accountId: owner.accountId, horseId: stallion.id, fee: 5 * USD, now: T0 }, POLICY);
-    const [a, b, c] = [await player(), await player(), await player()];
+    const [a, b] = [await player(), await player()];
     await quote(a, stallion.id, (await mareOf(a)).id);
-    await quote(b, stallion.id, (await mareOf(b)).id);
-    await expect(quote(c, stallion.id, (await mareOf(c)).id)).rejects.toMatchObject({ code: "BREEDING_LIMIT" });
+    // A live booking is a covering about to happen: he rests from it (game-core STUD_COOLDOWN_MS).
+    await expect(quote(b, stallion.id, (await mareOf(b)).id)).rejects.toMatchObject({ code: "BREEDING_NOT_ELIGIBLE", details: { block: "stud_resting" } });
     const own = await mareOf(owner);
-    await expect(breed(h.db, { accountId: owner.accountId, sireId: stallion.id, damId: own.id, now: T0, idempotencyKey: `held:${own.id}` })).rejects.toMatchObject({ code: "BREEDING_LIMIT" });
-    // Once a booking lapses unpaid, its slot is free again.
+    await expect(breed(h.db, { accountId: owner.accountId, sireId: stallion.id, damId: own.id, now: T0, idempotencyKey: `held:${own.id}` })).rejects.toMatchObject({
+      details: { block: "stud_resting" },
+    });
+    expect((await breedingStatus(h.db, await getHorseRow(h.db, stallion.id), T0)).block).toBe("stud_resting");
+    // Once the booking lapses unpaid, he is free again.
     const lapse = at(POLICY.quoteTtlMs + USDG_ORDER_GRACE_MS + MIN);
     for (const o of await usdgOrdersNeedingAttention(h.db, { now: lapse })) if (o.horseId === stallion.id) await expireUsdgOrder(h.db, { orderId: o.orderId, now: lapse }, POLICY);
     expect(await studHoldsOf(h.db, stallion.id, lapse)).toBe(0);
-    await expect(quote(c, stallion.id, (await h.db.select().from(horses).where(and(eq(horses.ownerStableId, c.stableId), eq(horses.sex, "female"))))[0]!.id, lapse)).resolves.toMatchObject({ kind: "stud" });
+    await expect(quote(b, stallion.id, (await h.db.select().from(horses).where(and(eq(horses.ownerStableId, b.stableId), eq(horses.sex, "female"))))[0]!.id, lapse)).resolves.toMatchObject({
+      kind: "stud",
+    });
 
-    // Per season: a stallion with lifetime left but this season's slots taken by bookings.
+    // Lifetime: a stallion with one breeding left, held by a live booking, can't cover anyone else.
     const owner2 = await player();
-    const s2 = await registeredStallion(owner2);
+    const s2 = await registeredStallion(owner2, { breedingCount: RULES.breedingLifetimeLimit - 1 });
     await setUsdgStudFee(h.db, { accountId: owner2.accountId, horseId: s2.id, fee: 5 * USD, now: T0 }, POLICY);
-    for (let i = 0; i < RULES.stallionPerSeason; i++) {
-      const p = await player();
-      await quote(p, s2.id, (await mareOf(p)).id);
-    }
-    const late = await player();
-    const lateMare = await mareOf(late);
-    await expect(quote(late, s2.id, lateMare.id)).rejects.toMatchObject({ code: expect.stringMatching(/BREEDING_(SEASON_)?LIMIT/) });
+    const c = await player();
+    await quote(c, s2.id, (await mareOf(c)).id);
+    const own2 = await mareOf(owner2);
+    await expect(breed(h.db, { accountId: owner2.accountId, sireId: s2.id, damId: own2.id, now: T0, idempotencyKey: `held2:${own2.id}` })).rejects.toMatchObject({ code: "BREEDING_LIMIT" });
+  });
+
+  it("capped = delisted: the covering that uses his last breeding withdraws his USDG stud fee for good", async () => {
+    const owner = await player();
+    const stallion = await registeredStallion(owner, { breedingCount: RULES.breedingLifetimeLimit - 1, careerStatus: "racing", retirementReason: null, retiredAt: null, starts: 30 });
+    await setUsdgStudFee(h.db, { accountId: owner.accountId, horseId: stallion.id, fee: 5 * USD, now: T0 }, POLICY);
+    expect((await listStuds(h.db)).some((x) => x.horse.id === stallion.id)).toBe(true);
+    const buyer = await player();
+    const o = await quote(buyer, stallion.id, (await mareOf(buyer)).id);
+    await expect(fulfilUsdgPayment(h.db, { orderId: o.orderId, txHash: txHash(), now: at(2 * MIN) }, POLICY)).resolves.toMatchObject({ status: "fulfilled" });
+    expect(await getHorseRow(h.db, stallion.id)).toMatchObject({ breedingCount: RULES.breedingLifetimeLimit, careerStatus: "racing", studFeeUsdg: null, studFee: null });
+    expect((await listStuds(h.db)).some((x) => x.horse.id === stallion.id)).toBe(false);
+    expect(standsAtStud(await getHorseRow(h.db, stallion.id))).toBe(false);
+    await expect(setUsdgStudFee(h.db, { accountId: owner.accountId, horseId: stallion.id, fee: 5 * USD, now: at(DAY) }, POLICY)).rejects.toMatchObject({ code: "BREEDING_LIMIT" });
+    const notes = await h.db.select().from(inboxItems).where(eq(inboxItems.horseId, stallion.id));
+    expect(notes.some((n) => /no longer stands at stud/.test(n.title))).toBe(true);
   });
 });
 

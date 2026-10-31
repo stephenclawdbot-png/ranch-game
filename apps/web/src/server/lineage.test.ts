@@ -2,13 +2,13 @@
  * Lineage end to end (owner: "make sure ranches + genetics breed horses kind works ok"): real
  * pairings through the server (cover, foal, name) across breeds and seasons, then the next
  * generation from those foals. Checks the family limits (game-core familyRange) on the real
- * database path, the preview's limits, the foals' genetics (breed mix, coat appearance) and that
+ * database path, the family limits (internal exact odds), the player's preview in words, the foals' genetics (breed mix, coat appearance) and that
  * the Ranch can lay them out and recolour them. RANCH_EXPORT=<file> writes the foals' stable
  * views (for a visual check of the Ranch).
  */
 import { writeFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAccount, createDb, getHorse, schema, stableOf, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, getHorse, schema, stableOf, toHorseState, type DbHandle } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
 import { HorseSchema } from "@thoroughbred/shared";
 import { recolorMap } from "@/components/diorama/recolor";
@@ -82,10 +82,10 @@ describe("lineage: breeding generations through the server", () => {
     await readyToBreed(damId);
     const pv = await breedingPreview(h.db, breeder, { sireId, damId }, at(t));
     expect(pv.block).toBeNull();
-    const lim = pv.preview.limits;
-    expect(lim.lineage).not.toBe("foundation");
-    expect(lim.overall.floor).toBeLessThanOrEqual(pv.preview.overall.p10);
-    expect(lim.overall.ceiling).toBeGreaterThanOrEqual(pv.preview.overall.p90);
+    // The player's preview: words only, and this line has grandparents on record.
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(pv.outlook.phrase);
+    expect(pv.warnings.map((w) => w.key)).not.toContain("foundation");
+    expect(pv.looks).toHaveLength(gc.POSSIBLE_LOOKS);
     const c2 = await coverMare(h.db, breeder, { sireId, damId, key: "g2" }, at(t));
     const g2 = await foalAndName(h.db, breeder, { pregnancyId: c2.pregnancyId, name: "Second Generation" }, at(t + DAY));
 
@@ -98,6 +98,14 @@ describe("lineage: breeding generations through the server", () => {
     expect(grand.length).toBeGreaterThanOrEqual(2);
     const g = (r: { genome: unknown }) => gc.upgradeGenome(r.genome)!;
     const range = gc.familyRange(g(sireRow), g(damRow), grand.map((r) => g(r!)), g(row).coi);
+    // The family limits of the exact (internal, never sent) odds, from the real grandparents.
+    const ped: Record<string, gc.PedigreeEntry> = {};
+    for (const r of [sireRow, damRow, ...grand.map((x) => x!)]) ped[r.id] = { sireId: r.sireId, damId: r.damId, generation: r.generation };
+    const exact = gc.previewBreeding(toHorseState(sireRow), toHorseState(damRow), ped, 1, grand.map((r) => g(r!)));
+    const lim = exact.limits;
+    expect(lim.lineage).not.toBe("foundation");
+    expect(lim.overall.floor).toBeLessThanOrEqual(exact.overall.p10);
+    expect(lim.overall.ceiling).toBeGreaterThanOrEqual(exact.overall.p90);
     for (const k of gc.STAT_KEYS) for (const a of g(row).stats[k]) {
       expect(a).toBeGreaterThanOrEqual(range[k].floor);
       expect(a).toBeLessThanOrEqual(range[k].ceiling);
@@ -109,10 +117,9 @@ describe("lineage: breeding generations through the server", () => {
       expect(gc.potentials(g(row))[k]).toBeLessThanOrEqual(lim.stats[k].ceiling);
       expect(gc.potentials(g(row))[k]).toBeGreaterThanOrEqual(lim.stats[k].floor);
     }
-    // Genetics v2 on the preview: the foal's exact breed, size range, trait and MSTN odds.
-    expect(pv.preview.breed.shares.reduce((a, b) => a + b.share, 0)).toBe(1000);
-    expect(pv.preview.size.min).toBeLessThanOrEqual(pv.preview.size.max);
-    expect(Object.values(pv.preview.mstn).reduce((a: number, b) => a + (b ?? 0), 0)).toBeGreaterThanOrEqual(999);
+    // The preview's foal breed is the named blend of the parents; its sample looks are valid appearances.
+    expect(pv.breed).toBe(gc.breedLabel(gc.blendBreeds(g(sireRow).breed, g(damRow).breed)));
+    for (const l of pv.looks) expect(HorseSchema.shape.appearance.safeParse(l.appearance).success).toBe(true);
 
     // Genetics on every foal: a breed mix that adds up, a valid coat appearance the Ranch can recolour.
     const silks = parseSilks(p.stable.silks);

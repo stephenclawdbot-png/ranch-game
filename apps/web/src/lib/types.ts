@@ -390,7 +390,14 @@ export interface HorseDetailView {
   /** Three generations of ancestors above this horse (null parent = foundation stock). */
   tree: PedigreeNode;
   /** Standing at public stud (a player's stallion or a Club house stallion). */
-  stud: { fee: number; club: boolean; /** A registered stallion standing for a USDG fee instead (micro-USDG). */ feeUsdg?: number | null } | null;
+  stud: {
+    fee: number;
+    club: boolean;
+    /** A registered stallion standing for a USDG fee instead (micro-USDG). */
+    feeUsdg?: number | null;
+    /** "Resting · available again in 7 h" after a covering (game-core STUD_COOLDOWN_MS); null when he can cover now. */
+    resting?: string | null;
+  } | null;
   /** The owner's next steps beyond racing (null for other stables' horses). */
   actions: { cover: boolean; stud: boolean; sell: boolean } | null;
   /** Coat genetics, markings, breed mix, build, inbreeding, revealed quirks (stud-book info). */

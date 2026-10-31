@@ -92,13 +92,13 @@ export default function InbreedingPage() {
         unrelated founders.
       </P>
       <P>
-        The foal keeps its COI for life. You see it as <b>Inbreeding</b> in the horse&rsquo;s Genetics panel and under its pedigree tree, and the breeding preview shows the COI a pairing would give
-        before you pay.
+        The foal keeps its COI for life. You see it as <b>Inbreeding</b> in the horse&rsquo;s Genetics panel and under its pedigree tree, and the breeding preview warns in words before you pay:
+        &ldquo;Closely related&rdquo; over the warning line, &ldquo;Distantly related&rdquo; below it.
       </P>
       <Facts
         rows={[
           ["Stud book generations read", gc.COI_MAX_DEPTH],
-          ["Preview warns from COI", coiText(gc.COI_WARN)],
+          ["Preview says “closely related” from COI", coiText(gc.COI_WARN)],
           ["Durability and temperament lost", `${pct(gc.INBREEDING_DEPRESSION_PERMILLE)} of the COI (e.g. ${coiText(half)} COI costs ${pct((half * gc.INBREEDING_DEPRESSION_PERMILLE) / 1000, 0)})`],
           ["Extra mutation chance per 10% COI", pct(gc.MUTATION_COI_RATE_PER_100)],
           ["Extra share of harmful mutations per 10% COI", pct(gc.MUTATION_NEG_PER_100_COI)],
@@ -109,13 +109,13 @@ export default function InbreedingPage() {
       <P>Three pairings are blocked outright. The breeding screen won&rsquo;t let you cover them and tells you why:</P>
       <List items={(Object.keys(BLOCK_TEXT) as gc.KinBlock[]).map((k) => BLOCK_TEXT[k])} />
       <P>
-        Everything else is allowed, however close. Half-siblings, grandparent and grandchild, uncle and niece: you can breed them, and the preview shows the warning and the cost.
+        Everything else is allowed, however close. Half-siblings, grandparent and grandchild, uncle and niece: you can breed them, and the preview warns you in words.
       </P>
 
       <H2 id="table">How related is too related?</H2>
       <P>
         A small stud book run through the game&rsquo;s own COI and block checks. The durability column is a stat whose genes would give <b>600</b> with no inbreeding; the last two columns are the
-        mutation odds the preview would show.
+        mutation odds the rules give.
       </P>
       <Table
         head={["Pairing", "Foal's COI", "Breeding screen", "Durability (600 at no COI)", "Mutation chance", "Mutations that hurt"]}
@@ -123,7 +123,7 @@ export default function InbreedingPage() {
       />
       <Callout tone="warn" title="The warning line">
         <p>
-          From a COI of {coiText(gc.COI_WARN)} the preview turns red with an <b>Inbreeding warning</b>: &ldquo;close relatives: lower durability and temperament, more negative mutations.&rdquo; First
+          From a COI of {coiText(gc.COI_WARN)} the preview shows a red warning: &ldquo;Closely related: higher risk of weakness (less durability and temperament, more bad mutations).&rdquo; First
           cousins ({coiText(cousins)}) are already over it; half-siblings ({coiText(half)}) are well over.
         </p>
       </Callout>
@@ -168,7 +168,7 @@ export default function InbreedingPage() {
       </P>
       <Callout tone="tip">
         <p>
-          Check the COI line in the <WikiLink slug="breeding-basics">breeding preview</WikiLink> before every covering. If it is red, look for an outcross: a stallion from another family, another
+          Check the <WikiLink slug="breeding-basics">breeding preview</WikiLink> for the &ldquo;Closely related&rdquo; warning before every covering. If it is there, look for an outcross: a stallion from another family, another
           stable&rsquo;s stud, or a Club stud brings fresh blood and sets the COI back to zero.
         </p>
       </Callout>

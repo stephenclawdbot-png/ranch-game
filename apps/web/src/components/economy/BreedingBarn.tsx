@@ -1,9 +1,10 @@
 "use client";
 /**
  * Breeding barn (game-design §7, §4a): mares in foal with their 24 h countdown and the
- * foaling reveal; plan a cover (your mare × your stallion or a stud) with the exact preview
- * before you pay; the stallion finder (every available stallion ranked for a mare by that same
- * preview); and the stud book (stand your stallion, browse studs).
+ * foaling reveal; plan a cover (your mare × your stallion or a stud) with the preview before you
+ * pay (possible looks and an outlook in words: still a chance); the stallion finder (every
+ * available stallion for a mare with that same outlook and one possible look); and the stud
+ * book (stand your stallion, browse studs).
  *
  * USDG stud fees (docs/usdg-market.md): a stallion registered for the USDG market may stand for a
  * USDG fee instead of credits. Covering a mare with him is booked here ("Pay N USDG to <owner>"),
@@ -25,7 +26,8 @@ import { useNow } from "@/lib/clock";
 import { formatCountdown, formatCredits, shortHash } from "@/lib/format";
 import type { BreedingHorse, BreedingView, EcoHorse, PregnancyCard, PreviewView, StudFinderRow, StudFinderView, StudView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
-import { BreedingPreviewPanel } from "./BreedingPreviewPanel";
+import { BreedingPreviewPanel, OUTLOOK_TONE, nickColor } from "./BreedingPreviewPanel";
+import { LazyPortrait } from "./PossibleLooks";
 import { FoalReveal } from "./FoalReveal";
 import { Credits, HorseLine, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
@@ -277,6 +279,11 @@ type SireSource = "own" | "stud";
 function eligibilityChip(h: { block: string | null; reason: string | null }) {
   return h.block === null ? (
     <span className="text-sm font-extrabold text-positive">✓ Can breed</span>
+  ) : h.block === "stud_resting" ? (
+    <span className="text-sm font-bold text-brass-bright" data-testid="stud-resting">
+      <span aria-hidden>◷ </span>
+      {h.reason}
+    </span>
   ) : (
     <span className="text-sm font-bold text-cream-dim">✗ {h.reason}</span>
   );
@@ -577,28 +584,15 @@ function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: Breedin
 // Stallion finder: every available stallion ranked for one mare
 // ---------------------------------------------------------------------------
 
-const pct = (permille: number) => `${(permille / 10).toFixed(permille < 100 && permille % 10 ? 1 : 0)}%`;
-
-/** The sort a column stands for; the finder's default is the chance of beating both parents. */
-const FINDER_SORTS: readonly { key: "upside" | "fee" | "nick" | "coi"; label: string; hint: string }[] = [
-  { key: "upside", label: "Beats both", hint: "Chance the foal comes out above both parents (default: best first, ties by fee)" },
-  { key: "fee", label: "Fee", hint: "Total credits the mare's owner pays (base fee + stud fee), cheapest first" },
-  { key: "nick", label: "Nick", hint: "Nick rating, best first" },
-  { key: "coi", label: "COI", hint: "Inbreeding coefficient, lowest first" },
+/** The finder's sorts: the best outlook (default, ties by fee) or the fee, cheapest first. */
+const FINDER_SORTS: readonly { key: "outlook" | "fee"; label: string; hint: string }[] = [
+  { key: "outlook", label: "Best outlook", hint: "Best foal outlook for this mare first (ties by fee)" },
+  { key: "fee", label: "Fee: low to high", hint: "Total credits the mare's owner pays (base fee + stud fee), cheapest first" },
 ];
-
-function FinderSort({ label, hint, active, onPick }: { label: string; hint: string; active: boolean; onPick: () => void }) {
-  return (
-    <button type="button" className={`text-left ${active ? "text-brass-bright" : "text-cream-dim"} hover:text-cream`} title={hint} onClick={onPick} data-testid={`finder-sort-${label}`}>
-      {label}
-      {active ? " ▾" : ""}
-    </button>
-  );
-}
 
 function StallionFinder({ v }: { v: BreedingView }) {
   const [mareId, setMareId] = useState<string | null>(null);
-  const [sort, setSort] = useState("upside");
+  const [sort, setSort] = useState<"outlook" | "fee">("outlook");
   const [page, setPage] = useState(0);
   const [data, setData] = useState<StudFinderView | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -635,53 +629,41 @@ function StallionFinder({ v }: { v: BreedingView }) {
     );
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
-  function pick(next: string) {
-    if (next !== sort) setSort(next);
-  }
-
   return (
     <section aria-labelledby="finder-h" className="grid gap-4">
       <SectionHeader id="finder-h" title="Stallion finder" />
       <p className="t-meta">
         Every stallion available to <span className="text-cream">{data?.mareName ?? "your mare"}</span> — your own, the Club&rsquo;s house studs and other stables&rsquo; advertised studs —
-        ranked by the exact cover preview: no information the single preview doesn&rsquo;t show. Stallions that can&rsquo;t cover her (her close kin, or a stallion at his cover limit, listed or away on
-        lease) are left out. The ranking is worked out once a day per mare and then cached.
+        with the foal outlook in words and one look a foal could have. It&rsquo;s still a chance: the real foal is a surprise. Stallions that can&rsquo;t cover her (her close kin, or a stallion at
+        his cover limit, listed or away on lease) are left out. The list is worked out once a day per mare.
       </p>
       <div>
         <h3 className="label mb-2">Your mare</h3>
         <PickList items={v.mares} selected={mareId} onPick={setMareId} name="Mare" testid="finder-mare" />
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="label">Stallions for her</h3>
+        <div className="segmented" role="group" aria-label="Sort stallions">
+          {FINDER_SORTS.map((s) => (
+            <button key={s.key} type="button" aria-pressed={sort === s.key} title={s.hint} onClick={() => setSort(s.key)} data-testid={`finder-sort-${s.key}`}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
       {error ? <ErrorNote error={error} /> : null}
       {loading && !data ? <Skeleton rows={4} /> : null}
       {data && (data.total > 0 || data.excluded > 0) && (
         <>
-          <div className="surface overflow-x-auto">
-            <table className="form-table" data-testid="finder-table">
-              <thead>
-                <tr>
-                  <th scope="col">Stud</th>
-                  {FINDER_SORTS.map((s) => (
-                    <th key={s.key} scope="col" className="whitespace-nowrap" aria-sort={sort === s.key ? "descending" : "none"}>
-                      <FinderSort label={s.label} hint={s.hint} active={sort === s.key} onPick={() => pick(s.key)} />
-                    </th>
-                  ))}
-                  <th scope="col">Likely foal</th>
-                  <th scope="col">Kinship</th>
-                  <th scope="col">Legs</th>
-                  <th scope="col">Coat odds</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <FinderRow key={r.id} r={r} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="grid gap-2" data-testid="finder-list">
+            {data.rows.map((r, i) => (
+              <FinderRow key={r.id} r={r} top={sort === "outlook" && data.page === 0 && i === 0} />
+            ))}
+          </ul>
           {data.rows.length === 0 && <p className="surface p-3 text-cream-dim">No stallion can cover this mare today.</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="t-meta" data-testid="finder-summary">
-              {data.total} available{data.excluded > 0 ? ` · ${data.excluded} ruled out` : ""} · ranking of {data.day}
+              {data.total} available{data.excluded > 0 ? ` · ${data.excluded} ruled out` : ""} · list of {data.day}
             </p>
             <div className="flex gap-2">
               <button type="button" className="btn btn-sm" disabled={data.page <= 0} onClick={() => setPage(data.page - 1)} data-testid="finder-prev">
@@ -701,43 +683,56 @@ function StallionFinder({ v }: { v: BreedingView }) {
   );
 }
 
-function FinderRow({ r }: { r: StudFinderRow }) {
-  const beats = pct(r.beatsBothPermille);
+function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
+  const tone = OUTLOOK_TONE[r.outlook.tone];
   return (
-    <tr data-testid="finder-row" data-usdg-only={r.usdgOnly}>
-      <th scope="row">
-        <span className="block font-bold text-cream">{r.name}</span>
-        <span className="caption">
-          {r.own ? "Yours" : r.club ? "The Club" : r.stableName}
-          {r.usdgOnly ? " · USDG only" : ""}
+    <li className={`surface grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center ${top ? "picked" : ""}`} data-testid="finder-row" data-usdg-only={r.usdgOnly}>
+      <span className="well grid place-items-center self-start p-1">
+        <LazyPortrait look={r.look} scale="thumb" label={`A foal could look like this: ${r.look.caption}`} />
+      </span>
+      <span className="grid min-w-0 gap-1">
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span className="t-title">{r.name}</span>
+          <span className="caption">
+            {r.own ? "Yours" : r.club ? "The Club" : r.stableName}
+            {r.usdgOnly ? " · USDG only" : ""}
+          </span>
+          {top && !r.resting && <span className="chip text-brass-bright">Best outlook</span>}
+          {r.resting && (
+            <span className="chip text-brass-bright" data-testid="finder-resting">
+              ◷ {r.resting}
+            </span>
+          )}
         </span>
-      </th>
-      <td className="whitespace-nowrap">
+        <span className="font-extrabold leading-snug" style={{ color: tone.color }} data-testid="finder-outlook">
+          <span aria-hidden>{tone.mark} </span>
+          {r.outlook.phrase}
+        </span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          <span className="chip font-bold" style={{ color: nickColor(r.nick) }}>
+            {r.nick}
+          </span>
+          <span className="caption">Could look like: {r.look.caption}</span>
+        </span>
+        {r.warnings.map((w) => (
+          <span key={w} className="text-sm text-negative">
+            <span aria-hidden>⚠ </span>
+            {w}
+          </span>
+        ))}
+      </span>
+      <span className="col-span-2 flex items-baseline justify-between gap-2 sm:col-span-1 sm:grid sm:justify-items-end sm:gap-0.5" data-testid="finder-fee">
+        <span className="label">{r.usdgOnly ? "Stud fee" : "You pay"}</span>
         {r.usdgOnly ? (
-          <>
+          <span className="text-right">
             <UsdgFee micro={r.studFeeUsdg ?? 0} />
-            <span className="block caption">paid to his owner on-chain, so he isn&rsquo;t ranked by credits price</span>
-          </>
+            <span className="block caption">paid on-chain, listed after the credits studs</span>
+          </span>
         ) : (
           <Credits value={r.feeCredits ?? 0} className="text-cream" />
         )}
-      </td>
-      <td className="num whitespace-nowrap">{beats}</td>
-      <td className="whitespace-nowrap">
-        <span className="num">{r.nickScore}</span> <span className="caption">{r.nickLabel}</span>
-      </td>
-      <td className={`num whitespace-nowrap ${r.coiWarning ? "text-negative font-bold" : ""}`} title={r.coiWarning ? "Over the inbreeding warning line" : "Inbreeding coefficient"}>
-        {(r.coiPermille / 10).toFixed(1)}%
-      </td>
-      <td className="whitespace-nowrap">
-        <span className="text">{r.overall.p50} <span className="caption">({r.overall.p10}–{r.overall.p90})</span></span>
-        <span className="block caption">likely grade {r.p50Grade}</span>
-      </td>
-      <td className={`whitespace-nowrap ${r.fragile.permille > 0 ? "text-negative" : "text-cream-dim"}`}>
-        {r.fragile.permille > 0 ? `${pct(r.fragile.permille)}${r.fragile.fromInjury ? " (a parent was injured)" : ""}` : "—"}
-      </td>
-      <td className="caption">{r.coats.map((c) => `${c.name} ${pct(c.permille)}`).join(" · ")}</td>
-    </tr>
+      </span>
+    </li>
   );
 }
 

@@ -26,7 +26,7 @@ import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
 import { playerLedgerAccountId, post, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
-import { studHoldsOf } from "./usdgMarket";
+import { studHoldDeadline, studHoldsOf } from "./usdgMarket";
 
 /** Max pedigree depth stored in the closure table (game-core COI depth). */
 export const LINEAGE_MAX_DEPTH = gc.COI_MAX_DEPTH;
@@ -64,6 +64,27 @@ export function withStudHolds(state: gc.HorseState, season: number, held: number
     ? state.breeding.bySeason.map((b) => (b.season === season ? { ...b, count: b.count + held } : b))
     : [...state.breeding.bySeason, { season, count: held }];
   return { ...state, breeding: { ...state.breeding, used: state.breeding.used + held, bySeason } };
+}
+
+/**
+ * When a stallion can cover again (game-core STUD_COOLDOWN_MS after his latest covering), or
+ * null when he can now. A live USDG booking of him (other than `excludeOrderId`, the one being
+ * fulfilled) is a covering about to happen: he rests from its payment deadline too, so nothing
+ * can take the covering a mare owner is paying for.
+ */
+export async function studRestingUntilOf(ex: Executor, sireId: string, now: Date, excludeOrderId?: string): Promise<number | null> {
+  const [r] = await ex.select({ at: sql<string | Date | null>`max(${breedingEvents.createdAt})` }).from(breedingEvents).where(eq(breedingEvents.sireId, sireId));
+  const last = r?.at ? new Date(r.at).getTime() : null;
+  const held = await studHoldDeadline(ex, sireId, now, excludeOrderId);
+  const fromCover = gc.studRestingUntil(last, now.getTime());
+  const fromHold = held === null ? null : held + gc.STUD_COOLDOWN_MS;
+  return fromCover === null ? fromHold : fromHold === null ? fromCover : Math.max(fromCover, fromHold);
+}
+
+/** The refusal for a resting stallion (BREEDING_NOT_ELIGIBLE, block "stud_resting", `until`). */
+export function studRestingError(name: string, until: number, now: Date): DomainError {
+  const h = gc.hoursUntil(until, now.getTime());
+  return new DomainError("BREEDING_NOT_ELIGIBLE", `${name} is resting after a covering: available again in ${h} h`, { block: "stud_resting", until });
 }
 
 export const BREED_BLOCK_CODES: Record<gc.BreedBlock, DomainErrorCode> = {
@@ -171,6 +192,10 @@ export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCov
   const ped = await pedigreeIndex(tx, [sire.id, dam.id]);
   const block = gc.pairingBlock(sireState, damState, ped, season);
   if (block) throw new DomainError(BREED_BLOCK_CODES[block], `breeding blocked: ${block}`, { block });
+  // The stud rest (game-core STUD_COOLDOWN_MS), from his latest covering, under the locks above.
+  // A retry of this same covering returned at the idempotency check before getting here.
+  const restingUntil = await studRestingUntilOf(tx, sire.id, input.now, usdg?.orderId);
+  if (restingUntil !== null) throw studRestingError(sire.name, restingUntil, input.now);
 
   // The foal needs a stall, or the single nursery overflow slot.
   await assertStallFree(tx, lockedStable, { allowOverflow: true });
@@ -231,7 +256,9 @@ export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCov
   await tx.update(horses).set({ breedingCount: sql`${horses.breedingCount} + 1`, updatedAt: input.now }).where(inArray(horses.id, [sire.id, dam.id]));
   if (bookedForThis) await tx.update(horses).set({ lockKind: null, lockRef: null }).where(eq(horses.id, dam.id));
   // the stallion's last covering retires him for good now (the mare goes once she has foaled)
-  await retireSpentBreeders(tx, [sire.id], input.now);
+  const pastured = await retireSpentBreeders(tx, [sire.id], input.now);
+  // capped = delisted: a horse with every breeding used stops standing at stud (racing ones keep racing)
+  await delistCappedStuds(tx, [sire.id, dam.id].filter((id) => !pastured.includes(id)), input.now);
   const seed = newSeed();
   const dueAt = new Date(input.now.getTime() + RULES.pregnancyMs);
   const [preg] = await tx
@@ -276,6 +303,37 @@ async function retireSpentBreeders(ex: Executor, ids: readonly string[], now: Da
       .onConflictDoNothing();
   }
   return spent.map((h) => h.id);
+}
+
+/**
+ * Horses that have used every lifetime breeding stop standing at stud (credits and USDG fee
+ * cleared, so they leave the stud book and the stallion finder), in the covering's
+ * transaction. Racing horses keep racing. Owners get a note. A USDG booking can't be open for
+ * a capped stallion: live bookings count as used (withStudHolds), so the last one is the
+ * covering that capped him.
+ */
+async function delistCappedStuds(ex: Executor, ids: readonly string[], now: Date): Promise<void> {
+  if (!ids.length) return;
+  const delisted = await ex
+    .update(horses)
+    .set({ studFee: null, studFeeUsdg: null, updatedAt: now })
+    .where(and(inArray(horses.id, [...ids]), gte(horses.breedingCount, RULES.breedingLifetimeLimit), sql`(${horses.studFee} is not null or ${horses.studFeeUsdg} is not null)`))
+    .returning();
+  for (const h of delisted) {
+    if (!h.ownerStableId) continue;
+    await ex
+      .insert(inboxItems)
+      .values({
+        accountId: await accountIdOfStable(ex, h.ownerStableId),
+        kind: "retired",
+        dedupeKey: `stud-capped:${h.id}`,
+        title: `${h.name} has used every breeding and no longer stands at stud`,
+        data: { reason: "breedings_used_stud" },
+        horseId: h.id,
+        createdAt: now,
+      })
+      .onConflictDoNothing();
+  }
 }
 
 export interface FoalResult {

@@ -38,17 +38,17 @@ function commonIn(locus: gc.Genes2Key): string {
   return top.length ? top.map(([b, f]) => `${gc.BREED_LABEL[b]} ${pct(f)}`).join(", ") : "none";
 }
 
-/** Two carriers of pearl and big heart (neither shows them): the preview's exact odds. */
+/** Two carriers of pearl and big heart (neither shows them): the rules' exact odds (internal; never shown for a real horse). */
 function carrierExample() {
   const base = sampleGenome("carrier-example");
   const carrier: gc.Genome = { ...base, coat: { ...base.coat, cream: ["n", "n"] }, genes2: { ...base.genes2, pearl: ["prl", "n"], bigHeart: ["bh", "n"] } };
   const mk = (id: string, sex: "colt" | "filly") =>
     gc.createHorseState({ id, name: id, sex, ownerId: "wiki", sireId: null, damId: null, generation: 0, genome: carrier, bornAtMs: 0, bornSeason: 1, careSessions: gc.CARE_TO_RACING });
   const p = gc.previewBreeding(mk("wiki-carrier-sire", "colt"), mk("wiki-carrier-dam", "filly"), {}, 1);
-  return { pearl: p.traits.find((t) => t.name === "Pearl")?.permille ?? 0, hidden: p.hidden };
+  return { pearl: p.traits.find((t) => t.name === "Pearl")?.permille ?? 0 };
 }
 
-/** A real example pairing: two foundation horses, their exact preview and 400 simulated foals. */
+/** A real example pairing: two foundation horses, the rules' exact odds, the player's outlook in words and 400 simulated foals. */
 function examplePairing() {
   // the first seeded horses good enough to be worth breeding from (deterministic)
   const good = (prefix: string) => {
@@ -64,6 +64,8 @@ function examplePairing() {
   const sire = mk("wiki-sire", "colt", sireG);
   const dam = mk("wiki-dam", "filly", damG);
   const preview = gc.previewBreeding(sire, dam, {}, 4);
+  // What the breeding screen shows instead: the outlook in words, from public facts only.
+  const outlook = gc.pairingOutlook(gc.publicParentOf(sire), gc.publicParentOf(dam), { coi: 0 });
   const sireOv = gc.overallPotential(sireG);
   const damOv = gc.overallPotential(damG);
   const lo = Math.min(sireOv, damOv);
@@ -76,7 +78,7 @@ function examplePairing() {
   const max = Math.ceil(Math.max(...foals, hi) / 10) * 10;
   const buckets: { from: number; n: number }[] = [];
   for (let b = min; b < max; b += 10) buckets.push({ from: b, n: foals.filter((v) => v >= b && v < b + 10).length });
-  return { sireG, damG, sireOv, damOv, lo, hi, preview, below, above, between: foals.length - below - above, n: foals.length, buckets, best: Math.max(...foals), worst: Math.min(...foals) };
+  return { sireG, damG, sireOv, damOv, lo, hi, preview, outlook, below, above, between: foals.length - below - above, n: foals.length, buckets, best: Math.max(...foals), worst: Math.min(...foals) };
 }
 
 /** The example pairing's nick, worked through with the rules' own weights. */
@@ -205,11 +207,13 @@ export default function GeneticsAndInheritancePage() {
         </div>
       </div>
       <P>
-        What the breeding screen would show for this pairing before you pay. It uses the true genes, so its odds are exact; it leaves mutations out (they are listed separately), and 400
-        foals are only a sample, so the two can differ by a few points.
+        The rules&rsquo; exact odds for this example pairing, worked out from the two example horses&rsquo; true genes (mutations left out; 400 foals are only a sample, so the two can differ
+        by a few points). The breeding screen never shows numbers like these for a real pairing: they would give the horses&rsquo; hidden genes away. It shows a few possible looks and an outlook
+        in words, worked out only from what is public about the two horses. For this pair (the dam as your mare) it would read: <b>&ldquo;{ex.outlook.outlook.phrase}.&rdquo;</b>{" "}
+        <b>{ex.outlook.nick}</b>.
       </P>
       <Facts
-        title="Breeding preview"
+        title="The rules' exact odds (example horses only)"
         rows={[
           ["Middle 80% of foals", `${ex.preview.overall.p10} to ${ex.preview.overall.p90}`],
           ["Beats both parents", pct(ex.preview.overall.beatsBothParents)],
@@ -222,13 +226,15 @@ export default function GeneticsAndInheritancePage() {
         {(Object.keys(STAT_LABEL) as gc.StatKey[]).map((k) => (
           <Meter key={k} label={STAT_LABEL[k]} value={ex.preview.stats[k].expected} max={1000} suffix="" />
         ))}
-        <p className="caption">Expected foal potential per stat (the preview also shows each stat&rsquo;s full range).</p>
+        <p className="caption">Expected foal potential per stat, from the rules (not shown on the breeding screen).</p>
       </div>
 
       <H2 id="nick-rating">The nick rating, worked out</H2>
       <P>
-        The <b>nick</b> is one number from 0 to 100 that sums up a pairing: how often it beats both parents (upside), how sure the foal&rsquo;s best trip and surface are (a coherent type),
-        and how inbred it is. The formula, with the weights the game uses:
+        The <b>nick</b> sums up how well two lines combine: how often a foal beats both parents (upside), how settled the foal&rsquo;s best trip and surface are (a coherent type), and how
+        inbred it is. The breeding preview shows only its label, as a word (&ldquo;Good nick&rdquo;), and feeds it public facts only: the outlook&rsquo;s chance to beat both parents, whether the
+        parents&rsquo; published best trips agree and whether their surfaces agree (a full share when they match, half when they don&rsquo;t), and the kinship. The formula, with the weights the game
+        uses:
       </P>
       <Callout tone="rule" title="Nick formula">
         <p>
@@ -236,8 +242,8 @@ export default function GeneticsAndInheritancePage() {
           {gc.NICK_WEIGHTS.surfaceCertainty} &times; <i>most likely surface</i> &minus; <i>inbreeding (per mille)</i> &divide; {gc.NICK_WEIGHTS.coiDivisor}, kept between 0 and 100.
         </p>
         <p>
-          Each share is a fraction from 0 to 1: the chance a foal beats both parents&rsquo; overall potential, and the chance of the single most likely trip band and surface. Inbreeding is the
-          coefficient in tenths of a percent (full siblings are 250), see <WikiLink slug="inbreeding" />.
+          Each share is a fraction from 0 to 1. Inbreeding is the coefficient in tenths of a percent (full siblings are 250), see <WikiLink slug="inbreeding" />. Below, the formula is worked
+          through with the example pair&rsquo;s exact odds, to show how it behaves.
         </p>
       </Callout>
       <Table
@@ -257,7 +263,7 @@ export default function GeneticsAndInheritancePage() {
         ]}
       />
       <P>
-        A nick is a summary, not a verdict: two pairings with the same nick can differ a lot in their best and worst foals. The full preview (odds per grade, family limits) is the thing to read.
+        A nick is a summary, not a verdict: two pairings with the same nick can differ a lot in their best and worst foals. Read it with the outlook and the possible looks.
       </P>
 
       <H2 id="dominant-recessive">Dominant, recessive and hidden copies</H2>
@@ -273,9 +279,8 @@ export default function GeneticsAndInheritancePage() {
       />
       <Callout tone="rule" title="Hidden copies surface in foals">
         <p>
-          Two horses that each carry one copy of pearl look plain, yet {pct(carriers.pearl)} of their foals are pearl. The breeding preview lists these surprises under <b>Hidden genes</b>
-          {carriers.hidden.length ? <> (for this pair: &ldquo;{carriers.hidden.join("; ")}&rdquo;)</> : null}, and the horse page marks a copy the horse carries but doesn&rsquo;t show as a{" "}
-          <b>hidden copy</b>.
+          Two horses that each carry one copy of pearl look plain, yet {pct(carriers.pearl)} of their foals are pearl. The horse page marks a colour or pattern copy the horse carries but
+          doesn&rsquo;t show as a <b>hidden copy</b>, and the breeding preview&rsquo;s possible looks can turn one up.
         </p>
       </Callout>
       <P>
@@ -330,7 +335,8 @@ export default function GeneticsAndInheritancePage() {
 
       <Callout tone="tip">
         <p>
-          Read the preview before every covering. Its odds are exact, and the <WikiLink slug="family-limits" /> tell you the worst and best this pairing can ever produce.
+          Read the preview before every covering: the possible looks, the outlook and the warnings. It&rsquo;s still a chance, and the real foal is a surprise at birth. The{" "}
+          <WikiLink slug="family-limits" /> explain why no foal can land far beyond its family.
         </p>
       </Callout>
     </>

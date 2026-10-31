@@ -54,7 +54,7 @@ describe("economy views: breeding", () => {
     expect(after.usedThisSeason).toBe(1);
   });
 
-  it("previews a pairing (exact game-core preview, fees, kin and stud blocks) without charging", async () => {
+  it("previews a pairing (outlook in words from public facts, fees, kin and stud blocks) without charging", async () => {
     const owner = await newPlayer(h.db, { credits: 20_000 });
     const studOwner = await newPlayer(h.db, { credits: 0 });
     const mare = await makeHorse(h.db, owner.stableId, { sex: "female", ...retired });
@@ -68,8 +68,12 @@ describe("economy views: breeding", () => {
     expect(pv.ownSire).toBe(false);
     expect(pv.fees).toEqual(gc.breedingFees(800, false));
     expect(pv.fees.burned).toBe(RULES.breedingBaseFee + 80);
-    expect(pv.preview.overall.p10).toBeLessThanOrEqual(pv.preview.overall.p90);
-    expect(pv.preview.coats.reduce((a, c) => a + c.permille, 0)).toBeGreaterThan(990);
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(pv.outlook.outlook.phrase);
+    expect(JSON.stringify(pv.outlook)).not.toMatch(/\d/); // words only
+    // Built from the public facts alone (the same ones game-core derives from each horse).
+    expect(pv.publicSire.id).toBe(stud.id);
+    expect(pv.publicDam.genes2.bigHeart).toEqual(["n", "n"]);
+    expect(pv.day).toBe(Math.floor(T0.getTime() / 86_400_000));
     const studs = await listStuds(h.db);
     expect(studs.some((s) => s.horse.id === stud.id && s.stableName.length > 0)).toBe(true);
 

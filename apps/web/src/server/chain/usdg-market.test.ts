@@ -189,13 +189,15 @@ describe("USDG stud fees on the mock chain", () => {
     const later = new Date(order.deadlineMs + 3 * MIN);
     expect((await usdgBackstop(ctx, later)).settled).toBeGreaterThanOrEqual(1);
     expect((await breedingView(h.db, buyer, later)).pregnancies.some((p) => p.damId === damId)).toBe(true);
-    // An unpaid booking lapses and the mare is free again.
+    // An unpaid booking lapses and the mare is free again (booked once his stud rest is over).
+    const rested = new Date(later.getTime() + gc.STUD_COOLDOWN_MS);
     const buyer2 = await player();
     const dam2 = await mare(buyer2);
-    const unpaid = await bookUsdgStud(ctx, buyer2, { sireId: stallion, damId: dam2 }, T0);
-    await usdgBackstop(ctx, later);
-    expect((await myOrder(ctx, buyer2, unpaid.orderId, later)).status).toBe("expired");
-    expect((await breedingView(h.db, buyer2, later)).mares.find((m) => m.id === dam2)?.block).not.toBe("booked");
+    const unpaid = await bookUsdgStud(ctx, buyer2, { sireId: stallion, damId: dam2 }, rested);
+    const lapsed = new Date(unpaid.deadlineMs + 3 * MIN);
+    await usdgBackstop(ctx, lapsed);
+    expect((await myOrder(ctx, buyer2, unpaid.orderId, lapsed)).status).toBe("expired");
+    expect((await breedingView(h.db, buyer2, lapsed)).mares.find((m) => m.id === dam2)?.block).not.toBe("booked");
   });
 
   it("the EVM signer signs StudOrders that recover to the server key in HorseMarket's domain", async () => {

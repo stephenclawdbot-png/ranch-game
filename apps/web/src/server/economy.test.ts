@@ -19,7 +19,6 @@ import {
   pull,
   pullProof,
   standAtStud,
-  topPercent,
 } from "./economy";
 import type { Session } from "./session";
 
@@ -56,7 +55,8 @@ describe("breeding barn", () => {
     const blocked = await breedingPreview(h.db, p, { sireId: sire.id, damId: dam.id }, T0);
     expect(blocked.block).toBe("not_breeding_eligible");
     expect(blocked.reason).toMatch(/: Breeds from 25 starts/);
-    expect(blocked.preview.stats.speed.min).toBeLessThanOrEqual(blocked.preview.stats.speed.max);
+    expect(blocked.looks).toHaveLength(gc.POSSIBLE_LOOKS);
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(blocked.outlook.phrase);
     expect(blocked.fees.studFee).toBe(0);
     await expect(coverMare(h.db, p, { sireId: sire.id, damId: dam.id, key: "cover-blocked" }, T0)).rejects.toMatchObject({ code: "BREEDING_NOT_ELIGIBLE" });
 
@@ -213,12 +213,3 @@ describe("market", () => {
   });
 });
 
-describe("helpers", () => {
-  it("topPercent ranks against the population", () => {
-    const pop = Array.from({ length: 100 }, (_, i) => i + 1);
-    expect(topPercent(pop, 100)).toBe(1);
-    expect(topPercent(pop, 90)).toBe(10);
-    expect(topPercent(pop, 50)).toBe(50);
-    expect(topPercent(pop, 0)).toBe(100);
-  });
-});

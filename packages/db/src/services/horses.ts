@@ -319,6 +319,9 @@ export async function setStudFee(db: Db, input: { accountId: string; horseId: st
     if (input.fee !== null && (horse.sex !== "male" || horse.gelded || horse.careerStatus === "pasture")) {
       throw new DomainError("BREEDING_NOT_ELIGIBLE", "only entire stallions not on the Legacy Farm can stand at stud");
     }
+    if (input.fee !== null && horse.breedingCount >= RULES.breedingLifetimeLimit) {
+      throw new DomainError("BREEDING_LIMIT", `${horse.name} has used every breeding and can't stand at stud`, { block: "lifetime_limit" });
+    }
     if (input.fee !== null && (!Number.isSafeInteger(input.fee) || input.fee < 0)) throw new DomainError("INVALID_INPUT", "bad fee");
     if (input.fee !== null && isGenome(horse.genome)) {
       const ceiling = gc.studFeeCeiling(toHorseState(horse));

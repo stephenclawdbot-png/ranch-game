@@ -412,6 +412,8 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 |---|---|---|---|---|
 | `MARE_PER_SEASON` | 1 (DB unique index on dam + season) | packages/game-core/src/breeding.ts:33, packages/db/src/schema.ts:567 | A mare covers at most once per season. | Foal crop (≤ 1 per mare per 28 days) |
 | `STALLION_PER_SEASON` | 4 | packages/game-core/src/breeding.ts:34 | Stallion cap per season (lifetime 4 makes it effectively "all at once"). | Stud supply |
+| `STUD_COOLDOWN_MS` | `PREGNANCY_MS / 2` = 12 h | packages/game-core/src/breeding.ts (`studRestingUntil`), enforced in packages/db/src/services/breeding.ts `coverTx` / `studRestingUntilOf` | Owner 2026-10-31: a stallion rests half a pregnancy after each covering, any stable's mare; a live USDG booking counts as a covering about to happen (one booking at a time). Shown as "Resting · available again in N h" in the stud book, finder (ranked after available studs) and horse page. The mare's rest is her pregnancy (24 h, one at a time). | Stud supply, popular-stud queues |
+| Capped = delisted | breeding_count = 4: stud fee (credits and USDG) cleared in the covering's transaction; setStudFee / setUsdgStudFee refuse | packages/db/src/services/breeding.ts `delistCappedStuds`, services/horses.ts, services/usdgStud.ts, economyViews.ts `listStuds` / `standsAtStud` | Owner 2026-10-31: "if it's capped out it should be delisted". Racing horses keep racing; inbox note. | Stud book quality |
 | `BREEDING_BASE_FEE` | 1,500 credits (burned) | packages/game-core/src/breeding.ts:36 | Platform fee per covering. | Credit sink, foal crop |
 | `STUD_FEE_BURN_PERMILLE` | 100 (10% of stud fee burned) | packages/game-core/src/breeding.ts:38 | Burn on player-to-player stud fees. | Credit sink |
 | `MAX_STUD_FEE` | 100,000 credits | apps/web/src/server/economy.ts:362 | Upper bound the API accepts; the stallion's ceiling below is usually far lower. | Credit transfer between players |
@@ -419,7 +421,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Linked-account coverings | paid coverings between linked accounts refused (`LINKED_ACCOUNTS`) | packages/db/src/services/breeding.ts:134-137 | Same guard as market sales. Free coverings (own stallion) are unaffected. | RMT risk |
 | `HOUSE_STUD_COUNT` | 4 Club stallions | packages/db/src/services/houseStuds.ts:28 | Standing Club studs (replaced as they retire). | Stud supply, foal quality floor |
 | `HOUSE_STUD_FEES` | common 250, uncommon 400, rare 700 (rarity cycle uncommon, common, rare, uncommon) | packages/db/src/services/houseStuds.ts:30, :32 | Club stud fee; 90% to treasury, 10% burned. | Credit sink |
-| `COI_WARN` | 62 permille | packages/game-core/src/breeding.ts:53 | Inbreeding warning in the preview. | Player behaviour |
+| `COI_WARN` | 62 permille | packages/game-core/src/breeding.ts:54 | The preview's "Closely related" warning (in words) from this COI; below it, a non-zero COI reads "Distantly related". | Player behaviour |
 | `COI_MAX_DEPTH` | 10 generations | packages/game-core/src/genetics.ts:234 | Pedigree depth for COI. | Inbreeding |
 | `MUTATION_PERMILLE` | 60 per stat allele | packages/game-core/src/genetics.ts:14 | Base mutation chance. | Foal quality spread |
 | `MUTATION_MAX` | ±1..30 | packages/game-core/src/genetics.ts:16 | Mutation step. | Foal quality spread |
@@ -472,7 +474,16 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `REVEAL_BASE_WIDTH` | foal 260, weanling 240, yearling 200, racing 160 | packages/game-core/src/phenotype.ts:97 | Width of the revealed potential range. | Market prices (appraisal uses midpoints) |
 | `REVEAL_PER_START` / `REVEAL_EXACT_BELOW` | −12 per start / exact below 10 | packages/game-core/src/phenotype.ts:98, :101 | Racing reveals potential. | Market prices |
 | `SCAN_WIDTH_PERMILLE` / `PEDIGREE_SCAN_COST` | 400 (narrows to 40%) / 400 credits | packages/game-core/src/phenotype.ts:100, packages/game-core/src/economy.ts:69 | Paid reveal (also reveals big heart). | Credit sink, market prices |
-| Nick score | 25 + 60 × beats-both + 15 × trip coherence + 10 × surface coherence − COI/4 | packages/game-core/src/breeding.ts:519 | Preview label only. | Player behaviour |
+| Nick score | 25 + 60 × beats-both + 15 × trip coherence + 10 × surface coherence − COI/4 | packages/game-core/src/breeding.ts:353 (`NICK_WEIGHTS`) | Shown only as a word ("Good nick"). The preview feeds it public inputs: the public outlook's beats-both share, trips agree 1 / else ½, surfaces agree 1 / else ½ (`pairingOutlook`). | Player behaviour |
+| `POSSIBLE_LOOKS` | 4 sample foals (finder: 1) | packages/game-core/src/breedingOutlook.ts:87 | Sample foals drawn from public facts only, seeded by sire, dam and UTC day (same all day). | Player excitement; nothing to farm |
+| `LOOK_WHITE_SD` / `LOOK_WHITE_TRIES` / `FACE_WHITE_SCORE` | 18 / 24 / none 20, star 57, snip 82, stripe 110, blaze 150, bald 200 | packages/game-core/src/breedingOutlook.ts:96-98 | A parent's hidden white alleles in the samples: drawn from the breed prior (breed-blend mean, sd 18) and kept when they fit the parent's visible face band (±15 jitter); after 24 misses, the band's middle score. The true alleles are never read. | Sample markings variety |
+| `LOOK_CANDIDATES` | 12 | packages/game-core/src/breedingOutlook.ts:102 | Sample foals drawn per preview; the strip shows the first 4 distinct looks (the first draw always leads: it is the finder's one look). | Sample variety |
+| `OUTLOOK_SEGREGATION` / `OUTLOOK_UNCERTAINTY_DIV` | 140 / 8 | packages/game-core/src/breedingOutlook.ts:167, :169 | Half-width of the triangular foal spread around the parents' public midpoint (fitted to `previewBreeding` p10-p90 ≈ 155 on foundation pairings), plus the parents' summed revealed-range widths ÷ 8. Internal only. | Outlook band mix |
+| `OUTLOOK_FAMILY_PULL_PERMILLE` / `OUTLOOK_RISING_GAP` | 250 / 20 | packages/game-core/src/breedingOutlook.ts:174, :176 | A line above its grandparents' public level falls back by 25% of the gap; 20+ above is a "rising line". | "Risk" band, line note |
+| `OUTLOOK_BANDS` | risk: below-both ≥ 350‰ and ≥ beats-both + 50; upside: beats-both ≥ 350‰; level: ≥ 120‰; else long shot | packages/game-core/src/breedingOutlook.ts:230 | The tail half of the outlook sentence. The permilles never leave the server. | Player choices |
+| `VERSUS_MARE_BANDS` | foal − mare (public level): ≥ 40 better, ≥ 12 a little better, > −12 close, else below | packages/game-core/src/breedingOutlook.ts:247 | The typical half of the outlook sentence; what the finder's best-outlook order means. | Stud choice |
+| `OUTLOOK_SENTENCES` | 16 sentences, typical (improve / edge past / close to / below your mare) × tail (real chance / a few could beat both / nothing / risk of falling below both) | packages/game-core/src/breedingOutlook.ts:264 | The whole outlook vocabulary; below-the-mare sentences only ever hedge the upside ("though some could beat both parents"); tested for every pair. Tone (`outlookTone`): bright, steady, caution. | Player trust |
+| `OUTLOOK_CLEAR_WIDTH` | 64 | packages/game-core/src/breedingOutlook.ts:178 | Both parents' revealed widths at or under this: "well known" certainty line, else "expect surprises". | Value of scans |
 
 ## 10. Economy
 
@@ -818,7 +829,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Ride intensity effects | +25/−20, −20/+10 | packages/game-core/src/phenotype.ts:226-229 |
 | Mutation caps | rate 400, negative share 950, lean clamp 50..950 | packages/game-core/src/genetics.ts:122, :129, :130 |
 | Mint shaping | ×1.2, sd 45, ±140, pure 45%, main 700-950, vigour gem 70-150 | packages/game-core/src/genome.ts:646, :652, :837, :838, :856 |
-| Nick score | 25 + 60 + 15 + 10 − COI/4 | packages/game-core/src/breeding.ts:519 |
+| Nick score | 25 + 60 + 15 + 10 − COI/4 | packages/game-core/src/breeding.ts:353 |
 | Appraisal formula | 400, /12, stage factors, 150, 120, /10, ×15, min 100 | packages/game-core/src/economy.ts:137-143 |
 | Stall cost formula | 2,000 + 400 × (n − 7) | packages/game-core/src/economy.ts:84 |
 | Daily Cup | jitter −40..+60, points formula, top-10 percentile 100, firm 20% | packages/game-core/src/dailyCup.ts:47, :51, :122, :123 |

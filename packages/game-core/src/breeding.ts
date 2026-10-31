@@ -1,5 +1,6 @@
 /**
- * Breeding: rules, fees, covering, foaling and the breeding preview (the depth engine).
+ * Breeding: rules, fees, covering, foaling and the exact pairing odds (internal; the player's
+ * preview is breedingOutlook.ts).
  *
  * Rules (§7, §4a): 4 breedings per horse for life; a mare at most 1 per competition season;
  * a stallion up to 4 per season within his lifetime 4. No self, parent–child or full-sibling
@@ -49,7 +50,27 @@ export const STALLION_PER_SEASON = 4;
 export const BREEDING_BASE_FEE = 1500;
 /** Share of the stud fee burned by the platform, permille. */
 export const STUD_FEE_BURN_PERMILLE = 100;
-/** COI (permille) above which the preview shows an inbreeding warning. */
+/**
+ * A stallion rests this long after a covering before he can cover again, any stable's mare
+ * (owner 2026-10-31: "the stud and pregnancy should have cooldown, stud half as long as
+ * pregnancy"). A mare's own rest is her pregnancy: one at a time, PREGNANCY_MS.
+ */
+export const STUD_COOLDOWN_MS = PREGNANCY_MS / 2;
+
+/** When a stallion whose latest covering was at `lastCoverMs` can cover again; null when he can now. */
+export function studRestingUntil(lastCoverMs: number | null, nowMs: number): number | null {
+  if (lastCoverMs === null) return null;
+  const until = lastCoverMs + STUD_COOLDOWN_MS;
+  return nowMs < until ? until : null;
+}
+
+/** Whole hours (rounded up, at least 1) from `nowMs` until `untilMs`: "available again in 7 h". */
+export function hoursUntil(untilMs: number, nowMs: number): number {
+  const HOUR = 3_600_000;
+  return Math.max(1, Math.floor((untilMs - nowMs + HOUR - 1) / HOUR));
+}
+
+/** COI (permille) from which the preview warns "closely related" (in words). */
 export const COI_WARN = 62; // ~ half-sibling level 125/2
 
 export type BreedBlock =
@@ -345,7 +366,9 @@ function deltaBounds(sg: Genome, dg: Genome): { lo: StatRecord<number>; hi: Stat
  * The nick rating's weights: a base, plus the share of foals that beat both parents (upside),
  * plus how sure the foal's best trip band and surface are (coherence: the share of the most
  * likely one), minus the inbreeding coefficient (COI, permille) over a divisor. Clamped to
- * 0..100. The wiki prints these numbers.
+ * 0..100. The player's preview feeds it public inputs only (`pairingOutlook`: the public
+ * outlook's chance to beat both, whether the parents' published trips and surfaces agree) and
+ * shows the label as a word, never the score. The wiki prints these weights.
  */
 export const NICK_WEIGHTS = { base: 25, beatsBoth: 60, tripCertainty: 15, surfaceCertainty: 10, coiDivisor: 4 } as const;
 /** Nick labels by minimum score, best first ("Poor" below the last). */
@@ -366,8 +389,11 @@ export function nickRating(beats: number, topBand: number, topSurface: number, c
 }
 
 /**
- * Exact preview of a pairing (before mutation, which the preview shows separately). Uses the
- * true genotypes: the odds are what they are, published before the player commits.
+ * Exact odds of a pairing (before mutation), from the TRUE genotypes. Internal only: the wiki's
+ * worked examples (fixed example genomes) and tests use it. Players never see it for a real
+ * horse, because previewing a horse against known partners would give its hidden alleles away;
+ * the player's preview is `pairingOutlook` + `possibleLooks` (breedingOutlook.ts), built from
+ * public facts only.
  */
 export function previewBreeding(sire: HorseState, dam: HorseState, ped: PedigreeIndex, season: number, family: readonly Genome[] = []): BreedingPreview {
   const coi = coiOf(sire.id, dam.id, ped);

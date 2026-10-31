@@ -189,7 +189,8 @@ export function whiteScore(genome: Genome): number {
   return genome.white[0] + genome.white[1] + 50 * count(genome.coat.sabino, "Sb1");
 }
 
-const FACE_STEPS: [FaceMarking, number][] = [
+/** Face marking by white score (plus a per-horse jitter of ±15): the floor of each band. */
+export const FACE_STEPS: [FaceMarking, number][] = [
   ["none", 0],
   ["star", 45],
   ["snip", 70],

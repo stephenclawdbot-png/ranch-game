@@ -20,6 +20,7 @@ export * from "./ratings";
 export * from "./ability";
 export * from "./eligibility";
 export * from "./breeding";
+export * from "./breedingOutlook";
 export * from "./packs";
 export * from "./ledger";
 export * from "./economy";

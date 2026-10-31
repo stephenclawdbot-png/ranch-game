@@ -38,7 +38,6 @@ import {
   PACKS,
   packPullProof,
   playDaysOf,
-  populationOverall,
   previewPairing,
   pullPack,
   renameHorse,
@@ -94,7 +93,7 @@ export function scopedKey(session: Session, purpose: string, key: string): strin
   return `${purpose}:${session.accountId}:${key}`;
 }
 
-const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used: number; lifetime: number }) => string> = {
+const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used: number; lifetime: number; restingHours: number | null }) => string> = {
   self: () => "A horse can't breed with itself.",
   parent_child: () => "Parent and child can't be paired.",
   full_siblings: () => "Full siblings can't be paired.",
@@ -114,12 +113,15 @@ const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used
   no_genome: () => "No pedigree record for this horse.",
   not_at_stud: () => "That stallion isn't standing at stud.",
   not_your_mare: () => "That mare isn't in your stable.",
+  stud_resting: (s) => (s.restingHours ? `Resting · available again in ${s.restingHours} h` : "Resting after a covering"),
 };
 
-export function breedReason(block: string | null, s: { starts: number; minStarts?: number; used: number; lifetime?: number }): string | null {
+export function breedReason(block: string | null, s: { starts: number; minStarts?: number; used: number; lifetime?: number; restingHours?: number | null }): string | null {
   if (!block) return null;
   const f = BREED_REASON[block];
-  return f ? f({ starts: s.starts, minStarts: s.minStarts ?? RULES.breedingMinStarts, used: s.used, lifetime: s.lifetime ?? RULES.breedingLifetimeLimit }) : "Can't breed right now.";
+  return f
+    ? f({ starts: s.starts, minStarts: s.minStarts ?? RULES.breedingMinStarts, used: s.used, lifetime: s.lifetime ?? RULES.breedingLifetimeLimit, restingHours: s.restingHours ?? null })
+    : "Can't breed right now.";
 }
 
 const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
@@ -147,6 +149,8 @@ export function friendlyEconomyError(err: unknown): unknown {
       case "BREEDING_NOT_ELIGIBLE":
       case "BREEDING_LIMIT":
       case "BREEDING_SEASON_LIMIT":
+        if (/stand at stud/.test(err.message)) return err.message.replace(/\.?$/, ".");
+        if (d.block === "stud_resting" && typeof d.until === "number") return breedReason("stud_resting", { starts: 0, used: 0, restingHours: gc.hoursUntil(d.until, Date.now()) });
         return typeof d.block === "string" ? (breedReason(d.block, { starts: 0, used: 0 }) ?? err.message) : err.message;
       case "HORSE_IN_FOAL":
         return "That mare is in foal.";
@@ -328,39 +332,18 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
   };
 }
 
-// The population the preview ranks against changes slowly: cache it per instance.
-const POP_TTL_MS = 5 * 60_000;
-const G = globalThis as typeof globalThis & { __tbPopulation?: { at: number; values: number[] } };
-
-async function population(db: Db, nowMs: number): Promise<number[]> {
-  const c = G.__tbPopulation;
-  if (c && nowMs - c.at < POP_TTL_MS) return c.values;
-  const values = await populationOverall(db);
-  G.__tbPopulation = { at: nowMs, values };
-  return values;
-}
-
-/** "Top N%": the share of the population strictly better than `v` (at least 1%). */
-export function topPercent(sortedAsc: number[], v: number): number {
-  let lo = 0;
-  let hi = sortedAsc.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (sortedAsc[mid]! <= v) lo = mid + 1;
-    else hi = mid;
-  }
-  const above = sortedAsc.length - lo;
-  return Math.min(100, Math.max(1, Math.ceil((above * 100) / Math.max(1, sortedAsc.length))));
-}
-
-/** Minimum population before a percentile means anything. */
-const MIN_POPULATION = 10;
-
 async function stableNameOfHorse(db: Db, h: HorseRow): Promise<string | null> {
   if (!h.ownerStableId) return null;
   return (await getStable(db, h.ownerStableId))?.name ?? null;
 }
 
+/**
+ * The breeding preview (owner decision 2026-10-31): possible looks, an outlook in words and
+ * warnings in words, from public facts only (db `previewPairing`, game-core
+ * `pairingOutlook` / `possibleLooks`). Every field is picked here by name: the internal
+ * outlook numbers (`pv.quality`) never leave the server, and there are no odds, genes or
+ * numbers in the answer but the fees and credits.
+ */
 export async function breedingPreview(db: Db, session: Session, input: { sireId: string; damId: string }, now: Date): Promise<PreviewView> {
   const pv = await previewPairing(db, { accountId: session.accountId, sireId: input.sireId, damId: input.damId, now });
   let reason: string | null = null;
@@ -370,8 +353,7 @@ export async function breedingPreview(db: Db, session: Session, input: { sireId:
     const who = ds.block === pv.block ? { name: pv.dam.name, st: ds } : ss.block === pv.block ? { name: pv.sire.name, st: ss } : null;
     reason = who ? `${who.name}: ${breedReason(pv.block, who.st)}` : breedReason(pv.block, { starts: 0, used: 0 });
   }
-  const pop = await population(db, now.getTime());
-  const o = pv.preview.overall;
+  const looks = gc.possibleLooks(pv.publicSire, pv.publicDam, pv.day, parseSilks(session.stable.silks));
   return {
     sireId: pv.sire.id,
     damId: pv.dam.id,
@@ -380,14 +362,17 @@ export async function breedingPreview(db: Db, session: Session, input: { sireId:
     ownSire: pv.ownSire,
     block: pv.block,
     reason,
-    preview: pv.preview,
+    looks: looks.map((l) => ({ appearance: l.appearance, caption: l.caption })),
+    looksNote: gc.LOOKS_NOTE,
+    outlook: { tone: pv.outlook.outlook.tone, phrase: pv.outlook.outlook.phrase },
+    certainty: { key: pv.outlook.certainty.key, phrase: pv.outlook.certainty.phrase },
+    nick: pv.outlook.nick,
+    warnings: pv.outlook.warnings.map((w) => ({ key: w.key, tone: w.tone, text: w.text })),
+    breed: pv.outlook.breed,
     fees: pv.fees,
     usdgStudFee: pv.usdgStudFee,
     usdgFee: pv.usdgStudFee !== null ? gc.usdgFee(pv.usdgStudFee, usdgPolicy().feeBps) : null,
     stallionOwner: pv.usdgStudFee !== null ? await stableNameOfHorse(db, pv.sire) : null,
-    parents: pv.parents,
-    topPercent: pop.length >= MIN_POPULATION ? { p10: topPercent(pop, o.p10), p50: topPercent(pop, o.p50), p90: topPercent(pop, o.p90) } : null,
-    populationSize: pop.length,
     credits: await getBalance(db, session.accountId),
   };
 }
@@ -423,12 +408,12 @@ export async function standAtStud(db: Db, session: Session, input: { horseId: st
 // Stallion finder: every available stallion ranked for one mare
 // ---------------------------------------------------------------------------
 
-/** What the ranking can be sorted by (the client sends one of these). */
-export const STUD_FINDER_SORTS = ["upside", "fee", "nick", "coi"] as const;
+/** What the ranking can be sorted by (the client sends one of these): best outlook (default) or fee, cheapest first. */
+export const STUD_FINDER_SORTS = ["outlook", "fee"] as const;
 export type StudFinderSort = (typeof STUD_FINDER_SORTS)[number];
 /** Rows per page (the finder accepts up to twice this). */
 export const STUD_FINDER_PAGE = 20;
-/** Candidates per run: every row runs the exact preview, so a run is bounded and rate-limited. */
+/** Candidates per run: every row runs the preview, so a run is bounded and rate-limited. */
 export const STUD_FINDER_CANDIDATES = 250;
 /** How many finder runs an account may compute per hour (cached answers don't count). */
 export const STUD_FINDER_RUNS_PER_HOUR = 24;
@@ -437,9 +422,15 @@ const STUD_FINDER_LIMITER = sharedLimiter({ name: "stud-finder", limit: STUD_FIN
 
 // The ranking is cached per (player, mare, UTC day): fees and cover limits change rarely, and
 // every row runs the preview, so a day's answer is computed once per mare. Cached unsorted:
-// each page request orders a copy, which costs nothing against the preview.
+// each page request orders a copy, which costs nothing against the preview. Each row keeps its
+// internal score next to it, server-side only; pages carry the row alone.
 const FINDER_CACHE_MAX = 128;
-const FINDER = globalThis as typeof globalThis & { __tbStudFinder?: Map<string, { rows: StudFinderRow[]; excluded: number }> };
+interface RankedRow {
+  row: StudFinderRow;
+  /** game-core outlookNumbers score (public facts only). Never sent. */
+  score: number;
+}
+const FINDER = globalThis as typeof globalThis & { __tbStudFinder?: Map<string, { rows: RankedRow[]; excluded: number }> };
 
 /** Blocks that belong to the pairing itself, never to one horse's state. */
 const KIN_BLOCKS: readonly string[] = ["self", "parent_child", "full_siblings", "sire_not_male"];
@@ -464,27 +455,26 @@ function sireExcluded(pv: { block: string | null; sire: HorseRow }, sireBlock: s
 }
 
 /** The sort comparator: credits studs first (the ranking), USDG-only studs after, by `sort`. */
-function compareRows(sort: StudFinderSort): (a: StudFinderRow, b: StudFinderRow) => number {
+function compareRows(sort: StudFinderSort): (a: RankedRow, b: RankedRow) => number {
   const fee = (r: StudFinderRow) => r.feeCredits ?? r.studFeeUsdg ?? 0;
   const byKey =
     sort === "fee"
-      ? (a: StudFinderRow, b: StudFinderRow) => fee(a) - fee(b)
-      : sort === "nick"
-        ? (a: StudFinderRow, b: StudFinderRow) => b.nickScore - a.nickScore || fee(a) - fee(b)
-        : sort === "coi"
-          ? (a: StudFinderRow, b: StudFinderRow) => a.coiPermille - b.coiPermille || fee(a) - fee(b)
-          : (a: StudFinderRow, b: StudFinderRow) => b.beatsBothPermille - a.beatsBothPermille || fee(a) - fee(b); // default: upside, ties by fee
+      ? (a: RankedRow, b: RankedRow) => fee(a.row) - fee(b.row)
+      : (a: RankedRow, b: RankedRow) => b.score - a.score || fee(a.row) - fee(b.row); // default: best outlook, ties by fee
   // The last tiebreak is only for a stable page order when the sort key ties exactly.
-  return (a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || byKey(a, b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  // Credits studs, then USDG-only ones; resting studs after the available ones in each.
+  return (a, b) =>
+    (a.row.usdgOnly ? 1 : 0) - (b.row.usdgOnly ? 1 : 0) || (a.row.resting ? 1 : 0) - (b.row.resting ? 1 : 0) || byKey(a, b) || (a.row.id < b.row.id ? -1 : a.row.id > b.row.id ? 1 : 0);
 }
 
 /**
  * The full ranking of one mare's available stallions (her stable's own, the Club's house studs
- * and other players' advertised studs), each row from the exact pairing preview
- * (`previewPairing`): the same information the single preview shows, nothing more. Expensive —
- * every candidate runs the preview — so the caller caches and rate-limits it.
+ * and other players' advertised studs), each row from the same preview as the single cover
+ * preview (`previewPairing`, public facts only): the outlook and nick in words, warnings in
+ * words and the first of the day's possible looks. Ranked by the outlook's internal score.
+ * Expensive — every candidate runs the preview — so the caller caches and rate-limits it.
  */
-async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Date): Promise<{ rows: StudFinderRow[]; excluded: number }> {
+async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Date): Promise<{ rows: RankedRow[]; excluded: number }> {
   await keepHouseStuds(db, now);
   // Own entire stallions at home, plus every stallion standing at public stud — the same
   // lists the barn and the stud book show.
@@ -495,9 +485,10 @@ async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Dat
   const publicStuds = (await listStuds(db, { limit: STUD_FINDER_CANDIDATES }))
     .filter((s) => s.horse.ownerStableId !== session.stable.id && isGenome(s.horse.genome))
     .map((s) => ({ horse: s.horse, stableName: s.stableName }));
-  const rows: StudFinderRow[] = [];
+  const rows: RankedRow[] = [];
   let excluded = 0;
   const season = breedingSeason(now).season;
+  const silks = parseSilks(session.stable.silks);
   const seen = new Set<string>();
   for (const { horse: sire, stableName } of [...own, ...publicStuds]) {
     if (sire.id === mare.id || seen.has(sire.id)) continue;
@@ -514,33 +505,32 @@ async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Dat
       continue;
     }
     const usdgOnly = pv.usdgStudFee !== null;
-    const o = pv.preview.overall;
+    const look = gc.possibleLooks(pv.publicSire, pv.publicDam, pv.day, silks, 1)[0]!;
     rows.push({
-      id: sire.id,
-      name: sire.name,
-      stableName,
-      club: !pv.ownSire && sire.ownerStableId === null,
-      own: pv.ownSire,
-      feeCredits: usdgOnly ? null : pv.fees.totalPaidByMareOwner,
-      studFeeUsdg: pv.usdgStudFee,
-      usdgOnly,
-      overall: { p10: o.p10, p50: o.p50, p90: o.p90 },
-      p50Grade: gc.gradeOf(o.p50),
-      beatsBothPermille: o.beatsBothParents,
-      nickScore: pv.preview.nick.score,
-      nickLabel: pv.preview.nick.label,
-      coiPermille: pv.preview.coi,
-      coiWarning: pv.preview.coiWarning,
-      fragile: pv.preview.fragile,
-      coats: [...pv.preview.coats].sort((a, b) => b.permille - a.permille).slice(0, 3),
+      score: pv.quality.score,
+      row: {
+        id: sire.id,
+        name: sire.name,
+        stableName,
+        club: !pv.ownSire && sire.ownerStableId === null,
+        own: pv.ownSire,
+        feeCredits: usdgOnly ? null : pv.fees.totalPaidByMareOwner,
+        studFeeUsdg: pv.usdgStudFee,
+        usdgOnly,
+        outlook: { tone: pv.outlook.outlook.tone, phrase: pv.outlook.outlook.phrase },
+        nick: pv.outlook.nick,
+        warnings: pv.outlook.warnings.filter((w) => w.tone === "warn").map((w) => w.text),
+        look: { appearance: look.appearance, caption: look.caption },
+        resting: pv.sireRestingUntilMs === null ? null : `Resting · available again in ${gc.hoursUntil(pv.sireRestingUntilMs, now.getTime())} h`,
+      },
     });
   }
   return { rows, excluded };
 }
 
 /**
- * The stallion finder: one mare's stallions ranked by the exact breeding preview, a page at a
- * time. The full ranking is computed once per (player, mare, UTC day) and cached (pagination
+ * The stallion finder: one mare's stallions ranked by the breeding preview's outlook (public
+ * facts only; shown in words, with the fee), a page at a time. The full ranking is computed once per (player, mare, UTC day) and cached (pagination
  * and re-sorting are free); each fresh compute is rate-limited per account, because every row
  * runs the preview.
  */
@@ -553,7 +543,7 @@ export async function studFinder(
   const mare = await getHorse(db, input.mareId);
   if (!mare || mare.ownerStableId !== session.stable.id || mare.sex !== "female") throw new DomainError("NOT_FOUND", "that mare isn't in your stable");
   if (!isGenome(mare.genome)) throw new DomainError("NOT_ELIGIBLE", "that mare has no pedigree record");
-  const sort = (STUD_FINDER_SORTS as readonly string[]).includes(input.sort ?? "") ? (input.sort as StudFinderSort) : "upside";
+  const sort = (STUD_FINDER_SORTS as readonly string[]).includes(input.sort ?? "") ? (input.sort as StudFinderSort) : "outlook";
   const pageSize = Math.max(1, Math.min(input.pageSize ?? STUD_FINDER_PAGE, 2 * STUD_FINDER_PAGE));
   const day = Math.floor(now.getTime() / 86_400_000);
   const key = `${session.accountId}:${mare.id}:${day}`;
@@ -577,7 +567,10 @@ export async function studFinder(
     sort,
     page,
     pageSize,
-    rows: [...answer.rows].sort(compareRows(sort)).slice(page * pageSize, (page + 1) * pageSize),
+    rows: [...answer.rows]
+      .sort(compareRows(sort))
+      .slice(page * pageSize, (page + 1) * pageSize)
+      .map((r) => r.row),
     total,
     excluded: answer.excluded,
     day: new Date(day * 86_400_000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }),

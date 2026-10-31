@@ -144,7 +144,7 @@ export default function BreedsPage() {
       <Callout tone="tip" title="Size shows in foals">
         <p>
           A horse from a pack, a starter stable or the Club is made to its breed&rsquo;s shape, so its stats already include its size. Size starts to matter when you breed: two Ht/n parents throw a
-          foal with two copies a quarter of the time, and that foal is taller, faster and less durable than either parent. The breeding preview shows the foal&rsquo;s likely size.
+          foal with two copies a quarter of the time, and that foal is taller, faster and less durable than either parent. How big the foal turns out is a surprise until it is born; its horse page then shows its size.
         </p>
       </Callout>
 
