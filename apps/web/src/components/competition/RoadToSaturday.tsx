@@ -123,6 +123,11 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
                   <span className={STATUS[h.status].cls}>{h.via === "rating" ? "In by rating" : STATUS[h.status].text}</span>
                   {!h.canRaceToday && <span className="t-meta">raced today</span>}
                 </span>
+                {!!h.nearMiss?.length && (
+                  <span className="w-full text-sm font-bold text-warn" data-testid="near-miss">
+                    {h.nearMiss.join(" · ")}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -135,6 +140,27 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
           : "No upkeep this week yet: you pay only for horses you race, train or breed."}
       </p>
 
+      {view.seasonFinal && view.seasonFinal.horses.length > 0 && (
+        <section className="surface grid gap-1.5 p-4" aria-labelledby="sf-h" data-testid="week-season-final">
+          <h2 id="sf-h" className="t-h2">
+            Season Final · {day(view.seasonFinal.postTimeMs)}
+          </h2>
+          <p className="caption">Open to horses rated {view.seasonFinal.minRating} or more on the day. Your closest:</p>
+          <ul className="grid gap-1">
+            {view.seasonFinal.horses.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-baseline justify-between gap-2 border-t-2 border-dotted border-line pt-1.5">
+                <Link href={`/horse/${h.id}`} className="link font-bold">
+                  {h.name}
+                </Link>
+                <span className={`text-sm font-bold ${h.short > 0 ? "text-warn" : "text-positive"}`} data-testid="final-gap">
+                  {h.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {view.league && (
         <section className="surface grid gap-1 p-4" aria-labelledby="l-h" data-testid="week-league">
           <h2 id="l-h" className="t-h2">
@@ -143,12 +169,24 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
           <p className="font-bold">
             {ordinal(view.league.rank)} of {view.league.of} in {view.league.tierName[0]!.toUpperCase() + view.league.tierName.slice(1)} · {view.league.points} points
           </p>
+          {view.league.promotion && (
+            <p className="font-bold text-warn" data-testid="league-promotion">
+              {view.league.promotion}
+            </p>
+          )}
+          {view.league.relegation && (
+            <p className="font-bold" data-testid="league-relegation">
+              {view.league.relegation}
+            </p>
+          )}
           <p className="caption">
             {view.league.gapToPromotion === 0
               ? "In the promotion places: hold on until Sunday."
               : view.league.gapToPromotion !== null
-                ? `${view.league.gapToPromotion} points from the promotion places. Only your best results count, so one good run can do it.`
-                : "Race Live to score points."}
+                ? "Only your best results count, so one good run can close the gap."
+                : view.league.points > 0
+                  ? "The top tier: no promotion from here."
+                  : "Race Live to score points."}
             {view.league.floor ? " No relegation from this tier." : ""}
           </p>
           <Link href="/league" className="link text-sm">

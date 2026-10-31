@@ -13,6 +13,8 @@ import { horseFromRow, parseSilks } from "./horseView";
 import type { Session } from "./session";
 
 const DAY = 86_400_000;
+/** A rating gap to the Feature by right is shown when it is this close (further away it is noise). */
+const NEAR_RATING = 10;
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
 const slotIndexOf = (ms: number) => Math.floor((ms - RULES.seasonEpochMs) / RULES.slotMs);
 const slotStartMs = (ms: number) => slotIndexOf(ms) * RULES.slotMs + RULES.seasonEpochMs;
@@ -72,8 +74,8 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
   const horses: WeekView["horses"] = [];
   for (const row of rows) {
     const finishes = qualifierRuns.filter((r) => r.horseId === row.id && r.position !== null).map((r) => r.position!);
-    const top3 = finishes.some((p) => p <= 3);
-    const byRating = row.rating >= 100;
+    const top3 = finishes.some((p) => p <= gc.FEATURE_QUALIFY_TOP);
+    const byRating = row.rating >= gc.FEATURE_RATING_BY_RIGHT;
     const status: WeekView["horses"][number]["status"] = top3 || byRating ? "qualified" : finishes.length ? "plate" : "not_yet";
     let fit: WeekView["horses"][number]["fit"] = null;
     if (feature) {
@@ -83,7 +85,16 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
       fit = lossGrade(Math.max(0, ideal - here)) as NonNullable<WeekView["horses"][number]["fit"]>;
     }
     const canRaceToday = (await startsOnDay(db, row.id, now, { liveOnly: true })) < RULES.liveStartsPerDay && !row.lockKind && !(row.injuredUntil && row.injuredUntil > now);
-    horses.push({ id: row.id, name: row.name, rating: row.rating, status, via: top3 ? "top3" : byRating ? "rating" : null, bestQualifierFinish: finishes.length ? Math.min(...finishes) : null, fit, canRaceToday });
+    const best = finishes.length ? Math.min(...finishes) : null;
+    // Near misses, in the rules' own numbers: places short in a Qualifier, rating short of getting in by right
+    const nearMiss: string[] = [];
+    if (status !== "qualified") {
+      const q = gc.qualifierNearMiss(best);
+      if (q) nearMiss.push(q.text);
+      const r = gc.featureRatingGap(row.rating);
+      if (r.short > 0 && r.short <= NEAR_RATING) nearMiss.push(`${r.text} to get in by rating`);
+    }
+    horses.push({ id: row.id, name: row.name, rating: row.rating, status, via: top3 ? "top3" : byRating ? "rating" : null, bestQualifierFinish: best, fit, canRaceToday, nearMiss });
   }
   horses.sort((a, b) => (a.status === b.status ? (a.fit ?? "Z").localeCompare(b.fit ?? "Z") || b.rating - a.rating : a.status === "qualified" ? -1 : b.status === "qualified" ? 1 : 0));
 
@@ -103,7 +114,32 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
       gapToPromotion: rank > 0 && rank <= gc.PROMOTE ? 0 : line ? Math.max(0, line.points - (me?.points ?? 0) + 1) : null,
       floor,
     };
+    // the real distances to both lines, by settleLeague's own rules
+    const near = gc.leagueNearMiss(
+      table.rows.map((r) => ({ ownerId: r.accountId, points: r.points, wins: r.wins, bestFinish: r.bestFinish })),
+      session.accountId,
+      table.tierName as gc.LeagueTier,
+    );
+    if (near) {
+      league.gapToPromotion = near.toPromotion;
+      league.promotion = gc.promotionText(near);
+      league.relegation = gc.relegationText(near);
+    }
   }
+
+  // The Season Final: its rating floor and the stable's closest horses (shown all season, so the gap is a target)
+  const final = gc.featureCalendar(SEASON_CLOCK, season).find((r) => r.kind === "season_final") ?? null;
+  const seasonFinal: WeekView["seasonFinal"] =
+    final && final.postTimeMs > nowMs
+      ? {
+          postTimeMs: slotStartMs(final.postTimeMs),
+          minRating: gc.SEASON_FINAL_MIN_RATING,
+          horses: [...rows]
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 3)
+            .map((r) => ({ id: r.id, name: r.name, rating: r.rating, ...gc.seasonFinalGap(r.rating) })),
+        }
+      : null;
 
   const licenceOk = session.stable.licenceLevel >= gc.licenceForTier("g1", true);
   const qualified = horses.filter((h) => h.status === "qualified");
@@ -131,5 +167,6 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
     upkeep: await upkeepThisWeek(db, session.stable.id, now),
     ground,
     headline,
+    seasonFinal,
   };
 }
