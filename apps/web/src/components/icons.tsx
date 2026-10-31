@@ -375,6 +375,7 @@ const ART_ONLY = {
   "door-key": "check",
   "lead-rope": "horseshoe",
   "sale-board": "coin",
+  "horseshoe-pair": "horseshoe",
 } as const satisfies Record<string, keyof typeof ICONS>;
 
 export type IconName = keyof typeof ICONS | keyof typeof ART_ONLY;

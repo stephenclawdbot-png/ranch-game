@@ -4904,8 +4904,7 @@ a.ped-node:focus-visible {
   border: 2px solid var(--color-line-strong);
 }
 .wiki-horse-frame > * {
-  width: 88%;
-  height: 88%;
+  max-width: none;
 }
 .wiki-sharebar-track {
   display: flex;

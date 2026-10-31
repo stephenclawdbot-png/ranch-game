@@ -110,7 +110,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
       c.mine
         ? {
             key: "challenge",
-            icon: "star",
+            icon: "calendar-day",
             title: `Daily challenge: ${ordinal(c.mine.rank)} of ${c.mine.entrants}`,
             text: `${c.mine.points} ${c.mine.points === 1 ? "point" : "points"} · ${c.course} ${formatDistance(c.distanceM)}`,
             href: `/quick/${c.mine.quickRaceId}`,
@@ -119,7 +119,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
           }
         : {
             key: "challenge",
-            icon: "star",
+            icon: "calendar-day",
             title: "Daily challenge",
             text: `${c.course} ${formatDistance(c.distanceM)} · same puzzle for everyone`,
             href: "/quick?tab=daily",
@@ -167,7 +167,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   if (tiles.foaling) {
     list.push({
       key: "foaling",
-      icon: "star",
+      icon: "hay",
       title: `${tiles.foaling.damName} is ready to foal`,
       text: `By ${tiles.foaling.sireName}. Name the foal.`,
       href: "/breeding",
@@ -188,7 +188,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   }
   if (!tiles.foaling && tiles.carrying && now !== null) {
     const left = tiles.carrying.dueAtMs - (now + skew);
-    list.push({ key: "carrying", icon: "star", title: `${tiles.carrying.damName} is in foal`, text: left > 0 ? `Due in ${formatCountdown(left)}` : "Due now", href: "/breeding", cta: "Barn", locked: left > 0 });
+    list.push({ key: "carrying", icon: "hay", title: `${tiles.carrying.damName} is in foal`, text: left > 0 ? `Due in ${formatCountdown(left)}` : "Due now", href: "/breeding", cta: "Barn", locked: left > 0 });
   }
   if (list.length === 0) return null;
 

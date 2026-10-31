@@ -30,7 +30,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
   { key: "start", title: "Getting started", blurb: "Your first stable, credits, entries and where everything lives.", icon: "stable-door", poster: "/art/scenes/wiki-estate-gate.png" },
   { key: "horses", title: "Your horses", blurb: "Stats, aptitudes, growing up, care, training and injuries.", icon: "horse-head", poster: "/art/scenes/wiki-led-out.png" },
   { key: "racing", title: "Racing", blurb: "Race types, entering, tactics, going and how a race is run.", icon: "flag", poster: "/art/scenes/wiki-final-bend.png" },
-  { key: "breeding", title: "Breeding & genetics", blurb: "Pairings, inheritance, the twelve breeds, family limits, coats and the fragile gene.", icon: "papers", poster: "/art/scenes/wiki-bloodlines.png" },
+  { key: "breeding", title: "Breeding & genetics", blurb: "Pairings, inheritance, the twelve breeds, family limits, coats and the fragile gene.", icon: "horseshoe-pair", poster: "/art/scenes/wiki-bloodlines.png" },
   { key: "life", title: "Careers & retirement", blurb: "Stud, broodmares, the Legacy Farm and in memoriam.", icon: "laurel", poster: "/art/scenes/wiki-old-champion.png" },
   { key: "economy", title: "Sales & facilities", blurb: "The auction house, leasing, the USDG market, appraisal, packs, stalls and staff.", icon: "coin", poster: "/art/scenes/wiki-handshake.png" },
   { key: "club", title: "Club & glory", blurb: "League, Daily Cup, Hall of Fame and your Trophy Room.", icon: "trophy", poster: "/art/scenes/wiki-trophy-cabinet.png" },

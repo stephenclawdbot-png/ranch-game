@@ -51,9 +51,9 @@ export function Figure({ src, alt, caption, height = 200, focus = 0.5, contain }
 }
 
 const TONE: Record<"tip" | "warn" | "rule" | "gamble", { icon: IconName; label: string }> = {
-  tip: { icon: "rosette-green", label: "Tip" },
+  tip: { icon: "whistle", label: "Tip" },
   warn: { icon: "bell", label: "Watch out" },
-  rule: { icon: "papers", label: "The rule" },
+  rule: { icon: "crest-shield", label: "The rule" },
   gamble: { icon: "coin", label: "The gamble" },
 };
 
@@ -212,7 +212,8 @@ export function HorseCard({ appearance, name, line, size = "md" }: { appearance:
   return (
     <figure className={`wiki-horse wiki-horse-${size}`}>
       <div className="wiki-horse-frame">
-        <HorsePortrait appearance={appearance} title={typeof name === "string" ? name : undefined} />
+        {/* whole pixels only: the 64 px thumb in small cards, the 128 px portrait in the rest */}
+        <HorsePortrait appearance={appearance} scale={size === "sm" ? "thumb" : 1} title={typeof name === "string" ? name : undefined} />
       </div>
       <figcaption>
         <span className="t-title block">{name}</span>
