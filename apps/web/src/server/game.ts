@@ -1309,6 +1309,19 @@ export async function myRaces(db: Db, session: Session, filter: MyRacesFilter, c
   return { rows: page.rows.map((r) => runView(r, names)), summary, nextCursor: page.nextCursor };
 }
 
+/**
+ * The owner's horse at the off, from its entry snapshot: fatigue (recovered to post time, less a
+ * race-day physio) and hours since its last hard work. The owner saw both before entering.
+ */
+function conditionAtOff(snapshot: unknown, postMs: number): { fatigue: number; hoursSinceHardWork: number | null } | null {
+  const state = (snapshot as { state?: gc.HorseState | null } | null)?.state;
+  if (!state?.condition) return null;
+  const rd = storedRaceDay(snapshot);
+  const off = gc.withPhysio(state, rd ? { extras: rd.extras } : null, postMs);
+  const last = state.condition.lastHardWorkMs;
+  return { fatigue: gc.fatigueAt(off, postMs), hoursSinceHardWork: last === null ? null : Math.max(0, Math.floor((postMs - last) / gc.MS_PER_HOUR)) };
+}
+
 /** The viewer's own result in a race. Only after the broadcast is over; settles lazily; marks the inbox read. */
 export async function myRaceResult(db: Db, session: Session, raceId: string, now: Date): Promise<MyRaceResult> {
   const race = await loadRace(db, raceId);
@@ -1331,6 +1344,7 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
       firstWin: story?.firstWin ?? false,
       ratingBefore: e.ratingBefore,
       ratingAfter: e.ratingAfter,
+      atOff: conditionAtOff(e.snapshot, race.postTime.getTime()),
     });
   }
   const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;

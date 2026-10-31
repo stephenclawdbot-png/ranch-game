@@ -376,7 +376,18 @@ export interface MyRaceResult {
   settled: boolean;
   /** True the first time the owner sees this result (its inbox item was unread): stage the reveal. */
   firstView: boolean;
-  runners: { horseId: string; horseName: string; position: number; prize: number; storyReward: number; firstWin: boolean; ratingBefore: number; ratingAfter: number | null }[];
+  runners: {
+    horseId: string;
+    horseName: string;
+    position: number;
+    prize: number;
+    storyReward: number;
+    firstWin: boolean;
+    ratingBefore: number;
+    ratingAfter: number | null;
+    /** The owner's horse at the off (from its entry): fatigue and hours since its last hard work (Why card "try next"). */
+    atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
+  }[];
 }
 
 /** /api/me/races: one cursor page of the stable's settled runs, plus the filter's totals. */

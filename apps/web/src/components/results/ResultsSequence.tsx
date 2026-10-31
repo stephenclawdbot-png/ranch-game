@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/lib/types";
+import * as gc from "@thoroughbred/game-core";
 import { analyseRace } from "@/lib/raceAnalysis";
+import { tryNext } from "@/lib/tryNext";
 import { usePlayerState } from "@/lib/player";
 import { prefersCalm } from "@/lib/settings";
 import { enterStoryRace } from "../entry/EntryForm";
@@ -28,6 +30,8 @@ export interface Settlement {
   firstWin?: boolean;
   ratingBefore?: number;
   ratingAfter?: number | null;
+  /** Your horse at the off (fatigue, hours since hard work), for the Why card's "try next". */
+  atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
 }
 
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */
@@ -83,6 +87,23 @@ export function ResultsSequence({
   const winner = card.field.find((e) => e.horse.id === replay.result.finishOrder[0]?.horseId);
   const subject = mine ?? winner;
   const analysis = useMemo(() => (subject ? analyseRace(replay, subject.horse.id, subject.horse, subject.tactic) : null), [replay, subject]);
+  // "Try next": only for your own runner, from what you could see (racecard, fit, your horse's condition)
+  const tips = useMemo(
+    () =>
+      mine && analysis
+        ? tryNext({
+            analysis,
+            horse: mine.horse,
+            race: { distanceM: replay.race.distanceM, surface: replay.race.surface, going: replay.race.going },
+            course: gc.courseByName(card.track ?? card.course?.name),
+            gate: mine.gate,
+            weightLb: mine.weightLb ?? null,
+            fieldWeightsLb: card.field.filter((e) => e !== mine && typeof e.weightLb === "number").map((e) => e.weightLb!),
+            atOff: settlement?.atOff ?? null,
+          })
+        : [],
+    [mine, analysis, replay, card, settlement?.atOff],
+  );
   // A replay opened later (already settled) has nothing to stage: show it all at once.
   const staged = Boolean(mine && settlement?.fresh);
 
@@ -149,7 +170,7 @@ export function ResultsSequence({
       )}
       {analysis && subject && at("why") && (
         <div className="fade-up">
-          <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} />
+          <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} />
         </div>
       )}
       {at("next") && (

@@ -1,4 +1,5 @@
 import type { RaceAnalysis } from "@/lib/raceAnalysis";
+import type { TryNextTip } from "@/lib/tryNext";
 import { ordinal } from "@/lib/format";
 import { FitList } from "../ui/FitChip";
 
@@ -10,7 +11,7 @@ const PACE_TEXT = {
 const SEG_LABEL = { early: "Early", middle: "Middle", late: "Late" } as const;
 
 /** "Why" card: pace, running positions, sectionals and fit, explained in one or two sentences. */
-export function WhyCard({ analysis, horseName, isYours }: { analysis: RaceAnalysis; horseName: string; isYours: boolean }) {
+export function WhyCard({ analysis, horseName, isYours, tips = [] }: { analysis: RaceAnalysis; horseName: string; isYours: boolean; tips?: TryNextTip[] }) {
   const a = analysis;
   return (
     <section className="surface p-3 sm:p-4" aria-labelledby="why-h" data-testid="why-card">
@@ -66,6 +67,23 @@ export function WhyCard({ analysis, horseName, isYours }: { analysis: RaceAnalys
         <p className="label mb-1">Fit</p>
         <FitList fits={a.fits} showDetail />
       </div>
+
+      {isYours && tips.length > 0 && (
+        <div className="mt-4 border-t-2 border-dotted border-line pt-3" data-testid="try-next">
+          <p className="label mb-1">Worth trying next</p>
+          <ol className="grid gap-1.5">
+            {tips.map((t, i) => (
+              <li key={t.id} className="flex gap-2 text-[0.9375rem]" data-tip={t.id}>
+                <span className="num w-5 shrink-0 font-bold text-brass-hi" aria-hidden>
+                  {i + 1}.
+                </span>
+                <span>{t.text}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="caption mt-2">Suggestions from what you could see: the racecard, the fit and your horse&rsquo;s condition at the off. Racing has luck in it; none of this is a promise.</p>
+        </div>
+      )}
     </section>
   );
 }
