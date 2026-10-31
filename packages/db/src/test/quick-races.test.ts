@@ -23,6 +23,7 @@ import {
   matchRecordOf,
   matchRunsOf,
   saveQuickRace,
+  storedDailyChallengeSeed,
   type MatchRunnerInsert,
 } from "../services/quickRaces";
 import { MIN, T0, count, makeHorse, memoryDb, newPlayer } from "./helpers";
@@ -131,6 +132,8 @@ describe("quick races storage", () => {
     expect(s).toMatch(/^[0-9a-f]{64}$/);
     expect(await dailyChallengeSeed(h.db, 20_760)).toBe(s);
     expect(await dailyChallengeSeed(h.db, 20_761)).not.toBe(s);
+    expect(await storedDailyChallengeSeed(h.db, 20_760)).toBe(s);
+    expect(await storedDailyChallengeSeed(h.db, 20_700)).toBeNull();
   });
 
   it("titles a note with the latest win", () => {

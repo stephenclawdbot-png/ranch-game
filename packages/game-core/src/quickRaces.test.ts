@@ -21,6 +21,7 @@ import {
   drawGates,
   matchTally,
   quickConditionsError,
+  quickRaceBlock,
   quickRaceInput,
   rankDaily,
   type DailyChoice,
@@ -69,6 +70,15 @@ describe("quick race conditions", () => {
       for (const v of Object.values(skills)) expect(jockeyGradeOf(v)).toBe(g);
     }
     expect(JOCKEY_GRADE_FLOORS.length).toBe(5);
+  });
+});
+
+describe("who can run a quick race", () => {
+  it("any racing horse of racing age, even one at its career's 40 starts; never a retired one", () => {
+    const h = dailyChallengeSpec(20_760).horse;
+    expect(quickRaceBlock(h, 0)).toBeNull();
+    expect(quickRaceBlock({ ...h, career: { ...h.career, starts: 40 } }, 0)).toBeNull();
+    expect(quickRaceBlock({ ...h, career: { ...h.career, pastured: true } }, 0)).toBe("retired");
   });
 });
 

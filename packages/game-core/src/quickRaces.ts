@@ -31,6 +31,7 @@ import { withJockeyKit, type JockeyGrade, type JockeySkills } from "./jockeys";
 import { raceSnapshot } from "./phenotype";
 import { Rng, seedFrom } from "./rng";
 import { DISTANCES, DIVISIONS } from "./seasons";
+import { raceBlock, type RaceBlock } from "./lifecycle";
 import { MS_PER_DAY } from "./time";
 import type { HorseState } from "./types";
 
@@ -95,6 +96,16 @@ export const QUICK_TRIPS: readonly number[] = DIVISIONS.flatMap((d) => DISTANCES
 
 /** The sky that goes with a going (rain on heavy, never on firm). */
 export const QUICK_GOING_WEATHER: Readonly<Record<QuickGoing, QuickWeather>> = { firm: "clear", good: "clear", soft: "overcast", heavy: "rain" };
+
+/**
+ * Why a horse can't run a match or ghost race (null when it can): racing age, still racing, not
+ * recovering from an injury, not in foal. Starts today and career starts don't matter: a quick
+ * race isn't a start.
+ */
+export function quickRaceBlock(state: HorseState, nowMs: number): RaceBlock | null {
+  const b = raceBlock(state, nowMs);
+  return b === "daily_limit" || b === "career_complete" ? null : b;
+}
 
 // ---------------------------------------------------------------------------
 // Conditions

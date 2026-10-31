@@ -8,11 +8,13 @@
  * secret (economy_config, like the Daily Cup's). It never touches horses, entries, results,
  * ratings, form, the ledger, leagues, jockeys or records, and none of those read these tables.
  */
-import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, like, lte, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { newSeed, utcDay } from "../crypto";
 import { DomainError } from "../errors";
-import { economyConfig, horses, inboxItems, matchRaceRunners, quickRaces, stables, type HorseRow, type QuickRaceRow } from "../schema";
+import { economyConfig, horses, inboxItems, matchRaceRunners, quickRaces, raceEntries, raceResults, races, stables, type HorseRow, type QuickRaceRow } from "../schema";
+import { LIVE_SLOT_KEY_LIKE } from "./card";
+import { publicRace, type PublicRace } from "./races";
 import type { Db, Executor, Tx } from "../types";
 import { rowsOf, runTx } from "./tx";
 
@@ -277,6 +279,13 @@ export async function dailyChallengeSeed(ex: Executor, day: number): Promise<str
   return seed;
 }
 
+/** The daily challenge seed of a day if one was ever drawn (no draw): for revealing a closed day. */
+export async function storedDailyChallengeSeed(ex: Executor, day: number): Promise<string | null> {
+  const [row] = await ex.select().from(economyConfig).where(eq(economyConfig.key, CHALLENGE_SECRET_KEY(day)));
+  const seed = (row?.value as { seed?: unknown } | undefined)?.seed;
+  return typeof seed === "string" ? seed : null;
+}
+
 // ---------------------------------------------------------------------------
 // Match race opponents
 // ---------------------------------------------------------------------------
@@ -353,4 +362,55 @@ export async function dailyStandingsOf(ex: Executor, stableId: string, limit = 4
     limit ${limit}`);
   const rows = rowsOf<{ day: string; rank: number; entrants: number; position: number; points: number }>(res);
   return rows.map((r) => ({ day: String(r.day), rank: Number(r.rank), entrants: Number(r.entrants), position: Number(r.position), points: Number(r.points) }));
+}
+
+// ---------------------------------------------------------------------------
+// Ghost race sources
+// ---------------------------------------------------------------------------
+
+export interface GhostSourceRunner {
+  horseId: string;
+  name: string;
+  position: number;
+  stableId: string | null;
+  isHouse: boolean;
+}
+
+export interface GhostSource {
+  race: PublicRace;
+  /** The first `top` home (dead heats share a position), in finishing order. */
+  top: GhostSourceRunner[];
+  runners: number;
+}
+
+/**
+ * Settled Live card races with post times in [from, to] (newest first) and their first `top`
+ * finishers' names, read from the result and the entries (no re-simulation).
+ */
+export async function ghostSources(ex: Executor, input: { from: Date; to: Date; top: number; limit?: number }): Promise<GhostSource[]> {
+  const rows = await ex
+    .select({ race: races, result: raceResults.result })
+    .from(races)
+    .innerJoin(raceResults, eq(raceResults.raceId, races.id))
+    .where(and(eq(races.status, "settled"), like(races.slotKey, LIVE_SLOT_KEY_LIKE), gte(races.postTime, input.from), lte(races.postTime, input.to)))
+    .orderBy(desc(races.postTime), asc(races.slotKey))
+    .limit(input.limit ?? 60);
+  if (rows.length === 0) return [];
+  const entries = await ex
+    .select({ raceId: raceEntries.raceId, horseId: raceEntries.horseId, stableId: raceEntries.stableId, isHouse: raceEntries.isHouse, name: sql<string | null>`${raceEntries.snapshot}->>'name'` })
+    .from(raceEntries)
+    .where(and(inArray(raceEntries.raceId, rows.map((r) => r.race.id)), eq(raceEntries.status, "entered")));
+  const byRace = new Map<string, typeof entries>();
+  for (const e of entries) byRace.set(e.raceId, [...(byRace.get(e.raceId) ?? []), e]);
+  const out: GhostSource[] = [];
+  for (const r of rows) {
+    const order = ((r.result as { finishOrder?: { horseId: string; position: number }[] } | null)?.finishOrder ?? []).slice().sort((a, b) => a.position - b.position);
+    const field = byRace.get(r.race.id) ?? [];
+    const top = order.slice(0, input.top).map((f) => {
+      const e = field.find((x) => x.horseId === f.horseId);
+      return { horseId: f.horseId, name: e?.name ?? "Runner", position: f.position, stableId: e?.stableId ?? null, isHouse: e?.isHouse ?? false };
+    });
+    if (top.length > 0) out.push({ race: publicRace(r.race), top, runners: order.length });
+  }
+  return out;
 }
