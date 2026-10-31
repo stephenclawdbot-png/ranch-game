@@ -2475,8 +2475,18 @@ export const toteSettings = pgTable("tote_settings", {
   limits: jsonb("limits").notNull().default({}),
   pendingLimits: jsonb("pending_limits"),
   pendingAt: ts("pending_at"),
+  /** A time-out (24 h, 7 d or 30 d) ends here by itself. */
   excludedUntil: ts("excluded_until"),
   excludedPermanent: boolean("excluded_permanent").notNull().default(false),
+  /**
+   * A self-exclusion (6 months, 1 year, 5 years) lasts at least until here and then continues
+   * until the player asks to end it; betting reopens TOTE_SELF_EXCLUSION_COOLING_OFF_MS after
+   * that request.
+   */
+  selfExcludedUntil: ts("self_excluded_until"),
+  selfExclusionEndRequestedAt: ts("self_exclusion_end_requested_at"),
+  /** The last reality check the player acknowledged (one is due every 60 min of betting). */
+  realityCheckAckAt: ts("reality_check_ack_at"),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
@@ -2519,6 +2529,22 @@ export const realToteRaces = pgTable(
     /** Mirrored pool totals: {win: {"<runner index>": stake}, place: {...}}, USDG base units. */
     pools: jsonb("pools").notNull().default({}),
     voidReason: text("void_reason"),
+    /** Mirrored from ResultPosted / ResultCorrected: when finalize may run. */
+    challengeEndAt: ts("challenge_end_at"),
+    /** The posted result's hash (TotePools.resultHashOf), and what the result attestor attested. */
+    resultHash: text("result_hash"),
+    attestedHash: text("attested_hash"),
+    /** An attestation didn't match the posted result: frozen on chain until the guardian acts. */
+    disputed: boolean("disputed").notNull().default(false),
+    /** The last block whose logs were mirrored (the event sync resumes after it). */
+    syncedBlock: credits("synced_block"),
+    /** Keeper bookkeeping: failures in a row, when to retry, the last error, and when it gave up (with an alert). */
+    keeperAttempts: integer("keeper_attempts").notNull().default(0),
+    keeperNextAt: ts("keeper_next_at"),
+    keeperError: text("keeper_error"),
+    parkedAt: ts("parked_at"),
+    /** When the keeper asked the guardian to step in (void an abandoned market, resolve a dispute, a withheld result). */
+    guardianRequestAt: ts("guardian_request_at"),
     createdAt: createdAt(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
@@ -2555,6 +2581,11 @@ export const realTotePermits = pgTable(
     expiresAt: ts("expires_at").notNull(),
     usedAmount: credits("used_amount"),
     betTx: text("bet_tx"),
+    /** The runner index (gate - 1) and pool the permit is bound to (signed on chain). */
+    runner: integer("runner"),
+    pool: text("pool"),
+    /** Never used and can't be any more (expired and unused on chain, or betting closed): stops counting toward limits. */
+    lapsedAt: ts("lapsed_at"),
   },
   (t) => [
     index("real_tote_permits_account_idx").on(t.accountId, t.issuedAt),

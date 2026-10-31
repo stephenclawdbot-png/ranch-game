@@ -11,12 +11,20 @@ import type { PlayerState } from "@/lib/player";
 
 type Currency = gc.ToteCurrency;
 
-const EXCLUSIONS: { v: gc.ToteSelfExclusion; label: string }[] = [
+/** Time-outs end by themselves. */
+const TIME_OUTS: { v: gc.ToteSelfExclusion; label: string }[] = [
   { v: "24h", label: "24 hours" },
   { v: "7d", label: "7 days" },
   { v: "30d", label: "30 days" },
+];
+/** Self-exclusions last at least this long, then until you ask to end them (plus a day). */
+const SELF_EXCLUSIONS: { v: gc.ToteSelfExclusion; label: string }[] = [
+  { v: "6m", label: "6 months" },
+  { v: "1y", label: "1 year" },
+  { v: "5y", label: "5 years" },
   { v: "permanent", label: "Permanently" },
 ];
+const EXCLUSIONS = [...TIME_OUTS, ...SELF_EXCLUSIONS];
 
 const fmt = (c: Currency, n: number | null) => (n === null ? "No limit of your own" : gc.formatToteAmount(c, n));
 const asText = (c: Currency, n: number | null) => (n === null ? "" : c === "CR" ? String(n) : (n / gc.TOTE_USDG_UNIT).toFixed(2).replace(/\.00$/, ""));
@@ -53,10 +61,33 @@ function LimitsForm({ currency, view, onSaved }: { currency: Currency; view: Tot
         </li>
         {pending && view.pendingAtMs && (
           <li data-testid={`limits-pending-${currency}`}>
-            From {when(view.pendingAtMs)}: {fmt(currency, pending.perRace)} per race · {fmt(currency, pending.perDay)} a day
+            Asked for: {fmt(currency, pending.perRace)} per race · {fmt(currency, pending.perDay)} a day.{" "}
+            {view.pendingConfirmable ? "You can confirm it now; until you do, your lower limits stay." : `You can confirm it from ${when(view.pendingAtMs)}.`}
           </li>
         )}
       </ul>
+      {pending && view.pendingConfirmable && (
+        <button
+          type="button"
+          className="btn btn-sm w-fit"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setMsg(null);
+            try {
+              onSaved(await send({ action: "confirm_raise" }));
+              setMsg({ ok: true, text: "The higher limit applies now." });
+            } catch (e) {
+              setMsg({ ok: false, text: (e as Error).message });
+            } finally {
+              setBusy(false);
+            }
+          }}
+          data-testid={`limits-confirm-${currency}`}
+        >
+          Confirm the higher limit
+        </button>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm font-bold">
           Most per race
@@ -67,7 +98,7 @@ function LimitsForm({ currency, view, onSaved }: { currency: Currency; view: Tot
           <input className="field" inputMode={currency === "CR" ? "numeric" : "decimal"} value={perDay} placeholder="No limit of your own" onChange={(e) => setPerDay(e.target.value)} data-testid={`limit-day-${currency}`} />
         </label>
       </div>
-      <p className="caption">Lower limits apply at once. Raising or removing one takes 24 hours.</p>
+      <p className="caption">Lower limits apply at once. Raising or removing one takes 24 hours, and then only applies once you come back and confirm it.</p>
       <button
         type="button"
         className="btn w-fit"
@@ -78,7 +109,7 @@ function LimitsForm({ currency, view, onSaved }: { currency: Currency; view: Tot
           try {
             const v = await send({ action: "limits", currency, perRace: r, perDay: d });
             onSaved(v);
-            setMsg({ ok: true, text: v.pending?.[currency] ? "Saved. The higher limit starts in 24 hours." : "Saved." });
+            setMsg({ ok: true, text: v.pending?.[currency] ? "Saved. You can confirm the higher limit in 24 hours." : "Saved." });
           } catch (e) {
             setMsg({ ok: false, text: (e as Error).message });
           } finally {
@@ -172,17 +203,41 @@ function Betting({ state }: { state: PlayerState }) {
               <p className="font-bold" data-testid="excluded">
                 You have closed betting on this account for good.
               </p>
+            ) : view.selfExcludedUntilMs ? (
+              <div className="grid gap-2" data-testid="excluded">
+                <p className="font-bold">
+                  {view.selfExclusionEndsAtMs
+                    ? `You asked to end your self-exclusion: betting reopens on ${when(view.selfExclusionEndsAtMs)}.`
+                    : view.canEndSelfExclusion
+                      ? "Your self-exclusion's minimum is over. It carries on until you ask to end it; betting then reopens a day later."
+                      : `You are self-excluded until at least ${when(view.selfExcludedUntilMs)}, and after that until you ask to end it.`}
+                </p>
+                {view.canEndSelfExclusion && (
+                  <button type="button" className="btn btn-sm w-fit" disabled={busy} onClick={() => act({ action: "end_self_exclusion" })} data-testid="end-self-exclusion">
+                    End my self-exclusion (betting reopens in 24 hours)
+                  </button>
+                )}
+              </div>
             ) : view.excludedUntilMs ? (
               <p className="font-bold" data-testid="excluded">
-                Betting is closed for you until {when(view.excludedUntilMs)}.
+                You are on a time-out from betting until {when(view.excludedUntilMs)}.
               </p>
             ) : (
               <p className="text-sm text-cream-dim">Stop yourself betting for a while. Racing, breeding and everything else carry on as normal.</p>
             )}
             {!view.excludedPermanent && (
               <>
+                <p className="label">Time-out (ends by itself)</p>
                 <div className="flex flex-wrap gap-2">
-                  {EXCLUSIONS.map((x) => (
+                  {TIME_OUTS.map((x) => (
+                    <button key={x.v} type="button" className="btn btn-sm" aria-pressed={choice === x.v} onClick={() => setChoice(x.v)} data-testid={`exclude-${x.v}`}>
+                      {x.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="label">Self-exclusion (at least this long, then until you ask to end it)</p>
+                <div className="flex flex-wrap gap-2">
+                  {SELF_EXCLUSIONS.map((x) => (
                     <button key={x.v} type="button" className="btn btn-sm" aria-pressed={choice === x.v} onClick={() => setChoice(x.v)} data-testid={`exclude-${x.v}`}>
                       {x.label}
                     </button>
@@ -193,7 +248,9 @@ function Betting({ state }: { state: PlayerState }) {
                     <p className="font-bold">
                       {choice === "permanent"
                         ? "Close betting on this account for good? This can't be undone."
-                        : `Close betting for ${EXCLUSIONS.find((x) => x.v === choice)!.label}? It can't be shortened or lifted early.`}
+                        : gc.toteBreakKind(choice) === "time_out"
+                          ? `Take a time-out from betting for ${EXCLUSIONS.find((x) => x.v === choice)!.label}? It can't be shortened or lifted early.`
+                          : `Self-exclude for at least ${EXCLUSIONS.find((x) => x.v === choice)!.label}? It can't be shortened, and after that it carries on until you ask to end it (betting then reopens a day later).`}
                     </p>
                     <div className="flex gap-2">
                       <button type="button" className="btn btn-oxblood btn-sm" disabled={busy} onClick={() => act({ action: "exclude", choice })}>

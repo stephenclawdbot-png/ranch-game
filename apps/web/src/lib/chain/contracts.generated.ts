@@ -193,12 +193,24 @@ export const betPermitTypes = {
       "type": "bytes32"
     },
     {
+      "name": "runner",
+      "type": "uint8"
+    },
+    {
+      "name": "pool",
+      "type": "uint8"
+    },
+    {
       "name": "maxAmount",
       "type": "uint256"
     },
     {
       "name": "nonce",
       "type": "uint256"
+    },
+    {
+      "name": "issuedAt",
+      "type": "uint64"
     },
     {
       "name": "expiry",
@@ -4741,24 +4753,36 @@ export const totePoolsAbi = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "admin",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "operator",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "permitSigner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "guardian",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "admin",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "operator",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "permitSigner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "guardian",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "attestor",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct TotePools.Roles",
+        "name": "roles",
+        "type": "tuple"
       },
       {
         "internalType": "address",
@@ -4776,24 +4800,36 @@ export const totePoolsAbi = [
         "type": "address"
       },
       {
-        "internalType": "uint64",
-        "name": "closeMargin",
-        "type": "uint64"
-      },
-      {
-        "internalType": "uint64",
-        "name": "challengeWindow",
-        "type": "uint64"
-      },
-      {
-        "internalType": "uint64",
-        "name": "maxSettleDelay",
-        "type": "uint64"
-      },
-      {
-        "internalType": "uint64",
-        "name": "entropyDelayBlocks",
-        "type": "uint64"
+        "components": [
+          {
+            "internalType": "uint64",
+            "name": "closeMargin",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "challengeWindow",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "maxSettleDelay",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "entropyDelayBlocks",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "entropyBlocks",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct TotePools.Timing",
+        "name": "t",
+        "type": "tuple"
       }
     ],
     "stateMutability": "nonpayable",
@@ -4854,6 +4890,11 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
+    "name": "AttestationMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "BadConfig",
     "type": "error"
   },
@@ -4876,6 +4917,11 @@ export const totePoolsAbi = [
       }
     ],
     "name": "BadRunner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "BeaconNotReady",
     "type": "error"
   },
   {
@@ -4935,7 +4981,7 @@ export const totePoolsAbi = [
     "inputs": [
       {
         "internalType": "uint64",
-        "name": "entropyBlock",
+        "name": "lastBlock",
         "type": "uint64"
       }
     ],
@@ -4945,6 +4991,11 @@ export const totePoolsAbi = [
   {
     "inputs": [],
     "name": "EntropyNotSealed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EntropyReadFailed",
     "type": "error"
   },
   {
@@ -5014,6 +5065,11 @@ export const totePoolsAbi = [
       }
     ],
     "name": "NonceUsed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotAttested",
     "type": "error"
   },
   {
@@ -5087,8 +5143,24 @@ export const totePoolsAbi = [
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "issuedAt",
+        "type": "uint64"
+      }
+    ],
+    "name": "PermitNotYetValid",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "PermitRaceMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PermitTermsMismatch",
     "type": "error"
   },
   {
@@ -5125,6 +5197,11 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
+    "name": "ResultDisputed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ResultTooLate",
     "type": "error"
   },
@@ -5142,6 +5219,11 @@ export const totePoolsAbi = [
   {
     "inputs": [],
     "name": "SeedMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SharedRoleKey",
     "type": "error"
   },
   {
@@ -5185,6 +5267,11 @@ export const totePoolsAbi = [
       }
     ],
     "name": "StringTooLong",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TooManyCorrections",
     "type": "error"
   },
   {
@@ -5324,6 +5411,25 @@ export const totePoolsAbi = [
         "type": "bytes32"
       },
       {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "blockEntropy",
+        "type": "bytes32"
+      }
+    ],
+    "name": "BlockEntropyStored",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "raceId",
+        "type": "bytes32"
+      },
+      {
         "indexed": true,
         "internalType": "address",
         "name": "bettor",
@@ -5374,6 +5480,25 @@ export const totePoolsAbi = [
     "anonymous": false,
     "inputs": [],
     "name": "EIP712DomainChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldBeacon",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newBeacon",
+        "type": "address"
+      }
+    ],
+    "name": "EntropyBeaconSet",
     "type": "event"
   },
   {
@@ -5549,6 +5674,56 @@ export const totePoolsAbi = [
       },
       {
         "indexed": false,
+        "internalType": "uint8",
+        "name": "pool",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "reason",
+        "type": "bytes32"
+      }
+    ],
+    "name": "PoolRefunded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "raceId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "attestedHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "matches",
+        "type": "bool"
+      }
+    ],
+    "name": "ResultAttested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "raceId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
         "internalType": "bytes32",
         "name": "oldPositions",
         "type": "bytes32"
@@ -5558,6 +5733,24 @@ export const totePoolsAbi = [
         "internalType": "bytes32",
         "name": "newPositions",
         "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "resultHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "challengeEnd",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "corrections",
+        "type": "uint8"
       }
     ],
     "name": "ResultCorrected",
@@ -5588,6 +5781,12 @@ export const totePoolsAbi = [
         "indexed": false,
         "internalType": "bytes32",
         "name": "positions",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "resultHash",
         "type": "bytes32"
       },
       {
@@ -5778,19 +5977,6 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
-    "name": "BPS",
-    "outputs": [
-      {
-        "internalType": "uint16",
-        "name": "",
-        "type": "uint16"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "CHALLENGE_WINDOW",
     "outputs": [
       {
@@ -5817,12 +6003,12 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
-    "name": "DEAD_HEAT_DENOM",
+    "name": "DEFAULT_ADMIN_ROLE",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes32",
         "name": "",
-        "type": "uint256"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -5830,12 +6016,12 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
-    "name": "DEFAULT_ADMIN_ROLE",
+    "name": "ENTROPY_BLOCKS",
     "outputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint64",
         "name": "",
-        "type": "bytes32"
+        "type": "uint64"
       }
     ],
     "stateMutability": "view",
@@ -5862,6 +6048,19 @@ export const totePoolsAbi = [
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_CORRECTIONS",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -5934,6 +6133,32 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
+    "name": "MIN_POOL_BETTORS",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_POOL_RUNNERS",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "NATIVE_ETH",
     "outputs": [
       {
@@ -5986,72 +6211,7 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
-    "name": "PLACE_MIN_FIELD",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "PLACE_THREE_FROM",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "VOID_CANCELLED",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "VOID_ENTROPY_MISSED",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "VOID_EXPIRED",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "VOID_GUARDIAN",
+    "name": "RESULT_ATTESTOR_ROLE",
     "outputs": [
       {
         "internalType": "bytes32",
@@ -6102,6 +6262,24 @@ export const totePoolsAbi = [
         "type": "bytes32"
       },
       {
+        "internalType": "bytes32",
+        "name": "attestedHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "attestResult",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "raceId",
+        "type": "bytes32"
+      },
+      {
         "internalType": "uint8",
         "name": "runner",
         "type": "uint8"
@@ -6129,6 +6307,16 @@ export const totePoolsAbi = [
             "type": "bytes32"
           },
           {
+            "internalType": "uint8",
+            "name": "runner",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "pool",
+            "type": "uint8"
+          },
+          {
             "internalType": "uint256",
             "name": "maxAmount",
             "type": "uint256"
@@ -6137,6 +6325,11 @@ export const totePoolsAbi = [
             "internalType": "uint256",
             "name": "nonce",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "issuedAt",
+            "type": "uint64"
           },
           {
             "internalType": "uint64",
@@ -6354,6 +6547,19 @@ export const totePoolsAbi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "entropyBeacon",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -6451,6 +6657,16 @@ export const totePoolsAbi = [
             "type": "uint8"
           },
           {
+            "internalType": "uint8",
+            "name": "corrections",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bool",
+            "name": "disputed",
+            "type": "bool"
+          },
+          {
             "internalType": "uint128",
             "name": "maxPool",
             "type": "uint128"
@@ -6461,8 +6677,18 @@ export const totePoolsAbi = [
             "type": "address"
           },
           {
+            "internalType": "address",
+            "name": "beacon",
+            "type": "address"
+          },
+          {
             "internalType": "bytes32",
             "name": "seedCommitment",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "blockEntropy",
             "type": "bytes32"
           },
           {
@@ -6483,6 +6709,11 @@ export const totePoolsAbi = [
           {
             "internalType": "bytes32",
             "name": "positions",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "attestedHash",
             "type": "bytes32"
           }
         ],
@@ -6626,6 +6857,16 @@ export const totePoolsAbi = [
             "type": "bytes32"
           },
           {
+            "internalType": "uint8",
+            "name": "runner",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "pool",
+            "type": "uint8"
+          },
+          {
             "internalType": "uint256",
             "name": "maxAmount",
             "type": "uint256"
@@ -6634,6 +6875,11 @@ export const totePoolsAbi = [
             "internalType": "uint256",
             "name": "nonce",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "issuedAt",
+            "type": "uint64"
           },
           {
             "internalType": "uint64",
@@ -6717,25 +6963,6 @@ export const totePoolsAbi = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "ran",
-        "type": "uint256"
-      }
-    ],
-    "name": "placesFor",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "bytes32",
         "name": "raceId",
         "type": "bytes32"
@@ -6772,6 +6999,35 @@ export const totePoolsAbi = [
     "name": "renounceRole",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "raceId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "finalSeed",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "positions",
+        "type": "bytes32"
+      }
+    ],
+    "name": "resultHashOf",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -6872,6 +7128,19 @@ export const totePoolsAbi = [
       }
     ],
     "name": "setAssetAllowed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "beacon",
+        "type": "address"
+      }
+    ],
+    "name": "setEntropyBeacon",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

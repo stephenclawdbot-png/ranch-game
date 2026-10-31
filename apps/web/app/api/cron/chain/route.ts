@@ -6,6 +6,7 @@ import { chainCtx } from "@/server/chain/context";
 import { usdgBackstop } from "@/server/chain/usdg";
 import { usdgCtx } from "@/server/chain/usdgHttp";
 import { realToteBackstop } from "@/server/chain/toteChain";
+import { realToteAttestorRun } from "@/server/chain/toteAttestor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,9 @@ export const maxDuration = 60;
  * orders whose client never confirmed, expires dead quotes, grants affiliate activity rewards,
  * and runs the USDG market backstop (close auctions, offer to the next bidder after a missed
  * payment, settle paid-but-unconfirmed sales and registrations, expire stale orders), and the
- * DORMANT real-money tote keeper (returns `{skipped: "off"}` while REAL_TOTE_ENABLED is off).
+ * DORMANT real-money tote keeper and its independent result attestor (each returns
+ * `{skipped: "off"}` while REAL_TOTE_ENABLED is off; the attestor uses its own key and should run
+ * as its own deployment once the tote is live).
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -41,5 +44,12 @@ export async function GET(req: Request) {
     console.error("real tote backstop", err);
     realTote = { error: (err as Error).message };
   }
-  return json({ ok: true, orders, activations, usdg, realTote });
+  let realToteAttestor: unknown;
+  try {
+    realToteAttestor = await realToteAttestorRun(ctx.db, now);
+  } catch (err) {
+    console.error("real tote attestor", err);
+    realToteAttestor = { error: (err as Error).message };
+  }
+  return json({ ok: true, orders, activations, usdg, realTote, realToteAttestor });
 }

@@ -13,8 +13,21 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 /// `block.number` is an L1 estimate and `blockhash` is not the L2 block hash, so the L2 block
 /// number and hash come from here.
 interface IArbSysBlocks {
+    /// @dev What arbBlockHash reverts with outside the last 256 blocks.
+    error InvalidBlockNumber(uint256 requested, uint256 current);
+
     function arbBlockNumber() external view returns (uint256);
     function arbBlockHash(uint256 arbBlockNum) external view returns (bytes32);
+}
+
+/// @notice Optional external randomness (a VRF or a public beacon) mixed into a market's entropy.
+/// Disabled by default (no beacon set); an admin can plug one in for markets created afterwards.
+/// An adapter contract wraps whatever provider is chosen behind these two calls.
+interface IEntropyBeacon {
+    /// @notice Asks for randomness for this market (called once, from lockEntropy, after betting closed).
+    function requestRandomness(bytes32 raceId) external;
+    /// @notice The delivered randomness, or 0 while it isn't there yet.
+    function randomness(bytes32 raceId) external view returns (bytes32);
 }
 
 /// @title TotePools
@@ -22,70 +35,91 @@ interface IArbSysBlocks {
 /// Not deployed; nothing in the app talks to it unless REAL_TOTE_ENABLED, WEB3_ENABLED and
 /// TOTE_POOLS_ADDRESS are all set, which needs legal approval first.
 ///
-/// Non-custodial: player stakes sit in this contract only, never with the operator. No role can
-/// move a player's stake or winnings anywhere but back to that player: there is no owner
-/// withdrawal, no upgrade path and no arbitrary transfer. The treasury only ever receives the
-/// takeout and rounding dust, which the contract accounts for itself.
+/// Custody and trust: player stakes sit in this contract only, never with the operator. No role
+/// can transfer a stake anywhere but back to its player (claim) or, for the takeout and rounding
+/// dust, to the treasury: there is no owner withdrawal, no upgrade path and no arbitrary
+/// transfer. Who wins is decided by a posted result: the OPERATOR posts it and an independent
+/// RESULT_ATTESTOR (a separate key and service that replays the race) must attest the same
+/// result before finalize; a mismatch freezes the market for the GUARDIAN multisig, which also
+/// has a challenge window to correct or void. So the operator alone can't pick winners, but the
+/// operator and attestor keys together (unless the guardian intervenes in time) could.
 ///
 /// Stake asset: a per-market property. Each market settles entirely in its own asset: an
 /// allow-listed ERC-20 (USDG, allow-listed at deployment) or native ETH (address(0), payable
-/// `bet` with msg.value == amount; pull-based ETH payouts). No conversion, no price oracle: a
-/// race can have a USDG market and an ETH market side by side under different market ids. ETH is
-/// disabled until an admin sets its stake limits and allow-lists it.
+/// `bet` with msg.value == amount; pull-based ETH payouts). No conversion, no price oracle.
 ///
 /// Lifecycle of one race market:
 ///  1. OPERATOR `createMarket` when the field locks, with the race's seed commitment
 ///     (sha256 of the 32-byte server seed, the engine's `commitSeed`). Write-once.
-///  2. Players `bet` with a short-lived, single-use EIP-712 BetPermit from PERMIT_SIGNER (the
-///     server's off-chain checks: conflicts of interest, linked accounts, limits, self-exclusion,
-///     age and location). Bets close CLOSE_MARGIN before `closeTime`. Bets can't be cancelled.
+///  2. Players `bet` with a short-lived, single-use EIP-712 BetPermit from PERMIT_SIGNER, bound to
+///     the bettor, race, runner, pool, a max amount, an issue time and an expiry. Bets close
+///     CLOSE_MARGIN before `closeTime` and can't be cancelled.
 ///  3. After `closeTime` anyone calls `lockEntropy` (picks a FUTURE block) and then
-///     `sealEntropy` (stores that block's hash). The race runs on
-///     finalSeed = sha256(serverSeed ‖ entropy), unknown to everyone until betting has closed.
+///     `sealEntropy` (mixes the hashes of ENTROPY_BLOCKS consecutive blocks from there, and the
+///     beacon's randomness when one is configured). The race runs on
+///     finalSeed = sha256(serverSeed ‖ entropy).
 ///  4. OPERATOR `postResult` with the revealed server seed (checked against the commitment) and
-///     each runner's finishing position (0 = non-runner; equal positions = dead heat). A
-///     CHALLENGE_WINDOW opens in which GUARDIAN can `correctResult` or `voidMarket`.
-///  5. After the window anyone calls `finalize` (the pari-mutuel split, same rules as game-core
-///     tote.ts) and each player `claim`s (pull payments). Void markets refund every stake.
-///  6. A market with no result within MAX_SETTLE_DELAY of `closeTime` can be expired by anyone:
+///     each runner's finishing position. RESULT_ATTESTOR `attestResult` with the same result
+///     hash. GUARDIAN can `correctResult` (reopens the window; at most MAX_CORRECTIONS) or
+///     `voidMarket` in the challenge window, or any time the result isn't attested.
+///  5. After the window, with a matching attestation, anyone calls `finalize` (the pari-mutuel
+///     split, same rules as game-core tote.ts) and each player `claim`s. Void markets refund.
+///  6. A market with no result MAX_SETTLE_DELAY after `closeTime` (or a posted result that never
+///     got a matching attestation MAX_SETTLE_DELAY after its window) can be expired by anyone:
 ///     every stake becomes refundable. Funds can never get stuck.
+///
+/// Unclaimed winnings and refunds stay claimable forever (no deadline, no sweep). Tokens sent to
+/// this contract directly (not through `bet`) are not accounted anywhere and stay here for good:
+/// there is deliberately no function that could move them. Plain ETH transfers are refused.
 contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------- roles
 
-    /// @notice Creates markets, posts results, cancels a market before its entropy is sealed.
+    /// @notice Creates markets, posts results, cancels a market before its entropy block is picked.
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     /// @notice Server keys that sign BetPermits. Rotate by grant + revoke.
     bytes32 public constant PERMIT_SIGNER_ROLE = keccak256("PERMIT_SIGNER_ROLE");
-    /// @notice Corrects or voids a posted result during the challenge window (a multisig).
+    /// @notice Corrects or voids a posted result, voids an open market (a multisig).
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+    /// @notice An independent service that replays each race from finalSeed and attests its result.
+    bytes32 public constant RESULT_ATTESTOR_ROLE = keccak256("RESULT_ATTESTOR_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     // ---------------------------------------------------------------- constants
 
-    uint16 public constant BPS = 10_000;
+    uint16 private constant BPS = 10_000;
     /// @notice Hard cap on a market's takeout (25 %).
     uint16 public constant MAX_TAKEOUT_BPS = 2_500;
     uint8 public constant MAX_RUNNERS = 24;
     /// @notice A place pool needs this many runners that ran (game-core TOTE_PLACE_MIN_FIELD).
-    uint8 public constant PLACE_MIN_FIELD = 5;
+    uint8 private constant PLACE_MIN_FIELD = 5;
     /// @notice From this many runners the place pool pays three places (TOTE_PLACE_THREE_FROM).
-    uint8 public constant PLACE_THREE_FROM = 8;
-    /// @notice No BetPermit may be valid for longer than this.
+    uint8 private constant PLACE_THREE_FROM = 8;
+    /// @notice A pool needs this many distinct wallets on runners that ran, or it is refunded (TOTE_MIN_POOL_BETTORS).
+    uint8 public constant MIN_POOL_BETTORS = 2;
+    /// @notice ... backing this many distinct runners that ran (TOTE_MIN_POOL_RUNNERS).
+    uint8 public constant MIN_POOL_RUNNERS = 2;
+    /// @notice The guardian may correct a result this many times; after that only void.
+    uint8 public constant MAX_CORRECTIONS = 2;
+    /// @notice No BetPermit may be valid for longer than this, counted from its issue time.
     uint64 public constant MAX_PERMIT_TTL = 10 minutes;
     /// @notice A market can't be created further ahead than this.
     uint64 public constant MAX_MARKET_LEAD = 7 days;
     /// @notice lcm(1..24): every dead-heat share is a whole multiple of 1/DEAD_HEAT_DENOM.
-    uint256 public constant DEAD_HEAT_DENOM = 5_354_228_880;
+    uint256 private constant DEAD_HEAT_DENOM = 5_354_228_880;
 
-    bytes32 public constant BET_PERMIT_TYPEHASH =
-        keccak256("BetPermit(address bettor,bytes32 raceId,uint256 maxAmount,uint256 nonce,uint64 expiry)");
+    bytes32 public constant BET_PERMIT_TYPEHASH = keccak256(
+        "BetPermit(address bettor,bytes32 raceId,uint8 runner,uint8 pool,uint256 maxAmount,uint256 nonce,uint64 issuedAt,uint64 expiry)"
+    );
 
-    bytes32 public constant VOID_GUARDIAN = "guardian";
-    bytes32 public constant VOID_CANCELLED = "cancelled";
-    bytes32 public constant VOID_EXPIRED = "expired";
-    bytes32 public constant VOID_ENTROPY_MISSED = "entropy_missed";
+    bytes32 private constant VOID_GUARDIAN = "guardian";
+    bytes32 private constant VOID_CANCELLED = "cancelled";
+    bytes32 private constant VOID_EXPIRED = "expired";
+    bytes32 private constant VOID_ENTROPY_MISSED = "entropy_missed";
+    bytes32 private constant POOL_NO_PLACE = "no_place_pool";
+    bytes32 private constant POOL_THIN = "thin_pool";
+    bytes32 private constant POOL_WINNERS_SHORT = "winners_short";
 
     // ---------------------------------------------------------------- types
 
@@ -114,20 +148,30 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     struct Market {
         uint64 closeTime;
         uint64 challengeEnd;
+        /// @dev the first of ENTROPY_BLOCKS consecutive entropy blocks (0 = not locked yet)
         uint64 entropyBlock;
         uint16 takeoutBps;
         uint8 runnerCount;
         uint8 placeTerms;
         Status status;
+        uint8 corrections;
+        /// @dev an attestation didn't match the posted result: frozen until the guardian acts
+        bool disputed;
         uint128 maxPool;
         /// @dev the stake asset: an allow-listed ERC-20, or NATIVE_ETH
         address asset;
+        /// @dev the randomness beacon fixed at creation (address(0) = none)
+        address beacon;
         bytes32 seedCommitment;
+        /// @dev the block-hash part of the entropy (stored while a beacon's randomness is awaited)
+        bytes32 blockEntropy;
         bytes32 entropy;
         bytes32 revealedSeed;
         bytes32 finalSeed;
         /// @dev byte i (little-endian) = finishing position of runner i; 0 = non-runner.
         bytes32 positions;
+        /// @dev what RESULT_ATTESTOR attested (resultHashOf of its own replay)
+        bytes32 attestedHash;
     }
 
     struct PoolState {
@@ -142,9 +186,12 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     struct BetPermit {
         address bettor; // must be msg.sender
         bytes32 raceId;
+        uint8 runner; // the bet must be on this runner ...
+        uint8 pool; // ... in this pool
         uint256 maxAmount; // this bet may be at most this much
         uint256 nonce; // single-use per bettor
-        uint64 expiry; // unix seconds, at most MAX_PERMIT_TTL ahead
+        uint64 issuedAt; // not valid before this (unix seconds)
+        uint64 expiry; // nor after this; at most MAX_PERMIT_TTL after issuedAt
     }
 
     /// @notice Native ETH as a stake asset (msg.value bets, call-based payouts).
@@ -156,21 +203,60 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint128 maxStakePerWalletPerRace;
     }
 
+    /// @notice Constructor role holders (each a different key).
+    struct Roles {
+        address admin;
+        address operator;
+        address permitSigner;
+        address guardian;
+        address attestor;
+    }
+
+    /// @notice Constructor timing.
+    struct Timing {
+        uint64 closeMargin;
+        uint64 challengeWindow;
+        uint64 maxSettleDelay;
+        uint64 entropyDelayBlocks;
+        uint64 entropyBlocks;
+    }
+
+    /// @dev The first wallet on a (pool, runner) and whether another one followed: enough to tell
+    /// at finalize whether a pool has 2 distinct bettors, in O(runners).
+    struct RunnerBettors {
+        address first;
+        bool multi;
+    }
+
+    /// @dev The settlement inputs of one pool (a struct keeps the stack small).
+    struct Split {
+        uint256[MAX_RUNNERS] weight;
+        uint256 w;
+        uint256 live;
+        uint256 winStakes;
+        uint256 backedRunners;
+        bool twoBettors;
+    }
+
     // ---------------------------------------------------------------- immutables
 
     /// @notice Bets are refused from closeTime - CLOSE_MARGIN (covers sequencer timestamp drift).
     uint64 public immutable CLOSE_MARGIN;
     uint64 public immutable CHALLENGE_WINDOW;
     uint64 public immutable MAX_SETTLE_DELAY;
-    /// @notice lockEntropy targets the block this many L2 blocks ahead.
+    /// @notice lockEntropy targets the block this many L2 blocks ahead ...
     uint64 public immutable ENTROPY_DELAY_BLOCKS;
+    /// @notice ... and this many consecutive blocks from there are mixed (at least 3).
+    uint64 public immutable ENTROPY_BLOCKS;
     /// @notice The ArbSys precompile, or address(0) to use the EVM's own block number and hash
-    /// (local test networks and non-Arbitrum chains).
+    /// (local test networks and non-Arbitrum chains; refused on Robinhood Chain).
     address public immutable arbSys;
 
     // ---------------------------------------------------------------- storage
 
     address public treasury;
+    /// @notice The randomness beacon new markets will use (address(0) = none, the default).
+    address public entropyBeacon;
     /// @notice Stake assets new markets may use (and new bets may be placed in).
     mapping(address asset => bool) public assetAllowed;
     /// @notice Per-asset stake limits, in that asset's base units.
@@ -183,6 +269,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     /// @dev key = pool * 32 + runner
     mapping(bytes32 raceId => mapping(uint256 key => uint128)) private _runnerStake;
     mapping(bytes32 raceId => mapping(uint256 key => uint128)) private _runnerShare;
+    mapping(bytes32 raceId => mapping(uint256 key => RunnerBettors)) private _runnerBettors;
     mapping(bytes32 raceId => mapping(address wallet => mapping(uint256 key => uint128))) private _stakeOf;
     /// @dev bit `key` set when the wallet holds a stake on that (pool, runner)
     mapping(bytes32 raceId => mapping(address wallet => uint64)) private _walletKeys;
@@ -206,15 +293,19 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         bytes32 indexed raceId, address indexed bettor, uint8 pool, uint8 runner, uint256 amount, uint256 indexed nonce, uint256 poolTotal, uint256 runnerTotal
     );
     event EntropyLocked(bytes32 indexed raceId, uint64 entropyBlock);
+    event BlockEntropyStored(bytes32 indexed raceId, bytes32 blockEntropy);
     event EntropySealed(bytes32 indexed raceId, uint64 entropyBlock, bytes32 entropy);
-    event ResultPosted(bytes32 indexed raceId, bytes32 revealedSeed, bytes32 finalSeed, bytes32 positions, uint64 challengeEnd);
-    event ResultCorrected(bytes32 indexed raceId, bytes32 oldPositions, bytes32 newPositions);
+    event ResultPosted(bytes32 indexed raceId, bytes32 revealedSeed, bytes32 finalSeed, bytes32 positions, bytes32 resultHash, uint64 challengeEnd);
+    event ResultAttested(bytes32 indexed raceId, bytes32 attestedHash, bool matches);
+    event ResultCorrected(bytes32 indexed raceId, bytes32 oldPositions, bytes32 newPositions, bytes32 resultHash, uint64 challengeEnd, uint8 corrections);
     event MarketFinalized(bytes32 indexed raceId, uint256 winTotal, uint256 placeTotal, uint256 toTreasury);
+    event PoolRefunded(bytes32 indexed raceId, uint8 pool, bytes32 reason);
     event MarketVoided(bytes32 indexed raceId, bytes32 reason);
     event Claimed(bytes32 indexed raceId, address indexed bettor, address to, uint256 amount);
     event DustSwept(bytes32 indexed raceId, uint8 pool, uint256 amount);
     event TreasuryWithdrawn(address indexed asset, address indexed treasury, uint256 amount);
     event TreasurySet(address indexed oldTreasury, address indexed newTreasury);
+    event EntropyBeaconSet(address indexed oldBeacon, address indexed newBeacon);
     event StakeLimitsSet(address indexed asset, uint128 minStake, uint128 maxStakePerBet, uint128 maxStakePerWalletPerRace);
     event AssetAllowedSet(address indexed asset, bool allowed);
 
@@ -222,6 +313,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
     error ZeroAddress();
     error BadConfig();
+    error SharedRoleKey();
     error MarketExists(bytes32 raceId);
     error BadMarket();
     error MarketNotOpen(bytes32 raceId);
@@ -230,6 +322,8 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error NoPlacePool();
     error NotPermitBettor(address expected, address actual);
     error PermitRaceMismatch();
+    error PermitTermsMismatch();
+    error PermitNotYetValid(uint64 issuedAt);
     error PermitExpired(uint64 expiry);
     error PermitTtlTooLong(uint64 expiry);
     error NonceUsed(uint256 nonce);
@@ -243,15 +337,21 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error EntropyTooEarly(uint64 closeTime);
     error EntropyAlreadyLocked();
     error EntropyNotLocked();
-    error EntropyNotReady(uint64 entropyBlock);
+    error EntropyNotReady(uint64 lastBlock);
     error EntropyAlreadySealed();
     error EntropyNotSealed();
+    error EntropyReadFailed();
+    error BeaconNotReady();
     error SeedMismatch();
     error BadPositions();
     error ResultTooLate();
     error NotResultPosted(bytes32 raceId);
     error ChallengeWindowOver(uint64 challengeEnd);
     error ChallengeWindowOpen(uint64 challengeEnd);
+    error NotAttested();
+    error AttestationMismatch();
+    error ResultDisputed();
+    error TooManyCorrections();
     error NotVoidable();
     error NotExpired(uint64 expiresAt);
     error NotClaimable(bytes32 raceId);
@@ -261,37 +361,36 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error WrongEthAmount(uint256 expected, uint256 sent);
     error EthTransferFailed();
 
-    constructor(
-        address admin,
-        address operator,
-        address permitSigner,
-        address guardian,
-        address treasury_,
-        address usdg,
-        address arbSys_,
-        uint64 closeMargin,
-        uint64 challengeWindow,
-        uint64 maxSettleDelay,
-        uint64 entropyDelayBlocks
-    ) EIP712("PostTimeTotePools", "1") {
+    constructor(Roles memory roles, address treasury_, address usdg, address arbSys_, Timing memory t) EIP712("PostTimeTotePools", "1") {
         if (
-            admin == address(0) || operator == address(0) || permitSigner == address(0) || guardian == address(0) || treasury_ == address(0)
-                || usdg == address(0)
+            roles.admin == address(0) || roles.operator == address(0) || roles.permitSigner == address(0) || roles.guardian == address(0)
+                || roles.attestor == address(0) || treasury_ == address(0) || usdg == address(0)
         ) revert ZeroAddress();
+        // The keys that decide or check results must be different keys.
         if (
-            closeMargin == 0 || closeMargin > 1 hours || challengeWindow < 10 minutes || challengeWindow > 7 days || maxSettleDelay < challengeWindow
-                || maxSettleDelay > 30 days || entropyDelayBlocks == 0 || entropyDelayBlocks > 64
+            roles.attestor == roles.operator || roles.guardian == roles.operator || roles.guardian == roles.attestor
+                || roles.permitSigner == roles.operator || roles.permitSigner == roles.attestor
+        ) revert SharedRoleKey();
+        if (
+            t.closeMargin == 0 || t.closeMargin > 1 hours || t.challengeWindow < 10 minutes || t.challengeWindow > 7 days || t.maxSettleDelay < t.challengeWindow
+                || t.maxSettleDelay > 30 days || t.entropyDelayBlocks == 0 || t.entropyDelayBlocks > 64 || t.entropyBlocks < 3 || t.entropyBlocks > 16
         ) revert BadConfig();
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(PAUSER_ROLE, admin);
-        _grantRole(OPERATOR_ROLE, operator);
-        _grantRole(PERMIT_SIGNER_ROLE, permitSigner);
-        _grantRole(GUARDIAN_ROLE, guardian);
+        // On Robinhood Chain the block reads must come from ArbSys; any ArbSys given must exist.
+        uint256 id = _chainId();
+        if ((id == 4663 || id == 46630) && arbSys_ == address(0)) revert BadConfig();
+        if (arbSys_ != address(0) && arbSys_.code.length == 0) revert BadConfig();
+        _grantRole(DEFAULT_ADMIN_ROLE, roles.admin);
+        _grantRole(PAUSER_ROLE, roles.admin);
+        _grantRole(OPERATOR_ROLE, roles.operator);
+        _grantRole(PERMIT_SIGNER_ROLE, roles.permitSigner);
+        _grantRole(GUARDIAN_ROLE, roles.guardian);
+        _grantRole(RESULT_ATTESTOR_ROLE, roles.attestor);
         arbSys = arbSys_;
-        CLOSE_MARGIN = closeMargin;
-        CHALLENGE_WINDOW = challengeWindow;
-        MAX_SETTLE_DELAY = maxSettleDelay;
-        ENTROPY_DELAY_BLOCKS = entropyDelayBlocks;
+        CLOSE_MARGIN = t.closeMargin;
+        CHALLENGE_WINDOW = t.challengeWindow;
+        MAX_SETTLE_DELAY = t.maxSettleDelay;
+        ENTROPY_DELAY_BLOCKS = t.entropyDelayBlocks;
+        ENTROPY_BLOCKS = t.entropyBlocks;
         treasury = treasury_;
         emit TreasurySet(address(0), treasury_);
         // Only USDG is allow-listed at deployment (6 decimals: 1 USDG minimum, 100 per bet, 250
@@ -304,7 +403,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------- markets
 
     /// @notice Opens a race market in one stake asset. The seed commitment is fixed here, before
-    /// any bet, forever.
+    /// any bet, forever. So is the randomness beacon (the one configured now, if any).
     function createMarket(
         bytes32 raceId,
         address asset,
@@ -329,6 +428,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         m.takeoutBps = takeoutBps;
         m.maxPool = maxPool;
         m.asset = asset;
+        m.beacon = entropyBeacon;
         m.seedCommitment = seedCommitment;
         m.status = Status.Open;
         emit MarketCreated(raceId, asset, closeTime, runnerCount, placeTerms, seedCommitment, takeoutBps, maxPool);
@@ -342,7 +442,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         nonReentrant
         whenNotPaused
     {
-        _checkPermit(raceId, amount, permit, signature);
+        _checkPermit(raceId, runner, uint8(pool), amount, permit, signature);
         nonceUsed[msg.sender][permit.nonce] = true;
         (uint256 pTotal, uint256 rTotal) = _recordBet(raceId, runner, uint8(pool), amount);
         _collect(_markets[raceId].asset, amount);
@@ -389,12 +489,16 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         _runnerStake[raceId][key] = uint128(rTotal);
         _stakeOf[raceId][msg.sender][key] += uint128(amount);
         _walletKeys[raceId][msg.sender] |= uint64(1 << key); // key < 56
+        RunnerBettors storage rb = _runnerBettors[raceId][key];
+        if (rb.first == address(0)) rb.first = msg.sender;
+        else if (!rb.multi && rb.first != msg.sender) rb.multi = true;
     }
 
     // ---------------------------------------------------------------- entropy
 
-    /// @notice After closeTime anyone fixes the entropy block: ENTROPY_DELAY_BLOCKS ahead, so its
-    /// hash does not exist yet and the caller can't pick it.
+    /// @notice After closeTime anyone fixes the entropy blocks: the first is ENTROPY_DELAY_BLOCKS
+    /// ahead, so none of their hashes exist yet and the caller can't pick them. With a beacon,
+    /// asks it for randomness too.
     function lockEntropy(bytes32 raceId) external {
         Market storage m = _markets[raceId];
         if (m.status != Status.Open) revert MarketNotOpen(raceId);
@@ -403,31 +507,48 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint64 target = uint64(_currentBlock()) + ENTROPY_DELAY_BLOCKS;
         m.entropyBlock = target;
         emit EntropyLocked(raceId, target);
+        if (m.beacon != address(0)) IEntropyBeacon(m.beacon).requestRandomness(raceId);
     }
 
-    /// @notice Anyone stores the entropy block's hash once it exists. If nobody sealed it while
-    /// the hash was still readable (256 blocks), the market is void and every stake refundable:
-    /// re-picking a block would let whoever knows the server seed choose an outcome.
+    /// @notice Anyone mixes the ENTROPY_BLOCKS block hashes once the last of them exists (and the
+    /// beacon's randomness, when the market has a beacon). If any of those hashes was no longer
+    /// readable (256 blocks), the market is void and every stake refundable: re-picking blocks
+    /// would let whoever knows the server seed choose an outcome.
     function sealEntropy(bytes32 raceId) external {
         Market storage m = _markets[raceId];
         if (m.status != Status.Open) revert MarketNotOpen(raceId);
         if (m.entropyBlock == 0) revert EntropyNotLocked();
         if (m.entropy != bytes32(0)) revert EntropyAlreadySealed();
-        if (_currentBlock() <= m.entropyBlock) revert EntropyNotReady(m.entropyBlock);
-        bytes32 h = _blockHash(m.entropyBlock);
-        if (h == bytes32(0)) {
-            _void(raceId, VOID_ENTROPY_MISSED);
-            return;
+        bool fresh = m.blockEntropy == bytes32(0);
+        if (fresh) {
+            uint256 last = uint256(m.entropyBlock) + ENTROPY_BLOCKS - 1;
+            if (_currentBlock() <= last) revert EntropyNotReady(uint64(last));
+            bytes32 mix = _mixBlocks(raceId, m.entropyBlock);
+            if (mix == bytes32(0)) {
+                _void(raceId, VOID_ENTROPY_MISSED);
+                return;
+            }
+            m.blockEntropy = mix;
         }
-        m.entropy = h;
-        emit EntropySealed(raceId, m.entropyBlock, h);
+        bytes32 e = m.blockEntropy;
+        if (m.beacon != address(0)) {
+            bytes32 r = IEntropyBeacon(m.beacon).randomness(raceId);
+            if (r == bytes32(0)) {
+                if (!fresh) revert BeaconNotReady();
+                emit BlockEntropyStored(raceId, e); // the block part is fixed; the beacon completes it
+                return;
+            }
+            e = keccak256(abi.encodePacked(e, r));
+        }
+        m.entropy = e;
+        emit EntropySealed(raceId, m.entropyBlock, e);
     }
 
     // ---------------------------------------------------------------- results
 
     /// @notice Posts the result: the revealed server seed (must match the commitment) and each
     /// runner's finishing position (0 = non-runner; equal positions = dead heat). Opens the
-    /// challenge window.
+    /// challenge window. It needs a matching attestation before it can be finalized.
     function postResult(bytes32 raceId, bytes32 revealedSeed, uint8[] calldata positions) external onlyRole(OPERATOR_ROLE) {
         Market storage m = _markets[raceId];
         if (m.status != Status.Open) revert MarketNotOpen(raceId);
@@ -442,25 +563,45 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         m.positions = packed;
         m.challengeEnd = end;
         m.status = Status.ResultPosted;
-        emit ResultPosted(raceId, revealedSeed, finalSeed, packed, end);
+        emit ResultPosted(raceId, revealedSeed, finalSeed, packed, resultHashOf(raceId, finalSeed, packed), end);
     }
 
-    /// @notice GUARDIAN replaces the posted positions, only during the challenge window.
+    /// @notice RESULT_ATTESTOR's independent check: the hash of the result it got by replaying the
+    /// race from finalSeed. A mismatch freezes the market until the guardian corrects or voids it.
+    function attestResult(bytes32 raceId, bytes32 attestedHash) external onlyRole(RESULT_ATTESTOR_ROLE) {
+        Market storage m = _markets[raceId];
+        if (m.status != Status.ResultPosted) revert NotResultPosted(raceId);
+        if (attestedHash == bytes32(0)) revert BadPositions();
+        bool matches = attestedHash == resultHashOf(raceId, m.finalSeed, m.positions);
+        m.attestedHash = attestedHash;
+        if (!matches) m.disputed = true;
+        emit ResultAttested(raceId, attestedHash, matches);
+    }
+
+    /// @notice GUARDIAN replaces the posted positions: in the challenge window, or any time the
+    /// result isn't finalizable (disputed or unattested). Each correction reopens the full
+    /// window and clears a dispute; at most MAX_CORRECTIONS, then only void.
     function correctResult(bytes32 raceId, uint8[] calldata positions) external onlyRole(GUARDIAN_ROLE) {
         Market storage m = _markets[raceId];
         if (m.status != Status.ResultPosted) revert NotResultPosted(raceId);
-        if (block.timestamp >= m.challengeEnd) revert ChallengeWindowOver(m.challengeEnd);
+        if (block.timestamp >= m.challengeEnd && _finalizable(raceId, m)) revert ChallengeWindowOver(m.challengeEnd);
+        if (m.corrections >= MAX_CORRECTIONS) revert TooManyCorrections();
         bytes32 packed = _packPositions(m.runnerCount, positions);
-        emit ResultCorrected(raceId, m.positions, packed);
+        bytes32 old = m.positions;
+        uint64 end = uint64(block.timestamp) + CHALLENGE_WINDOW;
         m.positions = packed;
+        m.challengeEnd = end;
+        m.disputed = false;
+        m.corrections += 1;
+        emit ResultCorrected(raceId, old, packed, resultHashOf(raceId, m.finalSeed, packed), end, m.corrections);
     }
 
-    /// @notice GUARDIAN voids a market (every stake refundable): any time before a result, or
-    /// during the challenge window after one.
+    /// @notice GUARDIAN voids a market (every stake refundable): any time before a result; after
+    /// one, during the challenge window or while it isn't finalizable.
     function voidMarket(bytes32 raceId) external onlyRole(GUARDIAN_ROLE) {
         Market storage m = _markets[raceId];
         if (m.status == Status.ResultPosted) {
-            if (block.timestamp >= m.challengeEnd) revert ChallengeWindowOver(m.challengeEnd);
+            if (block.timestamp >= m.challengeEnd && _finalizable(raceId, m)) revert ChallengeWindowOver(m.challengeEnd);
         } else if (m.status != Status.Open) {
             revert NotVoidable();
         }
@@ -468,27 +609,40 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     }
 
     /// @notice OPERATOR calls off a market (race abandoned, field problem) only while nobody can
-    /// know the outcome yet: before the entropy is sealed.
+    /// know anything about the outcome: before the entropy blocks are picked. After that only the
+    /// guardian can void (or anyone, once it expires).
     function cancelMarket(bytes32 raceId) external onlyRole(OPERATOR_ROLE) {
         Market storage m = _markets[raceId];
-        if (m.status != Status.Open || m.entropy != bytes32(0)) revert NotVoidable();
+        if (m.status != Status.Open || m.entropyBlock != 0) revert NotVoidable();
         _void(raceId, VOID_CANCELLED);
     }
 
-    /// @notice Anyone: a market with no result MAX_SETTLE_DELAY after closeTime is void.
+    /// @notice Anyone: a market with no result MAX_SETTLE_DELAY after closeTime is void, and so is
+    /// a posted result still not finalizable MAX_SETTLE_DELAY after its challenge window.
     function expireMarket(bytes32 raceId) external {
         Market storage m = _markets[raceId];
-        if (m.status != Status.Open) revert MarketNotOpen(raceId);
-        uint64 expiresAt = m.closeTime + MAX_SETTLE_DELAY;
+        uint64 expiresAt;
+        if (m.status == Status.Open) {
+            expiresAt = m.closeTime + MAX_SETTLE_DELAY;
+        } else if (m.status == Status.ResultPosted) {
+            if (_finalizable(raceId, m)) revert NotVoidable();
+            expiresAt = m.challengeEnd + MAX_SETTLE_DELAY;
+        } else {
+            revert MarketNotOpen(raceId);
+        }
         if (block.timestamp <= expiresAt) revert NotExpired(expiresAt);
         _void(raceId, VOID_EXPIRED);
     }
 
-    /// @notice Anyone, after the challenge window: the pari-mutuel split. No token moves here.
+    /// @notice Anyone, after the challenge window, once RESULT_ATTESTOR's hash matches: the
+    /// pari-mutuel split. No token moves here.
     function finalize(bytes32 raceId) external {
         Market storage m = _markets[raceId];
         if (m.status != Status.ResultPosted) revert NotResultPosted(raceId);
         if (block.timestamp < m.challengeEnd) revert ChallengeWindowOpen(m.challengeEnd);
+        if (m.disputed) revert ResultDisputed();
+        if (m.attestedHash == bytes32(0)) revert NotAttested();
+        if (m.attestedHash != resultHashOf(raceId, m.finalSeed, m.positions)) revert AttestationMismatch();
         m.status = Status.Finalized;
 
         uint8 n = m.runnerCount;
@@ -513,7 +667,8 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------- claims
 
     /// @notice Pays out everything the caller is owed on this race (winnings, refunds for
-    /// non-runners, void markets) to `to`. Once per wallet per race. Never blocked by pause.
+    /// non-runners, void markets and void pools) to `to`. Once per wallet per race, with no
+    /// deadline. Never blocked by pause.
     function claim(bytes32 raceId, address to) external nonReentrant returns (uint256 amount) {
         if (to == address(0)) revert ZeroAddress();
         Status s = _markets[raceId].status;
@@ -590,17 +745,19 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
     /// @notice EIP-712 digest of a BetPermit (what the permit signer signs).
     function hashBetPermit(BetPermit calldata p) public view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(BET_PERMIT_TYPEHASH, p.bettor, p.raceId, p.maxAmount, p.nonce, p.expiry)));
+        return _hashTypedDataV4(
+            keccak256(abi.encode(BET_PERMIT_TYPEHASH, p.bettor, p.raceId, p.runner, p.pool, p.maxAmount, p.nonce, p.issuedAt, p.expiry))
+        );
+    }
+
+    /// @notice What the attestor attests: keccak256(abi.encode(raceId, finalSeed, packed positions)).
+    function resultHashOf(bytes32 raceId, bytes32 finalSeed, bytes32 positions) public pure returns (bytes32) {
+        return keccak256(abi.encode(raceId, finalSeed, positions));
     }
 
     /// @notice finalSeed = sha256(serverSeed ‖ entropy), the seed the race runs on.
     function finalSeedOf(bytes32 serverSeed, bytes32 entropy) external pure returns (bytes32) {
         return sha256(abi.encodePacked(serverSeed, entropy));
-    }
-
-    /// @notice Paying places of the place pool for `ran` runners (game-core totePlaces).
-    function placesFor(uint256 ran) external pure returns (uint256) {
-        return _placesFor(ran);
     }
 
     // ---------------------------------------------------------------- admin
@@ -625,6 +782,14 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         treasury = newTreasury;
     }
 
+    /// @notice Plugs in (or removes, with address(0)) the randomness beacon for markets created
+    /// from now on. Existing markets keep the one they were created with.
+    function setEntropyBeacon(address beacon) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (beacon != address(0) && beacon.code.length == 0) revert BadConfig();
+        emit EntropyBeaconSet(entropyBeacon, beacon);
+        entropyBeacon = beacon;
+    }
+
     /// @notice Stops new bets only. Entropy, results, refunds and claims keep working.
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
@@ -635,6 +800,11 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     }
 
     // ---------------------------------------------------------------- internals
+
+    /// @dev The chain id the constructor checks (overridden only by a test harness).
+    function _chainId() internal view virtual returns (uint256) {
+        return block.chainid;
+    }
 
     function _setStakeLimits(address asset, uint128 min_, uint128 perBet, uint128 perWalletPerRace) private {
         if (min_ == 0 || perBet < min_ || perWalletPerRace < perBet) revert BadConfig();
@@ -653,15 +823,21 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         }
     }
 
-    function _checkPermit(bytes32 raceId, uint256 amount, BetPermit calldata permit, bytes calldata signature) private view {
+    function _checkPermit(bytes32 raceId, uint8 runner, uint8 pool, uint256 amount, BetPermit calldata permit, bytes calldata signature) private view {
         if (permit.bettor != msg.sender) revert NotPermitBettor(permit.bettor, msg.sender);
         if (permit.raceId != raceId) revert PermitRaceMismatch();
+        if (permit.runner != runner || permit.pool != pool) revert PermitTermsMismatch();
+        if (block.timestamp < permit.issuedAt) revert PermitNotYetValid(permit.issuedAt);
         if (block.timestamp > permit.expiry) revert PermitExpired(permit.expiry);
-        if (permit.expiry > block.timestamp + MAX_PERMIT_TTL) revert PermitTtlTooLong(permit.expiry);
+        if (permit.expiry > uint256(permit.issuedAt) + MAX_PERMIT_TTL) revert PermitTtlTooLong(permit.expiry);
         if (nonceUsed[msg.sender][permit.nonce]) revert NonceUsed(permit.nonce);
         if (amount > permit.maxAmount) revert AboveMaxAmount(amount, permit.maxAmount);
         (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hashBetPermit(permit), signature);
         if (err != ECDSA.RecoverError.NoError || !hasRole(PERMIT_SIGNER_ROLE, signer)) revert InvalidSignature();
+    }
+
+    function _finalizable(bytes32 raceId, Market storage m) private view returns (bool) {
+        return !m.disputed && m.attestedHash != bytes32(0) && m.attestedHash == resultHashOf(raceId, m.finalSeed, m.positions);
     }
 
     function _void(bytes32 raceId, bytes32 reason) private {
@@ -710,70 +886,100 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         packed = bytes32(word);
     }
 
+    /// @dev Every stake on this pool back in full, no take (no place pool, a thin pool).
+    function _refundPool(bytes32 raceId, uint8 pool, bytes32 reason) private {
+        _pools[raceId][pool].mode = PoolMode.RefundAll;
+        emit PoolRefunded(raceId, pool, reason);
+    }
+
     /// @dev Settles one pool (game-core settleTotePool): returns what goes to the treasury now
-    /// (takeout plus the rounding left between the net pool and the runners' shares).
+    /// (the take plus the rounding left between the net pool and the runners' shares).
     function _settlePool(bytes32 raceId, uint8 pool, uint256 places, uint256[MAX_RUNNERS + 1] memory tie) private returns (uint256) {
         PoolState storage ps = _pools[raceId][pool];
         if (ps.total == 0) return 0;
         if (places == 0) {
-            ps.mode = PoolMode.RefundAll; // no place pool for this field: every stake back
+            _refundPool(raceId, pool, POOL_NO_PLACE); // no place pool for this field: every stake back
             return 0;
         }
-        (uint256[MAX_RUNNERS] memory weight, uint256 w, uint256 live) = _weights(raceId, pool, places, tie);
-        if (live == 0) {
+        Split memory sp = _split(raceId, pool, places, tie);
+        if (sp.live == 0) {
             ps.mode = PoolMode.RefundAll; // only non-runner stakes: all refunded in full
             return 0;
         }
-        uint256 take = (live * _markets[raceId].takeoutBps) / BPS;
-        uint256 net = live - take;
-        if (w == 0) {
+        // Minimum pool: 2 distinct wallets backing 2 distinct runners that ran, or every stake back.
+        if (!sp.twoBettors || sp.backedRunners < MIN_POOL_RUNNERS) {
+            _refundPool(raceId, pool, POOL_THIN);
+            return 0;
+        }
+        uint256 take = (sp.live * _markets[raceId].takeoutBps) / BPS;
+        if (sp.w == 0) {
             ps.mode = PoolMode.NoWinner; // nobody backed a paying runner: net pool back pro rata
-            ps.toPay = uint128(net);
-            ps.entitledStake = uint128(live);
+            ps.toPay = uint128(sp.live - take);
+            ps.entitledStake = uint128(sp.live);
             return take;
         }
-        (uint256 shared, uint256 entitled) = _assignShares(raceId, pool, weight, w, net);
+        // Winners never lose: their stakes come back first, so the take is at most what is left.
+        // The winning stakes are part of the live pool, so this can't trigger (kept as the
+        // assertion game-core has: void rather than pay a winner short).
+        if (sp.winStakes > sp.live) {
+            _refundPool(raceId, pool, POOL_WINNERS_SHORT);
+            return 0;
+        }
+        if (take > sp.live - sp.winStakes) take = sp.live - sp.winStakes;
+        uint256 profit = sp.live - take - sp.winStakes;
+        (uint256 shared, uint256 entitled) = _assignShares(raceId, pool, sp.weight, sp.w, profit);
         ps.mode = PoolMode.Winners;
         ps.toPay = uint128(shared);
         ps.entitledStake = uint128(entitled);
-        return take + (net - shared);
+        return take + (sp.live - take - shared);
     }
 
-    /// @dev Each backed paying runner's part of the net pool, rounded down.
-    function _assignShares(bytes32 raceId, uint8 pool, uint256[MAX_RUNNERS] memory weight, uint256 w, uint256 net)
+    /// @dev Each backed paying runner's share: its backers' stakes back plus its part of the
+    /// profit, rounded down. Only a runner with a share counts toward entitledStake, so the
+    /// pool's dust is swept when the last share is claimed.
+    function _assignShares(bytes32 raceId, uint8 pool, uint256[MAX_RUNNERS] memory weight, uint256 w, uint256 profit)
         private
         returns (uint256 shared, uint256 entitled)
     {
         for (uint8 r = 0; r < MAX_RUNNERS; r++) {
             if (weight[r] == 0) continue;
             uint256 key = _key(pool, r);
-            uint256 a = (net * weight[r]) / w;
+            uint256 s = _runnerStake[raceId][key];
+            uint256 a = s + (profit * weight[r]) / w;
+            if (a == 0) continue;
             _runnerShare[raceId][key] = uint128(a);
             shared += a;
-            entitled += _runnerStake[raceId][key];
+            entitled += s;
         }
     }
 
-    /// @dev Dead-heat weights of the backed paying runners: k runners tied at position p cover
-    /// places p..p+k-1, and each takes the paying ones among them divided by k.
-    function _weights(bytes32 raceId, uint8 pool, uint256 places, uint256[MAX_RUNNERS + 1] memory tie)
-        private
-        view
-        returns (uint256[MAX_RUNNERS] memory weight, uint256 w, uint256 live)
-    {
+    /// @dev One pool's settlement inputs: the live pool (stakes on runners that ran), the
+    /// dead-heat weights and stakes of the backed paying runners (k runners tied at position p
+    /// cover places p..p+k-1, each taking the paying ones among them divided by k), how many
+    /// runners that ran are backed, and whether 2 distinct wallets back them.
+    function _split(bytes32 raceId, uint8 pool, uint256 places, uint256[MAX_RUNNERS + 1] memory tie) private view returns (Split memory sp) {
         Market storage m = _markets[raceId];
         bytes32 packed = m.positions;
         uint8 n = m.runnerCount;
+        address seen;
         for (uint8 r = 0; r < n; r++) {
             uint256 p = _positionOf(packed, r);
             if (p == 0) continue;
-            uint256 s = _runnerStake[raceId][_key(pool, r)];
-            live += s;
-            if (s == 0 || p > places) continue;
+            uint256 key = _key(pool, r);
+            uint256 s = _runnerStake[raceId][key];
+            if (s == 0) continue;
+            sp.live += s;
+            sp.backedRunners++;
+            RunnerBettors memory rb = _runnerBettors[raceId][key];
+            if (rb.multi) sp.twoBettors = true;
+            else if (seen == address(0)) seen = rb.first;
+            else if (rb.first != seen) sp.twoBettors = true;
+            if (p > places) continue;
             uint256 last = p + tie[p] - 1;
             uint256 covered = (last < places ? last : places) - p + 1;
-            weight[r] = (covered * DEAD_HEAT_DENOM) / tie[p];
-            w += weight[r];
+            sp.weight[r] = (covered * DEAD_HEAT_DENOM) / tie[p];
+            sp.w += sp.weight[r];
+            sp.winStakes += s;
         }
     }
 
@@ -808,8 +1014,9 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         }
     }
 
-    /// @dev What a finalized stake `s` on (pool, runner) `key` gets: a full refund (no pool, or a
-    /// non-runner), a share of its runner's dividend, a pro-rata part of a no-winner pool, or nothing.
+    /// @dev What a finalized stake `s` on (pool, runner) `key` gets: a full refund (no pool, a void
+    /// pool, or a non-runner), a share of its runner's dividend, a pro-rata part of a no-winner
+    /// pool, or nothing.
     function _keyOutcome(bytes32 raceId, uint256 key, uint256 s) private view returns (uint256 refund, uint256 pay, bool shares, bool noWinner) {
         PoolMode mode = _pools[raceId][uint8(key / 32)].mode;
         if (mode == PoolMode.RefundAll || _positionOf(_markets[raceId].positions, uint8(key % 32)) == 0) return (s, 0, false, false);
@@ -823,12 +1030,28 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         return arbSys == address(0) ? block.number : IArbSysBlocks(arbSys).arbBlockNumber();
     }
 
+    /// @dev keccak256(raceId ‖ hash(start) ‖ ... ‖ hash(start + ENTROPY_BLOCKS - 1)), or 0 when any
+    /// of those hashes is no longer readable.
+    function _mixBlocks(bytes32 raceId, uint256 start) private view returns (bytes32) {
+        bytes memory buf = abi.encodePacked(raceId);
+        for (uint256 i = 0; i < ENTROPY_BLOCKS; i++) {
+            bytes32 h = _blockHash(start + i);
+            if (h == bytes32(0)) return bytes32(0);
+            buf = abi.encodePacked(buf, h);
+        }
+        return keccak256(buf);
+    }
+
+    /// @dev A block's hash, or 0 when it is out of range. Only ArbSys' own out-of-range error
+    /// counts as "out of range": any other failure (out of gas included) reverts, so a caller
+    /// can't void a market by starving the call.
     function _blockHash(uint256 n) private view returns (bytes32) {
         if (arbSys == address(0)) return blockhash(n);
         try IArbSysBlocks(arbSys).arbBlockHash(n) returns (bytes32 h) {
             return h;
-        } catch {
-            return bytes32(0);
+        } catch (bytes memory reason) {
+            if (reason.length >= 4 && bytes4(reason) == IArbSysBlocks.InvalidBlockNumber.selector) return bytes32(0);
+            revert EntropyReadFailed();
         }
     }
 }

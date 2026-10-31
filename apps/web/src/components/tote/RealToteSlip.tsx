@@ -23,7 +23,7 @@ type Signed = {
   chainId: number;
   totePools: Address;
   bet: { raceId: Hex; runner: number; pool: number; amount: string };
-  permit: { bettor: Address; raceId: Hex; maxAmount: string; nonce: string; expiry: string };
+  permit: { bettor: Address; raceId: Hex; runner: number; pool: number; maxAmount: string; nonce: string; issuedAt: string; expiry: string };
   signature: Hex;
   preview: { amount: string; amountLabel: string; expiresAtMs: number };
 };
@@ -120,7 +120,7 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
         address: signed.totePools,
         abi: totePoolsAbi,
         functionName: "bet",
-        args: [signed.bet.raceId, signed.bet.runner, signed.bet.pool, amount, { bettor: p.bettor, raceId: p.raceId, maxAmount: BigInt(p.maxAmount), nonce: BigInt(p.nonce), expiry: BigInt(p.expiry) }, signed.signature],
+        args: [signed.bet.raceId, signed.bet.runner, signed.bet.pool, amount, { bettor: p.bettor, raceId: p.raceId, runner: p.runner, pool: p.pool, maxAmount: BigInt(p.maxAmount), nonce: BigInt(p.nonce), issuedAt: BigInt(p.issuedAt), expiry: BigInt(p.expiry) }, signed.signature],
         account,
         chain: wallet.chain,
       });
@@ -140,7 +140,8 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
     <div className="inset grid gap-2 p-3" data-testid="real-tote-slip">
       <p className="font-extrabold">Real-money pool (USDG)</p>
       <p className="caption" data-testid="real-tote-disclaimer">
-        Pool betting in USDG: {board.takeoutBps / 100}% take; winners share the rest. The odds shown move with every bet and are final only when betting closes, before the off.
+        Pool betting in USDG: up to {board.takeoutBps / 100}% take; winners share the rest and always get at least their stake back. A pool with fewer than{" "}
+        {gc.TOTE_MIN_POOL_BETTORS} players (or {gc.TOTE_MIN_POOL_RUNNERS} runners backed) is refunded in full. The odds shown move with every bet and are final only when betting closes, before the off.
         Real-money bets can&rsquo;t be cancelled or changed once sent.
       </p>
       {!open ? (
@@ -154,6 +155,11 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
               </button>
             ))}
           </div>
+          {view?.thin && (
+            <p className="caption" data-testid="real-tote-small-pool">
+              Small pool: refunded unless at least {gc.TOTE_MIN_POOL_BETTORS} players bet on {gc.TOTE_MIN_POOL_RUNNERS} different horses.
+            </p>
+          )}
           <ul className="grid gap-1" role="radiogroup" aria-label="Pick a runner">
             {runners.map((r) => {
               const o = view?.runners.find((x) => x.horseId === r.horseId);
@@ -163,7 +169,9 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
                     <span>
                       <input type="radio" name="real-tote-runner" checked={horseId === r.horseId} onChange={() => setHorseId(r.horseId)} /> {r.gate ?? "–"}. {r.name}
                     </span>
-                    <span className="num">{gc.formatToteOdds(o?.oddsMilli ?? null)}</span>
+                    <span className="num" title="An estimate from the pool now: final when betting closes">
+                      {o?.oddsRangeMilli ? `${gc.formatToteOdds(o.oddsRangeMilli[0])}–${gc.formatToteOdds(o.oddsRangeMilli[1])}` : gc.formatToteOdds(o?.oddsMilli ?? null)} est.
+                    </span>
                   </label>
                 </li>
               );

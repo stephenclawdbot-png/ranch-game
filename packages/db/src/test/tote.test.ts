@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { fraudEvents, horses, ledgerAccounts, toteBets, totePools } from "../schema";
+import { accounts, fraudEvents, horses, ledgerAccounts, toteBets, totePools } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { economyHealth } from "../services/health";
 import { getBalance, ledgerHealth } from "../services/ledger";
@@ -11,7 +11,10 @@ import { cancelRace, createRace, enterRace, listRaceEntries, lockField, scratchE
 import { linkVerifiedWallet } from "../services/betaMoney";
 import { grantPracticeUsdg, practiceUsdgBalance, resetPracticeUsdg, topUpPracticeUsdg } from "../services/usdgPractice";
 import {
+  acknowledgeToteRealityCheck,
   confirmToteAdult,
+  confirmToteLimitRaise,
+  endToteSelfExclusion,
   myToteBets,
   myToteRace,
   placeToteBet,
@@ -166,7 +169,7 @@ describe("the tote: pools, settlement and the house take", () => {
     await ledgerClean();
   });
 
-  it("dead heat for first: each dead-heated runner's backers share half the net win pool", async () => {
+  it("dead heat for first: stakes back, then each dead-heated runner's backers share half the profit", async () => {
     const { race, owners } = await raceWithField(6);
     const [a, b, c] = [await bettor(), await bettor(), await bettor()];
     const [w1, w2, x] = owners.map((o) => o.horseId);
@@ -177,8 +180,9 @@ describe("the tote: pools, settlement and the house take", () => {
     await settleTote(h.db, race.id, at(30 * MIN));
     const [p] = await h.db.select().from(totePools).where(and(eq(totePools.raceId, race.id), eq(totePools.pool, "win")));
     expect(p).toMatchObject({ total: 1000, takeout: 150, paid: 850, remainder: 0 });
-    expect(await getBalance(h.db, a.accountId)).toBe(50_000 - 100 + 425);
-    expect(await getBalance(h.db, b.accountId)).toBe(50_000 - 300 + 425);
+    // net 850 - winning stakes 400 = 450 profit, 225 per dead-heater on top of the stake
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000 - 100 + 325);
+    expect(await getBalance(h.db, b.accountId)).toBe(50_000 - 300 + 525);
     await ledgerClean();
   });
 
@@ -210,6 +214,68 @@ describe("the tote: pools, settlement and the house take", () => {
     const [v] = await h.db.select().from(toteBets).where(and(eq(toteBets.raceId, race.id), eq(toteBets.horseId, owners[0]!.horseId)));
     expect(v).toMatchObject({ status: "void", payout: 200 });
     expect(v!.voidReason).toMatch(/non-runner/);
+    await ledgerClean();
+  });
+
+  it("a thin pool (one player, or one runner backed) is void: every stake back in full, no take", async () => {
+    const { race, owners } = await raceWithField(6);
+    const [a, b] = [await bettor(), await bettor()];
+    const houseBefore = await house();
+    // WIN: one player on two runners. PLACE: two players on the same runner.
+    await bet(a.accountId, race.id, owners[0]!.horseId, 200);
+    await bet(a.accountId, race.id, owners[1]!.horseId, 100);
+    await bet(a.accountId, race.id, owners[0]!.horseId, 50, { pool: "place" });
+    await bet(b.accountId, race.id, owners[0]!.horseId, 70, { pool: "place" });
+    const open = (await toteBoard(h.db, race.id, at(6 * MIN)))!;
+    expect(open.pools[0]!.win.thin).toBe(true);
+    expect(open.pools[0]!.win.bettors).toBe(1);
+    expect(open.pools[0]!.place!.thin).toBe(true);
+    await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, race.id, at(30 * MIN));
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000);
+    expect(await getBalance(h.db, b.accountId)).toBe(50_000);
+    expect(await house()).toBe(houseBefore);
+    const bets = await h.db.select().from(toteBets).where(eq(toteBets.raceId, race.id));
+    expect(bets.every((x) => x.status === "void" && x.payout === x.stake && /fewer than 2 players/.test(x.voidReason ?? ""))).toBe(true);
+    const board = (await toteBoard(h.db, race.id, at(30 * MIN)))!;
+    expect(board.audit.map((x) => [x.pool, x.outcome, x.voidReason, x.takeout])).toEqual([
+      ["place", "void", "thin_pool", 0],
+      ["win", "void", "thin_pool", 0],
+    ]);
+    await ledgerClean();
+  });
+
+  it("linked accounts count as one bettor for the minimum pool, and backing different runners raises a fraud event", async () => {
+    const { race, owners } = await raceWithField(6);
+    const [a, b] = [await bettor(), await bettor()];
+    await recordAccountSignal(h.db, { accountId: a.accountId, kind: "device", value: `tote-link-${race.id}` });
+    await recordAccountSignal(h.db, { accountId: b.accountId, kind: "device", value: `tote-link-${race.id}` });
+    const houseBefore = await house();
+    await bet(a.accountId, race.id, owners[0]!.horseId, 300);
+    await bet(b.accountId, race.id, owners[1]!.horseId, 300);
+    await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, race.id, at(30 * MIN));
+    // one bettor: a thin pool, everything refunded, no take (no credits moved between the accounts)
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000);
+    expect(await getBalance(h.db, b.accountId)).toBe(50_000);
+    expect(await house()).toBe(houseBefore);
+    const frauds = await h.db.select().from(fraudEvents).where(eq(fraudEvents.kind, "tote_linked_opposing_bets"));
+    expect(frauds.some((f) => (f.data as { raceId?: string }).raceId === race.id)).toBe(true);
+    await ledgerClean();
+  });
+
+  it("winners never lose: the take is cut so the favourite's backer gets the stake back", async () => {
+    const { race, owners } = await raceWithField(6);
+    const [a, b] = [await bettor(), await bettor()];
+    const houseBefore = await house();
+    await bet(a.accountId, race.id, owners[0]!.horseId, 950);
+    await bet(b.accountId, race.id, owners[1]!.horseId, 50);
+    await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, race.id, at(30 * MIN));
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000);
+    expect(await house()).toBe(houseBefore + 50);
+    const board = (await toteBoard(h.db, race.id, at(30 * MIN)))!;
+    expect(board.audit[0]).toMatchObject({ pool: "win", outcome: "paid", takeout: 50, takeoutReduced: true, balanced: true });
     await ledgerClean();
   });
 
@@ -371,7 +437,7 @@ describe("limits, self-exclusion and 18+", () => {
     await expect(bet(rich.accountId, tomorrow.race.id, tomorrow.owners[0]!.horseId, 10, { now: at(DAY + 5 * MIN) })).resolves.toBeDefined();
   });
 
-  it("own limits: lowering is immediate, a raise waits 24 h", async () => {
+  it("own limits: lowering is immediate, a raise waits 24 h and then needs the player's confirmation", async () => {
     const { race, owners } = await raceWithField(5);
     const a = await bettor();
     await setToteLimits(h.db, { accountId: a.accountId, currency: "CR", perRace: 100, perDay: 300, now: T0 });
@@ -380,13 +446,19 @@ describe("limits, self-exclusion and 18+", () => {
     expect(raised.limits.CR).toEqual({ perRace: 100, perDay: 300 });
     expect(raised.pending?.CR).toEqual({ perRace: 500, perDay: null });
     await expect(bet(a.accountId, race.id, owners[0]!.horseId, 101)).rejects.toMatchObject({ code: "TOTE_LIMIT" });
+    await expect(confirmToteLimitRaise(h.db, { accountId: a.accountId, now: at(2 * MIN) })).rejects.toMatchObject({ code: "TOO_EARLY" });
+    // after 24 h the raise still doesn't apply by itself ...
     const later = await toteSettingsView(h.db, a.accountId, at(MIN + gc.TOTE_LIMIT_RAISE_DELAY_MS));
-    expect(later.limits.CR).toEqual({ perRace: 500, perDay: null });
-    expect(later.pending).toBeNull();
+    expect(later.limits.CR).toEqual({ perRace: 100, perDay: 300 });
+    expect(later.pendingConfirmable).toBe(true);
+    // ... until the player confirms it then
+    const confirmed = await confirmToteLimitRaise(h.db, { accountId: a.accountId, now: at(MIN + gc.TOTE_LIMIT_RAISE_DELAY_MS) });
+    expect(confirmed.limits.CR).toEqual({ perRace: 500, perDay: null });
+    expect(confirmed.pending).toBeNull();
     await expect(setToteLimits(h.db, { accountId: a.accountId, currency: "CR", perRace: 5, perDay: null, now: T0 })).rejects.toMatchObject({ code: "INVALID_INPUT" });
   });
 
-  it("self-exclusion refuses bets and can't be shortened", async () => {
+  it("a time-out refuses bets, ends by itself and can't be shortened; permanent never ends", async () => {
     const { race, owners } = await raceWithField(5);
     const a = await bettor();
     await selfExcludeTote(h.db, { accountId: a.accountId, choice: "7d", now: T0 });
@@ -399,6 +471,46 @@ describe("limits, self-exclusion and 18+", () => {
     await selfExcludeTote(h.db, { accountId: b.accountId, choice: "permanent", now: T0 });
     await expect(bet(b.accountId, after.race.id, after.owners[0]!.horseId, 50, { now: at(7 * DAY + MIN) })).rejects.toMatchObject({ code: "TOTE_EXCLUDED" });
     expect((await selfExcludeTote(h.db, { accountId: b.accountId, choice: "24h", now: at(MIN) })).excludedPermanent).toBe(true);
+  });
+
+  it("self-exclusion (6 months, 1 year, 5 years) continues past its minimum until the player acts, then a 1-day cooling-off", async () => {
+    const a = await bettor();
+    const v = await selfExcludeTote(h.db, { accountId: a.accountId, choice: "6m", now: T0 });
+    expect(v.excluded).toBe(true);
+    expect(v.selfExcludedUntilMs).toBe(T0.getTime() + 182 * DAY);
+    await expect(endToteSelfExclusion(h.db, { accountId: a.accountId, now: at(DAY) })).rejects.toMatchObject({ code: "TOO_EARLY" });
+    // past the minimum: still excluded until the player asks
+    const past = await toteSettingsView(h.db, a.accountId, at(400 * DAY));
+    expect(past.excluded).toBe(true);
+    expect(past.canEndSelfExclusion).toBe(true);
+    const asked = await endToteSelfExclusion(h.db, { accountId: a.accountId, now: at(400 * DAY) });
+    expect(asked.selfExclusionEndsAtMs).toBe(at(401 * DAY).getTime());
+    expect((await toteSettingsView(h.db, a.accountId, at(401 * DAY - 1))).excluded).toBe(true);
+    expect((await toteSettingsView(h.db, a.accountId, at(401 * DAY))).excluded).toBe(false);
+  });
+
+  it("an hour of betting brings a reality check (time and net result) that must be acknowledged before the next bet", async () => {
+    const { race, owners } = await raceWithField(5, { postTime: at(120 * MIN), entriesCloseAt: at(119 * MIN) });
+    const a = await bettor();
+    await bet(a.accountId, race.id, owners[0]!.horseId, 20, { now: at(5 * MIN) });
+    await bet(a.accountId, race.id, owners[0]!.horseId, 20, { now: at(30 * MIN) });
+    await bet(a.accountId, race.id, owners[1]!.horseId, 20, { now: at(55 * MIN) });
+    await expect(bet(a.accountId, race.id, owners[1]!.horseId, 20, { now: at(66 * MIN) })).rejects.toMatchObject({ code: "TOTE_REALITY_CHECK" });
+    const me = (await myToteRace(h.db, a.accountId, race.id, at(66 * MIN)))!;
+    expect(me.canBet).toMatchObject({ ok: false, reason: "reality_check" });
+    expect(me.realityCheck).toMatchObject({ due: true, minutes: 61, net: { CR: -60 } });
+    await acknowledgeToteRealityCheck(h.db, { accountId: a.accountId, now: at(66 * MIN) });
+    await expect(bet(a.accountId, race.id, owners[1]!.horseId, 20, { now: at(67 * MIN) })).resolves.toBeDefined();
+  });
+
+  it("staff can't bet: an admin session or a system account", async () => {
+    const { race, owners } = await raceWithField(5);
+    const a = await bettor();
+    await expect(bet(a.accountId, race.id, owners[0]!.horseId, 20, { staff: true })).rejects.toMatchObject({ code: "TOTE_STAFF" });
+    expect((await myToteRace(h.db, a.accountId, race.id, at(5 * MIN), undefined, true))!.canBet).toMatchObject({ ok: false, reason: "staff" });
+    const sys = await bettor();
+    await h.db.update(accounts).set({ isSystem: true }).where(eq(accounts.id, sys.accountId));
+    await expect(bet(sys.accountId, race.id, owners[0]!.horseId, 20)).rejects.toMatchObject({ code: "TOTE_STAFF" });
   });
 });
 

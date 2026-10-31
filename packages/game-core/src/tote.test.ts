@@ -4,17 +4,22 @@ import {
   TOTE_MAX_STAKE_PER_DAY,
   TOTE_MAX_STAKE_PER_RACE,
   TOTE_MIN_STAKE,
+  TOTE_SELF_EXCLUSIONS,
   TOTE_TAKEOUT_PERMILLE,
+  TOTE_TIME_OUTS,
   TOTE_USDG_UNIT,
   formatToteAmount,
   formatToteOdds,
   settleTotePool,
   toteDayAllowance,
+  toteBreakKind,
   toteExclusionEnd,
   totePlaces,
   totePoolView,
   toteRaceAllowance,
+  toteRealityCheckDue,
   toteReturnIfPlaced,
+  toteSessionStart,
   toteSettlementBalanced,
   toteStakeProblem,
   toteTakeout,
@@ -24,7 +29,8 @@ import {
 } from "./tote";
 
 const field = (n: number): ToteFinisher[] => Array.from({ length: n }, (_, i) => ({ horseId: `h${i + 1}`, position: i + 1 }));
-const bet = (id: string, horseId: string, stake: number): ToteBetIn => ({ id, horseId, stake });
+/** One bet; by default each bet is a different player. */
+const bet = (id: string, horseId: string, stake: number, bettor: string = id): ToteBetIn => ({ id, bettor, horseId, stake });
 const paid = (s: ReturnType<typeof settleTotePool>, id: string) => s.payouts.find((p) => p.betId === id)?.amount ?? 0;
 
 describe("tote knobs", () => {
@@ -62,7 +68,8 @@ describe("live odds", () => {
   it("place odds divide by the paying places (fewer when fewer runners are backed)", () => {
     const v = totePoolView("place", ["h1", "h2"], new Map([["h1", 100], ["h2", 100]]), 8);
     expect(v.places).toBe(3);
-    expect(v.runners[0]!.oddsMilli).toBe(Math.floor((170 * 1000) / 200));
+    // 170 / (100 x 2) = 0.85, shown as 1.00: both would place, the take is cut, each gets its stake back
+    expect(v.runners[0]!.oddsMilli).toBe(1000);
     const four = totePoolView("place", ["h1", "h2", "h3", "h4"], new Map([["h1", 100], ["h2", 100], ["h3", 100], ["h4", 100]]), 8);
     expect(four.runners[0]!.oddsMilli).toBe(Math.floor((340 * 1000) / 300));
     // matches what settlement pays when those runners place (settlement rounds the part down first)
@@ -74,6 +81,37 @@ describe("live odds", () => {
     // pool 400 + 100 on h2: net 425, h2 has 200 -> 100 returns 212
     expect(toteReturnIfPlaced("win", new Map([["h1", 300], ["h2", 100]]), "h2", 100, 8)).toBe(212);
     expect(toteReturnIfPlaced("place", new Map(), "h1", 100, 4)).toBe(0);
+    // winners never lose: at least the stake back, also in the preview
+    expect(toteReturnIfPlaced("win", new Map([["h1", 900], ["h2", 10]]), "h1", 100, 8)).toBe(100);
+  });
+
+  it("place odds as a range: least when the most-backed others place, most when no other backed runner does", () => {
+    // 8 runners, 3 places; pool 1000, take 150. h1 100, h2 500, h3 300, h4 100.
+    const stakes = new Map([["h1", 100], ["h2", 500], ["h3", 300], ["h4", 100]]);
+    const v = totePoolView("place", ["h1", "h2", "h3", "h4"], stakes, 8);
+    // least: h2 and h3 place with h1: winning stakes 900, take cut to 100, profit 0 -> 1.00
+    // most: h1 the only backed placer: 850 for 100 -> 8.50
+    expect(v.runners[0]!.oddsRangeMilli).toEqual([1000, 8500]);
+    // h2 least: h3 and h1 (or h4) place: winning 900, profit 0 -> 1.00; most 850 / 500 = 1.70
+    expect(v.runners[1]!.oddsRangeMilli).toEqual([1000, 1700]);
+    // the range always holds what settlement pays
+    for (const placed of [["h1", "h2", "h3"], ["h1", "h4", "h9"], ["h1", "h8", "h9"]]) {
+      const fin = [...placed, ...["h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"].filter((x) => !placed.includes(x))].slice(0, 8).map((horseId, i) => ({ horseId, position: i + 1 }));
+      const bets = [...stakes].map(([h, st], i) => bet(`b${i}`, h, st));
+      const d = settleTotePool("place", bets, fin).dividends.find((x) => x.horseId === "h1")!;
+      expect(d.perUnitMilli).toBeGreaterThanOrEqual(v.runners[0]!.oddsRangeMilli![0]);
+      expect(d.perUnitMilli).toBeLessThanOrEqual(v.runners[0]!.oddsRangeMilli![1]);
+    }
+    expect(totePoolView("win", ["h1"], new Map([["h1", 10]]), 8).runners[0]!.oddsRangeMilli).toBe(null);
+  });
+
+  it("odds never show below 1.00, and a pool flags itself thin until 2 players back 2 runners", () => {
+    const v = totePoolView("win", ["h1", "h2"], new Map([["h1", 900], ["h2", 10]]), 8, 150, 2);
+    expect(v.runners[0]!.oddsMilli).toBe(1000);
+    expect(v.thin).toBe(false);
+    expect(totePoolView("win", ["h1", "h2"], new Map([["h1", 900], ["h2", 10]]), 8, 150, 1).thin).toBe(true);
+    expect(totePoolView("win", ["h1", "h2"], new Map([["h1", 900]]), 8, 150, 3).thin).toBe(true);
+    expect(totePoolView("win", ["h1", "h2"], new Map(), 8).thin).toBe(true);
   });
 });
 
@@ -92,13 +130,14 @@ describe("settleTotePool", () => {
     expect(s.remainder).toBe(298 - paid(s, "a") - paid(s, "b"));
   });
 
-  it("dead heat for first: each dead-heated runner shares half the net pool", () => {
+  it("dead heat for first: stakes back, then each dead-heated runner shares half the profit", () => {
     const fin = field(8).map((f) => (f.horseId === "h2" ? { ...f, position: 1 } : f));
     const s = settleTotePool("win", [bet("a", "h1", 100), bet("b", "h2", 300), bet("c", "h3", 600)], fin);
     expect(s.net).toBe(850);
-    expect(paid(s, "a")).toBe(425);
-    expect(paid(s, "b")).toBe(425);
-    expect(s.dividends.map((d) => d.perUnitMilli)).toEqual([4250, 1416]);
+    // profit 850 - 400 = 450: 225 each on top of the stakes
+    expect(paid(s, "a")).toBe(325);
+    expect(paid(s, "b")).toBe(525);
+    expect(s.dividends.map((d) => d.perUnitMilli)).toEqual([3250, 1750]);
     expect(toteSettlementBalanced(s)).toBe(true);
   });
 
@@ -107,11 +146,11 @@ describe("settleTotePool", () => {
     const fin = field(8).map((f) => (f.horseId === "h4" ? { ...f, position: 3 } : f));
     const s = settleTotePool("place", [bet("a", "h1", 100), bet("b", "h2", 100), bet("c", "h3", 100), bet("d", "h4", 100), bet("e", "h5", 600)], fin);
     expect(s.net).toBe(850);
-    const third = Math.floor(850 / 3);
-    expect(paid(s, "a")).toBe(third);
-    expect(paid(s, "b")).toBe(third);
-    expect(paid(s, "c")).toBe(Math.floor(850 / 6));
-    expect(paid(s, "d")).toBe(Math.floor(850 / 6));
+    // stakes back (400), then the profit (450) in thirds; the third place's third split in two
+    expect(paid(s, "a")).toBe(250);
+    expect(paid(s, "b")).toBe(250);
+    expect(paid(s, "c")).toBe(175);
+    expect(paid(s, "d")).toBe(175);
     expect(toteSettlementBalanced(s)).toBe(true);
   });
 
@@ -132,24 +171,65 @@ describe("settleTotePool", () => {
   });
 
   it("non-runners are refunded in full and kept out of the pool", () => {
-    const s = settleTotePool("win", [bet("a", "h1", 100), bet("b", "gone", 500)], field(5));
+    const s = settleTotePool("win", [bet("a", "h1", 100), bet("b", "gone", 500), bet("c", "h2", 100)], field(5));
     expect(s.refunds).toEqual([{ betId: "b", amount: 500 }]);
-    expect(s.total).toBe(100);
-    expect(paid(s, "a")).toBe(85);
+    expect(s.total).toBe(200);
+    expect(paid(s, "a")).toBe(170);
     expect(toteSettlementBalanced(s)).toBe(true);
   });
 
   it("no place pool under 5 runners: every place bet refunded", () => {
     const s = settleTotePool("place", [bet("a", "h1", 100)], field(4));
     expect(s.outcome).toBe("void");
+    expect(s.voidReason).toBe("no_place_pool");
     expect(s.refunds).toEqual([{ betId: "a", amount: 100 }]);
     expect(s.total).toBe(0);
+  });
+
+  it("minimum pool: one player, or one runner backed, is void and refunded in full with no take", () => {
+    // one player on two runners
+    const one = settleTotePool("win", [bet("a", "h1", 100, "p1"), bet("b", "h2", 300, "p1")], field(6));
+    expect(one.outcome).toBe("void");
+    expect(one.voidReason).toBe("thin_pool");
+    expect(one.refunds).toEqual([{ betId: "a", amount: 100 }, { betId: "b", amount: 300 }]);
+    expect(one.takeout).toBe(0);
+    expect(toteSettlementBalanced(one)).toBe(true);
+    // two players on the same runner
+    const same = settleTotePool("win", [bet("a", "h1", 100, "p1"), bet("b", "h1", 300, "p2")], field(6));
+    expect(same.voidReason).toBe("thin_pool");
+    // a non-runner doesn't count toward the minimum: its stake is refunded either way
+    const scratched = settleTotePool("win", [bet("a", "h1", 100, "p1"), bet("b", "gone", 300, "p2")], field(6));
+    expect(scratched.voidReason).toBe("thin_pool");
+    expect(scratched.refunds.map((r) => r.betId)).toEqual(["a", "b"]);
+    // two players on two runners: a real pool
+    expect(settleTotePool("win", [bet("a", "h1", 100, "p1"), bet("b", "h2", 300, "p2")], field(6)).outcome).toBe("paid");
+  });
+
+  it("winners never lose: the take is cut until every winner gets the stake back", () => {
+    // Heavy favourite to win: 950 on h1, 50 on h2. Standard take 150 would leave 850 < 950.
+    const s = settleTotePool("win", [bet("a", "h1", 950), bet("b", "h2", 50)], field(6));
+    expect(s.standardTakeout).toBe(150);
+    expect(s.takeout).toBe(50);
+    expect(paid(s, "a")).toBe(950);
+    expect(s.dividends[0]!.perUnitMilli).toBe(1000);
+    expect(toteSettlementBalanced(s)).toBe(true);
+    // Place: two placed runners carry everything: the take goes to zero, both get their stakes back.
+    const p = settleTotePool("place", [bet("a", "h1", 900), bet("b", "h2", 100)], field(6));
+    expect(p.takeout).toBe(0);
+    expect(paid(p, "a")).toBe(900);
+    expect(paid(p, "b")).toBe(100);
+    // Place with an unplaced runner: stakes back first, then the profit by place.
+    const q = settleTotePool("place", [bet("a", "h1", 700), bet("b", "h2", 100), bet("c", "h6", 200)], field(6));
+    expect(q.takeout).toBe(150);
+    expect(paid(q, "a")).toBe(725);
+    expect(paid(q, "b")).toBe(125);
+    expect(toteSettlementBalanced(q)).toBe(true);
   });
 
   it("payouts + take + remainder = pool for any pool (property)", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.record({ h: fc.integer({ min: 1, max: 10 }), s: fc.integer({ min: 1, max: 100_000 }) }), { minLength: 0, maxLength: 40 }),
+        fc.array(fc.record({ h: fc.integer({ min: 1, max: 10 }), s: fc.integer({ min: 1, max: 100_000 }), w: fc.integer({ min: 1, max: 4 }) }), { minLength: 0, maxLength: 40 }),
         fc.integer({ min: 1, max: 12 }),
         fc.array(fc.integer({ min: 1, max: 12 }), { minLength: 12, maxLength: 12 }),
         fc.constantFrom<"win" | "place">("win", "place"),
@@ -157,15 +237,19 @@ describe("settleTotePool", () => {
           // positions with possible dead heats (sorted so they stay a plausible result)
           const sortedPos = pos.slice(0, n).sort((a, b) => a - b);
           const fin = Array.from({ length: n }, (_, i) => ({ horseId: `h${i + 1}`, position: Math.min(sortedPos[i]!, i + 1) }));
-          const bets = raw.map((r, i) => bet(`b${String(i).padStart(3, "0")}`, `h${r.h}`, r.s));
+          const bets = raw.map((r, i) => bet(`b${String(i).padStart(3, "0")}`, `h${r.h}`, r.s, `w${r.w}`));
           const s = settleTotePool(kind, bets, fin);
           const refunded = s.refunds.reduce((a, r) => a + r.amount, 0);
           const staked = bets.reduce((a, b) => a + b.stake, 0);
           expect(toteSettlementBalanced(s)).toBe(true);
           expect(s.total + refunded).toBe(staked);
-          expect(s.takeout).toBe(toteTakeout(s.total));
-          // no winner is paid more than the net pool
+          if (s.outcome !== "void") expect(s.standardTakeout).toBe(toteTakeout(s.total));
+          expect(s.takeout).toBeLessThanOrEqual(s.standardTakeout);
+          // no winner is paid more than the net pool, and no winning bet less than its stake
           expect(s.payouts.reduce((a, p) => a + p.amount, 0)).toBeLessThanOrEqual(s.net);
+          const won = new Set(s.dividends.map((d) => d.horseId));
+          for (const b of bets) if (s.outcome === "paid" && won.has(b.horseId)) expect(paid(s, b.id)).toBeGreaterThanOrEqual(b.stake);
+          expect(s.voidReason).not.toBe("winners_short");
         },
       ),
       { numRuns: 300 },
@@ -175,6 +259,28 @@ describe("settleTotePool", () => {
   it("is independent of bet order", () => {
     const bets = [bet("a", "h1", 70), bet("b", "h2", 33), bet("c", "h1", 41), bet("d", "h3", 9)];
     expect(settleTotePool("place", bets, field(8))).toEqual(settleTotePool("place", [...bets].reverse(), field(8)));
+  });
+});
+
+describe("breaks and reality checks", () => {
+  it("time-outs end by themselves; self-exclusions continue until the player acts; permanent never ends", () => {
+    expect(TOTE_TIME_OUTS.map(toteBreakKind)).toEqual(["time_out", "time_out", "time_out"]);
+    expect(TOTE_SELF_EXCLUSIONS.map(toteBreakKind)).toEqual(["self_exclusion", "self_exclusion", "self_exclusion", "permanent"]);
+    expect(toteExclusionEnd("6m", 0)).toBe(182 * 86_400_000);
+    expect(toteExclusionEnd("5y", 0)).toBe(1_826 * 86_400_000);
+  });
+
+  it("a session runs until a 30-minute gap; a reality check is due every 60 minutes of it", () => {
+    const M = 60_000;
+    expect(toteSessionStart([], 0)).toBe(null);
+    expect(toteSessionStart([0], 30 * M)).toBe(null); // last bet 30 min ago: no session
+    expect(toteSessionStart([0, 20 * M, 45 * M, 70 * M], 80 * M)).toBe(0);
+    expect(toteSessionStart([0, 40 * M, 50 * M], 60 * M)).toBe(40 * M); // a 40-minute gap started a new one
+    expect(toteRealityCheckDue(0, null, 59 * M)).toBe(false);
+    expect(toteRealityCheckDue(0, null, 60 * M)).toBe(true);
+    expect(toteRealityCheckDue(0, 60 * M, 100 * M)).toBe(false);
+    expect(toteRealityCheckDue(0, 60 * M, 120 * M)).toBe(true);
+    expect(toteRealityCheckDue(null, null, 120 * M)).toBe(false);
   });
 });
 

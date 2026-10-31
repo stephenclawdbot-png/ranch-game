@@ -90,7 +90,10 @@ describe("the tote board", () => {
     expect(body.board!.status).toBe("open");
     expect(body.board!.currencies).toEqual(["CR"]);
     expect(body.board!.pools[0]!.win.total).toBe(100);
-    expect(body.board!.pools[0]!.win.runners.find((r) => r.horseId === runners[0])!.oddsMilli).toBe(850);
+    // the only runner backed: 0.85 by the pool maths, shown as 1.00 (winners never lose), and the pool is thin
+    expect(body.board!.pools[0]!.win.runners.find((r) => r.horseId === runners[0])!.oddsMilli).toBe(1000);
+    expect(body.board!.pools[0]!.win.thin).toBe(true);
+    expect(body.board!.pools[0]!.win.bettors).toBe(1);
   });
 
   it("at the off: no more bets; while the race runs the board leaks nothing about the result", async () => {

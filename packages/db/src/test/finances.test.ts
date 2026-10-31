@@ -335,6 +335,10 @@ describe("finances: per horse", () => {
  * services is either mapped or knowingly something else.
  */
 const NON_LEDGER_KINDS = new Set([
+  // real-money tote alert kinds (realTote.ts, audit log only; never ledger transactions)
+  "keeper_parked",
+  "result_mismatch",
+  "attestor_error",
   // form book race kinds, horse log entry kinds and moment kinds (not ledger transactions)
   "live",
   "story",
