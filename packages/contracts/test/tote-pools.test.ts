@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { loadFixture, mine, time } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
-import { encodeFunctionData, getAddress, hashTypedData, keccak256, sha256, toBytes, toFunctionSelector, type Address, type Hex } from "viem";
+import { concat, encodeFunctionData, getAddress, hashTypedData, keccak256, sha256, toBytes, toFunctionSelector, type Address, type Hex } from "viem";
 import { totePoolsAbi } from "../adapter/abi";
 import { toBytes32 } from "../adapter/merkle";
 import {
@@ -11,6 +11,7 @@ import {
   toteOddsMilli,
   totePlacesFor,
   toteRaceKey,
+  toteResultHash,
   unpackTotePositions,
   type BetPermit,
 } from "../adapter/totePools";
@@ -24,33 +25,30 @@ const CLOSE_MARGIN = 60n;
 const CHALLENGE = 3_600n;
 const MAX_SETTLE = 86_400n;
 const ENTROPY_DELAY = 2n;
+const ENTROPY_BLOCKS = 3n;
 const TAKE_BPS = 1_500; // game-core TOTE_TAKEOUT_PERMILLE 150
 const STATUS = { none: 0, open: 1, posted: 2, finalized: 3, void: 4 } as const;
 const role = (name: string) => keccak256(toBytes(name));
 const reasonOf = (s: string): Hex => `0x${Buffer.from(s).toString("hex").padEnd(64, "0")}`;
+const TIMING = { closeMargin: CLOSE_MARGIN, challengeWindow: CHALLENGE, maxSettleDelay: MAX_SETTLE, entropyDelayBlocks: ENTROPY_DELAY, entropyBlocks: ENTROPY_BLOCKS };
 
 async function deployTote(tokenName: "MockStablecoin" | "MockReentrantToteToken" = "MockStablecoin", arbSys: Address = ZERO_ADDRESS) {
   const wallets = await hre.viem.getWalletClients();
-  const [admin, operator, guardian, treasury, other] = wallets;
-  const bettors = wallets.slice(5);
+  const [admin, operator, guardian, treasury, other, attestor] = wallets;
+  const bettors = wallets.slice(6);
   const publicClient = await hre.viem.getPublicClient();
   const signer = await localServerWallet();
   // Typed as MockStablecoin either way (the hostile token shares the ERC-20 calls the tests use).
   const deployed = tokenName === "MockStablecoin" ? await hre.viem.deployContract("MockStablecoin", []) : await hre.viem.deployContract("MockReentrantToteToken", []);
   const usd = await hre.viem.getContractAt("MockStablecoin", deployed.address);
-  const tote = await hre.viem.deployContract("TotePools", [
-    admin!.account.address,
-    operator!.account.address,
-    signer.account.address,
-    guardian!.account.address,
-    treasury!.account.address,
-    usd.address,
-    arbSys,
-    CLOSE_MARGIN,
-    CHALLENGE,
-    MAX_SETTLE,
-    ENTROPY_DELAY,
-  ]);
+  const roles = {
+    admin: admin!.account.address,
+    operator: operator!.account.address,
+    permitSigner: signer.account.address,
+    guardian: guardian!.account.address,
+    attestor: attestor!.account.address,
+  };
+  const tote = await hre.viem.deployContract("TotePools", [roles, treasury!.account.address, usd.address, arbSys, TIMING]);
   for (const w of bettors) {
     await usd.write.mint([w.account.address, 100_000n * USDG]);
     const t = await hre.viem.getContractAt("MockStablecoin", usd.address, { client: { wallet: w } });
@@ -59,11 +57,13 @@ async function deployTote(tokenName: "MockStablecoin" | "MockReentrantToteToken"
   const as = (w: (typeof wallets)[number]) => hre.viem.getContractAt("TotePools", tote.address, { client: { wallet: w } });
   const asOperator = await as(operator!);
   const asGuardian = await as(guardian!);
+  const asAttestor = await as(attestor!);
   const asOther = await as(other!);
   const chainId = await publicClient.getChainId();
 
-  async function permit(bettor: Address, raceId: Hex, maxAmount: bigint, o: Partial<BetPermit> = {}): Promise<{ p: BetPermit; sig: Hex }> {
-    const p: BetPermit = { bettor: getAddress(bettor), raceId, maxAmount, nonce: BigInt(random32()), expiry: (await latestTimestamp()) + 300n, ...o };
+  async function permit(bettor: Address, raceId: Hex, maxAmount: bigint, runner: number, pool: number, o: Partial<BetPermit> = {}): Promise<{ p: BetPermit; sig: Hex }> {
+    const now = await latestTimestamp();
+    const p: BetPermit = { bettor: getAddress(bettor), raceId, runner, pool, maxAmount, nonce: BigInt(random32()), issuedAt: now - 5n, expiry: now + 300n, ...o };
     const sig = await signer.wallet.signTypedData({ account: signer.account, ...betPermitTypedData(p, chainId, getAddress(tote.address)) });
     return { p, sig };
   }
@@ -72,7 +72,7 @@ async function deployTote(tokenName: "MockStablecoin" | "MockReentrantToteToken"
 
   /** Bets with the right payment for the market's asset (msg.value in an ETH market). */
   async function bet(w: (typeof wallets)[number], raceId: Hex, runner: number, pool: number, amount: bigint) {
-    const { p, sig } = await permit(w.account.address, raceId, amount);
+    const { p, sig } = await permit(w.account.address, raceId, amount, runner, pool);
     const c = await as(w);
     return c.write.bet([raceId, runner, pool, amount, p, sig], ethMarkets.has(raceId) ? { value: amount } : {});
   }
@@ -91,12 +91,20 @@ async function deployTote(tokenName: "MockStablecoin" | "MockReentrantToteToken"
   async function closeAndSeal(raceId: Hex, closeTime: bigint) {
     await time.increaseTo(closeTime);
     await asOther.write.lockEntropy([raceId]);
-    await mine(Number(ENTROPY_DELAY) + 1);
+    await mine(Number(ENTROPY_DELAY + ENTROPY_BLOCKS));
     await asOther.write.sealEntropy([raceId]);
   }
 
+  /** The hash the attestor would get by replaying `positions` from the market's finalSeed. */
+  async function hashFor(raceId: Hex, positions: number[]): Promise<Hex> {
+    const m = await tote.read.getMarket([raceId]);
+    return toteResultHash(raceId, m.finalSeed, packTotePositions(positions));
+  }
+
+  /** Operator posts, the attestor attests the same result, the window passes, anyone finalizes. */
   async function settle(raceId: Hex, seed: Hex, positions: number[]) {
     await asOperator.write.postResult([raceId, seed, positions]);
+    await asAttestor.write.attestResult([raceId, await hashFor(raceId, positions)]);
     await time.increase(CHALLENGE);
     await asOther.write.finalize([raceId]);
   }
@@ -107,17 +115,66 @@ async function deployTote(tokenName: "MockStablecoin" | "MockReentrantToteToken"
     return (await usd.read.balanceOf([w.account.address])) - before;
   }
 
-  return { tote, usd, admin: admin!, operator: operator!, guardian: guardian!, treasury: treasury!, other: other!, bettors, signer, publicClient, chainId, as, asOperator, asGuardian, asOther, permit, bet, market, closeAndSeal, settle, claimAs };
+  return {
+    tote,
+    usd,
+    roles,
+    admin: admin!,
+    operator: operator!,
+    guardian: guardian!,
+    attestor: attestor!,
+    treasury: treasury!,
+    other: other!,
+    bettors,
+    signer,
+    publicClient,
+    chainId,
+    as,
+    asOperator,
+    asGuardian,
+    asAttestor,
+    asOther,
+    permit,
+    bet,
+    market,
+    closeAndSeal,
+    hashFor,
+    settle,
+    claimAs,
+  };
 }
 
 const fixture = () => deployTote();
 
+/** Expected claims per bettor index from the game-core reference, over both pools. */
+function expectedFrom(bets: [number, number, number, bigint][], positions: number[], permille: number) {
+  const finishers: RefFinisher[] = positions.flatMap((p, i) => (p > 0 ? [{ horseId: `r${i}`, position: p }] : []));
+  const expected = new Map<number, bigint>();
+  let house = 0n;
+  for (const [pool, kind] of [[WIN, "win"], [PLACE, "place"]] as const) {
+    const refBets: RefBet[] = bets
+      .map(([b, r, p, a], i) => ({ b, r, p, a, i }))
+      .filter((x) => x.p === pool)
+      .map((x) => ({ id: `b${String(x.i).padStart(3, "0")}`, bettor: `w${x.b}`, horseId: `r${x.r}`, stake: Number(x.a) }));
+    if (!refBets.length) continue;
+    const s = refSettle(kind, refBets, finishers, permille);
+    house += BigInt(s.takeout + s.remainder);
+    for (const x of [...s.payouts, ...s.refunds]) {
+      const b = bets[Number(x.betId.slice(1))]![0];
+      expected.set(b, (expected.get(b) ?? 0n) + BigInt(x.amount));
+    }
+  }
+  return { expected, house };
+}
+
 describe("TotePools", () => {
   describe("deployment", () => {
     it("grants each role to its own key and starts with conservative stake limits", async () => {
-      const { tote, admin, operator, guardian, signer, treasury, usd } = await loadFixture(fixture);
+      const { tote, admin, operator, guardian, attestor, signer, treasury, usd } = await loadFixture(fixture);
       expect(await tote.read.hasRole([role("OPERATOR_ROLE"), operator.account.address])).to.equal(true);
       expect(await tote.read.hasRole([role("GUARDIAN_ROLE"), guardian.account.address])).to.equal(true);
+      expect(await tote.read.hasRole([role("RESULT_ATTESTOR_ROLE"), attestor.account.address])).to.equal(true);
+      expect(await tote.read.hasRole([role("RESULT_ATTESTOR_ROLE"), operator.account.address])).to.equal(false);
       expect(await tote.read.hasRole([role("PERMIT_SIGNER_ROLE"), signer.account.address])).to.equal(true);
       expect(await tote.read.hasRole([role("PAUSER_ROLE"), admin.account.address])).to.equal(true);
       expect(await tote.read.hasRole([role("OPERATOR_ROLE"), admin.account.address])).to.equal(false);
@@ -127,35 +184,66 @@ describe("TotePools", () => {
       expect(await tote.read.assetAllowed([ZERO_ADDRESS])).to.equal(false); // ETH off by default
       expect(await tote.read.stakeLimits([ZERO_ADDRESS])).to.deep.equal([0n, 0n, 0n]);
       expect(await tote.read.CLOSE_MARGIN()).to.equal(CLOSE_MARGIN);
+      expect(await tote.read.ENTROPY_BLOCKS()).to.equal(ENTROPY_BLOCKS);
+      expect(await tote.read.MAX_CORRECTIONS()).to.equal(2);
+      expect(await tote.read.entropyBeacon()).to.equal(ZERO_ADDRESS); // the randomness hook is off
     });
 
-    it("rejects zero addresses and unsafe timing", async () => {
-      const [a] = await hre.viem.getWalletClients();
-      const x = a!.account.address;
+    it("rejects zero addresses, shared role keys and unsafe timing", async () => {
+      const ws = await hre.viem.getWalletClients();
+      const [a, b, c, d, e] = ws.map((w) => w.account.address);
       const usd = await hre.viem.deployContract("MockStablecoin", []);
-      const args = (o: Partial<Record<number, unknown>>) => [x, x, x, x, x, usd.address, ZERO_ADDRESS, 60n, 3_600n, 86_400n, 2n].map((v, i) => (i in o ? o[i] : v));
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 0: ZERO_ADDRESS }) as never), "ZeroAddress");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 5: ZERO_ADDRESS }) as never), "ZeroAddress");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 7: 0n }) as never), "BadConfig");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 8: 60n }) as never), "BadConfig");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 9: 60n }) as never), "BadConfig");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 10: 0n }) as never), "BadConfig");
-      await expectRevert(hre.viem.deployContract("TotePools", args({ 10: 65n }) as never), "BadConfig");
+      const roles = { admin: a!, operator: b!, permitSigner: c!, guardian: d!, attestor: e! };
+      const deploy = (r: Partial<typeof roles>, t: Partial<typeof TIMING> = {}, usdg: Address = usd.address, arb: Address = ZERO_ADDRESS) =>
+        hre.viem.deployContract("TotePools", [{ ...roles, ...r }, a!, usdg, arb, { ...TIMING, ...t }]);
+      await expectRevert(deploy({ admin: ZERO_ADDRESS }), "ZeroAddress");
+      await expectRevert(deploy({ attestor: ZERO_ADDRESS }), "ZeroAddress");
+      await expectRevert(deploy({}, {}, ZERO_ADDRESS), "ZeroAddress");
+      // the result attestor, operator, guardian and permit signer must be different keys
+      await expectRevert(deploy({ attestor: b! }), "SharedRoleKey");
+      await expectRevert(deploy({ guardian: b! }), "SharedRoleKey");
+      await expectRevert(deploy({ guardian: e! }), "SharedRoleKey");
+      await expectRevert(deploy({ permitSigner: b! }), "SharedRoleKey");
+      await expectRevert(deploy({ permitSigner: e! }), "SharedRoleKey");
+      for (const t of [{ closeMargin: 0n }, { challengeWindow: 60n }, { maxSettleDelay: 60n }, { entropyDelayBlocks: 0n }, { entropyDelayBlocks: 65n }, { entropyBlocks: 2n }, { entropyBlocks: 17n }]) {
+        await expectRevert(deploy({}, t), "BadConfig");
+      }
+      // an ArbSys address with no code is refused
+      await expectRevert(deploy({}, {}, usd.address, "0x0000000000000000000000000000000000000064"), "BadConfig");
     });
 
-    it("BetPermit digest matches the adapter's EIP-712 definition", async () => {
+    it("L3: on Robinhood Chain (4663 / 46630) the ArbSys precompile is required and must have code", async () => {
+      const ws = await hre.viem.getWalletClients();
+      const [a, b, c, d, e] = ws.map((w) => w.account.address);
+      const usd = await hre.viem.deployContract("MockStablecoin", []);
+      const roles = { admin: a!, operator: b!, permitSigner: c!, guardian: d!, attestor: e! };
+      await expectRevert(hre.viem.deployContract("TotePoolsChainHarness", [roles, a!, usd.address, ZERO_ADDRESS, TIMING]), "BadConfig");
+      await expectRevert(hre.viem.deployContract("TotePoolsChainHarness", [roles, a!, usd.address, "0x0000000000000000000000000000000000000064", TIMING]), "BadConfig");
+      const arb = await hre.viem.deployContract("MockArbSys", []);
+      const ok = await hre.viem.deployContract("TotePoolsChainHarness", [roles, a!, usd.address, arb.address, TIMING]);
+      expect(getAddress(await ok.read.arbSys())).to.equal(getAddress(arb.address));
+    });
+
+    it("BetPermit digest and the result hash match the adapter", async () => {
       const { tote, chainId, bettors } = await loadFixture(fixture);
-      const p: BetPermit = { bettor: getAddress(bettors[0]!.account.address), raceId: toteRaceKey("abc"), maxAmount: 5n * USDG, nonce: 42n, expiry: 1_900_000_000n };
+      const p: BetPermit = { bettor: getAddress(bettors[0]!.account.address), raceId: toteRaceKey("abc"), runner: 5, pool: PLACE, maxAmount: 5n * USDG, nonce: 42n, issuedAt: 1_899_999_900n, expiry: 1_900_000_000n };
       expect(await tote.read.hashBetPermit([p])).to.equal(hashTypedData(betPermitTypedData(p, chainId, getAddress(tote.address))));
+      // runner and pool are signed: changing either changes the digest
+      expect(await tote.read.hashBetPermit([{ ...p, runner: 0 }])).to.not.equal(await tote.read.hashBetPermit([p]));
+      expect(await tote.read.hashBetPermit([{ ...p, pool: WIN }])).to.not.equal(await tote.read.hashBetPermit([p]));
+      const k = toteRaceKey("x");
+      const fs = random32();
+      const pos = packTotePositions([2, 1, 0, 3]);
+      expect(await tote.read.resultHashOf([k, fs, pos])).to.equal(toteResultHash(k, fs, pos));
     });
 
-    it("finalSeedOf, placesFor and the position packing match the adapter", async () => {
+    it("finalSeedOf and the position packing match the adapter", async () => {
       const { tote } = await loadFixture(fixture);
       const s = random32();
       const e = random32();
       expect(await tote.read.finalSeedOf([s, e])).to.equal(`0x${toteFinalSeed(s, e)}`);
       expect(toteFinalSeed(s, e)).to.equal(sha256(`0x${s.slice(2)}${e.slice(2)}`).slice(2));
-      for (const n of [0, 4, 5, 7, 8, 24]) expect(Number(await tote.read.placesFor([BigInt(n)]))).to.equal(totePlacesFor(n));
+      expect([0, 4, 5, 7, 8, 24].map(totePlacesFor)).to.deep.equal([0, 0, 2, 2, 3, 3]);
       const pos = [3, 1, 0, 2, 4];
       expect(unpackTotePositions(packTotePositions(pos), 5)).to.deep.equal(pos);
     });
@@ -170,6 +258,7 @@ describe("TotePools", () => {
       expect(m.status).to.equal(STATUS.open);
       expect(m.seedCommitment).to.equal(toBytes32(engineCommitSeed(seed)));
       expect(m.placeTerms).to.equal(3);
+      expect(m.beacon).to.equal(ZERO_ADDRESS);
       const c = toBytes32(engineCommitSeed(random32()));
       const now = await latestTimestamp();
       expect(getAddress(m.asset)).to.equal(getAddress(U));
@@ -193,7 +282,7 @@ describe("TotePools", () => {
   });
 
   describe("full lifecycle", () => {
-    it("bets, entropy, result, challenge window, finalize, claims: payouts match game-core and the contract ends empty", async () => {
+    it("bets, entropy, result, attestation, challenge window, finalize, claims: payouts match game-core and the contract ends empty", async () => {
       const f = await loadFixture(fixture);
       const { tote, usd, bettors, market, bet, closeAndSeal, settle, claimAs, treasury, asOther, publicClient } = f;
       const { raceId, seed, closeTime } = await market({ runners: 8 });
@@ -217,8 +306,10 @@ describe("TotePools", () => {
 
       await closeAndSeal(raceId, closeTime);
       const m1 = await tote.read.getMarket([raceId]);
-      const block = await publicClient.getBlock({ blockNumber: m1.entropyBlock });
-      expect(m1.entropy).to.equal(block.hash);
+      // M4: the entropy mixes ENTROPY_BLOCKS consecutive block hashes from the locked block
+      const hashes: Hex[] = [];
+      for (let i = 0n; i < ENTROPY_BLOCKS; i++) hashes.push((await publicClient.getBlock({ blockNumber: m1.entropyBlock + i })).hash!);
+      expect(m1.entropy).to.equal(keccak256(concat([raceId, ...hashes])));
       // finishing order by runner index: runner 0 won, 3 second, 5 third
       const positions = [1, 4, 5, 2, 6, 3, 7, 8];
       await settle(raceId, seed, positions);
@@ -228,15 +319,7 @@ describe("TotePools", () => {
       expect(m2.finalSeed).to.equal(`0x${toteFinalSeed(seed, m1.entropy)}`);
       expect(unpackTotePositions(m2.positions, 8)).to.deep.equal(positions);
 
-      const finishers: RefFinisher[] = positions.map((p, i) => ({ horseId: `r${i}`, position: p }));
-      const expected = new Map<number, bigint>();
-      let house = 0n;
-      for (const [pool, kind] of [[WIN, "win"], [PLACE, "place"]] as const) {
-        const refBets: RefBet[] = plan.filter(([, , p]) => p === pool).map(([b, r, , a]) => ({ id: `b${b}`, horseId: `r${r}`, stake: Number(a) }));
-        const s = refSettle(kind, refBets, finishers, 150);
-        house += BigInt(s.takeout + s.remainder);
-        for (const x of [...s.payouts, ...s.refunds]) expected.set(Number(x.betId.slice(1)), (expected.get(Number(x.betId.slice(1))) ?? 0n) + BigInt(x.amount));
-      }
+      const { expected, house } = expectedFrom(plan, positions, 150);
       let paid = 0n;
       for (let b = 0; b < plan.length; b++) {
         const preview = await tote.read.claimable([raceId, bettors[b]!.account.address]);
@@ -258,7 +341,7 @@ describe("TotePools", () => {
     it("accepts a bet one second before closeTime - CLOSE_MARGIN", async () => {
       const { bettors, market, permit, as, tote } = await loadFixture(fixture);
       const { raceId, closeTime } = await market();
-      const { p, sig } = await permit(bettors[0]!.account.address, raceId, USDG, { expiry: closeTime });
+      const { p, sig } = await permit(bettors[0]!.account.address, raceId, USDG, 0, WIN, { expiry: closeTime, issuedAt: closeTime - 300n });
       await time.setNextBlockTimestamp(closeTime - CLOSE_MARGIN - 1n);
       await (await as(bettors[0]!)).write.bet([raceId, 0, WIN, USDG, p, sig]);
       expect(await tote.read.walletTotal([raceId, bettors[0]!.account.address])).to.equal(USDG);
@@ -269,11 +352,11 @@ describe("TotePools", () => {
       const { raceId, closeTime } = await f.market();
       const w = f.bettors[0]!;
       const c = await f.as(w);
-      const a = await f.permit(w.account.address, raceId, USDG, { expiry: closeTime });
+      const a = await f.permit(w.account.address, raceId, USDG, 0, WIN, { expiry: closeTime, issuedAt: closeTime - 300n });
       await time.setNextBlockTimestamp(closeTime - CLOSE_MARGIN);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, a.p, a.sig]), "BettingClosed");
       await time.increaseTo(closeTime + 10n);
-      const b = await f.permit(w.account.address, raceId, USDG);
+      const b = await f.permit(w.account.address, raceId, USDG, 0, WIN);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, b.p, b.sig]), "BettingClosed");
     });
 
@@ -283,7 +366,7 @@ describe("TotePools", () => {
       const { raceId: otherRace } = await f.market();
       const w = f.bettors[0]!;
       const c = await f.as(w);
-      const ok = await f.permit(w.account.address, raceId, 5n * USDG);
+      const ok = await f.permit(w.account.address, raceId, 5n * USDG, 0, WIN);
       // no signature at all
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, ok.p, "0x"]), "InvalidSignature");
       // tampered amount ceiling
@@ -293,25 +376,58 @@ describe("TotePools", () => {
       const rogueSig = await rogue.wallet.signTypedData({ account: rogue.account, ...betPermitTypedData(ok.p, f.chainId, getAddress(f.tote.address)) });
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, ok.p, rogueSig]), "InvalidSignature");
       // someone else's permit
-      const theirs = await f.permit(f.bettors[1]!.account.address, raceId, USDG);
+      const theirs = await f.permit(f.bettors[1]!.account.address, raceId, USDG, 0, WIN);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, theirs.p, theirs.sig]), "NotPermitBettor");
       // a permit for another race
-      const elsewhere = await f.permit(w.account.address, otherRace, USDG);
+      const elsewhere = await f.permit(w.account.address, otherRace, USDG, 0, WIN);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, elsewhere.p, elsewhere.sig]), "PermitRaceMismatch");
       // above the permit's maxAmount
       await expectRevert(c.write.bet([raceId, 0, WIN, 6n * USDG, ok.p, ok.sig]), "AboveMaxAmount");
-      // too long a lifetime
-      const long = await f.permit(w.account.address, raceId, USDG, { expiry: (await latestTimestamp()) + 3_600n });
-      await expectRevert(c.write.bet([raceId, 0, WIN, USDG, long.p, long.sig]), "PermitTtlTooLong");
       // expired
-      const short = await f.permit(w.account.address, raceId, USDG, { expiry: (await latestTimestamp()) + 5n });
+      const now = await latestTimestamp();
+      const short = await f.permit(w.account.address, raceId, USDG, 0, WIN, { expiry: now + 5n });
       await time.increase(10);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, short.p, short.sig]), "PermitExpired");
       // single use
-      const once = await f.permit(w.account.address, raceId, 5n * USDG);
+      const once = await f.permit(w.account.address, raceId, 5n * USDG, 0, WIN);
       await c.write.bet([raceId, 0, WIN, USDG, once.p, once.sig]);
       expect(await f.tote.read.nonceUsed([w.account.address, once.p.nonce])).to.equal(true);
       await expectRevert(c.write.bet([raceId, 0, WIN, USDG, once.p, once.sig]), "NonceUsed");
+    });
+
+    it("L1 exploit A: a permit for runner 0 / WIN can't be used on runner 5 / PLACE (or any other runner or pool)", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId } = await f.market();
+      const w = f.bettors[0]!;
+      const c = await f.as(w);
+      const { p, sig } = await f.permit(w.account.address, raceId, 10n * USDG, 0, WIN);
+      await expectRevert(c.write.bet([raceId, 5, PLACE, USDG, p, sig]), "PermitTermsMismatch");
+      await expectRevert(c.write.bet([raceId, 5, WIN, USDG, p, sig]), "PermitTermsMismatch");
+      await expectRevert(c.write.bet([raceId, 0, PLACE, USDG, p, sig]), "PermitTermsMismatch");
+      // rewriting the permit's runner and pool breaks the signature
+      await expectRevert(c.write.bet([raceId, 5, PLACE, USDG, { ...p, runner: 5, pool: PLACE }, sig]), "InvalidSignature");
+      await c.write.bet([raceId, 0, WIN, USDG, p, sig]);
+      expect(await f.tote.read.stakeOf([raceId, w.account.address, WIN, 0])).to.equal(USDG);
+      expect(await f.tote.read.stakeOf([raceId, w.account.address, PLACE, 5])).to.equal(0n);
+    });
+
+    it("L2 exploit E: a long-dated permit is refused (lifetime counted from issue; not valid before issue)", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId } = await f.market({ closeIn: 6n * 86_400n });
+      const w = f.bettors[0]!;
+      const c = await f.as(w);
+      const now = await latestTimestamp();
+      // issued now, valid for a day
+      const long = await f.permit(w.account.address, raceId, USDG, 0, WIN, { issuedAt: now, expiry: now + 86_400n });
+      await expectRevert(c.write.bet([raceId, 0, WIN, USDG, long.p, long.sig]), "PermitTtlTooLong");
+      // pre-signed for use in two days: refused now, and refused then too (its lifetime from issue is too long)
+      const later = await f.permit(w.account.address, raceId, USDG, 0, WIN, { issuedAt: now + 2n * 86_400n, expiry: now + 2n * 86_400n + 300n });
+      await expectRevert(c.write.bet([raceId, 0, WIN, USDG, later.p, later.sig]), "PermitNotYetValid");
+      const backdated = await f.permit(w.account.address, raceId, USDG, 0, WIN, { issuedAt: now - 86_400n, expiry: now + 300n });
+      await expectRevert(c.write.bet([raceId, 0, WIN, USDG, backdated.p, backdated.sig]), "PermitTtlTooLong");
+      // exactly MAX_PERMIT_TTL from issue is fine
+      const edge = await f.permit(w.account.address, raceId, USDG, 0, WIN, { issuedAt: now, expiry: now + 600n });
+      await c.write.bet([raceId, 0, WIN, USDG, edge.p, edge.sig]);
     });
 
     it("enforces the minimum, per-bet, per-wallet and pool caps", async () => {
@@ -357,7 +473,7 @@ describe("TotePools", () => {
   });
 
   describe("entropy", () => {
-    it("can't be locked before the close, is locked once, sealed once, only after its block exists", async () => {
+    it("can't be locked before the close, is locked once, sealed once, only after its last block exists", async () => {
       const f = await loadFixture(fixture);
       const { raceId, closeTime } = await f.market();
       await expectRevert(f.asOther.write.lockEntropy([raceId]), "EntropyTooEarly");
@@ -366,13 +482,18 @@ describe("TotePools", () => {
       await f.asOther.write.lockEntropy([raceId]);
       await expectRevert(f.asOther.write.lockEntropy([raceId]), "EntropyAlreadyLocked");
       await expectRevert(f.asOther.write.sealEntropy([raceId]), "EntropyNotReady");
-      await mine(3);
+      // the first entropy blocks exist, the last doesn't yet (the seal would run in the block before it)
+      const last = (await f.tote.read.getMarket([raceId])).entropyBlock + ENTROPY_BLOCKS - 1n;
+      const head = await f.publicClient.getBlockNumber();
+      if (last - 1n > head) await mine(Number(last - 1n - head));
+      await expectRevert(f.asOther.write.sealEntropy([raceId]), "EntropyNotReady");
+      await mine(2);
       await f.asOther.write.sealEntropy([raceId]);
       await expectRevert(f.asOther.write.sealEntropy([raceId]), "EntropyAlreadySealed");
       await expectRevert(f.asOther.write.lockEntropy([toteRaceKey("none")]), "MarketNotOpen");
     });
 
-    it("voids the market when nobody sealed while the block hash was readable", async () => {
+    it("voids the market when nobody sealed while the block hashes were readable", async () => {
       const f = await loadFixture(fixture);
       const { raceId, closeTime } = await f.market();
       await f.bet(f.bettors[0]!, raceId, 0, WIN, 10n * USDG);
@@ -386,16 +507,19 @@ describe("TotePools", () => {
       expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(10n * USDG);
     });
 
-    it("uses ArbSys block numbers and hashes when configured (and voids when its hash is out of range)", async () => {
+    it("uses ArbSys block numbers and hashes when configured, voids when out of range, and any other ArbSys failure reverts instead of voiding", async () => {
       const arb = await hre.viem.deployContract("MockArbSys", []);
       const f = await deployTote("MockStablecoin", arb.address);
       const a = await f.market();
       await f.bet(f.bettors[0]!, a.raceId, 0, WIN, 10n * USDG);
+      await f.bet(f.bettors[1]!, a.raceId, 1, WIN, 10n * USDG);
       await f.closeAndSeal(a.raceId, a.closeTime);
       const m = await f.tote.read.getMarket([a.raceId]);
-      expect(m.entropy).to.equal((await f.publicClient.getBlock({ blockNumber: m.entropyBlock })).hash);
+      const hashes: Hex[] = [];
+      for (let i = 0n; i < ENTROPY_BLOCKS; i++) hashes.push((await f.publicClient.getBlock({ blockNumber: m.entropyBlock + i })).hash!);
+      expect(m.entropy).to.equal(keccak256(concat([a.raceId, ...hashes])));
       await f.settle(a.raceId, a.seed, [1, 2, 3, 4, 5, 6, 7, 8]);
-      expect(await f.claimAs(f.bettors[0]!, a.raceId)).to.equal(8_500_000n);
+      expect(await f.claimAs(f.bettors[0]!, a.raceId)).to.equal(17n * USDG);
 
       const b = await f.market();
       await time.increaseTo(b.closeTime);
@@ -403,6 +527,49 @@ describe("TotePools", () => {
       await mine(300);
       await f.asOther.write.sealEntropy([b.raceId]);
       expect((await f.tote.read.getMarket([b.raceId])).status).to.equal(STATUS.void);
+
+      // Info: an unexpected ArbSys error (or a starved call) must not be read as "missed": it reverts.
+      const c = await f.market();
+      await time.increaseTo(c.closeTime);
+      await f.asOther.write.lockEntropy([c.raceId]);
+      await mine(Number(ENTROPY_DELAY + ENTROPY_BLOCKS));
+      await arb.write.setBroken([true]);
+      await expectRevert(f.asOther.write.sealEntropy([c.raceId]), "EntropyReadFailed");
+      expect((await f.tote.read.getMarket([c.raceId])).status).to.equal(STATUS.open);
+      await arb.write.setBroken([false]);
+      await f.asOther.write.sealEntropy([c.raceId]);
+      expect((await f.tote.read.getMarket([c.raceId])).entropy).to.not.equal(`0x${"00".repeat(32)}`);
+    });
+
+    it("M4: an optional randomness beacon (off by default) is requested at lock and mixed in at seal", async () => {
+      const f = await loadFixture(fixture);
+      const beacon = await hre.viem.deployContract("MockEntropyBeacon", []);
+      const asAdmin = await f.as(f.admin);
+      await expectRevert(f.asOperator.write.setEntropyBeacon([beacon.address]), "AccessControlUnauthorizedAccount");
+      await expectRevert(asAdmin.write.setEntropyBeacon([f.other.account.address]), "BadConfig"); // no code
+      const before = await f.market(); // created without a beacon: keeps none
+      await asAdmin.write.setEntropyBeacon([beacon.address]);
+      const { raceId, closeTime } = await f.market();
+      expect(getAddress((await f.tote.read.getMarket([raceId])).beacon)).to.equal(getAddress(beacon.address));
+      expect((await f.tote.read.getMarket([before.raceId])).beacon).to.equal(ZERO_ADDRESS);
+      await time.increaseTo(closeTime);
+      await f.asOther.write.lockEntropy([raceId]);
+      expect(await beacon.read.requested([raceId])).to.equal(true);
+      await mine(Number(ENTROPY_DELAY + ENTROPY_BLOCKS));
+      // the block part is fixed now; the beacon hasn't delivered
+      await f.asOther.write.sealEntropy([raceId]);
+      const m1 = await f.tote.read.getMarket([raceId]);
+      expect(m1.blockEntropy).to.not.equal(`0x${"00".repeat(32)}`);
+      expect(m1.entropy).to.equal(`0x${"00".repeat(32)}`);
+      await expectRevert(f.asOther.write.sealEntropy([raceId]), "BeaconNotReady");
+      // much later (block hashes long gone) the beacon delivers: no void, the stored block part is used
+      await mine(300);
+      const r = random32();
+      await beacon.write.deliver([raceId, r]);
+      await f.asOther.write.sealEntropy([raceId]);
+      expect((await f.tote.read.getMarket([raceId])).entropy).to.equal(keccak256(concat([m1.blockEntropy, r])));
+      await asAdmin.write.setEntropyBeacon([ZERO_ADDRESS]);
+      expect(await f.tote.read.entropyBeacon()).to.equal(ZERO_ADDRESS);
     });
   });
 
@@ -423,23 +590,92 @@ describe("TotePools", () => {
       await expectRevert(f.asOther.write.finalize([raceId]), "ChallengeWindowOpen");
     });
 
-    it("lets the guardian correct only during the challenge window", async () => {
+    it("H1 exploit D: an operator-only fake result can't finalize without a matching attestation", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 5 });
+      const [honest, insider] = f.bettors;
+      await f.bet(honest!, raceId, 0, WIN, 100n * USDG);
+      await f.bet(insider!, raceId, 4, WIN, 5n * USDG); // the longshot
+      await f.closeAndSeal(raceId, closeTime);
+      const truth = [1, 2, 3, 4, 5];
+      const fake = [5, 2, 3, 4, 1]; // posts the longshot as the winner
+      await f.asOperator.write.postResult([raceId, seed, fake]);
+      await time.increase(CHALLENGE);
+      // no attestation: can't finalize
+      await expectRevert(f.asOther.write.finalize([raceId]), "NotAttested");
+      // only the attestor role attests (not the operator)
+      await expectRevert(f.asOperator.write.attestResult([raceId, await f.hashFor(raceId, fake)]), "AccessControlUnauthorizedAccount");
+      // the independent replay disagrees: the market freezes
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, truth)]);
+      const [ev] = await f.tote.getEvents.ResultAttested({ raceId }, { fromBlock: 0n });
+      expect(ev!.args.matches).to.equal(false);
+      expect((await f.tote.read.getMarket([raceId])).disputed).to.equal(true);
+      await expectRevert(f.asOther.write.finalize([raceId]), "ResultDisputed");
+      // a later matching attestation doesn't lift the freeze: only the guardian does
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, fake)]);
+      await expectRevert(f.asOther.write.finalize([raceId]), "ResultDisputed");
+      // past the window, the guardian can still correct a frozen result (then a new full window)
+      await f.asGuardian.write.correctResult([raceId, truth]);
+      await expectRevert(f.asOther.write.finalize([raceId]), "ChallengeWindowOpen");
+      await time.increase(CHALLENGE);
+      await expectRevert(f.asOther.write.finalize([raceId]), "AttestationMismatch"); // the last attestation was the fake
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, truth)]);
+      await f.asOther.write.finalize([raceId]);
+      expect(await f.claimAs(insider!, raceId)).to.equal(0n);
+      // winners never lose: the 15 % take would leave the favourite short, so only the 5 USDG profit is taken
+      expect(await f.claimAs(honest!, raceId)).to.equal(100n * USDG);
+      expect(await f.tote.read.treasuryOwed([f.usd.address])).to.equal(5n * USDG);
+    });
+
+    it("M2 exploit C: a correction at challengeEnd - 1 reopens the full window; at most 2 corrections, then only void", async () => {
       const f = await loadFixture(fixture);
       const { raceId, seed, closeTime } = await f.market({ runners: 5 });
       await f.bet(f.bettors[0]!, raceId, 1, WIN, 10n * USDG);
       await f.bet(f.bettors[1]!, raceId, 0, WIN, 10n * USDG);
       await f.closeAndSeal(raceId, closeTime);
       await f.asOperator.write.postResult([raceId, seed, [1, 2, 3, 4, 5]]);
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, [2, 1, 3, 4, 5])]);
       await expectRevert(f.asOperator.write.correctResult([raceId, [2, 1, 3, 4, 5]]), "AccessControlUnauthorizedAccount");
+      const end0 = (await f.tote.read.getMarket([raceId])).challengeEnd;
+      await time.setNextBlockTimestamp(end0 - 1n);
       await f.asGuardian.write.correctResult([raceId, [2, 1, 3, 4, 5]]);
+      const m = await f.tote.read.getMarket([raceId]);
+      expect(m.challengeEnd).to.equal(end0 - 1n + CHALLENGE);
+      expect(m.corrections).to.equal(1);
+      expect(m.disputed).to.equal(false);
+      // at the old challengeEnd the window is still open
+      await time.setNextBlockTimestamp(end0);
+      await expectRevert(f.asOther.write.finalize([raceId]), "ChallengeWindowOpen");
       await expectRevert(f.asGuardian.write.correctResult([raceId, [1, 2, 3, 4]]), "BadPositions");
+      await f.asGuardian.write.correctResult([raceId, [1, 2, 3, 4, 5]]);
+      await expectRevert(f.asGuardian.write.correctResult([raceId, [2, 1, 3, 4, 5]]), "TooManyCorrections");
+      // the last correction disagrees with the attestation; re-attest the replayed truth
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, [2, 1, 3, 4, 5])]);
+      expect((await f.tote.read.getMarket([raceId])).disputed).to.equal(true);
+      // too many corrections: the guardian can only void now
+      await f.asGuardian.write.voidMarket([raceId]);
+      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(10n * USDG);
+      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(10n * USDG);
+    });
+
+    it("lets the guardian correct (and the result stand) only in the window once a result is attested", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 5 });
+      await f.bet(f.bettors[0]!, raceId, 1, WIN, 10n * USDG);
+      await f.bet(f.bettors[1]!, raceId, 0, WIN, 10n * USDG);
+      await f.closeAndSeal(raceId, closeTime);
+      await f.asOperator.write.postResult([raceId, seed, [2, 1, 3, 4, 5]]);
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, [2, 1, 3, 4, 5])]);
+      await expectRevert(f.asAttestor.write.attestResult([raceId, `0x${"00".repeat(32)}`]), "BadPositions");
       await time.increase(CHALLENGE);
       await expectRevert(f.asGuardian.write.correctResult([raceId, [1, 2, 3, 4, 5]]), "ChallengeWindowOver");
       await expectRevert(f.asGuardian.write.voidMarket([raceId]), "ChallengeWindowOver");
+      await expectRevert(f.asOther.write.expireMarket([raceId]), "NotVoidable");
       await f.asOther.write.finalize([raceId]);
       await expectRevert(f.asOther.write.finalize([raceId]), "NotResultPosted");
       await expectRevert(f.asGuardian.write.correctResult([raceId, [1, 2, 3, 4, 5]]), "NotResultPosted");
-      // runner 1 won after the correction: bettor 0 takes the whole net pool
+      await expectRevert(f.asAttestor.write.attestResult([raceId, random32()]), "NotResultPosted");
+      // runner 1 won: bettor 0 gets the stake back plus the whole profit
       expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(17n * USDG);
       expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(0n);
     });
@@ -467,16 +703,28 @@ describe("TotePools", () => {
       expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
     });
 
-    it("the operator can cancel only before the entropy is sealed", async () => {
+    it("M1 exploit B: the operator can't cancel once the entropy block exists (only the guardian can void)", async () => {
       const f = await loadFixture(fixture);
       const a = await f.market();
       await f.bet(f.bettors[0]!, a.raceId, 0, WIN, 10n * USDG);
       await expectRevert(f.asOther.write.cancelMarket([a.raceId]), "AccessControlUnauthorizedAccount");
-      await f.asOperator.write.cancelMarket([a.raceId]);
+      await f.asOperator.write.cancelMarket([a.raceId]); // before the close: fine
       expect(await f.claimAs(f.bettors[0]!, a.raceId)).to.equal(10n * USDG);
+      // after the close but before lockEntropy, still nobody can know anything: fine
       const b = await f.market();
-      await f.closeAndSeal(b.raceId, b.closeTime);
-      await expectRevert(f.asOperator.write.cancelMarket([b.raceId]), "NotVoidable");
+      await time.increaseTo(b.closeTime);
+      await f.asOperator.write.cancelMarket([b.raceId]);
+      // the insider waits for the entropy block, reads its hash, and tries to cancel a losing market
+      const c = await f.market();
+      await f.bet(f.bettors[1]!, c.raceId, 0, WIN, 10n * USDG);
+      await time.increaseTo(c.closeTime);
+      await f.asOther.write.lockEntropy([c.raceId]);
+      await mine(Number(ENTROPY_DELAY + ENTROPY_BLOCKS));
+      await expectRevert(f.asOperator.write.cancelMarket([c.raceId]), "NotVoidable"); // block hashes exist, not sealed yet
+      await f.asOther.write.sealEntropy([c.raceId]);
+      await expectRevert(f.asOperator.write.cancelMarket([c.raceId]), "NotVoidable");
+      await f.asGuardian.write.voidMarket([c.raceId]);
+      expect(await f.claimAs(f.bettors[1]!, c.raceId)).to.equal(10n * USDG);
     });
 
     it("anyone expires a market with no result after MAX_SETTLE_DELAY; a late result is refused", async () => {
@@ -494,10 +742,27 @@ describe("TotePools", () => {
       expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(5n * USDG);
       expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
     });
+
+    it("a posted result that never gets a matching attestation expires to refunds (funds never stuck)", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 5 });
+      await f.bet(f.bettors[0]!, raceId, 0, WIN, 10n * USDG);
+      await f.bet(f.bettors[1]!, raceId, 1, WIN, 5n * USDG);
+      await f.closeAndSeal(raceId, closeTime);
+      await f.asOperator.write.postResult([raceId, seed, [1, 2, 3, 4, 5]]);
+      const end = (await f.tote.read.getMarket([raceId])).challengeEnd;
+      await time.increaseTo(end + MAX_SETTLE - 10n);
+      await expectRevert(f.asOther.write.expireMarket([raceId]), "NotExpired");
+      await time.increase(20);
+      await f.asOther.write.expireMarket([raceId]);
+      const [ev] = await f.tote.getEvents.MarketVoided({ raceId }, { fromBlock: 0n });
+      expect(ev!.args.reason).to.equal(reasonOf("expired"));
+      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(10n * USDG);
+    });
   });
 
   describe("settlement rules", () => {
-    it("dead heat for first in the WIN pool: the two runners' backers share half the net pool each", async () => {
+    it("dead heat for first in the WIN pool: stakes back, then half the profit to each dead-heater", async () => {
       const f = await loadFixture(fixture);
       const { raceId, seed, closeTime } = await f.market({ runners: 6 });
       await f.bet(f.bettors[0]!, raceId, 0, WIN, 10n * USDG);
@@ -505,27 +770,30 @@ describe("TotePools", () => {
       await f.bet(f.bettors[2]!, raceId, 2, WIN, 60n * USDG);
       await f.closeAndSeal(raceId, closeTime);
       await f.settle(raceId, seed, [1, 1, 3, 4, 5, 6]);
-      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(42_500_000n); // (100 - 15) / 2
-      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(42_500_000n);
+      // net 85, winning stakes 40, profit 45: 22.5 each on top of the stake
+      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(32_500_000n);
+      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(52_500_000n);
       expect(await f.claimAs(f.bettors[2]!, raceId)).to.equal(0n);
     });
 
-    it("dead heat for the last paying place shares that place (8 runners, 3 places)", async () => {
+    it("dead heat for the last paying place shares that place's part of the profit (8 runners, 3 places)", async () => {
       const f = await loadFixture(fixture);
       const { raceId, seed, closeTime } = await f.market({ runners: 8 });
-      for (let r = 0; r < 4; r++) await f.bet(f.bettors[r]!, raceId, r, PLACE, 10n * USDG);
+      const plan: [number, number, number, bigint][] = [0, 1, 2, 3].map((r) => [r, r, PLACE, 10n * USDG] as [number, number, number, bigint]);
+      plan.push([4, 4, PLACE, 20n * USDG]);
+      for (const [b, r, p, a] of plan) await f.bet(f.bettors[b]!, raceId, r, p, a);
       await f.closeAndSeal(raceId, closeTime);
-      await f.settle(raceId, seed, [1, 2, 3, 3, 5, 6, 7, 8]);
-      // net 34: thirds of 11.333333 for 1st and 2nd; the third place split between two runners.
-      const net = 34n * USDG;
-      const w = [6n, 6n, 3n, 3n];
-      const expected = w.map((x) => (net * x) / 18n);
-      for (let r = 0; r < 4; r++) expect(await f.claimAs(f.bettors[r]!, raceId)).to.equal(expected[r]);
+      const positions = [1, 2, 3, 3, 5, 6, 7, 8];
+      await f.settle(raceId, seed, positions);
+      const { expected } = expectedFrom(plan, positions, 150);
+      for (let b = 0; b < 5; b++) expect(await f.claimAs(f.bettors[b]!, raceId), `bettor ${b}`).to.equal(expected.get(b) ?? 0n);
+      // profit 11 (60 - 9 - 40): thirds for 1st and 2nd, the third split between the dead-heaters
+      expect(expected.get(0)).to.equal(10n * USDG + (11n * USDG * 6n) / 18n);
       await f.asOther.write.withdrawTreasury([f.usd.address]);
       expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
     });
 
-    it("an unbacked paying runner's share goes to the other paying runners", async () => {
+    it("an unbacked paying runner's part goes to the other paying runners", async () => {
       const f = await loadFixture(fixture);
       const { raceId, seed, closeTime } = await f.market({ runners: 8 });
       await f.bet(f.bettors[0]!, raceId, 0, PLACE, 10n * USDG); // 1st
@@ -559,12 +827,12 @@ describe("TotePools", () => {
       await f.bet(f.bettors[0]!, raceId, 0, WIN, 10n * USDG);
       await f.bet(f.bettors[1]!, raceId, 2, WIN, 20n * USDG); // scratched
       await f.bet(f.bettors[2]!, raceId, 1, WIN, 10n * USDG);
-      await f.bet(f.bettors[1]!, raceId, 0, PLACE, 5n * USDG);
+      await f.bet(f.bettors[1]!, raceId, 0, PLACE, 5n * USDG); // the only place bet: a thin pool, refunded
       await f.closeAndSeal(raceId, closeTime);
       // runner 2 a non-runner: 5 ran, so the place pool pays 2 places
       await f.settle(raceId, seed, [1, 2, 0, 3, 4, 5]);
-      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(17n * USDG); // all of the 20 live, less 15 %
-      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(20n * USDG + 4_250_000n);
+      expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(17n * USDG); // stake back + the 10 live less 15 %
+      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(25n * USDG);
       expect(await f.claimAs(f.bettors[2]!, raceId)).to.equal(0n);
     });
 
@@ -572,11 +840,76 @@ describe("TotePools", () => {
       const f = await loadFixture(fixture);
       const { raceId, seed, closeTime } = await f.market({ runners: 5 });
       await f.bet(f.bettors[0]!, raceId, 0, PLACE, 10n * USDG);
+      await f.bet(f.bettors[2]!, raceId, 1, PLACE, 10n * USDG);
       await f.bet(f.bettors[1]!, raceId, 0, WIN, 10n * USDG);
+      await f.bet(f.bettors[2]!, raceId, 1, WIN, 10n * USDG);
       await f.closeAndSeal(raceId, closeTime);
       await f.settle(raceId, seed, [1, 2, 3, 4, 0]); // 4 ran: no place pool
+      const [ev] = await f.tote.getEvents.PoolRefunded({ raceId }, { fromBlock: 0n });
+      expect([ev!.args.pool, ev!.args.reason]).to.deep.equal([PLACE, reasonOf("no_place_pool")]);
       expect(await f.claimAs(f.bettors[0]!, raceId)).to.equal(10n * USDG);
-      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(8_500_000n);
+      expect(await f.claimAs(f.bettors[1]!, raceId)).to.equal(17n * USDG);
+      expect(await f.claimAs(f.bettors[2]!, raceId)).to.equal(10n * USDG);
+    });
+
+    it("minimum pool: one wallet on two runners, or two wallets on one runner, is refunded in full with no take", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 6 });
+      const [a, b] = f.bettors;
+      await f.bet(a!, raceId, 0, WIN, 30n * USDG);
+      await f.bet(a!, raceId, 1, WIN, 20n * USDG); // WIN: one wallet, two runners
+      await f.bet(a!, raceId, 2, PLACE, 10n * USDG);
+      await f.bet(b!, raceId, 2, PLACE, 15n * USDG); // PLACE: two wallets, one runner
+      await f.closeAndSeal(raceId, closeTime);
+      await f.settle(raceId, seed, [1, 2, 3, 4, 5, 6]);
+      const evs = await f.tote.getEvents.PoolRefunded({ raceId }, { fromBlock: 0n });
+      expect(evs.map((e) => [e.args.pool, e.args.reason])).to.deep.equal([
+        [WIN, reasonOf("thin_pool")],
+        [PLACE, reasonOf("thin_pool")],
+      ]);
+      expect(await f.claimAs(a!, raceId)).to.equal(60n * USDG);
+      expect(await f.claimAs(b!, raceId)).to.equal(15n * USDG);
+      expect(await f.tote.read.treasuryOwed([f.usd.address])).to.equal(0n);
+      expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
+    });
+
+    it("winners never lose: the take is cut (to zero if needed) so every winner gets the stake back", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 6 });
+      const [a, b, c, d] = f.bettors;
+      await f.bet(a!, raceId, 0, WIN, 95n * USDG); // heavy favourite
+      await f.bet(b!, raceId, 1, WIN, 5n * USDG);
+      // PLACE: both placed runners carry the whole pool, so even a zero take only returns the stakes
+      await f.bet(c!, raceId, 0, PLACE, 90n * USDG);
+      await f.bet(d!, raceId, 1, PLACE, 10n * USDG);
+      await f.closeAndSeal(raceId, closeTime);
+      await f.settle(raceId, seed, [1, 2, 3, 4, 5, 6]);
+      expect(await f.claimAs(a!, raceId)).to.equal(95n * USDG);
+      expect(await f.claimAs(b!, raceId)).to.equal(0n);
+      expect(await f.claimAs(c!, raceId)).to.equal(90n * USDG);
+      expect(await f.claimAs(d!, raceId)).to.equal(10n * USDG);
+      expect(await f.tote.read.treasuryOwed([f.usd.address])).to.equal(5n * USDG); // the take, cut from 15 to 5
+      const [fin] = await f.tote.getEvents.MarketFinalized({ raceId }, { fromBlock: 0n });
+      expect(fin!.args.toTreasury).to.equal(5n * USDG);
+    });
+
+    it("L4: only paying runners with a share count toward entitledStake, so the last claim sweeps the dust", async () => {
+      const f = await loadFixture(fixture);
+      const { raceId, seed, closeTime } = await f.market({ runners: 8 });
+      await f.bet(f.bettors[0]!, raceId, 0, PLACE, 3_333_333n);
+      await f.bet(f.bettors[1]!, raceId, 0, PLACE, 1_111_111n);
+      await f.bet(f.bettors[2]!, raceId, 1, PLACE, 7_777_777n);
+      await f.bet(f.bettors[3]!, raceId, 6, PLACE, 9_999_999n); // unplaced
+      await f.closeAndSeal(raceId, closeTime);
+      await f.settle(raceId, seed, [1, 2, 3, 4, 5, 6, 7, 8]);
+      const pool = await f.tote.read.getPool([raceId, PLACE]);
+      expect(pool.entitledStake).to.equal(3_333_333n + 1_111_111n + 7_777_777n);
+      for (let b = 0; b < 4; b++) await f.claimAs(f.bettors[b]!, raceId);
+      const after = await f.tote.read.getPool([raceId, PLACE]);
+      expect(after.claimedStake).to.equal(after.entitledStake);
+      expect(after.paid).to.equal(after.toPay);
+      await f.asOther.write.withdrawTreasury([f.usd.address]);
+      expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
     });
   });
 
@@ -606,6 +939,14 @@ describe("TotePools", () => {
       await f.asOther.write.withdrawTreasury([f.usd.address]);
       expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(0n);
     });
+
+    it("tokens sent straight to the contract are never accounted or movable (documented: they stay)", async () => {
+      const f = await loadFixture(fixture);
+      await f.usd.write.mint([f.tote.address, 7n * USDG]);
+      await f.asOther.write.withdrawTreasury([f.usd.address]);
+      expect(await f.usd.read.balanceOf([f.tote.address])).to.equal(7n * USDG);
+      expect(await f.tote.read.treasuryOwed([f.usd.address])).to.equal(0n);
+    });
   });
 
   describe("admin", () => {
@@ -628,7 +969,27 @@ describe("TotePools", () => {
       // The ABI has no function that sends tokens anywhere but a claimant's chosen address or the treasury.
       const outbound = totePoolsAbi.filter((x) => x.type === "function" && (x.stateMutability === "nonpayable" || x.stateMutability === "payable")).map((x) => (x as { name: string }).name);
       expect(outbound.sort()).to.deep.equal(
-        ["bet", "cancelMarket", "claim", "correctResult", "createMarket", "expireMarket", "finalize", "lockEntropy", "pause", "postResult", "sealEntropy", "setAssetAllowed", "setStakeLimits", "setTreasury", "unpause", "voidMarket", "withdrawTreasury"].sort(),
+        [
+          "attestResult",
+          "bet",
+          "cancelMarket",
+          "claim",
+          "correctResult",
+          "createMarket",
+          "expireMarket",
+          "finalize",
+          "lockEntropy",
+          "pause",
+          "postResult",
+          "sealEntropy",
+          "setAssetAllowed",
+          "setEntropyBeacon",
+          "setStakeLimits",
+          "setTreasury",
+          "unpause",
+          "voidMarket",
+          "withdrawTreasury",
+        ].sort(),
       );
     });
   });
@@ -657,7 +1018,7 @@ describe("TotePools", () => {
   });
 
   describe("randomized pools (property check against game-core rules)", () => {
-    it("every payout matches the reference, sum(payouts) + take + remainder == stakes, and the contract empties", async function () {
+    it("every payout matches the reference (thin pools, heavy favourites and dead heats included), stakes are conserved, and the contract empties", async function () {
       this.timeout(600_000);
       const f = await loadFixture(fixture);
       await (await f.as(f.admin)).write.setStakeLimits([f.usd.address, 1n, 1_000_000n * USDG, 2_000_000n * USDG]);
@@ -668,19 +1029,24 @@ describe("TotePools", () => {
         state ^= state << 5;
         return (state >>> 0) % n;
       };
-      for (let round = 0; round < 20; round++) {
+      let thin = 0;
+      for (let round = 0; round < 24; round++) {
         const runners = round === 0 ? 24 : 2 + rnd(13);
         const places = totePlacesFor(runners);
         const take = [0, 1_500, 1_234, 2_500][rnd(4)]!;
         const { raceId, seed, closeTime } = await f.market({ runners, places, take });
         const bets: [number, number, number, bigint][] = [];
-        for (let b = 0; b < f.bettors.length; b++) {
+        // some rounds have only one or two wallets (thin pools); some a heavy favourite
+        const wallets = round % 4 === 3 ? 1 + rnd(2) : f.bettors.length;
+        const favourite = rnd(runners);
+        for (let b = 0; b < wallets; b++) {
           for (const pool of [WIN, PLACE]) {
             if (pool === PLACE && places === 0) continue;
             if (rnd(4) === 0) continue;
+            const heavy = round % 3 === 1 && rnd(3) === 0;
             // stakes from dust to large, odd numbers to stress rounding
-            const amount = BigInt(1 + rnd(3) * rnd(1_000_000) + rnd(4) * rnd(90_000_000) + rnd(2) * rnd(10) * 100_000_000);
-            const runner = rnd(Math.min(runners, 1 + rnd(runners))); // favour low runner numbers (busier runners)
+            const amount = heavy ? BigInt(1 + rnd(90_000_000)) * 100n : BigInt(1 + rnd(3) * rnd(1_000_000) + rnd(4) * rnd(90_000_000) + rnd(2) * rnd(10) * 100_000_000);
+            const runner = heavy ? favourite : rnd(Math.min(runners, 1 + rnd(runners))); // favour low runner numbers (busier runners)
             await f.bet(f.bettors[b]!, raceId, runner, pool, amount);
             bets.push([b, runner, pool, amount]);
           }
@@ -699,38 +1065,25 @@ describe("TotePools", () => {
         await f.closeAndSeal(raceId, closeTime);
         await f.settle(raceId, seed, positions);
 
-        const finishers: RefFinisher[] = positions.flatMap((p, i) => (p > 0 ? [{ horseId: `r${i}`, position: p }] : []));
-        const expected = new Map<number, bigint>();
-        let house = 0n;
-        let totalStakes = 0n;
-        for (const [pool, kind] of [[WIN, "win"], [PLACE, "place"]] as const) {
-          const refBets: RefBet[] = bets.filter(([, , p]) => p === pool).map(([b, r, , a]) => ({ id: `b${String(b).padStart(2, "0")}`, horseId: `r${r}`, stake: Number(a) }));
-          if (refBets.length === 0) continue;
-          // the reference uses permille; the contract bps (1 permille = 10 bps). 1234 bps isn't a whole permille: model it exactly.
-          const s = take % 10 === 0 ? refSettle(kind, refBets, finishers, take / 10) : null;
-          const stakes = refBets.reduce((x, b) => x + BigInt(b.stake), 0n);
-          totalStakes += stakes;
-          if (s) {
-            house += BigInt(s.takeout + s.remainder);
-            for (const x of [...s.payouts, ...s.refunds]) {
-              const b = Number(x.betId.slice(1));
-              expected.set(b, (expected.get(b) ?? 0n) + BigInt(x.amount));
-            }
-          }
-        }
+        // the reference uses permille; the contract bps (1 permille = 10 bps). 1234 bps isn't a whole permille: only conservation is checked then.
+        const exact = take % 10 === 0;
+        const { expected, house } = exact ? expectedFrom(bets, positions, take / 10) : { expected: new Map<number, bigint>(), house: 0n };
+        const totalStakes = bets.reduce((x, [, , , a]) => x + a, 0n);
+        thin += (await f.tote.getEvents.PoolRefunded({ raceId }, { fromBlock: 0n })).filter((e) => e.args.reason === reasonOf("thin_pool")).length;
         let paid = 0n;
         for (let b = 0; b < f.bettors.length; b++) {
           if (!bets.some(([x]) => x === b)) continue;
           const got = await f.claimAs(f.bettors[b]!, raceId);
-          if (take % 10 === 0) expect(got, `round ${round} bettor ${b}`).to.equal(expected.get(b) ?? 0n);
+          if (exact) expect(got, `round ${round} bettor ${b}`).to.equal(expected.get(b) ?? 0n);
           paid += got;
         }
         const houseOnChain = await f.tote.read.treasuryOwed([f.usd.address]); // withdrawn at the end of every round
-        if (take % 10 === 0) expect(houseOnChain, `round ${round} house`).to.equal(house);
+        if (exact) expect(houseOnChain, `round ${round} house`).to.equal(house);
         expect(paid + houseOnChain, `round ${round} conservation`).to.equal(totalStakes);
         await f.asOther.write.withdrawTreasury([f.usd.address]);
         expect(await f.usd.read.balanceOf([f.tote.address]), `round ${round} empty`).to.equal(0n);
       }
+      expect(thin, "thin pools exercised").to.be.greaterThan(0);
     });
   });
 
@@ -764,28 +1117,30 @@ describe("TotePools", () => {
     it("an ETH market: msg.value bets, dead-heat split, refunds, claims in ETH, take to the treasury, contract balance back to 0", async () => {
       const f = await withEth();
       const { raceId, seed, closeTime } = await f.market({ runners: 6, asset: ZERO_ADDRESS, maxPool: 100n * ETH });
-      const [b0, b1, b2, b3] = f.bettors;
-      const amounts = [ETH / 3n, (ETH * 7n) / 10n + 1n, ETH / 7n, ETH / 2n];
+      const [b0, b1, b2, b3, b4] = f.bettors;
+      const amounts = [ETH / 3n, (ETH * 7n) / 10n + 1n, ETH / 7n, ETH / 2n, ETH / 9n];
       await f.bet(b0!, raceId, 0, WIN, amounts[0]!);
       await f.bet(b1!, raceId, 1, WIN, amounts[1]!);
       await f.bet(b2!, raceId, 2, WIN, amounts[2]!); // a non-runner: refunded in full
-      await f.bet(b3!, raceId, 0, PLACE, amounts[3]!);
+      await f.bet(b3!, raceId, 0, PLACE, amounts[3]!); // the only place bet: a thin pool, refunded in full
+      await f.bet(b4!, raceId, 3, WIN, amounts[4]!); // unplaced
       expect(await f.publicClient.getBalance({ address: f.tote.address })).to.equal(amounts.reduce((a, b) => a + b, 0n));
       // wrong payments
       const c0 = await f.as(b0!);
-      const p = await f.permit(b0!.account.address, raceId, ETH / 100n);
+      const p = await f.permit(b0!.account.address, raceId, ETH / 100n, 0, WIN);
       await expectRevert(c0.write.bet([raceId, 0, WIN, ETH / 100n, p.p, p.sig], { value: ETH / 200n }), "WrongEthAmount");
       await expectRevert(c0.write.bet([raceId, 0, WIN, ETH / 100n, p.p, p.sig]), "WrongEthAmount");
       await expectRevert(f.bet(b0!, raceId, 0, WIN, ETH / 10_000n), "StakeBelowMin"); // ETH limits, not USDG's
       await f.closeAndSeal(raceId, closeTime);
       await f.settle(raceId, seed, [1, 1, 0, 3, 4, 5]); // runners 0 and 1 dead-heat for first
 
-      const live = amounts[0]! + amounts[1]!;
-      const net = live - (live * 1_500n) / 10_000n;
-      const half = net / 2n;
-      const placeNet = amounts[3]! - (amounts[3]! * 1_500n) / 10_000n; // the only place backer, placed
-      const expected = [half, half, amounts[2]!, placeNet];
-      for (let i = 0; i < 4; i++) {
+      const live = amounts[0]! + amounts[1]! + amounts[4]!;
+      const win = amounts[0]! + amounts[1]!;
+      let take = (live * 1_500n) / 10_000n;
+      if (take > live - win) take = live - win; // winners never lose
+      const half = (live - take - win) / 2n;
+      const expected = [amounts[0]! + half, amounts[1]! + half, amounts[2]!, amounts[3]!, 0n];
+      for (let i = 0; i < 5; i++) {
         const to = `0x${(0xe7000 + i).toString(16).padStart(40, "0")}` as Address; // fresh, gas-free recipients
         await (await f.as(f.bettors[i]!)).write.claim([raceId, to]);
         expect(await f.publicClient.getBalance({ address: to }), `bettor ${i}`).to.equal(expected[i]);
@@ -810,7 +1165,7 @@ describe("TotePools", () => {
       expect(await f.publicClient.getBalance({ address: f.tote.address })).to.equal(0n);
 
       const u = await f.market();
-      const p = await f.permit(f.bettors[1]!.account.address, u.raceId, USDG);
+      const p = await f.permit(f.bettors[1]!.account.address, u.raceId, USDG, 0, WIN);
       await expectRevert((await f.as(f.bettors[1]!)).write.bet([u.raceId, 0, WIN, USDG, p.p, p.sig], { value: 1n }), "WrongEthAmount");
       await expectAnyRevert(f.other.sendTransaction({ to: f.tote.address, value: 1n }));
     });
@@ -857,7 +1212,9 @@ describe("TotePools", () => {
       const betGas = (await f.publicClient.getTransactionReceipt({ hash })).gasUsed;
       for (let b = 1; b < 10; b++) await f.bet(f.bettors[b]!, raceId, b % 12, b % 2, 10n * USDG);
       await f.closeAndSeal(raceId, closeTime);
-      await f.asOperator.write.postResult([raceId, seed, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]);
+      const positions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      await f.asOperator.write.postResult([raceId, seed, positions]);
+      await f.asAttestor.write.attestResult([raceId, await f.hashFor(raceId, positions)]);
       await time.increase(CHALLENGE);
       const fin = await f.asOther.write.finalize([raceId]);
       const finGas = (await f.publicClient.getTransactionReceipt({ hash: fin })).gasUsed;
