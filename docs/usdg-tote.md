@@ -17,7 +17,7 @@ Code:
 | Chain helpers | `packages/contracts/adapter/totePools.ts` (EIP-712 `BetPermit`, market keys, final seed, result hash, position packing, odds) |
 | Rules | `packages/game-core/src/tote.ts` (pool maths, shared with the in-game tote), `packages/game-core/src/realTote.ts` (switch, timing, caps, keeper knobs, fat-finger checks) |
 | Seed | `packages/racing-engine/src/hash.ts` `mixSeedEntropy` (and `packages/db/src/crypto.ts`) |
-| Database | `packages/db/src/services/realTote.ts`, tables `real_tote_races`, `real_tote_permits`, `real_tote_events` (migrations `0025_real_tote`, `0026_real_tote_hardening`) |
+| Database | `packages/db/src/services/realTote.ts`, tables `real_tote_races`, `real_tote_permits`, `real_tote_events` (migrations `0025_real_tote`, `0027_real_tote_hardening`) |
 | Operator / keeper | `apps/web/src/server/chain/toteChain.ts`, routes `GET /api/races/:id/tote/real`, `POST /api/races/:id/tote/real/permit`, cron `/api/cron/chain` |
 | Result attestor | `apps/web/src/server/chain/toteAttestor.ts` (its own key and RPC; run from the cron today, its own deployment once live) |
 | UI | `apps/web/src/components/tote/RealToteSlip.tsx` (mounted in the tote panel; renders nothing while off) |
