@@ -1768,6 +1768,10 @@ export class HD2DScene {
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
     maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
     if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 8);
+    // Portrait phones: a width-limited lens leaves a tall frame; the tracking shots sit the
+    // runners lower (above the controls) so the frame is not a band of empty grass under them,
+    // with the course's scenery behind the HUD above.
+    if (type === "close" || type === "pack" || type === "post" || type === "replay") composeShift += (1 - narrowK) * 0.22;
     fillY *= 0.85 + 0.15 * narrowK;
     maxSpan = Math.max(maxSpan, mustSpan);
     if (x1 - x0 > maxSpan) {
