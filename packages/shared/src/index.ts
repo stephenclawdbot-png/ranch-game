@@ -497,3 +497,24 @@ export function frameValue(replay: RaceReplay, f: number, h: number, field: keyo
   if (!frame) return 0;
   return frame[h * FRAME_STRIDE + FRAME_FIELD[field]] ?? 0;
 }
+
+/**
+ * The purse split every part of the game pays and shows: 55/20/12/7/4/2 percent by finishing
+ * position, each share floored, the remainder to the winner (so the shares add up to the purse).
+ * The race engine's `splitPurse` (racing-engine results.ts) computes the same numbers for the
+ * replay; settlement pays these, so the replay and the payout always agree (apps/web test).
+ */
+export const PURSE_SPLIT_PCT = [55, 20, 12, 7, 4, 2] as const;
+
+export function purseShares(purse: number, runners: number): number[] {
+  const prizes: number[] = [];
+  let paid = 0;
+  for (let p = 0; p < runners; p++) {
+    const pct = PURSE_SPLIT_PCT[p] ?? 0;
+    const prize = Math.floor(purse / 100) * pct + Math.floor(((purse % 100) * pct) / 100);
+    prizes.push(prize);
+    paid += prize;
+  }
+  if (runners > 0) prizes[0] = (prizes[0] ?? 0) + (purse - paid);
+  return prizes;
+}

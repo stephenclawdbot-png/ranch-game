@@ -16,11 +16,11 @@ import { and, asc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
-import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
+import { placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
 import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
-import { LIVE_RACE_MODEL, type RaceCourse, type RaceKit, type RaceModel } from "@thoroughbred/shared";
+import { LIVE_RACE_MODEL, purseShares, type RaceCourse, type RaceKit, type RaceModel } from "@thoroughbred/shared";
 import { accountIdOfStable, insertHorse, lockStableOf, recordPlayDay } from "./accounts";
 import { LIVE_SLOT_KEY_RE, ensureSisterRace } from "./card";
 import { claimingEntryCheckTx, drawClaimsTx, lockClaimantStablesTx, refundClaimsTx, settleClaimsTx } from "./claiming";
@@ -975,9 +975,11 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     const leaseSplits = new Map<string, { owner: number; lessee: number }>();
     const postings: Posting[] = [];
     let minted = 0;
+    // The same split the engine shows in the replay (winner gets the rounding remainder).
+    const shares = purseShares(race.purse, entries.length);
     for (const e of entries) {
       const r = byHorse.get(e.horseId)!;
-      const prize = bps(race.purse, RULES.purseSplitBps[r.position - 1] ?? 0);
+      const prize = shares[r.position - 1] ?? 0;
       prizes[e.horseId] = prize;
       const lease = leased.get(e.horseId);
       if (lease) {

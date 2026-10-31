@@ -1,3 +1,4 @@
+import { purseShares } from "@thoroughbred/shared";
 import { and, eq, sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
@@ -256,7 +257,7 @@ describe("leasing a Club horse", () => {
     const { field } = await getRaceForSimulation(h.db, race.id, at(31 * MIN));
     const order = [x, ...field.runners.map((r) => r.horseId).filter((id) => id !== x)];
     const res = await settleRace(h.db, { raceId: race.id, now: at(31 * MIN), resultHash: "0".repeat(64), result: { order }, runners: order.map((horseId, i) => ({ horseId, position: i + 1 })) });
-    const prize = bps(purse, RULES.purseSplitBps[0]!);
+    const prize = purseShares(purse, field.runners.length)[0]!; // the winner's share as settled (remainder included)
     expect(res.prizes[x]).toBe(prize);
     const clubShare = Math.floor((prize * 50) / 100);
     expect(await getBalance(h.db, t.accountId)).toBe(lb + prize - clubShare);

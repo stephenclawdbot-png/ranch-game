@@ -1,3 +1,4 @@
+import { purseShares } from "@thoroughbred/shared";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
@@ -324,8 +325,10 @@ describe("leasing: prizes, the end of a lease, upkeep", () => {
     const race = await liveRace(at(30 * MIN), purse);
     await enterRace(h.db, { accountId: t.accountId, raceId: race.id, horseId: x.id, tactic: "front", now: T0 });
     const [ob, lb] = [await getBalance(h.db, o.accountId), await getBalance(h.db, t.accountId)];
+    const runners = (await getRaceForSimulation(h.db, race.id, at(31 * MIN))).field.runners.length;
     const res = await runRace(race.id, at(31 * MIN), [x.id]);
-    const prize = bps(purse, RULES.purseSplitBps[0]!);
+    // The winner's share as settled: the engine's split, so the shares of empty places and the remainder go to the winner.
+    const prize = purseShares(purse, runners)[0]!;
     expect(res.prizes[x.id]).toBe(prize);
     const ownerShare = Math.floor((prize * 33) / 100);
     expect(await getBalance(h.db, o.accountId)).toBe(ob + ownerShare);
