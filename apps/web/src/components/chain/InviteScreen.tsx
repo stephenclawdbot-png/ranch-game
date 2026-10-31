@@ -18,6 +18,8 @@ interface InviteView {
   wallet: string | null;
   isOwner: boolean;
   chainId: number;
+  /** Practice mode (T-USDG test money): no commission is paid. */
+  practice?: boolean;
   rules: { level1Pct: number; level2Pct: number; windowDays: number; weeklyCapUsdCents: number; activeReward: { credits: number; minRaces: number; minPlayDays: number } };
   invitees: { stableName: string | null; level: 1 | 2; joinedAt: number; races: number; playDays: number; active: boolean; activatedAt: number | null; windowEndsAt: number; revoked: boolean }[];
   earnings: { level: number; amountWei: string; usdCents: number; deferred: boolean; txHash: string; createdAtMs: number }[];
@@ -153,10 +155,16 @@ export function InviteScreen() {
             When someone you invited becomes active ({r.activeReward.minRaces} races and {r.activeReward.minPlayDays} days played), you get {r.activeReward.credits} Stable Credits and the
             Recruiter badge. Credits stay in the game.
           </li>
+          {v.practice ? (
+            <li data-testid="invite-practice">
+              <strong>During the beta no commission is paid:</strong> Premium Packs are bought with T-USDG test money, which pays nobody. Inviting still earns the credits reward above.
+            </li>
+          ) : (
           <li>
             If they buy a Premium Pack with ETH, you receive {r.level1Pct}% of the price, instantly, from the store contract. If someone THEY invited buys, you receive {r.level2Pct}%. Two levels,
             no more.
           </li>
+          )}
           <li>Commissions are paid for purchases within {r.windowDays} days of your invitee joining, up to {formatUsdCents(r.weeklyCapUsdCents)} a week in total.</li>
           <li>Commissions come out of the game&apos;s share of the sale. The Prize Pool&apos;s share is never touched.</li>
           <li>

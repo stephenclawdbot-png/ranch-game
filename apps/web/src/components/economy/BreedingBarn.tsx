@@ -15,7 +15,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usdgFromDecimal } from "@thoroughbred/game-core";
 import { UsdgPay } from "@/components/chain/UsdgPay";
-import { formatUsdgDollars, formatUsdgToken, type UsdgOrderJson } from "@/lib/chain/usdg";
+import type { UsdgOrderJson } from "@/lib/chain/usdg";
+import { useUsdg } from "@/components/chain/UsdgMode";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -334,14 +335,16 @@ function PickList<T extends EcoHorse & { block: string | null; reason: string | 
 
 /** "$40.00 USDG" for a stud fee in the pick list and the stud book. */
 function UsdgFee({ micro }: { micro: number }) {
+  const u = useUsdg();
   return (
-    <span className="num text-cream" title={formatUsdgToken(micro)} data-testid="usdg-stud-fee">
-      {formatUsdgDollars(micro)} USDG
+    <span className="num text-cream" title={u.token(micro)} data-testid="usdg-stud-fee">
+      {u.full(micro)}
     </span>
   );
 }
 
 function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: BreedingView) => void; reload: () => Promise<void> }) {
+  const u = useUsdg();
   const [damId, setDamId] = useState<string | null>(null);
   const [source, setSource] = useState<SireSource>(v.stallions.length ? "own" : "stud");
   const [sireId, setSireId] = useState<string | null>(null);
@@ -525,22 +528,22 @@ function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: Breedin
                 {usdgFee !== null ? (
                   <div className="grid gap-2" data-testid="cover-usdg-panel">
                     <p className="text-sm">
-                      {preview.sireName} stands at stud for <span className="font-bold text-cream">{formatUsdgDollars(usdgFee)}</span> ({formatUsdgToken(usdgFee)}), paid from your wallet
-                      straight to {preview.stallionOwner ?? "his owner"}
-                      {preview.usdgFee !== null ? ` (${formatUsdgDollars(preview.usdgFee)} of it is the Club's market fee)` : ""}. You also pay the {formatCredits(total)} credits base fee, held when
+                      {preview.sireName} stands at stud for <span className="font-bold text-cream">{u.dollars(usdgFee)}</span>
+                      {u.practice ? ", paid from your T-USDG balance" : ` (${u.token(usdgFee)}), paid from your wallet`} straight to {preview.stallionOwner ?? "his owner"}
+                      {preview.usdgFee !== null ? ` (${u.dollars(preview.usdgFee)} of it is the Club's market fee)` : ""}. You also pay the {formatCredits(total)} credits base fee, held when
                       you book and burned at the covering (returned if the booking lapses). Your mare is held for you while you pay
                       {v.usdg ? ` (${v.usdg.quoteMinutes} minutes)` : ""}; the covering happens once the payment is confirmed.
                     </p>
                     {!v.usdg ? (
                       <p className="t-meta font-bold" data-testid="cover-usdg-off">
-                        USDG payments are coming soon: this stallion can&rsquo;t be booked yet.
+                        {u.name} payments are coming soon: this stallion can&rsquo;t be booked yet.
                       </p>
                     ) : usdgOrder ? (
                       <UsdgPay order={usdgOrder} onDone={usdgCovered} label={`Stud fee for ${preview.sireName}`} />
                     ) : ready ? (
                       <ActionBar>
                         <button type="button" className="btn btn-brass btn-lg" onClick={() => void bookUsdg()} disabled={busy} data-testid="cover-usdg">
-                          {busy ? "Booking…" : `Pay ${formatUsdgDollars(usdgFee)} USDG to ${preview.stallionOwner ?? "his owner"}`}
+                          {busy ? "Booking…" : `Pay ${u.full(usdgFee)} to ${preview.stallionOwner ?? "his owner"}`}
                         </button>
                       </ActionBar>
                     ) : !preview.block && !canAfford ? (
@@ -684,6 +687,7 @@ function StallionFinder({ v }: { v: BreedingView }) {
 }
 
 function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
+  const u = useUsdg();
   const tone = OUTLOOK_TONE[r.outlook.tone];
   return (
     <li className={`surface grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center ${top ? "picked" : ""}`} data-testid="finder-row" data-usdg-only={r.usdgOnly}>
@@ -695,7 +699,7 @@ function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
           <span className="t-title">{r.name}</span>
           <span className="caption">
             {r.own ? "Yours" : r.club ? "The Club" : r.stableName}
-            {r.usdgOnly ? " · USDG only" : ""}
+            {r.usdgOnly ? ` · ${u.name} only` : ""}
           </span>
           {top && !r.resting && <span className="chip text-brass-bright">Best outlook</span>}
           {r.resting && (
@@ -787,6 +791,7 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
 }
 
 function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: number; usdg: BreedingView["usdg"]; onView: (v: BreedingView) => void }) {
+  const u = useUsdg();
   const max = s.studFeeMax ?? 100_000;
   const [fee, setFee] = useState(String(Math.min(s.studFee ?? 800, max)));
   const [busy, setBusy] = useState(false);
@@ -807,7 +812,7 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
     try {
       const r = await api<{ view: BreedingView }>("/api/usdg/stud-fee", { body: { horseId: s.id, fee: next } });
       onView(r.view);
-      setSaved(`Standing at stud for ${formatUsdgDollars(next)} USDG.`);
+      setSaved(`Standing at stud for ${u.full(next)}.`);
     } catch (e) {
       setError(e);
     } finally {
@@ -835,7 +840,7 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
         meta={
           <>
             {s.starts} starts · {s.used}/{s.lifetime} breedings used ·{" "}
-            {s.studFeeUsdg ? `at stud for ${formatUsdgDollars(s.studFeeUsdg)} USDG` : s.studFee === null ? "not at stud" : `at stud for ${formatCredits(s.studFee)}`}
+            {s.studFeeUsdg ? `at stud for ${u.full(s.studFeeUsdg)}` : s.studFee === null ? "not at stud" : `at stud for ${formatCredits(s.studFee)}`}
           </>
         }
       />
@@ -846,7 +851,7 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
             Credits
           </button>
           <button type="button" aria-pressed={currency === "usdg"} onClick={() => setCurrency("usdg")} data-testid="stud-currency-usdg">
-            USDG
+            {u.name}
           </button>
         </div>
       )}
@@ -855,12 +860,12 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
           <div className="flex flex-wrap items-end gap-2">
             <label className="grid gap-1">
               <span className="label">
-                Stud fee (USDG, {formatUsdgDollars(usdg!.studFeeMin)} to {formatUsdgDollars(usdg!.studFeeMax)})
+                Stud fee ({u.name}, {u.dollars(usdg!.studFeeMin)} to {u.dollars(usdg!.studFeeMax)})
               </span>
               <input className="field w-36" inputMode="decimal" value={usdText} onChange={(e) => setUsdText(e.target.value.replace(/[^0-9.]/g, ""))} data-testid="stud-fee-usdg-input" />
             </label>
             <button type="button" className="btn" onClick={() => usdMicro !== null && void saveUsdg(usdMicro)} disabled={busy || !usdValid} data-testid="stud-save-usdg">
-              {s.studFeeUsdg ? "Update USDG fee" : "Stand for USDG"}
+              {s.studFeeUsdg ? `Update ${u.name} fee` : `Stand for ${u.name}`}
             </button>
             {atStud && (
               <button type="button" className="btn btn-ghost" onClick={() => save(null)} disabled={busy}>
@@ -870,9 +875,9 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
           </div>
           {usdValid && (
             <p className="caption">
-              Per cover the mare&apos;s owner pays {formatUsdgDollars(usdMicro!)} from their wallet: {formatUsdgDollars(usdMicro! - Math.floor((usdMicro! * usdg!.feeBps) / 10_000))} straight to your
-              linked wallet, {formatUsdgDollars(Math.floor((usdMicro! * usdg!.feeBps) / 10_000))} to the Club (market fee). They also pay the {formatCredits(baseFee)} credits base fee. A USDG fee
-              replaces any credits fee.
+              Per cover the mare&apos;s owner pays {u.dollars(usdMicro!)} {u.practice ? "from their T-USDG balance" : "from their wallet"}: {u.dollars(usdMicro! - Math.floor((usdMicro! * usdg!.feeBps) / 10_000))}{" "}
+              {u.practice ? "to your T-USDG balance" : "straight to your linked wallet"}, {u.dollars(Math.floor((usdMicro! * usdg!.feeBps) / 10_000))} to the Club (market fee). They also pay the{" "}
+              {formatCredits(baseFee)} credits base fee. A {u.name} fee replaces any credits fee.
             </p>
           )}
         </>
@@ -895,7 +900,7 @@ function StudForm({ s, baseFee, usdg, onView }: { s: BreedingHorse; baseFee: num
           {valid && n > 0 && (
             <p className="caption">
               Per cover you receive {formatCredits(n - Math.floor(n / 10))}; {formatCredits(Math.floor(n / 10))} is burned. The mare&apos;s owner also pays the {formatCredits(baseFee)} base fee.
-              {s.studFeeUsdg ? " Saving a credits fee replaces his USDG fee." : ""}
+              {s.studFeeUsdg ? ` Saving a credits fee replaces his ${u.name} fee.` : ""}
             </p>
           )}
         </>

@@ -5,14 +5,17 @@
  *   allowance is lower) -> HorseMarket.buy / register / payStudFee with the server-signed order ->
  *   the server verifies the event and delivers (moves the horse, registers it, or runs the covering). On the mock chain (WEB3_ENABLED off) the payment is simulated.
  * The contract never holds the money: the seller and the treasury are paid in the same transaction.
+ * Practice mode (T-USDG): one button pays from the player's T-USDG balance (no wallet transaction,
+ * no network switch, no approval); the server moves the T-USDG and delivers in one transaction.
  */
 import { useCallback, useEffect, useState } from "react";
 import { erc20Abi, type Hex } from "viem";
 import { horseMarketAbi } from "@/lib/chain/contracts.generated";
 import { txUrl } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/chain/format";
-import { TESTNET_FAUCETS, formatUsdgDollars, formatUsdgToken, isTestnet, orderPayer, registrationOrderFromJson, saleOrderFromJson, studOrderFromJson, type UsdgOrderJson } from "@/lib/chain/usdg";
+import { TESTNET_FAUCETS, isTestnet, orderPayer, registrationOrderFromJson, saleOrderFromJson, studOrderFromJson, type UsdgOrderJson } from "@/lib/chain/usdg";
 import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
+import { PracticeBadge, useUsdg } from "./UsdgMode";
 import { WalletPicker } from "./WalletPicker";
 import { useWallet } from "./useWallet";
 
@@ -31,7 +34,9 @@ const left = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-export function TestnetNote({ chainId, mock }: { chainId: number; mock: boolean }) {
+export function TestnetNote({ chainId, mock, practice = false }: { chainId: number; mock: boolean; practice?: boolean }) {
+  // Practice mode: test money in the game ledger. No network, no faucet, nothing to fetch.
+  if (practice) return <PracticeBadge />;
   if (mock)
     return (
       <p className="caption" data-testid="usdg-test-mode">
@@ -56,6 +61,7 @@ export function TestnetNote({ chainId, mock }: { chainId: number; mock: boolean 
 
 export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone: (r: { horseId: string }) => void; label?: string }) {
   const w = useWallet();
+  const u = useUsdg();
   const [phase, setPhase] = useState<"idle" | "approving" | "paying" | "confirming" | "done">("idle");
   const [msg, setMsg] = useState<string | null>(null);
   const [tx, setTx] = useState<string | null>(order.txHash);
@@ -105,7 +111,7 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
     setMsg(null);
     setPhase("paying");
     try {
-      const r = await post<Settle>(`/api/usdg/orders/${order.orderId}/mock-pay`);
+      const r = await post<Settle>(`/api/usdg/orders/${order.orderId}/${order.practice ? "practice-pay" : "mock-pay"}`);
       if (r.status === "fulfilled") {
         setPhase("done");
         onDone({ horseId: r.horseId });
@@ -150,7 +156,8 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
 
   const amount = (
     <>
-      <span className="t-h2">{formatUsdgDollars(order.price)}</span> <span className="num caption">({formatUsdgToken(order.price)})</span>
+      <span className="t-h2">{u.dollars(order.price)}</span>
+      {!order.practice && <span className="num caption"> ({u.token(order.price)})</span>}
     </>
   );
   return (
@@ -158,18 +165,24 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
       <p className="text-cream">
         {label ?? (order.kind === "sale" ? "Pay for the horse" : order.kind === "stud" ? `Stud fee for ${order.horseName ?? "the stallion"}` : "Registration fee")}: {amount}
       </p>
-      {order.kind === "sale" && (
-        <p className="caption">
-          {formatUsdgDollars(order.sellerReceives)} goes straight to the seller and {formatUsdgDollars(order.fee)} to the Club (market fee), in the same transaction. The market contract never holds your money.
+      {order.practice && order.kind !== "registration" && (
+        <p className="caption" data-testid="usdg-practice-split">
+          {u.dollars(order.sellerReceives)} goes to {order.kind === "stud" ? (order.payeeName ?? "the stallion's owner") : "the seller"} and {u.dollars(order.fee)} is the market fee, from your T-USDG
+          balance. {order.kind === "stud" ? `The covering of ${order.mareName ?? "your mare"} happens as soon as you pay.` : ""}
         </p>
       )}
-      {order.kind === "stud" && (
+      {!order.practice && order.kind === "sale" && (
+        <p className="caption">
+          {u.dollars(order.sellerReceives)} goes straight to the seller and {u.dollars(order.fee)} to the Club (market fee), in the same transaction. The market contract never holds your money.
+        </p>
+      )}
+      {!order.practice && order.kind === "stud" && (
         <p className="caption" data-testid="usdg-stud-split">
-          {formatUsdgDollars(order.sellerReceives)} goes straight to {order.payeeName ?? "the stallion's owner"} and {formatUsdgDollars(order.fee)} to the Club (market fee), in the same transaction. The
+          {u.dollars(order.sellerReceives)} goes straight to {order.payeeName ?? "the stallion's owner"} and {u.dollars(order.fee)} to the Club (market fee), in the same transaction. The
           covering of {order.mareName ?? "your mare"} happens as soon as the payment is confirmed. The market contract never holds your money.
         </p>
       )}
-      <TestnetNote chainId={order.chainId} mock={order.mock} />
+      <TestnetNote chainId={order.chainId} mock={order.mock} practice={order.practice} />
       {phase === "done" ? (
         <p className="font-bold text-positive" role="status" data-testid="usdg-paid">
           {order.kind === "stud" ? "✓ Paid. The covering is done." : "✓ Paid and delivered."}
@@ -183,11 +196,15 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
             </a>
           )}
         </p>
-      ) : expired || !order.signed ? (
+      ) : expired || (!order.signed && !order.practice) ? (
         <p className="text-sm font-bold text-negative">This order has expired.</p>
+      ) : order.practice ? (
+        <button type="button" className="btn btn-brass w-fit" onClick={() => void payMock()} disabled={phase !== "idle"} data-testid="usdg-pay-practice">
+          {phase === "paying" ? "Paying…" : `Pay ${u.dollars(order.price)}`}
+        </button>
       ) : order.mock ? (
         <button type="button" className="btn btn-brass w-fit" onClick={() => void payMock()} disabled={phase !== "idle"} data-testid="usdg-pay-mock">
-          {phase === "paying" ? "Paying…" : `Pay ${formatUsdgDollars(order.price)} (simulated)`}
+          {phase === "paying" ? "Paying…" : `Pay ${u.dollars(order.price)} (simulated)`}
         </button>
       ) : !w.address ? (
         <WalletPicker label={`Connect ${shortAddress(payer)} to pay`} />
@@ -195,10 +212,10 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
         <p className="text-sm font-bold text-negative">Switch your wallet to your linked address {shortAddress(payer)} to pay.</p>
       ) : (
         <button type="button" className="btn btn-brass w-fit" onClick={() => void pay()} disabled={phase !== "idle"} data-testid="usdg-pay-wallet">
-          {phase === "approving" ? "Approve in your wallet…" : phase === "paying" ? "Confirm in your wallet…" : `Pay ${formatUsdgDollars(order.price)} in USDG`}
+          {phase === "approving" ? "Approve in your wallet…" : phase === "paying" ? "Confirm in your wallet…" : `Pay ${u.dollars(order.price)} in USDG`}
         </button>
       )}
-      {phase !== "done" && !expired && order.signed && <p className="caption">Held for you for {left(order.deadlineMs - now)}.</p>}
+      {phase !== "done" && !expired && (order.signed || order.practice) && <p className="caption">Held for you for {left(order.deadlineMs - now)}.</p>}
       {msg && (
         <p role="alert" className="text-sm font-bold text-negative">
           {msg}
