@@ -403,9 +403,8 @@ export function checkPull(input: {
     const { pull } = gc.pullPack(type, pityBefore, { serverSeed: input.pull.seedReveal, accountId: input.accountId, season: input.pull.seasonNumber });
     checks.rarity = pull.rarity === input.pull.rarity && input.pull.pullIndex === pityBefore.pulls + 1;
     checks.pity = (pull.pityTriggered === "none" ? null : pull.pityTriggered) === (input.pull.pityApplied ?? null);
-    // A pull made before genetics v2 stored a version-1 genome: re-derive it with the v1 mint.
-    const v1 = (input.genome as { version?: unknown } | null)?.version === 1;
-    const expected = v1 ? gc.mintForVersion(pull.pullSeed, { season: input.pull.seasonNumber, rarity: pull.rarity }, 1) : pull.genome;
+    // The genome format of the pull's day: v1 before genetics v2, v2 without the cosmetic genes before them.
+    const expected = gc.expectedPullGenome({ ...pull, season: input.pull.seasonNumber }, input.genome);
     checks.genome = input.genome === null || jsonEqual(expected, input.genome);
     checks.sex = input.sex === null || gc.pullSex(pull) === input.sex;
   } catch {

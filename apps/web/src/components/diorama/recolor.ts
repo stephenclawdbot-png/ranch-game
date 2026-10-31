@@ -5,7 +5,7 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES, capPatternAt, jerseyPatternAt, paintRiderLook, prepareRider, resolveHorseColors, type CoatPalette } from "@thoroughbred/art-pipeline";
+import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
@@ -95,7 +95,7 @@ export function applyRecolor(data: Uint8ClampedArray, map: Map<number, number>):
 }
 
 export const lookKey = (l: DioramaHorseLook) =>
-  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null]) : ""}`;
+  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) : ""}`;
 
 const packHex = (h: string) => {
   const [r, g, b] = hexToRgb(h);
@@ -160,4 +160,103 @@ export function applyRiderLook(data: Uint8ClampedArray, width: number, height: n
   }
   // women's strips carry their own hair (keyed above): no drawn ponytail on top
   if (rider && a?.rider) paintRiderLook(data, width, height, frameWidth, rider, a.rider.gender === "f" ? { ...a.rider, long: false } : a.rider, { facingLeft });
+}
+
+// ---------------------------------------------------------------------------
+// Coat layers (patterns, markings, long hair): the same pattern definition as every other view
+// ---------------------------------------------------------------------------
+
+/** The coat-layer atlas file (1x), loaded by any scene that shows a player's horse. */
+export const COAT_ATLAS_SRC = "race/coat-layers.png";
+const FULL_KEYS = { ...KEYS, cap: KEYS.cap } as const;
+const geoCache = new Map<string, CoatGeometry>();
+
+/** Decode the atlas once from its loaded image. */
+let atlasMemo: { im: CanvasImageSource; atlas: CoatAtlas } | null = null;
+export function coatAtlasOf(im: HTMLImageElement | null | undefined): CoatAtlas | null {
+  if (!im || !im.width) return null;
+  if (atlasMemo?.im === im) return atlasMemo.atlas;
+  const c = document.createElement("canvas");
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext("2d", { willReadFrequently: true })!;
+  x.drawImage(im, 0, 0);
+  const atlas = atlasFromRgba(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height, 1);
+  atlasMemo = { im, atlas };
+  return atlas;
+}
+
+/**
+ * Paint one keyed horse sheet (unflipped, frames side by side) for a look: long hair, recolour and
+ * rider look (applyRiderLook), then the coat layers. `key` names the sheet (its geometry is cached).
+ */
+export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: number, frameWidth: number, look: DioramaHorseLook, atlas: CoatAtlas | null, key: string): void {
+  const a = look.appearance;
+  if (!a || !atlas) {
+    applyRiderLook(data, width, height, frameWidth, look, false);
+    return;
+  }
+  let geo = geoCache.get(key);
+  if (!geo) {
+    geo = buildCoatGeometry(rgbaRoleGrid(data, width, height, frameWidth, FULL_KEYS));
+    geoCache.set(key, geo);
+  }
+  const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false), sheetSpeed(key));
+  data.set(out);
+}
+
+/**
+ * The full-size sheet an N:1 copy was made from (art-src/coat-layers/lods.py), so a player's
+ * horse is painted at full size (where the coat geometry is reliable) and then reduced.
+ */
+export function fullSheetOf(src: string): { src: string; n: number } | null {
+  const m = /^(diorama\/horse-[a-z-]+?)(-f)?-s(\d)\.png$/.exec(src);
+  if (!m) return null;
+  const stem = m[1] === "diorama/horse-gallop" ? "race/horse-gallop" : m[1]!;
+  return { src: `${stem}${m[2] ?? ""}.png`, n: Number(m[3]) };
+}
+
+/** Whole-block N:1 downsample per frame (lods.py `down`): opaque at >= 45 %, most common colour, darkest wins ties. */
+export function downsampleSheet(data: Uint8ClampedArray, width: number, height: number, frames: number, n: number): { data: Uint8ClampedArray; width: number; height: number } {
+  const fw = Math.floor(width / frames);
+  const w = Math.ceil(fw / n);
+  const h = Math.ceil(height / n);
+  const out = new Uint8ClampedArray(w * frames * h * 4);
+  const counts = new Map<number, number>();
+  for (let f = 0; f < frames; f++)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        counts.clear();
+        let tot = 0;
+        let on = 0;
+        for (let dy = 0; dy < n; dy++)
+          for (let dx = 0; dx < n; dx++) {
+            const X = x * n + dx;
+            const Y = y * n + dy;
+            if (X >= fw || Y >= height) continue;
+            tot++;
+            const i = (Y * width + f * fw + X) * 4;
+            if (data[i + 3]! < 128) continue;
+            on++;
+            const k = (data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!;
+            counts.set(k, (counts.get(k) ?? 0) + 1);
+          }
+        if (!on || on < 0.45 * tot) continue;
+        let best = -1;
+        let bestN = 0;
+        for (const [k, c] of counts) {
+          const l = ((k >> 16) & 255) * 0.299 + ((k >> 8) & 255) * 0.587 + (k & 255) * 0.114;
+          const bl = best < 0 ? Infinity : ((best >> 16) & 255) * 0.299 + ((best >> 8) & 255) * 0.587 + (best & 255) * 0.114;
+          if (c > bestN || (c === bestN && l < bl)) {
+            best = k;
+            bestN = c;
+          }
+        }
+        const o = (y * w * frames + f * w + x) * 4;
+        out[o] = (best >> 16) & 255;
+        out[o + 1] = (best >> 8) & 255;
+        out[o + 2] = best & 255;
+        out[o + 3] = 255;
+      }
+  return { data: out, width: w * frames, height: h };
 }

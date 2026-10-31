@@ -5,7 +5,8 @@ import { RULES } from "../rules";
 import { horses, ledgerAccounts } from "../schema";
 import { breed } from "../services/breeding";
 import { listStuds, previewPairing } from "../services/economyViews";
-import { ensureHouseStuds, HOUSE_STUD_COUNT, houseStudSpec } from "../services/houseStuds";
+import { ensureHouseStuds, HOUSE_STUD_COUNT, HOUSE_STUD_FEES, houseStudSpec } from "../services/houseStuds";
+import { gameCoreHooks, gc } from "../gameCore";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { at, DAY, makeHorse, memoryDb, newPlayer, T0 } from "./helpers";
 
@@ -32,6 +33,36 @@ describe("Club house stallions at stud", () => {
     expect(a.spec.name).toBe(b.spec.name);
     expect(a.spec.sex).toBe("male");
     expect(["common", "uncommon", "rare"]).toContain(houseStudSpec(2, 1).rarity);
+  });
+
+  it("rare colours come only from replacement stallions: every third one stands for one, on a weak genome at the common fee", () => {
+    const seen: string[] = [];
+    for (let n = 0; n < HOUSE_STUD_COUNT + 18; n++) {
+      const s = houseStudSpec(n, 1);
+      const g = s.spec.genome as gc.Genome;
+      const carried = gc.carriedRareColours(g);
+      if (n < HOUSE_STUD_COUNT || (n - HOUSE_STUD_COUNT) % 3 !== 0) {
+        expect(s.rareColour).toBeNull();
+        expect(carried).toEqual([]);
+        continue;
+      }
+      expect(s.rareColour).not.toBeNull();
+      expect(carried).toEqual([s.rareColour]);
+      expect(gc.rareShows(g, s.rareColour!)).toBe(true);
+      expect(s.rarity).toBe("common");
+      expect(s.fee).toBe(HOUSE_STUD_FEES.common);
+      seen.push(s.rareColour!);
+    }
+    expect(new Set(seen)).toEqual(new Set(gc.RARE_COLOURS));
+  });
+
+  it("Club sale lots, leases and runners (the houseHorse hook) never carry a rare colour; pack foals may", () => {
+    for (let i = 0; i < 300; i++) {
+      const spec = gameCoreHooks.houseHorse!({ seed: `club-${i}`, index: i, rating: 50, season: 1, rarity: i % 2 ? "rare" : undefined } as never);
+      expect(gc.carriedRareColours(spec.genome as gc.Genome)).toEqual([]);
+    }
+    const pack = gameCoreHooks.packHorse!({ seed: "pack-x", rarity: "common", season: 1 } as never);
+    expect((pack.genome as gc.Genome).cosmetic).toBeDefined();
   });
 
   it("stand at stud idempotently, appear in the stud book, and breed with fees to the Club treasury", async () => {

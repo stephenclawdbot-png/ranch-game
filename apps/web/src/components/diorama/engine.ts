@@ -11,7 +11,7 @@
  * shadow, a few dozen 1-px motes, 2 ray sprites, a vignette sprite. All blurs are baked once.
  */
 import { computeFrame, lodStrip, MARGIN } from "./frame";
-import { applyRiderLook, lookKey } from "./recolor";
+import { COAT_ATLAS_SRC, coatAtlasOf, downsampleSheet, fullSheetOf, lookKey, paintHorseSheet } from "./recolor";
 import type { AnimItem, Layer, Overlay, RaySet, SceneDef, StaticItem } from "./scenes";
 
 const ART = "/art/";
@@ -234,12 +234,18 @@ export class DioramaEngine {
     const s = this.scene;
     if (s.sky.src) files.add(s.sky.src);
     const addA = (a: AnimItem) => {
-      files.add(a.src);
+      // a player's horse is painted on the full-size sheet and reduced (the coat layers need it)
+      const add = (src: string) => {
+        files.add(src);
+        const full = a.look?.appearance ? fullSheetOf(src) : null;
+        if (full) files.add(full.src);
+      };
+      add(a.src);
       if (a.lod) for (let f = 2; f <= 4; f++) {
         const v = lodStrip(a, f);
-        if (v) files.add(v.src);
+        if (v) add(v.src);
       }
-      if (a.roam) files.add(a.roam.rest.src);
+      if (a.roam) add(a.roam.rest.src);
       a.with?.forEach(addA);
     };
     for (const l of s.layers) {
@@ -248,7 +254,13 @@ export class DioramaEngine {
       l.anims?.forEach(addA);
     }
     s.overlays?.forEach((o) => files.add(o.src));
+    // a player's horse wears its coat layers (patterns, markings, long hair): load the atlas
+    let looks = false;
+    const hasLook = (a: AnimItem): boolean => !!a.look?.appearance || !!a.with?.some(hasLook);
+    for (const l of s.layers) if (l.anims?.some(hasLook)) looks = true;
+    if (looks) loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     await Promise.all([...files].map(async (f) => this.images.set(f, await loadImage(f))));
+    if (looks && !this.images.has(COAT_ATLAS_SRC)) await loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     if (this.destroyed) return;
     this.bake();
   }
@@ -522,21 +534,43 @@ export class DioramaEngine {
       else {
         const c = canvas(im.width, im.height);
         const x = ctx2d(c);
+        // paint the look on the unflipped sheet (the coat geometry reads horses facing right),
+        // then mirror each frame in place (keeps frame order)
+        let src: CanvasImageSource = im;
+        if (a.look) {
+          const atlas = coatAtlasOf(this.images.get(COAT_ATLAS_SRC));
+          const full = a.look.appearance && atlas ? fullSheetOf(v.src) : null;
+          const fim = full ? this.images.get(full.src) : undefined;
+          const pc = canvas(im.width, im.height);
+          const px = ctx2d(pc);
+          if (full && fim) {
+            // paint at full size, then the same whole-block reduction the N:1 copies were made with
+            const fc = canvas(fim.width, fim.height);
+            const fx = ctx2d(fc);
+            fx.drawImage(fim, 0, 0);
+            const fd = fx.getImageData(0, 0, fc.width, fc.height);
+            paintHorseSheet(fd.data, fc.width, fc.height, Math.floor(fc.width / v.frames), a.look, atlas, full.src);
+            const small = downsampleSheet(fd.data, fc.width, fc.height, v.frames, full.n);
+            const id = px.createImageData(pc.width, pc.height);
+            for (let y = 0; y < Math.min(small.height, pc.height); y++) id.data.set(small.data.subarray(y * small.width * 4, y * small.width * 4 + Math.min(small.width, pc.width) * 4), y * pc.width * 4);
+            px.putImageData(id, 0, 0);
+          } else {
+            px.drawImage(im, 0, 0);
+            const d = px.getImageData(0, 0, pc.width, pc.height);
+            paintHorseSheet(d.data, pc.width, pc.height, v.fw, a.look, atlas, v.src);
+            px.putImageData(d, 0, 0);
+          }
+          src = pc;
+        }
         if (a.flip) {
-          // flip each frame in place (keeps frame order)
           for (let f = 0; f < v.frames; f++) {
             x.save();
             x.translate(f * v.fw + v.fw, 0);
             x.scale(-1, 1);
-            x.drawImage(im, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
+            x.drawImage(src, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
             x.restore();
           }
-        } else x.drawImage(im, 0, 0);
-        if (a.look) {
-          const d = x.getImageData(0, 0, c.width, c.height);
-          applyRiderLook(d.data, c.width, c.height, v.fw, a.look, !!a.flip);
-          x.putImageData(d, 0, 0);
-        }
+        } else x.drawImage(src, 0, 0);
         this.gradeSprite(c);
         strip = c;
       }

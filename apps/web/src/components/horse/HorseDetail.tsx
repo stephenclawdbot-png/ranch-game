@@ -25,8 +25,6 @@ import { SplitsPanel } from "../formBook/SplitsPanel";
 export { PositionBadge };
 
 const FACE_LABEL = { none: "No face markings", star: "Star", snip: "Snip", stripe: "Stripe", blaze: "Blaze", bald: "Bald face" } as const;
-/** Visible genetics v2 traits (game-core visibleTraits) that the genetic 3/4 portrait draws. */
-const PORTRAIT_DRAWN_TRAITS = new Set(["Champagne", "Silver", "Pearl", "Tobiano", "Few-spot", "Leopard", "Varnish roan", "Splash white"]);
 const LEG_LABEL: Record<LegMarking, string> ={ none: "", coronet: "coronet", sock: "sock", stocking: "stocking" };
 const LEG_NAMES = ["near fore", "off fore", "near hind", "off hind"];
 
@@ -324,7 +322,7 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
         Genetics
       </h2>
       <p className="mt-1 text-sm text-cream-dim">
-        {gen.coat.name}
+        {gen.coat.fullName ?? gen.coat.name}
         {gen.coat.bornAs ? ` — born ${gen.coat.bornAs.toLowerCase()}, greying with career` : ""}. The genotype behind the coat.
       </p>
       <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
@@ -363,6 +361,25 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
               ))}
             </tbody>
           </table>
+          {(gen.cosmetic?.length ?? 0) > 0 && (
+                      <table className="mt-4 w-full text-sm" data-testid="genetics-cosmetic">
+              <caption className="label mb-1 text-left">Shades and rare colours (looks only)</caption>
+              <tbody>
+                {(gen.cosmetic ?? []).map((l) => (
+                  <tr key={l.locus} className="border-t-2 border-dotted border-line">
+                    <th scope="row" className="py-1.5 pr-2 text-left font-bold">
+                      {l.locus}
+                    </th>
+                    <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
+                    <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
+                      {l.meaning}
+                      {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
         <div className="grid content-start gap-3">
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
@@ -385,12 +402,8 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
               <>
                 <dt className="label self-center">Markings</dt>
                 <dd className="min-w-0" data-testid="genetics-traits">
+                  {/* every view draws them (coat audit): portrait, race, 3D, yard and sprites */}
                   <span className="font-bold">{gen.traits.join(", ")}</span>
-                  {/* The genetic 3/4 portrait draws the v2 colours and white patterns; the
-                      breed looks (feathering, curled ears, dish) are not drawn yet (docs/genetics-v2.md). */}
-                  {gen.traits.some((t) => !PORTRAIT_DRAWN_TRAITS.has(t)) && (
-                    <span className="t-meta block">Not shown on the portrait yet: {gen.traits.filter((t) => !PORTRAIT_DRAWN_TRAITS.has(t)).join(", ")}</span>
-                  )}
                 </dd>
               </>
             )}

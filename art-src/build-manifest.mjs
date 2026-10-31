@@ -128,6 +128,16 @@ for (const r of [...R]) {
   });
 }
 
+// Coat layers (coat audit): every pattern, marking, shade and the feathered long hair, painted by
+// PixelLab on one reference horse and stored in horse space (art-src/coat-layers), one cell per
+// drawn variant; race strips, 3D, ranch and sprites read the 1x atlas, portraits the 2x one.
+const COAT_LAYER_PROMPT =
+  "inpaint-v3 on the reference horse (diorama/horse-loose-idle frame 0, plain chestnut, 2x) per layer variant (prompts in art-src/coat-layers/jobs.mjs), read back into horse space (body, face, legs, tail) by art-src/coat-layers/extract.ts";
+R.push(
+  { id: "horse.coat-layers", kind: "horse_markings", depthBand: "track", src: "race/coat-layers.png", frameCount: 1, variants: ["coat-layer-atlas"], optimizationTier: "hero", sourcePrompt: COAT_LAYER_PROMPT },
+  { id: "horse.coat-layers.2x", kind: "horse_markings", depthBand: "overlay", src: "portraits/coat-layers-2x.png", frameCount: 1, variants: ["coat-layer-atlas"], optimizationTier: "hero", sourcePrompt: COAT_LAYER_PROMPT },
+);
+
 const assets = [];
 for (const r of R) {
   const file = join(ROOT, r.src);

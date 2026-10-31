@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, pangare: pale mealy cream colour only around the muzzle and the eyes, under the belly, in the flanks and on the inside of the upper legs; the back, neck and shoulders stay exactly the same chestnut",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9471,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f1e79e84-c253-46ee-92cb-7403031a78db",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "f1e79e84-c253-46ee-92cb-7403031a78db",
+  "status": "completed",
+  "created_at": "2026-10-31T20:33:04.195269+00:00",
+  "last_response": {
+   "seed": 9471,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<26496 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "1213a43d-292b-44c9-ab80-6abef92e95ef",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<26496 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:33:10.640073+00:00",
+   "original_image_n_colors": 23,
+   "quantized_image_n_colors": 22
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/pangare-1-9471-0.png"
+ ]
+}

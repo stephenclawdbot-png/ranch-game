@@ -31,13 +31,19 @@ const RARITY_CYCLE = ["uncommon", "common", "rare", "uncommon"] as const;
 /** Stud fees by rarity (credits). The breeding base fee (1,500, burned) comes on top. */
 export const HOUSE_STUD_FEES: Record<(typeof RARITY_CYCLE)[number], number> = { common: 250, uncommon: 400, rare: 700 };
 
-/** The house stallion with serial `n`: deterministic genome, name and fee. */
+/**
+ * The house stallion with serial `n`: deterministic genome, name and fee. Rare colours (owner
+ * decision, game-core cosmetic.ts) enter the game here: every third replacement stallion stands
+ * for one rare colour gene on a weak genome (common rarity, the common fee: no price premium).
+ */
 export function houseStudSpec(n: number, season: number) {
-  const rarity = RARITY_CYCLE[n % RARITY_CYCLE.length]!;
-  const genome = gc.generateFoundationGenome(gc.seedFrom("house-stud", n), { season, rarity });
+  const rare = gc.houseStudRareColour(n, HOUSE_STUD_COUNT);
+  const rarity = rare ? "common" : RARITY_CYCLE[n % RARITY_CYCLE.length]!;
+  const minted = gc.generateFoundationGenome(gc.seedFrom("house-stud", n), { season, rarity, ...(rare ? { rareColours: rare } : {}) });
+  const genome = rare ? gc.showRareColour(minted, rare) : minted;
   const name = gc.clubHorseName(new gc.Rng(`house-stud|${n}|name`));
   const spec = specFromGenome({ genome, name, sex: "colt", careSessions: gc.CARE_TO_RACING, season });
-  return { spec: { ...spec, rating: gc.INITIAL_OR }, rarity, fee: HOUSE_STUD_FEES[rarity] };
+  return { spec: { ...spec, rating: gc.INITIAL_OR }, rarity, fee: HOUSE_STUD_FEES[rarity], rareColour: rare };
 }
 
 const houseStudWhere = () => and(isNull(horses.ownerStableId), eq(horses.origin, "house"), isNotNull(horses.studFee));
@@ -68,13 +74,13 @@ export async function ensureHouseStuds(db: Db, now: Date): Promise<{ created: nu
     const season = seasonNumberAt(now);
     let created = 0;
     for (let n = all.length; n < all.length + Math.max(0, HOUSE_STUD_COUNT - available); n++) {
-      const { spec, fee, rarity } = houseStudSpec(n, season);
+      const { spec, fee, rarity, rareColour } = houseStudSpec(n, season);
       const id = await insertHorse(tx, { stableId: null, spec, origin: "house", birthSeasonNumber: season, now });
       await tx
         .update(horses)
         .set({ careerStatus: "retired", retirementReason: "choice", retiredAt: now, studFee: fee, dynamics: { houseStud: n, retiredAtStarts: 0 } })
         .where(eq(horses.id, id));
-      await audit(tx, { actor: null, action: "house_stud.stand", entityType: "horse", entityId: id, data: { serial: n, rarity, fee, season } });
+      await audit(tx, { actor: null, action: "house_stud.stand", entityType: "horse", entityId: id, data: { serial: n, rarity, fee, season, ...(rareColour ? { rareColour } : {}) } });
       created++;
     }
     return { created, retired };

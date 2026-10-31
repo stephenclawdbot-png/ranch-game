@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, tobiano pinto: large smooth-edged pure white patches crossing over the back and down the flanks and the neck, white legs below the knees and hocks, the head stays chestnut",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9101,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "086a22b9-aae0-46c8-8128-acd3f5fe1f13",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "086a22b9-aae0-46c8-8128-acd3f5fe1f13",
+  "status": "completed",
+  "created_at": "2026-10-31T20:05:10.417392+00:00",
+  "last_response": {
+   "seed": 9101,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<25316 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "98147a0b-4b20-42a4-9b66-4dc9661a0cca",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<25316 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:05:16.831982+00:00",
+   "original_image_n_colors": 23,
+   "quantized_image_n_colors": 21
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/tobiano-1-9101-0.png"
+ ]
+}

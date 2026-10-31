@@ -7,6 +7,7 @@ export * from "./rng";
 export * from "./time";
 export * from "./genome";
 export * from "./coat";
+export * from "./cosmetic";
 export * from "./genetics";
 export * from "./geneticsSummary";
 export * from "./condition";

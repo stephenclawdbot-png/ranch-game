@@ -314,9 +314,40 @@ export function coatPaletteOf(appearance: HorseAppearance): CoatPalette {
   if (col.silver) p = silverOf(p, col);
   if (col.pearl) p = pearlOf(p, col);
   if (col.splash) p.eye = BLUE_EYE; // splash white: blue eyes
+  if (col.mushroom) p = mushroomOf(p, col);
+  if (col.flaxen) p.mane = FLAXEN_MANE;
+  if (col.dominantWhite) p = { ...DOMINANT_WHITE };
   p.texture = col.grey === "greying" ? "dapple" : col.roan ? "roan" : "none";
   return p;
 }
+
+// --- Cosmetic colours (coat audit): mushroom, flaxen, dominant white ---------------------
+
+/** Mushroom (mu/mu on chestnut): a soft grey-brown body, a paler flaxen-grey mane. */
+const MUSHROOM: CoatAnchor = { body: "#a8927c", shade: "#7c6857", highlight: "#c7b39c", mane: "#cdbfa9", points: "#97806b" };
+function mushroomOf(p: CoatPalette, col: HorseColour): CoatPalette {
+  const lift = col.cream === 2 ? 0.6 : col.cream === 1 ? 0.3 : 0;
+  const dark = col.base === "liver" ? 0.22 : 0;
+  const tone = (hex: string) => {
+    const t = lift > 0 ? mixOklab(hex, IVORY, lift) : hex;
+    return dark > 0 ? mixOklab(t, "#3a2a20", dark) : t;
+  };
+  return { ...p, body: tone(MUSHROOM.body), shade: tone(MUSHROOM.shade), highlight: tone(MUSHROOM.highlight), mane: tone(MUSHROOM.mane), points: tone(MUSHROOM.points), hoof: scaleLightness(MUSHROOM.points, 0.7) };
+}
+/** Flaxen: a pale, wheat-blond mane and tail on a chestnut. */
+const FLAXEN_MANE = "#e3cf9f";
+/** Dominant white: white hair from birth on pink skin, dark eyes. */
+const DOMINANT_WHITE: CoatPalette = {
+  body: "#f1eee6",
+  shade: "#cbc6bb",
+  highlight: "#ffffff",
+  mane: "#f3f0e9",
+  hoof: "#b9ab98",
+  points: "#ece8df",
+  muzzle: "#d9a99a",
+  texture: "none",
+  eye: "#2a1d18",
+};
 
 // --- Genetics v2 colour genes (champagne, silver, pearl) ---------------------------------
 

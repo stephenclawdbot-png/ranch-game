@@ -241,7 +241,7 @@ export const gameCoreHooks: GameHooks = {
     return specFromGenome({ genome: s.genome, name: s.name, sex: s.sex === "filly" ? "filly" : "colt", careSessions: gc.CARE_TO_RACING, season: season ?? 1 });
   },
   packHorse: ({ seed, rarity, season, genome, sex }) => {
-    const g = genomeOf(genome) ?? gc.generateFoundationGenome(seed, { season: season ?? 1, rarity });
+    const g = genomeOf(genome) ?? gc.generateFoundationGenome(seed, { season: season ?? 1, rarity, rareColours: "natural" });
     const rng = new gc.Rng(`${seed}|pack-name`);
     return specFromGenome({ genome: g, name: gc.clubHorseName(rng), sex: sex ?? (rng.chance(500) ? "colt" : "filly"), careSessions: 0, season: season ?? 1 });
   },

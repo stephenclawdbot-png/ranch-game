@@ -7,7 +7,7 @@
  */
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { commitSeed, mintForVersion, pullPack, pullSex, NEW_PITY, type PackType, type PityState } from "@thoroughbred/game-core";
+import { commitSeed, expectedPullGenome, pullPack, pullSex, NEW_PITY, type PackType, type PityState } from "@thoroughbred/game-core";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { HashValue } from "@/components/ui/HashValue";
 import type { PullProofView } from "@/lib/economyTypes";
@@ -64,8 +64,8 @@ export function recheck(p: PullProofView): LocalCheck {
     rolled: pull.rarity,
     roll: pull.roll,
     pityRule: (pull.pityTriggered === "none" ? null : pull.pityTriggered) === p.pull.pityApplied,
-    // A pull made before genetics v2 stored a version-1 genome: re-derive it with the v1 mint.
-    genome: p.genome === null || jsonEqual((p.genome as { version?: unknown }).version === 1 ? mintForVersion(pull.pullSeed, { season: p.seasonNumber, rarity: pull.rarity }, 1) : pull.genome, p.genome),
+    // The genome format of the pull's day (v1 before genetics v2; v2 without the cosmetic genes before them).
+    genome: p.genome === null || jsonEqual(expectedPullGenome({ ...pull, season: p.seasonNumber }, p.genome), p.genome),
     sex: p.sex === null || pullSex(pull) === p.sex,
   };
 }

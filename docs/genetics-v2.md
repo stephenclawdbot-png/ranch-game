@@ -323,6 +323,11 @@ Each visual ticket adds its genes to **every** row:
 | Sabino, tobiano, leopard, splash | patterns | patterns | patterns | patterns (neck and face only) | patterns |
 | Breed shapes, size, feathering, curled ears, sheen | breed looks | breed looks | breed looks | breed looks (ears, mane, sheen) | breed looks |
 
+Status (coat audit, 2026-11-01): every row above is drawn in every renderer from one per-horse
+pattern definition (art-pipeline `coatPatternOf`, layers painted by PixelLab once and placed in
+horse space by the shared coat geometry), feathering included (drawn in code), plus the new shade
+modifiers and rare colours. See docs/reports/2026-11-01 coat rendering audit.md.
+
 Every visual ticket's acceptance includes a 390 px race screenshot (Trackside at race size),
 a classic 3D screenshot, and the Stable band, alongside the `/dev/coats` gallery.
 

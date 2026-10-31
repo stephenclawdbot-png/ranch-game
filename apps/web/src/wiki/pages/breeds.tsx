@@ -95,7 +95,7 @@ export default function BreedsPage() {
         </p>
       </Callout>
       <P>
-        The portraits show the coat and markings. They don&rsquo;t draw breed shapes, size or the new patterns yet; the horse page lists those by name (see <WikiLink slug="coats-and-markings" />).
+        The portraits show the coat, every colour and white pattern and the markings, and each breed&rsquo;s head; the race and yard sprites draw the same coat and patterns (see <WikiLink slug="coats-and-markings" />).
       </P>
 
       <H2 id="breed-percent">Breed %: foals are the average</H2>

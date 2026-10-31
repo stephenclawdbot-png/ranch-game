@@ -365,7 +365,7 @@ describe("breeding preview: exact Mendelian odds for the new loci", () => {
 
 describe("geneticsSummary: one line per new locus", () => {
   const g0 = v2Neutral(generateFoundationGenome("g2-summary", { season: 1 }));
-  const withG2 = (genes2: Partial<Genome["genes2"]>, coat: Partial<Genome["coat"]> = {}): Genome => ({ ...g0, coat: { ...g0.coat, ...coat }, genes2: { ...WILD_GENES2, ...genes2 } });
+  const withG2 = (genes2: Partial<Genome["genes2"]>, coat: Partial<Genome["coat"]> = {}): Genome => ({ ...g0, coat: { ...g0.coat, ...coat }, genes2: { ...WILD_GENES2, ...genes2 }, cosmetic: undefined });
   const summary = (g: Genome, heartKnown = true) => geneticsSummary(g, appearanceOf(g, { racingAge: true, starts: 0, retired: false }, SILKS), [], { heartKnown });
   const line = (g: Genome, locus: string) => summary(g).genes2.find((l) => l.locus === locus)!;
 

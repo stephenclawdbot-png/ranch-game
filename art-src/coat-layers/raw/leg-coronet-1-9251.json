@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, a thin pure white coronet band just above each hoof on all four legs",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<4300 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9251,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b8bdc36b-9fd4-4f32-a4a3-3f754a860b6a",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "b8bdc36b-9fd4-4f32-a4a3-3f754a860b6a",
+  "status": "completed",
+  "created_at": "2026-10-31T20:17:05.239554+00:00",
+  "last_response": {
+   "seed": 9251,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<20760 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "989fd50d-a51c-4c20-a91a-119d14dbbb55",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<20760 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:17:11.767395+00:00",
+   "original_image_n_colors": 18,
+   "quantized_image_n_colors": 18
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/leg-coronet-1-9251-0.png"
+ ]
+}

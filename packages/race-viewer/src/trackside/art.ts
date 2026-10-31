@@ -7,7 +7,8 @@
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
-import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
+import { atlasFromRgba, buildCoatGeometry, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
+import { downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
 import type { AnimId } from "../stage/motion";
 import type { RaceStage } from "../stage/buildRaceStage";
 
@@ -38,6 +39,11 @@ export interface StripSet {
   silk: Float32Array;
   /** Marking masks at lods[0] resolution (RGBA grid; R region, G param, B face edge). */
   mask: Uint8Array;
+  /** Horse-space coordinates for the coat layers (strips.coatMasks): body u/v, and leg/face/tail params. */
+  maskUv: Uint8Array;
+  maskPq: Uint8Array;
+  /** Barrel depth of this strip (texels at lods[0]): the coat layers' unit. */
+  geoH: number;
   /** Source texels per metre (the idle strip is authored a little larger). */
   pxPerM: number;
 }
@@ -52,6 +58,8 @@ export interface TracksideArt {
   images: Map<BackdropStem, HTMLImageElement>;
   /** The race's course scenery art (only that course's files are fetched). */
   course: Map<CourseArtSrc, HTMLImageElement>;
+  /** The coat-layer atlas (race/coat-layers.png); null when it is missing (no patterns drawn). */
+  atlas: CoatAtlas | null;
 }
 
 const base = (art: ArtSet) => art.base.replace(/\/$/, "");
@@ -96,7 +104,11 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
   const l1 = indexStrip(rgba, img.naturalWidth, fh, frames, palette, anchor, nrm);
   if (!l1) return null;
   const lods = [l1, downsampleFrames(l1, 2, palette), downsampleFrames(l1, 3, palette), downsampleFrames(l1, 4, palette)];
-  const mask = buildMarkMasks(l1, palette, keys);
+  const geo = buildCoatGeometry(indexedRoleGrid(l1, palette, keys));
+  // the feathered horse's long hair, grown once per strip (it streams back by the strip's speed)
+  const hair = stripLongHair(l1, palette, keys, geo, sheetSpeed(`race/${stem}`));
+  const mask = buildMarkMasks(l1, palette, keys, geo, hair);
+  const cm = coatMasks(l1, geo, hair, palette);
   // women riders: the -f strip's differences go into the same mask (one strip for every runner)
   const fEntry = approved(art, `${stem}-f.png`);
   const fImg = fEntry?.src ? await loadImg(urlOf(art, fEntry.src)).catch(() => null) : null;
@@ -104,7 +116,7 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
     const lf = indexStrip(pixels(fImg), img.naturalWidth, fh, frames, palette, anchor, null);
     if (lf) womanMasks(l1, lf, mask);
   }
-  return { lods, silk: new Float32Array(0), mask, pxPerM };
+  return { lods, silk: new Float32Array(0), mask, maskUv: cm.uv, maskPq: cm.pq, geoH: cm.H, pxPerM };
 }
 
 /** A course's scenery art (manifest src paths), approved files only; missing ones are skipped. */
@@ -202,5 +214,15 @@ export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null
       if (im) images.set(stem, im);
     }),
   );
-  return { palette, keys, gallop, idle, strips, images, course: await coursePending };
+  return { palette, keys, gallop, idle, strips, images, course: await coursePending, atlas: await loadCoatAtlas(art) };
+}
+
+/** The coat-layer atlas from the art drop (1x: race/coat-layers.png, or 2x for portraits). */
+export async function loadCoatAtlas(art: ArtSet, scale: 1 | 2 = 1): Promise<CoatAtlas | null> {
+  if (!art.manifest || typeof document === "undefined") return null;
+  const e = approved(art, scale === 2 ? "coat-layers-2x.png" : "coat-layers.png");
+  if (!e?.src) return null;
+  const img = await loadImg(urlOf(art, e.src));
+  if (!img) return null;
+  return atlasFromRgba(pixels(img), img.naturalWidth, img.naturalHeight, scale);
 }

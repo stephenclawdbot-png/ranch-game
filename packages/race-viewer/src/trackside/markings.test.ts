@@ -89,6 +89,6 @@ describe("marking masks", () => {
     expect(r).toBe(MARK_REGION.face);
     expect(g!).toBeGreaterThan(0); // past the brow
     expect(b).toBe((45 - 38) * 32); // 7 texels from the profile edge
-    expect(at(44, 4)[0]).toBe(0); // mane tuft: no face paint
+    expect(at(44, 4)[0]).toBe(MARK_REGION.mane); // mane tuft: the mane (never face paint)
   });
 });

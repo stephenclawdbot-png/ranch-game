@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, maximum sabino: mostly white body with ragged lacy edges, white legs and a white face, only the ears, the top of the head and a few patches on the chest and flank stay chestnut",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9181,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "87561800-4673-477c-ad83-2b0337ad50d3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "87561800-4673-477c-ad83-2b0337ad50d3",
+  "status": "completed",
+  "created_at": "2026-10-31T20:13:59.340447+00:00",
+  "last_response": {
+   "seed": 9181,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29092 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "04008f4b-51e9-40f0-be66-8825b3b86f53",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29092 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:14:05.75979+00:00",
+   "original_image_n_colors": 26,
+   "quantized_image_n_colors": 22
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/sabino2-1-9181-0.png"
+ ]
+}

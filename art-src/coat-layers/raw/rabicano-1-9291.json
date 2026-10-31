@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, rabicano: white ticking hairs on the flanks and the belly near the hind legs, and a white skunk tail base with white hairs at the top of the tail",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7052 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9291,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ff668836-d966-465d-bcc6-cc8e31d1be67",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "ff668836-d966-465d-bcc6-cc8e31d1be67",
+  "status": "completed",
+  "created_at": "2026-10-31T20:19:14.206281+00:00",
+  "last_response": {
+   "seed": 9291,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29048 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "07ec11f2-8457-4db9-8d4e-c688ed6a0961",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29048 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:19:20.637891+00:00",
+   "original_image_n_colors": 24,
+   "quantized_image_n_colors": 21
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/rabicano-1-9291-0.png"
+ ]
+}

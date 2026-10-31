@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, a young horse turning grey: white hairs mixed into the coat around the eyes, the face and the muzzle, a few on the neck and flanks",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9310,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "f9d92010-4420-41eb-aa17-6a97fef0cfcd",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "f9d92010-4420-41eb-aa17-6a97fef0cfcd",
+  "status": "completed",
+  "created_at": "2026-10-31T20:19:42.966900+00:00",
+  "last_response": {
+   "seed": 9310,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29592 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "bf0fc486-9285-4d5f-a4d6-6fa59b1ae014",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<29592 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:19:49.44043+00:00",
+   "original_image_n_colors": 23,
+   "quantized_image_n_colors": 20
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/greying-0-9310-0.png"
+ ]
+}

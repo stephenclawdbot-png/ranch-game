@@ -5,3 +5,8 @@ export * from "./adapters";
 export * from "./portrait34";
 export * from "./riderLook";
 export * from "./portraitShape";
+export * from "./coatGeometry";
+export * from "./coatLayers";
+export * from "./portraitCoat";
+export * from "./coatSheets";
+export * from "./longHair";

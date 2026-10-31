@@ -13,9 +13,9 @@
  * deriveSeed(serverSeed, "pack:<account>:<pack>:<pullIndex>"), so after reveal anyone can
  * recompute the roll, the pity adjustment and the genome.
  */
-import type { Binding, Genome, PackPull, PackType, PityState, Rarity } from "./types";
+import type { Binding, Genome, GenomeV1, PackPull, PackType, PityState, Rarity } from "./types";
 import { RARITY_ORDER } from "./types";
-import { generateFoundationGenome, potentialCeiling } from "./genome";
+import { generateFoundationGenome, mintForVersion, potentialCeiling } from "./genome";
 import { commitSeed, deriveSeed, Rng } from "./rng";
 
 /** Published odds in basis points (sum 10,000). */
@@ -90,13 +90,29 @@ export function pullPack(pack: PackType, pity: PityState, ctx: PullContext): { p
       break;
     }
   }
-  const genome: Genome = generateFoundationGenome(pullSeed, { season: ctx.season, rarity });
+  // Pack foals carry the rare colour genes at their natural (population) frequency: no special odds.
+  const genome: Genome = generateFoundationGenome(pullSeed, { season: ctx.season, rarity, rareColours: "natural" });
   const next: PityState = { pulls: pity.pulls + 1, sinceRare: pity.sinceRare + 1, sinceEpic: pity.sinceEpic + 1 };
   for (const rule of PACK_PITY[pack]) if (rank(rarity) >= rank(rule.min)) next[rule.counter] = 0;
   return {
     pull: { pack, pullIndex, season: ctx.season, seedCommitment: commitSeed(ctx.serverSeed), pullSeed, rarity, pityTriggered, roll, genome },
     pity: next,
   };
+}
+
+/**
+ * The genome a revealed pull should have stored, under the genome format of its day: version 1
+ * (before genetics v2) re-derives with the v1 mint; a v2 genome stored before the cosmetic genes
+ * (no `cosmetic` field) is compared without them. Pull proofs compare the stored genome with this.
+ */
+export function expectedPullGenome(pull: Pick<PackPull, "pullSeed" | "rarity" | "season" | "genome">, stored: unknown): Genome | GenomeV1 {
+  const s = stored as { version?: unknown; cosmetic?: unknown } | null;
+  if (s?.version === 1) return mintForVersion(pull.pullSeed, { season: pull.season, rarity: pull.rarity }, 1);
+  if (s && s.cosmetic === undefined) {
+    const { cosmetic: _c, ...rest } = pull.genome;
+    return rest;
+  }
+  return pull.genome;
 }
 
 /** Re-derive a revealed pull and check every field. */

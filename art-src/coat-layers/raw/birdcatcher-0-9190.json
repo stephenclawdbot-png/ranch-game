@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, birdcatcher spots: scattered small round pure white freckles of one or two pixels on the body, shoulder and hindquarters",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7052 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9190,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1e715e94-65a2-4b01-8a17-1efaace5890c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "1e715e94-65a2-4b01-8a17-1efaace5890c",
+  "status": "completed",
+  "created_at": "2026-10-31T20:14:11.545275+00:00",
+  "last_response": {
+   "seed": 9190,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<26984 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "46042fe6-6980-4dfe-9536-bd1ca13b066b",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<26984 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:14:17.99532+00:00",
+   "original_image_n_colors": 21,
+   "quantized_image_n_colors": 19
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/birdcatcher-0-9190-0.png"
+ ]
+}

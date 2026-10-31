@@ -15,6 +15,10 @@ import {
   paintGeneticPortrait,
   portraitLookOf,
   reshapePortrait,
+  atlasFromRgba,
+  portraitCoatGeometry,
+  type CoatAtlas,
+  type CoatGeometry,
   type PaintedRamp,
 } from "@thoroughbred/art-pipeline";
 
@@ -97,6 +101,18 @@ function paintedRamp(coat: string): Promise<PaintedRamp> {
   return p;
 }
 
+/** The coat layers (2x atlas) and the still's horse-space geometry, decoded once. */
+let coatPromise: Promise<{ atlas: CoatAtlas; geo: CoatGeometry } | null> | null = null;
+function coatLayers(art: string): Promise<{ atlas: CoatAtlas; geo: CoatGeometry } | null> {
+  coatPromise ??= Promise.all([pixels(`${art}/coat-layers-2x.png`), pixels(`${art}/roles.png`)])
+    .then(([a, roles]) => ({ atlas: atlasFromRgba(a.data, a.w, a.h, 2), geo: portraitCoatGeometry(roles.data) }))
+    .catch(() => {
+      coatPromise = null;
+      return null;
+    });
+  return coatPromise;
+}
+
 function encode(data: Uint8ClampedArray, w: number, h: number): Promise<Blob> {
   const { ctx, encode: toBlob } = canvas(w, h);
   ctx.putImageData(new ImageData(new Uint8ClampedArray(data), w, h), 0, 0);
@@ -108,12 +124,13 @@ export async function renderGeneticPortrait(appearance: HorseAppearance, thumb: 
   const coat = appearance.coat;
   const look = portraitLookOf(appearance);
   const art = `${base}${ART}`;
-  const [strip, warp, roles, marks, ramp] = await Promise.all([
+  const [strip, warp, roles, marks, ramp, layers] = await Promise.all([
     pixels(anim ? `${art}/anim/horse-${coat}.png` : `${art}/horse-${coat}.png`),
     anim ? pixels(`${art}/anim/warp/horse-${coat}.png`) : Promise.resolve(null),
     pixels(`${art}/roles.png`),
     look.face !== "none" ? pixels(`${art}/portrait-marks.png`) : Promise.resolve(null),
     paintedRamp(coat),
+    coatLayers(art),
   ]);
   const frames = anim ? anim.frames : 1;
   if (strip.w !== S * frames || strip.h !== S || (warp && (warp.w !== strip.w || warp.h !== S))) throw new Error("portrait strip size mismatch");
@@ -132,7 +149,7 @@ export async function renderGeneticPortrait(appearance: HorseAppearance, thumb: 
     pixelsIn = r.pixels;
     warpIn = r.warp;
   }
-  const painted = paintGeneticPortrait(look, { pixels: pixelsIn, frames, kept: anim?.kept, warp: warpIn, roles: roles.data, marks: marks?.data ?? null, ramp, still: stillRef });
+  const painted = paintGeneticPortrait(look, { pixels: pixelsIn, frames, kept: anim?.kept, warp: warpIn, roles: roles.data, marks: marks?.data ?? null, ramp, still: stillRef, coat: layers });
   const out = thumb ? downsampleAlpha2x(painted, strip.w, S) : painted;
   const fw = thumb ? S / 2 : S;
   const w = fw * frames;

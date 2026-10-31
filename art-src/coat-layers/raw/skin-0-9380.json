@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, pink skin on the muzzle and the nose and around the eye",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2808 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9380,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6cf5c088-0aff-4beb-adc7-c30c7effcc90",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "6cf5c088-0aff-4beb-adc7-c30c7effcc90",
+  "status": "completed",
+  "created_at": "2026-10-31T20:23:13.654508+00:00",
+  "last_response": {
+   "seed": 9380,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<20348 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "9efb016d-2620-494d-a0f5-db1628311e54",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<20348 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:23:20.089953+00:00",
+   "original_image_n_colors": 23,
+   "quantized_image_n_colors": 22
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/skin-0-9380-0.png"
+ ]
+}

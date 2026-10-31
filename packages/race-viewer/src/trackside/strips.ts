@@ -9,13 +9,24 @@
  * zoomed-out horse is still hard-edged palette art, never a resampled blur.
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, coatPatternOf, GEO_REGION, longHair, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
  * 128 marking flags, 129 marking white, 130 dun stripe colour, 131..134 the rider's skin
- * (dark -> light), 135..137 the rider's hair, 138 rider flags, 139 spare. */
-export const LUT_W = 140;
+ * (dark -> light), 135..137 the rider's hair, 138 rider flags, 139 spare, then the coat
+ * pattern (art-pipeline coatPatternOf): 140..155 eight layer slots (params, colour), 156 face
+ * and feather cells and the slot count, 157 the four leg-marking cells. */
+export const LUT_W = 158;
+/** First coat-layer slot column (two columns per slot: R cell, G mode, B amount; then RGB colour). */
+export const LUT_SLOT_X = 140;
+export const LUT_SLOTS = 8;
+/** R face cell, G feathered long hair (1; 255 = none), B slot count. */
+export const LUT_CELLS_X = 156;
+/** RGBA: the leg-marking cell of front-left, front-right, hind-left, hind-right (255 = none). */
+export const LUT_LEGS_X = 157;
+/** Layer modes as the shader reads them. */
+export const MODE_ID: Record<string, number> = { white: 1, tick: 2, dark: 3, light: 4, skin: 5 };
 /** LUT columns of the rider's look (jockey looks): skin x4, hair x3, flags (R: has a look, G: long hair). */
 export const LUT_SKIN_X = 131;
 export const LUT_HAIR_X = 135;
@@ -39,7 +50,7 @@ export const FACE_ID: Record<string, number> = { none: 0, star: 1, snip: 2, stri
 export const COAT_PATTERN_ID: Record<string, number> = { none: 0, roan: 1, dapple: 2 };
 
 /** Marking mask regions (mask R channel). */
-export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9, womanTrim: 10, womanTexel: 11 } as const;
+export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9, womanTrim: 10, womanTexel: 11, mane: 12, tail: 13, hair: 16 } as const;
 
 export interface Palette {
   /** packed rgb per index; index 0 = transparent. */
@@ -240,237 +251,129 @@ export function primaryIndices(palette: Palette, keys: KeyPalette): Set<number> 
   return set;
 }
 
-/**
- * Marking masks at a strip's level of detail 0 (one RGBA texel per source texel, same
- * frame grid):
- *   R = region (MARK_REGION: 0 none, 1/2 front legs near/far, 3/4 hind legs near/far,
- *       5 face, 6 body),
- *   G = within-region param (legs: 0 at the hoof .. 1 where the leg ducks under the body;
- *       face: 0 at the brow .. 1 at the nose; body: texels below the spine * 32 over the
- *       barrel columns only, 0 elsewhere — the dun dorsal stripe key),
- *   B = face only: horizontal distance to the profile edge in texels * 32 (blaze width),
- *   A = 255.
- *
- * Everything is derived from the strip itself, once, from the key-palette roles: horse
- * pixels are coat/points/mane indices. The face is the top run of the columns right of
- * the shoulder (its outline walks up to the ears); leg pixels are the bottom runs that
- * drop at least 8 texels below the median belly line, clustered by column into up to two
- * legs per pair (the bigger cluster reads as the near leg; when both legs overlap only the
- * near one can show, which matches how the art is drawn). Higher levels of detail sample
- * this same texture at source resolution, so markings stay registered to the animation.
- */
-export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette): Uint8Array {
-  const set = (ramp?: string[]) => {
-    const s = new Set<number>();
+/** Role grid of an indexed strip for the shared coat geometry (art-pipeline coatGeometry). */
+export function indexedRoleGrid(src: IndexedFrames, palette: Palette, keys: KeyPalette): RoleGrid {
+  const roles = new Uint8Array(256).fill(4);
+  roles[0] = 0;
+  const put = (ramp: string[] | undefined, role: number) => {
     for (const h of ramp ?? []) {
       const i = palette.lookup.get(Number.parseInt(h.slice(1), 16));
-      if (i !== undefined) s.add(i);
+      if (i !== undefined) roles[i] = role;
     }
-    return s;
   };
-  const isCoat = set(keys.coat);
-  const isPoints = set(keys.points);
-  const isMane = set(keys.mane);
-  const isHorse = new Set<number>([...isCoat, ...isPoints, ...isMane]);
+  put(keys.coat, 1);
+  put(keys.points, 2);
+  put(keys.hoof, 2);
+  put(keys.mane, 3);
+  put(keys.cap, 5);
+  return {
+    frames: src.frames,
+    fw: src.fw,
+    fh: src.fh,
+    role(f, x, y) {
+      const [ox, oy] = frameOrigin(src, f);
+      return roles[src.index[(oy + y) * src.width + ox + x]!]!;
+    },
+  };
+}
+
+/**
+ * Marking masks at a strip's level of detail 0 (one RGBA texel per source texel, same frame
+ * grid), from the shared coat geometry (art-pipeline coatGeometry: the same horse spaces every
+ * view paints the coat layers in):
+ *   R = region (MARK_REGION: 1/2 front legs near/far, 3/4 hind legs near/far, 5 face, 6 body,
+ *       12 mane, 13 tail; + 16 for an empty texel where long hair may grow; 7..11 the rider),
+ *   G = legacy param (legs: 0 at the hoof .. 1 at the belly; face: brow .. nose; body: texels
+ *       under the top line * 32), B = face only: texels from the profile edge * 32.
+ * `coatMasks` (below) carries the horse-space coordinates the coat layers are sampled at.
+ */
+export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry = buildCoatGeometry(indexedRoleGrid(src, palette, keys)), hair: LongHair | null = null): Uint8Array {
   const out = new Uint8Array(src.width * src.height * 4);
   const { fw, fh } = src;
-  const idxAt = (f: [number, number], x: number, y: number) => src.index[(f[1] + y) * src.width + f[0] + x]!;
-  const roleAt = (f: [number, number], x: number, y: number): number => {
-    const k = idxAt(f, x, y);
-    if (!k || !isHorse.has(k)) return 0;
-    return isCoat.has(k) ? 1 : isPoints.has(k) ? 2 : 3; // 1 coat, 2 points (muzzle/lower leg), 3 mane
-  };
-  const paint = (f: [number, number], x: number, y: number, r: number, g: number, b: number) => {
-    const o = ((f[1] + y) * src.width + f[0] + x) * 4;
-    out[o] = r;
-    out[o + 1] = g;
-    out[o + 2] = b;
-    out[o + 3] = 255;
-  };
-
-  for (let fr = 0; fr < src.frames; fr++) {
-    const f = frameOrigin(src, fr);
-    // per-column runs of horse pixels (rows, gap break >= 3)
-    const runs: [number, number][][] = [];
-    let x0 = -1;
-    let x1 = -1;
-    for (let x = 0; x < fw; x++) {
-      const col: [number, number][] = [];
-      let top = -1;
-      let prev = -9;
-      for (let y = 0; y < fh; y++) {
-        if (!roleAt(f, x, y)) continue;
-        if (top < 0 || y - prev >= 3) {
-          if (top >= 0) col.push([top, prev]);
-          top = y;
-        }
-        prev = y;
-      }
-      if (top >= 0) col.push([top, prev]);
-      runs.push(col);
-      if (col.length) {
-        if (x0 < 0) x0 = x;
-        x1 = x;
-      }
-    }
-    if (x0 < 0 || x1 - x0 < 24) continue;
-    const W = x1 - x0;
-    const bots: number[] = [];
-    const tops: number[] = [];
-    for (let x = x0; x <= x1; x++) {
-      const col = runs[x]!;
-      if (!col.length) continue;
-      bots.push(col[col.length - 1]![1]);
-      if (x > x0 + W * 0.2 && x < x0 + W * 0.55) tops.push(col[0]![0]);
-    }
-    bots.sort((a, b) => a - b);
-    tops.sort((a, b) => a - b);
-    const belly = bots[Math.floor(bots.length / 2)]!;
-    const back = tops.length ? tops[Math.floor(tops.length / 2)]! : 0;
-
-    // ---- face: top run of the columns right of the shoulder -----------------
-    const split = x0 + W * 0.55;
-    const headish = (x: number) => {
-      const r = runs[x]?.[0];
-      return !!r && x > split && r[0] <= back + 4 && r[1] <= belly + 16;
-    };
-    let hx1 = -1;
-    for (let x = fw - 1; x > split; x--) {
-      if (headish(x)) {
-        hx1 = x;
-        break;
-      }
-    }
-    const headCols: number[] = [];
-    if (hx1 >= 0) {
-      headCols.push(hx1);
-      let gap = 0;
-      for (let x = hx1 - 1; x > split + 4; x--) {
-        if (!headish(x)) {
-          if (++gap > 2) break;
+  for (let f = 0; f < src.frames; f++) {
+    const [ox, oy] = frameOrigin(src, f);
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const i = (f * fh + y) * fw + x;
+        const r = geo.region[i]!;
+        if (!r) {
+          // long hair grown where the horse has no region (strands past the outline): mane hair
+          if (hair && hair.key[i]! >= 0 && !src.index[(oy + y) * src.width + ox + x]) {
+            const o = ((oy + y) * src.width + ox + x) * 4;
+            out[o] = MARK_REGION.hair + MARK_REGION.mane;
+            out[o + 3] = 255;
+          }
           continue;
         }
-        gap = 0;
-        const r = runs[x]![0]!;
-        if (r[1] > belly + 6) break; // connected mass reaches past the chin: chest, not face
-        if (r[1] - r[0] >= 50 && hx1 - x >= 8) break; // into the neck: wide enough
-        headCols.push(x);
+        const o = ((oy + y) * src.width + ox + x) * 4;
+        const reg = r === GEO_REGION.mane ? MARK_REGION.mane : r === GEO_REGION.tail ? MARK_REGION.tail : r;
+        out[o] = reg + (geo.outside[i] ? MARK_REGION.hair : 0);
+        if (r >= 1 && r <= 5) out[o + 1] = Math.round(Math.min(1, Math.max(0, geo.p1[i]!)) * 255);
+        else if (r === GEO_REGION.body) out[o + 1] = Math.min(255, Math.max(0, Math.round(geo.v[i]! * 32)));
+        if (r === GEO_REGION.face) out[o + 2] = Math.min(255, Math.max(0, Math.round(geo.p2[i]! * 32)));
+        out[o + 3] = 255;
       }
-    }
-    const hx0 = headCols.length ? headCols[headCols.length - 1]! : -1;
-    let hy0 = fh;
-    let hy1 = 0;
-    for (const x of headCols) {
-      const r = runs[x]![0]!;
-      if (r[0] < hy0) hy0 = r[0];
-      if (r[1] > hy1) hy1 = r[1];
-    }
-    if (hx0 >= 0 && hx1 - hx0 >= 10 && hy1 - hy0 >= 12) {
-      const hh = hy1 - hy0;
-      const yBrow = hy0 + hh * 0.28; // below the ears, at the poll
-      const yNose = hy0 + hh * 0.94;
-      // paintable rows per column: the head's own run, never a leg connected below
-      const colBot = new Map<number, number>();
-      for (const x of headCols) colBot.set(x, Math.min(runs[x]![0]![1], Math.round(belly + 16)));
-      const inHead = (x: number, y: number) => roleAt(f, x, y) !== 0 && y <= colBot.get(x)!;
-      for (let y = hy0; y <= hy1; y++) {
-        // profile edge: rightmost head-run horse pixel of this row
-        let edge = -1;
-        for (const x of headCols) {
-          if (inHead(x, y)) edge = Math.max(edge, x);
-        }
-        if (edge < 0) continue;
-        const t = Math.min(1, Math.max(0, (y - yBrow) / Math.max(1, yNose - yBrow)));
-        for (const x of headCols) {
-          if (x > edge || !inHead(x, y)) continue;
-          const role = roleAt(f, x, y);
-          if (role !== 1 && role !== 2) continue; // paint over coat + muzzle, never mane/tack/ink
-          paint(f, x, y, MARK_REGION.face, Math.round(t * 255), Math.min(255, (edge - x) * 32));
-        }
-      }
-    }
-
-    // ---- legs: bottom runs dropping well below the belly --------------------
-    interface Leg {
-      cols: number[];
-      area: number;
-      centre: number;
-      near: boolean;
-    }
-    const legCols: { x: number }[] = [];
-    for (let x = x0; x <= x1; x++) {
-      const col = runs[x]!;
-      if (!col.length) continue;
-      const bot = col[col.length - 1]![1];
-      if (bot < belly + 8) continue;
-      // enough leg mass below the body line (the run may be broken by hoof gaps)
-      let mass = 0;
-      for (const [a, b] of col) mass += Math.max(0, b - Math.max(a, belly - 6) + 1);
-      if (mass < 4) continue;
-      legCols.push({ x });
-    }
-    const legs: Leg[] = [];
-    for (const c of legCols) {
-      const last = legs[legs.length - 1];
-      if (last && c.x - last.cols[last.cols.length - 1]! <= 3) last.cols.push(c.x);
-      else legs.push({ cols: [c.x], area: 0, centre: c.x, near: false });
-    }
-    // split clusters that straddle the fore/hind split line
-    const grouped: Leg[] = [];
-    for (const l of legs) {
-      l.centre = (l.cols[0]! + l.cols[l.cols.length - 1]!) / 2;
-      if (l.cols[0]! < split && l.cols[l.cols.length - 1]! > split) {
-        const lo = l.cols.filter((x) => x < split);
-        const hi = l.cols.filter((x) => x >= split);
-        if (lo.length && hi.length) {
-          grouped.push({ cols: lo, area: 0, centre: (lo[0]! + lo[lo.length - 1]!) / 2, near: false }, { cols: hi, area: 0, centre: (hi[0]! + hi[hi.length - 1]!) / 2, near: false });
-          continue;
-        }
-      }
-      grouped.push(l);
-    }
-    const assign = (group: Leg[]) => {
-      group.sort((a, b) => b.area - a.area);
-      group.forEach((l, i) => (l.near = i === 0));
-    };
-    for (const l of grouped) l.area = l.cols.reduce((n, x) => n + (runs[x]!.length ? runs[x]![runs[x]!.length - 1]![1] - Math.min(runs[x]![runs[x]!.length - 1]![0], belly) : 0), 0);
-    assign(grouped.filter((l) => l.centre < split));
-    assign(grouped.filter((l) => l.centre >= split));
-    for (const l of grouped) {
-      const region = l.centre >= split ? (l.near ? MARK_REGION.frontNear : MARK_REGION.frontFar) : l.near ? MARK_REGION.hindNear : MARK_REGION.hindFar;
-      for (const x of l.cols) {
-        const col = runs[x]!;
-        const bot = col[col.length - 1]![1];
-        // pin the leg top to the belly line; per-column runs fragment around hoof
-        // gaps, so paint every coat/points row below it, not just the last run
-        const effTop = belly - 6;
-        for (let y = Math.max(0, Math.round(effTop)); y <= bot; y++) {
-          const role = roleAt(f, x, y);
-          if (role !== 1 && role !== 2) continue;
-          const o = ((f[1] + y) * src.width + f[0] + x) * 4;
-          if (out[o]) continue; // face region wins where a foreleg overlaps the head
-          const h = (bot - y) / Math.max(1, bot - effTop);
-          paint(f, x, y, region, Math.round(Math.min(1, Math.max(0, h)) * 255), 0);
-        }
-      }
-    }
-
-    // ---- body: every other coat pixel (roan / dapple texture zone) ----------
-    // G carries texels below the spine over the barrel (rump .. shoulder), so the dun
-    // dorsal stripe hugs the back however the frame poses the horse.
-    for (let x = x0; x <= x1; x++) {
-      const col = runs[x]!;
-      const colTop = col?.length && x >= x0 + W * 0.08 && x <= split ? col[0]![0] : -1;
-      for (let y = 0; y < fh; y++) {
-        if (roleAt(f, x, y) !== 1) continue;
-        const o = ((f[1] + y) * src.width + f[0] + x) * 4;
-        if (out[o]) continue;
-        paint(f, x, y, MARK_REGION.body, colTop >= 0 ? Math.min(255, (y - colTop) * 32) : 0, 0);
-      }
-    }
   }
   riderMasks(src, palette, keys, out);
   return out;
+}
+
+/**
+ * Horse-space masks for the coat layers (same grid as buildMarkMasks):
+ *   uv: RG = body u, BA = body v, each (texels * 4 + 32768) as 16 bits (low byte first);
+ *   pq: R = leg g / face t (0..1) or tail a / 1.7, G = leg s / face e / tail l as 128 + texels * 4,
+ *       B = for long hair grown off a leg: the palette index of the leg texel it grows from.
+ */
+export function coatMasks(src: IndexedFrames, geo: CoatGeometry, hair: LongHair | null = null, palette: Palette | null = null): { uv: Uint8Array; pq: Uint8Array; H: number } {
+  const uv = new Uint8Array(src.width * src.height * 4);
+  const pq = new Uint8Array(src.width * src.height * 4);
+  const { fw, fh } = src;
+  const enc16 = (v: number) => Math.min(65535, Math.max(0, Math.round(v * 4) + 32768));
+  for (let f = 0; f < src.frames; f++) {
+    const [ox, oy] = frameOrigin(src, f);
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const i = (f * fh + y) * fw + x;
+        const r = geo.region[i]!;
+        if (!r) continue;
+        const o = ((oy + y) * src.width + ox + x) * 4;
+        const u = enc16(geo.u[i]!);
+        const v = enc16(geo.v[i]!);
+        uv[o] = u & 255;
+        uv[o + 1] = u >> 8;
+        uv[o + 2] = v & 255;
+        uv[o + 3] = v >> 8;
+        const p1 = r === GEO_REGION.tail ? geo.p1[i]! / 1.7 : geo.p1[i]!;
+        pq[o] = Math.round(Math.min(1, Math.max(0, p1)) * 255);
+        pq[o + 1] = Math.min(255, Math.max(0, Math.round(128 + geo.p2[i]! * 4)));
+        pq[o + 3] = 255;
+      }
+    // the feathered horse's long hair (art-pipeline longHair): its key's palette index in B
+    if (hair && palette)
+      for (let y = 0; y < fh; y++)
+        for (let x = 0; x < fw; x++) {
+          const i = (f * fh + y) * fw + x;
+          const k = hair.key[i]!;
+          if (k < 0) continue;
+          const pi = palette.lookup.get(k);
+          if (pi === undefined) continue;
+          const o = ((oy + y) * src.width + ox + x) * 4;
+          pq[o + 2] = pi;
+          pq[o + 3] = 255;
+        }
+  }
+  return { uv, pq, H: geo.H };
+}
+
+/** The long hair of an indexed strip (shared by every feathered runner). */
+export function stripLongHair(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry, speed: number): LongHair {
+  const grid = indexedRoleGrid(src, palette, keys);
+  const keyAt = (f: number, x: number, y: number) => {
+    const [ox, oy] = frameOrigin(src, f);
+    const k = src.index[(oy + y) * src.width + ox + x]!;
+    return k ? palette.colours[k]! : -1;
+  };
+  return longHair(grid, keyAt, geo, keys, speed);
 }
 
 /**
@@ -668,6 +571,57 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
       lut[so + 2] = n & 255;
       lut[so + 3] = 255;
     }
+    // the coat pattern: the same definition every view draws
+    const pat = coatPatternOf(a);
+    const layers = pat.layers.slice(0, LUT_SLOTS);
+    layers.forEach((L, k) => {
+      const po = (row * LUT_W + LUT_SLOT_X + k * 2) * 4;
+      lut[po] = L.cell;
+      lut[po + 1] = MODE_ID[L.mode] ?? 0;
+      lut[po + 2] = Math.round(Math.min(1, L.amount) * 255);
+      lut[po + 3] = 255;
+      const n = Number.parseInt(L.colour.slice(1), 16);
+      lut[po + 4] = (n >> 16) & 255;
+      lut[po + 5] = (n >> 8) & 255;
+      lut[po + 6] = n & 255;
+      lut[po + 7] = 255;
+    });
+    const co = (row * LUT_W + LUT_CELLS_X) * 4;
+    lut[co] = pat.faceCell >= 0 ? pat.faceCell : 255;
+    lut[co + 1] = pat.feather ? 1 : 255;
+    lut[co + 2] = layers.length;
+    lut[co + 3] = 255;
+    const lo = (row * LUT_W + LUT_LEGS_X) * 4;
+    pat.legs.forEach((c, k) => (lut[lo + k] = c >= 0 ? c : 255));
   });
   return lut;
+}
+
+/**
+ * Per palette index, what the coat layers need to know about the key (shared by every runner):
+ * row 0: R = role (1 coat, 2 points, 3 mane; 0 not the horse) * 64, G = shade 0 (dark) .. 255
+ * (light) in its ramp; row 1, x = 0..15: R = the mane key for long hair of shade x / 15.
+ */
+export function buildKeyInfo(palette: Palette, keys: KeyPalette): Uint8Array {
+  const out = new Uint8Array(64 * 2 * 4);
+  const put = (ramp: string[] | undefined, role: number) =>
+    ramp?.forEach((h, i) => {
+      const k = palette.lookup.get(Number.parseInt(h.slice(1), 16));
+      if (k === undefined || k >= 64) return;
+      out[k * 4] = role * 64;
+      out[k * 4 + 1] = Math.round((ramp.length > 1 ? i / (ramp.length - 1) : 0.6) * 255);
+      out[k * 4 + 3] = 255;
+    });
+  put(keys.coat, 1);
+  put(keys.points, 2);
+  put(keys.hoof, 2);
+  put(keys.mane, 3);
+  const mane = (keys.mane ?? []).map((h) => palette.lookup.get(Number.parseInt(h.slice(1), 16)) ?? 0);
+  for (let x = 0; x < 16; x++) {
+    const v = 1 + Math.round((x / 15) * 254);
+    const j = Math.min(mane.length - 1, Math.max(Math.min(1, mane.length - 1), Math.round(((v - 1) / 254) * (mane.length - 1))));
+    out[(64 + x) * 4] = mane[j] ?? 0;
+    out[(64 + x) * 4 + 3] = 255;
+  }
+  return out;
 }

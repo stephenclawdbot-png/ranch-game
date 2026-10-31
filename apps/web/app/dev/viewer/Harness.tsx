@@ -56,6 +56,8 @@ export interface HarnessParams {
   finale?: string;
   /** "1": the build-up before the off on a replay (starts 24 s before; use t=-24); "0": off for a live feed. */
   preoff?: string;
+  /** "showcase": the coat audit's showcase looks on the field. */
+  coats?: string;
   /** "1": show the "Share clip" button under the viewer (settled replay; view=classic cuts the 3D view). */
   clip?: string;
   /** "1": every runner ridden by a named jockey (alternating women and men), with a look and patterned silks. */
@@ -87,6 +89,34 @@ export function withHarnessRiders(replay: RaceReplay): RaceReplay {
   };
 }
 
+/**
+ * coats=showcase: the field wears the coat audit's showcase looks (white patterns, rare colours,
+ * shades, markings and feathered long hair), one per runner in gate order.
+ */
+const SHOWCASE: [Partial<NonNullable<RaceReplay["horses"][number]["appearance"]["colour"]>>, Partial<RaceReplay["horses"][number]["appearance"]>][] = [
+  [{ tobiano: 1 }, { face: "blaze", legs: ["stocking", "none", "stocking", "none"], feather: true }],
+  [{ base: "chestnut", leopard: "leopard" }, { face: "snip" }],
+  [{ roan: true }, { face: "star", legs: ["sock", "sock", "none", "none"], feather: true }],
+  [{ brindle: true }, {}],
+  [{ base: "chestnut", cream: 2 }, { feather: true }],
+  [{ base: "black", dun: true }, { dun: true }],
+  [{ base: "chestnut", flaxen: true, sooty: 1 }, { face: "blaze" }],
+  [{ grey: "dapple", base: "black" }, {}],
+  [{ dominantWhite: true }, {}],
+  [{ base: "chestnut", bendOr: true, birdcatcher: true }, { legs: ["coronet", "sock", "none", "stocking"] }],
+  [{ splash: 2, base: "chestnut" }, {}],
+  [{ rabicano: true, base: "black" }, { face: "stripe" }],
+];
+function withShowcaseCoats(r: RaceReplay): RaceReplay {
+  return {
+    ...r,
+    horses: r.horses.map((h, i) => {
+      const [c, a] = SHOWCASE[i % SHOWCASE.length]!;
+      return { ...h, appearance: { ...h.appearance, ...a, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, markSeed: 1000 + i * 7919, ...c } } };
+    }),
+  };
+}
+
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
 
 export function ViewerHarness({ params }: { params: HarnessParams }) {
@@ -105,9 +135,10 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         spread: num(params.spread, 1),
         sealed: true,
       });
-      return params.riders === "1" ? withHarnessRiders(r) : r;
+      const rr = params.riders === "1" ? withHarnessRiders(r) : r;
+      return params.coats === "showcase" ? withShowcaseCoats(rr) : rr;
     },
-    [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour, params.photo, params.spread, params.riders],
+    [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour, params.photo, params.spread, params.riders, params.coats],
   );
   const highlight = params.minepos !== undefined ? (replay.result.finishOrder.find((f) => f.position === num(params.minepos, 1))?.horseId ?? "h3") : (params.highlight ?? "h3");
   const connections = useMemo(

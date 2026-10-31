@@ -20,7 +20,7 @@ const V2_GENES: [locus: gc.Genes2Key, name: string, mode: string, effect: string
   ["patn1", "Pattern-1 (PATN1)", "Dominant, needs LP", "Turns leopard complex into full leopard spots"],
   ["splash", "Splash white (SW)", "Incomplete dominant", "Big blaze, white legs, blue eyes; two copies: bald face"],
   ["height", "Height (Ht)", "Incomplete dominant", "Taller per copy: more speed and stamina, less burst and durability"],
-  ["feather", "Feathering (fe)", "Recessive", "Long hair on the lower legs"],
+  ["feather", "Feathering (fe)", "Recessive", "Long mane, forelock and tail, feathered lower legs"],
   ["mstn", "Speed gene (MSTN C)", "Incomplete dominant", "C/C sprinter, C/T miler, T/T stayer"],
   ["bigHeart", "Big heart (bh)", "Recessive", "Two copies: extra stamina potential"],
   ["ironLegs", "Iron legs (IL)", "Dominant", "Lower injury risk"],

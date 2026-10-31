@@ -10,6 +10,7 @@
  * that is homozygous for it and better than either parent.
  */
 import type { RunningStyle, Surface } from "@thoroughbred/shared";
+import { mintCosmetic, type RareMint } from "./cosmetic";
 import { Rng, clampInt } from "./rng";
 import {
   BREEDS,
@@ -648,6 +649,12 @@ export interface MintOptions {
   breed?: Breed;
   /** Even mint weights across all 12 breeds (Club runners in Live fields, so fields look varied). */
   evenBreeds?: boolean;
+  /**
+   * Rare colour genes (cosmetic.ts): "natural" only for pack foals (population frequency), one
+   * forced gene only for the Club's replacement house stallions; default none (starters, gifts,
+   * Club runners, Club sale lots and leases never carry them).
+   */
+  rareColours?: RareMint;
 }
 
 /** The four breeds of genetics v1 (the only ones a v1 mint can draw). */
@@ -914,6 +921,8 @@ function mintGenome(seed: string, opts: MintOptions, legacyV1: boolean): Genome 
     markingSeed: rng.nextU32(),
   };
   if (legacyV1) return g;
+  // Cosmetic genes (shade modifiers, rare colours) from their own stream: they never move a stat.
+  g.cosmetic = mintCosmetic(seed, breed, opts.rareColours ?? "none");
   // The planned potentials already carry the breed's shape; size, MSTN and big heart are part
   // of that shape, so the alleles absorb them (rarity, ceilings and the stat mean band hold).
   const delta = phenotypeDelta(g);

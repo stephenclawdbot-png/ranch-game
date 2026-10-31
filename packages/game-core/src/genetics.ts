@@ -6,6 +6,7 @@
  * mutation rate and skews mutations negative; it also costs durability/temperament
  * potential via inbreeding depression (genome.potentialOf).
  */
+import { inheritCosmetic } from "./cosmetic";
 import { GENES2_KEYS, GENOME_VERSION, STAT_KEYS, MORPH_KEYS, QUIRK_KEYS, type AllelePair, type Genes2Key, type Genome, type PedigreeIndex } from "./types";
 import { blendBreeds } from "./genome";
 import { Rng, clampInt } from "./rng";
@@ -216,6 +217,11 @@ export function inherit(sire: Genome, dam: Genome, seed: string, opts: InheritOp
     variants,
     quirks,
     genes2: genes2 as Genome["genes2"],
+    // cosmetic genes (shade modifiers, rare colours): their own stream, brindle X-linked
+    ...(() => {
+      const c = inheritCosmetic(sire, dam, seed);
+      return c ? { cosmetic: c } : {};
+    })(),
     fragile: (() => {
       const fr = new Rng(`${seed}|fragile`);
       return [fragileAllele(fr, sire, !!opts.injured?.sire), fragileAllele(fr, dam, !!opts.injured?.dam)] as [0 | 1, 0 | 1];

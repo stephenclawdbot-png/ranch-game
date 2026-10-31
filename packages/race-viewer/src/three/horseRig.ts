@@ -9,6 +9,8 @@ import type { HorseAppearance } from "@thoroughbred/shared";
 import type { ArtSet } from "./art";
 import { PH_ANCHOR, PH_FRAMES, PH_H, PH_W, placeholderStripFor } from "./placeholderHorse";
 import { appearanceKey, applyRecolor, buildRecolorPlan, parseKeyPalette, type KeyPalette } from "./recolor";
+import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry } from "@thoroughbred/art-pipeline";
+import { loadCoatAtlas } from "../trackside/art";
 
 export type { HorseRig, HorseRigFactory, HorseRigState };
 
@@ -43,7 +45,8 @@ export async function createRigFactory(three: typeof THREE, artBaseUrl: string |
     console.warn("[RaceViewer] pixel-rig unavailable, using placeholder horses", err);
   }
   const strip = art ? await loadGallopStrip(art) : null;
-  if (strip) return { factory: stripFactory(three, strip), kind: "pixellab-strip" };
+  const atlas = art ? await loadCoatAtlas(art).catch(() => null) : null;
+  if (strip) return { factory: stripFactory(three, strip, atlas), kind: "pixellab-strip" };
   return { factory: placeholderFactory(three), kind: "placeholder" };
 }
 
@@ -156,14 +159,28 @@ async function loadGallopStrip(art: ArtSet): Promise<GallopStrip | null> {
   return null;
 }
 
-function stripFactory(three: typeof THREE, strip: GallopStrip): HorseRigFactory {
+function stripFactory(three: typeof THREE, strip: GallopStrip, atlas: CoatAtlas | null = null): HorseRigFactory {
   const cache = new Map<string, HTMLCanvasElement>();
+  // the shared coat geometry of each source strip (the women riders' copy has its own)
+  const geos = new Map<ImageData, CoatGeometry>();
+  const geoOf = (src: ImageData) => {
+    let g = geos.get(src);
+    if (!g) {
+      g = buildCoatGeometry(rgbaRoleGrid(src.data, src.width, src.height, strip.frameWidth, strip.keys));
+      geos.set(src, g);
+    }
+    return g;
+  };
   const recoloured = (a: HorseAppearance) => {
     const k = appearanceKey(a);
     let c = cache.get(k);
     if (!c) {
-      const data = new Uint8ClampedArray((a.rider?.gender === "f" && strip.dataF ? strip.dataF : strip.data).data);
-      applyRecolor(data, strip.data.width, strip.data.height, strip.frameWidth, buildRecolorPlan(strip.keys, a));
+      const src = a.rider?.gender === "f" && strip.dataF ? strip.dataF : strip.data;
+      const plan = buildRecolorPlan(strip.keys, a);
+      const recolour = (d: Uint8ClampedArray) => applyRecolor(d, strip.data.width, strip.data.height, strip.frameWidth, plan);
+      // patterns, markings and long hair: the same pattern definition as every other view
+      const data = atlas ? paintCoatStrip(src.data, src.width, strip.frameWidth, geoOf(src), a, atlas, strip.keys, recolour, sheetSpeed("race/horse-gallop")) : new Uint8ClampedArray(src.data);
+      if (!atlas) recolour(data);
       c = document.createElement("canvas");
       c.width = strip.data.width;
       c.height = strip.data.height;
