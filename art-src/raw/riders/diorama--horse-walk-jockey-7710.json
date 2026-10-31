@@ -1,0 +1,290 @@
+{
+ "endpoint": "/edit-animation-v2",
+ "request": {
+  "description": "turn the jockey into a woman jockey: a slightly slimmer, narrower back and shoulders, and a ponytail of bright lime green hair hanging from under the back of the cap down to the shoulders; keep the pose, the cap, the silks colours, the goggles, the hands and the whole horse exactly the same",
+  "frames": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4632 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4748 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4476 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4340 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4908 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4792 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4840 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4468 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   }
+  ],
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "seed": 7710,
+  "no_background": true,
+  "target_palette": {
+   "colors": [
+    "#02010e",
+    "#e4e3e5",
+    "#c112a7",
+    "#90097b",
+    "#36e1ed",
+    "#0e8dac",
+    "#bbb8bf",
+    "#15b2cd",
+    "#cac7ce",
+    "#ae1397",
+    "#242229",
+    "#f344cc",
+    "#a39eaa",
+    "#401115",
+    "#02010c",
+    "#a44519",
+    "#ed8f39",
+    "#170b10",
+    "#f89f50",
+    "#4c4747",
+    "#760960",
+    "#025f7f",
+    "#110f1e",
+    "#84096f",
+    "#1e1c26",
+    "#843216",
+    "#f344cd",
+    "#682213",
+    "#1f2b46",
+    "#270b11",
+    "#ab1495",
+    "#561511",
+    "#6a4a3c",
+    "#493cae",
+    "#7c0a66",
+    "#2e2a2e",
+    "#0c0c19",
+    "#a47254",
+    "#504b4c",
+    "#010113",
+    "#3f8f1a",
+    "#6fcf2f",
+    "#a8f060"
+   ]
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e668b5bf-372b-4dad-99e8-ff3379d0868b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e668b5bf-372b-4dad-99e8-ff3379d0868b",
+  "status": "completed",
+  "created_at": "2026-10-31T15:58:35.164688+00:00",
+  "last_response": {
+   "seed": 7710,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4628 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4668 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4336 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4360 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4812 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4816 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4692 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4388 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "f9a4964e-d950-470a-94ce-b5212c4920e5",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4628 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4668 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4336 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4360 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4812 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4816 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4692 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4388 chars>",
+     "height": 64
+    }
+   ],
+   "generation_started_at": "2026-10-31T15:58:41.351092+00:00",
+   "original_image_n_colors": 119,
+   "quantized_image_n_colors": 36
+  }
+ },
+ "files": [
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-0.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-1.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-2.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-3.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-4.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-5.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-6.png",
+  "art-src/raw/riders/diorama--horse-walk-jockey-7710-7.png"
+ ]
+}

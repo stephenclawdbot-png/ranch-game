@@ -73,5 +73,10 @@
    "#2164c2"
   ]
  },
- "_note": "Exact source colours per role, ordered dark->light. Recolour by ramp index. fixed.* roles are never recoloured. Shared by horse-gallop.png (229x146 x12) and horse-idle.png (256x192 x14)."
+ "_note": "Exact source colours per role, ordered dark->light. Recolour by ramp index. fixed.* roles are never recoloured. Shared by horse-gallop.png (229x146 x12) and horse-idle.png (256x192 x14).",
+ "hair": [
+  "#3f8f1a",
+  "#6fcf2f",
+  "#a8f060"
+ ]
 }

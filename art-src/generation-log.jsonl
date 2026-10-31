@@ -741,3 +741,13 @@
 {"at":"2026-10-31T15:34:56.814Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/wiki-bloodlines-9811","secs":100,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-31T15:40:46.644Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/wiki-silver-polish-9831","secs":122,"usage":{"type":"generations","generations":25},"images":1}
 {"at":"2026-10-31T15:50:43.483Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/saturday-eve-9571","secs":99,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-31T15:58:10.118Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-gallop-7701","secs":107,"usage":{"type":"generations","generations":10},"images":12}
+{"at":"2026-10-31T15:59:49.944Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-lunge-7705","secs":76,"usage":{"type":"generations","generations":10},"images":6}
+{"at":"2026-10-31T15:59:55.320Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/diorama--horse-walk-jockey-7710","secs":81,"usage":{"type":"generations","generations":10},"images":8}
+{"at":"2026-10-31T15:59:55.585Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-break-7703","secs":82,"usage":{"type":"generations","generations":10},"images":8}
+{"at":"2026-10-31T16:00:00.905Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-celebrate-7707","secs":87,"usage":{"type":"generations","generations":10},"images":11}
+{"at":"2026-10-31T16:00:11.402Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-easeup-7706","secs":98,"usage":{"type":"generations","generations":10},"images":13}
+{"at":"2026-10-31T16:00:21.806Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-pullup-7708","secs":108,"usage":{"type":"generations","generations":10},"images":10}
+{"at":"2026-10-31T16:00:32.709Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-drive-7704","secs":119,"usage":{"type":"generations","generations":10},"images":12}
+{"at":"2026-10-31T16:00:49.411Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/race--horse-idle-7702","secs":136,"usage":{"type":"generations","generations":10},"images":14}
+{"at":"2026-10-31T16:00:54.459Z","endpoint":"/edit-animation-v2","prefix":"art-src/raw/riders/diorama--horse-canter-7709","secs":140,"usage":{"type":"generations","generations":10},"images":12}

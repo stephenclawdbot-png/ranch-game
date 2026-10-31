@@ -22,6 +22,8 @@ export interface KeyPalette {
   hoof?: string[];
   /** The rider's skin keys (palette fixed.skin): faces are repainted per jockey. */
   skin?: string[];
+  /** Women riders' hair (the -f strips' lime keys): the jockey's hair colour. */
+  hair?: string[];
 }
 
 export function parseKeyPalette(v: unknown): KeyPalette | null {
@@ -35,10 +37,10 @@ export function parseKeyPalette(v: unknown): KeyPalette | null {
   if (!coat || coat.length === 0) return null;
   const fixed = o.fixed && typeof o.fixed === "object" ? (o.fixed as Record<string, unknown>) : null;
   const skin = Array.isArray(fixed?.skin) && (fixed!.skin as unknown[]).every((c) => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) ? (fixed!.skin as string[]) : undefined;
-  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof"), skin };
+  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof"), skin, hair: ramp("hair") };
 }
 
-type Role = "coat" | "mane" | "silksPrimary" | "silksSecondary" | "cap" | "points" | "hoof";
+type Role = "coat" | "mane" | "silksPrimary" | "silksSecondary" | "cap" | "points" | "hoof" | "hair";
 
 export interface RecolorPlan {
   /** packed source rgb -> packed target rgb */
@@ -78,6 +80,8 @@ export function targetRamps(keys: KeyPalette, appearance: HorseAppearance): Reco
     silksPrimary: rampAround(c.silks.primary, n(keys.silksPrimary)),
     silksSecondary: rampAround(c.silks.secondary, n(keys.silksSecondary)),
     cap: rampAround(c.silks.cap, n(keys.cap)),
+    // a woman rider's hair (the -f strips): the jockey's hair, else a dark brown
+    hair: resampleRamp(appearance.rider ? [...appearance.rider.hair] : ["#1c110b", "#3d2618", "#66432c"], n(keys.hair)),
   };
 }
 
@@ -85,7 +89,7 @@ export function buildRecolorPlan(keys: KeyPalette, appearance: HorseAppearance):
   const targets = targetRamps(keys, appearance);
   const map = new Map<number, number>();
   const primaryIndex = new Map<number, number>();
-  const roles: Role[] = ["coat", "mane", "points", "hoof", "silksPrimary", "silksSecondary", "cap"];
+  const roles: Role[] = ["coat", "mane", "points", "hoof", "silksPrimary", "silksSecondary", "cap", "hair"];
   for (const role of roles) {
     const src = keys[role];
     if (!src) continue;
@@ -205,7 +209,8 @@ export function applyRecolor(data: Uint8ClampedArray, width: number, height: num
       }
     }
   }
-  if (rider && plan.rider) paintRiderLook(data, width, height, frameWidth, rider, plan.rider);
+  // women's strips carry their own hair (keyed above): no drawn ponytail on top
+  if (rider && plan.rider) paintRiderLook(data, width, height, frameWidth, rider, plan.rider.gender === "f" ? { ...plan.rider, long: false } : plan.rider);
 }
 
 /** The cap's box in one frame (strip coordinates), or null. */

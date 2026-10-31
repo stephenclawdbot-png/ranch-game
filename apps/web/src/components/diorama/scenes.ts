@@ -661,6 +661,15 @@ const dusk: SceneDef = {
   ],
 };
 
+/** Rider strips that have a women riders' copy (-f: slimmer back, hair under the cap). */
+const WOMAN_STRIPS = /(horse-walk-jockey|horse-canter|horse-gallop)(-s\d)?\.png$/;
+
+/** A runner's sprite: its look, and the women riders' strip when its jockey is a woman. */
+function withRunner<T extends AnimItem>(a: T, look: DioramaHorseLook): T {
+  const woman = look.appearance?.rider?.gender === "f" && WOMAN_STRIPS.test(a.src);
+  return { ...a, look, ...(woman ? { src: a.src.replace(WOMAN_STRIPS, "$1-f$2.png") } : {}) };
+}
+
 /**
  * The paddock with the race's own runners parading (coat + silks from each horse): the first
  * three walk the near ring, the next three the far lawn. No runners yet = the Club's string.
@@ -673,9 +682,9 @@ export function paddockScene(looks: DioramaHorseLook[]): SceneDef {
     ...paddock,
     layers: paddock.layers.map((l) =>
       l.id === "focal"
-        ? { ...l, anims: (l.anims ?? []).slice(0, near.length).map((a, i) => ({ ...a, look: near[i]! })) }
+        ? { ...l, anims: (l.anims ?? []).slice(0, near.length).map((a, i) => withRunner(a, near[i]!)) }
         : l.id === "lawn"
-          ? { ...l, anims: (l.anims ?? []).slice(0, far.length).map((a, i) => ({ ...a, look: far[i]! })) }
+          ? { ...l, anims: (l.anims ?? []).slice(0, far.length).map((a, i) => withRunner(a, far[i]!)) }
           : l,
     ),
   };
@@ -689,7 +698,7 @@ export function postParadeScene(looks: DioramaHorseLook[]): SceneDef {
   if (!looks.length) return dusk;
   return {
     ...dusk,
-    layers: dusk.layers.map((l) => (l.id === "focal" ? { ...l, anims: (l.anims ?? []).slice(0, Math.min(4, looks.length)).map((a, i) => ({ ...a, look: looks[i]! })) } : l)),
+    layers: dusk.layers.map((l) => (l.id === "focal" ? { ...l, anims: (l.anims ?? []).slice(0, Math.min(4, looks.length)).map((a, i) => withRunner(a, looks[i]!)) } : l)),
   };
 }
 

@@ -9,7 +9,7 @@ import { COAT_PALETTES, capPatternAt, jerseyPatternAt, paintRiderLook, prepareRi
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
-const KEYS = PALETTE as unknown as Record<"coat" | "mane" | "points" | "silksPrimary" | "silksSecondary" | "cap", string[]>;
+const KEYS = PALETTE as unknown as Record<"coat" | "mane" | "points" | "silksPrimary" | "silksSecondary" | "cap" | "hair", string[]>;
 
 export interface DioramaHorseLook {
   coat: Coat;
@@ -68,6 +68,8 @@ export function recolorMap(look: DioramaHorseLook): Map<number, number> {
     targets.silksSecondary = around(silks[1], KEYS.silksSecondary.length);
     targets.cap = around(silks[2], KEYS.cap.length);
   }
+  // a woman rider's hair (the -f strips' lime keys): the jockey's hair colour
+  if (KEYS.hair?.length) targets.hair = ramp((look.appearance?.rider?.hair ?? ["#1c110b", "#3d2618", "#66432c"]).map(hexToRgb), KEYS.hair.length);
   const map = new Map<number, number>();
   for (const role of Object.keys(targets) as (keyof typeof KEYS)[]) {
     const src = KEYS[role];
@@ -156,5 +158,6 @@ export function applyRiderLook(data: Uint8ClampedArray, width: number, height: n
       }
     }
   }
-  if (rider && a?.rider) paintRiderLook(data, width, height, frameWidth, rider, a.rider, { facingLeft });
+  // women's strips carry their own hair (keyed above): no drawn ponytail on top
+  if (rider && a?.rider) paintRiderLook(data, width, height, frameWidth, rider, a.rider.gender === "f" ? { ...a.rider, long: false } : a.rider, { facingLeft });
 }

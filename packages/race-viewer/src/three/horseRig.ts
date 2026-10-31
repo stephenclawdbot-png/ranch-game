@@ -49,6 +49,8 @@ export async function createRigFactory(three: typeof THREE, artBaseUrl: string |
 
 interface GallopStrip {
   data: ImageData;
+  /** The women riders' strip (same frames, art-src/process_female_riders.py), when present. */
+  dataF?: ImageData | null;
   frameCount: number;
   frameWidth: number;
   frameHeight: number;
@@ -124,10 +126,22 @@ async function loadGallopStrip(art: ArtSet): Promise<GallopStrip | null> {
         }
       }
       if (!keys) continue;
+      const fEntry = approved(new RegExp(`(^|/)${stem}-f\\.png$`));
+      const fImg = fEntry?.src ? await loadImg(url(fEntry.src)) : null;
+      let dataF: ImageData | null = null;
+      if (fImg && fImg.naturalWidth === c.width && fImg.naturalHeight === c.height) {
+        const fc = document.createElement("canvas");
+        fc.width = c.width;
+        fc.height = c.height;
+        const fx = fc.getContext("2d", { willReadFrequently: true })!;
+        fx.drawImage(fImg, 0, 0);
+        dataF = fx.getImageData(0, 0, c.width, c.height);
+      }
       const nEntry = approved(new RegExp(`(^|/)${stem}-normal\\.png$`));
       const normal = nEntry?.src && nEntry.frameWidth === entry.frameWidth ? await loadImg(url(nEntry.src)) : null;
       return {
         data,
+        dataF,
         frameCount: entry.frameCount,
         frameWidth: entry.frameWidth,
         frameHeight: entry.frameHeight,
@@ -148,7 +162,7 @@ function stripFactory(three: typeof THREE, strip: GallopStrip): HorseRigFactory 
     const k = appearanceKey(a);
     let c = cache.get(k);
     if (!c) {
-      const data = new Uint8ClampedArray(strip.data.data);
+      const data = new Uint8ClampedArray((a.rider?.gender === "f" && strip.dataF ? strip.dataF : strip.data).data);
       applyRecolor(data, strip.data.width, strip.data.height, strip.frameWidth, buildRecolorPlan(strip.keys, a));
       c = document.createElement("canvas");
       c.width = strip.data.width;

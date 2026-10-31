@@ -3474,7 +3474,10 @@ dialog.sheet .inset {
   padding: 0;
 }
 .ranch-tag {
-  position: relative;
+  /* placed in code (RanchStage placeTags): over its horse, inside the stage, never on another tag */
+  position: absolute;
+  left: 0;
+  top: 0;
   z-index: 2; /* above every horse's hit area, so each tag opens its own horse */
   transform: translateY(-115%);
   white-space: nowrap;
@@ -3495,10 +3498,21 @@ dialog.sheet .inset {
 .ranch-tag.is-resting {
   color: var(--color-cream-dim);
 }
+/* the leader line from a lifted tag down to its horse */
+.ranch-tag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: var(--lead, 0px);
+  margin-left: -1px;
+  background: var(--ink-0);
+  box-shadow: 1px 0 0 rgba(243, 231, 201, 0.5);
+}
 .ranch-hit:hover .ranch-tag,
 .ranch-hit:focus-visible .ranch-tag,
 .ranch-hit[aria-pressed="true"] .ranch-tag {
-  transform: translateY(-130%);
   background: #1f4d35;
   box-shadow:
     inset 0 0 0 2px var(--ink-0),
@@ -3507,11 +3521,6 @@ dialog.sheet .inset {
 }
 .ranch-tag-far {
   transform: translateY(-240%);
-}
-.ranch-hit:hover .ranch-tag-far,
-.ranch-hit:focus-visible .ranch-tag-far,
-.ranch-hit[aria-pressed="true"] .ranch-tag-far {
-  transform: translateY(-255%);
 }
 .ranch-hit[aria-pressed="true"] .ranch-tag {
   background: var(--color-brass);

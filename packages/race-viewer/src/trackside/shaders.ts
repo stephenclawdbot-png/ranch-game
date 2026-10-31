@@ -198,7 +198,14 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW, vec4 stripe) {
   vec4 mk = texture2D(uMsk, srcP / uMskSize);
   float region = floor(mk.r * 255.0 + 0.5);
   vec4 rider = texture2D(uLut, vec2(138.5 / 140.0, rowV));
-  if (region > 7.5 && region < 8.5 && rider.r > 0.5) {
+  bool woman = rider.r > 0.5 && rider.b > 0.5;
+  if (woman && region > 9.5 && region < 10.5) return vec4(0.0); // her slimmer back
+  if (woman && region > 10.5 && region < 11.5) {
+    // her own texel (hair under the cap, the re-shaped jacket): its palette index from the mask
+    idx = floor(mk.g * 255.0 + 0.5);
+    region = 0.0;
+  }
+  if (region > 7.5 && region < 8.5 && rider.r > 0.5 && !woman) {
     // the rider's hair: a nape line under the cap; the ponytail only for long hair
     float hg = floor(mk.g * 255.0 + 0.5);
     bool tail = mod(floor(hg / 32.0), 2.0) > 0.5;

@@ -39,7 +39,7 @@ export const FACE_ID: Record<string, number> = { none: 0, star: 1, snip: 2, stri
 export const COAT_PATTERN_ID: Record<string, number> = { none: 0, roan: 1, dapple: 2 };
 
 /** Marking mask regions (mask R channel). */
-export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9 } as const;
+export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9, womanTrim: 10, womanTexel: 11 } as const;
 
 export interface Palette {
   /** packed rgb per index; index 0 = transparent. */
@@ -54,7 +54,7 @@ export function newPalette(): Palette {
 }
 
 /** Index of a colour, adding it (returns -1 when the palette is full). */
-function indexOf(p: Palette, packed: number): number {
+export function indexOf(p: Palette, packed: number): number {
   let i = p.lookup.get(packed);
   if (i !== undefined) return i;
   if (p.colours.length > MAX_COLOURS) return -1;
@@ -474,6 +474,30 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
 }
 
 /**
+ * Women riders (jockey gender): where the -f strip (same frames, edited with PixelLab: a slimmer
+ * back and hair under the cap) differs from the shared strip, the mask says so, so one indexed
+ * strip serves both: R = 10, the texel is empty for a woman rider (the slimmer back); R = 11,
+ * a woman rider shows palette index G there (her hair, the re-shaped jacket). Both frame grids
+ * must match (indexStrip with the same palette).
+ */
+export function womanMasks(male: IndexedFrames, woman: IndexedFrames, out: Uint8Array): number {
+  if (male.width !== woman.width || male.height !== woman.height) return 0;
+  let n = 0;
+  for (let i = 0; i < male.index.length; i++) {
+    const m = male.index[i]!;
+    const w = woman.index[i]!;
+    if (m === w) continue;
+    const o = i * 4;
+    out[o] = w === 0 ? MARK_REGION.womanTrim : MARK_REGION.womanTexel;
+    out[o + 1] = w;
+    out[o + 2] = 0;
+    out[o + 3] = 255;
+    n++;
+  }
+  return n;
+}
+
+/**
  * Rider regions of the mask (jockey looks): per frame, the cap's texels (R = 9, G/B = their
  * place in the cap's box, for the cap pattern), the rider's face (R = 7, G = skin level * 64 + 32:
  * the small coat / mane / skin-keyed patches under and in front of the cap; the horse's own coat
@@ -624,7 +648,7 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
       };
       rampRgb(a.rider.skin, 4).forEach((c, i) => put(LUT_SKIN_X + i, c));
       rampRgb(a.rider.hair, 3).forEach((c, i) => put(LUT_HAIR_X + i, c));
-      put(LUT_RIDER_X, [255, a.rider.long ? 255 : 0, 0]);
+      put(LUT_RIDER_X, [255, a.rider.long ? 255 : 0, a.rider.gender === "f" ? 255 : 0]);
     }
     const fo = (row * LUT_W + LUT_FLAG_X) * 4;
     lut[fo] = fl | (fr << 2) | (hl << 4) | (hr << 6);
