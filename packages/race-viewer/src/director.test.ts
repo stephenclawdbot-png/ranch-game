@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Director, MAX_UNSEEN_S, MIN_SHOT_S, type ShotType } from "./director";
+import { CLOSING_M, CLOSING_UNSEEN_S, Director, FINAL_FURLONG_M, FINISH_ON_LEADERS_M, KEEP_WITH_LEADER_M, MAX_UNSEEN_S, MIN_SHOT_S, type ShotType } from "./director";
 import { fakeReplay } from "./dev/fakeReplay";
 import { createReplaySampler, replayTiming } from "./sampleReplay";
 
@@ -10,7 +10,7 @@ function run(seed: number, highlight: string | null, photoFinish = true, compact
   const d = new Director();
   d.compact = compact;
   d.reset(-1.5);
-  const changes: { t: number; type: ShotType; subject: string | null }[] = [];
+  const changes: { t: number; type: ShotType; subject: string | null; toGo: number }[] = [];
   let unseenMax = 0;
   let lastSeen = 0;
   let evIdx = 0;
@@ -22,7 +22,7 @@ function run(seed: number, highlight: string | null, photoFinish = true, compact
     while (evIdx < replay.events.length && replay.events[evIdx]!.tick / replay.tickHz <= t) newEvents.push(replay.events[evIdx++]!);
     const input = { t, runners, trackLengthM: replay.trackLengthMm / 1000, winnerTime: timing.winnerTime, photoFinish: replay.result.photoFinish, newEvents, highlightId: highlight };
     const { shot, changed } = d.update(input);
-    if (changed) changes.push({ t, type: shot.type, subject: shot.subject });
+    if (changed) changes.push({ t, type: shot.type, subject: shot.subject, toGo: replay.trackLengthMm / 1000 - Math.max(...runners.map((r) => r.x)) });
     if (highlight && t > 1 && t < timing.winnerTime) {
       if (d.shows(highlight, input)) lastSeen = t;
       unseenMax = Math.max(unseenMax, t - lastSeen);
@@ -35,7 +35,7 @@ describe("broadcast director (side-on only)", () => {
   it("only ever uses side-on framings", () => {
     for (const seed of [3, 7, 11]) {
       const { changes } = run(seed, "h9");
-      for (const c of changes) expect(["gate", "establish", "close", "pack", "judge", "post"]).toContain(c.type);
+      for (const c of changes) expect(["gate", "establish", "close", "pack", "judge", "post", "wide"]).toContain(c.type);
     }
   });
 
@@ -52,7 +52,7 @@ describe("broadcast director (side-on only)", () => {
   it("holds each framing for a while (no restless re-framing)", () => {
     const { changes } = run(11, "h4");
     for (let i = 1; i < changes.length; i++) {
-      const phase = ["judge", "post"].includes(changes[i]!.type) || changes[i - 1]!.type === "gate";
+      const phase = ["judge", "post"].includes(changes[i]!.type) || changes[i - 1]!.type === "gate" || changes[i]!.toGo < CLOSING_M;
       if (!phase) expect(changes[i]!.t - changes[i - 1]!.t).toBeGreaterThanOrEqual(MIN_SHOT_S - 1e-6);
     }
   });
@@ -87,5 +87,69 @@ describe("broadcast director (side-on only)", () => {
     const base = { runners, trackLengthM: 1200, winnerTime: 70, photoFinish: false, newEvents: [], highlightId: null, winnerId: "h2" };
     for (let t = 69; t < 75; t += 0.1) d.update({ ...base, t });
     expect(d.shot).toMatchObject({ type: "post", subject: "h2" });
+  });
+});
+
+describe("closing-stage framing rules", () => {
+  /** Runs the director through a race; counts rule breaks in the closing stages. */
+  function closing(seed: number, pick: (order: string[]) => string | null, compact = false, spread = 1) {
+    const replay = fakeReplay({ horses: 10, seed, distanceM: 1200, photoFinish: false, spread });
+    const timing = replayTiming(replay);
+    const sample = createReplaySampler(replay);
+    const order = replay.result.finishOrder.map((f) => f.horseId);
+    const hl = pick(order);
+    const d = new Director();
+    d.compact = compact;
+    let evIdx = 0;
+    let unseen = 0;
+    let unseenMax = 0;
+    let violations = 0;
+    const L = replay.trackLengthMm / 1000;
+    for (let t = 0; t < timing.winnerTime; t += 1 / 30) {
+      const runners = sample(t).map((x) => ({ id: x.horseId, x: x.x / 1000 }));
+      const newEvents = [];
+      while (evIdx < replay.events.length && replay.events[evIdx]!.tick / replay.tickHz <= t) newEvents.push(replay.events[evIdx++]!);
+      const input = { t, runners, trackLengthM: L, winnerTime: timing.winnerTime, photoFinish: false, newEvents, highlightId: hl };
+      d.update(input);
+      const lead = runners.reduce((a, b) => (b.x > a.x ? b : a));
+      const toGo = L - lead.x;
+      if (toGo < FINAL_FURLONG_M && toGo > 0) {
+        const lookingAtMe = d.shot.type === "close" && d.shot.subject === hl && hl !== null;
+        for (const r of runners) if (lead.x - r.x <= KEEP_WITH_LEADER_M && !lookingAtMe && !d.mustFrame.includes(r.id)) violations++;
+      }
+      if (hl && toGo < CLOSING_M && toGo > FINISH_ON_LEADERS_M) {
+        unseen = d.shows(hl, input) ? 0 : unseen + 1 / 30;
+        unseenMax = Math.max(unseenMax, unseen);
+      }
+    }
+    return { violations, unseenMax };
+  }
+
+  it("in the final furlong everything within two lengths of the leader is in the framing", () => {
+    for (const seed of [3, 5, 9, 13]) expect(closing(seed, () => null).violations).toBe(0);
+  });
+
+  it("never holds a shot that hides your horse in the closing stages (near the lead, mid-pack, tailed off; phone too)", () => {
+    for (const seed of [3, 5, 9]) {
+      for (const pos of [1, 4, 9]) {
+        for (const compact of [false, true]) {
+          const r = closing(seed, (o) => o[pos]!, compact, 3);
+          expect(r.unseenMax).toBeLessThanOrEqual(CLOSING_UNSEEN_S + 0.2);
+        }
+      }
+    }
+  });
+
+  it("a forced replay shot holds whatever the race does", () => {
+    const d = new Director();
+    d.force({ type: "replay", subject: "h2" });
+    const runners = [{ id: "h1", x: 1190 }, { id: "h2", x: 1189 }];
+    const base = { runners, trackLengthM: 1200, winnerTime: 70, photoFinish: true, newEvents: [], highlightId: "h1" };
+    for (let t = 60; t < 75; t += 0.1) d.update({ ...base, t });
+    expect(d.shot).toMatchObject({ type: "replay", subject: "h2" });
+    expect(d.intent).toEqual({ kind: "replay", subject: "h2" });
+    d.force(null);
+    d.update({ ...base, t: 75.1 });
+    expect(d.shot.type).toBe("post");
   });
 });

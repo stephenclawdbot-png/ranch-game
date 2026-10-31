@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fakeReplay } from "./dev/fakeReplay";
-import { PHOTO_FREEZE_SEC, POST_RACE_SEC, PRE_ROLL_SEC, PlaybackClock, RUNOUT_SEC, SLOWMO_RATE, timeLeaderReaches } from "./playback";
+import { POST_RACE_SEC, PRE_ROLL_SEC, PlaybackClock, RUNOUT_SEC, timeLeaderReaches } from "./playback";
 import { replayTiming } from "./sampleReplay";
 
 const photo = fakeReplay({ horses: 8, seed: 3, distanceM: 1000, photoFinish: true });
@@ -95,47 +95,23 @@ describe("photo finish", () => {
     expect(from!).toBeLessThan(replayTiming(photo).winnerTime);
   });
 
-  it("slows down near the line, then freezes on the winner's time", () => {
+  it("the race plays through the line at full speed, live or replay (the photo and slow-mo are the finale's)", () => {
     const from = timeLeaderReaches(photo, 14)!;
     const c = new PlaybackClock(photo, { initialTimeSec: from + 0.01 });
     const t0 = c.time;
-    run(c, 0.5);
-    expect(c.time - t0).toBeCloseTo(0.5 * SLOWMO_RATE, 1);
-    // Run until the freeze starts.
-    let fr = c.tick(0);
-    for (let i = 0; i < 6000 && !fr.frozen; i++) fr = c.tick(1 / 60);
-    expect(fr.frozen).toBe(true);
-    expect(c.time).toBeCloseTo(c.winnerTime, 6);
-    run(c, PHOTO_FREEZE_SEC * 0.5);
-    expect(c.time).toBeCloseTo(c.winnerTime, 6);
-    run(c, PHOTO_FREEZE_SEC);
-    expect(c.time).toBeGreaterThan(c.winnerTime);
-  });
-
-  it("a live viewer falls behind by the slow-mo + freeze, without skipping", () => {
-    const now = { v: 50_000_000 };
-    const from = timeLeaderReaches(photo, 14)!;
-    const c = new PlaybackClock(photo, { startAtMs: now.v - (from - 1) * 1000 }, now.v);
-    let maxStep = 0;
-    let prev = c.time;
-    let sawFreeze = false;
-    for (let i = 0; i < 60 * 12; i++) {
-      now.v += 1000 / 60;
-      const fr = c.tick(1 / 60, now.v);
-      sawFreeze ||= fr.frozen;
-      maxStep = Math.max(maxStep, c.time - prev);
-      prev = c.time;
-    }
-    expect(sawFreeze).toBe(true);
-    expect(maxStep).toBeLessThan(0.05);
-    const wall = (now.v - c.startAtMs!) / 1000;
-    expect(wall - c.time).toBeGreaterThan(PHOTO_FREEZE_SEC);
-  });
-
-  it("no slow-mo or freeze without a photo finish", () => {
-    const c = new PlaybackClock(plain, { initialTimeSec: replayTiming(plain).winnerTime - 3 });
     let frozen = false;
-    for (let i = 0; i < 60 * 6; i++) frozen ||= c.tick(1 / 60).frozen;
-    expect(frozen).toBe(false);
+    let slow = false;
+    for (let i = 0; i < 60 * 3; i++) {
+      const fr = c.tick(1 / 60);
+      frozen ||= fr.frozen;
+      slow ||= fr.slowmo;
+    }
+    expect(c.time - t0).toBeCloseTo(3, 1);
+    expect(frozen || slow).toBe(false);
+    // A live viewer stays on the wall clock through the finish.
+    const now = { v: 50_000_000 };
+    const live = new PlaybackClock(photo, { startAtMs: now.v - (from - 1) * 1000 }, now.v);
+    run(live, 6, 1 / 60, now);
+    expect((now.v - live.startAtMs!) / 1000 - live.time).toBeLessThan(0.05);
   });
 });
