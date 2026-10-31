@@ -2,7 +2,7 @@
  * Player-facing reads and small writes the web app needs: the inbox, race history (per
  * horse and per stable), Story-mode rewards (§4e) and the stable profile.
  */
-import { and, asc, desc, eq, gte, isNotNull, isNull, like, lt, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, like, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { horses, inboxItems, raceEntries, raceResults, races, stables, type StableRow } from "../schema";
 import { gc } from "../gameCore";
@@ -14,14 +14,20 @@ import { publicRace, type PublicRace } from "./races";
 import { LIVE_SLOT_KEY_LIKE } from "./card";
 import { formColumns, resultJoin } from "./formBook";
 import { MOMENT_KIND } from "./moments";
+import { MATCH_NOTE_KIND } from "./quickRaces";
 
 // ---------------------------------------------------------------------------
 // Inbox
 // ---------------------------------------------------------------------------
 
 export async function listInbox(ex: Executor, accountId: string, limit = 20) {
-  // moments have their own list (listMoments) and must not crowd race results out of this one
-  return ex.select().from(inboxItems).where(and(eq(inboxItems.accountId, accountId), ne(inboxItems.kind, MOMENT_KIND))).orderBy(desc(inboxItems.createdAt)).limit(limit);
+  // moments and match race notes have their own lists (listMoments, listMatchNotes) and must not crowd race results out of this one
+  return ex
+    .select()
+    .from(inboxItems)
+    .where(and(eq(inboxItems.accountId, accountId), notInArray(inboxItems.kind, [MOMENT_KIND, MATCH_NOTE_KIND])))
+    .orderBy(desc(inboxItems.createdAt))
+    .limit(limit);
 }
 
 /** Marks the account's inbox items for a race as read (idempotent). Returns how many changed. */

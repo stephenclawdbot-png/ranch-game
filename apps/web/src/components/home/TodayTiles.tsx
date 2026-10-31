@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { HomeTiles } from "@/lib/homeTypes";
-import { formatCountdown, ordinal } from "@/lib/format";
+import { formatCountdown, formatDistance, ordinal } from "@/lib/format";
 import { useNow } from "@/lib/clock";
 import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
@@ -101,6 +101,32 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
             reward: c.canRun ? `+${c.participationCredits}` : undefined,
           },
     );
+  }
+  if (tiles.challenge) {
+    const c = tiles.challenge;
+    list.push(
+      c.mine
+        ? {
+            key: "challenge",
+            icon: "star",
+            title: `Daily challenge: ${ordinal(c.mine.rank)} of ${c.mine.entrants}`,
+            text: `${c.mine.points} ${c.mine.points === 1 ? "point" : "points"} · ${c.course} ${formatDistance(c.distanceM)}`,
+            href: `/quick/${c.mine.quickRaceId}`,
+            cta: "Watch your attempt",
+          }
+        : {
+            key: "challenge",
+            icon: "star",
+            title: "Daily challenge",
+            text: `${c.course} ${formatDistance(c.distanceM)} · same puzzle for everyone`,
+            href: "/quick?tab=daily",
+            cta: "Ride",
+            ready: true,
+          },
+    );
+  }
+  if (tiles.matchNote) {
+    list.push({ key: "match-note", icon: "flag", title: tiles.matchNote.title, text: "Match race · unofficial", href: "/quick?tab=match", cta: "Quick races" });
   }
   if (tiles.giftFoal) {
     list.push({

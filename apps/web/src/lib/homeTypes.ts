@@ -23,4 +23,8 @@ export interface HomeTiles {
   story: { chapter: number; chapterTitle: string; raceKey: string; raceName: string; wins: number; winsToComplete: number; bestHorse: string | null } | null;
   /** The Club's day-2 gift foal, until its first care session. */
   giftFoal: { id: string; name: string } | null;
+  /** Today's daily challenge (quick races): ride it, or your rank so far. */
+  challenge?: { course: string; distanceM: number; closesAtMs: number; mine: { rank: number; entrants: number; quickRaceId: string; points: number } | null } | null;
+  /** Today's match race note: your horses beat challengers (count and the latest line). */
+  matchNote?: { title: string; wins: number } | null;
 }

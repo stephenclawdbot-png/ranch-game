@@ -93,14 +93,19 @@ export default async function StablePublicPage({ params }: { params: Promise<{ i
         {v.horses.length ? (
           <ul className="surface rows" data-testid="stable-horses">
             {v.horses.map((h) => (
-              <li key={h.id}>
-                <Link href={`/horse/${h.id}`} className="row-link gap-3 px-4 py-3">
+              <li key={h.id} className="flex items-center">
+                <Link href={`/horse/${h.id}`} className="row-link min-w-0 flex-1 gap-3 px-4 py-3">
                   <span className="t-title min-w-0 flex-1 truncate">{h.name}</span>
                   <span className="t-meta whitespace-nowrap">
                     OR {h.rating} · {h.starts} runs, {h.wins}-{h.places}-{h.shows}
                   </span>
-                  <span className="chev">›</span>
+                  {v.mine && <span className="chev">›</span>}
                 </Link>
+                {!v.mine && (
+                  <Link href={`/quick?tab=match&vs=${h.id}`} className="btn btn-sm mr-3 shrink-0" data-testid="stable-challenge" aria-label={`Challenge ${h.name} to a match race`}>
+                    Challenge
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

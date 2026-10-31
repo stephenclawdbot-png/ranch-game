@@ -173,6 +173,14 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                             ) : (
                               <span data-testid="runner-stable">{e.stableName}</span>
                             )}
+                            {!e.mine && (
+                              <>
+                                {" · "}
+                                <Link href={`/quick?tab=match&vs=${h.id}`} className="underline decoration-dotted underline-offset-2" data-testid="runner-challenge" title={`Challenge ${h.name} to an unofficial match race`}>
+                                  Challenge
+                                </Link>
+                              </>
+                            )}
                           </>
                         ) : (
                           <>

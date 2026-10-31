@@ -35,10 +35,11 @@ export const SECTIONS: Section[] = [
     href: "/races",
     label: "Racing",
     icon: "flag",
-    match: (p) => starts(p, "/races", "/race", "/story", "/week", "/jockeys"),
+    match: (p) => starts(p, "/races", "/race", "/story", "/week", "/jockeys", "/quick"),
     sub: [
       { href: "/week", label: "This week" },
       { href: "/races", label: "Race card" },
+      { href: "/quick", label: "Quick races" },
       { href: "/jockeys", label: "Jockeys" },
       { href: "/story", label: "Story" },
     ],
