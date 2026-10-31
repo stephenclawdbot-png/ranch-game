@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo } from "react";
-import { RaceViewer, type CameraMode } from "@thoroughbred/race-viewer";
+import { RaceViewer, ClipShareButton, type CameraMode } from "@thoroughbred/race-viewer";
 import { SpriteSheet, fakeLiveFeed, fakeReplay } from "@thoroughbred/race-viewer/dev";
 import type { Surface, Weather } from "@thoroughbred/shared";
 import { COURSES } from "@thoroughbred/game-core";
@@ -55,6 +55,8 @@ export interface HarnessParams {
   finale?: string;
   /** "1": the build-up before the off on a replay (starts 24 s before; use t=-24); "0": off for a live feed. */
   preoff?: string;
+  /** "1": show the "Share clip" button under the viewer (settled replay; view=classic cuts the 3D view). */
+  clip?: string;
 }
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -124,6 +126,20 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         preOff={params.preoff === "1" ? true : params.preoff === "0" ? false : undefined}
         paddock={paddock}
       />
+      {params.clip === "1" && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <ClipShareButton
+            replay={replay}
+            view={(new URLSearchParams(window.location.search).get("view") as "classic" | "trackside" | null) ?? undefined}
+            highlightHorseId={highlight}
+            mine={[highlight]}
+            connections={connections}
+            course={course}
+            meta={{ courseName: course?.name ?? "Harrowdale" }}
+            className="rv-btn"
+          />
+        </div>
+      )}
     </main>
   );
 }

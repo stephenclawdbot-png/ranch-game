@@ -33,6 +33,8 @@ import type { PhotoArt } from "./photo/raster";
 import type { CourseMapRunner } from "./hud/CourseMap";
 import { CourseMapPanel } from "./hud/CourseMapPanel";
 import { injectViewerCss } from "./hud/styles";
+import { ClipShareButton } from "./clip/ClipShareButton";
+import { canShareClip } from "./clip/plan";
 import type { CourseInfo } from "./course/geometry";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideScene";
@@ -956,6 +958,15 @@ export function RaceViewer(props: RaceViewerProps) {
 
   const narrow = width > 0 && width < NARROW_PX;
   narrowRef.current = narrow;
+  // "Share clip" (in the finale's strip panel): only from the official result — a live
+  // broadcast has `final` set only once the broadcast is over (officialHandoff).
+  const clipButton = useMemo(
+    () =>
+      canShareClip(final, whatIf) ? (
+        <ClipShareButton replay={final} view={view ?? "trackside"} follow={follow} highlightHorseId={hasHighlight ? highlightHorseId : undefined} mine={mine} artBaseUrl={artBaseUrl} course={course} connections={connections} meta={{ courseName: course?.name ?? null }} />
+      ) : null,
+    [final, whatIf, view, follow, hasHighlight, highlightHorseId, mine, artBaseUrl, course, connections],
+  );
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
   // The finale runs first; then the results card (after a finale, or once the horses have
@@ -1060,6 +1071,7 @@ export function RaceViewer(props: RaceViewerProps) {
             seal={seal}
             onSkip={onFinaleSkip}
             onSkipAll={onFinaleSkipAll}
+            clipButton={clipButton ?? undefined}
           />
         )}
         {showResults && final && <ResultsCard replay={final} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} />}

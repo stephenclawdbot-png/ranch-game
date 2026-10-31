@@ -26,6 +26,7 @@ import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
 import { FieldList } from "./FieldList";
 import { ShareReplay } from "./ShareReplay";
+import { ShareClip } from "./ShareClip";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
@@ -298,6 +299,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           </button>
         )}
         {phase === "result" && <ShareReplay card={card} horseName={mine?.horse.name ?? winnerName ?? "The winner"} />}
+        {phase === "result" && replay && (
+          <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />
+        )}
       </div>
 
       <CourseStrip track={card.track} distanceM={config.distanceM} />
