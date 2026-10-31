@@ -23,9 +23,10 @@ import { horses, inboxItems, raceEntries, races, type HorseRow } from "../schema
 type InboxItemRow = typeof inboxItems.$inferSelect;
 import { gc } from "../gameCore";
 import type { Executor } from "../types";
+import { notify } from "./notifications";
 
 /** inbox_items.kind of every moment. */
-export const MOMENT_KIND = "moment";
+export const MOMENT_KIND = "moment" as const;
 
 /** What a moment stores in inbox_items.data. */
 export interface MomentData {
@@ -58,13 +59,9 @@ export async function sendMomentsTx(ex: Executor, input: { accountId: string; ho
   let sent = 0;
   for (const d of input.drafts) {
     const data: MomentData = { moment: d.kind, horseName: input.horseName, body: d.body, href: d.href, ...(d.raceId ? { raceId: d.raceId } : {}), ...(d.tribute ? { tribute: d.tribute } : {}) };
-    const rows = await ex
-      .insert(inboxItems)
-      // raceId stays null on purpose: markInboxRead (viewing a result) must not dismiss a moment
-      .values({ accountId: input.accountId, kind: MOMENT_KIND, dedupeKey: d.dedupeKey, title: d.title, data, horseId: d.horseId, createdAt: input.now })
-      .onConflictDoNothing()
-      .returning({ id: inboxItems.id });
-    sent += rows.length;
+    // raceId stays null on purpose: markInboxRead (viewing a result) must not dismiss a moment
+    const id = await notify(ex, { accountId: input.accountId, kind: MOMENT_KIND, dedupeKey: d.dedupeKey, title: d.title, data, horseId: d.horseId, now: input.now });
+    if (id) sent++;
   }
   return sent;
 }

@@ -128,6 +128,7 @@ import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
 import { afterResultWatched, onboardingView } from "./guide";
 import { stableNews } from "./moments";
+import { maybeSweepNotifications, unreadCount } from "./notifications";
 import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
@@ -355,6 +356,8 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
     } catch (e) {
       console.error("[game] tote settlement failed", e);
     }
+    // Time-driven notifications (a horse back from injury, a new training week): throttled, idempotent.
+    await maybeSweepNotifications(db, now);
     return { locked: tick.locked.length, settled, maintenance: tick.maintenance };
   })();
   tickState.inflight = run;
@@ -1382,6 +1385,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     serverNowMs: nowMs,
     news: await stableNews(db, session.accountId),
     onboarding,
+    unreadNotifications: await unreadCount(db, session, now),
   };
 }
 

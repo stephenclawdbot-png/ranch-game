@@ -23,6 +23,7 @@ import { LIVE_RACE_KINDS } from "./leagues";
 import { grantCreditsTx } from "./ledger";
 import { MOMENT_KIND, type MomentData } from "./moments";
 import { rowsOf, runTx } from "./tx";
+import { notify } from "./notifications";
 
 /** Screens with one-time coach marks (web: CoachMark ids). */
 export const COACH_MARK_IDS = ["racecard", "entry", "training", "breeding", "tote", "market"] as const;
@@ -91,10 +92,7 @@ export interface CompleteStepInput {
 /** Stores a stable-wide moment (no horse), at most once per dedupe key. */
 async function stableMomentTx(ex: Executor, input: { accountId: string; kind: gc.MomentKind; dedupeKey: string; title: string; body: string; href: string; now: Date }): Promise<void> {
   const data: MomentData = { moment: input.kind, horseName: "", body: input.body, href: input.href };
-  await ex
-    .insert(inboxItems)
-    .values({ accountId: input.accountId, kind: MOMENT_KIND, dedupeKey: input.dedupeKey, title: input.title, data, createdAt: input.now })
-    .onConflictDoNothing();
+  await notify(ex, { accountId: input.accountId, kind: MOMENT_KIND, dedupeKey: input.dedupeKey, title: input.title, data, now: input.now });
 }
 
 /** Pays the finishing bonus once every step on offer is done (idempotent). True when this call finished the guide. */

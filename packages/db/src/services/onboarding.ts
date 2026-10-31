@@ -18,6 +18,7 @@ import { accounts, inboxItems } from "../schema";
 import type { Db } from "../types";
 import { insertHorse, lockStableOf, occupancy } from "./accounts";
 import { audit, runTx } from "./tx";
+import { notify } from "./notifications";
 
 export const GIFT_FOAL_DEDUPE = "gift-foal";
 
@@ -52,14 +53,14 @@ export async function grantGiftFoal(db: Db, input: { accountId: string; now: Dat
     const spec = specFromGenome({ genome: state.genome, name, sex: state.sex === "filly" ? "filly" : "colt", careSessions: 0, season });
     const horseId = await insertHorse(tx, { stableId: stable.id, spec: { ...spec, careSessions: 0 }, origin: "gift", bound: true, birthSeasonNumber: season, now: input.now });
     const inOverflow = occ.used + 1 > stable.stallSlots;
-    await tx.insert(inboxItems).values({
+    await notify(tx, {
       accountId: input.accountId,
       kind: "gift_foal",
       dedupeKey: GIFT_FOAL_DEDUPE,
       title: `A gift foal from the Club: ${name}`,
       data: { inOverflow },
       horseId,
-      createdAt: input.now,
+      now: input.now,
     });
     await audit(tx, { actor: input.accountId, action: "onboarding.gift_foal", entityType: "horse", entityId: horseId, data: { season, inOverflow } });
     return { status: "granted", horseId, name, inOverflow };

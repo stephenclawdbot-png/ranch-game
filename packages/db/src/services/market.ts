@@ -28,6 +28,7 @@ import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 import { isUsdgRegistered } from "./usdgMarket";
 import { saleNewsTx } from "./news";
+import { noteListingExpiredTx } from "./notificationEvents";
 
 const LIST_BLOCK_CODES: Record<gc.ListBlock, DomainErrorCode> = {
   account_too_new: "SELLER_REQUIREMENTS",
@@ -262,7 +263,11 @@ export async function expireListings(db: Db, now: Date): Promise<number> {
       .from(marketListings)
       .where(and(eq(marketListings.status, "active"), lte(marketListings.expiresAt, now)))
       .for("update", { skipLocked: true });
-    for (const l of due) await closeListing(tx, l, "expired", now);
+    for (const l of due) {
+      await closeListing(tx, l, "expired", now);
+      // The seller's note (a Club lot has no seller to tell).
+      if (l.sellerStableId) await noteListingExpiredTx(tx, { accountId: await accountIdOfStable(tx, l.sellerStableId), listingId: l.id, horseId: l.horseId, market: "credits", now });
+    }
     return due.length;
   });
 }

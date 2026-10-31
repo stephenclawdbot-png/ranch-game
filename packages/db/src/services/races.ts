@@ -15,7 +15,7 @@
 import { and, asc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
-import { horses, inboxItems, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
+import { horses, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
 import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -41,6 +41,8 @@ import { targetScratchedTx, targetsAfterRaceTx } from "./planner";
 import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
 import { refundToteRaceTx, voidConflictedToteBetsTx, voidToteBetsOnHorseTx } from "./tote";
 import { resolveRealToteSeed, type RealToteSeed } from "./realTote";
+import { notify } from "./notifications";
+import { noteInjuryTx } from "./notificationEvents";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -1082,31 +1084,42 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       }
       // Inbox: the result waits for owners who were away.
       if (e.stableId) {
-        await tx
-          .insert(inboxItems)
-          .values({
-            accountId: owners.get(e.stableId)!,
-            kind: "race_result",
-            dedupeKey: `race:${race.id}:${h.id}`,
-            title: fatal
-              ? `${h.name} was fatally injured in the ${race.name}`
-              : `${h.name} finished ${ordinal(r.position)} in the ${race.name}${injuryName ? ` · ${injuryName}${careerEnding ? ": can't race again" : ""}` : ""}`,
-            data: {
-              position: r.position,
-              fieldSize: entries.length,
-              prize: prizes[h.id] ?? 0,
-              retired: mustRetire,
-              injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null,
-              ...(injuryKind ? { injuryKind } : {}),
-            },
-            raceId: race.id,
-            horseId: h.id,
-            createdAt: input.now,
-          })
-          .onConflictDoNothing();
+        await notify(tx, {
+          accountId: owners.get(e.stableId)!,
+          kind: "race_result",
+          dedupeKey: `race:${race.id}:${h.id}`,
+          title: fatal
+            ? `${h.name} was fatally injured in the ${race.name}`
+            : `${h.name} finished ${ordinal(r.position)} in the ${race.name}${injuryName ? ` · ${injuryName}${careerEnding ? ": can't race again" : ""}` : ""}`,
+          data: {
+            position: r.position,
+            fieldSize: entries.length,
+            prize: prizes[h.id] ?? 0,
+            retired: mustRetire,
+            injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null,
+            ...(injuryKind ? { injuryKind } : {}),
+          },
+          raceId: race.id,
+          horseId: h.id,
+          now: input.now,
+        });
       }
       // Moments: what this run revealed or meant (game-core moments.ts), to the horse's owner.
       const momentTo = h.ownerStableId ? await accountIdOfStable(tx, h.ownerStableId) : e.stableId ? owners.get(e.stableId)! : null;
+      // "Your horse has been injured" (a fatal injury is the memorial moment instead), to the owner and
+      // the stable racing it. It names the race (data.raceId), so it waits until that result is watched.
+      if (injuryName && !fatal) {
+        await noteInjuryTx(tx, [e.stableId ? owners.get(e.stableId) : null, momentTo], {
+          horse: h,
+          raceId: race.id,
+          source: race.id,
+          name: injuryName,
+          severity: r.injury?.severity ?? runInjury?.severity ?? null,
+          careerEnding,
+          backAt: careerEnding ? null : (fromState?.injuredUntil ?? (r.injury ? new Date(input.now.getTime() + r.injury.recoveryMs) : null)),
+          now: input.now,
+        });
+      }
       if (momentTo) {
         const [after] = await tx.select().from(horses).where(eq(horses.id, h.id));
         const feature = race.kind === "feature" || race.kind === "final";

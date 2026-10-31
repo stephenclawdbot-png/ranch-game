@@ -26,6 +26,7 @@ import { claimingEligibleCount } from "./claiming";
 import { applyPendingSponsorships, baseRaceName, withoutSponsor } from "./sponsorship";
 import { audit } from "./tx";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
+import { noteRacesThatSuit } from "./notificationEvents";
 
 export function slotIndexAt(at: Date): number {
   return Math.floor((at.getTime() - RULES.seasonEpochMs) / RULES.slotMs);
@@ -439,7 +440,18 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
     const input = make(i);
     if (input) rows.push(raceValues({ ...input, slotKey: slotKeyOf(i) }));
   }
-  if (rows.length) await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey });
+  const inserted = rows.length ? await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey }).returning({ slotKey: races.slotKey }) : [];
+  // A meeting is complete once its last race is published: tell players which of its races suit
+  // their horses (one digest per meeting; this instance published it, so it runs once).
+  for (const r of inserted) {
+    const m = meetingRaceOf(slotIndexOf(r.slotKey) ?? -1);
+    if (!m || m.race !== gc.RACES_PER_MEETING - 1) continue;
+    try {
+      await noteRacesThatSuit(db, { meeting: m.number, fromMs: m.startMs, toMs: m.lastPostMs, now });
+    } catch (e) {
+      console.error("[card] race-suits notes failed", m.number, e);
+    }
+  }
   // sponsorships bought before their slot was on the card take the name now (sponsorship.ts;
   // one indexed read when there are none)
   const named = await applyPendingSponsorships(db, first, last, now);

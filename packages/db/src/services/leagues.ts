@@ -14,12 +14,13 @@
  */
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { utcWeekStart } from "../crypto";
-import { inboxItems, leagueMembers, leagues, raceEntries, races, stables } from "../schema";
+import { leagueMembers, leagues, raceEntries, races, stables } from "../schema";
 import { gc } from "../gameCore";
 import { seasonBounds } from "../rules";
 import type { Db, Executor } from "../types";
 import { joinWeeklyLeague } from "./competition";
 import { runTx } from "./tx";
+import { notify } from "./notifications";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export const LIVE_RACE_KINDS = ["scheduled", "feature", "final"] as const;
@@ -166,17 +167,14 @@ export async function settleLeagueWeeks(db: Db, now: Date, opts: { accountId?: s
               : mv.outcome === "relegated"
                 ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, down to ${tierLabel(mv.to)}${drop?.state === "zone" ? `: ${pts(drop.toSafety)} short of safety` : ""}`
                 : `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}${gap > 0 && near?.up ? `, ${pts(gap)} short of ${tierLabel(near.up)}` : ""}${drop?.state === "clear" ? `, ${pts(drop.margin)} clear of the drop` : ""}`;
-          await tx
-            .insert(inboxItems)
-            .values({
-              accountId: mv.ownerId,
-              kind: "week_recap",
-              dedupeKey: `week-recap:${league.weekStart}`,
-              title,
-              data: { weekStart: league.weekStart, rank: mv.rank, of: moves.length, points: s.points, wins: s.wins, runs: s.runs, outcome: mv.outcome, from: mv.from, to: mv.to, gapToPromotion: gap, nextTier: near?.up ?? null, drop: drop ?? null },
-              createdAt: now,
-            })
-            .onConflictDoNothing();
+          await notify(tx, {
+            accountId: mv.ownerId,
+            kind: "week_recap",
+            dedupeKey: `week-recap:${league.weekStart}`,
+            title,
+            data: { weekStart: league.weekStart, rank: mv.rank, of: moves.length, points: s.points, wins: s.wins, runs: s.runs, outcome: mv.outcome, from: mv.from, to: mv.to, gapToPromotion: gap, nextTier: near?.up ?? null, drop: drop ?? null },
+            now,
+          });
         }
       }
       return moves.length;

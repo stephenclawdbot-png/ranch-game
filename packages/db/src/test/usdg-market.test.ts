@@ -8,7 +8,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { fraudEvents, horses, packPulls, raceEntries, races, usdgBids, usdgListings, usdgOrders, type HorseRow } from "../schema";
+import { fraudEvents, horses, inboxItems, packPulls, raceEntries, races, usdgBids, usdgListings, usdgOrders, type HorseRow } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { linkVerifiedWallet } from "../services/betaMoney";
 import { tradeStatus } from "../services/economyViews";
@@ -333,6 +333,12 @@ describe("auctions", () => {
     expect((await closeUsdgAuctions(h.db, { now: at(24 * HOUR), chain: CHAIN }, POLICY)).unsold).toBeGreaterThanOrEqual(1);
     expect((await h.db.select().from(usdgListings).where(eq(usdgListings.id, empty.id)))[0]!.status).toBe("unsold");
     expect((await getHorseRow(h.db, horse.id)).lockKind).toBeNull();
+    // The seller is told once (notifications: "your market listing expired").
+    await closeUsdgAuctions(h.db, { now: at(24 * HOUR + MIN), chain: CHAIN }, POLICY);
+    const notes = await h.db.select().from(inboxItems).where(and(eq(inboxItems.accountId, seller.accountId), eq(inboxItems.kind, "listing_expired")));
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ dedupeKey: `listing-expired:usdg:${empty.id}`, horseId: horse.id });
+    expect(notes[0]!.title).toMatch(/auction ended without a sale \(no bids\)/);
 
     const t1 = at(25 * HOUR);
     const second = await listUsdg(h.db, { accountId: seller.accountId, horseId: horse.id, kind: "auction", price: 3 * USD, duration: 24, now: t1 }, POLICY);
@@ -361,5 +367,22 @@ describe("auctions", () => {
     await recordAccountSignal(h.db, { accountId: alt.accountId, kind: "ip_hash", value: "shared-ip-later" });
     const { offered } = await closeUsdgAuctions(h.db, { now: at(24 * HOUR), chain: CHAIN }, POLICY);
     expect(offered.find((o) => o.listingId === auction.id)).toMatchObject({ accountId: honest.accountId, price: 4 * USD });
+  });
+});
+
+describe("expiry notifications", () => {
+  it("a fixed-price listing that runs out tells its seller once; a live one doesn't", async () => {
+    const seller = await player();
+    const horse = await registered(seller);
+    const listing = await listUsdg(h.db, { accountId: seller.accountId, horseId: horse.id, kind: "fixed", price: 5 * USD, duration: 3, now: T0 }, POLICY);
+    const notes = () => h.db.select().from(inboxItems).where(and(eq(inboxItems.accountId, seller.accountId), eq(inboxItems.kind, "listing_expired")));
+    await expireUsdgListings(h.db, { now: at(DAY) });
+    expect(await notes()).toHaveLength(0);
+    await expireUsdgListings(h.db, { now: at(3 * DAY + MIN) });
+    await expireUsdgListings(h.db, { now: at(3 * DAY + 2 * MIN) });
+    const rows = await notes();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ dedupeKey: `listing-expired:usdg:${listing.id}`, horseId: horse.id });
+    expect(rows[0]!.title).toMatch(/listing expired unsold/);
   });
 });

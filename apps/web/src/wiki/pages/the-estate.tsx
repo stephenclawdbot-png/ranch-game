@@ -159,6 +159,9 @@ export default function TheEstatePage() {
             <Icon name="coin" size={16} /> <b>Credits</b>: your Stable Credits.
           </>,
           <>
+            <Icon name="bell" size={16} /> <b>Notifications</b>: the bell, with a count of what&rsquo;s new. See <a href="#notifications" className="link">Notifications</a> below.
+          </>,
+          <>
             <b>Your silks</b>: your profile and settings.
           </>,
           <>
@@ -166,6 +169,20 @@ export default function TheEstatePage() {
           </>,
         ]}
       />
+      <H2 id="notifications">Notifications</H2>
+      <P>
+        Everything that happens to your stable while you&rsquo;re away lands in your inbox, and the <b>bell</b> in the top bar shows how much of it is new (up to &ldquo;9+&rdquo;). Open
+        it for the latest notes, grouped by day, each one a tap away from its race, horse or page: a result waiting to be watched, an injury and the day the horse is{" "}
+        <b>back in the race</b>, a <b>new training week</b> for horses you train hard, <b>new races that suit your horses</b> when a meeting is published, a <b>listing that
+        expired</b> unsold, sales, stud fees, jockey news, the weekly upkeep and the League recap. Nothing spoils a race: a result you haven&rsquo;t watched shows only its race
+        name, and news from that race waits until you&rsquo;ve seen it. <b>Mark all read</b> clears the count without marking any result as watched.
+      </P>
+      <P>
+        In your <GameLink href="/me">profile</GameLink>, <b>Notifications</b> has a switch for each kind (races and results, horse health and care, training, market and sales,
+        breeding and stud, jockeys, betting, Club and news), all on to begin with. A kind switched off leaves the bell and its count, but the full list under{" "}
+        <GameLink href="/me/notifications">All notifications</GameLink> still keeps everything, so nothing is ever lost.
+      </P>
+
       <H2 id="profile">Profile and settings</H2>
       <P>
         Your <GameLink href="/me">profile</GameLink> is where your stable&rsquo;s name and colours live, and where you set a <b>stable photo</b>: upload a PNG, JPEG or WebP up

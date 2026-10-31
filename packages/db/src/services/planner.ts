@@ -12,7 +12,7 @@
  * sweep also sends two inbox reminders, once each: entries open, and two hours before they close.
  */
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
-import { horses, inboxItems, raceEntries, races, raceTargets, stables, type HorseRow, type RaceEntryRow, type RaceRow, type RaceTargetRow } from "../schema";
+import { horses, raceEntries, races, raceTargets, stables, type HorseRow, type RaceEntryRow, type RaceRow, type RaceTargetRow } from "../schema";
 import { gc, isGenome, toHorseState } from "../gameCore";
 import { RULES, seasonNumberAt } from "../rules";
 import { DomainError } from "../errors";
@@ -22,6 +22,7 @@ import { completeStableStepTx } from "./guide";
 import { CALENDAR_HOME_COURSE, defaultCardSlot, slotIndexOf, slotKeyOf, specialSlotAt } from "./card";
 import { classEligibility, featureQualificationReason, type RaceConditions } from "./races";
 import { runTx } from "./tx";
+import { notify } from "./notifications";
 
 const LIVE_KINDS = ["scheduled", "feature", "final"] as const;
 const DAY_MS = 86_400_000;
@@ -250,25 +251,21 @@ export async function sweepTargets(db: Db, now: Date, opts: { stableId?: string 
     if (!due || !accountId || !race.raceId) continue;
     if ((due === "open" && t.remindedOpenAt) || (due === "closing" && t.remindedCloseAt)) continue;
     const when = race.postTime.toISOString().slice(11, 16);
-    const rows = await db
-      .insert(inboxItems)
-      .values({
-        accountId,
-        kind: "plan_reminder",
-        dedupeKey: `plan-${due}:${t.id}`,
-        title: due === "open" ? `Entries are open for ${h.name}'s target: the ${race.name} (${when} UTC)` : `Two hours left to enter ${h.name} in the ${race.name} (${when} UTC)`,
-        data: { targetId: t.id, reminder: due, href: `/race/${race.raceId}` },
-        raceId: race.raceId,
-        horseId: h.id,
-        createdAt: now,
-      })
-      .onConflictDoNothing()
-      .returning({ id: inboxItems.id });
+    const sent = await notify(db, {
+      accountId,
+      kind: "plan_reminder",
+      dedupeKey: `plan-${due}:${t.id}`,
+      title: due === "open" ? `Entries are open for ${h.name}'s target: the ${race.name} (${when} UTC)` : `Two hours left to enter ${h.name} in the ${race.name} (${when} UTC)`,
+      data: { targetId: t.id, reminder: due, href: `/race/${race.raceId}` },
+      raceId: race.raceId,
+      horseId: h.id,
+      now,
+    });
     await db
       .update(raceTargets)
       .set(due === "open" ? { remindedOpenAt: now } : { remindedCloseAt: now })
       .where(eq(raceTargets.id, t.id));
-    if (rows.length) reminders++;
+    if (sent) reminders++;
   }
   return { removed, reminders };
 }

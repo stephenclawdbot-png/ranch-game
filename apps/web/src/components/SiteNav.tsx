@@ -7,6 +7,7 @@ import { formatCredits } from "@/lib/format";
 import { usePlayerState } from "@/lib/player";
 import { PixelIcon, type IconName } from "./icons";
 import { StableBadge } from "./StableBadge";
+import { NotificationBell } from "./NotificationBell";
 
 type Section = { href: string; label: string; icon: IconName; match: (p: string) => boolean; sub?: { href: string; label: string }[] };
 
@@ -146,6 +147,7 @@ export function SiteNav() {
         <Pill icon="coin" testId="credits" title="Stable credits" label={`${formatCredits(state.credits)} credits`}>
           {formatCredits(state.credits)}
         </Pill>
+        <NotificationBell />
         <Link
           href="/me"
           className={`avatar ${pathname.startsWith("/me") ? "avatar-on" : ""}`}

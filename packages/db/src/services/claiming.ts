@@ -25,7 +25,7 @@ import { and, asc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-or
 import { createHash } from "node:crypto";
 import { DomainError } from "../errors";
 import { bandRatingOf, gc, isGenome, toHorseState } from "../gameCore";
-import { fraudEvents, horseLeaseListings, horses, inboxItems, pregnancies, raceClaims, raceEntries, races, stables, trades, type HorseRow, type RaceClaimRow, type RaceRow, type StableRow } from "../schema";
+import { fraudEvents, horseLeaseListings, horses, pregnancies, raceClaims, raceEntries, races, stables, trades, type HorseRow, type RaceClaimRow, type RaceRow, type StableRow } from "../schema";
 import { RULES, defaultAppraise, type GameHooks } from "../rules";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
@@ -34,6 +34,7 @@ import { assertTradeableTx, sellerEligibility } from "./market";
 import { isUsdgRegistered, usdgRegisteredIds } from "./usdgMarket";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
+import { notify, type InboxKind } from "./notifications";
 
 /** A claiming race: its conditions say so (card.ts; sister courses copy the conditions). */
 export const isClaimingRace = (race: Pick<RaceRow, "conditions">): boolean => ((race.conditions ?? {}) as { claiming?: unknown }).claiming === true;
@@ -171,8 +172,8 @@ export async function claimingEntryCheckTx(
   return input.claimPrice;
 }
 
-async function note(ex: Executor, accountId: string, kind: string, dedupeKey: string, title: string, data: Record<string, unknown>, raceId: string, horseId: string, now: Date) {
-  await ex.insert(inboxItems).values({ accountId, kind, dedupeKey, title, data, raceId, horseId, createdAt: now }).onConflictDoNothing();
+async function note(ex: Executor, accountId: string, kind: InboxKind, dedupeKey: string, title: string, data: Record<string, unknown>, raceId: string, horseId: string, now: Date) {
+  await notify(ex, { accountId, kind, dedupeKey, title, data, raceId, horseId, now });
 }
 
 const horseName = (snapshot: unknown) => (snapshot as { name?: string } | null)?.name ?? "the horse";

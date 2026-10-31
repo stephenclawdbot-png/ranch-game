@@ -356,6 +356,11 @@ const NON_LEDGER_KINDS = new Set([
   "plan_reminder",
   // the practice T-USDG sale note (an inbox kind, usdgPractice.ts)
   "usdg_sale",
+  // notification kinds (inbox items, notificationEvents.ts)
+  "back_in_race",
+  "training_ready",
+  "race_suits",
+  "listing_expired",
   // fraud events (tote.ts)
   "tote_linked_bet_blocked",
   // ledger account kinds

@@ -28,11 +28,12 @@ import { getBalance, grantCreditsTx, playerLedgerAccountId, post, spendCreditsTx
 import { putNews } from "./news";
 import { audit, rowsOf, runTx } from "./tx";
 import { JOCKEY_LINKED_SIGN_DAYS, gradeOfJockey, jockeyEventTx, skillsOf } from "./jockeys";
+import { notify } from "./notifications";
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
 /** Inbox kind of every jockey note (contract ends, window results, wages, morale, bonuses). */
-export const JOCKEY_NOTE = "jockey";
+export const JOCKEY_NOTE = "jockey" as const;
 
 // ---------------------------------------------------------------------------
 // Contracts
@@ -111,10 +112,7 @@ export async function ensureContractBackfillTx(tx: Executor, now: Date): Promise
 
 async function note(ex: Executor, input: { stableId: string; key: string; title: string; jockeyId: string; now: Date; data?: Record<string, unknown> }): Promise<void> {
   const accountId = await accountIdOfStable(ex, input.stableId);
-  await ex
-    .insert(inboxItems)
-    .values({ accountId, kind: JOCKEY_NOTE, dedupeKey: `jockey:${input.key}`, title: input.title, data: { href: `/jockeys/${input.jockeyId}`, jockeyId: input.jockeyId, ...(input.data ?? {}) }, createdAt: input.now })
-    .onConflictDoNothing();
+  await notify(ex, { accountId, kind: JOCKEY_NOTE, dedupeKey: `jockey:${input.key}`, title: input.title, data: { href: `/jockeys/${input.jockeyId}`, jockeyId: input.jockeyId, ...(input.data ?? {}) }, now: input.now });
 }
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;

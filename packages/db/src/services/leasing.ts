@@ -36,7 +36,7 @@ import { sha256Hex, utcDay, utcWeekStart } from "../crypto";
 import { DomainError } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
 import { defaultAppraise, RULES } from "../rules";
-import { accounts, fraudEvents, horseLeaseListings, horseLeases, horses, inboxItems, raceEntries, races, stables, trades, type HorseLeaseListingRow, type HorseLeaseRow, type HorseRow } from "../schema";
+import { accounts, fraudEvents, horseLeaseListings, horseLeases, horses, raceEntries, races, stables, trades, type HorseLeaseListingRow, type HorseLeaseRow, type HorseRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStableOf, stableOf } from "./accounts";
 import { isCarrying, lockHorse, lockOwnedHorse } from "./horses";
@@ -44,6 +44,7 @@ import { studHoldsOf } from "./usdgMarket";
 import { LIVE_RACE_KINDS, weekBounds } from "./leagues";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, rowsOf, runTx } from "./tx";
+import { notify, type InboxKind } from "./notifications";
 
 /** Tunable at call sites (tests switch the upfront fee on); defaults are game-core's numbers. */
 export interface LeasePolicy {
@@ -520,8 +521,8 @@ async function stableName(ex: Executor, stableId: string | null): Promise<string
   return s?.name ?? "another stable";
 }
 
-async function inbox(ex: Executor, accountId: string, dedupeKey: string, kind: string, title: string, horseId: string, now: Date, data: Record<string, unknown>): Promise<void> {
-  await ex.insert(inboxItems).values({ accountId, kind, dedupeKey, title, data, horseId, createdAt: now }).onConflictDoNothing();
+async function inbox(ex: Executor, accountId: string, dedupeKey: string, kind: InboxKind, title: string, horseId: string, now: Date, data: Record<string, unknown>): Promise<void> {
+  await notify(ex, { accountId, kind, dedupeKey, title, data, horseId, now });
 }
 
 // ---------------------------------------------------------------------------

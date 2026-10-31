@@ -18,7 +18,7 @@
 import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
 import { DomainError, type DomainErrorCode } from "../errors";
-import { breedingEvents, horses, inboxItems, lineageEdges, pregnancies, raceEntries, races, type HorseRow, type PregnancyRow } from "../schema";
+import { breedingEvents, horses, lineageEdges, pregnancies, raceEntries, races, type HorseRow, type PregnancyRow } from "../schema";
 import { RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { gc, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -27,6 +27,7 @@ import { accountIdOfStable, areLinked, assertStallFree, insertHorse, lockStable,
 import { playerLedgerAccountId, post, systemAccountId, type Posting } from "./ledger";
 import { audit, runTx } from "./tx";
 import { studHoldDeadline, studHoldsOf } from "./usdgMarket";
+import { notify } from "./notifications";
 
 /** Max pedigree depth stored in the closure table (game-core COI depth). */
 export const LINEAGE_MAX_DEPTH = gc.COI_MAX_DEPTH;
@@ -306,18 +307,15 @@ async function retireSpentBreeders(ex: Executor, ids: readonly string[], now: Da
     .returning();
   for (const h of spent) {
     if (!h.ownerStableId) continue;
-    await ex
-      .insert(inboxItems)
-      .values({
-        accountId: await accountIdOfStable(ex, h.ownerStableId),
-        kind: "retired",
-        dedupeKey: `retired-spent:${h.id}`,
-        title: `${h.name} has used every breeding and retired for good to the Legacy Farm`,
-        data: { reason: "breedings_used" },
-        horseId: h.id,
-        createdAt: now,
-      })
-      .onConflictDoNothing();
+    await notify(ex, {
+      accountId: await accountIdOfStable(ex, h.ownerStableId),
+      kind: "retired",
+      dedupeKey: `retired-spent:${h.id}`,
+      title: `${h.name} has used every breeding and retired for good to the Legacy Farm`,
+      data: { reason: "breedings_used" },
+      horseId: h.id,
+      now,
+    });
   }
   return spent.map((h) => h.id);
 }
@@ -338,18 +336,15 @@ async function delistCappedStuds(ex: Executor, ids: readonly string[], now: Date
     .returning();
   for (const h of delisted) {
     if (!h.ownerStableId) continue;
-    await ex
-      .insert(inboxItems)
-      .values({
-        accountId: await accountIdOfStable(ex, h.ownerStableId),
-        kind: "retired",
-        dedupeKey: `stud-capped:${h.id}`,
-        title: `${h.name} has used every breeding and no longer stands at stud`,
-        data: { reason: "breedings_used_stud" },
-        horseId: h.id,
-        createdAt: now,
-      })
-      .onConflictDoNothing();
+    await notify(ex, {
+      accountId: await accountIdOfStable(ex, h.ownerStableId),
+      kind: "retired",
+      dedupeKey: `stud-capped:${h.id}`,
+      title: `${h.name} has used every breeding and no longer stands at stud`,
+      data: { reason: "breedings_used_stud" },
+      horseId: h.id,
+      now,
+    });
   }
 }
 

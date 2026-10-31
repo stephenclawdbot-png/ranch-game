@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
 import { PlayerGate } from "@/components/PlayerGate";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { StableBadge } from "@/components/StableBadge";
 import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
@@ -163,6 +164,8 @@ function Profile({ state }: { state: PlayerState }) {
           </div>
         </div>
       </section>
+
+      <NotificationSettings />
 
       <section className="surface grid gap-3 p-4" aria-labelledby="save-h">
         <h2 id="save-h" className="t-h2">
