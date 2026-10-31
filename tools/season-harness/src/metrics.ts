@@ -865,6 +865,14 @@ export interface JockeyTotals {
   signingFees: number;
   /** Most jockeys any stable held at the end (never above 3). */
   maxHeld: number;
+  /** Phase 2: each transfer window closed (free agents, offers, signings, moves, unmatched, walkouts). */
+  windows: { week: number; freeAgents: number; offers: number; signings: number; moves: number; unmatched: number; walkouts: number }[];
+  /** Credits burned on weekly wages; contracts that went unpaid; development bonuses paid (count, credits). */
+  wagesPaid: number;
+  unpaid: number;
+  devBonuses: { count: number; credits: number };
+  /** Active contracts at the end, and their mean wage and promised rides. */
+  contracts: { active: number; meanWage: number; meanPromised: number };
 }
 
 /** Jockeys over the run (packages/db services/jockeys.ts). */
@@ -897,12 +905,27 @@ export async function jockeyTotals(world: World): Promise<JockeyTotals> {
             count(*) filter (where e.kind = 'retired')::int retired, count(*) filter (where e.kind = 'signed')::int signed
      from jockey_events e join jockeys j on j.id = e.jockey_id`,
   );
-  const [fees] = await q<{ fee: string; refund: string; sign: string }>(
+  // Burn-side amounts: fees and refunds go player <-> burn; a window signing goes escrow -> burn.
+  const [fees] = await q<{ fee: string; refund: string; sign: string; wage: string; bonus: string; bonuses: number }>(
     db,
-    `select coalesce(sum(amount) filter (where t.kind = 'jockey_fee'), 0)::bigint fee, coalesce(sum(amount) filter (where t.kind = 'jockey_fee_refund'), 0)::bigint refund,
-            coalesce(sum(amount) filter (where t.kind = 'jockey_signing'), 0)::bigint sign
-     from ledger_postings p join ledger_transactions t on t.id = p.transaction_id join ledger_accounts a on a.id = p.ledger_account_id where a.kind <> 'player'`,
+    `select coalesce(sum(amount) filter (where t.kind = 'jockey_fee' and a.kind = 'burn'), 0)::bigint fee, coalesce(sum(amount) filter (where t.kind = 'jockey_fee_refund' and a.kind = 'burn'), 0)::bigint refund,
+            coalesce(sum(amount) filter (where t.kind = 'jockey_signing' and a.kind = 'burn'), 0)::bigint sign,
+            coalesce(sum(amount) filter (where t.kind = 'jockey_wage' and a.kind = 'burn'), 0)::bigint wage,
+            coalesce(sum(amount) filter (where t.kind = 'jockey_development_bonus' and a.kind = 'player'), 0)::bigint bonus,
+            count(*) filter (where t.kind = 'jockey_development_bonus' and a.kind = 'player')::int bonuses
+     from ledger_postings p join ledger_transactions t on t.id = p.transaction_id join ledger_accounts a on a.id = p.ledger_account_id`,
   );
+  const windows = (await q<{ week: number; w: { freeAgents?: number; offers?: number; signings?: unknown[]; moves?: number; unmatched?: number; walkouts?: number } }>(db, `select week, "window" w from jockey_weeks where window_ran_at is not null order by week`)).map((r) => ({
+    week: num(r.week),
+    freeAgents: num(r.w?.freeAgents),
+    offers: num(r.w?.offers),
+    signings: r.w?.signings?.length ?? 0,
+    moves: num(r.w?.moves),
+    unmatched: num(r.w?.unmatched),
+    walkouts: num(r.w?.walkouts),
+  }));
+  const [unpaid] = await q<{ n: number }>(db, `select count(*)::int n from jockey_contracts where unpaid_week is not null`);
+  const [ct] = await q<{ n: number; wage: number | null; promised: number | null }>(db, `select count(*)::int n, avg(wage)::int wage, round(avg(promised_rides), 1)::float promised from jockey_contracts where status = 'active'`);
   const [held] = await q<{ m: number | null }>(db, `select max(c)::int m from (select count(*) c from jockeys where stable_id is not null and retired_at is null group by stable_id) x`);
   const sorted = [...counts].sort((a, b) => a - b);
   return {
@@ -920,6 +943,11 @@ export async function jockeyTotals(world: World): Promise<JockeyTotals> {
     freelanceFees: num(fees?.fee) + num(fees?.refund),
     signingFees: num(fees?.sign),
     maxHeld: num(held?.m),
+    windows,
+    wagesPaid: num(fees?.wage),
+    unpaid: num(unpaid?.n),
+    devBonuses: { count: num(fees?.bonuses), credits: num(fees?.bonus) },
+    contracts: { active: num(ct?.n), meanWage: num(ct?.wage), meanPromised: num(ct?.promised) },
   };
 }
 

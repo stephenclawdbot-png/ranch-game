@@ -139,6 +139,12 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "jockeyFreelanceFees", label: "Freelance booking fees (credits)", value: t.jockeys?.freelanceFees ?? 0 },
     { key: "jockeySigningFees", label: "Jockey signing fees (credits)", value: t.jockeys?.signingFees ?? 0 },
     { key: "jockeyMaxHeld", label: "Most jockeys held by one stable", value: t.jockeys?.maxHeld ?? 0 },
+    { key: "jockeyWindowOffers", label: "Transfer window offers (all windows)", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.offers, 0) },
+    { key: "jockeyWindowSignings", label: "Transfer window signings", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.signings, 0) },
+    { key: "jockeyWindowMoves", label: "Jockeys moving between stables", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.moves, 0) },
+    { key: "jockeyWages", label: "Jockey wages paid (credits, sink)", value: t.jockeys?.wagesPaid ?? 0 },
+    { key: "jockeyWalkouts", label: "Morale walkouts", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.walkouts, 0) },
+    { key: "jockeyDevBonuses", label: "Development bonuses (credits)", value: t.jockeys?.devBonuses.credits ?? 0 },
   ];
   for (const c of COHORTS) {
     if (!r.meta.cohorts[c]) continue;
@@ -223,6 +229,14 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
     if (j.weeks.length) {
       L.push("", "| week | active stables | pool | target | intake | per active stable |", "|---:|---:|---:|---:|---:|---:|");
       for (const w of j.weeks) L.push(`| ${w.week} | ${w.active} | ${w.pool} | ${w.target} | ${w.intake} | ${w.perActive} |`);
+    }
+    if (j.windows) {
+      L.push("", "### Contracts and the transfer window", "");
+      L.push(`Wages paid ${fmt(j.wagesPaid)} credits (sink); contracts unpaid ${j.unpaid}; development bonuses ${j.devBonuses.count} (${fmt(j.devBonuses.credits)} credits). Active contracts at the end ${j.contracts.active}, mean wage ${j.contracts.meanWage}, mean promised rides ${j.contracts.meanPromised}.`);
+      if (j.windows.length) {
+        L.push("", "| window week | free agents | offers | signings | moves | to Club pool | walkouts |", "|---:|---:|---:|---:|---:|---:|---:|");
+        for (const w of j.windows) L.push(`| ${w.week} | ${w.freeAgents} | ${w.offers} | ${w.signings} | ${w.moves} | ${w.unmatched} | ${w.walkouts} |`);
+      }
     }
   }
   L.push("", "## Credits", "");
