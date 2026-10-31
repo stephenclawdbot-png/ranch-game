@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { NEWS_KINDS, NEWS_TEMPLATES, newsHeadline } from "./news";
 import { entryWindow, freshnessOutlook, planReminderDue, restHoursAfter, targetClashes } from "./planning";
-import { findNemesis, horseHeadToHead, rankRivals, raceRivalLines, stableHeadToHead, type Meeting } from "./rivals";
+import { findNemesis, horseHeadToHead, rankRivals, raceRivalLines, stableHeadToHead, type RaceMeeting } from "./rivals";
 import { MS_PER_DAY, MS_PER_HOUR } from "./time";
 
 const run = (horseId: string, stableId: string | null, position: number, marginMm: number) => ({ horseId, horseName: horseId.toUpperCase(), stableId, stableName: stableId ? `Stable ${stableId}` : "The Club", position, marginMm });
-const meet = (raceId: string, atMs: number, runners: ReturnType<typeof run>[]): Meeting => ({ raceId, raceName: `Race ${raceId}`, atMs, runners });
+const meet = (raceId: string, atMs: number, runners: ReturnType<typeof run>[]): RaceMeeting => ({ raceId, raceName: `Race ${raceId}`, atMs, runners });
 
 describe("rivals", () => {
   const ms = [

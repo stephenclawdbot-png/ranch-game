@@ -32,7 +32,7 @@ export interface MeetingRunner {
   marginMm: number;
 }
 
-export interface Meeting {
+export interface RaceMeeting {
   raceId: string;
   raceName: string;
   atMs: number;
@@ -80,7 +80,7 @@ export function distancesBehind(runners: readonly Pick<MeetingRunner, "horseId" 
   return out;
 }
 
-function note(rec: H2HRecord, m: Meeting, ahead: boolean, close: boolean): void {
+function note(rec: H2HRecord, m: RaceMeeting, ahead: boolean, close: boolean): void {
   rec.meetings++;
   if (ahead) rec.ahead++;
   else rec.behind++;
@@ -95,7 +95,7 @@ function note(rec: H2HRecord, m: Meeting, ahead: boolean, close: boolean): void 
  * Stable-vs-stable records for `mine` against every other owner it met: in each race, its best
  * finisher against theirs. Close = those two within a length.
  */
-export function stableHeadToHead(meetings: readonly Meeting[], mine: string): StableH2H[] {
+export function stableHeadToHead(meetings: readonly RaceMeeting[], mine: string): StableH2H[] {
   const by = new Map<string, StableH2H>();
   for (const m of meetings) {
     const dist = distancesBehind(m.runners);
@@ -119,7 +119,7 @@ export function stableHeadToHead(meetings: readonly Meeting[], mine: string): St
 }
 
 /** Horse-vs-horse records: each of `mine`'s horses against each owned horse of another stable it met. */
-export function horseHeadToHead(meetings: readonly Meeting[], mine: string): HorseH2H[] {
+export function horseHeadToHead(meetings: readonly RaceMeeting[], mine: string): HorseH2H[] {
   const by = new Map<string, HorseH2H>();
   for (const m of meetings) {
     const dist = distancesBehind(m.runners);
@@ -178,7 +178,7 @@ export function findNemesis(pairs: readonly HorseH2H[]): Nemesis | null {
  * win over a horse after losing every earlier meeting, a nemesis beaten or winning again, and
  * the record against a rival stable. `history` = every meeting up to and including this race.
  */
-export function raceRivalLines(history: readonly Meeting[], raceId: string, mine: string, opts: { rivalIds?: ReadonlySet<string>; nemesisId?: string | null } = {}): string[] {
+export function raceRivalLines(history: readonly RaceMeeting[], raceId: string, mine: string, opts: { rivalIds?: ReadonlySet<string>; nemesisId?: string | null } = {}): string[] {
   const race = history.find((m) => m.raceId === raceId);
   if (!race) return [];
   const before = history.filter((m) => m.raceId !== raceId && m.atMs <= race.atMs);
