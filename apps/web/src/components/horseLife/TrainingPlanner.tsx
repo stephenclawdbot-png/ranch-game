@@ -109,7 +109,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
             const w = byKey.get(key);
             const done = i < t.sessionsUsed;
             return (
-              <li key={i} className="grid grid-cols-[2rem_1fr] items-center gap-x-2 gap-y-1 py-2 sm:grid-cols-[2rem_12rem_1fr_auto]">
+              <li key={i} className="grid grid-cols-[2rem_1fr] items-center gap-x-2 gap-y-1 py-2 sm:grid-cols-[2rem_max-content_1fr_auto]">
                 <span className={`num text-center ${done ? "text-positive" : i === t.sessionsUsed ? "text-brass-bright" : "text-sage"}`}>{done ? "✓" : i + 1}</span>
                 {done ? (
                   <span className="font-extrabold text-cream-dim">{w?.label ?? key}</span>
