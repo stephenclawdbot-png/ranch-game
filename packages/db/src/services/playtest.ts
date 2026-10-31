@@ -750,6 +750,7 @@ export const RESET_TABLES = [
   "fraud_events",
   "account_links",
   "link_codes",
+  "login_codes",
   "account_devices",
   "accounts",
 ] as const;

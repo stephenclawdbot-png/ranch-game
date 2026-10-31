@@ -200,6 +200,23 @@ export const linkCodes = pgTable(
   (t) => [index("link_codes_account_idx").on(t.accountId)],
 );
 
+/**
+ * Testing phase only: a tester's personal login code (no wallet needed). One per account,
+ * long and random (about 99 bits), reusable, stored hashed; getting a new one replaces the old.
+ */
+export const loginCodes = pgTable(
+  "login_codes",
+  {
+    accountId: uuid("account_id")
+      .primaryKey()
+      .references(() => accounts.id),
+    codeHash: text("code_hash").notNull(),
+    createdAt: createdAt(),
+    lastUsedAt: ts("last_used_at"),
+  },
+  (t) => [uniqueIndex("login_codes_hash_uq").on(t.codeHash)],
+);
+
 /** Anti-fraud events for review (blocked linked trades, suspicious patterns ...). */
 export const fraudEvents = pgTable(
   "fraud_events",

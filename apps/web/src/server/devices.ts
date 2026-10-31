@@ -10,7 +10,8 @@
  * stables (this device now belongs to another account) is written to the audit log as
  * `account.switch`.
  */
-import { audit, clearRateLimits, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
+import { loginCodeHash, loginCodesEnabled, normalizeLoginCode } from "./loginCode";
+import { audit, clearRateLimits, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, signInWithLoginCode, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
 import { playerView } from "./game";
 import { errorJson, json } from "./http";
 import { clientIp, sharedLimiter } from "./rateLimit";
@@ -59,7 +60,9 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   if (input.session && !replace && (await stableHasProgress(database, input.session.accountId))) {
     return errorJson(409, "replace_required", { message: "This browser already has a stable with races or horses. Linking this device leaves that stable behind." });
   }
-  const linked = await redeemLinkCode(database, { code, label });
+  // Testing phase: a tester's permanent login code works in the same box as a device code.
+  const loginCode = loginCodesEnabled() ? normalizeLoginCode(code) : null;
+  const linked = loginCode ? await signInWithLoginCode(database, { codeHash: loginCodeHash(loginCode), label }) : await redeemLinkCode(database, { code, label });
   if (!linked) {
     await linkFailures.fail(database, input.ip, now);
     return errorJson(400, "link_code_invalid", { message: "That code didn't work. Check it and try again." });

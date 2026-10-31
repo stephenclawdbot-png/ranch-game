@@ -8,8 +8,8 @@ import { randomInt } from "node:crypto";
 import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { hashToken, newDeviceToken } from "../crypto";
 import { DomainError } from "../errors";
-import { accountDevices, accounts, horses, linkCodes, raceEntries, type StableRow } from "../schema";
-import type { Db } from "../types";
+import { accountDevices, accounts, horses, linkCodes, loginCodes, raceEntries, type StableRow } from "../schema";
+import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
 import { audit, runTx } from "./tx";
 
@@ -117,6 +117,32 @@ export async function createDeviceSession(db: Db, input: { accountId: string; la
     await audit(tx, { actor: input.accountId, action: input.action ?? "account.wallet_sign_in", entityType: "account", entityId: input.accountId, data: { label } });
     const stable = await stableOf(tx, input.accountId);
     return { token, accountId: input.accountId, stableName: stable.name };
+  });
+}
+
+/**
+ * Testing phase: records the hash of a tester's permanent login code (the web app derives the
+ * code itself; the database never sees the raw code). Idempotent: one code per account, forever.
+ */
+export async function saveLoginCodeHash(ex: Executor, input: { accountId: string; codeHash: string; now?: Date }): Promise<void> {
+  await ex
+    .insert(loginCodes)
+    .values({ accountId: input.accountId, codeHash: input.codeHash, createdAt: input.now ?? new Date() })
+    .onConflictDoNothing();
+}
+
+/** Testing phase: signs a device in with a login code's hash (a new device token, like a link code). Null when unknown. */
+export async function signInWithLoginCode(db: Db, input: { codeHash: string; label?: string | null; now?: Date }): Promise<LinkedDevice | null> {
+  const now = input.now ?? new Date();
+  const label = input.label?.trim().slice(0, 40) || null;
+  return runTx(db, async (tx) => {
+    const [row] = await tx.update(loginCodes).set({ lastUsedAt: now }).where(eq(loginCodes.codeHash, input.codeHash)).returning({ accountId: loginCodes.accountId });
+    if (!row) return null;
+    const token = newDeviceToken();
+    await tx.insert(accountDevices).values({ accountId: row.accountId, tokenHash: hashToken(token), label, createdAt: now, lastSeenAt: now });
+    await audit(tx, { actor: row.accountId, action: "account.login_code", entityType: "account", entityId: row.accountId, data: { label } });
+    const stable = await stableOf(tx, row.accountId);
+    return { token, accountId: row.accountId, stableName: stable.name };
   });
 }
 

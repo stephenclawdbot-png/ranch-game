@@ -4,6 +4,7 @@
  * founding paths share it — POST /api/account and wallet sign-in's { create } — so the
  * rules can't drift. Callers add their own session (cookie) and telemetry.
  */
+import { ensureLoginCode } from "./loginCode";
 import { acceptRivalInvite, createAccount, DomainError, linkTester, recordAccountSignal, recordReferral, redeemInvite, stableNameTaken, type Db, type RivalInviteResult } from "@thoroughbred/db";
 import { SilksSchema } from "@thoroughbred/shared";
 import { playtestConfig } from "./playtest";
@@ -55,6 +56,8 @@ export async function foundStable(db: Db, input: FoundStableInput): Promise<Foun
   // A stable founded today gets the beginner welcome (mentor, Stable steps, coach marks, unlocks).
   const acc = await createAccount(db, { stableName: name.data, silks: silks.data, timezone: input.timezone, now: input.now, guided: true });
   if (testerId) await linkTester(db, { testerId, accountId: acc.accountId, stableName: name.data, now: input.now });
+  // Testing phase: the tester's permanent login code (shown on Profile; no wallet needed to come back).
+  if (testerId) await ensureLoginCode(db, acc.accountId);
   // Affiliate tree (beta money): inviter = the code's owner (root/admin codes -> the owner account).
   if (input.inviteCode?.trim()) {
     try {

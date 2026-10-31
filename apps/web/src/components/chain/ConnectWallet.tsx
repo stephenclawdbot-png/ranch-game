@@ -92,7 +92,7 @@ export function ConnectWalletButton({
                     className="link"
                     onClick={() => setOpen(false)}
                   >
-                    Use a device code
+                    Sign in with a code
                   </Link>
                 </p>
               </div>

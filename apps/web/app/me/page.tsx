@@ -1,5 +1,6 @@
 "use client";
 
+import { LoginCodeCard } from "@/components/chain/LoginCodeCard";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Silks as SilksT } from "@thoroughbred/shared";
@@ -169,6 +170,7 @@ function Profile({ state }: { state: PlayerState }) {
         <StartOver />
       </section>
 
+      {state.tester && <LoginCodeCard />}
       <LinkDeviceCard />
 
       <section className="surface grid gap-2 p-4" aria-labelledby="fb-h">

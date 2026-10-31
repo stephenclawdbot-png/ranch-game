@@ -10,9 +10,16 @@ import { PixelIcon } from "@/components/icons";
 import { api, usePlayerState } from "@/lib/player";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
 
-/** Typed code mask: uppercase, 8 characters from the unambiguous alphabet, dash after four. */
+/**
+ * Typed code mask: a device code (8 characters, dash after four) or, in the testing phase, a
+ * permanent login code (PT- and 20 characters in fives).
+ */
 function maskCode(raw: string): string {
-  const c = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  let c = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (c.startsWith("PT") || c.length > 8) {
+    c = c.replace(/^PT/, "").slice(0, 20);
+    return `PT-${(c.match(/.{1,5}/g) ?? []).join("-")}`;
+  }
   return c.length > 4 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
 }
 
@@ -82,9 +89,9 @@ export default function LinkPage() {
       <div id="wallet" className="grid scroll-mt-24 gap-2" data-testid="link-wallet">
         <WalletSignIn />
       </div>
-      <p className="caption">Or, on a new phone or browser, enter the link code from your other device:</p>
+      <p className="caption">No wallet? Enter your login code (Profile → Your login code), or a device code from your other device:</p>
       <label className="grid gap-1">
-        <span className="font-extrabold">Link code</span>
+        <span className="font-extrabold">Login code or device code</span>
         <input
           className="field min-h-11 uppercase tracking-[0.15em]"
           value={code}
@@ -92,12 +99,12 @@ export default function LinkPage() {
             setCode(maskCode(e.target.value));
             setNeedsConfirm(false);
           }}
-          placeholder="XXXX-XXXX"
+          placeholder="PT-XXXXX-… or XXXX-XXXX"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
           inputMode="text"
-          maxLength={9}
+          maxLength={26}
           aria-invalid={error !== null || undefined}
           data-testid="link-code-input"
         />
@@ -122,8 +129,8 @@ export default function LinkPage() {
       )}
       {error !== null && <ErrorNote error={error} />}
       <ActionBar>
-        <button type="submit" className="btn btn-brass btn-lg" disabled={busy || code.replace("-", "").length < 8} data-testid="link-submit">
-          <PixelIcon name="flag" className="h-5 w-5" /> {busy ? "Linking…" : "Link this device"}
+        <button type="submit" className="btn btn-brass btn-lg" disabled={busy || code.replace(/[^A-Z0-9]/g, "").length < 8} data-testid="link-submit">
+          <PixelIcon name="flag" className="h-5 w-5" /> {busy ? "Signing in…" : "Sign in"}
         </button>
       </ActionBar>
       <p className="caption">
