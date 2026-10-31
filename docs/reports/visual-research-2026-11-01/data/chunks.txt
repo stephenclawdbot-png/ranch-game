@@ -1,0 +1,16 @@
+total js 5952 KB raw, 1872 KB gz, 349 files
+2314.b2855feba9680345.js                                                  565 KB raw   164 KB gz three=False mux=False
+3075.c4a233cfae351295.js                                                  455 KB raw   131 KB gz three=False mux=False
+add11241.bef29ac91f78b2ee.js                                              370 KB raw    97 KB gz three=False mux=False
+8beefcf0.4b9d9d57890d9c94.js                                              325 KB raw    77 KB gz three=True mux=False
+9213-6ab56370df466a28.js                                                  278 KB raw    85 KB gz three=False mux=False
+9520-41c1088e3f514a11.js                                                  226 KB raw    76 KB gz three=False mux=True
+framework-270eee54c281c937.js                                             178 KB raw    56 KB gz three=False mux=False
+9898-1f2da37ca0d53665.js                                                  170 KB raw    45 KB gz three=False mux=False
+3258533c-5362bc0d3b083d84.js                                              168 KB raw    52 KB gz three=False mux=False
+9947.a1f984cb5116c6fc.js                                                  165 KB raw    34 KB gz three=False mux=False
+main-f3a15fa66381e734.js                                                  125 KB raw    36 KB gz three=False mux=False
+8322-35e7441ada17ca8a.js                                                  120 KB raw    18 KB gz three=False mux=False
+polyfills-42372ed130431b0a.js                                             109 KB raw    38 KB gz three=False mux=False
+6916.0b1b568d1ad388c3.js                                                  105 KB raw    26 KB gz three=False mux=False
+app/race/[id]/page-499ca8f4f7fce898.js                                     96 KB raw    30 KB gz three=False mux=False

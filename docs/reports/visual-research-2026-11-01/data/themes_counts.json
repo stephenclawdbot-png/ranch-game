@@ -1,0 +1,1712 @@
+[
+ {
+  "game": "Apple 1215477266 Rival Stars Horse Racing",
+  "n": 500,
+  "neg": 89,
+  "newest": "2026-10-26",
+  "oldest": "2025-10-18",
+  "graphics_praise": [
+   25,
+   1
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   3,
+   1
+  ],
+  "coat_colour_pattern": [
+   27,
+   3
+  ],
+  "breeding_genetics_foal": [
+   105,
+   18
+  ],
+  "foal_resemblance": [
+   2,
+   0
+  ],
+  "realistic_horse": [
+   9,
+   1
+  ],
+  "mane_tail_body": [
+   8,
+   2
+  ],
+  "animation_movement": [
+   11,
+   0
+  ],
+  "jockey_rider": [
+   17,
+   2
+  ],
+  "race_repetitive": [
+   15,
+   4
+  ],
+  "camera": [
+   2,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   5,
+   0
+  ],
+  "track_environment_weather": [
+   23,
+   2
+  ],
+  "ownership_bond": [
+   32,
+   4
+  ],
+  "stable_customisation": [
+   53,
+   7
+  ],
+  "photo_mode_share": [
+   9,
+   1
+  ],
+  "ui_complexity": [
+   2,
+   0
+  ],
+  "performance_bugs": [
+   20,
+   7
+  ],
+  "monetisation": [
+   39,
+   16
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Apple 1275199710 Horse Racing Manager 2026",
+  "n": 225,
+  "neg": 107,
+  "newest": "2026-07-01",
+  "oldest": "2018-05-02",
+  "graphics_praise": [
+   5,
+   3
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   3,
+   1
+  ],
+  "coat_colour_pattern": [
+   7,
+   3
+  ],
+  "breeding_genetics_foal": [
+   81,
+   42
+  ],
+  "foal_resemblance": [
+   1,
+   0
+  ],
+  "realistic_horse": [
+   1,
+   1
+  ],
+  "mane_tail_body": [
+   2,
+   0
+  ],
+  "animation_movement": [
+   4,
+   2
+  ],
+  "jockey_rider": [
+   5,
+   4
+  ],
+  "race_repetitive": [
+   9,
+   4
+  ],
+  "camera": [
+   1,
+   1
+  ],
+  "photo_finish_close": [
+   7,
+   4
+  ],
+  "crowd_commentary_sound": [
+   4,
+   1
+  ],
+  "track_environment_weather": [
+   10,
+   5
+  ],
+  "ownership_bond": [
+   19,
+   10
+  ],
+  "stable_customisation": [
+   19,
+   9
+  ],
+  "photo_mode_share": [
+   3,
+   3
+  ],
+  "ui_complexity": [
+   3,
+   3
+  ],
+  "performance_bugs": [
+   19,
+   14
+  ],
+  "monetisation": [
+   11,
+   5
+  ],
+  "desktop_updates_lag": [
+   1,
+   1
+  ]
+ },
+ {
+  "game": "Apple 1445695988 Star Stable Online",
+  "n": 500,
+  "neg": 157,
+  "newest": "2026-10-30",
+  "oldest": "2026-07-12",
+  "graphics_praise": [
+   13,
+   1
+  ],
+  "graphics_complaint": [
+   3,
+   3
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   10,
+   1
+  ],
+  "breeding_genetics_foal": [
+   11,
+   1
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   3,
+   0
+  ],
+  "mane_tail_body": [
+   2,
+   1
+  ],
+  "animation_movement": [
+   14,
+   4
+  ],
+  "jockey_rider": [
+   75,
+   21
+  ],
+  "race_repetitive": [
+   17,
+   9
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   2,
+   0
+  ],
+  "track_environment_weather": [
+   37,
+   9
+  ],
+  "ownership_bond": [
+   24,
+   10
+  ],
+  "stable_customisation": [
+   105,
+   29
+  ],
+  "photo_mode_share": [
+   2,
+   0
+  ],
+  "ui_complexity": [
+   5,
+   3
+  ],
+  "performance_bugs": [
+   50,
+   17
+  ],
+  "monetisation": [
+   49,
+   15
+  ],
+  "desktop_updates_lag": [
+   2,
+   0
+  ]
+ },
+ {
+  "game": "Apple 1468871996 Equestrian the Game",
+  "n": 500,
+  "neg": 193,
+  "newest": "2026-10-27",
+  "oldest": "2025-07-24",
+  "graphics_praise": [
+   15,
+   6
+  ],
+  "graphics_complaint": [
+   1,
+   0
+  ],
+  "horses_look_same": [
+   1,
+   0
+  ],
+  "coat_colour_pattern": [
+   45,
+   16
+  ],
+  "breeding_genetics_foal": [
+   59,
+   19
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   6,
+   2
+  ],
+  "mane_tail_body": [
+   4,
+   2
+  ],
+  "animation_movement": [
+   15,
+   3
+  ],
+  "jockey_rider": [
+   10,
+   2
+  ],
+  "race_repetitive": [
+   23,
+   18
+  ],
+  "camera": [
+   1,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   3,
+   1
+  ],
+  "track_environment_weather": [
+   23,
+   8
+  ],
+  "ownership_bond": [
+   38,
+   8
+  ],
+  "stable_customisation": [
+   78,
+   35
+  ],
+  "photo_mode_share": [
+   1,
+   0
+  ],
+  "ui_complexity": [
+   18,
+   11
+  ],
+  "performance_bugs": [
+   53,
+   25
+  ],
+  "monetisation": [
+   119,
+   73
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Apple 6480433538 Umamusume Pretty Derby",
+  "n": 500,
+  "neg": 127,
+  "newest": "2026-10-28",
+  "oldest": "2025-09-24",
+  "graphics_praise": [
+   6,
+   0
+  ],
+  "graphics_complaint": [
+   1,
+   1
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   1,
+   1
+  ],
+  "breeding_genetics_foal": [
+   0,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   6,
+   1
+  ],
+  "animation_movement": [
+   6,
+   1
+  ],
+  "jockey_rider": [
+   0,
+   0
+  ],
+  "race_repetitive": [
+   14,
+   8
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   7,
+   0
+  ],
+  "track_environment_weather": [
+   13,
+   2
+  ],
+  "ownership_bond": [
+   5,
+   2
+  ],
+  "stable_customisation": [
+   0,
+   0
+  ],
+  "photo_mode_share": [
+   2,
+   2
+  ],
+  "ui_complexity": [
+   17,
+   4
+  ],
+  "performance_bugs": [
+   16,
+   5
+  ],
+  "monetisation": [
+   12,
+   10
+  ],
+  "desktop_updates_lag": [
+   2,
+   1
+  ]
+ },
+ {
+  "game": "Apple 6504777327 Photo Finish LIVE",
+  "n": 51,
+  "neg": 5,
+  "newest": "2026-06-30",
+  "oldest": "2024-09-19",
+  "graphics_praise": [
+   4,
+   0
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   0,
+   0
+  ],
+  "breeding_genetics_foal": [
+   18,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   1,
+   0
+  ],
+  "mane_tail_body": [
+   2,
+   0
+  ],
+  "animation_movement": [
+   4,
+   0
+  ],
+  "jockey_rider": [
+   0,
+   0
+  ],
+  "race_repetitive": [
+   0,
+   0
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   5,
+   0
+  ],
+  "crowd_commentary_sound": [
+   0,
+   0
+  ],
+  "track_environment_weather": [
+   7,
+   1
+  ],
+  "ownership_bond": [
+   0,
+   0
+  ],
+  "stable_customisation": [
+   13,
+   2
+  ],
+  "photo_mode_share": [
+   0,
+   0
+  ],
+  "ui_complexity": [
+   2,
+   0
+  ],
+  "performance_bugs": [
+   2,
+   1
+  ],
+  "monetisation": [
+   0,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Apple 6751256352 Pocket Horse Racing Champions",
+  "n": 46,
+  "neg": 20,
+  "newest": "2026-10-23",
+  "oldest": "2026-06-22",
+  "graphics_praise": [
+   1,
+   0
+  ],
+  "graphics_complaint": [
+   1,
+   1
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   2,
+   1
+  ],
+  "breeding_genetics_foal": [
+   5,
+   1
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   1,
+   0
+  ],
+  "animation_movement": [
+   0,
+   0
+  ],
+  "jockey_rider": [
+   0,
+   0
+  ],
+  "race_repetitive": [
+   3,
+   1
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   0,
+   0
+  ],
+  "track_environment_weather": [
+   4,
+   2
+  ],
+  "ownership_bond": [
+   3,
+   1
+  ],
+  "stable_customisation": [
+   11,
+   5
+  ],
+  "photo_mode_share": [
+   0,
+   0
+  ],
+  "ui_complexity": [
+   0,
+   0
+  ],
+  "performance_bugs": [
+   3,
+   2
+  ],
+  "monetisation": [
+   3,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Apple 684830457 Howrse",
+  "n": 500,
+  "neg": 337,
+  "newest": "2026-10-28",
+  "oldest": "2017-08-03",
+  "graphics_praise": [
+   4,
+   2
+  ],
+  "graphics_complaint": [
+   3,
+   2
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   13,
+   2
+  ],
+  "breeding_genetics_foal": [
+   29,
+   12
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   3,
+   2
+  ],
+  "mane_tail_body": [
+   1,
+   0
+  ],
+  "animation_movement": [
+   9,
+   5
+  ],
+  "jockey_rider": [
+   3,
+   2
+  ],
+  "race_repetitive": [
+   11,
+   8
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   2,
+   2
+  ],
+  "track_environment_weather": [
+   10,
+   8
+  ],
+  "ownership_bond": [
+   23,
+   14
+  ],
+  "stable_customisation": [
+   20,
+   11
+  ],
+  "photo_mode_share": [
+   4,
+   2
+  ],
+  "ui_complexity": [
+   59,
+   51
+  ],
+  "performance_bugs": [
+   85,
+   65
+  ],
+  "monetisation": [
+   6,
+   5
+  ],
+  "desktop_updates_lag": [
+   5,
+   5
+  ]
+ },
+ {
+  "game": "Steam 1166860 english",
+  "n": 600,
+  "neg": 82,
+  "newest": "October 30",
+  "oldest": "September 27, 2025",
+  "graphics_praise": [
+   23,
+   4
+  ],
+  "graphics_complaint": [
+   4,
+   2
+  ],
+  "horses_look_same": [
+   2,
+   2
+  ],
+  "coat_colour_pattern": [
+   48,
+   10
+  ],
+  "breeding_genetics_foal": [
+   114,
+   25
+  ],
+  "foal_resemblance": [
+   3,
+   2
+  ],
+  "realistic_horse": [
+   6,
+   0
+  ],
+  "mane_tail_body": [
+   8,
+   4
+  ],
+  "animation_movement": [
+   22,
+   8
+  ],
+  "jockey_rider": [
+   10,
+   2
+  ],
+  "race_repetitive": [
+   72,
+   24
+  ],
+  "camera": [
+   1,
+   1
+  ],
+  "photo_finish_close": [
+   1,
+   0
+  ],
+  "crowd_commentary_sound": [
+   9,
+   5
+  ],
+  "track_environment_weather": [
+   29,
+   7
+  ],
+  "ownership_bond": [
+   30,
+   9
+  ],
+  "stable_customisation": [
+   42,
+   10
+  ],
+  "photo_mode_share": [
+   1,
+   0
+  ],
+  "ui_complexity": [
+   20,
+   10
+  ],
+  "performance_bugs": [
+   32,
+   12
+  ],
+  "monetisation": [
+   42,
+   22
+  ],
+  "desktop_updates_lag": [
+   33,
+   18
+  ]
+ },
+ {
+  "game": "Steam 1273180 english",
+  "n": 7,
+  "neg": 4,
+  "newest": "November 3, 2022",
+  "oldest": "April 18, 2020",
+  "graphics_praise": [
+   0,
+   0
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   0,
+   0
+  ],
+  "breeding_genetics_foal": [
+   2,
+   1
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   1,
+   1
+  ],
+  "mane_tail_body": [
+   1,
+   0
+  ],
+  "animation_movement": [
+   0,
+   0
+  ],
+  "jockey_rider": [
+   0,
+   0
+  ],
+  "race_repetitive": [
+   0,
+   0
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   1,
+   0
+  ],
+  "track_environment_weather": [
+   2,
+   1
+  ],
+  "ownership_bond": [
+   1,
+   1
+  ],
+  "stable_customisation": [
+   0,
+   0
+  ],
+  "photo_mode_share": [
+   0,
+   0
+  ],
+  "ui_complexity": [
+   2,
+   2
+  ],
+  "performance_bugs": [
+   0,
+   0
+  ],
+  "monetisation": [
+   1,
+   1
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 1474740 english",
+  "n": 400,
+  "neg": 142,
+  "newest": "October 25",
+  "oldest": "December 9, 2022",
+  "graphics_praise": [
+   20,
+   7
+  ],
+  "graphics_complaint": [
+   8,
+   6
+  ],
+  "horses_look_same": [
+   3,
+   1
+  ],
+  "coat_colour_pattern": [
+   38,
+   14
+  ],
+  "breeding_genetics_foal": [
+   124,
+   44
+  ],
+  "foal_resemblance": [
+   1,
+   0
+  ],
+  "realistic_horse": [
+   8,
+   5
+  ],
+  "mane_tail_body": [
+   39,
+   12
+  ],
+  "animation_movement": [
+   71,
+   29
+  ],
+  "jockey_rider": [
+   6,
+   3
+  ],
+  "race_repetitive": [
+   65,
+   33
+  ],
+  "camera": [
+   23,
+   15
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   18,
+   5
+  ],
+  "track_environment_weather": [
+   161,
+   64
+  ],
+  "ownership_bond": [
+   47,
+   12
+  ],
+  "stable_customisation": [
+   104,
+   39
+  ],
+  "photo_mode_share": [
+   3,
+   0
+  ],
+  "ui_complexity": [
+   40,
+   19
+  ],
+  "performance_bugs": [
+   157,
+   72
+  ],
+  "monetisation": [
+   13,
+   10
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 1518820 english",
+  "n": 75,
+  "neg": 13,
+  "newest": "September 30",
+  "oldest": "May 27, 2021",
+  "graphics_praise": [
+   6,
+   2
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   2,
+   1
+  ],
+  "coat_colour_pattern": [
+   6,
+   2
+  ],
+  "breeding_genetics_foal": [
+   0,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   0,
+   0
+  ],
+  "animation_movement": [
+   16,
+   4
+  ],
+  "jockey_rider": [
+   1,
+   0
+  ],
+  "race_repetitive": [
+   13,
+   5
+  ],
+  "camera": [
+   3,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   6,
+   2
+  ],
+  "track_environment_weather": [
+   19,
+   3
+  ],
+  "ownership_bond": [
+   2,
+   0
+  ],
+  "stable_customisation": [
+   14,
+   2
+  ],
+  "photo_mode_share": [
+   1,
+   0
+  ],
+  "ui_complexity": [
+   5,
+   0
+  ],
+  "performance_bugs": [
+   12,
+   6
+  ],
+  "monetisation": [
+   1,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 1938050 english",
+  "n": 330,
+  "neg": 48,
+  "newest": "October 30",
+  "oldest": "February 19, 2025",
+  "graphics_praise": [
+   18,
+   5
+  ],
+  "graphics_complaint": [
+   4,
+   3
+  ],
+  "horses_look_same": [
+   6,
+   2
+  ],
+  "coat_colour_pattern": [
+   16,
+   3
+  ],
+  "breeding_genetics_foal": [
+   28,
+   3
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   17,
+   3
+  ],
+  "mane_tail_body": [
+   15,
+   2
+  ],
+  "animation_movement": [
+   58,
+   13
+  ],
+  "jockey_rider": [
+   10,
+   0
+  ],
+  "race_repetitive": [
+   39,
+   9
+  ],
+  "camera": [
+   5,
+   1
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   5,
+   2
+  ],
+  "track_environment_weather": [
+   56,
+   8
+  ],
+  "ownership_bond": [
+   28,
+   2
+  ],
+  "stable_customisation": [
+   78,
+   13
+  ],
+  "photo_mode_share": [
+   3,
+   0
+  ],
+  "ui_complexity": [
+   27,
+   10
+  ],
+  "performance_bugs": [
+   37,
+   6
+  ],
+  "monetisation": [
+   7,
+   2
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 2740170 english",
+  "n": 179,
+  "neg": 23,
+  "newest": "October 30",
+  "oldest": "October 24, 2025",
+  "graphics_praise": [
+   0,
+   0
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   4,
+   0
+  ],
+  "breeding_genetics_foal": [
+   29,
+   3
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   1,
+   0
+  ],
+  "mane_tail_body": [
+   4,
+   0
+  ],
+  "animation_movement": [
+   16,
+   4
+  ],
+  "jockey_rider": [
+   10,
+   4
+  ],
+  "race_repetitive": [
+   4,
+   1
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   3,
+   0
+  ],
+  "track_environment_weather": [
+   14,
+   2
+  ],
+  "ownership_bond": [
+   9,
+   3
+  ],
+  "stable_customisation": [
+   27,
+   1
+  ],
+  "photo_mode_share": [
+   1,
+   1
+  ],
+  "ui_complexity": [
+   26,
+   8
+  ],
+  "performance_bugs": [
+   24,
+   4
+  ],
+  "monetisation": [
+   3,
+   1
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 2937440 english",
+  "n": 39,
+  "neg": 7,
+  "newest": "August 2",
+  "oldest": "April 17, 2025",
+  "graphics_praise": [
+   1,
+   0
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   1,
+   0
+  ],
+  "breeding_genetics_foal": [
+   8,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   0,
+   0
+  ],
+  "animation_movement": [
+   6,
+   1
+  ],
+  "jockey_rider": [
+   1,
+   0
+  ],
+  "race_repetitive": [
+   3,
+   2
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   2,
+   0
+  ],
+  "track_environment_weather": [
+   4,
+   0
+  ],
+  "ownership_bond": [
+   2,
+   0
+  ],
+  "stable_customisation": [
+   7,
+   0
+  ],
+  "photo_mode_share": [
+   1,
+   0
+  ],
+  "ui_complexity": [
+   3,
+   1
+  ],
+  "performance_bugs": [
+   7,
+   1
+  ],
+  "monetisation": [
+   0,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 3187290 japanese",
+  "n": 101,
+  "neg": 26,
+  "newest": null,
+  "oldest": null,
+  "graphics_praise": [
+   0,
+   0
+  ],
+  "graphics_complaint": [
+   0,
+   0
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   0,
+   0
+  ],
+  "breeding_genetics_foal": [
+   0,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   0,
+   0
+  ],
+  "animation_movement": [
+   0,
+   0
+  ],
+  "jockey_rider": [
+   0,
+   0
+  ],
+  "race_repetitive": [
+   0,
+   0
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   0,
+   0
+  ],
+  "track_environment_weather": [
+   0,
+   0
+  ],
+  "ownership_bond": [
+   0,
+   0
+  ],
+  "stable_customisation": [
+   0,
+   0
+  ],
+  "photo_mode_share": [
+   0,
+   0
+  ],
+  "ui_complexity": [
+   0,
+   0
+  ],
+  "performance_bugs": [
+   0,
+   0
+  ],
+  "monetisation": [
+   0,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 655610 english",
+  "n": 19,
+  "neg": 13,
+  "newest": "August 2",
+  "oldest": "July 14, 2017",
+  "graphics_praise": [
+   0,
+   0
+  ],
+  "graphics_complaint": [
+   2,
+   2
+  ],
+  "horses_look_same": [
+   0,
+   0
+  ],
+  "coat_colour_pattern": [
+   0,
+   0
+  ],
+  "breeding_genetics_foal": [
+   0,
+   0
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   1,
+   1
+  ],
+  "mane_tail_body": [
+   1,
+   1
+  ],
+  "animation_movement": [
+   4,
+   4
+  ],
+  "jockey_rider": [
+   2,
+   1
+  ],
+  "race_repetitive": [
+   1,
+   1
+  ],
+  "camera": [
+   1,
+   1
+  ],
+  "photo_finish_close": [
+   0,
+   0
+  ],
+  "crowd_commentary_sound": [
+   3,
+   2
+  ],
+  "track_environment_weather": [
+   3,
+   2
+  ],
+  "ownership_bond": [
+   2,
+   2
+  ],
+  "stable_customisation": [
+   1,
+   1
+  ],
+  "photo_mode_share": [
+   0,
+   0
+  ],
+  "ui_complexity": [
+   1,
+   1
+  ],
+  "performance_bugs": [
+   0,
+   0
+  ],
+  "monetisation": [
+   0,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ },
+ {
+  "game": "Steam 978960 english",
+  "n": 158,
+  "neg": 38,
+  "newest": "October 22",
+  "oldest": "May 2, 2019",
+  "graphics_praise": [
+   3,
+   0
+  ],
+  "graphics_complaint": [
+   4,
+   2
+  ],
+  "horses_look_same": [
+   1,
+   0
+  ],
+  "coat_colour_pattern": [
+   3,
+   0
+  ],
+  "breeding_genetics_foal": [
+   23,
+   2
+  ],
+  "foal_resemblance": [
+   0,
+   0
+  ],
+  "realistic_horse": [
+   0,
+   0
+  ],
+  "mane_tail_body": [
+   1,
+   0
+  ],
+  "animation_movement": [
+   4,
+   3
+  ],
+  "jockey_rider": [
+   11,
+   5
+  ],
+  "race_repetitive": [
+   3,
+   3
+  ],
+  "camera": [
+   0,
+   0
+  ],
+  "photo_finish_close": [
+   1,
+   1
+  ],
+  "crowd_commentary_sound": [
+   11,
+   4
+  ],
+  "track_environment_weather": [
+   8,
+   3
+  ],
+  "ownership_bond": [
+   6,
+   0
+  ],
+  "stable_customisation": [
+   11,
+   1
+  ],
+  "photo_mode_share": [
+   2,
+   1
+  ],
+  "ui_complexity": [
+   15,
+   7
+  ],
+  "performance_bugs": [
+   27,
+   20
+  ],
+  "monetisation": [
+   1,
+   0
+  ],
+  "desktop_updates_lag": [
+   0,
+   0
+  ]
+ }
+]

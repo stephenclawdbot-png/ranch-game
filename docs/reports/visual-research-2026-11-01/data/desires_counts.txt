@@ -1,0 +1,63 @@
+total reviews 4129
+
+## C01 repetitive races / grind: 201 reviews (74 negative) across 14 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:655610, steam:978960
+
+## C02 monetisation gates looks (coats/breeds behind paywall): 314 reviews (117 negative) across 15 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:6751256352, apple:684830457, steam:1166860, steam:1273180, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:978960
+
+## C03 wants more breeds / breed-true looks: 69 reviews (20 negative) across 7 games: apple:1215477266, apple:1445695988, apple:1468871996, apple:684830457, steam:1166860, steam:1474740, steam:1938050
+
+## C04 horses look the same / need visual variety: 17 reviews (5 negative) across 8 games: apple:1215477266, apple:1275199710, apple:1468871996, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:978960
+
+## C05 breeding outcome feels unfair/opaque (stats): 17 reviews (7 negative) across 6 games: apple:1215477266, apple:1275199710, apple:6504777327, apple:684830457, steam:1166860, steam:1474740
+
+## C06 genetics realism (colour inheritance wrong / wants realistic genetics): 8 reviews (1 negative) across 6 games: apple:1215477266, apple:1468871996, apple:6751256352, steam:1166860, steam:1474740, steam:2740170
+
+## C07 wants more coats/patterns/markings: 51 reviews (11 negative) across 9 games: apple:1215477266, apple:1468871996, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:978960
+
+## C08 mane/tail realism or styling: 41 reviews (12 negative) across 9 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1938050, steam:2740170
+
+## C09 animation realism (gaits, legs, stiffness): 35 reviews (9 negative) across 9 games: apple:1215477266, apple:1275199710, apple:1445695988, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440
+
+## C10 camera complaints / wants camera options: 34 reviews (17 negative) across 8 games: apple:1215477266, apple:1275199710, apple:1468871996, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:655610
+
+## C11 commentary / announcer: 21 reviews (7 negative) across 5 games: apple:1215477266, apple:1275199710, steam:1166860, steam:2740170, steam:978960
+
+## C12 photo mode / screenshots / share: 12 reviews (5 negative) across 7 games: apple:1215477266, apple:1275199710, apple:684830457, steam:1474740, steam:1518820, steam:2937440, steam:978960
+
+## C13 bond / care / interaction with horse: 88 reviews (22 negative) across 10 games: apple:1215477266, apple:1445695988, apple:1468871996, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440
+
+## C14 stable/ranch customisation & decoration: 29 reviews (13 negative) across 5 games: apple:1215477266, apple:1445695988, apple:1468871996, steam:1474740, steam:1938050
+
+## C15 tack / outfits customisation: 191 reviews (60 negative) across 12 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2937440
+
+## C16 UI clunky / overwhelming / confusing: 234 reviews (130 negative) across 15 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:684830457, steam:1166860, steam:1273180, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:655610, steam:978960
+
+## C17 performance / crashes / loading: 195 reviews (113 negative) across 13 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:978960
+
+## C18 bugs / glitches: 420 reviews (192 negative) across 14 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:978960
+
+## C19 desktop/console version lags mobile updates: 76 reviews (44 negative) across 10 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:684830457, steam:1166860, steam:1474740, steam:1938050, steam:978960
+
+## C20 wants realistic racing (close finishes, tactics): 20 reviews (7 negative) across 7 games: apple:1215477266, apple:1275199710, apple:6504777327, apple:684830457, steam:1166860, steam:1474740, steam:978960
+
+## C21 wants horse ageing / lifecycle / retirement: 91 reviews (32 negative) across 13 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:978960
+
+## C22 foals: raising, appearance, reveal: 117 reviews (44 negative) across 10 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:684830457, steam:1166860, steam:1474740, steam:1938050, steam:2740170, steam:2937440
+
+## C23 skip/auto races wanted: 1 reviews (0 negative) across 1 games: steam:2740170
+
+## C24 environment/tracks/locations variety: 34 reviews (9 negative) across 10 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6751256352, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2937440
+
+## C25 realistic-looking horses praised: 102 reviews (29 negative) across 10 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6504777327, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1938050
+
+## C26 graphics dated/poor: 13 reviews (8 negative) across 7 games: apple:1445695988, apple:684830457, steam:1166860, steam:1474740, steam:1938050, steam:655610, steam:978960
+
+## C27 jockeys (wants/complaints): 41 reviews (15 negative) across 8 games: apple:1215477266, apple:1275199710, apple:1468871996, steam:1166860, steam:2740170, steam:2937440, steam:655610, steam:978960
+
+## C28 weather / lighting / time of day: 15 reviews (5 negative) across 6 games: apple:1215477266, apple:1445695988, steam:1474740, steam:1518820, steam:1938050, steam:655610
+
+## C29 finding/following my horse in race: 7 reviews (3 negative) across 3 games: apple:684830457, steam:1474740, steam:2740170
+
+## C30 crowd/atmosphere: 10 reviews (3 negative) across 7 games: apple:1215477266, steam:1166860, steam:1474740, steam:1938050, steam:2740170, steam:2937440, steam:655610
+
+## C31 genetics/coat praised: 97 reviews (14 negative) across 13 games: apple:1215477266, apple:1275199710, apple:1445695988, apple:1468871996, apple:6751256352, apple:684830457, steam:1166860, steam:1474740, steam:1518820, steam:1938050, steam:2740170, steam:2937440, steam:978960

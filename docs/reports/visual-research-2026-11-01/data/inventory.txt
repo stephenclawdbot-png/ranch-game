@@ -1,0 +1,29 @@
+art/race                        97 files    9.68 MB  {'png': 94, 'json': 3}
+audio                         1717 files    7.85 MB  {'json': 1, 'mp3': 1716}
+art/diorama                     86 files    5.20 MB  {'png': 86}
+art/scenes                      68 files    4.10 MB  {'png': 68}
+art/portraits                  190 files    2.18 MB  {'png': 188, 'json': 2}
+art/course                      22 files    1.36 MB  {'png': 22}
+art/manifest.json                1 files    0.58 MB  {'json': 1}
+art/rig                          5 files    0.29 MB  {'png': 4, 'json': 1}
+brand                           15 files    0.17 MB  {'png': 12, 'svg': 3}
+art/ui                         172 files    0.17 MB  {'png': 171, 'json': 1}
+art/vignettes                   26 files    0.03 MB  {'png': 26}
+art/STATUS.md                    1 files    0.02 MB  {'md': 1}
+art/trophies                     2 files    0.01 MB  {'json': 1, 'png': 1}
+
+largest decoded PNGs (RGBA bytes):
+  art/portraits/coat-layers-2x.png                             4096x3072  decoded 50.3 MB  file 709 KB
+  art/race/coat-layers.png                                     2048x1536  decoded 12.6 MB  file 359 KB
+  art/diorama/horse-loose-graze.png                            6144x182  decoded 4.5 MB  file 377 KB
+  brand/og.png                                                 1200x630  decoded 3.0 MB  file 150 KB
+  art/race/horse-idle.png                                      3584x192  decoded 2.8 MB  file 295 KB
+  art/race/horse-idle-normal.png                               3584x192  decoded 2.8 MB  file 574 KB
+  art/race/horse-idle-f.png                                    3584x192  decoded 2.8 MB  file 298 KB
+  art/race/horse-easeup.png                                    3328x192  decoded 2.6 MB  file 227 KB
+  art/race/horse-easeup-normal.png                             3328x192  decoded 2.6 MB  file 391 KB
+  art/race/horse-easeup-f.png                                  3328x192  decoded 2.6 MB  file 228 KB
+  art/race/horse-drive.png                                     3072x192  decoded 2.4 MB  file 209 KB
+  art/race/horse-drive-normal.png                              3072x192  decoded 2.4 MB  file 352 KB
+total decoded RGBA of all PNGs: 274 MB
+race/ decoded RGBA: 77.3 MB in 94 PNGs
