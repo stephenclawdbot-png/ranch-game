@@ -87,7 +87,7 @@ export function changeLabel(c: WhatIfChange, jockeyName?: string | null): string
     case "jockey":
       return `Ridden by ${jockeyName ?? "another of your jockeys"}`;
     case "jockey_grade":
-      return `Ridden by a ${c.grade}-grade Club freelancer`;
+      return `Ridden by ${c.grade === "A" || c.grade === "E" ? "an" : "a"} ${c.grade}-grade Club freelancer`;
   }
 }
 

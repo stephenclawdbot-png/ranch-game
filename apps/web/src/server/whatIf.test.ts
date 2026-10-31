@@ -12,7 +12,7 @@ import { LIVE_RACE_MODEL, type RaceInput, type RaceReplay } from "@thoroughbred/
 import { engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import { fixtureInput } from "./testing";
 import { GRADE_RIDER_SKILLS, kitWithRider, kitWithShoes, lockedRunner, rerun, runnerLine, statsWithDelta, topRows, whatIfInput } from "./whatIf";
-import { changeKey, parseChangeKey, type WhatIfChange } from "@/lib/whatIf";
+import { changeKey, changeLabel, parseChangeKey, type WhatIfChange } from "@/lib/whatIf";
 
 type Stored = { input: RaceInput; replay: RaceReplay };
 const fixtures = (file: string): Stored[] =>
@@ -131,6 +131,9 @@ describe("what-if: kit and stats helpers", () => {
     for (const c of changes) expect(parseChangeKey(changeKey(c))).not.toBeNull();
     expect(changeKey({ kind: "extras", extras: ["physio", "soft_shoes"] })).toBe(changeKey({ kind: "extras", extras: ["soft_shoes", "physio"] }));
     expect(parseChangeKey("tactic:sideways")).toBeNull();
+    expect(changeLabel({ kind: "intensity", intensity: "all_out" })).toBe("An all-out ride");
+    expect(changeLabel({ kind: "jockey_grade", grade: "A" })).toBe("Ridden by an A-grade Club freelancer");
+    expect(changeLabel({ kind: "jockey_grade", grade: "C" })).toBe("Ridden by a C-grade Club freelancer");
     expect(parseChangeKey("extras:physio+physio")).toBeNull();
   });
 });
