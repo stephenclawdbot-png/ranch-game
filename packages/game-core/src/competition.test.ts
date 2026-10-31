@@ -3,7 +3,8 @@ import fc from "fast-check";
 import { RaceInputSchema, RaceReplaySchema } from "@thoroughbred/shared";
 import { simulateRace } from "../../racing-engine/src/index";
 import { featureCalendar, featureQualified, nextOpenSlot, regularSlot, regularSlots, ENTRY_CLOSE_BEFORE_MS, SLOT_INTERVAL_MS, SLOTS_PER_DAY } from "./seasons";
-import { cupEntryBlock, cupRaceInput, dailyCupDay, rankCup, runDailyCup, CUP_ENTRANT_ID } from "./dailyCup";
+import { cupEntryBlock, cupRaceInput, dailyCupDay, rankCup, runDailyCup, CUP_ENTRANT_ID, CUP_ROTATION_FROM_DAY, cupRotation } from "./dailyCup";
+import { climateSeasonOfDay, yearSeasonOf } from "./climate";
 import { addPoints, formLeagues, racePoints, settleLeague, LEAGUE_SIZE, standings } from "./leagues";
 import { ACHIEVEMENTS, detectRivalries, hallOfFameReasons, unlockedAchievements, type OwnerStats } from "./social";
 import { RaceSlotSchema } from "./types";
@@ -80,6 +81,67 @@ describe("Daily Cup (with the real engine)", () => {
     ]);
     expect(ranked.map((r) => r.ownerId)).toEqual(["b", "c", "a"]);
     expect(ranked[0]!.badge).toBe("gold");
+  });
+});
+
+describe("Daily Cup weekday rotation", () => {
+  const conds = (c: { distanceM: number; surface: string; going: string; weather: string }) => `${c.distanceM}:${c.surface}:${c.going}:${c.weather}`;
+  it("deterministic by date and identical for every player: no secret in the conditions", () => {
+    const day = CUP_ROTATION_FROM_DAY + 40;
+    const a = dailyCupDay("one-secret", day);
+    const b = dailyCupDay("another-secret", day);
+    expect(conds(dailyCupDay("one-secret", day))).toBe(conds(a));
+    expect(conds(a)).toBe(conds(b)); // the rotation is the same for everyone
+    expect(a.seed).not.toBe(b.seed); // the day's seed (field and luck) still differs
+    expect(conds(a)).toBe(conds(cupRotation(day)));
+  });
+
+  it("the week runs sprint to staying; the trip steps weekly within its division", () => {
+    for (let w = 0; w < 8; w++) {
+      const trips = Array.from({ length: 7 }, (_, i) => cupRotation(CUP_ROTATION_FROM_DAY + w * 7 + i).distanceM);
+      expect(Math.min(...trips)).toBeLessThanOrEqual(1200); // a sprint
+      expect(Math.max(...trips)).toBeGreaterThanOrEqual(2400); // a staying trip
+    }
+    // Monday is the sprint day, Thursday the staying day on the all-weather
+    expect(cupRotation(CUP_ROTATION_FROM_DAY).distanceM).toBeLessThanOrEqual(1200);
+    expect(cupRotation(CUP_ROTATION_FROM_DAY + 3)).toMatchObject({ surface: "synthetic", going: "good" });
+    expect(cupRotation(CUP_ROTATION_FROM_DAY + 3).distanceM).toBeGreaterThanOrEqual(2400);
+    // the trip within a division moves one step a week and repeats every third week
+    const mondays = [0, 1, 2, 3].map((w) => cupRotation(CUP_ROTATION_FROM_DAY + w * 7).distanceM);
+    expect(new Set(mondays).size).toBe(3);
+    expect(mondays[3]).toBe(mondays[0]);
+  });
+
+  it("the going is the time of year's on turf, good on the all-weather, heavy only on wet dirt; the weather agrees", () => {
+    const clock = { epochMs: 0 };
+    const turfBySeason: Record<string, Set<string>> = {};
+    for (let d = CUP_ROTATION_FROM_DAY; d < CUP_ROTATION_FROM_DAY + 4 * 28; d++) {
+      const r = cupRotation(d, clock);
+      const season = yearSeasonOf(climateSeasonOfDay(clock, d));
+      if (r.surface === "synthetic") expect(r.going).toBe("good");
+      else if (r.surface === "dirt") expect(r.going === "heavy" ? season === "winter" : r.going === "good").toBe(true);
+      else (turfBySeason[season] ??= new Set()).add(r.going);
+      if (r.going === "firm" || r.going === "good") expect(["clear", "overcast", "dusk"]).toContain(r.weather);
+      if (r.weather === "rain") expect(["soft", "heavy"]).toContain(r.going);
+    }
+    expect(turfBySeason).toEqual({ spring: new Set(["good"]), summer: new Set(["firm"]), autumn: new Set(["soft"]), winter: new Set(["heavy"]) });
+  });
+
+  it("the Cup runs the rotation from the cutover day on, with the deployment's clock", () => {
+    const clock = { epochMs: T0 };
+    const day = CUP_ROTATION_FROM_DAY + 11;
+    expect(dailyCupDay("secret", day, clock)).toMatchObject(cupRotation(day, clock));
+    // without a clock the time of year counts from the Unix epoch: only the going can differ
+    expect(dailyCupDay("secret", day)).toMatchObject({ distanceM: cupRotation(day).distanceM, surface: cupRotation(day).surface, weather: cupRotation(day).weather });
+  });
+
+  it("days before the cutover keep the rng-picked conditions they were published with", () => {
+    const day = CUP_ROTATION_FROM_DAY - 1;
+    // the old draw varied with the day's secret; the rotation never does
+    expect(new Set(["a", "b", "c", "d", "e", "f", "g", "h"].map((s) => conds(dailyCupDay(s, day)))).size).toBeGreaterThan(1);
+    const c = dailyCupDay("a", day);
+    const r = cupRotation(day);
+    expect(`${c.distanceM}:${c.surface}`).not.toBe(`${r.distanceM}:${r.surface}`);
   });
 });
 

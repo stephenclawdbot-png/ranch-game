@@ -60,11 +60,11 @@ import type { Session } from "./session";
 const SEALED_SEED = "0".repeat(64);
 const cupCache = new Map<number, gc.DailyCupDay>();
 
-/** The Cup of a UTC day number (seed from the day's stored secret). */
+/** The Cup of a UTC day number (seed from the day's stored secret; going by the deployment's time of year). */
 async function cupOf(db: Db, day: number): Promise<gc.DailyCupDay> {
   const hit = cupCache.get(day);
   if (hit) return hit;
-  const cup = gc.dailyCupDay(await cupDaySecret(db, day), day);
+  const cup = gc.dailyCupDay(await cupDaySecret(db, day), day, SEASON_CLOCK);
   cupCache.set(day, cup);
   if (cupCache.size > 8) cupCache.delete(cupCache.keys().next().value!);
   return cup;
@@ -117,6 +117,10 @@ export async function cupView(db: Db, session: Session | null, now: Date): Promi
   const yDay = new Date((day - 1) * gc.MS_PER_DAY);
   const yBoard = ranked(await cupDayEntries(db, utcDay(yDay), 2000), session?.accountId ?? null);
   const yCup = await cupOf(db, day - 1);
+  // Tomorrow's trip and going, announced the day before: the weekday rotation is public (no
+  // secret in it), so this needs nothing of a Cup that hasn't opened yet.
+  const tRot = day + 1 >= gc.CUP_ROTATION_FROM_DAY ? gc.cupRotation(day + 1, SEASON_CLOCK) : null;
+  const tomorrow = tRot ? { day: utcDay(new Date((day + 1) * gc.MS_PER_DAY)), distanceM: tRot.distanceM, surface: tRot.surface, going: tRot.going } : null;
   const gates = [1, 2, 3, 5, 6, 7, 8];
   return {
     day: utcDay(now),
@@ -131,6 +135,7 @@ export async function cupView(db: Db, session: Session | null, now: Date): Promi
     board: { top: board.slice(0, 10), near },
     mine,
     horses,
+    tomorrow,
     yesterday: yBoard.length ? { day: utcDay(yDay), winner: yBoard[0] ?? null, mine: yBoard.find((r) => r.mine) ?? null, seed: yCup.seed } : null,
   };
 }

@@ -67,6 +67,8 @@ export interface CupView {
   mine: CupRow | null;
   /** The viewer's horses (signed in, not yet run today). */
   horses: CupHorseOption[] | null;
+  /** Tomorrow's announced trip and going (the weekday rotation; null before it takes over). */
+  tomorrow: { day: string; distanceM: number; surface: string; going: string } | null;
   yesterday: { day: string; winner: CupRow | null; mine: CupRow | null; seed: string } | null;
 }
 
