@@ -3,6 +3,11 @@ import {
   CLUB_ABOVE_MEDIAN_SPAN,
   CLUB_MARK_MAX,
   CLUB_MARK_TOLERANCE,
+  CLUB_OWN_SURFACE_PERMILLE,
+  CLUB_LIFT_OTHER_PERMILLE,
+  clubOnOwnSurface,
+  clubRaceDayLevel,
+  clubRaceDayState,
   CLUB_BELOW_MEDIAN,
   CLUB_CLIPPED_SPAN,
   CLUB_SEASONED_STARTS,
@@ -19,6 +24,7 @@ import {
 } from "./clubFill";
 import { generateFoundationGenome, potentials } from "./genome";
 import { abilityMark, maturityAt } from "./phenotype";
+import { conditionReport } from "./condition";
 import { STAT_KEYS } from "./types";
 
 describe("Club fill window", () => {
@@ -87,11 +93,14 @@ describe("honest Club horses", () => {
     }
   });
 
-  it("lifting a genome moves every potential by the lift", () => {
+  it("lifting a genome moves the ability potentials (speed, stamina, burst) by the lift, the others by CLUB_LIFT_OTHER_PERMILLE of it", () => {
     const g = generateFoundationGenome("lift-test", { season: 1, rarity: "common" });
     const p0 = potentials(g);
     const p1 = potentials(liftGenome(g, 100));
-    for (const k of STAT_KEYS) expect(p1[k] - p0[k]).toBeGreaterThanOrEqual(p0[k] >= 900 ? 0 : 99);
+    for (const k of STAT_KEYS) {
+      const want = k === "speed" || k === "stamina" || k === "burst" ? 100 : Math.trunc((100 * CLUB_LIFT_OTHER_PERMILLE) / 1000);
+      expect(Math.abs(p1[k] - p0[k] - want), k).toBeLessThanOrEqual(1);
+    }
   });
 
   it("the mint lands on the target mark (several targets, trip and surface fitted)", () => {
@@ -102,8 +111,8 @@ describe("honest Club horses", () => {
         expect(m.fits).toBe(true);
         expect(clubFitsRace(m.genome, { distanceM, surface })).toBe(true);
         // the stored state's real ability is the mark
-        expect(abilityMark(clubSeasonedState(m.genome))).toBe(m.mark);
-        expect(clubMarkOf(m.genome)).toBe(m.mark);
+        expect(abilityMark(clubSeasonedState(m.genome, { target }))).toBe(m.mark);
+        expect(clubMarkOf(m.genome, target)).toBe(m.mark);
       }
     }
   });
@@ -123,8 +132,39 @@ describe("honest Club horses", () => {
     }
   });
 
+  it("race day: a Club runner carries a typical player horse's condition for its mark, whatever it did before", () => {
+    const m = mintClubGenome({ seed: "rd", index: 0, target: 40, season: 12 });
+    const base = clubSeasonedState(m.genome, { target: 40 });
+    const tired = { ...base, condition: { ...base.condition, fatigue: 900, fatigueAtMs: 0, fitness: 300, bond: 0 } };
+    const level = clubRaceDayLevel(abilityMark(base));
+    for (const st of [base, tired]) {
+      const rd = clubRaceDayState(st, 5_000_000);
+      expect(rd.condition).toMatchObject({ fitness: level.fitness, fatigue: level.fatigue, fatigueAtMs: 5_000_000, bond: level.bond, lastHardWorkMs: null });
+      expect(rd.recentRuns).toEqual([]);
+      expect(abilityMark(rd)).toBe(abilityMark(base)); // condition never changes the mark
+    }
+  });
+
+  it("race day: the Club runner's condition multiplier is the harness players' median for its mark", () => {
+    for (const [target, want] of [[32, 975], [40, 985], [50, 985]] as const) {
+      const m = mintClubGenome({ seed: `cond-${target}`, index: 0, target, season: 12 });
+      const rd = clubRaceDayState(clubSeasonedState(m.genome, { target }), 5_000_000);
+      expect(Math.abs(conditionReport(rd, 5_000_000).multiplier - want), `mark ${target}`).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("about CLUB_OWN_SURFACE_PERMILLE of Club runners prefer the race's surface; an off-surface mint prefers another", () => {
+    let own = 0;
+    for (let i = 0; i < 2000; i++) if (clubOnOwnSurface(`s${i >> 3}`, i & 7)) own++;
+    expect(Math.abs(own / 2 - CLUB_OWN_SURFACE_PERMILLE)).toBeLessThan(40);
+    const off = mintClubGenome({ seed: "off", index: 0, target: 45, season: 12, distanceM: 1600, surface: "turf", offSurface: true });
+    expect(off.fits).toBe(true);
+    expect(clubFitsRace(off.genome, { surface: "turf" })).toBe(false);
+  });
+
   it("an out-of-reach target settles for the closest mark", () => {
     const m = mintClubGenome({ seed: "far", index: 0, target: 140, season: 1 });
-    expect(m.mark).toBe(CLUB_MARK_MAX);
+    // trained like a typical player horse, the best a genome can do is within a couple of the table's top
+    expect(m.mark).toBeGreaterThanOrEqual(CLUB_MARK_MAX - 2);
   });
 });

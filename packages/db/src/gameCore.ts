@@ -13,6 +13,7 @@
 import * as gc from "@thoroughbred/game-core";
 import type { HorseRow, PregnancyRow } from "./schema";
 import { defaultAppraise, RULES, type GameHooks, type HorseSpec } from "./rules";
+import { sha256Hex } from "./crypto";
 
 export type HorseState = gc.HorseState;
 export type Genome = gc.Genome;
@@ -187,19 +188,30 @@ function placeholderFallback(seed: string, label: string, careSessions: number, 
  */
 export const CLUB_MARK_KEY = "clubMark";
 
+/** A Club runner's id, a UUID derived from the race seed and its index (deterministic, unique per race). */
+export function clubRunnerId(seed: string, index: number): string {
+  const h = sha256Hex(`club-runner-id|${seed}|${index}`);
+  const variant = (8 + (parseInt(h[16]!, 16) & 3)).toString(16);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
 /**
  * An honest seasoned Club runner (game-core clubFill.ts): a genome searched from the seed until
  * its ability mark is about `target`, suited to the race's trip and surface; stored with the
- * starts, training and fitness the mark assumes, and rated at that mark.
+ * starts, training, care and fitness the mark assumes (a typical player horse's), and rated at that mark.
  */
-export function clubRunnerSpec(input: { seed: string; index: number; target: number; window?: { lo: number; hi: number }; season: number; distanceM?: number; surface?: string }): HorseSpec {
-  const mint = gc.mintClubGenome({ seed: input.seed, index: input.index, target: input.target, window: input.window, season: input.season, distanceM: input.distanceM, surface: input.surface });
+export function clubRunnerSpec(input: { seed: string; index: number; target: number; window?: { lo: number; hi: number }; season: number; distanceM?: number; surface?: string; offSurface?: boolean }): HorseSpec {
+  // A fixed id from the race seed: the improver draw (phenotype.ts progressionOf) is seeded by it, so
+  // the mark at mint is the mark the stored horse has.
+  const id = clubRunnerId(input.seed, input.index);
+  const mint = gc.mintClubGenome({ id, seed: input.seed, index: input.index, target: input.target, window: input.window, season: input.season, distanceM: input.distanceM, surface: input.surface, offSurface: input.offSurface });
   const rng = new gc.Rng(`${input.seed}|club-runner|${input.index}`);
   const sex = rng.chance(500) ? "colt" : "filly";
   const name = gc.clubHorseName(rng);
-  const state = gc.clubSeasonedState(mint.genome, { name, sex, season: input.season });
+  const state = gc.clubSeasonedState(mint.genome, { id, name, sex, season: input.season, target: input.target });
   const starts = state.career.starts;
   return {
+    id,
     name,
     sex: sex === "filly" ? "female" : "male",
     genome: mint.genome,
@@ -210,6 +222,8 @@ export function clubRunnerSpec(input: { seed: string; index: number; target: num
     careSessions: gc.CARE_TO_RACING,
     starts,
     fitness: state.condition.fitness,
+    bond: state.condition.bond,
+    careQuality: state.care.quality,
     dynamics: {
       training: state.training,
       ratedRuns: state.rating.ratedRuns,
@@ -245,8 +259,8 @@ export const gameCoreHooks: GameHooks = {
     const fallbackName = gc.clubHorseName(new gc.Rng(`${seed}|foal-name`));
     return specFromGenome({ genome, name: name ?? fallbackName, sex, careSessions: 0, season: season ?? 1 });
   },
-  houseHorse: ({ seed, index, rating, season, rarity, target, window, distanceM, surface }) => {
-    if (target !== undefined) return clubRunnerSpec({ seed, index, target, window, season: season ?? 1, distanceM, surface });
+  houseHorse: ({ seed, index, rating, season, rarity, target, window, distanceM, surface, offSurface }) => {
+    if (target !== undefined) return clubRunnerSpec({ seed, index, target, window, season: season ?? 1, distanceM, surface, offSurface });
     // Even breed weights so Live fields look varied (owner: "genetics aren't seen in race").
     // `rarity`: a target tier (Club sale horses, clubMarket.ts); default the natural mint.
     const genome = gc.generateFoundationGenome(gc.seedFrom("house", seed, index), { season: season ?? 1, evenBreeds: true, ...(rarity ? { rarity } : {}) });

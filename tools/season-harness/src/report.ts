@@ -207,6 +207,17 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
     L.push("", "Balances at the end (median / p90 / max):");
     for (const c of COHORTS) if (m.cohorts[c]) L.push(`- ${c}: ${fmt(d.balances[c].median)} / ${fmt(d.balances[c].p90)} / ${fmt(d.balances[c].max)}`);
   }
+  if (r.runners) {
+    L.push("", "## Live runners on race day (medians; shares in %)", "");
+    L.push("| | runs | mark | fitness | fatigue | realisation | care | bond | morale | condition | vet check | physio | jockey | tired | all out | trip off m | own surface | risk ‰ | injuries |");
+    L.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+    const row = (label: string, g: NonNullable<RunResult["runners"]>["players"]) =>
+      L.push(`| ${label} | ${g.n} | ${g.mark} | ${g.fitness} | ${g.fatigue} | ${g.realisation} | ${g.careQuality} | ${g.bond} | ${g.morale} | ${g.conditionMultiplier} | ${g.vetCheckPct} | ${g.physioPct} | ${g.jockeyPct} | ${g.tiredPct} | ${g.allOutPct} | ${g.tripOffM} | ${g.surfaceMatchPct} | ${g.riskPermille} | ${g.injuries} |`);
+    row("players", r.runners.players);
+    for (const [k, g] of Object.entries(r.runners.playersByMark)) if (g.n) row(`players, mark ${k}`, g);
+    row("Club", r.runners.club);
+    for (const [k, g] of Object.entries(r.runners.clubByMark)) if (g.n) row(`Club, mark ${k}`, g);
+  }
   L.push("", "## Cohorts (share of stables that did it at least once)", "");
   L.push("| | stables | Live win | ran a Qualifier | qualified | ran Weekend Feature | bred | sold | licence 3+ | promoted | above start credits | Live starts | visits |");
   L.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");

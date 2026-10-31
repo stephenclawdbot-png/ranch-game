@@ -55,10 +55,11 @@ describe("minted Club runners are honest", () => {
       expect(Math.abs(mark - target), `target ${target}`).toBeLessThanOrEqual(gc.CLUB_MARK_TOLERANCE);
       expect(row.rating).toBe(mark);
       expect((row.dynamics as Record<string, number>)[CLUB_MARK_KEY]).toBe(mark);
-      // seasoned and fully trained, as the mark assumes
+      // seasoned, trained and cared for like a typical player horse of its mark, as the mark assumes
       expect(row.starts).toBe(gc.CLUB_SEASONED_STARTS[row.maturityType]);
       expect(row.wins).toBe(0);
-      expect(row.fitness).toBe(gc.CLUB_FITNESS);
+      expect(row.fitness).toBe(gc.clubRaceDayLevel(target).fitness);
+      expect(row.careQuality).toBe(gc.clubRaceDayLevel(target).careQuality);
       expect(gc.preferredSurface(gc.upgradeGenome(row.genome)!)).toBe("turf");
     }
   });
@@ -111,7 +112,7 @@ describe("filling a field", () => {
       expect(mark).toBeGreaterThanOrEqual(w.lo);
       expect(mark).toBeLessThanOrEqual(w.hi);
       const g = gc.upgradeGenome(row.genome)!;
-      expect(gc.clubFitsRace(g, { distanceM: 1400, surface: "turf" })).toBe(true);
+      expect(gc.clubFitsRace(g, { distanceM: 1400 })).toBe(true);
       // ridden to its natural style
       expect(x.tactic).toBe(gc.runningStyle(g));
     }

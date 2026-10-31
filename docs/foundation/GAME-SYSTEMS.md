@@ -250,9 +250,12 @@ knobs in `KNOBS.md` §6). Story, Daily Cup and older races run course-less, as b
 How fields are filled (Club fill, 2026-10-30; owner: "the Club horses that fill in the race are
 median and above median"). At entry close the Club fills the empty gates up to the race's target
 (5-12). Its runners are honest: a Club horse's stored rating is its real ability mark (ability.ts).
-A minted one is seasoned (at the start of its peak window, fully trained, fit), suited to the race's
-trip and surface, its genome searched from the race seed until its mark is the target (game-core
-`clubFill.ts`). Until then a minted Club horse was an untrained novice stamped with the band's
+A minted one is seasoned (at the start of its peak window), suited to the race's trip, its genome
+searched from the race seed until its mark is the target (game-core `clubFill.ts`). No hidden edge:
+a Club runner is trained and cared for like the median active player horse of its mark, and at the
+lock it takes that horse's race-day fitness, fatigue and bond (`CLUB_RACE_DAY`, measured in the
+harness); about a third prefer another surface than the race's, as players' horses do. At equal
+marks a Club horse wins about as often as a player horse (club-fill report: 1.06×). Until then a minted Club horse was an untrained novice stamped with the band's
 midpoint, so a "62" ran like a 29, players ran away with races and their ratings inflated; existing
 Club horses were recalibrated to their real marks once (db `services/clubFill.ts`). Which horses:
 every race but a Story race centres on P, the median real ability mark of the player horses entered;

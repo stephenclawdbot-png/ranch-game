@@ -26,6 +26,18 @@ regenerate).
 | dev140 | dev at 2fc2bb7 (engine 1.4.0: close finishes, Live handicap weights, ability table refit), no Club fill: the merged baseline | 84.7 | 164 / 53 | 26 | players won 68.8% of their races, 11.3% of starts; purses 577k; winner-to-last 35.8 m, winning margin 3.5 m; injuries 12 |
 | clubfill7 | clubfill4's Club fill merged with engine 1.4.0 (final: [P − 2, P + 10] on real marks) | 88.1 | 199 / 44 | 19 | **players won 50.3% of their races, 8.2% of starts**; purses 600k (courses1) → 421k (-30%; -27% vs dev140); credits created -16%, destroyed -19% vs courses1; **winner-to-last 32.2 m** (courses-era 48.2, dev140 35.8), winning margin 3.1 m; median balances casual 7.4k, grinder 775, breeder 2.9k, farmer 6.0k; injuries 23 (moderate 10; dev140 12) |
 | clubfill8 | as clubfill7 with [P − 4, P + 6] (a softer Club) | 83.9 | 177 / 43 | 17 | 55.9% / 8.9% per start; purses 452k (-25%); winner-to-last 32.2 m; injuries 17. Purses within -20% would need the Club centred below the players' median: an honest Club takes place money the old one never did |
+| dev140s, clubfill7s | dev140 and clubfill7 rerun with the race-day runner states (`runnerStates`: fitness, fatigue, training, care, extras and injury risk of every Live runner) | 84.7 / 88.1 | – | – | players' median race day: fitness 700 (mark ≤35) / 1,000 (36+), fatigue 175 / 310, realisation 633 / 691, condition 974 / 983, 43% tired, 63% on their own surface; the Club ran fit (1,000), fresh (fatigue 0), fully trained (1,000) and always on its own surface: condition 1,000. Injuries vs the risk model's expectation: 12 / 20.0 (dev140s), 23 / 19.3 |
+| clubfill9 | Club race-day parity: realisation and care like the median player horse of its mark at mint; fitness, fatigue (the raw median) and bond at the lock; 37% off their own surface; non-ability stats no longer lifted | 85.4 | 197 / 43 | 16 | 50.7% / 8.1% per start; purses 399k (-33%); Club condition still 995 vs players' 978 (the raw median fatigue misses the ~43% who race tired): fatigue reset to match the median condition (975 / 985) for clubfill11; injuries 28 / 18.5 expected |
+| clubfill10 | clubfill9 with [P − 4, P + 8] | 85.7 | 203 / 49 | 27 | 55.3% / 9.0%; purses 483k (-20%); grinder median 954; injuries 17 / 19.3 |
+| clubfill11 | **final**: [P − 2, P + 10], race-day parity with matched condition (Club 985 / players 978 overall; 975 / 985 by mark) | 86.5 | 191 / 40 | 22 | **players won 52.8% of their races, 8.6% of starts**; purses 426k (-29% vs courses1, -26% vs dev140); created 1.01M (-15%), destroyed 745k (-18%); winner-to-last 31.5 m (courses era 48.2), winning margin 3.3 m; median balances casual 8.7k, grinder 649, breeder 3.2k, farmer 6.0k; injuries 18 / 18.7 expected |
+| clubfill12 | clubfill11 with [P − 4, P + 8] | 83.9 | 222 / 55 | 25 | 57.1% / 9.1%; **purses 491k (-18%)**; created 1.08M, destroyed 778k; winner-to-last 32.8 m; grinder median 715; injuries 18 / 19.5 |
+
+Injuries with Club fill (2026-10-31): over the six runs with runner states, Live injuries per player start
+match the risk model (`injuryRisk` at the off): Club fill runs 104 injuries vs 95.3 expected, dev140s 12 vs
+20.0. The exposure did not change: mean risk 6.7-6.9 ‰ per start vs 7.1 ‰ on dev, vet checks 4.3-5.1% vs
+5.0%, tired at the off 40-43% vs 45%, nobody rides all out, starts within 3%. The rolls are seeded per
+(race seed, horse) and the risk ignores the rest of the field; Club horses' own injuries are never counted
+(no inbox). The rise from courses1 (16) and dev140 (12) is noise, not the house-horse path.
 
 ## Decisions (2026-10-29/30)
 

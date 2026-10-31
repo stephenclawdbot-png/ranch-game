@@ -165,9 +165,13 @@ export interface HorseSpec {
   rating?: number;
   /** Nursery progress at creation (starters arrive at racing age = 19; pack horses are foals = 0). */
   careSessions?: number;
+  /** A fixed id (a Club runner's, derived from the race seed, so its improver draw is known at mint); the column default when omitted. */
+  id?: string;
   /** Career starts already run (a seasoned Club runner, game-core clubFill.ts); 0 when omitted. */
   starts?: number;
-  /** Fitness at creation (permille); the column default when omitted. */
+  /** Fitness, bond and care quality at creation (permille); the column defaults when omitted. */
+  bond?: number;
+  careQuality?: number;
   fitness?: number;
   /** Initial horses.dynamics (training realisation, rated runs, peak, Club mark); {} when omitted. */
   dynamics?: Record<string, unknown>;
@@ -206,6 +210,8 @@ export interface GameHooks {
     window?: { lo: number; hi: number };
     distanceM?: number;
     surface?: string;
+    /** The minted horse should prefer another surface than the race's (game-core clubOnOwnSurface). */
+    offSurface?: boolean;
   }): HorseSpec;
   /** Appraised market value in credits (listing floor = 70% of it). */
   appraise?(horse: HorseRow): number;

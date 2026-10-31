@@ -16,7 +16,7 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, claimingTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
+import { activity, checks, claimingTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
 import { median, sum } from "./stats";
 
 const DAY = 86_400_000;
@@ -90,6 +90,8 @@ export interface RunResult {
   farmers: FarmerReport;
   /** Player runs in calendar races and the top-rated player horses at the end. */
   notables: Awaited<ReturnType<typeof notables>>;
+  /** Race-day state and injury exposure of Live runners, players vs Club (absent before 2026-10-30). */
+  runners?: RunnerStates;
   checks: Checks;
   activity: ReturnType<typeof activity>;
   errors: UnexpectedError[];
@@ -275,6 +277,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
       notables: await notables(world),
+      runners: await runnerStates(world),
       checks: await checks(world, last),
       activity: activity(world),
       errors: world.errors.slice(0, 200),

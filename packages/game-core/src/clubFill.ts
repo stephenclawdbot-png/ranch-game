@@ -6,7 +6,7 @@
  * Two rules live here; packages/db (races.ts pickHouseHorses) applies them at entry close:
  *
  *   1. A Club horse is honest: its stored rating is its real ability mark (ability.ts). The Club
- *      mints a seasoned horse (racing age, at the start of its peak window, fully trained, fit)
+ *      mints a seasoned horse (racing age, at the start of its peak window, trained, cared for and fit like a typical player horse of that mark: CLUB_RACE_DAY)
  *      whose genome is searched, deterministically from the race seed, until its ability mark
  *      lands on the target. Before this, minted Club horses were untrained novices stamped with
  *      the band's midpoint as their rating (a "62" ran like a 29).
@@ -64,11 +64,46 @@ export const CLUB_OPEN_NOMINAL_DEFAULT = 60;
 export const CLUB_MARK_MIN = ABILITY_OR_TABLE[0]![1];
 export const CLUB_MARK_MAX = ABILITY_OR_TABLE[ABILITY_OR_TABLE.length - 1]![1];
 
-/** A minted Club horse's training realisation on every stat (permille; 1000 = fully trained). */
-export const CLUB_REALISATION = 1000;
+/**
+ * What a typical active player horse of a given ability mark carries on race day, and so what a
+ * Club runner of that mark carries (no hidden edge: a rating means the same on both sides).
+ * Medians of the player runners in every settled Live race of the season harness (run
+ * clubfill7s, 2026-10-30, ~2,800 player starts; tools/season-harness runnerStates), by mark:
+ *   - realisation: training realisation on every stat (permille), set at mint;
+ *   - careQuality: rolling care quality (its care bonus lifts realisation), set at mint;
+ *   - fitness, bond: set at the lock;
+ *   - fatigue: fatigue at the off, set at the lock, chosen so the condition multiplier equals the
+ *     players' median (975 / 985 / 985 permille; their median fatigue, 170 / 263-310 / 354-412,
+ *     gives a higher multiplier: tiredness is a penalty only above TIRED_THRESHOLD, and ~43% of
+ *     players race tired).
+ * Rows: [highest mark, level]; the last row covers every mark above (the upper bands have almost
+ * no player horses yet, so they take the 46-55 row).
+ */
+export interface ClubRaceDayLevel {
+  realisation: number;
+  careQuality: number;
+  fitness: number;
+  bond: number;
+  fatigue: number;
+}
+export const CLUB_RACE_DAY: readonly (readonly [number, ClubRaceDayLevel])[] = [
+  [35, { realisation: 633, careQuality: 958, fitness: 700, bond: 114, fatigue: 361 }],
+  [45, { realisation: 691, careQuality: 995, fitness: 1000, bond: 174, fatigue: 440 }],
+  [200, { realisation: 731, careQuality: 996, fitness: 1000, bond: 230, fatigue: 440 }],
+];
 
-/** A minted Club horse's fitness (permille): a seasoned horse in work. Racing moves it after that. */
-export const CLUB_FITNESS = 1000;
+/**
+ * Share (per mille) of Club runners that prefer the race's surface. Players run on their horse's
+ * preferred surface in 63% of Live starts (harness clubfill7s); the rest of the Club pack prefers
+ * another surface, as theirs do.
+ */
+export const CLUB_OWN_SURFACE_PERMILLE = 630;
+
+/** The race-day level for a mark (CLUB_RACE_DAY). */
+export function clubRaceDayLevel(mark: number): ClubRaceDayLevel {
+  for (const [max, level] of CLUB_RACE_DAY) if (mark <= max) return level;
+  return CLUB_RACE_DAY[CLUB_RACE_DAY.length - 1]![1];
+}
 
 /**
  * Starts a minted Club horse has already run, by maturity type: the first start at which every
@@ -100,8 +135,8 @@ export const CLUB_MINT_SEARCH_CAP = 256;
 export const CLUB_LIFT_MAX = 450;
 
 /**
- * Genome rarity tier the mint starts from, by target mark: the tier whose seasoned, fully trained
- * horses have about that mark (season 12 mints, engine 1.4.0 table: common median 41, uncommon 44,
+ * Genome rarity tier the mint starts from, by target mark: the tier whose seasoned, fully trained (the lift covers the
+ * lower CLUB_RACE_DAY training) horses have about that mark (season 12 mints, engine 1.4.0 table: common median 41, uncommon 44,
  * rare 45, epic 47, legendary 52), so the lift stays small. [highest target, tier]; above the last row: legendary.
  */
 export const CLUB_RARITY_BY_TARGET: readonly (readonly [number, Rarity])[] = [
@@ -263,29 +298,44 @@ export function clubRarityFor(target: number): Rarity {
   return "legendary";
 }
 
-/** Adds `points` to both alleles of every stat locus (clamped to 0..1000): every stat potential moves by about `points`. */
+/**
+ * How much of the lift the other stats (durability, adaptability, temperament) get, per mille of
+ * the ability stats' (speed, stamina, burst: the ones the mark measures). Lifting them all alike
+ * gave Club horses sounder, steadier legs and heads than player horses of the same mark (+40-55
+ * at mark 45); player horses' other stats rise only weakly with their mark. With none of it the
+ * Club's other stats sit within ~10-20 of an equal-mark player horse's.
+ */
+export const CLUB_LIFT_OTHER_PERMILLE = 0;
+
+/**
+ * Adds `points` to both alleles of each ability stat locus (speed, stamina, burst) and
+ * CLUB_LIFT_OTHER_PERMILLE of it to the other loci (clamped to 0..1000).
+ */
 export function liftGenome(genome: Genome, points: number): Genome {
   if (points === 0) return genome;
   const stats = {} as Genome["stats"];
   for (const k of STAT_KEYS) {
+    const d = k === "speed" || k === "stamina" || k === "burst" ? points : Math.trunc((points * CLUB_LIFT_OTHER_PERMILLE) / 1000);
     const [a, b] = genome.stats[k];
-    stats[k] = [clampInt(a + points, 0, 1000), clampInt(b + points, 0, 1000)];
+    stats[k] = [clampInt(a + d, 0, 1000), clampInt(b + d, 0, 1000)];
   }
   return { ...genome, stats };
 }
 
-/** Training realisation of a minted Club horse (every stat at CLUB_REALISATION). */
-export function clubRealisation(): StatRecord<number> {
-  return Object.fromEntries(STAT_KEYS.map((k) => [k, CLUB_REALISATION])) as StatRecord<number>;
+/** Training realisation of a minted Club horse: every stat at the level's realisation. */
+export function clubRealisation(level: ClubRaceDayLevel): StatRecord<number> {
+  return Object.fromEntries(STAT_KEYS.map((k) => [k, level.realisation])) as StatRecord<number>;
 }
 
 /**
  * The game-core state of a minted Club horse: racing age, CLUB_SEASONED_STARTS starts for its
- * maturity type (no wins: it may still run in maidens), fully trained, fit, rated at its mark.
- * The database stores exactly these (starts, training, fitness, rating), so abilityMark of the
- * stored row equals the mark here.
+ * maturity type (no wins: it may still run in maidens), trained, cared for and fit like a typical
+ * player horse of its target mark (CLUB_RACE_DAY, by `target`), rated at its mark. The database
+ * stores exactly these (starts, training, care quality, fitness, bond, rating), so abilityMark of
+ * the stored row equals the mark here.
  */
-export function clubSeasonedState(genome: Genome, base: { id?: string; name?: string; sex?: "colt" | "filly"; season?: number } = {}): HorseState {
+export function clubSeasonedState(genome: Genome, base: { id?: string; name?: string; sex?: "colt" | "filly"; season?: number; target?: number } = {}): HorseState {
+  const level = clubRaceDayLevel(base.target ?? 40);
   const s = createHorseState({
     id: base.id ?? "club",
     name: base.name ?? "Club",
@@ -303,8 +353,9 @@ export function clubSeasonedState(genome: Genome, base: { id?: string; name?: st
   const starts = CLUB_SEASONED_STARTS[maturityType(genome)];
   const st: HorseState = {
     ...s,
-    condition: { ...s.condition, fitness: CLUB_FITNESS },
-    training: { ...s.training, realisation: clubRealisation() as HorseState["training"]["realisation"] },
+    care: { ...s.care, quality: level.careQuality },
+    condition: { ...s.condition, fitness: level.fitness, bond: level.bond },
+    training: { ...s.training, realisation: clubRealisation(level) as HorseState["training"]["realisation"] },
     career: { ...s.career, starts },
     record: { ...s.record, starts },
   };
@@ -312,27 +363,54 @@ export function clubSeasonedState(genome: Genome, base: { id?: string; name?: st
   return { ...st, rating: { or: mark, ratedRuns: starts, peakOr: mark } };
 }
 
-/** The ability mark a genome has as a minted Club horse (clubSeasonedState). */
-export function clubMarkOf(genome: Genome): number {
-  return clubSeasonedState(genome).rating.or;
+/**
+ * The ability mark a genome has as a minted Club horse (clubSeasonedState) trained for `target`.
+ * `id`: the horse's id, which seeds whether (and when) it is an improver (phenotype.ts progressionOf).
+ */
+export function clubMarkOf(genome: Genome, target?: number, id?: string): number {
+  return clubSeasonedState(genome, { target, id }).rating.or;
 }
 
-/** The race a Club horse is minted or picked for (its trip and surface; either may be unknown). */
+/**
+ * A Club runner's race-day condition, set at the field lock (deterministic): fitness, bond and
+ * fatigue at the off of a typical player horse of its mark (CLUB_RACE_DAY), no recent runs (its
+ * morale is the bond's), no fresh-from-a-break bonus. Whatever the horse did in its last races,
+ * it races like the players' median horse of its ability.
+ */
+export function clubRaceDayState(state: HorseState, postMs: number): HorseState {
+  const level = clubRaceDayLevel(abilityMark(state));
+  return {
+    ...state,
+    condition: { ...state.condition, fitness: level.fitness, fatigue: level.fatigue, fatigueAtMs: postMs, lastHardWorkMs: null, bond: level.bond },
+    recentRuns: [],
+  };
+}
+
+/** Whether the `index`-th Club runner of a race prefers the race's surface (CLUB_OWN_SURFACE_PERMILLE, seeded). */
+export function clubOnOwnSurface(seed: string, index: number): boolean {
+  return new Rng(seedFrom("club-surface", seed, index)).chance(CLUB_OWN_SURFACE_PERMILLE);
+}
+
+/**
+ * The race a Club horse is minted or picked for (its trip and surface; either may be unknown).
+ * `offSurface`: the horse should prefer another surface than the race's (CLUB_OWN_SURFACE_PERMILLE).
+ */
 export interface ClubRaceFit {
   distanceM?: number;
   surface?: Surface | string;
+  offSurface?: boolean;
 }
 
-/** True when the horse prefers the race's surface and its trip is within CLUB_TRIP_FIT_M (unknown conditions always fit). */
+/** True when the horse's surface preference is as asked and its trip is within CLUB_TRIP_FIT_M (unknown conditions always fit). */
 export function clubFitsRace(genome: Genome, race: ClubRaceFit): boolean {
-  if (race.surface !== undefined && preferredSurface(genome) !== race.surface) return false;
+  if (race.surface !== undefined && (preferredSurface(genome) === race.surface) === !!race.offSurface) return false;
   if (race.distanceM !== undefined && Math.abs(preferredDistanceM(genome) - race.distanceM) > CLUB_TRIP_FIT_M) return false;
   return true;
 }
 
 /** The lift (within ±CLUB_LIFT_MAX) that brings a genome's Club mark closest to `target` (the smaller lift on a tie). */
-export function liftFor(genome: Genome, target: number): { lift: number; mark: number } {
-  const markAt = (l: number) => clubMarkOf(liftGenome(genome, l));
+export function liftFor(genome: Genome, target: number, id?: string): { lift: number; mark: number } {
+  const markAt = (l: number) => clubMarkOf(liftGenome(genome, l), target, id);
   // The mark never falls as the lift rises: find the smallest lift whose mark reaches the target.
   let lo = -CLUB_LIFT_MAX;
   let hi = CLUB_LIFT_MAX;
@@ -353,6 +431,8 @@ export interface ClubMintRequest extends ClubRaceFit {
   seed: string;
   /** Runner index within the race's mints. */
   index: number;
+  /** The id the horse will be stored under (its improver draw is seeded by it); "club" when unknown. */
+  id?: string;
   /** Target ability mark. */
   target: number;
   /** The window the mark must stay inside (the race's Club window); a mark outside it is never accepted. */
@@ -375,9 +455,9 @@ export interface ClubMint {
   fits: boolean;
 }
 
-/** How far a genome is from suiting the race: 0 when it fits; a wrong surface outweighs any trip. */
+/** How far a genome is from suiting the race as asked (clubFitsRace): 0 when it fits; a wrong surface outweighs any trip. */
 export function clubFitMiss(genome: Genome, race: ClubRaceFit): number {
-  const surface = race.surface !== undefined && preferredSurface(genome) !== race.surface ? 100_000 : 0;
+  const surface = race.surface !== undefined && (preferredSurface(genome) === race.surface) === !!race.offSurface ? 100_000 : 0;
   const trip = race.distanceM !== undefined ? Math.max(0, Math.abs(preferredDistanceM(genome) - race.distanceM) - CLUB_TRIP_FIT_M) : 0;
   return surface + trip;
 }
@@ -402,7 +482,7 @@ export function mintClubGenome(req: ClubMintRequest): ClubMint {
     const fitMiss = clubFitMiss(g0, req);
     // Only a candidate that suits the race at least as well as the best so far is worth lifting.
     if (best && fitMiss > best.fitMiss) continue;
-    const { lift, mark } = liftFor(g0, target);
+    const { lift, mark } = liftFor(g0, target, req.id);
     // Outside the window counts as a big miss: never accepted, only kept as a last resort.
     const markMiss = Math.abs(mark - target) + (req.window && (mark < req.window.lo || mark > req.window.hi) ? 1000 : 0);
     if (!best || fitMiss < best.fitMiss || markMiss < best.markMiss) best = { g0, fitMiss, markMiss, lift, mark };

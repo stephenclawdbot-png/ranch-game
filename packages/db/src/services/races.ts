@@ -155,6 +155,17 @@ export function horseSnapshot(h: HorseRow): Record<string, unknown> {
   };
 }
 
+/**
+ * A Club runner's entry snapshot at the lock: its state carries the race-day condition of a
+ * typical player horse of its mark (game-core clubRaceDayState: fitness, fatigue at the off, bond),
+ * whatever its last races left it with, so a Club rating means what a player's does.
+ */
+export function clubSnapshot(h: HorseRow, postMs: number): Record<string, unknown> {
+  const snap = horseSnapshot(h);
+  const state = snap.state as HorseState | null;
+  return state ? { ...snap, state: gc.clubRaceDayState(state, postMs) } : snap;
+}
+
 /** Hard racing eligibility (career, age, lock, injury). Returns a DomainError to throw, or null. */
 export function racingBlock(h: HorseRow, race: RaceRow, now: Date): DomainError | null {
   if (h.careerStatus !== "racing") return new DomainError("HORSE_RETIRED", "retired horses cannot race");
@@ -551,7 +562,8 @@ export async function clubWindowForRace(ex: Executor, race: Pick<RaceRow, "kind"
 /**
  * Club runners for the empty gates (owner, 2026-10-30: "median and above"): `needed` targets
  * spread across the race's window (clubTargets), each filled by a free Club horse whose REAL
- * ability mark is in that slice of the window and who suits the race's trip and surface, else by
+ * ability mark is in that slice of the window and who suits the race's trip (and, for about two in
+ * three, its surface: CLUB_OWN_SURFACE_PERMILLE, as players' horses), else by
  * any such horse in the window, else by a newly minted honest Club horse at the slice's target.
  * Deterministic from the race seed (and the pool's state).
  */
@@ -584,22 +596,24 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
     .orderBy(sql`md5(${horses.id}::text || ${race.seedCommitment})`)
     .limit(needed * gc.CLUB_POOL_READ_PER_RUNNER)
     .for("update", { skipLocked: true });
-  // Only horses whose real ability is in the window and who suit the race.
+  // Only horses whose real ability is in the window and whose trip suits the race.
   const eligible = seededShuffle(
     pool.flatMap((h) => {
       const mark = trueMarkOf(h);
       const g = genomeOf(h.genome);
-      return mark >= w.lo && mark <= w.hi && (!g || gc.clubFitsRace(g, fit)) ? [{ h, mark }] : [];
+      return mark >= w.lo && mark <= w.hi && (!g || gc.clubFitsRace(g, { distanceM: fit.distanceM })) ? [{ h, mark, g }] : [];
     }),
     race.seed,
     "house-pick",
   );
   const targets = gc.clubTargets(w, needed, race.seed);
+  // Like players' horses, about a third of the Club pack prefers another surface (CLUB_OWN_SURFACE_PERMILLE).
+  const slotFit = Array.from({ length: needed }, (_, i) => ({ ...fit, offSurface: !gc.clubOnOwnSurface(race.seed, i) }));
   const slot: (HorseRow | null)[] = new Array(needed).fill(null);
   const used = new Set<string>();
   const take = (i: number, inSlice: boolean) => {
     const s = gc.clubStratum(w, needed, i);
-    const hit = eligible.find((e) => !used.has(e.h.id) && (!inSlice || (e.mark >= s.lo && e.mark <= s.hi)));
+    const hit = eligible.find((e) => !used.has(e.h.id) && (!e.g || gc.clubFitsRace(e.g, slotFit[i]!)) && (!inSlice || (e.mark >= s.lo && e.mark <= s.hi)));
     if (hit) {
       used.add(hit.h.id);
       slot[i] = hit.h;
@@ -612,7 +626,7 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
   const season = race.seasonNumber ?? seasonNumberAt(now);
   for (let i = 0; i < needed; i++) {
     if (slot[i]) continue;
-    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: targets[i]!, target: targets[i]!, window: w, season, ...fit });
+    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: targets[i]!, target: targets[i]!, window: w, season, ...slotFit[i]! });
     const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", birthSeasonNumber: season, now });
     slot[i] = (await lockHorse(tx, id))!;
   }
@@ -673,7 +687,7 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   for (const h of house) {
     const g = genomeOf(h.genome);
     const fallback = TACTICS[Math.floor(u() * 3)]!;
-    pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: g ? gc.runningStyle(g) : fallback, snapshot: horseSnapshot(h), or: h.rating });
+    pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: g ? gc.runningStyle(g) : fallback, snapshot: clubSnapshot(h, race.postTime.getTime()), or: h.rating });
   }
 
   // Gate draw from the committed seed (deterministic, verifiable after the reveal).
