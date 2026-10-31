@@ -150,6 +150,23 @@ towards a hidden potential and are sealed into the locked field as engine kit (b
 about 2-3 OR); apprentices claim 7/5/3 lb off handicap weights. Harness metrics: pool per
 active stable each week, rides per jockey, grades, intake/retirements, freelance and signing fees.
 
+**Jockey contracts and the transfer window** (Phase 2; game-core `jockeyContracts.ts`, db
+`services/jockeyContracts.ts`). Held jockeys are on contracts (4 weeks, 8 weeks or to the end of the
+season) with a weekly wage (A 600 to E 100 credits, kind `jockey_wage`, burned on Monday by the weekly
+job; a stable's first apprentice is wage-free for 4 weeks; a stable that can't pay is never charged
+and loses the jockey at the next window), promised rides a week and a buyout (stored for Phase 3).
+Two weeks with fewer rides than promised and the jockey may walk out. Every Sunday 20:00 UTC the
+window closes: free agents (contracts ending, released, idle stables, unpaid, walkouts, new
+apprentices) take offers (at most 3 open per stable, the signing fee escrowed and refunded if lost)
+by jockey-proposing deferred acceptance over a published personality utility (wage, mean rating of
+the stable's top 5, prestige, promised rides, loyalty, length); stables fill at most their free
+places, ties by a draw from the week's committed seed (sha256 published at the week's start, seed
+revealed with the results on `jockey_weeks`). Unmatched free agents go to the Club pool. An
+apprentice with 25 rides for a stable is "developed" there; a Feature/Final win for another stable
+pays the developer 500 credits (`jockey_development_bonus`, minted). Linked accounts can't sign or
+make offers for each other's jockeys (fraud event). Harness: offers per window, signings, moves,
+wages paid, walkouts, development bonuses.
+
 ---
 
 ## 4. Credits: faucets and sinks

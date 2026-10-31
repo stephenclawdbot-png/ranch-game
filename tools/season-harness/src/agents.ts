@@ -32,8 +32,8 @@
  *   can see them.
  */
 import * as gc from "@thoroughbred/game-core";
-import { DomainError, RULES, confirmToteAdult, myToteRace, placeToteBet, recordAccountSignal, signJockey, stableOf, toteBoard, type Db } from "@thoroughbred/db";
-import { jockeysPage } from "@/server/jockeys";
+import { DomainError, RULES, confirmToteAdult, makeJockeyOffer, myToteRace, placeToteBet, recordAccountSignal, signJockey, stableOf, toteBoard, type Db } from "@thoroughbred/db";
+import { jockeysPage, myJockeys, transferWindowPage } from "@/server/jockeys";
 import { claimLive, enterLive, entryOptions, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
 import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
 import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
@@ -99,6 +99,9 @@ export interface AgentStats {
   freelanceRides: number;
   freelanceSpend: number;
   jockeySignings: number;
+  /** Phase 2: offers made in the transfer window (re-signing own jockeys and bids for others). */
+  jockeyOffers: number;
+  jockeyResignOffers: number;
   jockeySigningSpend: number;
   /** Farmer channels: credits passed alt -> main. */
   washStudFees: number;
@@ -124,7 +127,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, freelanceRides: 0, freelanceSpend: 0, jockeySignings: 0, jockeySigningSpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, toteBets: 0, toteStaked: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, freelanceRides: 0, freelanceSpend: 0, jockeySignings: 0, jockeySigningSpend: 0, jockeyOffers: 0, jockeyResignOffers: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, toteBets: 0, toteStaked: 0, refused: {},
   };
 }
 
@@ -465,6 +468,72 @@ async function maybeSignJockey(c: VisitCtx, s: Session, credits: number, reserve
   }
 }
 
+/** Chance (permille) that an agent offers its own free agent a new contract (most do; some let them go). */
+const JOCKEY_RESIGN_PERMILLE = 850;
+/** Chance (permille) that an agent promises more rides than it usually gives (a promise it may break). */
+const JOCKEY_OVERPROMISE_PERMILLE = 150;
+/** Chance per day (permille), by cohort, of looking at the transfer window; and rides a week it usually gives a jockey. */
+const JOCKEY_WINDOW: Record<string, { permille: number; rides: number; reserve: number }> = {
+  casual: { permille: 150, rides: 1, reserve: 5_000 },
+  grinder: { permille: 450, rides: 3, reserve: 4_000 },
+  breeder: { permille: 250, rides: 1, reserve: 6_000 },
+};
+
+/**
+ * Phase 2, the weekly transfer window: re-sign the stable's own free agents (mostly), then make
+ * offers for free agents that fit a free place and the budget (signing fee plus four weeks' wage
+ * above `reserve`), best grade first and the less contested first. The wage is the grade's
+ * standard ±; rides promised are what the stable usually gives, sometimes more than it will.
+ */
+async function jockeyWindow(c: VisitCtx, s: Session, credits: number): Promise<void> {
+  const cfg = JOCKEY_WINDOW[c.a.cohort];
+  if (!cfg || !c.a.rng.chance(cfg.permille)) return;
+  const { a, now, world } = c;
+  const page = await world.act(a, "jockey_window", now, () => transferWindowPage(world.db, s, now));
+  if (!page || !page.freeAgents.length) return;
+  const mine = (await world.act(a, "jockeys_mine", now, () => myJockeys(world.db, s, now))) ?? [];
+  const offered = new Set(page.myOffers.filter((o) => o.thisWeek && o.status === "open").map((o) => o.jockeyId));
+  let open = page.openOffers;
+  let budget = credits - cfg.reserve;
+  const promise = () => Math.max(0, cfg.rides - a.rng.int(2) + (a.rng.chance(JOCKEY_OVERPROMISE_PERMILLE) ? 2 : 0));
+  const length = () => a.rng.pick([...gc.JOCKEY_CONTRACT_LENGTHS]);
+  const terms = (grade: gc.JockeyGrade, pct: number): gc.OfferTerms => {
+    const b = gc.wageBounds(grade);
+    const wage = Math.max(b.min, Math.min(b.max, Math.round((gc.jockeyWage(grade) * pct) / 1000) * 10));
+    return { wage, length: length(), promisedRides: promise(), buyout: gc.buyoutBounds(gc.signingFee(grade)).default };
+  };
+  for (const j of mine.filter((x) => x.freeAgent && !offered.has(x.id))) {
+    if (open >= gc.JOCKEY_OPEN_OFFERS_PER_STABLE || !a.rng.chance(JOCKEY_RESIGN_PERMILLE) || j.contract?.morale === "wants_out" || j.contract?.unpaid) continue;
+    const t = terms(j.grade, 90 + a.rng.int(31));
+    if (budget < 4 * t.wage) continue;
+    if (await world.act(a, "jockey_offer", now, () => makeJockeyOffer(world.db, { accountId: s.accountId, jockeyId: j.id, now, terms: t }))) {
+      a.stats.jockeyOffers++;
+      a.stats.jockeyResignOffers++;
+      open++;
+      offered.add(j.id);
+    }
+  }
+  const staying = mine.filter((x) => !x.freeAgent).length;
+  const othersOffered = page.myOffers.filter((o) => o.thisWeek && o.status === "open" && !mine.some((m) => m.id === o.jockeyId)).length;
+  let places = gc.JOCKEYS_PER_STABLE_MAX - staying - othersOffered;
+  const order = gc.JOCKEY_GRADES;
+  const candidates = page.freeAgents
+    .filter((f) => !f.jockey.mine && !offered.has(f.jockey.id) && f.jockey.stage !== "veteran")
+    .sort((x, y) => order.indexOf(x.jockey.grade) - order.indexOf(y.jockey.grade) || x.offers - y.offers || (x.jockey.id < y.jockey.id ? -1 : 1));
+  for (const f of candidates) {
+    if (places <= 0 || open >= gc.JOCKEY_OPEN_OFFERS_PER_STABLE) break;
+    const t = terms(f.jockey.grade, 90 + a.rng.int(61));
+    const cost = gc.signingFee(f.jockey.grade) + 4 * t.wage;
+    if (cost > budget) continue;
+    if (await world.act(a, "jockey_offer", now, () => makeJockeyOffer(world.db, { accountId: s.accountId, jockeyId: f.jockey.id, now, terms: t }))) {
+      a.stats.jockeyOffers++;
+      open++;
+      places--;
+      budget -= cost;
+    }
+  }
+}
+
 async function maybeSponsor(c: VisitCtx, s: Session, credits: number, threshold: number, permille: number): Promise<void> {
   if (credits <= threshold || !c.a.rng.chance(permille)) return;
   const first = await c.world.act(c.a, "sponsor_view", c.now, () => sponsorView(c.world.db, s, c.now));
@@ -712,6 +781,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       if (a.rng.chance(CASUAL_SHOP_PERMILLE)) await shop(c, s, 4_000, 1.15);
       if (a.rng.chance(CASUAL_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 4_000);
       await maybeBet(c, s);
+      if (c.first) await jockeyWindow(c, s, ((await fresh(c, s)) ?? view).credits ?? 0);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -798,6 +868,7 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     if (a.rng.chance(GRINDER_LEASE_PERMILLE)) await takeALease(c, s);
     if (a.rng.chance(GRINDER_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 2_500);
     if (a.rng.chance(GRINDER_SIGN_PERMILLE)) await maybeSignJockey(c, s, ((await fresh(c, s)) ?? view).credits ?? 0, 4_000);
+    await jockeyWindow(c, s, ((await fresh(c, s)) ?? view).credits ?? 0);
     // Morning work, after the night's rest: one session for every horse that isn't tired.
     const mv = (await fresh(c, s)) ?? view;
     await train(c, s, mv.horses, 1_500, mv.credits);
@@ -889,6 +960,7 @@ async function breederVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     await upgrade(c, s, ["stalls", "stableHand"], 4_000);
     // Tradeable stock to sell on: paid Paddock foals aren't Club-bred (free-pack and starter horses are).
     if (((await fresh(c, s))?.credits ?? 0) > 5_000) await paidPack(c, s);
+    await jockeyWindow(c, s, (await fresh(c, s))?.credits ?? 0);
   }
   await quickPicks(c, s, 2);
   if (c.last) {

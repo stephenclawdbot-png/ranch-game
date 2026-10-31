@@ -55,6 +55,7 @@ export * from "./services/rateLimit";
 export * from "./services/formBook";
 export * from "./services/horseLog";
 export * from "./services/jockeys";
+export * from "./services/jockeyContracts";
 export * from "./services/moments";
 export * from "./services/news";
 export * from "./services/rivals";

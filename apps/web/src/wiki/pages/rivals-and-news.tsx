@@ -14,6 +14,7 @@ const KIND_LABEL: Record<gc.NewsKind, string> = {
   jockey_claim_out: "An apprentice riding out the claim",
   jockey_retirement_announced: "A jockey announcing retirement",
   jockey_retired: "A jockey retiring",
+  jockey_signed: "A jockey signing for a new stable in the weekly transfer window",
   sale: `A sale on the market of ${formatCredits(NOTABLE_SALE_CREDITS)} credits or more (the price is public)`,
   claim: "A horse claimed out of a claiming race",
   hall_of_fame: "A Hall of Fame entry",

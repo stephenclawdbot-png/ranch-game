@@ -123,7 +123,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Harness: grinder | Qualifier / Weekend Feature: vet check, shoes when offered, physio if fatigue > 300, above 8,000 credits the best Club freelancer whose fee fits a quarter of the surplus, else their own jockey; ordinary race: own jockey, physio for a tired horse half the time; keeps 1,500 credits back; signs a freelancer on 6% of days (keeps 4,000 back) | tools/season-harness/src/agents.ts (`grinderRaceDay`) | Simulated demand for the sink. | `credits.destroyed.race_extras`, `.jockey_fee` |
 | Harness: casual | 12% of visits enter one race from the sheet with a vet check (+ physio when tired) | tools/season-harness/src/agents.ts (`CASUAL_SHEET_PERMILLE`, `casualRaceDay`) | | As above |
 
-### 2b. Jockeys (Phase 1: roster and riding; docs/design/jockeys.md)
+### 2b. Jockeys (Phase 1: roster and riding; Phase 2: contracts and the weekly window; docs/design/jockeys.md)
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
@@ -145,6 +145,19 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `JOCKEY_SIGNING_FEE` | A 4,000; B 2,000; C 1,000; D 500; E 250 | packages/game-core/src/jockeys.ts | One-off fee to sign an unsigned freelancer, kind `jockey_signing` (burn). Refused between linked accounts within 14 days of a release (`JOCKEY_LINKED_SIGN_DAYS`). | Credit sink |
 | `JOCKEY_STARTING_POOL_MIN` | 12 | packages/db/src/services/jockeys.ts | The backfill's starting Club pool: max(12, target − pool), spread over every career stage. | Freelancer supply at launch |
 | `UNNAMED_RIDER_SKILLS` | Club rider 400; legacy journeyman 500, top 850 | packages/db/src/services/jockeys.ts | Skills of a rider with no named jockey (no free freelancer; old-tier entries). | Club runner strength |
+| `JOCKEY_CONTRACT_LENGTHS` / `_WEEKS` | 4 weeks, 8 weeks, or to the end of the season (the last window before the season ends, at least 2 weeks, `JOCKEY_SEASON_CONTRACT_MIN_WEEKS`) | packages/game-core/src/jockeyContracts.ts | Contract lengths a stable can offer (Phase 2). | Turnover, window size |
+| `JOCKEY_WAGE` | A 600, B 400, C 250, D 150, E 100 credits a week | packages/game-core/src/jockeyContracts.ts | Standard wage by grade; charged Monday by the weekly job, kind `jockey_wage` (burn). A stable that can't pay isn't charged (debt waived) and the jockey leaves at the next window. Phase 1 signings migrated to 4 weeks at this wage, 2 rides promised. | Credit sink (weekly), cost of a roster |
+| `JOCKEY_WAGE_OFFER_PCT` | 50%..300% of the standard wage | packages/game-core/src/jockeyContracts.ts | Wage range an offer may name. | Bidding range |
+| `JOCKEY_PROMISED_RIDES_MAX` / `JOCKEY_DEFAULT_PROMISED_RIDES` | 10 / 2 a week | packages/game-core/src/jockeyContracts.ts | Rides an offer may promise; standard terms (direct signings, starting apprentices, migrated signings). | Morale pressure |
+| `JOCKEY_BUYOUT_MULT` | 1×..10× the signing fee, default 2× | packages/game-core/src/jockeyContracts.ts | Buyout price bounds (stored now, used by Phase 3 buyouts). | Phase 3 |
+| `JOCKEY_APPRENTICE_FREE_WEEKS` | 4 | packages/game-core/src/jockeyContracts.ts | An apprentice's first contract pays no wage for its first 4 weekly charges. | New-stable affordability |
+| `JOCKEY_OPEN_OFFERS_PER_STABLE` | 3 | packages/game-core/src/jockeyContracts.ts | Open offers per stable; each escrows the signing fee (`jockey_offer_escrow` → escrow; `jockey_signing` burn when it wins, `jockey_offer_refund` when it loses or is withdrawn). The current stable re-signs without a fee. | Window competition, escrow float |
+| `JOCKEY_WINDOW_OFFSET_MS` | Sunday 20:00 UTC (6 d 20 h after the Monday week start) | packages/game-core/src/jockeyContracts.ts | When the weekly transfer window closes (`runMaintenance`, once per week via `jockey_weeks.window_ran_at`). | Timing |
+| `JOCKEY_UTILITY_WEIGHTS` | money: wage 50, horses 10, prestige 5, rides 15, loyalty 10, length 10; ambitious: 15/30/25/10/10/10; loyal: 20/10/5/15/40/10 (loyalty ×2 vs base 20); workhorse: 20/10/5/45/10/10 (%) | packages/game-core/src/jockeyContracts.ts | Jockeys' utility over offers (each part scored 0..1000: wage 500 at the standard wage, 1000 at 2×+; horses = mean OR of the top 5 racing horses, 30→0, 100→1000; prestige = tier 0..400 + Feature/Final wins ×60 (≤300) + winners in 14 days ×30 (≤300); rides 6/wk = 1000; loyalty (current stable only) 300 + 40/week + 100/big win (purse ≥ 3,000); length 1000 − 83/week off the preferred). Stables prefer the higher wage offered, then the better jockey. Exact ties: seeded draw. | Who signs where |
+| `JOCKEY_PREFERRED_WEEKS` | ambitious 4, others 8 | packages/game-core/src/jockeyContracts.ts | Contract length preference. | Length chosen |
+| `JOCKEY_BROKEN_PROMISE_WEEKS` | 2 | packages/game-core/src/jockeyContracts.ts | Consecutive weeks with fewer rides than promised before the jockey may walk out at the next window (no buyout; won't re-sign that week). | Morale walkouts |
+| `JOCKEY_CONTRACT_NOTE_WEEKS` | 2 and 1 weeks before the end | packages/game-core/src/jockeyContracts.ts | Inbox notes ("Tom Ashby's contract ends Sunday. Offer Tom a new one?"). | Retention |
+| `JOCKEY_DEVELOPED_RIDES` / `JOCKEY_DEVELOPMENT_BONUS` | 25 rides as an apprentice / 500 credits | packages/game-core/src/jockeyContracts.ts | "Developed at" a stable; the developer earns the bonus (`jockey_development_bonus`, mint) when the jockey wins a Feature or Final for another stable. | Faucet (small), developing apprentices |
 
 ## 3. Horse lifecycle
 
@@ -544,7 +557,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
 | Race-day extras | shoes / physio / vet check, 2% of purse each (40..1,000) | packages/game-core/src/raceDay.ts:75, packages/db/src/services/races.ts:373 | Kind `race_extras` (burn), refunded as `race_extras_refund` on a scratch before close or an abandoned race (§2a). | Credit sink |
-| Jockey fees | freelance booking by grade, A 5% (100..3,000) to E 1% (20..600) of purse; signing A 4,000 to E 250 | packages/game-core/src/jockeys.ts, packages/db/src/services/jockeys.ts | Kinds `jockey_fee` (burn, refunded as `jockey_fee_refund`) and `jockey_signing` (burn) (§2b). | Credit sink |
+| Jockey fees | freelance booking by grade, A 5% (100..3,000) to E 1% (20..600) of purse; signing A 4,000 to E 250; weekly wages A 600 to E 100 (Phase 2) | packages/game-core/src/jockeys.ts, packages/db/src/services/jockeys.ts | Kinds `jockey_fee` (burn, refunded as `jockey_fee_refund`) and `jockey_signing` (burn) (§2b). | Credit sink |
 | `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
 | `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
 | `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a race can be sponsored (beyond the day-ahead card: applied on publication). Only meeting races are for sale; calendar races (Qualifiers, Weekend Feature, Plate, Finals) never are. A sponsored race runs even with no player runner. Sponsorships bought for slots the meetings left empty are refunded when their time comes round. | Sink volume (races on sale ≈ 160 a week, was ≈ 670) |
@@ -577,6 +590,10 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
 | `race_extras` / `jockey_fee` | player → burn | packages/db/src/services/races.ts:373, :376 |
 | `race_extras_refund` / `jockey_fee_refund` | burn → player | packages/db/src/services/races.ts:295 (scratch :421, abandoned race :827) |
+| `jockey_wage` | player → burn (weekly) | packages/db/src/services/jockeyContracts.ts (`runContractWeekTx`) |
+| `jockey_offer_escrow` / `jockey_offer_refund` | player → escrow / escrow → player | packages/db/src/services/jockeyContracts.ts (`makeJockeyOffer`, `refundTx`) |
+| `jockey_signing` (window) | escrow → burn | packages/db/src/services/jockeyContracts.ts (`runTransferWindowTx`) |
+| `jockey_development_bonus` | mint → developer | packages/db/src/services/jockeyContracts.ts (`developmentTx`) |
 | `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
 | `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
 | `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |

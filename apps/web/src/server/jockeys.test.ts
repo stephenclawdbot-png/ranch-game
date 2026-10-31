@@ -4,9 +4,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { createAccount, createDb, createRace, ensureJockeyBackfill, signJockey, stableOf, SLOT_KEY_PREFIX, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, createRace, ensureJockeyBackfill, makeJockeyOffer, releaseJockey, signJockey, stableOf, SLOT_KEY_PREFIX, type DbHandle } from "@thoroughbred/db";
 import { entryOptions } from "./game";
-import { jockeyPage, jockeysPage, myJockeys } from "./jockeys";
+import { jockeyPage, jockeysPage, myJockeys, transferWindowPage } from "./jockeys";
 import type { Session } from "./session";
 
 let h: DbHandle;
@@ -90,5 +90,28 @@ describe("jockey pages", () => {
     expect(r.defaultId).toBe(r.own[0]!.id);
     expect(r.freelancers.length).toBeGreaterThan(0);
     for (const f of r.freelancers) expect(f.fee).toBe(gc.freelanceFee(f.grade, 2_000));
+  });
+});
+
+describe("contracts and the transfer window (Phase 2)", () => {
+  it("your jockeys show contracts; a released jockey is a free agent with an offer form; the window page lists it and your offer", async () => {
+    const a = await player("Window Seller");
+    const b = await player("Window Buyer");
+    const mine = await myJockeys(h.db, a, T0);
+    expect(mine[0]!.contract).toMatchObject({ length: "4w", promisedRides: gc.JOCKEY_DEFAULT_PROMISED_RIDES, morale: "happy" });
+    expect(mine[0]!.contract!.freeWeeksLeft).toBeGreaterThan(0);
+    await releaseJockey(h.db, { accountId: a.accountId, jockeyId: mine[0]!.id, now: T0 });
+    const page = (await jockeyPage(h.db, b, mine[0]!.id, T0))!;
+    expect(page.market.freeAgent).toBe(true);
+    expect(page.actions.canSign).toBe(false);
+    expect(page.market.wants.length).toBeGreaterThan(0);
+    expect(page.market.bounds.fee).toBe(gc.signingFee(page.jockey.grade));
+    await makeJockeyOffer(h.db, { accountId: b.accountId, jockeyId: mine[0]!.id, now: T0, terms: page.market.bounds.standard });
+    const w = await transferWindowPage(h.db, b, T0);
+    expect(w.freeAgents.find((f) => f.jockey.id === mine[0]!.id)).toMatchObject({ offers: 1, from: null });
+    expect(w.myOffers).toHaveLength(1);
+    expect(w.openOffers).toBe(1);
+    expect(new Date(w.deadlineMs).getUTCDay()).toBe(0);
+    expect(JSON.stringify(w)).not.toMatch(/"seed"/);
   });
 });

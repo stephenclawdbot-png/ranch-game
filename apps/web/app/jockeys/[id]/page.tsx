@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocalTime } from "@/components/competition/LocalTime";
 import { JockeyActions } from "@/components/jockeys/JockeyActions";
+import { JockeyOffer } from "@/components/jockeys/JockeyOffer";
+import { ContractRows } from "@/components/jockeys/JockeyBits";
 import { SkillBar, STAGE_LABEL } from "@/components/jockeys/JockeyBits";
 import { JockeyPortrait } from "@/components/jockeys/JockeyPortrait";
 import { GradeBadge } from "@/components/StatBars";
@@ -48,6 +50,16 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
               <span className="t-meta" title={j.personality.blurb}>
                 {j.personality.label}: {j.personality.blurb}
               </span>
+              {!j.retired && view.market.wants.length > 0 && (
+                <span className="t-meta" data-testid="jockey-wants">
+                  <b>Wants:</b> {view.market.wants.join(" · ")}
+                </span>
+              )}
+              {view.market.developedAt && (
+                <span className="t-meta" data-testid="jockey-developed">
+                  Developed at <Link href={`/stables/${view.market.developedAt.stableId}`} className="underline">{view.market.developedAt.name}</Link>
+                </span>
+              )}
               {j.retired ? (
                 <span className="tag">Retired</span>
               ) : j.retiring ? (
@@ -57,9 +69,24 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
               ) : null}
             </span>
           </div>
+          {view.market.freeAgent && (
+            <p className="t-meta mt-3" data-testid="jockey-free-agent">
+              <span className="tag tag-ready">Free agent</span> The <Link href="/jockeys/window" className="underline">transfer window</Link> closes <LocalTime ms={view.market.deadlineMs} withDate />.
+            </p>
+          )}
           <div className="mt-3">
             <JockeyActions id={j.id} name={j.name} {...view.actions} />
           </div>
+          {view.market.freeAgent && view.signedIn && (
+            <div className="mt-3">{view.market.offerBlock && !view.market.myOffer ? <p className="t-meta">{view.market.offerBlock}</p> : <JockeyOffer id={j.id} name={j.name} market={view.market} />}</div>
+          )}
+          {view.market.contract && (
+            <Section title="Contract">
+              <ul className="surface rows" data-testid="jockey-contract">
+                <ContractRows c={view.market.contract} mine={j.mine} />
+              </ul>
+            </Section>
+          )}
           <Section title="Skills">
             <ul className="surface rows">
               {j.skills.map((s) => (
