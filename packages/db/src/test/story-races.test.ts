@@ -1,3 +1,4 @@
+import { purseShares } from "@thoroughbred/shared";
 /**
  * Story races (§4e, kind "quick") and the career clock: a Story race never uses a career
  * start — no starts, no record, no max-starts retirement — while prizes, fatigue, injury
@@ -51,10 +52,11 @@ describe("Story races and the career clock", () => {
     const a = await makeHorse(h.db, p.stableId, { starts: 7, wins: 2, places: 1, shows: 3, earnings: 900 });
     const race = await storyRace(0, { purse: 10_000 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
+    const won = purseShares(10_000, (await getRaceForSimulation(h.db, race.id, at(11 * MIN))).field.runners.length)[0]!;
     const r = await runRace(race.id, at(11 * MIN), [a.id], { [a.id]: { ratingAfter: 20, condition: { fatigue: 500 } } });
     expect(r.retired).toEqual([]);
     // Credits, result and condition are exactly as for any race.
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + won + gc.DAILY_GOAL_CREDITS); // + the day's race goal
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ fatigue: 500, rating: 20, lockKind: null, careerStatus: "racing" });
     // The career clock and the record did not move.
@@ -88,8 +90,9 @@ describe("Story races and the career clock", () => {
     const a = await makeHorse(h.db, p.stableId, { starts: 7, wins: 2, places: 1, shows: 3, earnings: 900 });
     const race = await storyRace(0, { kind: "scheduled", purse: 10_000, targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
+    const won = purseShares(10_000, (await getRaceForSimulation(h.db, race.id, at(11 * MIN))).field.runners.length)[0]!;
     await runRace(race.id, at(11 * MIN), [a.id]);
-    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 8, wins: 3, places: 1, shows: 3, earnings: 900 + 5_500 });
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
+    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 8, wins: 3, places: 1, shows: 3, earnings: 900 + won });
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + won + gc.DAILY_GOAL_CREDITS); // + the day's race goal
   });
 });
