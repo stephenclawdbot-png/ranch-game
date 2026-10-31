@@ -174,7 +174,7 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
           </section>
         )}
 
-        <Shelf title="Plaques" note={`${earned} of ${view.achievements.length} achievements. The dimmed ones say what earns them.`}>
+        <Shelf title="Plaques" note={`${earned} of ${view.achievements.length} achievements. Tap a greyed one to see what earns it.`}>
           {view.achievements.map((a) => (
             <li key={a.id}>
               <InwardCard>
