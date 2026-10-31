@@ -267,11 +267,29 @@ export function rigLook(genome: Genome): RigLook {
   return { variants: resolveVariants(genome), morph: resolveMorph(genome), seed: genome.markingSeed >>> 0, sabino: resolveMarkings(genome).sabino };
 }
 
-/** Shared `HorseAppearance` from genes + career progress + stable silks. */
-export function appearanceOf(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }, silks: Silks): HorseAppearance {
+/** The breed whose head the portrait draws: the largest share (ties: the first in BREEDS). */
+export function headBreed(genome: Pick<Genome, "breed">): string {
+  let best: string = BREEDS[0];
+  let share = -1;
+  for (const b of BREEDS) {
+    const v = genome.breed?.[b] ?? 0;
+    if (v > share) {
+      best = b;
+      share = v;
+    }
+  }
+  return best;
+}
+
+/**
+ * Shared `HorseAppearance` from genes + career progress + stable silks. `young` (foal or
+ * yearling, from the care stage) gives the portrait a young head while it lasts.
+ */
+export function appearanceOf(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean; young?: "foal" | "yearling" | null }, silks: Silks): HorseAppearance {
   const coat = resolveCoat(genome, progress);
   const m = resolveMarkings(genome);
-  const out: HorseAppearance = { coat: coat.coat, face: m.face, legs: m.legs, silks, colour: horseColour(genome, progress) };
+  const out: HorseAppearance = { coat: coat.coat, face: m.face, legs: m.legs, silks, colour: horseColour(genome, progress), head: headBreed(genome) };
+  if (progress.young && !progress.racingAge) out.age = progress.young;
   // maneColor stays unset: `colour` carries the exact layered palette now (renderers that
   // predate coat v2, and legacy replays, keep using coat + maneColor as before).
   // Dun primitive markings (dorsal stripe, leg barring) ride with the D allele; a coat that

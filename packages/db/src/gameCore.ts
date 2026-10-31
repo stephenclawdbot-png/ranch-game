@@ -167,7 +167,7 @@ export function specFromGenome(input: {
     name: input.name,
     sex: input.sex === "filly" ? "female" : "male",
     genome: input.genome,
-    appearance: gc.appearanceOf(input.genome, { racingAge: input.careSessions >= gc.CARE_TO_RACING, starts: 0, retired: false }, silks),
+    appearance: gc.appearanceOf(input.genome, { racingAge: input.careSessions >= gc.CARE_TO_RACING, starts: 0, retired: false, young: gc.youngHead(input.careSessions) }, silks),
     stats: gc.currentStats(state),
     maturityType: gc.maturityType(input.genome),
     rating: gc.INITIAL_OR,

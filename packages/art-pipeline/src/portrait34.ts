@@ -23,7 +23,7 @@ import { MARKING_WHITE, resolveHorseColors } from "./palettes";
 export const PORTRAIT_ART_SIZE = 128;
 
 /** Bump when the recolour's output pixels change (it is part of every cache key). */
-export const PORTRAIT_RECOLOUR_VERSION = 1;
+export const PORTRAIT_RECOLOUR_VERSION = 2;
 
 /** Role ids x28 in roles.png R channel (must match scripts/portrait-roles.py). */
 export const PORTRAIT_ROLES = {
@@ -84,7 +84,8 @@ export function portraitRamp(level: number, shade: string, body: string, highlig
   const s = hexToRgb(shade);
   const b = hexToRgb(body);
   const h = hexToRgb(highlight);
-  const dk = s.map((v) => v * 0.55) as RGB;
+  // round 2: deeper shadows, so coats (and two bays side by side) differ at a glance
+  const dk = s.map((v) => v * 0.42) as RGB;
   let from: RGB, to: RGB, t: number;
   if (lv < 0.25) {
     from = dk;
@@ -98,6 +99,8 @@ export function portraitRamp(level: number, shade: string, body: string, highlig
     from = b;
     to = h;
     t = (lv - 0.6) / 0.4;
+    // and a brighter sheen
+    to = h.map((v) => Math.min(255, v * 1.08 + 6)) as RGB;
   }
   return mixRgb(from, to, t).map((v) => Math.round(Math.min(255, Math.max(0, v)))) as RGB;
 }
@@ -147,6 +150,9 @@ export function portraitCacheKey(appearance: HorseAppearance, scale: string | nu
   return stableJson({
     v: PORTRAIT_RECOLOUR_VERSION,
     coat: appearance.coat,
+    // the head's shape: breed and age (portraitShape.ts)
+    head: appearance.head ?? null,
+    age: appearance.age ?? null,
     face: appearance.face,
     maneColor: appearance.maneColor,
     colour: appearance.colour,
@@ -383,6 +389,11 @@ export interface PortraitSource {
   marks: ArrayLike<number> | null;
   /** fitPaintedRamp of the still this strip was painted from. */
   ramp: PaintedRamp;
+  /**
+   * The unreshaped still (128 x 128 RGBA) when `pixels` went through a head warp
+   * (portraitShape.ts): the loop-frame check compares against it. Absent = frame 0 of `pixels`.
+   */
+  still?: ArrayLike<number> | null;
 }
 
 type Lut = Uint8ClampedArray; // 256 x RGB
@@ -457,6 +468,10 @@ export function paintGeneticPortrait(look: PortraitLook, src: PortraitSource): U
     const m = src.marks!;
     const at = (xx: number, yy: number) => (xx < 0 || yy < 0 || xx >= S || yy >= S ? 0 : m[((markBand * S + yy) * S + xx) * 4 + 3]! / 255);
     let a = at(x, y);
+    // round 2: the small markings (star, snip, stripe) a pixel bolder, so they read at a glance
+    if (a < 1 && (look.face === "star" || look.face === "snip" || look.face === "stripe")) {
+      if (at(x - 1, y) > 0.5 || at(x + 1, y) > 0.5 || at(x, y - 1) > 0.5 || at(x, y + 1) > 0.5) a = 1;
+    }
     if (look.sabino > 0 && a < 1) {
       const reach = look.sabino === 2 ? 2 : 1;
       for (let oy = -reach; oy <= reach && a < 1; oy++)
@@ -644,8 +659,9 @@ export function paintGeneticPortrait(look: PortraitLook, src: PortraitSource): U
         let kd = kind[p]!;
         if (kd !== PAINT && f > 0 && nearest[p]! >= 0) {
           // frame 0 is the still: compare with what the source pixel shows there
-          const k = (((p / S) | 0) * W + (p % S)) * 4;
-          if (Math.abs(pr - px[k]!) + Math.abs(pg - px[k + 1]!) + Math.abs(pb - px[k + 2]!) > LOOP_MISMATCH) {
+          const ref = src.still ?? px;
+          const k = (((p / S) | 0) * (src.still ? S : W) + (p % S)) * 4;
+          if (Math.abs(pr - ref[k]!) + Math.abs(pg - ref[k + 1]!) + Math.abs(pb - ref[k + 2]!) > LOOP_MISMATCH) {
             p = nearest[p]!;
             kd = PAINT;
           }

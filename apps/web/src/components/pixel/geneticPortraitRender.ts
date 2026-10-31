@@ -9,8 +9,12 @@ import {
   PORTRAIT_ART_SIZE,
   downsampleAlpha2x,
   fitPaintedRamp,
+  headShapeOf,
+  headWarp,
+  isPaintedShape,
   paintGeneticPortrait,
   portraitLookOf,
+  reshapePortrait,
   type PaintedRamp,
 } from "@thoroughbred/art-pipeline";
 
@@ -113,7 +117,22 @@ export async function renderGeneticPortrait(appearance: HorseAppearance, thumb: 
   ]);
   const frames = anim ? anim.frames : 1;
   if (strip.w !== S * frames || strip.h !== S || (warp && (warp.w !== strip.w || warp.h !== S))) throw new Error("portrait strip size mismatch");
-  const painted = paintGeneticPortrait(look, { pixels: strip.data, frames, kept: anim?.kept, warp: warp?.data ?? null, roles: roles.data, marks: marks?.data ?? null, ramp });
+  // the head's shape (breed, foal / yearling): the painting and its warp go through the head warp
+  const shape = headShapeOf(appearance);
+  let pixelsIn: ArrayLike<number> = strip.data;
+  let warpIn: ArrayLike<number> | null = warp?.data ?? null;
+  let still: Uint8ClampedArray | null = null;
+  if (!isPaintedShape(shape)) {
+    const map = headWarp(shape, roles.data);
+    if (frames > 1) {
+      still = new Uint8ClampedArray(S * S * 4);
+      for (let y = 0; y < S; y++) still.set(strip.data.subarray(y * strip.w * 4, (y * strip.w + S) * 4), y * S * 4);
+    }
+    const r = reshapePortrait(strip.data, frames, warpIn, map);
+    pixelsIn = r.pixels;
+    warpIn = r.warp;
+  }
+  const painted = paintGeneticPortrait(look, { pixels: pixelsIn, frames, kept: anim?.kept, warp: warpIn, roles: roles.data, marks: marks?.data ?? null, ramp, still });
   const out = thumb ? downsampleAlpha2x(painted, strip.w, S) : painted;
   const fw = thumb ? S / 2 : S;
   const w = fw * frames;
