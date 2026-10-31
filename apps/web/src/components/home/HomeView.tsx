@@ -18,6 +18,7 @@ import { Diorama } from "../diorama/Diorama";
 import { DioramaSlot } from "../diorama/DioramaSlot";
 import { Wordmark } from "../SiteNav";
 import { StableNews } from "../moments/StableNews";
+import { HomeSocial } from "../social/HomeSocial";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
 
@@ -227,6 +228,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       <YourRaces state={state} now={now} skip={heroRun} />
 
       <StableNews items={state.news ?? []} />
+
+      <HomeSocial />
 
       <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
         <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">

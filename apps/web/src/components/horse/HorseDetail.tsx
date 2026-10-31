@@ -59,7 +59,7 @@ function AptRow<K extends string>({ label, cells, name }: { label: string; cells
   );
 }
 
-export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: ReactNode }) {
+export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; tabs?: ReactNode; planner?: ReactNode }) {
   const entry = useEntry();
   const [numbers, setNumbers] = useState(false);
   const isMine = view.mine;
@@ -161,6 +161,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
         }
       />
       {tabs}
+      {planner}
 
       {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
 

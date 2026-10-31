@@ -91,6 +91,7 @@ import {
   slotKeyOf,
   stablePhotoHashes,
   formLineOf,
+  rivalTags,
 } from "@thoroughbred/db";
 import { getJockey as dbGetJockey, handicapWeightsFor } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
@@ -491,6 +492,15 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
   for (const e of list) {
     const sid = e.isPlayer ? stableOfRunner.get(e.horse.id) : null;
     e.stablePhotoUrl = sid ? gc.stablePhotoUrl(sid, photos.get(sid) ?? null) : null;
+    e.stableId = sid ?? null;
+  }
+  // The viewer's rivals and nemesis (counted from races already over, never this one's result).
+  if (viewerStableId && list.some((e) => e.isPlayer && !e.mine)) {
+    const tags = await rivalTags(db, viewerStableId, now);
+    for (const e of list) {
+      if (e.mine || !e.isPlayer) continue;
+      e.rival = e.horse.id === tags.nemesisHorseId ? "nemesis" : e.stableId && tags.rivalStableIds.includes(e.stableId) ? "rival" : null;
+    }
   }
   // Racecard form + rating: form is fixed before the off, so it's cached per race and field.
   const formKey = `${race.id}:${list.map((e) => e.horse.id).join(",")}`;
