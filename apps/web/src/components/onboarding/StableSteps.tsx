@@ -119,7 +119,17 @@ export function StableSteps({ steps, state, plain }: { steps: StableStepsView; s
             <NextAction stepKey={steps.next} state={state} />
           </div>
         )}
-        <ol className="rows -mx-4 border-t border-line" data-testid="steps-list">
+        <details className="group -mx-4 border-t border-line" data-testid="steps-all">
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 px-4 font-extrabold">
+            All {steps.total} steps
+            <span className="flex items-center gap-2 text-sm text-cream-dim">
+              {steps.done} done
+              <span aria-hidden className="group-open:rotate-90">
+                ▸
+              </span>
+            </span>
+          </summary>
+        <ol className="rows border-t border-line" data-testid="steps-list">
           {steps.steps.map((s, i) => {
             const copy = STEP_COPY[s.key] ?? { title: s.key, text: "" };
             const isNext = s.key === steps.next;
@@ -139,7 +149,7 @@ export function StableSteps({ steps, state, plain }: { steps: StableStepsView; s
                     <span className="sr-only">{s.done ? "Done: " : "To do: "}</span>
                     {copy.title}
                   </span>
-                  {(isNext || plain) && !s.done && <span className="t-meta block">{copy.text}</span>}
+                  {isNext && <span className="t-meta block">{copy.text}</span>}
                 </span>
                 <span className={`num shrink-0 ${s.done ? "reward" : "text-cream-dim"}`}>+{s.credits}</span>
               </>
@@ -157,6 +167,7 @@ export function StableSteps({ steps, state, plain }: { steps: StableStepsView; s
             );
           })}
         </ol>
+        </details>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <label className="inline-flex min-h-11 items-center gap-2 font-bold">
             <input type="checkbox" checked={plain} onChange={(e) => void sendOnboarding({ action: "plain", on: e.target.checked })} data-testid="plain-toggle" />

@@ -112,7 +112,7 @@ describe("progressive unlocks", () => {
     const steps: UnlockFacts[] = [fresh, { ...fresh, watchedLiveRace: true }, { ...fresh, watchedLiveRace: true, daysSinceFounding: 3 }, { ...fresh, watchedLiveRace: true, daysSinceFounding: 3, licenceLevel: 2 }];
     let before = new Set<string>();
     for (const f of steps) {
-      const now = new Set(open(f));
+      const now = new Set<string>(open(f));
       for (const k of before) expect(now.has(k)).toBe(true);
       before = now;
     }

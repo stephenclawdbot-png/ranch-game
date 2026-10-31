@@ -1300,6 +1300,8 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     await listStableRuns(db, session.stable.id, 30),
     await goalsForToday(db, session.accountId, now),
   ];
+  // The beginner welcome first: it may open a feature, whose "Unlocked" moment belongs in this view's news.
+  const onboarding = await onboardingView(db, session, now);
   const active: ActiveEntry[] = entries.map(({ entry, race }) => ({
     raceId: race.id,
     raceName: race.name,
@@ -1378,7 +1380,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     tester: !!(await testerForAccount(db, session.accountId)),
     serverNowMs: nowMs,
     news: await stableNews(db, session.accountId),
-    onboarding: await onboardingView(db, session, now),
+    onboarding,
   };
 }
 

@@ -385,6 +385,12 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
         </p>
       )}
       {loadError !== null && <ErrorNote error={loadError} />}
+      {blocker && (
+        <div role="alert" className="surface-2 border-l-4 border-negative p-3" data-testid="entry-blocker">
+          <p className="font-extrabold text-negative">{blocker.title}</p>
+          <p className="text-sm text-cream-dim">{blocker.detail}</p>
+        </div>
+      )}
       <CoachMark
         id="entry"
         title="Filling in the entry sheet"
@@ -403,12 +409,6 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
           </>,
         ]}
       />
-      {blocker && (
-        <div role="alert" className="surface-2 border-l-4 border-negative p-3" data-testid="entry-blocker">
-          <p className="font-extrabold text-negative">{blocker.title}</p>
-          <p className="text-sm text-cream-dim">{blocker.detail}</p>
-        </div>
-      )}
       {data && <HorsePicker horses={racing} selectedId={horseId} onSelect={(id) => {
         setHorseId(id);
         const h = racing.find((x) => x.id === id);
