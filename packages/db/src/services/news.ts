@@ -298,3 +298,13 @@ export async function listNews(ex: Executor, input: { now: Date; limit?: number;
     .limit(Math.max(1, Math.min(100, input.limit ?? 30)));
   return rows.map(view);
 }
+
+/** When a settled race's result became (or becomes) public; null when it isn't settled. */
+export async function raceResultPublicAt(ex: Executor, raceId: string): Promise<Date | null> {
+  const [r] = await ex
+    .select({ postTime: races.postTime, settledAt: races.settledAt, status: races.status, result: sql<unknown>`(select result from race_results where race_id = ${races.id})` })
+    .from(races)
+    .where(eq(races.id, raceId));
+  if (!r || r.status !== "settled") return null;
+  return resultPublicAt(r, r.result, r.settledAt);
+}
