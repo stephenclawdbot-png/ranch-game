@@ -45,6 +45,7 @@ import { marketWalletOf, USDG_PRACTICE_MARKET } from "./practiceIdentity";
 import { audit, rowsOf, runTx } from "./tx";
 import { releaseStudBooking, usdgPolicy, type UsdgFulfilResult } from "./usdgMarket";
 import { fulfilUsdgPayment } from "./usdgStud";
+import { notify } from "./notifications";
 
 /** Placeholder "market" (defined in practiceIdentity.ts) and "token" written on practice orders (never real contracts; lowercase like stored orders). */
 export { USDG_PRACTICE_MARKET };
@@ -262,18 +263,15 @@ export async function payUsdgOrderPractice(db: Db, input: { orderId: string; acc
         .where(and(eq(inboxItems.accountId, order.sellerAccountId), eq(inboxItems.dedupeKey, `usdg-stud-paid:${order.orderId}`)));
     }
     if (order.kind === "sale" && order.sellerAccountId) {
-      await tx
-        .insert(inboxItems)
-        .values({
-          accountId: order.sellerAccountId,
-          kind: "usdg_sale",
-          dedupeKey: `usdg-practice-sale:${order.orderId}`,
-          title: `${nameOf(order.horseId) ?? "Your horse"} sold for ${gc.formatPracticeUsdg(order.price)}: ${gc.formatPracticeUsdg(toSeller)} added to your T-USDG balance (test money)`,
-          data: { orderId: order.orderId, price: order.price, fee: order.fee, practice: true },
-          horseId: order.horseId,
-          createdAt: input.now,
-        })
-        .onConflictDoNothing();
+      await notify(tx, {
+        accountId: order.sellerAccountId,
+        kind: "usdg_sale",
+        dedupeKey: `usdg-practice-sale:${order.orderId}`,
+        title: `${nameOf(order.horseId) ?? "Your horse"} sold for ${gc.formatPracticeUsdg(order.price)}: ${gc.formatPracticeUsdg(toSeller)} added to your T-USDG balance (test money)`,
+        data: { orderId: order.orderId, price: order.price, fee: order.fee, practice: true },
+        horseId: order.horseId,
+        now: input.now,
+      });
     }
     await audit(tx, { actor: order.accountId, action: "usdg.practice_paid", entityType: "usdg_order", entityId: order.id, data: { kind: order.kind, price: order.price, fee: order.fee, toSeller, toBurn } });
     return r;

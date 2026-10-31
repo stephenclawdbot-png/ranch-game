@@ -199,5 +199,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793474636680,
     "hash": "f4dbbf05011a14a65240debc0311f082d2493e92757716c0513b784f6a43ffe1",
     "sql": "ALTER TABLE \"jockeys\" ADD COLUMN \"look\" jsonb;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD COLUMN \"gender\" text;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD CONSTRAINT \"jockeys_gender\" CHECK (\"jockeys\".\"gender\" is null or \"jockeys\".\"gender\" in ('f', 'm'));"
+  },
+  {
+    "tag": "0033_notification_prefs",
+    "when": 1793476826642,
+    "hash": "786c2db5837640652d8380039513d800ceb9e2c9825c9a760b58f2b7b358ce3c",
+    "sql": "CREATE TABLE \"notification_prefs\" (\n\t\"account_id\" uuid PRIMARY KEY NOT NULL,\n\t\"disabled\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"updated_at\" timestamp with time zone DEFAULT now() NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE \"inbox_items\" ADD COLUMN \"seen_at\" timestamp with time zone;--> statement-breakpoint\nALTER TABLE \"notification_prefs\" ADD CONSTRAINT \"notification_prefs_account_id_accounts_id_fk\" FOREIGN KEY (\"account_id\") REFERENCES \"public\".\"accounts\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nCREATE INDEX \"horses_injured_until_idx\" ON \"horses\" USING btree (\"injured_until\") WHERE \"horses\".\"injured_until\" is not null;"
   }
 ];

@@ -20,13 +20,14 @@
  */
 import { and, asc, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
-import { inboxItems, raceSponsorships, races, type RaceRow, type RaceSponsorshipRow } from "../schema";
+import { raceSponsorships, races, type RaceRow, type RaceSponsorshipRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { lockStableOf } from "./accounts";
 import { SLOT_KEY_PREFIX, cardSlotAt, isCalendarSlot, isCardSlot, slotIndexAt, slotIndexOf, slotKeyOf, slotPostTime } from "./card";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import type { CreateRaceInput, RaceConditions, RaceKind } from "./races";
 import { audit, runTx } from "./tx";
+import { notify } from "./notifications";
 
 /**
  * Sponsorship knobs (docs/foundation/KNOBS.md §10b). The one place prices and limits are set.
@@ -329,19 +330,16 @@ async function refundTx(tx: Tx, s: RaceSponsorshipRow, now: Date, why: string): 
     ],
   });
   await tx.update(raceSponsorships).set({ refundedAt: now }).where(eq(raceSponsorships.id, s.id));
-  await tx
-    .insert(inboxItems)
-    .values({
-      accountId: s.accountId,
-      kind: "race_sponsor",
-      dedupeKey: `sponsor-refund:${s.id}`,
-      title: `Your race sponsorship was refunded: ${why}`,
-      data: { sponsorshipId: s.id, refunded: s.price, raceId: s.raceId },
-      // an abandoned race has no page to link to
-      raceId: null,
-      createdAt: now,
-    })
-    .onConflictDoNothing();
+  await notify(tx, {
+    accountId: s.accountId,
+    kind: "race_sponsor",
+    dedupeKey: `sponsor-refund:${s.id}`,
+    title: `Your race sponsorship was refunded: ${why}`,
+    data: { sponsorshipId: s.id, refunded: s.price, raceId: s.raceId },
+    // an abandoned race has no page to link to
+    raceId: null,
+    now,
+  });
   await audit(tx, { actor: null, action: "race.sponsor.refund", entityType: "race_sponsorship", entityId: s.id, data: { why, price: s.price } });
 }
 
@@ -389,20 +387,17 @@ export async function noteSponsorResult(tx: Tx, race: RaceRow, winner: { horseId
   if (!sponsorOf(race)) return;
   const s = await sponsorshipOfRace(tx, race.id);
   if (!s) return;
-  await tx
-    .insert(inboxItems)
-    .values({
-      accountId: s.accountId,
-      kind: "race_sponsor",
-      dedupeKey: `sponsor:${race.id}`,
-      title: winner ? `Your race: ${winner.name} won ${race.name}` : `Your race: ${race.name} has been run`,
-      data: { sponsorshipId: s.id, winnerHorseId: winner?.horseId ?? null, winnerName: winner?.name ?? null, winnerStable: winner?.stableName ?? null, fieldSize },
-      raceId: race.id,
-      // not the sponsor's horse: the home screen's "your horse has run" cards skip this note
-      horseId: null,
-      createdAt: now,
-    })
-    .onConflictDoNothing();
+  await notify(tx, {
+    accountId: s.accountId,
+    kind: "race_sponsor",
+    dedupeKey: `sponsor:${race.id}`,
+    title: winner ? `Your race: ${winner.name} won ${race.name}` : `Your race: ${race.name} has been run`,
+    data: { sponsorshipId: s.id, winnerHorseId: winner?.horseId ?? null, winnerName: winner?.name ?? null, winnerStable: winner?.stableName ?? null, fieldSize },
+    raceId: race.id,
+    // not the sponsor's horse: the home screen's "your horse has run" cards skip this note
+    horseId: null,
+    now,
+  });
 }
 
 /** cancelRace: an abandoned sponsored race gives its sponsor the price back. */

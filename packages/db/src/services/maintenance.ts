@@ -13,7 +13,8 @@
  *     week veteran decline and the apprentice intake. Jockeys are riders, not horses: their
  *     careers run on the calendar by design (docs/design/jockeys.md);
  *   - campaign targets: drops targets that can no longer happen, sends the entry reminders (planner.ts);
- *   - once a season is over, its champions in the news (news.ts).
+ *   - once a season is over, its champions in the news (news.ts);
+ *   - notifications: "back in the race" (before healing clears the injury) and the new training week (notificationEvents.ts).
  */
 import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
@@ -31,6 +32,7 @@ import { runTx } from "./tx";
 import { runJockeyMaintenance, type JockeyMaintenance } from "./jockeys";
 import { seasonNewsSweep } from "./news";
 import { sweepTargets, type SweepReport } from "./planner";
+import { noteRecoveriesTx, noteTrainingWeekTx } from "./notificationEvents";
 
 /**
  * Rate-limit counters older than this are pruned: two windows of the longest limit (the quick
@@ -49,10 +51,14 @@ export interface MaintenanceReport {
   jockeys: JockeyMaintenance;
   plans: SweepReport;
   seasonNews: number;
+  /** Stables told that a new training week has started (notificationEvents.ts). */
+  trainingReady: number;
 }
 
 export async function healInjuries(db: Db, now: Date): Promise<number> {
   return runTx(db, async (tx) => {
+    // "Back in the race" first (idempotent: the lazy sweep may have sent it already), then clear.
+    await noteRecoveriesTx(tx, now);
     const rows = await tx
       .update(horses)
       .set({ injury: null, injuredUntil: null })
@@ -82,5 +88,7 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   // Campaign targets (drops and reminders) and the season-end news.
   const plans = await sweepTargets(db, now);
   const seasonNews = await seasonNewsSweep(db, now);
-  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated, jockeys, plans, seasonNews };
+  // The new training week's note (idempotent; the lazy sweep usually sends it first).
+  const trainingReady = await noteTrainingWeekTx(db, now);
+  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated, jockeys, plans, seasonNews, trainingReady };
 }

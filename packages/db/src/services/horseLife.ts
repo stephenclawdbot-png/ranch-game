@@ -34,6 +34,7 @@ import { getBalance, spendCreditsTx } from "./ledger";
 import { logHorseEventTx } from "./horseLog";
 import { audit, runTx } from "./tx";
 import { sendMomentsTx } from "./moments";
+import { noteInjuryTx } from "./notificationEvents";
 
 // ---------------------------------------------------------------------------
 // Facilities
@@ -436,6 +437,20 @@ export async function runTrainingSession(
       })
       .where(eq(horses.id, horse.id))
       .returning();
+    if (res.injured && res.state.injury) {
+      // On record in the notifications too; already seen (the player is looking at it).
+      await noteInjuryTx(tx, [input.accountId], {
+        horse,
+        raceId: null,
+        source: `train:${gc.weekIndex(nowMs)}:${used}`,
+        name: gc.injuryName(res.state.injury),
+        severity: res.state.injury.severity,
+        careerEnding: res.state.injury.severity === "career_ending",
+        backAt: patch.injuredUntil,
+        now: input.now,
+        seen: true,
+      });
+    }
     await recordPlayDay(tx, input.accountId, input.now);
     return { horse: updated!, ran: true, workout, cost: res.cost, arrows: res.arrows, injured: res.injured, overworked: res.overworked, sessionsUsed: used + 1 };
   });

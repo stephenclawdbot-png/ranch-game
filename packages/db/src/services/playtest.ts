@@ -766,6 +766,7 @@ export const RESET_TABLES = [
   "feature_unlocks",
   "onboarding_states",
   "inbox_items",
+  "notification_prefs",
   "entry_movements",
   "race_sponsorships",
   // Tote bets and settled pools follow the races they were on.

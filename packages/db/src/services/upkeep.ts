@@ -17,6 +17,7 @@ import type { Db, Executor } from "../types";
 import { weekBounds } from "./leagues";
 import { getBalance, spendCreditsTx } from "./ledger";
 import { rowsOf, runTx } from "./tx";
+import { notify } from "./notifications";
 
 export interface UpkeepCharge {
   stableId: string;
@@ -89,17 +90,14 @@ export async function settleUpkeep(db: Db, now: Date, opts: { weeks?: number; st
         const due = paying.reduce((s, h) => s + gc.upkeepFor(h.careerStatus), 0);
         const charged = Math.min(due, Math.max(0, await getBalance(tx, stable.accountId)));
         if (charged > 0) await spendCreditsTx(tx, { accountId: stable.accountId, amount: charged, idempotencyKey: key, kind: "upkeep", memo: `Weekly upkeep, ${paying.length} horses` });
-        await tx
-          .insert(inboxItems)
-          .values({
-            accountId: stable.accountId,
-            kind: "upkeep",
-            dedupeKey: key,
-            title: due === 0 ? `No upkeep this week` : charged < due ? `Weekly upkeep: ${charged} of ${due} cr (the rest waived)` : `Weekly upkeep: ${due} cr for ${paying.length} ${paying.length === 1 ? "horse" : "horses"}`,
-            data: { weekStart, due, charged, horses: paying.map((h) => ({ id: h.id, name: h.name, cost: gc.upkeepFor(h.careerStatus) })) },
-            createdAt: now,
-          })
-          .onConflictDoNothing();
+        await notify(tx, {
+          accountId: stable.accountId,
+          kind: "upkeep",
+          dedupeKey: key,
+          title: due === 0 ? `No upkeep this week` : charged < due ? `Weekly upkeep: ${charged} of ${due} cr (the rest waived)` : `Weekly upkeep: ${due} cr for ${paying.length} ${paying.length === 1 ? "horse" : "horses"}`,
+          data: { weekStart, due, charged, horses: paying.map((h) => ({ id: h.id, name: h.name, cost: gc.upkeepFor(h.careerStatus) })) },
+          now,
+        });
         return { stableId, weekStart, horses: paying.length, due, charged } satisfies UpkeepCharge;
       });
       if (charge) out.push(charge);

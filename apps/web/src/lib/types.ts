@@ -326,6 +326,36 @@ export interface PlayerView {
   news?: MomentView[];
   /** The beginner welcome (server/guide.ts); absent if it couldn't be read. */
   onboarding?: OnboardingView | null;
+  /** Unread notifications for the top-bar bell (switched-off categories don't count; capped at 10 = "9+"). */
+  unreadNotifications?: number;
+}
+
+/** Notification categories a player can switch off (packages/db notifications.ts). */
+export type NotificationCategoryKey = "races" | "health" | "training" | "market" | "breeding" | "jockeys" | "betting" | "club";
+
+/** One notification in the bell or the full inbox. Titles are spoiler-safe (server-side). */
+export interface NotificationView {
+  id: string;
+  kind: string;
+  category: NotificationCategoryKey;
+  title: string;
+  href: string;
+  createdAtMs: number;
+  unread: boolean;
+  /** Its category is switched off (only the full inbox lists these). */
+  muted: boolean;
+}
+
+/** GET /api/notifications: the bell's list (or a page of the full inbox with `all=1`). */
+export interface NotificationsView {
+  unread: number;
+  items: NotificationView[];
+  /** Pass as `before` for the next page, or null at the end. */
+  nextBefore: number | null;
+}
+
+export interface NotificationPrefsView {
+  categories: { key: NotificationCategoryKey; label: string; detail: string; enabled: boolean }[];
 }
 
 /** Features a new stable meets a little later (game-core UnlockFeature). */

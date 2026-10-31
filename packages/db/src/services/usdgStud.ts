@@ -28,7 +28,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { DomainError, isDomainError, pgError } from "../errors";
 import { gc } from "../gameCore";
 import { RULES, seasonNumberAt } from "../rules";
-import { fraudEvents, horses, inboxItems, pregnancies, usdgOrders, type HorseRow, type UsdgOrderRow } from "../schema";
+import { fraudEvents, horses, pregnancies, usdgOrders, type HorseRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStable, stableOf } from "./accounts";
 import { BREED_BLOCK_CODES, coverTx, pedigreeIndex, studRestingError, studRestingUntilOf } from "./breeding";
@@ -38,6 +38,7 @@ import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { marketWalletOf, orderWalletOf } from "./practiceIdentity";
 import { audit, runTx } from "./tx";
 import { fulfilUsdgOrder, getUsdgOrder, isUsdgRegistered, releaseStudBooking, usdgOrderIsLive, usdgPolicy, type UsdgChainRef, type UsdgFulfilResult } from "./usdgMarket";
+import { notify } from "./notifications";
 
 const lower = (a: string) => a.trim().toLowerCase();
 
@@ -265,18 +266,15 @@ export async function fulfilUsdgStudOrder(db: Db, input: { orderId: string; txHa
     await audit(tx, { actor: order.accountId, action: "usdg.stud_covered", entityType: "usdg_order", entityId: order.id, data: { sireId: order.horseId, damId: order.mareId, price: order.price, fee: order.fee, txHash, breedingEventId: cover.breedingEventId } });
     if (order.sellerAccountId) {
       const names = await namesOf(tx, [order.horseId, order.mareId!]);
-      await tx
-        .insert(inboxItems)
-        .values({
-          accountId: order.sellerAccountId,
-          kind: "usdg_stud",
-          dedupeKey: `usdg-stud-paid:${order.orderId}`,
-          title: `${names.get(order.horseId) ?? "Your stallion"} covered ${names.get(order.mareId!) ?? "a mare"}: ${gc.formatUsdgToken(order.price - order.fee)} stud fee paid to your wallet`,
-          data: { orderId: order.orderId, price: order.price, fee: order.fee, txHash },
-          horseId: order.horseId,
-          createdAt: input.now,
-        })
-        .onConflictDoNothing();
+      await notify(tx, {
+        accountId: order.sellerAccountId,
+        kind: "usdg_stud",
+        dedupeKey: `usdg-stud-paid:${order.orderId}`,
+        title: `${names.get(order.horseId) ?? "Your stallion"} covered ${names.get(order.mareId!) ?? "a mare"}: ${gc.formatUsdgToken(order.price - order.fee)} stud fee paid to your wallet`,
+        data: { orderId: order.orderId, price: order.price, fee: order.fee, txHash },
+        horseId: order.horseId,
+        now: input.now,
+      });
     }
     return { order: row!, duplicate: cover.duplicate, status: "fulfilled" as const, pregnancyId: cover.pregnancyId };
   });
@@ -314,18 +312,15 @@ async function refundDue(tx: Tx, order: UsdgOrderRow, why: string, now: Date): P
     data: { orderId: order.orderId, sireId: order.horseId, damId: order.mareId, price: order.price, fee: order.fee, txHash: order.txHash, why: reason },
   });
   await audit(tx, { actor: order.accountId, action: "usdg.stud_refund_due", entityType: "usdg_order", entityId: order.id, data: { why: reason, price: order.price, txHash: order.txHash } });
-  await tx
-    .insert(inboxItems)
-    .values({
-      accountId: order.accountId,
-      kind: "usdg_stud",
-      dedupeKey: `usdg-stud-refund:${order.orderId}`,
-      title: `Your USDG covering couldn't go ahead (${reason}). The organiser will refund ${gc.formatUsdgToken(order.price)} to your wallet.`,
-      data: { orderId: order.orderId, price: order.price, txHash: order.txHash },
-      horseId: order.mareId,
-      createdAt: now,
-    })
-    .onConflictDoNothing();
+  await notify(tx, {
+    accountId: order.accountId,
+    kind: "usdg_stud",
+    dedupeKey: `usdg-stud-refund:${order.orderId}`,
+    title: `Your USDG covering couldn't go ahead (${reason}). The organiser will refund ${gc.formatUsdgToken(order.price)} to your wallet.`,
+    data: { orderId: order.orderId, price: order.price, txHash: order.txHash },
+    horseId: order.mareId,
+    now,
+  });
   console.error(`ALERT usdg stud order ${order.orderId} paid but not covered (${reason}): refund ${order.price} micro-USDG via support`);
   return { order: row ?? { ...order, flagged: true }, duplicate: false, status: "paid", pregnancyId: null };
 }

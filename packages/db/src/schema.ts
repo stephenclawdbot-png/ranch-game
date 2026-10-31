@@ -424,6 +424,10 @@ export const horses = pgTable(
     index("horses_sire_idx").on(t.sireId),
     index("horses_dam_idx").on(t.damId),
     index("horses_rating_idx").on(t.rating),
+    /** The "back in the race" sweep (services/notifications.ts) reads injuries that have healed. */
+    index("horses_injured_until_idx")
+      .on(t.injuredUntil)
+      .where(sql`${t.injuredUntil} is not null`),
     check("horses_breeding_count", sql`${t.breedingCount} between 0 and 4`),
     check("horses_not_own_parent", sql`${t.sireId} is distinct from ${t.id} and ${t.damId} is distinct from ${t.id}`),
     check("horses_distinct_parents", sql`${t.sireId} is null or ${t.damId} is null or ${t.sireId} <> ${t.damId}`),
@@ -979,10 +983,30 @@ export const inboxItems = pgTable(
     raceId: uuid("race_id").references(() => races.id),
     horseId: uuid("horse_id").references(() => horses.id),
     readAt: ts("read_at"),
+    /**
+     * Seen in the notification bell (opened, or "mark all read"). Separate from read_at, which
+     * keeps its own meanings (a race result watched, a horse-page highlight dismissed), so the
+     * bell can never skip a result's reveal or hide a highlight. services/notifications.ts.
+     */
+    seenAt: ts("seen_at"),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("inbox_items_dedupe_uq").on(t.accountId, t.dedupeKey), index("inbox_items_account_idx").on(t.accountId, t.createdAt)],
 );
+
+/**
+ * Per-account notification preferences (services/notifications.ts): the categories switched off.
+ * No row = every category on. A category switched off leaves the bell and its unread count; the
+ * full inbox still lists everything (marked muted), so nothing is ever lost.
+ */
+export const notificationPrefs = pgTable("notification_prefs", {
+  accountId: uuid("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+  /** Category keys switched off, e.g. ["market", "club"]. */
+  disabled: jsonb("disabled").$type<string[]>().notNull().default([]),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
 
 /** One Daily Cup run per player per UTC day. */
 export const dailyCupEntries = pgTable(

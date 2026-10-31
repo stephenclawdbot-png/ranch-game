@@ -15,17 +15,19 @@ import { LIVE_SLOT_KEY_LIKE } from "./card";
 import { formColumns, resultJoin } from "./formBook";
 import { MOMENT_KIND } from "./moments";
 import { MATCH_NOTE_KIND } from "./quickRaces";
+import { BELL_ONLY_KINDS } from "./notifications";
 
 // ---------------------------------------------------------------------------
 // Inbox
 // ---------------------------------------------------------------------------
 
 export async function listInbox(ex: Executor, accountId: string, limit = 20) {
-  // moments and match race notes have their own lists (listMoments, listMatchNotes) and must not crowd race results out of this one
+  // moments and match race notes have their own lists (listMoments, listMatchNotes), and the bell-only
+  // notifications live in the bell (notifications.ts): none of them may crowd race results out of this one
   return ex
     .select()
     .from(inboxItems)
-    .where(and(eq(inboxItems.accountId, accountId), notInArray(inboxItems.kind, [MOMENT_KIND, MATCH_NOTE_KIND])))
+    .where(and(eq(inboxItems.accountId, accountId), notInArray(inboxItems.kind, [MOMENT_KIND, MATCH_NOTE_KIND, ...BELL_ONLY_KINDS])))
     .orderBy(desc(inboxItems.createdAt))
     .limit(limit);
 }

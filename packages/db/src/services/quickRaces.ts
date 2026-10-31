@@ -17,11 +17,12 @@ import { LIVE_SLOT_KEY_LIKE } from "./card";
 import { publicRace, type PublicRace } from "./races";
 import type { Db, Executor, Tx } from "../types";
 import { rowsOf, runTx } from "./tx";
+import { notify } from "./notifications";
 
 export type QuickRaceMode = "match" | "ghost" | "daily";
 
 /** inbox_items.kind of the daily "your horse beat a challenger" line. */
-export const MATCH_NOTE_KIND = "match_note";
+export const MATCH_NOTE_KIND = "match_note" as const;
 /** Wins listed in one day's note (the title still counts them all). */
 const MATCH_NOTE_LINES_MAX = 20;
 
@@ -122,9 +123,10 @@ async function noteMatchWinTx(tx: Tx, input: { ownerStableId: string; now: Date;
   const title = matchNoteTitle(input.line, wins);
   const data = { lines, wins };
   if (existing) {
-    await tx.update(inboxItems).set({ title, data, readAt: null, createdAt: input.now }).where(eq(inboxItems.id, existing.id));
+    // back to unread (bell included): the batched note has news again
+    await tx.update(inboxItems).set({ title, data, readAt: null, seenAt: null, createdAt: input.now }).where(eq(inboxItems.id, existing.id));
   } else {
-    await tx.insert(inboxItems).values({ accountId: owner.accountId, kind: MATCH_NOTE_KIND, dedupeKey, title, data, horseId: input.line.winnerId, createdAt: input.now });
+    await notify(tx, { accountId: owner.accountId, kind: MATCH_NOTE_KIND, dedupeKey, title, data, horseId: input.line.winnerId, now: input.now });
   }
 }
 

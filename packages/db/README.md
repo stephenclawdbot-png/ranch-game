@@ -114,6 +114,14 @@ backfill, and drop the old shape in a later release.
   `getStable`, `updateStableProfile`, and Story rewards: `grantStoryReward` (game-core
   `storyReward`, first win / replay, chapter cap; serialised per account, one grant per race)
   and `storyRewardFor`.
+- **Notifications** (`notifications.ts`, `notificationEvents.ts`): every inbox item is written
+  through `notify()` (idempotent per account and dedupe key; the future push seam). Each kind
+  has a category (`INBOX_KINDS`, moments by `MOMENT_CATEGORY`); `notification_prefs` holds the
+  categories a player switched off. The bell reads `unreadNotificationCount`,
+  `listNotifications` and `markNotificationsSeen` (`seen_at`, never `read_at`). Spoiler-safe:
+  unwatched results get a neutral title, and items from a race (`data.raceId`) wait until it is
+  watched. Events: `injury`, `back_in_race`, `training_ready`, `race_suits` (one digest per
+  meeting, from `ensureRaceCard`), `listing_expired`; `sweepNotifications` runs the time-driven ones.
 - **Maintenance:** `runMaintenance` heals injuries, foals due mares and expires listings.
   Nothing else ever changes with elapsed time.
 

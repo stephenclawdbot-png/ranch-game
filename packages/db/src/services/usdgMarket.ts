@@ -54,6 +54,7 @@ import { holdsMarketAddress, isPracticeMarket, marketWalletOf, orderWalletOf } f
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { audit, runTx } from "./tx";
+import { noteListingExpiredTx } from "./notificationEvents";
 
 /** Where USDG orders are paid: the chain, the HorseMarket contract and the token (stored on each order). */
 export interface UsdgChainRef {
@@ -790,6 +791,7 @@ async function offerNextBidder(tx: Tx, listing: UsdgListingRow, chain: UsdgChain
   await unlockFor(tx, listing, now);
   await tx.update(usdgListings).set({ status: "unsold", offerOrderId: null, closedAt: listing.closedAt ?? now }).where(eq(usdgListings.id, listing.id));
   await audit(tx, { actor: null, action: "usdg.auction_unsold", entityType: "usdg_listing", entityId: listing.id });
+  await noteListingExpiredTx(tx, { accountId: listing.sellerAccountId, listingId: listing.id, horseId: listing.horseId, market: "usdg", auction: true, hadBids: candidates.length > 0, now });
   return null;
 }
 
@@ -848,6 +850,7 @@ export async function expireUsdgOrder(db: Db, input: { orderId: string; now: Dat
         } else if (listing.endsAt <= input.now) {
           await unlockFor(tx, listing, input.now);
           await tx.update(usdgListings).set({ status: "expired", offerOrderId: null, closedAt: input.now }).where(eq(usdgListings.id, listing.id));
+          await noteListingExpiredTx(tx, { accountId: listing.sellerAccountId, listingId: listing.id, horseId: listing.horseId, market: "usdg", now: input.now });
         } else {
           await tx.update(usdgListings).set({ offerOrderId: null }).where(eq(usdgListings.id, listing.id));
         }
@@ -897,6 +900,7 @@ export async function expireUsdgListings(db: Db, input: { now: Date }): Promise<
       if (await liveOfferOf(tx, l, input.now)) continue;
       await unlockFor(tx, l, input.now);
       await tx.update(usdgListings).set({ status: "expired", offerOrderId: null, closedAt: input.now }).where(eq(usdgListings.id, l.id));
+      await noteListingExpiredTx(tx, { accountId: l.sellerAccountId, listingId: l.id, horseId: l.horseId, market: "usdg", now: input.now });
       n++;
     }
     return n;
