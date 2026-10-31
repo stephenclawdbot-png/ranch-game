@@ -11,11 +11,12 @@ import type { DbHandle } from "../client";
 import { genomeOf, gc } from "../gameCore";
 import { horses, inboxItems } from "../schema";
 import { createRace, enterRace, getRaceForSimulation, settleRace, type RunnerOutcome } from "../services/races";
-import { markInboxRead } from "../services/player";
+import { listInbox, markInboxRead } from "../services/player";
 import { expireListings, listHorse } from "../services/market";
 import { healInjuries } from "../services/maintenance";
 import { ensureRaceCard, meetingRaceOf, slotIndexAt, slotPostTime } from "../services/card";
 import {
+  BELL_ONLY_KINDS,
   CATEGORY_KEYS,
   INBOX_KINDS,
   MOMENT_CATEGORY,
@@ -105,6 +106,13 @@ describe("notify", () => {
     expect(first).toBeTruthy();
     expect(again).toBeNull();
     expect(await notesOf(p.accountId, "upkeep")).toHaveLength(1);
+  });
+
+  it("bell-only kinds never crowd the Estate's race list (listInbox)", async () => {
+    const p = await newPlayer(h.db);
+    for (const kind of BELL_ONLY_KINDS) await notify(h.db, { accountId: p.accountId, kind, dedupeKey: `${kind}:crowd`, title: kind, now: T0 });
+    await notify(h.db, { accountId: p.accountId, kind: "upkeep", dedupeKey: "upkeep:crowd", title: "Upkeep", now: T0 });
+    expect((await listInbox(h.db, p.accountId)).map((i) => i.kind)).toEqual(["upkeep"]);
   });
 });
 

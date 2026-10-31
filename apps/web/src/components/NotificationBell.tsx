@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePlayerState } from "@/lib/player";
 import { CATEGORY_ICON, badgeText, bellLabel, groupByDay, timeOfDay } from "@/lib/notifications";
 import type { NotificationView, NotificationsView } from "@/lib/types";
@@ -25,6 +26,7 @@ export function NotificationBell() {
   const [data, setData] = useState<NotificationsView | null>(null);
   const [error, setError] = useState(false);
   const [announce, setAnnounce] = useState("");
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
   const prev = useRef(unread);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -154,7 +156,13 @@ export function NotificationBell() {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-haspopup="dialog"
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => {
+          if (open) return close();
+          const r = button.current?.getBoundingClientRect();
+          // the desktop dropdown hangs under the bell (the phone sheet ignores this)
+          if (r) setAnchor({ top: Math.round(r.bottom + 10), right: Math.max(8, Math.round(window.innerWidth - r.right - 8)) });
+          setOpen(true);
+        }}
         data-testid="nav-bell"
       >
         <PixelIcon name="bell" size={32} />
@@ -167,69 +175,81 @@ export function NotificationBell() {
       <span className="sr-only" aria-live="polite" role="status">
         {announce}
       </span>
-      {open && (
-        <>
-          <div className="bell-backdrop md:hidden" aria-hidden onClick={() => close(false)} />
-          <div ref={panel} id={panelId} role="dialog" aria-modal="true" aria-labelledby={headingId} className="surface bell-panel" data-testid="bell-panel">
-            <div className="flex items-center gap-2 px-4 pb-2 pt-3">
-              <h2 id={headingId} className="t-h2 flex-1">
-                Notifications
-              </h2>
-              <button type="button" className="btn btn-sm btn-outline" onClick={markAll} disabled={!data?.items.some((i) => i.unread)} data-testid="bell-mark-all">
-                Mark all read
-              </button>
-              <button type="button" className="btn btn-sm btn-outline !px-2" aria-label="Close notifications" onClick={() => close()}>
-                <PixelIcon name="cross" className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="bell-list" data-testid="bell-list">
-              {error ? (
-                <p className="t-meta px-4 py-6">
-                  Couldn&apos;t load your notifications.{" "}
-                  <button type="button" className="link" onClick={() => void load()}>
-                    Try again
-                  </button>
-                </p>
-              ) : !data ? (
-                <p className="t-meta px-4 py-6">Loading…</p>
-              ) : data.items.length === 0 ? (
-                <p className="t-meta px-4 py-6">Nothing yet. Race results, injuries, sales and more will show up here.</p>
-              ) : (
-                groupByDay(data.items, nowMs).map((g) => (
-                  <section key={g.label} aria-label={g.label}>
-                    <h3 className="bell-day">{g.label}</h3>
-                    <ul>
-                      {g.items.map((it) => (
-                        <li key={it.id}>
-                          <Link href={it.href} className="bell-item" data-unread={it.unread ? "1" : "0"} onClick={() => openItem(it)} data-testid="bell-item">
-                            <PixelIcon name={CATEGORY_ICON[it.category]} size={32} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block leading-snug">
-                                {it.unread && <span className="sr-only">Unread: </span>}
-                                {it.title}
+      {/* On document.body: above the sticky top bar and the tab bar (their own stacking contexts). */}
+      {open &&
+        createPortal(
+          <>
+            <div className="bell-backdrop md:hidden" aria-hidden onClick={() => close(false)} />
+            <div
+              ref={panel}
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={headingId}
+              className="surface bell-panel"
+              style={anchor ? ({ "--bell-top": `${anchor.top}px`, "--bell-right": `${anchor.right}px` } as React.CSSProperties) : undefined}
+              data-testid="bell-panel"
+            >
+              <div className="flex items-center gap-2 px-4 pb-2 pt-3">
+                <h2 id={headingId} className="t-h2 flex-1">
+                  Notifications
+                </h2>
+                <button type="button" className="btn btn-sm btn-outline" onClick={markAll} disabled={!data?.items.some((i) => i.unread)} data-testid="bell-mark-all">
+                  Mark all read
+                </button>
+                <button type="button" className="btn btn-sm btn-outline !px-2" aria-label="Close notifications" onClick={() => close()}>
+                  <PixelIcon name="cross" className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="bell-list" data-testid="bell-list">
+                {error ? (
+                  <p className="t-meta px-4 py-6">
+                    Couldn&apos;t load your notifications.{" "}
+                    <button type="button" className="link" onClick={() => void load()}>
+                      Try again
+                    </button>
+                  </p>
+                ) : !data ? (
+                  <p className="t-meta px-4 py-6">Loading…</p>
+                ) : data.items.length === 0 ? (
+                  <p className="t-meta px-4 py-6">Nothing yet. Race results, injuries, sales and more will show up here.</p>
+                ) : (
+                  groupByDay(data.items, nowMs).map((g) => (
+                    <section key={g.label} aria-label={g.label}>
+                      <h3 className="bell-day">{g.label}</h3>
+                      <ul>
+                        {g.items.map((it) => (
+                          <li key={it.id}>
+                            <Link href={it.href} className="bell-item" data-unread={it.unread ? "1" : "0"} onClick={() => openItem(it)} data-testid="bell-item">
+                              <PixelIcon name={CATEGORY_ICON[it.category]} size={32} />
+                              <span className="min-w-0 flex-1">
+                                <span className="block leading-snug">
+                                  {it.unread && <span className="sr-only">Unread: </span>}
+                                  {it.title}
+                                </span>
+                                <span className="t-meta block">{timeOfDay(it.createdAtMs)}</span>
                               </span>
-                              <span className="t-meta block">{timeOfDay(it.createdAtMs)}</span>
-                            </span>
-                            {it.unread && <span className="bell-dot" aria-hidden />}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ))
-              )}
+                              {it.unread && <span className="bell-dot" aria-hidden />}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 px-4 py-3">
+                <Link href="/me/notifications" className="link font-extrabold" onClick={() => close(false)} data-testid="bell-all">
+                  All notifications
+                </Link>
+                <Link href="/me#notifications" className="link" onClick={() => close(false)}>
+                  Settings
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <Link href="/me/notifications" className="link font-extrabold" onClick={() => close(false)} data-testid="bell-all">
-                All notifications
-              </Link>
-              <Link href="/me#notifications" className="link" onClick={() => close(false)}>
-                Settings
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

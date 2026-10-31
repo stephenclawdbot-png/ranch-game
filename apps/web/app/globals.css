@@ -5027,11 +5027,12 @@ a.pill:hover,
   max-height: min(85dvh, 640px);
   padding-bottom: env(safe-area-inset-bottom);
   color: var(--color-cream);
+  background: #0f2a1d padding-box;
 }
 @media (min-width: 768px) {
   .bell-panel {
-    position: absolute;
-    inset: calc(100% + 10px) -8px auto auto;
+    position: fixed;
+    inset: var(--bell-top, 70px) var(--bell-right, 16px) auto auto;
     width: 400px;
     max-height: min(70vh, 560px);
   }
@@ -5041,7 +5042,7 @@ a.pill:hover,
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-block: 2px solid var(--color-paper-rule);
+  border-block: 2px solid var(--ink-0, #050d08);
 }
 .bell-day {
   position: sticky;
@@ -5052,7 +5053,7 @@ a.pill:hover,
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-cream-dim);
-  background: var(--color-paper-2);
+  background: #163a28;
 }
 .bell-item {
   display: flex;
@@ -5065,7 +5066,7 @@ a.pill:hover,
 }
 .bell-item:hover,
 .bell-item:focus-visible {
-  background: var(--color-paper-2);
+  background: #163a28;
 }
 .bell-item[data-unread="1"] {
   font-weight: 800;
@@ -5080,8 +5081,8 @@ a.pill:hover,
   font: 800 12px/32px var(--font-sans);
   text-align: left;
   color: var(--color-cream-dim);
-  background: var(--color-paper-2);
-  box-shadow: inset 0 0 0 2px #1d140a;
+  background: #163a28;
+  box-shadow: inset 0 0 0 2px #050d08;
 }
 .notif-switch::after {
   content: "";
@@ -5090,8 +5091,8 @@ a.pill:hover,
   right: 4px;
   width: 24px;
   height: 24px;
-  background: var(--color-paper);
-  box-shadow: inset 0 0 0 2px #1d140a;
+  background: var(--color-cream);
+  box-shadow: inset 0 0 0 2px #050d08;
 }
 .notif-switch[aria-checked="true"] {
   text-align: left;

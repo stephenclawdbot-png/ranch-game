@@ -94,6 +94,9 @@ export const INBOX_KINDS = {
 
 export type InboxKind = keyof typeof INBOX_KINDS;
 
+/** Kinds that only the bell and the full inbox show (the Estate's race list, listInbox, leaves them out). */
+export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "listing_expired"] as const satisfies readonly InboxKind[];
+
 /** Moments (moments.ts, guide.ts) by their game-core kind. A Record: a new moment kind must be placed. */
 export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {
   quirk: "races",
