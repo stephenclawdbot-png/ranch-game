@@ -32,6 +32,7 @@ import { logRaceOutcomeTx } from "./horseLog";
 import { afterLeasedRaceTx,leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseTx } from "./leasing";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
+import { careerTribute, isFirstFeatureRun, momentHorse, sendMomentsTx } from "./moments";
 import { audit, runTx } from "./tx";
 import { ensureClubCalibrated, trueMarkOf } from "./clubFill";
 import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
@@ -1028,6 +1029,29 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
             createdAt: input.now,
           })
           .onConflictDoNothing();
+      }
+      // Moments: what this run revealed or meant (game-core moments.ts), to the horse's owner.
+      const momentTo = h.ownerStableId ? await accountIdOfStable(tx, h.ownerStableId) : e.stableId ? owners.get(e.stableId)! : null;
+      if (momentTo) {
+        const [after] = await tx.select().from(horses).where(eq(horses.id, h.id));
+        const feature = race.kind === "feature" || race.kind === "final";
+        const before = isGenome(h.genome) ? toHorseState(h) : null;
+        const drafts = gc.settlementMoments({
+          horse: momentHorse(h),
+          race: { id: race.id, name: race.name, feature, rated: !story },
+          position: r.position,
+          fieldSize: entries.length,
+          before,
+          after: before && after ? toHorseState(after) : null,
+          newQuirks: quirks.filter((q) => !((h.quirks as string[]) ?? []).includes(q) && (gc.QUIRK_KEYS as readonly string[]).includes(q)) as gc.QuirkKey[],
+          winsBefore: h.wins,
+          startsAfter: starts,
+          firstFeature: feature && (await isFirstFeatureRun(tx, h.id, race.id)),
+          retired: mustRetire && !fatal ? (careerEnding ? "injury" : "max_starts") : null,
+          fatal,
+          tribute: (mustRetire || fatal) && after ? await careerTribute(tx, after) : null,
+        });
+        if (drafts.length) await sendMomentsTx(tx, { accountId: momentTo, horseName: h.name, drafts, now: input.now });
       }
     }
 

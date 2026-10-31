@@ -1,6 +1,7 @@
 /** Road to Saturday: the week view finds the Feature, its qualifiers and the stable's horses. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAccount, createDb, stableOf, type DbHandle } from "@thoroughbred/db";
+import * as gc from "@thoroughbred/game-core";
 import type { Session } from "./session";
 import { weekView } from "./week";
 
@@ -39,6 +40,12 @@ describe("weekView", () => {
     expect(v.licenceOk).toBe(false); // a new stable starts with the Club licence
     expect(v.ground.courses).toHaveLength(6);
     expect(v.ground.yearSeason).toBe("winter"); // season 12 starts on 9 Nov 2026
+    // the Season Final's floor and the gap of the stable's closest horses, from the rules
+    expect(v.seasonFinal).not.toBeNull();
+    expect(v.seasonFinal!.minRating).toBe(gc.SEASON_FINAL_MIN_RATING);
+    for (const x of v.seasonFinal!.horses) expect(x.short).toBe(Math.max(0, gc.SEASON_FINAL_MIN_RATING - x.rating));
+    // nobody has run a qualifier yet: no qualifier near miss
+    expect(v.horses.flatMap((x) => x.nearMiss ?? []).some((t) => t.includes("Qualifier"))).toBe(false)
 
     // Friday evening: Saturday's Feature is on the card, so its going is the real one
     const friday = new Date(Date.UTC(2026, 10, 13, 20, 0, 0));

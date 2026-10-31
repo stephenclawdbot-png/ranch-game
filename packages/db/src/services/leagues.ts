@@ -154,17 +154,18 @@ export async function settleLeagueWeeks(db: Db, now: Date, opts: { accountId?: s
           .where(and(eq(leagueMembers.leagueId, leagueId), eq(leagueMembers.accountId, mv.ownerId)));
         // Sunday recap (beta loop): where the week ended, the move, and the real gap to the line.
         if (s && s.runs > 0) {
-          const tierLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-          const lineRank = gc.PROMOTE;
-          const line = [...moves].sort((a, b) => a.rank - b.rank)[lineRank - 1];
-          const linePoints = line ? (scores.get(line.ownerId)?.points ?? 0) : 0;
-          const gap = mv.outcome === "promoted" ? 0 : Math.max(0, linePoints - s.points + 1);
+          const tierLabel = gc.tierLabel;
+          // the real distances to the lines, by settleLeague's own rules (game-core nearMiss.ts)
+          const near = gc.leagueNearMiss(gcLeague.members, mv.ownerId, gcLeague.tier);
+          const gap = mv.outcome === "promoted" ? 0 : (near?.toPromotion ?? 0);
+          const drop = near?.drop;
+          const pts = (n: number) => `${n} ${n === 1 ? "point" : "points"}`;
           const title =
             mv.outcome === "promoted"
               ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, promoted to ${tierLabel(mv.to)}`
               : mv.outcome === "relegated"
-                ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, down to ${tierLabel(mv.to)}`
-                : `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}${gap > 0 ? `, ${gap} points from promotion` : ""}`;
+                ? `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}, down to ${tierLabel(mv.to)}${drop?.state === "zone" ? `: ${pts(drop.toSafety)} short of safety` : ""}`
+                : `Week recap: ${ordinalOf(mv.rank)} in ${tierLabel(mv.from)}${gap > 0 && near?.up ? `, ${pts(gap)} short of ${tierLabel(near.up)}` : ""}${drop?.state === "clear" ? `, ${pts(drop.margin)} clear of the drop` : ""}`;
           await tx
             .insert(inboxItems)
             .values({
@@ -172,7 +173,7 @@ export async function settleLeagueWeeks(db: Db, now: Date, opts: { accountId?: s
               kind: "week_recap",
               dedupeKey: `week-recap:${league.weekStart}`,
               title,
-              data: { weekStart: league.weekStart, rank: mv.rank, of: moves.length, points: s.points, wins: s.wins, runs: s.runs, outcome: mv.outcome, from: mv.from, to: mv.to, gapToPromotion: gap },
+              data: { weekStart: league.weekStart, rank: mv.rank, of: moves.length, points: s.points, wins: s.wins, runs: s.runs, outcome: mv.outcome, from: mv.from, to: mv.to, gapToPromotion: gap, nextTier: near?.up ?? null, drop: drop ?? null },
               createdAt: now,
             })
             .onConflictDoNothing();

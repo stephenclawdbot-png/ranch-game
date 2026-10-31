@@ -79,9 +79,23 @@ function examplePairing() {
   return { sireG, damG, sireOv, damOv, lo, hi, preview, below, above, between: foals.length - below - above, n: foals.length, buckets, best: Math.max(...foals), worst: Math.min(...foals) };
 }
 
+/** The example pairing's nick, worked through with the rules' own weights. */
+function nickWorked(preview: gc.BreedingPreview) {
+  const beats = preview.overall.beatsBothParents / 1000;
+  const trip = Math.max(...Object.values(preview.distance).map((v) => v ?? 0)) / 1000;
+  const surface = Math.max(...Object.values(preview.surface).map((v) => v ?? 0)) / 1000;
+  const w = gc.NICK_WEIGHTS;
+  const parts = { base: w.base, beats: w.beatsBoth * beats, trip: w.tripCertainty * trip, surface: w.surfaceCertainty * surface, coi: preview.coi / w.coiDivisor };
+  return { beats, trip, surface, parts, result: gc.nickRating(beats, trip, surface, preview.coi) };
+}
+
+const one = (x: number) => (Math.round(x * 10) / 10).toString();
+
 export default function GeneticsAndInheritancePage() {
   const ex = examplePairing();
   const carriers = carrierExample();
+  const nick = nickWorked(ex.preview);
+  const quirks = gc.quirkCatalogue();
   const peak = Math.max(...ex.buckets.map((b) => b.n));
   return (
     <>
@@ -211,6 +225,41 @@ export default function GeneticsAndInheritancePage() {
         <p className="caption">Expected foal potential per stat (the preview also shows each stat&rsquo;s full range).</p>
       </div>
 
+      <H2 id="nick-rating">The nick rating, worked out</H2>
+      <P>
+        The <b>nick</b> is one number from 0 to 100 that sums up a pairing: how often it beats both parents (upside), how sure the foal&rsquo;s best trip and surface are (a coherent type),
+        and how inbred it is. The formula, with the weights the game uses:
+      </P>
+      <Callout tone="rule" title="Nick formula">
+        <p>
+          nick = {gc.NICK_WEIGHTS.base} + {gc.NICK_WEIGHTS.beatsBoth} &times; <i>beats both parents</i> + {gc.NICK_WEIGHTS.tripCertainty} &times; <i>most likely trip</i> +{" "}
+          {gc.NICK_WEIGHTS.surfaceCertainty} &times; <i>most likely surface</i> &minus; <i>inbreeding (per mille)</i> &divide; {gc.NICK_WEIGHTS.coiDivisor}, kept between 0 and 100.
+        </p>
+        <p>
+          Each share is a fraction from 0 to 1: the chance a foal beats both parents&rsquo; overall potential, and the chance of the single most likely trip band and surface. Inbreeding is the
+          coefficient in tenths of a percent (full siblings are 250), see <WikiLink slug="inbreeding" />.
+        </p>
+      </Callout>
+      <Table
+        caption="Nick labels"
+        head={["Label", "Nick from"]}
+        rows={[...gc.NICK_LABELS.map((l) => [l.label, l.min]), ["Poor", 0]]}
+      />
+      <Facts
+        title="The example pairing's nick"
+        rows={[
+          ["Base", String(nick.parts.base)],
+          [`Beats both parents (${pct(Math.round(nick.beats * 1000))})`, `+${one(nick.parts.beats)}`],
+          [`Most likely trip (${pct(Math.round(nick.trip * 1000))})`, `+${one(nick.parts.trip)}`],
+          [`Most likely surface (${pct(Math.round(nick.surface * 1000))})`, `+${one(nick.parts.surface)}`],
+          [`Inbreeding (${ex.preview.coi} per mille)`, `−${one(nick.parts.coi)}`],
+          ["Nick", `${nick.result.score} (${nick.result.label})`],
+        ]}
+      />
+      <P>
+        A nick is a summary, not a verdict: two pairings with the same nick can differ a lot in their best and worst foals. The full preview (odds per grade, family limits) is the thing to read.
+      </P>
+
       <H2 id="dominant-recessive">Dominant, recessive and hidden copies</H2>
       <P>
         Besides the stats and the coat, every horse carries {V2_GENES.length} more genes for patterns, body and performance. Each comes in two copies like the rest, and how the copies combine
@@ -256,13 +305,29 @@ export default function GeneticsAndInheritancePage() {
             <b>Coat and markings</b>: real horse colour genetics, see <WikiLink slug="coats-and-markings" />.
           </>,
           <>
-            <b>Quirks</b> such as mudlark (loves soft ground) or gate-shy, some dominant, some hidden until a scan.
+            <b>Quirks</b> such as mudlark (loves soft ground) or gate-shy, some dominant, some recessive; they only show themselves in races (see <a href="#quirks">Quirks</a> below).
           </>,
           <>
             <b>Fragile legs</b>, the risk that comes with breeding from injured horses: <WikiLink slug="fragile-legs" />.
           </>,
         ]}
       />
+      <H2 id="quirks">Quirks: the catalogue</H2>
+      <P>
+        A quirk is a small inherited habit that only matters in some races. It never shows on the horse page until it is <b>discovered</b>: in a race where the quirk shows itself, there is a{" "}
+        <b>{gc.QUIRK_REVEAL_PCT}%</b> chance it is noticed afterwards. From then on it is known for good, listed under Quirks on the horse page, and you get a note in your Stable news saying what
+        it means. A Pedigree Scan narrows the potential ranges but does not reveal quirks: only racing does.
+      </P>
+      <Table
+        caption="Every quirk, from the game rules (one copy of an allele per parent, as for every gene)"
+        head={["Quirk", "Shows itself", "Effect in those races", "Inheritance", "Share of first-generation alleles", "What to do"]}
+        rows={quirks.map((q) => [q.label, q.when, q.effect, q.inheritance, pct(gc.QUIRK_FREQ[q.key]), q.advice])}
+      />
+      <P>
+        The effects add to the horse&rsquo;s stats for that race only (stats run from 0 to 1000; see <WikiLink slug="stats-and-aptitudes" />). A horse can carry a recessive quirk without
+        ever showing it, so two clean parents can still throw a mudlark.
+      </P>
+
       <Callout tone="tip">
         <p>
           Read the preview before every covering. Its odds are exact, and the <WikiLink slug="family-limits" /> tell you the worst and best this pairing can ever produce.

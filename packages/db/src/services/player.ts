@@ -13,13 +13,15 @@ import { audit, rowsOf, runTx } from "./tx";
 import { publicRace, type PublicRace } from "./races";
 import { LIVE_SLOT_KEY_LIKE } from "./card";
 import { formColumns, resultJoin } from "./formBook";
+import { MOMENT_KIND } from "./moments";
 
 // ---------------------------------------------------------------------------
 // Inbox
 // ---------------------------------------------------------------------------
 
 export async function listInbox(ex: Executor, accountId: string, limit = 20) {
-  return ex.select().from(inboxItems).where(eq(inboxItems.accountId, accountId)).orderBy(desc(inboxItems.createdAt)).limit(limit);
+  // moments have their own list (listMoments) and must not crowd race results out of this one
+  return ex.select().from(inboxItems).where(and(eq(inboxItems.accountId, accountId), ne(inboxItems.kind, MOMENT_KIND))).orderBy(desc(inboxItems.createdAt)).limit(limit);
 }
 
 /** Marks the account's inbox items for a race as read (idempotent). Returns how many changed. */

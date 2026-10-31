@@ -302,8 +302,24 @@ export interface WeekView {
     /** Form-guide fit for the Feature's trip, surface and going (A best). */
     fit: "A" | "B" | "C" | "D" | "E" | null;
     canRaceToday: boolean;
+    /** Honest near misses for a horse not in yet (game-core nearMiss.ts): qualifier places short, rating short of getting in by right. */
+    nearMiss?: string[];
   }[];
-  league: { tierName: string; rank: number; of: number; points: number; promoteLine: number | null; gapToPromotion: number | null; floor: boolean } | null;
+  league: {
+    tierName: string;
+    rank: number;
+    of: number;
+    points: number;
+    promoteLine: number | null;
+    gapToPromotion: number | null;
+    floor: boolean;
+    /** "12 points from Silver" / "In the promotion places for Silver"; null at the top tier. */
+    promotion?: string | null;
+    /** "3 points from safety" / "8 points clear of the drop"; null in tiers that never relegate. */
+    relegation?: string | null;
+  } | null;
+  /** The season's Season Final: its rating floor and the stable's closest horses to it (best first). */
+  seasonFinal?: { postTimeMs: number; minRating: number; horses: { id: string; name: string; rating: number; short: number; text: string }[] } | null;
   /** Upkeep for the horses used so far this week (charged after the week ends; unused horses are free). */
   upkeep: { horses: number; due: number };
   /** One plain-English line: what to do next. */

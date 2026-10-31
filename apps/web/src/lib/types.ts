@@ -311,6 +311,53 @@ export interface PlayerView {
   /** Closed playtest: this stable belongs to an invited tester (see /beta). */
   tester: boolean;
   serverNowMs: number;
+  /** Stable news: discoveries and milestones (moments) and the Sunday League recap, newest first. */
+  news?: MomentView[];
+}
+
+/** A tribute card's numbers (game-core Tribute). */
+export interface TributeView {
+  starts: number;
+  wins: number;
+  places: number;
+  shows: number;
+  earnings: number;
+  peakOr: number;
+  bestWin: { raceId: string; raceName: string; purse: number; atMs: number } | null;
+}
+
+/** A moment (packages/db moments.ts) or a League recap, as stable news and horse-page highlights. */
+export interface MomentView {
+  id: string;
+  /** game-core MomentKind, or "week_recap". */
+  kind: string;
+  horseId: string | null;
+  horseName: string | null;
+  title: string;
+  /** What this means. */
+  body: string;
+  href: string;
+  raceId: string | null;
+  tribute: TributeView | null;
+  createdAtMs: number;
+  /** Not dismissed yet (its horse-page highlight still shows). */
+  fresh: boolean;
+}
+
+/** /legacy: the stable's horses retired for good, each with its tribute or memorial. */
+export interface LegacyFarmView {
+  stableName: string;
+  horses: {
+    id: string;
+    name: string;
+    regNo: string;
+    appearance: Horse["appearance"];
+    sex: Horse["sex"];
+    tribute: TributeView;
+    /** A horse lost to a race injury: a memorial, not a tribute. */
+    died: { atMs: number; raceId: string | null; raceName: string | null } | null;
+    retiredAtMs: number | null;
+  }[];
 }
 
 export interface HorseDetailView {
@@ -363,7 +410,18 @@ export interface MyRaceResult {
   settled: boolean;
   /** True the first time the owner sees this result (its inbox item was unread): stage the reveal. */
   firstView: boolean;
-  runners: { horseId: string; horseName: string; position: number; prize: number; storyReward: number; firstWin: boolean; ratingBefore: number; ratingAfter: number | null }[];
+  runners: {
+    horseId: string;
+    horseName: string;
+    position: number;
+    prize: number;
+    storyReward: number;
+    firstWin: boolean;
+    ratingBefore: number;
+    ratingAfter: number | null;
+    /** The owner's horse at the off (from its entry): fatigue and hours since its last hard work (Why card "try next"). */
+    atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
+  }[];
 }
 
 /** /api/me/races: one cursor page of the stable's settled runs, plus the filter's totals. */

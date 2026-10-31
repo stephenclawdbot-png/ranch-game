@@ -177,7 +177,14 @@ export function featureCalendar(clock: SeasonClock, season: number): RaceSlot[] 
   return out.sort((a, b) => a.postTimeMs - b.postTimeMs);
 }
 
+/** A finish in this many places of a Feature Qualifier earns a Weekend Feature place. */
+export const FEATURE_QUALIFY_TOP = 3;
+/** An official rating at least this high gets a horse into the Weekend Feature by right. */
+export const FEATURE_RATING_BY_RIGHT = 100;
+/** The Season Final's rating floor (its only gate). */
+export const SEASON_FINAL_MIN_RATING = 95;
+
 /** Feature place: a top-3 finish in any qualifier this week (or OR ≥ 100 by right). */
 export function featureQualified(qualifierFinishes: readonly number[], or: number): boolean {
-  return or >= 100 || qualifierFinishes.some((p) => p >= 1 && p <= 3);
+  return or >= FEATURE_RATING_BY_RIGHT || qualifierFinishes.some((p) => p >= 1 && p <= FEATURE_QUALIFY_TOP);
 }
