@@ -39,8 +39,13 @@ describe("foundStable", () => {
   });
 
   it("rejects a bad stable name or colours before consuming anything", async () => {
-    await expect(foundStable(h.db, { stableName: "x", silks: SILKS, inviteCode: null, now: T0 })).rejects.toThrow(/Check the stable name/);
-    await expect(foundStable(h.db, { stableName: "Fine Name", silks: { pattern: "nope" }, inviteCode: null, now: T0 })).rejects.toThrow(/Check the stable name/);
+    await expect(foundStable(h.db, { stableName: "x", silks: SILKS, inviteCode: null, now: T0 })).rejects.toThrow(/Stable name: At least/);
+    await expect(foundStable(h.db, { stableName: "Fine Name", silks: { pattern: "nope" }, inviteCode: null, now: T0 })).rejects.toThrow(/Check the stable colours/);
     expect((await h.db.select().from(schema.stables)).filter((s) => s.name === "Fine Name")).toHaveLength(0);
+  });
+  it("refuses a name another stable has, in any capitals", async () => {
+    await foundStable(h.db, { stableName: "Mill Reef", silks: SILKS, inviteCode: null, now: T0 });
+    await expect(foundStable(h.db, { stableName: "  mill   REEF ", silks: SILKS, inviteCode: null, now: T0 })).rejects.toThrow(/already has that name/);
+    expect((await h.db.select().from(schema.stables)).filter((s) => s.name.toLowerCase() === "mill reef")).toHaveLength(1);
   });
 });

@@ -265,11 +265,22 @@ export async function storyRewardFor(ex: Executor, raceId: string): Promise<{ am
 // Profile
 // ---------------------------------------------------------------------------
 
+/** Whether another stable already uses this name (case-insensitive; `exceptStableId` is the renamer's own). */
+export async function stableNameTaken(ex: Executor, name: string, exceptStableId?: string): Promise<boolean> {
+  const [hit] = await ex
+    .select({ id: stables.id })
+    .from(stables)
+    .where(and(sql`lower(${stables.name}) = lower(${name.trim()})`, exceptStableId ? sql`${stables.id} <> ${exceptStableId}` : sql`true`))
+    .limit(1);
+  return !!hit;
+}
+
 export async function updateStableProfile(db: Db, input: { accountId: string; name?: string; silks?: unknown }): Promise<void> {
   const name = input.name?.trim();
   if (name !== undefined && (name.length < 1 || name.length > 40)) throw new DomainError("INVALID_INPUT", "stable name must be 1-40 characters");
   await runTx(db, async (tx) => {
     const stable = await lockStableOf(tx, input.accountId);
+    if (name !== undefined && (await stableNameTaken(tx, name, stable.id))) throw new DomainError("INVALID_INPUT", "Another stable already has that name.");
     await tx
       .update(stables)
       .set({ ...(name !== undefined ? { name } : {}), ...(input.silks !== undefined ? { silks: input.silks } : {}) })

@@ -4,7 +4,7 @@
  * founding paths share it — POST /api/account and wallet sign-in's { create } — so the
  * rules can't drift. Callers add their own session (cookie) and telemetry.
  */
-import { acceptRivalInvite, createAccount, DomainError, linkTester, recordAccountSignal, recordReferral, redeemInvite, type Db, type RivalInviteResult } from "@thoroughbred/db";
+import { acceptRivalInvite, createAccount, DomainError, linkTester, recordAccountSignal, recordReferral, redeemInvite, stableNameTaken, type Db, type RivalInviteResult } from "@thoroughbred/db";
 import { SilksSchema } from "@thoroughbred/shared";
 import { playtestConfig } from "./playtest";
 import { StableNameSchema } from "@/lib/stableName";
@@ -42,7 +42,9 @@ export interface FoundedStable {
 export async function foundStable(db: Db, input: FoundStableInput): Promise<FoundedStable> {
   const name = StableNameSchema.safeParse(input.stableName);
   const silks = SilksSchema.safeParse(input.silks);
-  if (!name.success || !silks.success) throw new DomainError("INVALID_INPUT", "Check the stable name and colours.");
+  if (!name.success) throw new DomainError("INVALID_INPUT", `Stable name: ${name.error.issues[0]?.message ?? "check it"}`);
+  if (!silks.success) throw new DomainError("INVALID_INPUT", "Check the stable colours.");
+  if (await stableNameTaken(db, name.data)) throw new DomainError("INVALID_INPUT", "Another stable already has that name. Try another.");
   // Closed playtest: reserve a tester for the invite code first (re-links a tester after a reset).
   const playtest = playtestConfig();
   let testerId: string | null = null;

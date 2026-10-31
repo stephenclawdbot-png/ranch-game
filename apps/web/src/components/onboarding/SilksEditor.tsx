@@ -1,12 +1,12 @@
 "use client";
 
+import { STABLE_NAME_MAX, STABLE_NAME_MAX_WORDS, STABLE_NAME_MIN, stableNameProblem } from "@/lib/stableName";
 import type { SilkPattern, Silks as SilksT } from "@thoroughbred/shared";
 import { SILK_COLORS, SILK_PATTERNS, contrastRatio } from "@/lib/silks";
 import { Silks } from "../Silks";
 import { PixelIcon } from "../icons";
 import { SceneBackdrop } from "../pixel/SceneBackdrop";
 
-export const NAME_RE = /^[\p{L}\p{N} '&.\-]{2,32}$/u;
 const NAME_A = [
   "Harbourlight",
   "Ashdown",
@@ -51,8 +51,10 @@ export function SilksStand({ silks, name, caption = "Your colours" }: { silks: S
 }
 
 /** Stable name input with a dice button. */
-export function NameField({ name, onChange }: { name: string; onChange: (n: string) => void }) {
-  const valid = NAME_RE.test(name.trim());
+export function NameField({ name, onChange, hint = "You can change it any time." }: { name: string; onChange: (n: string) => void; hint?: string }) {
+  const problem = stableNameProblem(name);
+  // A blank field isn't an error yet: it's waiting for the player's name.
+  const valid = problem === null || name.trim() === "";
   return (
     <div>
       <label htmlFor="stable-name" className="mb-1.5 block font-extrabold">
@@ -63,19 +65,20 @@ export function NameField({ name, onChange }: { name: string; onChange: (n: stri
           id="stable-name"
           name="stableName"
           value={name}
-          maxLength={32}
+          maxLength={STABLE_NAME_MAX + 8}
           onChange={(e) => onChange(e.target.value)}
+          placeholder="Name your stable"
           autoComplete="off"
           className="field min-w-0 flex-1 text-lg font-bold"
           aria-invalid={!valid}
           aria-describedby="name-hint"
         />
-        <button type="button" className="btn shrink-0" onClick={() => onChange(suggestName())} aria-label="Suggest another name">
+        <button type="button" className="btn shrink-0" onClick={() => onChange(suggestName())} aria-label="Suggest a name" title="Stuck? Suggest a name">
           <PixelIcon name="dice" className="h-6 w-6" />
         </button>
       </div>
       <p id="name-hint" className={`mt-1.5 text-sm ${valid ? "text-sage" : "font-bold text-negative"}`}>
-        {valid ? "You can change it any time." : "2–32 characters: letters, numbers, spaces and ’ & . -"}
+        {valid ? `${hint} Up to ${STABLE_NAME_MAX_WORDS} words, ${STABLE_NAME_MIN}–${STABLE_NAME_MAX} characters.` : problem}
       </p>
     </div>
   );

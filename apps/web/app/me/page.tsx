@@ -14,7 +14,8 @@ import { FeedbackButton } from "@/components/playtest/FeedbackButton";
 import { PageHeader } from "@/components/ui/Page";
 import { PixelIcon } from "@/components/icons";
 import { Countdown, Digits } from "@/components/Countdown";
-import { NAME_RE, NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
+import { NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
+import { stableNameProblem } from "@/lib/stableName";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -42,7 +43,7 @@ function Profile({ state }: { state: PlayerState }) {
   const settings = useSettings();
   const wallet = useWalletStatus();
   const dirty = name.trim() !== state.stableName || JSON.stringify(silks) !== JSON.stringify(state.silks);
-  const valid = NAME_RE.test(name.trim());
+  const valid = stableNameProblem(name) === null;
 
   useEffect(() => {
     if (dirty) setSaved(false);

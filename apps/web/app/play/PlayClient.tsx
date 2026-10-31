@@ -9,7 +9,8 @@ import { Stall } from "@/components/Stall";
 import { enterStoryRace } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon } from "@/components/icons";
-import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
+import { NameField, SilksEditor, SilksStand } from "@/components/onboarding/SilksEditor";
+import { stableNameProblem } from "@/lib/stableName";
 import { MentorWelcome } from "@/components/onboarding/Mentor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
@@ -69,8 +70,10 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     else {
       // One-time import: a stable from the old in-browser demo keeps its name and colours.
       const legacy = legacyProfile();
-      setImported(!!legacy && NAME_RE.test(legacy.stableName.trim()));
-      setName(legacy && NAME_RE.test(legacy.stableName.trim()) ? legacy.stableName.trim() : suggestName());
+      const legacyOk = !!legacy && stableNameProblem(legacy.stableName) === null;
+      setImported(legacyOk);
+      // The player names the stable (blank field; the dice suggests one if they're stuck).
+      setName(legacyOk ? legacy!.stableName.trim() : "");
       setSilks(legacy?.silks ?? randomSilks());
     }
   }, [state, router]);
@@ -89,7 +92,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   if ((state !== null && stage === "form" && !busy) || !silks) return <div className="min-h-[60vh]" aria-busy />;
   if (playtest && invite === null) return <InviteGate onAccepted={setInvite} />;
 
-  const valid = NAME_RE.test(name.trim());
+  const valid = stableNameProblem(name) === null;
   async function register() {
     if (!valid || !silks || busy) return;
     setBusy(true);
@@ -128,7 +131,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
           <p className="t-meta">
             {imported
               ? "We found your stable from the demo on this browser: its name and colours come with you. Horses and credits start fresh."
-              : "We’ve picked a name and colours. Keep them or roll again, then meet your horses."}
+              : "Name your stable and pick your colours, then meet your horses. Stuck for a name? Tap the dice."}
           </p>
         </header>
         <div className="md:hidden">
