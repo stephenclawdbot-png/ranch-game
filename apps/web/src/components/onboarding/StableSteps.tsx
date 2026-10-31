@@ -97,7 +97,7 @@ export function StableSteps({ steps, state, plain }: { steps: StableStepsView; s
     >
       <div className="surface grid gap-3 p-4">
         <div className="flex items-start gap-3">
-          <MentorPortrait />
+          <MentorPortrait variant="face" />
           <div className="min-w-0 flex-1">
             <p className="text-[0.9375rem] leading-6">
               {steps.next ? (

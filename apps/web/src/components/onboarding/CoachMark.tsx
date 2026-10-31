@@ -21,7 +21,7 @@ export function CoachMark({ id, title, points, className = "" }: { id: string; t
     <aside className={`coach-mark surface-2 grid gap-2 p-3 ${className}`} role="note" aria-labelledby={`coach-${id}-h`} data-testid={`coach-${id}`}>
       <div className="flex items-start gap-3">
         <span className="hidden sm:inline-grid">
-          <MentorPortrait />
+          <MentorPortrait variant="face" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="eyebrow">{MENTOR_FIRST}&rsquo;s pointers</p>

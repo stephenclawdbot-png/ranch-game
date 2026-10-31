@@ -6,15 +6,20 @@ import { ErrorNote } from "@/components/ui/ErrorNote";
 import { PixelIcon } from "@/components/icons";
 import { MENTOR_FIRST, MENTOR_NAME, MENTOR_ROLE, sendOnboarding } from "./guide";
 
-/** The head lad's portrait: the yard's groom (diorama art), cropped to head and shoulders. */
-const SHEET = { src: "/art/diorama/groom-walk.png", w: 760, h: 168 };
-const CROP = { x: 662, y: 2, w: 84, h: 78 };
+/**
+ * Wilf's portrait: his own PixelLab bust (art/portraits/mentor-wilf.png, 128 px). "bust" shows the
+ * whole picture; "face" shows a 64 px head-and-shoulders crop at native pixels (crisp when small).
+ */
+const PORTRAIT = { src: "/art/portraits/mentor-wilf.png", size: 128 };
+const FACE = { x: 36, y: 14, size: 64 };
 
-export function MentorPortrait({ scale = 1, className = "" }: { scale?: 1 | 2; className?: string }) {
+export function MentorPortrait({ variant = "bust", scale = 1, className = "" }: { variant?: "bust" | "face"; scale?: 1 | 2; className?: string }) {
+  const crop = variant === "face" ? FACE : { x: 0, y: 0, size: PORTRAIT.size };
+  const px = crop.size * scale;
   return (
     <span
-      className={`well inline-grid shrink-0 place-items-end overflow-hidden ${className}`}
-      style={{ width: CROP.w * scale + 8, height: CROP.h * scale + 4 }}
+      className={`well inline-grid shrink-0 place-items-center overflow-hidden ${className}`}
+      style={{ width: px + 8, height: px + 8 }}
       role="img"
       aria-label={`${MENTOR_NAME}, ${MENTOR_ROLE.toLowerCase()}`}
       data-testid="mentor-portrait"
@@ -23,12 +28,12 @@ export function MentorPortrait({ scale = 1, className = "" }: { scale?: 1 | 2; c
         aria-hidden
         style={{
           display: "block",
-          width: CROP.w * scale,
-          height: CROP.h * scale,
-          backgroundImage: `url(${SHEET.src})`,
+          width: px,
+          height: px,
+          backgroundImage: `url(${PORTRAIT.src})`,
           backgroundRepeat: "no-repeat",
-          backgroundSize: `${SHEET.w * scale}px ${SHEET.h * scale}px`,
-          backgroundPosition: `-${CROP.x * scale}px -${CROP.y * scale}px`,
+          backgroundSize: `${PORTRAIT.size * scale}px ${PORTRAIT.size * scale}px`,
+          backgroundPosition: `-${crop.x * scale}px -${crop.y * scale}px`,
           imageRendering: "pixelated",
         }}
       />

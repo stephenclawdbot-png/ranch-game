@@ -4991,6 +4991,27 @@
    "src": "course/stand-moor.png"
   },
   {
+   "id": "portrait.mentor-wilf",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 8102 (pick 1 of 4): 'detailed HD character portrait bust of Wilf, a kindly weathered old English racing-yard head lad in his sixties, three-quarter view, warm knowing smile, grey stubble, tweed flat cap, brown wool waistcoat over a rolled-sleeve cream shirt, green neckerchief, coiled leather lead rope over one shoulder, warm golden-hour light, high-res pixel art, selective dark outline, transparent background'",
+   "optimizationTier": "hero",
+   "src": "portraits/mentor-wilf.png"
+  },
+  {
    "id": "diorama.barn-floor",
    "kind": "track_layer",
    "origin": "pixellab",
