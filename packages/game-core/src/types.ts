@@ -328,6 +328,11 @@ export const InjurySchema = z.object({
   vetLevel: z.number().int().min(0).max(3),
   /** Race id or "training". */
   source: z.string(),
+  /**
+   * What was hurt: a key of the injury catalogue (injuries.ts INJURY_KINDS). Optional: injuries
+   * stored before the catalogue have none and show as their severity ("Minor injury" ...).
+   */
+  kind: z.string().max(40).optional(),
 });
 export type Injury = z.infer<typeof InjurySchema>;
 

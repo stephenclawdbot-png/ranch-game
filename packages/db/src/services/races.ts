@@ -15,7 +15,7 @@
 import { and, asc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
-import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
+import { horses, inboxItems, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
 import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -679,6 +679,45 @@ async function callOffTx(tx: Tx, race: RaceRow, now: Date): Promise<void> {
   await audit(tx, { actor: null, action: "race.call_off", entityType: "race", entityId: race.id, data: { reason: "no_player_runners", at: now.toISOString() } });
 }
 
+/**
+ * At the lock: scratch any player entry whose mare is carrying a foal, refunding the stable entry,
+ * the entry fee and race-day extras, and unlocking her. Returns the scratched horse ids. A mare in
+ * foal can't be entered and an entered mare can't be covered, so this only guards odd paths.
+ */
+async function scratchInFoalAtLockTx(tx: Tx, race: RaceRow, entries: readonly RaceEntryRow[], now: Date): Promise<Set<string>> {
+  const out = new Set<string>();
+  const players = entries.filter((e) => !e.isHouse && e.stableId);
+  if (!players.length) return out;
+  const carrying = await tx
+    .select({ damId: pregnancies.damId })
+    .from(pregnancies)
+    .where(and(inArray(pregnancies.damId, players.map((e) => e.horseId)), eq(pregnancies.status, "carrying")));
+  const ids = new Set(carrying.map((c) => c.damId));
+  for (const e of [...players].sort((a, b) => (a.horseId < b.horseId ? -1 : 1))) {
+    if (!ids.has(e.horseId) || !e.stableId) continue;
+    out.add(e.horseId);
+    await tx.update(raceEntries).set({ status: "scratched", scratchedAt: now }).where(eq(raceEntries.id, e.id));
+    await refundEntries(tx, e.stableId, e.entryCost, race.id, e.horseId);
+    const accountId = await accountIdOfStable(tx, e.stableId);
+    if (race.entryFee > 0) {
+      await post(tx, {
+        idempotencyKey: `entry-refund:${race.id}:${e.horseId}`,
+        kind: "entry_fee_refund",
+        postings: [
+          { ledgerAccountId: await systemAccountId(tx, "burn"), amount: -race.entryFee },
+          { ledgerAccountId: await playerLedgerAccountId(tx, accountId), amount: race.entryFee },
+        ],
+      });
+    }
+    await refundRaceDay(tx, accountId, race.id, e.horseId, e.snapshot);
+    await refundClaimsTx(tx, race, now, "the mare is in foal", e.horseId);
+    await targetScratchedTx(tx, race, e.horseId, now);
+    await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: now }).where(and(eq(horses.id, e.horseId), eq(horses.lockKind, "race"), eq(horses.lockRef, race.id)));
+    await audit(tx, { actor: null, action: "race.scratch_in_foal", entityType: "race", entityId: race.id, data: { horseId: e.horseId } });
+  }
+  return out;
+}
+
 /** Null when the race was called off (no player runner: callsOffWithoutPlayers). */
 async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks, opts: { callOff?: boolean } = {}): Promise<LockedField | null> {
   const [race] = await tx.select().from(races).where(eq(races.id, raceId)).for("update");
@@ -690,7 +729,11 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   }
   if (now < race.entriesCloseAt) throw new DomainError("TOO_EARLY", "entries are still open");
 
-  const entries = await listRaceEntries(tx, race.id);
+  const entered = await listRaceEntries(tx, race.id);
+  // Mares in foal never race: enterRace refuses one and coverTx refuses to cover an entered mare.
+  // Defensively, a mare carrying at the lock is scratched here with everything paid back.
+  const inFoal = await scratchInFoalAtLockTx(tx, race, entered, now);
+  const entries = entered.filter((e) => !inFoal.has(e.horseId));
   const players = entries.filter((e) => !e.isHouse);
   if (!players.length && opts.callOff !== false && callsOffWithoutPlayers(race)) {
     await callOffTx(tx, race, now);
@@ -989,6 +1032,10 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
         })
         .where(eq(horses.id, h.id));
       await logRaceOutcomeTx(tx, { raceId: race.id, horse: h, stableId: e.stableId, now: input.now, fatal, injury: r.injury, state: r.state, quirksRevealed: r.quirksRevealed });
+      // This run's injury, named from the catalogue (game-core injuries.ts) when it has a kind.
+      const runInjury = r.state?.injury && r.state.injury.source === race.id ? r.state.injury : null;
+      const injuryKind = runInjury?.kind ?? null;
+      const injuryName = runInjury ? gc.injuryName(runInjury) : r.injury ? gc.injuryNameOf(r.injury.severity) : undefined;
       await tx
         .update(raceEntries)
         .set({ finishPosition: r.position, finishTimeUs: r.finishTimeUs ?? null, prize: prizes[h.id] ?? 0, ratingAfter: r.ratingAfter ?? h.rating })
@@ -1025,8 +1072,17 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
             accountId: owners.get(e.stableId)!,
             kind: "race_result",
             dedupeKey: `race:${race.id}:${h.id}`,
-            title: fatal ? `${h.name} was fatally injured in the ${race.name}` : `${h.name} finished ${ordinal(r.position)} in the ${race.name}`,
-            data: { position: r.position, fieldSize: entries.length, prize: prizes[h.id] ?? 0, retired: mustRetire, injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null },
+            title: fatal
+              ? `${h.name} was fatally injured in the ${race.name}`
+              : `${h.name} finished ${ordinal(r.position)} in the ${race.name}${injuryName ? ` · ${injuryName}${careerEnding ? ": can't race again" : ""}` : ""}`,
+            data: {
+              position: r.position,
+              fieldSize: entries.length,
+              prize: prizes[h.id] ?? 0,
+              retired: mustRetire,
+              injury: (fatal ? "fatal" : (r.injury?.severity ?? r.state?.injury?.severity ?? null)) as string | null,
+              ...(injuryKind ? { injuryKind } : {}),
+            },
             raceId: race.id,
             horseId: h.id,
             createdAt: input.now,
@@ -1053,6 +1109,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
           retired: mustRetire && !fatal ? (careerEnding ? "injury" : "max_starts") : null,
           fatal,
           tribute: (mustRetire || fatal) && after ? await careerTribute(tx, after) : null,
+          ...(injuryName ? { injuryName } : {}),
         });
         if (drafts.length) await sendMomentsTx(tx, { accountId: momentTo, horseName: h.name, drafts, now: input.now });
       }

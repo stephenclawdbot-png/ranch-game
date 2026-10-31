@@ -241,6 +241,20 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `RULES.insurancePremium` / `insurancePayout` | 300 / 2,000 flat | packages/db/src/rules.ts:36, :37 | Fallback for horses without a real genome only. | Legacy rows only |
 | `RULES.careHealMs` | 12 h | packages/db/src/rules.ts:61 | Healing per care for rows without a genome (duplicate of `CARE_HEAL_BONUS_H`). | Legacy rows only |
 
+### 5a. Named injuries (new 2026-10-31)
+
+The catalogue names an injury after condition.ts has rolled it; it never changes the injury rate, the
+severity split, fatal rules or healing hours (golden test: packages/game-core/src/injuries.test.ts).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `INJURY_KINDS` | 6 minor, 6 moderate, 6 career-ending, 3 fatal; each with an area, a description, typical days inside its severity's `INJURY_DAYS` range, a base weight and context boosts | packages/game-core/src/injuries.ts:83 | Which named injury a rolled severity becomes. Only kinds whose day range covers the rolled healing days are candidates. | Injury names only (no rates) |
+| Kind weight | base × each active boost (permille) | packages/game-core/src/injuries.ts (`injuryKindWeight`) | Context makes a name likelier: firm (shins, bruised foot, fractures), soft/heavy (tendons, suspensory, abscess), long trips and tiredness (tying-up, tendon, bleeding), all-out (tendon, fractures), sprints (shins, splints), fragile legs (fractures, tendons), veteran (joint damage), deep ground when tired (tying-up, back). | Injury names only |
+| `INJURY_SPRINT_MAX_M` / `INJURY_LONG_OVER_M` | 1,400 m / over 2,400 m | packages/game-core/src/injuries.ts:46, :48 | Sprint and long-trip triggers. | Injury names only |
+| Name stream | `${seed}\|injury-kind` | packages/game-core/src/injuries.ts (`pickInjuryKind`) | Separate from `${seed}\|injury` and `${seed}\|fatal`, so names never shift a roll. | Determinism |
+| Training knocks | minor kinds only, context "tired" (+ fragile) | packages/game-core/src/training.ts:200 | Names an overwork injury. | Injury names only |
+| "Most likely if injured today" | top 2 by exact share over the severity split and healing days, plus the likeliest moderate-or-worse one (fatal excluded) | packages/game-core/src/injuries.ts (`likelyInjuries`) | Entry-sheet and Care-tab hint. | Player choices (ride, shoes) |
+
 ## 6. Racing engine
 
 | Knob | Value | Where | What it does | Moves which outcomes |

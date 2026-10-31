@@ -4,7 +4,7 @@ import { trackClient } from "@/lib/telemetry";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MyRaceResult, RaceCard } from "@/lib/types";
+import type { InjuryCard, MyRaceResult, RaceCard } from "@/lib/types";
 import { fitCheck } from "@/lib/aptitude";
 import { useClockSkew, useNow } from "@/lib/clock";
 import { useLiveRaceFeed } from "@/lib/liveRaceFeed";
@@ -138,7 +138,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
       .then((res) => {
         const r = res?.runners.find((x) => x.horseId === mine.horse.id) ?? res?.runners[0];
         if (cancelled || !res || !r) return;
-        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter, atOff: r.atOff ?? null });
+        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter, atOff: r.atOff ?? null, injury: r.injury ?? null });
         void refreshPlayer().catch(() => undefined);
       })
       .catch(() => undefined);
@@ -312,6 +312,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
             <>
               <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
+              {mine && settlement?.injury && <RaceInjuryNote injury={settlement.injury} name={mine.horse.name} sex={mine.horse.sex} horseId={mine.horse.id} />}
               {state && card.kind === "live" && <RivalLines raceId={card.id} />}
               {mine && settlement && (
                 <section className="surface flex flex-wrap items-center gap-3 p-3 sm:p-4" aria-label="What if?" data-testid="what-if-panel">
@@ -398,5 +399,30 @@ function PreRace({ localPost, localClose, now, card, runners }: { localPost: num
         </p>
       </div>
     </div>
+  );
+}
+
+/** An injury your horse picked up in this race, named calmly, with what happens next. */
+function RaceInjuryNote({ injury, name, sex, horseId }: { injury: InjuryCard; name: string; sex: string; horseId: string }) {
+  const she = sex === "filly" || sex === "mare" ? "She" : "He";
+  const days = Math.max(1, Math.ceil(injury.hoursLeft / 24));
+  return (
+    <section className="surface grid gap-1.5 p-3 sm:p-4" aria-label="Injury" data-testid="race-injury">
+      <p className="font-extrabold text-negative">
+        {injury.fatal ? `${name} was fatally injured` : `${name} came back with an injury`}: {injury.name.toLowerCase()}
+        {injury.area ? ` (${injury.area.toLowerCase()})` : ""}
+      </p>
+      {injury.description && <p className="text-sm text-cream">{injury.description}</p>}
+      <p className="text-sm text-cream-dim">
+        {injury.fatal
+          ? `${name} rests on the Legacy Farm. ${she === "She" ? "Her" : "His"} record stays in your books and the Hall, and any foals carry the line on.`
+          : injury.careerEnding
+            ? `${name} can't race again. ${she === "She" ? "She can join your broodmares" : "He can stand at stud"} once healed (about ${days} ${days === 1 ? "day" : "days"}), or retire to the Legacy Farm.`
+            : `About ${days} ${days === 1 ? "day" : "days"} to heal. Rest helps on its own; a care session takes 12 h off and vet treatment 24 h.`}{" "}
+        <Link href={`/horse/${horseId}`} className="link font-bold">
+          {injury.fatal ? "Visit the horse page" : "Care and vet"}
+        </Link>
+      </p>
+    </section>
   );
 }

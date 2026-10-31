@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
-import type { RaceCard } from "@/lib/types";
+import type { InjuryCard, RaceCard } from "@/lib/types";
 import * as gc from "@thoroughbred/game-core";
 import { analyseRace } from "@/lib/raceAnalysis";
 import { tryNext } from "@/lib/tryNext";
@@ -32,6 +32,8 @@ export interface Settlement {
   ratingAfter?: number | null;
   /** Your horse at the off (fatigue, hours since hard work), for the Why card's "try next". */
   atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
+  /** An injury picked up in this race, named (shown under the result). */
+  injury?: InjuryCard | null;
 }
 
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */

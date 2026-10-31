@@ -47,6 +47,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "growing-up", section: "horses", title: "Growing up", summary: "From foal to veteran: life stages, care to racing age and the peak window.", keywords: ["foal", "weanling", "yearling", "juvenile", "prime", "veteran", "maturity", "nursery"] },
   { slug: "care-and-condition", section: "horses", title: "Care & condition", summary: "Daily care, feeds, fatigue, freshness, fitness, bond and morale.", keywords: ["feed", "groom", "fatigue", "fresh", "bond", "morale"] },
   { slug: "training", section: "horses", title: "Training", summary: "The trade-off board: what a session gains and what it risks.", keywords: ["train", "workout", "overwork", "realisation"] },
+  { slug: "injuries", section: "horses", title: "Injuries", summary: "Every named injury by severity, where it is, how long it takes and what makes it likelier.", keywords: ["injury", "injuries", "tendon", "shins", "fracture", "bleeding", "lame", "healing", "in foal"] },
   { slug: "injuries-and-insurance", section: "horses", title: "Injuries & insurance", summary: "Injury risk, the four severities, the vet, and what insurance pays.", keywords: ["injury", "vet", "fatal", "career-ending", "insurance", "risk"] },
 
   // Racing
