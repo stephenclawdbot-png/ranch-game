@@ -121,18 +121,18 @@ export async function renderGeneticPortrait(appearance: HorseAppearance, thumb: 
   const shape = headShapeOf(appearance);
   let pixelsIn: ArrayLike<number> = strip.data;
   let warpIn: ArrayLike<number> | null = warp?.data ?? null;
-  let still: Uint8ClampedArray | null = null;
+  let stillRef: Uint8ClampedArray | null = null;
   if (!isPaintedShape(shape)) {
     const map = headWarp(shape, roles.data);
     if (frames > 1) {
-      still = new Uint8ClampedArray(S * S * 4);
-      for (let y = 0; y < S; y++) still.set(strip.data.subarray(y * strip.w * 4, (y * strip.w + S) * 4), y * S * 4);
+      stillRef = new Uint8ClampedArray(S * S * 4);
+      for (let y = 0; y < S; y++) stillRef.set(strip.data.subarray(y * strip.w * 4, (y * strip.w + S) * 4), y * S * 4);
     }
     const r = reshapePortrait(strip.data, frames, warpIn, map);
     pixelsIn = r.pixels;
     warpIn = r.warp;
   }
-  const painted = paintGeneticPortrait(look, { pixels: pixelsIn, frames, kept: anim?.kept, warp: warpIn, roles: roles.data, marks: marks?.data ?? null, ramp, still });
+  const painted = paintGeneticPortrait(look, { pixels: pixelsIn, frames, kept: anim?.kept, warp: warpIn, roles: roles.data, marks: marks?.data ?? null, ramp, still: stillRef });
   const out = thumb ? downsampleAlpha2x(painted, strip.w, S) : painted;
   const fw = thumb ? S / 2 : S;
   const w = fw * frames;

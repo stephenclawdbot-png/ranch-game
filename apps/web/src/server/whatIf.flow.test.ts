@@ -22,7 +22,7 @@ import { GET as GET_REPLAY } from "../../app/api/races/[id]/what-if/replay/route
 import { dbHandle } from "./db";
 import { broadcastEndsAtMs } from "./live";
 import type { Session } from "./session";
-import { createStoryRace, driveCard, enterLive, entryOptions, lockedRaceInput, raceList, servedReplay } from "./game";
+import { createStoryRace, driveCard, enterLive, entryOptions, lockedRaceInput, raceList, servedReplay, withRiders } from "./game";
 import { GRADE_RIDER_SKILLS, lockedRunner, rerun, runWhatIf, whatIfInput, whatIfLimiter, whatIfOptions, whatIfReplay, type ResolvedRunner } from "./whatIf";
 import * as gc from "@thoroughbred/game-core";
 import { WHAT_IF_PER_HOUR, changeKey, type WhatIfChange, type WhatIfOptionsView, type WhatIfView } from "@/lib/whatIf";
@@ -140,7 +140,7 @@ describe("what-if on a settled race", () => {
       const { input, field, replay } = await lockedRaceInput(h.db, race, after);
       const gate = field.runners.find((x) => x.horseId === r.horseId)!.gate;
       const same = rerun(input, lockedRunner(input, gate));
-      expect(JSON.stringify(same)).toBe(JSON.stringify(replay));
+      expect(JSON.stringify(withRiders(same, field))).toBe(JSON.stringify(replay));
       expect(verifyReplay(whatIfInput(input, lockedRunner(input, gate)), replay)).toBe(true);
       expect(same.result.resultHash).toBe((await getRaceResult(h.db, r.raceId))!.resultHash);
     }

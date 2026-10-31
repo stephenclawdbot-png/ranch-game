@@ -207,7 +207,7 @@ function withRider(h: Horse, r: FieldRunner): Horse {
 }
 
 /** The replay with each named jockey's look on its runner's appearance (see riderOf). */
-function withRiders(replay: RaceReplay, field: LockedField): RaceReplay {
+export function withRiders(replay: RaceReplay, field: LockedField): RaceReplay {
   const riders = new Map(field.runners.map((r) => [r.horseId, riderOf(r)] as const));
   if (![...riders.values()].some(Boolean)) return replay;
   return { ...replay, horses: replay.horses.map((h) => (riders.get(h.horseId) ? { ...h, appearance: { ...h.appearance, rider: riders.get(h.horseId)! } } : h)) };

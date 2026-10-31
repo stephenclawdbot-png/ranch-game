@@ -209,7 +209,8 @@ describe("the lock, weights and settlement", () => {
     }))!;
     const a = field.runners.find((x) => x.horseId === hp.id)!;
     const b = field.runners.find((x) => x.horseId === hq.id)!;
-    expect(a.jockey).toEqual({ id: app!.id, name: app!.name, claimLb: 7 });
+    expect(a.jockey).toEqual({ id: app!.id, name: app!.name, claimLb: 7, look: gc.resolveJockeyLook(app!), gender: gc.genderOf(app!) });
+    // the look and gender ride along for the sprites but are never hashed (fieldHashOf: id, name, claim)
     expect(b.jockey).toMatchObject({ id: fl, claimLb: 0 });
     // Same rating: the apprentice's horse carries 7 lb less, net.
     expect(b.weightLb! - a.weightLb!).toBe(7);
