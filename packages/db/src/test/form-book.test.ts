@@ -7,12 +7,12 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { horseLog, raceEntries, races } from "../schema";
+import { horseLog, inboxItems, raceEntries, races } from "../schema";
 import { careForHorse, runTrainingSession } from "../services/horseLife";
 import { formLineOf, horseFormRows, settledFormRows, splitRunOf, splitsOf } from "../services/formBook";
 import { horseLogPage, logHorseEventTx, trainingLogOf, type HorseLogEntry } from "../services/horseLog";
 import { createRace, enterRace, getRaceForSimulation, settleRace, type RunnerOutcome } from "../services/races";
-import { gc } from "../gameCore";
+import { gc, toHorseState } from "../gameCore";
 import { at, DAY, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, T0 } from "./helpers";
 
 let h: DbHandle;
@@ -217,6 +217,23 @@ describe("the horse's log", () => {
     expect(injury.raceId).toBe(race.id);
     expect(injury.data).toMatchObject({ severity: "minor", source: "race", backAtMs: at(11 * MIN).getTime() + 2 * DAY });
     expect(rows.find((r) => r.kind === "quirk")!.data).toEqual({ quirks: ["mudlark"] });
+  });
+
+  it("a named injury from the game-core state reaches the log, the stored injury and the inbox title", async () => {
+    const p = await newPlayer(h.db);
+    const horse = await makeHorse(h.db, p.stableId, { starts: 3 });
+    const race = await newRace("Shin Stakes", 10 * MIN, { distanceM: 1200 });
+    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "front", now: T0 });
+    const now = at(11 * MIN);
+    const state = toHorseState(await getHorseRow(h.db, horse.id));
+    const injury: gc.Injury = { severity: "minor", atMs: now.getTime(), unitsRequired: 72, bonusUnits: 0, vetLevel: 0, source: race.id, kind: "sore_shins" };
+    await runRace(race.id, now, [], { [horse.id]: { state: { ...state, injury } } });
+    const rows = await h.db.select().from(horseLog).where(eq(horseLog.horseId, horse.id));
+    expect(rows.find((r) => r.kind === "injury")!.data).toMatchObject({ severity: "minor", injuryKind: "sore_shins" });
+    expect((await getHorseRow(h.db, horse.id)).injury).toMatchObject({ kind: "sore_shins" });
+    const [note] = await h.db.select().from(inboxItems).where(eq(inboxItems.horseId, horse.id));
+    expect(note!.title).toMatch(/in the Shin Stakes · Sore shins$/);
+    expect(note!.data).toMatchObject({ injury: "minor", injuryKind: "sore_shins" });
   });
 
   it("mixes every source newest first and pages without gaps or repeats", async () => {

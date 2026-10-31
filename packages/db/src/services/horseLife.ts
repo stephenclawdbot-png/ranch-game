@@ -414,6 +414,7 @@ export async function runTrainingSession(
         overworked: res.overworked,
         injured: res.injured,
         ...(res.injured && patch.injuredUntil ? { backAtMs: patch.injuredUntil.getTime() } : {}),
+        ...(res.injured && res.state.injury?.kind ? { injuryKind: res.state.injury.kind } : {}),
       },
     });
     const [updated] = await tx
