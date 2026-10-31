@@ -178,6 +178,20 @@ CSS: `border-image: url(/art/ui/panel-9slice.png) 18 fill / 36px / 0 round; imag
 `scenes/stable-yard.png`, `scenes/paddock.png`, `scenes/grandstand.png`, `scenes/barn-interior.png`
 — opaque, **688×288** (HD v2), golden hour (barn: lantern-lit interior).
 
+## 5b. One picture per thing (READY): cast, section scenes, vignettes, plaques
+
+From the graphics audit (`docs/reports/2026-10-31 graphics audit.md`): nothing that means something
+different shares a picture. Generators and processors in `art-src/` (`gen-*.mjs` -> `process_*.py`),
+prompts in `assets.json` (`python3 -I art-src/register_cast.py`), chosen raws only in `art-src/raw/`.
+
+| Files | Size | What |
+|---|---|---|
+| `portraits/jockeys/<id>.png` + `index.json` | 128x128, 27 busts | Jockey cast: 7 apprentices (a-*), 13 prime (j-*), 7 veterans (v-*), men and women, many skin tones. Silks are KEYED to `race/palette.json` silksPrimary / silksSecondary / cap (face masked out), so `JockeyPortrait` paints the stable's silks. `index.json`: stage, presentation and the 56 px head crop. Assigned in `lib/cast.ts` by jockey id within stage and name. |
+| `portraits/trainers/house-*.png` | 128x128 | The eight Story rival trainers (game-core `RIVAL_STABLES`), dressed in their stable colours. |
+| `scenes/<section>.png` | 688x288 | A scene per section that used to borrow another's banner: club-lawn, winners-enclosure, weighing-room, stud-dawn, hall-of-fame, press-room, form-rail, foaling-barn, estate-office, retirement-meadow, gallops-morning, club-library, yard-works, stud-book; wiki figures vet-room, grooming-aisle, farrier-forge, pedigree-wall, starting-stalls. Shown by `SceneBand` (`STILL_SCENES`) at 1x/2x/3x. |
+| `vignettes/<kind>.png` | 64x64 | One framed vignette per news / moment kind (win, first-win, photo-finish, purse, champion, jockey-signed, jockey-retires, jockey-claim, sale, claim, hall-of-fame, memorial, retired, legacy, foal, vet, week, improver, quirk, unlock, scan, exact, stable-steps); same 6 px frame on all. |
+| `trophies/plaques.png` + `plaques.json` | 17 cells of 45x42 | One engraved brass plaque per achievement (game-core `ACHIEVEMENTS`), in `plaques.json` order. |
+
 ## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 
 Code-animated HD-2D horse + jockey (`@thoroughbred/pixel-rig`), cut from **256×192** PixelLab

@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a thoughtful professional jockey woman in her thirties, Black, dark skin, round sports glasses, gentle smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9115,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "56b90223-ddd8-4938-9422-9ba0173a4480",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "56b90223-ddd8-4938-9422-9ba0173a4480",
+  "status": "completed",
+  "created_at": "2026-10-31T12:42:27.317475+00:00",
+  "last_response": {
+   "seed": 9115,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12640 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12524 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12536 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<15096 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "4ab491bd-8c3d-46df-ba74-7c0306ee7c2d",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:42:33.461969+00:00",
+   "original_image_n_colors": 117,
+   "quantized_image_n_colors": 66
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/j-glasses-woman-9115-0.png",
+  "art-src/raw/jockeys/j-glasses-woman-9115-1.png",
+  "art-src/raw/jockeys/j-glasses-woman-9115-2.png",
+  "art-src/raw/jockeys/j-glasses-woman-9115-3.png"
+ ]
+}

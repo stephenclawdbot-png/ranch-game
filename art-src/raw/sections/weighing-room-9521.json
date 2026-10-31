@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, interior of an old jockeys' weighing room at an English racecourse: rows of colourful racing silks hanging on wooden pegs along the wall, saddles on wooden racks, a big brass weighing scale with a round dial, riding boots and helmets on a bench, tall windows with sunbeams",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9521,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "92c906c5-76f9-42be-8a90-8dbe37d6f84e",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "92c906c5-76f9-42be-8a90-8dbe37d6f84e",
+  "status": "completed",
+  "created_at": "2026-10-31T12:47:45.515845+00:00",
+  "last_response": {
+   "seed": 9521,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<224008 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "67a0743a-eec8-49c6-8ae6-cbb66bc8d899",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:47:51.837646+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/raw/sections/weighing-room-9521-0.png"
+ ]
+}

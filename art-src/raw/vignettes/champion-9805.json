@@ -1,0 +1,162 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a golden champion's trophy cup inside a green laurel wreath with a brass ribbon",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9805
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "845c21c0-43cc-4cc5-a8d3-2078557962c6",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "845c21c0-43cc-4cc5-a8d3-2078557962c6",
+  "status": "completed",
+  "created_at": "2026-10-31T12:57:56.263004+00:00",
+  "last_response": {
+   "seed": 9805,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4476 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5476 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6380 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4996 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5048 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5496 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6444 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5564 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4752 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5040 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4624 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5596 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5952 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5552 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4280 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6060 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "3ccaf59b-415b-47a8-bf03-6a6362d6b5bf",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_64x64.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_64x64.png",
+   "generation_started_at": "2026-10-31T12:58:02.406391+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 65
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/champion-9805-0.png",
+  "art-src/raw/vignettes/champion-9805-1.png",
+  "art-src/raw/vignettes/champion-9805-2.png",
+  "art-src/raw/vignettes/champion-9805-3.png",
+  "art-src/raw/vignettes/champion-9805-4.png",
+  "art-src/raw/vignettes/champion-9805-5.png",
+  "art-src/raw/vignettes/champion-9805-6.png",
+  "art-src/raw/vignettes/champion-9805-7.png",
+  "art-src/raw/vignettes/champion-9805-8.png",
+  "art-src/raw/vignettes/champion-9805-9.png",
+  "art-src/raw/vignettes/champion-9805-10.png",
+  "art-src/raw/vignettes/champion-9805-11.png",
+  "art-src/raw/vignettes/champion-9805-12.png",
+  "art-src/raw/vignettes/champion-9805-13.png",
+  "art-src/raw/vignettes/champion-9805-14.png",
+  "art-src/raw/vignettes/champion-9805-15.png"
+ ]
+}

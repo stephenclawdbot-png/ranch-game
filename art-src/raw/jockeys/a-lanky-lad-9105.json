@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a lanky young apprentice jockey, about 19, olive skin, dark curly hair, raised eyebrow, cocky smirk, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9105,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "56dafcdc-2b69-4195-a8d3-d97024ebfed8",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "56dafcdc-2b69-4195-a8d3-d97024ebfed8",
+  "status": "completed",
+  "created_at": "2026-10-31T12:42:27.255400+00:00",
+  "last_response": {
+   "seed": 9105,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12404 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13192 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13748 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11800 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "0565dae4-3a87-44a8-a708-c2e2bd7e78b9",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:42:33.394589+00:00",
+   "original_image_n_colors": 124,
+   "quantized_image_n_colors": 62
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/a-lanky-lad-9105-0.png",
+  "art-src/raw/jockeys/a-lanky-lad-9105-1.png",
+  "art-src/raw/jockeys/a-lanky-lad-9105-2.png",
+  "art-src/raw/jockeys/a-lanky-lad-9105-3.png"
+ ]
+}

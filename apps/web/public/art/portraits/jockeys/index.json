@@ -1,0 +1,222 @@
+{
+ "size": 128,
+ "faceSize": 56,
+ "cast": {
+  "a-freckled-lad": {
+   "stage": "apprentice",
+   "presents": "m",
+   "face": [
+    38,
+    24
+   ]
+  },
+  "a-young-woman-braid": {
+   "stage": "apprentice",
+   "presents": "f",
+   "face": [
+    47,
+    26
+   ]
+  },
+  "a-shy-lad": {
+   "stage": "apprentice",
+   "presents": "m",
+   "face": [
+    47,
+    25
+   ]
+  },
+  "a-bright-girl": {
+   "stage": "apprentice",
+   "presents": "f",
+   "face": [
+    42,
+    27
+   ]
+  },
+  "a-lanky-lad": {
+   "stage": "apprentice",
+   "presents": "m",
+   "face": [
+    41,
+    26
+   ]
+  },
+  "a-blonde-girl": {
+   "stage": "apprentice",
+   "presents": "f",
+   "face": [
+    34,
+    25
+   ]
+  },
+  "j-calm-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    41,
+    27
+   ]
+  },
+  "j-sharp-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    41,
+    26
+   ]
+  },
+  "j-grinning-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    41,
+    27
+   ]
+  },
+  "j-stern-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    41,
+    25
+   ]
+  },
+  "j-irish-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    40,
+    25
+   ]
+  },
+  "j-moustache-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    40,
+    27
+   ]
+  },
+  "j-kind-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    47,
+    27
+   ]
+  },
+  "j-scar-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    41,
+    24
+   ]
+  },
+  "j-glasses-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    45,
+    27
+   ]
+  },
+  "j-curly-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    48,
+    27
+   ]
+  },
+  "j-focused-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    42,
+    24
+   ]
+  },
+  "j-pale-man": {
+   "stage": "prime",
+   "presents": "m",
+   "face": [
+    42,
+    24
+   ]
+  },
+  "v-grey-man": {
+   "stage": "veteran",
+   "presents": "m",
+   "face": [
+    41,
+    26
+   ]
+  },
+  "v-silver-woman": {
+   "stage": "veteran",
+   "presents": "f",
+   "face": [
+    41,
+    24
+   ]
+  },
+  "v-craggy-man": {
+   "stage": "veteran",
+   "presents": "m",
+   "face": [
+    40,
+    26
+   ]
+  },
+  "v-wily-man": {
+   "stage": "veteran",
+   "presents": "m",
+   "face": [
+    47,
+    26
+   ]
+  },
+  "v-steely-woman": {
+   "stage": "veteran",
+   "presents": "f",
+   "face": [
+    41,
+    24
+   ]
+  },
+  "v-jolly-man": {
+   "stage": "veteran",
+   "presents": "m",
+   "face": [
+    40,
+    24
+   ]
+  },
+  "v-wise-woman": {
+   "stage": "veteran",
+   "presents": "f",
+   "face": [
+    47,
+    26
+   ]
+  },
+  "a-quiet-girl": {
+   "stage": "apprentice",
+   "presents": "f",
+   "face": [
+    46,
+    24
+   ]
+  },
+  "j-ginger-woman": {
+   "stage": "prime",
+   "presents": "f",
+   "face": [
+    41,
+    25
+   ]
+  }
+ }
+}

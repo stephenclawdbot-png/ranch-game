@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a tough professional jockey man in his thirties, white, broken nose, small scar on the chin, narrowed eyes, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9114,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d8d8651c-1213-4853-bcfb-51786662230f",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "d8d8651c-1213-4853-bcfb-51786662230f",
+  "status": "completed",
+  "created_at": "2026-10-31T12:42:27.230211+00:00",
+  "last_response": {
+   "seed": 9114,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13712 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<15376 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12956 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13564 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "6c2008ce-8de0-465b-8439-3789bc839f9e",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:42:33.376595+00:00",
+   "original_image_n_colors": 121,
+   "quantized_image_n_colors": 62
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/j-scar-man-9114-0.png",
+  "art-src/raw/jockeys/j-scar-man-9114-1.png",
+  "art-src/raw/jockeys/j-scar-man-9114-2.png",
+  "art-src/raw/jockeys/j-scar-man-9114-3.png"
+ ]
+}

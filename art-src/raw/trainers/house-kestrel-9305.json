@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Rhea Kestrel, a sharp fast-talking woman racehorse trainer in her forties, Black, dark skin, sleek short undercut hair, gold hoop earrings, knowing smirk, purple leather bomber jacket with yellow diamond trim",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9305,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e794038b-fd04-45fb-8149-674e526d6271",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e794038b-fd04-45fb-8149-674e526d6271",
+  "status": "completed",
+  "created_at": "2026-10-31T12:43:51.226940+00:00",
+  "last_response": {
+   "seed": 9305,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13740 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14412 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13688 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14148 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "8a5d6cd4-d739-4309-9f10-cfaf845ab4a3",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:43:57.42435+00:00",
+   "original_image_n_colors": 114,
+   "quantized_image_n_colors": 67
+  }
+ },
+ "files": [
+  "art-src/raw/trainers/house-kestrel-9305-0.png",
+  "art-src/raw/trainers/house-kestrel-9305-1.png",
+  "art-src/raw/trainers/house-kestrel-9305-2.png",
+  "art-src/raw/trainers/house-kestrel-9305-3.png"
+ ]
+}

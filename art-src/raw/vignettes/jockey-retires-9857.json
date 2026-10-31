@@ -1,0 +1,173 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a jockey's silk cap and goggles hanging on a wooden peg beside riding boots in a tack room, soft evening light, the scene fills the whole square",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9857,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<5880 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 64,
+    "height": 64
+   }
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d618afd3-cb4f-4123-b3e4-7ecb9297d719",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "d618afd3-cb4f-4123-b3e4-7ecb9297d719",
+  "status": "completed",
+  "created_at": "2026-10-31T13:04:32.323530+00:00",
+  "last_response": {
+   "seed": 9857,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6256 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6564 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5548 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5156 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5392 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6312 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6288 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5928 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7424 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5740 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5120 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5820 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4028 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5584 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5636 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "1c5dd28a-dc0b-446f-82c0-f687f08016b1",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:04:38.554746+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 81
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/jockey-retires-9857-0.png",
+  "art-src/raw/vignettes/jockey-retires-9857-1.png",
+  "art-src/raw/vignettes/jockey-retires-9857-2.png",
+  "art-src/raw/vignettes/jockey-retires-9857-3.png",
+  "art-src/raw/vignettes/jockey-retires-9857-4.png",
+  "art-src/raw/vignettes/jockey-retires-9857-5.png",
+  "art-src/raw/vignettes/jockey-retires-9857-6.png",
+  "art-src/raw/vignettes/jockey-retires-9857-7.png",
+  "art-src/raw/vignettes/jockey-retires-9857-8.png",
+  "art-src/raw/vignettes/jockey-retires-9857-9.png",
+  "art-src/raw/vignettes/jockey-retires-9857-10.png",
+  "art-src/raw/vignettes/jockey-retires-9857-11.png",
+  "art-src/raw/vignettes/jockey-retires-9857-12.png",
+  "art-src/raw/vignettes/jockey-retires-9857-13.png",
+  "art-src/raw/vignettes/jockey-retires-9857-14.png",
+  "art-src/raw/vignettes/jockey-retires-9857-15.png"
+ ]
+}

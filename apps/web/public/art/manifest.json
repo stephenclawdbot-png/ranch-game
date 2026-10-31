@@ -5012,6 +5012,1717 @@
    "src": "portraits/mentor-wilf.png"
   },
   {
+   "id": "portrait.jockey.a-freckled-lad",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9101 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a cheeky freckled teenage apprentice jockey boy, about 17, ginger hair poking out under the cap, pale skin, wide grin, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-freckled-lad.png"
+  },
+  {
+   "id": "portrait.jockey.a-young-woman-braid",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9102 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a determined young woman apprentice jockey, about 18, light brown skin, dark braid over the shoulder, focused smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-young-woman-braid.png"
+  },
+  {
+   "id": "portrait.jockey.a-shy-lad",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9103 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a shy young apprentice jockey, about 18, East Asian, black fringe under the cap, small nervous smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-shy-lad.png"
+  },
+  {
+   "id": "portrait.jockey.a-bright-girl",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9104 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, an eager young woman apprentice jockey, about 19, Black, dark brown skin, short natural hair under the cap, big bright smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-bright-girl.png"
+  },
+  {
+   "id": "portrait.jockey.a-lanky-lad",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9105 (pick 3 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a lanky young apprentice jockey, about 19, olive skin, dark curly hair, raised eyebrow, cocky smirk, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-lanky-lad.png"
+  },
+  {
+   "id": "portrait.jockey.a-blonde-girl",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9106 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a young woman apprentice jockey, about 18, fair skin, blonde ponytail, rosy cheeks, gap-toothed laugh, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-blonde-girl.png"
+  },
+  {
+   "id": "portrait.jockey.j-calm-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9107 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a calm professional jockey man in his late twenties, South Asian, light brown skin, neat short beard, steady confident look, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-calm-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-sharp-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9108 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a sharp professional jockey woman in her late twenties, white, high cheekbones, auburn hair tucked under the cap, determined half smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-sharp-woman.png"
+  },
+  {
+   "id": "portrait.jockey.j-grinning-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9109 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a jovial professional jockey man around thirty, Black, dark brown skin, clean shaven, broad grin, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-grinning-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-stern-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9110 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a stern professional jockey woman around thirty, Latina, tan skin, dark hair in a low bun, serious stare, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-stern-woman.png"
+  },
+  {
+   "id": "portrait.jockey.j-irish-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9111 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a wiry professional jockey man around thirty, pale skin, red stubble, twinkling blue eyes, wry smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-irish-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-moustache-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9112 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a dapper professional jockey man in his thirties, olive skin, thin dark moustache, slicked dark hair, confident smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-moustache-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-kind-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9113 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a friendly professional jockey woman in her thirties, East Asian, black bob haircut under the cap, warm smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-kind-woman.png"
+  },
+  {
+   "id": "portrait.jockey.j-scar-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9114 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a tough professional jockey man in his thirties, white, broken nose, small scar on the chin, narrowed eyes, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-scar-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-glasses-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9115 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a thoughtful professional jockey woman in her thirties, Black, dark skin, round sports glasses, gentle smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-glasses-woman.png"
+  },
+  {
+   "id": "portrait.jockey.j-curly-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9116 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a cheerful professional jockey man in his thirties, Middle Eastern, tan skin, curly black hair, short black beard, laughing, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-curly-man.png"
+  },
+  {
+   "id": "portrait.jockey.j-focused-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9117 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a focused professional jockey woman in her early thirties, Indian, brown skin, nose stud, long black plait, calm gaze, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-focused-woman.png"
+  },
+  {
+   "id": "portrait.jockey.j-pale-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9118 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a quiet professional jockey man in his thirties, very pale skin, light blond eyebrows, freckles, serious look, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-pale-man.png"
+  },
+  {
+   "id": "portrait.jockey.v-grey-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9119 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a veteran jockey man in his late forties, white, weathered lined face, grey sideburns, crow's feet, knowing smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-grey-man.png"
+  },
+  {
+   "id": "portrait.jockey.v-silver-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9120 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a veteran jockey woman in her late forties, white, short silver hair, laugh lines, proud confident look, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-silver-woman.png"
+  },
+  {
+   "id": "portrait.jockey.v-craggy-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9121 (pick 3 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a craggy veteran jockey man about fifty, Black, dark skin, grey-flecked short beard, deep wrinkles, wise calm look, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-craggy-man.png"
+  },
+  {
+   "id": "portrait.jockey.v-wily-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9122 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a wily veteran jockey man in his late forties, tan skin, hooked nose, salt-and-pepper stubble, sly grin, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-wily-man.png"
+  },
+  {
+   "id": "portrait.jockey.v-steely-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9123 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a steely veteran jockey woman about fifty, East Asian, grey streaks in black hair, firm unsmiling mouth, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-steely-woman.png"
+  },
+  {
+   "id": "portrait.jockey.v-jolly-man",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9124 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a jolly veteran jockey man in his late forties, ruddy round cheeks, white bushy eyebrows, big laugh, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-jolly-man.png"
+  },
+  {
+   "id": "portrait.jockey.v-wise-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9125 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a wise veteran jockey woman about fifty, Black, dark brown skin, short grey hair at the temples, laugh lines, calm proud smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/v-wise-woman.png"
+  },
+  {
+   "id": "portrait.jockey.a-quiet-girl",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9126 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a quiet young woman apprentice jockey, about 17, South Asian, light brown skin, black hair in a low bun, shy hopeful smile, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/a-quiet-girl.png"
+  },
+  {
+   "id": "portrait.jockey.j-ginger-woman",
+   "kind": "jockey",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "silks-keyed"
+   ],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9127 (pick 3 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, a lively professional jockey woman in her late twenties, pale freckled skin, copper red hair tucked under the cap, cheeky grin, wearing shiny racing silks: a bright magenta silk jersey with bright cyan sleeves and a bright magenta silk skull cap with a short peak, white stock collar' -> silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/jockeys/j-ginger-woman.png"
+  },
+  {
+   "id": "portrait.trainer.house-harrowgate",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9301 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Eleanor Harrow, a formidable old-guard English racehorse trainer woman in her seventies, white hair in a tight bun, stern raised eyebrow, pearl earrings, navy blue tweed hunting jacket with gold buttons and a gold silk scarf' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-harrowgate.png"
+  },
+  {
+   "id": "portrait.trainer.house-larkspur",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9302 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Cass Lark, a cheerful young woman racehorse trainer in her twenties, freckles, messy chestnut hair in a ponytail, big friendly grin, royal blue quilted gilet with a white star pin over a cream jumper, pink woolly hat' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-larkspur.png"
+  },
+  {
+   "id": "portrait.trainer.house-vicarage",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9303 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Tom Penrose, a gentle retired country parson turned racehorse trainer in his sixties, bald with white side hair, round spectacles, patient kind smile, emerald green cardigan over a white clerical collar shirt' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-vicarage.png"
+  },
+  {
+   "id": "portrait.trainer.house-saltmarsh",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9304 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Jory Salt, a rugged weatherbeaten Cornish racehorse trainer man in his fifties, salt-and-pepper beard, squinting into the wind, sky blue and white striped oilskin fisherman's smock, navy knitted beanie' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-saltmarsh.png"
+  },
+  {
+   "id": "portrait.trainer.house-kestrel",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9305 (pick 2 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Rhea Kestrel, a sharp fast-talking woman racehorse trainer in her forties, Black, dark skin, sleek short undercut hair, gold hoop earrings, knowing smirk, purple leather bomber jacket with yellow diamond trim' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-kestrel.png"
+  },
+  {
+   "id": "portrait.trainer.house-bellmont",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9306 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Marcus Bellamy, a charming wealthy racehorse trainer man in his fifties, tanned, silver swept-back hair, perfect white teeth, confident smile, cream linen suit with a red silk tie and red pocket square' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-bellmont.png"
+  },
+  {
+   "id": "portrait.trainer.house-copperfield",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9307 (pick 0 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Ada Copperfield, a scholarly bloodline-obsessed racehorse trainer woman in her sixties, South Asian, grey hair in a long plait, half-moon reading glasses on a chain, burnt orange wool coat with a charcoal scarf' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-copperfield.png"
+  },
+  {
+   "id": "portrait.trainer.house-ashcombe",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 128,
+   "frameHeight": 128,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 128x128 seed 9308 (pick 1 of 4), style_image portraits/mentor-wilf.png, 'detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Lady Helena Ashcombe, an elegant aristocratic champion racehorse trainer woman in her fifties, auburn hair in a chignon, polite serene smile, burgundy tailored riding coat with a grey velvet collar, pearl necklace' -> hard alpha, palette PNG (art-src/process_trainers.py)",
+   "optimizationTier": "hero",
+   "src": "portraits/trainers/house-ashcombe.png"
+  },
+  {
+   "id": "scenes.club-lawn",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9501 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, the members' lawn of an old English racing club: a white Georgian clubhouse with dark green awnings and a clock above the door, a big wooden league table board with brass name plates on the lawn, members in tweed chatting with glasses, hanging flower baskets, bunting' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/club-lawn.png"
+  },
+  {
+   "id": "scenes.winners-enclosure",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9511 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, the winners' enclosure at an English racecourse: a gleaming gold cup trophy on a table draped in green velvet with rosettes, a bay racehorse wearing a garland of flowers held by a groom, a jockey in silks patting its neck, a crowd clapping behind white rails, bunting' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/winners-enclosure.png"
+  },
+  {
+   "id": "scenes.weighing-room",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9521 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, interior of an old jockeys' weighing room at an English racecourse: rows of colourful racing silks hanging on wooden pegs along the wall, saddles on wooden racks, a big brass weighing scale with a round dial, riding boots and helmets on a bench, tall windows with sunbeams' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/weighing-room.png"
+  },
+  {
+   "id": "scenes.stud-dawn",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9531 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a misty spring dawn on a stud farm: mares with young foals grazing in a dewy paddock behind white post-and-rail fencing, an old red-brick foaling barn with a weathervane, cherry blossom trees, low sun glowing through the mist' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/stud-dawn.png"
+  },
+  {
+   "id": "scenes.hall-of-fame",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9541 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a grand oak-panelled hall of fame inside a Victorian racecourse: gilt-framed oil paintings of champion racehorses on the walls, polished brass plaques, a marble horse statue on a plinth, a red carpet runner, a tall stained-glass window, warm chandelier light' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/hall-of-fame.png"
+  },
+  {
+   "id": "scenes.press-room",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9651 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, the press room of an old English racecourse: journalists at desks with typewriters and telephones, a large chalkboard of race results, racing newspapers pinned to a cork board, a big window overlooking the racetrack and grandstand, warm afternoon light' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/press-room.png"
+  },
+  {
+   "id": "scenes.form-rail",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9661 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, race-goers leaning on the white running rail at an English racecourse studying racecards and looking through binoculars, a chalkboard of the day's tips under a striped awning, the green track and a distant grandstand beyond' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/form-rail.png"
+  },
+  {
+   "id": "scenes.foaling-barn",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9571 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, inside a cosy wooden foaling barn: a bay mare and her young foal in a deep golden straw stall, warm lantern light, hay racks and a wooden feed bucket, swallows on the oak beams, sunbeams through a half-door' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/foaling-barn.png"
+  },
+  {
+   "id": "scenes.estate-office",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9681 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, an old estate office in an English racing stable: a big oak desk with an open account ledger, an inkwell and pen, a brass desk lamp, neat stacks of gold coins, framed horse paintings and rosettes on the wall, a window onto the stable yard at golden hour' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/estate-office.png"
+  },
+  {
+   "id": "scenes.retirement-meadow",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9591 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a peaceful retirement farm at sunset: old retired racehorses grazing in a wildflower meadow, a weathered wooden barn, a great old oak tree, rolling hills, long golden shadows, a calm and gentle mood' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/retirement-meadow.png"
+  },
+  {
+   "id": "scenes.gallops-morning",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9701 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses with work riders cantering up a grass gallop on the chalk downs in the early morning, a white rail along the gallop, rolling hills, morning mist, low golden sun, a trainer watching from a landrover' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/gallops-morning.png"
+  },
+  {
+   "id": "scenes.club-library",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9711 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, an old racing club library: tall dark bookshelves full of leather-bound stud books, a reading desk with an open book and a bronze horse statuette, a globe, rolled pedigree charts, a fireplace, warm lamplight' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/club-library.png"
+  },
+  {
+   "id": "scenes.yard-works",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9621 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a racing stable yard being extended: a new red-brick stable block under wooden scaffolding with ladders, stacks of timber and slates, a wheelbarrow, a curious horse looking out of an old stable door, golden hour' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/yard-works.png"
+  },
+  {
+   "id": "scenes.vet-room",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9631 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a clean whitewashed equine vet room in a racing stable: a kind vet in a green coat gently examining a calm bay horse's foreleg, a groom holding the head collar, shelves of bottles and bandages, a lamp, sunlight from a high window, reassuring mood' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/vet-room.png"
+  },
+  {
+   "id": "scenes.grooming-aisle",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9641 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a stable aisle at golden hour: a groom brushing a gleaming chestnut racehorse tied in the aisle, grooming kit in a wooden box, hay nets, horses looking out of their stalls, dust motes in sunbeams' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/grooming-aisle.png"
+  },
+  {
+   "id": "scenes.farrier-forge",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9651 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a farrier's forge in a racing yard: a farrier in a leather apron fitting a racing plate to a calm horse's hoof, a glowing coal forge, an anvil, horseshoes hanging on the wall, warm firelight' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/farrier-forge.png"
+  },
+  {
+   "id": "scenes.stud-book",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9661 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a still life on an old oak desk: an open stud book with handwritten pedigree family trees, rolled pedigree charts, a brass magnifying glass, a horseshoe paperweight, an inkwell, warm lamplight, a window onto paddocks' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/stud-book.png"
+  },
+  {
+   "id": "scenes.starting-stalls",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9671 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses with jockeys in colourful silks being loaded into green metal starting stalls on a racecourse, handlers leading them in, the white rail and green turf, a distant grandstand, golden hour' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/starting-stalls.png"
+  },
+  {
+   "id": "scenes.pedigree-wall",
+   "kind": "building",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 688,
+   "frameHeight": 288,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "mid",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 688x288 seed 9671 (pick 0 of 1), style_image diorama/poster-paddock.png, 'wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a breeder's study wall: a large hand-drawn pedigree family tree of a racehorse line with small painted horse portraits linked by red threads, a bloodstock sales catalogue on a side table, a desk lamp, warm evening light' -> palette PNG, native size (art-src/process_sections.py)",
+   "optimizationTier": "standard",
+   "src": "scenes/pedigree-wall.png"
+  },
+  {
+   "id": "vignettes.win",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9801 (pick 7 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a racehorse and jockey in silks crossing the finish line past the white winning post, arms raised in joy' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/win.png"
+  },
+  {
+   "id": "vignettes.first-win",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9802 (pick 1 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a red and gold winner's rosette pinned on the bridle of a happy bay racehorse's head' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/first-win.png"
+  },
+  {
+   "id": "vignettes.photo-finish",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9803 (pick 5 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, two racehorse heads nose to nose at the white finish post, a bright camera flash' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/photo-finish.png"
+  },
+  {
+   "id": "vignettes.purse",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9804 (pick 10 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a neat stack of gold coins beside a small silver cup and a green ribbon' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/purse.png"
+  },
+  {
+   "id": "vignettes.champion",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9805 (pick 7 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a golden champion's trophy cup inside a green laurel wreath with a brass ribbon' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/champion.png"
+  },
+  {
+   "id": "vignettes.jockey-signed",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9806 (pick 2 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, two hands shaking over a signed contract with a folded jockey's racing silks and cap beside it' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/jockey-signed.png"
+  },
+  {
+   "id": "vignettes.jockey-retires",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9857 (pick 11 of 16), style_image raw/vignettes/photo-finish-9803-5.png, 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a jockey's silk cap and goggles hanging on a wooden peg beside riding boots in a tack room, soft evening light, the scene fills the whole square' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/jockey-retires.png"
+  },
+  {
+   "id": "vignettes.jockey-claim",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9808 (pick 7 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a young apprentice jockey in silks proudly holding up a certificate with a gold seal' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/jockey-claim.png"
+  },
+  {
+   "id": "vignettes.sale",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9809 (pick 7 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an auctioneer's wooden gavel striking its block beside a lot number card' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/sale.png"
+  },
+  {
+   "id": "vignettes.claim",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9810 (pick 3 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a racehorse being led away by a groom holding a brown luggage tag on a lead rope' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/claim.png"
+  },
+  {
+   "id": "vignettes.hall-of-fame",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9811 (pick 2 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a polished brass plaque with a horse head relief framed by golden laurels on dark oak panelling' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/hall-of-fame.png"
+  },
+  {
+   "id": "vignettes.memorial",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9812 (pick 1 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a softly glowing lantern beside a single white rose on a stable windowsill at dusk, quiet and respectful' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/memorial.png"
+  },
+  {
+   "id": "vignettes.retired",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9813 (pick 2 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an old grey horse grazing peacefully under a big oak tree in a sunset meadow' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/retired.png"
+  },
+  {
+   "id": "vignettes.foal",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9814 (pick 2 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a newborn foal on wobbly legs beside its mother in golden straw' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/foal.png"
+  },
+  {
+   "id": "vignettes.vet",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9815 (pick 6 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a kind vet in a green coat gently checking a horse's bandaged foreleg with care, calm and reassuring' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/vet.png"
+  },
+  {
+   "id": "vignettes.week",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9816 (pick 3 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a page-a-day calendar with three small rosettes pinned beside it' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/week.png"
+  },
+  {
+   "id": "vignettes.improver",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9817 (pick 0 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a racehorse galloping out of a morning mist with golden sparkles trailing behind' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/improver.png"
+  },
+  {
+   "id": "vignettes.quirk",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9818 (pick 0 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a curious racehorse head peeking out over a stable half-door with a sheepskin noseband, one ear flopped' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/quirk.png"
+  },
+  {
+   "id": "vignettes.unlock",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9819 (pick 7 of 16), 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an ornate wrought-iron estate gate swinging open onto a sunny green paddock' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/unlock.png"
+  },
+  {
+   "id": "vignettes.scan",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9870 (pick 10 of 16), style_image raw/vignettes/photo-finish-9803-5.png, 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an old pedigree certificate with a hand-drawn family tree under a brass magnifying glass on a desk' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/scan.png"
+  },
+  {
+   "id": "vignettes.exact",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9871 (pick 4 of 16), style_image raw/vignettes/photo-finish-9803-5.png, 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an open trainer's notebook of handwritten form figures beside a silver stopwatch' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/exact.png"
+  },
+  {
+   "id": "vignettes.legacy",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9872 (pick 1 of 16), style_image raw/vignettes/photo-finish-9803-5.png, 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a gilt-framed painting of a proud racehorse hanging above a mantelpiece with a rosette and a candle' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/legacy.png"
+  },
+  {
+   "id": "vignettes.stable-steps",
+   "kind": "ui_portrait",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 64,
+   "frameHeight": 64,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [],
+   "sourcePrompt": "generate-image-v2 64x64 seed 9873 (pick 0 of 16), style_image raw/vignettes/photo-finish-9803-5.png, 'tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a ring of old iron keys hanging on a hook beside a green stable door' -> centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)",
+   "optimizationTier": "standard",
+   "src": "vignettes/stable-steps.png"
+  },
+  {
+   "id": "trophies.plaques",
+   "kind": "prop",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 17,
+   "frameWidth": 45,
+   "frameHeight": 42,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "first_race",
+    "first_win",
+    "ten_wins",
+    "photo_win",
+    "graded_win",
+    "g1_win",
+    "first_foal",
+    "bred_b",
+    "bred_a",
+    "bred_s",
+    "cup_regular",
+    "cup_top10",
+    "promoted",
+    "final_win",
+    "hall_of_fame",
+    "carer",
+    "stable_steps"
+   ],
+   "sourcePrompt": "generate-image-v2 48x48 seed 9901 (pick 1 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a little starting gate with open doors' -> cell 0; generate-image-v2 48x48 seed 9902 (pick 15 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a winner's rosette with ribbons' -> cell 1; generate-image-v2 48x48 seed 9903 (pick 15 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a ring of ten small stars around a horseshoe' -> cell 2; generate-image-v2 48x48 seed 9904 (pick 10 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: two horse heads nose to nose' -> cell 3; generate-image-v2 48x48 seed 9905 (pick 9 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a single large five-pointed star' -> cell 4; generate-image-v2 48x48 seed 9906 (pick 7 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a royal crown above a horseshoe' -> cell 5; generate-image-v2 48x48 seed 9907 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a small foal standing on long legs' -> cell 6; generate-image-v2 48x48 seed 9908 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a young oak sapling with three leaves' -> cell 7; generate-image-v2 48x48 seed 9909 (pick 5 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a horse head with a bright star on its forehead' -> cell 8; generate-image-v2 48x48 seed 9910 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a winged horse rearing' -> cell 9; generate-image-v2 48x48 seed 9911 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a pocket stopwatch' -> cell 10; generate-image-v2 48x48 seed 9912 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a small cup inside a laurel wreath' -> cell 11; generate-image-v2 48x48 seed 9913 (pick 7 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a bold upward chevron arrow' -> cell 12; generate-image-v2 48x48 seed 9914 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a large two-handled championship cup' -> cell 13; generate-image-v2 48x48 seed 9915 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a classical column wrapped in laurel' -> cell 14; generate-image-v2 48x48 seed 9916 (pick 2 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a grooming brush and a small heart' -> cell 15; generate-image-v2 48x48 seed 9917 (pick 4 of 25), style_image raw/plaques/style-old-plaque.png (the old shared plaque), 'a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: an old iron key' -> cell 16 (art-src/process_plaques.py; order in trophies/plaques.json)",
+   "optimizationTier": "standard",
+   "src": "trophies/plaques.png",
+   "animations": {}
+  },
+  {
    "id": "diorama.barn-floor",
    "kind": "track_layer",
    "origin": "pixellab",

@@ -1,0 +1,213 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an ornate wrought-iron estate gate swinging open onto a sunny green paddock",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9819
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1533d626-de13-4b03-aafa-d2c68a28f9bc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "1533d626-de13-4b03-aafa-d2c68a28f9bc",
+  "status": "completed",
+  "created_at": "2026-10-31T13:00:24.023915+00:00",
+  "last_response": {
+   "seed": 9819,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5132 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5012 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7888 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5324 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5972 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7024 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4940 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6672 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<8464 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6428 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5792 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7304 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<8456 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5400 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5484 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<8812 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "3a1b1dc0-5cf3-41e2-b46a-6b9d03c3c3b0",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "Topdown Japanese garden landscape scene",
+   "style_selection": {
+    "style_reference_id": "9d250c6e-d1ec-464a-9968-eccb9357f11d",
+    "style_reference_name": "Topdown Japanese garden landscape scene",
+    "style_catalog_revision": 402,
+    "style_reference_frames": [
+     {
+      "width": 64,
+      "height": 64,
+      "opaque": true,
+      "sha256": "471577976171013f834fea78ae940ad9cb7f108836d43abd52896cf55cb607c4",
+      "direction": null,
+      "content_box": [
+       0,
+       0,
+       64,
+       64
+      ]
+     }
+    ],
+    "style_reference_intent": {
+     "camera": null,
+     "facing": null,
+     "framing": "square vignette",
+     "inferred": [
+      "square canvas"
+     ],
+     "asset_kind": "vignette with wrought-iron estate gate",
+     "asset_family": "environment",
+     "rendering_traits": [
+      "tiny",
+      "square",
+      "pixel art",
+      "vignette",
+      "thin dark wood border",
+      "warm golden-hour light",
+      "racing-club palette",
+      "clear readable silhouette",
+      "high-res pixel art",
+      "selective dark outline",
+      "no text"
+     ]
+    },
+    "style_reference_reason": "This is a top-down landscape scene, which is the closest structural category for an environment vignette. It shares the 'Retro 16' style and dark outlines requested.",
+    "style_reference_direction": null,
+    "style_reference_cropped_to": null,
+    "style_reference_description": "This topdown scene depicts a traditional Japanese garden with a house, cherry blossom trees, and a pond. It features clean dark outlines and a vibrant, saturated palette with soft two-tone shading. The style evokes a modern 16-bit aesthetic with medium detail.",
+    "style_reference_missing_traits": [
+     "thin dark wood border",
+     "warm golden-hour light",
+     "racing-club palette"
+    ]
+   },
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:00:29.048733+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 108
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/unlock-9819-0.png",
+  "art-src/raw/vignettes/unlock-9819-1.png",
+  "art-src/raw/vignettes/unlock-9819-2.png",
+  "art-src/raw/vignettes/unlock-9819-3.png",
+  "art-src/raw/vignettes/unlock-9819-4.png",
+  "art-src/raw/vignettes/unlock-9819-5.png",
+  "art-src/raw/vignettes/unlock-9819-6.png",
+  "art-src/raw/vignettes/unlock-9819-7.png",
+  "art-src/raw/vignettes/unlock-9819-8.png",
+  "art-src/raw/vignettes/unlock-9819-9.png",
+  "art-src/raw/vignettes/unlock-9819-10.png",
+  "art-src/raw/vignettes/unlock-9819-11.png",
+  "art-src/raw/vignettes/unlock-9819-12.png",
+  "art-src/raw/vignettes/unlock-9819-13.png",
+  "art-src/raw/vignettes/unlock-9819-14.png",
+  "art-src/raw/vignettes/unlock-9819-15.png"
+ ]
+}
