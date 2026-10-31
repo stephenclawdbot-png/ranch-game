@@ -56,7 +56,11 @@ export type DomainErrorCode =
   /** Too many leases at once (game-core MAX_LEASES_PER_OWNER / MAX_LEASES_PER_LESSEE). */
   | "LEASE_LIMIT"
   /** Too many changes of a daily-capped thing (stable photo uploads; services/stablePhoto.ts). */
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  /** A stable already holds JOCKEYS_PER_STABLE_MAX jockeys (services/jockeys.ts). */
+  | "JOCKEY_LIMIT"
+  /** The jockey can't take this ride or move (booked within 10 minutes, retired, rides for another stable). */
+  | "JOCKEY_UNAVAILABLE";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -134,6 +138,7 @@ const CONSTRAINT_CODES: Record<string, DomainErrorCode> = {
   foal_crop_bounds: "CROP_SOLD_OUT",
   stables_slots: "INVALID_INPUT",
   stables_entry_balance: "INSUFFICIENT_ENTRIES",
+  jockey_rides_race_jockey_uq: "JOCKEY_UNAVAILABLE",
 };
 
 /** Translates rule-encoding constraint violations into DomainErrors; returns other errors unchanged. */

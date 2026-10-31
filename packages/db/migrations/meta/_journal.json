@@ -134,6 +134,13 @@
       "when": 1793389629481,
       "tag": "0018_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793410638155,
+      "tag": "0019_jockeys",
+      "breakpoints": true
     }
   ]
 }
