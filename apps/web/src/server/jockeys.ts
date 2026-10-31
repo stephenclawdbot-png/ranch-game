@@ -5,7 +5,9 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import {
+  ensureJockeyBackfill,
   getJockey,
+  handicapWeightsFor,
   jockeyCareer,
   jockeyLeaderboard,
   jockeyRecentRides,
@@ -101,6 +103,8 @@ export interface JockeysPageView {
 }
 
 export async function jockeysPage(db: Db, session: Session | null, filter: JockeyFilter, now: Date): Promise<JockeysPageView> {
+  // The maintenance tick backfills within a minute of a deploy; a fresh database gets its pool here.
+  await ensureJockeyBackfill(db, now);
   const s = season(now);
   const viewer = session?.stable.id ?? null;
   const wins = await jockeyWinsBetween(db, s.startsAt, s.endsAt);
@@ -177,10 +181,12 @@ export async function myJockeys(db: Db, session: Session, now: Date): Promise<Jo
 /** The entry sheet's jockeys for a Live race: own first (best first), then free Club freelancers (best first, a short list). */
 export async function riderOptions(db: Db, session: Session, race: PublicRace & { postTime: Date | string }): Promise<{ own: RiderOption[]; freelancers: RiderOption[]; defaultId: string | null }> {
   const post = new Date(race.postTime);
+  // The claim comes off a handicap weight only, so only a handicap's sheet shows it.
+  const weighted = handicapWeightsFor(race);
   const opt = async (v: JockeyView, own: boolean): Promise<RiderOption> => ({
     id: v.id,
     name: v.name,
-    cardName: gc.jockeyCardName(v.name, v.claimLb),
+    cardName: gc.jockeyCardName(v.name, weighted ? v.claimLb : 0),
     grade: v.grade,
     stage: v.stage,
     own,
@@ -189,7 +195,7 @@ export async function riderOptions(db: Db, session: Session, race: PublicRace & 
   });
   const own = await Promise.all((await stableJockeys(db, session.stable.id)).map((v) => opt(v, true)));
   const free = await listJockeys(db, { filter: "freelancers", limit: 200 });
-  const freelancers = (await Promise.all(free.map((v) => opt(v, false)))).filter((o) => !o.busy).slice(0, 12);
+  const freelancers = (await Promise.all(free.map((v) => opt(v, false)))).filter((o) => !o.busy).slice(0, 8);
   const defaultId = own.find((o) => !o.busy)?.id ?? null;
   return { own, freelancers, defaultId };
 }
