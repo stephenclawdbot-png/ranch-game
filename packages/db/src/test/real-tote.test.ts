@@ -393,7 +393,7 @@ describe("real-USDG tote (dormant scaffold)", () => {
   });
 
   it("M3: stuck old markets don't hold up newer ones (ordered by when their step fell due, parked rows skipped)", async () => {
-    const old = [];
+    const old: string[] = [];
     for (let i = 0; i < 3; i++) {
       const r = await flaggedRace(5);
       await openMarket(r.race.id);
