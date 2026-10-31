@@ -42,7 +42,7 @@ describe("onboarding view", () => {
     expect(o.mentorDone).toBe(false);
     expect(o.plainLanguage).toBe(false);
     expect(o.steps).toMatchObject({ done: 0, next: "care", complete: false });
-    expect(o.steps!.totalCredits).toBe(gc.stableStepsTotal({}));
+    expect(o.steps!.totalCredits).toBe(gc.stableStepsTotal({ quickRaces: true }));
     expect(Object.values(o.unlocks).some(Boolean)).toBe(false);
     expect(o.welcomeBack).toBeNull();
   });

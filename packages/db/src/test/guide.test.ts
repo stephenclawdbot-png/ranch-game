@@ -118,22 +118,17 @@ describe("Stable steps", () => {
     expect(await getBalance(h.db, p.accountId)).toBe(total);
   });
 
-  it("the quick race step is skipped until the quick races table exists, then reconciles from it", async () => {
+  it("the quick race step is on once quick races exist (migration 0029), and pays once", async () => {
     const p = await player();
-    expect(await quickRacesAvailable(h.db)).toBe(false);
-    expect((await stableStepsView(h.db, p.accountId, T0))!.steps.some((s) => s.key === "quick_race")).toBe(false);
-    expect(await completeStableStep(h.db, { accountId: p.accountId, step: "quick_race", now: T0 })).toBe(false);
-    await h.db.execute(sql`create table if not exists quick_races (id uuid primary key default gen_random_uuid(), account_id uuid not null)`);
     expect(await quickRacesAvailable(h.db)).toBe(true);
     const before = (await stableStepsView(h.db, p.accountId, T0))!;
     expect(before.steps.find((s) => s.key === "quick_race")!.done).toBe(false);
     expect(before.totalCredits).toBe(gc.stableStepsTotal({ quickRaces: true }));
-    await h.db.execute(sql`insert into quick_races (account_id) values (${p.accountId})`);
+    expect(await completeStableStep(h.db, { accountId: p.accountId, step: "quick_race", now: T0 })).toBe(true);
+    expect(await completeStableStep(h.db, { accountId: p.accountId, step: "quick_race", now: T0 })).toBe(false);
     const after = (await stableStepsView(h.db, p.accountId, T0))!;
     expect(after.steps.find((s) => s.key === "quick_race")!.done).toBe(true);
     expect(await getBalance(h.db, p.accountId)).toBe(credits("quick_race"));
-    await h.db.execute(sql`drop table quick_races`);
-    (globalThis as { __tbQuickRacesTable?: boolean }).__tbQuickRacesTable = undefined;
   });
 });
 
