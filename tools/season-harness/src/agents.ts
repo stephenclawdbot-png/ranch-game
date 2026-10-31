@@ -34,8 +34,11 @@
 import * as gc from "@thoroughbred/game-core";
 import { DomainError, RULES, confirmToteAdult, makeJockeyOffer, myToteRace, placeToteBet, recordAccountSignal, signJockey, stableOf, toteBoard, type Db } from "@thoroughbred/db";
 import { jockeysPage, myJockeys, transferWindowPage } from "@/server/jockeys";
-import { claimLive, enterLive, entryOptions, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
-import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
+import { claimLive, enterLive, entryOptions, myRaceResult, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
+import { breedingPreview, breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
+import { onboardingAction } from "@/server/guide";
+import { pickRunner } from "@/server/picks";
+import { pinTarget, planCandidates } from "@/server/social";
 import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
 import { cupView, leagueView, runCup } from "@/server/competition";
 import { createChapterRace, storyView } from "@/server/story";
@@ -766,6 +769,9 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
   const view = await world.act(a, "player_view", now, () => playerView(world.db, s, now));
   if (!view) return;
   const horses = view.horses;
+  // Results waiting are watched, and a new stable follows Stable steps now and then.
+  await watchResults(c, s, view);
+  if (view.onboarding?.steps && !view.onboarding.steps.complete && a.rng.chance(GUIDE_PERMILLE)) await followGuide(c, s, view);
   switch (a.cohort) {
     case "casual":
       await careAll(c, s, horses);
@@ -793,6 +799,71 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
 }
 
 type View = NonNullable<Awaited<ReturnType<typeof playerView>>>;
+
+/** Chance per visit (permille) that a new stable does one of Stable steps' smaller jobs. */
+const GUIDE_PERMILLE = 450;
+/** A result is watched once its broadcast is surely over (the inbox note lands at settlement). */
+const WATCH_AFTER_MS = 15 * MIN;
+
+/**
+ * Watching results: most players open a result that is waiting (the replay, then "Why it went
+ * that way"). Up to two per visit; through myRaceResult, the route the race page calls.
+ */
+async function watchResults(c: VisitCtx, s: Session, view: View): Promise<void> {
+  const { a, now, world } = c;
+  const waiting = view.inbox.filter((i) => !i.read && i.raceId && i.kind === "race_result" && i.createdAtMs <= now.getTime() - WATCH_AFTER_MS).slice(0, 2);
+  for (const item of waiting) {
+    if (!a.rng.chance(800)) continue;
+    const r = await world.act(a, "watch_result", now, () => myRaceResult(world.db, s, item.raceId!, now));
+    // A new stable reads the Why card under its own result (the step counts once).
+    if (r && view.onboarding?.guided && a.rng.chance(600)) await world.act(a, "read_why", now, () => onboardingAction(world.db, s, { action: "why", raceId: item.raceId! }, now));
+  }
+}
+
+/**
+ * Stable steps (the first-week guide): a new stable tries one of the jobs the guide lists that
+ * its cohort's routine wouldn't do by itself: save a training plan, pick a winner, pin a target
+ * race, preview a breeding. Care, Live entries, the Cup and watching come from the routines.
+ */
+async function followGuide(c: VisitCtx, s: Session, view: View): Promise<void> {
+  const { a, now, world } = c;
+  const todo = new Set(view.onboarding!.steps!.steps.filter((x) => !x.done).map((x) => x.key));
+  const racer = view.horses.find((h) => h.careerStatus === "racing" && !h.lockedRaceId && h.stage !== "foal" && h.stage !== "weanling" && h.stage !== "yearling");
+  if (todo.has("train_plan") && racer) {
+    const life = await world.act(a, "horse_life", now, () => horseLifeView(world.db, s, racer.id, now));
+    if (life?.training.available) {
+      const allowed = life.training.workouts.filter((w) => w.allowed && w.key !== "rest").map((w) => w.key);
+      const plan = Array.from({ length: life.training.slots }, (_, i) => (i === life.training.slots - 1 || !allowed.length ? "rest" : allowed[i % allowed.length]!));
+      await world.act(a, "training_plan", now, () => savePlanAction(world.db, s, racer.id, plan, now));
+    }
+    return;
+  }
+  if (todo.has("pick")) {
+    const { upcoming } = await raceList(world.db, now, s.stable.id);
+    for (const r of upcoming.filter((x) => x.kind === "live").slice(0, 4)) {
+      const card = await world.act(a, "race_card", now, () => raceCard(world.db, r.id, now, s.stable.id));
+      const runner = card && card.status === "open" ? card.field.find((e) => !e.mine) : undefined;
+      if (runner && card!.field.every((e) => !e.mine)) {
+        await world.act(a, "pick", now, () => pickRunner(world.db, s, r.id, runner.horse.id, now));
+        return;
+      }
+    }
+  }
+  if (todo.has("pin_target") && racer) {
+    const options = await world.act(a, "plan_candidates", now, () => planCandidates(world.db, s, racer.id, now));
+    const target = options?.find((o) => !o.reason && !o.calendar);
+    if (target) {
+      await world.act(a, "pin_target", now, () => pinTarget(world.db, s, { horseId: racer.id, raceId: target.raceId, slotIndex: target.slotIndex }, now));
+      return;
+    }
+  }
+  if (todo.has("breeding_preview")) {
+    const v = await world.act(a, "breeding_view", now, () => breedingView(world.db, s, now));
+    const mare = v?.mares[0];
+    const sire = v?.studs[0];
+    if (mare && sire) await world.act(a, "breeding_preview", now, () => breedingPreview(world.db, s, { sireId: sire.id, damId: mare.id }, now));
+  }
+}
 
 /** Chance per visit (permille) that a casual enters from the sheet with race-day extras. */
 const CASUAL_SHEET_PERMILLE = 120;

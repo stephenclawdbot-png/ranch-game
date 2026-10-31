@@ -953,6 +953,73 @@ export const dailyGoals = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Beginner welcome: mentor, Stable steps, coach marks, unlocks, welcome back (2026-10-31)
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per account. `guided` is true only for stables founded with the guide
+ * (createAccount); an account without a row, or with `guided` false, is an existing stable:
+ * no guide, no coach marks, every feature open. Rows for existing accounts are created lazily
+ * (welcome-back tracking) and stay unguided.
+ */
+export const onboardingStates = pgTable("onboarding_states", {
+  accountId: uuid("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+  guided: boolean("guided").notNull().default(false),
+  /** "New to horse racing?" Yes: glossary tooltips and simpler copy on key screens. */
+  plainLanguage: boolean("plain_language").notNull().default(false),
+  /** The mentor's welcome was finished or skipped (it can be reopened any time). */
+  mentorDoneAt: ts("mentor_done_at"),
+  /** Coach-mark ids the player has dismissed (each shows once per account). */
+  coachSeen: jsonb("coach_seen").notNull().default([]),
+  /** Every Stable step done and the finishing bonus paid. */
+  stepsDoneAt: ts("steps_done_at"),
+  /** Last visit (Home / player state), written at most every few minutes. */
+  lastVisitAt: ts("last_visit_at"),
+  /** Welcome back: when the player was last here before a day or more away, and when they came back. */
+  welcomeBackFrom: ts("welcome_back_from"),
+  welcomeBackAt: ts("welcome_back_at"),
+  createdAt: createdAt(),
+});
+
+/**
+ * One completed Stable step per account. The PK is the idempotency unit and the payment's
+ * ledger key (`stable-step:<account>:<step>`) matches it, so a step pays once.
+ */
+export const stableSteps = pgTable(
+  "stable_steps",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    /** game-core StableStepKey. */
+    step: text("step").notNull(),
+    completedAt: ts("completed_at").notNull(),
+    ledgerTxId: uuid("ledger_tx_id")
+      .notNull()
+      .references(() => ledgerTransactions.id),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.step] })],
+);
+
+/** Features opened for a guided stable (game-core unlockState): one row per feature, never removed. */
+export const featureUnlocks = pgTable(
+  "feature_unlocks",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    /** game-core UnlockFeature. */
+    feature: text("feature").notNull(),
+    /** game-core UnlockReason. */
+    reason: text("reason").notNull(),
+    unlockedAt: ts("unlocked_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.feature] })],
+);
+
+// ---------------------------------------------------------------------------
 // Leagues (weekly, 30 owners)
 // ---------------------------------------------------------------------------
 

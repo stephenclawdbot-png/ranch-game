@@ -344,6 +344,9 @@ const NON_LEDGER_KINDS = new Set([
   "story",
   "injury",
   "quirk",
+  // stable-wide moment kinds (guide.ts: a feature unlocked, the first-week guide finished)
+  "unlock",
+  "stable_steps",
   // news item kinds (news.ts) and the planner's inbox reminder (planner.ts)
   "photo_finish",
   "claim",

@@ -1,6 +1,10 @@
 import type { RaceConfig } from "@thoroughbred/shared";
 import { CLASS_LABEL, GOING_LABEL, SURFACE_LABEL, WEATHER_LABEL, formatCredits, formatDistance, furlongs } from "@/lib/format";
 import { PixelIcon, type IconName } from "./icons";
+import { Term } from "./onboarding/Term";
+
+/** The glossary word for each race class (plain-language tooltips). */
+const CLASS_TERM: Record<string, string> = { maiden: "Maiden", novice: "Novice", handicap: "Handicap", listed: "Listed race", graded: "Group race" };
 
 const WEATHER_ICON: Record<RaceConfig["weather"], IconName> = { clear: "sun", overcast: "cloud", rain: "rain", dusk: "moon" };
 
@@ -21,17 +25,23 @@ export function RaceMetaChips({ race, showPurse = false, showClass = true, trend
     <div className="flex flex-wrap gap-1.5">
       <span className="chip">
         <strong className="num text-cream">{formatDistance(race.distanceM)}</strong>
-        <span>{furlongs(race.distanceM)}</span>
+        <span>
+          <Term k="Furlong">{furlongs(race.distanceM)}</Term>
+        </span>
       </span>
       <span className="chip" data-testid="race-ground" title={trend && trend !== "steady" ? TREND_TITLE[trend] : undefined}>
-        {SURFACE_LABEL[race.surface]} · {GOING_LABEL[race.going].toLowerCase()}
+        {SURFACE_LABEL[race.surface]} · <Term k="Going">{GOING_LABEL[race.going].toLowerCase()}</Term>
         {trend && trend !== "steady" && <span className="text-cream-dim">, {trend}</span>}
       </span>
       <span className="chip">
         <WeatherGlyph weather={race.weather} className="h-4 w-4" />
         {WEATHER_LABEL[race.weather]}
       </span>
-      {showClass && <span className="chip">{CLASS_LABEL[race.raceClass]}</span>}
+      {showClass && (
+        <span className="chip">
+          <Term k={CLASS_TERM[race.raceClass] ?? ""}>{CLASS_LABEL[race.raceClass]}</Term>
+        </span>
+      )}
       {showPurse && (
         <span className="chip">
           <PixelIcon name="coin" size={16} />

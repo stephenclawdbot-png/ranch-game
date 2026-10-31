@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { z } from "zod";
 import { listForSale, marketView } from "@/server/economy";
 import { IdSchema, parseBody, withPlayer } from "@/server/economyHttp";
@@ -11,5 +12,12 @@ const Schema = z.object({ horseId: IdSchema, price: z.number().int().positive().
 export async function POST(req: Request) {
   const body = await parseBody(req, Schema, "Choose a horse and a whole-credit price.");
   if (!body.ok) return body.res;
-  return withPlayer(async (db, session, now) => ({ listing: await listForSale(db, session, body.data, now), view: await marketView(db, session, now) }), 201, "market_list");
+  return withPlayer(
+    async (db, session, now) => {
+      await requireUnlocked(db, session, "market", now);
+      return { listing: await listForSale(db, session, body.data, now), view: await marketView(db, session, now) };
+    },
+    201,
+    "market_list",
+  );
 }

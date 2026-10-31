@@ -534,6 +534,8 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:665 | Kind `insurance_payout`. | Credits created |
 | Release payout | 50 | packages/db/src/rules.ts:47, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
 | Referral active reward | 250 credits to the inviter when an invitee has 5 races and 3 play days | packages/db/src/services/affiliates.ts:74, :437 | Kind `referral_reward`. Runtime-configurable. | Credits created, sybil value |
+| `STABLE_STEPS` (new 2026-10-31) | 10 one-off steps, in order: care 50, training plan 60, Live entry 80, watch your Live race 60, read the Why card 60, Daily Cup 60, pick a winner 60, quick race 60 (only once quick races exist in the build), pin a target 70, breeding preview 70 | packages/game-core/src/onboarding.ts:154, packages/db/src/services/guide.ts (`completeStableStepTx`) | Stable steps, the first-week guide on Home: each step completes once from its real server event and pays once (kind `stable_step`). Only stables founded with the guide; never existing stables. | Credits created per new account (one-off), sybil value |
+| `STABLE_STEPS_BONUS` (new 2026-10-31) | 200 when every step on offer is done (770 in all without quick races, 830 with) | packages/game-core/src/onboarding.ts:168 | Finishing bonus (kind `stable_step`) and the Learned the Ropes plaque. | Credits created per new account (one-off) |
 | `RIVAL_INVITE_CREDITS` (new 2026-10-31) | 300 to each of the inviter and the invited stable, once per invited account; the inviter's side at most `RIVAL_INVITE_WEEKLY_WELCOMES` = 5 a UTC week; none for linked accounts | packages/game-core/src/picks.ts:31, :36, packages/db/src/services/rivals.ts:184 | "Bring a rival": a friend founds a stable through your rival link; you become declared rivals. Kind `rival_invite`. | Credits created, sybil value |
 | Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:734 | Kind `entry_fee_refund` (burn → player). | Neutral |
 
@@ -573,6 +575,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `insurance_payout` | mint → owner | packages/db/src/services/races.ts:666 |
 | `daily_goal` | mint → player | packages/db/src/services/dailyGoals.ts:41 |
 | `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:86 |
+| `stable_step` | mint → player (once per step per account, and the finishing bonus once) | packages/db/src/services/guide.ts (`completeStableStepTx`, `finishGuideTx`) |
 | `rival_invite` | mint → inviter and invited stable (once per invited account) | packages/db/src/services/rivals.ts:219 |
 | `story_reward` | mint → player | packages/db/src/services/player.ts:228 |
 | `referral_reward` | mint → inviter | packages/db/src/services/affiliates.ts:437 |
@@ -829,6 +832,19 @@ runners of the same pool raise `tote_linked_opposing_bets` (and count as one bet
 (an admin session, `TOTE_STAFF_ACCOUNT_IDS`, system accounts) can't bet. Declared dividends
 stand: an error found later is made good to underpaid players from `tote_house`, never clawed
 back from overpaid ones.
+
+## 18. Beginner welcome (new 2026-10-31)
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `UNLOCK_MARKET_DAYS` | 2 (the stable's third UTC day) | packages/game-core/src/onboarding.ts:211 | Market and leasing open for a new stable from this day (or with Story chapter 1). | Day-one load, early market volume |
+| `UNLOCK_CHAPTER_LICENCE` | 2 (Story chapter 1 done) | packages/game-core/src/onboarding.ts:213 | Opens market, leasing, claiming races and jockey contracts / the transfer window. The tote opens after the first watched Live race; wallet players have the tote, market and leasing from the start; existing stables have everything; a used feature never closes. | Early claiming, contract and tote volume |
+| `WELCOME_BACK_AFTER_MS` / `WELCOME_BACK_SHOW_MS` | 24 h / 6 h | packages/game-core/src/onboarding.ts:292, :294 | Away this long and Home opens with the welcome-back card; it shows until dismissed or this long after. | Return sessions |
+| `MENTOR` | Wilf Ashby, head lad | packages/game-core/src/onboarding.ts | The mentor's name in the welcome, coach marks, Stable steps and moments. | Copy |
+
+Unlocks are UI gates plus a route guard (`apps/web/src/server/guide.ts` `requireUnlocked`) on the
+tote bet, claim, claiming-race entry, market buy/list, lease offer/take and jockey sign/offer
+routes. The season harness acts through the server functions, so it is not gated.
 
 ---
 

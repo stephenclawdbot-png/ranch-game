@@ -19,6 +19,7 @@ import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { recordPlayDay } from "./accounts";
 import { completeGoal } from "./dailyGoals";
+import { completeStableStepTx } from "./guide";
 import { lockKeptHorse } from "./horses";
 import { assertLeaseInForceTx } from "./leasing";
 import { grantCreditsTx } from "./ledger";
@@ -89,6 +90,7 @@ export async function runCupEntry(db: Db, input: CupEntryInput) {
     }
     // Today's "run the Daily Cup" goal (a no-op once it has already paid today).
     await completeGoal(tx, { accountId: input.accountId, goal: "cup", now: input.now });
+    await completeStableStepTx(tx, { accountId: input.accountId, step: "daily_cup", now: input.now });
     await recordPlayDay(tx, input.accountId, input.now);
     await audit(tx, { actor: input.accountId, action: "daily_cup.run", entityType: "daily_cup_entry", entityId: row!.id, data: { day, horseId: horse.id, position: run.finishPosition } });
     return row!;

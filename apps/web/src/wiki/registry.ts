@@ -38,7 +38,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
 
 export const WIKI_PAGES: WikiPageMeta[] = [
   // Getting started
-  { slug: "quick-start", section: "start", title: "Quick start", summary: "Found a stable and win your first race in ten minutes.", keywords: ["new", "begin", "tutorial", "first"] },
+  { slug: "quick-start", section: "start", title: "Quick start", summary: "Found a stable and win your first race in ten minutes.", keywords: ["new", "begin", "tutorial", "first", "mentor", "stable steps", "guide", "unlock", "welcome back", "plain language"] },
   { slug: "the-estate", section: "start", title: "The estate", summary: "Estate, Stable, Racing, Club and Sales: what each area is for.", keywords: ["navigation", "menu", "areas", "this week", "road to saturday"] },
   { slug: "credits-and-entries", section: "start", title: "Credits & entries", summary: "How you earn and spend Stable Credits, and the daily entry bank.", keywords: ["money", "coins", "currency", "entries", "daily"] },
 

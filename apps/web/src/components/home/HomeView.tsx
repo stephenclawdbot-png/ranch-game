@@ -22,6 +22,11 @@ import { HomeSocial } from "../social/HomeSocial";
 import { TodaysPicks } from "../picks/TodaysPicks";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
+import { MentorNudge } from "../onboarding/Mentor";
+import { StableSteps } from "../onboarding/StableSteps";
+import { WelcomeBack } from "../onboarding/WelcomeBack";
+import { usePlain } from "../onboarding/guide";
+import { Term } from "../onboarding/Term";
 
 interface ClubProps {
   next: RaceSummary | null;
@@ -176,6 +181,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   // The hero features one horse's run: skip that run below, not every horse in the same race.
   const heroRun = upcomingMine ? { raceId: upcomingMine.raceId, horseId: upcomingMine.horseId } : unseen[0]?.raceId ? { raceId: unseen[0].raceId, horseId: unseen[0].horseId } : null;
   const horseOf = (id: string | null | undefined) => state.horses.find((h) => h.id === id);
+  const ob = state.onboarding ?? null;
 
   const plaques: EstatePlaque[] = [
     {
@@ -210,6 +216,22 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         )}
         {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} />}
       </EstateStage>
+
+      {ob?.welcomeBack && (
+        <div className="mt-4">
+          <WelcomeBack w={ob.welcomeBack} />
+        </div>
+      )}
+      {ob?.guided && !ob.mentorDone && (
+        <div className="mt-4">
+          <MentorNudge />
+        </div>
+      )}
+      {ob?.steps && (!ob.steps.completedAtMs || (now ?? 0) - ob.steps.completedAtMs < 3 * 86_400_000) && (
+        <div className="mt-4">
+          <StableSteps steps={ob.steps} state={state} plain={ob.plainLanguage} />
+        </div>
+      )}
 
       <Link href="/week" className="surface mt-4 flex items-center justify-between gap-3 p-4" data-testid="home-week">
         <span className="flex items-center gap-3">
@@ -355,6 +377,7 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
 /** The default next action: Quick Pick runs your best-suited fresh horse in a Story race. */
 function QuickPickHero({ s, firstRace }: { s: StableHorse; firstRace: boolean }) {
   const entry = useEntry();
+  const plain = usePlain();
   const horse = s.horse;
   return (
     <Hero
@@ -366,7 +389,15 @@ function QuickPickHero({ s, firstRace }: { s: StableHorse; firstRace: boolean })
         </span>
       }
       title={`${horse.name} is ready`}
-      body={`${STYLE_LABEL[horse.style]} · best at ${formatDistance(horse.preferredDistanceM)} on ${SURFACE_LABEL[horse.preferredSurface].toLowerCase()}. A Story race against the Club is free.`}
+      body={
+        plain ? (
+          <>
+            {horse.name} runs best over {formatDistance(horse.preferredDistanceM)} (the race&rsquo;s <Term k="trip" />) on {SURFACE_LABEL[horse.preferredSurface].toLowerCase()}. A Story race is a free practice race against the Club&rsquo;s horses: nothing to lose, and every run teaches you something.
+          </>
+        ) : (
+          `${STYLE_LABEL[horse.style]} · best at ${formatDistance(horse.preferredDistanceM)} on ${SURFACE_LABEL[horse.preferredSurface].toLowerCase()}. A Story race against the Club is free.`
+        )
+      }
     >
       <ActionBar>
         <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPick} data-testid="quick-pick">

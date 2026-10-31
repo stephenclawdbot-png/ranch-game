@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatCredits } from "@/lib/format";
 import { ApiFailure, api } from "@/lib/player";
 import { refreshPurse } from "../economy/kit";
+import { useLocked } from "../onboarding/FeatureGate";
 
 /**
  * Claim a runner of a claiming race: one confirm (the price goes into escrow now and comes back
@@ -15,6 +16,8 @@ export function ClaimButton({ raceId, horseId, horseName, price }: { raceId: str
   const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Progressive unlocks: a new stable claims once it has finished Story chapter 1.
+  const locked = useLocked("claiming");
 
   async function claim() {
     setBusy(true);
@@ -31,6 +34,7 @@ export function ClaimButton({ raceId, horseId, horseName, price }: { raceId: str
     }
   }
 
+  if (locked) return <span className="caption" data-testid="claim-locked">Claiming opens after Story chapter 1</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       {armed ? (

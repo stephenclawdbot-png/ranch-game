@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { makeJockeyOffer, withdrawJockeyOffer } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
 import { z } from "zod";
@@ -26,6 +27,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const database = await db();
     const session = await requireSession(database);
+    await requireUnlocked(database, session, "jockey_contracts", new Date());
     const offer = await makeJockeyOffer(database, { accountId: session.accountId, jockeyId: decodeURIComponent(id), now: new Date(), terms });
     return json({ ok: true, offer: { wage: offer.wage, length: offer.length, promisedRides: offer.promisedRides, buyout: offer.buyout, fee: offer.fee } });
   } catch (err) {

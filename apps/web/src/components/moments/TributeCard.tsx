@@ -15,6 +15,8 @@ export const MOMENT_ICON: Record<string, IconName> = {
   legacy: "laurel",
   memorial: "lantern",
   week_recap: "medallion",
+  unlock: "gate",
+  stable_steps: "plaque",
 };
 
 const day = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });

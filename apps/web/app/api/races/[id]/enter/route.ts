@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { RaceDayChoiceSchema } from "@thoroughbred/game-core";
 import { db } from "@/server/db";
-import { enterLive, playerView } from "@/server/game";
+import { enterLive, isClaimingLiveRace, playerView } from "@/server/game";
+import { requireUnlocked } from "@/server/guide";
 import { errorJson, handleError, json, readJson } from "@/server/http";
 import { HorseIdSchema, PlanSchema } from "@/server/planSchema";
 import { requireSession } from "@/server/session";
@@ -22,6 +23,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const database = await db();
     const session = await requireSession(database);
     const now = new Date();
+    // Progressive unlocks: a new stable enters claiming races once Story chapter 1 is done.
+    if (await isClaimingLiveRace(database, decodeURIComponent(id))) await requireUnlocked(database, session, "claiming", now);
     const entry = await enterLive(database, session, decodeURIComponent(id), parsed.data.horseId, parsed.data.plan, now, parsed.data.raceDay, parsed.data.claimPrice);
     await trackEvent(database, session.accountId, "race_entered", { kind: "live" });
     return json({ entry, player: await playerView(database, session, now) }, { status: 201 });

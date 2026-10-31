@@ -27,6 +27,7 @@ import { claimingEntryCheckTx, drawClaimsTx, lockClaimantStablesTx, refundClaims
 import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
+import { completeStableStepTx } from "./guide";
 import { isCarrying, keeperOf, lockHorse, startsOnDay } from "./horses";
 import { logRaceOutcomeTx } from "./horseLog";
 import { afterLeasedRaceTx,leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseTx } from "./leasing";
@@ -447,6 +448,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     // Today's "run a race" goal on the wall clock (a no-op once it has already paid today);
     // a cancelled race keeps the day's goal (owner-accepted edge).
     await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.goalNow ?? input.now });
+    // Stable steps (the first-week guide): the first Live entry.
+    if ((LIVE_RACE_KINDS as readonly string[]).includes(race.kind)) await completeStableStepTx(tx, { accountId: input.accountId, step: "enter_live", now: input.now });
     await audit(tx, { actor: input.accountId, action: "race.enter", entityType: "race", entityId: race.id, data: { horseId: horse.id, cost: race.entryCost, ...(stored ? { raceDay: stored } : {}) } });
     return entry!;
   });

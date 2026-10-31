@@ -4899,3 +4899,48 @@ a.pill:hover,
     inset 0 0 0 3px var(--color-brass),
     0 0 0 2px #0b0f0c;
 }
+
+/* Beginner welcome (components/onboarding): coach marks inline, glossary words a tap away. */
+.coach-mark {
+  box-shadow: inset 4px 0 0 var(--color-brass);
+}
+.term-word {
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--color-brass);
+  cursor: help;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.term-word:focus-visible {
+  outline: 2px solid var(--color-brass-hi);
+  outline-offset: 2px;
+}
+.term-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 24px));
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+  color: var(--color-cream);
+  background: var(--color-surface-2);
+  box-shadow:
+    inset 0 0 0 2px var(--color-brass),
+    0 6px 0 0 rgb(0 0 0 / 0.35);
+}
+.plain-note {
+  color: var(--color-cream);
+}

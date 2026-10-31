@@ -793,6 +793,31 @@ export async function toteTotals(world: World): Promise<ToteTotals> {
   };
 }
 
+/** Stable steps, the first-week guide (packages/db guide.ts): one-off credits per new stable. */
+export interface GuideTotals {
+  /** Stables founded with the guide, and how many finished it. */
+  guided: number;
+  finished: number;
+  /** Steps completed in all, and the credits the guide paid (steps + bonuses). */
+  steps: number;
+  credits: number;
+  /** Stables that had each feature opened, by feature. */
+  unlocked: Record<string, number>;
+}
+
+export async function guideTotals(world: World): Promise<GuideTotals> {
+  const db = world.db;
+  const [g] = await q<{ guided: number; finished: number }>(db, `select count(*) filter (where guided)::int guided, count(steps_done_at)::int finished from onboarding_states`);
+  const [st] = await q<{ n: number }>(db, `select count(*)::int n from stable_steps`);
+  const [cr] = await q<{ c: string }>(
+    db,
+    `select coalesce(sum(p.amount), 0)::bigint c from ledger_postings p join ledger_transactions t on t.id = p.transaction_id join ledger_accounts la on la.id = p.ledger_account_id where t.kind = 'stable_step' and la.kind = 'player'`,
+  );
+  const unlocked: Record<string, number> = {};
+  for (const r of await q<{ feature: string; n: number }>(db, `select feature, count(*)::int n from feature_unlocks group by 1 order by 1`)) unlocked[r.feature] = num(r.n);
+  return { guided: num(g?.guided), finished: num(g?.finished), steps: num(st?.n), credits: num(cr?.c), unlocked };
+}
+
 export interface ClaimingTotals {
   /** Claiming races that ran (settled), and those called off with no player runner. */
   racesRun: number;

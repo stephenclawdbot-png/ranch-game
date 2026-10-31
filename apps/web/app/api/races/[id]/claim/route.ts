@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { claimLive, playerView } from "@/server/game";
@@ -18,6 +19,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const database = await db();
     const session = await requireSession(database);
+    await requireUnlocked(database, session, "claiming", new Date());
     const now = new Date();
     const claim = await claimLive(database, session, decodeURIComponent(id), parsed.data.horseId, now);
     return json({ claim: { horseId: claim.horseId, price: claim.price, status: claim.status }, player: await playerView(database, session, now) }, { status: 201 });

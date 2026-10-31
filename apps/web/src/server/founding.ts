@@ -50,7 +50,8 @@ export async function foundStable(db: Db, input: FoundStableInput): Promise<Foun
     if (!input.inviteCode?.trim()) throw new DomainError("NOT_ELIGIBLE", "The playtest is invite only. Enter your invite code.");
     testerId = (await redeemInvite(db, { code: input.inviteCode, cap: playtest.testerCap, now: input.now })).testerId;
   }
-  const acc = await createAccount(db, { stableName: name.data, silks: silks.data, timezone: input.timezone, now: input.now });
+  // A stable founded today gets the beginner welcome (mentor, Stable steps, coach marks, unlocks).
+  const acc = await createAccount(db, { stableName: name.data, silks: silks.data, timezone: input.timezone, now: input.now, guided: true });
   if (testerId) await linkTester(db, { testerId, accountId: acc.accountId, stableName: name.data, now: input.now });
   // Affiliate tree (beta money): inviter = the code's owner (root/admin codes -> the owner account).
   if (input.inviteCode?.trim()) {

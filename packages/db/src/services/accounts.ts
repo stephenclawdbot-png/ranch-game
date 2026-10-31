@@ -11,6 +11,7 @@ import { seasonNumberAt } from "../rules";
 import type { Db, Executor } from "../types";
 import { ensureDailyEntries, isValidTimezone } from "./entries";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
+import { startGuideTx } from "./guide";
 import { audit, runTx } from "./tx";
 import { claimChosenName, claimSystemName } from "./naming";
 import { ensureStableApprenticeTx } from "./jockeys";
@@ -26,6 +27,8 @@ export interface CreateAccountInput {
   /** IANA timezone from the device (falls back to UTC if missing or unknown). */
   timezone?: string;
   now?: Date;
+  /** A stable founded with the beginner guide (mentor, Stable steps, coach marks, unlocks). Off by default: only the web app's founding turns it on. */
+  guided?: boolean;
 }
 
 export interface CreatedAccount {
@@ -61,6 +64,7 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
     if (credits > 0) {
       await grantCreditsTx(tx, { accountId: account!.id, amount: credits, idempotencyKey: `starter-grant:${account!.id}`, kind: "starter_grant" });
     }
+    if (input.guided) await startGuideTx(tx, account!.id, now);
     // Every stable starts with one apprentice jockey (jockeys.ts).
     await ensureStableApprenticeTx(tx, stable!.id, now);
     // Day one's Live entry allowance.

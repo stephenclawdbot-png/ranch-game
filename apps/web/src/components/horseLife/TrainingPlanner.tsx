@@ -1,5 +1,6 @@
 "use client";
 
+import { CoachMark } from "../onboarding/CoachMark";
 import { useEffect, useState } from "react";
 import type { HorseLifeView, StatKey, WorkoutView } from "@/lib/horseLife";
 import { STAT_NAMES, dayName } from "@/lib/horseLife";
@@ -80,6 +81,16 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
 
   return (
     <div className="grid gap-5">
+      <CoachMark
+        id="training"
+        title="The training board"
+        points={[
+          <>A week has a few training sessions. Pick a workout for each slot and save the plan: saving is free, each session costs a little when you run it.</>,
+          <>Each card shows what the next session does before you pay: which stats it builds, how tired it leaves the horse, and the risk of a knock.</>,
+          <>Hard work now sets up a fresh peak a few days later. Ease off before a big race.</>,
+          <>A tired horse races worse. Rest is a workout too.</>,
+        ]}
+      />
       {t.sessionsUsed < t.slots && (
         <TrainingBoard
           previews={t.previews}

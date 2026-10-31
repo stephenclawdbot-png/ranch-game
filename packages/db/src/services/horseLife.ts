@@ -27,6 +27,7 @@ import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
 import { lockStableOf, recordPlayDay, stableOf } from "./accounts";
 import { completeGoal } from "./dailyGoals";
+import { completeStableStepTx } from "./guide";
 import { localDate } from "./entries";
 import { keptBy, lockKeptHorse, lockOwnedHorse } from "./horses";
 import { getBalance, spendCreditsTx } from "./ledger";
@@ -242,6 +243,8 @@ async function careTx(tx: Tx, accountId: string, horse: HorseRow, day: string, n
   const graduated = horse.careSessions < RULES.careToRacing && careSessions >= RULES.careToRacing;
   // Today's "care for a horse" goal, on the same transaction (a no-op once it has paid).
   await completeGoal(tx, { accountId, goal: "care", now });
+  // Stable steps (the first-week guide): the first care session (a no-op once done or unguided).
+  await completeStableStepTx(tx, { accountId, step: "care", now });
   return { horse: updated!, counted: true, day, stageBefore, stageAfter: stage, graduated, feed, quality };
 }
 
@@ -314,6 +317,7 @@ export async function saveTrainingPlan(db: Db, input: { accountId: string; horse
       .insert(trainingPlans)
       .values({ horseId: horse.id, weekStart: utcWeekStart(input.now), plan: parsed.data, createdBy: input.accountId })
       .onConflictDoUpdate({ target: [trainingPlans.horseId, trainingPlans.weekStart], set: { plan: parsed.data, updatedAt: input.now } });
+    await completeStableStepTx(tx, { accountId: input.accountId, step: "train_plan", now: input.now });
     return parsed.data;
   });
 }

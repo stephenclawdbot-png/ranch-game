@@ -128,6 +128,8 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "toteVolume", label: "Tote credits pooled", value: t.tote?.pooled ?? 0 },
     { key: "toteHouseTake", label: "Tote house take (credits sunk)", value: t.tote?.houseTake ?? 0 },
     { key: "toteReturned", label: "Tote credits paid back to bettors", value: t.tote?.returned ?? 0 },
+    { key: "guideCredits", label: "Stable steps credits paid (first-week guide)", value: t.guide?.credits ?? 0 },
+    { key: "guideFinished", label: "Stables that finished Stable steps", value: t.guide?.finished ?? 0 },
     { key: "jockeyPool", label: "Jockeys (not retired) at the end", value: t.jockeys?.pool ?? 0 },
     { key: "jockeyPerActive", label: "Jockeys per active stable", value: t.jockeys?.perActiveStable ?? 0 },
     { key: "jockeyFreelancers", label: "Club freelancers at the end", value: t.jockeys?.freelancers ?? 0 },
@@ -241,6 +243,11 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
   }
   L.push("", "## Credits", "");
   L.push("Created by source: " + top(t.created).map(([k, v]) => `${k} ${fmt(v)}`).join(", ") + ".");
+  if (t.guide) {
+    const g = t.guide;
+    const opened = Object.entries(g.unlocked).map(([k, v]) => `${k} ${v}`).join(", ") || "none";
+    L.push("", `Stable steps (the first-week guide): ${fmt(g.credits)} credits paid to ${g.guided} guided stables, ${fmt(g.steps)} steps done, ${g.finished} finished the guide. Features opened: ${opened}.`);
+  }
   L.push("", "Destroyed by sink: " + (top(t.destroyed).map(([k, v]) => `${k} ${fmt(v)}`).join(", ") || "none") + ".");
   L.push("", "Moved between players: " + (top(t.transfers).map(([k, v]) => `${k} ${fmt(v)}`).join(", ") || "none") + ".");
   const d = lastDay(r);

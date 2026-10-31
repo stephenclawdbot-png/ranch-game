@@ -125,6 +125,7 @@ import type {
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
+import { afterResultWatched, onboardingView } from "./guide";
 import { stableNews } from "./moments";
 import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
@@ -800,6 +801,16 @@ function entryMeta(session: Session, plan: RacePlan) {
  * Enters a horse in a Live card race. `raceDay` = optional race-day extras and jockey
  * (game-core raceDay.ts), priced from the race's purse and charged with the entry.
  */
+/** A Live card race with claiming conditions (false for an unknown id: the entry itself reports that). */
+export async function isClaimingLiveRace(db: Db, raceId: string): Promise<boolean> {
+  if (!isRaceId(raceId)) return false;
+  try {
+    return isClaimingRace(await loadRace(db, raceId));
+  } catch {
+    return false;
+  }
+}
+
 export async function enterLive(db: Db, session: Session, raceId: string, horseId: string, plan: RacePlan, now: Date, raceDay: gc.RaceDayChoice = gc.NO_RACE_DAY, claimPrice?: number) {
   if (!isRaceId(raceId)) throw new RaceNotFoundError(raceId);
   await driveCard(db, now);
@@ -1289,6 +1300,8 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     await listStableRuns(db, session.stable.id, 30),
     await goalsForToday(db, session.accountId, now),
   ];
+  // The beginner welcome first: it may open a feature, whose "Unlocked" moment belongs in this view's news.
+  const onboarding = await onboardingView(db, session, now);
   const active: ActiveEntry[] = entries.map(({ entry, race }) => ({
     raceId: race.id,
     raceName: race.name,
@@ -1367,6 +1380,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     tester: !!(await testerForAccount(db, session.accountId)),
     serverNowMs: nowMs,
     news: await stableNews(db, session.accountId),
+    onboarding,
   };
 }
 
@@ -1442,6 +1456,8 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
     });
   }
   const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;
+  // Stable steps: watching your own Live race (a no-op for Story races and existing stables).
+  if (mine.length > 0) await afterResultWatched(db, session, raceId, now);
   return { raceId, settled: fresh.status === "settled", firstView, runners };
 }
 

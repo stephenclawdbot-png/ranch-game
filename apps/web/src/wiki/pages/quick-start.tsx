@@ -1,6 +1,6 @@
 import * as gc from "@thoroughbred/game-core";
 import { formatCredits, formatDistance, STYLE_LABEL, SURFACE_LABEL } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, WikiLink, appearanceOfGenome, count } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count } from "../kit";
 
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", pattern: "hoops", cap: "#1f4e9c" } as const;
 const MINUTES = (ms: number) => Math.round(ms / 60_000);
@@ -13,6 +13,20 @@ function exampleStarters() {
     return { state: s, horse, breed: gc.STARTER_PLAN[i]!.breed };
   });
 }
+
+/** Stable steps: how each one ticks (game-core STABLE_STEPS holds the order and credits). */
+const STEP_ROWS: [key: string, title: string, how: string][] = [
+  ["care", "Care for a horse", "Your first care session"],
+  ["train_plan", "Set a training plan", "Saving a week's plan on the gallops board"],
+  ["enter_live", "Enter a Live race", "Your first Live entry"],
+  ["watch_live", "Watch your Live race", "Watching its result"],
+  ["read_why", "Read \u201cWhy it went that way\u201d", "The card under your own watched result, on screen for a moment"],
+  ["daily_cup", "Run the Daily Cup", "Your first Cup run"],
+  ["pick", "Pick a winner", "Your first pick in a Live race"],
+  ["quick_race", "Try a quick race", "Your first quick race"],
+  ["pin_target", "Pin a target race", "Pinning a race on This week's planner"],
+  ["breeding_preview", "Preview a breeding", "A breeding preview or the stallion finder"],
+];
 
 export default function QuickStartPage() {
   const starters = exampleStarters();
@@ -34,6 +48,11 @@ export default function QuickStartPage() {
           <>
             Tap <b>Register &amp; get my horses</b>. It is free and your stable is linked to this browser. You start with <b>{formatCredits(gc.STARTER_GRANT)}</b> Stable Credits and
             your first day&rsquo;s Live entries.
+          </>,
+          <>
+            {gc.MENTOR.name}, the {gc.MENTOR.role.toLowerCase()}, says hello: three short screens on what the game is, how a day works and what to do first, then one question,
+            &ldquo;New to horse racing?&rdquo; Say yes and racing words get a tap-for-meaning and key screens use plainer words. Skip him if you like; he&rsquo;s at{" "}
+            <GameLink href="/welcome">Welcome</GameLink> any time.
           </>,
           <>Three stall doors open. You can rename any of your horses before its first race.</>,
         ]}
@@ -84,6 +103,41 @@ export default function QuickStartPage() {
         </p>
       </Callout>
 
+      <H2 id="stable-steps">Stable steps: your first week</H2>
+      <P>
+        After your first race, <b>Stable steps</b> on the Estate walk you through the game one job at a time. Each step ticks itself off when you actually do it (the game checks,
+        so there&rsquo;s nothing to claim), pays its credits once, and the last one pays a bonus of <b>{formatCredits(gc.STABLE_STEPS_BONUS)}</b> and the{" "}
+        <b>Learned the Ropes</b> plaque in your Trophy Room. Do them in any order; the guide shows the next one.
+      </P>
+      <Table
+        head={["Step", "How it ticks", "Credits"]}
+        rows={STEP_ROWS.filter(([key]) => gc.stableStepsFor({ quickRaces: true }).some((x) => x.key === key)).map(([key, title, how]) => [
+          title,
+          how,
+          gc.STABLE_STEPS.find((x) => x.key === key)!.credits,
+        ])}
+      />
+      <P>
+        That&rsquo;s {formatCredits(gc.stableStepsTotal({}))} credits in all with the bonus. The quick race step only appears once quick races are in the game. Stables
+        founded before the guide arrived don&rsquo;t get it, and keep everything they had.
+      </P>
+
+      <H2 id="unlocks">What opens later</H2>
+      <P>A new stable meets a few features a little later, so the first day isn&rsquo;t everything at once. Nothing you have already used is ever taken away.</P>
+      <Table
+        head={["Feature", "Opens"]}
+        rows={[
+          ["The tote (betting with credits on Live races)", "After you watch one of your own Live races"],
+          ["The market and leasing", `On your stable's ${gc.UNLOCK_MARKET_DAYS + 1}rd day, or when you finish Story chapter 1`],
+          ["Claiming races and jockey contracts (and the transfer window)", "When you finish Story chapter 1"],
+          ["Show numbers (the detailed stats)", "Always open"],
+        ]}
+      />
+      <P>
+        Each opening arrives as an <b>Unlocked</b> note in Stable news. If you sign in with a wallet, the tote and the market are open from the start. Stables founded before
+        this guide keep everything open.
+      </P>
+
       <H2 id="each-day">What to do each day</H2>
       <List
         items={[
@@ -120,6 +174,10 @@ export default function QuickStartPage() {
         ]}
       />
       <Callout tone="rule" title="Being away never hurts">
+        <p>
+          After a day or more away, the Estate opens with a <b>Welcome back</b> card: how many races your horses ran (a result you haven&rsquo;t watched stays a surprise),
+          what&rsquo;s due, and one thing worth doing next.
+        </p>
         <p>
           Nothing in the game punishes a missed day. Fatigue recovers and injuries heal while you are away, care only pauses growth, and unused entries roll over into your bank. Upkeep is charged only for horses you used that
           week, so a week away is free.

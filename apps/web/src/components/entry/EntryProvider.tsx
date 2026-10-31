@@ -1,5 +1,6 @@
 "use client";
 
+import { CoachMark } from "../onboarding/CoachMark";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
@@ -338,12 +339,16 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   // The risk shown follows the extras ticked (physio, vet check, shoes), live.
   const riskFor = (i: RacePlan["intensity"]) => option?.riskBy?.[raceDayRiskKey(i, raceDay.extras)] ?? option?.risk[i] ?? null;
   // A blocker (licence, rating, entries...) shows first and collapses the steps it would make moot.
-  const blocker = entryBlocker({
-    options: data ? data.options.filter((o) => racing.some((h) => h.id === o.horseId)) : null,
-    selected: horse ? { id: horse.id, name: horse.horse.name } : null,
-    entriesLeft: state.entries.balance,
-    entryCost: race?.entryCost ?? 1,
-  });
+  // Progressive unlocks: a new stable enters claiming races once Story chapter 1 is done.
+  const claimingLocked = !!race?.claiming && state.onboarding?.unlocks?.claiming === false;
+  const blocker = claimingLocked
+    ? { title: "Claiming races aren't open to you yet", detail: "Every runner in a claiming race can be bought by another stable. They open when you finish Story chapter 1, so you never lose a horse by accident." }
+    : entryBlocker({
+        options: data ? data.options.filter((o) => racing.some((h) => h.id === o.horseId)) : null,
+        selected: horse ? { id: horse.id, name: horse.horse.name } : null,
+        entriesLeft: state.entries.balance,
+        entryCost: race?.entryCost ?? 1,
+      });
   if (entered && race) {
     return (
       <div className="grid gap-3" data-testid="live-entered">
@@ -386,6 +391,24 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
           <p className="text-sm text-cream-dim">{blocker.detail}</p>
         </div>
       )}
+      <CoachMark
+        id="entry"
+        title="Filling in the entry sheet"
+        points={[
+          <>
+            <b>Horse:</b> the one that fits best is picked for you. Its trip, surface and the going matter most.
+          </>,
+          <>
+            <b>Tactic</b> is how the jockey rides: lead, sit just behind, or come late. A horse&rsquo;s natural style is usually right.
+          </>,
+          <>
+            <b>Intensity:</b> all-out finds a little more but raises the injury risk; easy is gentler. The risk line shows the odds of a knock.
+          </>,
+          <>
+            <b>Extras and jockey</b> are optional. Your own jockey rides free; a better freelancer costs a small fee.
+          </>,
+        ]}
+      />
       {data && <HorsePicker horses={racing} selectedId={horseId} onSelect={(id) => {
         setHorseId(id);
         const h = racing.find((x) => x.id === id);
