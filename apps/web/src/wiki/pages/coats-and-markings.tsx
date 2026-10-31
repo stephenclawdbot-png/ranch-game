@@ -95,6 +95,35 @@ const PATTERN_SAMPLES: [string, Partial<gc.Genes2>, Partial<gc.CoatGenes>, strin
   ["Splash white", { splash: ["SW", "n"] }, { extension: ["e", "e"] }, "Chestnut + SW"],
 ];
 
+/** The six rare colours for the wiki table. */
+const RARE_ROWS: [gc.RareColour, string, string, string][] = [
+  ["mushroom", "Mushroom (mu)", "Recessive", "A chestnut turns a soft grey-brown"],
+  ["rabicano", "Rabicano (Rb)", "Dominant", "White ticking on the flanks, a white-ringed skunk tail"],
+  ["brindle", "Brindle (BR1)", "On the X chromosome", "Thin dark vertical stripes"],
+  ["dominantWhite", "Dominant white (W)", "Dominant", "White from birth, dark eyes (never harmful in this game)"],
+  ["bendOr", "Bend Or spots (BO)", "Dominant", "Dark smudges on a red coat"],
+  ["birdcatcher", "Birdcatcher spots (Bc)", "Dominant", "Small white freckles"],
+];
+
+/** One horse per shade or rare colour: [caption, cosmetic genes, coat genes]. */
+const RARE_SAMPLES: [string, Partial<gc.CosmeticGenes>, Partial<gc.CoatGenes>][] = [
+  ["Sooty", { sooty: [90, 90] }, { cream: ["Cr", "n"] }],
+  ["Flaxen", { flaxen: [80, 80] }, { extension: ["e", "e"] }],
+  ["Pangaré", { pangare: [90, 90] }, {}],
+  ["Mushroom", { mushroom: ["mu", "mu"] }, { extension: ["e", "e"] }],
+  ["Rabicano", { rabicano: ["Rb", "n"] }, {}],
+  ["Brindle", { brindle: ["BR1", "n"] }, {}],
+  ["Dominant white", { dominantWhite: ["W", "n"] }, {}],
+  ["Bend Or spots", { bendOr: ["BO", "n"] }, { extension: ["e", "e"] }],
+  ["Birdcatcher spots", { birdcatcher: ["Bc", "n"] }, {}],
+];
+
+/** A seeded horse with plain coat and v2 genes, then the given cosmetic and coat genes. */
+function withCosmetic(seed: string, over: Partial<gc.CosmeticGenes>, coat: Partial<gc.CoatGenes>): gc.Genome {
+  const g = withG2(seed, {}, coat);
+  return { ...g, cosmetic: { ...gc.WILD_COSMETIC, ...over } };
+}
+
 /** The three breeds with the most copies of a gene. */
 function topCarriers(locus: gc.Genes2Key): string {
   const key = gc.G2_LOCI.find((l) => l[0] === locus)![1];
@@ -109,7 +138,7 @@ function topCarriers(locus: gc.Genes2Key): string {
 /** A seeded horse with plain v2 genes, then the given ones. */
 function withG2(seed: string, over: Partial<gc.Genes2>, coat: Partial<gc.CoatGenes> = {}): gc.Genome {
   const g = sampleGenome(seed);
-  return { ...g, coat: genes(coat), genes2: { ...gc.WILD_GENES2, ...over } };
+  return { ...g, coat: genes(coat), genes2: { ...gc.WILD_GENES2, ...over }, cosmetic: gc.WILD_COSMETIC };
 }
 
 /** The rules' odds for a trait in an example pairing (the game's internal exact odds; never shown for a real horse). */
@@ -359,11 +388,52 @@ export default function CoatsAndMarkingsPage() {
       </HorseRow>
       <Callout tone="rule" title="Where they show">
         <p>
-          The 3/4 portraits draw all seven: champagne, silver and pearl colour the coat, mane, skin and eyes, and tobiano, the leopard complex and splash white paint their white on the
-          head and neck (a grey still goes white over them). On the race sprites and the yard horses the three colour genes show, but the white patterns are not drawn yet; the horse page names
-          them under <b>Markings</b>.
+          Every view draws every one of them from the same pattern: the race sprites in every animation, the 3D view, the yard and paddock horses, the gallop sprite, share
+          cards and the 3/4 portrait. Each pattern was painted once by our artist tool on a reference horse and is placed on the horse&rsquo;s body, so a tobiano patch or a
+          blaze sits in the same place in every frame and every view. A grey still goes white over the colour; the white patches themselves stay.
         </p>
       </Callout>
+
+      <H2 id="shades-and-rare-colours">Shades, rare colours and long hair</H2>
+      <P>
+        Colour never changes how a horse races or breeds: these genes sit apart from every stat, potential and trip gene. Three shade genes are common and polygenic (many small
+        copies add up; a horse shows the shade when its two copies together pass a threshold, from 0 to 200):
+      </P>
+      <Table
+        head={["Shade", "Shows at", "What it does"]}
+        rows={[
+          ["Sooty", `${gc.SOOTY_LIGHT} (dark sooty from ${gc.SOOTY_HEAVY})`, "A darker, dappled top line over the neck, back and croup (not on a black)"],
+          ["Flaxen", `${gc.FLAXEN_SHOWS}`, "A pale, wheat-blond mane and tail, on a chestnut only"],
+          ["Pangaré", `${gc.PANGARE_SHOWS}`, "Pale mealy muzzle, eyes, belly and flanks (not on a black)"],
+        ]}
+      />
+      <P>
+        Six rare colours start out on horses that are not good racers. They enter the game only through the Club&rsquo;s house stallions at stud (every third replacement
+        stallion stands for one of them, in turn, at the ordinary fee) and, very rarely, in pack foals at their natural frequency, with no special odds and no extra price. They
+        are never in Club sale lots or Club leases. Their foals belong to the players who breed them and can be sold anywhere, so how rare they stay depends on breeding.
+      </P>
+      <Table
+        caption="Rare colours: how they pass on, and their natural frequency in pack foals (per copy)"
+        head={["Colour", "Inheritance", "What it does", "Pack foals"]}
+        rows={RARE_ROWS.map(([k, name, how, what]) => [name, how, what, `${(gc.NATURAL_RARE_PERMILLE[k] / 10).toFixed(1)}%`])}
+      />
+      <Callout tone="tip" title="Brindle follows the X chromosome">
+        <p>
+          A mare has two X chromosomes and passes one to every foal, so a brindle mare with one copy gives it to about half her foals, colts and fillies alike. A stallion has one X
+          and gives it only to his daughters: every daughter of a brindle stallion is brindle, and none of his sons. Mushroom is recessive: two carriers have a one in four chance of a
+          mushroom foal, and it only shows on a chestnut.
+        </p>
+      </Callout>
+      <HorseRow>
+        {RARE_SAMPLES.map(([label, over, coat]) => (
+          <HorseCard key={label} appearance={appearanceOfGenome(withCosmetic(`rare-${label}`, over, coat))} name={label} line={gc.fullCoatName(withCosmetic(`rare-${label}`, over, coat), RACING)} size="sm" />
+        ))}
+      </HorseRow>
+      <P>
+        <b>Long hair.</b> A horse with two copies of the feathering gene (fe/fe) grows a long wavy mane and forelock, a thick tail to near the ground and feathered lower legs. It is
+        drawn on top of its coat in every view and moves with it: streaming back at a gallop, hanging and swaying at a walk. The feathering takes the colour of the leg under it, so
+        it is white over a sock or stocking. Any breed can carry it; every Friesian has it.
+      </P>
 
       <H2 id="genetics-panel">Reading the Genetics panel</H2>
       <P>
@@ -397,7 +467,7 @@ export default function CoatsAndMarkingsPage() {
           </>,
           <>
             <b>Body, pattern and performance genes</b>: one line for each of the {gc.GENES2_KEYS.length} genes above and on <WikiLink slug="breeds" />, with hidden copies marked; <b>Size</b> with what it
-            does to the stats; <b>Markings</b> naming the colour and pattern genes the horse shows (and any the portrait doesn&rsquo;t draw yet). Big heart reads &ldquo;?/?&rdquo; until the horse has raced or had a Pedigree Scan.
+            does to the stats; <b>Markings</b> naming the colour and pattern genes the horse shows, and a <b>Shades and rare colours</b> table (sooty, flaxen, pangaré and the six rare colours, with hidden copies marked). Big heart reads &ldquo;?/?&rdquo; until the horse has raced or had a Pedigree Scan.
           </>,
           <>Stat genes are not shown here: those stay hidden behind ranges. See <WikiLink slug="genetics-and-inheritance" />.</>,
         ]}

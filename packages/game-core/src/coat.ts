@@ -154,7 +154,7 @@ export function horseColour(genome: Genome, progress: { racingAge: boolean; star
   const g2 = genome.genes2;
   const red = out.base === "chestnut" || out.base === "liver";
   // the per-horse pattern seed: every view picks the same drawn pattern variants from it
-  out.seed = genome.markingSeed >>> 0;
+  out.markSeed = genome.markingSeed >>> 0;
   if (!g2) return out;
   if (count(g2.champagne, "Ch") > 0) out.champagne = true;
   if (count(g2.silver, "Z") > 0 && !red) out.silver = true;

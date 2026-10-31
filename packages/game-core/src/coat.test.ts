@@ -81,7 +81,7 @@ describe("layered coat genetics (colour)", () => {
     [{ extension: ["e", "e"], cream: ["Cr", "n"], dun: ["D", "n"] }, "Dunalino", { base: "chestnut", cream: 1, dun: true }],
   ] as [Partial<CoatGenes>, string, Record<string, unknown>][])("%s coat genes -> %s colour", (c, _label, want) => {
     const a = appearanceOf(withCoat(c), adult, SILKS);
-    expect(a.colour).toEqual({ ...nocoat, ...want, seed: g0.markingSeed });
+    expect(a.colour).toEqual({ ...nocoat, ...want, markSeed: g0.markingSeed });
     if (want.dun) expect(a.dun).toBe(true);
   });
 
@@ -100,7 +100,7 @@ describe("layered coat genetics (colour)", () => {
     expect(col({}, { patn1: ["PATN1", "PATN1"] }).leopard).toBeUndefined();
     expect(col({}, { splash: ["SW", "n"] }).splash).toBe(1);
     // wild type: the same fields as before genetics v2, plus the pattern seed every view shares
-    expect(Object.keys(col({}, {})).sort()).toEqual(["base", "cream", "dun", "grey", "roan", "sabino", "seed"]);
+    expect(Object.keys(col({}, {})).sort()).toEqual(["base", "cream", "dun", "grey", "markSeed", "roan", "sabino"]);
     expect(HorseAppearanceSchema.parse(appearanceOf(withCoat({}, { tobiano: ["TO", "n"], splash: ["SW", "SW"] }), adult, SILKS)).colour).toMatchObject({ tobiano: 1, splash: 2 });
   });
 

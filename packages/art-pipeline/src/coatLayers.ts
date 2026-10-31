@@ -215,7 +215,7 @@ export function patternHash(seed: number, salt: string): number {
 
 /** The appearance's pattern seed: the genome's marking seed, or a stable hash of the look. */
 export function patternSeedOf(a: HorseAppearance): number {
-  if (a.colour?.seed !== undefined) return a.colour.seed >>> 0;
+  if (a.colour?.markSeed !== undefined) return a.colour.markSeed >>> 0;
   const s = JSON.stringify([a.coat, a.face, a.legs, a.colour ?? null, a.dun ?? false]);
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);

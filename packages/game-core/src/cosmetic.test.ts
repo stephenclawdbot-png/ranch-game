@@ -268,7 +268,7 @@ describe("display names cover every combination", () => {
               // liver and chestnut share one look under two creams or dun (the same palette anchor)
               const same = (col.cream === 2 || col.dun) && !col.champagne;
               const norm = same && col.base === "liver" ? "chestnut" : same && col.base === "seal_brown" ? "bay" : col.base;
-              const key = JSON.stringify({ ...col, seed: 0, base: norm });
+              const key = JSON.stringify({ ...col, markSeed: 0, base: norm });
               const was = seen.get(name);
               if (was) expect(was === key || name === "Dominant White" || name.startsWith("Grey") || name.startsWith("Dapple Grey"), `${name}: ${was} vs ${key}`).toBe(true);
               seen.set(name, key);

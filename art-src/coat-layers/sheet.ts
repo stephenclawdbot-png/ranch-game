@@ -77,7 +77,7 @@ export function lookOf(name: string, seed = 12345): HorseAppearance {
     face: "none",
     legs: ["none", "none", "none", "none"],
     silks: SILKS,
-    colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, seed, ...c },
+    colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, markSeed: seed, ...c },
     ...a,
   } as HorseAppearance;
 }

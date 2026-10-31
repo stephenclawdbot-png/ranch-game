@@ -11,11 +11,11 @@ import { LUT_CELLS_X, LUT_LEGS_X, LUT_SLOT_X, LUT_W, MODE_ID, buildLut, indexStr
 const KEY = { coat: ["#401115", "#843216", "#ed8f39"], points: ["#010114", "#171721"], mane: ["#010113"], silksPrimary: ["#90097b"], silksSecondary: ["#0e8dac"], cap: ["#ae1397"] };
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", cap: "#1f4e9c", pattern: "solid" } as const;
 const look = (c: Partial<HorseColour>, a: Partial<HorseAppearance> = {}): HorseAppearance =>
-  ({ coat: "bay", face: "none", legs: ["none", "none", "none", "none"], silks: SILKS, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, seed: 5, ...c }, ...a }) as HorseAppearance;
+  ({ coat: "bay", face: "none", legs: ["none", "none", "none", "none"], silks: SILKS, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, markSeed: 5, ...c }, ...a }) as HorseAppearance;
 
 const RUNNERS = [
   look({ tobiano: 1 }, { face: "blaze", legs: ["stocking", "none", "sock", "coronet"], feather: true }),
-  look({ base: "chestnut", leopard: "leopard", seed: 99 }, { face: "snip" }),
+  look({ base: "chestnut", leopard: "leopard", markSeed: 99 }, { face: "snip" }),
   look({ roan: true, sooty: 2, pangare: true }),
   look({ brindle: true, rabicano: true, birdcatcher: true }),
   look({ base: "black", dun: true }, { dun: true }),

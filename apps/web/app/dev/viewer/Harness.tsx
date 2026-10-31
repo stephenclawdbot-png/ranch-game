@@ -112,7 +112,7 @@ function withShowcaseCoats(r: RaceReplay): RaceReplay {
     ...r,
     horses: r.horses.map((h, i) => {
       const [c, a] = SHOWCASE[i % SHOWCASE.length]!;
-      return { ...h, appearance: { ...h.appearance, ...a, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, seed: 1000 + i * 7919, ...c } } };
+      return { ...h, appearance: { ...h.appearance, ...a, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, markSeed: 1000 + i * 7919, ...c } } };
     }),
   };
 }

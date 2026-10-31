@@ -38,7 +38,7 @@ const KEYS = has ? (JSON.parse(readFileSync(join(ART, "race/palette.json"), "utf
 
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", cap: "#c0392b", pattern: "solid" } as const;
 const look = (c: Partial<HorseColour>, a: Partial<HorseAppearance> = {}): HorseAppearance =>
-  ({ coat: "bay", face: "none", legs: ["none", "none", "none", "none"], silks: SILKS, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, seed: 77, ...c }, ...a }) as HorseAppearance;
+  ({ coat: "bay", face: "none", legs: ["none", "none", "none", "none"], silks: SILKS, colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, markSeed: 77, ...c }, ...a }) as HorseAppearance;
 
 /** Every phenotype the genetics produce, each with the layers it must draw. */
 export const PHENOTYPES: [string, HorseAppearance, string[]][] = [
@@ -68,7 +68,7 @@ export const PHENOTYPES: [string, HorseAppearance, string[]][] = [
   ["pearl", look({ base: "chestnut", pearl: true, cream: 1 }), ["skin"]],
   ["tobiano", look({ tobiano: 1 }), ["tobiano"]],
   ["tobiano (TO/TO)", look({ tobiano: 2 }), ["tobiano-ink"]],
-  ["leopard", look({ leopard: "leopard", seed: 1 }), ["leopard|blanket"]],
+  ["leopard", look({ leopard: "leopard", markSeed: 1 }), ["leopard|blanket"]],
   ["few-spot", look({ leopard: "fewspot" }), ["fewspot"]],
   ["varnish roan", look({ leopard: "varnish" }), ["varnish"]],
   ["splash", look({ splash: 1 }), ["splash"]],
@@ -236,10 +236,10 @@ describe("one pattern definition for every view", () => {
   });
 
   it("is deterministic from the appearance, and different horses get their own drawn variants", () => {
-    const a = look({ tobiano: 1, seed: 1 });
+    const a = look({ tobiano: 1, markSeed: 1 });
     expect(coatPatternOf(a)).toEqual(coatPatternOf(structuredClone(a)));
     const cells = new Set<number>();
-    for (let s = 0; s < 40; s++) cells.add(coatPatternOf(look({ tobiano: 1, seed: s })).layers[0]!.cell);
+    for (let s = 0; s < 40; s++) cells.add(coatPatternOf(look({ tobiano: 1, markSeed: s })).layers[0]!.cell);
     expect(cells.size).toBe(3);
   });
 

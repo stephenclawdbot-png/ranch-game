@@ -103,7 +103,7 @@ export const HorseColourSchema = z.object({
    * Per-horse pattern seed (the genome's marking seed), present only when the coat shows a
    * placed pattern: every view picks the same drawn pattern from it (art-pipeline coatPatternOf).
    */
-  seed: z.number().int().min(0).max(0xffffffff).optional(),
+  markSeed: z.number().int().min(0).max(0xffffffff).optional(),
 });
 export type HorseColour = z.infer<typeof HorseColourSchema>;
 
