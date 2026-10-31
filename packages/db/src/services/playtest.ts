@@ -695,6 +695,8 @@ export const RESET_TABLES = [
   "horse_lease_listings",
   "race_claims",
   // Jockeys follow the stables and races.
+  "jockey_offers",
+  "jockey_contracts",
   "jockey_weeks",
   "jockey_events",
   "jockey_rides",

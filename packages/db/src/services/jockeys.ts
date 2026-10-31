@@ -9,19 +9,22 @@
  *   runMaintenance → runJockeyMaintenance: stages, retirement notices and retirements, idle-stable
  *       releases; once a game week: veteran decline and the apprentice intake (pool ≈ 1.5 per active stable)
  *
- * Phase 1 has no contracts or wages: a stable keeps its own apprentice, may sign an unsigned
- * freelancer for a one-off signing fee (burned) while it holds fewer than JOCKEYS_PER_STABLE_MAX,
- * and may release a jockey back to the Club pool. Credits only, never USDG.
+ * Phase 2 (jockeyContracts.ts) adds contracts (wages, promised rides, buyout), the weekly transfer
+ * window, morale and the development bonus. A stable may still sign an unsigned Club freelancer
+ * (not a free agent in this week's window) directly, for the signing fee and a contract, while it
+ * holds fewer than JOCKEYS_PER_STABLE_MAX, and may release a jockey (who becomes a free agent in
+ * the next window). Credits only, never USDG.
  */
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { fraudEvents, jockeyEvents, jockeyRides, jockeyWeeks, jockeys, stables, type JockeyRow, type RaceRow } from "../schema";
+import { jockeyEvents, jockeyRides, jockeyWeeks, jockeys, stables, type JockeyRow, type RaceRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
-import { accountIdOfStable, areLinked, lockStableOf } from "./accounts";
+import { lockStableOf } from "./accounts";
 import { spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
 import { jockeyEventNewsTx } from "./news";
+import { currentWindowWeek, developmentTx, endJockeyContractTx, ensureContractBackfillTx, isFreeAgent, linkedRefusalTx, runContractWeekTx, runDueWindowsTx, standardTerms, startContractTx, type ContractWeek, type WindowResult } from "./jockeyContracts";
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
@@ -58,7 +61,7 @@ export function gradeOfJockey(j: Pick<JockeyRow, "skills">): gc.JockeyGrade {
 // Creation, backfill
 // ---------------------------------------------------------------------------
 
-async function event(ex: Executor, e: { key: string; jockeyId: string; kind: "debut" | "signed" | "released" | "retirement_announced" | "retired"; stableId: string | null; at: Date; data?: Record<string, unknown> }): Promise<void> {
+export async function jockeyEventTx(ex: Executor, e: { key: string; jockeyId: string; kind: "debut" | "signed" | "released" | "retirement_announced" | "retired"; stableId: string | null; at: Date; data?: Record<string, unknown> }): Promise<void> {
   await ex
     .insert(jockeyEvents)
     .values({ key: e.key, jockeyId: e.jockeyId, kind: e.kind, stableId: e.stableId, at: e.at, data: e.data ?? {} })
@@ -88,9 +91,12 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
       joinedAt: input.stableId ? input.now : null,
       retireAt: new Date(gc.jockeyRetireAt(bornMs, input.seed)),
       createdAt: input.now,
+      // A new apprentice joins the Club as a free agent in the next transfer window.
+      freeAgentWeek: !input.stableId && weeksIn === 0 ? currentWindowWeek(input.now) : null,
     })
     .returning();
-  await event(ex, { key: `debut:${row!.id}`, jockeyId: row!.id, kind: "debut", stableId: input.stableId, at: input.now });
+  if (input.stableId) await startContractTx(ex, { jockey: row!, stableId: input.stableId, now: input.now, terms: standardTerms(row!) });
+  await jockeyEventTx(ex, { key: `debut:${row!.id}`, jockeyId: row!.id, kind: "debut", stableId: input.stableId, at: input.now });
   return row!;
 }
 
@@ -333,38 +339,44 @@ async function lockJockey(tx: Tx, id: string): Promise<JockeyRow> {
 }
 
 /**
- * Sign an unsigned Club freelancer (Phase 1: a one-off signing fee by grade, burned). Refused at
- * the cap, for a retiring or retired jockey, and (like the market) when a linked account let them
- * go within JOCKEY_LINKED_SIGN_DAYS.
+ * Sign an unsigned Club freelancer directly: the signing fee by grade (burned) and a contract
+ * (standard terms unless given: the grade's wage, 4 weeks, JOCKEY_DEFAULT_PROMISED_RIDES). Refused
+ * at the cap, for a retiring or retired jockey, for a free agent in this week's window (make an
+ * offer instead), and (like the market) for a linked account's jockey (a fraud event is recorded).
  */
-export async function signJockey(db: Db, input: { accountId: string; jockeyId: string; now: Date }): Promise<{ jockey: JockeyView; fee: number }> {
-  return runTx(db, async (tx) => {
+export async function signJockey(db: Db, input: { accountId: string; jockeyId: string; now: Date; terms?: gc.OfferTerms }): Promise<{ jockey: JockeyView; fee: number }> {
+  const outcome = await runTx(db, async (tx): Promise<{ jockey: JockeyView; fee: number } | DomainError> => {
     const stable = await lockStableOf(tx, input.accountId);
     const j = await lockJockey(tx, input.jockeyId);
     if (j.stableId === stable.id) return { jockey: jockeyView(j, stable), fee: 0 };
     if (j.retiredAt || j.retirementAnnouncedAt) throw new DomainError("JOCKEY_UNAVAILABLE", `${j.name} is retiring`);
+    const refused = await linkedRefusalTx(tx, { accountId: input.accountId, stableId: stable.id, jockey: j, now: input.now, action: "sign" });
+    if (refused) return refused;
     if (j.stableId) throw new DomainError("JOCKEY_UNAVAILABLE", `${j.name} rides for another stable`);
+    if (isFreeAgent(j, input.now)) throw new DomainError("JOCKEY_UNAVAILABLE", `${j.name} is a free agent in this week's transfer window: make an offer`);
     if (!gc.canHoldAnother(await heldCount(tx, stable.id))) throw new DomainError("JOCKEY_LIMIT", `a stable can hold at most ${gc.JOCKEYS_PER_STABLE_MAX} jockeys`);
-    if (j.lastStableId && j.releasedAt && input.now.getTime() - j.releasedAt.getTime() < JOCKEY_LINKED_SIGN_DAYS * DAY_MS && j.lastStableId !== stable.id) {
-      const other = await accountIdOfStable(tx, j.lastStableId);
-      if (await areLinked(tx, input.accountId, other)) {
-        await tx.insert(fraudEvents).values({ accountId: input.accountId, relatedAccountId: other, kind: "linked_trade_blocked", severity: 2, data: { jockeyId: j.id } });
-        throw new DomainError("LINKED_ACCOUNTS", "signing a jockey from a linked account is not allowed");
-      }
-    }
-    const fee = gc.signingFee(gradeOfJockey(j));
+    const grade = gradeOfJockey(j);
+    const terms = input.terms ?? standardTerms(j);
+    const problem = gc.offerTermsProblem(terms, grade, gc.signingFee(grade));
+    if (problem) throw new DomainError("INVALID_INPUT", problem);
+    const fee = gc.signingFee(grade);
     await spendCreditsTx(tx, { accountId: input.accountId, amount: fee, idempotencyKey: `jockey-sign:${j.id}:${stable.id}:${input.now.getTime()}`, kind: "jockey_signing", memo: j.name });
-    const [row] = await tx.update(jockeys).set({ stableId: stable.id, joinedAt: input.now }).where(eq(jockeys.id, j.id)).returning();
-    await event(tx, { key: `signed:${j.id}:${input.now.getTime()}`, jockeyId: j.id, kind: "signed", stableId: stable.id, at: input.now, data: { fee } });
+    const [row] = await tx.update(jockeys).set({ stableId: stable.id, joinedAt: input.now, freeAgentWeek: null }).where(eq(jockeys.id, j.id)).returning();
+    await startContractTx(tx, { jockey: row!, stableId: stable.id, now: input.now, terms });
+    await jockeyEventTx(tx, { key: `signed:${j.id}:${input.now.getTime()}`, jockeyId: j.id, kind: "signed", stableId: stable.id, at: input.now, data: { fee, ...terms } });
     await audit(tx, { actor: input.accountId, action: "jockey.sign", entityType: "jockey", entityId: j.id, data: { stableId: stable.id, fee } });
     return { jockey: jockeyView(row!, stable), fee };
   });
+  if (outcome instanceof DomainError) throw outcome;
+  return outcome;
 }
 
 async function releaseTx(tx: Tx, j: JockeyRow, now: Date, why: "released" | "idle"): Promise<void> {
   if (!j.stableId) return;
-  await tx.update(jockeys).set({ stableId: null, joinedAt: null, lastStableId: j.stableId, releasedAt: now }).where(eq(jockeys.id, j.id));
-  await event(tx, { key: `released:${j.id}:${now.getTime()}`, jockeyId: j.id, kind: "released", stableId: j.stableId, at: now, data: { why } });
+  await endJockeyContractTx(tx, j.id, now, why);
+  // A free agent in the next window (any stable may make an offer), then the Club pool.
+  await tx.update(jockeys).set({ stableId: null, joinedAt: null, lastStableId: j.stableId, releasedAt: now, freeAgentWeek: j.retirementAnnouncedAt ? null : currentWindowWeek(now) }).where(eq(jockeys.id, j.id));
+  await jockeyEventTx(tx, { key: `released:${j.id}:${now.getTime()}`, jockeyId: j.id, kind: "released", stableId: j.stableId, at: now, data: { why } });
 }
 
 /** Release one of your jockeys back to the Club pool (rides already booked still go ahead). */
@@ -598,6 +610,7 @@ export async function settleJockeyRidesTx(tx: Tx, race: RaceRow, positions: Read
       .update(jockeys)
       .set({ rides: j.rides + 1, wins: j.wins + (pos === 1 ? 1 : 0), experience: j.experience + xp, skills })
       .where(eq(jockeys.id, j.id));
+    await developmentTx(tx, { jockey: j, race, horseStableId: r.stableId, jockeyStableId: r.jockeyStableId, position: pos, now });
   }
   return rides.length;
 }
@@ -618,7 +631,11 @@ export interface JockeyMaintenance {
   retired: number;
   released: number;
   /** Set when this run did the week's jobs. */
-  week: { week: number; declined: number; intake: number; active: number; pool: number; target: number } | null;
+  week: { week: number; declined: number; intake: number; active: number; pool: number; target: number; contracts: ContractWeek } | null;
+  /** Phase 1 signings given a contract by this run. */
+  contractsBackfilled: number;
+  /** Transfer windows closed by this run. */
+  windows: WindowResult[];
 }
 
 /**
@@ -631,6 +648,7 @@ export async function runJockeyMaintenance(db: Db, now: Date): Promise<JockeyMai
   const backfill = await ensureJockeyBackfill(db, now);
   return runTx(db, async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('jockeys-maintenance'))`);
+    const contractsBackfilled = await ensureContractBackfillTx(tx, now);
     const t = now.getTime();
     // Only jockeys with something due: retirement, its notice, or a stage change.
     const W = WEEK_MS;
@@ -655,8 +673,9 @@ export async function runJockeyMaintenance(db: Db, now: Date): Promise<JockeyMai
     for (const j of live) {
       if (j.retireAt.getTime() <= t) {
         // Retired: leaves its stable for good.
-        await tx.update(jockeys).set({ retiredAt: now, stableId: null, joinedAt: null, lastStableId: j.stableId ?? j.lastStableId, retirementAnnouncedAt: j.retirementAnnouncedAt ?? now }).where(eq(jockeys.id, j.id));
-        await event(tx, { key: `retired:${j.id}`, jockeyId: j.id, kind: "retired", stableId: j.stableId, at: now, data: { rides: j.rides, wins: j.wins } });
+        await endJockeyContractTx(tx, j.id, now, "retired");
+        await tx.update(jockeys).set({ retiredAt: now, freeAgentWeek: null, stableId: null, joinedAt: null, lastStableId: j.stableId ?? j.lastStableId, retirementAnnouncedAt: j.retirementAnnouncedAt ?? now }).where(eq(jockeys.id, j.id));
+        await jockeyEventTx(tx, { key: `retired:${j.id}`, jockeyId: j.id, kind: "retired", stableId: j.stableId, at: now, data: { rides: j.rides, wins: j.wins } });
         retired++;
         continue;
       }
@@ -668,7 +687,7 @@ export async function runJockeyMaintenance(db: Db, now: Date): Promise<JockeyMai
       }
       if (!j.retirementAnnouncedAt && gc.retirementAnnouncedAt(j.retireAt.getTime()) <= t) {
         patch.retirementAnnouncedAt = now;
-        await event(tx, { key: `retirement_announced:${j.id}`, jockeyId: j.id, kind: "retirement_announced", stableId: j.stableId, at: now, data: { retireAt: j.retireAt.toISOString() } });
+        await jockeyEventTx(tx, { key: `retirement_announced:${j.id}`, jockeyId: j.id, kind: "retirement_announced", stableId: j.stableId, at: now, data: { retireAt: j.retireAt.toISOString() } });
         announced++;
       }
       if (Object.keys(patch).length) await tx.update(jockeys).set(patch).where(eq(jockeys.id, j.id));
@@ -705,9 +724,11 @@ export async function runJockeyMaintenance(db: Db, now: Date): Promise<JockeyMai
       const pool = await poolSize(tx);
       const intake = gc.jockeyIntake(active, pool);
       for (let i = 0; i < intake; i++) await createJockeyTx(tx, { seed: gc.seedFrom("jockey-intake", week, i), stableId: null, now });
-      weekly = { week, declined, intake, active, pool, target: gc.jockeyPoolTarget(active) };
+      const contracts = await runContractWeekTx(tx, week, now);
+      weekly = { week, declined, intake, active, pool, target: gc.jockeyPoolTarget(active), contracts };
       await tx.update(jockeyWeeks).set({ data: weekly }).where(eq(jockeyWeeks.week, week));
     }
-    return { backfill, staged, announced, retired, released, week: weekly };
+    const windows = await runDueWindowsTx(tx, now);
+    return { backfill, staged, announced, retired, released, week: weekly, contractsBackfilled, windows };
   });
 }

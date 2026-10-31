@@ -34,6 +34,9 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
                 {f.label}
               </Link>
             ))}
+            <Link href="/jockeys/window" className="fchip" data-testid="jockeys-window-link">
+              Transfer window
+            </Link>
           </nav>
           {view.jockeys.length ? (
             <ul className="surface rows" data-testid="jockey-list">
@@ -50,7 +53,7 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
               with rides, fastest in bigger races, up to a hidden potential that narrows as they ride.
             </p>
             <p className="mt-2">
-              A stable holds up to {JOCKEYS_PER_STABLE_MAX}. Your own jockeys ride your horses free; Club freelancers ride for a fee by grade and purse. New apprentices join each week to keep about{" "}
+              A stable holds up to {JOCKEYS_PER_STABLE_MAX}, on contracts with a weekly wage and rides promised; every Sunday at 20:00 UTC the transfer window settles where free agents go. Your own jockeys ride your horses without a booking fee; Club freelancers ride for a fee by grade and purse. New apprentices join each week to keep about{" "}
               {JOCKEY_POOL_PER_ACTIVE_STABLE} jockeys per active stable. <Link href="/wiki/jockeys" className="underline">More in the wiki</Link>.
             </p>
           </HowItWorks>
