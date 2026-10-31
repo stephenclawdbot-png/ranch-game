@@ -124,9 +124,53 @@ HUD, minimap, clocks, live rules and results flow as the classic view; only rend
   frames, and gaps under 30 ms read "photo".
 - Once every runner is home in the received frames, the playhead keeps running past the last
   frame (no freeze): finished horses ease down with the shared run-out model.
-- When `feed.final` arrives the scene switches to the official replay in place and playback
-  carries on from the same moment (no jump back). Then the results card shows (after the
-  run-out) and full replay controls unlock.
+- When `feed.final` arrives and the playhead has reached the end of the broadcast
+  (`finale/live.ts officialHandoff`, the only place the viewer reads a live race's result)
+  the scene switches to the official replay in place and playback carries on from the same
+  moment (no jump back). Then the finale plays, the results card shows and full replay
+  controls unlock.
+
+## The finish as an event (`src/finale/`)
+
+`finalePlan(result)` (pure, tested) scripts what follows the line, from the official result
+only, in real seconds, starting `max(winner + 3.2 s, last home + 0.8 s)` (a replay waits at
+most 12 s after the winner):
+
+1. **Photograph** (first two within a head: nose / short head / head, or a dead heat): the
+   "PHOTOGRAPH" stamp, then the line-scan strip (`photo/PhotoFinish`, judge's line nose to
+   nose, the verdict) with a **Share** button (`exportPhotoFinishPng`).
+2. **Slow-motion replay** of the last ~100 m (first two within a length): the scene plays the
+   replay window at a rate easing from 1× to 0.35× at the line (`replayRate`); the director
+   holds a forced side-on `replay` shot on the winner (3D: close on the winner and rivals;
+   Trackside: follows the winner). It flows on at 1× into the pull-up.
+3. **Weighed in**: the all-clear, with the browser's own seal check (sha256 of the revealed
+   seed against the published commitment).
+4. **Cards**: your horses outside the places ("Your horse: 6th, beaten 4 lengths"), then 3rd,
+   2nd, the winner (held, the winner celebrating behind it): the 3/4 portrait
+   (`renderPortrait`, supplied by the page), name, stable name and photo (`connections`),
+   silks, jockey line, margin, time.
+5. The results card (or the page's own result board, which waits for `onFinale("done")`).
+
+Tap/click advances a step, Esc skips the lot, Space pauses it; a seek or restart re-arms it.
+A viewer that opens after the finale's start goes straight to the result. `finale={false}`
+turns it off.
+
+## Calling the race (HUD)
+
+- The commentary ticker is the race call (`call/buildRaceCall`) via `call/ticker.ts`: the
+  whole call for a finished race, or rebuilt from live frames up to the data edge (no result
+  to read), shown only up to the playhead; at 2× / 4× lower-priority lines that would overlap
+  are dropped (`callLineAt`). "Your X" = `mineHorseIds`; the course profile feeds the
+  course-aware lines.
+- A large distance-to-go readout with the next pole's colour-coded plate (`hud/battle.ts
+  distanceMarker`, the stage's poles and boards); in the final furlong the HUD clears down
+  (title, minimap and course map go; standings show the first three and your horse).
+- A **battle** graphic when two or three horses are within half a length of the leader in the
+  final 200 m (`battleAt`, samples at the playhead only).
+- Director framing rules (`director.ts`): in the final furlong every runner within two lengths
+  of the leader is in `mustFrame`, which the 3D camera always includes (Trackside's whole-field
+  shot shows everyone); in the closing 400 m your horse is never hidden for more than 3 s
+  (one wider shot holds both when it can, else short alternating looks, or the 3D inset).
 - `fakeLiveFeed(replay, startMs)` in `/dev` simulates the server. Use `?live=-30` on the
   harness to open 30 s into a live race.
 
@@ -135,9 +179,9 @@ HUD, minimap, clocks, live rules and results flow as the classic view; only rend
 - **Sampling** (`sampleReplay.ts`): cubic Hermite between 10 Hz frames, clamped per segment.
   It never extrapolates past the last frame. After the line, finish state and order come
   from `result`. Finished horses pull up visually (a decaying speed past the post).
-- **Clock** (`playback.ts`): local or wall-clock playback, speeds 0.5/1/2/4×. On a photo
-  finish it plays slow-mo for the last ~14 m, then holds a 1.4 s **PHOTO** freeze. A live
-  viewer falls behind by that time instead of skipping it.
+- **Clock** (`playback.ts`): local or wall-clock playback, speeds 0.5/1/2/4×. The race
+  always plays through the line at the chosen speed (live and replay alike); the photograph
+  and the slow-motion replay belong to the finale.
 - **World** (`three/HD2DScene.ts`): metres, with x along the track, y up and z across (the
   inner rail at z = 0 nearest the camera). It contains:
   - textured ground planes (turf mowing stripes or dirt/synthetic, plus infield and

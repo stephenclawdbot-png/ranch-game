@@ -832,7 +832,9 @@ export class TracksideScene {
     if (f.director) this.direct(f.director, raceT, seek || snap, winner);
     const intent = f.director ? f.director.intent : null;
     const followWinner = intent?.kind === "pullup" && winner >= 0 && tS > this.winnerTime + 2;
-    const followIdx = f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
+    // The finish replay: the side camera goes with its subject (the 3D view frames the same).
+    const replayIdx = intent?.kind === "replay" ? this.data.horses.findIndex((h) => h.horseId === intent.subject) : -1;
+    const followIdx = replayIdx >= 0 ? replayIdx : f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
     const followOn = followIdx >= 0;
     // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
     // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the

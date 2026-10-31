@@ -4,6 +4,9 @@ import { RaceViewer, type CameraMode } from "@thoroughbred/race-viewer";
 import { SpriteSheet, fakeLiveFeed, fakeReplay } from "@thoroughbred/race-viewer/dev";
 import type { Surface, Weather } from "@thoroughbred/shared";
 import { COURSES } from "@thoroughbred/game-core";
+import { renderFinalePortrait } from "@/components/RaceViewerClient";
+
+const STABLES = ["Hollow Oak Stud", "Brass Lantern Stables", "Fenwick Yard", "Marsh End Racing", "Kestrel House", "Copperbeech Farm", "Larkrise Stud", "Old Mill Stables"];
 
 export interface HarnessParams {
   weather?: string;
@@ -45,6 +48,10 @@ export interface HarnessParams {
   pullup?: string;
   /** "0" hides the results card. */
   results?: string;
+  /** Your horse is the one that finishes in this place (e.g. 6); overrides `highlight`. */
+  minepos?: string;
+  /** "0" turns the finale off. */
+  finale?: string;
 }
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -63,8 +70,14 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         postTimeMs: params.hour !== undefined ? new Date().setHours(num(params.hour, 18), 0, 0, 0) : undefined,
         photoFinish: params.photo !== "0",
         spread: num(params.spread, 1),
+        sealed: true,
       }),
     [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour, params.photo, params.spread],
+  );
+  const highlight = params.minepos !== undefined ? (replay.result.finishOrder.find((f) => f.position === num(params.minepos, 1))?.horseId ?? "h3") : (params.highlight ?? "h3");
+  const connections = useMemo(
+    () => Object.fromEntries(replay.horses.map((h, i) => [h.horseId, { stableName: h.horseId === highlight ? "Your Stable" : STABLES[i % STABLES.length]!, stablePhotoUrl: null, jockey: i % 3 === 0 ? "Top jockey" : null }])),
+    [replay, highlight],
   );
   const startAtMs = useMemo(() => (params.start !== undefined ? Date.now() + num(params.start, 5) * 1000 : undefined), [params.start]);
 
@@ -91,7 +104,10 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         autoplay={params.paused === undefined}
         quality={(params.quality as "auto" | "high" | "low") ?? "auto"}
         initialCamera={params.camera as CameraMode | undefined}
-        highlightHorseId={params.highlight ?? "h3"}
+        highlightHorseId={highlight}
+        connections={connections}
+        renderPortrait={renderFinalePortrait}
+        finale={params.finale !== "0"}
         pixelated={params.pixel !== undefined}
         artBaseUrl={params.art === "none" ? null : "/art"}
         height={params.h !== undefined ? num(params.h, 420) : undefined}

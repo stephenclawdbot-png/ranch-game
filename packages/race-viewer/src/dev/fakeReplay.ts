@@ -20,6 +20,7 @@ import {
   type Surface,
   type Weather,
 } from "@thoroughbred/shared";
+import { sha256HexOfHex } from "./sha256";
 
 export interface FakeReplayOptions {
   horses?: number;
@@ -34,6 +35,8 @@ export interface FakeReplayOptions {
   photoFinish?: boolean;
   /** Spread of the runners' cruising speeds (1 = default; 4 = a strung-out field). */
   spread?: number;
+  /** A real commitment (sha256 of the seed), so the viewer's seal check passes (dev harness). */
+  sealed?: boolean;
 }
 
 function mulberry32(seed: number) {
@@ -311,6 +314,9 @@ export function fakeReplay(opts: FakeReplayOptions = {}): RaceReplay {
   events.sort((a, b) => a.tick - b.tick);
 
   const seed = hex64(rand);
+  // Drawn either way, so the rest of the fake replay is the same with or without `sealed`.
+  const drawnCommitment = hex64(rand);
+  const seedCommitment = opts.sealed ? sha256HexOfHex(seed) : drawnCommitment;
   return {
     version: 1,
     engineVersion: "fake-dev-0",
@@ -325,7 +331,7 @@ export function fakeReplay(opts: FakeReplayOptions = {}): RaceReplay {
       postTimeMs: opts.postTimeMs ?? Date.now(),
       purse,
     },
-    seedCommitment: hex64(rand),
+    seedCommitment,
     seed,
     tickHz: TICK_HZ,
     sampleEvery: SAMPLE_EVERY,
