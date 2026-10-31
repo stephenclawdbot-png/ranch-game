@@ -27,6 +27,7 @@ import { isCarrying, lockHorse, lockOwnedHorse, openLeaseOfferOf } from "./horse
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 import { isUsdgRegistered } from "./usdgMarket";
+import { saleNewsTx } from "./news";
 
 const LIST_BLOCK_CODES: Record<gc.ListBlock, DomainErrorCode> = {
   account_too_new: "SELLER_REQUIREMENTS",
@@ -225,6 +226,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
         createdAt: input.now,
       })
       .returning({ id: trades.id });
+    await saleNewsTx(tx, { tradeId: trade!.id, horseId: horse.id, horseName: horse.name, price: listing.price, buyerStableId: buyerStable.id, sellerStableId: listing.sellerStableId, now: input.now });
     await audit(tx, { actor: input.accountId, action: "market.buy", entityType: "trade", entityId: trade!.id, data: { listingId: listing.id, horseId: horse.id, price: listing.price, fee, club: listing.club } });
     return { tradeId: trade!.id, horseId: horse.id, price: listing.price, fee };
   });

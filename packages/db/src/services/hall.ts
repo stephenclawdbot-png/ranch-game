@@ -13,6 +13,7 @@ import { gc, genomeOf, isGenome, toHorseState } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { awardAchievement, induct } from "./competition";
 import { rowsOf } from "./tx";
+import { hallNewsTx } from "./news";
 
 const LIVE = sql.raw(`('scheduled','feature','final')`);
 
@@ -213,8 +214,10 @@ export async function inductHallOfFame(db: Db, now: Date): Promise<number> {
           accountId: owner?.accountId,
           data: { at: now.toISOString(), wins: row.wins, starts: row.starts },
         })
-      )
+      ) {
         added++;
+        await hallNewsTx(db, { entryKey: `horse:${row.id}:${reason}`, horseId: row.id, honour: REASON_TITLE[reason], now });
+      }
     }
   }
   return added;
