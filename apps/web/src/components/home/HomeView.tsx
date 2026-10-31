@@ -25,6 +25,7 @@ import { TodaysPicks } from "../picks/TodaysPicks";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
 import { MentorNudge } from "../onboarding/Mentor";
+import { BloodlineNudge } from "../onboarding/BloodlineNudge";
 import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
 import { usePlain } from "../onboarding/guide";
@@ -237,22 +238,30 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
           <MentorNudge />
         </div>
       )}
+      {ob?.bloodline && (
+        <div className="mt-4">
+          <BloodlineNudge />
+        </div>
+      )}
       {ob?.steps && (!ob.steps.completedAtMs || (now ?? 0) - ob.steps.completedAtMs < 3 * 86_400_000) && (
         <div className="mt-4">
           <StableSteps steps={ob.steps} state={state} plain={ob.plainLanguage} />
         </div>
       )}
 
-      <Link href="/week" className="surface mt-4 flex items-center justify-between gap-3 p-4" data-testid="home-week">
-        <span className="flex items-center gap-3">
-          <PixelIcon name="trophy" size={32} />
-          <span>
-            <span className="t-title block">Road to Saturday</span>
-            <span className="caption block">This week&rsquo;s Feature, your Qualifiers and the League line</span>
+      {/* The week's campaign (Feature, Qualifiers, League) waits until a new stable has entered its first Live race. */}
+      {(!ob?.steps || ob.steps.complete || ob.steps.steps.some((s) => s.key === "enter_live" && s.done)) && (
+        <Link href="/week" className="surface mt-4 flex items-center justify-between gap-3 p-4" data-testid="home-week">
+          <span className="flex items-center gap-3">
+            <PixelIcon name="trophy" size={32} />
+            <span>
+              <span className="t-title block">Road to Saturday</span>
+              <span className="caption block">This week&rsquo;s Feature, your Qualifiers and the League line</span>
+            </span>
           </span>
-        </span>
-        <span className="btn btn-sm">This week</span>
-      </Link>
+          <span className="btn btn-sm">This week</span>
+        </Link>
+      )}
 
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
 

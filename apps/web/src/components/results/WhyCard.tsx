@@ -11,14 +11,19 @@ const PACE_TEXT = {
 const SEG_LABEL = { early: "Early", middle: "Middle", late: "Late" } as const;
 
 /** "Why" card: pace, running positions, sectionals and fit, explained in one or two sentences. */
-export function WhyCard({ analysis, horseName, isYours, tips = [] }: { analysis: RaceAnalysis; horseName: string; isYours: boolean; tips?: TryNextTip[] }) {
+export function WhyCard({ analysis, horseName, isYours, tips = [], lead = null }: { analysis: RaceAnalysis; horseName: string; isYours: boolean; tips?: TryNextTip[]; lead?: string | null }) {
   const a = analysis;
   return (
     <section className="surface p-3 sm:p-4" aria-labelledby="why-h" data-testid="why-card">
       <h2 id="why-h" className="t-h2">
-        {isYours ? "Why it went that way" : `Why ${horseName} won`}
+        {isYours ? "The race in numbers" : `Why ${horseName} won`}
       </h2>
-      <p className="mt-2 max-w-prose text-lg">{a.summary}</p>
+      {lead && (
+        <p className="mt-2 max-w-prose text-lg font-bold" data-testid="why-lead">
+          {lead}
+        </p>
+      )}
+      <p className={`mt-2 max-w-prose ${lead ? "" : "text-lg"}`}>{a.summary}</p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>

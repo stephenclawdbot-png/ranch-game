@@ -21,6 +21,8 @@ const BodySchema = z
     horseId: HorseIdSchema.optional(),
     plan: PlanSchema.optional(),
     instant: z.boolean().optional(),
+    /** "Try again at its best": a race at the horse's own trip, surface and good ground. */
+    suited: z.boolean().optional(),
   })
   .refine((b) => b.pick === "auto" || b.horseId !== undefined, { message: 'horseId is required unless pick is "auto"' });
 
@@ -31,8 +33,8 @@ export async function POST(req: Request) {
     const database = await db();
     const session = await requireSession(database);
     const now = new Date();
-    const created = await createStoryRace(database, session, { horseId: parsed.data.pick === "auto" ? undefined : parsed.data.horseId, plan: parsed.data.plan, instant: parsed.data.instant }, now);
-    await trackEvent(database, session.accountId, "race_entered", { kind: "story", instant: !!parsed.data.instant });
+    const created = await createStoryRace(database, session, { horseId: parsed.data.pick === "auto" ? undefined : parsed.data.horseId, plan: parsed.data.plan, instant: parsed.data.instant, suited: parsed.data.suited }, now);
+    await trackEvent(database, session.accountId, "race_entered", { kind: "story", instant: !!parsed.data.instant, suited: !!parsed.data.suited });
     return json({ ...created, player: await playerView(database, session, now) }, { status: 201 });
   } catch (err) {
     return handleError(err);

@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
 import { authenticate, createAccount, createDb, createRace, enterRace, getBalance, markInboxRead, rowsOf, type DbHandle } from "@thoroughbred/db";
 import { foundStable } from "./founding";
+import { careerAction } from "./horseLife";
 import { onboardingAction, onboardingView, requireUnlocked, welcomeBackView } from "./guide";
 import type { Session } from "./session";
 
@@ -93,6 +94,27 @@ async function ranLive(s: Session, position: number, at: Date) {
   );
   return race.id;
 }
+
+describe("the day-3 bloodline nudge (Wilf)", () => {
+  it("from the third day suggests retiring the starter filly; after she retires, a stallion for her; 'Not now' is final", async () => {
+    const s = await founded();
+    const [filly] = await q<{ id: string; name: string }>(`select id, name from horses where owner_stable_id = '${s.stable.id}' and sex = 'female'`);
+    expect(filly).toBeDefined();
+    expect((await onboardingView(h.db, s, T0))!.bloodline).toBeNull();
+    expect((await onboardingView(h.db, s, new Date(T0.getTime() + gc.MS_PER_DAY)))!.bloodline).toBeNull();
+    const day3 = new Date(T0.getTime() + gc.BLOODLINE_NUDGE_DAYS * gc.MS_PER_DAY);
+    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: false });
+    await careerAction(h.db, s, filly!.id, "retire", day3);
+    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: true });
+    await onboardingAction(h.db, s, { action: "coach", id: "bloodline" }, day3);
+    expect((await onboardingView(h.db, s, new Date(day3.getTime() + gc.MS_PER_DAY)))!.bloodline).toBeNull();
+  });
+
+  it("never for an existing stable", async () => {
+    const s = await existing();
+    expect((await onboardingView(h.db, s, new Date(T0.getTime() + 5 * gc.MS_PER_DAY)))!.bloodline).toBeNull();
+  });
+});
 
 describe("Stable steps from real events", () => {
   it("the Why step counts only for your own race, once watched, and pays once", async () => {

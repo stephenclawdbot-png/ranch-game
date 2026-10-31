@@ -18,6 +18,7 @@ import { api } from "@/lib/player";
 import { FoalReveal } from "./FoalReveal";
 import { PremiumCheckout } from "@/components/chain/PremiumCheckout";
 import { PracticeBadge } from "@/components/chain/UsdgMode";
+import { useLocked } from "@/components/onboarding/FeatureGate";
 import { Credits, RARITY_COLOR, RARITY_LABEL, RarityBadge, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
 export function PacksScreen() {
@@ -27,6 +28,8 @@ export function PacksScreen() {
   const [result, setResult] = useState<PullResultView | null>(null);
   // One key per intended pull: a retry after a network error reuses it (no double charge).
   const [keys, setKeys] = useState<Record<string, string>>({});
+  // Premium Packs (T-USDG in the beta) open with the market: a new stable's first days stay on credits.
+  const premiumLocked = useLocked("market");
 
   if (error && !data) return <ErrorNote error={error} onRetry={reload} />;
   if (!data) return <Skeleton rows={3} />;
@@ -89,15 +92,21 @@ export function PacksScreen() {
         <PackCard o={v.paddock} busy={busy} primary={!freeReady} onOpen={() => open("paddock", false)} ceiling={v.ceiling} />
         <div className="grid content-start gap-3">
           <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} ceiling={v.ceiling} />
-          {/* Closed beta: buy with ETH on Robinhood Chain, or with T-USDG in practice mode (renders nothing otherwise). */}
-          <PremiumCheckout
-            weeklyLeft={v.premium.weeklyLimit - v.premium.paidThisWeek}
-            stallsFree={v.stalls.free}
-            onFulfilled={() => {
-              reload();
-              refreshPurse();
-            }}
-          />
+          {premiumLocked ? (
+            <p className="surface p-3 text-sm" data-testid="premium-later">
+              <b>Buying Premium Packs opens with the market:</b> on your stable&rsquo;s third day, or as soon as you finish Story chapter 1. The odds above are published now.
+            </p>
+          ) : (
+            // Closed beta: buy with ETH on Robinhood Chain, or with T-USDG in practice mode (renders nothing otherwise).
+            <PremiumCheckout
+              weeklyLeft={v.premium.weeklyLimit - v.premium.paidThisWeek}
+              stallsFree={v.stalls.free}
+              onFulfilled={() => {
+                reload();
+                refreshPurse();
+              }}
+            />
+          )}
         </div>
       </div>
 

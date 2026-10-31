@@ -11,6 +11,7 @@ import { PixelIcon, type IconName } from "@/components/icons";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { RanchStage } from "@/components/stable/RanchStage";
 import { YourJockeys } from "@/components/jockeys/YourJockeys";
+import { useLocked } from "@/components/onboarding/FeatureGate";
 import { HomeSocial } from "@/components/social/HomeSocial";
 import { Section } from "@/components/ui/Page";
 import { aptitudes } from "@/lib/aptitude";
@@ -39,6 +40,7 @@ function Stable({ state }: { state: PlayerState }) {
   const entry = useEntry();
   const [sort, setSort] = useState<SortKey>("ready");
   const best = recommendHorse(state);
+  const jockeysLocked = useLocked("jockey_contracts");
 
   const rows = useMemo(() => {
     const list = state.horses.map((s) => ({ s, apt: aptitudes(s.horse) }));
@@ -167,7 +169,8 @@ function Stable({ state }: { state: PlayerState }) {
             </p>
           </Section>
           <HomeSocial show="rivals" />
-          <YourJockeys />
+          {/* A new stable meets jockey contracts (wages, the transfer window) once they open: its apprentice rides meanwhile. */}
+          {!jockeysLocked && <YourJockeys />}
         </aside>
       </div>
     </div>

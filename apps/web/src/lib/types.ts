@@ -372,6 +372,8 @@ export interface OnboardingView {
   unlocks: Record<UnlockFeature, boolean>;
   steps: StableStepsView | null;
   welcomeBack: WelcomeBackView | null;
+  /** Wilf's day-3 suggestion to start a bloodline: the mare (to retire, or already retired), or null. */
+  bloodline?: { horseId: string; name: string; retired: boolean } | null;
 }
 
 export interface StableStepsView {

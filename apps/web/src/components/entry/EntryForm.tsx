@@ -72,8 +72,8 @@ export function conditionLabel(h: StableHorse): { text: string; tone: string } {
 }
 
 /** Story race (solo, settled on the server when you enter; free). Returns the race id. */
-export async function enterStoryRace(horseId: string, plan: RacePlan, opts: { instant?: boolean } = {}): Promise<{ raceId: string; postTimeMs: number }> {
-  return api<{ raceId: string; postTimeMs: number }>("/api/races/quick", { body: { horseId, plan, ...(opts.instant ? { instant: true } : {}) } });
+export async function enterStoryRace(horseId: string, plan: RacePlan, opts: { instant?: boolean; suited?: boolean } = {}): Promise<{ raceId: string; postTimeMs: number }> {
+  return api<{ raceId: string; postTimeMs: number }>("/api/races/quick", { body: { horseId, plan, ...(opts.instant ? { instant: true } : {}), ...(opts.suited ? { suited: true } : {}) } });
 }
 
 export interface QuickPickResult {

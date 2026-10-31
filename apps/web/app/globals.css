@@ -3938,14 +3938,16 @@ a.ped-node:focus-visible {
 .racecard-name:hover {
   text-decoration: underline;
 }
-/* Phones: a long name wraps to a second line instead of being cut to "Brave …". */
+/* Phones: a long name wraps to a second line instead of being cut to "Brave …", between words
+   (a little smaller, so "Northern" fits whole instead of breaking as "Northe / rn"). */
 @media (max-width: 639px) {
   .racecard-name {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    font-size: 1.125rem;
   }
 }
 .racecard-meta {

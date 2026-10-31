@@ -39,7 +39,7 @@ export type OnboardingBody =
 export async function sendOnboarding(body: OnboardingBody): Promise<void> {
   if (body.action === "mentor") patch((o) => ({ ...o, mentorDone: true, ...(typeof body.plainLanguage === "boolean" ? { plainLanguage: body.plainLanguage } : {}) }));
   if (body.action === "plain") patch((o) => ({ ...o, plainLanguage: body.on }));
-  if (body.action === "coach") patch((o) => ({ ...o, coachSeen: [...new Set([...o.coachSeen, body.id])] }));
+  if (body.action === "coach") patch((o) => ({ ...o, coachSeen: [...new Set([...o.coachSeen, body.id])], ...(body.id === "bloodline" ? { bloodline: null } : {}) }));
   if (body.action === "welcome_back") patch((o) => ({ ...o, welcomeBack: null }));
   const res = await api<{ ok: boolean; step?: boolean }>("/api/onboarding", { body });
   // A completed step changes credits and the guide: fetch the player again.

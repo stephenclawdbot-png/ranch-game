@@ -10,6 +10,7 @@
 import * as gc from "@thoroughbred/game-core";
 import {
   DomainError,
+  bloodlineNudgeFor,
   careDayOf,
   completeStableStep,
   contractsOfStable,
@@ -50,6 +51,7 @@ export async function onboardingView(db: Db, session: Session, now: Date): Promi
       unlocks,
       steps: guided ? await stableStepsView(db, session.accountId, now) : null,
       welcomeBack: visit ? await welcomeBackView(db, session, visit, now) : null,
+      bloodline: guided ? await bloodlineNudgeFor(db, session.accountId, now) : null,
     };
   } catch (err) {
     console.error("onboarding view", err);
