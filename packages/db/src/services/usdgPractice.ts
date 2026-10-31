@@ -37,11 +37,12 @@ import { createHash } from "node:crypto";
 import { and, eq, gt, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { chainOrders, horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type ChainOrderRow, type UsdgListingRow, type UsdgOrderRow } from "../schema";
+import { chainOrders, horses, inboxItems, ledgerAccounts, ledgerTransactions, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type ChainOrderRow, type UsdgListingRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor } from "../types";
+import { lockStableOf, occupancy } from "./accounts";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY } from "./ledger";
 import { marketWalletOf, USDG_PRACTICE_MARKET } from "./practiceIdentity";
-import { audit, runTx } from "./tx";
+import { audit, rowsOf, runTx } from "./tx";
 import { releaseStudBooking, usdgPolicy, type UsdgFulfilResult } from "./usdgMarket";
 import { fulfilUsdgPayment } from "./usdgStud";
 
@@ -95,6 +96,14 @@ export async function grantPracticeUsdg(db: Db, input: { accountId: string; now:
   const amount = gc.PRACTICE_USDG_GRANT;
   return runTx(db, async (tx) => {
     if (!(await marketWalletOf(tx, input.accountId, input.env))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+    // One starter balance per player: an account linked to one that already had the grant (the
+    // same device, wallet or email: services/accounts.ts areLinked) gets none, so a second stable
+    // on the same device can't mint a second 100 T-USDG (and linked accounts can't trade it across).
+    const [mine] = await tx.select({ id: ledgerTransactions.id }).from(ledgerTransactions).where(eq(ledgerTransactions.idempotencyKey, `usdg-practice:grant:${input.accountId}`));
+    if (!mine && (await linkedAccountHadGrant(tx, input.accountId))) {
+      await audit(tx, { actor: input.accountId, action: "usdg.practice_grant_refused", entityType: "account", entityId: input.accountId, data: { reason: "linked_account_granted", at: input.now.toISOString() } });
+      return { granted: false, balance: await practiceUsdgBalance(tx, input.accountId) };
+    }
     const r = await post(tx, {
       idempotencyKey: `usdg-practice:grant:${input.accountId}`,
       kind: "usdg_practice_grant",
@@ -107,6 +116,20 @@ export async function grantPracticeUsdg(db: Db, input: { accountId: string; now:
     if (!r.duplicate) await audit(tx, { actor: input.accountId, action: "usdg.practice_grant", entityType: "account", entityId: input.accountId, data: { amount, at: input.now.toISOString() } });
     return { granted: !r.duplicate, balance: await practiceUsdgBalance(tx, input.accountId) };
   });
+}
+
+/** True when an account linked to this one (a shared device, wallet or email signal) already had the practice grant. */
+async function linkedAccountHadGrant(ex: Executor, accountId: string): Promise<boolean> {
+  const rows = rowsOf<{ one: number }>(
+    await ex.execute(sql`
+      select 1 as one
+        from account_links x
+        join account_links y on y.kind = x.kind and y.value_hash = x.value_hash and y.account_id <> x.account_id
+        join ledger_transactions t on t.idempotency_key = 'usdg-practice:grant:' || y.account_id::text
+       where x.account_id = ${accountId}
+       limit 1`),
+  );
+  return rows.length > 0;
 }
 
 /** Admin: adds T-USDG to an account (idempotent per key). */
@@ -218,6 +241,14 @@ export async function payUsdgOrderPractice(db: Db, input: { orderId: string; acc
       // Rolls back the payment too: nothing is charged; the order lapses like an unpaid one.
       const why = (r.order.error ?? r.order.flagReason ?? "it can't be delivered any more").replace(/^refund due: /, "");
       throw new DomainError("NOT_ELIGIBLE", `This can't go ahead (${why}). Nothing was charged.`);
+    }
+    // The bought horse needs a stall (the quote held one, an auction offer didn't, and the stable can
+    // fill up meanwhile). Checked after the move (lock order listing/horse -> stable, as in the quote);
+    // a full stable rolls the payment back too.
+    if (order.kind === "sale" && !r.duplicate) {
+      const buyerStable = await lockStableOf(tx, order.accountId);
+      const occ = await occupancy(tx, buyerStable);
+      if (occ.used > buyerStable.stallSlots) throw new DomainError("STABLE_FULL", `All ${buyerStable.stallSlots} stalls are taken: free one first. Nothing was charged.`, { ...occ });
     }
 
     const names = await tx.select({ id: horses.id, name: horses.name }).from(horses).where(inArray(horses.id, [order.horseId, ...(order.mareId ? [order.mareId] : [])]));

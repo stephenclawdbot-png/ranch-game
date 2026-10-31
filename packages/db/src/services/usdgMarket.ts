@@ -559,6 +559,22 @@ async function unlockFor(tx: Tx, listing: UsdgListingRow, now: Date): Promise<vo
   if (h.lockKind === "market" && h.lockRef === listing.id) await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: now }).where(eq(horses.id, h.id));
 }
 
+/** The buyer's live purchase orders (signed and payable, submitted, or paid and waiting): each holds a stall. */
+export async function liveSaleOrdersOf(ex: Executor, accountId: string, now: Date): Promise<number> {
+  const graceCutoff = new Date(now.getTime() - USDG_ORDER_GRACE_MS);
+  const [r] = await ex
+    .select({ n: sql<number>`count(*)::int` })
+    .from(usdgOrders)
+    .where(
+      and(
+        eq(usdgOrders.kind, "sale"),
+        eq(usdgOrders.accountId, accountId),
+        or(eq(usdgOrders.status, "paid"), and(eq(usdgOrders.status, "pending"), or(sql`${usdgOrders.txHash} is not null`, sql`${usdgOrders.deadline} > ${graceCutoff}`))),
+      ),
+    );
+  return Number(r?.n ?? 0);
+}
+
 async function liveOfferOf(tx: Executor, listing: UsdgListingRow, now: Date): Promise<UsdgOrderRow | null> {
   if (!listing.offerOrderId) return null;
   const o = await getUsdgOrder(tx, listing.offerOrderId);
@@ -623,7 +639,13 @@ export async function quoteUsdgSale(db: Db, input: { accountId: string; listingI
     if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
     if (lower(wallet) === lower(listing.sellerWallet)) throw new DomainError("LINKED_ACCOUNTS", "Trades between linked accounts are not allowed.");
     if (!(await sellerPayable(tx, listing, input.chain))) throw new DomainError("NOT_ELIGIBLE", "The seller's wallet has changed since this lot was listed, so it can't be paid. The seller can list it again.");
-    await assertStallFree(tx, buyerStable);
+    // A free stall, counting the stalls held by the buyer's other live purchase orders (fixed-price
+    // reservations, auction offers): one free stall must not reserve two horses.
+    const occ = await assertStallFree(tx, buyerStable);
+    const held = await liveSaleOrdersOf(tx, input.accountId, input.now);
+    if (occ.used + held + 1 > buyerStable.stallSlots) {
+      throw new DomainError("STABLE_FULL", `all ${buyerStable.stallSlots} stalls are taken or held for horses you are paying for`, { ...occ, held });
+    }
     const order = await insertOrder(tx, {
       kind: "sale",
       accountId: input.accountId,
