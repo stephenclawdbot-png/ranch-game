@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { simulateRace } from "@thoroughbred/racing-engine";
-import type { RaceReplay } from "@thoroughbred/shared";
+import type { RaceReplay, RunningStyle } from "@thoroughbred/shared";
 import { fixtureInput } from "@/server/testing";
 import type { Fit } from "./aptitude";
 import { analyseRace } from "./raceAnalysis";
@@ -67,15 +67,19 @@ describe("the verdict: why, in one sentence", () => {
     const s = storyFromFacts(input({ analysis: { position: 4, runningLine: [2, 2, 2, 4], sectionals: late(8) } }), facts({ tiringWithM: 180, lateChange: 2, lowTankRank: 1 }));
     expect(s.kind).toBe("ran_dry");
     expect(s.reason).toBe("Copper Kettle used too much early chasing the leader, and had nothing left with the final furlong to go, dropping from 2nd to 4th.");
-    expect(s.change).toMatchObject({ kind: "tactic", tactic: "stalker", label: "Try again as a stalker" });
-    expect(s.change!.text).toMatch(/^Ride him as a stalker: sit just behind the leaders/);
-    expect(s.change!.text).toMatch(/It isn't his natural style, so it's a trade-off\.$/);
+    // On its own style already: holding it up loses more than it saves (measured below), so the
+    // change is honest about stamina, and a fresh horse gets the run when there is one.
+    expect(s.change).toMatchObject({ kind: "again", label: "Race Copper Kettle again" });
+    expect(s.change!.text).toBe("Going from the front is still his best way: stamina is what ran out, and stamina work on the gallops builds it.");
+    const fresh = storyFromFacts(input({ freshAlternative: "Paper Moon", analysis: { position: 4, runningLine: [2, 2, 2, 4], sectionals: late(8) } }), facts({ tiringWithM: 180, lateChange: 2 }));
+    expect(fresh.change).toMatchObject({ kind: "fresh_horse", label: "Race Paper Moon instead" });
   });
 
-  it("led and faded, with no tiring call: read from the tank two-thirds round", () => {
-    const s = storyFromFacts(input({ horse: { sex: "filly", name: "Lucky Penny" }, analysis: { position: 5, runningLine: [1, 1, 2, 5], sectionals: late(7) } }), facts({ lowTankRank: 1, lateChange: 3 }));
+  it("ran dry ridden against its natural style: back to its own style", () => {
+    const s = storyFromFacts(input({ horse: { sex: "filly", name: "Lucky Penny", style: "stalker" }, analysis: { tactic: "front", position: 5, runningLine: [1, 1, 2, 5], sectionals: late(7) } }), facts({ lowTankRank: 1, lateChange: 3 }));
     expect(s.reason).toBe("Lucky Penny used too much early leading, and had nothing left in the closing stages, dropping from 2nd to 5th.");
-    expect(s.change!.text).toMatch(/^Ride her as a stalker/);
+    expect(s.change).toMatchObject({ kind: "tactic", tactic: "stalker", label: "Try again as a stalker" });
+    expect(s.change!.text).toBe("Ride her as a stalker: sit just behind the leaders and save something for the finish. That's how she runs best, and she'll judge her own pace.");
   });
 
   it("a trip too far is named as the cause, and the change is a race that suits", () => {
@@ -177,5 +181,35 @@ describe("the verdict on real engine replays", () => {
     }
     // The engine's races are varied enough that several kinds of story occur.
     expect(kinds.size).toBeGreaterThanOrEqual(5);
+  });
+
+  it("every riding change it suggests gains places on average: same field, same luck, one change", { timeout: 120_000 }, () => {
+    const STYLES: RunningStyle[] = ["front", "stalker", "closer"];
+    let n = 0;
+    let gained = 0;
+    let better = 0;
+    let worse = 0;
+    for (let k = 0; k < 60; k++) {
+      const base = fixtureInput(`verdict-change-${k}`, NOW, { distanceM: [1000, 1200, 1400, 1600, 2000, 2400][k % 6], runners: 8 + (k % 3) });
+      // As bred, and with everyone ridden one style along from their own.
+      const offStyle = { ...base, entries: base.entries.map((x) => ({ ...x, tactic: STYLES[(STYLES.indexOf(x.horse.style) + 1 + (k % 2)) % 3]! })) };
+      for (const input of [base, offStyle]) {
+        const rep = simulateRace(input);
+        for (const e of input.entries) {
+          const a = analyseRace(rep, e.horse.id, e.horse, e.tactic)!;
+          const s = raceStory({ horseId: e.horse.id, analysis: a, horse: e.horse, replay: rep, tips: [], yours: true })!;
+          if (s.change?.kind !== "tactic") continue;
+          const again = simulateRace({ ...input, entries: input.entries.map((x) => (x.horse.id === e.horse.id ? { ...x, tactic: s.change!.tactic! } : x)) });
+          const p = again.result.finishOrder.find((f) => f.horseId === e.horse.id)!.position;
+          n++;
+          gained += a.position - p;
+          if (p < a.position) better++;
+          if (p > a.position) worse++;
+        }
+      }
+    }
+    expect(n).toBeGreaterThan(50);
+    expect(gained / n).toBeGreaterThan(0.5);
+    expect(better).toBeGreaterThan(worse * 2);
   });
 });

@@ -119,6 +119,9 @@ const RIDE_HOW: Record<RunningStyle, string> = {
   closer: "settle at the back and come with one late run",
 };
 
+/** A running style as a way of racing ("Going from the front is still his best way"). */
+const OWN_WAY: Record<RunningStyle, string> = { front: "Going from the front", stalker: "Sitting just off the pace", closer: "Coming late" };
+
 /** "the final furlong", "the last 400 m" */
 export function toGo(m: number): string {
   if (m <= 220) return "the final furlong";
@@ -251,10 +254,15 @@ function oneChange(i: StoryInput, kind: ReasonKind): OneChange {
   if (tactic !== horse.style && top?.id === "plan") return tactical(horse.style, `That's how ${p.she} runs best.`);
   switch (kind) {
     case "ran_dry":
-      if (a.fits.some((f) => f.id === "trip" && f.level === "poor") && i.replay.race.distanceM > horse.preferredDistanceM) return suited("The trip was too far to last.");
-      if (tactic === "front") return tactical("stalker", "Letting another horse do the work saves energy for the final furlong.");
-      if (tactic === "stalker") return tactical("closer", "Holding on to energy early leaves something for the finish.");
-      return suited("Even held up, the trip asked too much.");
+      // Measured on the engine (same field, same luck): holding a horse up against its natural
+      // style loses more than it saves, so the change is never "ride it slower" on its own way.
+      // Ridden against its style: back to it. Too far: a race at its trip. Otherwise it is stamina.
+      if (tactic !== horse.style) return tactical(horse.style, `That's how ${p.she} runs best, and ${p.she}'ll judge ${p.her} own pace.`);
+      if (a.fits.some((f) => f.id === "trip" && f.level !== "good") && i.replay.race.distanceM > horse.preferredDistanceM) return suited("The trip was a little far to last.");
+      return (
+        fresh(`${OWN_WAY[horse.style]} is still ${p.her} best way: stamina is what ran out, and stamina work on the gallops builds it.`) ??
+        again(`${OWN_WAY[horse.style]} is still ${p.her} best way: stamina is what ran out, and stamina work on the gallops builds it.`)
+      );
     case "left_too_much":
       if (tactic === "closer") return tactical("stalker", `${p.She} had energy to spare: closer to the pace, it gets used.`);
       if (tactic === "stalker") return tactical("front", `${p.She} had energy to spare: from the front, it gets used.`);
@@ -268,9 +276,10 @@ function oneChange(i: StoryInput, kind: ReasonKind): OneChange {
     default: {
       // Outpaced: the biggest tip that maps to one tap, else a fresh horse, else again.
       if (top && (top.id === "trip" || top.id === "surface" || top.id === "going")) return suited(top.text.split(":")[0]! + ".");
-      if (top && (top.id === "course" || top.id === "pace")) {
-        const t: RunningStyle | null = /stalker/.test(top.text) ? "stalker" : /closer/.test(top.text) ? "closer" : /front-runner/.test(top.text) ? "front" : null;
-        if (t && t !== tactic) return tactical(t, `${top.text.split(":")[0]!}.`);
+      // A course or pace tip becomes a one-tap plan only when it points back to the horse's own
+      // style (off-style plans lose more than they gain on the engine, see the ran_dry note).
+      if (top && (top.id === "course" || top.id === "pace") && tactic !== horse.style && new RegExp(horse.style === "front" ? "front-runner" : horse.style).test(top.text)) {
+        return tactical(horse.style, `${top.text.split(":")[0]!}.`);
       }
       if (top && (top.id === "fatigue" || top.id === "freshness")) {
         const f = fresh(`${top.text.split(":")[0]!}.`);

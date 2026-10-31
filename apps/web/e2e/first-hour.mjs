@@ -191,7 +191,7 @@ async function run(browser, kind, code) {
     const back = page.getByRole("link", { name: /Back to the stable/i }).first();
     if (await visible(back)) await click(back);
     else await page.goto(`${BASE_URL}/stable`);
-    await page.waitForURL(/\/stable/, { timeout: 30_000 });
+    await page.waitForURL(/\/stable/, { timeout: NAV_TIMEOUT_MS });
     await page.getByTestId("horse-card").first().waitFor({ timeout: 30_000 });
     await page.waitForTimeout(800);
     await endStep("stable");
