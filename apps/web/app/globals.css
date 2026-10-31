@@ -3430,7 +3430,12 @@ dialog.sheet .inset {
   pointer-events: none;
 }
 .ranch-greet .eyebrow {
+  /* ink outline: the eyebrow sits on bright clouds (graphics round 2) */
   text-shadow:
+    1px 0 0 #050d08,
+    -1px 0 0 #050d08,
+    0 1px 0 #050d08,
+    0 -1px 0 #050d08,
     0 1px 2px rgba(0, 0, 0, 0.9),
     0 0 12px rgba(0, 0, 0, 0.8);
 }

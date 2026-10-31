@@ -108,3 +108,34 @@ all drawn with `image-rendering: pixelated` at 1x/2x/3x.
 Left as is, by design: horse portraits (one genetic painting per horse), stable avatars (the
 stable's own silks), the race viewer's sprites, the wiki section cards (each reuses a figure from
 its own section as a cover), and blurred backdrops behind Invite, Pool, Beta and the Me pages.
+
+## Round 2 (same day): an independent review, then everything it found
+
+An independent reviewer went over the dev build after round 1 (every page at 390 and 1440, a
+network log of `/art/` per page) and found 13 problems; the owner added four more (the Ranch,
+riders that look like their jockeys, a cast that grows with the player base, one stored gender).
+All were fixed; screenshots at 390 and 1440 of every page, with the `/art/` URLs each page loads,
+were taken again afterwards (`graphics2/`, outside the repo) and checked by script and by eye.
+
+| # | Found | Fixed |
+|---|---|---|
+| 1 | 19 jockeys on /jockeys shared 14 faces (ids hashed into small pools; male apprentices had 3). | 126 base faces (at least 21 per stage and gender, period kit: soft silk caps, no helmets), keyed for skin, lips, hair and silks. A **look** (face, skin of 8, hair of 8, freckles / spectacles / moustache) and a **gender** are stored on each jockey at creation (migration 0030, additive), least-worn face first, then the freest combination; backfilled oldest first, active jockeys first. The bust wears the stable's silks *pattern* on the jacket and the cap. Tests: no two active jockeys share a face while their pool has an unused one; no two share a full look; name gender = stored = bust = rider. |
+| B | Every rider in the race and the paddock was the same generic man. | The rider sprites take the jockey's skin, hair cue, silks pattern and cap from the look (locked field and replay carry it, never hashed; old replays unchanged), in the paddock parade, the post parade, Trackside and 3D. Women ride women's copies of every rider strip (same frames, edited with PixelLab: slimmer back, a ponytail in the jockey's hair colour). |
+| C | A fixed set of faces runs out. | Looks give thousands of distinct riders per pool; `art-src/grow-jockey-faces.mjs` generates, keys and catalogues more base faces when a pool's worn share passes a threshold (data only, no code change). |
+| 2 | Transfer window "no free agents" used the jockey-signed news picture. | Its own vignette: an empty weighing-room bench. |
+| 3 | Story used the paddock diorama as its band and its chapter cards (and the race card's crowd strip). | Its own band (an owner and trainer at a gate, the road to the course) and a meeting per chapter (village point-to-point, county course, national course, Classic day), full width on desktop, badge placed on the art. |
+| 4 | Wiki cards and figures reused blurred page backdrops. | 28 wiki-only scenes for the 7 section cards and every figure that was a page's picture (`page-scenes.test.ts`: no wiki picture is a page backdrop, none repeats in the wiki). |
+| 5 | Barn on 11 pages, yard on 6, grandstand on 5. | A scene per page family: owners' office (Profile, Link, My races/bets, Betting limits), club entrance (Invite), prize-giving (Pool, Beta), sponsor's marquee (Sponsor), stable arch (stable profiles), registration desk (Found a stable), owners' bar (Bring a rival), the eve of Saturday (This week), and a hero per horse sub-page (grooming bay, the gallops, trophy shelf, logbook desk). `page-scenes.test.ts`: no backdrop is used by two families. |
+| 6 | Horseshoe, stopwatch, shield and ticket each meant several things. | 16 new icons, one per meaning: grooming brush, empty stall, empty starting stall, telephone (link a device), race diary (my races / runs), results board, record plaque, race clock, training chart, licence, locked purse (betting limits), wax seal (sealed seed), invitation, cap on a peg, door key, lead rope, sale board. |
+| 7 | Horse portraits all looked alike; the foal had an adult head. | A head per breed (12), a yearling's and a foal's head while young, per-horse nudges from the genes, bolder small markings, deeper coat contrast; deterministic (a warp through the genetic recolour). |
+| 8 | Bad crops (Daily Cup jockey's head, Nursery mare and foal, Quick races horses at the neck, a Land Rover in the 1920s). | A focal point per scene (`STILL_SCENES` fx/fy) and taller still bands at 3x; the gallops repainted without the vehicle. |
+| 9 | Eyebrows on bright clouds / crowd / window; the Daily Cup "Gold" chip dark on dark. | Ink outline on every band eyebrow and the wiki label; brass chip with ink text (a later `.chip` rule had overridden it). |
+| 10 | Icons at 20 / 16 px from 32 px art; racecourse art at 0.43x. | A hand-tuned 16 px drawing of every icon; icons draw at 16 or whole multiples of 32 only; course scenery at 1x / 2x, cropped by its frame. |
+| 11 | Market (locked) and What-if "not found" had no art. | The sales ring band over a "closed doors" vignette; a lost racecard vignette. |
+| 12 | Layout: stable name truncated, stat row under the arrow, plaques at 1x (locked ones blobs), sub-tabs cut off. | Name wraps; the plate clears the arrow; plaques at 2x with a legible pewter locked style; tab rows show a wider fade and a chevron where more tabs hide. |
+| 13 | Three trainers in modern clothes (puffer gilet, beanie, zip jacket). | Repainted: cloche hat and tweed, flat cap and reefer jacket, tailored jacket and silk scarf. |
+| A | Ranch: a horse cut in half at the phone's edge, tags overlapping. | Every horse and its whole roaming beat stay inside the visible pasture (margin, re-clamped on resize); tags are laid out so none covers another or leaves the stage, with a leader line to their horse; the rest are counted "in the barn". Checked at 360 / 390 / 430 / 768 / 1440 with 1 / 4 / 8 / 12 horses. |
+
+PixelLab: 3,340 generations (126 keyed base faces and 2 redraws, a first natural-hair batch of
+jockeys that keying replaced, 46 scenes, 16 icons, 3 vignettes, 3 trainers, 10 rider-strip
+edits). Raws: chosen ones only, prompts and seeds in `art-src/assets.json`.

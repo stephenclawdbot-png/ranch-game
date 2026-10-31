@@ -37,7 +37,7 @@ export default async function WhatIfPage({ params, searchParams }: { params: Pro
         vignette="lost-race"
         testId="what-if-missing"
         title={<span className="eyebrow !mb-0 block">What if?</span>}
-        text={<span className="font-bold text-ink">{message}</span>}
+        text={<span className="font-bold text-cream">{message}</span>}
         action={
           <Link href={`/race/${raceId}`} className="btn w-fit">
             ‹ The race
