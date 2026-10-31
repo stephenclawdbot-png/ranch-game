@@ -1,0 +1,1 @@
+ALTER TABLE "jockeys" ADD COLUMN "look" jsonb;

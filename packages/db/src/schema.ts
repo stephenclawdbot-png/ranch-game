@@ -2162,6 +2162,11 @@ export const jockeys = pgTable(
     freeAgentWeek: integer("free_agent_week"),
     /** Phase 2: the stable that developed them (an apprentice with JOCKEY_DEVELOPED_RIDES rides there). */
     developedByStableId: uuid("developed_by_stable_id").references(() => stables.id),
+    /**
+     * The jockey's look (game-core JockeyLook: base face, skin, hair, accessories), chosen once
+     * at creation (least-used first) and never changed. Null only before the backfill reached it.
+     */
+    look: jsonb("look"),
     createdAt: createdAt(),
   },
   (t) => [

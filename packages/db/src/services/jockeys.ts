@@ -74,13 +74,16 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
   const weeksIn = Math.max(0, input.weeksIn ?? 0);
   const p = weeksIn > 0 ? gc.generateSeasonedJockey(input.seed, weeksIn) : { ...gc.generateApprentice(input.seed), rides: 0, wins: 0, experience: 0 };
   const bornMs = input.now.getTime() - weeksIn * WEEK_MS;
+  const stage = gc.jockeyStageAt(bornMs, input.now.getTime());
+  const look = await assignJockeyLookTx(ex, { seed: input.seed, stage, name: p.name });
   const [row] = await ex
     .insert(jockeys)
     .values({
       name: p.name,
       seed: input.seed,
       bornAt: new Date(bornMs),
-      stage: gc.jockeyStageAt(bornMs, input.now.getTime()),
+      stage,
+      look,
       personality: p.personality,
       skills: p.skills,
       potential: p.potential,
@@ -98,6 +101,44 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
   if (input.stableId) await startContractTx(ex, { jockey: row!, stableId: input.stableId, now: input.now, terms: standardTerms(row!) });
   await jockeyEventTx(ex, { key: `debut:${row!.id}`, jockeyId: row!.id, kind: "debut", stableId: input.stableId, at: input.now });
   return row!;
+}
+
+/** Looks worn by jockeys not yet retired (the faces and combinations already taken). */
+export async function activeJockeyLooksTx(ex: Executor): Promise<gc.JockeyLook[]> {
+  const rows = await ex.select({ look: jockeys.look }).from(jockeys).where(and(isNull(jockeys.retiredAt), isNotNull(jockeys.look)));
+  return rows.map((r) => gc.parseJockeyLook(r.look)).filter((l): l is gc.JockeyLook => l !== null);
+}
+
+/**
+ * A new jockey's look (game-core pickJockeyLook): the least-worn face for its stage and name
+ * among active jockeys, then the freest skin / hair / accessory combination. One assignment at a
+ * time (a transaction-scoped advisory lock), so two jockeys created at once never take one look.
+ */
+export async function assignJockeyLookTx(ex: Executor, input: { seed: string; stage: gc.JockeyStage; name: string }): Promise<gc.JockeyLook> {
+  await ex.execute(sql`select pg_advisory_xact_lock(hashtext('jockey-looks'))`);
+  return gc.pickJockeyLook(input, await activeJockeyLooksTx(ex));
+}
+
+/**
+ * Backfill (idempotent): a look for every jockey stored before looks existed, oldest first,
+ * assigned like a new jockey's (active jockeys first, so the riders people see get unique faces
+ * while unused ones exist; retired ones after). A look, once set, is never changed.
+ */
+export async function ensureJockeyLooksTx(ex: Executor): Promise<number> {
+  const missing = await ex
+    .select({ id: jockeys.id, seed: jockeys.seed, name: jockeys.name, stage: jockeys.stage, retiredAt: jockeys.retiredAt })
+    .from(jockeys)
+    .where(isNull(jockeys.look))
+    .orderBy(sql`${jockeys.retiredAt} is not null`, asc(jockeys.createdAt), asc(jockeys.id));
+  if (!missing.length) return 0;
+  await ex.execute(sql`select pg_advisory_xact_lock(hashtext('jockey-looks'))`);
+  const active = await activeJockeyLooksTx(ex);
+  for (const j of missing) {
+    const look = gc.pickJockeyLook({ seed: j.seed, stage: j.stage as gc.JockeyStage, name: j.name }, active);
+    const done = await ex.update(jockeys).set({ look }).where(and(eq(jockeys.id, j.id), isNull(jockeys.look))).returning({ id: jockeys.id });
+    if (done.length && !j.retiredAt) active.push(look);
+  }
+  return missing.length;
 }
 
 /** Jockeys a stable holds now (not retired). */
@@ -154,6 +195,8 @@ export async function ensureJockeyBackfill(db: Db, now: Date): Promise<{ apprent
       .from(stables)
       .where(sql`not exists (select 1 from jockey_events e where e.stable_id = ${stables.id} and e.kind = 'debut')`)
       .orderBy(asc(stables.createdAt), asc(stables.id));
+    // Looks first, so jockeys from before looks get theirs before any new jockey takes a face.
+    await ensureJockeyLooksTx(tx);
     for (const s of missing) if (await ensureStableApprenticeTx(tx, s.id, now)) apprentices++;
     let freelancers = 0;
     const [anyClub] = await tx
@@ -196,6 +239,8 @@ export interface JockeyView {
   stableId: string | null;
   stableName: string | null;
   silks: unknown;
+  /** The jockey's look (face, skin, hair, accessories): the stored one, else a fallback from the id. */
+  look: gc.JockeyLook;
   retireAt: string;
   retirementAnnounced: boolean;
   retired: boolean;
@@ -226,6 +271,7 @@ export function jockeyView(j: JockeyRow, stable?: { name: string; silks: unknown
     stableId: j.stableId,
     stableName: stable?.name ?? null,
     silks: stable?.silks ?? null,
+    look: gc.resolveJockeyLook(j),
     retireAt: j.retireAt.toISOString(),
     retirementAnnounced: j.retirementAnnouncedAt !== null,
     retired: j.retiredAt !== null,
@@ -499,6 +545,8 @@ export interface FieldJockey {
   stableId: string | null;
   /** Freelance fee this ride was booked for (0 = own jockey, Club runner, or assigned at the lock). */
   fee: number;
+  /** The rider's look (named jockeys only): drawn on the race and paddock sprites. */
+  look?: gc.JockeyLook;
 }
 
 export interface FieldJockeyRunner {
@@ -515,7 +563,7 @@ export interface FieldJockeyRunner {
 const UNNAMED_NAMES = { club: "Club rider", journeyman: "Journeyman", top: "Top jockey" } as const;
 
 function fieldJockeyOf(j: JockeyRow, fee: number): FieldJockey {
-  return { id: j.id, name: j.name, skills: skillsOf(j), claimLb: gc.apprenticeClaimLb(j.wins), stableId: j.stableId, fee };
+  return { id: j.id, name: j.name, skills: skillsOf(j), claimLb: gc.apprenticeClaimLb(j.wins), stableId: j.stableId, fee, look: gc.resolveJockeyLook(j) };
 }
 
 /**
