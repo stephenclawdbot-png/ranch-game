@@ -4,6 +4,7 @@
  * rival at once (both Rivals panels say who invited whom) and you both get a one-time credits
  * welcome. Credits only; linked accounts (same browser, wallet, email ...) get no welcome.
  */
+import { UsdgText } from "@/components/chain/UsdgMode";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { deviceId } from "@/lib/deviceId";
@@ -87,7 +88,7 @@ export function BringRival() {
         <p>
           You both get {v.credits} Stable Credits, once per new stable. Your side of the welcome is paid for up to {v.weeklyWelcomes} new rivals a week ({v.thisWeek} so far this week); your friends always get theirs.
         </p>
-        <p>Accounts that share a browser, wallet or email are linked: they still become rivals, but nobody gets the welcome. Credits are never cashed out and nothing here pays USDG.</p>
+        <p>Accounts that share a browser, wallet or email are linked: they still become rivals, but nobody gets the welcome. Credits are never cashed out and nothing here pays <UsdgText>USDG</UsdgText>.</p>
         <p>
           <Link href="/wiki/rivals-and-news#bring-a-rival" className="link">
             More in the wiki

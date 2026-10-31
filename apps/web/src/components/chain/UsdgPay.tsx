@@ -161,7 +161,7 @@ export function UsdgPay({ order, onDone, label }: { order: UsdgOrderJson; onDone
     </>
   );
   return (
-    <div className="inset grid gap-2 p-3" data-testid="usdg-pay" data-order={order.orderId}>
+    <div className="inset baize-scope grid gap-2 p-3" data-testid="usdg-pay" data-order={order.orderId}>
       <p className="text-cream">
         {label ?? (order.kind === "sale" ? "Pay for the horse" : order.kind === "stud" ? `Stud fee for ${order.horseName ?? "the stallion"}` : "Registration fee")}: {amount}
       </p>

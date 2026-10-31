@@ -7,7 +7,7 @@
  */
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
-import { UsdgMoney, UsdgText } from "@/components/chain/UsdgMode";
+import { PracticeAware, UsdgMoney } from "@/components/chain/UsdgMode";
 import { PossibleLooks } from "./PossibleLooks";
 import { Credits } from "./kit";
 
@@ -76,7 +76,10 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
         {v.usdgStudFee !== null && v.usdgStudFee !== undefined ? (
           <div className="flex justify-between" data-testid="preview-usdg-stud-fee">
             <span>
-              <UsdgText>{`Stud fee (USDG, from your wallet to ${v.stallionOwner ?? "his owner"})`}</UsdgText>
+              <PracticeAware
+                live={`Stud fee (USDG, from your wallet to ${v.stallionOwner ?? "his owner"})`}
+                practice={`Stud fee (T-USDG, from your balance to ${v.stallionOwner ?? "his owner"})`}
+              />
             </span>
             <UsdgMoney micro={v.usdgStudFee} />
           </div>

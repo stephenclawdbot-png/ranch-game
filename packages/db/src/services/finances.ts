@@ -128,7 +128,13 @@ export const KIND_CATEGORIES: Record<string, KindCategory> = {
   tote_stake: k("tote", "tote"),
   tote_settlement: k("tote", "tote"),
   tote_refund: k("tote", "tote"),
-  practice_usdg_grant: k("other", "other"),
+  // Practice T-USDG (services/usdgPractice.ts): a separate ledger currency the credits finances
+  // never read (they filter currency CR); mapped so the kinds stay accounted for.
+  usdg_practice_grant: k("other", "other"),
+  usdg_practice_topup: k("other", "other"),
+  usdg_practice_payment: k("sales", "purchases"),
+  usdg_practice_pack: k("other", "purchases"),
+  usdg_practice_reset: k("other", "other"),
 };
 
 /** Unmapped kinds stay visible instead of vanishing from a player's finances. */

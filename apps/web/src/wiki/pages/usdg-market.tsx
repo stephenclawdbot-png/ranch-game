@@ -19,12 +19,19 @@ export default function UsdgMarketPage() {
   const studCut = gc.usdgFee(studExample, p.feeBps);
   return (
     <>
-      <Lead>
-        Some horses can be sold for real dollars. Once a horse is <b>registered</b> for the USDG market, it can be sold at a fixed price or auctioned for <b>USDG</b>, a dollar stablecoin on Robinhood
-        Chain, and it trades only for USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
-      </Lead>
+      {practice ? (
+        <Lead>
+          During the beta, horses <b>registered</b> for the T-USDG market are sold at a fixed price or auctioned for <b>T-USDG</b>, test money with no real value, and trade only for
+          T-USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
+        </Lead>
+      ) : (
+        <Lead>
+          Some horses can be sold for real dollars. Once a horse is <b>registered</b> for the USDG market, it can be sold at a fixed price or auctioned for <b>USDG</b>, a dollar stablecoin on Robinhood
+          Chain, and it trades only for USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
+        </Lead>
+      )}
       <Callout tone="tip" title="During the beta: T-USDG, test money">
-        <p data-testid="wiki-tusdg-explainer">
+        <p data-testid="wiki-tusdg-explainer" data-practice-raw>
           During the beta, USDG is test money (T-USDG): you sign in with your wallet, nothing is charged and nothing can be withdrawn. Balances may be reset when the beta ends.
         </p>
         <p>
