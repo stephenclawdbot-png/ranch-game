@@ -18,6 +18,7 @@ import { DomainError } from "../errors";
 import { horses, racePicks, raceEntries, raceResults, races, stables, type RacePickRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { stableOf } from "./accounts";
+import { completeStableStepTx } from "./guide";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { resultPublicAt } from "./news";
 import { rowsOf, runTx } from "./tx";
@@ -43,6 +44,7 @@ export async function makePick(db: Db, input: { accountId: string; raceId: strin
       .onConflictDoUpdate({ target: [racePicks.raceId, racePicks.stableId], set: { horseId: input.horseId, updatedAt: input.now }, where: sql`${racePicks.outcome} = 'open'` })
       .returning();
     if (!row) throw new DomainError("RACE_CLOSED", "Picks closed at the off.");
+    await completeStableStepTx(tx, { accountId: input.accountId, step: "pick", now: input.now });
     return row;
   });
 }

@@ -707,6 +707,10 @@ export const RESET_TABLES = [
   "leagues",
   "daily_cup_entries",
   "daily_goals",
+  // The beginner guide follows the accounts (stable_steps references the ledger).
+  "stable_steps",
+  "feature_unlocks",
+  "onboarding_states",
   "inbox_items",
   "entry_movements",
   "race_sponsorships",

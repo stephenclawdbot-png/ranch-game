@@ -197,6 +197,13 @@
       "when": 1793440201913,
       "tag": "0027_real_tote_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793444815334,
+      "tag": "0028_onboarding",
+      "breakpoints": true
     }
   ]
 }

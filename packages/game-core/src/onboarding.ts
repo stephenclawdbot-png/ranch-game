@@ -252,6 +252,38 @@ export function unlockState(f: UnlockFacts): Record<UnlockFeature, UnlockReason 
   return { tote: rule("tote"), market: rule("market"), leasing: rule("leasing"), claiming: rule("claiming"), jockey_contracts: rule("jockey_contracts") };
 }
 
+/** The "Unlocked" moment for each feature (Stable news): what opened, what it is, where it lives. */
+export const UNLOCK_MOMENT: Readonly<Record<UnlockFeature, { title: string; body: string; href: string }>> = {
+  tote: {
+    title: "Unlocked: the tote",
+    body: "You've watched your first Live race. Now you can back a runner in other stables' races: credits go into a shared pool, the odds are published, and bets close at the off. Never on a race your own horse runs in.",
+    href: "/wiki/tote",
+  },
+  market: {
+    title: "Unlocked: the market",
+    body: "Buy and sell horses for Stable Credits in the Sales Ring. Buying needs a free stall; Club-bred starters stay with you.",
+    href: "/market",
+  },
+  leasing: {
+    title: "Unlocked: leasing",
+    body: "Rent a racer from another stable and share its prize money, or lend one of yours out. It's on the market's Lease tab.",
+    href: "/market#lease",
+  },
+  claiming: {
+    title: "Unlocked: claiming races",
+    body: "In a claiming race every runner is for sale at its claim price. Enter only a horse you'd be happy to sell, or claim one you like.",
+    href: "/wiki/claiming-races",
+  },
+  jockey_contracts: {
+    title: "Unlocked: jockey contracts",
+    body: "Sign a jockey for a regular rider who knows your horses, or make an offer in Sunday's transfer window.",
+    href: "/jockeys",
+  },
+};
+
+/** The mentor who welcomes a new stable and runs the first-week guide. */
+export const MENTOR = { name: "Wilf Ashby", role: "Head lad" } as const;
+
 // ---------------------------------------------------------------------------
 // Welcome back
 // ---------------------------------------------------------------------------

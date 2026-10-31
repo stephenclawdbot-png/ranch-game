@@ -18,6 +18,7 @@ import { RULES, seasonNumberAt } from "../rules";
 import { DomainError } from "../errors";
 import type { Db, Executor, Tx } from "../types";
 import { keeperOf } from "./horses";
+import { completeStableStepTx } from "./guide";
 import { CALENDAR_HOME_COURSE, defaultCardSlot, slotIndexOf, slotKeyOf, specialSlotAt } from "./card";
 import { classEligibility, featureQualificationReason, type RaceConditions } from "./races";
 import { runTx } from "./tx";
@@ -141,6 +142,7 @@ export async function addTarget(db: Db, input: { accountId: string; horseId: str
       .insert(raceTargets)
       .values({ horseId: h.id, stableId: stable.id, slotIndex: index, raceId: race.raceId, name: race.name, raceClass: race.raceClass, postTime: race.postTime, createdAt: input.now })
       .returning();
+    await completeStableStepTx(tx, { accountId: input.accountId, step: "pin_target", now: input.now });
     return row!;
   });
 }

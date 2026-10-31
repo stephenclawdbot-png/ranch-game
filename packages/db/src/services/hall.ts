@@ -13,6 +13,7 @@ import { gc, genomeOf, isGenome, toHorseState } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { awardAchievement, induct } from "./competition";
 import { rowsOf } from "./tx";
+import { stableStepsDone } from "./guide";
 import { hallNewsTx } from "./news";
 
 const LIVE = sql.raw(`('scheduled','feature','final')`);
@@ -278,6 +279,7 @@ export async function ownerStats(ex: Executor, accountId: string): Promise<gc.Ow
     seasonFinalWins: Number(races?.finals ?? 0),
     hallOfFame: Number(hof?.n ?? 0),
     careDays: Number(care?.n ?? 0),
+    stableSteps: await stableStepsDone(ex, accountId),
   };
 }
 

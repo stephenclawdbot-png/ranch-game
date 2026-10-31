@@ -118,6 +118,7 @@ export const KIND_CATEGORIES: Record<string, KindCategory> = {
   insurance_payout: k("story", "other"),
   upkeep: k("other", "upkeep"),
   daily_goal: k("goals_cup", "other"),
+  stable_step: k("goals_cup", "other"),
   daily_cup: k("goals_cup", "other"),
   story_reward: k("story", "other"),
   referral_reward: k("story", "other"),
