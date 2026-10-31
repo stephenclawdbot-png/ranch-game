@@ -10,6 +10,7 @@ import { enterStoryRace } from "@/components/entry/EntryForm";
 import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon } from "@/components/icons";
 import { NAME_RE, NameField, SilksEditor, SilksStand, suggestName } from "@/components/onboarding/SilksEditor";
+import { MentorWelcome } from "@/components/onboarding/Mentor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
@@ -31,7 +32,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const state = usePlayerState();
   const [name, setName] = useState("");
   const [silks, setSilks] = useState<SilksT | null>(null);
-  const [stage, setStage] = useState<"form" | "welcome">("form");
+  const [stage, setStage] = useState<"form" | "mentor" | "welcome">("form");
   const [imported, setImported] = useState(false);
   /** "Sign in with your wallet" panel under the founding form (an existing stable's wallet). */
   const [walletOpen, setWalletOpen] = useState(false);
@@ -72,6 +73,16 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     }
   }, [state, router]);
 
+  // A new stable meets the head lad first (three short screens, skippable), then its horses.
+  if (stage === "mentor" && state)
+    return (
+      <MentorWelcome
+        onDone={() => {
+          setStage("welcome");
+          window.scrollTo({ top: 0 });
+        }}
+      />
+    );
   if (stage === "welcome" && state) return <Welcome />;
   if ((state !== null && stage === "form" && !busy) || !silks) return <div className="min-h-[60vh]" aria-busy />;
   if (playtest && invite === null) return <InviteGate onAccepted={setInvite} />;
@@ -84,7 +95,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     try {
       const code = invite ?? referral;
       await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}), ...(rival && referral ? { rival: true, deviceId: deviceId() } : {}) });
-      setStage("welcome");
+      setStage("mentor");
       window.scrollTo({ top: 0 });
     } catch (e) {
       setError(e);

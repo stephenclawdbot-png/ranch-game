@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FeatureGate } from "@/components/onboarding/FeatureGate";
 import Link from "next/link";
 import { JOCKEY_CONTRACT_LENGTH_LABELS, JOCKEY_OPEN_OFFERS_PER_STABLE, JOCKEYS_PER_STABLE_MAX, type JockeyContractLength } from "@thoroughbred/game-core";
 import { LocalTime } from "@/components/competition/LocalTime";
@@ -22,6 +23,12 @@ export default async function TransferWindowPage() {
   return (
     <div>
       <PageHeader back={{ href: "/jockeys", label: "Jockeys" }} eyebrow="Jockeys" title="Transfer window" />
+      {/* A new stable reads the window but makes offers once contracts are open. */}
+      <div className="mb-4">
+        <FeatureGate feature="jockey_contracts" compact>
+          {null}
+        </FeatureGate>
+      </div>
       <p className="t-meta" data-testid="window-deadline">
         Closes <LocalTime ms={view.deadlineMs} withDate /> (Sunday 20:00 UTC). Free agents choose between offers then.
       </p>

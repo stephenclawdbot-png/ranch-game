@@ -11,6 +11,7 @@
  * paid from the wallet with the USDG pay widget (simulated on the mock chain), and the covering
  * happens once the payment is verified.
  */
+import { CoachMark } from "../onboarding/CoachMark";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usdgFromDecimal } from "@thoroughbred/game-core";
@@ -71,6 +72,15 @@ export function BreedingBarn() {
           Stud book
         </button>
       </div>
+      <CoachMark
+        id="breeding"
+        title="Breeding, the short version"
+        points={[
+          <>A foal takes something from each parent. Pick a mare, then a stallion, and the preview shows possible looks and how a foal might turn out, in words.</>,
+          <>The stallion finder ranks every stallion for your mare. Looking is free; only covering costs credits.</>,
+          <>Each mare can be covered once a season and every horse has a few breedings for life, so choose with care.</>,
+        ]}
+      />
       {tab === "barn" ? <Barn v={v} onView={setData} reload={reload} /> : tab === "finder" ? <StallionFinder v={v} /> : <StudBook v={v} onView={setData} />}
     </div>
   );

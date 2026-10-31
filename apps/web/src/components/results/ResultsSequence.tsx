@@ -19,6 +19,7 @@ import { FullResults } from "./FullResults";
 import { ResultBoard } from "./ResultBoard";
 import { RewardCounter } from "./RewardCounter";
 import { WhyCard } from "./WhyCard";
+import { WhyRead } from "../onboarding/WhyRead";
 
 export interface Settlement {
   /** Credits this result paid (purse + Story reward), settled on the server. */
@@ -185,7 +186,9 @@ export function ResultsSequence({
       )}
       {analysis && subject && at("why") && (
         <div className="fade-up">
-          <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} />
+          <WhyRead raceId={card.id} enabled={Boolean(mine)}>
+            <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} />
+          </WhyRead>
         </div>
       )}
       {at("next") && (

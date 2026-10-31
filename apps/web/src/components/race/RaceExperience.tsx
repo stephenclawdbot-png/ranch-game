@@ -34,6 +34,10 @@ import { courseByName } from "@thoroughbred/game-core";
 import { sealCopy, sealState } from "@/lib/seal";
 import { broadcastOffAt, msToBroadcastOff } from "@/lib/offClock";
 import { FinalOddsStrip, TotePanel } from "../tote/TotePanel";
+import { CoachMark } from "../onboarding/CoachMark";
+import { FeatureGate } from "../onboarding/FeatureGate";
+import { PlainNote, Term } from "../onboarding/Term";
+import { plainRace } from "@/lib/plain";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -308,6 +312,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
         {phase === "result" && replay && <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} siteHost={siteHost} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />}
       </div>
 
+      <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
+
       <CourseStrip track={card.track} distanceM={config.distanceM} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -348,13 +354,45 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
                   <FitList fits={fitCheck(mine.horse, mine.tactic, config)} showDetail />
                 </section>
               )}
+              {phase !== "live" && (
+                <CoachMark
+                  id="racecard"
+                  title="Reading the racecard"
+                  points={[
+                    <>
+                      Each row is a runner. <Term k="Form" force>Form</Term> is its last three finishes, oldest first: 1 is a win, 0 is outside the first nine.
+                    </>,
+                    <>
+                      <Term k="OR" force>OR</Term> is the official rating: the higher, the better the horse. The letters on the right grade its speed, stamina and burst (A is best).
+                    </>,
+                    <>The jockey is under each name. In a handicap the better horses carry more weight, to even the field up.</>,
+                    <>What matters most is fit: a trip, surface and going that suit the horse. Tap a name for the full form.</>,
+                  ]}
+                />
+              )}
               <FieldList card={card} highlightHorseId={highlightHorseId} open={phase !== "live"} />
             </>
           )}
         </div>
         <div className="grid content-start gap-4">
           {card.kind === "live" && <PickBlock raceId={card.id} phase={phase} signedIn={!!state} />}
-          {card.kind === "live" && <TotePanel raceId={card.id} reveal={phase === "result" && !holdResults} />}
+          {card.kind === "live" && (
+            <FeatureGate feature="tote" compact>
+              <CoachMark
+                id="tote"
+                title="The tote, in short"
+                points={[
+                  <>Pool betting with credits: everyone&rsquo;s stakes on this race go into one pot, and the winners share it.</>,
+                  <>
+                    <b>Win</b> pays if your runner wins. <Term k="Place" force>Place</Term> pays if it finishes in the first two or three.
+                  </>,
+                  <>The odds move until the off, when betting closes. Never on a race your own horse runs in.</>,
+                  <>Set a limit or take a break any time from your profile. It&rsquo;s for fun, never for real money.</>,
+                ]}
+              />
+              <TotePanel raceId={card.id} reveal={phase === "result" && !holdResults} />
+            </FeatureGate>
+          )}
           <FairnessPanel card={card} replay={phase === "result" ? replay : null} />
           {phase !== "result" && (
             <Link href={mine ? "/" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">

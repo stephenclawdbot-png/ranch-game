@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FeatureGate } from "@/components/onboarding/FeatureGate";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocalTime } from "@/components/competition/LocalTime";
@@ -74,12 +75,14 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
               <span className="tag tag-ready">Free agent</span> The <Link href="/jockeys/window" className="underline">transfer window</Link> closes <LocalTime ms={view.market.deadlineMs} withDate />.
             </p>
           )}
-          <div className="mt-3">
-            <JockeyActions id={j.id} name={j.name} {...view.actions} />
-          </div>
-          {view.market.freeAgent && view.signedIn && (
-            <div className="mt-3">{view.market.offerBlock && !view.market.myOffer ? <p className="t-meta">{view.market.offerBlock}</p> : <JockeyOffer id={j.id} name={j.name} market={view.market} />}</div>
-          )}
+          <FeatureGate feature="jockey_contracts" compact>
+            <div className="mt-3">
+              <JockeyActions id={j.id} name={j.name} {...view.actions} />
+            </div>
+            {view.market.freeAgent && view.signedIn && (
+              <div className="mt-3">{view.market.offerBlock && !view.market.myOffer ? <p className="t-meta">{view.market.offerBlock}</p> : <JockeyOffer id={j.id} name={j.name} market={view.market} />}</div>
+            )}
+          </FeatureGate>
           {view.market.contract && (
             <Section title="Contract">
               <ul className="surface rows" data-testid="jockey-contract">

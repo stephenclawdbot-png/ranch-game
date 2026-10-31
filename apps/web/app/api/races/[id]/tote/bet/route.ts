@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { db } from "@/server/db";
 import { errorJson, handleError, json, readJson } from "@/server/http";
 import { requireSession } from "@/server/session";
@@ -17,6 +18,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const database = await db();
     const session = await requireSession(database);
+    await requireUnlocked(database, session, "tote", new Date());
     const me = await placeBet(database, session, decodeURIComponent(id), parsed.data, new Date());
     if (!me) return errorJson(404, "race_not_found");
     return json({ me });

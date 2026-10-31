@@ -324,6 +324,50 @@ export interface PlayerView {
   serverNowMs: number;
   /** Stable news: discoveries and milestones (moments) and the Sunday League recap, newest first. */
   news?: MomentView[];
+  /** The beginner welcome (server/guide.ts); absent if it couldn't be read. */
+  onboarding?: OnboardingView | null;
+}
+
+/** Features a new stable meets a little later (game-core UnlockFeature). */
+export type UnlockFeature = "tote" | "market" | "leasing" | "claiming" | "jockey_contracts";
+
+/** The beginner welcome: mentor, plain language, coach marks, unlocks, Stable steps, welcome back. */
+export interface OnboardingView {
+  /** Founded with the guide. Existing stables: false (no guide, no coach marks, everything open). */
+  guided: boolean;
+  mentorDone: boolean;
+  plainLanguage: boolean;
+  /** Coach marks dismissed ("*" = all, for existing stables). */
+  coachSeen: string[];
+  unlocks: Record<UnlockFeature, boolean>;
+  steps: StableStepsView | null;
+  welcomeBack: WelcomeBackView | null;
+}
+
+export interface StableStepsView {
+  steps: { key: string; credits: number; done: boolean }[];
+  next: string | null;
+  done: number;
+  total: number;
+  complete: boolean;
+  bonus: number;
+  totalCredits: number;
+  earned: number;
+  completedAtMs: number | null;
+}
+
+/** Home after a day or more away. Never says how an unwatched race went. */
+export interface WelcomeBackView {
+  fromMs: number;
+  awayMs: number;
+  /** Races run while away; `unseen` of them still to watch. */
+  ran: number;
+  unseen: number;
+  /** From results already watched only. */
+  wins: number;
+  places: number;
+  due: { label: string; href: string }[];
+  next: { label: string; href: string; why: string };
 }
 
 /** A tribute card's numbers (game-core Tribute). */

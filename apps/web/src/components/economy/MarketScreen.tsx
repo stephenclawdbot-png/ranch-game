@@ -5,6 +5,8 @@
  * missing; bound and locked horses explained, including the 72 h resale lock), and your
  * listings (cancel any time). 5% of every sale is burned.
  */
+import { CoachMark } from "../onboarding/CoachMark";
+import { FeatureGate } from "../onboarding/FeatureGate";
 import { useEffect, useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { SectionHeader } from "@/components/ui/SectionHeader";
@@ -75,6 +77,15 @@ export function MarketScreen() {
         </p>
         <p>Buying needs a free stall. Sellers set a price between 70% and 3x the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them; a bought horse can&rsquo;t be relisted for 72 hours.</p>
       </HowItWorks>
+      <CoachMark
+        id="market"
+        title="How the market works"
+        points={[
+          <>Horses change hands for Stable Credits, never real money. Buying needs a free stall.</>,
+          <>Check a lot&rsquo;s rating (OR), its starts and its best trip before you buy: a cheap horse that fits your races beats a dear one that doesn&rsquo;t.</>,
+          <>Your starters are Club-bred and can&rsquo;t be sold. Horses you breed or buy can.</>,
+        ]}
+      />
       <div className="tabs baize-scope -mx-[var(--gutter)] !px-[var(--gutter)]" role="tablist" aria-label="Market">
         <button type="button" role="tab" aria-selected={tab === "buy"} onClick={() => setTab("buy")} data-testid="tab-buy">
           Buy ({v.listings.length})
@@ -95,7 +106,11 @@ export function MarketScreen() {
       {tab === "buy" && <Buy v={v} onView={setData} />}
       {tab === "sell" && <Sell v={v} onView={setData} onListed={() => setTab("mine")} />}
       {tab === "mine" && <Mine v={v} onView={setData} />}
-      {tab === "lease" && <LeaseBoard />}
+      {tab === "lease" && (
+        <FeatureGate feature="leasing">
+          <LeaseBoard />
+        </FeatureGate>
+      )}
       {tab === "usdg" && <UsdgMarket />}
     </div>
   );

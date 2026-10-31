@@ -7,6 +7,7 @@
  * Credits are never cashed out, and the Premium Pack is a demo (no real payments): it can only
  * be pulled for credits when PREMIUM_PACK_DEMO=1, and is otherwise shown as "coming soon".
  */
+import { afterBreedingPreview } from "./guide";
 import * as gc from "@thoroughbred/game-core";
 import {
   DomainError,
@@ -354,6 +355,8 @@ export async function breedingPreview(db: Db, session: Session, input: { sireId:
     reason = who ? `${who.name}: ${breedReason(pv.block, who.st)}` : breedReason(pv.block, { starts: 0, used: 0 });
   }
   const looks = gc.possibleLooks(pv.publicSire, pv.publicDam, pv.day, parseSilks(session.stable.silks));
+  // Stable steps: a first look at breeding.
+  await afterBreedingPreview(db, session, now);
   return {
     sireId: pv.sire.id,
     damId: pv.dam.id,
@@ -558,6 +561,7 @@ export async function studFinder(
     cache.set(key, answer);
     if (cache.size > FINDER_CACHE_MAX) cache.delete(cache.keys().next().value!);
   }
+  await afterBreedingPreview(db, session, now);
   const total = answer.rows.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(Math.max(0, input.page ?? 0), pages - 1);

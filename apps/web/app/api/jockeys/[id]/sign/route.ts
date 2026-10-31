@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { signJockey } from "@thoroughbred/db";
 import { db } from "@/server/db";
 import { handleError, json, requireSameOrigin } from "@/server/http";
@@ -14,6 +15,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const database = await db();
     const session = await requireSession(database);
+    await requireUnlocked(database, session, "jockey_contracts", new Date());
     const result = await signJockey(database, { accountId: session.accountId, jockeyId: decodeURIComponent(id), now: new Date() });
     return json({ ok: true, ...result });
   } catch (err) {

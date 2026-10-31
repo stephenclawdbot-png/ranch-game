@@ -1,3 +1,4 @@
+import { requireUnlocked } from "@/server/guide";
 import { z } from "zod";
 import * as gc from "@thoroughbred/game-core";
 import { leaseView, offerForLease } from "@/server/leasing";
@@ -19,5 +20,8 @@ const Schema = z.object({
 export async function POST(req: Request) {
   const body = await parseBody(req, Schema, "Choose a horse, a term and your share of the prizes.");
   if (!body.ok) return body.res;
-  return withPlayer(async (db, session, now) => ({ offer: await offerForLease(db, session, body.data, now), view: await leaseView(db, session, now) }), 201);
+  return withPlayer(async (db, session, now) => {
+    await requireUnlocked(db, session, "leasing", now);
+    return { offer: await offerForLease(db, session, body.data, now), view: await leaseView(db, session, now) };
+  }, 201);
 }
