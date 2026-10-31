@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { CupRunView } from "@/lib/competitionTypes";
-import { ordinal, shortHash } from "@/lib/format";
+import { ordinal, shortHash, topPercent } from "@/lib/format";
 import { refreshPlayer } from "@/lib/player";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
@@ -17,6 +17,7 @@ import { ConditionChips, CupBadge, RaceTime, StatTile } from "./bits";
  */
 export function CupRunScreen({ run }: { run: CupRunView }) {
   const [revealed, setRevealed] = useState(false);
+  const top = topPercent(run.rank, run.of);
   const stageRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
 
@@ -88,10 +89,16 @@ export function CupRunScreen({ run }: { run: CupRunView }) {
             <StatTile label="Time" testId="cup-time">
               <RaceTime us={run.timeUs} />
             </StatTile>
-            <StatTile label="Today's rank">
-              {ordinal(run.rank)} of {run.of}
+            <StatTile label="Today's rank" testId="cup-rank">
+              <span className="whitespace-nowrap">
+                {ordinal(run.rank)} of {run.of}
+              </span>
             </StatTile>
-            <StatTile label="Top">{Math.max(1, Math.round(run.percentile / 10))}%</StatTile>
+            {top !== null && (
+              <StatTile label="Top" testId="cup-top">
+                <span className="whitespace-nowrap">{top}%</span>
+              </StatTile>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/cup" className="btn btn-brass" data-testid="cup-board-link">
