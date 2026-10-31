@@ -5,6 +5,7 @@ import { SpriteSheet, fakeLiveFeed, fakeReplay } from "@thoroughbred/race-viewer
 import type { Surface, Weather } from "@thoroughbred/shared";
 import { COURSES } from "@thoroughbred/game-core";
 import { renderFinalePortrait } from "@/components/RaceViewerClient";
+import { PaddockParade } from "@/components/race/PaddockParade";
 
 const STABLES = ["Hollow Oak Stud", "Brass Lantern Stables", "Fenwick Yard", "Marsh End Racing", "Kestrel House", "Copperbeech Farm", "Larkrise Stud", "Old Mill Stables"];
 
@@ -52,6 +53,8 @@ export interface HarnessParams {
   minepos?: string;
   /** "0" turns the finale off. */
   finale?: string;
+  /** "1": the build-up before the off on a replay (starts 24 s before; use t=-24); "0": off for a live feed. */
+  preoff?: string;
 }
 
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -78,6 +81,10 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
   const connections = useMemo(
     () => Object.fromEntries(replay.horses.map((h, i) => [h.horseId, { stableName: h.horseId === highlight ? "Your Stable" : STABLES[i % STABLES.length]!, stablePhotoUrl: null, jockey: i % 3 === 0 ? "Top jockey" : null }])),
     [replay, highlight],
+  );
+  const paddock = useMemo(
+    () => <PaddockParade runners={replay.horses.map((h, i) => ({ id: h.horseId, name: h.name, gate: h.gate, appearance: h.appearance, stableName: connections[h.horseId]?.stableName ?? STABLES[i % STABLES.length]!, form: null }))} />,
+    [replay, connections],
   );
   const startAtMs = useMemo(() => (params.start !== undefined ? Date.now() + num(params.start, 5) * 1000 : undefined), [params.start]);
 
@@ -114,6 +121,8 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         course={course}
         injuredHorseIds={params.pullup ? params.pullup.split(",") : undefined}
         resultsCard={params.results !== "0"}
+        preOff={params.preoff === "1" ? true : params.preoff === "0" ? false : undefined}
+        paddock={paddock}
       />
     </main>
   );
