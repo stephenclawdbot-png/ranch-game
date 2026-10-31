@@ -266,6 +266,19 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-pre-field{grid-template-columns:1fr 1fr;padding:10px 8px 96px;gap:4px}
 .rv-narrow .rv-pre-field li{font-size:11px;padding:3px 5px;gap:5px}
 @media (prefers-reduced-motion: reduce){.rv-pre-paddock,.rv-pre-lower,.rv-pre-led,.rv-fin-slide,.rv-fin-panel,.rv-fin-weighed,.rv-battle,.rv-call{animation:none!important}.rv-fin-badge-red,.rv-fin-win .rv-fin-eyebrow{animation:none!important}}
+.rv-fin-actions{display:flex;gap:6px;align-items:center;margin-left:auto}
+.rv-clip-back{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(8,12,9,.72);font-family:var(--rv-f-sans,ui-sans-serif,system-ui,sans-serif)}
+.rv-clip-dialog{width:min(92vw,380px);background:var(--rv-green,#0f2a1d);border:3px solid var(--rv-ink,#0b0f0c);box-shadow:inset 0 0 0 2px rgba(242,200,106,.45),0 10px 0 rgba(0,0,0,.4);padding:18px 16px 16px;color:var(--rv-cream,#f3e7c9);text-align:center}
+.rv-clip-h{margin:0;font:700 20px/1.2 var(--rv-f-display,"Pixelify Sans","Courier New",monospace);color:var(--rv-cream,#f3e7c9)}
+.rv-clip-sub{margin:8px 0 0;font:600 13px/1.4 var(--rv-f-sans,ui-sans-serif,system-ui,sans-serif);color:rgba(243,231,201,.75)}
+.rv-clip-row{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.rv-clip-row .rv-btn{flex:1;height:auto;min-height:64px;flex-direction:column;gap:6px;padding:10px 6px}
+.rv-clip-orient{display:block;width:18px;height:28px;border:2px solid currentColor}
+.rv-clip-orient-l{width:32px;height:20px}
+.rv-clip-hint{font:600 9px var(--rv-f-sans,ui-sans-serif,system-ui,sans-serif);text-transform:none;letter-spacing:0;opacity:.7}
+.rv-clip-cancel{margin-top:12px}
+.rv-clip-bar{height:14px;margin-top:14px;background:var(--rv-green2,#163a28);border:2px solid var(--rv-ink,#0b0f0c);box-shadow:inset 2px 2px 0 rgba(0,0,0,.35)}
+.rv-clip-bar>span{display:block;height:100%;background:var(--rv-brass,#d9a441);transition:width .15s steps(3)}
 `;
 
 let injected = false;

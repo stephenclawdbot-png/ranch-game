@@ -5,6 +5,7 @@ import type { RaceCard } from "@/lib/types";
 import { db } from "@/server/db";
 import { RaceNotFoundError } from "@/server/errors";
 import { raceCard, replayStartFor } from "@/server/game";
+import { publicSiteHost } from "@/server/publicUrl";
 import { getSession } from "@/server/session";
 
 export const dynamic = "force-dynamic";
@@ -33,5 +34,5 @@ export default async function RacePage({ params, searchParams }: { params: Promi
   // ?at= only applies once the race is over (replayStartFor checks the broadcast clock);
   // a live or upcoming race ignores it, so a shared link never spoils the result.
   const initialTimeSec = at != null && card.status === "finished" ? await replayStartFor(await db(), card.id, at, new Date()) : undefined;
-  return <RaceExperience card={card} serverNowMs={Date.now()} initialTimeSec={initialTimeSec} />;
+  return <RaceExperience card={card} serverNowMs={Date.now()} initialTimeSec={initialTimeSec} siteHost={publicSiteHost()} />;
 }
