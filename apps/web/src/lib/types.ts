@@ -162,8 +162,8 @@ export interface RiskView {
   label: "low" | "moderate" | "elevated" | "high";
   careerEndingShare: number;
   factors: string[];
-  /** The injuries most likely IF the horse is hurt in this context (game-core likelyInjuries), names. */
-  likely?: string[];
+  /** The injuries most likely IF the horse is hurt in this context: "sore shins, knocked joint; if serious, tendon strain". */
+  likely?: string;
 }
 
 export interface StableHorse {

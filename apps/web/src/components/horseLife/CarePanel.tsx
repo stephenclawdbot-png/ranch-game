@@ -198,9 +198,9 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
           </table>
         )}
         {cond.risks[1] && cond.risks[1].factors.length > 0 && career.racingAge && <p className="caption">{cond.risks[1].factors.join(" · ")}</p>}
-        {cond.risks[1]?.likely && cond.risks[1].likely.length > 0 && career.careerStatus === "racing" && career.racingAge && (
+        {cond.risks[1]?.likely && career.careerStatus === "racing" && career.racingAge && (
           <p className="caption" data-testid="likely-injuries">
-            Most likely if injured: {cond.risks[1].likely.join(", ").toLowerCase()}.
+            Most likely if injured: {cond.risks[1].likely}.
           </p>
         )}
 

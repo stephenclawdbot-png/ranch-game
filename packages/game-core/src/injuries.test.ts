@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { INJURY_DAYS, injuryRisk, rollInjury, withFatigue } from "./condition";
-import { INJURY_KINDS, injuryKindOf, injuryName, injuryNameOf, injuryTriggers, likelyInjuries, pickInjuryKind } from "./injuries";
+import { INJURY_KINDS, injuryKindOf, injuryKindShares, injuryName, injuryNameOf, injuryTriggers, likelyInjuries, likelyInjuriesText, pickInjuryKind } from "./injuries";
 import { train } from "./training";
 import { InjurySchema, type InjurySeverity } from "./types";
 import { T0, makeHorse } from "./test-helpers";
@@ -100,11 +100,15 @@ describe("rollInjury: names never change the roll", () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it("likelyInjuries names the top few for the context", () => {
+  it("likelyInjuries names the top few for the context, and the likeliest serious one", () => {
     const firmSprint = likelyInjuries({ going: "firm", distanceM: 1200 }, 30);
-    expect(firmSprint).toHaveLength(3);
-    expect(firmSprint[0]).toBe("Sore shins");
-    const all = likelyInjuries({}, 30, 99);
-    expect(all).not.toContain("Catastrophic leg fracture");
+    expect(firmSprint.common).toHaveLength(2);
+    expect(firmSprint.common[0]).toBe("Sore shins");
+    expect(["Hairline fracture", "Splint injury"]).toContain(firmSprint.serious);
+    expect(likelyInjuries({ going: "soft", tired: true, distanceM: 2800, intensity: "all_out" }, 100).serious).toBe("Tendon strain");
+    expect(likelyInjuriesText({ common: ["Sore shins", "Knocked joint"], serious: "Tendon strain" })).toBe("sore shins, knocked joint; if serious, tendon strain");
+    const all = injuryKindShares({}, 30);
+    expect(all.map((k) => k.spec.severity)).not.toContain("fatal");
+    expect(all.length).toBe(18);
   });
 });

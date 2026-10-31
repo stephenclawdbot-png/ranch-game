@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import * as gc from "@thoroughbred/game-core";
 import { formatCredits, formatDistance } from "@/lib/format";
 import { Callout, Facts, Figure, H2, H3, Lead, List, P, Table, WikiLink, pct } from "../kit";
@@ -18,17 +19,12 @@ const SEVERITIES: gc.InjurySeverity[] = ["minor", "moderate", "career_ending", "
 
 const daysText = (d: readonly [number, number]) => (d[0] === d[1] ? `${d[0]} days` : `${d[0]} to ${d[1]} days`);
 
-/** What a severity's injuries turn out to be in a context: 3,000 rolls of the game's own rollInjury. */
-function mix(ctx: gc.InjuryContext, careerEndingShare: number, n = 3000) {
-  const count = new Map<string, number>();
-  let hurt = 0;
-  for (let i = 0; i < n; i++) {
-    const inj = gc.rollInjury({ permille: 1000, careerEndingShare, context: ctx }, `wiki-kind-${i}`, 0, 0, "wiki");
-    if (!inj?.kind) continue;
-    hurt++;
-    count.set(inj.kind, (count.get(inj.kind) ?? 0) + 1);
-  }
-  return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, c]) => `${gc.injuryKindOf(k)!.name} ${pct(Math.round((c * 1000) / hurt))}`);
+/** The likeliest injury of a severity in a context, and its share of that severity (exact, game-core). */
+function topOf(ctx: gc.InjuryContext, sev: gc.InjurySeverity): string {
+  const all = gc.injuryKindShares(ctx, gc.CAREER_ENDING_SHARE).filter((k) => k.spec.severity === sev);
+  const total = all.reduce((a, k) => a + k.share, 0);
+  const top = all[0]!;
+  return `${top.spec.name} (${pct(Math.round((top.share * 1000) / total))})`;
 }
 
 export default function InjuriesPage() {
@@ -56,23 +52,24 @@ export default function InjuriesPage() {
       {SEVERITIES.map((sev) => {
         const kinds = gc.INJURY_KINDS.filter((k) => k.severity === sev);
         return (
-          <div key={sev}>
+          <Fragment key={sev}>
             <H3>{SEVERITY_TITLE[sev]}</H3>
             <P>{SEVERITY_NOTE[sev]}</P>
             <Table
-              head={["Injury", "Where", "Typical recovery", "Likelier with"]}
+              head={["Injury", "Likelier with"]}
               rows={kinds.map((k) => [
-                <span key={k.key}>
+                <span key={k.key} className="block min-w-[11rem]">
                   <b>{k.name}</b>
-                  <br />
-                  <span className="text-cream-dim">{k.description}</span>
+                  <span className="block text-sm font-bold text-sage">
+                    {gc.INJURY_AREA_LABEL[k.area]}
+                    {sev === "fatal" ? "" : ` · ${daysText(k.days)}`}
+                  </span>
+                  <span className="block font-normal text-cream-dim">{k.description}</span>
                 </span>,
-                gc.INJURY_AREA_LABEL[k.area],
-                sev === "fatal" ? "–" : daysText(k.days),
                 gc.injuryLikelierText(k),
               ])}
             />
-          </div>
+          </Fragment>
         );
       })}
 
@@ -101,12 +98,15 @@ export default function InjuriesPage() {
         ]}
       />
       <Table
-        head={["Context", "Most common injuries, if hurt"]}
-        rows={contexts.map((c) => [c.what, mix(c.ctx, ce).join(" · ")])}
-        caption="3,000 injuries rolled in each context by the game's own code (career-ending at its base share). Fatal ones are not counted here."
+        head={["Context", "Likeliest minor", "Likeliest moderate", "Likeliest career-ending"]}
+        rows={contexts.map((c) => [c.what, topOf(c.ctx, "minor"), topOf(c.ctx, "moderate"), topOf(c.ctx, "career_ending")])}
+        caption="If an injury of that severity happens, the injury it most likely is, and how often, worked out by the game's own naming rules."
       />
       <Callout tone="tip">
-        <p>The entry sheet shows the two or three injuries most likely for the race and ride you pick, under the risk line: &ldquo;Most likely if injured today&rdquo;.</p>
+        <p>
+          Under the risk line, the entry sheet names the injuries most likely for the race and ride you pick, and the likeliest serious one: &ldquo;Most likely if injured today: sore
+          shins, knocked joint; if serious, hairline fracture&rdquo;. Most injuries are minor, so the first names usually are too.
+        </p>
       </Callout>
 
       <H2 id="risk">How the risk works</H2>

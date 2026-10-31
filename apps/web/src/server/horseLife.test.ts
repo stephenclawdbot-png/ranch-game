@@ -143,7 +143,7 @@ describe("training, career, facilities", () => {
     expect(v!.condition.injury).toMatchObject({ label: "Tendon strain", severityLabel: "Moderate injury", area: "Front leg", hoursLeft: 8 * 24, careerEnding: false });
     expect(v!.condition.injury!.description).toMatch(/tendon/);
     expect(v!.status.injury).toMatchObject({ name: "Tendon strain" });
-    expect(v!.condition.risks[1]!.likely).toHaveLength(3);
+    expect(v!.condition.risks[1]!.likely).toMatch(/^[a-z ,;-]+$/);
     // an old injury without a kind still reads as its severity
     await h.db.execute(`update horses set injury = injury - 'kind' where id = '${starter!.id}'`);
     expect((await horseLifeView(h.db, p, starter!.id, T0))!.condition.injury).toMatchObject({ label: "Moderate injury", area: null, description: null });

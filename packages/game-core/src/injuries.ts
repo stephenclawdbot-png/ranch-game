@@ -381,12 +381,12 @@ export function pickInjuryKind(severity: InjurySeverity, days: number, ctx: Inju
 }
 
 /**
- * The injuries most likely to happen, IF the horse is hurt in this context (the entry sheet's
- * "Most likely if injured today"). Exact over the severity split (career-ending share, then 30%
- * moderate and 70% minor, as condition.ts rolls it) and the uniform healing days; fatal ones are
- * left out (they are a share of career-ending, Live races only). Names, most likely first.
+ * Each named injury's chance (relative, integer) IF the horse is hurt in this context: exact over
+ * the severity split (career-ending share, then 30% moderate and 70% minor, as condition.ts rolls
+ * it) and the uniform healing days. Fatal ones are left out (a share of career-ending, Live only).
+ * Most likely first.
  */
-export function likelyInjuries(ctx: InjuryContext, careerEndingShare: number, n = 3): string[] {
+export function injuryKindShares(ctx: InjuryContext, careerEndingShare: number): { spec: InjuryKindSpec; share: number }[] {
   const triggers = injuryTriggers(ctx);
   const ce = Math.max(0, Math.min(1000, careerEndingShare));
   const sevP: [InjurySeverity, number, [number, number]][] = [
@@ -405,14 +405,32 @@ export function likelyInjuries(ctx: InjuryContext, careerEndingShare: number, n 
     }
   }
   const order = new Map(INJURY_KINDS.map((k, i) => [k.key, i]));
-  return [...score.entries()]
-    .sort((a, b) => b[1] - a[1] || order.get(a[0])! - order.get(b[0])!)
-    .slice(0, n)
-    .map(([k]) => BY_KEY.get(k)!.name);
+  return [...score.entries()].sort((a, b) => b[1] - a[1] || order.get(a[0])! - order.get(b[0])!).map(([k, share]) => ({ spec: BY_KEY.get(k)!, share }));
+}
+
+/**
+ * "Most likely if injured today" (entry sheet, Care tab): the `n` likeliest names overall (mostly
+ * minor: most injuries are) and the likeliest moderate-or-worse one, when it isn't among them.
+ */
+export function likelyInjuries(ctx: InjuryContext, careerEndingShare: number, n = 2): { common: string[]; serious: string | null } {
+  const all = injuryKindShares(ctx, careerEndingShare);
+  const common = all.slice(0, n);
+  const serious = all.find((k) => k.spec.severity !== "minor");
+  return { common: common.map((k) => k.spec.name), serious: serious && !common.includes(serious) ? serious.spec.name : null };
+}
+
+/** The likely line as one phrase: "sore shins, knocked joint; if serious, tendon strain". */
+export function likelyInjuriesText(l: { common: readonly string[]; serious: string | null }): string {
+  const c = l.common.join(", ").toLowerCase();
+  return l.serious ? `${c}; if serious, ${l.serious.toLowerCase()}` : c;
 }
 
 /** "firm going, sprints (1,400 m or less)" — what makes a kind likelier (wiki). */
 export function injuryLikelierText(spec: InjuryKindSpec): string {
   const ts = (Object.keys(spec.boosts) as InjuryTrigger[]).sort((a, b) => spec.boosts[b]! - spec.boosts[a]!);
-  return ts.length ? ts.map((t) => INJURY_TRIGGER_LABEL[t]).join(", ") : "nothing in particular: bad luck in running";
+  // soft and heavy together read as one: "soft or heavy going (heavy most)"
+  const both = ts.includes("soft") && ts.includes("heavy");
+  const label = (t: InjuryTrigger) => (both && t === "soft" ? "soft or heavy going (heavy most)" : INJURY_TRIGGER_LABEL[t]);
+  const shown = both ? ts.filter((t) => t !== "heavy") : ts;
+  return shown.length ? shown.map(label).join(", ") : "nothing in particular: bad luck in running";
 }

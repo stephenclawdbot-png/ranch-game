@@ -151,7 +151,7 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
   const inj = state.injury && !gc.isHealed(state.injury, nowMs) ? state.injury : null;
   const risks = (["conservative", "normal", "all_out"] as const).map((intensity) => {
     const r = gc.injuryRisk(state, { nowMs, going: "good", distanceM: horse.preferredDistanceM, intensity, stage });
-    return { intensity, label: r.label, permille: r.permille, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuries(r.context, r.careerEndingShare) };
+    return { intensity, label: r.label, permille: r.permille, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuriesText(gc.likelyInjuries(r.context, r.careerEndingShare)) };
   });
   // The quote for the insurance panel: the normal-ride risk in the same context as the horse
   // page's risk badge (stableHorseView), so the two always agree.

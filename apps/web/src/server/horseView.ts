@@ -137,7 +137,7 @@ export function diedAtOf(row: HorseRow): number | null {
 }
 
 export function riskView(r: gc.InjuryRisk): RiskView {
-  return { permille: r.permille, label: r.label, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuries(r.context, r.careerEndingShare) };
+  return { permille: r.permille, label: r.label, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuriesText(gc.likelyInjuries(r.context, r.careerEndingShare)) };
 }
 
 /** The stored injury (horses.injury jsonb) as the player sees it: catalogue name, area and line. */

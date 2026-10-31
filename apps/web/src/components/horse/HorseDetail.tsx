@@ -104,7 +104,7 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
               </ActionBar>
             ) : isMine && st?.block ? (
               <p className="t-meta font-bold" data-testid="enter-a-race-blocked">
-                {st.block}. {first} can race again once that&rsquo;s over.
+                {st.block.startsWith("In foal") ? `${st.block}.` : <>{st.block}. {first} can race again once that&rsquo;s over.</>}
               </p>
             ) : isMine ? (
               <ActionBar className="md:mt-2">

@@ -61,8 +61,8 @@ export interface RiskRow {
   permille: number;
   careerEndingShare: number;
   factors: string[];
-  /** Most likely injuries if hurt in this context (names; game-core likelyInjuries). */
-  likely?: string[];
+  /** Most likely injuries if hurt in this context (game-core likelyInjuriesText). */
+  likely?: string;
 }
 
 export interface ConditionView {

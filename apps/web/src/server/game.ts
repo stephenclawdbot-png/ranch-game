@@ -850,13 +850,14 @@ export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceL
 
 /** entryReason plus the checks that need the database (one Live race a day, Weekend Feature qualifying). */
 export async function entryReasonFull(db: Db, row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): Promise<string | null> {
-  const base = entryReason(row, race, now, licenceLevel);
-  if (base) return base;
-  // Mares in foal don't race (enterRace refuses them): say when she can again.
-  if (row.sex === "female") {
+  // Mares in foal don't race (enterRace refuses them): say when she can again, ahead of the
+  // race's own conditions (a licence or class doesn't matter until she has foaled).
+  if (row.sex === "female" && !row.lockKind) {
     const due = (await carryingDueByDam(db, [row.id])).get(row.id);
     if (due !== undefined) return inFoalText(due, now.getTime());
   }
+  const base = entryReason(row, race, now, licenceLevel);
+  if (base) return base;
   if (race.kind !== "quick" && (await startsOnDay(db, row.id, race.postTime, { liveOnly: true })) >= RULES.liveStartsPerDay) {
     return RULES.liveStartsPerDay === 1 ? "Already raced Live today (one Live race a day)" : `Raced ${RULES.liveStartsPerDay} Live races today`;
   }
