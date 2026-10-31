@@ -5,7 +5,7 @@ import { GradeBadge, PixelMeter } from "../StatBars";
 export const STAGE_LABEL = { apprentice: "Apprentice", prime: "Prime", veteran: "Veteran" } as const;
 
 /** One row of a jockey list: grade, racecard name, stage, stable and winners. */
-export function JockeyRow({ j, extra }: { j: JockeyCard; extra?: React.ReactNode }) {
+export function JockeyRow({ j, extra, caption }: { j: JockeyCard; extra?: React.ReactNode; caption?: string }) {
   return (
     <li className={j.mine ? "yours" : undefined}>
       <Link href={`/jockeys/${j.id}`} className="row-link gap-3 px-3 py-2.5" data-testid="jockey-row">
@@ -23,7 +23,7 @@ export function JockeyRow({ j, extra }: { j: JockeyCard; extra?: React.ReactNode
         </span>
         <span className="shrink-0 text-right">
           <span className="score block text-[1.25rem] leading-none">{extra ?? j.winsThisSeason}</span>
-          <span className="caption block">{extra ? "" : "wins"}</span>
+          <span className="caption block">{caption ?? (extra ? "" : "wins")}</span>
         </span>
         <span className="chev">›</span>
       </Link>

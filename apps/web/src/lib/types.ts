@@ -451,6 +451,8 @@ export interface MyRaceResult {
     firstWin: boolean;
     ratingBefore: number;
     ratingAfter: number | null;
+    /** One honest line from the rating rule on why the mark moved (or held); null when there is nothing to explain. */
+    ratingWhy: string | null;
     /** The owner's horse at the off (from its entry): fatigue and hours since its last hard work (Why card "try next"). */
     atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
     /** An injury picked up in this race, named (game-core injuries.ts). */

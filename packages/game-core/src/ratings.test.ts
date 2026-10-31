@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { expectedScore, formatWeight, handicapWeights, updateRatings, BOTTOM_WEIGHT_LB, MAX_GAIN_PER_RACE, MAX_LOSS_PER_RACE, TOP_WEIGHT_LB } from "./ratings";
+import { expectedScore, formatWeight, handicapWeights, ratingChangeReason, updateRatings, BOTTOM_WEIGHT_LB, MAX_GAIN_PER_RACE, MAX_LOSS_PER_RACE, TOP_WEIGHT_LB } from "./ratings";
 import { classBand, eligibleTiers, entryBlock, stableEntriesLeft, TIER_RULES } from "./eligibility";
 import { ENTRY_CLOSE_BEFORE_MS } from "./seasons";
 import { DAY, T0, makeHorse } from "./test-helpers";
@@ -50,6 +50,51 @@ describe("official ratings", () => {
     expect(w[2]!.extraLb).toBe(0);
     expect(handicapWeights([{ horseId: "a", or: 80 }, { horseId: "b", or: 20 }], false).every((x) => x.extraLb === 0)).toBe(true);
     expect(formatWeight(140)).toBe("10st 0lb");
+  });
+  it("the result screen's rating reason: honest lines for a drop, a rise and a hold (fix 14)", () => {
+    // Beaten by three horses rated 15 below: the handicapper had this one finishing close in.
+    const upset = [
+      { horseId: "mine", or: 70, ratedRuns: 10, position: 4 },
+      { horseId: "a", or: 55, ratedRuns: 10, position: 1 },
+      { horseId: "b", or: 55, ratedRuns: 10, position: 2 },
+      { horseId: "c", or: 55, ratedRuns: 10, position: 3 },
+    ];
+    const down = ratingChangeReason(upset, "mine");
+    const change = updateRatings(upset).find((r) => r.horseId === "mine")!;
+    expect(change.delta).toBeLessThan(0);
+    // The reason's number is the rule's own delta (cap included), so it never contradicts the
+    // card's before/after; a big enough upset says the per-race cap held it.
+    expect(down).toBe(`OR ${change.delta}: finished 4th of 4 in a race the handicapper expected it to finish close in — held by the per-race cap.`);
+
+    // A 55 beating three 90s: expected back in the field, so the rise says so.
+    const boost = [
+      { horseId: "mine", or: 55, ratedRuns: 10, position: 1 },
+      { horseId: "a", or: 90, ratedRuns: 10, position: 2 },
+      { horseId: "b", or: 90, ratedRuns: 10, position: 3 },
+      { horseId: "c", or: 90, ratedRuns: 10, position: 4 },
+    ];
+    const up = ratingChangeReason(boost, "mine");
+    expect(updateRatings(boost).find((r) => r.horseId === "mine")!.delta).toBeGreaterThan(0);
+    expect(up).toMatch(/^OR \+\d+(\.\d+)?: finished 1st of 4 in a race the handicapper expected it to finish back in the field\.$/);
+
+    // Equal marks and a mid-field finish: the delta is 0 and the line says the mark holds.
+    const level = [1, 2, 3, 4, 5].map((i) => ({ horseId: `h${i}`, or: 60, ratedRuns: 10, position: i }));
+    expect(updateRatings(level).find((r) => r.horseId === "h3")!.delta).toBe(0);
+    expect(ratingChangeReason(level, "h3")).toBe("OR unchanged: finished 3rd of 5 in a race the handicapper expected it to finish close in.");
+
+    // A huge upset is held by the per-race cap, and the line admits it.
+    const capped = ratingChangeReason(
+      [
+        { horseId: "mine", or: 0, ratedRuns: 0, position: 1 },
+        { horseId: "a", or: 140, ratedRuns: 10, position: 2 },
+      ],
+      "mine",
+    );
+    expect(capped).toMatch(/— held by the per-race cap\.$/);
+
+    // Nothing to explain: a one-runner field or a horse that wasn't in it.
+    expect(ratingChangeReason([{ horseId: "solo", or: 50, ratedRuns: 1, position: 1 }], "solo")).toBe("");
+    expect(ratingChangeReason(upset, "elsewhere")).toBe("");
   });
 });
 

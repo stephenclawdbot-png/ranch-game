@@ -10,7 +10,7 @@
  *   - the entry window: a race opens when it is published on the card (its post time minus the
  *     card horizon) and closes just before the off.
  */
-import { FATIGUE_RECOVERY_PER_HOUR, FRESHNESS_PEAK_BONUS, TIRED_THRESHOLD, freshnessBonus } from "./condition";
+import { FATIGUE_RECOVERY_PER_HOUR, FRESHNESS_PEAK_BONUS, FRESHNESS_PEAK_FROM_H, FRESHNESS_PEAK_TO_H, TIRED_THRESHOLD, freshnessBonus } from "./condition";
 import { MS_PER_DAY, MS_PER_HOUR } from "./time";
 
 /** Most targets one horse may have at a time. */
@@ -20,8 +20,7 @@ export const PLAN_CLOSE_REMINDER_MS = 2 * MS_PER_HOUR;
 /** Calendar races (Qualifiers, the Weekend Feature, Season Finals) can be targeted this far ahead. */
 export const PLAN_CALENDAR_AHEAD_MS = 28 * MS_PER_DAY;
 /** Freshness peak window after hard work, hours (condition.ts freshnessBonus). */
-export const FRESHNESS_PEAK_FROM_H = 72;
-export const FRESHNESS_PEAK_TO_H = 120;
+export { FRESHNESS_PEAK_FROM_H, FRESHNESS_PEAK_TO_H };
 
 export type FreshnessPhase = "peak" | "building" | "fading" | "flat";
 

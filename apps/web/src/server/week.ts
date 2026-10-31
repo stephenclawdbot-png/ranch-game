@@ -5,7 +5,7 @@
  * the Feature, and the stable's League standing with the gap to the promotion line.
  */
 import * as gc from "@thoroughbred/game-core";
-import { CALENDAR_HOME_COURSE, CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, settleUpkeep, stableCalendarRuns, startsOnDay, upkeepThisWeek, type Db } from "@thoroughbred/db";
+import { CALENDAR_HOME_COURSE, CALENDAR_PURSE, PLATE_AFTER_SLOTS, RULES, defaultCardSlot, leagueOf, listStableHorses, seasonNumberAt, settledFormRows, settleUpkeep, stableCalendarRuns, startsOnDay, upkeepThisWeek, type Db } from "@thoroughbred/db";
 import { conditionRating, lossGrade } from "@/lib/aptitude";
 import type { WeekView } from "@/lib/competitionTypes";
 import { groundView } from "./ground";
@@ -44,6 +44,15 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
   const names = new Map(rows.map((r) => [r.id, r.name]));
   const qualifierRuns = runs.filter((r) => r.kind === "feature_qualifier");
+  // Recent rated runs per horse (the form book's own rows): each one's OR move and the week it
+  // ran in, the inputs a trajectory is honest about (game-core ratingTrajectory).
+  const recentByHorse = new Map<string, { delta: number; week: number }[]>();
+  for (const r of await settledFormRows(db, { stableId: session.stable.id }, 500)) {
+    if (r.ratingAfter === null) continue; // unrated runs (trials, the Cup) never move the mark
+    const list = recentByHorse.get(r.horseId) ?? [];
+    list.push({ delta: r.ratingAfter - r.ratingBefore, week: gc.weekIndex(r.postTime.getTime()) });
+    recentByHorse.set(r.horseId, list);
+  }
 
   const qualifiers = cal
     .filter((r) => r.kind === "feature_qualifier")
@@ -93,6 +102,9 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
       if (q) nearMiss.push(q.text);
       const r = gc.featureRatingGap(row.rating);
       if (r.short > 0 && r.short <= NEAR_RATING) nearMiss.push(`${r.text} to get in by rating`);
+      // The trajectory to that gap (playtest fix 15): the recent rate as "about N weeks", or
+      // what the rules say would move the mark. Never a promise.
+      if (r.short > 0) nearMiss.push(gc.ratingTrajectory(row.rating, recentByHorse.get(row.id) ?? [], gc.FEATURE_RATING_BY_RIGHT).text);
     }
     horses.push({ id: row.id, name: row.name, rating: row.rating, status, via: top3 ? "top3" : byRating ? "rating" : null, bestQualifierFinish: best, fit, canRaceToday, nearMiss });
   }
@@ -137,7 +149,13 @@ export async function weekView(db: Db, session: Session, now: Date): Promise<Wee
           horses: [...rows]
             .sort((a, b) => b.rating - a.rating)
             .slice(0, 3)
-            .map((r) => ({ id: r.id, name: r.name, rating: r.rating, ...gc.seasonFinalGap(r.rating) })),
+            .map((r) => {
+              const gap = gc.seasonFinalGap(r.rating);
+              // The same gap as a trajectory (playtest fix 15): "about N weeks" at the recent
+              // rate, or what would move the mark. Says "about"; promises nothing.
+              const t = gc.ratingTrajectory(r.rating, recentByHorse.get(r.id) ?? [], gc.SEASON_FINAL_MIN_RATING);
+              return { id: r.id, name: r.name, rating: r.rating, ...gap, trajectory: t.text };
+            }),
         }
       : null;
 

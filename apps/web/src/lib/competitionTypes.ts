@@ -151,7 +151,14 @@ export interface LeagueView {
   history: { weekStart: string; tierName: string; points: number; finalRank: number | null; movement: number | null }[];
   season: { number: number; startsAtMs: number; endsAtMs: number; owners: number; rows: SeasonRowView[]; mine: SeasonRowView | null };
   calendar: CalendarRaceView[];
-  rules: { racePoints: number[]; startPoint: number; weeklyCap: number };
+  rules: { racePoints: number[]; startPoint: number; weeklyCap: number; bestRuns: number; floorTiers: string[] };
+  /**
+   * Only while you're not in a league yet (and signed in): the runs you've already made that
+   * would score in one, with the points the rules give them (db `runPoints`).
+   */
+  prospect: { runsThisSeason: number; seasonPoints: number; best: { label: string; points: number }[] } | null;
+  /** This week's best member of each tier that has leagues (db `tierLeaders`); empty before any league forms. */
+  tiersTop: { tierName: string; stableName: string; silks: Silks; photoUrl: string | null; points: number; wins: number; runs: number }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -320,8 +327,12 @@ export interface WeekView {
     /** "3 points from safety" / "8 points clear of the drop"; null in tiers that never relegate. */
     relegation?: string | null;
   } | null;
-  /** The season's Season Final: its rating floor and the stable's closest horses to it (best first). */
-  seasonFinal?: { postTimeMs: number; minRating: number; horses: { id: string; name: string; rating: number; short: number; text: string }[] } | null;
+  /**
+   * The season's Season Final: its rating floor and the stable's closest horses to it (best
+   * first). Each carries a trajectory line (game-core ratingTrajectory): the recent per-week
+   * rate turned into "about N weeks", or what would move the mark.
+   */
+  seasonFinal?: { postTimeMs: number; minRating: number; horses: { id: string; name: string; rating: number; short: number; text: string; trajectory: string }[] } | null;
   /** Upkeep for the horses used so far this week (charged after the week ends; unused horses are free). */
   upkeep: { horses: number; due: number };
   /** One plain-English line: what to do next. */

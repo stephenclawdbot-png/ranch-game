@@ -28,17 +28,20 @@ import {
   isGenome,
   leagueHistory,
   leagueOf,
+  liveRunsBetween,
   listAchievements,
   listStableHorses,
   listStablePlacings,
   recordTimes,
   rivalsOf,
   runCupEntry,
+  runPoints,
   seasonNumberAt,
   seasonStandings,
   settleCupDays,
   settleLeagueWeeks,
   syncAchievements,
+  tierLeaders,
   toHorseState,
   topHorsesOf,
   utcDay,
@@ -46,8 +49,10 @@ import {
   weekBounds,
   type CupBoardRow,
   type Db,
+  type LiveRun,
 } from "@thoroughbred/db";
 import { conditionRating, lossGrade } from "@/lib/aptitude";
+import { ordinal } from "@/lib/format";
 import type { CalendarRaceView, CupConditions, CupRow, CupRunView, CupView, HallView, LeagueRowView, LeagueView, SeasonRowView, TrophyRoomView, TrophyTier } from "@/lib/competitionTypes";
 import { houseStableFor } from "./house";
 import { diedAtOf, horseFromRow, parseSilks, stableHorseView } from "./horseView";
@@ -235,6 +240,12 @@ function calendarView(now: Date): CalendarRaceView[] {
     .map((r) => ({ id: r.id, name: r.name, kind: r.kind as CalendarRaceView["kind"], postTimeMs: Math.floor((r.postTimeMs - RULES.seasonEpochMs) / RULES.slotMs) * RULES.slotMs + RULES.seasonEpochMs, division: r.division, distanceM: r.distanceM, surface: r.surface }));
 }
 
+/** One of the viewer's Live runs as the league page lists it: "3rd of 11 · handicap". */
+function runLabel(r: LiveRun): string {
+  const cls = r.group1 ? "Group 1" : r.raceClass === "graded" ? "Group 3" : r.raceClass === "listed" ? "Listed" : r.raceClass;
+  return `${ordinal(r.position)} of ${r.fieldSize} · ${cls}`;
+}
+
 export async function leagueView(db: Db, session: Session | null, now: Date): Promise<LeagueView> {
   // Finished weeks settle lazily (idempotent); the cron-free path.
   await settleLeagueWeeks(db, now).catch((e) => console.error("[league] settle failed", e));
@@ -265,6 +276,20 @@ export async function leagueView(db: Db, session: Session | null, now: Date): Pr
   const st = await seasonStandings(db, { season, now, accountId: viewer, limit: 10 });
   const seasonRow = (r: (typeof st.rows)[number]): SeasonRowView => ({ rank: r.rank, stableName: r.stableName, silks: parseSilks(r.silks), photoUrl: r.photoUrl, points: r.points, wins: r.wins, runs: r.runs, mine: r.accountId === viewer });
   const history = viewer ? await leagueHistory(db, viewer) : [];
+  // The not-yet-joined state: the runs that would already score for you, and each tier's leader.
+  const tiersTop = (await tierLeaders(db, now)).map((t) => ({ tierName: t.tierName, stableName: t.stableName, silks: parseSilks(t.silks), photoUrl: t.photoUrl, points: t.points, wins: t.wins, runs: t.runs }));
+  let prospect: LeagueView["prospect"] = null;
+  if (!table && viewer) {
+    const runs = await liveRunsBetween(db, { from: st.startsAt, to: new Date(Math.min(st.endsAt.getTime(), now.getTime() + 1)), accountIds: [viewer] });
+    prospect = {
+      runsThisSeason: runs.length,
+      seasonPoints: st.mine?.points ?? 0,
+      best: runs
+        .map((r) => ({ label: runLabel(r), points: runPoints(r) }))
+        .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label))
+        .slice(0, 3),
+    };
+  }
   return {
     serverNowMs: now.getTime(),
     weekStart: table?.weekStart ?? utcDay(week.from),
@@ -281,7 +306,9 @@ export async function leagueView(db: Db, session: Session | null, now: Date): Pr
     history: history.map((h) => ({ weekStart: h.weekStart, tierName: gc.LEAGUE_TIERS[Math.max(0, h.tier - 1)] ?? "bronze", points: h.points, finalRank: h.finalRank, movement: h.movement })),
     season: { number: season, startsAtMs: st.startsAt.getTime(), endsAtMs: st.endsAt.getTime(), owners: st.owners, rows: st.rows.map(seasonRow), mine: st.mine ? seasonRow(st.mine) : null },
     calendar: calendarView(now),
-    rules: { racePoints: [...gc.RACE_POINTS], startPoint: gc.START_POINT, weeklyCap: gc.WEEKLY_RACE_POINTS_CAP },
+    rules: { racePoints: [...gc.RACE_POINTS], startPoint: gc.START_POINT, weeklyCap: gc.WEEKLY_RACE_POINTS_CAP, bestRuns: gc.BEST_RUNS_COUNTED, floorTiers: [...gc.LEAGUE_TIERS.slice(0, gc.LEAGUE_TIERS.indexOf(gc.RELEGATION_FROM_TIER))] },
+    prospect,
+    tiersTop,
   };
 }
 

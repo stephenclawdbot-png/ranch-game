@@ -139,10 +139,10 @@ function rangesOf(state: gc.HorseState): RangeView[] {
 function peakOf(lastHardWorkMs: number | null, nowMs: number): ConditionView["peak"] {
   const bonus = gc.freshnessBonus(lastHardWorkMs, nowMs);
   if (lastHardWorkMs === null) return { phase: "none", fromMs: null, toMs: null, bonus };
-  const fromMs = lastHardWorkMs + 72 * HOUR;
-  const toMs = lastHardWorkMs + 120 * HOUR;
+  const fromMs = lastHardWorkMs + gc.FRESHNESS_PEAK_FROM_H * HOUR;
+  const toMs = lastHardWorkMs + gc.FRESHNESS_PEAK_TO_H * HOUR;
   const h = (nowMs - lastHardWorkMs) / HOUR;
-  const phase = h < 72 ? "building" : h <= 120 ? "peak" : h < 192 ? "fading" : "none";
+  const phase = h < gc.FRESHNESS_PEAK_FROM_H ? "building" : h <= gc.FRESHNESS_PEAK_TO_H ? "peak" : h < 192 ? "fading" : "none";
   return { phase, fromMs, toMs, bonus };
 }
 
@@ -227,7 +227,7 @@ async function trainingView(db: Db, row: HorseRow, state: gc.HorseState, horse: 
     previews: used < slots
       ? (Object.keys(gc.WORKOUTS) as gc.Workout[]).map((w) => {
           const p = gc.previewTraining(state, w, { nowMs, trainerLevel: lv.trainer, vetLevel: lv.vet, credits });
-          return { key: w, block: p.block, gains: p.gains, fatigueBefore: p.fatigueBefore, fatigueAfter: p.fatigueAfter, overworked: p.overworked, injuryPermille: p.injuryPermille, setsUpPeak: p.setsUpPeak };
+          return { key: w, block: p.block, gains: p.gains, fatigueBefore: p.fatigueBefore, fatigueAfter: p.fatigueAfter, overworked: p.overworked, injuryPermille: p.injuryPermille, peak: p.peak, readyInH: p.readyInH };
         })
       : [],
   };

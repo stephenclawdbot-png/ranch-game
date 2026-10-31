@@ -71,6 +71,42 @@ export function updateRatings(field: readonly RatedRunner[]): RatingChange[] {
   });
 }
 
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
+
+/** Where the handicapper had a horse finishing, from the same expected scores: 1 = winning. */
+function expectedPlace(expected: number, n: number): number {
+  return Math.max(1, Math.min(n, Math.round(n - expected)));
+}
+
+/**
+ * One honest line for the result screen, from the update rule's own numbers: what the
+ * handicapper expected on these marks (the field's expected scores) against where the horse
+ * actually finished. Empty for a one-runner field or a runner not in it, so the caller falls
+ * back to the bare "OR a → b". Playtest fix 14: the result showed the change with no why.
+ */
+export function ratingChangeReason(field: readonly RatedRunner[], horseId: string): string {
+  const me = field.find((r) => r.horseId === horseId);
+  const n = field.length;
+  if (!me || n < 2) return "";
+  let actual = 0;
+  let expected = 0;
+  for (const other of field) {
+    if (other.horseId === horseId) continue;
+    actual += me.position < other.position ? 1 : me.position === other.position ? 0.5 : 0;
+    expected += expectedScore(me.or, other.or);
+  }
+  const k = me.ratedRuns < PROVISIONAL_RUNS ? K_PROVISIONAL : K_ESTABLISHED;
+  const raw = Math.round((k * (actual - expected) * 4) / (n - 1)) / 4;
+  const delta = clampInt(raw, -MAX_LOSS_PER_RACE, MAX_GAIN_PER_RACE);
+  const place = expectedPlace(expected, n);
+  const expectation =
+    place === 1 ? "expected it to win on these marks" : place <= 3 ? "expected it to finish close in" : place <= Math.ceil(n / 2) ? "expected it to finish mid-field" : "expected it to finish back in the field";
+  const where = `finished ${ordinal(me.position)} of ${n} in a race the handicapper ${expectation}`;
+  if (delta === 0) return `OR unchanged: ${where}.`;
+  const capped = Math.abs(raw) > Math.abs(delta) ? " — held by the per-race cap" : "";
+  return `OR ${delta > 0 ? "+" : ""}${delta}: ${where}${capped}.`;
+}
+
 // ---------------------------------------------------------------------------
 // Handicap weights
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import { StableBadge } from "../StableBadge";
 import { PixelIcon } from "../icons";
 import { tierLabel } from "./bits";
 import { DateBlock } from "./LocalTime";
-import { EmptyState, HowItWorks, SceneBand } from "../ui/Page";
+import { HowItWorks, SceneBand } from "../ui/Page";
 
 function zoneText(z: LeagueRowView["zone"]): string {
   return z === "promote" ? "▲ Promotion" : z === "relegate" ? "▼ Relegation" : "";
@@ -53,6 +53,100 @@ const KIND_LABEL: Record<LeagueView["calendar"][number]["kind"], string> = {
   season_final: "Season Final",
 };
 
+/**
+ * The not-yet-joined state: the rules in three lines (their own numbers), the tier the viewer
+ * will start in, the runs they've already made that would score, and who leads each tier —
+ * never a blank column. (Playtest fix 6: the first competitive screen showed a vacuum.)
+ */
+function LeagueProspect({ view, signedIn }: { view: LeagueView; signedIn: boolean }) {
+  const p = view.prospect;
+  const scored = view.tiersTop.some((t) => t.points > 0);
+  return (
+    <div className="grid gap-4" data-testid="league-prospect">
+      <section className="surface grid gap-3 p-4" aria-labelledby="prospect-h">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 id="prospect-h" className="t-h2">
+              You&rsquo;re not in a league yet
+            </h3>
+            <p className="t-meta" data-testid="prospect-start">
+              {signedIn ? "Enter any Live race this week and you join one. Every stable starts in the Bronze league." : "Found a stable and enter any Live race: every stable starts in the Bronze league."}
+            </p>
+          </div>
+          <Link href={signedIn ? "/races" : "/play"} className="btn btn-sm shrink-0">
+            {signedIn ? "See the race card" : "Found your stable"}
+          </Link>
+        </div>
+        <ol className="grid gap-1.5 border-t-2 border-dotted border-line pt-3 text-[0.9375rem]">
+          <li>
+            Leagues are groups of up to {view.capacity} owners in one tier. Only Live races score: {view.rules.startPoint} point for starting, plus {view.rules.racePoints.join(" / ")} for 1st down to {view.rules.racePoints.length}th (fields of 4 or more).
+          </li>
+          <li>
+            At most {view.rules.weeklyCap} points a week, and only your best {view.rules.bestRuns} runs count — racing more can&rsquo;t buy a league.
+          </li>
+          <li>
+            When the week ends, the top {view.promote} go up a tier and the bottom {view.relegate} who raced go down; {view.rules.floorTiers.length ? `${view.rules.floorTiers.map(tierLabel).join(" and ")} are floors, so being away never drops you` : "the bottom tier never relegates"}.
+          </li>
+        </ol>
+      </section>
+
+      {p && (
+        <section className="surface grid gap-2 p-4" aria-labelledby="prospect-runs-h" data-testid="prospect-runs">
+          <h3 id="prospect-runs-h" className="t-h2">
+            Your runs so far this season
+          </h3>
+          {p.best.length ? (
+            <>
+              <ul className="grid gap-1">
+                {p.best.map((r) => (
+                  <li key={r.label} className="flex items-baseline justify-between gap-2 border-t-2 border-dotted border-line pt-1 text-sm">
+                    <span className="font-bold">{r.label}</span>
+                    <span className="num shrink-0 text-cream">
+                      {r.points} {r.points === 1 ? "pt" : "pts"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="caption">
+                {p.runsThisSeason} Live {p.runsThisSeason === 1 ? "run" : "runs"} this season, {p.seasonPoints} season {p.seasonPoints === 1 ? "point" : "points"} — exactly these would count in your league.
+              </p>
+            </>
+          ) : (
+            <p className="caption">No Live runs yet this season: Story races don&rsquo;t score, Live races do. Your first one joins the week&rsquo;s league.</p>
+          )}
+        </section>
+      )}
+
+      <section className="surface grid gap-2 p-4" aria-labelledby="prospect-tiers-h" data-testid="prospect-tiers">
+        <h3 id="prospect-tiers-h" className="t-h2">
+          Top of each tier this week
+        </h3>
+        {view.tiersTop.length && scored ? (
+          <ul className="grid gap-1">
+            {view.tiersTop.map((t) => (
+              <li key={t.tierName} className="flex items-center gap-3 border-t-2 border-dotted border-line pt-1">
+                <span className={`tier-badge tier-${t.tierName} shrink-0`} aria-hidden>
+                  <PixelIcon name={t.tierName === "bronze" ? "badge-bronze" : t.tierName === "silver" ? "badge-silver" : "badge-gold"} size={32} />
+                </span>
+                <span className="w-14 shrink-0 font-extrabold text-cream-dim">{tierLabel(t.tierName)}</span>
+                <StableBadge silks={t.silks} photoUrl={t.photoUrl} cap={false} className="h-[26px] w-8 shrink-0" />
+                <span className="t-title min-w-0 flex-1 truncate text-cream">{t.stableName}</span>
+                <span className="num shrink-0 text-cream">
+                  {t.points} {t.points === 1 ? "pt" : "pts"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="t-meta" data-testid="prospect-no-points">
+            <b>Season starts Monday.</b> Nothing has been scored yet — league weeks run Monday to Sunday, and the first settled Live race puts the first owner on the board.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: boolean }) {
   const rows = view.rows;
   const mine = rows.find((r) => r.mine);
@@ -72,7 +166,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
               {view.joined ? `${tierLabel(view.tierName)} League · group ${view.group}` : "Your league"}
             </h2>
             <p className="t-meta">
-              Tier {view.tier} of {view.tierCount} · week of {view.weekStart}
+              {view.joined ? `Tier ${view.tier} of ${view.tierCount} · week of ${view.weekStart}` : `You'll start in ${tierLabel(view.tierName)} (tier ${view.tier} of ${view.tierCount}) · week of ${view.weekStart}`}
               {mine ? ` · you're ${ordinal(mine.rank)} with ${mine.points} pts` : ""}
             </p>
             </div>
@@ -118,17 +212,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
               ))}
             </ol>
           ) : (
-            <EmptyState
-              icon="badge-bronze"
-              testId="league-empty"
-              title="You're not in a league yet"
-              text={signedIn ? "Race in any Live race this week to join one. You start in Bronze." : "Found a stable and race Live to join a league."}
-              action={
-                <Link href={signedIn ? "/races" : "/play"} className="btn btn-sm">
-                  {signedIn ? "See the race card" : "Found your stable"}
-                </Link>
-              }
-            />
+            <LeagueProspect view={view} signedIn={signedIn} />
           )}
         </section>
 

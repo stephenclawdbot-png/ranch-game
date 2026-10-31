@@ -39,6 +39,21 @@ describe("jockey pages", () => {
     expect(mine.jockeys[0]!.skills.map((s) => s.key)).toEqual([...gc.JOCKEY_SKILLS]);
     expect(JSON.stringify(all)).not.toMatch(/"seed"/);
 
+    // The list's own numbers (playtest fix 13): career strike rate, rides this season, the
+    // freelance floor fee, and career winners to lead with while the season has no winner yet.
+    for (const j of all.jockeys) {
+      expect(j.strikeRate).toBe(j.rides > 0 ? Math.round((j.wins * 100) / j.rides) : null);
+      expect(j.ridesThisSeason).toBe(0);
+      expect(j.feeFrom).toBe(j.stableId === null && !j.retired ? gc.freelanceFee(j.grade, 0) : null);
+    }
+    expect(all.leaderboard).toEqual([]); // fresh season: nothing settled
+    expect(all.careerLeaders.length).toBeGreaterThan(0);
+    expect(all.careerLeaders.length).toBeLessThanOrEqual(10);
+    for (let i = 1; i < all.careerLeaders.length; i++) {
+      expect(all.careerLeaders[i]!.wins).toBeLessThanOrEqual(all.careerLeaders[i - 1]!.wins);
+    }
+    expect(all.careerLeaders[0]!.wins).toBe(Math.max(...all.jockeys.map((j) => j.wins)));
+
     const target = free.jockeys[0]!;
     const page = (await jockeyPage(h.db, p, target.id, T0))!;
     expect(page.actions.canSign).toBe(true);
