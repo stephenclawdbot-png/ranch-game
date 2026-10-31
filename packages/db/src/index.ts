@@ -55,3 +55,4 @@ export * from "./services/formBook";
 export * from "./services/horseLog";
 export * from "./services/jockeys";
 export * from "./services/moments";
+export * from "./services/whatIf";

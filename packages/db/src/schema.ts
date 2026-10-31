@@ -779,6 +779,38 @@ export const raceResults = pgTable("race_results", {
 });
 
 /**
+ * "What if?" re-runs (services/whatIf.ts, apps/web server/whatIf.ts): a settled race simulated
+ * again with one change to one runner, same seed and same field. A counterfactual cache only:
+ * settlement, ratings, form, records and the ledger never read it. One row per (race, horse,
+ * change key); `resolved` holds the changed runner exactly as it re-ran (so the what-if replay
+ * re-simulates identically later), `summary` the comparison the sheet shows.
+ */
+export const whatIfRuns = pgTable(
+  "what_if_runs",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** Canonical change ("tactic:closer", "jockey:grade:A" ...). */
+    changeKey: text("change_key").notNull(),
+    /** The engine version the race locked with (and the re-run ran under). */
+    engineVersion: text("engine_version").notNull(),
+    resolved: jsonb("resolved").notNull(),
+    summary: jsonb("summary").notNull(),
+    /** The stable that first asked for it. */
+    stableId: uuid("stable_id").references(() => stables.id),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("what_if_runs_uq").on(t.raceId, t.horseId, t.changeKey)],
+);
+
+export type WhatIfRunRow = typeof whatIfRuns.$inferSelect;
+
+/**
  * Race sponsorships (services/sponsorship.ts): a stable pays credits (burned) to have a future
  * Live card slot carry its name. One sponsor per slot (unique slot index, first come first
  * served); one row per (account, idempotency key). `raceId` is set when the sponsor is applied

@@ -704,6 +704,8 @@ export const RESET_TABLES = [
   "inbox_items",
   "entry_movements",
   "race_sponsorships",
+  // What-if re-runs follow the races they re-ran.
+  "what_if_runs",
   "race_results",
   "race_entries",
   "races",
