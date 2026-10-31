@@ -88,6 +88,26 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
     }
   }, [phase, card.id]);
 
+  // The finish as an event plays in the stage first (photograph, replay, weighed in, the placed
+  // horses' cards); the result board and credits below wait for it when the race was watched
+  // live. If the viewer never starts it (paused, skipped ahead), they show after a few seconds.
+  const [finale, setFinale] = useState<"pending" | "running" | "done">("pending");
+  useEffect(() => {
+    if (phase !== "result" || finale !== "pending") return;
+    const t = setTimeout(() => setFinale((f) => (f === "pending" ? "done" : f)), 6000);
+    return () => clearTimeout(t);
+  }, [phase, finale]);
+  const holdResults = phase === "result" && sawLive.current && finale !== "done";
+  // The finale's cards: each runner's stable (name and photo) and jockey from the racecard.
+  const connections = useMemo(
+    () =>
+      Object.fromEntries(
+        card.field.map((e) => [e.horse.id, { stableName: e.stableName, stablePhotoUrl: e.stablePhotoUrl ?? null, jockey: e.gear.find((g) => /jockey|journeyman/i.test(g)) ?? null }]),
+      ),
+    [card.field],
+  );
+  const mineIds = useMemo(() => card.field.filter((e) => e.mine).map((e) => e.horse.id), [card.field]);
+
   // Your result comes from the server (settled there, once); this only shows it.
   useEffect(() => {
     if (phase !== "result" || !replay || !mine || settlement) return;
@@ -223,7 +243,17 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
             <PreRace localPost={localPost} localClose={localClose} now={now} card={card} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
-              <RaceViewerClient feed={feed} highlightHorseId={highlightHorseId} height={stageHeight ?? 420} initialTimeSec={initialTimeSec} autoplay course={courseByName(card.track)} />
+              <RaceViewerClient
+                feed={feed}
+                highlightHorseId={highlightHorseId}
+                mineHorseIds={mineIds}
+                connections={connections}
+                onFinale={setFinale}
+                height={stageHeight ?? 420}
+                initialTimeSec={initialTimeSec}
+                autoplay
+                course={courseByName(card.track)}
+              />
             </div>
           ) : (
             <div className="flex h-full min-h-56 flex-col items-center justify-center gap-2 text-cream-dim">
@@ -251,7 +281,11 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid min-w-0 content-start gap-4">
-          {phase === "result" && replay ? (
+          {phase === "result" && replay && holdResults ? (
+            <p className="t-meta" data-testid="finale-hold">
+              The result is being called in the stage above…
+            </p>
+          ) : phase === "result" && replay ? (
             <>
               <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />

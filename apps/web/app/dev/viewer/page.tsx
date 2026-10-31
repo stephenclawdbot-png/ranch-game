@@ -33,6 +33,8 @@ export default async function ViewerDevPage({ searchParams }: { searchParams: Pr
     spread: one("spread"),
     pullup: one("pullup"),
     results: one("results"),
+    minepos: one("minepos"),
+    finale: one("finale"),
   };
   return <ViewerHarness params={params} />;
 }
