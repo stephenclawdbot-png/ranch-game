@@ -29,6 +29,7 @@ import { ShareReplay } from "./ShareReplay";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
+import { sealCopy, sealState } from "@/lib/seal";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -241,9 +242,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           <a
             href="#fair-h"
             className="flex shrink-0 items-center gap-1 text-sm font-bold text-cream-dim hover:text-cream"
-            title="This race is sealed: tap for details"
+            title={card.fieldLocked ? "This race is sealed: tap for details" : "The seed is committed; the field is sealed when entries close: tap for details"}
+            data-testid="seal-badge"
           >
-            <PixelIcon name="shield" size={16} /> {replay ? "Sealed ✓" : "Sealed"}
+            <PixelIcon name="shield" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
           </a>
         </div>
         <div
