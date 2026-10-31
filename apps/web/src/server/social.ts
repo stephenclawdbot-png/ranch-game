@@ -39,6 +39,7 @@ export async function homeSocial(db: Db, session: Session, now: Date): Promise<H
     stableId: r.stableId,
     stableName: r.stableName,
     silks: r.silks ? parseSilks(r.silks) : null,
+    declared: r.declared,
     meetings: r.meetings,
     ahead: r.ahead,
     behind: r.behind,

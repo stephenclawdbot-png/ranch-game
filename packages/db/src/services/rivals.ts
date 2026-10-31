@@ -5,7 +5,7 @@
  *
  * Club runners have no owner and are never anyone's rival.
  */
-import { eq, inArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { declaredRivals, fraudEvents, inviteCodes, raceResults, stables } from "../schema";
 import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
@@ -228,6 +228,18 @@ export async function rivalInviteStats(ex: Executor, stableId: string, now: Date
   const all = await ex.select({ at: declaredRivals.createdAt, welcome: declaredRivals.welcome }).from(declaredRivals).where(eq(declaredRivals.inviterStableId, stableId));
   const from = Date.parse(`${utcMonday(now)}T00:00:00Z`);
   return { accepted: all.length, thisWeek: all.filter((r) => r.welcome === "granted" && r.at.getTime() >= from).length };
+}
+
+/** The stable name behind a personal invite code (the rival invite banner), or null. */
+export async function rivalInviterName(ex: Executor, rawCode: string): Promise<string | null> {
+  const code = normalizeInviteCode(rawCode);
+  if (!code) return null;
+  const [row] = await ex
+    .select({ name: stables.name })
+    .from(inviteCodes)
+    .innerJoin(stables, eq(stables.accountId, inviteCodes.ownerAccountId))
+    .where(and(eq(inviteCodes.code, code), eq(inviteCodes.kind, "referral"), isNull(inviteCodes.revokedAt)));
+  return row?.name ?? null;
 }
 
 function utcMonday(at: Date): string {

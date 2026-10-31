@@ -19,6 +19,7 @@ import { DioramaSlot } from "../diorama/DioramaSlot";
 import { Wordmark } from "../SiteNav";
 import { StableNews } from "../moments/StableNews";
 import { HomeSocial } from "../social/HomeSocial";
+import { TodaysPicks } from "../picks/TodaysPicks";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
 
@@ -228,6 +229,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       <YourRaces state={state} now={now} skip={heroRun} />
 
       <StableNews items={state.news ?? []} />
+
+      <TodaysPicks />
 
       <HomeSocial />
 

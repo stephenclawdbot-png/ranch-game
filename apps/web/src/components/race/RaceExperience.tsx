@@ -27,6 +27,7 @@ import { FairnessPanel } from "./FairnessPanel";
 import { FieldList } from "./FieldList";
 import { ShareReplay } from "./ShareReplay";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
+import { PickBlock } from "../picks/PickBlock";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
 import { sealCopy, sealState } from "@/lib/seal";
@@ -344,6 +345,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           )}
         </div>
         <div className="grid content-start gap-4">
+          {card.kind === "live" && <PickBlock raceId={card.id} phase={phase} signedIn={!!state} />}
           <FairnessPanel card={card} replay={phase === "result" ? replay : null} />
           {phase !== "result" && (
             <Link href={mine ? "/" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">

@@ -4,7 +4,7 @@
  * founding paths share it — POST /api/account and wallet sign-in's { create } — so the
  * rules can't drift. Callers add their own session (cookie) and telemetry.
  */
-import { createAccount, DomainError, linkTester, recordReferral, redeemInvite, type Db } from "@thoroughbred/db";
+import { acceptRivalInvite, createAccount, DomainError, linkTester, recordAccountSignal, recordReferral, redeemInvite, type Db, type RivalInviteResult } from "@thoroughbred/db";
 import { SilksSchema } from "@thoroughbred/shared";
 import { playtestConfig } from "./playtest";
 import { StableNameSchema } from "@/lib/stableName";
@@ -16,6 +16,10 @@ export interface FoundStableInput {
   timezone?: string;
   /** Closed playtest: the invite code. Outside the playtest: an optional referral code. */
   inviteCode: string | null;
+  /** "Bring a rival": the invite code came from a rival invite link (the inviter's personal code). */
+  rival?: boolean;
+  /** This browser's random id (localStorage), recorded as a device signal for the anti-alt check. */
+  deviceId?: string | null;
   now: Date;
 }
 
@@ -26,6 +30,8 @@ export interface FoundedStable {
   token: string;
   stableName: string;
   playtest: boolean;
+  /** The rival invite's outcome, when founded through one. */
+  rival: RivalInviteResult | null;
 }
 
 /**
@@ -54,5 +60,9 @@ export async function foundStable(db: Db, input: FoundStableInput): Promise<Foun
       console.error("referral", err);
     }
   }
-  return { accountId: acc.accountId, stableId: acc.stableId, token: acc.token, stableName: name.data, playtest: playtest.enabled };
+  if (input.deviceId) await recordAccountSignal(db, { accountId: acc.accountId, kind: "device", value: input.deviceId });
+  // Bring a rival: the two stables become declared rivals; both get the welcome once, unless linked.
+  let rival: RivalInviteResult | null = null;
+  if (input.rival && input.inviteCode?.trim()) rival = await acceptRivalInvite(db, { inviteeAccountId: acc.accountId, code: input.inviteCode, now: input.now });
+  return { accountId: acc.accountId, stableId: acc.stableId, token: acc.token, stableName: name.data, playtest: playtest.enabled, rival };
 }
