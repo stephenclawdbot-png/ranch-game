@@ -415,6 +415,25 @@ export interface LegacyFarmView {
   }[];
 }
 
+/** One line of a horse's career story (game-core careerStory). */
+export interface CareerStoryEntryView {
+  key: string;
+  kind: string;
+  atMs: number;
+  text: string;
+  /** The race to replay, when there is one. */
+  raceId: string | null;
+  /** Another horse the line is about (a foal, the rival, the photo-finish opponent). */
+  horseId: string | null;
+  /** Among the best lines, shown before "show full career". */
+  highlight: boolean;
+}
+
+/** The horse's career story, oldest first (public: results, ratings, race injuries, honours, foals). */
+export interface CareerStoryView {
+  entries: CareerStoryEntryView[];
+}
+
 export interface HorseDetailView {
   horse: Horse;
   /** Public registration number, e.g. "G2-04571". */
@@ -433,6 +452,8 @@ export interface HorseDetailView {
   runs: RunView[];
   /** The form book: every start's full form line (no result before settlement) and the splits. */
   form: HorseFormView;
+  /** The career story: the noteworthy moments of its career, one line each. */
+  story: CareerStoryView;
   /** A sire's offspring splits (stallions with runners only). */
   sireLine: { runners: number; splits: SplitsView } | null;
   pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };

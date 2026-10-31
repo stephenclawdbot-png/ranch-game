@@ -79,8 +79,8 @@ export const QUIRK_TRIGGER_TEXT: Record<QuirkKey, string> = {
   crowdShy: `on big days (Features, Season Finals, Group races) and in any field of ${CROWD_SHY_FIELD} or more`,
 };
 
-/** "Sea Lavender is a mudlark" */
-const QUIRK_PHRASE: Record<QuirkKey, string> = { mudlark: "is a mudlark", gateShy: "is gate-shy", lateKick: "has a late kick", crowdShy: "is crowd-shy" };
+/** "Sea Lavender is a mudlark" (also the career story's quirk line). */
+export const QUIRK_PHRASE: Record<QuirkKey, string> = { mudlark: "is a mudlark", gateShy: "is gate-shy", lateKick: "has a late kick", crowdShy: "is crowd-shy" };
 
 /** What an owner may do about each quirk (never a promise). */
 export const QUIRK_ADVICE: Record<QuirkKey, string> = {

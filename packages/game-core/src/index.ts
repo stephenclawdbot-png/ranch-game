@@ -46,6 +46,7 @@ export * from "./courses";
 export * from "./climate";
 export * from "./formBook";
 export * from "./moments";
+export * from "./careerStory";
 export * from "./nearMiss";
 export * from "./rivals";
 export * from "./news";
