@@ -68,7 +68,7 @@ export type ReplaySampler = (timeSec: number, out?: HorseSample[]) => HorseSampl
  * header plus the frames received so far (the array may grow between calls) and no result.
  */
 export interface SampleSource {
-  horses: ReadonlyArray<{ horseId: string }>;
+  horses: ReadonlyArray<{ horseId: string; gate?: number }>;
   frames: ReadonlyArray<ReadonlyArray<number>>;
   tickHz: number;
   sampleEvery: number;

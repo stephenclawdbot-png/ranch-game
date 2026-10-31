@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { marginLabel } from "../../../racing-engine/src/results";
 import { parseKeyPalette } from "../three/recolor";
 import { craftPhotoReplay, type CraftedRunner } from "./fixture";
-import { fitScale, formatPhotoTime, photoLayout } from "./layout";
+import { fitScale, fitScaleBox, formatPhotoTime, photoLayout } from "./layout";
 import { DEAD_HEAT, marginPhrase, photoFinishModel } from "./model";
 import { rasterPhotoFinish, type PhotoArt } from "./raster";
 
@@ -160,6 +160,22 @@ describe("photoLayout", () => {
     expect(fitScale(555, 358, 3)).toEqual({ scale: 2, cssWidth: 370 });
     expect(fitScale(555, 1068, 1)).toEqual({ scale: 2, cssWidth: 1110 });
     expect(fitScale(900, 358, 1)).toEqual({ scale: 1, cssWidth: 900 });
+  });
+
+  it("fits the strip's height too on phones (the time scale never cut)", () => {
+    // Wide and short box: the width would allow 3x, the height only 2x.
+    expect(fitScaleBox(400, 160, 358, 110, 3)).toEqual({ scale: 2, cssWidth: 800 / 3, cssHeight: 320 / 3, fits: true });
+    // A long strip at 1x scrolls sideways but stays inside the height.
+    expect(fitScaleBox(1394, 170, 302, 200, 1)).toMatchObject({ scale: 1, cssHeight: 170, fits: true });
+    // Even 1x too tall: reported, so the caller drops the mirror image.
+    expect(fitScaleBox(1394, 264, 302, 200, 1).fits).toBe(false);
+    const model = photoFinishModel(race([30, 900]));
+    const sprite = { frameW: 256, frameH: 192, noseX: 240, tailX: 20, top: 40, bottom: 191 };
+    const withMirror = photoLayout(model, sprite);
+    const without = photoLayout(model, sprite, { mirror: false });
+    expect(without.width).toBe(withMirror.width);
+    expect(without.height).toBeLessThan(withMirror.height - 60);
+    expect(without.height - without.scaleTop).toBe(withMirror.height - withMirror.scaleTop);
   });
 });
 

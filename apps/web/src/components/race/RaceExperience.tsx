@@ -15,10 +15,9 @@ import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
 import { Digits } from "../Countdown";
-import { Diorama } from "../diorama/Diorama";
 import { DioramaSlot } from "../diorama/DioramaSlot";
-import { paddockScene } from "../diorama/scenes";
 import { SilksIcon } from "../Silks";
+import { PaddockParade, type ParadeRunner } from "./PaddockParade";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
 import { PhotoFinishCard } from "../results/PhotoFinishCard";
 import { FitList } from "../ui/FitChip";
@@ -30,6 +29,12 @@ import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
 
 type Phase = "loading" | "pre" | "live" | "result";
+
+/**
+ * The viewer takes over the stage this long before the off (ms): its build-up (paddock, going
+ * down to post, loading the stalls; ~24 s) plays to the real clock, with a few seconds to load.
+ */
+const BUILD_UP_LEAD_MS = 32_000;
 
 /**
  * The race page is a live broadcast: the client only ever holds the race up to "now"
@@ -63,6 +68,14 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   const highlightHorseId = mine?.horse.id;
 
   const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
+  // The build-up before the off plays in the viewer (both views), from the locked field and the
+  // broadcast clock: it never delays the off, and a late arrival joins wherever the clock is.
+  const buildUp = phase === "pre" && card.fieldLocked && !!feed && now !== null && feed.broadcastStartMs - now < BUILD_UP_LEAD_MS;
+  const paradeRunners = useMemo<ParadeRunner[]>(
+    () => card.field.map((e) => ({ id: e.horse.id, name: e.horse.name, gate: e.gate, appearance: e.horse.appearance, stableName: e.stableName, form: e.form })),
+    [card.field],
+  );
+  const paddock = useMemo(() => <PaddockParade runners={paradeRunners} />, [paradeRunners]);
 
   // Entries open: refresh the server-rendered card when they close (the field locks then),
   // and keep checking every few seconds until the locked field arrives.
@@ -239,8 +252,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           role="img"
           aria-label={`${config.name}: ${phase === "pre" ? "pre-race" : phase === "live" ? "race in progress" : "replay"}. The field and results are listed below.`}
         >
-          {phase === "pre" || phase === "loading" ? (
-            <PreRace localPost={localPost} localClose={localClose} now={now} card={card} />
+          {(phase === "pre" || phase === "loading") && !buildUp ? (
+            <PreRace localPost={localPost} localClose={localClose} now={now} card={card} runners={paradeRunners} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
               <RaceViewerClient
@@ -253,6 +266,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
                 initialTimeSec={initialTimeSec}
                 autoplay
                 course={courseByName(card.track)}
+                paddock={paddock}
               />
             </div>
           ) : (
@@ -323,7 +337,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   );
 }
 
-function PreRace({ localPost, localClose, now, card }: { localPost: number; localClose: number; now: number | null; card: RaceCard }) {
+function PreRace({ localPost, localClose, now, card, runners }: { localPost: number; localClose: number; now: number | null; card: RaceCard; runners: readonly ParadeRunner[] }) {
   const remaining = now === null ? null : localPost - now;
   const entriesOpen = !card.fieldLocked && (now === null || now < localClose);
   const loading = remaining !== null && remaining < 10_000;
@@ -334,7 +348,7 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
   const toPost = remaining !== null && remaining < 25_000;
   return (
     <div className="relative flex h-full min-h-52 w-full flex-col items-center justify-center overflow-hidden px-4 text-center">
-      {toPost ? <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" /> : <PaddockParade card={card} />}
+      {toPost ? <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" /> : <PaddockParade runners={runners} />}
       {/* Starting stalls, one per runner, with saddlecloth numbers (empty until the field locks) */}
       <div className={`absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1 ${toPost ? "" : "hidden"}`} aria-hidden>
         {(card.fieldLocked ? card.field : Array.from({ length: card.targetRunners }, (_, i) => card.field[i] ?? null)).map((e, i) => (
@@ -364,39 +378,5 @@ function PreRace({ localPost, localClose, now, card }: { localPost: number; loca
         </p>
       </div>
     </div>
-  );
-}
-
-/** The race's own runners walking the paddock (coats + silks), with a rotating nameplate. */
-function PaddockParade({ card }: { card: RaceCard }) {
-  const ids = card.field.map((e) => e.horse.id).join(",");
-  const def = useMemo(
-    () => paddockScene(card.field.slice(0, 6).map((e) => ({ coat: e.horse.appearance.coat, appearance: e.horse.appearance }))),
-    [ids], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (card.field.length < 2) return;
-    const t = window.setInterval(() => setI((n) => (n + 1) % card.field.length), 3200);
-    return () => window.clearInterval(t);
-  }, [card.field.length]);
-  const e = card.field[i % Math.max(1, card.field.length)];
-  return (
-    <>
-      <Diorama scene="paddock" sceneDef={def} aspect={null} label="The runners parading in the paddock" style={{ position: "absolute", inset: 0 }} />
-      {e && (
-        <p key={e.horse.id} className="paddock-plate" aria-live="off" data-testid="paddock-plate">
-          {e.gate > 0 && <Saddlecloth gate={e.gate} className="!h-6 !w-6 !text-[0.85rem]" />}
-          <SilksIcon silks={e.horse.appearance.silks} className="h-6 w-6" />
-          <span className="min-w-0 text-left">
-            <span className="paddock-name">{e.horse.name}</span>
-            <span className="paddock-meta">
-              {e.stableName}
-              {e.form ? ` · form ${e.form}` : ""}
-            </span>
-          </span>
-        </p>
-      )}
-    </>
   );
 }

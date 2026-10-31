@@ -175,7 +175,7 @@ function StripPanel({
       </div>
       {/* Phones: the verdict sits above the strip (the strip fills the panel). */}
       {narrow && <div className={`rv-fin-verdict${verdict ? " rv-fin-verdict-on" : ""}`}>{prettyLengths(model.verdict)}</div>}
-      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate onVerdict={() => setVerdict(true)} className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} />
+      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate onVerdict={() => setVerdict(true)} className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} fitHeight={narrow} />
     </div>
   );
 }
@@ -225,7 +225,9 @@ function SlideCard({
   const h = names.get(slide.horseId);
   if (!h) return null;
   const silks = h.appearance.silks;
-  const px = narrow ? 112 : 224;
+  // The 3/4 portraits are 128 px art: the frame's inside (3 px border) is exactly 1x on phones and
+  // 2x on wider screens, so the animated pixel art scales by whole pixels (no uneven pixels).
+  const px = (narrow ? 128 : 256) + 6;
   const eyebrow = slide.winner ? (slide.mine ? "Winner · your horse" : "Winner") : slide.mine ? (slide.position <= 3 ? `Your horse · ${ordinal(slide.position)} place` : "Your horse") : `${ordinal(slide.position)} place`;
   return (
     <div className={`rv-fin-slide${slide.winner ? " rv-fin-win" : ""}${slide.mine ? " rv-fin-mine" : ""}`}>

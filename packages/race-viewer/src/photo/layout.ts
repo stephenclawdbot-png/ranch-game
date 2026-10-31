@@ -159,3 +159,26 @@ export function fitScale(nativeW: number, containerCssW: number, dpr: number, ma
   const scale = Math.max(1, Math.min(maxScale, Math.round((containerCssW * d) / nativeW)));
   return { scale, cssWidth: (nativeW * scale) / d };
 }
+
+/**
+ * Whole device pixels per native pixel for a strip that must also fit a height (phones: the
+ * finale's panel). Fills the width like fitScale, but never taller than `containerCssH`, so
+ * the time scale along the bottom always shows; a strip still wider than the box scrolls
+ * sideways with its time scale attached. `fits` is false when even 1:1 is too tall (the
+ * caller then drops the mirror image to save rows).
+ */
+export function fitScaleBox(
+  nativeW: number,
+  nativeH: number,
+  containerCssW: number,
+  containerCssH: number,
+  dpr: number,
+  maxScale = 6,
+): { scale: number; cssWidth: number; cssHeight: number; fits: boolean } {
+  const d = dpr > 0 ? dpr : 1;
+  const byW = Math.round((containerCssW * d) / nativeW);
+  const byH = Math.floor((containerCssH * d) / nativeH);
+  const scale = Math.max(1, Math.min(maxScale, byW, byH));
+  const cssHeight = (nativeH * scale) / d;
+  return { scale, cssWidth: (nativeW * scale) / d, cssHeight, fits: cssHeight <= containerCssH + 0.5 };
+}

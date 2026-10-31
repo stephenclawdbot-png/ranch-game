@@ -12,7 +12,8 @@
 
 import { HORSE_LENGTH_MM } from "@thoroughbred/shared";
 
-export type ShotType = "gate" | "establish" | "close" | "pack" | "judge" | "post" | "wide" | "replay";
+/** "topost": the build-up before the off, the field cantering down to post past the stands. */
+export type ShotType = "gate" | "topost" | "establish" | "close" | "pack" | "judge" | "post" | "wide" | "replay";
 
 /** What both views should show: the same subject, each in its own projection. */
 export type ShotIntent =
@@ -26,6 +27,7 @@ export type ShotIntent =
 export function intentOf(shot: Pick<Shot, "type" | "subject">): ShotIntent {
   switch (shot.type) {
     case "gate":
+    case "topost":
     case "establish":
     case "wide":
       return { kind: "field" };
@@ -73,6 +75,8 @@ export interface DirectorInput {
   winnerId?: string | null;
   /** A picture-in-picture inset shows your horse whenever the main shot does not (3D, desktop). */
   pipForMine?: boolean;
+  /** The build-up before the off (stage/preoff.ts): going down to post, or loading the stalls. */
+  preOff?: "post" | "loading" | null;
 }
 
 /** Minimum time a framing is held before the director changes it (s). */
@@ -80,9 +84,9 @@ export const MIN_SHOT_S = 4;
 /** The player's horse is never out of frame for longer than this (s). */
 export const MAX_UNSEEN_S = 10;
 /** How long a framing runs before the rotation moves on (s). */
-const LENGTH: Record<ShotType, number> = { gate: 99, establish: 6, close: 8, pack: 6, judge: 99, post: 99, wide: 99, replay: 99 };
+const LENGTH: Record<ShotType, number> = { gate: 99, topost: 99, establish: 6, close: 8, pack: 6, judge: 99, post: 99, wide: 99, replay: 99 };
 /** Half-width (m) around the subject that a framing shows. */
-export const SHOT_REACH: Record<ShotType, number> = { gate: 1e9, establish: 1e9, close: 5, pack: 14, judge: 6, post: 40, wide: 1e9, replay: 6 };
+export const SHOT_REACH: Record<ShotType, number> = { gate: 1e9, topost: 1e9, establish: 1e9, close: 5, pack: 14, judge: 6, post: 40, wide: 1e9, replay: 6 };
 
 /** Closing stages: the leader is within this of the line (m). Your horse is never hidden long here. */
 export const CLOSING_M = 400;
@@ -176,7 +180,9 @@ export class Director {
       }
     }
 
-    // Race phases (these change framing on time).
+    // Race phases (these change framing on time). Before the off: the whole field going down
+    // to post, then the stalls.
+    if (inp.preOff === "post" && t < 0) return { type: "topost", subject: null };
     if (t < 1.0) return { type: "gate", subject: null };
     if (inp.photoFinish && t > inp.winnerTime - 1.6 && t < inp.winnerTime + 0.9) return { type: "judge", subject: null };
     if (t > inp.winnerTime + 0.9) {

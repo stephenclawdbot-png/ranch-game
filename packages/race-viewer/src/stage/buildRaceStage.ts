@@ -204,6 +204,13 @@ function midTemplate(recipe: SceneryRecipe | null): MidTemplate {
   return { period: m.period, height: m.height, blur: m.blur, haze: m.haze, items: m.items.map((it) => ({ src: it.src, x: it.x, bottom: it.bottom, flip: it.flip })) };
 }
 
+/**
+ * The midground's front row (m beyond the far rail). Close behind the rail, as Trackside's band
+ * sits: further back, the 3D wide shot showed a broad band of empty infield grass between the
+ * far rail and the scenery.
+ */
+const MID_FRONT_M = 10;
+
 /** Midground instances along the course (pre-start run to past the run-out). */
 function midItems(t: MidTemplate, L: number): StageMidItem[] {
   const periodM = t.period / MID_SPREAD_PX_PER_M;
@@ -215,7 +222,7 @@ function midItems(t: MidTemplate, L: number): StageMidItem[] {
       const [w, h] = size(it.src);
       const xM = n * periodM + (it.x + w / 2) / MID_SPREAD_PX_PER_M;
       if (xM < from || xM > to) continue;
-      out.push({ src: it.src, xM, depthM: 22 + Math.max(0, t.height - it.bottom) * 1.5, widthM: w / MID_PX_PER_M, heightM: h / MID_PX_PER_M, flip: !!it.flip });
+      out.push({ src: it.src, xM, depthM: MID_FRONT_M + Math.max(0, t.height - it.bottom) * 1.5, widthM: w / MID_PX_PER_M, heightM: h / MID_PX_PER_M, flip: !!it.flip });
     }
   }
   return out.sort((a, b) => a.xM - b.xM || a.depthM - b.depthM);

@@ -27,6 +27,7 @@ import { PixelRain } from "./vfx";
 import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
 import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
+import { POST_CANTER, preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { TRACK_POST, TRACK_PRE, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
@@ -81,6 +82,8 @@ export interface HD2DSceneOptions {
   fxPalette?: FxPalette | null;
   /** Horses injured in the race (pulled up after the line). */
   injured?: ReadonlySet<string>;
+  /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
+  preOff?: PreOffPlan | null;
 }
 
 /**
@@ -104,6 +107,33 @@ const HORSE_FRAG_3D = HORSE_FRAG.replace(
   #include <colorspace_fragment>
 }`,
 );
+
+/** Device rows per sky art-pixel step: the sky's whole-pixel scale is round(viewport h / this)
+ *  (about Trackside's backdrop scale: 1 on a 700 px desktop stage, 2-3 on a phone). */
+const SKY_ROWS_PER_K = 560;
+/** Art rows of the sky's bottom tucked below the horizon (behind the far hills). */
+const SKY_SINK = 10;
+/** Sky parallax (art px per metre of camera travel) and drift (art px per second). */
+const SKY_PARALLAX = 0.5;
+const SKY_DRIFT = 1.2;
+
+const SKY_VERT = /* glsl */ `
+void main() { gl_Position = vec4(position.xy, 1.0, 1.0); }
+`;
+
+/** Screen-space pixel sky: whole device pixels per art pixel (nearest), mirror-tiled in x. */
+const SKY_FRAG = /* glsl */ `
+uniform sampler2D uSky; uniform vec2 uSize; uniform float uK; uniform float uHorizon; uniform float uOff; uniform float uVpX;
+void main() {
+  float y = floor((gl_FragCoord.y - uHorizon) / uK);
+  float x = floor((gl_FragCoord.x - uVpX) / uK + uOff);
+  float m = mod(x, 2.0 * uSize.x);
+  float xx = m < uSize.x ? m : 2.0 * uSize.x - 1.0 - m;
+  vec2 uv = vec2((xx + 0.5) / uSize.x, (clamp(y, 0.0, uSize.y - 1.0) + 0.5) / uSize.y);
+  gl_FragColor = vec4(texture2D(uSky, uv).rgb, 1.0);
+  #include <colorspace_fragment>
+}
+`;
 
 interface Runner {
   index: number;
@@ -213,7 +243,11 @@ export class HD2DScene {
   private pipWasActive = false;
   private lastTime = Number.NaN;
   private animTime = 0;
+  /** Sky drift (art px), real time. */
+  private skyDrift = 0;
   private firstFrame = true;
+  /** Build-up shot last frame (0 none, 1 to post, 2 the stalls): a change is a cut. */
+  private preCut = 0;
   private quality: RenderQuality;
   private pixelated: boolean;
   private highlight: number;
@@ -248,7 +282,7 @@ export class HD2DScene {
     this.stageArt = opts.stageArt ?? new Map();
     this.strips = opts.strips ?? null;
     this.fxPal = opts.fxPalette ?? null;
-    this.motion = new FieldMotion(replay, { injured: opts.injured ?? injuredFromEvents(replay.events) });
+    this.motion = new FieldMotion(replay, { injured: opts.injured ?? injuredFromEvents(replay.events), preOff: opts.preOff ?? null });
     this.look = this.stage.look.three;
     this.L = this.stage.L;
     this.trackW = this.plan.trackW;
@@ -379,12 +413,45 @@ export class HD2DScene {
   private buildSky(art: ArtSet): THREE.Mesh {
     const T = this.T;
     const artSky = art.images.get(this.stage.look.sky.art);
-    const map = this.tex(artSky ?? skyStrip(this.look));
-    // The sky is a soft backdrop stretched over a dome: filtered, never blocky.
-    map.magFilter = T.LinearFilter;
-    map.minFilter = T.LinearFilter;
-    const sky = new T.Mesh(this.own(new T.SphereGeometry(1800, 24, 24)), this.own(new T.MeshBasicMaterial({ map, side: T.BackSide, fog: false, depthWrite: false })));
+    const src = artSky ?? skyStrip(this.look);
+    const map = this.tex(src);
+    // The sky is pixel art drawn the way Trackside draws it: in screen space, at a whole
+    // number of device pixels per art pixel, its bottom on the horizon, mirror-tiled sideways
+    // and drifting a little with the camera. (A dome stretched ~70 art pixels across the
+    // screen in the wide shots: huge blurred blocks.)
+    const w = src instanceof HTMLCanvasElement ? src.width : src.naturalWidth || src.width;
+    const h = src instanceof HTMLCanvasElement ? src.height : src.naturalHeight || src.height;
+    const mat = this.own(
+      new T.ShaderMaterial({
+        vertexShader: SKY_VERT,
+        fragmentShader: SKY_FRAG,
+        uniforms: { uSky: { value: map }, uSize: { value: new T.Vector2(w, h) }, uK: { value: 1 }, uHorizon: { value: 0 }, uOff: { value: 0 }, uVpX: { value: 0 } },
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    const sky = new T.Mesh(this.own(new T.PlaneGeometry(2, 2)), mat);
+    sky.frustumCulled = false;
     sky.renderOrder = -10;
+    // Per camera (the main view, the post target and the PiP inset): the horizon's row in
+    // that viewport and the art scale for its height.
+    const vp = new T.Vector4();
+    const fwd = new T.Vector3();
+    const hp = new T.Vector3();
+    sky.onBeforeRender = (renderer, _scene, camera) => {
+      renderer.getCurrentViewport(vp);
+      const u = mat.uniforms;
+      const k = Math.max(1, Math.round(vp.w / SKY_ROWS_PER_K));
+      camera.getWorldDirection(fwd);
+      fwd.y = 0;
+      if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
+      fwd.normalize();
+      hp.copy(camera.position).addScaledVector(fwd, 5000).project(camera);
+      u.uK!.value = k;
+      u.uHorizon!.value = vp.y + ((hp.y + 1) / 2) * vp.w - SKY_SINK * k;
+      u.uVpX!.value = vp.x;
+      u.uOff!.value = this.skyDrift + camera.position.x * SKY_PARALLAX;
+    };
     this.scene.add(sky);
     if (this.look.sunDisc && this.stage.look.sun) {
       this.sun = new T.Sprite(this.own(new T.SpriteMaterial({ map: this.tex(sunSprite(this.look)), fog: false, depthWrite: false, transparent: true })));
@@ -392,10 +459,11 @@ export class HD2DScene {
       this.sun.renderOrder = -9;
       this.scene.add(this.sun);
     }
-    // Pixel clouds, far away (so they barely parallax).
+    // Code-drawn pixel clouds, far away, only over the code-drawn sky: the art sky has its own
+    // clouds (as in Trackside), and these blocky sprites magnified over it were the "pixelated sky".
     const r = rng(77);
-    const cloudTex = [0, 1, 2].map((i) => this.tex(cloudSprite(this.look, 100 + i)));
-    for (let i = 0; i < this.look.cloudCount; i++) {
+    const cloudTex = artSky ? [] : [0, 1, 2].map((i) => this.tex(cloudSprite(this.look, 100 + i)));
+    for (let i = 0; i < (artSky ? 0 : this.look.cloudCount); i++) {
       const s = new T.Sprite(this.own(new T.SpriteMaterial({ map: cloudTex[i % 3]!, fog: false, depthWrite: false, transparent: true, alphaTest: 0.5 })));
       const w = 180 + r() * 160;
       s.scale.set(w, w * 0.42, 1);
@@ -1073,7 +1141,14 @@ export class HD2DScene {
     this.samples = this.motion.samples;
     let lead: Runner | null = null;
     let last: Runner | null = null;
-    const haveFrames = this.replay.frames.length > 0;
+    // The build-up before the off: lanes come from the shared motion, and going down to post /
+    // the stalls are two places on the course (a cut between them, as Trackside cuts).
+    const pre = this.motion.preOffAt(raceT);
+    const preKind = pre ? preOffStep(raceT).kind : null;
+    const preCut = !pre ? 0 : preKind === "parade" || preKind === "post" ? 1 : 2;
+    const cut = preCut !== 0 && this.preCut !== 0 && preCut !== this.preCut;
+    this.preCut = preCut;
+    const haveFrames = this.replay.frames.length > 0 || pre;
     for (const r of this.runners) {
       const st = this.states[r.index]!;
       r.st = st;
@@ -1114,6 +1189,7 @@ export class HD2DScene {
     dirInput.highlightId = mine?.horseId ?? null;
     dirInput.winnerId = winner?.horseId ?? null;
     dirInput.pipForMine = !!this.pipCam && this.quality === "high" && pipRect(this.W, this.H) !== null;
+    dirInput.preOff = preCut === 1 ? "post" : preCut === 2 ? "loading" : null;
     let shotType: ShotType;
     let subjectId: string | null;
     if (mode === "director") {
@@ -1123,7 +1199,7 @@ export class HD2DScene {
     } else {
       const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
       const after = tS > this.winnerTime + 0.9;
-      shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
+      shotType = preCut === 1 ? "topost" : raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
       subjectId = mode === "mine" ? mine!.horseId : shotType === "post" ? (winner?.horseId ?? null) : null;
     }
     this.shotType = shotType;
@@ -1132,7 +1208,7 @@ export class HD2DScene {
     const pos = this.v1;
     const at = this.v2;
     const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, mode === "director" ? this.director.mustFrame : NO_IDS);
-    if (this.firstFrame || seek) {
+    if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
       this.fov.snap(sc.fov);
@@ -1178,7 +1254,7 @@ export class HD2DScene {
     const focus = subject;
 
     // The near rail would cut across the horses in the low shots: fade it there.
-    const lowShot = shotType !== "establish" && shotType !== "wide" && shotType !== "gate";
+    const lowShot = shotType !== "establish" && shotType !== "wide" && shotType !== "gate" && shotType !== "topost";
     const aim = lowShot ? 0 : 1;
     this.nearRailA += (aim - this.nearRailA) * (1 - Math.exp(-(realDt || 0.016) * 4));
     for (const m of this.nearRail) {
@@ -1210,7 +1286,7 @@ export class HD2DScene {
     this.pipWasActive = this.pipActive;
 
     // --- World animation ---------------------------------------------------------
-    this.sky.position.copy(cam.position);
+    if (!f.frozen) this.skyDrift += realDt * SKY_DRIFT;
     if (this.sun) this.sun.position.copy(cam.position).addScaledVector(this.sunDir, 1500);
     this.sunLight.target.position.set(focus.x, this.el(focus.x), -this.trackW / 2);
     this.sunLight.position.copy(this.sunLight.target.position).addScaledVector(this.keyDir, 80);
@@ -1337,12 +1413,30 @@ export class HD2DScene {
       const auto = r.autoClear;
       r.autoClear = false;
       r.clear(true, true, false);
+      const t0 = performance.now();
+      const p0 = r.info.programs?.length ?? 0;
+      const x0 = r.info.memory.textures;
       r.render(this.scene, this.pipCam);
+      const ms = performance.now() - t0;
+      const ps = this.pipStats;
+      if (ps.draws === 0) {
+        ps.firstMs = ms;
+        ps.progNew = (r.info.programs?.length ?? 0) - p0;
+        ps.texNew = r.info.memory.textures - x0;
+      }
+      else ps.maxLaterMs = Math.max(ps.maxLaterMs, ms);
+      ps.draws++;
       r.autoClear = auto;
       r.setScissorTest(false);
       r.setViewport(0, 0, this.W, this.H);
     }
   }
+
+  /**
+   * PiP draw timings (CPU ms) and what the first draw had to create (dev measurement of the
+   * first-appearance stall; read through the viewer's `rvdebug` hook).
+   */
+  pipStats = { draws: 0, firstMs: 0, maxLaterMs: 0, progNew: 0, texNew: 0 };
 
   private emitFx(r: Runner, wx: number): void {
     if (!this.fx.length) return;
@@ -1400,12 +1494,18 @@ export class HD2DScene {
     if (this.pipCam) {
       // A real (tiny) picture-in-picture draw: it renders straight to the screen, so its
       // program variants and shadow pass must exist before the first time it shows mid-race.
+      // It must see EVERY object (the main warm camera's whole-course frustum, not the inset's
+      // narrow 22-degree lens): each object drawn into the screen framebuffer for the first time
+      // costs a pipeline build for that target, which was the 0.3-0.8 s stall when the inset
+      // first appeared mid-race (no new programs or textures were involved).
       this.pipCam.position.copy(cam.position);
       this.pipCam.quaternion.copy(cam.quaternion);
+      const pipFov = this.pipCam.fov;
+      this.pipCam.fov = cam.fov;
+      this.pipCam.aspect = cam.aspect;
+      this.pipCam.updateProjectionMatrix();
       const rect = pipRect(this.W, this.H) ?? { right: 12, bottom: 100, w: 320, h: 180 };
       const x = Math.max(0, this.W - rect.right - rect.w);
-      this.pipCam.aspect = rect.w / rect.h;
-      this.pipCam.updateProjectionMatrix();
       r.setRenderTarget(null);
       r.setScissorTest(true);
       r.setScissor(x, rect.bottom, rect.w, rect.h);
@@ -1417,6 +1517,9 @@ export class HD2DScene {
       r.autoClear = auto;
       r.setScissorTest(false);
       r.setViewport(0, 0, this.W, this.H);
+      this.pipCam.fov = pipFov;
+      this.pipCam.aspect = rect.w / rect.h;
+      this.pipCam.updateProjectionMatrix();
     }
     for (const p of this.fx) p.mesh.visible = false;
     // Draw one horse quad with every strip level of detail bound (and every fx material), so
@@ -1470,6 +1573,11 @@ export class HD2DScene {
     const res = this.replay.result ?? null;
     this.winnerTime = res ? res.winningTimeUs / 1e6 : Number.POSITIVE_INFINITY;
     this.photoFinish = res ? res.photoFinish : false;
+  }
+
+  /** The build-up before the off on (a plan) or off (null: standing in the stalls). */
+  setPreOff(plan: PreOffPlan | null): void {
+    this.motion.setPreOff(plan);
   }
 
   /** The race is over: switch to the official replay (same horses, same scene). */
@@ -1532,6 +1640,19 @@ export class HD2DScene {
         composeShift = 0.16;
         break;
       }
+      case "topost":
+        // Going down to post: the whole field cantering past the stands, the stand above it.
+        group = byX;
+        elev = 9;
+        yaw = -3;
+        fillX = 0.86;
+        fillY = 0.42;
+        fov = 32;
+        vel = POST_CANTER;
+        maxSpan = 1e9;
+        leadPad = 2;
+        composeShift = 0.3;
+        break;
       case "close":
         // Side-on tracking, 2-4 horses filling the frame.
         group = near(SHOT_REACH.close, 4);
@@ -1561,10 +1682,10 @@ export class HD2DScene {
         elev = 11;
         yaw = -3;
         fillX = 0.92;
-        fillY = 0.24;
+        fillY = 0.3;
         fov = 36;
         leadPad = 3;
-        maxSpan = 56;
+        maxSpan = 42;
         composeShift = 0.42;
         vel = (byX[0]!.speed + byX[byX.length - 1]!.speed) / 2;
         break;
@@ -1647,6 +1768,10 @@ export class HD2DScene {
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
     maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
     if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 8);
+    // Portrait phones: a width-limited lens leaves a tall frame; the tracking shots sit the
+    // runners lower (above the controls) so the frame is not a band of empty grass under them,
+    // with the course's scenery behind the HUD above.
+    if (type === "close" || type === "pack" || type === "post" || type === "replay") composeShift += (1 - narrowK) * 0.22;
     fillY *= 0.85 + 0.15 * narrowK;
     maxSpan = Math.max(maxSpan, mustSpan);
     if (x1 - x0 > maxSpan) {

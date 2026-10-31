@@ -4,9 +4,12 @@
  * judge's line from the winner's nose to the runner-up's, shows the margin, then the
  * verdict. The canvas is scaled by whole device pixels per native pixel so the sprites
  * stay crisp; when even 1x is wider than the container it scrolls (following the line).
+ * With `fitHeight` (phones) it also fits the height it is given: never taller than its box, so
+ * the time scale along the bottom always shows (the mirror image is dropped when even 1x is
+ * too tall), and a strip wider than the box scrolls sideways with its time scale attached.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fitScale } from "./layout";
+import { fitScale, fitScaleBox } from "./layout";
 import type { PhotoFinishModel } from "./model";
 import { rasterPhotoFinish, type PhotoArt } from "./raster";
 import { drawPhotoFinish, loadPhotoFinishArt } from "./render";
@@ -21,15 +24,20 @@ export interface PhotoFinishProps {
   /** Called once the verdict is showing. */
   onVerdict?: () => void;
   className?: string;
+  /** Fit the height of the box too (the figure fills a flex column; see the header). */
+  fitHeight?: boolean;
 }
+
+/** Room kept for a thin horizontal scrollbar when the strip scrolls sideways. */
+const SCROLLBAR_PX = 10;
 
 const HOLD_MS = 700;
 const SLIDE_MS = 1400;
 
-export function PhotoFinish({ model, animate = true, art: artProp, artBase = "/art", onVerdict, className }: PhotoFinishProps) {
+export function PhotoFinish({ model, animate = true, art: artProp, artBase = "/art", onVerdict, className, fitHeight = false }: PhotoFinishProps) {
   const [art, setArt] = useState<PhotoArt | null>(artProp ?? null);
   const [failed, setFailed] = useState(false);
-  const [box, setBox] = useState({ w: 0, dpr: 1 });
+  const [box, setBox] = useState({ w: 0, h: 0, dpr: 1 });
   const [judge, setJudge] = useState(animate ? 0 : 1);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -51,15 +59,26 @@ export function PhotoFinish({ model, animate = true, art: artProp, artBase = "/a
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const measure = () => setBox({ w: el.clientWidth, dpr: window.devicePixelRatio || 1 });
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight, dpr: window.devicePixelRatio || 1 });
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const raster = useMemo(() => (art ? rasterPhotoFinish(model, art) : null), [model, art]);
-  const fit = raster && box.w > 0 ? fitScale(raster.width, box.w, box.dpr) : null;
+  const full = useMemo(() => (art ? rasterPhotoFinish(model, art) : null), [model, art]);
+  // Phones: if even 1:1 is too tall for the box, drop the mirror image (the strip keeps its
+  // time scale and every horse; only the reflection goes).
+  const boxH = (w: number) => box.h - (w > box.w + 0.5 ? SCROLLBAR_PX : 0);
+  const fullFits = !fitHeight || !full || box.h <= 0 || fitScaleBox(full.width, full.height, box.w, boxH(full.width / box.dpr), box.dpr).fits;
+  const compact = useMemo(() => (art && !fullFits ? rasterPhotoFinish(model, art, { mirror: false }) : null), [model, art, fullFits]);
+  const raster = compact ?? full;
+  const fit =
+    raster && box.w > 0
+      ? fitHeight && box.h > 0
+        ? fitScaleBox(raster.width, raster.height, box.w, boxH(raster.width / box.dpr), box.dpr)
+        : fitScale(raster.width, box.w, box.dpr)
+      : null;
 
   // Judge's line: hold, slide (ease out), done.
   useEffect(() => {
@@ -103,14 +122,27 @@ export function PhotoFinish({ model, animate = true, art: artProp, artBase = "/a
 
   const done = judge >= 1;
   return (
-    <figure className={className} style={{ margin: 0 }} data-photo-finish={done ? "verdict" : "judging"}>
-      <div ref={wrapRef} style={{ overflowX: "auto", overflowY: "hidden", width: "100%", background: "#16120c" }}>
+    <figure
+      className={className}
+      style={fitHeight ? { margin: 0, display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0 } : { margin: 0 }}
+      data-photo-finish={done ? "verdict" : "judging"}
+    >
+      <div
+        ref={wrapRef}
+        style={{
+          overflowX: "auto",
+          overflowY: "hidden",
+          width: "100%",
+          background: "#16120c",
+          ...(fitHeight ? { flex: "1 1 auto", minHeight: 0, display: "flex", alignItems: "center", scrollbarWidth: "thin" as const } : null),
+        }}
+      >
         {raster && fit ? (
           <canvas
             ref={canvasRef}
             role="img"
             aria-label={`Photo finish: ${model.verdict}`}
-            style={{ display: "block", width: fit.cssWidth, height: (raster.height * fit.cssWidth) / raster.width, imageRendering: "pixelated", margin: "0 auto" }}
+            style={{ display: "block", flex: "none", width: fit.cssWidth, height: (raster.height * fit.cssWidth) / raster.width, imageRendering: "pixelated", margin: "0 auto" }}
           />
         ) : (
           <div style={{ padding: 16, color: "#f3e7c9", font: "14px ui-sans-serif, system-ui, sans-serif" }}>{failed ? "Photograph unavailable" : "Photograph…"}</div>

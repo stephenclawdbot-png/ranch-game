@@ -19,6 +19,7 @@
 import { FRAME_FIELD, FRAME_STRIDE, HORSE_LENGTH_MM } from "@thoroughbred/shared";
 import { createReplaySampler, type HorseSample, type ReplaySampler, type SampleSource } from "../sampleReplay";
 import { strideLengthM } from "../scene/horse/gait";
+import { preOffRunner, type PreOffPlan } from "./preoff";
 
 export type Gait = "gallop" | "drive" | "canter" | "trot" | "walk" | "stand";
 /** Animation strip (art: race/horse-<anim>.png; "idle" = race/horse-idle.png). */
@@ -275,6 +276,8 @@ export function runnerState(sample: Pick<HorseSample, "x" | "lane" | "speed">, t
 export interface FieldMotionOptions {
   /** Horses that suffered an injury in the race (pulled up after the line). */
   injured?: ReadonlySet<string>;
+  /** The build-up before the off (stage/preoff.ts); null = standing in the stalls before 0. */
+  preOff?: PreOffPlan | null;
 }
 
 interface PerHorse {
@@ -323,6 +326,16 @@ export class FieldMotion {
       h.lungeKnown = false;
       h.finish.lungeT = null;
     }
+  }
+
+  /** Turn the build-up before the off on (a plan) or off (null: standing in the stalls). */
+  setPreOff(plan: PreOffPlan | null): void {
+    this.opts = { ...this.opts, preOff: plan };
+  }
+
+  /** Is race time t inside the build-up (the scenes draw it, the cameras follow it)? */
+  preOffAt(t: number): boolean {
+    return !!this.opts.preOff && t < 0;
   }
 
   setInjured(ids: ReadonlySet<string>): void {
@@ -419,6 +432,19 @@ export class FieldMotion {
     const tS = Math.max(0, t);
     this.samples = this.sampler(tS, this.samples);
     const n = this.horses.length;
+    const pre = this.opts.preOff;
+    if (pre && t < 0) {
+      // Before the off: the build-up, ending exactly where each horse starts the race (its
+      // lane from the first frame, or its stall before any frame has arrived).
+      const haveFrames = this.src.frames.length > 0;
+      out.length = n;
+      for (let h = 0; h < n; h++) {
+        const s = this.samples[h]!;
+        const start = { x: s.x / 1000, lane: haveFrames ? s.lane : (this.src.horses[h]!.gate ?? h + 1) - 1 };
+        out[h] = preOffRunner(pre, h, t, start, out[h] ?? ({} as RunnerState));
+      }
+      return out;
+    }
     for (let h = 0; h < n; h++) {
       const p = this.horses[h]!;
       const s = this.samples[h]!;
