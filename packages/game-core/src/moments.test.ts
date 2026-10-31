@@ -76,6 +76,17 @@ describe("moments: race milestones", () => {
     expect(ms[0]!.body).toContain("54,321 cr");
     expect(ms[0]!.body).toContain("Best win: the Ashcombe Listed");
   });
+
+  it("names the injury: the memorial's cause, and a career-ending one says she can't race again", () => {
+    const memo = settlementMoments(input({ fatal: true, retired: "injury", injuryName: "Catastrophic leg fracture" }))[0]!;
+    expect(memo.body).toContain("fatally injured in the Saltmarsh Maiden Stakes (catastrophic leg fracture).");
+    const ret = settlementMoments(input({ retired: "injury", injuryName: "Bowed tendon" }))[0]!;
+    expect(ret.title).toBe("Sea Lavender retires after an injury");
+    expect(ret.body).toMatch(/^Bowed tendon: she can't race again\./);
+    expect(ret.body).toContain("broodmares or retire to the Legacy Farm");
+    // an old injury without a name still reads well
+    expect(settlementMoments(input({ retired: "injury" }))[0]!.body).toMatch(/^She can't race again\./);
+  });
 });
 
 describe("moments: discoveries", () => {

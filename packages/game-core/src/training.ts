@@ -15,7 +15,8 @@ import { STAT_KEYS } from "./types";
 import { dayIndex, weekIndex } from "./time";
 import { fatigueAt, rollInjury, withFatigue, isHealed, TIRED_THRESHOLD } from "./condition";
 import { stageOf } from "./lifecycle";
-import { potentialOf } from "./genome";
+import { isFragile, potentialOf } from "./genome";
+import { pickInjuryKind } from "./injuries";
 import { clampInt, seedFrom } from "./rng";
 
 export interface WorkoutSpec {
@@ -196,9 +197,14 @@ export function train(state: HorseState, workout: Workout, ctx: TrainContext, se
   let injured = false;
   const p = overworkInjuryPermille(state, spec, fatigueBefore);
   if (p > 0) {
-    const inj = rollInjury({ permille: p, careerEndingShare: 0 }, seed ?? seedFrom("train", state.id, dayIndex(ctx.nowMs), used), ctx.nowMs, ctx.vetLevel, "training");
+    const injurySeed = seed ?? seedFrom("train", state.id, dayIndex(ctx.nowMs), used);
+    const inj = rollInjury({ permille: p, careerEndingShare: 0 }, injurySeed, ctx.nowMs, ctx.vetLevel, "training");
     if (inj) {
-      next = { ...next, injury: { ...inj, severity: "minor", unitsRequired: Math.min(inj.unitsRequired, 4 * 24) } };
+      // Training knocks are always minor, at most 4 days: named among the minor injuries that heal
+      // in that time (its own stream, injuries.ts), worked tired on the gallops.
+      const unitsRequired = Math.min(inj.unitsRequired, 4 * 24);
+      const kind = pickInjuryKind("minor", unitsRequired / 24, { tired: true, fragile: isFragile(state.genome) }, injurySeed);
+      next = { ...next, injury: { ...inj, severity: "minor", unitsRequired, kind } };
       injured = true;
     }
   }

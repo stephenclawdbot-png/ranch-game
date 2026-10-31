@@ -233,17 +233,21 @@ function recordLine(t: Tribute): string {
   return `${t.starts} ${t.starts === 1 ? "start" : "starts"}, ${t.wins} ${t.wins === 1 ? "win" : "wins"}, ${t.places} second${t.places === 1 ? "" : "s"}, ${t.shows} third${t.shows === 1 ? "" : "s"}, ${thousands(t.earnings)} cr${t.peakOr > 0 ? `, peak OR ${t.peakOr}` : ""}.${best}`;
 }
 
-/** Retired from racing (to stud or the broodmare band): a tribute card. */
-export function retiredMoment(h: { id: string; name: string; sex: string }, reason: RetireReason, tribute: Tribute, raceId?: string): MomentDraft {
+/**
+ * Retired from racing (to stud or the broodmare band): a tribute card. `injuryName` names a
+ * career-ending injury (injuries.ts), when known.
+ */
+export function retiredMoment(h: { id: string; name: string; sex: string }, reason: RetireReason, tribute: Tribute, raceId?: string, injuryName?: string): MomentDraft {
   const p = pronounsOf(h.sex);
   const why = reason === "max_starts" ? "after a full career" : reason === "injury" ? "after an injury" : "";
-  const next = p.she === "she" ? "She can join your broodmares." : "He can stand at stud.";
+  const next = p.she === "she" ? "She can join your broodmares or retire to the Legacy Farm." : "He can stand at stud or retire to the Legacy Farm.";
+  const hurt = reason === "injury" ? `${injuryName ? `${injuryName}: ${p.she}` : `${p.She}`} can't race again. ` : "";
   return {
     kind: "retired",
     dedupeKey: momentKey("retired", h.id),
     horseId: h.id,
     title: `${h.name} retires${why ? ` ${why}` : ""}`,
-    body: `${recordLine(tribute)} ${next}`,
+    body: `${hurt}${recordLine(tribute)} ${next}`,
     href: `/horse/${h.id}`,
     tribute,
     ...(raceId ? { raceId } : {}),
@@ -264,15 +268,15 @@ export function legacyMoment(h: { id: string; name: string; sex: string }, tribu
   };
 }
 
-/** A fatal race injury: a quiet memorial, no celebration. */
-export function memorialMoment(h: { id: string; name: string; sex: string }, race: { id: string; name: string }, tribute: Tribute): MomentDraft {
+/** A fatal race injury: a quiet memorial, no celebration. `cause` names it (injuries.ts), when known. */
+export function memorialMoment(h: { id: string; name: string; sex: string }, race: { id: string; name: string }, tribute: Tribute, cause?: string): MomentDraft {
   const p = pronounsOf(h.sex);
   return {
     kind: "memorial",
     dedupeKey: momentKey("memorial", h.id),
     horseId: h.id,
     title: `In memoriam: ${h.name}`,
-    body: `${h.name} was fatally injured in the ${race.name}. ${p.She} ran ${tribute.starts} ${tribute.starts === 1 ? "time" : "times"} and won ${tribute.wins}. ${p.Her} record stays in your books and the Hall, and any foals carry the line on.`,
+    body: `${h.name} was fatally injured in the ${race.name}${cause ? ` (${cause.toLowerCase()})` : ""}. ${p.She} ran ${tribute.starts} ${tribute.starts === 1 ? "time" : "times"} and won ${tribute.wins}. ${p.Her} record stays in your books and the Hall, and any foals carry the line on.`,
     href: `/legacy#h-${h.id}`,
     raceId: race.id,
     tribute,
@@ -297,6 +301,8 @@ export interface SettlementMomentInput {
   fatal: boolean;
   /** The career summary after this run (for retirement and memorial cards). */
   tribute: Tribute | null;
+  /** The injury from this run, named (injuries.ts injuryName), when there was one. */
+  injuryName?: string;
 }
 
 /**
@@ -304,7 +310,7 @@ export interface SettlementMomentInput {
  * with the memorial: no "first Feature" next to a death.
  */
 export function settlementMoments(i: SettlementMomentInput): MomentDraft[] {
-  if (i.fatal) return i.tribute ? [memorialMoment(i.horse, i.race, i.tribute)] : [];
+  if (i.fatal) return i.tribute ? [memorialMoment(i.horse, i.race, i.tribute, i.injuryName)] : [];
   const out: MomentDraft[] = [];
   if (i.race.rated && i.position === 1 && i.winsBefore === 0) out.push(firstWinMoment(i.horse, i.race, i.startsAfter));
   if (i.race.feature && i.firstFeature) out.push(firstFeatureMoment(i.horse, i.race, i.position, i.fieldSize));
@@ -313,7 +319,7 @@ export function settlementMoments(i: SettlementMomentInput): MomentDraft[] {
     if (!improverShows(i.before) && improverShows(i.after)) out.push(improverMoment(i.after, i.race));
     if (revealWidth(i.before) > 0 && revealWidth(i.after) === 0) out.push(exactMoment(i.after, i.race));
   }
-  if (i.retired && i.tribute) out.push(retiredMoment(i.horse, i.retired, i.tribute, i.race.id));
+  if (i.retired && i.tribute) out.push(retiredMoment(i.horse, i.retired, i.tribute, i.race.id, i.retired === "injury" ? i.injuryName : undefined));
   return out;
 }
 
