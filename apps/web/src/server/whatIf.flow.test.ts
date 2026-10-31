@@ -16,14 +16,15 @@ const jar = vi.hoisted(() => ({ token: null as string | null }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => (jar.token ? { value: jar.token } : undefined) }) }));
 
 import { verifyReplay } from "@thoroughbred/racing-engine";
-import { clearRateLimits, createAccount, ensureJockeyBackfill, getRace, getRaceResult, listJockeys, listRaceEntries, listStableHorses, resetDbSingleton, schema, signJockey, stableOf, type DbHandle } from "@thoroughbred/db";
+import { clearRateLimits, createAccount, ensureJockeyBackfill, getRace, getRaceResult, getWhatIfRun, listJockeys, listRaceEntries, listStableHorses, resetDbSingleton, schema, signJockey, stableOf, type DbHandle } from "@thoroughbred/db";
 import { GET as GET_OPTIONS, POST } from "../../app/api/races/[id]/what-if/route";
 import { GET as GET_REPLAY } from "../../app/api/races/[id]/what-if/replay/route";
 import { dbHandle } from "./db";
 import { broadcastEndsAtMs } from "./live";
 import type { Session } from "./session";
 import { createStoryRace, driveCard, enterLive, entryOptions, lockedRaceInput, raceList, servedReplay } from "./game";
-import { lockedRunner, rerun, runWhatIf, whatIfInput, whatIfLimiter, whatIfOptions, whatIfReplay } from "./whatIf";
+import { GRADE_RIDER_SKILLS, lockedRunner, rerun, runWhatIf, whatIfInput, whatIfLimiter, whatIfOptions, whatIfReplay, type ResolvedRunner } from "./whatIf";
+import * as gc from "@thoroughbred/game-core";
 import { WHAT_IF_PER_HOUR, changeKey, type WhatIfChange, type WhatIfOptionsView, type WhatIfView } from "@/lib/whatIf";
 
 let h: DbHandle;
@@ -192,6 +193,20 @@ describe("what-if on a settled race", () => {
     }
     expect(await whatIfLimiter.count(h.db, p.accountId, after.getTime())).toBe(changes.length);
     expect(await sideEffects(live.raceId, live.horseId)).toEqual(before);
+    // Each change reached the engine as exactly that change to this runner.
+    const race = (await getRace(h.db, live.raceId))!;
+    const { input, field } = await lockedRaceInput(h.db, race, after);
+    const locked = lockedRunner(input, field.runners.find((r) => r.horseId === live.horseId)!.gate);
+    const stored = async (k: string) => (await getWhatIfRun(h.db, { raceId: live.raceId, horseId: live.horseId, changeKey: k }))!.resolved as ResolvedRunner;
+    const allOut = await stored("intensity:all_out");
+    expect(allOut.stats.burst - locked.stats.burst).toBe(Math.min(25, 1000 - locked.stats.burst));
+    expect(allOut.stats.temperament - locked.stats.temperament).toBe(-Math.min(20, locked.stats.temperament));
+    expect({ ...allOut, stats: locked.stats }).toEqual(locked);
+    const tactic = await stored(changeKey(changes[0]!));
+    expect({ ...tactic, tactic: locked.tactic }).toEqual(locked);
+    const gradeA = await stored("jockey_grade:A");
+    expect(gradeA.kit).toMatchObject(gc.jockeyKit(GRADE_RIDER_SKILLS.A));
+    expect({ ...gradeA, kit: locked.kit }).toEqual(locked);
     // The options list the answers already in.
     expect((await whatIfOptions(h.db, p, live.raceId, live.horseId, after)).done.length).toBeGreaterThanOrEqual(2);
   });

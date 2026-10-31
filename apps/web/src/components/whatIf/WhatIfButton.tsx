@@ -107,8 +107,8 @@ export function WhatIfButton({ raceId, horseId, horseName, className = "btn btn-
 
 function Choice({ on, label, sub, onClick, testId, disabled }: { on: boolean; label: string; sub?: string; onClick: () => void; testId: string; disabled?: boolean }) {
   return (
-    <button type="button" role="radio" aria-checked={on} disabled={disabled} onClick={onClick} data-testid={testId} className={`${on ? "surface-2 ring-2 ring-brass" : "inset"} grid min-h-11 content-center px-2.5 py-1.5 text-left disabled:opacity-50`}>
-      <span className="font-extrabold leading-5">{label}</span>
+    <button type="button" role="radio" aria-checked={on} disabled={disabled} onClick={onClick} data-testid={testId} className={`whatif-choice ${on ? "is-on" : "inset"} grid min-h-11 content-center px-2.5 py-1.5 text-left disabled:opacity-50`}>
+      <span className="font-extrabold leading-5">{on ? "✓ " : ""}{label}</span>
       {sub && <span className="text-xs text-cream-dim">{sub}</span>}
     </button>
   );
@@ -180,7 +180,7 @@ function Picker({ options: o, busy, error, onRun, onOpenDone }: { options: WhatI
                 aria-checked={(change?.kind === "extras" ? extras : o.current.extras).includes(x)}
                 onClick={() => toggleExtra(x)}
                 data-testid={`what-if-extra-${x}`}
-                className={`${(change?.kind === "extras" ? extras : o.current.extras).includes(x) ? "surface-2 ring-2 ring-brass" : "inset"} grid min-h-11 content-center px-2.5 py-1.5 text-left ${change?.kind === "extras" ? "" : "opacity-90"}`}
+                className={`${(change?.kind === "extras" ? extras : o.current.extras).includes(x) ? "whatif-choice is-on" : "whatif-choice inset"} grid min-h-11 content-center px-2.5 py-1.5 text-left ${change?.kind === "extras" ? "" : "opacity-90"}`}
               >
                 <span className="font-extrabold leading-5">
                   {(change?.kind === "extras" ? extras : o.current.extras).includes(x) ? "✓ " : ""}

@@ -81,7 +81,7 @@ export function changeLabel(c: WhatIfChange, jockeyName?: string | null): string
     case "tactic":
       return `Ridden as a ${styleWord(c.tactic)}`;
     case "intensity":
-      return `A ${INTENSITY_WORD[c.intensity]} ride`;
+      return `${c.intensity === "all_out" ? "An" : "A"} ${INTENSITY_WORD[c.intensity]} ride`;
     case "extras":
       return c.extras.length ? `With ${c.extras.map((x) => EXTRA_WORD[x]).join(" and ")}` : "With no race-day extras";
     case "jockey":

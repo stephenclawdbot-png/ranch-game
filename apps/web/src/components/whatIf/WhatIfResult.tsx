@@ -38,12 +38,12 @@ function Table({ title, rows, testId }: { title: string; rows: WhatIfRow[]; test
   return (
     <div className="min-w-0" data-testid={testId}>
       <p className="caption mb-1">{title}</p>
-      <ol className="grid gap-0.5 text-sm">
+      <ol className="grid gap-0.5 text-[0.8125rem] sm:text-sm">
         {rows.map((r, i) => (
           <li key={r.horseId} className={`flex items-baseline gap-1.5 px-1.5 py-1 ${r.mine ? "whatif-mine font-extrabold" : ""} ${i > 0 && r.position > rows[i - 1]!.position + 1 ? "mt-1 border-t border-dashed border-line" : ""}`}>
-            <span className="num w-7 shrink-0 text-right">{ordinal(r.position)}</span>
+            <span className="num w-6 shrink-0 text-right sm:w-7">{ordinal(r.position)}</span>
             <span className="min-w-0 flex-1 truncate">{r.name}</span>
-            <span className="num shrink-0 text-xs text-cream-dim">{r.position === 1 ? raceTimeText(r.timeUs) : lengthsText(r.behindMm)}</span>
+            <span className="num shrink-0 text-[0.6875rem] text-cream-dim sm:text-xs">{r.position === 1 ? raceTimeText(r.timeUs) : lengthsText(r.behindMm)}</span>
           </li>
         ))}
       </ol>
