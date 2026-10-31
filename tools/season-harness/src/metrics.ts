@@ -456,7 +456,7 @@ export interface RunnerStateGroup {
   freshnessBonus: number;
   /** Condition multiplier on speed/stamina/burst at the off (permille). */
   conditionMultiplier: number;
-  /** Shares (%) of runs with a vet check, physio, a jockey above the apprentice; tired at the off (fatigue > TIRED_THRESHOLD). */
+  /** Shares (%) of runs with a vet check, physio, a paid jockey (Club freelancer); tired at the off (fatigue > TIRED_THRESHOLD). */
   vetCheckPct: number;
   physioPct: number;
   jockeyPct: number;
@@ -507,7 +507,7 @@ export async function runnerStates(world: World): Promise<RunnerStates> {
     if (!parsed.success) continue;
     const st = parsed.data;
     const at = new Date(r.post).getTime();
-    const raceDay = (r.snapshot?.raceDay ?? null) as { extras?: string[]; jockey?: string | null } | null;
+    const raceDay = (r.snapshot?.raceDay ?? null) as { extras?: string[]; jockey?: string | null; paid?: { jockey?: number } } | null;
     const extras = Array.isArray(raceDay?.extras) ? raceDay!.extras : [];
     const c = (r.conditions ?? {}) as { going?: string; distanceM?: number; surface?: string };
     const going = (["firm", "good", "soft", "heavy"].includes(String(c.going)) ? c.going : "good") as "firm" | "good" | "soft" | "heavy";
@@ -525,7 +525,8 @@ export async function runnerStates(world: World): Promise<RunnerStates> {
       mult: cond.multiplier,
       vet: extras.includes("vet_check"),
       physio: extras.includes("physio"),
-      jockey: !!raceDay?.jockey && raceDay.jockey !== "apprentice",
+      // A paid jockey: an old tier, or a booked Club freelancer (own jockeys ride free).
+      jockey: (!!raceDay?.jockey && raceDay.jockey !== "apprentice") || (raceDay?.paid?.jockey ?? 0) > 0,
       tired: cond.fatigue > gc.TIRED_THRESHOLD,
       risk: risk.permille,
       injured: !!r.injury,
@@ -796,6 +797,87 @@ export async function claimingTotals(world: World): Promise<ClaimingTotals> {
     feesBurned: num(c?.fees),
     voided: num(c?.voided),
     refunded: num(c?.refunded),
+  };
+}
+
+export interface JockeyTotals {
+  /** Jockeys not retired at the end, and Club freelancers among them. */
+  pool: number;
+  freelancers: number;
+  /** Each game week the weekly job ran: active stables, the pool before intake, the target, and the intake. */
+  weeks: { week: number; active: number; pool: number; target: number; intake: number; perActive: number }[];
+  /** Pool per active stable at the end (active = raced or seen within 14 days). */
+  perActiveStable: number;
+  /** Settled rides, and rides per jockey that rode (median, max). */
+  rides: number;
+  ridesPerJockey: { median: number; max: number; jockeys: number };
+  /** Unretired jockeys by grade (A-E). */
+  grades: Record<string, number>;
+  /** Apprentices taken in (intake, not stable starters), retirements, and Club freelancers signed. */
+  intake: number;
+  startingPool: number;
+  retired: number;
+  signed: number;
+  /** Credits burned on freelance booking fees (net of refunds) and on signing fees. */
+  freelanceFees: number;
+  signingFees: number;
+  /** Most jockeys any stable held at the end (never above 3). */
+  maxHeld: number;
+}
+
+/** Jockeys over the run (packages/db services/jockeys.ts). */
+export async function jockeyTotals(world: World): Promise<JockeyTotals> {
+  const db = world.db;
+  const [p] = await q<{ pool: number; free: number }>(db, `select count(*)::int pool, count(*) filter (where stable_id is null)::int free from jockeys where retired_at is null`);
+  const weeks = (await q<{ week: number; data: { active?: number; pool?: number; target?: number; intake?: number } }>(db, `select week, data from jockey_weeks order by week`)).map((w) => {
+    const active = num(w.data?.active);
+    const pool = num(w.data?.pool) + num(w.data?.intake);
+    return { week: num(w.week), active, pool, target: num(w.data?.target), intake: num(w.data?.intake), perActive: active ? Math.round((100 * pool) / active) / 100 : 0 };
+  });
+  const [act] = await q<{ n: number }>(
+    db,
+    `select count(*)::int n from stables s join accounts a on a.id = s.account_id
+     where a.last_seen_at >= (select max(created_at) from race_entries) - interval '14 days'
+        or exists (select 1 from race_entries e where e.stable_id = s.id and e.created_at >= (select max(created_at) from race_entries) - interval '14 days')`,
+  );
+  const per = await q<{ n: number }>(db, `select count(*)::int n from jockey_rides where settled_at is not null group by jockey_id order by 1`);
+  const counts = per.map((r) => num(r.n));
+  const grades: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+  for (const r of await q<{ skills: Record<string, number> }>(db, `select skills from jockeys where retired_at is null`)) {
+    const s = r.skills ?? {};
+    grades[gc.jockeyGrade({ gate: num(s.gate), pace: num(s.pace), finish: num(s.finish), handling: num(s.handling) })]!++;
+  }
+  // Intake: Club debuts as fresh apprentices (the starting pool debuts already weeks into a career).
+  const [ev] = await q<{ intake: number; starting: number; retired: number; signed: number }>(
+    db,
+    `select count(*) filter (where e.kind = 'debut' and e.stable_id is null and j.born_at = j.created_at)::int intake,
+            count(*) filter (where e.kind = 'debut' and e.stable_id is null and j.born_at < j.created_at)::int starting,
+            count(*) filter (where e.kind = 'retired')::int retired, count(*) filter (where e.kind = 'signed')::int signed
+     from jockey_events e join jockeys j on j.id = e.jockey_id`,
+  );
+  const [fees] = await q<{ fee: string; refund: string; sign: string }>(
+    db,
+    `select coalesce(sum(amount) filter (where t.kind = 'jockey_fee'), 0)::bigint fee, coalesce(sum(amount) filter (where t.kind = 'jockey_fee_refund'), 0)::bigint refund,
+            coalesce(sum(amount) filter (where t.kind = 'jockey_signing'), 0)::bigint sign
+     from ledger_postings p join ledger_transactions t on t.id = p.transaction_id join ledger_accounts a on a.id = p.ledger_account_id where a.kind <> 'player'`,
+  );
+  const [held] = await q<{ m: number | null }>(db, `select max(c)::int m from (select count(*) c from jockeys where stable_id is not null and retired_at is null group by stable_id) x`);
+  const sorted = [...counts].sort((a, b) => a - b);
+  return {
+    pool: num(p?.pool),
+    freelancers: num(p?.free),
+    weeks,
+    perActiveStable: num(act?.n) ? Math.round((100 * num(p?.pool)) / num(act?.n)) / 100 : 0,
+    rides: counts.reduce((a, b) => a + b, 0),
+    ridesPerJockey: { median: sorted.length ? sorted[Math.floor(sorted.length / 2)]! : 0, max: sorted.length ? sorted[sorted.length - 1]! : 0, jockeys: sorted.length },
+    grades,
+    intake: num(ev?.intake),
+    startingPool: num(ev?.starting),
+    retired: num(ev?.retired),
+    signed: num(ev?.signed),
+    freelanceFees: num(fees?.fee) + num(fees?.refund),
+    signingFees: num(fees?.sign),
+    maxHeld: num(held?.m),
   };
 }
 

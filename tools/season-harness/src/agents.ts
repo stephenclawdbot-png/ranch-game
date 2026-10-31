@@ -32,7 +32,8 @@
  *   can see them.
  */
 import * as gc from "@thoroughbred/game-core";
-import { DomainError, RULES, recordAccountSignal, stableOf, type Db } from "@thoroughbred/db";
+import { DomainError, RULES, recordAccountSignal, signJockey, stableOf, type Db } from "@thoroughbred/db";
+import { jockeysPage } from "@/server/jockeys";
 import { claimLive, enterLive, entryOptions, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
 import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
 import { careAction, careerAction, facilitiesView, facilityAction, graduateAction, horseLifeView, nurseryView, savePlanAction, trainAction, vetAction } from "@/server/horseLife";
@@ -94,6 +95,11 @@ export interface AgentStats {
   /** Live entries that bought race-day extras or a jockey, and the credits they spent. */
   raceDayEntries: number;
   raceDaySpend: number;
+  /** Live entries ridden by a booked Club freelancer, and their fees; freelancers signed, and the signing fees. */
+  freelanceRides: number;
+  freelanceSpend: number;
+  jockeySignings: number;
+  jockeySigningSpend: number;
   /** Farmer channels: credits passed alt -> main. */
   washStudFees: number;
   washMarket: number;
@@ -115,7 +121,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, freelanceRides: 0, freelanceSpend: 0, jockeySignings: 0, jockeySigningSpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, refused: {},
   };
 }
 
@@ -318,40 +324,57 @@ type RaceDayPolicy = (race: RaceSummary, horse: StableHorse, offer: RaceDayOffer
 
 /** Credits a choice costs on this sheet. */
 function raceDayCost(offer: RaceDayOffer, choice: gc.RaceDayChoice): number {
-  return offer.extras.filter((x) => choice.extras.includes(x.key)).reduce((a, x) => a + x.price, 0) + (offer.jockeys.find((j) => j.key === choice.jockey)?.price ?? 0);
+  return offer.extras.filter((x) => choice.extras.includes(x.key)).reduce((a, x) => a + x.price, 0) + riderFee(offer, choice);
 }
 
-/** Never spend the last RACE_DAY_RESERVE credits on extras: drop the jockey first, then everything. */
+/** The jockey's fee in a choice: a booked freelancer's (own jockeys ride free). */
+function riderFee(offer: RaceDayOffer, choice: gc.RaceDayChoice): number {
+  const r = choice.jockeyId ? offer.riders?.freelancers.find((f) => f.id === choice.jockeyId) : undefined;
+  return r ? r.fee : 0;
+}
+
+/** The stable's own jockey by default (the sheet's default: best own free at the off). */
+const ownRider = (offer: RaceDayOffer): Pick<gc.RaceDayChoice, "jockey" | "jockeyId"> => ({ jockey: "apprentice", ...(offer.riders?.defaultId ? { jockeyId: offer.riders.defaultId } : {}) });
+
+/** The best Club freelancer (grade, then the sheet's order) whose fee fits `budget`, if any. */
+function bestFreelancer(offer: RaceDayOffer, budget: number): string | undefined {
+  const order = gc.JOCKEY_GRADES;
+  return [...(offer.riders?.freelancers ?? [])].filter((f) => !f.busy && f.fee <= budget).sort((a, b) => order.indexOf(a.grade) - order.indexOf(b.grade))[0]?.id;
+}
+
+/** Never spend the last RACE_DAY_RESERVE credits on extras: drop the freelancer first (ride your own), then everything. */
 const RACE_DAY_RESERVE = 1_500;
 function affordable(offer: RaceDayOffer, choice: gc.RaceDayChoice, credits: number): gc.RaceDayChoice {
   if (raceDayCost(offer, choice) <= credits - RACE_DAY_RESERVE) return choice;
-  const noJockey = { ...choice, jockey: "apprentice" as const };
-  return raceDayCost(offer, noJockey) <= credits - RACE_DAY_RESERVE ? noJockey : gc.NO_RACE_DAY;
+  const own = { ...choice, ...ownRider(offer) };
+  return raceDayCost(offer, own) <= credits - RACE_DAY_RESERVE ? own : { extras: [], ...ownRider(offer) };
 }
 
 const offered = (offer: RaceDayOffer, k: gc.RaceExtraKey) => offer.extras.some((x) => x.key === k);
 
 /**
  * Grinders on race day: for a Feature Qualifier or the Weekend Feature, the works (a vet check,
- * shoes when the going calls for them, physio for a tired horse, a top jockey when they can
- * afford one, else a journeyman); in an ordinary race, physio for a tired horse half the time.
+ * shoes when the going calls for them, physio for a tired horse, the best Club freelancer they can
+ * afford when rich, else their own jockey); in an ordinary race their own jockey, and physio for a
+ * tired horse half the time.
  */
 function grinderRaceDay(rng: gc.Rng): RaceDayPolicy {
   return (race, horse, offer, credits) => {
     const tired = horse.fatigue > gc.TIRED_THRESHOLD;
     if (!isQualifier(race) && !isWeekendFeature(race)) {
-      return tired && offered(offer, "physio") && rng.chance(500) ? affordable(offer, { extras: ["physio"], jockey: "apprentice" }, credits) : gc.NO_RACE_DAY;
+      return tired && offered(offer, "physio") && rng.chance(500) ? affordable(offer, { extras: ["physio"], ...ownRider(offer) }, credits) : { extras: [], ...ownRider(offer) };
     }
     const extras: gc.RaceExtraKey[] = ["vet_check"];
     for (const k of ["soft_shoes", "firm_shoes"] as const) if (offered(offer, k)) extras.push(k);
     if (tired) extras.push("physio");
-    return affordable(offer, { extras, jockey: credits > 8_000 ? "top" : "journeyman" }, credits);
+    const freelancer = credits > 8_000 ? bestFreelancer(offer, Math.floor((credits - 8_000) / 4)) : undefined;
+    return affordable(offer, { extras, ...(freelancer ? { jockey: "apprentice" as const, jockeyId: freelancer } : ownRider(offer)) }, credits);
   };
 }
 
 /** Casuals, the odd time they use the sheet: a vet check, and physio for a tired horse. */
 const casualRaceDay: RaceDayPolicy = (_race, horse, offer, credits) =>
-  affordable(offer, { extras: horse.fatigue > gc.TIRED_THRESHOLD ? ["physio", "vet_check"] : ["vet_check"], jockey: "apprentice" }, credits);
+  affordable(offer, { extras: horse.fatigue > gc.TIRED_THRESHOLD ? ["physio", "vet_check"] : ["vet_check"], ...ownRider(offer) }, credits);
 
 /**
  * The grinder's entry sheet: every free, fit horse goes into the race that suits it best among
@@ -403,6 +426,11 @@ async function sheetEntries(c: VisitCtx, s: Session, view: SheetView, opts: Shee
       c.a.stats.raceDayEntries++;
       c.a.stats.raceDaySpend += extrasCost;
     }
+    const fee = riderFee(sheet.raceDay, raceDay);
+    if (fee > 0) {
+      c.a.stats.freelanceRides++;
+      c.a.stats.freelanceSpend += fee;
+    }
     c.a.stats.liveEntries++;
     if (isQualifier(race)) c.a.stats.fqEntries++;
     if (isWeekendFeature(race)) c.a.stats.wfEntries++;
@@ -415,6 +443,25 @@ async function sheetEntries(c: VisitCtx, s: Session, view: SheetView, opts: Shee
  * per visit of sponsoring one race the stable can afford while keeping `threshold / 2` back.
  * The pick is uniform: a random day of the week ahead, then a random race on sale that day.
  */
+/** A grinder's chance per day of looking to sign a Club freelancer (Phase 1: a one-off fee). */
+const GRINDER_SIGN_PERMILLE = 60;
+
+/** Sign the best unsigned freelancer whose fee leaves `reserve` credits, if the stable has room. */
+async function maybeSignJockey(c: VisitCtx, s: Session, credits: number, reserve: number): Promise<void> {
+  const page = await c.world.act(c.a, "jockeys_view", c.now, () => jockeysPage(c.world.db, s, "freelancers", c.now));
+  if (!page || page.held >= page.max) return;
+  const order = gc.JOCKEY_GRADES;
+  const pick = page.jockeys
+    .filter((j) => !j.retiring && gc.signingFee(j.grade) <= credits - reserve && j.stage !== "veteran")
+    .sort((x, y) => order.indexOf(x.grade) - order.indexOf(y.grade) || y.wins - x.wins)[0];
+  if (!pick) return;
+  const res = await c.world.act(c.a, "jockey_sign", c.now, () => signJockey(c.world.db, { accountId: s.accountId, jockeyId: pick.id, now: c.now }));
+  if (res) {
+    c.a.stats.jockeySignings++;
+    c.a.stats.jockeySigningSpend += res.fee;
+  }
+}
+
 async function maybeSponsor(c: VisitCtx, s: Session, credits: number, threshold: number, permille: number): Promise<void> {
   if (credits <= threshold || !c.a.rng.chance(permille)) return;
   const first = await c.world.act(c.a, "sponsor_view", c.now, () => sponsorView(c.world.db, s, c.now));
@@ -742,6 +789,7 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     // Grinders buy stalls, so they are the stables with room for a leased racer.
     if (a.rng.chance(GRINDER_LEASE_PERMILLE)) await takeALease(c, s);
     if (a.rng.chance(GRINDER_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 2_500);
+    if (a.rng.chance(GRINDER_SIGN_PERMILLE)) await maybeSignJockey(c, s, ((await fresh(c, s)) ?? view).credits ?? 0, 4_000);
     // Morning work, after the night's rest: one session for every horse that isn't tired.
     const mv = (await fresh(c, s)) ?? view;
     await train(c, s, mv.horses, 1_500, mv.credits);
