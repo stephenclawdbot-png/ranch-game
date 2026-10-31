@@ -47,6 +47,27 @@ function badgeBands(n: number) {
   return out;
 }
 
+/** The weekday rotation (game-core cupRotation), read from the code: one row per weekday. */
+function rotationRows() {
+  const from = gc.CUP_ROTATION_FROM_DAY; // a Monday
+  const clock = { epochMs: 0 }; // counting from the Unix epoch: a 16-week scan passes all four seasons
+  const weeks = 16;
+  return Array.from({ length: 7 }, (_, dow) => {
+    const rs = Array.from({ length: weeks }, (_, w) => gc.cupRotation(from + w * 7 + dow, clock));
+    const surface = rs[0]!.surface;
+    const trips = [...new Set(rs.map((r) => r.distanceM))];
+    const goings = [...new Set(rs.map((r) => r.going))];
+    const day = new Date((from + dow) * gc.MS_PER_DAY);
+    return {
+      name: day.toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" }),
+      division: gc.DIVISIONS.find((d) => gc.DISTANCES[d].includes(trips[0]!))!,
+      trips,
+      surface,
+      goings,
+    };
+  });
+}
+
 export default function DailyCupPage() {
   const ex = exampleCup();
   const n = 200;
@@ -95,6 +116,24 @@ export default function DailyCupPage() {
           ["Cost", "free"],
           ["Open for", "24 hours, UTC midnight to midnight"],
         ]}
+      />
+
+      <H2 id="rotation">The week&rsquo;s trips and ground</H2>
+      <P>
+        The Cup&rsquo;s trip and going rotate by weekday, the same for everyone: any seven days in a row run the whole trip range, sprint to staying. The trip within a division steps one place a
+        week and comes back round every third week; the going follows the time of year on turf (good in spring, firm in summer, soft in autumn, heavy in winter), the all-weather is always good, and
+        dirt rides heavy only in winter. Tomorrow&rsquo;s conditions are announced on the{" "}
+        <GameLink href="/cup">Cup page</GameLink> the day before.
+      </P>
+      <Table
+        head={["Day", "Division", "Trips (weekly step)", "Surface", "Going through the year"]}
+        rows={rotationRows().map((r) => [
+          r.name,
+          r.division,
+          r.trips.map((t) => formatDistance(t)).join(" / "),
+          r.surface,
+          r.goings.join(" / "),
+        ])}
       />
 
       <H2 id="example">An example Cup</H2>

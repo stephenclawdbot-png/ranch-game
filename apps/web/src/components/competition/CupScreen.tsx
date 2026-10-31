@@ -143,6 +143,11 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
             <p className="t-meta">
               <span className="reward !text-base">+{formatCredits(view.participationCredits)}</span> for taking part · {view.entrants} {view.entrants === 1 ? "run" : "runs"} so far
             </p>
+            {view.tomorrow && (
+              <p className="t-meta mt-1" data-testid="cup-tomorrow">
+                Tomorrow: {view.tomorrow.distanceM.toLocaleString("en-GB")} m {view.tomorrow.surface === "synthetic" ? "on the all-weather" : `on ${view.tomorrow.surface}`} · {view.tomorrow.going} ground
+              </p>
+            )}
           </div>
           <div className="shrink-0 text-right">
             <p className="label">Closes in</p>

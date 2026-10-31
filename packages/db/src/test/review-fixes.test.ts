@@ -34,7 +34,7 @@ const DAY_SLOTS = gc.SLOTS_PER_DAY;
 describe("race card prices", () => {
   it("calendar races pay more than anything on the hourly card; top classes charge an entry fee", () => {
     const base = Math.floor((T0.getTime() - RULES.seasonEpochMs) / RULES.slotMs);
-    const hourly = Array.from({ length: DAY_SLOTS * 7 }, (_, i) => base + i).filter((i) => !specialSlotAt(i) && isCardSlot(i)).map(defaultCardSlot);
+    const hourly = Array.from({ length: DAY_SLOTS * 7 }, (_, i) => base + i).filter((i) => !specialSlotAt(i) && isCardSlot(i)).map((i) => defaultCardSlot(i));
     const richest = Math.max(...hourly.map((s) => s.purse ?? 0));
     const listedFeature = Math.max(...hourly.filter((s) => s.kind === "feature" && s.raceClass === "listed").map((s) => s.purse ?? 0));
     expect(CALENDAR_PURSE.feature_qualifier).toBeGreaterThanOrEqual(listedFeature);

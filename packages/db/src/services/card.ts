@@ -22,6 +22,7 @@ import { RULES, seasonNumberAt } from "../rules";
 import { gc } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
 import { runMaintenance, type MaintenanceReport } from "./maintenance";
+import { claimingEligibleCount } from "./claiming";
 import { applyPendingSponsorships, baseRaceName, withoutSponsor } from "./sponsorship";
 import { audit } from "./tx";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
@@ -108,7 +109,9 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?
  *   2, 4, 6, 8  juvenile races (maidens and novices: every new horse can run them), two of each;
  *            which are maidens alternates from one meeting to the next, so maidens run every trip.
  *   3, 5, 7  the three handicap bands (0-55, 50-75, 70-95). One evening handicap a day is the
- *            claiming race instead (claimingSlotOfMeeting). The Saturday Plate takes race 3 and
+ *            claiming-race candidate (claimingSlotOfMeeting); it is published as the claiming race
+ *            only when enough horses could enter one today (CLAIMING_MIN_ELIGIBLE, decided once at
+ *            publication: ensureRaceCard). The Saturday Plate takes race 3 and
  *            the Season Finals races 1, 3, 5 and 7 of their evening meetings: calendar races
  *            never land on a juvenile race (tested), so no trip or surface ever drops out.
  */
@@ -271,10 +274,12 @@ export function meetingRaceOf(index: number): gc.MeetingRace | null {
 const HANDICAP_PLACES: readonly number[] = MEETING_CLASSES.flatMap((p, i) => (typeof p === "object" && p.raceClass === "handicap" ? [i] : []));
 
 /**
- * The claiming race's slot in this evening meeting (game-core claiming.ts): one of its three
- * handicaps, the band rotating day by day (claimingBandOrder from the UTC day); a calendar race on
- * that band's slot moves it to the next band, and a day whose handicaps are all calendar races
- * (the Season Finals) has none. Null for the other meetings.
+ * The claiming race's candidate slot in this evening meeting (game-core claiming.ts): one of its
+ * three handicaps, the band rotating day by day (claimingBandOrder from the UTC day); a calendar
+ * race on that band's slot moves it to the next band, and a day whose handicaps are all calendar
+ * races (the Season Finals) has none. Null for the other meetings. Whether the candidate is
+ * actually published as the claiming race is a separate, once-at-publication decision
+ * (enough eligible horses today, game-core CLAIMING_MIN_ELIGIBLE; see ensureRaceCard).
  */
 export function claimingSlotOfMeeting(m: gc.Meeting): number | null {
   if (m.ofDay !== gc.CLAIMING_MEETING_OF_DAY) return null;
@@ -285,7 +290,7 @@ export function claimingSlotOfMeeting(m: gc.Meeting): number | null {
   return null;
 }
 
-/** This slot carries the day's claiming race (an evening handicap, see claimingSlotOfMeeting). */
+/** This slot is the day's claiming-race candidate (an evening handicap, see claimingSlotOfMeeting). */
 export function isClaimingSlot(index: number): boolean {
   const m = meetingRaceOf(index);
   return !!m && HANDICAP_PLACES.includes(m.race) && claimingSlotOfMeeting(m) === index;
@@ -312,8 +317,12 @@ export const isCardSlot = (index: number): boolean => meetingRaceOf(index) !== n
  * climate.ts, via placeRace): the time of year shows on the card. Calendar races (Weekend Feature,
  * Qualifiers, the Saturday Plate, Season Finals) take over their slots (`specialSlotAt`,
  * `plateSlotAt`); they only ever land on a meeting's top race or a handicap.
+ *
+ * `opts.claiming` (default true) is the once-at-publication decision that the day's claiming-race
+ * candidate slot really is the claiming race (ensureRaceCard); pure callers that don't pass it
+ * keep the old always-claiming answer.
  */
-export function defaultCardSlot(index: number): CreateRaceInput {
+export function defaultCardSlot(index: number, opts: { claiming?: boolean } = {}): CreateRaceInput {
   const sp = specialSlotAt(index);
   if (sp) return specialCardSlot(index, sp);
   const plate = plateSlotAt(index);
@@ -348,7 +357,7 @@ export function defaultCardSlot(index: number): CreateRaceInput {
     const distanceM = pick(OPEN_TRIPS);
     const where = placeRace(SURFACES[(((m * 8 + pos + (h[28]! % 3)) % 3) + 3) % 3]!, postTime.getTime(), h[byte++]!);
     // The day's claiming race: that handicap band's conditions, trip and course, renamed.
-    if (place !== "top" && isClaimingSlot(index)) def = { ...def, label: `Claiming Stakes (${def.label.replace(/^Handicap \((.*)\)$/, "$1")})` };
+    if (place !== "top" && (opts.claiming ?? true) && isClaimingSlot(index)) def = { ...def, label: `Claiming Stakes (${def.label.replace(/^Handicap \((.*)\)$/, "$1")})` };
     conditions = {
       ...def.conditions,
       ...(def.label.startsWith("Claiming") ? { claiming: true } : {}),
@@ -375,9 +384,9 @@ export function defaultCardSlot(index: number): CreateRaceInput {
   };
 }
 
-/** The race a slot publishes, or null for a slot between meetings. */
-export function cardSlotAt(index: number): CreateRaceInput | null {
-  return isCardSlot(index) ? defaultCardSlot(index) : null;
+/** The race a slot publishes, or null for a slot between meetings (see defaultCardSlot's opts). */
+export function cardSlotAt(index: number, opts: { claiming?: boolean } = {}): CreateRaceInput | null {
+  return isCardSlot(index) ? defaultCardSlot(index, opts) : null;
 }
 
 export interface CardHooks extends FieldHooks {
@@ -401,7 +410,6 @@ export const CALENDAR_HORIZON_MS = RULES.cardHorizonMs;
 export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, horizonMs = RULES.cardHorizonMs): Promise<PublicRace[]> {
   const first = slotIndexAt(now) + 1;
   const last = slotIndexAt(new Date(now.getTime() + horizonMs));
-  const make = hooks.cardSlot ?? cardSlotAt;
   const readCard = () =>
     db
       .select()
@@ -412,6 +420,19 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
   const published = new Set(card.map((r) => r.slotKey));
   // a post time that already has a card race (e.g. one published under an older slot length) is taken
   const taken = new Set(card.filter((r) => !/:\d+:\d+$/.test(r.slotKey ?? "")).map((r) => r.postTime.getTime()));
+  // The claiming-race decision, once per candidate slot, at publication (not on re-reads): a
+  // candidate evening handicap only becomes the claiming race when enough horses could enter one
+  // today (game-core CLAIMING_MIN_ELIGIBLE); otherwise it is published as the ordinary handicap.
+  // The kind lives on the published race row from then on, so it never flips.
+  const claimingAt = new Map<number, boolean>();
+  if (!hooks.cardSlot) {
+    for (let i = first; i <= last; i++) {
+      if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime()) || !isClaimingSlot(i)) continue;
+      const band = MEETING_CLASSES[meetingRaceOf(i)!.race] as ClassDef;
+      claimingAt.set(i, (await claimingEligibleCount(db, { minRating: band.conditions.minRating, maxRating: band.conditions.maxRating, now })) >= gc.CLAIMING_MIN_ELIGIBLE);
+    }
+  }
+  const make = hooks.cardSlot ?? ((i: number) => cardSlotAt(i, { claiming: claimingAt.get(i) ?? true }));
   const rows = [];
   for (let i = first; i <= last; i++) {
     if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime())) continue;

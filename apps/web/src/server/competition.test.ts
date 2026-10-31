@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { createAccount, createDb, createRace, getBalance, getRace, listStableHorses, recordStoryResult, stableOf, storyState, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, createRace, getBalance, getRace, listStableHorses, recordStoryResult, RULES, stableOf, storyState, type DbHandle } from "@thoroughbred/db";
 import { cupRunView, cupView, hallView, leagueView, runCup } from "./competition";
 import { createChapterRace, storyView } from "./story";
 import { driveCard, enterLive, entryReason, licenceReason, myRaceResult, quickPickLive, raceCard, raceList } from "./game";
@@ -71,6 +71,26 @@ describe("Daily Cup", () => {
     const tomorrow = await cupView(h.db, a, next);
     expect(tomorrow.yesterday?.winner).not.toBeNull();
     expect(tomorrow.mine).toBeNull();
+    // before the rotation takes over there is nothing to announce (conditions are drawn per day)
+    expect(before.tomorrow).toBeNull();
+  });
+
+  it("announces tomorrow's trip and going once the weekday rotation has taken over", { timeout: 60_000 }, async () => {
+    const p = await player("Cup Charlie");
+    const clock = { epochMs: RULES.seasonEpochMs };
+    const noon = (day: number) => new Date(day * gc.MS_PER_DAY + 12 * 3_600_000);
+    const rot = (day: number) => {
+      const r = gc.cupRotation(day, clock);
+      return { distanceM: r.distanceM, surface: r.surface, going: r.going };
+    };
+    // the day before: tomorrow's conditions are public, though that Cup hasn't opened yet
+    const eve = await cupView(h.db, p, noon(gc.CUP_ROTATION_FROM_DAY - 1));
+    expect(eve.tomorrow).toMatchObject(rot(gc.CUP_ROTATION_FROM_DAY));
+    // on the day: today's Cup runs the announced rotation, and the next day is announced too
+    const on = await cupView(h.db, p, noon(gc.CUP_ROTATION_FROM_DAY));
+    expect(on.conditions).toMatchObject(rot(gc.CUP_ROTATION_FROM_DAY));
+    expect(on.tomorrow).toMatchObject(rot(gc.CUP_ROTATION_FROM_DAY + 1));
+    expect(on.board.top).toEqual([]);
   });
 });
 

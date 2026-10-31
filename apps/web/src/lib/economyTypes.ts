@@ -122,6 +122,54 @@ export interface PreviewView {
   credits: number;
 }
 
+/** One stallion of the finder's ranking for a mare: the single preview's headline numbers. */
+export interface StudFinderRow {
+  id: string;
+  name: string;
+  /** His stable's name ("The Club" for house stallions), or "Yours" for your own. */
+  stableName: string;
+  club: boolean;
+  own: boolean;
+  /** Total credits the mare's owner pays (base fee + his stud fee, burn included); null = a USDG-only stud. */
+  feeCredits: number | null;
+  /** His USDG stud fee (micro-USDG), paid on-chain; null = a credits stud. */
+  studFeeUsdg: number | null;
+  /** True when he stands only for USDG: listed after the credits ranking, not ranked by credits price. */
+  usdgOnly: boolean;
+  /** The predicted overall (game-core preview): p10–p90 range and the likely (p50) outcome. */
+  overall: { p10: number; p50: number; p90: number };
+  /** Grade of the likely (p50) outcome, game-core gradeOf. */
+  p50Grade: string;
+  /** Chance (permille) the foal beats both parents. */
+  beatsBothPermille: number;
+  nickScore: number;
+  nickLabel: "Excellent" | "Good" | "Fair" | "Poor";
+  /** Inbreeding coefficient (permille) and whether it is over the warning line. */
+  coiPermille: number;
+  coiWarning: boolean;
+  /** Chance (permille) of fragile legs, and whether a parent's career-ending injury is why. */
+  fragile: { permille: number; fromInjury: boolean };
+  /** Coat colour odds (permille), most likely first. */
+  coats: { name: string; permille: number }[];
+}
+
+/** The stallion finder's answer for one mare: a page of the ranking and what it was sorted by. */
+export interface StudFinderView {
+  mareId: string;
+  mareName: string;
+  sort: string;
+  page: number;
+  pageSize: number;
+  /** Ranked rows on this page (of `total`). */
+  rows: StudFinderRow[];
+  total: number;
+  /** Rows left out: kin of the mare, or stallions that can't cover her right now. */
+  excluded: number;
+  /** The day (UTC) this ranking was computed for: it is cached until the day changes. */
+  day: string;
+  credits: number;
+}
+
 // ---------------------------------------------------------------------------
 // Packs
 // ---------------------------------------------------------------------------
