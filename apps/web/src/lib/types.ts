@@ -244,6 +244,8 @@ export interface RunView {
   surface: Surface;
   ratingBefore: number;
   ratingAfter: number | null;
+  /** The full form line (/me/races). */
+  line?: FormLineView;
 }
 
 export interface EntryBankView {
@@ -299,6 +301,10 @@ export interface HorseDetailView {
   /** Present for the viewer's own (kept) horses. */
   status: StableHorse | null;
   runs: RunView[];
+  /** The form book: every start's full form line (no result before settlement) and the splits. */
+  form: HorseFormView;
+  /** A sire's offspring splits (stallions with runners only). */
+  sireLine: { runners: number; splits: SplitsView } | null;
   pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };
   /** Three generations of ancestors above this horse (null parent = foundation stock). */
   tree: PedigreeNode;
@@ -345,4 +351,97 @@ export interface ApiError {
   error: string;
   message: string;
   details?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Form book (form lines, splits, the horse's log)
+// ---------------------------------------------------------------------------
+
+/**
+ * One start as a full form line (packages/db formBook.ts formLineOf). `result` is null until the
+ * race has settled (a Live race settles once its broadcast is over): no spoilers.
+ */
+export interface FormLineView {
+  raceId: string;
+  horseId: string;
+  horseName?: string;
+  status: "settled" | "running" | "declared";
+  postTimeMs: number;
+  raceName: string;
+  raceClass: string;
+  kind: RaceKind;
+  course: string | null;
+  distanceM: number;
+  surface: Surface;
+  going: Going;
+  fieldSize: number;
+  gate: number | null;
+  tactic: string;
+  /** Keeper only (null for other viewers and old entries). */
+  intensity: string | null;
+  extras: string[];
+  jockey: { tier: string | null; name: string | null };
+  weightLb: number | null;
+  extraWeightLb: number | null;
+  /** Condition at the off, permille. Keeper only. */
+  fatigue: number | null;
+  freshness: number | null;
+  purse: number;
+  ratingBefore: number;
+  result: {
+    position: number;
+    beatenMm: number | null;
+    marginLabel: string | null;
+    winningTimeUs: number | null;
+    timeUs: number | null;
+    ratingAfter: number | null;
+    prize: number;
+  } | null;
+}
+
+export interface SplitBucketView {
+  key: string;
+  runs: number;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  avgBeatenMm: number | null;
+  small: boolean;
+}
+
+export interface SplitsView {
+  total: SplitBucketView;
+  groups: { dimension: string; buckets: SplitBucketView[] }[];
+  best: { dimension: string; bucket: SplitBucketView } | null;
+  worst: { dimension: string; bucket: SplitBucketView } | null;
+  /** Fewer runs than this in a bucket: a small sample. */
+  minRuns: number;
+}
+
+/** A horse's form book: every start (newest first) and the splits of the settled ones. */
+export interface HorseFormView {
+  lines: FormLineView[];
+  splits: SplitsView;
+}
+
+/** One entry in a horse's log (packages/db horseLog.ts). */
+export interface HorseLogEntryView {
+  key: string;
+  kind: string;
+  atMs: number;
+  raceId?: string | null;
+  horseId?: string | null;
+  data: Record<string, unknown>;
+  line?: FormLineView;
+}
+
+export interface HorseLogView {
+  entries: HorseLogEntryView[];
+  nextCursor: string | null;
+}
+
+/** /api/me/formbook: the stable's splits (all horses, or one). */
+export interface StableFormBookView {
+  horseId: string | null;
+  splits: SplitsView;
 }

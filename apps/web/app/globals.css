@@ -4777,3 +4777,73 @@ a.pill:hover,
     inset 0 0 0 2px var(--color-brass),
     inset 0 2px 0 2px #1d4a33;
 }
+
+/* ------------------------------------------------------------ form book */
+/* Full form lines (desktop table) and the splits tables, on the dark surface. */
+.form-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-cream-dim);
+}
+.form-table th {
+  padding: 8px 8px 6px;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-sage);
+  border-bottom: 2px solid var(--color-line);
+}
+.form-table td {
+  padding: 6px 8px;
+  border-top: 2px dotted var(--color-line);
+  vertical-align: middle;
+}
+.form-table tbody tr:first-child td {
+  border-top: 0;
+}
+.form-table tbody tr[data-testid="form-row"]:hover td,
+.form-table tr.is-open td {
+  background: var(--color-surface-2);
+}
+.form-table tr.form-detail td {
+  border-top: 0;
+  background: var(--color-inset);
+  padding: 4px 0 0;
+}
+.splits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.splits-table thead th {
+  padding: 0 4px 4px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--color-sage);
+  border-bottom: 2px solid var(--color-line);
+}
+.splits-table tbody th,
+.splits-table tbody td {
+  padding: 4px;
+  border-top: 2px dotted var(--color-line);
+  color: var(--color-cream);
+}
+.splits-table tbody tr:first-child th,
+.splits-table tbody tr:first-child td {
+  border-top: 0;
+}
+.splits-table tbody th {
+  text-align: left;
+}
+.splits-table tr.is-small th,
+.splits-table tr.is-small td {
+  color: var(--color-sage);
+  opacity: 0.75;
+}

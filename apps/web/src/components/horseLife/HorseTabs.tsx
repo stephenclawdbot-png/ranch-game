@@ -1,12 +1,13 @@
 import Link from "next/link";
 
-export type HorseTab = "overview" | "care" | "training" | "career";
+export type HorseTab = "overview" | "care" | "training" | "career" | "log";
 
 const TABS: { key: HorseTab; label: string; path: string }[] = [
   { key: "overview", label: "Overview", path: "" },
   { key: "care", label: "Care", path: "/care" },
   { key: "training", label: "Training", path: "/training" },
   { key: "career", label: "Career", path: "/career" },
+  { key: "log", label: "Log", path: "/log" },
 ];
 
 /** The owner's tabs on a horse: one level below the horse, never deeper. */
