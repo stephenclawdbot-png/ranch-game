@@ -78,7 +78,7 @@ function HorseSelect({ horses, value, onChange, testId }: { horses: QuickHorse[]
           {horses.map((x) => (
             <option key={x.id} value={x.id}>
               {x.name}
-              {x.rating ? ` · OR ${x.rating}` : ""} · {STYLE_LABEL[x.style]}
+              {x.rating ? ` · OR ${x.rating}` : ""}
             </option>
           ))}
         </select>
@@ -139,7 +139,7 @@ function DailyPanel({ d, signedIn, skew }: { d: DailyView; signedIn: boolean; sk
             Daily Challenge · {dateLabel}
           </h2>
           <span className="text-sm text-cream-dim">
-            next in <Countdown targetMs={d.closesAtMs} skewMs={skew} doneLabel="a moment" />
+            Next challenge in <Countdown targetMs={d.closesAtMs} skewMs={skew} doneLabel="a moment" />
           </span>
         </div>
         <p className="text-sm font-bold" data-testid="daily-conditions">
@@ -552,7 +552,7 @@ function GhostPanel({ v, initialHorse }: { v: QuickHubView; initialHorse?: strin
           Ghost race
         </h2>
         <p className="text-sm text-cream-dim">
-          Your horse against the first {v.ghost.top} home in a real Live race from yesterday or today, as they ran it: same course, trip and going, fresh luck. Would you have
+          Your horse against the first {v.ghost.top === 3 ? "three" : v.ghost.top} home in a real Live race from yesterday or today, as they ran it: same course, trip and going, fresh luck. Would you have
           been placed?
         </p>
       </div>

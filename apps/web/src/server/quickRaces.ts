@@ -183,11 +183,21 @@ interface Summary {
   daily?: { day: number; plan: DailyRequest; points: number; seedCommitment: string };
 }
 
-const MARGIN_WORDS: Record<string, string> = { nose: "a nose", "short head": "a short head", head: "a head", neck: "a neck", dist: "a distance", dh: "a dead heat" };
-function marginWords(label: string): string {
-  if (MARGIN_WORDS[label]) return MARGIN_WORDS[label]!;
-  const pretty = label.replace(" 1/4", "¼").replace(" 1/2", "½").replace(" 3/4", "¾").replace(/^1\/2$/, "½").replace(/^3\/4$/, "¾");
-  return `${pretty} ${pretty === "1" ? "length" : "lengths"}`;
+const MARGIN_WORDS: Record<string, string> = {
+  nose: "a nose",
+  "short head": "a short head",
+  head: "a head",
+  neck: "a neck",
+  dist: "a distance",
+  dh: "a dead heat",
+  "1/4": "a quarter of a length",
+  "1/2": "half a length",
+  "3/4": "three-quarters of a length",
+  "1": "a length",
+};
+/** Engine margin labels in words ("1 1/4" -> "1 1/4 lengths"; plain digits, as the pixel font has no fraction glyphs). */
+export function marginWords(label: string): string {
+  return MARGIN_WORDS[label] ?? `${label} lengths`;
 }
 
 function behindMm(replay: RaceReplay, position: number): number {
@@ -413,7 +423,7 @@ export async function runDailyChallenge(db: Db, session: Session, choice: DailyR
   const names = new Map<string, string | null>([[horseId, session.stable.name]]);
   const summary: Summary = {
     title: QUICK_MODE_LABEL.daily,
-    raceName: `${spec.name} · ${date}`,
+    raceName: `${spec.name} · ${new Date(spec.opensAtMs).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}`,
     track: course.name,
     distanceM: spec.conditions.distanceM,
     surface: spec.conditions.surface,

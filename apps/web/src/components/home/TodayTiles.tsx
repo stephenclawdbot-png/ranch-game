@@ -21,6 +21,8 @@ interface Tile {
   reward?: string;
   /** Not available yet: dimmed, with its timer. */
   locked?: boolean;
+  /** Done or news only: listed, but not one of the things left to do. */
+  done?: boolean;
 }
 
 /** Re-check the tiles this often while Home is open (and whenever the tab regains focus). */
@@ -113,6 +115,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
             text: `${c.mine.points} ${c.mine.points === 1 ? "point" : "points"} · ${c.course} ${formatDistance(c.distanceM)}`,
             href: `/quick/${c.mine.quickRaceId}`,
             cta: "Watch your attempt",
+            done: true,
           }
         : {
             key: "challenge",
@@ -126,7 +129,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
     );
   }
   if (tiles.matchNote) {
-    list.push({ key: "match-note", icon: "flag", title: tiles.matchNote.title, text: "Match race · unofficial", href: "/quick?tab=match", cta: "Quick races" });
+    list.push({ key: "match-note", icon: "flag", title: tiles.matchNote.title, text: "Match race · unofficial", href: "/quick?tab=match", cta: "Quick races", done: true });
   }
   if (tiles.giftFoal) {
     list.push({
@@ -189,7 +192,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   }
   if (list.length === 0) return null;
 
-  const left = list.filter((t) => !t.locked).length;
+  const left = list.filter((t) => !t.locked && !t.done).length;
   return (
     <Section id="today-h" title="Today" testId="today" aside={<span className="eyebrow">{left} to do</span>}>
       <ul className="surface rows">

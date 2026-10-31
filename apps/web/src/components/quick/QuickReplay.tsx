@@ -86,7 +86,7 @@ export function QuickReplay({ v }: { v: QuickRaceView }) {
     <div className="grid gap-4 md:gap-5">
       <section aria-labelledby="quick-name" className="-mx-[var(--gutter)] -mt-4 md:mx-0 md:mt-0">
         <div className="race-plate">
-          <QuickTag label={v.badge} className="shrink-0" />
+          <QuickTag label={v.badge} className="hidden shrink-0 sm:inline-flex" />
           <div className="min-w-0 flex-1">
             <p className="eyebrow !text-[0.625rem] !text-sage">
               {v.track} · {formatDistance(v.distanceM)} {SURFACE_LABEL[v.surface].toLowerCase()} · {GOING_LABEL[v.going].toLowerCase()}

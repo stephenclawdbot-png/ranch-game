@@ -223,7 +223,7 @@ export interface MatchOpponent {
 /** "You'd have finished 2nd" against the first `top` home of a real race (position among them + you). */
 export function ghostLine(position: number, top: number): string {
   if (position <= top) return `You'd have finished ${ordinal(position)}`;
-  return `You'd have finished outside the first ${top}`;
+  return `You'd have finished outside the first ${["", "one", "two", "three", "four"][top] ?? top}`;
 }
 
 export const GRADE_WORD = (g: JockeyGrade) => `${g === "A" || g === "E" ? "an" : "a"} ${g}-grade rider`;
