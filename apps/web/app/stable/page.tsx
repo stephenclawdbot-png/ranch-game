@@ -135,6 +135,7 @@ function Stable({ state }: { state: PlayerState }) {
               <YardRow icon="feed-bucket" title="Care" text="Feed, groom and turn out. Builds bond." href={state.horses[0] ? `/horse/${state.horses[0].id}/care` : "/nursery"} />
               <YardRow icon="stable" title="Facilities" text="More stalls, a vet room, a gallop." href="/facilities" />
               <YardRow icon="star" title="Nursery" text="Foals grow with daily care." href="/nursery" />
+              <YardRow icon="laurel" title="Legacy Farm" text="Retired for good: their records and best wins." href="/legacy" />
               <li>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <PixelIcon name="flag" size={32} />

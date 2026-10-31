@@ -14,6 +14,7 @@ import { recordPlayDay, stableOf } from "./accounts";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
 import { claimChosenName } from "./naming";
+import { careerTribute, momentHorse, sendMomentsTx } from "./moments";
 
 export async function getHorse(ex: Executor, horseId: string): Promise<HorseRow | null> {
   const [h] = await ex.select().from(horses).where(eq(horses.id, horseId));
@@ -235,6 +236,7 @@ export async function retireHorse(db: Db, input: { accountId: string; horseId: s
       .returning();
     await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await audit(tx, { actor: input.accountId, action: "horse.retire", entityType: "horse", entityId: horse.id, data: { reason: "choice", starts: horse.starts } });
+    await sendMomentsTx(tx, { accountId: input.accountId, horseName: horse.name, drafts: [gc.retiredMoment(momentHorse(horse), "choice", await careerTribute(tx, h!))], now: input.now });
     return h!;
   });
 }
@@ -261,6 +263,7 @@ export async function moveToLegacyFarm(db: Db, input: { accountId: string; horse
       .returning();
     await withdrawLeaseOffersTx(tx, horse.id, input.now);
     await audit(tx, { actor: input.accountId, action: "horse.legacy_farm", entityType: "horse", entityId: horse.id });
+    await sendMomentsTx(tx, { accountId: input.accountId, horseName: horse.name, drafts: [gc.legacyMoment(momentHorse(horse), await careerTribute(tx, h!))], now: input.now });
     return h!;
   });
 }

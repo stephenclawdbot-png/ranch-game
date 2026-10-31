@@ -17,6 +17,7 @@ import { Section } from "../ui/Page";
 import { Diorama } from "../diorama/Diorama";
 import { DioramaSlot } from "../diorama/DioramaSlot";
 import { Wordmark } from "../SiteNav";
+import { StableNews } from "../moments/StableNews";
 import { TodayTiles } from "./TodayTiles";
 import { EstateStage, YARD, salutation, type EstatePlaque } from "./EstateStage";
 
@@ -35,7 +36,7 @@ const WATCH_WINDOW_MS = 4 * 60_000;
 export function HomeView(props: ClubProps) {
   const state = usePlayerState();
   // While one of your races is pending, refresh so results land without a reload.
-  const pending = !!state && (state.active.length > 0 || state.inbox.some((i) => !i.read));
+  const pending = !!state && (state.active.length > 0 || state.inbox.some((i) => !i.read && i.raceId));
   usePlayerState({ pollMs: pending ? 10_000 : undefined });
   if (state === undefined) return <div className="min-h-[60vh]" aria-busy />;
   if (state === null) return <Welcome {...props} />;
@@ -224,6 +225,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       <DailyGoalsCard goals={state.goals ?? []} />
 
       <YourRaces state={state} now={now} skip={heroRun} />
+
+      <StableNews items={state.news ?? []} />
 
       <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
         <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">

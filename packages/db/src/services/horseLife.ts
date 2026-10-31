@@ -31,6 +31,7 @@ import { localDate } from "./entries";
 import { keptBy, lockKeptHorse, lockOwnedHorse } from "./horses";
 import { getBalance, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
+import { sendMomentsTx } from "./moments";
 
 // ---------------------------------------------------------------------------
 // Facilities
@@ -468,6 +469,10 @@ export async function scanPedigree(db: Db, input: { accountId: string; horseId: 
     });
     if (res.duplicate) return { horse, scanned: false, cost: 0 };
     const [updated] = await tx.update(horses).set({ scanned: true, updatedAt: input.now }).where(eq(horses.id, horse.id)).returning();
+    // The scan's result as a moment: the narrowed ranges (and big heart, if the scan revealed it).
+    if (isGenome(horse.genome)) {
+      await sendMomentsTx(tx, { accountId: input.accountId, horseName: horse.name, drafts: [gc.scanMoment(toHorseState(horse), toHorseState(updated!))], now: input.now });
+    }
     return { horse: updated!, scanned: true, cost: gc.PEDIGREE_SCAN_COST };
   });
 }

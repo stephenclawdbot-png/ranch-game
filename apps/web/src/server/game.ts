@@ -116,6 +116,7 @@ import type {
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
+import { stableNews } from "./moments";
 import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
@@ -1283,6 +1284,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     goals,
     tester: !!(await testerForAccount(db, session.accountId)),
     serverNowMs: nowMs,
+    news: await stableNews(db, session.accountId),
   };
 }
 
