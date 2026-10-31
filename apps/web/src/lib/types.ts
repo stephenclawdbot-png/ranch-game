@@ -312,6 +312,8 @@ export interface PlayerView {
   active: ActiveEntry[];
   inbox: InboxView[];
   runs: RunView[];
+  /** The player has run any race of any kind (Story, Live or Daily Cup), ever: retires "Your first race". */
+  hasRaced: boolean;
   /** Today's three goals, on the player's local day. */
   goals: DailyGoalView[];
   /** Closed playtest: this stable belongs to an invited tester (see /beta). */

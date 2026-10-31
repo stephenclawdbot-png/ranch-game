@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RaceBroadcastChunkSchema, type RaceBroadcastChunk } from "@thoroughbred/shared";
 import { DAILY_GOAL_CREDITS } from "@thoroughbred/game-core";
-import { createAccount, createDb, getBalance, getEntryBank, getRace, listInbox, stableOf, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, getBalance, getEntryBank, getRace, listInbox, schema, stableOf, type DbHandle } from "@thoroughbred/db";
 import {
   createStoryRace,
   driveCard,
@@ -67,6 +67,14 @@ describe("accounts", () => {
     }
     expect(view.credits).toBe(3000);
     expect(view.entries).toMatchObject({ balance: 10, cap: 20 });
+    expect(view.hasRaced).toBe(false);
+  });
+
+  it("a Daily Cup run counts as having raced (the home's first-race hero retires)", async () => {
+    const p = await player("Cup Only");
+    const horseId = (await playerView(h.db, p, T0)).horses[0]!.id;
+    await h.db.insert(schema.dailyCupEntries).values({ day: "2026-11-02", accountId: p.accountId, horseId, snapshot: {}, points: 50 });
+    expect((await playerView(h.db, p, T0)).hasRaced).toBe(true);
   });
 });
 
@@ -99,6 +107,7 @@ describe("Story mode", () => {
     expect(inbox.find((i) => i.raceId === created.raceId)?.readAt).not.toBeNull();
     const view = await playerView(h.db, p, T0);
     expect(view.runs[0]?.raceId).toBe(created.raceId);
+    expect(view.hasRaced).toBe(true);
     // A Story race is not a career start: the run is in the history, the record is not.
     expect(view.horses.find((x) => x.id === created.horseId)?.starts).toBe(0);
   });

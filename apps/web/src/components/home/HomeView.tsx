@@ -199,7 +199,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         ) : unseen[0] ? (
           <ResultReady item={unseen[0]} count={unseen.length} horse={horseOf(unseen[0].horseId)} />
         ) : rec ? (
-          <QuickPickHero s={rec} firstRace={state.runs.length === 0} />
+          <QuickPickHero s={rec} firstRace={!state.hasRaced} />
         ) : (
           <Hero tag={<span className="tag">Resting</span>} title="Your horses are resting" testId="up-next" body="They're entered or recovering, and can race again soon. A groom builds their bond meanwhile.">
             <Link href="/stable" className="btn btn-lg w-full sm:w-auto">
