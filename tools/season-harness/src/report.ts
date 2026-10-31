@@ -72,6 +72,19 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     },
     { key: "avgField", label: "Average Live field", value: t.avgField, unit: " runners" },
     { key: "playerShare", label: "Player share of Live runners", value: t.playerShare, unit: "%" },
+    // Runs before the Club fill fix (2026-10-30) did not record these.
+    ...(t.livePlayerWins !== undefined
+      ? [
+          { key: "playerWinShare", label: "Live races with a player won by a player", value: pct(t.livePlayerWins, t.liveRacesWithPlayers), unit: "%" },
+          { key: "playerWinPerStart", label: "Player win rate per Live start", value: pct(t.livePlayerWins, t.livePlayerRunners ?? 0), unit: "%" },
+        ]
+      : []),
+    ...(t.liveSpreadMedianMm !== undefined
+      ? [
+          { key: "liveSpread", label: "Live field winner-to-last, median", value: round1((t.liveSpreadMedianMm ?? 0) / 1000), unit: " m" },
+          { key: "liveWinMargin", label: "Live winning margin, median", value: round1((t.liveWinMarginMedianMm ?? 0) / 1000), unit: " m" },
+        ]
+      : []),
     { key: "storyRaces", label: "Story races", value: t.storyRaces },
     { key: "cupRuns", label: "Daily Cup runs", value: t.cupRuns },
     { key: "created", label: "Credits created", value: created },
@@ -193,6 +206,17 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
   if (d) {
     L.push("", "Balances at the end (median / p90 / max):");
     for (const c of COHORTS) if (m.cohorts[c]) L.push(`- ${c}: ${fmt(d.balances[c].median)} / ${fmt(d.balances[c].p90)} / ${fmt(d.balances[c].max)}`);
+  }
+  if (r.runners) {
+    L.push("", "## Live runners on race day (medians; shares in %)", "");
+    L.push("| | runs | mark | fitness | fatigue | realisation | care | bond | morale | condition | vet check | physio | jockey | tired | all out | trip off m | own surface | risk ‰ | injuries |");
+    L.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+    const row = (label: string, g: NonNullable<RunResult["runners"]>["players"]) =>
+      L.push(`| ${label} | ${g.n} | ${g.mark} | ${g.fitness} | ${g.fatigue} | ${g.realisation} | ${g.careQuality} | ${g.bond} | ${g.morale} | ${g.conditionMultiplier} | ${g.vetCheckPct} | ${g.physioPct} | ${g.jockeyPct} | ${g.tiredPct} | ${g.allOutPct} | ${g.tripOffM} | ${g.surfaceMatchPct} | ${g.riskPermille} | ${g.injuries} |`);
+    row("players", r.runners.players);
+    for (const [k, g] of Object.entries(r.runners.playersByMark)) if (g.n) row(`players, mark ${k}`, g);
+    row("Club", r.runners.club);
+    for (const [k, g] of Object.entries(r.runners.clubByMark)) if (g.n) row(`Club, mark ${k}`, g);
   }
   L.push("", "## Cohorts (share of stables that did it at least once)", "");
   L.push("| | stables | Live win | ran a Qualifier | qualified | ran Weekend Feature | bred | sold | licence 3+ | promoted | above start credits | Live starts | visits |");

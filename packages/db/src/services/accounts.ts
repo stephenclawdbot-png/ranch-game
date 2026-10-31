@@ -224,6 +224,7 @@ export async function insertHorse(ex: Executor, input: InsertHorseInput): Promis
   const [row] = await ex
     .insert(horses)
     .values({
+      ...(input.spec.id ? { id: input.spec.id } : {}),
       ownerStableId: input.stableId,
       name: name.slice(0, 32),
       sex: input.spec.sex,
@@ -239,7 +240,12 @@ export async function insertHorse(ex: Executor, input: InsertHorseInput): Promis
       maturityType: input.spec.maturityType ?? "normal",
       rating: input.spec.rating ?? 0,
       careSessions,
-      stage: stageFor(careSessions, 0),
+      stage: stageFor(careSessions, input.spec.starts ?? 0),
+      ...(input.spec.starts ? { starts: input.spec.starts } : {}),
+      ...(input.spec.fitness !== undefined ? { fitness: input.spec.fitness } : {}),
+      ...(input.spec.bond !== undefined ? { bond: input.spec.bond } : {}),
+      ...(input.spec.careQuality !== undefined ? { careQuality: input.spec.careQuality } : {}),
+      ...(input.spec.dynamics ? { dynamics: input.spec.dynamics } : {}),
       bound: input.bound ?? false,
       tradeMinStarts: input.tradeMinStarts ?? 0,
     })

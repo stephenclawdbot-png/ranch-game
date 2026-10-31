@@ -16,8 +16,8 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, claimingTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, sampleDay, snapshot, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
-import { sum } from "./stats";
+import { activity, checks, claimingTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
+import { median, sum } from "./stats";
 
 const DAY = 86_400_000;
 
@@ -52,6 +52,13 @@ export interface Totals {
   liveRacesCalledOff?: number;
   avgField: number;
   playerShare: number;
+  /** Live races won by a player horse (absent in runs before the Club fill fix). */
+  livePlayerWins?: number;
+  /** Player runners in settled Live races (absent in runs before the Club fill fix). */
+  livePlayerRunners?: number;
+  /** Median winner-to-last spread and winning margin of settled Live races, mm (absent before 2026-10-30). */
+  liveSpreadMedianMm?: number;
+  liveWinMarginMedianMm?: number;
   storyRaces: number;
   cupRuns: number;
   born: Record<string, number>;
@@ -83,6 +90,8 @@ export interface RunResult {
   farmers: FarmerReport;
   /** Player runs in calendar races and the top-rated player horses at the end. */
   notables: Awaited<ReturnType<typeof notables>>;
+  /** Race-day state and injury exposure of Live runners, players vs Club (absent before 2026-10-30). */
+  runners?: RunnerStates;
   checks: Checks;
   activity: ReturnType<typeof activity>;
   errors: UnexpectedError[];
@@ -114,6 +123,10 @@ function totalsOf(days: DaySample[], last: Snapshot): Totals {
     liveRacesCalledOff: sum(days.map((d) => d.races.calledOff ?? 0)),
     avgField: live ? Math.round((10 * sum(days.map((d) => d.races.avgField * d.races.live))) / live) / 10 : 0,
     playerShare: live ? Math.round((10 * sum(days.map((d) => d.races.playerShare * d.races.live * d.races.avgField))) / Math.max(1, sum(days.map((d) => d.races.live * d.races.avgField)))) / 10 : 0,
+    livePlayerWins: sum(days.map((d) => d.races.playerWins ?? 0)),
+    livePlayerRunners: sum(days.map((d) => d.races.playerRunners ?? 0)),
+    liveSpreadMedianMm: median(days.flatMap((d) => d.races.spreadsMm ?? [])),
+    liveWinMarginMedianMm: median(days.flatMap((d) => d.races.winMarginsMm ?? [])),
     storyRaces: sum(days.map((d) => d.races.story)),
     cupRuns: sum(days.map((d) => d.races.cup)),
     born: last.born,
@@ -264,6 +277,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
       notables: await notables(world),
+      runners: await runnerStates(world),
       checks: await checks(world, last),
       activity: activity(world),
       errors: world.errors.slice(0, 200),

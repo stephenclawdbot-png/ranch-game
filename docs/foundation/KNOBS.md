@@ -312,7 +312,36 @@ like the card's `card-slot:<index>`). Shares quoted are turf going over 25 years
 | `TIER_RULES` | maiden ≤0 wins; novice ≤2 wins; hcp 0-55, 50-75, 70-95; listed ≥88; g3 ≥95; g2 ≥102; g1 ≥108; quick rated; trial/cup unrated | packages/game-core/src/eligibility.ts:30-42 | Model class bands (game-core eligibility). | Class access (model; live uses card conditions) |
 | `classBand` | ≥108 g1, ≥102 g2, ≥95 g3, ≥88 listed, ≥70 hcp 70-95, ≥50 hcp 50-75, else 0-55 | packages/game-core/src/eligibility.ts:49-55 | Band a rating belongs in (used in the entry-sheet hint). | Copy, class access hints |
 | Live card bands | Maiden 0 wins, OR ≤60; Novice ≤2 wins, OR ≤70; Hcp 0-55; Hcp 50-75; Hcp 70-95; Listed ≥85; Group 3 ≥95 | packages/db/src/services/card.ts:47-53 | Live entry conditions (max checks use band rating). | Field size per class, League movement |
-| Story difficulty band | band rating ±12 | apps/web/src/server/game.ts:945 | Open Story races draw house horses rated within ±12. | Story win rate, story credits |
+| Story difficulty band | band rating ±12 | apps/web/src/server/game.ts:945 | Open Story races draw Club horses whose real ability is anywhere in the ±12 band (`clubWindow` kind `story`, since 2026-10-30; before, stamped novices). | Story win rate, story credits |
+
+### Club fill (who fills a Live race's empty gates, 2026-10-30)
+
+All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/races.ts `pickHouseHorses`.
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| P (no knob) | median real ability mark (`abilityMark`) of the player horses entered; nobody entered: a banded race's band middle, an open race's nominal level. (Anchoring on `bandRatingOf` pitched the Club too high, clubfill2/3: a new horse is OR 40 at ~30-35 ability.) | `clubWindow`, db `clubWindowForRace` | What every race's Club window centres on (Story races excepted: their whole band). | Player win rate, purses |
+| `CLUB_BELOW_MEDIAN` | 2 | `clubWindow` | Window starts at P − 2. | Player win rate, median player's share |
+| `CLUB_ABOVE_MEDIAN_SPAN` | 10 (was 12 in the first cut) | `clubWindow` | Window ends at P + 10 (the "contenders"). | Player win rate, Qualifier top-3s |
+| Clip to the race's band | [max(P − 2, min), min(P + 10, max)]; max = 97 when absent | `clubWindow` | Club runners stay inside the band (Season Final keeps 95+). | Upper-band player win rate |
+| `CLUB_CLIPPED_SPAN` | 8 | `clubWindow` | When the clip leaves nothing (P above the band's max or below its min): [max − 8, max] or [min, min + 8]. | Players rated far from their band |
+| `CLUB_TARGET_SKEW` | 3 (cubed) | `clubStratum` / `clubTargets` | Slice edges at (k/n)^3 of the window: about half the pack within ~2 marks of P, the top runner or two near P + 10. | Club pack mean (≈ P + 1.5) |
+| `CLUB_OPEN_NOMINAL_RATING` / `_DEFAULT` | Listed 85, Group 95 / 60 | `clubNominalRating` | P of an open race no player entered. | Club-only calendar races only |
+| `CLUB_MARK_MIN` / `CLUB_MARK_MAX` | 17 / 92 (ends of `ABILITY_OR_TABLE`, engine 1.4.0 refit; were 18 / 97) | `clubWindow` | Windows are clamped to marks a horse can have; a band floor above 92 (Season Final 95) leaves the Club at 92. | Listed/Group fields |
+| First cut (superseded 2026-10-30) | banded [band middle, max]; open [P, P + 12]; even spread | | Put the Club above almost every player in the upper bands (Hcp 50-75 2%, 70-95 0%; harness clubfill1: players won 34.7% of their races, purses −44%). | |
+| `CLUB_SEASONED_STARTS` | early 9, normal 13, late 19 (derived: first start with every stat at peak) | `clubSeasonedState` | Starts a minted Club horse has already run (0 wins: it can still run maidens). | Club horse career length (27-31 runs left) |
+| `CLUB_RACE_DAY` (replaces `CLUB_REALISATION` 1000 / `CLUB_FITNESS` 1000) | by mark ≤35 / 36-45 / 46+: realisation 633 / 691 / 731, care quality 958 / 995 / 996, fitness 700 / 1000 / 1000, bond 114 / 174 / 230, fatigue at the off 361 / 440 / 440 (gives the players' median condition 975 / 985 / 985; their median fatigue is lower, but ~43% race tired) | `clubSeasonedState` (realisation, care: at mint), `clubRaceDayState` (fitness, fatigue, bond, no recent runs: at the lock, db `clubSnapshot`) | A Club runner carries what the median active player horse of its mark carried on race day in the harness (clubfill7s, 2,803 player Live starts). Before, it ran fully trained, fit and fresh (condition 1000 vs the players' 974-983). | Equal-mark parity (report: Club wins 1.06× the player rate at equal marks), player win rate |
+| `CLUB_OWN_SURFACE_PERMILLE` | 630 | `clubOnOwnSurface` (seeded per runner) | Share of Club runners that prefer the race's surface; the rest prefer another, as players' horses do in 63% / 37% of Live starts (all Club runners were on their own surface). | Club strength on the day, pool reuse |
+| `CLUB_LIFT_OTHER_PERMILLE` | 0 | `liftGenome` | Share of the lift the non-ability stats (durability, adaptability, temperament) get; lifting them with speed, stamina and burst gave Club horses sounder, steadier profiles than player horses of the same mark (+40-55 at mark 45). | Equal-mark parity |
+| `CLUB_MARK_TOLERANCE` | ±2 | `mintClubGenome` | A candidate genome is accepted when its mark is this close to the target. | Club strength precision |
+| `CLUB_MINT_SEARCH_CAP` | 256 candidates | `mintClubGenome` | Most candidate genomes tried before settling for the closest (most of them only to find one that suits a turf sprint or a 2,800 m+ trip). | Mint CPU per Club runner |
+| `CLUB_LIFT_MAX` | ±450 potential points | `liftFor` | The candidate foundation genome's speed, stamina and burst loci move by one amount to hit the target: Club genomes may sit above the season's mint ceilings (needed for marks above ~60). | Reachable marks (17 to about 90) |
+| `CLUB_RARITY_BY_TARGET` | ≤42 common, ≤44 uncommon, ≤46 rare, ≤49 epic, else legendary (refit to the 1.4.0 table) | `clubRarityFor` | Tier the search starts from (natural seasoned medians 41/44/45/47/52), so the lift stays small. | Club genome look/breed mix only |
+| `CLUB_TRIP_FIT_M` | 400 m | `clubFitsRace` | Club runners picked or minted suit the race's trip (players' horses are a median 250 m off theirs; surface: `CLUB_OWN_SURFACE_PERMILLE`). | Club strength on the day, pool reuse (more mints) |
+| `CLUB_POOL_RATING_SLACK` | 15 | `pickHouseHorses` | The pool query reads free Club horses rated within 15 of the window; their real mark decides. | Pool reuse |
+| `CLUB_POOL_READ_PER_RUNNER` | 12 | `pickHouseHorses` | Pool rows read per Club runner needed (order: md5(id ‖ seed commitment), so the whole pool rotates). | Pool reuse, lock cost |
+| Club runners' tactic | the horse's natural running style (was a uniform random tactic) | packages/db/src/services/races.ts `lockFieldTx` | The engine penalises a horse ridden against its style. | Club strength |
+| Club rating recalibration | once per Club horse: rating and peak := real ability mark, marked `dynamics.clubMark` | packages/db/src/services/clubFill.ts | At the first field lock after deploy (marker `club_ratings_calibrated_v1` in economy_config) and every maintenance run for stragglers (unsold Club lots back from the market). After that results move the rating. | Pool honesty, Club lease offers' ratings |
 | Unknown-runner default | OR 40, 10 rated runs | packages/game-core/src/career.ts:149 | Runners without a state. | Rating changes |
 | Story races are rated | tier `quick` rated: true | packages/game-core/src/eligibility.ts:41 | Story results move OR (but not career starts). | Class access, farming |
 
@@ -389,14 +418,14 @@ like the card's `card-slot:<index>`). Shares quoted are turf going over 25 years
 | `VIGOUR_MIN` / `VIGOUR_MAX` | −150 / +150 | packages/game-core/src/genome.ts:110, :111 | Class locus range, added to every stat. | Foal quality |
 | `LAUNCH_MEAN_CEILING` | 600 mean potential | packages/game-core/src/genome.ts:57 | Mint ceiling (packs, starters, gifts, house). | Foal quality of minted horses |
 | `LAUNCH_STAT_CEILING` | 700 per stat | packages/game-core/src/genome.ts:58 | | |
-| `CEILING_STEP_PER_SEASON` / `CEILING_MAX_STEPS` | +10 per season, max 8 steps (680 mean / 780 stat by season 9) | packages/game-core/src/genome.ts:59, :60 | Potential ceilings per season. | Minted horse quality over time, house horse strength |
+| `CEILING_STEP_PER_SEASON` / `CEILING_MAX_STEPS` | +10 per season, max 8 steps (680 mean / 780 stat by season 9) | packages/game-core/src/genome.ts:59, :60 | Potential ceilings per season. | Minted horse quality over time (not Club runners: their genomes are lifted to their target, §7 Club fill) |
 | `ALLELE_HEADROOM` | speed 200, others 250 above the stat ceiling | packages/game-core/src/genome.ts:68 | Hidden breeding value in minted alleles. | Breeding frontier |
 | `GEM_LOCUS_PERMILLE` | 150 | packages/game-core/src/genome.ts:70 | Chance a minted locus hides a high allele. | Hidden value |
 | `OVERALL_WEIGHTS` | all 1 (plain mean) | packages/game-core/src/genome.ts:96 | Headline grade / appraisal mean. | Appraisal, grades |
 | `GRADE_FLOORS` | S 900, A 800, B 700, C 600, D 500, E 0 | packages/game-core/src/genome.ts:276 | Grade labels. | Achievements, Hall (S) |
 | `RARITY_FLOORS` | uncommon 510, rare 540, epic 565, legendary 585 | packages/game-core/src/genome.ts:299 | Rarity from mean potential. | Pack value |
 | `RARITY_MINT_BANDS` | common 470-510, uncommon 510-540, rare 540-565, epic 565-585, legendary 585+ | packages/game-core/src/genome.ts:301 | Mint target per rarity. | Pack foal quality |
-| `NATURAL_RARITY_WEIGHTS` | 600 / 280 / 90 / 25 / 5 | packages/game-core/src/genome.ts:734 | Rarity of minted horses without a target (house horses). | House horse strength |
+| `NATURAL_RARITY_WEIGHTS` | 600 / 280 / 90 / 25 / 5 | packages/game-core/src/genome.ts:734 | Rarity of minted horses without a target (Club runners minted before 2026-10-30; now `CLUB_RARITY_BY_TARGET`). | Pack-less mints |
 | `MINT_VIGOUR_MEAN` / `_SD` / `_GEM_PERMILLE` | −10 / 45 / 100 (gem allele 70-150) | packages/game-core/src/genome.ts:723-725, :856 | Minted vigour. | Hidden value |
 | `MINT_HET_SD` / `MINT_STAT_FLOOR` | 150 / 150 | packages/game-core/src/genome.ts:728, :731 | Minted allele spread and floor. | Hidden value |
 | Breed profile shaping | dev ×1.2 + N(0,45), clamp ±140 | packages/game-core/src/genome.ts:837, :838 | How strongly breeds shape stat profiles. | Niche horses |
@@ -745,9 +774,7 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
 | Sister cap | 5 | packages/db/src/services/card.ts:319 |
 | Calendar min ratings | 95 / 85 | packages/db/src/services/card.ts:176 |
 | Displaced-juvenile lookback | 16 slots | packages/db/src/services/card.ts:271 |
-| House-horse rating when minted | band midpoint `(min + max(min, 40… max))/2` | packages/db/src/services/races.ts:399-403 |
-| House pool scan | `limit(needed × 4)` | packages/db/src/services/races.ts:425 |
-| House tactic | uniform front/stalker/closer | packages/db/src/services/races.ts:387, :458 |
+| House-horse rating when minted | its real ability mark (`clubRunnerSpec`; was the band midpoint until 2026-10-30) | packages/db/src/gameCore.ts |
 | One-per-stable, half-field, sister trigger | rules | packages/db/src/services/races.ts:301, :306, :331 |
 | Qualifying window | 7 days | packages/db/src/services/races.ts:185 |
 | Recap points gap | line = rank `PROMOTE`, gap = line points − yours + 1 | packages/db/src/services/leagues.ts:158-161 |
@@ -864,10 +891,17 @@ Hard-coded inside functions or files, so a harness can't read them from an expor
     packages/game-core/src/eligibility.ts:41), so Story results move OR; `weeklyFlow` counts
     12 Quick starts a week at 240 credits each, but live Story races have purse 0
     (apps/web/src/server/game.ts:877) and pay Story rewards instead.
-14. **House runners.** Their purse shares are never minted (packages/db/src/services/races.ts:597),
-    and new house horses are minted on demand with a rating at the band midpoint, not their
-    ability (packages/db/src/services/races.ts:399-432). The house population grows without a
-    cap as fields lock short.
+14. **House runners.** Their purse shares are never minted (packages/db/src/services/races.ts:597).
+    Until 2026-10-30 new house horses were minted with a rating at the band midpoint, not their
+    ability; they are now honest seasoned horses rated at their real mark (Club fill, §7). The
+    house population still grows without a cap as fields lock short, faster now that a pool
+    horse must also suit the race's trip and surface.
+14a. **Live handicaps carried no weights until engine 1.4.0 (resolved 2026-10-30).** Before,
+    `handicapWeights` was used only by tools/balance/ability.report.ts and Live handicaps ran at
+    level weights, with 1 lb costing only a fifth to a half of an OR point. Since 1.4.0 lockField
+    weights Live handicaps (house runners at their stored rating, now their real mark) and each lb
+    costs 1 OR of ability (game-core `carryWeight`); tools/balance/club-fill.report.ts measures
+    handicaps with the weights as Live races apply them.
 15. **Premium pack credit price.** 2,500 credits (packages/db/src/rules.ts:115) applies only
     with `PREMIUM_PACK_DEMO=1`; the real price is $4.99 in ETH (apps/web/src/server/chain/config.ts:58).
 16. **Starts per day: resolved by `6420a5f`.** The economy model assumed 1-1.5 starts per

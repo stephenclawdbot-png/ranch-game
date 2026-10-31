@@ -71,6 +71,10 @@ export interface DaySample {
     /** Share of all Live runners that belong to players (%). */
     playerShare: number;
     avgPlayerRunners: number;
+    /** Live races won by a player horse (absent in runs before 2026-10-30). */
+    playerWins?: number;
+    /** Player runners in settled Live races (absent in runs before 2026-10-30). */
+    playerRunners?: number;
     sisters: number;
     cancelled: number;
     /** Ordinary card races called off at the close because no player entered (race meetings). */
@@ -78,6 +82,9 @@ export interface DaySample {
     story: number;
     cup: number;
     purses: number;
+    /** Winner-to-last (sum of finish margins) and winning margin of each settled Live race, mm (absent before 2026-10-30). */
+    spreadsMm?: number[];
+    winMarginsMm?: number[];
   };
   /** Live stable entries used per stable (entry cost), and Live starts per stable. */
   entriesPerStable: ByCohort<number>;
@@ -233,10 +240,11 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
   const [stud] = await q<{ n: number }>(db, `select count(*)::int n from horses where stud_fee is not null and owner_stable_id is not null and career_status <> 'pasture'`);
 
   // Races
-  const raceRows = await q<{ kind: string; slot_key: string | null; status: string; n: number; p: number; purse: number; ck: string | null }>(
+  const raceRows = await q<{ kind: string; slot_key: string | null; status: string; n: number; p: number; pw: number; purse: number; ck: string | null }>(
     db,
     `select r.kind, r.slot_key, r.status, r.purse, r.conditions->'calendar'->>'kind' ck,
-            count(e.id) filter (where e.status = 'entered')::int n, count(e.id) filter (where e.status = 'entered' and e.stable_id is not null)::int p
+            count(e.id) filter (where e.status = 'entered')::int n, count(e.id) filter (where e.status = 'entered' and e.stable_id is not null)::int p,
+            count(e.id) filter (where e.status = 'entered' and e.stable_id is not null and e.finish_position = 1)::int pw
        from races r left join race_entries e on e.race_id = r.id
       where r.post_time >= ${from} and r.post_time < ${to} group by r.id`,
   );
@@ -247,6 +255,13 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
   const [purses] = await q<{ s: string }>(
     db,
     `select coalesce(sum(e.prize), 0)::bigint s from race_entries e join races r on r.id = e.race_id where e.stable_id is not null and r.kind in ${LIVE_KINDS} and r.post_time >= ${from} and r.post_time < ${to}`,
+  );
+  // Field spread of settled Live races: winner to last (sum of the finish margins) and the winning margin, mm.
+  const finishes = await q<{ spread: string; margin: string }>(
+    db,
+    `select (select coalesce(sum((f->>'marginMm')::bigint), 0) from jsonb_array_elements(rr.result->'finishOrder') f) spread,
+            coalesce((rr.result->'finishOrder'->1->>'marginMm')::bigint, 0) margin
+       from race_results rr join races r on r.id = rr.race_id where r.kind in ${LIVE_KINDS} and r.post_time >= ${from} and r.post_time < ${to}`,
   );
 
   // Entries and starts per stable
@@ -345,12 +360,16 @@ export async function sampleDay(world: World, day: number, fromMs: number, toMs:
       avgField: round1(live.length ? runners / live.length : 0),
       playerShare: pct(playerRunners, runners),
       avgPlayerRunners: round1(live.length ? playerRunners / live.length : 0),
+      playerWins: sum(live.map((r) => num(r.pw))),
+      playerRunners,
       sisters: live.filter((r) => /^live(?:\d+m)?:\d+:\d+$/.test(r.slot_key ?? "")).length,
       cancelled: raceRows.filter((r) => r.status === "cancelled" && r.kind !== "quick").length,
       calledOff: raceRows.filter((r) => r.status === "cancelled" && (r.kind === "scheduled" || r.kind === "feature") && /^live(?:\d+m)?:/.test(r.slot_key ?? "") && num(r.n) === 0).length,
       story: raceRows.filter((r) => r.kind === "quick" && r.status === "settled").length,
       cup: num(cup?.n),
       purses: num(purses?.s),
+      spreadsMm: finishes.map((f) => num(f.spread)),
+      winMarginsMm: finishes.map((f) => num(f.margin)),
     },
     entriesPerStable: per(entries),
     startsPerStable: per(starts),
@@ -420,6 +439,125 @@ export interface NotableHorse {
   peakOr: number;
   starts: number;
   wins: number;
+}
+
+/** Race-day state of one group of Live runners (medians unless noted). */
+export interface RunnerStateGroup {
+  n: number;
+  mark: number;
+  fitness: number;
+  /** Fatigue at the off (permille). */
+  fatigue: number;
+  /** Mean training realisation over the six stats (permille). */
+  realisation: number;
+  careQuality: number;
+  bond: number;
+  morale: number;
+  freshnessBonus: number;
+  /** Condition multiplier on speed/stamina/burst at the off (permille). */
+  conditionMultiplier: number;
+  /** Shares (%) of runs with a vet check, physio, a jockey above the apprentice; tired at the off (fatigue > TIRED_THRESHOLD). */
+  vetCheckPct: number;
+  physioPct: number;
+  jockeyPct: number;
+  tiredPct: number;
+  /** Mean injury risk per run (permille, game-core injuryRisk at the off) and the injuries that happened. */
+  riskPermille: number;
+  /** Median distance from the horse's preferred trip (m); shares (%) on its preferred surface and ridden all out. */
+  tripOffM: number;
+  surfaceMatchPct: number;
+  allOutPct: number;
+  injuries: number;
+}
+
+export interface RunnerStates {
+  /** Player runners in settled Live races, all and by real ability mark. */
+  players: RunnerStateGroup;
+  playersByMark: Record<string, RunnerStateGroup>;
+  /** Club runners, the same way. */
+  club: RunnerStateGroup;
+  clubByMark: Record<string, RunnerStateGroup>;
+}
+
+const MARK_BUCKETS: readonly [string, number, number][] = [
+  ["<=35", 0, 35],
+  ["36-45", 36, 45],
+  ["46-55", 46, 55],
+  ["56+", 56, 200],
+];
+
+/**
+ * What a Live runner carries on race day (fitness, fatigue, training, care, morale, extras) and
+ * its injury exposure, for players and the Club, by real ability mark. Read from the entry
+ * snapshots of every settled Live race (the state the field locked with).
+ */
+export async function runnerStates(world: World): Promise<RunnerStates> {
+  const rows = await q<{ snapshot: Record<string, unknown> | null; house: boolean; post: string; conditions: Record<string, unknown> | null; race_id: string; horse_id: string; injury: string | null }>(
+    world.db,
+    `select e.snapshot, e.is_house house, r.post_time post, r.conditions, r.id race_id, e.horse_id,
+            (select i.data->>'injury' from inbox_items i where i.kind = 'race_result' and i.dedupe_key = 'race:' || r.id || ':' || e.horse_id limit 1) injury
+       from race_entries e join races r on r.id = e.race_id
+      where r.kind in ${LIVE_KINDS} and r.status = 'settled' and e.status = 'entered'`,
+  );
+  type One = { mark: number; fitness: number; fatigue: number; realisation: number; careQuality: number; bond: number; morale: number; fresh: number; mult: number; vet: boolean; physio: boolean; jockey: boolean; tired: boolean; risk: number; injured: boolean; tripOff: number; surfaceMatch: boolean; allOut: boolean };
+  const players: One[] = [];
+  const club: One[] = [];
+  for (const r of rows) {
+    const parsed = gc.HorseStateSchema.safeParse(r.snapshot?.state);
+    if (!parsed.success) continue;
+    const st = parsed.data;
+    const at = new Date(r.post).getTime();
+    const raceDay = (r.snapshot?.raceDay ?? null) as { extras?: string[]; jockey?: string | null } | null;
+    const extras = Array.isArray(raceDay?.extras) ? raceDay!.extras : [];
+    const c = (r.conditions ?? {}) as { going?: string; distanceM?: number; surface?: string };
+    const going = (["firm", "good", "soft", "heavy"].includes(String(c.going)) ? c.going : "good") as "firm" | "good" | "soft" | "heavy";
+    const cond = gc.conditionReport(st, at);
+    const risk = gc.injuryRisk(st, { nowMs: at, going, distanceM: Number(c.distanceM ?? 1600), intensity: "normal", stage: gc.stageOf(st), raceDay: { extras: extras as gc.RaceExtraKey[] } });
+    const one: One = {
+      mark: gc.abilityMark(st),
+      fitness: st.condition.fitness,
+      fatigue: cond.fatigue,
+      realisation: Math.round(gc.STAT_KEYS.reduce((s, k) => s + st.training.realisation[k], 0) / gc.STAT_KEYS.length),
+      careQuality: st.care.quality,
+      bond: st.condition.bond,
+      morale: cond.morale,
+      fresh: cond.freshnessBonus,
+      mult: cond.multiplier,
+      vet: extras.includes("vet_check"),
+      physio: extras.includes("physio"),
+      jockey: !!raceDay?.jockey && raceDay.jockey !== "apprentice",
+      tired: cond.fatigue > gc.TIRED_THRESHOLD,
+      risk: risk.permille,
+      injured: !!r.injury,
+      tripOff: Math.abs(gc.preferredDistanceM(st.genome) - Number(c.distanceM ?? 1600)),
+      surfaceMatch: gc.preferredSurface(st.genome) === String((r.conditions ?? {}).surface ?? ""),
+      allOut: (r.snapshot?.plan as { intensity?: string } | undefined)?.intensity === "all_out",
+    };
+    (r.house ? club : players).push(one);
+  }
+  const group = (xs: One[]): RunnerStateGroup => ({
+    n: xs.length,
+    mark: median(xs.map((x) => x.mark)),
+    fitness: median(xs.map((x) => x.fitness)),
+    fatigue: median(xs.map((x) => x.fatigue)),
+    realisation: median(xs.map((x) => x.realisation)),
+    careQuality: median(xs.map((x) => x.careQuality)),
+    bond: median(xs.map((x) => x.bond)),
+    morale: median(xs.map((x) => x.morale)),
+    freshnessBonus: median(xs.map((x) => x.fresh)),
+    conditionMultiplier: median(xs.map((x) => x.mult)),
+    vetCheckPct: pct(xs.filter((x) => x.vet).length, xs.length),
+    physioPct: pct(xs.filter((x) => x.physio).length, xs.length),
+    jockeyPct: pct(xs.filter((x) => x.jockey).length, xs.length),
+    tiredPct: pct(xs.filter((x) => x.tired).length, xs.length),
+    riskPermille: round1(mean(xs.map((x) => x.risk))),
+    injuries: xs.filter((x) => x.injured).length,
+    tripOffM: median(xs.map((x) => x.tripOff)),
+    surfaceMatchPct: pct(xs.filter((x) => x.surfaceMatch).length, xs.length),
+    allOutPct: pct(xs.filter((x) => x.allOut).length, xs.length),
+  });
+  const byMark = (xs: One[]) => Object.fromEntries(MARK_BUCKETS.map(([k, lo, hi]) => [k, group(xs.filter((x) => x.mark >= lo && x.mark <= hi))]));
+  return { players: group(players), playersByMark: byMark(players), club: group(club), clubByMark: byMark(club) };
 }
 
 /** Every player run in a calendar race (qualifiers, Weekend Features, finals) and the top-rated player horses. */

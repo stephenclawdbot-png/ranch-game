@@ -247,6 +247,25 @@ speed). A course moves a running style's win share by 5 points or so (Harrowgate
 under 20% or over 45% anywhere, and breed win rates stay where they were (`tools/balance/courses.report.ts`;
 knobs in `KNOBS.md` §6). Story, Daily Cup and older races run course-less, as before.
 
+How fields are filled (Club fill, 2026-10-30; owner: "the Club horses that fill in the race are
+median and above median"). At entry close the Club fills the empty gates up to the race's target
+(5-12). Its runners are honest: a Club horse's stored rating is its real ability mark (ability.ts).
+A minted one is seasoned (at the start of its peak window), suited to the race's trip, its genome
+searched from the race seed until its mark is the target (game-core `clubFill.ts`). No hidden edge:
+a Club runner is trained and cared for like the median active player horse of its mark, and at the
+lock it takes that horse's race-day fitness, fatigue and bond (`CLUB_RACE_DAY`, measured in the
+harness); about a third prefer another surface than the race's, as players' horses do. At equal
+marks a Club horse wins about as often as a player horse (club-fill report: 1.06×). Until then a minted Club horse was an untrained novice stamped with the band's
+midpoint, so a "62" ran like a 29, players ran away with races and their ratings inflated; existing
+Club horses were recalibrated to their real marks once (db `services/clubFill.ts`). Which horses:
+every race but a Story race centres on P, the median real ability mark of the player horses entered;
+the Club's window is [P − 2, P + 10], clipped to the race's band, and its targets lean to the bottom
+(cubed slices), so about half the Club pack is within a couple of marks of P and one or two
+contenders sit near P + 10. A Story race uses its whole band. Free Club horses whose real mark is
+in the window are used first; the shortfall is minted. (A first cut, [band middle, max], put the
+Club above nearly every player in the upper bands; `HARNESS-LOG.md` clubfill1 vs clubfill2,
+`tools/balance/club-fill.report.ts`.)
+
 Close finishes, handicap weights and improvers (2026-10-30, racing-engine 1.4.0): the owner wants
 narrow wins between near-equal horses to be common and a 68 to have a real chance against a 75
 (players enjoy narrow wins most; foregone races are the top complaint, see

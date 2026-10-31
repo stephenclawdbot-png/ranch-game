@@ -12,12 +12,12 @@
  * (lazy-on-read plus the cron backstop) serialise: the first does the work, the rest read
  * the stored outcome. Lock order everywhere: race → stable → horse(s).
  */
-import { and, asc, eq, gte, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, inboxItems, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { bps, placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
-import { bandRatingOf, gc, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
+import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { LIVE_RACE_MODEL, type RaceCourse, type RaceKit, type RaceModel } from "@thoroughbred/shared";
@@ -32,6 +32,7 @@ import { afterLeasedRaceTx, leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseT
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { audit, runTx } from "./tx";
+import { ensureClubCalibrated, trueMarkOf } from "./clubFill";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -152,6 +153,17 @@ export function horseSnapshot(h: HorseRow): Record<string, unknown> {
     /** game-core state at entry (JSON): the web app builds the engine snapshot from it at lock. */
     state: isGenome(h.genome) ? toHorseState(h) : null,
   };
+}
+
+/**
+ * A Club runner's entry snapshot at the lock: its state carries the race-day condition of a
+ * typical player horse of its mark (game-core clubRaceDayState: fitness, fatigue at the off, bond),
+ * whatever its last races left it with, so a Club rating means what a player's does.
+ */
+export function clubSnapshot(h: HorseRow, postMs: number): Record<string, unknown> {
+  const snap = horseSnapshot(h);
+  const state = snap.state as HorseState | null;
+  return state ? { ...snap, state: gc.clubRaceDayState(state, postMs) } : snap;
 }
 
 /** Hard racing eligibility (career, age, lock, injury). Returns a DomainError to throw, or null. */
@@ -530,17 +542,40 @@ function seededShuffle<T>(xs: T[], seed: string, label: string): T[] {
   return out;
 }
 
-function bandRating(c: RaceConditions): number {
-  const lo = c.minRating ?? 0;
-  const hi = c.maxRating ?? Math.max(lo, 40);
-  return Math.round((lo + hi) / 2);
+/**
+ * The ability window this race's Club runners come from (game-core clubWindow): from just below
+ * the entered players' median real ability mark to 10 above it, inside the race's band (Story: its whole band).
+ */
+export async function clubWindowForRace(ex: Executor, race: Pick<RaceRow, "kind" | "conditions" | "raceClass">, playerHorseIds: readonly string[]): Promise<gc.ClubWindow> {
+  const c = (race.conditions ?? {}) as RaceConditions;
+  const kind = gc.clubFillKind({ kind: race.kind, conditions: c });
+  let playerRatings: number[] = [];
+  if (kind !== "story" && playerHorseIds.length) {
+    const rows = await ex.select().from(horses).where(inArray(horses.id, [...playerHorseIds]));
+    // Their real ability marks: a band rating runs well above it for a new horse (OR 40 for a
+    // ~30-35 novice) and for a horse past its peak, which pitched the Club too high (harness clubfill2).
+    playerRatings = rows.map(trueMarkOf);
+  }
+  return gc.clubWindow({ kind, minRating: c.minRating, maxRating: c.maxRating, playerRatings, nominal: gc.clubNominalRating(race.raceClass) });
 }
 
-async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: FieldHooks, now: Date): Promise<HorseRow[]> {
+/**
+ * Club runners for the empty gates (owner, 2026-10-30: "median and above"): `needed` targets
+ * spread across the race's window (clubTargets), each filled by a free Club horse whose REAL
+ * ability mark is in that slice of the window and who suits the race's trip (and, for about two in
+ * three, its surface: CLUB_OWN_SURFACE_PERMILLE, as players' horses), else by
+ * any such horse in the window, else by a newly minted honest Club horse at the slice's target.
+ * Deterministic from the race seed (and the pool's state).
+ */
+async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: FieldHooks, now: Date, playerHorseIds: readonly string[]): Promise<HorseRow[]> {
   if (needed <= 0) return [];
   const c = race.conditions as RaceConditions;
-  // Free house horses of the class band. SKIP LOCKED: concurrent locks of different races
-  // never grab the same horse.
+  // Older Club horses carry stamped ratings: make them honest before reading the pool (once).
+  await ensureClubCalibrated(tx, now);
+  const w = await clubWindowForRace(tx, race, playerHorseIds);
+  const fit = { distanceM: typeof c.distanceM === "number" ? c.distanceM : undefined, surface: typeof c.surface === "string" ? c.surface : undefined };
+  // Free Club horses rated near the window. SKIP LOCKED: concurrent locks of different races
+  // never grab the same horse. A per-race order spreads the work over the whole pool.
   const pool = await tx
     .select()
     .from(horses)
@@ -553,23 +588,49 @@ async function pickHouseHorses(tx: Tx, race: RaceRow, needed: number, hooks: Fie
         eq(horses.origin, "house"),
         eq(horses.careerStatus, "racing"),
         isNull(horses.lockKind),
-        sql`${horses.rating} between ${c.minRating ?? 0} and ${c.maxRating ?? 140}`,
+        sql`${horses.rating} between ${w.lo - gc.CLUB_POOL_RATING_SLACK} and ${w.hi + gc.CLUB_POOL_RATING_SLACK}`,
         c.maxWins !== undefined ? sql`${horses.wins} <= ${c.maxWins}` : sql`true`,
         sql`(${horses.injuredUntil} is null or ${horses.injuredUntil} <= ${now})`,
       ),
     )
-    .orderBy(asc(horses.id))
-    .limit(needed * 4)
+    .orderBy(sql`md5(${horses.id}::text || ${race.seedCommitment})`)
+    .limit(needed * gc.CLUB_POOL_READ_PER_RUNNER)
     .for("update", { skipLocked: true });
-  const chosen = seededShuffle(pool, race.seed, "house-pick").slice(0, needed);
-  // Not enough: breed the house stable deterministically from the race seed.
+  // Only horses whose real ability is in the window and whose trip suits the race.
+  const eligible = seededShuffle(
+    pool.flatMap((h) => {
+      const mark = trueMarkOf(h);
+      const g = genomeOf(h.genome);
+      return mark >= w.lo && mark <= w.hi && (!g || gc.clubFitsRace(g, { distanceM: fit.distanceM })) ? [{ h, mark, g }] : [];
+    }),
+    race.seed,
+    "house-pick",
+  );
+  const targets = gc.clubTargets(w, needed, race.seed);
+  // Like players' horses, about a third of the Club pack prefers another surface (CLUB_OWN_SURFACE_PERMILLE).
+  const slotFit = Array.from({ length: needed }, (_, i) => ({ ...fit, offSurface: !gc.clubOnOwnSurface(race.seed, i) }));
+  const slot: (HorseRow | null)[] = new Array(needed).fill(null);
+  const used = new Set<string>();
+  const take = (i: number, inSlice: boolean) => {
+    const s = gc.clubStratum(w, needed, i);
+    const hit = eligible.find((e) => !used.has(e.h.id) && (!e.g || gc.clubFitsRace(e.g, slotFit[i]!)) && (!inSlice || (e.mark >= s.lo && e.mark <= s.hi)));
+    if (hit) {
+      used.add(hit.h.id);
+      slot[i] = hit.h;
+    }
+  };
+  for (let i = 0; i < needed; i++) take(i, true);
+  for (let i = 0; i < needed; i++) if (!slot[i]) take(i, false);
+  // The shortfall: honest seasoned Club horses minted at the empty slices' targets.
   const make = hooks.houseHorse ?? defaultHooks.houseHorse ?? defaultHouseHorse;
-  for (let i = chosen.length; i < needed; i++) {
-    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: bandRating(c), season: race.seasonNumber ?? seasonNumberAt(now) });
-    const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", now });
-    chosen.push((await lockHorse(tx, id))!);
+  const season = race.seasonNumber ?? seasonNumberAt(now);
+  for (let i = 0; i < needed; i++) {
+    if (slot[i]) continue;
+    const spec = make({ seed: race.seed, index: i, raceClass: race.raceClass, rating: targets[i]!, target: targets[i]!, window: w, season, ...slotFit[i]! });
+    const id = await insertHorse(tx, { stableId: null, spec: { ...spec, careSessions: RULES.careToRacing }, origin: "house", birthSeasonNumber: season, now });
+    slot[i] = (await lockHorse(tx, id))!;
   }
-  return chosen;
+  return slot as HorseRow[];
 }
 
 function defaultHouseHorse(input: { seed: string; index: number; raceClass: string; rating: number }) {
@@ -616,12 +677,18 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
     return null;
   }
   const target = Math.max(players.length, Math.min(race.maxRunners, race.targetRunners));
-  const house = await pickHouseHorses(tx, race, target - players.length, hooks, now);
+  const house = await pickHouseHorses(tx, race, target - players.length, hooks, now, players.map((e) => e.horseId));
 
   type Pending = { horseId: string; stableId: string | null; isHouse: boolean; tactic: string; snapshot: Record<string, unknown>; entryId?: string; or: number };
   const pending: Pending[] = players.map((e) => ({ horseId: e.horseId, stableId: e.stableId, isHouse: false, tactic: e.tactic, snapshot: e.snapshot as Record<string, unknown>, entryId: e.id, or: e.ratingBefore }));
+  // A Club horse is ridden to its natural running style, as players ride theirs (the engine
+  // penalises a horse ridden against its style); rows without a genome draw one from the seed.
   const u = seededUniform(race.seed, "house-tactic");
-  for (const h of house) pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: TACTICS[Math.floor(u() * 3)]!, snapshot: horseSnapshot(h), or: h.rating });
+  for (const h of house) {
+    const g = genomeOf(h.genome);
+    const fallback = TACTICS[Math.floor(u() * 3)]!;
+    pending.push({ horseId: h.id, stableId: null, isHouse: true, tactic: g ? gc.runningStyle(g) : fallback, snapshot: clubSnapshot(h, race.postTime.getTime()), or: h.rating });
+  }
 
   // Gate draw from the committed seed (deterministic, verifiable after the reveal).
   const drawn = seededShuffle(

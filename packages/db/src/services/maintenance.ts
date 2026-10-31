@@ -6,7 +6,8 @@
  *   - completes due pregnancies (the foal always arrives);
  *   - expires market listings (returning the horse to its owner);
  *   - expires lease offers and sends horses home when their lease term is over (leasing.ts);
- *   - once per UTC day, lets the Club list horses for sale and offer horses on lease (clubMarket.ts).
+ *   - once per UTC day, lets the Club list horses for sale and offer horses on lease (clubMarket.ts);
+ *   - sets any Club horse still carrying a stamped rating to its real ability mark (clubFill.ts);
  *   - prunes rate-limit counters past the oldest window anyone counts (rateLimit.ts).
  */
 import { settleUpkeep } from "./upkeep";
@@ -20,6 +21,7 @@ import { expireListings } from "./market";
 import { pruneRateLimits } from "./rateLimit";
 import { sweepLeases } from "./leasing";
 import { runClubMarket, type ClubMarketRun } from "./clubMarket";
+import { sweepClubRatings } from "./clubFill";
 import { runTx } from "./tx";
 
 export interface MaintenanceReport {
@@ -28,6 +30,8 @@ export interface MaintenanceReport {
   listingsExpired: number;
   leasesEnded: number;
   club: ClubMarketRun;
+  /** Club horses whose stamped rating was set to their real ability mark this run. */
+  clubRecalibrated: number;
 }
 
 export async function healInjuries(db: Db, now: Date): Promise<number> {
@@ -53,7 +57,9 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   await settleUpkeep(db, now);
   // After the expiries and the sweep, so the day's caps see today's real supply.
   const club = await runClubMarket(db, now, hooks);
+  // After the expiries: a Club lot that didn't sell is back in the pool, and honest from here.
+  const clubRecalibrated = await sweepClubRatings(db, now);
   // Two windows of the longest limit (1 h): nothing reads a counter this old again.
   await pruneRateLimits(db, { olderThanMs: 2 * 3_600_000, now: now.getTime() });
-  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club };
+  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated };
 }
