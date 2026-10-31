@@ -8,11 +8,16 @@ import {
   DAILY_POINTS_TAKING_PART,
   QUICK_RIDER_SKILLS,
   QUICK_TRIPS,
+  dailyChallengeHorse,
   dailyChallengeInput,
   dailyChallengeSpec,
   dailyHorseId,
   dailyPoints,
   dailyStreak,
+  dailyTopCut,
+  dailyWeightLb,
+  DAILY_RIDER_CLAIM_LB,
+  DAILY_TOP_WEIGHT_LB,
   drawGates,
   matchTally,
   quickConditionsError,
@@ -107,9 +112,24 @@ describe("the daily challenge", () => {
     expect(mine(b).gate).toBe(mine(a).gate);
     expect(mine(b).tactic).toBe("closer");
     expect(mine(b).kit).not.toEqual(mine(a).kit);
-    expect(mine(b).horse.stats.burst).toBeGreaterThan(mine(a).horse.stats.burst);
+    // Riding all out (same rider, so the same weight) lifts the burst.
+    expect(dailyChallengeHorse(spec, { tactic: "closer", intensity: "all_out", grade: "C" }).stats.burst).toBeGreaterThan(mine(a).horse.stats.burst);
     // A different seed is different luck.
     expect(simulateRace(dailyChallengeInput(spec, choice, SEED2)).result.resultHash).not.toBe(simulateRace(a).result.resultHash);
+  });
+});
+
+describe("the daily challenge rider's weight", () => {
+  it("a better rider carries more weight: A the full top weight, E nothing", () => {
+    expect(dailyWeightLb("A")).toBe(DAILY_TOP_WEIGHT_LB);
+    expect(dailyWeightLb("E")).toBe(Math.max(0, DAILY_TOP_WEIGHT_LB - DAILY_RIDER_CLAIM_LB.E));
+    const grades = ["A", "B", "C", "D", "E"] as const;
+    for (let i = 1; i < grades.length; i++) expect(dailyWeightLb(grades[i]!)).toBeLessThanOrEqual(dailyWeightLb(grades[i - 1]!));
+    const spec = dailyChallengeSpec(20_760);
+    const a = dailyChallengeInput(spec, { tactic: "stalker", intensity: "normal", grade: "A" }, SEED);
+    const e = dailyChallengeInput(spec, { tactic: "stalker", intensity: "normal", grade: "E" }, SEED);
+    const mine = (x: typeof a) => x.entries.find((r) => r.horse.id === dailyHorseId(20_760))!;
+    expect(mine(a).horse.stats.speed).toBeLessThanOrEqual(mine(e).horse.stats.speed);
   });
 });
 
@@ -122,6 +142,7 @@ describe("daily challenge standings", () => {
     expect(ranked[1]!.key).toBe("s8");
     expect(ranked.filter((r) => r.top).map((r) => r.key)).toEqual(["s0", "s8"]);
     expect(rankDaily([{ key: "solo", position: 5, finishTimeUs: 1, atMs: 0 }])[0]!.top).toBe(true);
+    expect([0, 1, 9, 10, 19, 20, 100].map(dailyTopCut)).toEqual([0, 1, 1, 1, 1, 2, 10]);
     expect(dailyPoints(1)).toBe(10);
     expect(dailyPoints(4)).toBe(3);
     expect(dailyPoints(8)).toBe(DAILY_POINTS_TAKING_PART);

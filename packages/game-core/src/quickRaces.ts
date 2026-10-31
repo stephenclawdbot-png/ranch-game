@@ -57,6 +57,19 @@ export const DAILY_POINTS: readonly number[] = [10, 7, 5, 3];
 export const DAILY_POINTS_TAKING_PART = 1;
 /** The daily challenge badge: the best this share (permille) of the day's attempts (at least the leader). */
 export const DAILY_TOP_SHARE_PERMILLE = 100;
+/**
+ * The daily challenge's weight question: the Club horse carries DAILY_TOP_WEIGHT_LB, less its
+ * rider's claim (lower grades claim more, as apprentices do in a handicap). A better rider costs
+ * weight, so the grade is a real choice rather than "always A".
+ */
+export const DAILY_TOP_WEIGHT_LB = 4;
+export const DAILY_RIDER_CLAIM_LB: Readonly<Record<JockeyGrade, number>> = { A: 0, B: 1, C: 2, D: 3, E: 4 };
+
+/** lb the daily challenge horse carries with a rider of this grade. */
+export function dailyWeightLb(grade: JockeyGrade): number {
+  return Math.max(0, DAILY_TOP_WEIGHT_LB - DAILY_RIDER_CLAIM_LB[grade]);
+}
+
 /** Every runner without a choice rides with a typical Club freelancer of this grade. */
 export const QUICK_DEFAULT_GRADE: JockeyGrade = "C";
 
@@ -192,7 +205,9 @@ export function dailyHorseId(day: number): string {
  * race seed is separate and secret until the day is over). A Club horse of a middling mark, a trip
  * near its best (or a step off it), its own surface three days in four, a course that races on it,
  * a going for the day, and seven Club rivals of about its strength (a little below to a little
- * above), each with its own style, riding with a C-grade freelancer. A good plan should be able to win most days; the luck is the day's.
+ * above), each with its own style, riding with a C-grade freelancer. The Club horse carries
+ * DAILY_TOP_WEIGHT_LB less its rider's claim, so a better rider costs weight. The best plan wins
+ * about a day in three and makes the first three most days; the luck is the day's.
  */
 export function dailyChallengeSpec(day: number): DailyChallengeSpec {
   const rng = new Rng(seedFrom("daily-challenge", day));
@@ -213,8 +228,8 @@ export function dailyChallengeSpec(day: number): DailyChallengeSpec {
   const going: QuickGoing = surface === "synthetic" ? "good" : rng.pick(["firm", "good", "good", "good", "soft", "soft", "heavy"] as const);
   const weather = going === "good" && rng.chance(250) ? "overcast" : QUICK_GOING_WEATHER[going];
   const conditions = { courseId: course.id, distanceM, surface, going, weather };
-  // The rivals: about the horse's strength on the day (its snapshot ridden normally).
-  const strength = meanStat(raceSnapshot(horse, { nowMs: opensAtMs, silks: DAILY_CHALLENGE_SILKS, race: { going, fieldSize: DAILY_CHALLENGE_FIELD, bigCrowd: false, surface, distanceM }, plan: { tactic: "stalker", intensity: "normal" } }).horse);
+  // The rivals: about the horse's strength on the day (its snapshot ridden normally, carrying a C-grade rider's weight).
+  const strength = meanStat(raceSnapshot(horse, { nowMs: opensAtMs, silks: DAILY_CHALLENGE_SILKS, race: { going, fieldSize: DAILY_CHALLENGE_FIELD, bigCrowd: false, surface, distanceM }, plan: { tactic: "stalker", intensity: "normal" }, extraWeightLb: dailyWeightLb(QUICK_DEFAULT_GRADE) }).horse);
   const gates = drawGates(seedFrom("daily-challenge-gates", day), DAILY_CHALLENGE_FIELD);
   const rivals: DailyRival[] = RIVAL_STYLES.map((style, k) => ({
     gate: gates[k + 1]!,
@@ -225,13 +240,14 @@ export function dailyChallengeSpec(day: number): DailyChallengeSpec {
 }
 
 /** The day's Club horse as it runs with a choice (intensity folds into its stats, as in any race). */
-export function dailyChallengeHorse(spec: DailyChallengeSpec, choice: Pick<DailyChoice, "tactic" | "intensity">): Horse {
+export function dailyChallengeHorse(spec: DailyChallengeSpec, choice: Pick<DailyChoice, "tactic" | "intensity"> & { grade?: JockeyGrade }): Horse {
   const c = spec.conditions;
   return raceSnapshot(spec.horse, {
     nowMs: spec.opensAtMs,
     silks: DAILY_CHALLENGE_SILKS,
     race: { going: c.going, fieldSize: DAILY_CHALLENGE_FIELD, bigCrowd: false, surface: c.surface, distanceM: c.distanceM },
     plan: { tactic: choice.tactic, intensity: choice.intensity },
+    ...(dailyWeightLb(choice.grade ?? "A") > 0 ? { extraWeightLb: dailyWeightLb(choice.grade ?? "A") } : {}),
   }).horse;
 }
 
@@ -269,10 +285,15 @@ export interface DailyStanding extends DailyAttempt {
   points: number;
 }
 
+/** How many of a day's `entrants` attempts earn the badge (the best tenth, at least the leader). */
+export function dailyTopCut(entrants: number): number {
+  return entrants <= 0 ? 0 : Math.max(1, Math.floor((entrants * DAILY_TOP_SHARE_PERMILLE) / 1000));
+}
+
 /** The day's leaderboard: by finishing position, then time, then who went first. */
 export function rankDaily(attempts: readonly DailyAttempt[]): DailyStanding[] {
   const sorted = [...attempts].sort((a, b) => a.position - b.position || a.finishTimeUs - b.finishTimeUs || a.atMs - b.atMs || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  const cut = Math.max(1, Math.floor((sorted.length * DAILY_TOP_SHARE_PERMILLE) / 1000));
+  const cut = dailyTopCut(sorted.length);
   return sorted.map((a, i) => ({ ...a, rank: i + 1, top: i < cut, points: dailyPoints(a.position) }));
 }
 
