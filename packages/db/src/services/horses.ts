@@ -136,7 +136,7 @@ export async function recordCare(db: Db, input: CareInput): Promise<CareResult> 
     const day = utcDay(input.now);
     const inserted = await tx
       .insert(careLog)
-      .values({ horseId: horse.id, accountId: input.accountId, day, actions: input.actions, quality: input.quality ?? 0 })
+      .values({ horseId: horse.id, accountId: input.accountId, day, actions: input.actions, quality: input.quality ?? 0, createdAt: input.now })
       .onConflictDoNothing({ target: [careLog.horseId, careLog.day] })
       .returning({ id: careLog.id });
     if (!inserted[0]) throw new DomainError("ALREADY_CARED_TODAY", "this horse has already been cared for today");

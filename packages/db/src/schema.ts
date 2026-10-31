@@ -473,7 +473,12 @@ export const careLog = pgTable(
     quality: integer("quality").notNull().default(0),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("care_log_horse_day_uq").on(t.horseId, t.day), index("care_log_account_idx").on(t.accountId, t.day)],
+  (t) => [
+    uniqueIndex("care_log_horse_day_uq").on(t.horseId, t.day),
+    index("care_log_account_idx").on(t.accountId, t.day),
+    /** The horse's log (services/horseLog.ts) pages care sessions by time. */
+    index("care_log_horse_created_idx").on(t.horseId, t.createdAt),
+  ],
 );
 
 export const trainingPlans = pgTable(
@@ -496,6 +501,35 @@ export const trainingPlans = pgTable(
   },
   (t) => [uniqueIndex("training_plans_horse_week_uq").on(t.horseId, t.weekStart)],
 );
+
+/**
+ * The horse's log of things no other table keeps (services/horseLog.ts): each training session
+ * (workout, realisation gained per stat, fatigue before and after, realisation after), vet
+ * treatments, injuries picked up in a race and quirks revealed by one. Races, care, ratings,
+ * ownership, leases and breeding are read from their own tables. Append-only; one row per
+ * (horse, dedupe key), so a retried write is a no-op.
+ */
+export const horseLog = pgTable(
+  "horse_log",
+  {
+    id: id(),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** training | vet | injury | quirk */
+    kind: text("kind").notNull(),
+    /** The stable that kept the horse at the time (null for a house horse). */
+    stableId: uuid("stable_id").references(() => stables.id),
+    raceId: uuid("race_id").references(() => races.id),
+    at: ts("at").notNull(),
+    data: jsonb("data").notNull().default({}),
+    dedupeKey: text("dedupe_key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("horse_log_horse_key_uq").on(t.horseId, t.dedupeKey), index("horse_log_horse_at_idx").on(t.horseId, t.at)],
+);
+
+export type HorseLogRow = typeof horseLog.$inferSelect;
 
 // ---------------------------------------------------------------------------
 // Ledger (double-entry). Balances only change via postings (trigger, migration 0001).
@@ -1779,6 +1813,8 @@ export const horseLeases = pgTable(
     index("horse_leases_owner_idx").on(t.ownerStableId, t.status),
     index("horse_leases_lessee_idx").on(t.lesseeStableId, t.status),
     index("horse_leases_due_idx").on(t.status, t.endsAt),
+    /** Every lease a horse has had (the horse's log). */
+    index("horse_leases_horse_idx").on(t.horseId, t.startsAt),
     check("horse_leases_parties", sql`${t.ownerStableId} <> ${t.lesseeStableId}`),
     check("horse_leases_status", sql`${t.status} in ('active', 'ended')`),
     check("horse_leases_club", sql`${t.club} = (${t.ownerStableId} is null)`),

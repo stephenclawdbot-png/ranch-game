@@ -28,7 +28,8 @@ import { consumeEntries, ensureDailyEntries, refundEntries } from "./entries";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { completeGoal } from "./dailyGoals";
 import { isCarrying, keeperOf, lockHorse, startsOnDay } from "./horses";
-import { afterLeasedRaceTx, leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseTx } from "./leasing";
+import { logRaceOutcomeTx } from "./horseLog";
+import { afterLeasedRaceTx,leasedEntryCheckTx, leasedRunnersTx, payLeasedPurseTx } from "./leasing";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Posting } from "./ledger";
 import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { audit, runTx } from "./tx";
@@ -939,6 +940,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
           updatedAt: input.now,
         })
         .where(eq(horses.id, h.id));
+      await logRaceOutcomeTx(tx, { raceId: race.id, horse: h, stableId: e.stableId, now: input.now, fatal, injury: r.injury, state: r.state, quirksRevealed: r.quirksRevealed });
       await tx
         .update(raceEntries)
         .set({ finishPosition: r.position, finishTimeUs: r.finishTimeUs ?? null, prize: prizes[h.id] ?? 0, ratingAfter: r.ratingAfter ?? h.rating })

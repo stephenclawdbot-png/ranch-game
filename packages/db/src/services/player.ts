@@ -4,7 +4,7 @@
  */
 import { and, asc, desc, eq, gte, isNotNull, isNull, like, lt, lte, ne, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
-import { horses, inboxItems, raceEntries, races, stables, type StableRow } from "../schema";
+import { horses, inboxItems, raceEntries, raceResults, races, stables, type StableRow } from "../schema";
 import { gc } from "../gameCore";
 import type { Db, Executor } from "../types";
 import { lockStableOf } from "./accounts";
@@ -12,6 +12,7 @@ import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { audit, rowsOf, runTx } from "./tx";
 import { publicRace, type PublicRace } from "./races";
 import { LIVE_SLOT_KEY_LIKE } from "./card";
+import { formColumns, resultJoin } from "./formBook";
 
 // ---------------------------------------------------------------------------
 // Inbox
@@ -130,7 +131,8 @@ function runWhere(q: StableRunQuery) {
   return where;
 }
 
-const historyColumns = { ...runColumns, horseName: horses.name };
+/** The full form line of each run (formBook.ts) plus the horse's name. */
+const historyColumns = { ...formColumns, horseName: horses.name };
 
 /**
  * One page of a stable's settled runs, newest first (ties broken by race then horse id,
@@ -149,6 +151,7 @@ export async function pageStableRuns(ex: Executor, q: StableRunQuery, cursor: st
     .from(raceEntries)
     .innerJoin(races, eq(races.id, raceEntries.raceId))
     .innerJoin(horses, eq(horses.id, raceEntries.horseId))
+    .leftJoin(raceResults, resultJoin)
     .where(and(...where))
     .orderBy(desc(races.postTime), desc(raceEntries.raceId), desc(raceEntries.horseId))
     .limit(limit + 1);

@@ -708,6 +708,7 @@ export const RESET_TABLES = [
   "ledger_transactions",
   "ledger_accounts",
   "training_plans",
+  "horse_log",
   "care_log",
   "lineage_edges",
   "horses",

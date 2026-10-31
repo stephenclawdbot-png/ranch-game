@@ -115,5 +115,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793389629481,
     "hash": "4284960b4bdee01b2d0b2ea2614be5137f851f5705722d9dc5cb0c3c3d8b34c8",
     "sql": "CREATE TABLE \"rate_limits\" (\n\t\"key\" text NOT NULL,\n\t\"window_start\" bigint NOT NULL,\n\t\"count\" integer DEFAULT 0 NOT NULL,\n\tCONSTRAINT \"rate_limits_key_window_start_pk\" PRIMARY KEY(\"key\",\"window_start\")\n);\n"
+  },
+  {
+    "tag": "0019_horse_log",
+    "when": 1793410741079,
+    "hash": "40f5c5edb9b39628afea18e740ec6896e5dce2fccc6bf7ef3bd1d14cb61d5e90",
+    "sql": "CREATE TABLE \"horse_log\" (\n\t\"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n\t\"horse_id\" uuid NOT NULL,\n\t\"kind\" text NOT NULL,\n\t\"stable_id\" uuid,\n\t\"race_id\" uuid,\n\t\"at\" timestamp with time zone NOT NULL,\n\t\"data\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"dedupe_key\" text NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE \"horse_log\" ADD CONSTRAINT \"horse_log_horse_id_horses_id_fk\" FOREIGN KEY (\"horse_id\") REFERENCES \"public\".\"horses\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nALTER TABLE \"horse_log\" ADD CONSTRAINT \"horse_log_stable_id_stables_id_fk\" FOREIGN KEY (\"stable_id\") REFERENCES \"public\".\"stables\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nALTER TABLE \"horse_log\" ADD CONSTRAINT \"horse_log_race_id_races_id_fk\" FOREIGN KEY (\"race_id\") REFERENCES \"public\".\"races\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nCREATE UNIQUE INDEX \"horse_log_horse_key_uq\" ON \"horse_log\" USING btree (\"horse_id\",\"dedupe_key\");--> statement-breakpoint\nCREATE INDEX \"horse_log_horse_at_idx\" ON \"horse_log\" USING btree (\"horse_id\",\"at\");--> statement-breakpoint\nCREATE INDEX \"care_log_horse_created_idx\" ON \"care_log\" USING btree (\"horse_id\",\"created_at\");--> statement-breakpoint\nCREATE INDEX \"horse_leases_horse_idx\" ON \"horse_leases\" USING btree (\"horse_id\",\"starts_at\");"
   }
 ];
