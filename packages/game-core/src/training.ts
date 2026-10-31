@@ -12,8 +12,8 @@
  */
 import type { HorseState, StatKey, StatRecord, TrainingPlan, Workout } from "./types";
 import { STAT_KEYS } from "./types";
-import { dayIndex, weekIndex } from "./time";
-import { fatigueAt, rollInjury, withFatigue, isHealed, TIRED_THRESHOLD } from "./condition";
+import { MS_PER_HOUR, dayIndex, weekIndex } from "./time";
+import { fatigueAt, rollInjury, withFatigue, isHealed, FRESHNESS_PEAK_FROM_H, FRESHNESS_PEAK_TO_H, FATIGUE_RECOVERY_PER_HOUR, TIRED_THRESHOLD } from "./condition";
 import { stageOf } from "./lifecycle";
 import { isFragile, potentialOf } from "./genome";
 import { pickInjuryKind } from "./injuries";
@@ -129,8 +129,21 @@ export interface TrainingPreview {
   overworked: boolean;
   /** Chance of a minor training knock this session, permille (0 when not tired enough). */
   injuryPermille: number;
-  /** Hard work sets up the freshness peak 3-5 days later. */
-  setsUpPeak: boolean;
+  /**
+   * The freshness peak this session leaves the horse in (condition.ts): hard work sets up a new
+   * one — full bonus from `fromMs`, fading after `toMs`; light work and rest keep the pending
+   * one. Null when there is nothing to keep.
+   */
+  peak: TrainingPeak | null;
+  /** Hours until the fatigue this session leaves is back below the tired line (0 = ready now). */
+  readyInH: number;
+}
+
+export interface TrainingPeak {
+  fromMs: number;
+  toMs: number;
+  /** True when this session's hard work sets the peak up (false = it keeps a pending one). */
+  setsUp: boolean;
 }
 
 function efficiencyOf(state: HorseState, spec: WorkoutSpec, trainerLevel: number, fatigueBefore: number): { eff: number; overworked: boolean } {
@@ -147,6 +160,32 @@ function overworkInjuryPermille(state: HorseState, spec: WorkoutSpec, fatigueBef
   return Math.round(((fatigueBefore - (TIRED_THRESHOLD + 200)) * OVERWORK_INJURY_MAX_PERMILLE * (1500 - dur)) / ((1000 - TIRED_THRESHOLD - 200) * 1000));
 }
 
+/**
+ * Hours until the fatigue a session leaves is back below the tired line (the point where racing
+ * it stops costing anything): recovery at FATIGUE_RECOVERY_PER_HOUR an hour, 0 when it never
+ * went above the line. This is what makes sessions comparable: the fatigue each one adds is
+ * what you wait out before its peak is usable.
+ */
+export function readyInHours(fatigueAfter: number): number {
+  return Math.max(0, Math.ceil((fatigueAfter - TIRED_THRESHOLD) / FATIGUE_RECOVERY_PER_HOUR));
+}
+
+/**
+ * The freshness peak a session leaves the horse in (condition.ts rules). Hard work at `nowMs`
+ * sets up a new one: the full bonus holds from FRESHNESS_PEAK_FROM_H to FRESHNESS_PEAK_TO_H
+ * later — it never waits on fatigue, because even a horse left at 1000 recovers below the
+ * tired line in 59h, inside the 72h the peak takes to build (readyInHours reports that wait
+ * separately). Light work and rest set nothing up: they keep the part of a pending peak still
+ * to come, or nothing when there is none.
+ */
+export function peakAfter(lastHardWorkMs: number | null, nowMs: number, hard: boolean): TrainingPeak | null {
+  if (hard) return { fromMs: nowMs + FRESHNESS_PEAK_FROM_H * MS_PER_HOUR, toMs: nowMs + FRESHNESS_PEAK_TO_H * MS_PER_HOUR, setsUp: true };
+  if (lastHardWorkMs === null) return null;
+  const toMs = lastHardWorkMs + FRESHNESS_PEAK_TO_H * MS_PER_HOUR;
+  if (toMs <= nowMs) return null; // the plateau is over (the tail of the bonus is fading)
+  return { fromMs: Math.max(nowMs, lastHardWorkMs + FRESHNESS_PEAK_FROM_H * MS_PER_HOUR), toMs, setsUp: false };
+}
+
 export function previewTraining(state: HorseState, workout: Workout, ctx: TrainContext): TrainingPreview {
   const spec = WORKOUTS[workout];
   const fatigueBefore = fatigueAt(state, ctx.nowMs);
@@ -157,16 +196,18 @@ export function previewTraining(state: HorseState, workout: Workout, ctx: TrainC
     const r = state.training.realisation[k];
     gains[k] = Math.min(1000, r + realisationGain(r, base, eff)) - r;
   }
+  const fatigueAfter = clampInt(fatigueBefore + spec.fatigue, 0, 1000);
   return {
     workout,
     block,
     cost: spec.cost,
     gains,
     fatigueBefore,
-    fatigueAfter: clampInt(fatigueBefore + spec.fatigue, 0, 1000),
+    fatigueAfter,
     overworked,
     injuryPermille: overworkInjuryPermille(state, spec, fatigueBefore),
-    setsUpPeak: spec.hard,
+    peak: peakAfter(state.condition.lastHardWorkMs, ctx.nowMs, spec.hard),
+    readyInH: readyInHours(fatigueAfter),
   };
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { allowedWorkouts, nextPlannedWorkout, previewTraining, realisationGain, slotsFor, train, DEFAULT_PLAN, WORKOUTS } from "./training";
+import { allowedWorkouts, nextPlannedWorkout, peakAfter, previewTraining, readyInHours, realisationGain, slotsFor, train, DEFAULT_PLAN, WORKOUTS } from "./training";
+import { FATIGUE_RECOVERY_PER_HOUR, TIRED_THRESHOLD } from "./condition";
 import { STAT_KEYS, WorkoutSchema, type Workout } from "./types";
 import { DAY, HOUR, T0, makeHorse } from "./test-helpers";
 import { weekStartMs, weekIndex } from "./time";
@@ -93,5 +94,47 @@ describe("training", () => {
         if (p.injuryPermille === 0) expect(r.injured).toBe(false);
       }),
     );
+  });
+
+  it("each session's peak window and wait come from the fatigue it itself adds (fix 9)", () => {
+    // readyInHours: 0 at or below the tired line, then whole hours of recovery above it.
+    expect(readyInHours(0)).toBe(0);
+    expect(readyInHours(TIRED_THRESHOLD)).toBe(0);
+    expect(readyInHours(TIRED_THRESHOLD + 1)).toBe(1);
+    expect(readyInHours(1000)).toBe(Math.ceil((1000 - TIRED_THRESHOLD) / FATIGUE_RECOVERY_PER_HOUR));
+
+    // A fresh horse (no hard work behind it): the hard session sets up the standard 72-120h window.
+    const h = makeHorse("pv", { starts: 10 });
+    const speed = previewTraining(h, "speed_work", ctx);
+    expect(speed.fatigueAfter).toBe(WORKOUTS.speed_work.fatigue);
+    expect(speed.readyInH).toBe(0); // 260 permille never crosses the tired line
+    expect(speed.peak).toEqual({ fromMs: MON + 72 * HOUR, toMs: MON + 120 * HOUR, setsUp: true });
+    // Light work and rest set nothing up when there is nothing pending to keep.
+    expect(previewTraining(h, "swimming", ctx).peak).toBeNull();
+    expect(previewTraining(h, "rest", ctx).peak).toBeNull();
+
+    // peakAfter directly: even at max fatigue the wait (59h) is shorter than the 72h the peak
+    // takes to build, so the window itself never moves — readyInH is the separate honest number
+    // for how long the horse is below par first.
+    const worst = peakAfter(null, MON, true)!;
+    expect(worst).toEqual({ fromMs: MON + 72 * HOUR, toMs: MON + 120 * HOUR, setsUp: true });
+    expect(worst.fromMs).toBeLessThanOrEqual(worst.toMs);
+    expect(readyInHours(1000) * HOUR).toBeLessThan(72 * HOUR);
+    // Light work keeps a pending window (yesterday's hard work: peak still entirely to come).
+    const yesterday = MON - 24 * HOUR;
+    expect(peakAfter(yesterday, MON, false)).toEqual({ fromMs: yesterday + 72 * HOUR, toMs: yesterday + 120 * HOUR, setsUp: false });
+    // Already inside the plateau: what remains starts now.
+    expect(peakAfter(MON - 96 * HOUR, MON, false)).toEqual({ fromMs: MON, toMs: MON + 24 * HOUR, setsUp: false });
+    // The plateau is over, or there never was one: nothing to keep.
+    expect(peakAfter(MON - 130 * HOUR, MON, false)).toBeNull();
+    expect(peakAfter(null, MON, false)).toBeNull();
+
+    // From a tired horse the same hard session is honestly slower to be race-ready: the fatigue
+    // it leaves is what you wait out, and that wait is what the board now shows per session.
+    const tiredH = { ...h, condition: { ...h.condition, fatigue: 1000, fatigueAtMs: MON } };
+    const tiredSpeed = previewTraining(tiredH, "speed_work", ctx);
+    expect(tiredSpeed.fatigueAfter).toBe(1000);
+    expect(tiredSpeed.readyInH).toBe(readyInHours(1000));
+    expect(tiredSpeed.peak).toEqual({ fromMs: MON + 72 * HOUR, toMs: MON + 120 * HOUR, setsUp: true });
   });
 });

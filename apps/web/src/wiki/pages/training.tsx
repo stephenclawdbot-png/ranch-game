@@ -116,7 +116,7 @@ export default function TrainingPage() {
             gainText(p.gains) + (p.overworked ? " (tired: half)" : ""),
             `${p.fatigueAfter / 10}%`,
             p.injuryPermille > 0 ? pct(p.injuryPermille, 1) : "none",
-            p.setsUpPeak ? "Yes" : "–",
+            p.peak ? (p.peak.setsUp ? "Yes" : "Keeps pending") : "–",
           ])}
         />
       ))}

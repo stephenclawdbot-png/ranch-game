@@ -140,7 +140,10 @@ export interface TrainingPreviewView {
   overworked: boolean;
   /** Chance of a minor knock this session, permille. */
   injuryPermille: number;
-  setsUpPeak: boolean;
+  /** The freshness peak this session leaves the horse in: null when it sets nothing up and there is nothing pending to keep. */
+  peak: { fromMs: number; toMs: number; setsUp: boolean } | null;
+  /** Hours until the fatigue this session leaves is back below the tired line (0 = ready now). */
+  readyInH: number;
 }
 
 export interface CareerStageRow {
