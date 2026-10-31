@@ -95,15 +95,14 @@ describe("stallion finder", () => {
     // Every row: words, one possible look and the fee, nothing else; the single preview's own words.
     const score = new Map<string, number>();
     for (const row of f.rows) {
-      expect(Object.keys(row).sort()).toEqual(["club", "feeCredits", "id", "look", "name", "nick", "outlook", "own", "stableName", "studFeeUsdg", "usdgOnly", "versusMare", "warnings"]);
+      expect(Object.keys(row).sort()).toEqual(["club", "feeCredits", "id", "look", "name", "nick", "outlook", "own", "stableName", "studFeeUsdg", "usdgOnly", "warnings"]);
       expect(Object.keys(row.look).sort()).toEqual(["appearance", "caption"]);
-      expect(Object.keys(row.outlook).sort()).toEqual(["key", "phrase"]);
-      for (const w of [row.outlook.phrase, row.versusMare.phrase, row.nick, row.look.caption, ...row.warnings]) expect(w).not.toMatch(/\d/);
+      expect(Object.keys(row.outlook).sort()).toEqual(["phrase", "tone"]);
+      for (const w of [row.outlook.phrase, row.nick, row.look.caption, ...row.warnings]) expect(w).not.toMatch(/\d/);
       const pv = await breedingPreview(h.db, p, { sireId: row.id, damId: mare }, T0);
       expect(pv.block).toBeNull();
       expect(row.feeCredits).toBe(pv.usdgStudFee !== null ? null : pv.fees.totalPaidByMareOwner);
-      expect(row.outlook).toEqual(pv.outlook);
-      expect(row.versusMare).toEqual(pv.versusMare);
+      expect(row.outlook).toEqual(pv.outlook); // the same sentence as the single preview
       expect(row.nick).toBe(pv.nick);
       expect(row.look).toEqual(pv.looks[0]);
       expect(row.warnings).toEqual(pv.warnings.filter((w) => w.tone === "warn").map((w) => w.text));

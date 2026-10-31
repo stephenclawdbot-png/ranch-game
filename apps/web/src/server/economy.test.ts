@@ -56,7 +56,7 @@ describe("breeding barn", () => {
     expect(blocked.block).toBe("not_breeding_eligible");
     expect(blocked.reason).toMatch(/: Breeds from 25 starts/);
     expect(blocked.looks).toHaveLength(gc.POSSIBLE_LOOKS);
-    expect(Object.values(gc.OUTLOOK_PHRASES)).toContain(blocked.outlook.phrase);
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(blocked.outlook.phrase);
     expect(blocked.fees.studFee).toBe(0);
     await expect(coverMare(h.db, p, { sireId: sire.id, damId: dam.id, key: "cover-blocked" }, T0)).rejects.toMatchObject({ code: "BREEDING_NOT_ELIGIBLE" });
 

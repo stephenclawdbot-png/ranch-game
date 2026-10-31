@@ -679,7 +679,7 @@ function StallionFinder({ v }: { v: BreedingView }) {
 }
 
 function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
-  const tone = OUTLOOK_TONE[r.outlook.key];
+  const tone = OUTLOOK_TONE[r.outlook.tone];
   return (
     <li className={`surface grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center ${top ? "picked" : ""}`} data-testid="finder-row" data-usdg-only={r.usdgOnly}>
       <span className="well grid place-items-center self-start p-1">
@@ -694,10 +694,7 @@ function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
           </span>
           {top && <span className="chip text-brass-bright">Best outlook</span>}
         </span>
-        <span className="font-extrabold leading-snug text-cream" data-testid="finder-versus-mare">
-          {r.versusMare.phrase}
-        </span>
-        <span className="text-sm font-bold leading-snug" style={{ color: tone.color }} data-testid="finder-outlook">
+        <span className="font-extrabold leading-snug" style={{ color: tone.color }} data-testid="finder-outlook">
           <span aria-hidden>{tone.mark} </span>
           {r.outlook.phrase}
         </span>

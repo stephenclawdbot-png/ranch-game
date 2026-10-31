@@ -3,7 +3,7 @@
  * safe to import from client components.
  */
 import type { Horse, HorseAppearance, Silks } from "@thoroughbred/shared";
-import type { BreedingFees, CertaintyKey, NickWord, OutlookKey, OutlookWarning, PityState, VersusMareKey } from "@thoroughbred/game-core";
+import type { BreedingFees, CertaintyKey, NickWord, OutlookTone, OutlookWarning, PityState } from "@thoroughbred/game-core";
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type PackType = "paddock" | "premium";
@@ -121,9 +121,8 @@ export interface PreviewView {
   looks: PossibleLookView[];
   /** "Foals from this pairing could look like this. It's still a chance." */
   looksNote: string;
-  outlook: { key: OutlookKey; phrase: string };
-  /** The foal against your mare, e.g. "Should improve on your mare". */
-  versusMare: { key: VersusMareKey; phrase: string };
+  /** One sentence, e.g. "Usually close to your mare, with a real chance to beat both parents", and its colour. */
+  outlook: { tone: OutlookTone; phrase: string };
   certainty: { key: CertaintyKey; phrase: string };
   nick: NickWord;
   warnings: OutlookWarning[];
@@ -155,9 +154,8 @@ export interface StudFinderRow {
   studFeeUsdg: number | null;
   /** True when he stands only for USDG: listed after the credits ranking, not ranked by credits price. */
   usdgOnly: boolean;
-  outlook: { key: OutlookKey; phrase: string };
-  /** The foal against the mare: what the "Best outlook" order means in words. */
-  versusMare: { key: VersusMareKey; phrase: string };
+  /** The same one-sentence outlook as the single preview. */
+  outlook: { tone: OutlookTone; phrase: string };
   nick: NickWord;
   /** Warnings only (inbreeding, fragile legs), in words. */
   warnings: string[];

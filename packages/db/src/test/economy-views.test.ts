@@ -68,7 +68,7 @@ describe("economy views: breeding", () => {
     expect(pv.ownSire).toBe(false);
     expect(pv.fees).toEqual(gc.breedingFees(800, false));
     expect(pv.fees.burned).toBe(RULES.breedingBaseFee + 80);
-    expect(Object.values(gc.OUTLOOK_PHRASES)).toContain(pv.outlook.outlook.phrase);
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(pv.outlook.outlook.phrase);
     expect(JSON.stringify(pv.outlook)).not.toMatch(/\d/); // words only
     // Built from the public facts alone (the same ones game-core derives from each horse).
     expect(pv.publicSire.id).toBe(stud.id);

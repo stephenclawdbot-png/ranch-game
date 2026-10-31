@@ -11,12 +11,11 @@ import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
 import { PossibleLooks } from "./PossibleLooks";
 import { Credits } from "./kit";
 
-/** Outlook colour by band (always with the words, never colour alone). */
-export const OUTLOOK_TONE: Record<PreviewView["outlook"]["key"], { color: string; mark: string }> = {
-  upside: { color: "#f2c86a", mark: "★" },
-  level: { color: "#9fe0a8", mark: "●" },
-  longshot: { color: "#cdbf9c", mark: "◆" },
-  risk: { color: "#ff8a7a", mark: "▼" },
+/** Outlook colour by tone (always with the words, never colour alone). */
+export const OUTLOOK_TONE: Record<PreviewView["outlook"]["tone"], { color: string; mark: string }> = {
+  bright: { color: "#f2c86a", mark: "★" },
+  steady: { color: "#9fe0a8", mark: "●" },
+  caution: { color: "#ff8a7a", mark: "▼" },
 };
 
 export function nickColor(nick: PreviewView["nick"]): string {
@@ -24,7 +23,7 @@ export function nickColor(nick: PreviewView["nick"]): string {
 }
 
 export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
-  const tone = OUTLOOK_TONE[v.outlook.key];
+  const tone = OUTLOOK_TONE[v.outlook.tone];
   const warns = v.warnings.filter((w) => w.tone === "warn");
   const notes = v.warnings.filter((w) => w.tone === "note");
   return (
@@ -34,12 +33,9 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
       {/* The outlook in words. */}
       <div className="inset grid gap-2 p-3" data-testid="preview-outlook">
         <h4 className="label">Outlook</h4>
-        <p className="t-display-m leading-tight" style={{ color: tone.color }} data-outlook={v.outlook.key}>
+        <p className="t-display-m leading-tight" style={{ color: tone.color }} data-outlook={v.outlook.tone}>
           <span aria-hidden>{tone.mark} </span>
           {v.outlook.phrase}
-        </p>
-        <p className="font-extrabold text-cream" data-testid="preview-versus-mare">
-          {v.versusMare.phrase}
         </p>
         <p className="text-sm text-cream-dim">{v.certainty.phrase}</p>
         <div className="flex flex-wrap gap-1.5">

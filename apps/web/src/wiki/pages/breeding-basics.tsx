@@ -59,8 +59,8 @@ export default function BreedingBasicsPage() {
             Choose a stallion: one of your own (no stud fee), another stable&rsquo;s stallion at stud, or a Club stud.
           </>,
           <>
-            Read the <b>preview</b>: a few <b>possible looks</b> (sample foals drawn for this pairing), an <b>outlook in words</b> (for example &ldquo;A real chance to beat both
-            parents&rdquo;), how the foal might compare with your mare, the nick, and warnings in words (close relatives, fragile legs in the family). It shows no odds and no genes: it is worked
+            Read the <b>preview</b>: a few <b>possible looks</b> (sample foals drawn for this pairing), an <b>outlook in one sentence</b> (for example &ldquo;Usually close to your
+            mare, with a real chance to beat both parents&rdquo;), the nick, and warnings in words (close relatives, fragile legs in the family). It shows no odds and no genes: it is worked
             out only from what is already public about the two horses, so the real foal is still a surprise. See <WikiLink slug="genetics-and-inheritance" />.
           </>,
           <>Pay the fees and cover the mare. The foal&rsquo;s genes are sealed at this moment and can be verified later.</>,

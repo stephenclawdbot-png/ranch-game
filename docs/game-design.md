@@ -345,11 +345,14 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   genes or numbers to be shown"):
   - **possible looks**: 4 sample foals as genetic 3/4 portraits, labelled "Foals from this
     pairing could look like this. It's still a chance." The same samples all day (seeded by the
-    two horses and the UTC day), new ones the next day;
-  - **an outlook in words** from a fixed small vocabulary ("A real chance to beat both
-    parents", "Likely around the parents' level", "A long shot to beat both parents", "Risk of
-    falling below both parents"), how the foal might compare with your mare, and how sure that
-    guess is;
+    two horses and the UTC day), new ones the next day. Coat and v2 genes come from the stud
+    book as they are; the hidden white alleles are drawn from the breed's population prior
+    given each parent's visible face, and the strip shows the first four distinct looks of
+    twelve draws, so it shows the pairing's real variety;
+  - **an outlook in one sentence** from a fixed vocabulary of 16 (typical foal against your
+    mare × upside or risk against both parents), each written so its halves agree, e.g.
+    "Usually close to your mare, with a real chance to beat both parents" or "Usually below
+    your mare, though a few could beat both parents"; plus how sure that guess is;
   - **the nick** as a word ("Good nick"), the foal's breed by name, and **warnings in words**
     (closely related, fragile legs in the family, a parent retired injured, the kind of line).
 

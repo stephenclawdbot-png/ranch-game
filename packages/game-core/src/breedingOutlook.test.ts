@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { previewBreeding } from "./breeding";
 import {
-  OUTLOOK_PHRASES,
+  OUTLOOK_SENTENCES,
   outlookBand,
+  outlookTone,
   outlookNumbers,
   pairingOutlook,
   versusMareBand,
@@ -47,6 +48,7 @@ function hiddenTwin(h: HorseState): HorseState {
       genes2: { ...g.genes2, bigHeart: g.genes2.bigHeart[0] === "bh" && g.genes2.bigHeart[1] === "bh" ? g.genes2.bigHeart : ["bh", "n"] },
       morph: { ...g.morph, legLength: [g.morph.legLength[1] + 1, g.morph.legLength[0] - 1], neckLength: [-g.morph.neckLength[0], -g.morph.neckLength[1]] },
       variants: { head: [7, 7], mane: [6, 6], tail: [5, 5], build: [4, 4] },
+      white: [g.white[1], g.white[0]], // same score, same visible markings, different alleles
     },
   };
 }
@@ -90,6 +92,18 @@ describe("breeding preview from public facts", () => {
     for (const l of today) expect(l.caption.length).toBeGreaterThan(2);
   });
 
+  it("the strip shows the pairing's variety (distinct looks first)", () => {
+    let distinct = 0;
+    for (let i = 0; i < 20; i++) {
+      const looks = possibleLooks(pub(stud(`var-s${i}`)), pub(mare(`var-m${i}`)), 20_391, SILKS);
+      distinct += new Set(looks.map((l) => l.caption)).size;
+      // A repeat only once every distinct look has been shown.
+      const firstRepeat = looks.findIndex((l, j) => looks.findIndex((x) => x.caption === l.caption) !== j);
+      if (firstRepeat >= 0) expect(new Set(looks.slice(firstRepeat).map((l) => l.caption)).size).toBeLessThanOrEqual(looks.length - firstRepeat);
+    }
+    expect(distinct / 20).toBeGreaterThanOrEqual(2.5);
+  });
+
   it("looks follow the parents' public coat genes (two chestnuts never get a black-based foal)", () => {
     const s = stud("chs");
     const m = mare("chm");
@@ -108,7 +122,6 @@ describe("breeding preview from public facts", () => {
     expect(outlookBand(120, 100)).toBe("level");
     expect(outlookBand(119, 100)).toBe("longshot");
     expect(outlookBand(0, 0)).toBe("longshot");
-    expect(Object.keys(OUTLOOK_PHRASES).sort()).toEqual(["level", "longshot", "risk", "upside"]);
     expect(versusMareBand(40)).toBe("better");
     expect(versusMareBand(39)).toBe("bitBetter");
     expect(versusMareBand(12)).toBe("bitBetter");
@@ -124,14 +137,14 @@ describe("breeding preview from public facts", () => {
     const b = { ...s, id: "b", ranges: ranges(600) };
     const far = { ...s, id: "c", ranges: ranges(850) };
     expect(publicLevel(a)).toBe(600);
-    expect(pairingOutlook(a, b, { coi: 0 }).outlook.key).toBe("upside");
-    expect(pairingOutlook(a, far, { coi: 0 }).outlook.key).toBe("longshot");
-    // ...but a much better stallion should still improve on the mare (the dam).
-    expect(pairingOutlook(far, a, { coi: 0 }).versusMare.key).toBe("better");
-    expect(pairingOutlook(a, b, { coi: 0 }).versusMare.key).toBe("same");
-    expect(pairingOutlook(a, far, { coi: 0 }).versusMare.key).toBe("worse");
+    expect(pairingOutlook(a, b, { coi: 0 }).outlook.phrase).toBe(OUTLOOK_SENTENCES.same.upside);
+    // A much better mare: the foal is usually below her and matching her is a long shot...
+    expect(pairingOutlook(a, far, { coi: 0 }).outlook.phrase).toBe(OUTLOOK_SENTENCES.worse.longshot);
+    // ...and a much better stallion improves on the mare (the dam).
+    expect(pairingOutlook(far, a, { coi: 0 }).outlook.phrase).toBe(OUTLOOK_SENTENCES.better.longshot);
     const inbred = pairingOutlook(a, b, { coi: 250 });
-    expect(inbred.outlook.key).toBe("risk");
+    expect(inbred.outlook.phrase).toMatch(/falling below both parents/);
+    expect(inbred.outlook.tone).toBe("caution");
     expect(inbred.warnings.map((w) => w.key)).toContain("inbreeding");
     // A rising line falls back toward its grandparents' level.
     const rising = pairingOutlook(a, b, { coi: 0, grandparents: [{ ranges: ranges(450) }, { ranges: ranges(450) }] });
@@ -140,6 +153,59 @@ describe("breeding preview from public facts", () => {
     // Well-known parents: a clear picture.
     expect(pairingOutlook(a, b, { coi: 0 }).certainty.key).toBe("clear");
     expect(pairingOutlook({ ...a, ranges: Object.fromEntries(STAT_KEYS.map((k) => [k, { lo: 500, hi: 700 }])) as PublicParent["ranges"] }, b, { coi: 0 }).certainty.key).toBe("hazy");
+  });
+
+  it("every (typical vs mare, tail vs both parents) pair is one sentence that can't contradict itself", () => {
+    const versus = ["better", "bitBetter", "same", "worse"] as const;
+    const tails = ["upside", "level", "longshot", "risk"] as const;
+    const all = new Set<string>();
+    for (const v of versus)
+      for (const t of tails) {
+        const line = OUTLOOK_SENTENCES[v][t];
+        all.add(line);
+        expect(line).not.toMatch(/\d|%/);
+        // The typical half says one thing about the mare, and only that.
+        const claims = [/improve on your mare/, /edge past your mare/, /close to your mare/, /below your mare/].filter((r) => r.test(line));
+        expect(claims).toHaveLength(1);
+        expect(claims[0]!.source).toContain(v === "better" ? "improve" : v === "bitBetter" ? "edge past" : v === "same" ? "close" : "below your mare");
+        // Below the mare never comes with "a real chance"; upside is always hedged there.
+        if (v === "worse") expect(line).not.toMatch(/real chance|improve|edge past/);
+        if (v === "worse" && (t === "upside" || t === "level")) expect(line).toMatch(/though (some|a few) could beat both parents/);
+        // A tail of risk never claims upside, and upside never claims risk.
+        if (t === "risk") expect(line).toMatch(/below both parents/);
+        if (t === "upside" || t === "level") expect(line).not.toMatch(/below both parents/);
+        if (t === "longshot") expect(line).not.toMatch(/beat both|below both/);
+        // The colour agrees with the words.
+        const tone = outlookTone(v, t);
+        if (/below your mare|below both/.test(line) && !/beat both/.test(line)) expect(tone).toBe("caution");
+        if (/real chance|improve|edge past/.test(line) && t !== "risk") expect(tone).toBe("bright");
+      }
+    expect(all.size).toBe(16);
+  });
+
+  it("the sentence the outlook picks always matches its own numbers", () => {
+    const base = pub(stud("prop-s"));
+    const ranges = (lvl: number, w: number): PublicParent["ranges"] => Object.fromEntries(STAT_KEYS.map((k) => [k, { lo: lvl - w, hi: lvl + w }])) as PublicParent["ranges"];
+    let n = 0;
+    for (let sl = 400; sl <= 800; sl += 25)
+      for (let ml = 400; ml <= 800; ml += 25)
+        for (const [w, coi] of [[20, 0], [80, 0], [130, 120], [40, 250]] as const) {
+          const sire = { ...base, id: "s", ranges: ranges(sl, w) };
+          const mare = { ...base, id: "m", ranges: ranges(ml, w) };
+          const num = outlookNumbers(sire, mare, { coi });
+          const line = pairingOutlook(sire, mare, { coi }).outlook.phrase;
+          if (/real chance/.test(line)) expect(num.beats).toBeGreaterThanOrEqual(350);
+          if (/long shot/.test(line)) expect(num.beats).toBeLessThan(120);
+          if (/below both parents/.test(line)) expect(num.below).toBeGreaterThanOrEqual(350);
+          if (/improve on your mare/.test(line)) expect(num.versusMare).toBeGreaterThanOrEqual(40);
+          if (/below your mare/.test(line)) expect(num.versusMare).toBeLessThanOrEqual(-12);
+          // "Matching her is a long shot" is only said when she is the better parent.
+          if (/matching her/.test(line)) expect(ml).toBeGreaterThan(sl);
+          // The flagged combination never appears.
+          expect(/below your mare/.test(line) && /real chance/.test(line)).toBe(false);
+          n++;
+        }
+    expect(n).toBeGreaterThan(1000);
   });
 
   it("warns in words about fragile legs and injuries; the outlook has no numbers in it", () => {

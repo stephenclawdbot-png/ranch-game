@@ -209,8 +209,8 @@ export default function GeneticsAndInheritancePage() {
       <P>
         The rules&rsquo; exact odds for this example pairing, worked out from the two example horses&rsquo; true genes (mutations left out; 400 foals are only a sample, so the two can differ
         by a few points). The breeding screen never shows numbers like these for a real pairing: they would give the horses&rsquo; hidden genes away. It shows a few possible looks and an outlook
-        in words, worked out only from what is public about the two horses. For this pair it would read: <b>&ldquo;{ex.outlook.outlook.phrase}&rdquo;</b>,{" "}
-        <b>&ldquo;{ex.outlook.versusMare.phrase.toLowerCase()}&rdquo;</b>, <b>{ex.outlook.nick}</b>.
+        in words, worked out only from what is public about the two horses. For this pair (the dam as your mare) it would read: <b>&ldquo;{ex.outlook.outlook.phrase}.&rdquo;</b>{" "}
+        <b>{ex.outlook.nick}</b>.
       </P>
       <Facts
         title="The rules' exact odds (example horses only)"

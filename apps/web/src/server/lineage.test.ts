@@ -83,7 +83,7 @@ describe("lineage: breeding generations through the server", () => {
     const pv = await breedingPreview(h.db, breeder, { sireId, damId }, at(t));
     expect(pv.block).toBeNull();
     // The player's preview: words only, and this line has grandparents on record.
-    expect(Object.values(gc.OUTLOOK_PHRASES)).toContain(pv.outlook.phrase);
+    expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(pv.outlook.phrase);
     expect(pv.warnings.map((w) => w.key)).not.toContain("foundation");
     expect(pv.looks).toHaveLength(gc.POSSIBLE_LOOKS);
     const c2 = await coverMare(h.db, breeder, { sireId, damId, key: "g2" }, at(t));

@@ -64,7 +64,7 @@ const TERMS: Entry[] = [
   ["Novice", "The race class for horses with only a couple of wins.", "race-types"],
   ["Nursery", "Where foals wait when every stall is taken.", "growing-up"],
   ["OR", `Official rating, ${gc.OR_MIN} to ${gc.OR_MAX}: the handicapper's mark of how good a horse is.`, "ratings-and-form"],
-  ["Outlook", "The breeding preview's words for how a foal of a pairing might turn out, e.g. \"A real chance to beat both parents\". Never odds.", "breeding-basics"],
+  ["Outlook", "The breeding preview's words for how a foal of a pairing might turn out, e.g. \"Usually close to your mare, with a real chance to beat both parents\". Never odds.", "breeding-basics"],
   ["Paddock", "Where the runners parade before the off.", "entering-a-race"],
   ["Peak rating", "The highest rating a horse has reached. Rating bands check against it.", "ratings-and-form"],
   ["Peak window", "The stretch of starts in which a horse is at its best.", "racing-career"],

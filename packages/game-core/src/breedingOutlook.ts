@@ -27,12 +27,12 @@
  */
 import type { FaceMarking, HorseAppearance, Silks, Surface } from "@thoroughbred/shared";
 import { COI_WARN, nickRating } from "./breeding";
-import { adultCoatName, appearanceOf, resolveMarkings } from "./coat";
+import { FACE_STEPS, adultCoatName, appearanceOf, resolveMarkings } from "./coat";
 import { inherit } from "./genetics";
 import { breedLabel, visibleTraits } from "./geneticsSummary";
-import { INBREEDING_AFFECTED, INBREEDING_DEPRESSION_PERMILLE, OVERALL_WEIGHTS, blendBreeds, distanceBand, isFragile, preferredDistanceM, preferredSurface } from "./genome";
+import { INBREEDING_AFFECTED, INBREEDING_DEPRESSION_PERMILLE, OVERALL_WEIGHTS, blendBreeds, breedBlend, distanceBand, isFragile, preferredDistanceM, preferredSurface } from "./genome";
 import { revealedRanges } from "./phenotype";
-import { clampInt, seedFrom } from "./rng";
+import { Rng, clampInt, seedFrom } from "./rng";
 import { STAT_KEYS, type BreedShares, type CoatGenes, type DistanceAllele, type Genes2, type Genome, type HorseState, type StatRecord } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -91,18 +91,47 @@ export const LOOKS_NOTE = "Foals from this pairing could look like this. It's st
 
 /**
  * White-spotting score a visible face marking stands for (the middle of its band in
- * coat.ts FACE_STEPS). A parent's hidden white alleles are replaced by this, so the sample
- * foals' markings follow what the parents visibly show.
+ * coat.ts FACE_STEPS): the fallback when no prior draw fits the visible marking.
  */
 export const FACE_WHITE_SCORE: Record<FaceMarking, number> = { none: 20, star: 57, snip: 82, stripe: 110, blaze: 150, bald: 200 };
+/** Spread of one white allele around the breed's mean in the population prior (the mint's, genome.ts). */
+export const LOOK_WHITE_SD = 18;
+/** Prior draws tried per parent before falling back to FACE_WHITE_SCORE. */
+export const LOOK_WHITE_TRIES = 24;
+/** Sample foals drawn per preview; the strip shows the first POSSIBLE_LOOKS distinct looks among them. */
+export const LOOK_CANDIDATES = 12;
+/** Per-horse jitter on the face score (coat.ts resolveMarkings). */
+const FACE_JITTER = 15;
+
+const sabinoCount = (p: PublicParent) => (p.coat.sabino[0] === "Sb1" ? 1 : 0) + (p.coat.sabino[1] === "Sb1" ? 1 : 0);
 
 /**
- * A genome holding only the public facts about a parent (coat, v2 loci, breed, visible white);
- * every hidden locus is a fixed neutral value, so the samples can't depend on it.
+ * A parent's hidden white alleles, drawn from the breed's population prior (breed-blend mean,
+ * LOOK_WHITE_SD) and kept only when they could give the face marking the parent visibly has
+ * (its FACE_STEPS band, widened by the ±15 jitter). Never the true alleles.
  */
-function lookGenome(p: PublicParent): Genome {
-  const sabino = (p.coat.sabino[0] === "Sb1" ? 1 : 0) + (p.coat.sabino[1] === "Sb1" ? 1 : 0);
-  const white = clampInt(FACE_WHITE_SCORE[p.face] - 50 * sabino, 0, 200);
+function priorWhite(p: PublicParent, rng: Rng): [number, number] {
+  const sb = sabinoCount(p);
+  const i = FACE_STEPS.findIndex(([f]) => f === p.face);
+  const lo = FACE_STEPS[i]![1] - FACE_JITTER;
+  const hi = i + 1 < FACE_STEPS.length ? FACE_STEPS[i + 1]![1] + FACE_JITTER : 10_000;
+  const mean = breedBlend(p.breed, (q) => q.white);
+  for (let t = 0; t < LOOK_WHITE_TRIES; t++) {
+    const w0 = clampInt(Math.round(mean + rng.normal() * LOOK_WHITE_SD), 0, 100);
+    const w1 = clampInt(Math.round(mean + rng.normal() * LOOK_WHITE_SD), 0, 100);
+    const score = w0 + w1 + 50 * sb;
+    if (score >= lo && score < hi) return [w0, w1];
+  }
+  const white = clampInt(FACE_WHITE_SCORE[p.face] - 50 * sb, 0, 200);
+  return [clampInt(Math.floor(white / 2), 0, 100), clampInt(white - Math.floor(white / 2), 0, 100)];
+}
+
+/**
+ * A genome holding only the public facts about a parent (coat, v2 loci, breed) plus white
+ * alleles drawn from the prior; every other hidden locus is a fixed neutral value, so the
+ * samples can't depend on it.
+ */
+function lookGenome(p: PublicParent, white: [number, number]): Genome {
   const flat: [number, number] = [0, 0];
   return {
     version: 2,
@@ -115,7 +144,7 @@ function lookGenome(p: PublicParent): Genome {
     maturity: ["normal", "normal"],
     coat: p.coat,
     genes2: p.genes2,
-    white: [clampInt(Math.floor(white / 2), 0, 100), clampInt(white - Math.floor(white / 2), 0, 100)],
+    white,
     morph: { legLength: flat, neckLength: flat, girth: flat, height: flat, headSize: flat },
     variants: { head: [0, 0], mane: [0, 0], tail: [0, 0], build: [0, 0] },
     quirks: { mudlark: [0, 0], gateShy: [0, 0], lateKick: [0, 0], crowdShy: [0, 0] },
@@ -135,24 +164,36 @@ export interface PossibleLook {
   caption: string;
 }
 
+/** Sample foal number `i` of a pairing on a day. */
+function sampleLook(sire: PublicParent, dam: PublicParent, day: number, silks: Silks, i: number): PossibleLook {
+  const rng = new Rng(seedFrom("breeding-look-white", sire.id, dam.id, day, i));
+  const sg = lookGenome(sire, priorWhite(sire, rng));
+  const dg = lookGenome(dam, priorWhite(dam, rng));
+  const g = inherit(sg, dg, seedFrom("breeding-look", sire.id, dam.id, day, i));
+  const appearance = appearanceOf(g, { racingAge: true, starts: 0, retired: false }, silks);
+  const face = FACE_WORD[appearance.face];
+  return { appearance, caption: [adultCoatName(g.coat), ...(face ? [face] : []), ...visibleTraits(g)].join(" · ") };
+}
+
 /**
- * Sample foals of a pairing, drawn from the public facts only (`lookGenome`) with the same
- * inheritance rules as a real foal. Seeded by the two horses and the UTC day number, so the
- * preview shows the same samples all day (repeating it can't farm statistics), and new ones
- * the next day. Drawn as young racehorses (a grey is already dappling).
+ * Sample foals of a pairing with the same inheritance rules as a real foal, from public facts
+ * only: the stud-book coat and v2 genes as they are, and the hidden white alleles drawn from
+ * the breed's population prior given each parent's visible face (`priorWhite`), never the true
+ * genes. Seeded by the two horses and the UTC day number, so the preview shows the same
+ * samples all day (repeating it can't farm statistics), and new ones the next day. Of
+ * LOOK_CANDIDATES draws, the strip shows the first `count` distinct looks (then repeats, when
+ * the pairing has fewer), so it shows the pairing's real variety; the first draw always leads
+ * (it is the finder's one look). Drawn as young racehorses (a grey is already dappling).
  */
 export function possibleLooks(sire: PublicParent, dam: PublicParent, day: number, silks: Silks, count: number = POSSIBLE_LOOKS): PossibleLook[] {
-  const sg = lookGenome(sire);
-  const dg = lookGenome(dam);
-  const out: PossibleLook[] = [];
-  for (let i = 0; i < count; i++) {
-    const g = inherit(sg, dg, seedFrom("breeding-look", sire.id, dam.id, day, i));
-    const appearance = appearanceOf(g, { racingAge: true, starts: 0, retired: false }, silks);
-    const face = FACE_WORD[appearance.face];
-    const caption = [adultCoatName(g.coat), ...(face ? [face] : []), ...visibleTraits(g)].join(" · ");
-    out.push({ appearance, caption });
-  }
-  return out;
+  const first = sampleLook(sire, dam, day, silks, 0);
+  if (count <= 1) return count === 1 ? [first] : [];
+  const all = [first];
+  for (let i = 1; i < Math.max(count, LOOK_CANDIDATES); i++) all.push(sampleLook(sire, dam, day, silks, i));
+  const seen = new Set<string>();
+  const distinct = all.filter((l) => !seen.has(l.caption) && (seen.add(l.caption), true));
+  const rest = all.filter((l) => !distinct.includes(l));
+  return [...distinct, ...rest].slice(0, count);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,14 +229,8 @@ export const OUTLOOK_CLEAR_WIDTH = 64;
  */
 export const OUTLOOK_BANDS = { riskBelow: 350, riskMargin: 50, realChance: 350, level: 120 } as const;
 
+/** The tail of the foal's spread against both parents (internal: half of the outlook sentence). */
 export type OutlookKey = "upside" | "level" | "longshot" | "risk";
-/** The fixed vocabulary of the outlook (the only thing a player sees of the numbers). */
-export const OUTLOOK_PHRASES: Record<OutlookKey, string> = {
-  upside: "A real chance to beat both parents",
-  level: "Likely around the parents' level",
-  longshot: "A long shot to beat both parents",
-  risk: "Risk of falling below both parents",
-};
 
 export type CertaintyKey = "clear" | "hazy";
 export const CERTAINTY_PHRASES: Record<CertaintyKey, string> = {
@@ -210,13 +245,56 @@ export const CERTAINTY_PHRASES: Record<CertaintyKey, string> = {
  * "worse". This is what the stallion finder's "Best outlook" order means in words.
  */
 export const VERSUS_MARE_BANDS = { better: 40, bitBetter: 12, same: -12 } as const;
+/** The typical foal against the mare (internal: the other half of the outlook sentence). */
 export type VersusMareKey = "better" | "bitBetter" | "same" | "worse";
-export const VERSUS_MARE_PHRASES: Record<VersusMareKey, string> = {
-  better: "Should improve on your mare",
-  bitBetter: "Could improve on your mare a little",
-  same: "Close to your mare's level",
-  worse: "Likely below your mare",
+
+/**
+ * The outlook: ONE sentence per (typical foal vs the mare, tail vs both parents) pair, the
+ * whole fixed vocabulary a player sees of the numbers. Both halves come from the same internal
+ * spread, and each sentence is written so its halves agree: a typical foal below the mare only
+ * ever pairs with "though some / a few could beat both parents", never "a real chance".
+ * Combinations the maths can't produce (better + risk: a foal above the mare that is often
+ * below both parents) still get a sentence that reads true.
+ *
+ * Why "below your mare" + "a long shot" says "matching her is a long shot": a long shot leaves
+ * under 12% of foals above the better parent, and a foal typically below the mare with that
+ * little upside means the mare is the better parent (were she the weaker one, more than half
+ * the foals would fall below both: the risk band).
+ */
+export const OUTLOOK_SENTENCES: Record<VersusMareKey, Record<OutlookKey, string>> = {
+  better: {
+    upside: "Likely to improve on your mare, with a real chance to beat both parents",
+    level: "Likely to improve on your mare, and could even beat both parents",
+    longshot: "Likely to improve on your mare",
+    risk: "Likely to improve on your mare, though some could fall below both parents",
+  },
+  bitBetter: {
+    upside: "Could edge past your mare, with a real chance to beat both parents",
+    level: "Could edge past your mare; a few could beat both parents",
+    longshot: "Could edge past your mare",
+    risk: "Could edge past your mare, though some could fall below both parents",
+  },
+  same: {
+    upside: "Usually close to your mare, with a real chance to beat both parents",
+    level: "Usually close to your mare; a few could beat both parents",
+    longshot: "Usually close to your mare",
+    risk: "Usually close to your mare, with a risk of falling below both parents",
+  },
+  worse: {
+    upside: "Usually below your mare, though some could beat both parents",
+    level: "Usually below your mare, though a few could beat both parents",
+    longshot: "Usually below your mare; matching her is a long shot",
+    risk: "Usually below your mare, with a risk of falling below both parents",
+  },
 };
+
+/** How the sentence is coloured: bright (good news), steady, caution. Always with the words. */
+export type OutlookTone = "bright" | "steady" | "caution";
+export function outlookTone(versus: VersusMareKey, tail: OutlookKey): OutlookTone {
+  if (tail === "risk" || (versus === "worse" && tail === "longshot")) return "caution";
+  if ((versus !== "worse" && tail === "upside") || versus === "better" || versus === "bitBetter") return "bright";
+  return "steady";
+}
 
 /** The band for the foal's expected level minus the mare's public level. */
 export function versusMareBand(diff: number): VersusMareKey {
@@ -234,9 +312,8 @@ export interface OutlookWarning {
 
 /** What the player sees: words only. */
 export interface PairingOutlook {
-  outlook: { key: OutlookKey; phrase: string };
-  /** The foal against the mare (the dam). */
-  versusMare: { key: VersusMareKey; phrase: string };
+  /** One sentence (OUTLOOK_SENTENCES) and its colour. */
+  outlook: { tone: OutlookTone; phrase: string };
   certainty: { key: CertaintyKey; phrase: string };
   /** How well the lines combine, from public facts (outlook, trips, surfaces, kinship). */
   nick: NickWord;
@@ -327,6 +404,7 @@ export function outlookNumbers(sire: PublicParent, dam: PublicParent, opts: Outl
 export function pairingOutlook(sire: PublicParent, dam: PublicParent, opts: OutlookOptions): PairingOutlook {
   const n = outlookNumbers(sire, dam, opts);
   const key = outlookBand(n.beats, n.below);
+  const versus = versusMareBand(n.versusMare);
   const nick = nickRating(n.beats / 1000, sire.tripBand === dam.tripBand ? 1 : 0.5, sire.surface === dam.surface ? 1 : 0.5, opts.coi).label;
   const warnings: OutlookWarning[] = [];
   if (opts.coi >= COI_WARN) warnings.push({ key: "inbreeding", tone: "warn", text: "Closely related: higher risk of weakness (less durability and temperament, more bad mutations)." });
@@ -337,8 +415,7 @@ export function pairingOutlook(sire: PublicParent, dam: PublicParent, opts: Outl
   else if (n.lineage === "foundation") warnings.push({ key: "foundation", tone: "note", text: "Foundation stock: no grandparents on record, so only the parents set the family limits." });
   else warnings.push({ key: "established", tone: "note", text: "Established line: the family sets how far above its best a foal can land." });
   return {
-    outlook: { key, phrase: OUTLOOK_PHRASES[key] },
-    versusMare: { key: versusMareBand(n.versusMare), phrase: VERSUS_MARE_PHRASES[versusMareBand(n.versusMare)] },
+    outlook: { tone: outlookTone(versus, key), phrase: OUTLOOK_SENTENCES[versus][key] },
     certainty: { key: n.clear ? "clear" : "hazy", phrase: CERTAINTY_PHRASES[n.clear ? "clear" : "hazy"] },
     nick: `${nick} nick` as NickWord,
     warnings,
