@@ -1204,11 +1204,6 @@ dialog.sheet :focus-visible {
     background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.88) 100%);
     pointer-events: none;
   }
-  /* Still scenes are painted in full daylight: a taller, deeper shade keeps the title and meta readable. */
-  .scene-band.still::after {
-    height: 100%;
-    background: linear-gradient(180deg, rgba(8, 21, 14, 0.2) 0%, rgba(8, 21, 14, 0.7) 45%, rgba(8, 21, 14, 0.95) 100%);
-  }
   .scene-band .overlay {
     position: absolute;
     left: 0;
@@ -1627,15 +1622,6 @@ body {
   background: transparent;
 }
 /* Ledger pages sit over their area's scene, blurred and dimmed (the world never disappears). */
-/* Still scene bands: eyebrow and meta get the title's ink outline (unlayered, so it beats the
-   one-pixel drop utilities on them). */
-.scene-band.still .overlay p {
-  text-shadow:
-    1px 0 0 #050d08,
-    -1px 0 0 #050d08,
-    0 1px 0 #050d08,
-    0 -1px 0 #050d08;
-}
 .scene-backdrop {
   position: fixed;
   inset: -40px;
@@ -2066,6 +2052,20 @@ select.field option {
 .scene-band::after {
   height: 50%;
   background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.55) 70%, rgba(8, 21, 14, 0.75) 100%);
+}
+/* Still scenes are painted in full daylight: a taller, deeper shade, and the eyebrow and meta get
+   an ink outline on top of the scrim shadow, keep the text readable on busy art. */
+.scene-band.still::after {
+  height: 100%;
+  background: linear-gradient(180deg, rgba(8, 21, 14, 0.15) 0%, rgba(8, 21, 14, 0.62) 45%, rgba(8, 21, 14, 0.92) 100%);
+}
+.scene-band.still .overlay p {
+  text-shadow:
+    1px 0 0 #050d08,
+    -1px 0 0 #050d08,
+    0 1px 0 #050d08,
+    0 -1px 0 #050d08,
+    0 0 12px rgba(0, 0, 0, 0.8);
 }
 /* Text on art always gets a scrim-strength shadow (REDESIGN §2b: text never sits bare on art). */
 .scene-band .overlay .eyebrow,
