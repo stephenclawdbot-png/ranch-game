@@ -42,7 +42,13 @@ export interface JockeyCard {
   potential: string;
   rides: number;
   wins: number;
+  /** Career strike rate: percent of career rides won (null before the first ride). */
+  strikeRate: number | null;
+  /** Settled rides this season. */
+  ridesThisSeason: number;
   winsThisSeason: number;
+  /** The least a booking costs (the grade's floor fee); null for stable jockeys, who ride free. */
+  feeFrom: number | null;
   claimLb: number;
   stableId: string | null;
   stableName: string | null;
@@ -53,7 +59,7 @@ export interface JockeyCard {
   mine: boolean;
 }
 
-function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0): JockeyCard {
+function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0, ridesThisSeason = 0): JockeyCard {
   const p = gc.JOCKEY_PERSONALITY_LABELS[v.personality];
   return {
     id: v.id,
@@ -75,7 +81,10 @@ function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0):
     potential: v.potential.overall.label,
     rides: v.rides,
     wins: v.wins,
+    strikeRate: v.rides > 0 ? Math.round((v.wins * 100) / v.rides) : null,
+    ridesThisSeason,
     winsThisSeason,
+    feeFrom: v.stableId === null && !v.retired ? gc.freelanceFee(v.grade, 0) : null,
     claimLb: v.claimLb,
     stableId: v.stableId,
     stableName: v.stableName,
@@ -97,6 +106,11 @@ export interface JockeysPageView {
   season: number;
   jockeys: JockeyCard[];
   leaderboard: { jockey: JockeyCard; wins: number; rides: number }[];
+  /**
+   * Career winners, best first: the sidebar's table before this season has its first winner
+   * (playtest fix 13 — a fresh season used to show an empty "Leading jockeys" column).
+   */
+  careerLeaders: JockeyCard[];
   signedIn: boolean;
   held: number;
   max: number;
@@ -109,13 +123,19 @@ export async function jockeysPage(db: Db, session: Session | null, filter: Jocke
   const viewer = session?.stable.id ?? null;
   const wins = await jockeyWinsBetween(db, s.startsAt, s.endsAt);
   const list = await listJockeys(db, { filter, stableId: viewer });
-  const board = await jockeyLeaderboard(db, { from: s.startsAt, to: s.endsAt, limit: 10 });
+  // The season board carries every jockey's settled rides this season, so it doubles as the
+  // source for the list's "rides this season" column.
+  const board = await jockeyLeaderboard(db, { from: s.startsAt, to: s.endsAt, limit: 1000 });
+  const seasonRides = new Map(board.map((b) => [b.jockey.id, b.rides] as const));
+  const careerPool = filter === "all" ? list : await listJockeys(db, {});
   const held = viewer ? (await stableJockeys(db, viewer)).length : 0;
+  const toCard = (v: JockeyView) => card(v, viewer, wins.get(v.id) ?? 0, seasonRides.get(v.id) ?? 0);
   return {
     filter,
     season: s.number,
-    jockeys: list.map((v) => card(v, viewer, wins.get(v.id) ?? 0)),
-    leaderboard: board.map((b) => ({ jockey: card(b.jockey, viewer, b.wins), wins: b.wins, rides: b.rides })),
+    jockeys: list.map(toCard),
+    leaderboard: board.slice(0, 10).map((b) => ({ jockey: toCard(b.jockey), wins: b.wins, rides: b.rides })),
+    careerLeaders: [...careerPool].sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name)).slice(0, 10).map(toCard),
     signedIn: !!session,
     held,
     max: gc.JOCKEYS_PER_STABLE_MAX,
