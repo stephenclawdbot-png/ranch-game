@@ -335,16 +335,33 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 - **Rules.**
   - A horse can't breed with itself.
   - Parent and child, and full siblings, are blocked.
-  - The COI penalty shows in the preview.
+  - Close relatives get a warning in words in the preview ("closely related: higher risk of
+    weakness"); the COI penalty itself applies at the cover.
   - Breeding needs a mare and a stallion that are both of breeding age.
 - **Stud market.** Owners list stallions with a stud fee in credits; the platform takes 10%,
   which is burned as a sink.
-- **The breeding preview** is the depth engine:
-  - predicted ranges per stat, coat colour probabilities (with real genetics) and aptitudes;
-  - the COI;
-  - a "nick" rating for how well two lines combine.
+- **The breeding preview** shows what a foal *might* be, never the odds (owner decision
+  2026-10-31: "breeding preview just what maybe it looks like but its still a chance, no geeky
+  genes or numbers to be shown"):
+  - **possible looks**: 4 sample foals as genetic 3/4 portraits, labelled "Foals from this
+    pairing could look like this. It's still a chance." The same samples all day (seeded by the
+    two horses and the UTC day), new ones the next day;
+  - **an outlook in words** from a fixed small vocabulary ("A real chance to beat both
+    parents", "Likely around the parents' level", "A long shot to beat both parents", "Risk of
+    falling below both parents"), how the foal might compare with your mare, and how sure that
+    guess is;
+  - **the nick** as a word ("Good nick"), the foal's breed by name, and **warnings in words**
+    (closely related, fragile legs in the family, a parent retired injured, the kind of line).
 
-  You see the odds before you commit.
+  It is built only from what is already public about the two horses (stud-book coat and v2
+  genes, breed, visible markings, the revealed potential ranges, published trip and surface,
+  fragile legs, injury, pedigree), never from their true genotypes, so previewing a horse
+  against known partners can't reveal its hidden alleles. No percentages, grades, ranges, COI
+  or nick numbers reach the browser; the only numbers are the fees. The real foal is still drawn
+  from the true genotypes at the cover and revealed at birth. The stallion finder ranks every
+  available stallion for a mare by the same public-facts outlook and shows words, one possible
+  look and the fee (sorts: best outlook, or fee low to high). Code: game-core
+  `breedingOutlook.ts`; the exact-odds `previewBreeding` stays internal (wiki examples, tests).
 - **Breeding fee:** a base credit fee plus the stud fee. It's a major sink.
 
 ## 8. Economy (Phase 1, no token)

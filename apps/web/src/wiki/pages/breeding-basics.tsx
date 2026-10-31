@@ -59,8 +59,9 @@ export default function BreedingBasicsPage() {
             Choose a stallion: one of your own (no stud fee), another stable&rsquo;s stallion at stud, or a Club stud.
           </>,
           <>
-            Read the <b>preview</b>: the foal&rsquo;s likely potential, its chance to beat or fall below both parents, coat odds, the family limits, inbreeding and the fragile-legs chance. See{" "}
-            <WikiLink slug="genetics-and-inheritance" />.
+            Read the <b>preview</b>: a few <b>possible looks</b> (sample foals drawn for this pairing), an <b>outlook in words</b> (for example &ldquo;A real chance to beat both
+            parents&rdquo;), how the foal might compare with your mare, the nick, and warnings in words (close relatives, fragile legs in the family). It shows no odds and no genes: it is worked
+            out only from what is already public about the two horses, so the real foal is still a surprise. See <WikiLink slug="genetics-and-inheritance" />.
           </>,
           <>Pay the fees and cover the mare. The foal&rsquo;s genes are sealed at this moment and can be verified later.</>,
           <>
@@ -107,8 +108,8 @@ export default function BreedingBasicsPage() {
       </P>
       <Callout tone="gamble">
         <p>
-          Breeding is never a sure thing. In the game&rsquo;s own tests, about half of good × good foals came out below both parents, and almost as many beat both. The preview gives the exact odds
-          for your pairing before you pay.
+          Breeding is never a sure thing. In the game&rsquo;s own tests, about half of good × good foals came out below both parents, and almost as many beat both. The preview shows what a foal
+          could look like and an outlook in words, never exact odds: it&rsquo;s still a chance, and the real foal is revealed at birth.
         </p>
       </Callout>
     </>

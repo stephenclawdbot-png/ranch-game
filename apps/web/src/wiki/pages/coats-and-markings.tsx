@@ -112,7 +112,7 @@ function withG2(seed: string, over: Partial<gc.Genes2>, coat: Partial<gc.CoatGen
   return { ...g, coat: genes(coat), genes2: { ...gc.WILD_GENES2, ...over } };
 }
 
-/** The preview's odds for a trait in a pairing. */
+/** The rules' odds for a trait in an example pairing (the game's internal exact odds; never shown for a real horse). */
 const traitOdds = (sire: gc.Genome, dam: gc.Genome, name: string) =>
   gc.previewBreeding(asHorse("wiki-sire", "colt", sire), asHorse("wiki-dam", "filly", dam), {}, 1).traits.find((t) => t.name === name)?.permille ?? 0;
 
@@ -192,7 +192,7 @@ export default function CoatsAndMarkingsPage() {
   const hiddenOdds = coatOdds(baySire, bayDam);
   const panel = gc.geneticsSummary(baySire, appearanceOfGenome(baySire), []);
 
-  // Genetics-v2 pattern odds, straight from the preview.
+  // Genetics-v2 pattern odds under the rules (example horses).
   const patternOdds: [string, string, number][] = [
     ["Tobiano (TO/n) × plain", "Tobiano", traitOdds(withG2("to-s", { tobiano: ["TO", "n"] }), withG2("to-d", {}), "Tobiano")],
     ["Two pearl carriers (prl/n, no cream)", "Pearl", traitOdds(withG2("prl-s", { pearl: ["prl", "n"] }), withG2("prl-d", { pearl: ["prl", "n"] }), "Pearl")],
@@ -278,7 +278,7 @@ export default function CoatsAndMarkingsPage() {
           return <HorseCard key={name} appearance={appearanceOfGenome(g)} name={name === "Sabino" ? `${gc.adultCoatName(g.coat)}, sabino` : gc.adultCoatName(g.coat)} line={line} size="sm" />;
         })}
       </HorseRow>
-      <P>Genes stack: a buckskin that is also dun is a dunskin; a palomino roan is a palomino with the roan gene. The game names the combination, and the preview shows its odds.</P>
+      <P>Genes stack: a buckskin that is also dun is a dunskin; a palomino roan is a palomino with the roan gene. The game names the combination.</P>
 
       <H2 id="grey">Grey: born coloured, white by the end</H2>
       <P>
@@ -315,7 +315,8 @@ export default function CoatsAndMarkingsPage() {
       <H2 id="hidden-copies">Hidden copies and coat odds</H2>
       <P>
         Because black beats red and bay beats black, a horse can carry a gene it doesn&rsquo;t show. Two bays that each carry red (<b>E/e</b>) and black (<b>A/a</b>) look identical to any other bay, but
-        their foals can come out in three colours. The <WikiLink slug="breeding-basics">breeding preview</WikiLink> works out the exact odds from the true genes:
+        their foals can come out in three colours. These are the inheritance rules at work on two example horses (the{" "}
+        <WikiLink slug="breeding-basics">breeding preview</WikiLink> doesn&rsquo;t show odds: it shows a few possible looks, drawn from the coat genes in each horse&rsquo;s stud-book record):
       </P>
       <HorseRow>
         <HorseCard appearance={appearanceOfGenome(baySire)} name="Bay sire" line="E/e A/a" size="sm" />
@@ -331,7 +332,7 @@ export default function CoatsAndMarkingsPage() {
               {c.name} {Math.round(c.permille / 10)}%
             </span>
           ))}
-          : every foal gets one cream copy from the cremello and red from both. The preview shows greys as &ldquo;Grey&rdquo;, since that is what they end up as.
+          : every foal gets one cream copy from the cremello and red from both. In the preview&rsquo;s possible looks, a grey foal is drawn already dappling, as it will look at racing age.
         </p>
       </Callout>
 
@@ -345,7 +346,7 @@ export default function CoatsAndMarkingsPage() {
         head={["Gene", "One copy", "Two copies", "Most common in"]}
         rows={PATTERN_GENES.map(([locus, name, one, two]) => [name, one, two, topCarriers(locus)])}
       />
-      <P>Odds the breeding preview gives for some pairings, worked out by the game:</P>
+      <P>What the inheritance rules give for some example pairings, worked out by the game:</P>
       <Table
         head={["Pairing", "Foals that show it"]}
         rows={patternOdds.map(([label, name, permille]) => [label, `${Math.round(permille / 10)}% ${name.toLowerCase()}`])}

@@ -101,7 +101,7 @@ export default function UsdgMarketPage() {
       <Steps
         items={[
           <>
-            In the <GameLink href="/breeding">breeding barn</GameLink>, pick your mare and his name. The preview shows the same odds as any covering, plus <b>Pay {usd(studExample)} USDG to</b> his
+            In the <GameLink href="/breeding">breeding barn</GameLink>, pick your mare and his name. The preview shows the same possible looks and outlook as any covering, plus <b>Pay {usd(studExample)} USDG to</b> his
             owner&rsquo;s stable.
           </>,
           <>

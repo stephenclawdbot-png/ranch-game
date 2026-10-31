@@ -89,7 +89,7 @@ export default function FragileLegsPage() {
           </>,
         ]}
       />
-      <P>The breeding preview combines both. Here are the chances for some common pairings, straight from the game&rsquo;s own calculation:</P>
+      <P>The rules combine both. Here are the chances for some example pairings, straight from the game&rsquo;s own calculation:</P>
       <Table
         head={["Pairing", "Chance the foal has fragile legs"]}
         rows={scenarios.map(([label, sire, dam, injured]) => [label, pct(gc.fragileChance(sire, dam, injured))])}
@@ -109,8 +109,8 @@ export default function FragileLegsPage() {
             information, so you can check any stallion at stud before you book him. See <WikiLink slug="coats-and-markings">reading the Genetics panel</WikiLink>.
           </>,
           <>
-            <b>The breeding preview.</b> If there is any chance, the preview shows &ldquo;Fragile legs&rdquo; with the percentage, and says whether it comes from a parent&rsquo;s injury or from a
-            parent that carries the gene.
+            <b>The breeding preview.</b> If there is any chance, the preview warns in words: &ldquo;Fragile legs in the family&rdquo; when a parent has them, or &ldquo;A parent&rsquo;s racing
+            ended in an injury&rdquo;. It gives no percentage; the table above shows how the rule works.
           </>,
           <>
             <b>The entry sheet.</b> &ldquo;Fragile legs (inherited)&rdquo; appears among the injury risk factors. See <WikiLink slug="injuries-and-insurance" />.

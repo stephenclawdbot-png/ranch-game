@@ -79,3 +79,7 @@ The breeding preview computes odds from the true (hidden) genotypes, so a carefu
 alleles by previewing against known partners. Either (a) keep it as a deliberate scouting mechanic and say
 so in the wiki, or (b) compute the preview from revealed information only (wider, honest-uncertainty odds).
 Recommendation: (b) for hidden-copy traits, keep exact odds for what's already revealed.
+
+**Decided (owner, 2026-10-31):** "breeding preview just what maybe it looks like but its still a chance, no
+geeky genes or numbers to be shown". The preview now shows possible looks and an outlook in words, built
+from public facts only (no percentages anywhere); see game-design.md §7.

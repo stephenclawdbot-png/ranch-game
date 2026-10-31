@@ -122,6 +122,13 @@ flowchart LR
   active -->|release| clubpool[Club]
 ```
 
+The breeding preview (2026-10-31) shows possible looks (sample foals as portraits) and an outlook,
+nick and warnings in words, never odds or genes: it is computed only from what is public about
+the two horses (stud-book coat and v2 genes, breed, visible markings, revealed potential ranges,
+published trip and surface, fragile legs, injury, pedigree), so previewing can't reveal hidden
+alleles. The foal itself is still drawn from the true genotypes at the cover. The stallion finder
+ranks on the same public-facts outlook (game-core `breedingOutlook.ts`, KNOBS §9).
+
 Levers: breedings per lifetime and per season, career length, fatal share, regression of
 foals toward the family (family limits, ~half of good x good foals land below both parents),
 pack supply (crop cap, weekly limits). Harness metrics: `horses.born`, `horses.retired`,

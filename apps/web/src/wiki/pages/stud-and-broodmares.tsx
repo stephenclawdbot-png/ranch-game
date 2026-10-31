@@ -2,7 +2,7 @@ import * as gc from "@thoroughbred/game-core";
 import { formatCredits } from "@/lib/format";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
 
-/** A real pairing's fragile-legs chance, as the breeding preview shows it, with and without injured parents. */
+/** An example pairing's fragile-legs chance under the rules, with and without injured parents. */
 function fragileExample() {
   const sire = sampleGenome("stud-sire-2");
   const dam = sampleGenome("stud-dam-5");
@@ -112,13 +112,13 @@ export default function StudAndBroodmaresPage() {
       </P>
       <P>
         There is a catch. A parent whose career ended in an injury passes <WikiLink slug="fragile-legs" /> to each foal {pct(gc.FRAGILE_FROM_INJURY_PERMILLE)} of the time, on top of any fragile
-        gene it already carries. The breeding preview shows the chance before you pay. For these two real horses:
+        gene it already carries. The breeding preview warns you in words before you pay. Under the rules, for two example horses:
       </P>
       <Table head={["Pairing", "Chance the foal has fragile legs"]} rows={ex.rows.map(([k, v]) => [k, pct(v)])} />
       <Callout tone="gamble">
         <p>
-          Breeding from an injured champion is a gamble on the bloodline against the legs. Fragile legs raise a horse&rsquo;s injury risk for its whole career, so weigh the preview&rsquo;s odds
-          before you cover.
+          Breeding from an injured champion is a gamble on the bloodline against the legs. Fragile legs raise a horse&rsquo;s injury risk for its whole career, so weigh the preview&rsquo;s
+          warning before you cover.
         </p>
       </Callout>
       <P>

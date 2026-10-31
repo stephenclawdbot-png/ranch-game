@@ -145,9 +145,10 @@ within ±5 points, and no breed's mean win rate in a mixed field may be outside 
 
 ## Breeding preview and horse page
 
-- Breeding preview: odds for every new visible trait ("25 % chance of chestnut", "50 %
-  tobiano"), the foal's exact breed %, the named-cross label, and a "Hidden genes" line when a
-  recessive could surface ("both carry pearl: 25 % pearl foal").
+- Breeding preview (changed 2026-10-31, owner decision): no odds or genes any more. It shows
+  possible looks (sample foals drawn from the parents' public stud-book genes, so new colours
+  and patterns, hidden copies included, can turn up), the outlook in words and the foal's
+  named-cross label. See game-design.md §7 and game-core `breedingOutlook.ts`.
 - Genetics summary (`geneticsSummary.ts`): a line for each new gene, using the same carried
   flags.
 
