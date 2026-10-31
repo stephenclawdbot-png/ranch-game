@@ -490,7 +490,7 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
           <p className="label">Bet slip</p>
           {currency === "TUSDG" && (
             <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="tote-tusdg-note">
-              <PracticeBadge /> From your one T-USDG balance (the same as the market&rsquo;s). Needs your wallet signed in.
+              <PracticeBadge /> From your one T-USDG balance (the same as the market&rsquo;s). No wallet needed in the beta.
             </p>
           )}
           {selected ? (

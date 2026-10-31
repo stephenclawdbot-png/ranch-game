@@ -80,6 +80,9 @@ function spyAll(obj: object, methods: string[]) {
 
 beforeAll(async () => {
   vi.stubEnv("USDG_MODE", "practice");
+  // Without LOGIN_CODE_SECRET there is no practice identity: a wallet is required, as tested here.
+  // The wallet-less practice identity is tested in practice-identity.test.ts.
+  vi.stubEnv("LOGIN_CODE_SECRET", "");
   h = await createDb({ url: null, pglite: "memory" });
   const cfg = readUsdgConfig(ON);
   const chain = new PracticeUsdgChain(cfg.chainId, cfg.market, cfg.token);

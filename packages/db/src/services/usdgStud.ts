@@ -31,11 +31,11 @@ import { RULES, seasonNumberAt } from "../rules";
 import { fraudEvents, horses, inboxItems, pregnancies, usdgOrders, type HorseRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, lockStable, stableOf } from "./accounts";
-import { verifiedWalletOf } from "./betaMoney";
 import { BREED_BLOCK_CODES, coverTx, pedigreeIndex, studRestingError, studRestingUntilOf } from "./breeding";
 import { breedingStateOf } from "./economyViews";
 import { lockOwnedHorse, withdrawLeaseOffersTx } from "./horses";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
+import { marketWalletOf, orderWalletOf } from "./practiceIdentity";
 import { audit, runTx } from "./tx";
 import { fulfilUsdgOrder, getUsdgOrder, isUsdgRegistered, releaseStudBooking, usdgOrderIsLive, usdgPolicy, type UsdgChainRef, type UsdgFulfilResult } from "./usdgMarket";
 
@@ -65,7 +65,7 @@ export async function setUsdgStudFee(db: Db, input: { accountId: string; horseId
       throw new DomainError("BREEDING_LIMIT", `${horse.name} has used every breeding and can't stand at stud.`, { block: "lifetime_limit" });
     }
     if (!(await isUsdgRegistered(tx, horse.id))) throw new DomainError("NOT_ELIGIBLE", "Only a stallion registered for the USDG market can stand for a USDG fee.");
-    if (!(await verifiedWalletOf(tx, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first: stud fees are paid to it.");
+    if (!(await marketWalletOf(tx, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first: stud fees are paid to it.");
     const block = gc.usdgStudFeeBlock(input.fee, policy);
     if (block === "not_integer") throw new DomainError("INVALID_INPUT", "A USDG stud fee is a whole number of micro-USDG.");
     if (block === "below_min") throw new DomainError("PRICE_BELOW_FLOOR", `The lowest USDG stud fee is ${gc.formatUsdgDollars(policy.studFeeMin)}.`, { floor: policy.studFeeMin });
@@ -149,9 +149,10 @@ export async function quoteUsdgStud(db: Db, input: { accountId: string; sireId: 
     await assertStallFree(tx, lockedStable, { allowOverflow: true });
 
     const ownerAccount = await accountIdOfStable(tx, sire.ownerStableId);
-    const payerWallet = await verifiedWalletOf(tx, input.accountId);
+    // Practice orders may use practice identities; a real-chain order only verified wallets.
+    const payerWallet = await orderWalletOf(tx, input.accountId, input.chain.market);
     if (!payerWallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
-    const ownerWallet = await verifiedWalletOf(tx, ownerAccount);
+    const ownerWallet = await orderWalletOf(tx, ownerAccount, input.chain.market);
     if (!ownerWallet) throw new DomainError("NOT_ELIGIBLE", "The stallion's owner has no linked wallet right now, so his USDG stud fee can't be paid.");
     if (lower(payerWallet) === lower(ownerWallet)) throw new DomainError("LINKED_ACCOUNTS", "Paid coverings between linked accounts are not allowed.");
 

@@ -164,14 +164,15 @@ flowchart LR
 - Horse page: "Register for the USDG market" (requirements checklist, fee), then list or
   auction.
 - Wallet connect and network switch (existing SIWE flow); testnet faucet link on testnet.
-- Practice mode: T-USDG balance with the badge, a wallet chip, the explainer, one "Pay N T-USDG"
+- Practice mode: T-USDG balance with the badge, a wallet chip (or the stable name without a wallet), the explainer, one "Pay N T-USDG"
   button per order; no network switch, no faucet (see "Practice mode").
 
 ## Practice mode (T-USDG, the closed beta)
 
 **Owner decision (2026-10-31):** "For the testers I don't want them to spend money yet... pretend
 the USDG is just test, like credits, but shown as USDG, but they still need to log in using a
-wallet." Turned on explicitly with **`USDG_MODE=practice`** (exactly that value; a near miss such
+wallet." (The owner later dropped the wallet requirement for T-USDG features: see "Practice
+identity" below; a wallet still works and is preferred when linked.) Turned on explicitly with **`USDG_MODE=practice`** (exactly that value; a near miss such
 as `Practice` is a configuration error, never a silent fallback to real money). It wins over
 `WEB3_ENABLED`, `HORSE_MARKET_ADDRESS` and every key: in practice mode nothing touches a chain
 (no RPC, no contract write, no signer, no ETH price feed).
@@ -183,15 +184,17 @@ fees, Premium Packs and the tote's T-USDG pools. A ledger transaction can never 
 so T-USDG is never convertible to or from Stable Credits; it is never withdrawable or purchasable,
 and there is no faucet.
 
-- **Grant:** `PRACTICE_USDG_GRANT` = **100 T-USDG**, once per account (idempotency key
-  `usdg-practice:grant:<account>`), on the first wallet sign-in, founding or wallet link while
-  practice mode is on (and lazily when a wallet holder opens a T-USDG view). Refused outside
-  practice mode.
+- **Grant:** `PRACTICE_USDG_GRANT` = **100 T-USDG**, once per **account** (idempotency key
+  `usdg-practice:grant:<account>`, never per wallet), when the stable is founded, on a wallet
+  sign-in or link, before a first T-USDG tote bet, and lazily when a T-USDG view opens, while
+  practice mode is on. Linking a wallet later never grants it again. Refused outside practice mode.
 - **Admin top-up:** `POST /api/admin/usdg { action: "practice_topup", stable, amount, key }`
   (stable name or account id, decimal T-USDG, idempotent per key, max 10,000 per top-up).
-- **Wallet required:** every T-USDG action needs a verified wallet (the existing SIWE sign-in or
-  link; signing is free). Auction bids are still EIP-712 signatures from the linked wallet,
-  signed on whatever network the wallet is on (no network switch) and verified locally.
+- **No wallet required (owner request 2026-10-31, testing phase):** every T-USDG action needs a
+  *market identity*: the verified wallet when one is linked, else the account's **practice
+  identity** (below). A tester with a linked wallet still signs auction bids with it (EIP-712, on
+  whatever network the wallet is on, no network switch, verified locally); a tester without one
+  just taps and the server signs for their practice identity.
 - **Payments:** orders keep every market rule (requirements, reservation, 15-minute hold, 5 % fee,
   auction window and fallback, non-payer bar, the 12 h stallion rest). Instead of a chain payment,
   `POST /api/usdg/orders/<id>/practice-pay` moves the T-USDG and runs the normal fulfilment in
@@ -209,6 +212,51 @@ and there is no faucet.
   share** on practice purchases (decision taken: practice money pays nobody).
 - **Horses and trophies** are owned in the game only. No NFTs.
 
+### Practice identity (no wallet needed)
+
+Owner request (2026-10-31): "once they make an account make it linked with a fake EVM address for
+the sake of marketplace, or just use their username for it, then wallet address if they are linked".
+
+- **What it is:** in practice mode only, an account without a verified wallet gets a deterministic
+  EVM key the server holds: `HMAC-SHA256(LOGIN_CODE_SECRET, "post-time-practice-wallet:<accountId>")`
+  taken as a secp256k1 private key (rehashed with a counter in the ~2^-128 case it is 0 or >= n).
+  Its address is the account's *practice address*. Code: `apps/web/src/server/chain/practiceIdentity.ts`
+  (derivation, signing; registered with the DB on import of `server/db.ts`) and
+  `packages/db/src/services/practiceIdentity.ts` (the rules).
+- **One helper:** `marketWalletOf(account)` = the verified wallet if linked, else the practice address
+  (practice mode + `LOGIN_CODE_SECRET` set), else null. Every T-USDG call site uses it: the grant,
+  `practicePay`, registration, listing, fixed-price buy, bids and the auction close, USDG stud fees
+  (setting and booking), T-USDG packs, the T-USDG tote. Orders use `orderWalletOf`, which only allows
+  a practice address on a **practice** order (the placeholder market); a real-chain order is written
+  with verified wallets only.
+- **Signing:** where a wallet would sign (an auction bid), the server signs with the practice key;
+  the player just taps. A signature sent by the client for a practice identity is ignored. The key is
+  never stored, logged or sent to a client.
+- **Display:** players see their **stable name** ("● Stable name" chip), never the practice
+  address; the views (`/api/usdg`, the horse panel, checkout status) carry `wallet` = the VERIFIED
+  wallet only plus `identity: "wallet" | "practice" | null`. A linked wallet is shown as before.
+- **Linking a real wallet later (the rule):** money is keyed by **account** (the T-USDG ledger
+  account, the grant's idempotency key, practice payments go account to account), so a link changes
+  no balance and gives no second grant. New registrations, listings, bids and orders use the real
+  wallet (and a wallet holder signs their own bids again). Rows made earlier under the practice
+  address stay valid: the practice address is permanently that account's own (derived from its id;
+  nobody else can sign for it), so `holdsMarketAddress` accepts either identity while practice mode
+  is on: an open bid made under the practice address is still offered at the close, a listing made
+  under it still sells (the seller is paid in the ledger, not to an address).
+- **Anti-farm and linked accounts:** unchanged. The grant stays once per account; practice addresses
+  are unique per account, so the wallet-equality checks never match two accounts; the linked-account
+  refusals (`areLinked`, fraud events) still apply to every trade, bid and covering.
+- **Real money never sees it:** affiliates (`services/affiliates.ts`, `chain/affiliates.ts`), the
+  Prize Pool (`chain/pool.ts`), ETH checkout (`chain/checkout.ts` `quoteCheckout`), admin chain
+  routes, beta money payouts (`betaMoney.ts`), wallet sign-in / `accountForWallet` and SIWE keep
+  `verifiedWalletOf`, which never returns a practice address. A real-chain sale order also requires
+  the listing's seller wallet to still be the seller's verified wallet (`sellerPayable`), so a lot or
+  auction listed under a practice address can never be paid with real money.
+- **Outside practice mode** (or without `LOGIN_CODE_SECRET`) the practice identity does not exist:
+  `marketWalletOf` is exactly `verifiedWalletOf` and every T-USDG feature needs a wallet as before.
+  The end-of-beta reset deletes practice listings, bids and orders with the balances.
+- Tests: `packages/db/src/test/practice-identity.test.ts`, `apps/web/src/server/chain/practice-identity.test.ts`.
+
 ### Real-money path audit (practice mode)
 
 | Path | Code | Real money in practice mode? | What happens instead |
@@ -224,6 +272,7 @@ and there is no faucet.
 | Tote | db `services/tote.ts` | No | Credits pools always; T-USDG pools only in practice mode, from the one T-USDG balance; never real USDG |
 | Race sponsorships | db `services/sponsorship.ts` | No (never was) | Stable Credits only |
 | Wallet link statement | `apps/web/src/server/chain/wallet.ts` | – | The SIWE text says nothing is paid or charged during the beta |
+| Practice identity (no-wallet testers) | `chain/practiceIdentity.ts`, db `services/practiceIdentity.ts` | No | Server-held key per account, practice orders only; ETH checkout, pool, affiliates, payouts and sign-in use `verifiedWalletOf` and never see it; real-chain sale orders need the seller's current verified wallet |
 | Beta money config | `apps/web/src/server/chain/config.ts` | – | `USDG_MODE=practice` forces `enabled: false` (mock beta chain, no RPC) whatever `WEB3_ENABLED` says |
 
 Tests: `apps/web/src/server/chain/usdg-practice.test.ts` (every chain method, the beta chain's

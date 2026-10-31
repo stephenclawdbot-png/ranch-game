@@ -10,10 +10,11 @@
  *   There is no withdrawal, no purchase and no transfer outside a market payment. ONE balance
  *   per account, shared by the USDG market, USDG stud fees, Premium Packs and the tote's T-USDG
  *   pools (services/tote.ts uses the same ledger accounts).
- * - Grant: `PRACTICE_USDG_GRANT` (game-core, 100 T-USDG) once per account (idempotency key
- *   `usdg-practice:grant:<account>`), when it is wallet-signed-in or wallet-linked while practice
- *   mode is on (refused outside practice mode). Admins can top an account up (`topUpPracticeUsdg`).
- *   There is no other faucet.
+ * - Grant: `PRACTICE_USDG_GRANT` (game-core, 100 T-USDG) once per ACCOUNT (idempotency key
+ *   `usdg-practice:grant:<account>`), to any account with a market identity while practice mode is
+ *   on (a verified wallet, or the server-held practice identity: services/practiceIdentity.ts), so a
+ *   tester who links a real wallet later gets no second grant. Refused outside practice mode.
+ *   Admins can top an account up (`topUpPracticeUsdg`). There is no other faucet.
  * - Payment: `payUsdgOrderPractice` replaces "the chain verified the payment": in ONE database
  *   transaction it moves the T-USDG (payer -> seller `price - fee`, payer -> practice burn `fee`;
  *   a registration fee goes wholly to the burn) and runs the existing fulfilment
@@ -38,14 +39,14 @@ import { DomainError } from "../errors";
 import { gc } from "../gameCore";
 import { chainOrders, horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type ChainOrderRow, type UsdgListingRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor } from "../types";
-import { verifiedWalletOf } from "./betaMoney";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY } from "./ledger";
+import { marketWalletOf, USDG_PRACTICE_MARKET } from "./practiceIdentity";
 import { audit, runTx } from "./tx";
 import { releaseStudBooking, usdgPolicy, type UsdgFulfilResult } from "./usdgMarket";
 import { fulfilUsdgPayment } from "./usdgStud";
 
-/** Placeholder "market" and "token" written on practice orders (never real contracts; lowercase like stored orders). */
-export const USDG_PRACTICE_MARKET = "0x0000000000000000000000000000000000007e57";
+/** Placeholder "market" (defined in practiceIdentity.ts) and "token" written on practice orders (never real contracts; lowercase like stored orders). */
+export { USDG_PRACTICE_MARKET };
 export const USDG_PRACTICE_TOKEN = "0x00000000000000000000000000000000007e5701";
 
 type Env = Record<string, string | undefined>;
@@ -85,14 +86,15 @@ export async function assertPracticeFunds(ex: Executor, accountId: string, amoun
 }
 
 /**
- * The one-off practice grant (PRACTICE_USDG_GRANT), only to an account with a verified wallet.
- * Idempotent per account: replays (another sign-in, a concurrent tab) grant nothing.
+ * The one-off practice grant (PRACTICE_USDG_GRANT), only to an account with a market identity (its
+ * verified wallet or its practice identity). Idempotent per account: replays (another sign-in, a
+ * concurrent tab, a wallet linked later) grant nothing.
  */
 export async function grantPracticeUsdg(db: Db, input: { accountId: string; now: Date; env?: Env }): Promise<{ granted: boolean; balance: number }> {
   if (!usdgPracticeOn(input.env)) throw new DomainError("NOT_ELIGIBLE", "T-USDG exists only in practice mode.");
   const amount = gc.PRACTICE_USDG_GRANT;
   return runTx(db, async (tx) => {
-    if (!(await verifiedWalletOf(tx, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+    if (!(await marketWalletOf(tx, input.accountId, input.env))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
     const r = await post(tx, {
       idempotencyKey: `usdg-practice:grant:${input.accountId}`,
       kind: "usdg_practice_grant",
@@ -189,7 +191,7 @@ export async function payUsdgOrderPractice(db: Db, input: { orderId: string; acc
     if (!isPracticeOrder(order)) throw new DomainError("INVALID_INPUT", "This is a real-money order: test T-USDG can't pay it.");
     if (order.status === "fulfilled") return { order, duplicate: true, status: "fulfilled" as const };
     if (order.status !== "pending" || order.deadline.getTime() <= input.now.getTime()) throw new DomainError("LISTING_EXPIRED", "This order has expired.");
-    if (!(await verifiedWalletOf(tx, order.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+    if (!(await marketWalletOf(tx, order.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
     await assertPracticeFunds(tx, order.accountId, order.price);
 
     const payer = await practiceLedgerAccountId(tx, order.accountId);

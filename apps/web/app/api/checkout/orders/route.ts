@@ -1,4 +1,5 @@
 import { lifetimeLeftCents, practiceBalanceOf, resumeOrders } from "@/server/chain/checkout";
+import { marketIdentityKind } from "@/server/chain/practice";
 import { withChainPlayer } from "@/server/chain/http";
 
 export const runtime = "nodejs";
@@ -15,6 +16,9 @@ export async function GET() {
     /** Practice mode: packs cost T-USDG from the practice balance (POST /api/checkout/practice), no chain. */
     practice: ctx.cfg.practice,
     practiceBalance: ctx.cfg.practice ? await practiceBalanceOf(ctx, session, now) : null,
+    /** Practice mode: "wallet", "practice" (no wallet: trade as the stable, never show an address) or null. */
+    practiceIdentity: ctx.cfg.practice ? await marketIdentityKind(ctx.db, session.accountId) : null,
+    stableName: session.stable.name,
     chainId: ctx.chain.chainId,
     store: ctx.chain.store,
     packUsdCents: ctx.cfg.premiumUsdCents,

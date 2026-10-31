@@ -1,8 +1,9 @@
 "use client";
 /**
  * Horse page → "Register for the USDG market": the requirements checklist (each one ticked or
- * not, with what's missing), the one-off registration fee paid from the linked wallet, then list
- * the horse for a fixed price or start an auction (docs/usdg-market.md).
+ * not, with what's missing), the one-off registration fee paid from the linked wallet (practice mode:
+ * from the T-USDG balance, no wallet needed), then list the horse for a fixed price or start an
+ * auction (docs/usdg-market.md).
  */
 import Link from "next/link";
 import { useState } from "react";
@@ -111,7 +112,8 @@ export function UsdgHorsePanel({ horseId }: { horseId: string }) {
                 </Check>
               ))}
           </ul>
-          {!v.wallet && <WalletLink compact />}
+          {/* Practice mode without a wallet: the stable's practice identity meets the requirement. */}
+          {!v.wallet && v.identity !== "practice" && <WalletLink compact />}
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={terms} onChange={(e) => setTerms(e.target.checked)} data-testid="usdg-terms" />
             <span>

@@ -9,6 +9,7 @@ import { PlayerGate } from "@/components/PlayerGate";
 import { StableBadge } from "@/components/StableBadge";
 import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
+import { PRACTICE_IDENTITY_NOTE, useUsdg } from "@/components/chain/UsdgMode";
 import { disconnectWallet } from "@/components/chain/useWallet";
 import { shortAddress } from "@/lib/chain/format";
 import { FeedbackButton } from "@/components/playtest/FeedbackButton";
@@ -43,6 +44,7 @@ function Profile({ state }: { state: PlayerState }) {
   const [error, setError] = useState<unknown>(null);
   const settings = useSettings();
   const wallet = useWalletStatus();
+  const usdg = useUsdg();
   const dirty = name.trim() !== state.stableName || JSON.stringify(silks) !== JSON.stringify(state.silks);
   const valid = stableNameProblem(name) === null;
 
@@ -202,6 +204,11 @@ function Profile({ state }: { state: PlayerState }) {
             </Link>
           )}
           <p className="t-meta">Optional, for the closed beta. The game never needs a wallet.</p>
+          {usdg.practice && !wallet.status?.address && (
+            <p className="t-meta" data-testid="me-practice-identity">
+              {PRACTICE_IDENTITY_NOTE}
+            </p>
+          )}
           {wallet.status?.loginAddress ? (
             <p className="t-meta" data-testid="me-login-wallet">
               Sign-in wallet: <span className="font-mono text-cream">{shortAddress(wallet.status.loginAddress)}</span>. Use this wallet to sign in on other

@@ -6,6 +6,9 @@ import type { EcoHorse } from "./economyTypes";
 /** practice: beta test money ("T-USDG") from the game ledger, wallet sign-in but no chain (USDG_MODE=practice). */
 export type UsdgMode = "live" | "mock" | "practice" | "off";
 
+/** How a player trades USDG / T-USDG: a verified wallet, the practice identity (practice mode, no wallet), or nothing yet. */
+export type UsdgIdentity = "wallet" | "practice" | null;
+
 /** Practice mode: my T-USDG balance (micro units) and the one-off grant. */
 export interface UsdgPracticeView {
   balance: number;
@@ -82,7 +85,12 @@ export interface UsdgMarketView {
   policy: UsdgPolicyView;
   /** Practice mode only (null otherwise). */
   practice: UsdgPracticeView | null;
+  /** The VERIFIED wallet only (shown to its owner); never the practice identity's address. */
   wallet: string | null;
+  /** How I trade: "wallet", "practice" (practice mode, no wallet: show the stable name, the server signs bids), or null (link a wallet). */
+  identity: UsdgIdentity;
+  /** My stable's name: what the UI shows for a practice identity. */
+  stableName: string;
   barredUntilMs: number | null;
   lots: UsdgLotView[];
   mine: UsdgLotView[];
@@ -113,6 +121,9 @@ export interface UsdgHorseView {
   listing: { listingId: string; kind: "fixed" | "auction"; status: string; price: number; endsAtMs: number; bestBid: number | null; bidCount: number } | null;
   /** Why it can't be listed right now (null = it can). */
   listBlock: string | null;
+  /** The VERIFIED wallet only; never the practice identity's address. */
   wallet: string | null;
+  identity: UsdgIdentity;
+  stableName: string;
   serverNowMs: number;
 }

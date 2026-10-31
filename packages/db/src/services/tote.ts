@@ -24,8 +24,9 @@
  *
  * Currencies: Stable Credits ("CR") always; T-USDG ("TUSDG", practice dollars) only while
  * `toteUsdgEnabled()` (USDG_MODE=practice), from the player's one practice T-USDG balance
- * (services/usdgPractice.ts, shared with the USDG market). A T-USDG bet needs a verified wallet,
- * like every other T-USDG feature.
+ * (services/usdgPractice.ts, shared with the USDG market). A T-USDG bet needs a market identity
+ * (a verified wallet, or the practice identity: services/practiceIdentity.ts), like every other
+ * T-USDG feature.
  */
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
@@ -34,7 +35,7 @@ import { gc } from "../gameCore";
 import { accounts, fraudEvents, horses, raceEntries, races, realTotePermits, stables, toteBets, totePools, toteSettings, type RaceRow, type ToteBetRow, type TotePoolRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked } from "./accounts";
-import { verifiedWalletOf } from "./betaMoney";
+import { marketWalletOf } from "./practiceIdentity";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY, type LedgerCurrency, type Posting } from "./ledger";
 import { raceResultPublicAt } from "./news";
 import { audit, rowsOf, runTx } from "./tx";
@@ -566,8 +567,8 @@ export async function placeToteBet(db: Db, input: PlaceToteBetInput, opts: ToteO
   if (!input.clientKey || input.clientKey.length > 80) throw new DomainError("INVALID_INPUT", "bad bet slip key");
   // The hard lock: T-USDG betting is impossible unless practice mode is on.
   if (input.currency === "TUSDG" && !toteUsdgEnabled(input.env)) throw new DomainError("TOTE_UNAVAILABLE", "T-USDG betting is only open in practice mode");
-  // Like every T-USDG feature: a wallet signed in or linked (one free signature).
-  if (input.currency === "TUSDG" && !(await verifiedWalletOf(db, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first to bet T-USDG (one free signature).");
+  // Like every T-USDG feature: a market identity (a wallet signed in or linked, or the practice identity).
+  if (input.currency === "TUSDG" && !(await marketWalletOf(db, input.accountId, input.env))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first to bet T-USDG (one free signature).");
   if (!Number.isSafeInteger(input.stake) || input.stake <= 0) throw new DomainError("INVALID_INPUT", "stake must be a whole positive amount");
 
   const out = await runTx(db, async (tx): Promise<ToteBetRow | DomainError> => {

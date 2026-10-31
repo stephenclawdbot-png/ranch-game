@@ -11,6 +11,9 @@
  * `practicePay` pays an order from the player's T-USDG balance and fulfils it in one database
  * transaction (@thoroughbred/db usdgPractice), bids are still EIP-712 signatures from the linked
  * wallet (free; checked locally, no RPC), and the backstop only closes auctions and expires orders.
+ * A player without a wallet trades under their practice identity (practiceIdentity.ts): every T-USDG
+ * check uses `marketWalletOf`, and the server signs their bids (they just tap). Views report
+ * `identity` ("wallet" / "practice") and only ever expose a VERIFIED wallet's address.
  */
 import { getAddress, isAddressEqual, recoverTypedDataAddress, type Address, type Hex } from "viem";
 import {
@@ -55,6 +58,8 @@ import {
   usdgRegistrationStatus,
   usdgResaleLock,
   usdgSalesSummary,
+  marketIdentityOf,
+  marketWalletOf,
   verifiedWalletOf,
   type Db,
   type UsdgChainRef,
@@ -79,7 +84,8 @@ import type { UsdgCheckView, UsdgHorseView, UsdgLotView, UsdgMarketView, UsdgNet
 import { ecoHorse, friendlyEconomyError, lotNumbers } from "../economy";
 import { parseSilks } from "../horseView";
 import type { Session } from "../session";
-import { ensurePracticeGrant } from "./practice";
+import { ensurePracticeGrant, marketIdentityKind } from "./practice";
+import { signTypedDataAsPractice } from "./practiceIdentity";
 import type { MockUsdgChain, UsdgChain, UsdgOrderKind } from "./usdgChain";
 import type { UsdgConfig } from "./usdgConfig";
 
@@ -108,11 +114,11 @@ export const isPractice = (ctx: Pick<UsdgCtx, "cfg">): boolean => ctx.cfg.mode =
 
 /**
  * Practice mode, before anything is held (a lot reserved, a mare locked, an order written): the
- * player has a verified wallet (sign-in or link, as in live mode), has had the one-off grant, and
- * holds at least `amount` T-USDG.
+ * player has a market identity (a verified wallet, or the practice identity), has had the one-off
+ * grant, and holds at least `amount` T-USDG.
  */
 async function practiceGate(ctx: UsdgCtx, session: Session, amount: number, now: Date): Promise<void> {
-  if (!(await verifiedWalletOf(ctx.db, session.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+  if (!(await marketWalletOf(ctx.db, session.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
   await ensurePracticeGrant(ctx.db, session.accountId, now);
   if (amount > 0) await assertPracticeFunds(ctx.db, session.accountId, amount);
 }
@@ -177,6 +183,7 @@ const CHECK_LABEL: Record<string, (p: gc.UsdgPolicy, liveStarts: number) => stri
   not_starter_or_gift: () => "Not a starter or gift horse",
   not_premium_pull: () => "Not pulled from a Premium Pack itself (its foals can register)",
   wallet: () => "A linked wallet (one free signature)",
+  practice_identity: () => "Ready to trade T-USDG as your stable (no wallet needed in the beta)",
   terms: () => "You are 18 or over and accept the USDG market terms",
 };
 
@@ -310,6 +317,8 @@ export async function usdgMarketView(ctx: UsdgCtx, session: Session, now: Date):
     policy: policyView(ctx.policy),
     practice: await practiceView(ctx, session, now),
     wallet: await verifiedWalletOf(ctx.db, session.accountId),
+    identity: await marketIdentityKind(ctx.db, session.accountId),
+    stableName: session.stable.name,
     barredUntilMs: barred?.getTime() ?? null,
     lots: all.filter((l) => !l.mine),
     mine: all.filter((l) => l.mine),
@@ -348,7 +357,7 @@ async function listBlockOf(ctx: UsdgCtx, session: Session, horseId: string, now:
   if (h.careerStatus === "pasture") return "On the Legacy Farm";
   const resale = await usdgResaleLock(ctx.db, { horseId, ownerStableId: session.stable.id, ownerAccountId: session.accountId, now });
   if (resale) return `Bought recently: can be listed again after ${resale.until.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "UTC" })} UTC`;
-  if (!(await verifiedWalletOf(ctx.db, session.accountId))) return "Link your wallet first";
+  if (!(await marketWalletOf(ctx.db, session.accountId))) return "Link your wallet first";
   return null;
 }
 
@@ -356,7 +365,10 @@ export async function usdgHorseView(ctx: UsdgCtx, session: Session, horseId: str
   const horse = await getHorse(ctx.db, horseId);
   if (!horse) throw new DomainError("NOT_FOUND", "horse not found");
   const st = await usdgRegistrationStatus(ctx.db, { accountId: session.accountId, horseId, now }, ctx.policy);
-  const checks: UsdgCheckView[] = st.checks.map((c) => ({ key: c.key, ok: c.ok, label: CHECK_LABEL[c.key]?.(ctx.policy, st.liveStarts) ?? c.key }));
+  const identity = await marketIdentityKind(ctx.db, session.accountId);
+  // Without a wallet in practice mode the requirement is met by the practice identity: say so, never "link a wallet".
+  const labelKey = (k: string) => (k === "wallet" && identity === "practice" ? "practice_identity" : k);
+  const checks: UsdgCheckView[] = st.checks.map((c) => ({ key: c.key, ok: c.ok, label: CHECK_LABEL[labelKey(c.key)]?.(ctx.policy, st.liveStarts) ?? c.key }));
   const board = (await usdgBoard(ctx.db, { now })).find((b) => b.listing.horseId === horseId);
   return {
     network: networkView(ctx),
@@ -374,6 +386,8 @@ export async function usdgHorseView(ctx: UsdgCtx, session: Session, horseId: str
       : null,
     listBlock: st.registered ? await listBlockOf(ctx, session, horseId, now) : "Not registered yet",
     wallet: await verifiedWalletOf(ctx.db, session.accountId),
+    identity,
+    stableName: session.stable.name,
     serverNowMs: now.getTime(),
   };
 }
@@ -433,27 +447,42 @@ export async function standAtStudForUsdg(ctx: UsdgCtx, session: Session, input: 
 
 /**
  * A bid signed by the bidder's wallet (EIP-712 Bid in the HorseMarket domain). The claimed
- * bidder is the account's linked wallet: a signature from any other key is refused.
+ * bidder is the account's linked wallet: a signature from any other key is refused. Practice mode,
+ * no wallet: the bidder is the account's practice identity and the server signs the bid for it (no
+ * signature from the client; one sent anyway is ignored, so a client can never pick the key).
  */
-export async function bid(ctx: UsdgCtx, session: Session, input: { listingId: string; amount: number; nonce: string; signature: Hex; chainId?: number }, now: Date) {
+export async function bid(ctx: UsdgCtx, session: Session, input: { listingId: string; amount: number; nonce: string; signature: Hex | null; chainId?: number }, now: Date) {
   assertOpen(ctx);
-  const wallet = await verifiedWalletOf(ctx.db, session.accountId);
-  if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
+  const identity = await marketIdentityOf(ctx.db, session.accountId);
+  // A practice identity only bids in practice mode (outside it the helper never returns one).
+  if (!identity || (identity.kind === "practice" && !isPractice(ctx))) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
+  const wallet = identity.address;
   if (!/^\d{1,78}$/.test(input.nonce)) throw new DomainError("INVALID_INPUT", "bad nonce");
   const theBid = { listingId: input.listingId, amount: BigInt(input.amount), bidder: getAddress(wallet), nonce: BigInt(input.nonce) };
   let ok: boolean;
-  if (isPractice(ctx)) {
+  let signature = input.signature;
+  if (isPractice(ctx) && identity.kind === "practice") {
+    // The player just taps: the server signs for the practice identity (its key never leaves the server).
+    await practiceGate(ctx, session, input.amount, now);
+    const signed = await signTypedDataAsPractice(session.accountId, bidTypedData(theBid, ctx.chain.chainId, ctx.chain.market));
+    signature = signed.signature;
+    ok = await recoverTypedDataAddress({ ...bidTypedData(theBid, ctx.chain.chainId, ctx.chain.market), signature })
+      .then((a) => isAddressEqual(a, theBid.bidder))
+      .catch(() => false);
+  } else if (!signature) {
+    throw new DomainError("INVALID_INPUT", "The bid or its signature is missing.");
+  } else if (isPractice(ctx)) {
     // A rehearsal of the real flow: the same free EIP-712 signature, in the domain of whatever chain
     // the wallet is on (no network switch in practice), recovered locally: no RPC. You can't bid
     // more T-USDG than you hold.
     await practiceGate(ctx, session, input.amount, now);
     const chainId = Number.isSafeInteger(input.chainId) && input.chainId! > 0 ? input.chainId! : ctx.chain.chainId;
-    ok = await recoverTypedDataAddress({ ...bidTypedData(theBid, chainId, ctx.chain.market), signature: input.signature })
+    ok = await recoverTypedDataAddress({ ...bidTypedData(theBid, chainId, ctx.chain.market), signature })
       .then((a) => isAddressEqual(a, theBid.bidder))
       .catch(() => false);
-  } else ok = await ctx.chain.verifyBid(theBid, input.signature);
-  if (!ok) throw new DomainError("NOT_ELIGIBLE", "That bid wasn't signed by your linked wallet.");
-  const r = await placeUsdgBid(ctx.db, { accountId: session.accountId, listingId: input.listingId, amount: input.amount, nonce: input.nonce, signature: input.signature, signer: wallet, now }, ctx.policy);
+  } else ok = await ctx.chain.verifyBid(theBid, signature);
+  if (!ok || !signature) throw new DomainError("NOT_ELIGIBLE", "That bid wasn't signed by your linked wallet.");
+  const r = await placeUsdgBid(ctx.db, { accountId: session.accountId, listingId: input.listingId, amount: input.amount, nonce: input.nonce, signature, signer: wallet, now }, ctx.policy);
   return { bidId: r.bid.id, amount: r.bid.amount, best: r.best, minNext: r.minNext };
 }
 

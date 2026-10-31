@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SilksSchema } from "@thoroughbred/shared";
 import { stableOf, updateStableProfile } from "@thoroughbred/db";
+import { ensurePracticeGrant } from "@/server/chain/practice";
 import { db } from "@/server/db";
 import { foundStable } from "@/server/founding";
 import { playerView } from "@/server/game";
@@ -48,6 +49,8 @@ export async function POST(req: Request) {
       deviceId: parsed.data.deviceId ?? null,
       now,
     });
+    // Practice mode: the one-off T-USDG grant right away, through the practice identity (no wallet needed). Never fails founding.
+    await ensurePracticeGrant(database, acc.accountId, now);
     await trackEvent(database, acc.accountId, "signup", { playtest: acc.playtest, ...(acc.rival ? { rival: acc.rival.ok ? acc.rival.welcome : acc.rival.problem } : {}) });
     const session = { accountId: acc.accountId, stable: await stableOf(database, acc.accountId) };
     const res = json({ created: true, player: await playerView(database, session, now) }, { status: 201 });

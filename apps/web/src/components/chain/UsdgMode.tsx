@@ -46,7 +46,11 @@ export function useUsdg(): UsdgDisplay {
 /** The words every T-USDG surface carries. */
 export const PRACTICE_BADGE = "T-USDG · test money, no real value";
 export const PRACTICE_EXPLAINER =
-  "During the beta, USDG is test money (T-USDG): you sign in with your wallet, nothing is charged and nothing can be withdrawn. Balances may be reset when the beta ends.";
+  "During the beta, USDG is test money (T-USDG): no wallet needed (you trade as your stable; a linked wallet is used if you have one), nothing is charged and nothing can be withdrawn. Balances may be reset when the beta ends.";
+
+/** On Profile in practice mode: what linking a wallet changes (nothing for T-USDG balances or open trades). */
+export const PRACTICE_IDENTITY_NOTE =
+  "T-USDG works without a wallet during the beta: you trade as your stable. If you link a wallet later, your T-USDG balance, horses, listings and bids stay yours, and the 100 T-USDG welcome isn't given twice.";
 
 export function PracticeBadge({ className = "" }: { className?: string }) {
   return (
@@ -64,6 +68,20 @@ export function PracticeBalance({ micro, className = "" }: { micro: number | nul
       <span className="label">Your T-USDG</span>
       <span className="score text-[1.5rem] leading-none">{usdgDisplay(true).dollars(micro)}</span>
       <PracticeBadge />
+    </span>
+  );
+}
+
+/**
+ * Who I trade as: the linked wallet (shortened), or in practice mode without a wallet my stable's
+ * name. The practice identity's address is never shown (the server never sends it).
+ */
+export function MarketIdentityChip({ wallet, identity, stableName }: { wallet: string | null; identity: "wallet" | "practice" | null; stableName: string | null }) {
+  if (wallet) return <WalletChip address={wallet} />;
+  if (identity !== "practice") return null;
+  return (
+    <span className="tag w-fit normal-case" title="Trading T-USDG as your stable: no wallet needed in the beta" data-testid="stable-identity-chip">
+      <span aria-hidden="true">●</span> {stableName ?? "Your stable"}
     </span>
   );
 }

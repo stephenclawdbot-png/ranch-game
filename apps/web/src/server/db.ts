@@ -14,6 +14,8 @@
  * local `next start`).
  */
 import { getDb, getDbHandle, type Db, type DbHandle } from "@thoroughbred/db";
+// Registers the practice identity derivation (USDG_MODE=practice only) with @thoroughbred/db.
+import "./chain/practiceIdentity";
 
 export type { Db };
 

@@ -3,8 +3,9 @@
  * T-USDG grant on wallet sign-in, and the player-facing wording ("T-USDG", never plain "USDG" or
  * a dollar sign, while practice mode is on). Server only.
  */
-import { grantPracticeUsdg, verifiedWalletOf, type Db } from "@thoroughbred/db";
+import { grantPracticeUsdg, marketIdentityOf, marketWalletOf, type Db, type Executor } from "@thoroughbred/db";
 import { isUsdgPracticeMode, practiceUsdgText } from "@thoroughbred/game-core";
+import "./practiceIdentity"; // registers the practice identity with @thoroughbred/db
 
 type Env = Record<string, string | undefined>;
 
@@ -31,17 +32,28 @@ export function practiceWording<T>(v: T, env: Env = process.env): T {
 }
 
 /**
- * Grants the practice T-USDG once (PRACTICE_USDG_GRANT) when practice mode is on and the account
- * has a verified wallet. Called on wallet sign-in / link and lazily by the USDG views (accounts
- * that linked a wallet before practice mode was switched on). Never fails a sign-in.
+ * Grants the practice T-USDG once per ACCOUNT (PRACTICE_USDG_GRANT) when practice mode is on and the
+ * account has a market identity: a verified wallet or, without one, its practice identity
+ * (practiceIdentity.ts). Called when a stable is founded, on wallet sign-in / link and lazily by the
+ * T-USDG views. Linking a wallet later grants nothing more (idempotent per account). Never fails a
+ * sign-in.
  */
 export async function ensurePracticeGrant(db: Db, accountId: string, now: Date, env: Env = process.env): Promise<{ granted: boolean; balance: number } | null> {
   if (!practiceOn(env)) return null;
   try {
-    if (!(await verifiedWalletOf(db, accountId))) return null;
+    if (!(await marketWalletOf(db, accountId, env))) return null;
     return await grantPracticeUsdg(db, { accountId, now, env });
   } catch (err) {
     console.error("practice grant", accountId, err);
     return null;
   }
+}
+
+/**
+ * How the player trades T-USDG, for the views: "wallet" (a verified wallet; its address may be
+ * shown), "practice" (no wallet: the server-held practice identity; show the stable name, NEVER the
+ * address), or null (no identity: link a wallet). Outside practice mode only "wallet" or null.
+ */
+export async function marketIdentityKind(ex: Executor, accountId: string, env: Env = process.env): Promise<"wallet" | "practice" | null> {
+  return (await marketIdentityOf(ex, accountId, env))?.kind ?? null;
 }

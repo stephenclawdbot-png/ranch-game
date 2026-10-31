@@ -27,6 +27,7 @@ import {
   type ToteSettingsView,
 } from "@thoroughbred/db";
 import { z } from "zod";
+import { ensurePracticeGrant } from "./chain/practice";
 import { cardFrozen } from "./game";
 import { isAdmin } from "./playtest";
 import type { Session } from "./session";
@@ -94,6 +95,8 @@ export async function placeBet(db: Db, session: Session, raceId: string, body: z
   if (!UUID_RE.test(raceId)) return null;
   if (await betLimiter.hit(db, session.accountId, now.getTime())) throw new TooManyBetsError();
   const staff = await isToteStaff(session);
+  // Practice mode: the one-off T-USDG grant (idempotent per account; wallet or practice identity) before a first T-USDG bet.
+  if (body.currency === "TUSDG") await ensurePracticeGrant(db, session.accountId, now);
   await placeToteBet(db, { accountId: session.accountId, raceId, horseId: body.horseId, pool: body.pool, currency: body.currency, stake: body.stake, clientKey: body.clientKey, now, staff });
   return myToteRace(db, session.accountId, raceId, now, undefined, staff);
 }

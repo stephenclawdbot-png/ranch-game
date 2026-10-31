@@ -5,6 +5,9 @@
  * receives. Buying pays straight from your wallet to the seller (HorseMarket never holds funds);
  * bids are free signatures and money moves only when an auction closes and the winner pays.
  * Stable Credits are never involved: they can't be bought or cashed out.
+ * Practice mode without a wallet: the player trades as their stable (the server-held practice
+ * identity): no wallet prompt, bids are one tap (the server signs), and the stable name is shown,
+ * never an address.
  */
 import Link from "next/link";
 import { useState } from "react";
@@ -18,7 +21,7 @@ import { EmptyState, HowItWorks } from "@/components/ui/Page";
 import { shortAddress } from "@/lib/chain/format";
 import { bidTypedData, type UsdgOrderJson } from "@/lib/chain/usdg";
 import { clients, ensureChain, signTypedDataOnCurrentChain, walletErrorText } from "@/lib/chain/wallet";
-import { PRACTICE_EXPLAINER, PracticeBalance, WalletChip, useUsdg } from "@/components/chain/UsdgMode";
+import { MarketIdentityChip, PRACTICE_EXPLAINER, PracticeBalance, useUsdg } from "@/components/chain/UsdgMode";
 import { api } from "@/lib/player";
 import type { UsdgLotView, UsdgMarketView } from "@/lib/usdgTypes";
 import { HorseLine, Skeleton, stageLabel, useEcoView } from "./kit";
@@ -66,6 +69,8 @@ export function UsdgMarket() {
   const fixed = v.lots.filter((l) => l.kind === "fixed");
   const auctions = v.lots.filter((l) => l.kind === "auction");
   const practice = v.network.mode === "practice";
+  // Ready to trade: a verified wallet, or (practice mode) the stable's practice identity.
+  const ready = !!v.wallet || v.identity === "practice";
   return (
     <div className="grid gap-5" data-testid="usdg-market">
       {practice && (
@@ -77,8 +82,9 @@ export function UsdgMarket() {
       <HowItWorks label={u.t("How the USDG market works")}>
         {practice ? (
           <p>
-            Horses registered for the T-USDG market change hands for T-USDG, the beta&rsquo;s test money. Every wallet that signs in gets {u.dollars(v.practice?.grant ?? 0)} once. The price moves
-            from the buyer&rsquo;s balance to the seller&rsquo;s, minus a {v.policy.feeBps / 100}% market fee. Bids are free wallet signatures. Stable Credits are never involved.
+            Horses registered for the T-USDG market change hands for T-USDG, the beta&rsquo;s test money. Every stable gets {u.dollars(v.practice?.grant ?? 0)} once, no wallet needed. The price
+            moves from the buyer&rsquo;s balance to the seller&rsquo;s, minus a {v.policy.feeBps / 100}% market fee. Bids are free: one tap, or a wallet signature if you linked one. Stable Credits are
+            never involved.
           </p>
         ) : (
         <p>
@@ -94,17 +100,15 @@ export function UsdgMarket() {
       </HowItWorks>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <TestnetNote chainId={v.network.chainId} mock={v.network.mode === "mock"} practice={practice} />
-        {v.wallet ? (
-          practice ? (
-            <WalletChip address={v.wallet} />
-          ) : (
-            <span className="chip text-sm font-bold text-cream" title={v.wallet} data-testid="usdg-wallet">
-              Wallet {shortAddress(v.wallet)}
-            </span>
-          )
+        {practice ? (
+          <MarketIdentityChip wallet={v.wallet} identity={v.identity} stableName={v.stableName} />
+        ) : v.wallet ? (
+          <span className="chip text-sm font-bold text-cream" title={v.wallet} data-testid="usdg-wallet">
+            Wallet {shortAddress(v.wallet)}
+          </span>
         ) : null}
       </div>
-      {!v.wallet && (
+      {!ready && (
         <section className="surface grid gap-2 p-3" aria-label="Wallet">
           <p className="font-bold">{practice ? "Sign in with your wallet to get your T-USDG and buy, bid or sell. Signing is free and sends no transaction." : "Link a wallet to buy, bid or sell for USDG."}</p>
           <WalletLink compact />
@@ -234,8 +238,8 @@ function FixedLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onCha
           }}
         />
       ) : (
-        <button type="button" className="btn w-fit" onClick={() => void buy()} disabled={busy || !v.wallet || full || l.reserved} data-testid="usdg-buy">
-          {!v.wallet ? "Link a wallet to buy" : full ? "No free stall" : l.reserved ? "Someone is paying for this lot" : busy ? "Reserving…" : `Buy for ${u.dollars(l.price)}`}
+        <button type="button" className="btn w-fit" onClick={() => void buy()} disabled={busy || !(v.wallet || v.identity === "practice") || full || l.reserved} data-testid="usdg-buy">
+          {!(v.wallet || v.identity === "practice") ? "Link a wallet to buy" : full ? "No free stall" : l.reserved ? "Someone is paying for this lot" : busy ? "Reserving…" : `Buy for ${u.dollars(l.price)}`}
         </button>
       )}
       {error ? <ErrorNote error={error} /> : null}
@@ -254,12 +258,31 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
   const open = l.status === "active" && l.minNextBid !== null;
   const valid = micro !== null && l.minNextBid !== null && micro >= l.minNextBid;
 
+  // Practice mode without a wallet: one tap, the server signs for the stable's practice identity.
+  const tapToBid = u.practice && !v.wallet && v.identity === "practice";
+
   async function placeBid() {
-    if (!valid || !w.provider || !w.address) return;
+    if (!valid) return;
+    const nonce = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
+    if (tapToBid) {
+      setBusy(true);
+      setError(null);
+      try {
+        await api(`/api/usdg/listings/${l.listingId}/bid`, { body: { amount: micro, nonce: nonce.toString() } });
+        setPlaced(micro);
+        setAmount("");
+        onChange();
+      } catch (e) {
+        setError(e);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (!w.provider || !w.address) return;
     setBusy(true);
     setError(null);
     try {
-      const nonce = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
       const theBid = { listingId: l.listingId, amount: BigInt(micro!), bidder: w.address, nonce };
       if (u.practice) {
         // Practice: the same free signature, on whatever network the wallet is on (no switch, no chain).
@@ -298,13 +321,13 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
         <p className="caption" data-testid="usdg-offering">
           {l.offeredToMe ? "You won: pay from “To pay” above before the window ends." : "Closed: the winner is paying. If they don't, the next bidder is offered the horse."}
         </p>
-      ) : !v.wallet ? (
+      ) : !v.wallet && !tapToBid ? (
         <p className="caption">Link a wallet to bid.</p>
       ) : v.barredUntilMs ? (
         <p className="caption">{u.name} bidding is closed to you for now.</p>
-      ) : !w.address ? (
+      ) : !tapToBid && !w.address ? (
         <WalletPicker label="Connect your wallet to bid" />
-      ) : wrongWallet ? (
+      ) : !tapToBid && wrongWallet ? (
         <p className="text-sm font-bold text-negative">Switch your wallet to your linked address {shortAddress(v.wallet)} to bid.</p>
       ) : (
         <div className="flex flex-wrap items-end gap-2">
@@ -313,10 +336,10 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
             <input className="field w-32" inputMode="decimal" placeholder={String(l.minNextBid! / 1_000_000)} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} data-testid="usdg-bid-amount" />
           </label>
           <button type="button" className="btn btn-brass" onClick={() => void placeBid()} disabled={!valid || busy} data-testid="usdg-bid">
-            {busy ? "Sign in your wallet…" : "Sign bid"}
+            {tapToBid ? (busy ? "Placing…" : "Place bid") : busy ? "Sign in your wallet…" : "Sign bid"}
           </button>
           <span className="caption basis-full">
-            At least {u.dollars(l.minNextBid!)}. A bid is a free signature, no transaction; you pay only if you win ({v.policy.paymentWindowHours} h to pay).
+            At least {u.dollars(l.minNextBid!)}. {tapToBid ? "A bid is free" : "A bid is a free signature, no transaction"}; you pay only if you win ({v.policy.paymentWindowHours} h to pay).
           </span>
         </div>
       )}

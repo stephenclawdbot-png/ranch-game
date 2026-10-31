@@ -16,6 +16,10 @@
  *   bidding for a while and the next bidder is offered the horse at their own bid.
  * - Linked accounts can't trade (blocked + fraud event); the resale lock applies; sales far from
  *   recent comparable prices are flagged for review (wash-trading signal), not blocked.
+ * - Wallets: in practice mode an account without a verified wallet trades under its server-held
+ *   practice identity (services/practiceIdentity.ts: `marketWalletOf`, `orderWalletOf`,
+ *   `holdsMarketAddress`, and the rule for a wallet linked later). A real-chain order is only ever
+ *   written for verified wallets: the buyer's, and the seller's CURRENT verified wallet.
  * - USDG stud fees (kind 'stud') share the orders table, the expiry and the backstop; their quote
  *   and fulfilment (which runs the covering) live in services/usdgStud.ts.
  */
@@ -46,6 +50,7 @@ import type { Db, Executor, Tx } from "../types";
 import { areLinked, assertStallFree, lockStableOf, stableOf } from "./accounts";
 import { verifiedWalletOf } from "./betaMoney";
 import { isCarrying, lockHorse, openLeaseOfferOf } from "./horses";
+import { holdsMarketAddress, isPracticeMarket, marketWalletOf, orderWalletOf } from "./practiceIdentity";
 import { playerLedgerAccountId, post, systemAccountId } from "./ledger";
 import { LIVE_RACE_KINDS } from "./leagues";
 import { audit, runTx } from "./tx";
@@ -164,7 +169,7 @@ async function registrationFacts(ex: Executor, input: { accountId: string; horse
     bound: h.bound || h.starts < h.tradeMinStarts,
     origin: h.origin,
     premiumPull: await isPremiumPull(ex, h.id),
-    walletVerified: !!(await verifiedWalletOf(ex, input.accountId)),
+    walletVerified: !!(await marketWalletOf(ex, input.accountId)),
     termsAccepted: input.termsAccepted,
   };
 }
@@ -270,7 +275,8 @@ export async function quoteUsdgRegistration(
     const facts = await registrationFacts(tx, { accountId: input.accountId, horse, termsAccepted: input.termsAccepted });
     const block = gc.usdgRegistrationBlock(facts, policy);
     if (block) throw new DomainError(block === "owned" ? "NOT_OWNER" : "NOT_ELIGIBLE", registrationBlockText(block, policy), { requirement: block, liveStarts: facts.liveStarts });
-    const wallet = (await verifiedWalletOf(tx, input.accountId))!;
+    const wallet = await orderWalletOf(tx, input.accountId, input.chain.market);
+    if (!wallet) throw new DomainError("NOT_ELIGIBLE", registrationBlockText("wallet", policy), { requirement: "wallet" });
     const order = await insertOrder(tx, {
       kind: "registration",
       accountId: input.accountId,
@@ -525,7 +531,7 @@ export async function listUsdg(db: Db, input: UsdgListInput, policy: gc.UsdgPoli
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "Mares in foal can't be sold.");
     const resale = await usdgResaleLock(tx, { horseId: horse.id, ownerStableId: stable.id, ownerAccountId: input.accountId, now: input.now });
     if (resale) throw new DomainError("RESALE_LOCKED", `Bought on ${resale.boughtAt.toISOString()}: can be listed again after ${resale.until.toISOString()}.`, { until: resale.until.getTime() });
-    const wallet = await verifiedWalletOf(tx, input.accountId);
+    const wallet = await marketWalletOf(tx, input.accountId);
     if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first: the sale is paid to it.");
     const appraisal = (defaultHooks.appraise ?? defaultAppraise)(horse);
     const [listing] = await tx
@@ -613,9 +619,10 @@ export async function quoteUsdgSale(db: Db, input: { accountId: string; listingI
       if (live.accountId === input.accountId) return live;
       throw new DomainError("LISTING_NOT_ACTIVE", "Someone is paying for this horse right now. If they don't, it comes back in a few minutes.", { until: live.deadline.getTime() });
     }
-    const wallet = await verifiedWalletOf(tx, input.accountId);
+    const wallet = await orderWalletOf(tx, input.accountId, input.chain.market);
     if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
     if (lower(wallet) === lower(listing.sellerWallet)) throw new DomainError("LINKED_ACCOUNTS", "Trades between linked accounts are not allowed.");
+    if (!(await sellerPayable(tx, listing, input.chain))) throw new DomainError("NOT_ELIGIBLE", "The seller's wallet has changed since this lot was listed, so it can't be paid. The seller can list it again.");
     await assertStallFree(tx, buyerStable);
     const order = await insertOrder(tx, {
       kind: "sale",
@@ -688,7 +695,7 @@ export async function placeUsdgBid(db: Db, input: UsdgBidInput, policy: gc.UsdgP
     if (listing.kind !== "auction") throw new DomainError("INVALID_INPUT", "This lot has a fixed price: buy it.");
     if (listing.status !== "active" || listing.endsAt <= input.now) throw new DomainError("LISTING_EXPIRED", "Bidding has closed.");
     if (listing.sellerAccountId === input.accountId) throw new DomainError("CANNOT_BUY_OWN", "You can't bid on your own horse.");
-    const wallet = await verifiedWalletOf(tx, input.accountId);
+    const wallet = await marketWalletOf(tx, input.accountId);
     if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
     if (lower(wallet) !== lower(input.signer)) throw new DomainError("NOT_ELIGIBLE", "Sign the bid with your linked wallet.");
     if (lower(wallet) === lower(listing.sellerWallet)) throw new DomainError("LINKED_ACCOUNTS", "Trades between linked accounts are not allowed.");
@@ -723,12 +730,15 @@ async function offerNextBidder(tx: Tx, listing: UsdgListingRow, chain: UsdgChain
     .from(usdgBids)
     .where(and(eq(usdgBids.listingId, listing.id), eq(usdgBids.status, "active")))
     .orderBy(desc(usdgBids.amount), asc(usdgBids.createdAt));
-  for (const bid of candidates) {
-    const wallet = await verifiedWalletOf(tx, bid.accountId);
+  // A real-chain offer pays the seller's listed wallet: it must still be their verified wallet.
+  const payable = await sellerPayable(tx, listing, chain);
+  for (const bid of payable ? candidates : []) {
+    // Practice orders: the bid's address is still one of the bidder's identities (a wallet linked
+    // after bidding keeps a practice-address bid alive). Real orders: their verified wallet only.
+    const own = isPracticeMarket(chain.market) ? await holdsMarketAddress(tx, bid.accountId, bid.wallet) : lower((await verifiedWalletOf(tx, bid.accountId)) ?? "") === lower(bid.wallet);
     const ok =
-      wallet !== null &&
-      lower(wallet) === lower(bid.wallet) &&
-      lower(wallet) !== lower(listing.sellerWallet) &&
+      own &&
+      lower(bid.wallet) !== lower(listing.sellerWallet) &&
       !(await usdgBarredUntil(tx, { accountId: bid.accountId, now }, policy)) &&
       !(await areLinked(tx, bid.accountId, listing.sellerAccountId));
     if (!ok) {
@@ -759,6 +769,17 @@ async function offerNextBidder(tx: Tx, listing: UsdgListingRow, chain: UsdgChain
   await tx.update(usdgListings).set({ status: "unsold", offerOrderId: null, closedAt: listing.closedAt ?? now }).where(eq(usdgListings.id, listing.id));
   await audit(tx, { actor: null, action: "usdg.auction_unsold", entityType: "usdg_listing", entityId: listing.id });
   return null;
+}
+
+/**
+ * Whether a sale order for this listing can pay its seller: always for a practice order (paid account
+ * to account in the ledger); for a real-chain order only while the listed seller wallet is still the
+ * seller's verified wallet, so real money never goes to a practice address or a replaced wallet.
+ */
+async function sellerPayable(tx: Executor, listing: UsdgListingRow, chain: UsdgChainRef): Promise<boolean> {
+  if (isPracticeMarket(chain.market)) return true;
+  const current = await verifiedWalletOf(tx, listing.sellerAccountId);
+  return !!current && lower(current) === lower(listing.sellerWallet);
 }
 
 /** Closes every auction past its end: offers the horse to the top bidder, or ends it unsold. */

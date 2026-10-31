@@ -11,7 +11,8 @@
  *              never reported the tx. Unknown orderIds are never fulfilled.
  *
  * Practice mode (USDG_MODE=practice, owner decision 2026-10-31): no ETH quote, no chain call and
- * no real payment. `practiceCheckout` runs the same checks (verified wallet, geo, weekly cap incl.
+ * no real payment. `practiceCheckout` runs the same checks (a market identity: the verified wallet,
+ * or without one the practice identity, @thoroughbred/db `marketWalletOf`; geo, weekly cap incl.
  * open orders, the beta lifetime cap, stall, crop) and charges the pack's USD price in T-USDG
  * (1 T-USDG = 1 USD) from the player's practice balance, in ONE transaction with the order row
  * and the prepaid pulls (keyed by the order id: seeded, committed, odds and pity unchanged). No
@@ -47,6 +48,7 @@ import {
   reservedPremiumPacks,
   runTx,
   seasonNumberAt,
+  marketWalletOf,
   verifiedWalletOf,
   isDomainError,
   type BetaSku,
@@ -223,9 +225,9 @@ export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: {
   };
 }
 
-/** Practice mode: my T-USDG balance (granting the one-off 100 to a wallet holder first); null without a wallet. */
+/** Practice mode: my T-USDG balance (granting the one-off 100 first); null without a market identity (no wallet and no practice identity). */
 export async function practiceBalanceOf(ctx: CheckoutCtx, session: Session, now: Date): Promise<number | null> {
-  if (!ctx.cfg.practice || !(await verifiedWalletOf(ctx.db, session.accountId))) return null;
+  if (!ctx.cfg.practice || !(await marketWalletOf(ctx.db, session.accountId))) return null;
   await ensurePracticeGrant(ctx.db, session.accountId, now);
   return practiceUsdgBalance(ctx.db, session.accountId);
 }
@@ -265,7 +267,9 @@ export async function practiceCheckout(
     if (prior.accountId !== session.accountId) throw new DomainError("NOT_FOUND", "order not found");
     return { status: "fulfilled", orderId, pullIds: (prior.pullIds as string[] | null) ?? [], duplicate: true, charged: 0, balance: await practiceUsdgBalance(db, session.accountId) };
   }
-  const wallet = await verifiedWalletOf(db, session.accountId);
+  // The market identity: the verified wallet, or the practice identity (practice mode only). The
+  // order row is a practice order (PRACTICE_STORE_ADDRESS): never settled on-chain, deleted by the reset.
+  const wallet = await marketWalletOf(db, session.accountId);
   if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
   await ensurePracticeGrant(db, session.accountId, input.now);
 

@@ -18,7 +18,7 @@ import { txUrl } from "@/lib/chain/chains";
 import { formatEth, formatUsdCents, shortAddress } from "@/lib/chain/format";
 import { quoteFromJson, type EthQuoteJson } from "@/lib/chain/quote";
 import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
-import { PRACTICE_EXPLAINER, PracticeBadge, WalletChip, usdgDisplay } from "./UsdgMode";
+import { MarketIdentityChip, PRACTICE_EXPLAINER, PracticeBadge, usdgDisplay } from "./UsdgMode";
 import { WalletLink, useWalletStatus } from "./WalletLink";
 
 const practiceDollars = usdgDisplay(true).dollars;
@@ -40,8 +40,11 @@ interface CheckoutStatus {
   enabled: boolean;
   /** Practice mode: packs cost T-USDG (POST /api/checkout/practice). */
   practice: boolean;
-  /** My T-USDG balance (micro), null without a wallet. */
+  /** My T-USDG balance (micro), null without a market identity. */
   practiceBalance: number | null;
+  /** Practice mode: "wallet", "practice" (no wallet: I trade as my stable) or null. */
+  practiceIdentity?: "wallet" | "practice" | null;
+  stableName?: string;
   chainId: number;
   store: Address;
   packUsdCents: number;
@@ -347,7 +350,7 @@ function PracticePackCheckout({
         <span className="label">Buy with T-USDG</span>
         <PracticeBadge />
       </div>
-      {!wallet ? (
+      {!wallet && st.practiceIdentity !== "practice" ? (
         <>
           <p className="text-sm">Sign in with your wallet to get your T-USDG (one free signature, no transaction).</p>
           <WalletLink onLinked={onLinked} />
@@ -355,7 +358,7 @@ function PracticePackCheckout({
       ) : (
         <>
           <span className="flex flex-wrap items-center gap-2">
-            <WalletChip address={wallet} />
+            <MarketIdentityChip wallet={wallet} identity={st.practiceIdentity ?? null} stableName={st.stableName ?? null} />
             {balance !== null && (
               <span className="text-sm" data-testid="tusdg-pack-balance">
                 Your T-USDG: <b className="num text-cream">{practiceDollars(balance)}</b>
