@@ -53,9 +53,9 @@ describe("commentary upload", () => {
 
   it("stores a known name's clips and serves them, immutable", async () => {
     process.env.COMMENTARY_UPLOAD_SECRET = SECRET;
-    // Before: 404, briefly cached (the caster says the number).
+    // Before: 204 (no console error in the browser), briefly cached (the caster says the number).
     const before = await clip({ key: keyOf(horseName) });
-    expect(before.status).toBe(404);
+    expect(before.status).toBe(204);
     expect(before.headers.get("Cache-Control")).toContain("max-age=600");
     const res = await upload(body(), `Bearer ${SECRET}`);
     expect(res.status).toBe(200);
@@ -65,9 +65,9 @@ describe("commentary upload", () => {
     expect(got.headers.get("Cache-Control")).toContain("immutable");
     expect(Buffer.from(await got.arrayBuffer()).equals(mp3(2))).toBe(true);
     // Another recipe, caster or intensity: not served.
-    expect((await clip({ key: keyOf(horseName), recipe: `${COMMENTARY_RECIPE + 1}` })).status).toBe(404);
-    expect((await clip({ key: keyOf(horseName), caster: "bm_george" })).status).toBe(404);
-    expect((await clip({ key: keyOf(horseName), intensity: "shouting" })).status).toBe(404);
+    expect((await clip({ key: keyOf(horseName), recipe: `${COMMENTARY_RECIPE + 1}` })).status).toBe(204);
+    expect((await clip({ key: keyOf(horseName), caster: "bm_george" })).status).toBe(204);
+    expect((await clip({ key: keyOf(horseName), intensity: "shouting" })).status).toBe(204);
   });
 
   it("enforces the limits: body size, clip size and format, known names, casters", async () => {

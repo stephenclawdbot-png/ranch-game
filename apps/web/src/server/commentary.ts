@@ -1,7 +1,7 @@
 /**
  * Radio commentary name clips over HTTP (docs/commentary.md):
  *
- *   GET  /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>   public MP3, cached for good
+ *   GET  /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>   public MP3, cached for good (204 until voiced)
  *   POST /api/commentary/names                                            upload (secret)
  *   GET  /api/commentary/names/missing?limit=N                            names to voice (secret)
  *
@@ -113,9 +113,10 @@ export async function serveCommentaryClip(db: Db, params: { recipe: string; cast
   });
 }
 
-/** No clip yet: the caster says the saddle-cloth number. Cached briefly (the clip may arrive within the hour). */
+/**
+ * No clip yet: the caster says the saddle-cloth number. 204, not 404, so an unvoiced name is not
+ * a console error in every viewer's browser; cached briefly (the clip may arrive within the hour).
+ */
 function notYet(): Response {
-  const res = errorJson(404, "not_found", { message: "No clip for that name yet." });
-  res.headers.set("Cache-Control", "public, max-age=600, s-maxage=600");
-  return res;
+  return new Response(null, { status: 204, headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } });
 }

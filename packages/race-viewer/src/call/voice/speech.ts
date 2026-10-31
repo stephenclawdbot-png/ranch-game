@@ -77,7 +77,6 @@ export const SPOKEN = {
   slowLate: ["{a} was slowly away.", "A slow start from {a}."],
   position: ["{a} leads by {gap} from {b}. {c} third.", "It's {a}, by {gap}, from {b} and {c}.", "{a} still in front, {gap} up on {b}, then {c}."],
   positionTwo: ["{a} leads by {gap} from {b}.", "{a} still in front, {b} tracking."],
-  fourth: ["{d} fourth."],
   strung: ["They're well strung out now."],
   bunched: ["They're closely bunched."],
   half: ["Halfway, and {a} is the leader."],

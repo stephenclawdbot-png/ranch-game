@@ -4,7 +4,7 @@
  *   /audio/commentary/manifest.json                        the phrase library (static, per deploy)
  *   /audio/commentary/<caster>/<intensity>/<phrase>.mp3    a phrase clip
  *   /audio/commentary/beds/*.mp3                           crowd beds and radio static
- *   /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>   a horse name (404 until voiced)
+ *   /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>   a horse name (204 until voiced)
  */
 import type { ClipRef, ClipResolver, CrowdBed } from "./schedule";
 import type { Intensity, Speech, SpeechToken } from "./speech";
@@ -23,9 +23,10 @@ export interface CommentaryManifest {
 
 /** Mixer levels (linear gain) for the voice, the crowd beds, the cheer and the static. KNOBS: "Radio commentary". */
 export const MIX = {
-  voice: 1,
-  beds: { murmur: 0.2, building: 0.32, roar: 0.5, hush: 0.1 } as Record<CrowdBed, number>,
-  cheer: 0.55,
+  /** The voice per line intensity, on top of the clips' own build-up (the finish ends ~6 dB above the start). */
+  voice: { calm: 0.7, building: 0.9, climax: 1.12 } as Record<Intensity, number>,
+  beds: { murmur: 0.14, building: 0.28, roar: 0.6, hush: 0.08 } as Record<CrowdBed, number>,
+  cheer: 0.7,
   static: 1,
   /** Seconds a crowd bed change takes (time constant of the gain ramp x3). */
   crowdFadeSec: 0.8,
@@ -64,7 +65,7 @@ export function clipsFor(s: Speech, caster: string): Array<{ key: string; kind: 
   return out;
 }
 
-/** What the player knows about a clip: its length once decoded, "missing" (404 / failed), or still loading (absent). */
+/** What the player knows about a clip: its length once decoded, "missing" (204 / failed), or still loading (absent). */
 export type ClipState = number | "missing";
 
 /**

@@ -55,8 +55,10 @@ export const SPEECH = {
   lineGapSec: 0.3,
   /** Latest a line may start behind its call time; later routine lines are dropped. */
   maxDelaySec: 1.6,
-  /** Lines at or above this priority (the finish, photo, result, final-furlong calls) cut in instead. */
+  /** Lines at or above this priority are never dropped: the cut-in kinds cut the previous line short, the rest wait. */
   keyPriority: 75,
+  /** The key calls that cut in on time (the final furlong, the duel, the finish, the photograph, the result). */
+  cutKinds: ["home", "challenge", "finish", "photo", "result"] as readonly CallKind[],
   /** The calls still spoken at 2x / 4x / 0.5x (in real time, the rest are skipped). */
   keyKinds: ["finish", "photo", "result"] as readonly CallKind[],
 };
@@ -99,10 +101,13 @@ export function planSpeech(lines: readonly VoicedCallLine[], resolve: ClipResolv
     if (start - l.atSec > SPEECH.maxDelaySec) {
       const prev = out[out.length - 1];
       if (l.priority < SPEECH.keyPriority || !prev) continue;
-      // A key call cuts the previous line short.
-      prev.cut = Math.max(prev.start, l.atSec - 0.05);
-      prev.end = prev.cut;
-      start = l.atSec;
+      if (SPEECH.cutKinds.includes(l.kind)) {
+        // A key call at the business end cuts the previous line short.
+        prev.cut = Math.max(prev.start, l.atSec - 0.05);
+        prev.end = prev.cut;
+        start = l.atSec;
+      }
+      // Other key lines (the opening order) wait their turn.
     }
     out.push({ id: lineId(l), kind: l.kind, priority: l.priority, intensity: sp.intensity, atSec: l.atSec, start, end: start + at, clips });
     cursor = start + at;

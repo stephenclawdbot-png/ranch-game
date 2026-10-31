@@ -53,6 +53,12 @@ describe("planSpeech", () => {
     expect(d).toBeUndefined();
   });
 
+  it("never cuts the opening order: its second half waits, however late", () => {
+    const plan = planSpeech([line(8, "order", sp("calm", "a", "b", "c", "d"), 80), line(10.5, "order", sp("calm", "e", "f"), 80)], resolver());
+    expect(plan.lines.map((l) => l.cut)).toEqual([undefined, undefined]);
+    expect(plan.lines[1]!.start).toBeCloseTo(8 + 4.09 + SPEECH.lineGapSec, 6);
+  });
+
   it("delays a line by up to maxDelaySec", () => {
     const plan = planSpeech([line(10, "position", sp("calm", "a", "b")), line(11.5, "move", sp("calm", "c"))], resolver());
     expect(plan.lines[1]!.start).toBeCloseTo(10 + 2.03 + SPEECH.lineGapSec, 6);

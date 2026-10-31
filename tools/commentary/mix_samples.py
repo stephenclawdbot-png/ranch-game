@@ -49,7 +49,7 @@ def mix(plan: dict, out_mp3: str) -> dict:
             s = idx(line["start"] + c["at"])
             e = min(n, s + len(a), stop)
             if e > s:
-                voice[s:e] += a[: e - s]
+                voice[s:e] += a[: e - s] * plan["mix"]["voice"][line["intensity"]]
     mixv = plan["mix"]
     # Crowd: the bed the cues name, with setTargetAtTime-style ramps (tau = fade / 3).
     cues = plan["cues"]
@@ -87,7 +87,7 @@ def mix(plan: dict, out_mp3: str) -> dict:
             crowd[s:e] += cheer[: e - s] * mixv["cheer"]
     static = decode(plan["beds"]["static"])
     stat = np.tile(static, int(math.ceil(n / len(static))))[:n] * mixv["static"]
-    out = voice * mixv["voice"] + crowd + stat
+    out = voice + crowd + stat
     wav = out_mp3[:-4] + ".wav"
     import soundfile as sf
 

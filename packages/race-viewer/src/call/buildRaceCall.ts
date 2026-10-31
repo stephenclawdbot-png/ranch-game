@@ -275,7 +275,7 @@ export function buildVoicedRaceCall(input: RaceCallInput): VoicedCallLine[] {
       hs.push(c);
       if (d !== undefined && n >= 6) {
         text = text.replace(/[.!]$/, "") + say("fourth", { d: call(d) });
-        speech = joinSpeech(speech, voice("fourth", slots, level));
+        // (Not spoken: the radio call keeps position lines short.)
         hs.push(d);
       }
     }

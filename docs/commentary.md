@@ -42,9 +42,9 @@ race replay / live frames ──> buildVoicedRaceCall (race-viewer, pure)
 
    The text call is byte-identical (`buildRaceCall` is `buildVoicedRaceCall` without the speech;
    the snapshot tests hold it). Split times are not voiced. Deterministic: same race, same call.
-2. **Phrase library.** Every clip id (`VOCABULARY`, 191 phrases including numbers 1-24 as
+2. **Phrase library.** Every clip id (`VOCABULARY`, 190 phrases including numbers 1-24 as
    "number six", ordinals, every margin, the six courses, going and lanes) x 3 casters x 3
-   intensities = 1,719 MP3s under `apps/web/public/audio/commentary/<caster>/<intensity>/`, with
+   intensities = 1,710 MP3s under `apps/web/public/audio/commentary/<caster>/<intensity>/`, with
    `manifest.json` (durations, render hashes) and the shared beds in `beds/` (crowd murmur,
    building, roar, photo hush, a one-shot cheer, radio static).
 3. **Names.** Each horse name is voiced once per caster and intensity and stored for good in the
@@ -58,7 +58,7 @@ race replay / live frames ──> buildVoicedRaceCall (race-viewer, pure)
    mid-race starts the line in progress part-way through; pause suspends the audio; a speed
    change resyncs. A line still talking delays the next by up to 1.6 s, a later routine line is
    dropped, and a key call (priority 75+: the final furlong, the finish, the photo, the result)
-   cuts the previous line short. The crowd bed follows the intensity, hushes after "Photograph!"
+   cuts the previous line short (the opening order never is: its second half waits). Position lines are spoken shorter than the text (no fourth horse). The crowd bed follows the intensity, hushes after "Photograph!"
    until the verdict, cheers the winner, then settles. A fast limiter on the master keeps voice
    plus crowd from clipping. Loads never block the race: a clip not ready in time is skipped.
    Both views (Trackside and 3D) use the same clock, so both are covered.
@@ -153,7 +153,7 @@ The endpoints:
 
 | Route | Auth | What |
 |---|---|---|
-| `GET /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>` | public | The clip (audio/mpeg), `Cache-Control: public, max-age=31536000, immutable`; 404 cached 10 minutes until voiced |
+| `GET /api/commentary/names/<recipe>/<caster>/<intensity>/<name key>` | public | The clip (audio/mpeg), `Cache-Control: public, max-age=31536000, immutable`; 204 No Content (cached 10 minutes) until voiced |
 | `GET /api/commentary/names/missing?limit=N` | `Authorization: Bearer $COMMENTARY_UPLOAD_SECRET` | Names to voice, with the casters missing |
 | `POST /api/commentary/names` | same | `{ name, caster, recipe, clips: { calm, building, climax } }` (base64 MP3) |
 
@@ -163,7 +163,7 @@ be the current recipe and a known caster, and must name a horse that exists.
 
 ## Sizes and costs
 
-- **Library:** 1,719 phrase clips + 6 beds, about 8 MB in the repo, served as static files
+- **Library:** 1,710 phrase clips + 6 beds, about 8 MB in the repo, served as static files
   (cached a day by the browser and the CDN).
 - **Per race:** a replay fetches its own clips only, typically 80-150 phrase clips plus the
   runners' names (about 4 KB each): roughly 0.5-0.8 MB, once, and cached.

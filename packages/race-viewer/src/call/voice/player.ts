@@ -85,7 +85,6 @@ export class RadioPlayer {
     this.master = this.ctx.createGain();
     this.master.connect(limiter).connect(this.ctx.destination);
     this.voiceBus = this.ctx.createGain();
-    this.voiceBus.gain.value = MIX.voice;
     this.voiceBus.connect(this.master);
     void this.start();
   }
@@ -175,7 +174,8 @@ export class RadioPlayer {
     this.inflight.add(key);
     try {
       const r = await fetch(url);
-      if (!r.ok) throw new Error(`${r.status}`);
+      // 204: a name not voiced yet (the caster says its number).
+      if (!r.ok || r.status === 204) throw new Error(`${r.status}`);
       const buf = await this.ctx.decodeAudioData(await r.arrayBuffer());
       this.buffers.set(key, buf);
       this.state.set(key, buf.duration);
@@ -263,6 +263,9 @@ export class RadioPlayer {
     const from = rate === 1 ? joinAt(line, t) : { clip: 0, offset: 0 };
     if (!from) return;
     const sources: AudioBufferSourceNode[] = [];
+    const level = this.ctx.createGain();
+    level.gain.value = MIX.voice[line.intensity];
+    level.connect(this.voiceBus);
     const stopAt = line.cut !== undefined ? ctxStart + (line.cut - line.start) : Number.POSITIVE_INFINITY;
     for (let k = from.clip; k < line.clips.length; k++) {
       const c = line.clips[k]!;
@@ -270,7 +273,7 @@ export class RadioPlayer {
       if (!buf) continue;
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
-      src.connect(this.voiceBus);
+      src.connect(level);
       const offset = k === from.clip ? from.offset : 0;
       const when = Math.max(now, ctxStart + c.at + offset);
       if (when >= stopAt) break;
