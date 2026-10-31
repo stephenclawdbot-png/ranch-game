@@ -7,6 +7,9 @@ import { api } from "@/lib/player";
 import { PixelIcon } from "../icons";
 import { MOMENT_ICON, TributeCard } from "./TributeCard";
 
+/** A tribute's body repeats the record the card shows: keep only its closing line. */
+const lastSentence = (s: string) => s.trim().split(/(?<=\.)\s+/).pop() ?? s;
+
 /**
  * The horse page's one-time highlight: what was discovered or achieved since the owner last
  * looked (moments not dismissed yet). Dismissing stores it on the server, so it shows once
@@ -37,7 +40,7 @@ export function MomentHighlights({ moments, horseId }: { moments: MomentView[]; 
               <div className="min-w-0 flex-1">
                 <p className="eyebrow">{memorial ? "In memoriam" : "New"}</p>
                 <h2 className="t-title text-lg">{m.title}</h2>
-                <p className="mt-1 max-w-prose text-[0.9375rem] text-cream-dim">{m.body}</p>
+                <p className="mt-1 max-w-prose text-[0.9375rem] text-cream-dim">{m.tribute && !memorial ? lastSentence(m.body) : m.body}</p>
               </div>
             </div>
             {m.tribute && <TributeCard name={m.horseName ?? "This horse"} tribute={m.tribute} memorial={memorial ? { atMs: m.createdAtMs, raceId: m.raceId, raceName: null } : null} />}

@@ -60,14 +60,14 @@ export function TributeCard({
       </dl>
       {t.bestWin ? (
         <p className="text-sm">
-          Best win: <b>{t.bestWin.raceName}</b> ({day(t.bestWin.atMs)}, purse {formatCredits(t.bestWin.purse)} cr) ·{" "}
+          Best win: <b>{t.bestWin.raceName}</b> ({day(t.bestWin.atMs)}{t.bestWin.purse > 0 ? `, purse ${formatCredits(t.bestWin.purse)} cr` : ""}) ·{" "}
           <Link href={`/race/${t.bestWin.raceId}`} className="link font-bold" data-testid="best-win-replay">
             Watch the replay
           </Link>
         </p>
-      ) : (
+      ) : t.wins === 0 ? (
         <p className="text-sm text-cream-dim">No wins on the record{t.starts > 0 ? `, ${t.starts} ${t.starts === 1 ? "start" : "starts"} given` : ""}.</p>
-      )}
+      ) : null}
       {memorial && (
         <p className="text-sm text-cream-dim">
           Lost {memorial.raceName ? <>in the {memorial.raceId ? <Link href={`/race/${memorial.raceId}`} className="link">{memorial.raceName}</Link> : memorial.raceName}</> : "to a race injury"} on {day(memorial.atMs)}. The record stays in your books and the Hall, and any foals carry the line on.

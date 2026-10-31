@@ -48,7 +48,7 @@ function recapView(i: typeof schema.inboxItems.$inferSelect): MomentView {
 }
 
 /** Home's stable news: the latest moments and League recaps, newest first. */
-export async function stableNews(db: Db, accountId: string, limit = 6): Promise<MomentView[]> {
+export async function stableNews(db: Db, accountId: string, limit = 8): Promise<MomentView[]> {
   const moments = (await listMoments(db, accountId, { limit })).map(momentView);
   const recaps = (await listWeekRecaps(db, accountId, 2)).map(recapView);
   return [...moments, ...recaps].sort((a, b) => b.createdAtMs - a.createdAtMs).slice(0, limit);

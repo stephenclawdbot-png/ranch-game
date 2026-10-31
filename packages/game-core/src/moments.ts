@@ -78,6 +78,9 @@ export const QUIRK_TRIGGER_TEXT: Record<QuirkKey, string> = {
   crowdShy: `on big days (Features, Season Finals, Group races) and in any field of ${CROWD_SHY_FIELD} or more`,
 };
 
+/** "Sea Lavender is a mudlark" */
+const QUIRK_PHRASE: Record<QuirkKey, string> = { mudlark: "is a mudlark", gateShy: "is gate-shy", lateKick: "has a late kick", crowdShy: "is crowd-shy" };
+
 /** What an owner may do about each quirk (never a promise). */
 export const QUIRK_ADVICE: Record<QuirkKey, string> = {
   mudlark: "Wet ground is the day to look for: soft or heavy going may suit.",
@@ -132,7 +135,7 @@ export function quirkMoment(h: { id: string; name: string; sex: string }, q: Qui
     kind: "quirk",
     dedupeKey: momentKey("quirk", h.id, q),
     horseId: h.id,
-    title: `Quirk found: ${h.name} is ${QUIRK_LABEL[q].toLowerCase()}`,
+    title: `Quirk found: ${h.name} ${QUIRK_PHRASE[q]}`,
     body: `Noticed in the ${race.name}. ${quirkEffectSentence(q, p.she)} ${QUIRK_ADVICE[q]}`,
     href: `/horse/${h.id}`,
     raceId: race.id,

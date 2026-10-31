@@ -124,8 +124,10 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
                   {!h.canRaceToday && <span className="t-meta">raced today</span>}
                 </span>
                 {!!h.nearMiss?.length && (
-                  <span className="w-full text-sm font-bold text-warn" data-testid="near-miss">
-                    {h.nearMiss.join(" · ")}
+                  <span className="grid w-full gap-0.5 text-sm font-bold text-warn" data-testid="near-miss">
+                    {h.nearMiss.map((t) => (
+                      <span key={t}>{t}</span>
+                    ))}
                   </span>
                 )}
               </li>
