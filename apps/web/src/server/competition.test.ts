@@ -142,6 +142,16 @@ describe("Story chapters", () => {
 });
 
 describe("leagues and the Hall of Fame", () => {
+  it("the not-joined league view carries the rules' own numbers, the starting tier and each tier's leader", { timeout: 120_000 }, async () => {
+    const p = await player("Prospect Park");
+    const v = await leagueView(h.db, p, T0);
+    expect(v.joined).toBe(false);
+    // Nothing scored anywhere yet: no tiers with leagues, and the viewer's would-count runs are honest about there being none.
+    expect(v.tiersTop).toEqual([]);
+    expect(v.prospect).toEqual({ runsThisSeason: 0, seasonPoints: 0, best: [] });
+    expect(v.rules).toMatchObject({ bestRuns: gc.BEST_RUNS_COUNTED, weeklyCap: gc.WEEKLY_RACE_POINTS_CAP, floorTiers: ["bronze", "silver"] });
+  });
+
   it("entering a Live race joins this week's league; the views render", { timeout: 120_000 }, async () => {
     const p = await player("League Lodge");
     const v0 = await leagueView(h.db, p, T0);
@@ -154,6 +164,10 @@ describe("leagues and the Hall of Fame", () => {
     expect(v1.joined).toBe(true);
     expect(v1.tierName).toBe("bronze");
     expect(v1.rows.find((r) => r.mine)).toBeDefined();
+    // Once joined, the prospect state is gone; the tier tops exist but nothing has settled yet.
+    expect(v1.prospect).toBeNull();
+    expect(v1.tiersTop.map((t) => t.tierName)).toEqual(["bronze"]);
+    expect(v1.tiersTop[0]!.points).toBe(0);
     const hall = await hallView(h.db, p, T0);
     expect(hall.mine?.achievements.length).toBe(gc.ACHIEVEMENTS.length);
     expect(Array.isArray(hall.records)).toBe(true);

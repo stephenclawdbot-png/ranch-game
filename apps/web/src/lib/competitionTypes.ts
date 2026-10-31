@@ -151,7 +151,14 @@ export interface LeagueView {
   history: { weekStart: string; tierName: string; points: number; finalRank: number | null; movement: number | null }[];
   season: { number: number; startsAtMs: number; endsAtMs: number; owners: number; rows: SeasonRowView[]; mine: SeasonRowView | null };
   calendar: CalendarRaceView[];
-  rules: { racePoints: number[]; startPoint: number; weeklyCap: number };
+  rules: { racePoints: number[]; startPoint: number; weeklyCap: number; bestRuns: number; floorTiers: string[] };
+  /**
+   * Only while you're not in a league yet (and signed in): the runs you've already made that
+   * would score in one, with the points the rules give them (db `runPoints`).
+   */
+  prospect: { runsThisSeason: number; seasonPoints: number; best: { label: string; points: number }[] } | null;
+  /** This week's best member of each tier that has leagues (db `tierLeaders`); empty before any league forms. */
+  tiersTop: { tierName: string; stableName: string; silks: Silks; photoUrl: string | null; points: number; wins: number; runs: number }[];
 }
 
 // ---------------------------------------------------------------------------
