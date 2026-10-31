@@ -20,3 +20,4 @@ export { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hu
 export { finalePlan, finaleSlides, isPhotoFinish, isCloseFinish, type FinalePlan, type FinaleSlide, type FinaleStep, type FinaleStepKind } from "./finale/plan";
 export { officialHandoff } from "./finale/live";
 export { checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";
+export { WHAT_IF_BADGE, whatIfCall, whatIfFlags } from "./whatIf";

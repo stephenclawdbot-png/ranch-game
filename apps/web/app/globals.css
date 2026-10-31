@@ -4851,3 +4851,32 @@ a.pill:hover,
   color: var(--color-sage);
   opacity: 0.75;
 }
+
+/* What if? re-runs: never a result, so always tagged as such (components/whatIf). */
+.whatif-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 2px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff7e6;
+  background: #c8462f;
+  box-shadow: 0 0 0 2px #0b0f0c;
+}
+.whatif-mine {
+  background: color-mix(in srgb, var(--color-brass) 28%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-brass);
+}
+.whatif-card {
+  box-shadow: inset 0 0 0 2px #c8462f;
+}
+.whatif-choice.is-on {
+  color: var(--color-cream);
+  background: color-mix(in srgb, var(--color-brass) 30%, var(--color-surface-1));
+  box-shadow:
+    inset 0 0 0 3px var(--color-brass),
+    0 0 0 2px #0b0f0c;
+}

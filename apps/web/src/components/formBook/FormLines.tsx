@@ -27,6 +27,7 @@ import {
   weightText,
 } from "@/lib/formBook";
 import { PositionBadge } from "../ui/PositionBadge";
+import { WhatIfButton } from "../whatIf/WhatIfButton";
 
 const classLabel = (c: string) => CLASS_LABEL[c as keyof typeof CLASS_LABEL] ?? c;
 const tacticLabel = (t: string) => STYLE_LABEL[t as keyof typeof STYLE_LABEL] ?? t;
@@ -51,7 +52,7 @@ function ratingDelta(l: FormLineView): { text: string; cls: string } {
 }
 
 /** Everything the dense row leaves out (phones: tapped open; desktop: under the row). */
-function Detail({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean; showHorse: boolean }) {
+function Detail({ l, numbers, showHorse, whatIf }: { l: FormLineView; numbers: boolean; showHorse: boolean; whatIf: boolean }) {
   const r = l.result;
   const facts: [string, string][] = [
     ...(showHorse && l.horseName ? ([["Horse", l.horseName]] as [string, string][]) : []),
@@ -84,15 +85,18 @@ function Detail({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean; 
           </Fragment>
         ))}
       </dl>
-      <Link href={`/race/${l.raceId}`} className="btn btn-sm w-fit" data-testid="form-replay">
-        {l.result ? "Watch the replay" : l.status === "running" ? "Watch live" : "Race card"}
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/race/${l.raceId}`} className="btn btn-sm w-fit" data-testid="form-replay">
+          {l.result ? "Watch the replay" : l.status === "running" ? "Watch live" : "Race card"}
+        </Link>
+        {whatIf && l.status === "settled" && l.result && <WhatIfButton raceId={l.raceId} horseId={l.horseId} horseName={l.horseName ?? "Your horse"} />}
+      </div>
     </div>
   );
 }
 
 /** The phone row: the key five facts, tap to open. */
-function PhoneRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean; showHorse: boolean }) {
+function PhoneRow({ l, numbers, showHorse, whatIf }: { l: FormLineView; numbers: boolean; showHorse: boolean; whatIf: boolean }) {
   const [open, setOpen] = useState(false);
   const rd = ratingDelta(l);
   return (
@@ -114,12 +118,12 @@ function PhoneRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
           {open ? "▴" : "▾"}
         </span>
       </button>
-      {open && <Detail l={l} numbers={numbers} showHorse={showHorse} />}
+      {open && <Detail l={l} numbers={numbers} showHorse={showHorse} whatIf={whatIf} />}
     </li>
   );
 }
 
-function TableRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean; showHorse: boolean }) {
+function TableRow({ l, numbers, showHorse, whatIf }: { l: FormLineView; numbers: boolean; showHorse: boolean; whatIf: boolean }) {
   const [open, setOpen] = useState(false);
   const r = l.result;
   const rd = ratingDelta(l);
@@ -164,7 +168,7 @@ function TableRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
       {open && (
         <tr className="form-detail">
           <td colSpan={numbers ? 13 : 12}>
-            <Detail l={l} numbers={numbers} showHorse={showHorse} />
+            <Detail l={l} numbers={numbers} showHorse={showHorse} whatIf={whatIf} />
           </td>
         </tr>
       )}
@@ -177,7 +181,7 @@ function TableRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
  * a number). `showHorse`: stable views name the horse in each row. `initial`: rows shown before
  * "Show all".
  */
-export function FormLines({ lines, numbers = false, showHorse = false, initial = 10 }: { lines: FormLineView[]; numbers?: boolean; showHorse?: boolean; initial?: number }) {
+export function FormLines({ lines, numbers = false, showHorse = false, initial = 10, whatIf = false, horseName }: { lines: FormLineView[]; numbers?: boolean; showHorse?: boolean; initial?: number; /** The viewer ran or owns these runs: offer "What if?" on settled ones. */ whatIf?: boolean; /** The horse, when every line is one horse's (the horse page). */ horseName?: string }) {
   const [all, setAll] = useState(false);
   const shown = all ? lines : lines.slice(0, initial);
   // Fatigue at the off is the keeper's only: no column for anyone else.
@@ -186,7 +190,7 @@ export function FormLines({ lines, numbers = false, showHorse = false, initial =
     <div className="grid gap-2" data-testid="form-lines">
       <ul className="surface rows md:hidden">
         {shown.map((l) => (
-          <PhoneRow key={`${l.raceId}:${l.horseId}`} l={l} numbers={numbers} showHorse={showHorse} />
+          <PhoneRow key={`${l.raceId}:${l.horseId}`} l={horseName && !l.horseName ? { ...l, horseName } : l} numbers={numbers} showHorse={showHorse} whatIf={whatIf} />
         ))}
       </ul>
       <div className="surface hidden overflow-x-auto md:block">
@@ -226,7 +230,7 @@ export function FormLines({ lines, numbers = false, showHorse = false, initial =
           </thead>
           <tbody>
             {shown.map((l) => (
-              <TableRow key={`${l.raceId}:${l.horseId}`} l={l} numbers={fat} showHorse={showHorse} />
+              <TableRow key={`${l.raceId}:${l.horseId}`} l={horseName && !l.horseName ? { ...l, horseName } : l} numbers={fat} showHorse={showHorse} whatIf={whatIf} />
             ))}
           </tbody>
         </table>

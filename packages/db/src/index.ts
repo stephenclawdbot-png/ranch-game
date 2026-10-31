@@ -58,3 +58,4 @@ export * from "./services/moments";
 export * from "./services/news";
 export * from "./services/rivals";
 export * from "./services/planner";
+export * from "./services/whatIf";

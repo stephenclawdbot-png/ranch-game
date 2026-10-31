@@ -109,6 +109,8 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-count-v{font-size:30px}
 .rv-narrow .rv-center-top{padding-top:96px}
 .rv-narrow .rv-badge{bottom:72px}
+.rv-whatif{position:absolute;left:12px;top:12px;z-index:3;font:11px var(--rv-f-pixel);text-transform:uppercase;letter-spacing:.04em;padding:6px 9px 5px;background:#c8462f;color:var(--rv-cream);border:2px solid var(--rv-ink);box-shadow:2px 2px 0 rgba(0,0,0,.45);pointer-events:none}
+.rv-narrow .rv-whatif{top:8px;left:8px;font-size:9.5px;padding:5px 7px 4px}
 .rv-narrow .rv-minimap{bottom:48px;height:30px;left:6px;right:6px;width:calc(100% - 12px)}
 .rv-narrow .rv-debug{bottom:auto;top:92px;font-size:9px}
 .rv-cmap{position:absolute;right:10px;top:var(--rv-cmap-top,98px);width:176px;background:rgba(11,15,12,.78);border:2px solid var(--rv-ink);box-shadow:inset 1px 1px 0 rgba(242,200,106,.25),2px 2px 0 rgba(0,0,0,.35);pointer-events:auto}

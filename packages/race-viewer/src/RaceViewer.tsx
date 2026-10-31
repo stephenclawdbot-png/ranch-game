@@ -23,6 +23,7 @@ import { FRAME_FIELD, FRAME_STRIDE, FURLONG_MM } from "@thoroughbred/shared";
 import { BattleGraphic, CallTicker, Controls, Countdown, Minimap, PhotoStamp, ResultsCard, TopHud, type MinimapDot } from "./hud/Hud";
 import { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hud/battle";
 import { RaceCallFeed, callLineAt } from "./call/ticker";
+import { WHAT_IF_BADGE, whatIfCall, whatIfFlags } from "./whatIf";
 import type { CallLine } from "./call/buildRaceCall";
 import { finalePlan, REPLAY_FROM_M, type FinalePlan, type FinaleStepKind } from "./finale/plan";
 import { FinaleRunner, type FinaleState } from "./finale/runner";
@@ -152,6 +153,11 @@ export interface RaceViewerProps {
   preOff?: boolean;
   /** The paddock scene shown during the parade (the host's own); default: a runner list. */
   paddock?: ReactNode;
+  /**
+   * "What if" mode (whatIf.ts): the replay is a counterfactual re-run, never a result. A "WHAT IF"
+   * badge stays on the stage; no finale, no results card, and no photograph or result call.
+   */
+  whatIf?: boolean;
 }
 
 /** The finale's step as the overlay renders it. */
@@ -298,16 +304,18 @@ export function RaceViewer(props: RaceViewerProps) {
     artBaseUrl = "/art",
     pixelated = false,
     hudTitle = true,
-    resultsCard = true,
+    resultsCard: resultsCardWanted = true,
     course = null,
     injuredHorseIds,
     mineHorseIds,
     connections,
     renderPortrait,
-    finale: finaleOn = true,
+    finale: finaleWanted = true,
     onFinale,
     paddock,
+    whatIf = false,
   } = props;
+  const { finale: finaleOn, resultsCard } = whatIfFlags(whatIf, { finale: finaleWanted, resultsCard: resultsCardWanted });
   const preOffWanted = props.preOff ?? !!feed;
   // Resolved on the client only (URL / localStorage), so SSR and hydration agree.
   const [view, setViewState] = useState<ViewMode | null>(props.view ?? null);
@@ -542,7 +550,7 @@ export function RaceViewer(props: RaceViewerProps) {
     if (fin) callFeed.update(fin, true, Number.POSITIVE_INFINITY);
     else if (feed) callFeed.update(live!, false, clock instanceof LiveClock ? clock.dataEdge() : t);
     const rate = clock.rate || 1;
-    const call = t >= 0 ? callLineAt(callFeed.lines, t, { minShowSec: (narrowRef.current ? 3 : 2.5) * rate, holdSec: 6 * Math.max(1, rate) }) : null;
+    const call = t >= 0 ? callLineAt(whatIf ? whatIfCall(callFeed.lines) : callFeed.lines, t, { minShowSec: (narrowRef.current ? 3 : 2.5) * rate, holdSec: 6 * Math.max(1, rate) }) : null;
     let leadM = 0;
     for (const s of samples) leadM = Math.max(leadM, s.x / 1000);
     const marker = samples.length && t >= 0 ? distanceMarker(markers, leadM, src.trackLengthMm / 1000) : null;
@@ -577,7 +585,7 @@ export function RaceViewer(props: RaceViewerProps) {
       toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
       standings: samples.length ? standingsAt(src, samples) : [],
     });
-  }, [live, feed, highlightHorseId, callFeed, markers]);
+  }, [live, feed, highlightHorseId, callFeed, markers, whatIf]);
   // The render loop outlives a publish/plan rebuild (e.g. the viewer's horses change): it reads these refs.
   const publishRef = useRef(publish);
   publishRef.current = publish;
@@ -1027,6 +1035,11 @@ export function RaceViewer(props: RaceViewerProps) {
         {h?.slowmo && !h.frozen && <div className="rv-badge">SLOW-MO</div>}
         {h && replayBadge && h.mode === "replay" && !h.ended && !h.slowmo && !h.frozen && <div className="rv-badge">PHOTO REPLAY</div>}
         {h?.buffering && <div className="rv-badge rv-badge-buffer">BUFFERING</div>}
+        {whatIf && !preHud && (
+          <div className="rv-whatif" data-testid="what-if-badge" role="note">
+            {WHAT_IF_BADGE}
+          </div>
+        )}
         {debug && debugText && (
           <div className="rv-debug" data-rv-debug="">
             {debugText}

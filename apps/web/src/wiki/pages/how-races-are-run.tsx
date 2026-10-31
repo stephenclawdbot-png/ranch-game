@@ -24,6 +24,7 @@ import {
 import { HORSE_LENGTH_MM, LIVE_RACE_MODEL, PHOTO_FINISH_MM, formatRaceTime, type RaceInput, type RunningStyle } from "@thoroughbred/shared";
 import { STYLE_LABEL, formatDistance, shortHash } from "@/lib/format";
 import { Callout, Facts, Figure, H2, Lead, List, P, Steps, Table, WikiLink } from "../kit";
+import { WHAT_IF_PER_HOUR } from "@/lib/whatIf";
 
 const STYLES: RunningStyle[] = ["front", "stalker", "closer", "stalker", "front", "closer", "stalker", "closer"];
 
@@ -239,7 +240,42 @@ export default function HowRacesAreRunPage() {
       <Callout tone="tip">
         <p>
           Lost a close one? Watch the replay before blaming the luck. Most races are lost on the tactic: a front-runner taken on for the lead, or a closer left with too much to do. Try a different
-          plan, or a trip and ground that suit the horse better (<WikiLink slug="entering-a-race" />).
+          plan, or a trip and ground that suit the horse better (<WikiLink slug="entering-a-race" />), or ask the race itself with a what-if (below).
+        </p>
+      </Callout>
+
+      <H2 id="what-if">What if? re-runs</H2>
+      <P>
+        Because a race is its field plus its seed, a race that has been run can be run <b>again with one thing changed</b>, and everything else stays exactly as it was: the same
+        runners in the same gates, the same course and going, the same race model and the same sealed seed. Every horse&rsquo;s luck (its form on the day, its break from the
+        stalls, its pace and its fight) is drawn from that seed for its own gate, so it is the same luck as on the day. Only your change can move the result.
+      </P>
+      <Steps
+        items={[
+          <>
+            Open a race your horse ran (the race page once the result is in, or a settled line in your form book) and tap <b>What if?</b>
+          </>,
+          <>
+            Pick <b>one</b> change to your own runner: the tactic, the ride (conservative, normal or all out), the race-day extras that act on the track (soft-ground shoes on soft or
+            heavy going, a physio session), or the jockey (another of your jockeys, or a typical Club freelancer of a grade).
+          </>,
+          <>See where you would have finished, how far behind the winner, the first five both ways and your horse&rsquo;s sectionals both ways. Then watch the what-if in the viewer.</>,
+        ]}
+      />
+      <Facts
+        title="The rules"
+        rows={[
+          ["When", "Only once the race has been run and the result is official (the seed is revealed then): no peeking at a race to come."],
+          ["What can change", "One thing about your own runner. The other runners, the gates, the weights carried, the course, the going and the seed never change."],
+          ["Engine", "The race re-runs on the engine version it was run with, so an older race stays an older race. A change that race couldn't have had (a jockey before jockeys) isn't offered."],
+          ["Cost", `Free. ${WHAT_IF_PER_HOUR} fresh re-runs an hour; one you've already run is free to look at again.`],
+          ["Official?", "Never. No credits, no rating, no form line, no record: it's labelled “What if (not official)” everywhere it shows, and the replay has no photo finish or weighed-in."],
+        ]}
+      />
+      <Callout tone="tip">
+        <p>
+          A what-if answers &ldquo;was it the tactic or the horse?&rdquo; with the same luck, which no amount of re-entering can. If the closer would have won from the same gate on the same
+          day, ride it as a closer next time. If nothing you change moves it, the horse needs a different race (<WikiLink slug="ratings-and-form" />).
         </p>
       </Callout>
     </>

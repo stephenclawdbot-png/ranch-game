@@ -26,6 +26,7 @@ import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
 import { FieldList } from "./FieldList";
 import { ShareReplay } from "./ShareReplay";
+import { WhatIfButton } from "../whatIf/WhatIfButton";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
 
@@ -305,6 +306,15 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
               <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               {state && card.kind === "live" && <RivalLines raceId={card.id} />}
+              {mine && settlement && (
+                <section className="surface flex flex-wrap items-center gap-3 p-3 sm:p-4" aria-label="What if?" data-testid="what-if-panel">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-extrabold text-cream">What if?</p>
+                    <p className="text-sm text-cream-dim">Re-run this race with one change to {mine.horse.name}: same field, same luck. Free, and never official.</p>
+                  </div>
+                  <WhatIfButton raceId={card.id} horseId={mine.horse.id} horseName={mine.horse.name} className="btn btn-brass" />
+                </section>
+              )}
             </>
           ) : (
             <>
