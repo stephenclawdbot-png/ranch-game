@@ -137,6 +137,8 @@ export interface RaceViewerProps {
   mineHorseIds?: readonly string[];
   /** Stable name / photo and jockey line per horseId, for the finale's cards (from the racecard). */
   connections?: Readonly<Record<string, RunnerConnections>>;
+  /** The public site host burned into "Share clip" videos as the wordmark URL (from the app's PUBLIC_BASE_URL). */
+  siteHost?: string | null;
   /** Draws a horse's genetic 3/4 portrait for the finale's cards (loaded only when a card shows). */
   renderPortrait?: PortraitRenderer;
   /**
@@ -311,6 +313,7 @@ export function RaceViewer(props: RaceViewerProps) {
     injuredHorseIds,
     mineHorseIds,
     connections,
+    siteHost = null,
     renderPortrait,
     finale: finaleWanted = true,
     onFinale,
@@ -963,9 +966,9 @@ export function RaceViewer(props: RaceViewerProps) {
   const clipButton = useMemo(
     () =>
       canShareClip(final, whatIf) ? (
-        <ClipShareButton replay={final} view={view ?? "trackside"} follow={follow} highlightHorseId={hasHighlight ? highlightHorseId : undefined} mine={mine} artBaseUrl={artBaseUrl} course={course} connections={connections} meta={{ courseName: course?.name ?? null }} />
+        <ClipShareButton replay={final} view={view ?? "trackside"} follow={follow} highlightHorseId={hasHighlight ? highlightHorseId : undefined} mine={mine} artBaseUrl={artBaseUrl} course={course} connections={connections} meta={{ courseName: course?.name ?? null, url: siteHost ?? undefined }} />
       ) : null,
-    [final, whatIf, view, follow, hasHighlight, highlightHorseId, mine, artBaseUrl, course, connections],
+    [final, whatIf, view, follow, hasHighlight, highlightHorseId, mine, artBaseUrl, course, connections, siteHost],
   );
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;

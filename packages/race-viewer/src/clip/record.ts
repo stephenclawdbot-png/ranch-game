@@ -21,8 +21,8 @@ import { rasterPhotoFinish } from "../photo/raster";
 import type { HD2DScene as HD2DSceneT } from "../three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "../trackside/TracksideScene";
 import { createClipEncoder } from "./encode";
-import { clipLayout, drawBanner, drawCaption, drawEndCard, drawPhotoHold, drawWordmark, photoPan, SANS, wrapLines } from "./overlay";
-import { CLIP_FPS, CLIP_SIZES, CLIP_WARMUP_SEC, clipFileName, clipSchedule, endCardRows, overlayAt, type ClipOrientation } from "./plan";
+import { GREEN, clipLayout, drawBanner, drawCaption, drawEndCard, drawPhotoHold, drawWordmark, photoPan, SANS, wrapLines } from "./overlay";
+import { CLIP_FPS, CLIP_SIZES, CLIP_WARMUP_SEC, clipFileName, clipSchedule, clipUrlLabel, endCardRows, leadGroupCrop, overlayAt, type ClipOrientation } from "./plan";
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
 
@@ -38,7 +38,7 @@ export interface ClipMeta {
   courseName?: string | null;
   /** Display date (e.g. "31 Oct 2026"); defaults to the post time's UTC date. */
   dateLabel?: string;
-  /** Wordmark URL (defaults to the page's host). */
+  /** Wordmark URL: the configured public site host (defaults to the page's host; dev hosts earn no URL). */
   url?: string;
   /** Stable name per horseId, for the photo card. */
   stables?: Record<string, string>;
@@ -75,13 +75,14 @@ async function createClipScene(
   replay: RaceReplay,
   opts: RecordClipOptions,
   art: Awaited<ReturnType<typeof import("../three/art").loadArt>>,
-): Promise<AnyScene> {
+): Promise<{ scene: AnyScene; trackside: boolean }> {
   const stage = buildRaceStage(opts.course ?? null, replay);
   const injured = injuredFromEvents(replay.events);
   if (opts.view === "trackside") {
     try {
       const { TracksideScene } = await import("../trackside/TracksideScene");
-      return await TracksideScene.create(T, replay, { quality: "high", highlightHorseId: opts.highlightHorseId, art, course: opts.course, stage, injured, preOff: null });
+      const scene = await TracksideScene.create(T, replay, { quality: "high", highlightHorseId: opts.highlightHorseId, art, course: opts.course, stage, injured, preOff: null });
+      return { scene, trackside: true };
     } catch (err) {
       console.warn("[clip] Trackside view unavailable, cutting from the classic view", err);
     }
@@ -97,7 +98,7 @@ async function createClipScene(
     loadTracksideArt(art).catch(() => null),
     loadFxPalette(art),
   ]);
-  return new HD2DScene(T, replay, {
+  const scene = new HD2DScene(T, replay, {
     quality: "high",
     highlightHorseId: opts.highlightHorseId,
     art,
@@ -110,6 +111,7 @@ async function createClipScene(
     injured,
     preOff: null,
   });
+  return { scene, trackside: false };
 }
 
 /** The display date default: the post time's UTC date, like the photo share card. */
@@ -143,9 +145,17 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
   const [T, { loadArt }] = await Promise.all([import("three"), import("../three/art")]);
   const art = await loadArt(opts.artBaseUrl ?? null);
   if (opts.signal?.aborted) throw new ClipCancelled();
-  const scene = await createClipScene(T, replay, opts, art);
-  // Half the output size, then a 2x nearest upscale in the composite: crisp pixel art.
-  scene.resize(Math.max(1, W / 2), Math.max(1, H / 2));
+  const built = await createClipScene(T, replay, opts, art);
+  const scene = built.scene;
+  // The composited band at half size, then a 2x nearest upscale: crisp pixel art.
+  // Vertical trackside renders a wide letterbox instead: a tight window pans across it
+  // following the leading group (leadGroupCrop), so the horses stay big in the tall crop.
+  const band = layout.scene;
+  const zoom = Math.max(1, Math.round(band.zoom));
+  const cropW = Math.max(1, Math.round(band.w / zoom));
+  const leadCrop = layout.vertical && built.trackside;
+  const sw = Math.max(1, leadCrop ? W : cropW);
+  scene.resize(sw, Math.max(1, Math.round(band.h / zoom)));
   scene.warmup();
 
   const lines = buildRaceCall({
@@ -178,7 +188,8 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
       : null;
   const dateLabel = opts.meta?.dateLabel ?? clipDateLabel(replay.race.postTimeMs);
   const subtitle = [opts.meta?.courseName, dateLabel, `${replay.race.distanceM} m`].filter(Boolean).join(" · ");
-  const url = opts.meta?.url ?? (typeof location !== "undefined" ? location.host : "");
+  // The configured public URL (wired down from the app); a dev host shows the wordmark only.
+  const url = clipUrlLabel(opts.meta?.url ?? (typeof location !== "undefined" ? location.host : null));
   const director = new Director();
   const renderSceneAt = (t: number) =>
     scene.render({ time: t, realDt: step, camera: opts.camera ?? "director", follow: opts.follow ?? false, frozen: false, flash: 0, director });
@@ -205,7 +216,20 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
       } else if (f.timeSec !== null) {
         renderSceneAt(f.timeSec);
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(scene.canvas, 0, 0, W, H);
+        // Vertical: the band floats on the branded field (the photo hold paints its own).
+        if (layout.vertical) {
+          ctx.fillStyle = GREEN;
+          ctx.fillRect(0, 0, W, H);
+        }
+        if (leadCrop) {
+          const ts = scene as TracksideSceneT;
+          const sx = leadGroupCrop({ rects: ts.debugRects(), xMm: ts.lastSamples.map((s) => s.x), viewportW: sw, cropW });
+          // Device px per stage CSS px, so the crop scales to the buffer exactly (HiDPI).
+          const k = scene.canvas.width / sw;
+          ctx.drawImage(scene.canvas, Math.round(sx * k), 0, Math.min(scene.canvas.width, Math.round(cropW * k)), scene.canvas.height, band.x, band.y, band.w, band.h);
+        } else {
+          ctx.drawImage(scene.canvas, band.x, band.y, band.w, band.h);
+        }
         drawBanner(ctx, layout, replay.race.name, subtitle);
         const ov = overlayAt(schedule, i, lines);
         if (ov.caption) drawCaption(ctx, layout, ov.caption);

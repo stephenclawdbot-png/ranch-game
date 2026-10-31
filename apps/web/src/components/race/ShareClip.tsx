@@ -16,6 +16,7 @@ export function ShareClip({
   replay,
   course,
   courseName,
+  siteHost,
   highlightHorseId,
   mineHorseIds,
   connections,
@@ -23,6 +24,8 @@ export function ShareClip({
   replay: RaceReplay;
   course: RaceViewerProps["course"];
   courseName?: string | null;
+  /** The public site host (PUBLIC_BASE_URL) burned into the clip's wordmark. */
+  siteHost?: string | null;
   highlightHorseId?: string;
   mineHorseIds?: readonly string[];
   connections?: RaceViewerProps["connections"];
@@ -34,7 +37,7 @@ export function ShareClip({
       mine={mineHorseIds}
       connections={connections}
       course={course}
-      meta={{ courseName: courseName ?? null }}
+      meta={{ courseName: courseName ?? null, url: siteHost ?? undefined }}
       className="btn btn-sm btn-brass shrink-0"
     />
   );

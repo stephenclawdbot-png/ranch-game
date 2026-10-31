@@ -22,6 +22,14 @@ export interface ClipLayout {
   H: number;
   /** Scale unit: the shorter side / 1080 (1 for both shipping sizes). */
   u: number;
+  /** True for the tall crop (the scene sits in a middle band, title above, captions below). */
+  vertical: boolean;
+  /**
+   * Where the race scene is composited, and the integer nearest-neighbour upscale of its
+   * render. Landscape: the full frame. Vertical: the middle ~60 % band (the title block
+   * owns the top, captions the bottom).
+   */
+  scene: { x: number; y: number; w: number; h: number; zoom: number };
   /** Edge margin (px). */
   pad: number;
   bannerH: number;
@@ -42,7 +50,13 @@ export function clipLayout(W: number, H: number): ClipLayout {
   const pad = Math.round(40 * u);
   const bannerH = Math.round(150 * u);
   const captionMaxW = W - pad * 2;
-  const captionBottom = Math.round(150 * u);
+  const vertical = H > W;
+  // The scene band: full frame in landscape; in vertical the middle ~60 %, with the title
+  // block above it and the captions just below (wordmark stays at the very bottom).
+  const scene = vertical
+    ? { x: 0, y: Math.round((H - Math.round(H * 0.6)) * 0.42), w: W, h: Math.round(H * 0.6), zoom: 2 }
+    : { x: 0, y: 0, w: W, h: H, zoom: 2 };
+  const captionBottom = vertical ? Math.max(Math.round(150 * u), Math.round((H - (scene.y + scene.h)) * 0.55)) : Math.round(150 * u);
   const endCardW = Math.min(W - pad * 2, Math.round(860 * u));
   // The photo hold parks the strip a touch below centre: title above, verdict below,
   // with room left for both on whichever orientation.
@@ -52,6 +66,8 @@ export function clipLayout(W: number, H: number): ClipLayout {
     W,
     H,
     u,
+    vertical,
+    scene,
     pad,
     bannerH,
     bannerTitlePx: Math.round(50 * u),

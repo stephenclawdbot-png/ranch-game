@@ -11,6 +11,7 @@ import { callLineAt, type TickerPick } from "../call/ticker";
 import type { CallLine } from "../call/buildRaceCall";
 import { marginPhrase } from "../photo/model";
 import { isPhotoFinish, marginLabelFor, ordinal } from "../finale/plan";
+import { LENGTH_M } from "../trackside/layout";
 
 /** Frames per second, also the fixed realDt fed to the scenes so a clip is deterministic. */
 export const CLIP_FPS = 30;
@@ -166,6 +167,64 @@ export function clipSlug(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+}
+
+/**
+ * The host shown next to the POST TIME wordmark: the configured public site URL's host,
+ * or the page origin's. A dev host (localhost, loopback, .local) earns a wordmark with no
+ * URL — clips never carry "localhost".
+ */
+export function clipUrlLabel(url: string | null | undefined): string {
+  if (!url) return "";
+  const host = url
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/[/:#?].*$/, "")
+    .toLowerCase();
+  if (!host || host === "localhost" || host.endsWith(".local") || (/^\d+\.\d+\.\d+\.\d+$/.test(host) && /^(127|0)\./.test(host)) || host === "::1") return "";
+  return host;
+}
+
+/** How far behind the leader the vertical crop keeps in frame (the director's final-furlong rule). */
+export const VERTICAL_GROUP_LENGTHS = 2;
+
+export interface LeadCropInput {
+  /** Sprite boxes in stage CSS px (full sprite incl. tail), parallel to `xMm`. */
+  rects: readonly { x: number; w: number }[];
+  /** Track position per horse, mm (the leader is the max). */
+  xMm: readonly number[];
+  /** Source viewport width (CSS px) the rects live in. */
+  viewportW: number;
+  /** Crop window width (CSS px). */
+  cropW: number;
+  /** Where the leader's nose rides in the window, as a share from the left (room ahead for the post). */
+  leaderAt?: number;
+}
+
+/**
+ * The vertical clip pans a tight window across a wide letterbox render, following the
+ * leading group: the leader near `leaderAt` from the left, and every runner within
+ * VERTICAL_GROUP_LENGTHS of the leader kept in frame when they fit (the leader never
+ * leaves, even when the group is wider than the window). Clamped to the viewport.
+ * Pure: the same render gives the same window.
+ */
+export function leadGroupCrop(inp: LeadCropInput): number {
+  const { rects, xMm, viewportW, cropW } = inp;
+  if (!rects.length || cropW >= viewportW) return 0;
+  let li = 0;
+  for (let i = 0; i < xMm.length; i++) if (xMm[i]! > xMm[li]!) li = i;
+  const leader = rects[li]!;
+  const leaderRight = Math.min(viewportW, leader.x + leader.w);
+  const lookBehindMm = VERTICAL_GROUP_LENGTHS * LENGTH_M * 1000;
+  let groupLeft = leader.x;
+  for (let i = 0; i < rects.length; i++) {
+    if (xMm[li]! - xMm[i]! <= lookBehindMm) groupLeft = Math.min(groupLeft, rects[i]!.x);
+  }
+  const at = inp.leaderAt ?? 0.72;
+  let sx = leaderRight - at * cropW; // the leader right of centre: room ahead for the winning post
+  sx = Math.min(sx, groupLeft - Math.round(cropW * 0.03)); // pull left until the whole group fits
+  sx = Math.max(sx, leaderRight - cropW); // …but the leader is never pushed out
+  return Math.round(Math.min(Math.max(0, viewportW - cropW), Math.max(0, sx)));
 }
 
 /** post-time-<course>-<race>-<yyyy-mm-dd>.<ext> */

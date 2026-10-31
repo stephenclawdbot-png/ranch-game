@@ -50,7 +50,7 @@ const BUILD_UP_LEAD_MS = 32_000;
  * Layout (phone first): broadcast plate + full-bleed stage at the top; below it your
  * runner's fit check and the field (pre/live) or the staged results (after the finish).
  */
-export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: RaceCard; serverNowMs: number; initialTimeSec?: number }) {
+export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: { card: RaceCard; serverNowMs: number; initialTimeSec?: number; siteHost?: string | null }) {
   const { config } = card;
   const router = useRouter();
   const entry = useEntry();
@@ -276,6 +276,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
                 initialTimeSec={initialTimeSec}
                 autoplay
                 course={courseByName(card.track)}
+                siteHost={siteHost}
                 paddock={paddock}
               />
             </div>
@@ -299,9 +300,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           </button>
         )}
         {phase === "result" && <ShareReplay card={card} horseName={mine?.horse.name ?? winnerName ?? "The winner"} />}
-        {phase === "result" && replay && (
-          <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />
-        )}
+        {phase === "result" && replay && <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} siteHost={siteHost} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />}
       </div>
 
       <CourseStrip track={card.track} distanceM={config.distanceM} />

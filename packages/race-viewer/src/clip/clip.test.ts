@@ -24,10 +24,13 @@ import {
   clipFileName,
   clipSchedule,
   clipSlug,
+  clipUrlLabel,
   clipWindow,
   endCardRows,
+  leadGroupCrop,
   overlayAt,
 } from "./plan";
+import { LENGTH_M } from "../trackside/layout";
 import { clipLayout, endCardHeight, photoPan, wrapLines } from "./overlay";
 
 const speed = 16_500;
@@ -196,6 +199,62 @@ describe("clipFileName", () => {
   });
 });
 
+describe("clipUrlLabel", () => {
+  it("keeps a real host, strips scheme, path and port", () => {
+    expect(clipUrlLabel("https://ranch-game.vercel.app/")).toBe("ranch-game.vercel.app");
+    expect(clipUrlLabel("posttime.example/races?x=1")).toBe("posttime.example");
+    expect(clipUrlLabel("https://post.time:8443/race")).toBe("post.time");
+  });
+
+  it("earns no URL on a dev host (never 'localhost' on a clip)", () => {
+    expect(clipUrlLabel("localhost")).toBe("");
+    expect(clipUrlLabel("localhost:3117")).toBe("");
+    expect(clipUrlLabel("http://localhost:3000/race/x")).toBe("");
+    expect(clipUrlLabel("127.0.0.1:3117")).toBe("");
+    expect(clipUrlLabel("post-time.local")).toBe("");
+    expect(clipUrlLabel(null)).toBe("");
+    expect(clipUrlLabel(undefined)).toBe("");
+  });
+});
+
+describe("leadGroupCrop (the vertical clip's leader window)", () => {
+  // Rects are sprite boxes in stage CSS px; xMm only picks the leader and the group.
+  const horseW = 229;
+  const rect = (x: number) => ({ x, w: horseW });
+
+  it("rides the leader right of centre with the whole group (within 2 lengths) in frame", () => {
+    // Nose-to-nose leaders in front, a straggler way back (6 lengths, off the crop).
+    const xMm = [900_000, 900_000 - LENGTH_M * 1000, 900_000 - 2 * LENGTH_M * 1000, 900_000 - 6 * LENGTH_M * 1000];
+    const rects = [rect(700), rect(675), rect(650), rect(200)];
+    const cropW = 540;
+    const sx = leadGroupCrop({ rects, xMm, viewportW: 1080, cropW });
+    const leaderRight = rects[0]!.x + rects[0]!.w;
+    expect(leaderRight - sx).toBeLessThanOrEqual(cropW); // leader never out
+    expect(leaderRight - sx).toBeGreaterThan(cropW * 0.5); // and right of centre
+    expect(rects[2]!.x - sx).toBeGreaterThanOrEqual(0); // 2 lengths back still in
+  });
+
+  it("never loses the leader when the group is wider than the window", () => {
+    const xMm = [500_000, 500_000 - 2 * LENGTH_M * 1000];
+    // Huge horses: the group's drawn span exceeds the window.
+    const rects = [
+      { x: 600, w: 380 },
+      { x: 40, w: 380 },
+    ];
+    const sx = leadGroupCrop({ rects, xMm, viewportW: 1080, cropW: 540 });
+    expect(rects[0]!.x + rects[0]!.w - sx).toBeLessThanOrEqual(540);
+    expect(sx).toBeGreaterThanOrEqual(0);
+  });
+
+  it("clamps to the viewport at both ends", () => {
+    expect(leadGroupCrop({ rects: [rect(-40)], xMm: [10_000], viewportW: 1080, cropW: 540 })).toBe(0);
+    const sxLate = leadGroupCrop({ rects: [rect(1400)], xMm: [1_400_000], viewportW: 1080, cropW: 540 });
+    expect(sxLate).toBe(540); // parked on the right edge as the post looms
+    expect(sxLate + 540).toBe(1080);
+    expect(leadGroupCrop({ rects: [], xMm: [], viewportW: 1080, cropW: 540 })).toBe(0);
+  });
+});
+
 describe("the settled-only gate (no spoilers)", () => {
   it("never offers a clip before the official result exists", () => {
     expect(canShareClip(null)).toBe(false);
@@ -221,7 +280,25 @@ describe("overlay layout math", () => {
       expect(l.photo.boxW).toBe(width - l.pad * 2);
       expect(l.photo.stripTargetH).toBeLessThanOrEqual(Math.round(height * 0.32));
       expect(l.photo.cy).toBeGreaterThan(l.bannerH); // clear of the banner
+      expect(Number.isInteger(l.scene.zoom)).toBe(true);
+      expect(l.scene.x).toBe(0);
+      expect(l.scene.w).toBe(width);
+      expect(l.scene.y + l.scene.h).toBeLessThanOrEqual(height);
     }
+  });
+
+  it("vertical parks the scene in the middle band with captions just below it", () => {
+    const l = clipLayout(CLIP_SIZES.vertical.width, CLIP_SIZES.vertical.height);
+    expect(l.vertical).toBe(true);
+    expect(l.scene.h).toBe(Math.round(l.H * 0.6)); // the middle ~60 %
+    expect(l.scene.y).toBeGreaterThan(l.bannerH); // the title block owns the top
+    const sceneBottom = l.scene.y + l.scene.h;
+    // Captions hang below the scene, clear of the wordmark at the very bottom.
+    expect(l.H - l.captionBottom).toBeGreaterThan(sceneBottom + 20);
+    expect(l.captionBottom).toBeGreaterThanOrEqual(150);
+    const ls = clipLayout(CLIP_SIZES.landscape.width, CLIP_SIZES.landscape.height);
+    expect(ls.vertical).toBe(false);
+    expect(ls.scene).toMatchObject({ x: 0, y: 0, w: ls.W, h: ls.H }); // the full frame, as before
   });
 
   it("endCardHeight grows by one row per row", () => {
