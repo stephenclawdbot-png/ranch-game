@@ -39,6 +39,7 @@ import { DomainError } from "../errors";
 import { gc } from "../gameCore";
 import { chainOrders, horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type ChainOrderRow, type UsdgListingRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor } from "../types";
+import { lockStableOf, occupancy } from "./accounts";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY } from "./ledger";
 import { marketWalletOf, USDG_PRACTICE_MARKET } from "./practiceIdentity";
 import { audit, runTx } from "./tx";
@@ -218,6 +219,14 @@ export async function payUsdgOrderPractice(db: Db, input: { orderId: string; acc
       // Rolls back the payment too: nothing is charged; the order lapses like an unpaid one.
       const why = (r.order.error ?? r.order.flagReason ?? "it can't be delivered any more").replace(/^refund due: /, "");
       throw new DomainError("NOT_ELIGIBLE", `This can't go ahead (${why}). Nothing was charged.`);
+    }
+    // The bought horse needs a stall (the quote held one, an auction offer didn't, and the stable can
+    // fill up meanwhile). Checked after the move (lock order listing/horse -> stable, as in the quote);
+    // a full stable rolls the payment back too.
+    if (order.kind === "sale" && !r.duplicate) {
+      const buyerStable = await lockStableOf(tx, order.accountId);
+      const occ = await occupancy(tx, buyerStable);
+      if (occ.used > buyerStable.stallSlots) throw new DomainError("STABLE_FULL", `All ${buyerStable.stallSlots} stalls are taken: free one first. Nothing was charged.`, { ...occ });
     }
 
     const names = await tx.select({ id: horses.id, name: horses.name }).from(horses).where(inArray(horses.id, [order.horseId, ...(order.mareId ? [order.mareId] : [])]));
