@@ -754,6 +754,8 @@ function coatLayersAt(
       isHair = true;
     }
   }
+  // grullo / smoky grullo: the dark head of the dun (the strips' points colour)
+  if (look.darkHead && reg === GEO_REGION.face && role === R.coat) mix(hexToRgb(look.darkHead), 0.45);
   let white = false;
   for (const L of pat.layers) {
     if (L.mode === "skin" && (reg !== GEO_REGION.face || role !== R.muzzle)) continue;

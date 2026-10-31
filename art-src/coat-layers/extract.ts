@@ -233,6 +233,58 @@ for (const [id, mode, n] of COAT_LAYERS) {
   }
 }
 
+// The long mane: per column of the neck (body u), the painting's mane hangs from the crest down to
+// its strands' ends; keep that length (smoothed along the crest, tapering to nothing at the
+// withers) as one curtain from the crest, shaded by the painting, so it reads as a flowing mane
+// in every pose instead of loose blocks.
+for (const [id, mode, n] of COAT_LAYERS) {
+  if (mode !== "hair") continue;
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const w = Math.round((BODY.u1 - BODY.u0) * 48) * S;
+    const h = Math.round((BODY.v1 - BODY.v0) * 48) * S;
+    const at = (x: number, y: number) => (cy + y) * size2.width + cx + x;
+    const uOf = (x: number) => BODY.u0 + (x / (w - 1)) * (BODY.u1 - BODY.u0);
+    const yOf = (vh: number) => Math.round(((vh - BODY.v0) / (BODY.v1 - BODY.v0)) * (h - 1));
+    const top = yOf(-0.04);
+    const len: number[] = [];
+    const shade: number[] = [];
+    for (let x = 0; x < w; x++) {
+      let y = Math.max(0, yOf(0.02));
+      let sum = 0;
+      let c = 0;
+      let gap = 0;
+      let end = -1;
+      for (; y < h; y++) {
+        const q = atlas2[at(x, y)]!;
+        if (q >= 24) {
+          end = y;
+          sum += q;
+          c++;
+          gap = 0;
+        } else if (++gap > 3 * S) break;
+      }
+      len.push(uOf(x) < 1.9 ? -1 : end);
+      shade.push(c ? sum / c : 0);
+    }
+    for (let x = 0; x < w; x++) {
+      const win = len.slice(Math.max(0, x - 5 * S), x + 5 * S + 1).sort((p, q) => p - q);
+      let end = win[Math.floor(win.length / 2)]!;
+      // taper from the withers (u 1.9 H) over the first 0.35 H of the crest
+      const u = uOf(x);
+      if (end >= 0 && u < 2.25) end = Math.round(top + (end - top) * Math.max(0, (u - 1.9) / 0.35));
+      const sh = shade[x] || 120;
+      for (let y = 0; y < h; y++) {
+        const k = at(x, y);
+        const q = atlas2[k]!;
+        atlas2[k] = end >= 0 && y >= top && y <= end ? Math.max(24, q >= 24 ? q : Math.round(sh * (x % 3 === 0 ? 0.8 : 1))) : 0;
+      }
+    }
+  }
+}
+
 // Whole-leg patterns: the far leg of each pair shows what the near leg shows (near and far swap
 // as the legs pass each other, and a pattern must not jump between them).
 for (const [id, , n] of COAT_LAYERS) {
@@ -247,6 +299,34 @@ for (const [id, , n] of COAT_LAYERS) {
           const row = (cy + LEGS.y * S + y) * size2.width + cx;
           atlas2[row + (LEGS.x + far * LEGS.w) * S + x] = atlas2[row + (LEGS.x + near * LEGS.w) * S + x]!;
         }
+  }
+}
+
+// Dun: the painting darkens the whole top line a little; the primitive marking is the sharp
+// dorsal stripe. Per body column keep the painting's strongest darkening along the top line as a
+// thin stripe (smoothed along the back); the leg barring stays as painted.
+for (let v = 0; v < (COAT_LAYERS.find((l) => l[0] === "dun")?.[2] ?? 0); v++) {
+  const cell = LAYER_CELL.dun + v;
+  const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+  const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+  const w = Math.round((BODY.u1 - BODY.u0) * 48) * S;
+  const h = Math.round((BODY.v1 - BODY.v0) * 48) * S;
+  const vy = (vh: number) => Math.round(((vh - BODY.v0) / (BODY.v1 - BODY.v0)) * (h - 1));
+  const y0 = vy(0);
+  const y1 = vy(0.12);
+  const strength: number[] = [];
+  for (let x = 0; x < w; x++) {
+    let m = 0;
+    for (let y = y0; y <= y1; y++) m = Math.max(m, atlas2[(cy + y) * size2.width + cx + x]!);
+    strength.push(m);
+  }
+  for (let x = 0; x < w; x++) {
+    const win = strength.slice(Math.max(0, x - 6), x + 7).sort((p, q) => p - q);
+    const m = win[Math.floor(win.length / 2)]!;
+    for (let y = 0; y < h; y++) {
+      const k = (cy + y) * size2.width + cx + x;
+      atlas2[k] = y >= vy(0.015) && y <= vy(0.065) && m > 60 ? Math.max(200, m) : 0;
+    }
   }
 }
 

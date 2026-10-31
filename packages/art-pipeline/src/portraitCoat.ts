@@ -8,7 +8,7 @@
  *     (y 102), e is the distance from the face's centre line (the blaze's line, which the 3/4
  *     view shows near the face's left edge);
  *   - the neck and the mane: body space; v is the depth under the crest (the mane's lower edge),
- *     u runs down the crest from the poll (u = 3.05 H) toward the withers.
+ *     u runs down the crest from the poll (u = 3.05 H) to the withers (1.95 H).
  * One barrel depth H is 50 portrait pixels (the neck is about 0.9 H deep, as on the strips).
  * The breed head shapes and the idle loop are warps of this one still, so they read it too.
  */
@@ -31,6 +31,8 @@ export const PORTRAIT_GEO = {
   poll: [58, 18] as const,
   withers: [112, 117] as const,
   uPoll: 3.05,
+  /** Body u the crest reaches at the withers end of the portrait (the strips' neck runs 3.05 -> 1.95 H). */
+  uWithers: 1.95,
 } as const;
 
 /** roles.png role ids (portrait34 PORTRAIT_ROLES): coat 5, mane 6, muzzle 7, inner ear 8. */
@@ -84,7 +86,9 @@ export function portraitCoatGeometry(roles: ArrayLike<number>): CoatGeometry {
       const role = roleAt(i);
       if (role !== COAT && role !== MANE && role !== MUZZLE && role !== EAR) continue;
       const along = ((x - P.poll[0]) * ax + (y - P.poll[1]) * ay) / al;
-      u[i] = (P.uPoll * P.H - along);
+      // the portrait draws the neck longer than a side view: the crest from poll to withers spans
+      // the strips' neck (uPoll -> uWithers) whatever its length in pixels
+      u[i] = (P.uPoll - (along / al) * (P.uPoll - P.uWithers)) * P.H;
       v[i] = role === MANE ? -Math.max(0, fromCoat[i]!) : Math.max(0, fromMane[i]!);
       const head = x + P.headSlope * y < P.headCut;
       if (role === MANE) region[i] = GEO_REGION.mane;

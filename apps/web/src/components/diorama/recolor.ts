@@ -204,3 +204,59 @@ export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: 
   const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false));
   data.set(out);
 }
+
+/**
+ * The full-size sheet an N:1 copy was made from (art-src/coat-layers/lods.py), so a player's
+ * horse is painted at full size (where the coat geometry is reliable) and then reduced.
+ */
+export function fullSheetOf(src: string): { src: string; n: number } | null {
+  const m = /^(diorama\/horse-[a-z-]+?)(-f)?-s(\d)\.png$/.exec(src);
+  if (!m) return null;
+  const stem = m[1] === "diorama/horse-gallop" ? "race/horse-gallop" : m[1]!;
+  return { src: `${stem}${m[2] ?? ""}.png`, n: Number(m[3]) };
+}
+
+/** Whole-block N:1 downsample per frame (lods.py `down`): opaque at >= 45 %, most common colour, darkest wins ties. */
+export function downsampleSheet(data: Uint8ClampedArray, width: number, height: number, frames: number, n: number): { data: Uint8ClampedArray; width: number; height: number } {
+  const fw = Math.floor(width / frames);
+  const w = Math.ceil(fw / n);
+  const h = Math.ceil(height / n);
+  const out = new Uint8ClampedArray(w * frames * h * 4);
+  const counts = new Map<number, number>();
+  for (let f = 0; f < frames; f++)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        counts.clear();
+        let tot = 0;
+        let on = 0;
+        for (let dy = 0; dy < n; dy++)
+          for (let dx = 0; dx < n; dx++) {
+            const X = x * n + dx;
+            const Y = y * n + dy;
+            if (X >= fw || Y >= height) continue;
+            tot++;
+            const i = (Y * width + f * fw + X) * 4;
+            if (data[i + 3]! < 128) continue;
+            on++;
+            const k = (data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!;
+            counts.set(k, (counts.get(k) ?? 0) + 1);
+          }
+        if (!on || on < 0.45 * tot) continue;
+        let best = -1;
+        let bestN = 0;
+        for (const [k, c] of counts) {
+          const l = ((k >> 16) & 255) * 0.299 + ((k >> 8) & 255) * 0.587 + (k & 255) * 0.114;
+          const bl = best < 0 ? Infinity : ((best >> 16) & 255) * 0.299 + ((best >> 8) & 255) * 0.587 + (best & 255) * 0.114;
+          if (c > bestN || (c === bestN && l < bl)) {
+            best = k;
+            bestN = c;
+          }
+        }
+        const o = (y * w * frames + f * w + x) * 4;
+        out[o] = (best >> 16) & 255;
+        out[o + 1] = (best >> 8) & 255;
+        out[o + 2] = best & 255;
+        out[o + 3] = 255;
+      }
+  return { data: out, width: w * frames, height: h };
+}
