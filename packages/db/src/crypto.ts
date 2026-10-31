@@ -20,6 +20,15 @@ export function commitSeed(seedHex: string): string {
   return createHash("sha256").update(Buffer.from(seedHex, "hex")).digest("hex");
 }
 
+/**
+ * A real-money race's seed (docs/usdg-tote.md): sha256(serverSeed bytes ‖ entropy bytes), the
+ * same as racing-engine `mixSeedEntropy` and TotePools.finalSeedOf.
+ */
+export function mixSeedEntropy(seedHex: string, entropyHex: string): string {
+  if (!/^[0-9a-f]{64}$/.test(seedHex) || !/^[0-9a-f]{64}$/.test(entropyHex)) throw new Error("seed and entropy must be 64 lowercase hex chars");
+  return createHash("sha256").update(Buffer.from(seedHex + entropyHex, "hex")).digest("hex");
+}
+
 export function sha256Hex(data: string): string {
   return createHash("sha256").update(data, "utf8").digest("hex");
 }

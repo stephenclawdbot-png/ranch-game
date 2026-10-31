@@ -176,6 +176,13 @@
       "when": 1793428777465,
       "tag": "0024_tote",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793430554993,
+      "tag": "0025_real_tote",
+      "breakpoints": true
     }
   ]
 }

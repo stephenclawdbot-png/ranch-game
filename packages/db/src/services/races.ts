@@ -39,6 +39,7 @@ import { raceNewsTx } from "./news";
 import { targetScratchedTx, targetsAfterRaceTx } from "./planner";
 import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
 import { refundToteRaceTx, voidConflictedToteBetsTx, voidToteBetsOnHorseTx } from "./tote";
+import { resolveRealToteSeed, type RealToteSeed } from "./realTote";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -876,9 +877,11 @@ export async function lockField(db: Db, raceId: string, now: Date, hooks: FieldH
 }
 
 export interface SimulationInput {
-  /** Includes the revealed seed. */
+  /** Includes the revealed seed (for a race with a real-money pool, the seed it runs on). */
   race: RaceRow;
   field: LockedField;
+  /** Only for a race flagged for a real-money pool (realTote.ts): how its seed was made. */
+  realTote?: RealToteSeed;
 }
 
 /** Field + revealed seed for the engine. Locks lazily if needed; TOO_EARLY before post time. */
@@ -888,6 +891,9 @@ export async function getRaceForSimulation(db: Db, raceId: string, now: Date, ho
   if (now < race.postTime) throw new DomainError("TOO_EARLY", "the seed is revealed at post time");
   const field = (race.field as LockedField | null) ?? (await lockField(db, raceId, now, hooks));
   if (!field) throw new DomainError("RACE_CLOSED", "race was called off: no runners entered");
+  // A race with a real-money pool runs on sha256(serverSeed ‖ entropy); every other race: null.
+  const realTote = await resolveRealToteSeed(db, race, now);
+  if (realTote) return { race: { ...race, seed: realTote.seed, status: race.status === "open" ? "locked" : race.status }, field, realTote };
   return { race: { ...race, status: race.status === "open" ? "locked" : race.status }, field };
 }
 
