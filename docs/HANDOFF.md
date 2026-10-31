@@ -1,5 +1,50 @@
 # Handoff / resume notes (lead)
 
+## Start here (2026-10-31, supersedes the older sections below where they disagree)
+
+- **Branch:** develop on `claude/intelligent-ride-rkrz3i`. `main` auto-deploys to production at
+  https://ranch-game-nine.vercel.app (Vercel project `ranch-game`, team `meowdotfun`). Previews and
+  production share one Neon database, and every build applies migrations
+  (`packages/db/scripts/migrate.mjs`), so migrations reach production when a preview builds.
+  The runtime migrator skips any migration older than the last applied one: keep timestamps
+  increasing (guard test `packages/db/src/test/migrationOrder.test.ts`).
+- **Shipping:** the owner said "Ship after u feel it's ok": ship to `main` when every suite, the
+  build and a season-harness run are clean, then verify production (pages, card, runtime errors).
+  Production is `4dabedf` (2026-10-31); dev is ahead (injuries, picks, invites, audience metrics,
+  the tote, docs).
+- **Owner authorisations and decisions (2026-10-31):**
+  - **Real-money betting is authorised to be built.** The owner confirmed they hold the licence
+    needed to operate it. Build it properly and keep it switched OFF (`REAL_TOTE_ENABLED=false`)
+    until testing with T-USDG is complete and the owner explicitly says to enable it. The licence
+    documents are **confidential**: never store, quote or describe them in the repo, docs,
+    commits, code or worker prompts; ask the owner to share them again when needed. Refer to them
+    only as "legal approval".
+  - Real money settles in **USDG**, not ETH (stable value, fair pools, no price oracle); a
+    "pay with ETH" swap at deposit can come later.
+  - **No NFTs.** Horses, bloodlines and trophies are owned in the game database only.
+  - **Testing uses T-USDG** (`USDG_MODE=practice`): wallet sign-in required, 100 T-USDG per
+    account, shown as "T-USDG · test money, no real value", used for the USDG market, USDG stud
+    fees, Premium Packs and the tote. No chain calls, nothing charged, nothing withdrawable.
+  - **The tote** (spectator pool betting, `services/tote.ts`): credits always, T-USDG in practice
+    mode; 15 % take to the `tote_house` account; bets close at the off; no bets on races where your
+    stable, a lease partner or a linked account runs; limits, 18+ and self-exclusion; a public
+    tote audit per pool. The real-money version is the dormant non-custodial `TotePools` scaffold
+    (see docs/usdg-tote.md when merged).
+  - Stable Credits are never cashed out. Club fill stays at [P-2, P+10] (option A). Breeding
+    preview shows possible looks and words only (no genes, no odds); stallions rest 12 h after a
+    cover; capped horses are delisted.
+  - Go-to-market plan (two audiences, fast and slow layers) is published as a private artifact
+    for the owner's team; the crypto "feel" work (wallet identity, activity ticker, price and odds
+    charts, portfolio, race proof explorer, season points) starts after practice T-USDG merges.
+- **Agents and keys:** Ollama workers (`tools/agents/ollama-worker.sh`, GLM for code without
+  images, Kimi for anything visual, `MAX_TURNS` env) and the Anthropic API worker
+  (`tools/agents/api-worker.sh`, spend cap per run; key in `~/.config/anthropic/key`, never in
+  chat or the repo). About $63 of the owner's API credit was spent by 2026-10-31.
+- **Reports worth reading:** docs/reports/2026-10-31 experience review.md, docs/reports/2026-10-31
+  persona playtests.md, docs/design/jockeys.md, docs/design/race-experience-v2.md,
+  docs/foundation/HARNESS-LOG.md.
+
+
 Read this first when resuming. The branch is `claude/thoroughbred-demo`. `main` gets updated
 only at tested milestones, because main auto-deploys to Vercel production.
 

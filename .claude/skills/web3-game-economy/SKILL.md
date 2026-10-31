@@ -42,8 +42,10 @@ Design, safeguards and open legal points: `docs/web3.md` §0. Code: `packages/co
    - Nothing bought with money can be converted back to money.
    - No wagering on races with money. Owner exception (2026-10-31): the tote (`packages/db` tote.ts,
      game-core tote.ts) is spectator pool betting in Stable Credits, and in T-USDG only while
-     `USDG_MODE=practice`. It must never accept real USDG or anything bought with money; real-money
-     betting would need gambling licences and a separate legal decision.
+     `USDG_MODE=practice`. It must never accept real USDG or anything bought with money. A separate,
+     dormant real-money version (non-custodial `TotePools`, `REAL_TOTE_ENABLED=false`) is
+     authorised by the owner, who holds the required licence; it stays off until the owner says to
+     enable it after T-USDG testing (see docs/HANDOFF.md). Never store the licence documents.
    - No paid entry with a money prize.
    - Pack outputs are game items under the genetic ceiling, with published odds and pity.
 5. **No pay-to-win in rated races.** Purchases are cosmetics, convenience, pack pulls (foals
