@@ -2,7 +2,8 @@
 /**
  * Breeding barn (game-design §7, §4a): mares in foal with their 24 h countdown and the
  * foaling reveal; plan a cover (your mare × your stallion or a stud) with the exact preview
- * before you pay; and the stud book (stand your stallion, browse studs).
+ * before you pay; the stallion finder (every available stallion ranked for a mare by that same
+ * preview); and the stud book (stand your stallion, browse studs).
  *
  * USDG stud fees (docs/usdg-market.md): a stallion registered for the USDG market may stand for a
  * USDG fee instead of credits. Covering a mare with him is booked here ("Pay N USDG to <owner>"),
@@ -22,13 +23,13 @@ import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInpu
 import { PixelIcon } from "@/components/icons";
 import { useNow } from "@/lib/clock";
 import { formatCountdown, formatCredits, shortHash } from "@/lib/format";
-import type { BreedingHorse, BreedingView, EcoHorse, PregnancyCard, PreviewView, StudView } from "@/lib/economyTypes";
+import type { BreedingHorse, BreedingView, EcoHorse, PregnancyCard, PreviewView, StudFinderRow, StudFinderView, StudView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
 import { BreedingPreviewPanel } from "./BreedingPreviewPanel";
 import { FoalReveal } from "./FoalReveal";
 import { Credits, HorseLine, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
-type Tab = "barn" | "studs";
+type Tab = "barn" | "finder" | "studs";
 
 export function BreedingBarn() {
   const { data, setData, error, reload } = useEcoView<BreedingView>("/api/breeding");
@@ -36,6 +37,7 @@ export function BreedingBarn() {
   useEffect(() => {
     const fromHash = () => {
       if (window.location.hash === "#studs") setTab("studs");
+      else if (window.location.hash === "#finder") setTab("finder");
       else if (window.location.hash === "#barn") setTab("barn");
     };
     fromHash();
@@ -59,11 +61,14 @@ export function BreedingBarn() {
         <button type="button" role="tab" aria-selected={tab === "barn"} onClick={() => setTab("barn")} data-testid="tab-barn">
           Barn
         </button>
+        <button type="button" role="tab" aria-selected={tab === "finder"} onClick={() => setTab("finder")} data-testid="tab-finder">
+          Stallion finder
+        </button>
         <button type="button" role="tab" aria-selected={tab === "studs"} onClick={() => setTab("studs")} data-testid="tab-studs">
           Stud book
         </button>
       </div>
-      {tab === "barn" ? <Barn v={v} onView={setData} reload={reload} /> : <StudBook v={v} onView={setData} />}
+      {tab === "barn" ? <Barn v={v} onView={setData} reload={reload} /> : tab === "finder" ? <StallionFinder v={v} /> : <StudBook v={v} onView={setData} />}
     </div>
   );
 }
@@ -565,6 +570,174 @@ function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: Breedin
         </div>
       )}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stallion finder: every available stallion ranked for one mare
+// ---------------------------------------------------------------------------
+
+const pct = (permille: number) => `${(permille / 10).toFixed(permille < 100 && permille % 10 ? 1 : 0)}%`;
+
+/** The sort a column stands for; the finder's default is the chance of beating both parents. */
+const FINDER_SORTS: readonly { key: "upside" | "fee" | "nick" | "coi"; label: string; hint: string }[] = [
+  { key: "upside", label: "Beats both", hint: "Chance the foal comes out above both parents (default: best first, ties by fee)" },
+  { key: "fee", label: "Fee", hint: "Total credits the mare's owner pays (base fee + stud fee), cheapest first" },
+  { key: "nick", label: "Nick", hint: "Nick rating, best first" },
+  { key: "coi", label: "COI", hint: "Inbreeding coefficient, lowest first" },
+];
+
+function FinderSort({ label, hint, active, onPick }: { label: string; hint: string; active: boolean; onPick: () => void }) {
+  return (
+    <button type="button" className={`text-left ${active ? "text-brass-bright" : "text-cream-dim"} hover:text-cream`} title={hint} onClick={onPick} data-testid={`finder-sort-${label}`}>
+      {label}
+      {active ? " ▾" : ""}
+    </button>
+  );
+}
+
+function StallionFinder({ v }: { v: BreedingView }) {
+  const [mareId, setMareId] = useState<string | null>(null);
+  const [sort, setSort] = useState("upside");
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<StudFinderView | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!mareId && v.mares.length) setMareId(v.mares[0]!.id);
+  }, [v.mares, mareId]);
+  useEffect(() => {
+    if (!mareId) return;
+    let live = true;
+    setLoading(true);
+    setError(null);
+    api<StudFinderView>(`/api/breeding/finder?mareId=${mareId}&sort=${sort}&page=${page}`, { method: "GET" })
+      .then((r) => {
+        if (!live) return;
+        setData(r);
+        setPage(r.page); // the server clamps out-of-range pages
+      })
+      .catch((e) => live && setError(e))
+      .finally(() => live && setLoading(false));
+    return () => {
+      live = false;
+    };
+  }, [mareId, sort, page]);
+  useEffect(() => setPage(0), [mareId, sort]);
+
+  if (v.mares.length === 0)
+    return (
+      <section aria-labelledby="finder-h">
+        <SectionHeader id="finder-h" title="Stallion finder" />
+        <p className="surface p-3 text-cream-dim">No mares in your stable yet: fillies from your packs grow into broodmares.</p>
+      </section>
+    );
+  const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
+
+  function pick(next: string) {
+    if (next !== sort) setSort(next);
+  }
+
+  return (
+    <section aria-labelledby="finder-h" className="grid gap-4">
+      <SectionHeader id="finder-h" title="Stallion finder" />
+      <p className="t-meta">
+        Every stallion available to <span className="text-cream">{data?.mareName ?? "your mare"}</span> — your own, the Club&rsquo;s house studs and other stables&rsquo; advertised studs —
+        ranked by the exact cover preview: no information the single preview doesn&rsquo;t show. Stallions that can&rsquo;t cover her (her close kin, or a stallion at his cover limit, listed or away on
+        lease) are left out. The ranking is worked out once a day per mare and then cached.
+      </p>
+      <div>
+        <h3 className="label mb-2">Your mare</h3>
+        <PickList items={v.mares} selected={mareId} onPick={setMareId} name="Mare" testid="finder-mare" />
+      </div>
+      {error ? <ErrorNote error={error} /> : null}
+      {loading && !data ? <Skeleton rows={4} /> : null}
+      {data && (data.total > 0 || data.excluded > 0) && (
+        <>
+          <div className="surface overflow-x-auto">
+            <table className="form-table" data-testid="finder-table">
+              <thead>
+                <tr>
+                  <th scope="col">Stud</th>
+                  {FINDER_SORTS.map((s) => (
+                    <th key={s.key} scope="col" className="whitespace-nowrap" aria-sort={sort === s.key ? "descending" : "none"}>
+                      <FinderSort label={s.label} hint={s.hint} active={sort === s.key} onPick={() => pick(s.key)} />
+                    </th>
+                  ))}
+                  <th scope="col">Likely foal</th>
+                  <th scope="col">Kinship</th>
+                  <th scope="col">Legs</th>
+                  <th scope="col">Coat odds</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows.map((r) => (
+                  <FinderRow key={r.id} r={r} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {data.rows.length === 0 && <p className="surface p-3 text-cream-dim">No stallion can cover this mare today.</p>}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="t-meta" data-testid="finder-summary">
+              {data.total} available{data.excluded > 0 ? ` · ${data.excluded} ruled out` : ""} · ranking of {data.day}
+            </p>
+            <div className="flex gap-2">
+              <button type="button" className="btn btn-sm" disabled={data.page <= 0} onClick={() => setPage(data.page - 1)} data-testid="finder-prev">
+                ← Earlier
+              </button>
+              <span className="btn btn-sm pointer-events-none">
+                {data.page + 1} / {pages}
+              </span>
+              <button type="button" className="btn btn-sm" disabled={data.page >= pages - 1} onClick={() => setPage(data.page + 1)} data-testid="finder-next">
+                Later →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function FinderRow({ r }: { r: StudFinderRow }) {
+  const beats = pct(r.beatsBothPermille);
+  return (
+    <tr data-testid="finder-row" data-usdg-only={r.usdgOnly}>
+      <th scope="row">
+        <span className="block font-bold text-cream">{r.name}</span>
+        <span className="caption">
+          {r.own ? "Yours" : r.club ? "The Club" : r.stableName}
+          {r.usdgOnly ? " · USDG only" : ""}
+        </span>
+      </th>
+      <td className="whitespace-nowrap">
+        {r.usdgOnly ? (
+          <>
+            <UsdgFee micro={r.studFeeUsdg ?? 0} />
+            <span className="block caption">paid to his owner on-chain, so he isn&rsquo;t ranked by credits price</span>
+          </>
+        ) : (
+          <Credits value={r.feeCredits ?? 0} className="text-cream" />
+        )}
+      </td>
+      <td className="num whitespace-nowrap">{beats}</td>
+      <td className="whitespace-nowrap">
+        <span className="num">{r.nickScore}</span> <span className="caption">{r.nickLabel}</span>
+      </td>
+      <td className={`num whitespace-nowrap ${r.coiWarning ? "text-negative font-bold" : ""}`} title={r.coiWarning ? "Over the inbreeding warning line" : "Inbreeding coefficient"}>
+        {(r.coiPermille / 10).toFixed(1)}%
+      </td>
+      <td className="whitespace-nowrap">
+        <span className="text">{r.overall.p50} <span className="caption">({r.overall.p10}–{r.overall.p90})</span></span>
+        <span className="block caption">likely grade {r.p50Grade}</span>
+      </td>
+      <td className={`whitespace-nowrap ${r.fragile.permille > 0 ? "text-negative" : "text-cream-dim"}`}>
+        {r.fragile.permille > 0 ? `${pct(r.fragile.permille)}${r.fragile.fromInjury ? " (a parent was injured)" : ""}` : "—"}
+      </td>
+      <td className="caption">{r.coats.map((c) => `${c.name} ${pct(c.permille)}`).join(" · ")}</td>
+    </tr>
   );
 }
 

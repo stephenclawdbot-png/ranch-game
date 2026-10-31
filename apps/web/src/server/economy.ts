@@ -13,6 +13,7 @@ import {
   RULES,
   breed,
   breedingSeason,
+  breedingStateOf,
   breedingStatus,
   buyListing,
   cancelListing,
@@ -70,10 +71,13 @@ import type {
   PullRow,
   Rarity,
   SellableHorse,
+  StudFinderRow,
+  StudFinderView,
   StudView,
 } from "@/lib/economyTypes";
 import { readUsdgConfig } from "./chain/usdgConfig";
 import { geneticsLineOf, horseFromRow, parseSilks } from "./horseView";
+import { sharedLimiter } from "./rateLimit";
 import type { Session } from "./session";
 
 // ---------------------------------------------------------------------------
@@ -413,6 +417,172 @@ export async function standAtStud(db: Db, session: Session, input: { horseId: st
     throw new DomainError("INVALID_INPUT", `stud fee must be 0-${MAX_STUD_FEE.toLocaleString("en-GB")} credits`);
   }
   await setStudFee(db, { accountId: session.accountId, horseId: input.horseId, fee: input.fee });
+}
+
+// ---------------------------------------------------------------------------
+// Stallion finder: every available stallion ranked for one mare
+// ---------------------------------------------------------------------------
+
+/** What the ranking can be sorted by (the client sends one of these). */
+export const STUD_FINDER_SORTS = ["upside", "fee", "nick", "coi"] as const;
+export type StudFinderSort = (typeof STUD_FINDER_SORTS)[number];
+/** Rows per page (the finder accepts up to twice this). */
+export const STUD_FINDER_PAGE = 20;
+/** Candidates per run: every row runs the exact preview, so a run is bounded and rate-limited. */
+export const STUD_FINDER_CANDIDATES = 250;
+/** How many finder runs an account may compute per hour (cached answers don't count). */
+export const STUD_FINDER_RUNS_PER_HOUR = 24;
+
+const STUD_FINDER_LIMITER = sharedLimiter({ name: "stud-finder", limit: STUD_FINDER_RUNS_PER_HOUR, windowMs: 3_600_000 });
+
+// The ranking is cached per (player, mare, UTC day): fees and cover limits change rarely, and
+// every row runs the preview, so a day's answer is computed once per mare. Cached unsorted:
+// each page request orders a copy, which costs nothing against the preview.
+const FINDER_CACHE_MAX = 128;
+const FINDER = globalThis as typeof globalThis & { __tbStudFinder?: Map<string, { rows: StudFinderRow[]; excluded: number }> };
+
+/** Blocks that belong to the pairing itself, never to one horse's state. */
+const KIN_BLOCKS: readonly string[] = ["self", "parent_child", "full_siblings", "sire_not_male"];
+
+/**
+ * Whether a stallion can cover this mare at all, judged by the same rules the single preview
+ * and `breed` apply. Kinship always rules him out. So does his own game-core eligibility
+ * (`sireBlock`, the state the preview itself builds: racing age, 25 starts or retired, lifetime
+ * and per-season cover limits — live USDG bookings count as covers) when it is what the preview
+ * reports, and the sire-side locks `breed` refuses (listed for sale, away on lease). A block
+ * that belongs to the mare alone — in foal, under 25 starts, entered, listed or booked herself
+ * — keeps him ranked: her covers can still be planned.
+ */
+function sireExcluded(pv: { block: string | null; sire: HorseRow }, sireBlock: string | null): boolean {
+  const block = pv.block;
+  if (block === null) return false;
+  if (KIN_BLOCKS.includes(block) || block === "not_at_stud") return true;
+  if (typeof sireBlock === "string" && block === sireBlock) return true;
+  if (block === "listed") return pv.sire.lockKind === "market";
+  if (block === "on_lease") return !!pv.sire.lesseeStableId;
+  return false; // in_race / booked / dam_in_foal / the mare's own eligibility
+}
+
+/** The sort comparator: credits studs first (the ranking), USDG-only studs after, by `sort`. */
+function compareRows(sort: StudFinderSort): (a: StudFinderRow, b: StudFinderRow) => number {
+  const fee = (r: StudFinderRow) => r.feeCredits ?? r.studFeeUsdg ?? 0;
+  const byKey =
+    sort === "fee"
+      ? (a: StudFinderRow, b: StudFinderRow) => fee(a) - fee(b)
+      : sort === "nick"
+        ? (a: StudFinderRow, b: StudFinderRow) => b.nickScore - a.nickScore || fee(a) - fee(b)
+        : sort === "coi"
+          ? (a: StudFinderRow, b: StudFinderRow) => a.coiPermille - b.coiPermille || fee(a) - fee(b)
+          : (a: StudFinderRow, b: StudFinderRow) => b.beatsBothPermille - a.beatsBothPermille || fee(a) - fee(b); // default: upside, ties by fee
+  // The last tiebreak is only for a stable page order when the sort key ties exactly.
+  return (a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || byKey(a, b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+
+/**
+ * The full ranking of one mare's available stallions (her stable's own, the Club's house studs
+ * and other players' advertised studs), each row from the exact pairing preview
+ * (`previewPairing`): the same information the single preview shows, nothing more. Expensive —
+ * every candidate runs the preview — so the caller caches and rate-limits it.
+ */
+async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Date): Promise<{ rows: StudFinderRow[]; excluded: number }> {
+  await keepHouseStuds(db, now);
+  // Own entire stallions at home, plus every stallion standing at public stud — the same
+  // lists the barn and the stud book show.
+  const own: { horse: HorseRow; stableName: string }[] = (await listStableHorses(db, session.stable.id))
+    .filter((r) => r.sex === "male" && !r.gelded && r.careerStatus !== "pasture" && r.ownerStableId === session.stable.id && isGenome(r.genome))
+    .slice(0, STUD_FINDER_CANDIDATES)
+    .map((horse) => ({ horse, stableName: "Yours" }));
+  const publicStuds = (await listStuds(db, { limit: STUD_FINDER_CANDIDATES }))
+    .filter((s) => s.horse.ownerStableId !== session.stable.id && isGenome(s.horse.genome))
+    .map((s) => ({ horse: s.horse, stableName: s.stableName }));
+  const rows: StudFinderRow[] = [];
+  let excluded = 0;
+  const season = breedingSeason(now).season;
+  const seen = new Set<string>();
+  for (const { horse: sire, stableName } of [...own, ...publicStuds]) {
+    if (sire.id === mare.id || seen.has(sire.id)) continue;
+    seen.add(sire.id);
+    let pv;
+    try {
+      pv = await previewPairing(db, { accountId: session.accountId, sireId: sire.id, damId: mare.id, now });
+    } catch {
+      excluded++; // not a pairing the preview can state (no pedigree record, &c.)
+      continue;
+    }
+    if (sireExcluded(pv, pv.block ? gc.breedingEligibility(await breedingStateOf(db, sire, now), season) : null)) {
+      excluded++;
+      continue;
+    }
+    const usdgOnly = pv.usdgStudFee !== null;
+    const o = pv.preview.overall;
+    rows.push({
+      id: sire.id,
+      name: sire.name,
+      stableName,
+      club: !pv.ownSire && sire.ownerStableId === null,
+      own: pv.ownSire,
+      feeCredits: usdgOnly ? null : pv.fees.totalPaidByMareOwner,
+      studFeeUsdg: pv.usdgStudFee,
+      usdgOnly,
+      overall: { p10: o.p10, p50: o.p50, p90: o.p90 },
+      p50Grade: gc.gradeOf(o.p50),
+      beatsBothPermille: o.beatsBothParents,
+      nickScore: pv.preview.nick.score,
+      nickLabel: pv.preview.nick.label,
+      coiPermille: pv.preview.coi,
+      coiWarning: pv.preview.coiWarning,
+      fragile: pv.preview.fragile,
+      coats: [...pv.preview.coats].sort((a, b) => b.permille - a.permille).slice(0, 3),
+    });
+  }
+  return { rows, excluded };
+}
+
+/**
+ * The stallion finder: one mare's stallions ranked by the exact breeding preview, a page at a
+ * time. The full ranking is computed once per (player, mare, UTC day) and cached (pagination
+ * and re-sorting are free); each fresh compute is rate-limited per account, because every row
+ * runs the preview.
+ */
+export async function studFinder(
+  db: Db,
+  session: Session,
+  input: { mareId: string; sort?: string; page?: number; pageSize?: number },
+  now: Date,
+): Promise<StudFinderView> {
+  const mare = await getHorse(db, input.mareId);
+  if (!mare || mare.ownerStableId !== session.stable.id || mare.sex !== "female") throw new DomainError("NOT_FOUND", "that mare isn't in your stable");
+  if (!isGenome(mare.genome)) throw new DomainError("NOT_ELIGIBLE", "that mare has no pedigree record");
+  const sort = (STUD_FINDER_SORTS as readonly string[]).includes(input.sort ?? "") ? (input.sort as StudFinderSort) : "upside";
+  const pageSize = Math.max(1, Math.min(input.pageSize ?? STUD_FINDER_PAGE, 2 * STUD_FINDER_PAGE));
+  const day = Math.floor(now.getTime() / 86_400_000);
+  const key = `${session.accountId}:${mare.id}:${day}`;
+  let cache = FINDER.__tbStudFinder;
+  if (!cache) cache = FINDER.__tbStudFinder = new Map();
+  let answer = cache.get(key);
+  if (!answer) {
+    if (await STUD_FINDER_LIMITER.hit(db, session.accountId, now.getTime())) {
+      throw new DomainError("RATE_LIMITED", `The stallion finder can be run ${STUD_FINDER_RUNS_PER_HOUR} times an hour. Try again in a little while.`);
+    }
+    answer = await studFinderRows(db, session, mare, now);
+    cache.set(key, answer);
+    if (cache.size > FINDER_CACHE_MAX) cache.delete(cache.keys().next().value!);
+  }
+  const total = answer.rows.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(Math.max(0, input.page ?? 0), pages - 1);
+  return {
+    mareId: mare.id,
+    mareName: mare.name,
+    sort,
+    page,
+    pageSize,
+    rows: [...answer.rows].sort(compareRows(sort)).slice(page * pageSize, (page + 1) * pageSize),
+    total,
+    excluded: answer.excluded,
+    day: new Date(day * 86_400_000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }),
+    credits: await getBalance(db, session.accountId),
+  };
 }
 
 // ---------------------------------------------------------------------------
