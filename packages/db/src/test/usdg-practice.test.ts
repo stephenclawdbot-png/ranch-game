@@ -41,6 +41,7 @@ afterAll(async () => {
 });
 
 const USD = gc.USDG_UNIT;
+const ON = { USDG_MODE: "practice" };
 const POLICY = gc.DEFAULT_USDG_POLICY;
 const GRANT = gc.PRACTICE_USDG_GRANT;
 const PRACTICE: UsdgChainRef = { chainId: 46630, market: USDG_PRACTICE_MARKET, token: USDG_PRACTICE_TOKEN };
@@ -55,7 +56,7 @@ async function player(opts: { grant?: boolean } = {}): Promise<Player> {
   await h.db.execute(`update stables set stall_slots = 24 where id = '${p.stableId}'`);
   const wallet = `0x${randomBytes(20).toString("hex")}`;
   await linkVerifiedWallet(h.db, { accountId: p.accountId, address: wallet, now: T0 });
-  if (opts.grant !== false) await grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0 });
+  if (opts.grant !== false) await grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env: ON });
   return { ...p, wallet };
 }
 
@@ -87,11 +88,14 @@ const burnBalance = async () => {
 describe("the practice grant", () => {
   it("needs a verified wallet, is granted once per account (100 T-USDG), and never touches credits", async () => {
     const p = await newPlayer(h.db, { credits: 5_000 });
-    await expect(grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0 })).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    await expect(grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env: ON })).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
     await linkVerifiedWallet(h.db, { accountId: p.accountId, address: `0x${randomBytes(20).toString("hex")}`, now: T0 });
-    expect(await grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0 })).toEqual({ granted: true, balance: GRANT });
-    expect(await grantPracticeUsdg(h.db, { accountId: p.accountId, now: at(DAY) })).toEqual({ granted: false, balance: GRANT });
-    const both = await Promise.all([grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0 }), grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0 })]);
+    // Outside practice mode no T-USDG is ever created.
+    for (const env of [{}, { USDG_MODE: "live" }, { USDG_MODE: "PRACTICE" }]) await expect(grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env })).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    expect(await practiceUsdgBalance(h.db, p.accountId)).toBe(0);
+    expect(await grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env: ON })).toEqual({ granted: true, balance: GRANT });
+    expect(await grantPracticeUsdg(h.db, { accountId: p.accountId, now: at(DAY), env: ON })).toEqual({ granted: false, balance: GRANT });
+    const both = await Promise.all([grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env: ON }), grantPracticeUsdg(h.db, { accountId: p.accountId, now: T0, env: ON })]);
     expect(both.every((r) => !r.granted)).toBe(true);
     expect(GRANT).toBe(100 * USD);
     expect(await practiceUsdgBalance(h.db, p.accountId)).toBe(GRANT);
@@ -121,9 +125,9 @@ describe("the practice grant", () => {
 
   it("admin top-up: bounded, idempotent per key", async () => {
     const p = await player();
-    expect(await topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: 50 * USD, idempotencyKey: "t1", actor: null, now: T0 })).toEqual({ duplicate: false, balance: GRANT + 50 * USD });
-    expect(await topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: 50 * USD, idempotencyKey: "t1", actor: null, now: T0 })).toEqual({ duplicate: true, balance: GRANT + 50 * USD });
-    await expect(topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: gc.PRACTICE_USDG_TOPUP_MAX + 1, idempotencyKey: "t2", actor: null, now: T0 })).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(await topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: 50 * USD, idempotencyKey: "t1", actor: null, now: T0, env: ON })).toEqual({ duplicate: false, balance: GRANT + 50 * USD });
+    expect(await topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: 50 * USD, idempotencyKey: "t1", actor: null, now: T0, env: ON })).toEqual({ duplicate: true, balance: GRANT + 50 * USD });
+    await expect(topUpPracticeUsdg(h.db, { accountId: p.accountId, amount: gc.PRACTICE_USDG_TOPUP_MAX + 1, idempotencyKey: "t2", actor: null, now: T0, env: ON })).rejects.toMatchObject({ code: "INVALID_INPUT" });
   });
 });
 

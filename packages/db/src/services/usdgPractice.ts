@@ -4,13 +4,16 @@
  * fixed-price buy, auction settlement, USDG stud fee) is paid from a per-account TEST balance in
  * the game ledger instead of on-chain. Nothing touches a chain and nothing has real value.
  *
- * - Currency: ledger currency `usdg_practice` (micro units, 6 decimals like USDG), in the same
+ * - Currency: ledger currency `TUSDG` (micro units, 6 decimals like USDG), in the same
  *   double-entry ledger as Stable Credits but never mixed with them: `post()` refuses a
  *   transaction that touches two currencies, so T-USDG can't be converted to or from credits.
- *   There is no withdrawal, no purchase and no transfer outside a market payment.
+ *   There is no withdrawal, no purchase and no transfer outside a market payment. ONE balance
+ *   per account, shared by the USDG market, USDG stud fees, Premium Packs and the tote's T-USDG
+ *   pools (services/tote.ts uses the same ledger accounts).
  * - Grant: `PRACTICE_USDG_GRANT` (game-core, 100 T-USDG) once per account (idempotency key
  *   `usdg-practice:grant:<account>`), when it is wallet-signed-in or wallet-linked while practice
- *   mode is on. Admins can top an account up (`topUpPracticeUsdg`).
+ *   mode is on (refused outside practice mode). Admins can top an account up (`topUpPracticeUsdg`).
+ *   There is no other faucet.
  * - Payment: `payUsdgOrderPractice` replaces "the chain verified the payment": in ONE database
  *   transaction it moves the T-USDG (payer -> seller `price - fee`, payer -> practice burn `fee`;
  *   a registration fee goes wholly to the burn) and runs the existing fulfilment
@@ -19,67 +22,50 @@
  *   lapses through the normal expiry (which releases the lot, the stallion slot and the mare).
  * - Only orders written with the practice market address (`USDG_PRACTICE_MARKET`) can be paid
  *   this way, so a real order can never be settled with test money.
- * - Reset (`resetPracticeUsdg`, dry run unless `apply`): drains every T-USDG balance to the burn,
- *   releases open practice listings and bookings, and deletes practice orders, bids, listings and
- *   registrations. Horses that changed hands during the beta stay where they are.
+ * - Reset (`resetPracticeUsdg`, dry run unless `apply`): drains every T-USDG balance (players,
+ *   the tote's T-USDG escrow and house) to the burn, releases open practice listings and bookings,
+ *   and deletes practice orders, bids, listings, registrations and T-USDG tote bets and pools.
+ *   Horses that changed hands during the beta stay where they are.
  */
 import { createHash } from "node:crypto";
-import { and, eq, gt, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { horses, inboxItems, ledgerAccounts, stables, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type UsdgListingRow, type UsdgOrderRow } from "../schema";
+import { horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type UsdgListingRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { verifiedWalletOf } from "./betaMoney";
-import { post } from "./ledger";
+import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY } from "./ledger";
 import { audit, runTx } from "./tx";
 import { releaseStudBooking, usdgPolicy, type UsdgFulfilResult } from "./usdgMarket";
 import { fulfilUsdgPayment } from "./usdgStud";
 
-/** The ledger currency of practice T-USDG (micro units). */
-export const USDG_PRACTICE_CURRENCY = "usdg_practice";
 /** Placeholder "market" and "token" written on practice orders (never real contracts; lowercase like stored orders). */
 export const USDG_PRACTICE_MARKET = "0x0000000000000000000000000000000000007e57";
 export const USDG_PRACTICE_TOKEN = "0x00000000000000000000000000000000007e5701";
 
+type Env = Record<string, string | undefined>;
+const processEnv = (): Env => (typeof process !== "undefined" ? process.env : {});
+
+/** Practice mode on (USDG_MODE=practice exactly; the same switch as the tote's T-USDG pools). */
+export function usdgPracticeOn(env: Env = processEnv()): boolean {
+  return gc.isUsdgPracticeMode(env);
+}
+
 const lower = (a: string) => a.trim().toLowerCase();
 
 /** A practice system account (mint: the grants' source, may go negative; burn: fees and resets). Created on demand. */
-export async function practiceSystemAccountId(ex: Executor, kind: "mint" | "burn"): Promise<string> {
-  const find = () =>
-    ex
-      .select({ id: ledgerAccounts.id })
-      .from(ledgerAccounts)
-      .where(and(eq(ledgerAccounts.kind, kind), isNull(ledgerAccounts.ownerAccountId), eq(ledgerAccounts.currency, USDG_PRACTICE_CURRENCY)));
-  const [found] = await find();
-  if (found) return found.id;
-  await ex.insert(ledgerAccounts).values({ kind, currency: USDG_PRACTICE_CURRENCY, allowNegative: kind === "mint" }).onConflictDoNothing();
-  const [row] = await find();
-  if (!row) throw new Error(`practice ledger account ${kind} missing`);
-  return row.id;
+export function practiceSystemAccountId(ex: Executor, kind: "mint" | "burn"): Promise<string> {
+  return ensureSystemAccountId(ex, kind, USDG_PRACTICE_CURRENCY);
 }
 
-/** The player's T-USDG account (created on demand; never negative). */
-export async function practiceLedgerAccountId(ex: Executor, accountId: string): Promise<string> {
-  const find = () =>
-    ex
-      .select({ id: ledgerAccounts.id })
-      .from(ledgerAccounts)
-      .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, USDG_PRACTICE_CURRENCY)));
-  const [found] = await find();
-  if (found) return found.id;
-  await ex.insert(ledgerAccounts).values({ kind: "player", ownerAccountId: accountId, currency: USDG_PRACTICE_CURRENCY }).onConflictDoNothing();
-  const [row] = await find();
-  if (!row) throw new Error("practice ledger account missing");
-  return row.id;
+/** The player's T-USDG account (created on demand; never negative). The tote's T-USDG pools use the same one. */
+export function practiceLedgerAccountId(ex: Executor, accountId: string): Promise<string> {
+  return playerLedgerAccountId(ex, accountId, USDG_PRACTICE_CURRENCY);
 }
 
 /** The account's T-USDG balance in micro units (0 when it never had any). */
 export async function practiceUsdgBalance(ex: Executor, accountId: string): Promise<number> {
-  const [row] = await ex
-    .select({ balance: ledgerAccounts.balance })
-    .from(ledgerAccounts)
-    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, USDG_PRACTICE_CURRENCY)));
-  return Number(row?.balance ?? 0);
+  return Number(await getBalance(ex, accountId, USDG_PRACTICE_CURRENCY));
 }
 
 /** Refuses (before anything is held) when the balance can't cover `amount`. */
@@ -97,8 +83,9 @@ export async function assertPracticeFunds(ex: Executor, accountId: string, amoun
  * The one-off practice grant (PRACTICE_USDG_GRANT), only to an account with a verified wallet.
  * Idempotent per account: replays (another sign-in, a concurrent tab) grant nothing.
  */
-export async function grantPracticeUsdg(db: Db, input: { accountId: string; now: Date; amount?: number }): Promise<{ granted: boolean; balance: number }> {
-  const amount = input.amount ?? gc.PRACTICE_USDG_GRANT;
+export async function grantPracticeUsdg(db: Db, input: { accountId: string; now: Date; env?: Env }): Promise<{ granted: boolean; balance: number }> {
+  if (!usdgPracticeOn(input.env)) throw new DomainError("NOT_ELIGIBLE", "T-USDG exists only in practice mode.");
+  const amount = gc.PRACTICE_USDG_GRANT;
   return runTx(db, async (tx) => {
     if (!(await verifiedWalletOf(tx, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
     const r = await post(tx, {
@@ -116,7 +103,8 @@ export async function grantPracticeUsdg(db: Db, input: { accountId: string; now:
 }
 
 /** Admin: adds T-USDG to an account (idempotent per key). */
-export async function topUpPracticeUsdg(db: Db, input: { accountId: string; amount: number; idempotencyKey: string; actor: string | null; now: Date }): Promise<{ duplicate: boolean; balance: number }> {
+export async function topUpPracticeUsdg(db: Db, input: { accountId: string; amount: number; idempotencyKey: string; actor: string | null; now: Date; env?: Env }): Promise<{ duplicate: boolean; balance: number }> {
+  if (!usdgPracticeOn(input.env)) throw new DomainError("NOT_ELIGIBLE", "T-USDG exists only in practice mode.");
   if (!Number.isSafeInteger(input.amount) || input.amount <= 0 || input.amount > gc.PRACTICE_USDG_TOPUP_MAX) {
     throw new DomainError("INVALID_INPUT", `A top-up is 0.000001 to ${gc.formatPracticeUsdg(gc.PRACTICE_USDG_TOPUP_MAX)}.`);
   }
@@ -242,6 +230,10 @@ export interface PracticeResetReport {
   registrations: number;
   /** Stallions whose T-USDG stud fee is cleared (their practice registration goes). */
   studFeesCleared: number;
+  /** T-USDG tote bets (all, and still open) and settled T-USDG pools. */
+  toteBets: number;
+  openToteBets: number;
+  totePools: number;
 }
 
 /**
@@ -269,10 +261,16 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
     const listingIds = listings.map((l) => l.id);
     const [bidCount] = listingIds.length ? await tx.select({ n: sql<number>`count(*)::int` }).from(usdgBids).where(inArray(usdgBids.listingId, listingIds)) : [{ n: 0 }];
     const studFees = regHorses.length ? await tx.select({ id: horses.id }).from(horses).where(and(inArray(horses.id, regHorses), isNotNull(horses.studFeeUsdg))) : [];
-    const balances = await tx
-      .select({ id: ledgerAccounts.id, owner: ledgerAccounts.ownerAccountId, balance: ledgerAccounts.balance })
+    const held = await tx
+      .select({ id: ledgerAccounts.id, kind: ledgerAccounts.kind, owner: ledgerAccounts.ownerAccountId, balance: ledgerAccounts.balance })
       .from(ledgerAccounts)
-      .where(and(eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, USDG_PRACTICE_CURRENCY), gt(ledgerAccounts.balance, 0)));
+      .where(and(inArray(ledgerAccounts.kind, ["player", "escrow", "tote_house"]), eq(ledgerAccounts.currency, USDG_PRACTICE_CURRENCY), gt(ledgerAccounts.balance, 0)));
+    const balances = held.filter((b) => b.kind === "player");
+    const tote = await tx
+      .select({ n: sql<number>`count(*)::int`, open: sql<number>`count(*) filter (where ${toteBets.status} = 'open')::int` })
+      .from(toteBets)
+      .where(eq(toteBets.currency, USDG_PRACTICE_CURRENCY));
+    const [pools] = await tx.select({ n: sql<number>`count(*)::int` }).from(totePools).where(eq(totePools.currency, USDG_PRACTICE_CURRENCY));
     const openListings = listings.filter((l) => l.status === "active" || l.status === "closed");
     const openOrders = orders.filter((o) => o.status === "pending" || o.status === "paid");
     const report: PracticeResetReport = {
@@ -286,6 +284,9 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
       bids: Number(bidCount?.n ?? 0),
       registrations: regs.length,
       studFeesCleared: studFees.length,
+      toteBets: Number(tote[0]?.n ?? 0),
+      openToteBets: Number(tote[0]?.open ?? 0),
+      totePools: Number(pools?.n ?? 0),
     };
     if (!input.apply) return report;
 
@@ -298,11 +299,14 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
     if (orderIds.length) await tx.delete(usdgOrders).where(inArray(usdgOrders.orderId, orderIds));
     if (listingIds.length) await tx.delete(usdgListings).where(inArray(usdgListings.id, listingIds));
     if (regs.length) await tx.delete(usdgRegistrations).where(inArray(usdgRegistrations.id, regs.map((r) => r.id)));
-    if (balances.length) {
+    // T-USDG tote bets go with the balances (open stakes sit in the T-USDG escrow, drained below).
+    await tx.delete(toteBets).where(eq(toteBets.currency, USDG_PRACTICE_CURRENCY));
+    await tx.delete(totePools).where(eq(totePools.currency, USDG_PRACTICE_CURRENCY));
+    if (held.length) {
       const burn = await practiceSystemAccountId(tx, "burn");
-      for (const b of balances) {
+      for (const b of held) {
         await post(tx, {
-          idempotencyKey: `usdg-practice:reset:${b.owner}:${input.now.getTime()}`,
+          idempotencyKey: `usdg-practice:reset:${b.owner ?? b.kind}:${input.now.getTime()}`,
           kind: "usdg_practice_reset",
           memo: "Beta over: test T-USDG balance reset",
           postings: [

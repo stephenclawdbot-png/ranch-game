@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
@@ -7,9 +8,10 @@ import { recordAccountSignal } from "../services/accounts";
 import { economyHealth } from "../services/health";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { cancelRace, createRace, enterRace, listRaceEntries, lockField, scratchEntry, settleRace, type CreateRaceInput } from "../services/races";
+import { linkVerifiedWallet } from "../services/betaMoney";
+import { grantPracticeUsdg, practiceUsdgBalance, resetPracticeUsdg, topUpPracticeUsdg } from "../services/usdgPractice";
 import {
   confirmToteAdult,
-  grantPracticeUsdg,
   myToteBets,
   myToteRace,
   placeToteBet,
@@ -69,6 +71,12 @@ async function bettor(credits = 50_000) {
   const p = await newPlayer(h.db, { credits });
   await confirmToteAdult(h.db, { accountId: p.accountId, now: T0 });
   return p;
+}
+
+/** A wallet signed in while practice mode is on: the one 100 T-USDG grant (the tote has no faucet of its own). */
+async function withWallet(accountId: string) {
+  await linkVerifiedWallet(h.db, { accountId, address: `0x${randomBytes(20).toString("hex")}`, now: T0 });
+  await grantPracticeUsdg(h.db, { accountId, now: T0, env: PRACTICE });
 }
 
 function bet(accountId: string, raceId: string, horseId: string, stake: number, extra: Partial<PlaceToteBetInput> = {}) {
@@ -398,20 +406,33 @@ describe("T-USDG: practice mode only", () => {
   it("is impossible in live, mock and off modes (and when unset)", async () => {
     const { race, owners } = await raceWithField(5);
     const a = await bettor();
-    await grantPracticeUsdg(h.db, { accountId: a.accountId, amount: 20 * gc.TOTE_USDG_UNIT, idempotencyKey: `grant:${a.accountId}`, env: PRACTICE });
+    await withWallet(a.accountId);
     for (const env of [{ USDG_MODE: "live" }, { USDG_MODE: "mock" }, { USDG_MODE: "off" }, {}]) {
       expect(toteUsdgEnabled(env)).toBe(false);
       await expect(bet(a.accountId, race.id, owners[0]!.horseId, gc.TOTE_USDG_UNIT, { currency: "TUSDG", env })).rejects.toMatchObject({ code: "TOTE_UNAVAILABLE" });
       expect((await toteBoard(h.db, race.id, at(5 * MIN), env))!.currencies).toEqual(["CR"]);
-      await expect(grantPracticeUsdg(h.db, { accountId: a.accountId, amount: 1, idempotencyKey: `g2:${a.accountId}`, env })).rejects.toMatchObject({ code: "TOTE_UNAVAILABLE" });
+      // No T-USDG is created outside practice mode either (the grant and top-ups refuse).
+      await expect(topUpPracticeUsdg(h.db, { accountId: a.accountId, amount: 1, idempotencyKey: `g2:${a.accountId}`, actor: null, now: T0, env })).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
     }
     expect(await count(h.db, "tote_bets", `account_id = '${a.accountId}'`)).toBe(0);
+  });
+
+  it("needs a verified wallet, and bets from the one practice T-USDG balance (no tote faucet)", async () => {
+    const { race, owners } = await raceWithField(5);
+    const a = await bettor();
+    await expect(bet(a.accountId, race.id, owners[0]!.horseId, gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE })).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    await withWallet(a.accountId);
+    expect(await practiceUsdgBalance(h.db, a.accountId)).toBe(gc.PRACTICE_USDG_GRANT);
+    await bet(a.accountId, race.id, owners[0]!.horseId, 2 * gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE });
+    // The market's balance and the tote's are the same number.
+    expect(await practiceUsdgBalance(h.db, a.accountId)).toBe(gc.PRACTICE_USDG_GRANT - 2 * gc.TOTE_USDG_UNIT);
+    expect(await getBalance(h.db, a.accountId, "TUSDG")).toBe(gc.PRACTICE_USDG_GRANT - 2 * gc.TOTE_USDG_UNIT);
   });
 
   it("in practice mode runs its own pools on the practice ledger, never touching credits", async () => {
     const { race, owners } = await raceWithField(5);
     const [a, b] = [await bettor(), await bettor()];
-    for (const p of [a, b]) await grantPracticeUsdg(h.db, { accountId: p.accountId, amount: 20 * gc.TOTE_USDG_UNIT, idempotencyKey: `grant:${p.accountId}`, env: PRACTICE });
+    for (const p of [a, b]) await withWallet(p.accountId);
     await expect(bet(a.accountId, race.id, owners[0]!.horseId, gc.TOTE_USDG_UNIT / 4, { currency: "TUSDG", env: PRACTICE })).rejects.toMatchObject({ code: "TOTE_LIMIT" });
     await expect(bet(a.accountId, race.id, owners[0]!.horseId, 11 * gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE })).rejects.toMatchObject({ code: "TOTE_LIMIT" });
     await bet(a.accountId, race.id, owners[0]!.horseId, 2 * gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE });
@@ -424,7 +445,7 @@ describe("T-USDG: practice mode only", () => {
     await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
     await settleTote(h.db, race.id, at(30 * MIN));
     const net = 5 * gc.TOTE_USDG_UNIT - gc.toteTakeout(5 * gc.TOTE_USDG_UNIT);
-    expect(await getBalance(h.db, a.accountId, "TUSDG")).toBe(18 * gc.TOTE_USDG_UNIT + net);
+    expect(await getBalance(h.db, a.accountId, "TUSDG")).toBe(gc.PRACTICE_USDG_GRANT - 2 * gc.TOTE_USDG_UNIT + net);
     expect(await getBalance(h.db, a.accountId)).toBe(50_000);
     expect(await house("TUSDG")).toBeGreaterThanOrEqual(gc.toteTakeout(5 * gc.TOTE_USDG_UNIT));
     // economy health counts credits only
@@ -433,6 +454,39 @@ describe("T-USDG: practice mode only", () => {
     const stats = await toteAdminStats(h.db, at(30 * MIN));
     expect(stats.byCurrency.find((c) => c.currency === "TUSDG")!.takeWeek).toBeGreaterThan(0);
     expect(stats.biggest.length).toBeGreaterThan(0);
+    await ledgerClean();
+  });
+
+  it("the end-of-beta reset (dry run, then apply) wipes T-USDG bets and pools and drains the escrow and house; credits bets stay", async () => {
+    const settled = await raceWithField(5);
+    const open = await raceWithField(5);
+    const [a, b] = [await bettor(), await bettor()];
+    for (const p of [a, b]) await withWallet(p.accountId);
+    await bet(a.accountId, settled.race.id, settled.owners[0]!.horseId, 2 * gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE });
+    await bet(b.accountId, settled.race.id, settled.owners[1]!.horseId, 3 * gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE });
+    await runRace(settled.race.id, Object.fromEntries(settled.owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, settled.race.id, at(30 * MIN));
+    await bet(a.accountId, open.race.id, open.owners[0]!.horseId, gc.TOTE_USDG_UNIT, { currency: "TUSDG", env: PRACTICE });
+    const credits = await bet(a.accountId, open.race.id, open.owners[0]!.horseId, 100);
+    const creditsBefore = await getBalance(h.db, a.accountId);
+
+    const dry = await resetPracticeUsdg(h.db, { apply: false, now: at(DAY) });
+    expect(dry.toteBets).toBeGreaterThanOrEqual(3);
+    expect(dry.openToteBets).toBeGreaterThanOrEqual(1);
+    expect(dry.totePools).toBeGreaterThanOrEqual(1);
+    expect(await count(h.db, "tote_bets", `currency = 'TUSDG'`)).toBe(dry.toteBets);
+
+    const done = await resetPracticeUsdg(h.db, { apply: true, now: at(DAY) });
+    expect(done.applied).toBe(true);
+    expect(await count(h.db, "tote_bets", `currency = 'TUSDG'`)).toBe(0);
+    expect(await count(h.db, "tote_pools", `currency = 'TUSDG'`)).toBe(0);
+    expect(await house("TUSDG")).toBe(0);
+    const [escrow] = await h.db.select({ b: ledgerAccounts.balance }).from(ledgerAccounts).where(and(eq(ledgerAccounts.kind, "escrow"), eq(ledgerAccounts.currency, "TUSDG")));
+    expect(Number(escrow?.b ?? 0)).toBe(0);
+    expect(await practiceUsdgBalance(h.db, a.accountId)).toBe(0);
+    // Credits are untouched.
+    expect(await count(h.db, "tote_bets", `id = '${credits.id}'`)).toBe(1);
+    expect(await getBalance(h.db, a.accountId)).toBe(creditsBefore);
     await ledgerClean();
   });
 });

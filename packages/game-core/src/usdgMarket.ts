@@ -80,12 +80,20 @@ export const USDG_STUD_FEE_MAX = 500 * USDG_UNIT;
  * with their wallet but trade with test money, shown to players as "T-USDG". Each account gets this
  * many micro-T-USDG once, the first time it is wallet-signed-in (or wallet-linked) while practice
  * mode is on (idempotent: one ledger transaction per account). It lives in the game ledger as a
- * separate currency ("usdg_practice", 6 decimals like USDG), is never convertible to or from Stable
+ * separate currency ("TUSDG", 6 decimals like USDG; one balance shared by the USDG market, stud
+ * fees, Premium Packs and the tote), is never convertible to or from Stable
  * Credits, never withdrawable and never for sale. Owner set 100 T-USDG (2026-10-31).
  */
 export const PRACTICE_USDG_GRANT = 100 * USDG_UNIT;
 /** The biggest single admin top-up of practice T-USDG (a typo guard, not an economy rule). */
 export const PRACTICE_USDG_TOPUP_MAX = 10_000 * USDG_UNIT;
+/**
+ * The one practice-mode switch, shared by the USDG market, Premium Packs and the tote: on only
+ * when `USDG_MODE` is exactly "practice". Everything else (unset, live, mock, off, a typo) is off.
+ */
+export function isUsdgPracticeMode(env: { USDG_MODE?: string | undefined }): boolean {
+  return env.USDG_MODE === "practice";
+}
 /** What players see instead of "USDG" while practice mode is on. */
 export const PRACTICE_USDG_LABEL = "T-USDG";
 
