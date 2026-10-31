@@ -8,6 +8,7 @@ import GrowingUpPage from "./pages/growing-up";
 import CareAndConditionPage from "./pages/care-and-condition";
 import TrainingPage from "./pages/training";
 import InjuriesAndInsurancePage from "./pages/injuries-and-insurance";
+import InjuriesPage from "./pages/injuries";
 import RaceTypesPage from "./pages/race-types";
 import EnteringARacePage from "./pages/entering-a-race";
 import JockeysPage from "./pages/jockeys";
@@ -46,6 +47,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "growing-up": GrowingUpPage,
   "care-and-condition": CareAndConditionPage,
   "training": TrainingPage,
+  injuries: InjuriesPage,
   "injuries-and-insurance": InjuriesAndInsurancePage,
   "race-types": RaceTypesPage,
   "entering-a-race": EnteringARacePage,

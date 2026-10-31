@@ -84,7 +84,7 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
               <ul className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[0.8125rem] font-bold text-on-baize-2 lg:justify-start" aria-label="Condition" data-testid="horse-status">
                 {st.injury && (
                   <li className="text-negative">
-                    Injured ({st.injury.severity.replace("_", " ")}){st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                    {st.injury.name}{st.injury.untilMs ? ` · back ${new Date(st.injury.untilMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
                   </li>
                 )}
                 <li className={st.risk.label === "low" ? "" : "text-negative"} title={st.risk.factors.join(" · ")}>

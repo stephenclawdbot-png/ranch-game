@@ -61,6 +61,8 @@ export interface RiskRow {
   permille: number;
   careerEndingShare: number;
   factors: string[];
+  /** Most likely injuries if hurt in this context (names; game-core likelyInjuries). */
+  likely?: string[];
 }
 
 export interface ConditionView {
@@ -73,7 +75,13 @@ export interface ConditionView {
   peak: { phase: "none" | "building" | "peak" | "fading"; fromMs: number | null; toMs: number | null; bonus: number };
   injury: {
     severity: string;
+    /** The injury's name (game-core injuries.ts), or its severity for old injuries. */
     label: string;
+    /** "Moderate injury" etc. */
+    severityLabel: string;
+    /** Body area and one plain line, when the injury has a catalogue kind. */
+    area: string | null;
+    description: string | null;
     hoursLeft: number;
     untilMs: number;
     careerEnding: boolean;

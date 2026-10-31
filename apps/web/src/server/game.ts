@@ -93,6 +93,7 @@ import {
   stablePhotoHashes,
   formLineOf,
   rivalTags,
+  carryingDueByDam,
 } from "@thoroughbred/db";
 import { getJockey as dbGetJockey, handicapWeightsFor } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
@@ -123,7 +124,7 @@ import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
 import { stableNews } from "./moments";
-import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
@@ -851,6 +852,11 @@ export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceL
 export async function entryReasonFull(db: Db, row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): Promise<string | null> {
   const base = entryReason(row, race, now, licenceLevel);
   if (base) return base;
+  // Mares in foal don't race (enterRace refuses them): say when she can again.
+  if (row.sex === "female") {
+    const due = (await carryingDueByDam(db, [row.id])).get(row.id);
+    if (due !== undefined) return inFoalText(due, now.getTime());
+  }
   if (race.kind !== "quick" && (await startsOnDay(db, row.id, race.postTime, { liveOnly: true })) >= RULES.liveStartsPerDay) {
     return RULES.liveStartsPerDay === 1 ? "Already raced Live today (one Live race a day)" : `Raced ${RULES.liveStartsPerDay} Live races today`;
   }
@@ -1238,6 +1244,8 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
   const leases = (await stableLeases(db, session.stable.id, now)).filter((l) => l.lease.status === "active");
   const leasedIn = new Map(leases.filter((l) => l.role === "lessee").map((l) => [l.horse.id, l]));
   const names = new Map(rows.map((r) => [r.id, r.name]));
+  // Mares in foal: when each can race again (the stable list shows it as her block).
+  const inFoal = await carryingDueByDam(db, rows.filter((r) => r.sex === "female").map((r) => r.id));
   const [credits, bank, occ, entries, inbox, runs, goals] = [
     await getBalance(db, session.accountId),
     await getEntryBank(db, { accountId: session.accountId, now }),
@@ -1285,7 +1293,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     horses: rows
       .filter((r) => r.careerStatus !== "pasture")
       .map((r) => {
-        const v = stableHorseView(r, silks, nowMs);
+        const v = stableHorseView(r, silks, nowMs, { inFoalDueAtMs: inFoal.get(r.id) ?? null });
         const l = leasedIn.get(r.id);
         return l
           ? {
@@ -1379,6 +1387,8 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
   for (const e of mine) {
     const row = await getHorse(db, e.horseId);
     const pos = e.finishPosition ?? replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 0;
+    // An injury picked up in this race (the stored injury names its race as its source).
+    const hurt = row && (row.injury as { source?: unknown } | null)?.source === raceId ? injuryCard(row.injury, now.getTime()) : null;
     runners.push({
       horseId: e.horseId,
       horseName: row?.name ?? "Your horse",
@@ -1389,6 +1399,7 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
       ratingBefore: e.ratingBefore,
       ratingAfter: e.ratingAfter,
       atOff: conditionAtOff(e.snapshot, race.postTime.getTime()),
+      injury: hurt,
     });
   }
   const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;
@@ -1519,7 +1530,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     mine,
     owned,
     lease,
-    status: mine ? stableHorseView(row, silks, nowMs) : null,
+    status: mine ? stableHorseView(row, silks, nowMs, { inFoalDueAtMs: row.sex === "female" ? ((await carryingDueByDam(db, [row.id])).get(row.id) ?? null) : null }) : null,
     runs,
     form,
     sireLine,

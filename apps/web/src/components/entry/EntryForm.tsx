@@ -211,6 +211,11 @@ export function PlanPicker({
             {current.factors.length > 0 && <span className="text-cream-dim">· {riskLines(current.factors).join(" · ")}</span>}
           </p>
         )}
+        {current?.likely && current.likely.length > 0 && (
+          <p className="mt-1 text-sm text-cream-dim" data-testid="likely-injuries">
+            Most likely if injured today: {current.likely.join(", ").toLowerCase()}
+          </p>
+        )}
       </fieldset>
     </>
   );

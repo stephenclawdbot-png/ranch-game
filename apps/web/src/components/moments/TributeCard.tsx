@@ -32,7 +32,7 @@ export function TributeCard({
 }: {
   name: string;
   tribute: TributeView;
-  memorial?: { atMs: number; raceId: string | null; raceName: string | null } | null;
+  memorial?: { atMs: number; raceId: string | null; raceName: string | null; cause?: string | null } | null;
   className?: string;
 }) {
   const t = tribute;
@@ -70,7 +70,7 @@ export function TributeCard({
       ) : null}
       {memorial && (
         <p className="text-sm text-cream-dim">
-          Lost {memorial.raceName ? <>in the {memorial.raceId ? <Link href={`/race/${memorial.raceId}`} className="link">{memorial.raceName}</Link> : memorial.raceName}</> : "to a race injury"} on {day(memorial.atMs)}. The record stays in your books and the Hall, and any foals carry the line on.
+          Lost {memorial.raceName ? <>in the {memorial.raceId ? <Link href={`/race/${memorial.raceId}`} className="link">{memorial.raceName}</Link> : memorial.raceName}</> : "to a race injury"}{memorial.cause ? ` (${memorial.cause.toLowerCase()})` : ""} on {day(memorial.atMs)}. The record stays in your books and the Hall, and any foals carry the line on.
         </p>
       )}
     </div>
