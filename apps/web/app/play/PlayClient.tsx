@@ -17,7 +17,6 @@ import { StorageNote } from "@/components/ui/StorageNote";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
 import { useWallet } from "@/components/chain/useWallet";
 import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
-import { LoginCodeCard } from "@/components/chain/LoginCodeCard";
 import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -261,7 +260,6 @@ function Welcome() {
         </div>
       )}
       {error !== null && <ErrorNote error={error} />}
-      {state.tester && <LoginCodeCard />}
       <StorageNote />
     </div>
   );

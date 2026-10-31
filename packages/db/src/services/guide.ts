@@ -25,8 +25,12 @@ import { MOMENT_KIND, type MomentData } from "./moments";
 import { rowsOf, runTx } from "./tx";
 import { notify } from "./notifications";
 
-/** Screens with one-time coach marks (web: CoachMark ids); `bloodline` is the day-3 breeding nudge's "Not now". */
-export const COACH_MARK_IDS = ["racecard", "entry", "training", "breeding", "tote", "market", "bloodline"] as const;
+/**
+ * Things a player sees once (web: CoachMark ids). `bloodline` is the day-3 breeding nudge's "Not
+ * now"; `career_story` is a career story of their own read (the first-week list); `login_code` is
+ * the tester's login-code card dismissed after a result.
+ */
+export const COACH_MARK_IDS = ["racecard", "entry", "training", "breeding", "tote", "market", "bloodline", "career_story", "login_code"] as const;
 export type CoachMarkId = (typeof COACH_MARK_IDS)[number];
 
 export function isCoachMarkId(x: unknown): x is CoachMarkId {
@@ -196,6 +200,63 @@ export async function stableStepsView(db: Db, accountId: string, now: Date): Pro
   }
   const earned = progress.steps.filter((s) => s.done).reduce((n, s) => n + s.credits, 0) + (completedAt ? gc.STABLE_STEPS_BONUS : 0);
   return { ...progress, bonus: gc.STABLE_STEPS_BONUS, totalCredits: gc.stableStepsTotal(features), earned, completedAtMs: completedAt?.getTime() ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// The first week on Home
+// ---------------------------------------------------------------------------
+
+/** What the stable's records say about the first-week list's unpaid jobs (game-core `FirstWeekFacts`). */
+export async function firstWeekFacts(ex: Executor, accountId: string, now: Date): Promise<gc.FirstWeekFacts> {
+  const row = await onboardingRow(ex, accountId);
+  const [acc] = await ex.select({ createdAt: accounts.createdAt }).from(accounts).where(eq(accounts.id, accountId));
+  const [stable] = await ex.select({ id: stables.id }).from(stables).where(eq(stables.accountId, accountId));
+  const founded = acc?.createdAt ?? row?.createdAt ?? now;
+  const facts: gc.FirstWeekFacts = {
+    guided: !!row?.guided,
+    daysSinceFounding: gc.dayIndex(now.getTime()) - gc.dayIndex(founded.getTime()),
+    firstRace: false,
+    renamed: false,
+    canRename: false,
+    qualifier: false,
+    careerStory: ((row?.coachSeen as string[] | null) ?? []).includes("career_story"),
+  };
+  if (!row?.guided || !stable) return facts;
+  const [f] = rowsOf<{ first_race: boolean; renamed: boolean; can_rename: boolean; qualifier: boolean }>(
+    await ex.execute(sql`
+      select
+        exists (select 1 from race_entries e where e.stable_id = ${stable.id} and e.finish_position is not null) as first_race,
+        exists (select 1 from audit_log a where a.actor_account_id = ${accountId} and a.action = 'horse.rename') as renamed,
+        exists (select 1 from horses h where h.owner_stable_id = ${stable.id} and h.lessee_stable_id is null
+                 and h.career_status = 'racing' and h.starts = 0) as can_rename,
+        exists (select 1 from race_entries e join races r on r.id = e.race_id
+                 where e.stable_id = ${stable.id} and e.status = 'entered'
+                   and r.conditions->'calendar'->>'kind' = 'feature_qualifier') as qualifier`),
+  );
+  facts.firstRace = !!f?.first_race;
+  facts.renamed = !!f?.renamed;
+  facts.canRename = !!f?.can_rename;
+  facts.qualifier = !!f?.qualifier;
+  return facts;
+}
+
+export interface FirstWeekState extends gc.FirstWeekList {
+  /** When the list hides at the latest: the start of the UTC day after its last day (ms). */
+  endsAtMs: number;
+}
+
+/**
+ * The first-week list for a guided stable (null otherwise): the Stable steps and the unpaid
+ * extras, each ticked from the records. It pays nothing itself: the steps still pay through
+ * `completeStableStepTx`, once.
+ */
+export async function firstWeekView(db: Db, accountId: string, now: Date, steps?: StableStepsState | null): Promise<FirstWeekState | null> {
+  const s = steps === undefined ? await stableStepsView(db, accountId, now) : steps;
+  if (!s) return null;
+  const facts = await firstWeekFacts(db, accountId, now);
+  const list = gc.firstWeekList({ steps: s.steps, next: s.next, done: s.done, total: s.total, complete: s.complete }, facts);
+  const foundingDay = gc.dayIndex(now.getTime()) - facts.daysSinceFounding;
+  return { ...list, endsAtMs: (foundingDay + gc.FIRST_WEEK_DAYS) * gc.MS_PER_DAY };
 }
 
 // ---------------------------------------------------------------------------

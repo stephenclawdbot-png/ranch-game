@@ -91,5 +91,10 @@ export const STEP_COPY: Record<string, { title: string; text: string }> = {
   pick: { title: "Pick a winner", text: "Tip one runner in someone else's Live race for tipster points. No credits at stake." },
   quick_race: { title: "Try a quick race", text: "A short race on demand, settled straight away." },
   pin_target: { title: "Pin a target race", text: "Plan ahead: pin a coming race for a horse on This week and get a reminder." },
-  breeding_preview: { title: "Preview a breeding", text: "See what a foal of your filly might look like. Only a look: nothing is spent." },
+  breeding_preview: { title: "Look at the stallion finder", text: "See which stallions suit your filly and what a foal might look like: the start of a bloodline. Only a look, nothing is spent." },
+  // The first-week list's unpaid jobs (game-core FirstWeekExtraKey), ticked from the records.
+  first_race: { title: "Run your first race", text: "Race any horse in a free Story race against the Club." },
+  rename: { title: "Name a horse your way", text: "A horse can be renamed until its first start: give one of yours a name you like." },
+  qualifier: { title: "Enter a Feature Qualifier", text: "Weekday evenings on the Live card: a top-3 finish earns a place in Saturday's Feature." },
+  career_story: { title: "Read a career story", text: "Each of your horses' pages keeps the moments that made it: wins, close finishes and rivals." },
 };

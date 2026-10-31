@@ -3,6 +3,7 @@
  * start — no starts, no record, no max-starts retirement — while prizes, fatigue, injury
  * (career-ending included) and the per-day limit behave like any other race.
  */
+import { purseShares } from "@thoroughbred/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
@@ -54,7 +55,8 @@ describe("Story races and the career clock", () => {
     const r = await runRace(race.id, at(11 * MIN), [a.id], { [a.id]: { ratingAfter: 20, condition: { fatigue: 500 } } });
     expect(r.retired).toEqual([]);
     // Credits, result and condition are exactly as for any race.
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
+    // The winner's share of a two-runner field: 55 % plus the empty places' shares (the replay's split).
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + purseShares(10_000, 2)[0]! + gc.DAILY_GOAL_CREDITS); // + the day's race goal
     expect(await count(h.db, "race_results", `race_id = '${race.id}'`)).toBe(1);
     expect(await getHorseRow(h.db, a.id)).toMatchObject({ fatigue: 500, rating: 20, lockKind: null, careerStatus: "racing" });
     // The career clock and the record did not move.
@@ -89,7 +91,8 @@ describe("Story races and the career clock", () => {
     const race = await storyRace(0, { kind: "scheduled", purse: 10_000, targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: a.id, tactic: "front", now: T0 });
     await runRace(race.id, at(11 * MIN), [a.id]);
-    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 8, wins: 3, places: 1, shows: 3, earnings: 900 + 5_500 });
-    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + 5_500 + gc.DAILY_GOAL_CREDITS); // + the day's race goal
+    const won = purseShares(10_000, 4)[0]!; // four runners: 55 % plus the two empty places' shares
+    expect(await getHorseRow(h.db, a.id)).toMatchObject({ starts: 8, wins: 3, places: 1, shows: 3, earnings: 900 + won });
+    expect(await getBalance(h.db, p.accountId)).toBe(1_000 + won + gc.DAILY_GOAL_CREDITS); // + the day's race goal
   });
 });

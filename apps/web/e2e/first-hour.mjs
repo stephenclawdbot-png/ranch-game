@@ -131,6 +131,8 @@ async function run(browser, kind, code) {
     // 5. The starters and "Race <horse> now".
     await page.getByTestId("race-now").waitFor({ timeout: 60_000 });
     notes.firstRaceButton = (await page.getByTestId("race-now").innerText()).trim();
+    // Testers' login code: moved from this screen to after the first result.
+    notes.loginCodeBeforeFirstRace = await visible(page.getByTestId("login-code"), 1500);
     await shot("starters");
     await click(page.getByTestId("race-now"));
     await page.waitForURL(/\/race\//, { timeout: NAV_TIMEOUT_MS });
@@ -166,6 +168,25 @@ async function run(browser, kind, code) {
       // How far down the result page the verdict sits (a phone screen is 844 px).
       notes.verdictTopPx = await page.getByTestId("verdict").evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY));
     }
+    const topOf = (id) => page.getByTestId(id).first().evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY)).catch(() => null);
+    notes.photoCardTopPx = await topOf("photo-finish-card");
+    notes.tryChangeTopPx = await topOf("try-change");
+    notes.whyCardTopPx = await topOf("why-card");
+    notes.resultPageHeightPx = await page.evaluate(() => document.documentElement.scrollHeight);
+    // The energy line on the Why card (from the replay frames).
+    if (await visible(page.getByTestId("energy-line"), 3000)) {
+      notes.energyHeadline = (await page.getByTestId("energy-headline").innerText()).trim();
+      notes.energyLabel = await page.locator('[data-testid="energy-line"] svg').getAttribute("aria-label");
+      await page.getByTestId("energy-line").scrollIntoViewIfNeeded();
+      await page.getByTestId("energy-line").screenshot({ path: join(OUT, `${kind}-energy-line.png`) });
+    }
+    // The tester's login code after the first result (never in the way).
+    notes.loginCodeAfterFirstResult = await visible(page.getByTestId("login-code"), 3000);
+    // The replay rests once the results show: the stage stops drawing (data-rv-rest).
+    await page.waitForTimeout(3000);
+    notes.viewerResting = await page.locator("[data-rv-rest]").first().getAttribute("data-rv-rest").catch(() => null);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: join(OUT, `${kind}-result-top.png`) });
     const change = page.getByTestId("try-change");
     notes.hasOneTapChange = await visible(change);
     if (notes.hasOneTapChange) notes.firstChange = (await change.innerText()).trim();
@@ -200,6 +221,13 @@ async function run(browser, kind, code) {
     await page.goto(`${BASE_URL}/`);
     await page.waitForTimeout(2500);
     notes.homeText = (await page.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 900);
+    // The first-week list: Home's one to-do while it shows.
+    if (await visible(page.getByTestId("stable-steps"), 3000)) {
+      notes.firstWeekCount = (await page.getByTestId("steps-count").innerText()).trim();
+      notes.firstWeekNext = await page.locator('[data-testid="steps-todo"] li').evaluateAll((ls) => ls.map((l) => (l.textContent ?? "").replace(/\s+/g, " ").trim()));
+      await page.getByTestId("stable-steps").screenshot({ path: join(OUT, `${kind}-first-week.png`) });
+    }
+    notes.homeTodoLists = await page.evaluate(() => ["stable-steps", "today", "daily-goals", "home-rivals", "home-week"].filter((id) => document.querySelector(`[data-testid="${id}"]`)));
     await endStep("home-after-two-races");
 
     // 12. The wiki / explore.

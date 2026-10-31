@@ -1,7 +1,9 @@
 import type { RaceAnalysis } from "@/lib/raceAnalysis";
 import type { TryNextTip } from "@/lib/tryNext";
 import { ordinal } from "@/lib/format";
+import type { EnergyTrace } from "@/lib/energyTrace";
 import { FitList } from "../ui/FitChip";
+import { EnergyLine } from "./EnergyLine";
 
 const PACE_TEXT = {
   fast: "Fast early pace",
@@ -10,8 +12,23 @@ const PACE_TEXT = {
 } as const;
 const SEG_LABEL = { early: "Early", middle: "Middle", late: "Late" } as const;
 
-/** "Why" card: pace, running positions, sectionals and fit, explained in one or two sentences. */
-export function WhyCard({ analysis, horseName, isYours, tips = [], lead = null }: { analysis: RaceAnalysis; horseName: string; isYours: boolean; tips?: TryNextTip[]; lead?: string | null }) {
+/** "Why" card: pace, running positions, sectionals, energy and fit, explained in one or two sentences. */
+export function WhyCard({
+  analysis,
+  horseName,
+  isYours,
+  tips = [],
+  lead = null,
+  energy = null,
+}: {
+  analysis: RaceAnalysis;
+  horseName: string;
+  isYours: boolean;
+  tips?: TryNextTip[];
+  lead?: string | null;
+  /** The horse's energy over the race, from the replay frames (energyTrace). */
+  energy?: EnergyTrace | null;
+}) {
   const a = analysis;
   return (
     <section className="surface p-3 sm:p-4" aria-labelledby="why-h" data-testid="why-card">
@@ -67,6 +84,12 @@ export function WhyCard({ analysis, horseName, isYours, tips = [], lead = null }
           </ul>
         </div>
       </div>
+
+      {energy && (
+        <div className="mt-4">
+          <EnergyLine trace={energy} horseName={horseName} />
+        </div>
+      )}
 
       <div className="mt-4">
         <p className="label mb-1">Fit</p>

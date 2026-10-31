@@ -39,6 +39,9 @@ interface ClubProps {
   inviteOnly?: boolean;
 }
 
+/** Today tiles the first-week list already covers (the Cup, care, the next Story race, the quick-race challenge). */
+const FIRST_WEEK_COVERS = ["cup", "care", "story", "challenge"];
+
 /** A race you're in counts as "yours to watch" from entry until a few minutes after the off. */
 const WATCH_WINDOW_MS = 4 * 60_000;
 
@@ -188,6 +191,9 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const heroRun = upcomingMine ? { raceId: upcomingMine.raceId, horseId: upcomingMine.horseId } : unseen[0]?.raceId ? { raceId: unseen[0].raceId, horseId: unseen[0].horseId } : null;
   const horseOf = (id: string | null | undefined) => state.horses.find((h) => h.id === id);
   const ob = state.onboarding ?? null;
+  // The first-week list (hidden once done or after the first week) is Home's one to-do while it shows.
+  const firstWeek = ob?.firstWeek?.visible ? ob.firstWeek : null;
+  const liveEntered = !ob?.steps || ob.steps.complete || ob.steps.steps.some((s) => s.key === "enter_live" && s.done);
 
   const plaques: EstatePlaque[] = [
     {
@@ -243,14 +249,14 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
           <BloodlineNudge />
         </div>
       )}
-      {ob?.steps && (!ob.steps.completedAtMs || (now ?? 0) - ob.steps.completedAtMs < 3 * 86_400_000) && (
+      {firstWeek && (
         <div className="mt-4">
-          <StableSteps steps={ob.steps} state={state} plain={ob.plainLanguage} />
+          <StableSteps week={firstWeek} steps={ob?.steps ?? null} state={state} plain={!!ob?.plainLanguage} goals={state.goals ?? []} />
         </div>
       )}
 
       {/* The week's campaign (Feature, Qualifiers, League) waits until a new stable has entered its first Live race. */}
-      {(!ob?.steps || ob.steps.complete || ob.steps.steps.some((s) => s.key === "enter_live" && s.done)) && (
+      {liveEntered && (
         <Link href="/week" className="surface mt-4 flex items-center justify-between gap-3 p-4" data-testid="home-week">
           <span className="flex items-center gap-3">
             <PixelIcon name="trophy" size={32} />
@@ -263,9 +269,10 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         </Link>
       )}
 
-      <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} />
+      {/* In the first week the list above is the one to-do: Today keeps only what isn't on it (a gift foal, a free pack, a foaling). */}
+      <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} hide={firstWeek ? FIRST_WEEK_COVERS : undefined} title={firstWeek ? "Also today" : undefined} />
 
-      <DailyGoalsCard goals={state.goals ?? []} />
+      {!firstWeek && <DailyGoalsCard goals={state.goals ?? []} />}
 
       <YourRaces state={state} now={now} skip={heroRun} />
 
@@ -273,7 +280,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
       <TodaysPicks />
 
-      <HomeSocial />
+      {/* Rivals come from Live races: they wait for a new stable's first Live entry, like Road to Saturday. */}
+      {liveEntered && <HomeSocial />}
 
       <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
         <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">

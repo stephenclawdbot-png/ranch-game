@@ -16,6 +16,7 @@ import {
   contractsOfStable,
   dismissWelcomeBack,
   finishMentor,
+  firstWeekView,
   isCoachMarkId,
   isFeatureUnlocked,
   isLiveRace,
@@ -43,13 +44,17 @@ export async function onboardingView(db: Db, session: Session, now: Date): Promi
     const row = await onboardingRow(db, session.accountId);
     const { unlocks } = await syncUnlocks(db, session.accountId, now);
     const guided = !!row?.guided;
+    const steps = guided ? await stableStepsView(db, session.accountId, now) : null;
+    const seen = (row?.coachSeen as string[] | null) ?? [];
     return {
       guided,
       mentorDone: !guided || !!row?.mentorDoneAt,
       plainLanguage: !!row?.plainLanguage,
-      coachSeen: guided ? ((row?.coachSeen as string[] | null) ?? []) : ["*"],
+      // Existing stables skip the coach marks ("*"), but keep what they dismissed themselves (the login-code card).
+      coachSeen: guided ? seen : ["*", ...seen],
       unlocks,
-      steps: guided ? await stableStepsView(db, session.accountId, now) : null,
+      steps,
+      firstWeek: guided ? await firstWeekView(db, session.accountId, now, steps) : null,
       welcomeBack: visit ? await welcomeBackView(db, session, visit, now) : null,
       bloodline: guided ? await bloodlineNudgeFor(db, session.accountId, now) : null,
     };
@@ -113,7 +118,8 @@ export async function onboardingAction(db: Db, session: Session, body: Onboardin
     case "coach":
       if (!isCoachMarkId(body.id)) throw new DomainError("INVALID_INPUT", "unknown coach mark");
       await markCoachSeen(db, { accountId: session.accountId, id: body.id, now });
-      return { ok: true };
+      // A career story read ticks the first-week list: the client fetches the player again.
+      return body.id === "career_story" ? { ok: true, step: true } : { ok: true };
     case "why":
       return { ok: true, step: await whyRead(db, session, body.raceId, now) };
     case "welcome_back":

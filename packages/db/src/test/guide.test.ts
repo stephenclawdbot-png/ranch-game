@@ -8,7 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
 import { accounts, achievements, breedingEvents, inboxItems, stables } from "../schema";
-import { retireHorse } from "../services/horses";
+import { renameHorse, retireHorse } from "../services/horses";
 import { createAccount } from "../services/accounts";
 import { runCupEntry } from "../services/dailyCup";
 import {
@@ -16,6 +16,7 @@ import {
   completeStableStep,
   dismissWelcomeBack,
   finishMentor,
+  firstWeekView,
   isFeatureUnlocked,
   markCoachSeen,
   onboardingRow,
@@ -131,6 +132,53 @@ describe("Stable steps", () => {
     const after = (await stableStepsView(h.db, p.accountId, T0))!;
     expect(after.steps.find((s) => s.key === "quick_race")!.done).toBe(true);
     expect(await getBalance(h.db, p.accountId)).toBe(credits("quick_race"));
+  });
+});
+
+describe("the first-week list on Home", () => {
+  const item = (v: Awaited<ReturnType<typeof firstWeekView>>, key: string) => v!.items.find((i) => i.key === key);
+
+  it("ticks the unpaid jobs from the records and pays nothing for them", async () => {
+    const p = await player();
+    const horse = await makeHorse(h.db, p.stableId);
+    const spare = await makeHorse(h.db, p.stableId);
+    let v = await firstWeekView(h.db, p.accountId, T0);
+    expect(v!.visible).toBe(true);
+    expect(v!.next[0]).toBe("first_race");
+    expect(item(v, "rename")!.done).toBe(false);
+    expect(v!.endsAtMs).toBe((gc.dayIndex(T0.getTime()) + gc.FIRST_WEEK_DAYS) * gc.MS_PER_DAY);
+
+    // A race with a result: the first race.
+    const story = await createRace(h.db, { kind: "quick", name: "Story", raceClass: "maiden", conditions: { distanceM: 1200, surface: "turf" }, postTime: at(10 * MIN), entriesCloseAt: at(9 * MIN), targetRunners: 2 });
+    await enterRace(h.db, { accountId: p.accountId, raceId: story.id, horseId: horse.id, tactic: "front", now: T0 });
+    expect(item(await firstWeekView(h.db, p.accountId, T0), "first_race")!.done).toBe(false);
+    await h.db.execute(sql`update race_entries set finish_position = 2 where race_id = ${story.id} and horse_id = ${horse.id}`);
+    // A rename (before the first start), a Feature Qualifier entry and a career story read.
+    await renameHorse(h.db, { accountId: p.accountId, horseId: spare.id, name: "Kestrel Spark" });
+    const q = await createRace(h.db, { kind: "scheduled", name: "Q", raceClass: "listed", conditions: { calendar: { kind: "feature_qualifier" } }, postTime: at(60 * MIN), entriesCloseAt: at(50 * MIN) });
+    await enterRace(h.db, { accountId: p.accountId, raceId: q.id, horseId: spare.id, tactic: "front", now: T0 });
+    await markCoachSeen(h.db, { accountId: p.accountId, id: "career_story", now: T0 });
+
+    v = await firstWeekView(h.db, p.accountId, T0);
+    for (const k of ["first_race", "rename", "qualifier", "career_story"]) expect(item(v, k)!.done).toBe(true);
+    // The Live entry is the paid step it always was; the extras paid nothing on top.
+    expect(item(v, "enter_live")!.done).toBe(true);
+    expect(await getBalance(h.db, p.accountId)).toBe(credits("enter_live") + gc.DAILY_GOAL_CREDITS);
+    expect(await count(h.db, "ledger_transactions", `idempotency_key like 'stable-step:${p.accountId}:%'`)).toBe(1);
+  });
+
+  it("offers renaming only while a horse hasn't started, and hides after the first week", async () => {
+    const p = await player();
+    await makeHorse(h.db, p.stableId, { starts: 3 });
+    const v = await firstWeekView(h.db, p.accountId, T0);
+    expect(item(v, "rename")).toBeUndefined();
+    expect((await firstWeekView(h.db, p.accountId, at((gc.FIRST_WEEK_DAYS - 1) * DAY)))!.visible).toBe(true);
+    expect((await firstWeekView(h.db, p.accountId, at(gc.FIRST_WEEK_DAYS * DAY)))!.visible).toBe(false);
+  });
+
+  it("is null for existing (unguided) stables", async () => {
+    const p = await player({ guided: false });
+    expect(await firstWeekView(h.db, p.accountId, T0)).toBeNull();
   });
 });
 

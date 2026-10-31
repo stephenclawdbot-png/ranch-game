@@ -7,6 +7,7 @@ import type { RaceReplay } from "@thoroughbred/shared";
 import type { InjuryCard, RaceCard } from "@/lib/types";
 import * as gc from "@thoroughbred/game-core";
 import { analyseRace } from "@/lib/raceAnalysis";
+import { energyTrace } from "@/lib/energyTrace";
 import { tryNext } from "@/lib/tryNext";
 import { raceStory } from "@/lib/raceStory";
 import { readyHorses, usePlayerState } from "@/lib/player";
@@ -17,6 +18,7 @@ import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { ActionBar } from "../ui/ActionBar";
 import { FullResults } from "./FullResults";
+import { PhotoFinishCard } from "./PhotoFinishCard";
 import { ResultBoard } from "./ResultBoard";
 import { RewardCounter } from "./RewardCounter";
 import { Verdict } from "./Verdict";
@@ -94,6 +96,7 @@ export function ResultsSequence({
   const winner = card.field.find((e) => e.horse.id === replay.result.finishOrder[0]?.horseId);
   const subject = mine ?? winner;
   const analysis = useMemo(() => (subject ? analyseRace(replay, subject.horse.id, subject.horse, subject.tactic) : null), [replay, subject]);
+  const energy = useMemo(() => (subject ? energyTrace(replay, subject.horse.id) : null), [replay, subject]);
   // "Try next": only for your own runner, from what you could see (racecard, fit, your horse's condition)
   const tips = useMemo(
     () =>
@@ -164,10 +167,19 @@ export function ResultsSequence({
           </button>
         </div>
       )}
-      {/* Your own runner: your result and the verdict come first, the full board after them. */}
-      {!mine && <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />}
+      {/*
+        Your own runner (first-hour playtest, lighter result page): your result, then the verdict
+        (why, the one change, Try again) above everything else; the photo card, the board and the
+        race in numbers follow. Another stable's race: the photo card and the board lead.
+      */}
+      {!mine && (
+        <>
+          <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={null} />
+          <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
+        </>
+      )}
       {mine && settlement && at("reward") && (
-        <div className="fade-up grid gap-1">
+        <div className="fade-up">
           <RewardCounter
             horseName={mine.horse.name}
             position={settlement.position}
@@ -175,27 +187,6 @@ export function ResultsSequence({
             prize={settlement.prize}
             fresh={settlement.fresh}
           />
-          <p className="caption px-1" data-testid="settlement-detail">
-            {card.kind === "story"
-              ? settlement.firstWin
-                ? `Story reward: first win in this race, +${settlement.storyReward}.`
-                : `Story reward +${settlement.storyReward ?? 0} for running (the first win in each Story race pays much more).`
-              : "Purse paid by the Club, settled on the server."}
-            {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
-              ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
-              : ""}
-            {/* The why behind the mark (playtest fix 14), from the rule's own expected scores. */}
-            {settlement.ratingWhy && (
-              <>
-                {" "}
-                {settlement.ratingWhy}{" "}
-                <Link href="/wiki/ratings-and-form" className="underline decoration-dotted underline-offset-2">
-                  How the mark is set
-                </Link>
-                .
-              </>
-            )}
-          </p>
         </div>
       )}
       {mine && story && at("why") && (
@@ -205,16 +196,40 @@ export function ResultsSequence({
           </WhyRead>
         </div>
       )}
+      {mine && settlement && at("reward") && (
+        <p className="caption px-1" data-testid="settlement-detail">
+          {card.kind === "story"
+            ? settlement.firstWin
+              ? `Story reward: first win in this race, +${settlement.storyReward}.`
+              : `Story reward +${settlement.storyReward ?? 0} for running (the first win in each Story race pays much more).`
+            : "Purse paid by the Club, settled on the server."}
+          {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
+            ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
+            : ""}
+          {/* The why behind the mark (playtest fix 14), from the rule's own expected scores. */}
+          {settlement.ratingWhy && (
+            <>
+              {" "}
+              {settlement.ratingWhy}{" "}
+              <Link href="/wiki/ratings-and-form" className="underline decoration-dotted underline-offset-2">
+                How the mark is set
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      )}
       {mine && (
-        <div className="relative">
+        <div className="relative grid gap-4">
           {won && !calm && staged && <Confetti />}
+          <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={settlement} />
           <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
         </div>
       )}
       {analysis && subject && at("why") && (
         <div className="fade-up">
           <WhyRead raceId={card.id} enabled={Boolean(mine)}>
-            <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} lead={mine ? null : (story?.reason ?? null)} />
+            <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} lead={mine ? null : (story?.reason ?? null)} energy={energy} />
           </WhyRead>
         </div>
       )}

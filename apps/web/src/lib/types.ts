@@ -371,6 +371,8 @@ export interface OnboardingView {
   coachSeen: string[];
   unlocks: Record<UnlockFeature, boolean>;
   steps: StableStepsView | null;
+  /** The first-week list on Home (the Stable steps and a few unpaid jobs, ticked from the records); null for existing stables. */
+  firstWeek?: FirstWeekView | null;
   welcomeBack: WelcomeBackView | null;
   /** Wilf's day-3 suggestion to start a bloodline: the mare (to retire, or already retired), or null. */
   bloodline?: { horseId: string; name: string; retired: boolean } | null;
@@ -386,6 +388,18 @@ export interface StableStepsView {
   totalCredits: number;
   earned: number;
   completedAtMs: number | null;
+}
+
+/** The first-week list (packages/db firstWeekView): one checklist, hidden once done or after the first week. */
+export interface FirstWeekView {
+  items: { key: string; credits: number; done: boolean }[];
+  /** The next jobs, in order (at most three). */
+  next: string[];
+  done: number;
+  total: number;
+  visible: boolean;
+  lastDay: number;
+  endsAtMs: number;
 }
 
 /** Home after a day or more away. Never says how an unwatched race went. */
