@@ -15,7 +15,7 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
-import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
@@ -730,6 +730,17 @@ export async function verifyRace(db: Db, id: string, now: Date, claimed: { commi
   const resultHashOk =
     verifyReplay(input, served) && fresh.result.resultHash === served.result.resultHash && (claimed.resultHash ? claimed.resultHash === fresh.result.resultHash : true);
   return { commitmentOk, resultHashOk, seed: input.seed, seedCommitment: commitment, resultHash: fresh.result.resultHash, engineVersion: fresh.engineVersion };
+}
+
+/**
+ * A race's engine input exactly as it locked (field, course, model, revealed seed) and its
+ * official replay: what verifyRace re-simulates and what a "What if?" re-run (whatIf.ts) changes
+ * one runner of. SERVER-ONLY: callers check the race has settled before using either.
+ */
+export async function lockedRaceInput(db: Db, race: PublicRace, now: Date): Promise<{ input: RaceInput; field: LockedField; replay: RaceReplay }> {
+  const replay = await replayFor(db, race, now);
+  const sim = await getRaceForSimulation(db, race.id, now, raceHooks);
+  return { input: inputFrom(race, sim.field, sim.race.seed), field: sim.field, replay };
 }
 
 // ---------------------------------------------------------------------------
