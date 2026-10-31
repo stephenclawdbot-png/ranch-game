@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses with work riders cantering up a grass gallop on the chalk downs in the early morning, a white rail along the gallop, rolling hills, morning mist, low golden sun, a trainer watching from a landrover",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9701,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "07a888d0-6e58-4dd2-91d9-f8b498e15879",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "07a888d0-6e58-4dd2-91d9-f8b498e15879",
+  "status": "completed",
+  "created_at": "2026-10-31T12:52:35.438624+00:00",
+  "last_response": {
+   "seed": 9701,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<166856 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "8090abd9-83bd-49a1-bffa-a4d5aad8ddb6",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:52:41.798125+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/raw/sections/gallops-morning-9701-0.png"
+ ]
+}

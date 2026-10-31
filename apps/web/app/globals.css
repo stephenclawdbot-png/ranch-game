@@ -2053,6 +2053,27 @@ select.field option {
   height: 50%;
   background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.55) 70%, rgba(8, 21, 14, 0.75) 100%);
 }
+/* Still scenes are painted in full daylight: a taller, deeper shade, and the eyebrow and meta get
+   an ink outline on top of the scrim shadow, keep the text readable on busy art. */
+.scene-band.still::after {
+  height: 100%;
+  background: linear-gradient(180deg, rgba(8, 21, 14, 0.15) 0%, rgba(8, 21, 14, 0.62) 45%, rgba(8, 21, 14, 0.92) 100%);
+}
+/* Desktop: the left-hand shade (::before) already carries the title, so the art keeps its light. */
+@media (min-width: 768px) {
+  .scene-band.still::after {
+    height: 60%;
+    background: linear-gradient(180deg, rgba(8, 21, 14, 0) 0%, rgba(8, 21, 14, 0.6) 60%, rgba(8, 21, 14, 0.88) 100%);
+  }
+}
+.scene-band.still .overlay p {
+  text-shadow:
+    1px 0 0 #050d08,
+    -1px 0 0 #050d08,
+    0 1px 0 #050d08,
+    0 -1px 0 #050d08,
+    0 0 12px rgba(0, 0, 0, 0.8);
+}
 /* Text on art always gets a scrim-strength shadow (REDESIGN §2b: text never sits bare on art). */
 .scene-band .overlay .eyebrow,
 .scene-band .overlay .t-meta {
@@ -4081,14 +4102,22 @@ a.ped-node:focus-visible {
     height: clamp(360px, 38vw, 540px);
   }
 }
+/* The 688x288 room at an integer scale (2x, 3x on wide screens), centred, never stretched. */
 .troom-img {
+  --k: 2;
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 40%;
+  left: 50%;
+  top: 50%;
+  width: calc(688px * var(--k));
+  height: calc(288px * var(--k));
+  max-width: none;
+  transform: translate(-50%, -40%);
   image-rendering: pixelated;
+}
+@media (min-width: 1380px) {
+  .troom-img {
+    --k: 3;
+  }
 }
 .troom-stage::after {
   content: "";
@@ -4463,13 +4492,16 @@ a.ped-node:focus-visible {
   align-items: end;
   border: 2px solid var(--color-line-strong);
 }
+/* Pixel art at its own size, zoomed by whole numbers only (2x here), centred on its subject. */
 .wiki-hero > img {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 60%;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  max-width: none;
+  zoom: 2;
+  transform: translate(-50%, -55%);
 }
 .wiki-hero-text {
   position: relative;
@@ -4495,9 +4527,10 @@ a.ped-node:focus-visible {
   padding: 0 !important;
 }
 .wiki-section-card > img {
+  display: block;
   width: 100%;
   height: 112px;
-  object-fit: cover;
+  object-fit: none;
   object-position: 50% 55%;
   border-bottom: 2px solid var(--color-line);
 }
@@ -4565,10 +4598,27 @@ a.ped-node:focus-visible {
   gap: var(--s2);
   margin: 0;
 }
-.wiki-figure img {
-  width: 100%;
+.wiki-figure-frame {
+  position: relative;
+  overflow: hidden;
   border: 2px solid var(--color-line-strong);
   background: var(--color-inset);
+}
+/* 1x on phones, 2x from tablets up (whole numbers only), centred on the figure's focus. */
+.wiki-figure-frame img {
+  position: absolute;
+  left: 50%;
+  top: var(--fy);
+  width: auto;
+  height: auto;
+  max-width: none;
+  transform: translate(-50%, calc(var(--fy) * -1));
+  image-rendering: pixelated;
+}
+@media (min-width: 768px) {
+  .wiki-figure-frame:not(.is-contain) img {
+    zoom: 2;
+  }
 }
 .wiki-callout {
   display: grid;

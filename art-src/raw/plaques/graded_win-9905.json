@@ -1,0 +1,242 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a single large five-pointed star",
+  "image_size": {
+   "width": 48,
+   "height": 48
+  },
+  "no_background": true,
+  "seed": 9905,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<1412 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 45,
+    "height": 34
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": false,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "7b7cb25a-343f-4c37-ad3d-393e6118776f",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "7b7cb25a-343f-4c37-ad3d-393e6118776f",
+  "status": "completed",
+  "created_at": "2026-10-31T13:02:59.047200+00:00",
+  "last_response": {
+   "seed": 9905,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1636 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1796 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1940 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2144 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2172 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1948 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1856 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1948 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2524 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2092 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1720 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1904 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1996 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2392 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2384 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2016 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1652 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1676 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2192 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2548 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2048 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2268 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2532 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2324 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2048 chars>",
+     "height": 48
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "3238f7fe-0af4-40f3-8449-4e2aaf01f792",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:03:05.185079+00:00",
+   "original_image_n_colors": 104,
+   "quantized_image_n_colors": 50
+  }
+ },
+ "files": [
+  "art-src/raw/plaques/graded_win-9905-0.png",
+  "art-src/raw/plaques/graded_win-9905-1.png",
+  "art-src/raw/plaques/graded_win-9905-2.png",
+  "art-src/raw/plaques/graded_win-9905-3.png",
+  "art-src/raw/plaques/graded_win-9905-4.png",
+  "art-src/raw/plaques/graded_win-9905-5.png",
+  "art-src/raw/plaques/graded_win-9905-6.png",
+  "art-src/raw/plaques/graded_win-9905-7.png",
+  "art-src/raw/plaques/graded_win-9905-8.png",
+  "art-src/raw/plaques/graded_win-9905-9.png",
+  "art-src/raw/plaques/graded_win-9905-10.png",
+  "art-src/raw/plaques/graded_win-9905-11.png",
+  "art-src/raw/plaques/graded_win-9905-12.png",
+  "art-src/raw/plaques/graded_win-9905-13.png",
+  "art-src/raw/plaques/graded_win-9905-14.png",
+  "art-src/raw/plaques/graded_win-9905-15.png",
+  "art-src/raw/plaques/graded_win-9905-16.png",
+  "art-src/raw/plaques/graded_win-9905-17.png",
+  "art-src/raw/plaques/graded_win-9905-18.png",
+  "art-src/raw/plaques/graded_win-9905-19.png",
+  "art-src/raw/plaques/graded_win-9905-20.png",
+  "art-src/raw/plaques/graded_win-9905-21.png",
+  "art-src/raw/plaques/graded_win-9905-22.png",
+  "art-src/raw/plaques/graded_win-9905-23.png",
+  "art-src/raw/plaques/graded_win-9905-24.png"
+ ]
+}

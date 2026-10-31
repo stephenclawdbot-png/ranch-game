@@ -1,0 +1,97 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, Marcus Bellamy, a charming wealthy racehorse trainer man in his fifties, tanned, silver swept-back hair, perfect white teeth, confident smile, cream linen suit with a red silk tie and red pocket square",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9306,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e6294ae8-c4bb-443a-b130-d3a3f20dc0c9",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e6294ae8-c4bb-443a-b130-d3a3f20dc0c9",
+  "status": "completed",
+  "created_at": "2026-10-31T12:43:50.872862+00:00",
+  "last_response": {
+   "seed": 9306,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13596 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14072 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13768 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<14508 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "4365138d-b49b-4fca-9665-0e4d3f0fe904",
+   "queue_position": 0,
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:43:57.019409+00:00",
+   "estimated_wait_seconds": 0,
+   "original_image_n_colors": 118,
+   "quantized_image_n_colors": 61
+  }
+ },
+ "files": [
+  "art-src/raw/trainers/house-bellmont-9306-0.png",
+  "art-src/raw/trainers/house-bellmont-9306-1.png",
+  "art-src/raw/trainers/house-bellmont-9306-2.png",
+  "art-src/raw/trainers/house-bellmont-9306-3.png"
+ ]
+}

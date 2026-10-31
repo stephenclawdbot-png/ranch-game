@@ -1,0 +1,242 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a grooming brush and a small heart",
+  "image_size": {
+   "width": 48,
+   "height": 48
+  },
+  "no_background": true,
+  "seed": 9916,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<1412 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 45,
+    "height": 34
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": false,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d3f2a9e2-e54a-4ada-8708-1cb4b82884d2",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "d3f2a9e2-e54a-4ada-8708-1cb4b82884d2",
+  "status": "completed",
+  "created_at": "2026-10-31T13:11:04.234694+00:00",
+  "last_response": {
+   "seed": 9916,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2356 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2436 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2520 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2352 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2544 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2732 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2524 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2272 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2436 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2672 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2696 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2380 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2508 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2780 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2108 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2628 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2508 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2548 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2292 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2324 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1860 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2436 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2440 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2108 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2120 chars>",
+     "height": 48
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "dbcbf083-bcb1-49fe-bbe8-d5a9abaea892",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:11:10.368162+00:00",
+   "original_image_n_colors": 91,
+   "quantized_image_n_colors": 43
+  }
+ },
+ "files": [
+  "art-src/raw/plaques/carer-9916-0.png",
+  "art-src/raw/plaques/carer-9916-1.png",
+  "art-src/raw/plaques/carer-9916-2.png",
+  "art-src/raw/plaques/carer-9916-3.png",
+  "art-src/raw/plaques/carer-9916-4.png",
+  "art-src/raw/plaques/carer-9916-5.png",
+  "art-src/raw/plaques/carer-9916-6.png",
+  "art-src/raw/plaques/carer-9916-7.png",
+  "art-src/raw/plaques/carer-9916-8.png",
+  "art-src/raw/plaques/carer-9916-9.png",
+  "art-src/raw/plaques/carer-9916-10.png",
+  "art-src/raw/plaques/carer-9916-11.png",
+  "art-src/raw/plaques/carer-9916-12.png",
+  "art-src/raw/plaques/carer-9916-13.png",
+  "art-src/raw/plaques/carer-9916-14.png",
+  "art-src/raw/plaques/carer-9916-15.png",
+  "art-src/raw/plaques/carer-9916-16.png",
+  "art-src/raw/plaques/carer-9916-17.png",
+  "art-src/raw/plaques/carer-9916-18.png",
+  "art-src/raw/plaques/carer-9916-19.png",
+  "art-src/raw/plaques/carer-9916-20.png",
+  "art-src/raw/plaques/carer-9916-21.png",
+  "art-src/raw/plaques/carer-9916-22.png",
+  "art-src/raw/plaques/carer-9916-23.png",
+  "art-src/raw/plaques/carer-9916-24.png"
+ ]
+}

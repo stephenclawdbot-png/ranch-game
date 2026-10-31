@@ -1,0 +1,162 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a newborn foal on wobbly legs beside its mother in golden straw",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9814
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "df4a1567-d45d-4b77-b3b6-72876fa3cdf1",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "df4a1567-d45d-4b77-b3b6-72876fa3cdf1",
+  "status": "completed",
+  "created_at": "2026-10-31T12:59:15.813084+00:00",
+  "last_response": {
+   "seed": 9814,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5236 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4576 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5052 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3252 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6848 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4752 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4304 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5344 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5016 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3776 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3480 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5596 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4976 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5300 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4428 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "e7a69a41-0526-462c-8470-5c530a80a018",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_64x64.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_64x64.png",
+   "generation_started_at": "2026-10-31T12:59:21.956622+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 70
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/foal-9814-0.png",
+  "art-src/raw/vignettes/foal-9814-1.png",
+  "art-src/raw/vignettes/foal-9814-2.png",
+  "art-src/raw/vignettes/foal-9814-3.png",
+  "art-src/raw/vignettes/foal-9814-4.png",
+  "art-src/raw/vignettes/foal-9814-5.png",
+  "art-src/raw/vignettes/foal-9814-6.png",
+  "art-src/raw/vignettes/foal-9814-7.png",
+  "art-src/raw/vignettes/foal-9814-8.png",
+  "art-src/raw/vignettes/foal-9814-9.png",
+  "art-src/raw/vignettes/foal-9814-10.png",
+  "art-src/raw/vignettes/foal-9814-11.png",
+  "art-src/raw/vignettes/foal-9814-12.png",
+  "art-src/raw/vignettes/foal-9814-13.png",
+  "art-src/raw/vignettes/foal-9814-14.png",
+  "art-src/raw/vignettes/foal-9814-15.png"
+ ]
+}

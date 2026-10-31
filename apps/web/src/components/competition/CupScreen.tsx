@@ -131,7 +131,7 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
   const nearOnly = near.filter((r) => !top.some((t) => t.entryId === r.entryId));
   return (
     <div>
-      <SceneBand scene="paddock" alt="The paddock at Kestrel Downs" eyebrow="Club · one run a day" title="Daily Cup" />
+      <SceneBand scene="winners-enclosure" alt="The winners' enclosure: a garlanded winner and the cup" eyebrow="Club · one run a day" title="Daily Cup" />
 
       <section className="frame-hero mt-4 grid gap-4 p-4 sm:p-5" aria-labelledby="today-h">
         <div className="flex items-start justify-between gap-3">

@@ -49,7 +49,7 @@ export function BringRival() {
 
   return (
     <div className="grid gap-5" data-testid="bring-rival">
-      <PageHeader scene="grandstand" back={{ href: "/", label: "Home" }} eyebrow="Rivals" title="Bring a rival" meta="Challenge a friend: when they found a stable through your link, you're rivals from day one." />
+      <PageHeader scene="paddock" back={{ href: "/", label: "Home" }} eyebrow="Rivals" title="Bring a rival" meta="Challenge a friend: when they found a stable through your link, you're rivals from day one." />
       <section className="frame-hero grid gap-3 p-4 sm:p-5" aria-labelledby="rival-link-h">
         <h2 id="rival-link-h" className="t-hero">
           Your rival link

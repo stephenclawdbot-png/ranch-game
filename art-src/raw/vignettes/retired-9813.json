@@ -1,0 +1,162 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an old grey horse grazing peacefully under a big oak tree in a sunset meadow",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9813
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ac7b0627-9a74-476b-90b1-c75997086ea1",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "ac7b0627-9a74-476b-90b1-c75997086ea1",
+  "status": "completed",
+  "created_at": "2026-10-31T12:59:15.574671+00:00",
+  "last_response": {
+   "seed": 9813,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5676 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5752 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6268 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6112 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6112 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6236 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5856 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6056 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5756 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5976 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5652 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6016 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5384 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5444 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5784 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5820 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "945f58ba-f49e-459a-aa01-0f658c0747a2",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_64x64.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_64x64.png",
+   "generation_started_at": "2026-10-31T12:59:21.711842+00:00",
+   "original_image_n_colors": 125,
+   "quantized_image_n_colors": 77
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/retired-9813-0.png",
+  "art-src/raw/vignettes/retired-9813-1.png",
+  "art-src/raw/vignettes/retired-9813-2.png",
+  "art-src/raw/vignettes/retired-9813-3.png",
+  "art-src/raw/vignettes/retired-9813-4.png",
+  "art-src/raw/vignettes/retired-9813-5.png",
+  "art-src/raw/vignettes/retired-9813-6.png",
+  "art-src/raw/vignettes/retired-9813-7.png",
+  "art-src/raw/vignettes/retired-9813-8.png",
+  "art-src/raw/vignettes/retired-9813-9.png",
+  "art-src/raw/vignettes/retired-9813-10.png",
+  "art-src/raw/vignettes/retired-9813-11.png",
+  "art-src/raw/vignettes/retired-9813-12.png",
+  "art-src/raw/vignettes/retired-9813-13.png",
+  "art-src/raw/vignettes/retired-9813-14.png",
+  "art-src/raw/vignettes/retired-9813-15.png"
+ ]
+}

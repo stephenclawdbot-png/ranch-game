@@ -148,7 +148,7 @@ export function SiteNav() {
           aria-label={`${state.stableName}: profile and settings`}
           aria-current={pathname.startsWith("/me") ? "page" : undefined}
         >
-          <StableBadge silks={state.silks} photoUrl={state.photoUrl} cap={false} className="h-6 w-6" />
+          <StableBadge silks={state.silks} photoUrl={state.photoUrl} cap={false} className="h-[26px] w-8" />
         </Link>
       </div>
     );

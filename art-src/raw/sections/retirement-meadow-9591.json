@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a peaceful retirement farm at sunset: old retired racehorses grazing in a wildflower meadow, a weathered wooden barn, a great old oak tree, rolling hills, long golden shadows, a calm and gentle mood",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9591,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "2a4c41a7-35d1-43a6-90b9-1b38ee52dccc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "2a4c41a7-35d1-43a6-90b9-1b38ee52dccc",
+  "status": "completed",
+  "created_at": "2026-10-31T12:52:14.607362+00:00",
+  "last_response": {
+   "seed": 9591,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<231112 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "999e34d9-3477-46dc-8587-88ece72ce6ff",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:52:20.936057+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 52
+  }
+ },
+ "files": [
+  "art-src/raw/sections/retirement-meadow-9591-0.png"
+ ]
+}

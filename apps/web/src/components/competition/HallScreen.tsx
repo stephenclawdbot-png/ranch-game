@@ -44,8 +44,8 @@ export function HallScreen({ view }: { view: HallView }) {
   return (
     <div>
       <SceneBand
-        scene="grandstand"
-        alt="The grandstand at Kestrel Downs"
+        scene="hall-of-fame"
+        alt="The Hall of Fame: champions' portraits and the marble horse"
         eyebrow="Club · permanent honours"
         title="Hall of Fame"
         aside={

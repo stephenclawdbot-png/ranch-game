@@ -26,7 +26,7 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
   const f = view.feature;
   return (
     <div className="grid gap-5" data-testid="road-to-saturday">
-      <SceneBand scene="grandstand" alt="The grandstand on Feature day" eyebrow="This week" title="Road to Saturday" testId="week-band" />
+      <SceneBand scene="track-dusk" alt="Runners cantering to the post at dusk" eyebrow="This week" title="Road to Saturday" testId="week-band" />
 
       <p className="surface p-4 text-lg font-bold text-cream" data-testid="week-headline">
         {view.headline}

@@ -1,0 +1,242 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: an old iron key",
+  "image_size": {
+   "width": 48,
+   "height": 48
+  },
+  "no_background": true,
+  "seed": 9917,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<1412 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 45,
+    "height": 34
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": false,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a44fc5e4-55f6-4e55-96d9-1a10c6fcf1bc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "a44fc5e4-55f6-4e55-96d9-1a10c6fcf1bc",
+  "status": "completed",
+  "created_at": "2026-10-31T13:11:25.700180+00:00",
+  "last_response": {
+   "seed": 9917,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1744 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1984 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2304 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2116 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1884 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2112 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2280 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1848 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2164 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1996 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1692 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2392 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1496 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1372 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1956 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1980 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1940 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1768 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1808 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2092 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1980 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1452 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1908 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1844 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1444 chars>",
+     "height": 48
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "e9bdbf56-bb60-421b-829d-727d1137139f",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:11:31.846032+00:00",
+   "original_image_n_colors": 91,
+   "quantized_image_n_colors": 43
+  }
+ },
+ "files": [
+  "art-src/raw/plaques/stable_steps-9917-0.png",
+  "art-src/raw/plaques/stable_steps-9917-1.png",
+  "art-src/raw/plaques/stable_steps-9917-2.png",
+  "art-src/raw/plaques/stable_steps-9917-3.png",
+  "art-src/raw/plaques/stable_steps-9917-4.png",
+  "art-src/raw/plaques/stable_steps-9917-5.png",
+  "art-src/raw/plaques/stable_steps-9917-6.png",
+  "art-src/raw/plaques/stable_steps-9917-7.png",
+  "art-src/raw/plaques/stable_steps-9917-8.png",
+  "art-src/raw/plaques/stable_steps-9917-9.png",
+  "art-src/raw/plaques/stable_steps-9917-10.png",
+  "art-src/raw/plaques/stable_steps-9917-11.png",
+  "art-src/raw/plaques/stable_steps-9917-12.png",
+  "art-src/raw/plaques/stable_steps-9917-13.png",
+  "art-src/raw/plaques/stable_steps-9917-14.png",
+  "art-src/raw/plaques/stable_steps-9917-15.png",
+  "art-src/raw/plaques/stable_steps-9917-16.png",
+  "art-src/raw/plaques/stable_steps-9917-17.png",
+  "art-src/raw/plaques/stable_steps-9917-18.png",
+  "art-src/raw/plaques/stable_steps-9917-19.png",
+  "art-src/raw/plaques/stable_steps-9917-20.png",
+  "art-src/raw/plaques/stable_steps-9917-21.png",
+  "art-src/raw/plaques/stable_steps-9917-22.png",
+  "art-src/raw/plaques/stable_steps-9917-23.png",
+  "art-src/raw/plaques/stable_steps-9917-24.png"
+ ]
+}

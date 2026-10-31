@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import type { MomentView } from "@/lib/types";
 import { api } from "@/lib/player";
+import { MOMENT_VIGNETTE } from "@/lib/cast";
 import { PixelIcon } from "../icons";
+import { Vignette } from "../ui/Vignette";
 import { MOMENT_ICON, TributeCard } from "./TributeCard";
 
 /** A tribute's body repeats the record the card shows: keep only its closing line. */
@@ -36,7 +38,7 @@ export function MomentHighlights({ moments, horseId }: { moments: MomentView[]; 
             data-kind={m.kind}
           >
             <div className="flex items-start gap-3">
-              <PixelIcon name={MOMENT_ICON[m.kind] ?? "star"} size={32} className="mt-0.5" />
+              {MOMENT_VIGNETTE[m.kind] ? <Vignette name={MOMENT_VIGNETTE[m.kind]!} /> : <PixelIcon name={MOMENT_ICON[m.kind] ?? "star"} size={32} className="mt-0.5" />}
               <div className="min-w-0 flex-1">
                 <p className="eyebrow">{memorial ? "In memoriam" : "New"}</p>
                 <h2 className="t-title text-lg">{m.title}</h2>

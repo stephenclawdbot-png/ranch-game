@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses with jockeys in colourful silks being loaded into green metal starting stalls on a racecourse, handlers leading them in, the white rail and green turf, a distant grandstand, golden hour",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9671,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "85530d94-0a74-43e3-98db-a78f6be0a7db",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "85530d94-0a74-43e3-98db-a78f6be0a7db",
+  "status": "completed",
+  "created_at": "2026-10-31T12:58:08.581861+00:00",
+  "last_response": {
+   "seed": 9671,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<238552 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "c2c3af6d-18f8-4a8b-966d-a20d55ce698a",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:58:13.74564+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 58
+  }
+ },
+ "files": [
+  "art-src/raw/sections/starting-stalls-9671-0.png"
+ ]
+}

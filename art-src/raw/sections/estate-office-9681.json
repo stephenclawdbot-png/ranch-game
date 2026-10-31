@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, an old estate office in an English racing stable: a big oak desk with an open account ledger, an inkwell and pen, a brass desk lamp, neat stacks of gold coins, framed horse paintings and rosettes on the wall, a window onto the stable yard at golden hour",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9681,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a0aee3e5-e377-4efb-ba97-afb6930b7e6e",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "a0aee3e5-e377-4efb-ba97-afb6930b7e6e",
+  "status": "completed",
+  "created_at": "2026-10-31T12:52:07.448155+00:00",
+  "last_response": {
+   "seed": 9681,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<180028 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "398786b9-228b-408e-9da3-4549956c2679",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T12:52:13.816075+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 53
+  }
+ },
+ "files": [
+  "art-src/raw/sections/estate-office-9681-0.png"
+ ]
+}

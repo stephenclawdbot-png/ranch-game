@@ -1,0 +1,173 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an old pedigree certificate with a hand-drawn family tree under a brass magnifying glass on a desk",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9870,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<5880 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 64,
+    "height": 64
+   }
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b602eaa3-ce9a-446a-b8ea-d996bfaab274",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "b602eaa3-ce9a-446a-b8ea-d996bfaab274",
+  "status": "completed",
+  "created_at": "2026-10-31T13:08:37.723537+00:00",
+  "last_response": {
+   "seed": 9870,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7596 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4628 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6956 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6588 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6300 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7400 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<7116 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6796 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5220 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6140 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6924 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6044 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6048 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6152 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6660 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6616 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "2ba265f6-2645-401e-8df6-d7ada0f8e183",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:08:43.859087+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 69
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/scan-9870-0.png",
+  "art-src/raw/vignettes/scan-9870-1.png",
+  "art-src/raw/vignettes/scan-9870-2.png",
+  "art-src/raw/vignettes/scan-9870-3.png",
+  "art-src/raw/vignettes/scan-9870-4.png",
+  "art-src/raw/vignettes/scan-9870-5.png",
+  "art-src/raw/vignettes/scan-9870-6.png",
+  "art-src/raw/vignettes/scan-9870-7.png",
+  "art-src/raw/vignettes/scan-9870-8.png",
+  "art-src/raw/vignettes/scan-9870-9.png",
+  "art-src/raw/vignettes/scan-9870-10.png",
+  "art-src/raw/vignettes/scan-9870-11.png",
+  "art-src/raw/vignettes/scan-9870-12.png",
+  "art-src/raw/vignettes/scan-9870-13.png",
+  "art-src/raw/vignettes/scan-9870-14.png",
+  "art-src/raw/vignettes/scan-9870-15.png"
+ ]
+}

@@ -91,8 +91,8 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
   return (
     <div className="grid gap-6">
       <SceneBand
-        scene="barn"
-        alt="The foaling barn"
+        scene="foaling-barn"
+        alt="A mare and her foal in the foaling barn"
         eyebrow={
           <span data-testid="nursery-stalls">
             {stalls.used} of {stalls.slots} stalls · {stalls.overflow ? "overflow slot in use" : `${stalls.overflowSlots} overflow slot free`}
@@ -131,7 +131,7 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
         </h2>
         {view.foals.length === 0 ? (
           <EmptyState
-            icon="star"
+            vignette="foal"
             testId="nursery-empty"
             title="No foals right now"
             text="Foals arrive from Paddock Packs and your own mares, and grow with one care session a day."

@@ -9,6 +9,7 @@ import { api, usePlayerState } from "@/lib/player";
 import type { RaceClass } from "@thoroughbred/shared";
 import { JoinNudge } from "../PlayerGate";
 import { Silks } from "../Silks";
+import { TrainerPortrait } from "./TrainerPortrait";
 import { GradeBadge } from "../StatBars";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
@@ -250,12 +251,13 @@ export function StoryScreen({ view, signedIn }: { view: StoryView; signedIn: boo
           {view.rivals.map((r) => (
             <li key={r.id} className="surface grid content-start gap-2 p-4" data-testid="rival">
               <div className="flex items-center gap-3">
-                <Silks silks={r.silks} className="h-[39px] w-12 shrink-0" />
+                <TrainerPortrait rivalId={r.id} name={r.trainer} />
                 <div className="min-w-0">
-                  <p className="t-title text-cream">{r.name}</p>
-                  <p className="t-meta">
-                    {r.trainer} · <span className="chip !px-1.5 !py-0 text-xs">{r.personality}</span>
+                  <p className="t-title flex items-center gap-2 text-cream">
+                    <Silks silks={r.silks} cap={false} className="h-[13px] w-4 shrink-0" title={`${r.name} silks`} /> {r.name}
                   </p>
+                  <p className="t-meta">{r.trainer}</p>
+                  <span className="chip mt-1 inline-block !px-1.5 !py-0 text-xs">{r.personality}</span>
                 </div>
               </div>
               <p className="t-meta line-clamp-3">{r.bio}</p>

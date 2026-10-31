@@ -153,7 +153,7 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
   const lastWeek = view.history[0];
   return (
     <div>
-      <SceneBand scene="paddock" alt="The paddock at Kestrel Downs" eyebrow={`Club · season ${view.season.number}`} title="League" />
+      <SceneBand scene="club-lawn" alt="Members on the clubhouse lawn beside the league board" eyebrow={`Club · season ${view.season.number}`} title="League" />
 
       <section className="frame-hero mt-4 grid gap-3 p-4 sm:p-5" aria-labelledby="my-league-h">
         <div className="flex flex-wrap items-start justify-between gap-3">

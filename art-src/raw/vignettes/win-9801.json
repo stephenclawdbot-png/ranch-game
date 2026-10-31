@@ -1,0 +1,162 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a racehorse and jockey in silks crossing the finish line past the white winning post, arms raised in joy",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9801
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "439113ce-e912-4173-a107-a0705d861c3c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "439113ce-e912-4173-a107-a0705d861c3c",
+  "status": "completed",
+  "created_at": "2026-10-31T12:57:56.249940+00:00",
+  "last_response": {
+   "seed": 9801,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4896 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5424 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4784 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4560 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3460 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3792 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4008 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4176 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4252 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4024 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5816 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4364 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "f176c0d2-a959-4e8a-9a1c-5575cc138408",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_64x64.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_64x64.png",
+   "generation_started_at": "2026-10-31T12:58:02.390875+00:00",
+   "original_image_n_colors": 127,
+   "quantized_image_n_colors": 72
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/win-9801-0.png",
+  "art-src/raw/vignettes/win-9801-1.png",
+  "art-src/raw/vignettes/win-9801-2.png",
+  "art-src/raw/vignettes/win-9801-3.png",
+  "art-src/raw/vignettes/win-9801-4.png",
+  "art-src/raw/vignettes/win-9801-5.png",
+  "art-src/raw/vignettes/win-9801-6.png",
+  "art-src/raw/vignettes/win-9801-7.png",
+  "art-src/raw/vignettes/win-9801-8.png",
+  "art-src/raw/vignettes/win-9801-9.png",
+  "art-src/raw/vignettes/win-9801-10.png",
+  "art-src/raw/vignettes/win-9801-11.png",
+  "art-src/raw/vignettes/win-9801-12.png",
+  "art-src/raw/vignettes/win-9801-13.png",
+  "art-src/raw/vignettes/win-9801-14.png",
+  "art-src/raw/vignettes/win-9801-15.png"
+ ]
+}

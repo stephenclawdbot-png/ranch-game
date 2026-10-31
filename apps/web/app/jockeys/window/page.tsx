@@ -22,7 +22,7 @@ export default async function TransferWindowPage() {
   const last = view.last;
   return (
     <div>
-      <PageHeader back={{ href: "/jockeys", label: "Jockeys" }} eyebrow="Jockeys" title="Transfer window" />
+      <PageHeader scene="weighing-room" back={{ href: "/jockeys", label: "Jockeys" }} eyebrow="Jockeys" title="Transfer window" />
       {/* A new stable reads the window but makes offers once contracts are open. */}
       <div className="mb-4">
         <FeatureGate feature="jockey_contracts" compact>
@@ -51,7 +51,7 @@ export default async function TransferWindowPage() {
                 ))}
               </ul>
             ) : (
-              <EmptyState icon="horseshoe" title="No free agents yet" text="Contracts ending, released jockeys and new apprentices appear here during the week." />
+              <EmptyState vignette="jockey-signed" title="No free agents yet" text="Contracts ending, released jockeys and new apprentices appear here during the week." />
             )}
           </Section>
           <HowItWorks className="mt-4">

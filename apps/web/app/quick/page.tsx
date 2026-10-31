@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickHub, type QuickTab } from "@/components/quick/QuickHub";
-import { PageHeader } from "@/components/ui/Page";
+import { SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { quickHub } from "@/server/quickRaces";
 import { getSession } from "@/server/session";
@@ -30,7 +30,7 @@ export default async function QuickRacesPage({ searchParams }: { searchParams: P
     <div className="grid gap-4">
       {/* A new daily challenge is published at 00:00 UTC: refresh then. */}
       <AutoRefresh atMs={view.daily.closesAtMs} serverNowMs={now.getTime()} />
-      <PageHeader scene="grandstand" eyebrow="Racing" title="Quick races" meta="Instant and unofficial: no rating, fatigue, injuries or credits." />
+      <SceneBand scene="gallops-morning" alt="Horses working up the gallops in the morning mist" eyebrow="Racing" title="Quick races" meta="Instant and unofficial: no rating, fatigue, injuries or credits." />
       <QuickHub v={view} tab={tab} horse={horse} vs={vs} />
     </div>
   );

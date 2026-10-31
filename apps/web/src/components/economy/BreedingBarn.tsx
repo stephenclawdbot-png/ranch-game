@@ -54,7 +54,7 @@ export function BreedingBarn() {
   const v = data;
   return (
     <div className="grid gap-5">
-      <SceneBand scene="barn" alt="The breeding barn" eyebrow={`Season ${v.season} · ${formatCredits(v.credits)} credits`} title="Breeding" />
+      <SceneBand scene="stud-book" alt="The stud book open on the desk" eyebrow={`Season ${v.season} · ${formatCredits(v.credits)} credits`} title="Breeding" />
       <HowItWorks className="-mt-2">
         <p>
           Each mare can be covered once a season, and every horse has {v.lifetime} breedings for life. Horses breed from {v.minStarts} starts, or once retired from racing.

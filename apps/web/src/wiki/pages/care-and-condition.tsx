@@ -45,7 +45,7 @@ export default function CareAndConditionPage() {
         Care is the one thing to do for every horse every day. It grows your youngsters, builds bond and speeds healing. Condition is how ready a horse is to race today: how fresh it is,
         how fit, and how it feels about its recent runs.
       </Lead>
-      <Figure src="/art/diorama/poster-barn.png" alt="Horses in their stalls in the barn" caption="Feed, groom and turnout, once a day." focus={0.55} />
+      <Figure src="/art/scenes/grooming-aisle.png" alt="A groom brushing a chestnut in the stable aisle" caption="Feed, groom and turnout, once a day." focus={0.6} />
 
       <H2 id="daily-care">Daily care</H2>
       <P>

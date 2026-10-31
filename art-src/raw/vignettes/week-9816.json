@@ -1,0 +1,162 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a page-a-day calendar with three small rosettes pinned beside it",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9816
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c93f07bd-774d-4715-839f-14cef59c32ed",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "c93f07bd-774d-4715-839f-14cef59c32ed",
+  "status": "completed",
+  "created_at": "2026-10-31T12:59:26.066956+00:00",
+  "last_response": {
+   "seed": 9816,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2476 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3672 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2628 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3736 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3356 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3508 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4364 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3304 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3636 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2868 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2932 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2900 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2792 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<2760 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3524 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3460 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "5ff5da52-179d-4ea1-a0e4-cb1342038153",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "general_no_background_64x64.png",
+   "style_selection": null,
+   "style_reference_path": "general_images/general_no_background_64x64.png",
+   "generation_started_at": "2026-10-31T12:59:32.203253+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 74
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/week-9816-0.png",
+  "art-src/raw/vignettes/week-9816-1.png",
+  "art-src/raw/vignettes/week-9816-2.png",
+  "art-src/raw/vignettes/week-9816-3.png",
+  "art-src/raw/vignettes/week-9816-4.png",
+  "art-src/raw/vignettes/week-9816-5.png",
+  "art-src/raw/vignettes/week-9816-6.png",
+  "art-src/raw/vignettes/week-9816-7.png",
+  "art-src/raw/vignettes/week-9816-8.png",
+  "art-src/raw/vignettes/week-9816-9.png",
+  "art-src/raw/vignettes/week-9816-10.png",
+  "art-src/raw/vignettes/week-9816-11.png",
+  "art-src/raw/vignettes/week-9816-12.png",
+  "art-src/raw/vignettes/week-9816-13.png",
+  "art-src/raw/vignettes/week-9816-14.png",
+  "art-src/raw/vignettes/week-9816-15.png"
+ ]
+}

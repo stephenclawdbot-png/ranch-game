@@ -13,7 +13,7 @@ export default function WikiHome() {
     <div className="grid gap-5" data-testid="wiki-home">
       <section className="wiki-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/art/diorama/poster-pasture.png" alt="" className="pixelated" aria-hidden draggable={false} />
+        <img src="/art/scenes/club-library.png" alt="" className="pixelated" aria-hidden draggable={false} />
         <div className="wiki-hero-text">
           <p className="label">The Post Time Wiki</p>
           <h1 className="t-hero">Everything about your stable</h1>

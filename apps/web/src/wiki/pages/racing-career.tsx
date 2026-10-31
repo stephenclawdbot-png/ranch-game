@@ -55,7 +55,7 @@ export default function RacingCareerPage() {
         A racehorse in Post Time has a career of <b>{gc.CAREER_MAX_STARTS} starts</b>. Horses age by racing, never by the calendar: a horse you leave in its stall for a month comes back exactly as
         you left it. The career clock counts the starts, and every horse moves from juvenile to prime to veteran on the way to retirement.
       </Lead>
-      <Figure src="/art/diorama/poster-paddock.png" alt="Racehorses in the paddock" caption="Every start moves the career clock on by one." focus={0.5} />
+      <Figure src="/art/scenes/starting-stalls.png" alt="Runners being loaded into the starting stalls" caption="Every start moves the career clock on by one." focus={0.65} />
 
       <H2 id="clock">The career clock</H2>
       <P>

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import type { MomentView } from "@/lib/types";
+import { MOMENT_VIGNETTE } from "@/lib/cast";
 import { PixelIcon } from "../icons";
+import { Vignette } from "../ui/Vignette";
 import { Section } from "../ui/Page";
 import { MOMENT_ICON } from "./TributeCard";
 
@@ -19,7 +21,7 @@ export function StableNews({ items }: { items: MomentView[] }) {
         {items.map((m) => (
           <li key={m.id}>
             <Link href={m.href} className="row-link items-start gap-3 px-4 py-3" data-testid="news-item" data-kind={m.kind} data-fresh={m.fresh && m.kind !== "week_recap" ? "1" : "0"}>
-              <PixelIcon name={MOMENT_ICON[m.kind] ?? "star"} size={32} className="mt-0.5" />
+              {MOMENT_VIGNETTE[m.kind] ? <Vignette name={MOMENT_VIGNETTE[m.kind]!} /> : <PixelIcon name={MOMENT_ICON[m.kind] ?? "star"} size={32} className="mt-0.5" />}
               <span className="min-w-0 flex-1">
                 <span className="t-title block">
                   {m.fresh && m.kind !== "week_recap" && m.kind !== "memorial" && <span className="tag tag-ready mr-2 align-middle">New</span>}

@@ -1,0 +1,242 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "a small polished brass achievement plaque mounted on a dark oak board, seen from the front, the emblem raised in relief on the brass, warm lamplight glint, high-res pixel art, selective dark outline, transparent background, no text, emblem: a classical column wrapped in laurel",
+  "image_size": {
+   "width": 48,
+   "height": 48
+  },
+  "no_background": true,
+  "seed": 9915,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<1412 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 45,
+    "height": 34
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": false,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1022dd0d-06a6-4203-8e25-4c8f6ddbd8b5",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "1022dd0d-06a6-4203-8e25-4c8f6ddbd8b5",
+  "status": "completed",
+  "created_at": "2026-10-31T13:10:10.927105+00:00",
+  "last_response": {
+   "seed": 9915,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1772 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1832 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2216 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2416 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2348 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1160 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1660 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2384 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2076 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2364 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2360 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2388 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2236 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2604 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2720 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<1528 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2220 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2216 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2088 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<3140 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2552 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2548 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2560 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2488 chars>",
+     "height": 48
+    },
+    {
+     "type": "base64",
+     "width": 48,
+     "base64": "<2756 chars>",
+     "height": 48
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "a54f10ed-f1d7-4d96-9598-02b08ca9e725",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T13:10:17.062378+00:00",
+   "original_image_n_colors": 91,
+   "quantized_image_n_colors": 42
+  }
+ },
+ "files": [
+  "art-src/raw/plaques/hall_of_fame-9915-0.png",
+  "art-src/raw/plaques/hall_of_fame-9915-1.png",
+  "art-src/raw/plaques/hall_of_fame-9915-2.png",
+  "art-src/raw/plaques/hall_of_fame-9915-3.png",
+  "art-src/raw/plaques/hall_of_fame-9915-4.png",
+  "art-src/raw/plaques/hall_of_fame-9915-5.png",
+  "art-src/raw/plaques/hall_of_fame-9915-6.png",
+  "art-src/raw/plaques/hall_of_fame-9915-7.png",
+  "art-src/raw/plaques/hall_of_fame-9915-8.png",
+  "art-src/raw/plaques/hall_of_fame-9915-9.png",
+  "art-src/raw/plaques/hall_of_fame-9915-10.png",
+  "art-src/raw/plaques/hall_of_fame-9915-11.png",
+  "art-src/raw/plaques/hall_of_fame-9915-12.png",
+  "art-src/raw/plaques/hall_of_fame-9915-13.png",
+  "art-src/raw/plaques/hall_of_fame-9915-14.png",
+  "art-src/raw/plaques/hall_of_fame-9915-15.png",
+  "art-src/raw/plaques/hall_of_fame-9915-16.png",
+  "art-src/raw/plaques/hall_of_fame-9915-17.png",
+  "art-src/raw/plaques/hall_of_fame-9915-18.png",
+  "art-src/raw/plaques/hall_of_fame-9915-19.png",
+  "art-src/raw/plaques/hall_of_fame-9915-20.png",
+  "art-src/raw/plaques/hall_of_fame-9915-21.png",
+  "art-src/raw/plaques/hall_of_fame-9915-22.png",
+  "art-src/raw/plaques/hall_of_fame-9915-23.png",
+  "art-src/raw/plaques/hall_of_fame-9915-24.png"
+ ]
+}

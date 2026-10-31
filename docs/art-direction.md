@@ -122,7 +122,11 @@ consistent pixel density**, not bigger chunky pixels.
 | `portraits/anim/horse-<coat>.png`, `anim/thumb/…`, `anim/index.json` | Idle loop (blink, ear flick, breath) per coat, ping-pong strip of 128 px frames, and its 64 px thumbs (`art-src/portrait_anims.py`) | PNG strip |
 | `portraits/roles.png`, `portraits/portrait-marks.png`, `portraits/anim/warp/horse-<coat>.png` | Genetic portrait data (`apps/web/scripts/portrait-roles.py`): role map + shading level + flags, the five face-marking masks, and per-frame warps from each idle-loop pixel to the still pixel it shows | PNG (data) |
 | `ui/*.png` | Panel 9-slice frames, buttons, icons (coin, trophy, horseshoe, stopwatch, flag, star, rosette), logo emblem | PNG |
-| `scenes/*.png` | Wide page backdrops: stable yard, paddock, grandstand/finish line, barn interior | PNG |
+| `scenes/*.png` | Wide page backdrops (688x288): stable yard, paddock, grandstand/finish line, barn interior, and one still scene per section that has no diorama of its own (`STILL_SCENES` in `components/ui/Page.tsx`) | PNG |
+| `portraits/jockeys/<id>.png`, `index.json` | Jockey cast (128 px busts), silks keyed to `race/palette.json` so each jockey wears their stable's colours; picked per jockey by `lib/cast.ts` | PNG |
+| `portraits/trainers/<rival id>.png`, `portraits/mentor-wilf.png` | Named NPCs: Story rival trainers and the mentor (128 px busts) | PNG |
+| `vignettes/<kind>.png` | 64 px framed vignettes, one per news / moment kind | PNG |
+| `trophies/plaques.png`, `plaques.json` | One plaque per achievement | PNG strip |
 
 ### Recolouring (one animation, every horse)
 
@@ -154,6 +158,15 @@ minus its median at that LEVEL), white patterns from masks in still space, and f
 (outline, bridle, painted eye) untouched. `HorsePortrait` swaps the result in after hydration
 in the same box, caches it per genes, and keeps the painted file if anything fails. Legacy
 appearances (no layered `colour`) keep the painting. `/dev/coats` has a cell per coat and gene.
+
+### One picture per thing
+
+Every person, place and kind of event has its own art. Don't stand one sprite or scene in for
+another (a rider cropped from a horse sprite as a jockey portrait, one banner on six sections, one
+icon for four kinds of news); generate a new picture instead. Same set, same style: generate cast
+members against an existing portrait as `style_image`, scenes against a diorama poster, and record
+every prompt in `art-src/assets.json`. Show pixel art at whole-number scales only (`object-fit:
+none`, `zoom: 2`, integer widths), never `object-fit: cover`.
 
 ## Budget
 
