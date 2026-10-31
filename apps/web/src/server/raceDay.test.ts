@@ -7,7 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { createAccount, createDb, createRace, getBalance, listRaceEntries, listStableHorses, lockField, stableOf, type CreateRaceInput, type DbHandle, type LockedField } from "@thoroughbred/db";
+import { createAccount, createDb, createJockeyTx, createRace, getBalance, listRaceEntries, listStableHorses, lockField, stableOf, type CreateRaceInput, type DbHandle, type LockedField } from "@thoroughbred/db";
 import { ENGINE_VERSION, LEGACY_ENGINE_VERSION, KIT_ENGINE_VERSION } from "@thoroughbred/racing-engine";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { enterLive, entryOptions, liveChunk, raceCard, raceHooks, scratchLive, servedReplay, settleIfDue, verifyRace } from "./game";
@@ -60,7 +60,20 @@ const FULL: gc.RaceDayChoice = { extras: ["soft_shoes", "physio", "vet_check"], 
 
 beforeAll(async () => {
   h = await createDb({ url: null, pglite: "memory" });
+  // A-grade Club freelancers: the old "top" tier books one of them (charged what the top jockey cost).
+  for (let i = 0; i < 6; i++) {
+    const j = await createJockeyTx(h.db, { seed: gc.seedFrom("web-race-day-a", i), stableId: null, now: T0 });
+    const skills = JSON.stringify({ gate: 850, pace: 850, finish: 850, handling: 850 });
+    await h.db.execute(`update jockeys set skills = '${skills}', potential = '${skills}', rides = 400, wins = 80 where id = '${j.id}'`);
+  }
 });
+
+/** A locked field as an earlier release stored it: no race model, no jockeys, only the old shoe kit. */
+async function asOldField(raceId: string) {
+  await h.db.execute(`update races set field = jsonb_set(field - 'model', '{runners}', (
+    select jsonb_agg(case when r->'kit' ? 'goingPenaltyPermille' then (r - 'jockey') || jsonb_build_object('kit', jsonb_build_object('goingPenaltyPermille', r->'kit'->'goingPenaltyPermille')) else r - 'kit' - 'jockey' end order by (r->>'gate')::int)
+    from jsonb_array_elements(field->'runners') r)) where id = '${raceId}'`);
+}
 afterAll(async () => {
   await h.close();
 });
@@ -72,11 +85,12 @@ describe("race-day extras on the entry sheet", () => {
     const sheet = await entryOptions(h.db, p, soft.id, T0);
     expect(sheet.raceDay.extras.map((x) => x.key)).toEqual(["soft_shoes", "physio", "vet_check"]);
     expect(sheet.raceDay.extras.every((x) => x.price === 320)).toBe(true);
-    expect(sheet.raceDay.jockeys.map((j) => [j.key, j.price])).toEqual([
-      ["apprentice", 0],
-      ["journeyman", 400],
-      ["top", 800],
-    ]);
+    // Named jockeys replaced the tiers: your apprentice (free, the default) and Club freelancers by grade.
+    expect(sheet.raceDay.jockeys).toEqual([]);
+    expect(sheet.raceDay.riders!.own).toHaveLength(1);
+    expect(sheet.raceDay.riders!.own[0]!.fee).toBe(0);
+    expect(sheet.raceDay.riders!.defaultId).toBe(sheet.raceDay.riders!.own[0]!.id);
+    expect(sheet.raceDay.riders!.freelancers.find((f) => f.grade === "A")!.fee).toBe(gc.freelanceFee("A", soft.purse));
     const good = await entryOptions(h.db, p, (await liveRace("good")).id, T0);
     expect(good.raceDay.extras.map((x) => x.key)).toEqual(["physio", "vet_check"]);
     const o = sheet.options.find((x) => x.risk.normal)!;
@@ -114,17 +128,21 @@ describe("race-day extras on a Live race", () => {
     await enterLive(h.db, q, race.id, qh, PLAN, T0);
 
     const open = await raceCard(h.db, race.id, T0, p.stable.id);
-    expect(open.field.find((e) => e.horse.id === ph)!.gear).toEqual(["Soft shoes", "Physio", "Vet-checked", "Top jockey"]);
+    expect(open.field.find((e) => e.horse.id === ph)!.gear).toEqual(["Soft shoes", "Physio", "Vet-checked"]);
     expect(open.field.find((e) => e.horse.id === qh)!.gear).toEqual([]);
+    // The booked jockeys show before the lock: an A freelancer, and the stable's apprentice with its claim.
+    expect(open.field.find((e) => e.horse.id === ph)!.jockey?.claimLb).toBe(0);
+    expect(open.field.find((e) => e.horse.id === qh)!.jockey?.cardName).toMatch(/\(7\)$/);
 
     const field: LockedField = (await lockField(h.db, race.id, race.entriesCloseAt, raceHooks))!;
-    expect(field.runners.find((r) => r.horseId === ph)!.kit).toEqual({ goingPenaltyPermille: 500, formAmpPermille: 800, keenPermille: 500 });
-    expect(field.runners.find((r) => r.horseId === qh)!.kit).toBeUndefined();
+    const A = gc.jockeyKit({ gate: 850, pace: 850, finish: 850, handling: 850 });
+    expect(field.runners.find((r) => r.horseId === ph)!.kit).toEqual({ goingPenaltyPermille: 500, ...A });
+    expect(field.runners.find((r) => r.horseId === qh)!.kit).toMatchObject({ battlePermille: expect.any(Number) });
     // Before the off the broadcast header names the engine the race will run on, and nothing else new.
     const pre = await liveChunk(h.db, race.id, 0, race.entriesCloseAt);
     expect(pre.header.engineVersion).toBe(ENGINE_VERSION);
     expect(pre.final).toBeNull();
-    expect(JSON.stringify(pre)).not.toMatch(/"(kit|raceDay|result|seed|finishOrder)"/);
+    expect(JSON.stringify(pre)).not.toMatch(/"(kit|raceDay|result|seed|finishOrder|jockey)"/);
 
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
@@ -133,11 +151,11 @@ describe("race-day extras on a Live race", () => {
     expect(v).toMatchObject({ commitmentOk: true, resultHashOk: true, engineVersion: ENGINE_VERSION });
     const card = await raceCard(h.db, race.id, end, p.stable.id);
     expect(card.engineVersion).toBe(ENGINE_VERSION);
-    expect(card.field.find((e) => e.horse.id === ph)!.gear).toContain("Top jockey");
+    expect(card.field.find((e) => e.horse.id === ph)!.jockey?.id).toBe(field.runners.find((r) => r.horseId === ph)!.jockey?.id);
     // A Live handicap: every runner carries its weight, sealed in the field and printed on the card.
     for (const r of field.runners) expect(r.weightLb).toBeGreaterThan(0);
     for (const e of card.field) expect(e.weightLb).toBe(field.runners.find((r) => r.horseId === e.horse.id)!.weightLb);
-    expect(Math.max(...card.field.map((e) => e.weightLb ?? 0))).toBe(gc.TOP_WEIGHT_LB);
+    expect(Math.max(...card.field.map((e) => (e.weightLb ?? 0) + (e.jockey?.claimLb ?? 0)))).toBe(gc.TOP_WEIGHT_LB);
     await settleIfDue(h.db, race.id, end);
   });
 
@@ -146,8 +164,8 @@ describe("race-day extras on a Live race", () => {
     const race = await liveRace("good");
     await enterLive(h.db, p, race.id, await freeHorse(p), PLAN, T0);
     await lockField(h.db, race.id, race.entriesCloseAt, raceHooks);
-    // What a field locked by an earlier release looks like: no race model, no weights.
-    await h.db.execute(`update races set field = field - 'model' where id = '${race.id}'`);
+    // What a field locked by an earlier release looks like: no race model, no jockeys.
+    await asOldField(race.id);
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
     expect(replay.engineVersion).toBe(LEGACY_ENGINE_VERSION);
@@ -158,7 +176,7 @@ describe("race-day extras on a Live race", () => {
     const kitted = await liveRace("soft");
     await enterLive(h.db, q, kitted.id, await freeHorse(q), PLAN, T0, FULL);
     await lockField(h.db, kitted.id, kitted.entriesCloseAt, raceHooks);
-    await h.db.execute(`update races set field = field - 'model' where id = '${kitted.id}'`);
+    await asOldField(kitted.id);
     const old = await servedReplay(h.db, kitted.id, end);
     expect(old.engineVersion).toBe(KIT_ENGINE_VERSION);
     expect(await verifyRace(h.db, kitted.id, end, { resultHash: old.result.resultHash })).toMatchObject({ resultHashOk: true, engineVersion: KIT_ENGINE_VERSION });

@@ -102,7 +102,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   const connections = useMemo(
     () =>
       Object.fromEntries(
-        card.field.map((e) => [e.horse.id, { stableName: e.stableName, stablePhotoUrl: e.stablePhotoUrl ?? null, jockey: e.gear.find((g) => /jockey|journeyman/i.test(g)) ?? null }]),
+        card.field.map((e) => [e.horse.id, { stableName: e.stableName, stablePhotoUrl: e.stablePhotoUrl ?? null, jockey: e.jockey?.cardName ?? e.gear.find((g) => /jockey|journeyman/i.test(g)) ?? null }]),
       ),
     [card.field],
   );

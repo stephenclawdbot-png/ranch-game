@@ -10,6 +10,7 @@ import { useEntry } from "@/components/entry/EntryProvider";
 import { PixelIcon, type IconName } from "@/components/icons";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { RanchStage } from "@/components/stable/RanchStage";
+import { YourJockeys } from "@/components/jockeys/YourJockeys";
 import { Section } from "@/components/ui/Page";
 import { aptitudes } from "@/lib/aptitude";
 import { SEX_LABEL, STYLE_LABEL, formatCredits, formatDistance } from "@/lib/format";
@@ -149,6 +150,7 @@ function Stable({ state }: { state: PlayerState }) {
               </li>
             </ul>
           </Section>
+          <YourJockeys />
         </aside>
       </div>
     </div>

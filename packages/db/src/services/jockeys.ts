@@ -630,7 +630,23 @@ export async function runJockeyMaintenance(db: Db, now: Date): Promise<JockeyMai
   return runTx(db, async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('jockeys-maintenance'))`);
     const t = now.getTime();
-    const live = await tx.select().from(jockeys).where(isNull(jockeys.retiredAt)).for("update");
+    // Only jockeys with something due: retirement, its notice, or a stage change.
+    const W = WEEK_MS;
+    const c = gc.JOCKEY_CAREER_WEEKS;
+    const live = await tx
+      .select()
+      .from(jockeys)
+      .where(
+        and(
+          isNull(jockeys.retiredAt),
+          or(
+            lte(jockeys.retireAt, new Date(t + gc.JOCKEY_RETIREMENT_NOTICE_WEEKS * W)),
+            and(eq(jockeys.stage, "apprentice"), lte(jockeys.bornAt, new Date(t - c.apprentice * W))),
+            and(sql`${jockeys.stage} <> 'veteran'`, lte(jockeys.bornAt, new Date(t - (c.apprentice + c.prime) * W))),
+          ),
+        ),
+      )
+      .for("update");
     let staged = 0;
     let announced = 0;
     let retired = 0;

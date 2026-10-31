@@ -10,6 +10,7 @@ import TrainingPage from "./pages/training";
 import InjuriesAndInsurancePage from "./pages/injuries-and-insurance";
 import RaceTypesPage from "./pages/race-types";
 import EnteringARacePage from "./pages/entering-a-race";
+import JockeysPage from "./pages/jockeys";
 import HowRacesAreRunPage from "./pages/how-races-are-run";
 import WeatherAndGoingPage from "./pages/weather-and-going";
 import RatingsAndFormPage from "./pages/ratings-and-form";
@@ -46,6 +47,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "injuries-and-insurance": InjuriesAndInsurancePage,
   "race-types": RaceTypesPage,
   "entering-a-race": EnteringARacePage,
+  jockeys: JockeysPage,
   "weather-and-going": WeatherAndGoingPage,
   "how-races-are-run": HowRacesAreRunPage,
   "ratings-and-form": RatingsAndFormPage,

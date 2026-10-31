@@ -85,8 +85,9 @@ describe("course character on Live races", () => {
   it("a field locked before courses raced differently replays and verifies exactly as before", async () => {
     const { p, race } = await enteredRace("Harrowgate");
     await lockField(h.db, race.id, race.entriesCloseAt, raceHooks);
-    // What a field locked by an earlier release looks like: the same race, no course (or model) in it.
-    await h.db.execute(`update races set field = field - 'course' - 'model' where id = '${race.id}'`);
+    // What a field locked by an earlier release looks like: the same race, no course, model or jockeys in it.
+    await h.db.execute(`update races set field = jsonb_set(field - 'course' - 'model', '{runners}', (
+      select jsonb_agg(r - 'kit' - 'jockey' order by (r->>'gate')::int) from jsonb_array_elements(field->'runners') r)) where id = '${race.id}'`);
     const end = at(30 * MIN);
     const replay = await servedReplay(h.db, race.id, end);
     expect(replay.engineVersion).toBe(LEGACY_ENGINE_VERSION);

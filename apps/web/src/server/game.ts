@@ -90,6 +90,7 @@ import {
   slotKeyOf,
   stablePhotoHashes,
 } from "@thoroughbred/db";
+import { getJockey as dbGetJockey, handicapWeightsFor } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { replayStartSec } from "@/lib/replayStart";
@@ -121,6 +122,7 @@ import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } 
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
 import { raceGroundTrend } from "./ground";
+import { riderOptions } from "./jockeys";
 
 // ---------------------------------------------------------------------------
 // Hooks, ids, small helpers
@@ -450,6 +452,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
           form: null,
           rating: null,
           gear: gearOf(e),
+          jockey: r.jockey ? { id: r.jockey.id, name: r.jockey.name, claimLb: r.jockey.claimLb, cardName: gc.jockeyCardName(r.jockey.name, r.jockey.claimLb) } : null,
         };
       })
       .sort((a, b) => a.gate - b.gate);
@@ -465,7 +468,17 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
       form: null,
       rating: null,
       gear: gearOf(e),
+      jockey: null as FieldEntry["jockey"],
     }));
+    // Booked jockeys before the lock (the claim shows only where it comes off a handicap weight).
+    const weighted = handicapWeightsFor(race);
+    for (const [i, e] of entries.entries()) {
+      if (!e.jockeyId) continue;
+      const j = await dbGetJockey(db, e.jockeyId);
+      if (!j) continue;
+      const claimLb = weighted ? j.claimLb : 0;
+      list[i]!.jockey = { id: j.id, name: j.name, claimLb, cardName: gc.jockeyCardName(j.name, claimLb) };
+    }
   }
   // Player stables' photos, one read for the field.
   const stableOfRunner = new Map<string, string | null>([...entries.map((e) => [e.horseId, e.stableId] as const), ...(field?.runners.map((r) => [r.horseId, r.stableId ?? null] as const) ?? [])]);
@@ -865,10 +878,8 @@ export function raceDayOffer(race: PublicRace): RaceDayOffer {
       const d = gc.RACE_EXTRAS[k];
       return { key: k, label: d.label, tag: d.tag, effect: d.effect, price: gc.raceDayPrice(d.price, race.purse) };
     }),
-    jockeys: gc.JOCKEY_KEYS.map((k) => {
-      const d = gc.JOCKEYS[k];
-      return { key: k, label: d.label, effect: d.effect, price: gc.raceDayPrice(d.price, race.purse) };
-    }),
+    // Named jockeys replaced the tiers: the entry sheet offers `riders` (entryOptions).
+    jockeys: [],
   };
 }
 
@@ -883,6 +894,7 @@ function riskSubsets(offered: readonly gc.RaceExtraKey[]): gc.RaceExtraKey[][] {
 export async function entryOptions(db: Db, session: Session, raceId: string, now: Date): Promise<{ race: RaceSummary; options: EntryOption[]; raceDay: RaceDayOffer }> {
   const race = await loadRace(db, raceId);
   const offer = raceDayOffer(race);
+  if (race.kind !== "quick" && race.kind !== "daily_cup" && race.kind !== "trial") offer.riders = await riderOptions(db, session, race);
   const subsets = riskSubsets(offer.extras.map((x) => x.key));
   const silks = parseSilks(session.stable.silks);
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing");
