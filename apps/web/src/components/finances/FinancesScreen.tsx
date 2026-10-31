@@ -56,6 +56,8 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
   const quiet = fin.income === 0 && fin.spend === 0;
   const scope = fromLabel ? `${fromLabel} – ${toLabel} (UTC)` : `up to ${toLabel} (UTC)`;
   const seasonMoved = fin.weekly.some((w) => w.net !== 0);
+  // Per-horse rows only for horses with something on the books this period (no wall of zeros).
+  const horsesWithData = fin.horses.filter((h) => h.earned !== 0 || h.cost !== 0 || h.starts > 0);
 
   return (
     <div>
@@ -76,6 +78,12 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
               </Link>
             ))}
           </nav>
+          <p className="caption mt-3" data-testid="finances-explainer">
+            Purses land when a race settles; upkeep is charged each Monday for horses you used.{" "}
+            <Link href="/wiki/credits-and-entries" className="link">
+              How credits work
+            </Link>
+          </p>
 
           {quiet ? (
             <div className="mt-4">
@@ -169,9 +177,9 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
         </Section>
 
         <Section id="per-horse-h" title="Per horse">
-          {fin.horses.length ? (
+          {horsesWithData.length ? (
             <>
-              <HorseFinancesTable horses={fin.horses} />
+              <HorseFinancesTable horses={horsesWithData} />
               <p className="caption mt-2">
                 Earned is purses, its sale price, stud fees and lease shares; cost is training, upkeep, entry fees, race-day extras, its
                 purchase price and stud fees paid for it.{" "}
@@ -185,7 +193,9 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
               </p>
             </>
           ) : (
-            <p className="t-meta">No horses yet — nothing has earned or cost a horse anything.</p>
+            <p className="t-meta" data-testid="finances-horses-empty">
+              {fin.horses.length ? "No horse has earned or cost anything in this period yet." : "No horses yet — nothing has earned or cost a horse anything."}
+            </p>
           )}
         </Section>
       </div>
