@@ -137,7 +137,7 @@ export const VIEWER_CSS = `
 .rv-call-hot .rv-call-k{background:var(--rv-live);color:#fff}
 .rv-call-you{border-left-color:#7fc3ee}
 .rv-narrow .rv-call{font-size:11.5px;padding:4px 8px 4px 5px}
-.rv-battle{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);display:flex;align-items:stretch;pointer-events:none;border:3px solid var(--rv-ink);box-shadow:3px 3px 0 rgba(0,0,0,.45);animation:rv-in .25s steps(3)}
+.rv-battle{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);display:flex;align-items:stretch;pointer-events:none;border:3px solid var(--rv-ink);box-shadow:3px 3px 0 rgba(0,0,0,.45);animation:rv-fade .25s steps(3)}
 .rv-battle-k{display:grid;place-items:center;padding:0 9px;background:var(--rv-live);color:#fff;font:11px/1.1 var(--rv-f-pixel);text-transform:uppercase;text-align:center;letter-spacing:.04em}
 .rv-battle-h{display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(15,42,29,.94);border-left:2px solid var(--rv-ink);font-weight:800;font-size:14px;white-space:nowrap}
 .rv-battle-h.rv-me{background:#3a2c0e;box-shadow:inset 0 0 0 2px var(--rv-brass)}
@@ -152,11 +152,14 @@ export const VIEWER_CSS = `
 .rv-fin-sub{font:11px var(--rv-f-pixel);text-transform:uppercase;letter-spacing:.06em;padding:5px 9px 4px;background:rgba(11,15,12,.85);border:2px solid var(--rv-ink)}
 .rv-fin-s-photograph{background:radial-gradient(ellipse at center,rgba(255,255,255,.18),rgba(8,21,14,.35) 70%)}
 .rv-fin-s-strip{background:rgba(8,21,14,.55)}
-.rv-fin-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(940px,calc(100% - 24px));max-height:calc(100% - 16px);overflow:auto;padding:10px 12px 12px;background:var(--rv-green);border:3px solid var(--rv-ink);box-shadow:inset 2px 2px 0 rgba(242,200,106,.5),inset -2px -2px 0 rgba(0,0,0,.45),5px 5px 0 rgba(0,0,0,.45);cursor:default;animation:rv-in .3s steps(3)}
+.rv-fin-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(940px,calc(100% - 24px));max-height:calc(100% - 16px);overflow:auto;padding:10px 12px 12px;background:var(--rv-green);border:3px solid var(--rv-ink);box-shadow:inset 2px 2px 0 rgba(242,200,106,.5),inset -2px -2px 0 rgba(0,0,0,.45),5px 5px 0 rgba(0,0,0,.45);cursor:default;animation:rv-fade .3s steps(3)}
+@keyframes rv-fade{from{opacity:0}}
 .rv-fin-panel-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
 .rv-fin-k{font:11px var(--rv-f-pixel);text-transform:uppercase;letter-spacing:.06em;color:var(--rv-brass2)}
 .rv-fin-photo figcaption{font-size:16px!important;text-shadow:1px 1px 0 var(--rv-ink)}
-.rv-fin-photo-n figcaption{font-size:13px!important}
+.rv-fin-photo-n figcaption{display:none}
+.rv-fin-verdict{font-weight:800;font-size:12.5px;line-height:1.3;margin:0 0 6px;min-height:2.6em;opacity:0;transition:opacity .4s}
+.rv-fin-verdict-on{opacity:1}
 .rv-fin-badges{position:absolute;left:12px;top:12px;display:flex;gap:6px;pointer-events:none}
 .rv-fin-badge{font:11px var(--rv-f-pixel);text-transform:uppercase;padding:5px 8px 4px;background:var(--rv-brass);color:var(--rv-ink);border:2px solid var(--rv-ink)}
 .rv-fin-badge-red{background:var(--rv-live);color:#fff;animation:rv-pulse 1.2s steps(2) infinite}
@@ -197,7 +200,9 @@ export const VIEWER_CSS = `
 
 .rv-fin-s-replay .rv-fin-skip{top:10px;bottom:auto}
 .rv-narrow .rv-fin{bottom:46px}
-.rv-narrow .rv-fin-slide{left:8px;right:8px;top:auto;bottom:44px;width:auto;transform:none;animation-name:rv-slide-up}
+.rv-narrow .rv-fin-slide{left:8px;right:8px;top:8px;bottom:auto;width:auto;transform:none;justify-items:stretch;animation-name:rv-slide-down}
+.rv-narrow .rv-fin-podium{order:2}
+@keyframes rv-slide-down{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:none}}
 @keyframes rv-slide-up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
 .rv-narrow .rv-fin-card{gap:10px;padding:8px}
 .rv-narrow .rv-fin-name{font-size:19px}
@@ -215,13 +220,14 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-fin-weighed-t{font-size:26px;gap:8px}
 .rv-narrow .rv-fin-tick{width:30px;height:30px;font-size:19px}
 .rv-narrow .rv-fin-seal{font-size:11px}
-.rv-narrow .rv-fin-panel{padding:7px 8px 8px;width:calc(100% - 12px)}
-.rv-narrow .rv-fin-lower{left:6px;right:6px;bottom:6px;max-width:none;padding:5px 8px 6px}
+.rv-narrow .rv-fin-panel{padding:7px 8px 8px;width:calc(100% - 12px);top:auto;bottom:6px;transform:translateX(-50%);max-height:calc(100% - 52px)}
+.rv-narrow .rv-fin-s-strip .rv-fin-skip{top:6px;bottom:auto}
+.rv-narrow .rv-fin-lower{left:6px;right:6px;top:46px;bottom:auto;max-width:none;padding:5px 8px 6px}
 .rv-narrow .rv-fin-lower-t{font-size:12.5px}
 .rv-narrow .rv-fin-badges{left:6px;top:8px}
 .rv-narrow .rv-fin-badge{font-size:9.5px;padding:4px 6px 3px}
 .rv-narrow .rv-fin-skip{right:6px;bottom:6px}
-.rv-narrow .rv-fin-slide~.rv-fin-skip{bottom:auto;top:8px}
+
 .rv-narrow .rv-dist-m{font-size:24px;padding:2px 6px 0}
 .rv-narrow .rv-dist-ff .rv-dist-m{font-size:30px}
 .rv-narrow .rv-dist-plate{min-width:28px;font-size:11px;padding:0 4px}

@@ -1582,13 +1582,15 @@ export class HD2DScene {
         composeShift = 0.06;
         break;
       case "post":
-        // Pull-up follow: tracks the horse being celebrated as it eases down.
-        group = near(16, 4);
+        // Pull-up follow: tracks the horse being celebrated as it eases down, framed left of
+        // centre with room ahead (as Trackside's follow places it; the finale's cards sit right).
+        group = near(8, 3);
         elev = 9;
         yaw = -3;
         fov = 24;
         vel = sub.speed;
-        maxSpan = 16;
+        maxSpan = 12;
+        leadPad = 9;
         break;
       case "replay":
         // The slow-motion finish replay: low and side-on, the winner and its nearest rivals.

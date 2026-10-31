@@ -183,12 +183,13 @@ export class Director {
       const w = inp.winnerId ?? null;
       return cur.type === "post" && cur.subject === w ? keep : { type: "post", subject: w };
     }
-    // Out of the stalls: the whole field first (establishing shot, scenery in frame).
-    if (cur.type === "gate") return this.compact ? { type: "close", subject: null } : { type: "establish", subject: null };
-
     // Closing stages: the leaders (everything within two lengths of the leader), and your horse
     // never hidden for long: one shot holds both when it can, else short alternating looks.
-    if (toGo < CLOSING_M && leader && t < inp.winnerTime) return this.closing(inp, leader, toGo, keep, held);
+    // (A seek into the closing stages goes straight to them, not to an establishing shot.)
+    if (toGo < CLOSING_M && leader && t < inp.winnerTime) return this.closing(inp, leader, toGo, cur.type === "gate" ? { type: "establish", subject: null } : keep, cur.type === "gate" ? CLOSING_HOLD_S : held);
+
+    // Out of the stalls: the whole field first (establishing shot, scenery in frame).
+    if (cur.type === "gate") return this.compact ? { type: "close", subject: null } : { type: "establish", subject: null };
     if (held < MIN_SHOT_S) return keep;
 
     // Never leave the player's horse out of frame for too long.

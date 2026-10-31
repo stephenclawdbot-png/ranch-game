@@ -141,7 +141,10 @@ export function finaleSlides(replay: Pick<RaceReplay, "result">, mine: readonly 
       marginText = dead ? "dead heat for first" : second ? `won by ${marginPhrase(second.marginLabel || marginLabelFor(second.marginMm))}` : "won";
     } else {
       const deadHeat = order.some((o) => o !== f && o.position === f.position);
-      marginText = `${ordinal(f.position)}${deadHeat ? " (dead heat)" : ""}, beaten ${marginPhrase(marginLabelFor(b))}`;
+      // Beyond the engine's 15 lengths ("a distance") the card still says how far.
+      const label = marginLabelFor(b);
+      const words = label === "dist" ? `${Math.round(b / HORSE_LENGTH_MM)} lengths` : marginPhrase(label);
+      marginText = `${ordinal(f.position)}${deadHeat ? " (dead heat)" : ""}, beaten ${words}`;
     }
     return { horseId: f.horseId, position: f.position, mine: mineSet.has(f.horseId), winner, finishTimeUs: f.finishTimeUs, behindWinnerMm: b, marginText };
   };

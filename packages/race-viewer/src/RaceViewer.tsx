@@ -604,7 +604,7 @@ export function RaceViewer(props: RaceViewerProps) {
         // Dev hook: step through the finale (contact sheets). goto(i, s, pause) shows step i, s seconds in.
         (window as unknown as { __rvFinale?: unknown }).__rvFinale = {
           state: () => finaleRef.current.state,
-          steps: () => finaleRef.current.plan?.steps.map((s) => (s.kind === "slide" ? `slide-${s.slide!.mine ? "mine" : s.slide!.position}` : s.kind)) ?? [],
+          steps: () => finaleRef.current.plan?.steps.map((s) => (s.kind === "slide" ? `slide-${s.slide!.position <= 3 ? s.slide!.position : "mine"}` : s.kind)) ?? [],
           goto: (i: number, s = 0, pause = true) => {
             finaleRef.current.goto(i, s);
             finaleRef.current.paused = pause;

@@ -140,6 +140,14 @@ describe("closing-stage framing rules", () => {
     }
   });
 
+  it("a seek into the final furlong frames the leaders at once (no establishing shot first)", () => {
+    const d = new Director();
+    const runners = [{ id: "h1", x: 1100 }, { id: "h2", x: 1098 }, { id: "h3", x: 1060 }];
+    d.update({ t: 66, runners, trackLengthM: 1200, winnerTime: 72, photoFinish: false, newEvents: [], highlightId: "h2" });
+    expect(d.shot).toMatchObject({ type: "close", subject: null });
+    expect(d.mustFrame.sort()).toEqual(["h1", "h2"]);
+  });
+
   it("a forced replay shot holds whatever the race does", () => {
     const d = new Director();
     d.force({ type: "replay", subject: "h2" });

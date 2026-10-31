@@ -139,6 +139,7 @@ function StripPanel({
   connections?: Readonly<Record<string, RunnerConnections>>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [verdict, setVerdict] = useState(false);
   const share = async () => {
     if (!art || busy) return;
     setBusy(true);
@@ -172,7 +173,9 @@ function StripPanel({
           {busy ? "…" : "Share"}
         </button>
       </div>
-      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} />
+      {/* Phones: the verdict sits above the strip (the strip fills the panel). */}
+      {narrow && <div className={`rv-fin-verdict${verdict ? " rv-fin-verdict-on" : ""}`}>{prettyLengths(model.verdict)}</div>}
+      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate onVerdict={() => setVerdict(true)} className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} />
     </div>
   );
 }
@@ -243,15 +246,17 @@ function SlideCard({
         <div className="rv-fin-body">
           <div className="rv-fin-eyebrow">{eyebrow}</div>
           <div className="rv-fin-name">{h.name}</div>
+          {conn?.stableName ? (
           <div className="rv-fin-stable">
-            {conn?.stablePhotoUrl ? (
+            {conn.stablePhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={conn.stablePhotoUrl} alt="" className="rv-fin-stable-img" loading="lazy" decoding="async" />
             ) : (
               <Swatch primary={silks.primary} secondary={silks.secondary} size={narrow ? 18 : 24} />
             )}
-            <span>{conn?.stableName ?? "Owner unknown"}</span>
+            <span>{conn.stableName}</span>
           </div>
+          ) : null}
           <div className="rv-fin-line">
             <Swatch primary={silks.primary} secondary={silks.secondary} size={narrow ? 12 : 14} />
             <span>{conn?.jockey ? `${conn.jockey} · gate ${h.gate}` : `Gate ${h.gate}`}</span>
