@@ -69,11 +69,10 @@ export async function jockeyEventTx(ex: Executor, e: { key: string; jockeyId: st
   await jockeyEventNewsTx(ex, e);
 }
 
-/** Inserts a jockey drawn from `seed`: a new apprentice, or (weeksIn > 0) a seasoned rider for the starting pool. */
-export async function createJockeyTx(ex: Executor, input: { seed: string; stableId: string | null; now: Date; weeksIn?: number }): Promise<JockeyRow> {
-  const weeksIn = Math.max(0, input.weeksIn ?? 0);
-  const p = weeksIn > 0 ? gc.generateSeasonedJockey(input.seed, weeksIn) : { ...gc.generateApprentice(input.seed), rides: 0, wins: 0, experience: 0 };
-  const bornMs = input.now.getTime() - weeksIn * WEEK_MS;
+/** Inserts a new apprentice drawn from `seed` (grade E, no rides: stables develop every jockey). */
+export async function createJockeyTx(ex: Executor, input: { seed: string; stableId: string | null; now: Date; startingPool?: boolean }): Promise<JockeyRow> {
+  const p = { ...gc.generateApprentice(input.seed), rides: 0, wins: 0, experience: 0 };
+  const bornMs = input.now.getTime();
   const [row] = await ex
     .insert(jockeys)
     .values({
@@ -91,8 +90,9 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
       joinedAt: input.stableId ? input.now : null,
       retireAt: new Date(gc.jockeyRetireAt(bornMs, input.seed)),
       createdAt: input.now,
-      // A new apprentice joins the Club as a free agent in the next transfer window.
-      freeAgentWeek: !input.stableId && weeksIn === 0 ? currentWindowWeek(input.now) : null,
+      // A weekly-intake apprentice joins the Club as a free agent in the next transfer window; the
+      // starting pool can be signed or booked straight away.
+      freeAgentWeek: !input.stableId && !input.startingPool ? currentWindowWeek(input.now) : null,
     })
     .returning();
   if (input.stableId) await startContractTx(ex, { jockey: row!, stableId: input.stableId, now: input.now, terms: standardTerms(row!) });
@@ -141,8 +141,7 @@ export async function poolSize(ex: Executor): Promise<number> {
 
 /**
  * Backfill (idempotent): an apprentice for every stable that never had one, and, the first time,
- * a starting Club freelance pool of seasoned riders spread over every career stage, sized so the
- * whole pool reaches the target (at least JOCKEY_STARTING_POOL_MIN freelancers).
+ * a starting Club freelance pool of new apprentices (grade E, no record, signable at once), sized so the whole pool reaches the target (at least JOCKEY_STARTING_POOL_MIN).
  */
 export async function ensureJockeyBackfill(db: Db, now: Date): Promise<{ apprentices: number; freelancers: number }> {
   return runTx(db, async (tx) => {
@@ -164,11 +163,9 @@ export async function ensureJockeyBackfill(db: Db, now: Date): Promise<{ apprent
     if (!anyClub) {
       const target = gc.jockeyPoolTarget((await activeStableIds(tx, now)).length);
       const n = Math.max(JOCKEY_STARTING_POOL_MIN, target - (await poolSize(tx)));
-      const longest = gc.JOCKEY_CAREER_WEEKS.apprentice + gc.JOCKEY_CAREER_WEEKS.prime + gc.JOCKEY_CAREER_WEEKS.veteranMin - gc.JOCKEY_RETIREMENT_NOTICE_WEEKS - 1;
       for (let i = 0; i < n; i++) {
-        // Spread over the career (most in their prime), never already due to retire.
-        const weeksIn = 1 + Math.floor((i * longest) / Math.max(1, n));
-        await createJockeyTx(tx, { seed: gc.seedFrom("jockey-pool", now.getTime(), i), stableId: null, now, weeksIn });
+        // Fresh apprentices (grade E, no record): the stables that ride them make their names.
+        await createJockeyTx(tx, { seed: gc.seedFrom("jockey-pool", now.getTime(), i), stableId: null, now, startingPool: true });
         freelancers++;
       }
     }
@@ -604,11 +601,13 @@ export async function settleJockeyRidesTx(tx: Tx, race: RaceRow, positions: Read
     const pos = positions.get(r.horseId);
     if (pos === undefined) continue;
     const j = await lockJockey(tx, r.jockeyId);
-    const skills = gc.growSkills(skillsOf(j), potentialOf(j), xp);
-    await tx.update(jockeyRides).set({ position: pos, experience: xp, settledAt: now }).where(eq(jockeyRides.id, r.id));
+    // Only rides for a player's horse develop a jockey; a Club runner's ride counts in the record only.
+    const gain = r.stableId ? xp : 0;
+    const skills = gain > 0 ? gc.growSkills(skillsOf(j), potentialOf(j), gain) : skillsOf(j);
+    await tx.update(jockeyRides).set({ position: pos, experience: gain, settledAt: now }).where(eq(jockeyRides.id, r.id));
     await tx
       .update(jockeys)
-      .set({ rides: j.rides + 1, wins: j.wins + (pos === 1 ? 1 : 0), experience: j.experience + xp, skills })
+      .set({ rides: j.rides + 1, wins: j.wins + (pos === 1 ? 1 : 0), experience: j.experience + gain, skills })
       .where(eq(jockeys.id, j.id));
     await developmentTx(tx, { jockey: j, race, horseStableId: r.stableId, jockeyStableId: r.jockeyStableId, position: pos, now });
   }

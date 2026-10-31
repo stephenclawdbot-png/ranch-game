@@ -11,8 +11,8 @@ import {
   canHoldAnother,
   declineSkills,
   freelanceFee,
+  JOCKEY_START_SKILL_MAX,
   generateApprentice,
-  generateSeasonedJockey,
   growSkills,
   jockeyCardName,
   jockeyGrade,
@@ -199,12 +199,12 @@ describe("generation", () => {
     expect((grades.get("A") ?? 0)).toBeGreaterThan(0);
     expect(jockeyName("abc")).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
   });
-  it("seasoned pool jockeys have grown, and carry a winners tally out of their claim", () => {
-    const j = generateSeasonedJockey("pool-1", 10);
-    const a = generateApprentice("pool-1");
-    expect(j.skills.gate).toBeGreaterThan(a.skills.gate);
-    expect(j.rides).toBe(120);
-    expect(j.wins).toBeGreaterThan(5);
+  it("every new jockey starts at grade E (players develop them)", () => {
+    for (let k = 0; k < 500; k++) {
+      const j = generateApprentice(`start-${k}`);
+      expect(jockeyGrade(j.skills)).toBe("E");
+      for (const sk of JOCKEY_SKILLS) expect(j.skills[sk]).toBeLessThanOrEqual(JOCKEY_START_SKILL_MAX);
+    }
   });
 });
 

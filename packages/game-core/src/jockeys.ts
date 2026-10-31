@@ -328,9 +328,13 @@ export interface JockeyProfile {
   potential: JockeySkills;
 }
 
+/** Highest realised skill a new apprentice can have: below the D floor, so every jockey starts at E. */
+export const JOCKEY_START_SKILL_MAX = 280;
+
 /**
  * A new apprentice from a seed: potential 400..950 per skill around a per-jockey talent level,
- * realised 150..400 (an apprentice is raw). Most top out C-B; a few are A prospects.
+ * realised 120..280 (every jockey starts at grade E and is developed by the stables that ride
+ * it). Most top out C-B; a few are A prospects.
  */
 export function generateApprentice(seed: string): JockeyProfile {
   const r = new Rng(seedFrom("jockey-gen", seed));
@@ -340,29 +344,7 @@ export function generateApprentice(seed: string): JockeyProfile {
   const skills = {} as JockeySkills;
   for (const k of JOCKEY_SKILLS) {
     potential[k] = Math.max(400, Math.min(950, talent + r.range(-120, 120)));
-    skills[k] = Math.min(potential[k], 150 + r.int(251));
+    skills[k] = Math.min(potential[k], 120 + r.int(JOCKEY_START_SKILL_MAX - 120 + 1));
   }
   return { name: jockeyName(seed), personality: JOCKEY_PERSONALITIES[r.int(JOCKEY_PERSONALITIES.length)]!, skills, potential };
-}
-
-/**
- * A jockey for the starting Club pool, already `weeksIn` weeks into a career: grown as if it had
- * ridden `ridesPerWeek` average rides a week (and declined if it is a veteran by now), with a
- * winners tally consistent with that many rides (about one in eight).
- */
-export function generateSeasonedJockey(seed: string, weeksIn: number, ridesPerWeek = 12): JockeyProfile & { rides: number; wins: number; experience: number } {
-  const base = generateApprentice(seed);
-  let skills = base.skills;
-  let potential = base.potential;
-  const xp = rideExperience({ purse: 1_500, fieldMeanOr: 60 });
-  let rides = 0;
-  const vetFrom = JOCKEY_CAREER_WEEKS.apprentice + JOCKEY_CAREER_WEEKS.prime;
-  for (let w = 0; w < weeksIn; w++) {
-    for (let i = 0; i < ridesPerWeek; i++) skills = growSkills(skills, potential, xp);
-    rides += ridesPerWeek;
-    if (w >= vetFrom) ({ skills, potential } = declineSkills(skills, potential));
-  }
-  const r = new Rng(seedFrom("jockey-tally", seed));
-  const wins = Math.floor((rides * (80 + r.int(90))) / 1000);
-  return { ...base, skills, potential, rides, wins, experience: rides * xp };
 }

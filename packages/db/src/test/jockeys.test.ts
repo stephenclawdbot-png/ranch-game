@@ -81,8 +81,13 @@ describe("stable creation and backfill", () => {
     expect(again).toEqual({ apprentices: 0, freelancers: 0 });
     const free = await listJockeys(h.db, { filter: "freelancers" });
     expect(free.length).toBeGreaterThanOrEqual(12);
-    // Seasoned riders over the career, none already due to retire.
-    expect(new Set(free.map((f) => f.stage)).size).toBeGreaterThan(1);
+    // Fresh apprentices: grade E, no record, none already due to retire.
+    for (const f of free) {
+      expect(f.stage).toBe("apprentice");
+      expect(f.grade).toBe("E");
+      expect(f.rides).toBe(0);
+      expect(f.wins).toBe(0);
+    }
     for (const f of free) expect(new Date(f.retireAt).getTime()).toBeGreaterThan(T0.getTime() + 2 * 7 * DAY);
   });
 });
@@ -236,6 +241,8 @@ describe("the lock, weights and settlement", () => {
 
     // Settlement: rides, wins, experience and growth, once.
     const before = (await getJockey(h.db, app!.id))!;
+    const houseRider = field.runners.find((x) => x.isHouse)!.jockey!.id!;
+    const houseBefore = (await getJockey(h.db, houseRider))!;
     const order = [hp.id, ...field.runners.map((x) => x.horseId).filter((id) => id !== hp.id)];
     const input = { raceId: r.id, now: at(412 * MIN), runners: order.map((horseId, i) => ({ horseId, position: i + 1 })), resultHash: "x", result: {} };
     await settleRace(h.db, input);
@@ -243,6 +250,10 @@ describe("the lock, weights and settlement", () => {
     expect(after.rides).toBe(before.rides + 1);
     expect(after.wins).toBe(before.wins + 1);
     expect(gc.jockeyOverall(after.skills)).toBeGreaterThan(gc.jockeyOverall(before.skills));
+    // A Club runner's ride counts in the record but develops nobody: players develop jockeys.
+    const houseAfter = (await getJockey(h.db, houseRider))!;
+    expect(houseAfter.rides).toBe(houseBefore.rides + 1);
+    expect(houseAfter.skills).toEqual(houseBefore.skills);
     await settleRace(h.db, input);
     const again = (await getJockey(h.db, app!.id))!;
     expect(again.rides).toBe(after.rides);

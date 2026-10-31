@@ -54,6 +54,9 @@ bought, sold, paid or rewarded in USDG or packs, and nothing about them is trade
 
 - Tables for jockeys, their skills/potential, rides and career events; migration + backfill (an
   apprentice for every existing stable; a starting Club freelance pool).
+- Owner rule (2026-10-31): **every jockey starts at grade E** with no record, the starting Club pool
+  included. Only rides on a player's horse develop a jockey (Club runners' rides count in the record
+  but teach nothing), so the good riders on the transfer market are the ones players made.
 - Booking: the entry sheet picks your jockey (one of yours, or a Club freelancer for a fee). A jockey
   rides at most one horse per race and only where the post times don't clash.
 - Engine: per-runner kit from the jockey's skills (new optional kit fields, golden fixtures keep older
