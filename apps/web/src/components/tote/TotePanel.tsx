@@ -17,6 +17,7 @@ import { refreshPlayer } from "@/lib/player";
 import { Saddlecloth } from "../race/Saddlecloth";
 import { PixelIcon } from "../icons";
 import { RealToteSlip } from "./RealToteSlip";
+import { PracticeBadge } from "@/components/chain/UsdgMode";
 
 type Currency = gc.ToteCurrency;
 type Pool = gc.TotePoolKind;
@@ -413,6 +414,11 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
       {canBet && (
         <div className="inset grid gap-2 p-3" data-testid="tote-slip">
           <p className="label">Bet slip</p>
+          {currency === "TUSDG" && (
+            <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="tote-tusdg-note">
+              <PracticeBadge /> From your one T-USDG balance (the same as the market&rsquo;s). Needs your wallet signed in.
+            </p>
+          )}
           {selected ? (
             <p className="text-sm">
               <b>{selected.name}</b> to {pool === "win" ? "win" : `finish in the first ${board.places}`}

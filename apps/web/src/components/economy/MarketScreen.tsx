@@ -15,6 +15,7 @@ import { api } from "@/lib/player";
 import { Check, Credits, HorseLine, Skeleton, refreshPurse, stageLabel, useEcoView } from "./kit";
 import { SalesRing, pedigreeLine } from "./SalesRing";
 import { UsdgMarket } from "./UsdgMarket";
+import { useUsdg } from "@/components/chain/UsdgMode";
 import { LeaseBoard } from "./LeaseBoard";
 
 type Tab = "buy" | "sell" | "mine" | "lease" | "usdg";
@@ -34,6 +35,7 @@ function dayShortTime(ms: number): string {
 
 export function MarketScreen() {
   const { data, setData, error, reload } = useEcoView<MarketView>("/api/market");
+  const u = useUsdg();
   const [tab, setTab] = useState<Tab>("buy");
   useEffect(() => {
     const fromHash = () => {
@@ -53,7 +55,7 @@ export function MarketScreen() {
         lot={v.listings.find((l) => !l.mine) ?? v.listings[0] ?? null}
         eyebrow={
           tab === "usdg"
-            ? `USDG market · registered horses · ${v.stalls.used} of ${v.stalls.slots} stalls`
+            ? `${u.name} market · registered horses · ${v.stalls.used} of ${v.stalls.slots} stalls`
             : tab === "lease"
               ? `Lease · rent racers, share the prizes · ${v.stalls.used} of ${v.stalls.slots} stalls`
               : `Credits only · ${v.listings.length} ${v.listings.length === 1 ? "lot" : "lots"} · ${v.stalls.used} of ${v.stalls.slots} stalls used`
@@ -67,9 +69,9 @@ export function MarketScreen() {
         <p>
           Horses change hands for Stable Credits, never real money. {v.feePermille / 10}% of every sale is burned. Horses registered for the{" "}
           <a href="#usdg" className="underline">
-            USDG market
+            {u.name} market
           </a>{" "}
-          trade for USDG only, on their own tab.
+          trade for {u.name} only, on their own tab.
         </p>
         <p>Buying needs a free stall. Sellers set a price between 70% and 3x the Club&rsquo;s appraisal. Club-bred horses stay with the stable that raised them; a bought horse can&rsquo;t be relisted for 72 hours.</p>
       </HowItWorks>
@@ -87,7 +89,7 @@ export function MarketScreen() {
           Lease
         </button>
         <button type="button" role="tab" aria-selected={tab === "usdg"} onClick={() => setTab("usdg")} data-testid="tab-usdg">
-          USDG
+          {u.name}
         </button>
       </div>
       {tab === "buy" && <Buy v={v} onView={setData} />}

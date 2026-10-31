@@ -66,7 +66,7 @@ export async function audienceMetrics(ex: Executor, input: { now: Date; days?: n
     spent as (
       select la.owner_account_id as account_id, (p.created_at at time zone 'UTC')::date as day, sum(-p.amount)::bigint as cr
         from ledger_accounts la join ledger_postings p on p.ledger_account_id = la.id
-       where la.kind = 'player' and p.amount < 0 and p.created_at >= ${from} and p.created_at <= ${until}
+       where la.kind = 'player' and la.currency = 'CR' and p.amount < 0 and p.created_at >= ${from} and p.created_at <= ${until}
        group by 1, 2
     ),
     rc as (

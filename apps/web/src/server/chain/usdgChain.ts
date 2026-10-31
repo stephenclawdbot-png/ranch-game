@@ -57,7 +57,7 @@ export interface MarketState {
 }
 
 export interface UsdgChain {
-  readonly kind: "mock" | "evm";
+  readonly kind: "mock" | "evm" | "practice";
   readonly chainId: number;
   readonly market: Address;
   readonly token: Address;
@@ -297,15 +297,59 @@ export class MockUsdgChain implements UsdgChain {
 }
 
 // ---------------------------------------------------------------------------
+// Practice (USDG_MODE=practice): there is no chain. Payments are T-USDG ledger transfers
+// (@thoroughbred/db usdgPractice) and rehearsal bids are verified locally (usdg.ts), so every
+// method here refuses: reaching one would be a bug, and it must never become a network call.
+// ---------------------------------------------------------------------------
+
+export class UsdgPracticeChainError extends Error {
+  constructor(what: string) {
+    super(`practice mode has no chain (${what})`);
+    this.name = "UsdgPracticeChainError";
+  }
+}
+
+export class PracticeUsdgChain implements UsdgChain {
+  readonly kind = "practice" as const;
+  constructor(
+    readonly chainId: number,
+    readonly market: Address,
+    readonly token: Address,
+  ) {}
+  async signSale(): Promise<Hex> {
+    throw new UsdgPracticeChainError("signSale");
+  }
+  async signRegistration(): Promise<Hex> {
+    throw new UsdgPracticeChainError("signRegistration");
+  }
+  async signStud(): Promise<Hex> {
+    throw new UsdgPracticeChainError("signStud");
+  }
+  async verifyPayment(): Promise<UsdgVerification> {
+    throw new UsdgPracticeChainError("verifyPayment");
+  }
+  async findPaymentTx(): Promise<Hex | null> {
+    throw new UsdgPracticeChainError("findPaymentTx");
+  }
+  async verifyBid(): Promise<boolean> {
+    throw new UsdgPracticeChainError("verifyBid");
+  }
+  async marketState(): Promise<MarketState> {
+    throw new UsdgPracticeChainError("marketState");
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 const G = globalThis as typeof globalThis & { __tbUsdgChain?: UsdgChain; __tbUsdgChainKey?: string };
 
-/** The process-wide USDG chain: EVM when the market is live, else the mock (also when "off": nothing gets signed then). */
+/** The process-wide USDG chain: EVM when the market is live, none in practice mode, else the mock (also when "off": nothing gets signed then). */
 export function usdgChain(env: Record<string, string | undefined> = process.env): UsdgChain {
   const cfg = readUsdgConfig(env);
   const key = `${cfg.mode}:${cfg.chainId}:${cfg.market}:${cfg.token}:${cfg.rpcUrl}`;
   if (G.__tbUsdgChain && G.__tbUsdgChainKey === key) return G.__tbUsdgChain;
   if (cfg.mode === "live") G.__tbUsdgChain = new EvmUsdgChain(cfg);
+  else if (cfg.mode === "practice") G.__tbUsdgChain = new PracticeUsdgChain(cfg.chainId, cfg.market, cfg.token);
   else {
     const mock = new MockUsdgChain(cfg.chainId, cfg.market, cfg.token, 1);
     mock.feeBps = usdgPolicy(env).feeBps; // the mock "contract" charges what the server signs

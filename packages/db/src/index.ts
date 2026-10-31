@@ -45,6 +45,7 @@ export * from "./services/usdgMarket";
 export * from "./services/upkeep";
 export * from "./services/finances";
 export * from "./services/usdgStud";
+export * from "./services/usdgPractice";
 export * from "./services/leasing";
 export * from "./services/clubMarket";
 export * from "./services/clubFill";

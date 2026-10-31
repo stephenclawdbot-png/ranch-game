@@ -734,6 +734,9 @@ testnet first). All defaults live in one place, `packages/game-core/src/usdgMark
 | `MAX_ORDER_TTL` | 4 days | packages/contracts/contracts/HorseMarket.sol | On-chain cap on an order's deadline. | |
 | Resale lock | 72 h (`RESALE_LOCK_MS`, shared with credits) | packages/db/src/services/usdgMarket.ts (`usdgResaleLock`) | A bought horse (credits or USDG) can't be listed for USDG for 72 h. | Flipping |
 | Lazy tick | every 20 s per instance | apps/web/src/server/chain/usdg.ts (`usdgTick`) | The USDG views close ended auctions and expire stale orders; the daily cron is the backstop. | Auction close latency |
+| `PRACTICE_USDG_GRANT` | 100 T-USDG (owner decision 2026-10-31) | packages/game-core/src/usdgMarket.ts | Practice mode only (`USDG_MODE=practice`): test money granted once per account on its first wallet sign-in or link, one balance shared by the USDG market, USDG stud fees, Premium Packs and the tote's T-USDG pools. Never convertible to or from credits, never withdrawable, never for sale. The only other source is an admin top-up. | Practice trading volume |
+| `PRACTICE_USDG_TOPUP_MAX` | 10,000 T-USDG | packages/game-core/src/usdgMarket.ts | Largest single admin top-up (typo guard). | |
+| `isUsdgPracticeMode` | on only when `USDG_MODE=practice` exactly | packages/game-core/src/usdgMarket.ts | The one practice switch (market, packs, tote). | Real money on/off |
 
 ---
 
@@ -792,7 +795,7 @@ T-USDG in millionths, like USDG).
 | `TOTE_LIMIT_RAISE_DELAY_MS` | 24 h | packages/game-core/src/tote.ts:76 | A player's own lower limit applies at once; raising or removing it waits this long. | Responsible play |
 | `TOTE_SELF_EXCLUSION_MS` | 24 h, 7 d, 30 d, permanent | packages/game-core/src/tote.ts:67 | Self-exclusion lengths; can be lengthened, never shortened or lifted early. | Responsible play |
 | `TOTE_ODDS_POLL_MS` | 5 s | packages/game-core/src/tote.ts:79 | Tote panel refresh before the off (the board is CDN-cached 2 s, `boardCache` in apps/web/src/server/tote.ts). | Server load, odds freshness |
-| `toteUsdgEnabled()` | on only when `USDG_MODE=practice` | packages/db/src/services/tote.ts (`toteUsdgEnabled`), game-core `toteUsdgEnabledFrom` | The one switch for T-USDG pools; live/mock/off/unset refuse every T-USDG bet. T-USDG lives in a placeholder practice ledger (ledger accounts in currency `TUSDG`) until the practice-USDG mode wires its own (`setPracticeUsdgLedger`). | T-USDG betting on/off |
+| `toteUsdgEnabled()` | on only when `USDG_MODE=practice` | packages/db/src/services/tote.ts (`toteUsdgEnabled`), game-core `toteUsdgEnabledFrom` | The one switch for T-USDG pools (delegates to `isUsdgPracticeMode`); live/mock/off/unset refuse every T-USDG bet. T-USDG bets come from the player's one practice T-USDG balance (ledger currency `TUSDG`, `services/usdgPractice.ts`, shared with the USDG market) and need a verified wallet; there is no tote faucet. | T-USDG betting on/off |
 | Bet rate limit | 30 bets per account per minute | apps/web/src/server/tote.ts (`betLimiter`) | Abuse guard on POST /api/races/:id/tote/bet. | Abuse surface |
 | Harness punters | every 4th casual and every 4th grinder (a quarter of them); 60 % chance per visit to back up to 2 races of the next meeting; 10-50 credits a bet; Win 3 in 4 | tools/season-harness/src/agents.ts (`PUNTER_EVERY`, `PUNTER_BET_PERMILLE`, `PUNTER_RACES_PER_VISIT`) | Simulated betting, so the harness reports tote volume and the sink. | Harness only |
 

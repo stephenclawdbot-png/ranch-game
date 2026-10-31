@@ -3,7 +3,14 @@ import type { Silks } from "@thoroughbred/shared";
 import type { UsdgOrderJson } from "./chain/usdg";
 import type { EcoHorse } from "./economyTypes";
 
-export type UsdgMode = "live" | "mock" | "off";
+/** practice: beta test money ("T-USDG") from the game ledger, wallet sign-in but no chain (USDG_MODE=practice). */
+export type UsdgMode = "live" | "mock" | "practice" | "off";
+
+/** Practice mode: my T-USDG balance (micro units) and the one-off grant. */
+export interface UsdgPracticeView {
+  balance: number;
+  grant: number;
+}
 
 export interface UsdgPolicyView {
   feeBps: number;
@@ -73,6 +80,8 @@ export interface UsdgSellable extends EcoHorse {
 export interface UsdgMarketView {
   network: UsdgNetworkView;
   policy: UsdgPolicyView;
+  /** Practice mode only (null otherwise). */
+  practice: UsdgPracticeView | null;
   wallet: string | null;
   barredUntilMs: number | null;
   lots: UsdgLotView[];
@@ -93,6 +102,7 @@ export interface UsdgCheckView {
 export interface UsdgHorseView {
   network: UsdgNetworkView;
   policy: UsdgPolicyView;
+  practice: UsdgPracticeView | null;
   horseId: string;
   name: string;
   mine: boolean;

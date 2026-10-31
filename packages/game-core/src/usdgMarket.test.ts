@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_USDG_POLICY,
+  PRACTICE_USDG_GRANT,
+  PRACTICE_USDG_LABEL,
+  formatPracticeUsdg,
+  practiceUsdgText,
   USDG_FEE_BPS_CAP,
   USDG_UNIT,
   formatUsdgDollars,
@@ -136,5 +140,26 @@ describe("price review", () => {
     expect(usdgPriceOutlier({ price: 3 * USDG_UNIT, appraisal: 1000 }, recent).flagged).toBe(true);
     // A horse appraised 3x higher may sell for 3x more without a flag.
     expect(usdgPriceOutlier({ price: 30 * USDG_UNIT, appraisal: 3000 }, recent).flagged).toBe(false);
+  });
+});
+
+describe("practice mode (T-USDG)", () => {
+  it("grants 100 T-USDG (owner decision 2026-10-31), in micro units like USDG", () => {
+    expect(PRACTICE_USDG_GRANT).toBe(100 * USDG_UNIT);
+    expect(PRACTICE_USDG_LABEL).toBe("T-USDG");
+  });
+
+  it("formats practice amounts without a dollar sign", () => {
+    expect(formatPracticeUsdg(100 * USDG_UNIT)).toBe("100 T-USDG");
+    expect(formatPracticeUsdg(12_500_000)).toBe("12.5 T-USDG");
+  });
+
+  it("rewrites player-facing text: USDG -> T-USDG, $ amounts -> T-USDG amounts, idempotent", () => {
+    const s = "This horse is already registered for the USDG market. The lowest bid now is $12.50.";
+    const once = practiceUsdgText(s);
+    expect(once).toBe("This horse is already registered for the T-USDG market. The lowest bid now is 12.50 T-USDG.");
+    expect(practiceUsdgText(once)).toBe(once);
+    expect(practiceUsdgText("Pay 2 USDG")).toBe("Pay 2 T-USDG");
+    expect(practiceUsdgText("usdg_practice stays")).toBe("usdg_practice stays");
   });
 });

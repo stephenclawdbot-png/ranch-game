@@ -38,6 +38,7 @@ import {
   type Db,
 } from "@thoroughbred/db";
 import { betaChain } from "./chain/adapter";
+import { ensurePracticeGrant } from "./chain/practice";
 import { LOGIN_STATEMENT, siweAddress, siweMessage } from "./chain/wallet";
 import { foundStable } from "./founding";
 import { playerView } from "./game";
@@ -169,6 +170,7 @@ async function linkWalletToCurrentStable(database: Db, input: { address: Address
   if (owner && owner !== mine) return errorJson(409, "wallet_in_use", { message: "That wallet already signs in to another stable." });
   if (owner === mine) return json({ linked: true, address: input.address });
   const { tester } = await linkVerifiedWallet(database, { accountId: mine, address: input.address, stableName: input.session.stable.name, now: input.now });
+  await ensurePracticeGrant(database, mine, input.now);
   await trackEvent(database, mine, "wallet_linked", { via: "link" });
   return json({ linked: true, address: tester.walletAddress });
 }
@@ -185,6 +187,8 @@ async function signInWithWallet(database: Db, input: { address: Address; body: V
     }
     // Found via a tester row from before accounts carried the wallet: backfill the link.
     await ensureAccountWallet(database, { accountId, address: input.address, now: input.now });
+    // Practice mode: the one-off T-USDG grant on (first) wallet sign-in. Idempotent, never fails a sign-in.
+    await ensurePracticeGrant(database, accountId, input.now);
     const { token, stableName } = await createDeviceSession(database, { accountId, label: "Wallet sign-in", now: input.now });
     if (session && session.accountId !== accountId) await noteStableSwitch(database, session.accountId, accountId);
     await trackEvent(database, accountId, "wallet_sign_in", {});
@@ -206,6 +210,7 @@ async function signInWithWallet(database: Db, input: { address: Address; body: V
       inviteCode: typeof body.inviteCode === "string" ? body.inviteCode : null,
       now: input.now,
     });
+    await ensurePracticeGrant(database, created.accountId, input.now);
     if (session && session.accountId !== created.accountId) await noteStableSwitch(database, session.accountId, created.accountId);
     await trackEvent(database, created.accountId, "signup", { playtest: created.playtest, wallet: true });
     await trackEvent(database, created.accountId, "wallet_sign_in", {});

@@ -15,8 +15,14 @@ import type { Db, Executor } from "../types";
 import { runTx } from "./tx";
 
 export type SystemAccount = "mint" | "burn" | "treasury" | "escrow";
-/** Ledger currencies: Stable Credits, and practice T-USDG (the tote's placeholder practice ledger). */
+/**
+ * Ledger currencies: Stable Credits, and practice T-USDG (beta test money while USDG_MODE=practice:
+ * one balance per account shared by the USDG market, stud fees, Premium Packs and the tote;
+ * services/usdgPractice.ts). A transaction never mixes currencies.
+ */
 export type LedgerCurrency = "CR" | "TUSDG";
+/** The ledger currency of practice T-USDG (micro units, 6 decimals like USDG). */
+export const USDG_PRACTICE_CURRENCY: LedgerCurrency = "TUSDG";
 
 export interface Posting {
   ledgerAccountId: string;
@@ -112,16 +118,19 @@ export async function post(ex: Executor, input: PostInput): Promise<PostResult> 
 
   const ids = [...new Set(postings.map((p) => p.ledgerAccountId))].sort();
   const accounts = await ex
-    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative })
+    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative, currency: ledgerAccounts.currency })
     .from(ledgerAccounts)
     .where(inArray(ledgerAccounts.id, ids))
     .orderBy(asc(ledgerAccounts.id))
     .for("update");
   if (accounts.length !== ids.length) throw new DomainError("NOT_FOUND", "ledger account not found");
+  // One currency per transaction: credits never convert to or from anything else (practice
+  // T-USDG, services/usdgPractice.ts, is a separate currency in the same ledger).
+  if (new Set(accounts.map((a) => a.currency)).size > 1) throw new DomainError("INVALID_INPUT", "a ledger transaction can't mix currencies");
   for (const a of accounts) {
     const delta = postings.filter((p) => p.ledgerAccountId === a.id).reduce((s, p) => s + p.amount, 0);
     if (!a.allowNegative && a.balance + delta < 0) {
-      throw new DomainError("INSUFFICIENT_FUNDS", "not enough credits", { balance: a.balance, required: -delta });
+      throw new DomainError("INSUFFICIENT_FUNDS", a.currency === "CR" ? "not enough credits" : "not enough T-USDG", { balance: a.balance, required: -delta });
     }
   }
   const ordered = [...postings].sort((a, b) => (a.ledgerAccountId < b.ledgerAccountId ? -1 : a.ledgerAccountId > b.ledgerAccountId ? 1 : 0));
@@ -181,6 +190,7 @@ export async function spendCreditsTx(ex: Executor, input: CreditInput & { sink?:
   });
 }
 
+/** The player's balance: Stable Credits by default, or another ledger currency (T-USDG). */
 export async function getBalance(ex: Executor, accountId: string, currency: LedgerCurrency = "CR"): Promise<number> {
   const [row] = await ex
     .select({ balance: ledgerAccounts.balance })
