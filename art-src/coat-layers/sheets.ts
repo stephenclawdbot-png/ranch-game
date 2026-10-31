@@ -11,8 +11,6 @@ export const BASE_SHEETS: Record<string, number> = {
   "race/horse-pullup": 10,
   "diorama/horse-canter": 12,
   "diorama/horse-walk-jockey": 8,
-  "diorama/horse-walk-led": 8,
-  "diorama/horse-aisle-idle": 8,
   "diorama/horse-loose-walk": 8,
   "diorama/horse-loose-graze": 24,
   "diorama/horse-loose-idle": 8,

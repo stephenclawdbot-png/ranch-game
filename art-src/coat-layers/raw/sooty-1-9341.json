@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, sooty: darker hairs dappled along the top line of the neck, back and croup, fading down the sides",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7052 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9341,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d708fb29-5974-4f31-979a-ecc92f328ae2",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "d708fb29-5974-4f31-979a-ecc92f328ae2",
+  "status": "completed",
+  "created_at": "2026-10-31T20:21:00.679503+00:00",
+  "last_response": {
+   "seed": 9341,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<34912 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "922f4454-ccf2-49d2-bea5-00a9daa5ea25",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<34912 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:21:07.126836+00:00",
+   "original_image_n_colors": 19,
+   "quantized_image_n_colors": 19
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/sooty-1-9341-0.png"
+ ]
+}

@@ -5,7 +5,7 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES, capPatternAt, jerseyPatternAt, paintRiderLook, prepareRider, resolveHorseColors, type CoatPalette } from "@thoroughbred/art-pipeline";
+import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
@@ -95,7 +95,7 @@ export function applyRecolor(data: Uint8ClampedArray, map: Map<number, number>):
 }
 
 export const lookKey = (l: DioramaHorseLook) =>
-  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null]) : ""}`;
+  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) : ""}`;
 
 const packHex = (h: string) => {
   const [r, g, b] = hexToRgb(h);
@@ -160,4 +160,47 @@ export function applyRiderLook(data: Uint8ClampedArray, width: number, height: n
   }
   // women's strips carry their own hair (keyed above): no drawn ponytail on top
   if (rider && a?.rider) paintRiderLook(data, width, height, frameWidth, rider, a.rider.gender === "f" ? { ...a.rider, long: false } : a.rider, { facingLeft });
+}
+
+// ---------------------------------------------------------------------------
+// Coat layers (patterns, markings, long hair): the same pattern definition as every other view
+// ---------------------------------------------------------------------------
+
+/** The coat-layer atlas file (1x), loaded by any scene that shows a player's horse. */
+export const COAT_ATLAS_SRC = "race/coat-layers.png";
+const FULL_KEYS = { ...KEYS, cap: KEYS.cap } as const;
+const geoCache = new Map<string, CoatGeometry>();
+
+/** Decode the atlas once from its loaded image. */
+let atlasMemo: { im: CanvasImageSource; atlas: CoatAtlas } | null = null;
+export function coatAtlasOf(im: HTMLImageElement | null | undefined): CoatAtlas | null {
+  if (!im || !im.width) return null;
+  if (atlasMemo?.im === im) return atlasMemo.atlas;
+  const c = document.createElement("canvas");
+  c.width = im.width;
+  c.height = im.height;
+  const x = c.getContext("2d", { willReadFrequently: true })!;
+  x.drawImage(im, 0, 0);
+  const atlas = atlasFromRgba(x.getImageData(0, 0, c.width, c.height).data, c.width, c.height, 1);
+  atlasMemo = { im, atlas };
+  return atlas;
+}
+
+/**
+ * Paint one keyed horse sheet (unflipped, frames side by side) for a look: long hair, recolour and
+ * rider look (applyRiderLook), then the coat layers. `key` names the sheet (its geometry is cached).
+ */
+export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: number, frameWidth: number, look: DioramaHorseLook, atlas: CoatAtlas | null, key: string): void {
+  const a = look.appearance;
+  if (!a || !atlas) {
+    applyRiderLook(data, width, height, frameWidth, look, false);
+    return;
+  }
+  let geo = geoCache.get(key);
+  if (!geo) {
+    geo = buildCoatGeometry(rgbaRoleGrid(data, width, height, frameWidth, FULL_KEYS));
+    geoCache.set(key, geo);
+  }
+  const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false));
+  data.set(out);
 }

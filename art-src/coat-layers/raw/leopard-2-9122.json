@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, leopard appaloosa: the whole body, neck and legs pure white covered with many round chestnut leopard spots of different sizes, the face mottled",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9122,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "64019677-79d7-4c6f-b566-9072932b6602",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "64019677-79d7-4c6f-b566-9072932b6602",
+  "status": "completed",
+  "created_at": "2026-10-31T20:11:04.600707+00:00",
+  "last_response": {
+   "seed": 9122,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<36088 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "1fac3706-6080-4914-aba5-21f8e5b4b1c5",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<36088 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:11:11.132118+00:00",
+   "original_image_n_colors": 29,
+   "quantized_image_n_colors": 25
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/leopard-2-9122-0.png"
+ ]
+}

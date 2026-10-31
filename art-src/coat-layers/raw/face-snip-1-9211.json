@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, a small pure white snip on the nose between the nostrils",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2808 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9211,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "18023ebf-cd10-4678-9a7b-9bd01ef151db",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "18023ebf-cd10-4678-9a7b-9bd01ef151db",
+  "status": "completed",
+  "created_at": "2026-10-31T20:15:34.937581+00:00",
+  "last_response": {
+   "seed": 9211,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<19884 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "c5f2fcab-47f5-4e6f-a2b5-7bd2406bbd3f",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<19884 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:15:41.377561+00:00",
+   "original_image_n_colors": 19,
+   "quantized_image_n_colors": 18
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/face-snip-1-9211-0.png"
+ ]
+}

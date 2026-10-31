@@ -11,7 +11,7 @@
  * shadow, a few dozen 1-px motes, 2 ray sprites, a vignette sprite. All blurs are baked once.
  */
 import { computeFrame, lodStrip, MARGIN } from "./frame";
-import { applyRiderLook, lookKey } from "./recolor";
+import { COAT_ATLAS_SRC, coatAtlasOf, lookKey, paintHorseSheet } from "./recolor";
 import type { AnimItem, Layer, Overlay, RaySet, SceneDef, StaticItem } from "./scenes";
 
 const ART = "/art/";
@@ -248,7 +248,13 @@ export class DioramaEngine {
       l.anims?.forEach(addA);
     }
     s.overlays?.forEach((o) => files.add(o.src));
+    // a player's horse wears its coat layers (patterns, markings, long hair): load the atlas
+    let looks = false;
+    const hasLook = (a: AnimItem): boolean => !!a.look?.appearance || !!a.with?.some(hasLook);
+    for (const l of s.layers) if (l.anims?.some(hasLook)) looks = true;
+    if (looks) loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     await Promise.all([...files].map(async (f) => this.images.set(f, await loadImage(f))));
+    if (looks && !this.images.has(COAT_ATLAS_SRC)) await loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     if (this.destroyed) return;
     this.bake();
   }
@@ -522,21 +528,27 @@ export class DioramaEngine {
       else {
         const c = canvas(im.width, im.height);
         const x = ctx2d(c);
+        // paint the look on the unflipped sheet (the coat geometry reads horses facing right),
+        // then mirror each frame in place (keeps frame order)
+        let src: CanvasImageSource = im;
+        if (a.look) {
+          const pc = canvas(im.width, im.height);
+          const px = ctx2d(pc);
+          px.drawImage(im, 0, 0);
+          const d = px.getImageData(0, 0, pc.width, pc.height);
+          paintHorseSheet(d.data, pc.width, pc.height, v.fw, a.look, coatAtlasOf(this.images.get(COAT_ATLAS_SRC)), v.src);
+          px.putImageData(d, 0, 0);
+          src = pc;
+        }
         if (a.flip) {
-          // flip each frame in place (keeps frame order)
           for (let f = 0; f < v.frames; f++) {
             x.save();
             x.translate(f * v.fw + v.fw, 0);
             x.scale(-1, 1);
-            x.drawImage(im, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
+            x.drawImage(src, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
             x.restore();
           }
-        } else x.drawImage(im, 0, 0);
-        if (a.look) {
-          const d = x.getImageData(0, 0, c.width, c.height);
-          applyRiderLook(d.data, c.width, c.height, v.fw, a.look, !!a.flip);
-          x.putImageData(d, 0, 0);
-        }
+        } else x.drawImage(src, 0, 0);
         this.gradeSprite(c);
         strip = c;
       }

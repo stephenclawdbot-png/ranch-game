@@ -7,6 +7,7 @@
  * column as the line-scan would see it (nearest column, never resampled smoothly), so it
  * stays crisp pixel art while a slower horse is drawn wider.
  */
+import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, type CoatAtlas } from "@thoroughbred/art-pipeline";
 import { applyRecolor, appearanceKey, buildRecolorPlan, type KeyPalette } from "../three/recolor";
 import type { PhotoFinishModel } from "./model";
 import { photoLayout, type LayoutOptions, type PhotoLayout, type SpriteMetrics } from "./layout";
@@ -24,6 +25,8 @@ export interface PhotoArt {
   /** Frame to use (5 = full stretch, the photo-finish hold). */
   frame: number;
   keys: KeyPalette;
+  /** The coat-layer atlas (patterns, markings, long hair); absent = plain recolour. */
+  atlas?: CoatAtlas | null;
 }
 
 export interface RasterOptions extends LayoutOptions {
@@ -189,13 +192,19 @@ export function rasterPhotoFinish(model: PhotoFinishModel, art: PhotoArt, opts: 
   background(data, layout);
 
   const recoloured = new Map<string, Uint8ClampedArray>();
+  // the same coat geometry and pattern definition as every other view (art-pipeline coatLayers)
+  const geo = art.atlas ? buildCoatGeometry(rgbaRoleGrid(frame, m.frameW, m.frameH, m.frameW, art.keys)) : null;
   const spriteFor = (i: number) => {
     const a = model.runners[i]!.appearance;
     const key = appearanceKey(a);
     let s = recoloured.get(key);
     if (!s) {
-      s = frame.slice();
-      applyRecolor(s, m.frameW, m.frameH, m.frameW, buildRecolorPlan(art.keys, a));
+      const plan = buildRecolorPlan(art.keys, a);
+      if (geo && art.atlas) s = paintCoatStrip(frame, m.frameW, m.frameW, geo, a, art.atlas, art.keys, (d) => applyRecolor(d, m.frameW, m.frameH, m.frameW, plan));
+      else {
+        s = frame.slice();
+        applyRecolor(s, m.frameW, m.frameH, m.frameW, plan);
+      }
       recoloured.set(key, s);
     }
     return s;

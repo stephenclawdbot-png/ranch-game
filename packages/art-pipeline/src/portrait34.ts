@@ -19,11 +19,13 @@
  */
 import type { FaceMarking, HorseAppearance } from "@thoroughbred/shared";
 import { MARKING_WHITE, resolveHorseColors } from "./palettes";
+import { coatPatternOf, layerAt, type CoatAtlas, type CoatPattern } from "./coatLayers";
+import { GEO_REGION, type CoatGeometry } from "./coatGeometry";
 
 export const PORTRAIT_ART_SIZE = 128;
 
 /** Bump when the recolour's output pixels change (it is part of every cache key). */
-export const PORTRAIT_RECOLOUR_VERSION = 2;
+export const PORTRAIT_RECOLOUR_VERSION = 3;
 
 /** Role ids x28 in roles.png R channel (must match scripts/portrait-roles.py). */
 export const PORTRAIT_ROLES = {
@@ -230,6 +232,8 @@ export interface PortraitLook {
   freckles: "none" | "champagne" | "mottled";
   /** Pattern seed from the genes only (spots, tobiano edge). */
   seed: number;
+  /** The one per-horse pattern definition every view draws (coatLayers.coatPatternOf). */
+  pattern: CoatPattern;
 }
 
 const FACE_ORDER: FaceMarking[] = ["none", "star", "snip", "stripe", "blaze", "bald"];
@@ -246,9 +250,10 @@ export function portraitLookOf(appearance: HorseAppearance): PortraitLook {
   const col = appearance.colour;
   const grey = col?.grey ?? "none";
   const greyedOut = grey === "dapple" || grey === "white";
-  let face = appearance.face;
-  if (col?.splash === 2) face = "bald";
-  else if (col?.splash === 1) face = atLeast(face, "blaze");
+  // the face marking as every view draws it (splash and max sabino raise it)
+  const pattern = coatPatternOf(appearance);
+  let face = pattern.face;
+  if (col?.splash === 1) face = atLeast(face, "blaze");
   const leopard = greyedOut ? "none" : (col?.leopard ?? "none");
   const eye = c.eye ?? null;
   return {
@@ -266,6 +271,7 @@ export function portraitLookOf(appearance: HorseAppearance): PortraitLook {
     leopard,
     freckles: col?.champagne ? "champagne" : col?.leopard ? "mottled" : "none",
     seed: seedOf(stableJson({ colour: col, face: appearance.face, mane: appearance.maneColor })),
+    pattern,
   };
 }
 
@@ -389,6 +395,13 @@ export interface PortraitSource {
   marks: ArrayLike<number> | null;
   /** fitPaintedRamp of the still this strip was painted from. */
   ramp: PaintedRamp;
+  /**
+   * The coat layers (coat audit): the 2x layer atlas and the still's horse-space geometry
+   * (portraitCoat.ts). When given, every pattern, marking, shade and the long mane come from the
+   * one pattern definition (look.pattern) the race and ranch sprites draw; absent = the older
+   * procedural patterns.
+   */
+  coat?: { atlas: CoatAtlas; geo: CoatGeometry } | null;
   /**
    * The unreshaped still (128 x 128 RGBA) when `pixels` went through a head warp
    * (portraitShape.ts): the loop-frame check compares against it. Absent = frame 0 of `pixels`.
@@ -523,6 +536,20 @@ export function paintGeneticPortrait(look: PortraitLook, src: PortraitSource): U
         r = r * 0.9 + coatLut[k3]! * 0.1;
         g = g * 0.9 + coatLut[k3 + 1]! * 0.1;
         b = b * 0.9 + coatLut[k3 + 2]! * 0.1;
+      }
+
+      if (src.coat) {
+        const c3 = coatLayersAt(p, role, lvl, [r, g, b], look, src.coat, whiteLut, whiteManeLut, maneLut, pinkLut);
+        kind[p] = PAINT;
+        base[p * 3] = c3.rgb[0];
+        base[p * 3 + 1] = c3.rgb[1];
+        base[p * 3 + 2] = c3.rgb[2];
+        const med = src.ramp[role];
+        if (med && !(flags & PORTRAIT_FLAG_PAINTED_STAR)) {
+          dMed[p] = med[bin]!;
+          dScale[p] = c3.white ? 0.6 : detailScale[role]![bin]!;
+        }
+        continue;
       }
 
       // coat textures (roan never on the lit face front; greying starts on the face)
@@ -684,4 +711,79 @@ export function paintGeneticPortrait(look: PortraitLook, src: PortraitSource): U
     }
   }
   return out;
+}
+
+/**
+ * One still pixel through the coat layers (the portrait's share of coatLayers.paintCoatLayers):
+ * shading, ticking and white layers, the face marking, pink skin and the feathered long mane, from
+ * the pattern definition every view draws. White takes the portrait's own white ramp by LEVEL.
+ */
+function coatLayersAt(
+  p: number,
+  role: number,
+  lvl: number,
+  rgb: [number, number, number],
+  look: PortraitLook,
+  coat: { atlas: CoatAtlas; geo: CoatGeometry },
+  whiteLut: Uint8ClampedArray,
+  whiteManeLut: Uint8ClampedArray,
+  maneLut: Uint8ClampedArray,
+  pinkLut: Uint8ClampedArray,
+): { rgb: [number, number, number]; white: boolean } {
+  const { atlas, geo } = coat;
+  const R = PORTRAIT_ROLES;
+  const reg = geo.region[p]!;
+  const k3 = lvl * 3;
+  let [r, g, b] = rgb;
+  const mix = (c: readonly number[], t: number) => {
+    r += (c[0]! - r) * t;
+    g += (c[1]! - g) * t;
+    b += (c[2]! - b) * t;
+  };
+  if (!reg) return { rgb: [r, g, b], white: false };
+  const pat = look.pattern;
+  let isHair = role === R.mane;
+  // the feathered long mane falls over the neck (body space, like the strips)
+  if (pat.featherCell >= 0 && reg === GEO_REGION.body) {
+    const hv = layerAt(atlas, pat.featherCell, geo, p);
+    if (hv) {
+      const lv = Math.min(255, Math.round(lvl * (0.8 + 0.4 * ((hv - 1) / 254))));
+      r = maneLut[lv * 3]!;
+      g = maneLut[lv * 3 + 1]!;
+      b = maneLut[lv * 3 + 2]!;
+      isHair = true;
+    }
+  }
+  let white = false;
+  for (const L of pat.layers) {
+    if (L.mode === "skin" && (reg !== GEO_REGION.face || role !== R.muzzle)) continue;
+    const v = layerAt(atlas, L.cell, geo, p);
+    if (!v) continue;
+    if (L.mode === "white") {
+      if (v >= 128 && !isHair) white = true;
+    } else if (isHair || role === R.innerEar) continue;
+    else if (L.mode === "tick") {
+      if (v >= 128) mix([244, 241, 232], 0.42);
+    } else if (L.mode === "dark" || L.mode === "light") {
+      const c = hexToRgb(L.colour);
+      mix(c, Math.min(1, (v / 255) * L.amount * (L.mode === "light" ? 0.75 : 0.85)));
+    } else if (L.mode === "skin" && v >= 128) mix([pinkLut[k3]!, pinkLut[k3 + 1]!, pinkLut[k3 + 2]!], 0.8);
+  }
+  if (reg === GEO_REGION.face && pat.faceCell >= 0 && (role === R.coat || role === R.muzzle) && layerAt(atlas, pat.faceCell, geo, p) >= 128) white = true;
+  if (white) {
+    const wl = isHair ? whiteManeLut : whiteLut;
+    let wr = wl[k3]!;
+    let wg = wl[k3 + 1]!;
+    let wb = wl[k3 + 2]!;
+    if (role === R.muzzle) {
+      // white hair on the muzzle shows the pink skin under it
+      wr = (wr + pinkLut[k3]!) / 2;
+      wg = (wg + pinkLut[k3 + 1]!) / 2;
+      wb = (wb + pinkLut[k3 + 2]!) / 2;
+    }
+    r = wr;
+    g = wg;
+    b = wb;
+  }
+  return { rgb: [r, g, b], white };
 }

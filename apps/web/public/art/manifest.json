@@ -13068,6 +13068,52 @@
    }
   },
   {
+   "id": "horse.coat-layers",
+   "kind": "horse_markings",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 2048,
+   "frameHeight": 1152,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "track",
+   "palette": [],
+   "variants": [
+    "coat-layer-atlas"
+   ],
+   "sourcePrompt": "inpaint-v3 on the reference horse (diorama/horse-loose-idle frame 0, plain chestnut, 2x) per layer variant (prompts in art-src/coat-layers/jobs.mjs), read back into horse space (body, face, legs, tail) by art-src/coat-layers/extract.ts",
+   "optimizationTier": "hero",
+   "src": "race/coat-layers.png"
+  },
+  {
+   "id": "horse.coat-layers.2x",
+   "kind": "horse_markings",
+   "origin": "pixellab",
+   "license": "PixelLab generated (commercial use per PixelLab ToS)",
+   "status": "approved",
+   "frameCount": 1,
+   "frameWidth": 4096,
+   "frameHeight": 2304,
+   "fps": 0,
+   "anchor": {
+    "x": 0.5,
+    "y": 1
+   },
+   "depthBand": "overlay",
+   "palette": [],
+   "variants": [
+    "coat-layer-atlas"
+   ],
+   "sourcePrompt": "inpaint-v3 on the reference horse (diorama/horse-loose-idle frame 0, plain chestnut, 2x) per layer variant (prompts in art-src/coat-layers/jobs.mjs), read back into horse space (body, face, legs, tail) by art-src/coat-layers/extract.ts",
+   "optimizationTier": "hero",
+   "src": "portraits/coat-layers-2x.png"
+  },
+  {
    "id": "diorama.barn-floor",
    "kind": "track_layer",
    "origin": "pixellab",

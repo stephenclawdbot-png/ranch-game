@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, sabino: ragged roaned white on the lower legs running up in points, a white chin and a little ragged white flecking on the belly",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9170,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "2a985388-cc3b-4199-9e72-691a7634b47b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "2a985388-cc3b-4199-9e72-691a7634b47b",
+  "status": "completed",
+  "created_at": "2026-10-31T20:13:49.063749+00:00",
+  "last_response": {
+   "seed": 9170,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<28972 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "0ad60c2b-6f0a-48d6-9e3a-b082ecb97e5c",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<28972 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:13:55.506769+00:00",
+   "original_image_n_colors": 25,
+   "quantized_image_n_colors": 22
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/sabino1-0-9170-0.png"
+ ]
+}

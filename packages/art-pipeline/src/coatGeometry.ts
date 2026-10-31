@@ -3,8 +3,8 @@
  * horse, so a coat pattern drawn once (coatLayers.ts) lands on the same place of the horse in
  * every frame of every animation and every view.
  *
- * Input is a role grid: per texel 0 empty / other (tack, rider), 1 coat, 2 points (lower legs,
- * muzzle), 3 mane or tail, 4 other opaque (tack, saddle cloth, rider, ink). Every strip faces
+ * Input is a role grid: per texel 0 empty, 1 coat, 2 points (lower legs, muzzle), 3 mane or
+ * tail, 4 other opaque (tack, saddle cloth, rider, ink), 5 the rider's cap. Every strip faces
  * right. Per frame:
  *   - the back line (the exposed top of the horse, interpolated under the saddle and the
  *     rider, smoothed), the belly line and the barrel depth H (the strip's median);
@@ -29,7 +29,7 @@ export interface RoleGrid {
   frames: number;
   fw: number;
   fh: number;
-  /** Role of a frame-local texel: 0 empty, 1 coat, 2 points, 3 mane/tail, 4 other opaque. */
+  /** Role of a frame-local texel: 0 empty, 1 coat, 2 points, 3 mane/tail, 4 other opaque, 5 cap. */
   role(frame: number, x: number, y: number): number;
 }
 
@@ -74,7 +74,66 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
   const v = new Float32Array(n);
   const src = new Int32Array(n).fill(-1);
   const anchors: CoatGeometry["anchors"] = [];
+  // The rider: coat- or mane-keyed texels that belong to the jockey (the face under the cap,
+  // the hands on the reins) are small patches cut off from the horse. Per frame: patches in the
+  // window under and in front of the cap (role 5), and any small coat patch above the horse's top.
+  const rider = new Uint8Array(n);
+  for (let f = 0; f < frames; f++) {
+    let cx0 = fw, cy0 = fh, cx1 = -1, cy1 = -1;
+    let topY = fh;
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const r = grid.role(f, x, y);
+        if (r === 5) {
+          cx0 = Math.min(cx0, x);
+          cx1 = Math.max(cx1, x);
+          cy0 = Math.min(cy0, y);
+          cy1 = Math.max(cy1, y);
+        }
+      }
+    if (cx1 < 0) continue;
+    const capW = cx1 - cx0 + 1;
+    const wx0 = Math.max(0, cx0 - 2);
+    const wx1 = Math.min(fw - 1, cx1 + Math.max(4, Math.round(capW * 0.35)));
+    const wy1 = Math.min(fh - 1, cy1 + Math.max(8, Math.round(capW * 0.9)));
+    void topY;
+    const seen = new Uint8Array(fw * fh);
+    for (let y0 = 0; y0 < fh; y0++)
+      for (let x0 = 0; x0 < fw; x0++) {
+        const r0 = grid.role(f, x0, y0);
+        if (seen[y0 * fw + x0] || r0 < 1 || r0 > 3) continue;
+        const patch: number[] = [];
+        const stack = [x0, y0];
+        seen[y0 * fw + x0] = 1;
+        let minY = fh;
+        while (stack.length) {
+          const py = stack.pop()!;
+          const px = stack.pop()!;
+          patch.push(py * fw + px);
+          minY = Math.min(minY, py);
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const qx = px + dx;
+              const qy = py + dy;
+              if (qx < 0 || qy < 0 || qx >= fw || qy >= fh || seen[qy * fw + qx]) continue;
+              const rq = grid.role(f, qx, qy);
+              if (rq < 1 || rq > 3) continue;
+              seen[qy * fw + qx] = 1;
+              stack.push(qx, qy);
+            }
+        }
+        const inWin = patch.every((k) => {
+          const x = k % fw;
+          const y = Math.floor(k / fw);
+          return x >= wx0 && x < wx1 && y >= cy0 && y < wy1;
+        });
+        const small = patch.length <= Math.max(40, capW * 6);
+        // a small patch whose top is level with the cap's bottom or higher: the rider's hands or face
+        if (small && (inWin || minY <= wy1)) for (const k of patch) rider[f * fw * fh + k] = 1;
+      }
+  }
   const horse = (f: number, x: number, y: number) => {
+    if (rider[(f * fh + y) * fw + x]) return 0;
     const r = grid.role(f, x, y);
     return r >= 1 && r <= 3 ? r : 0;
   };
@@ -122,19 +181,17 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
     }
     const back = median(tops);
     let belly = median(bots);
-    // the belly line from coverage: the last row (below the back) where the trunk's columns are
-    // mostly horse; a grazing head or a hanging tail cannot pull it down like the median can
+    // the belly line between the legs: the bottom of the top run of the middle columns (a low
+    // quantile, so legs gathered under the body or a grazing head cannot pull it down)
     if (x0 >= 0 && W >= 24) {
-      const ca = Math.round(x0 + W * 0.2);
-      const cb = Math.round(x0 + W * 0.55);
-      let last = -1;
-      for (let y = Math.max(0, back); y < fh; y++) {
-        let on = 0;
-        for (let x = ca; x <= cb; x++) if (horse(f, x, y)) on++;
-        if (on / Math.max(1, cb - ca + 1) >= 0.6) last = y;
-        else if (last >= 0 && y - last > 2) break;
+      const mids: number[] = [];
+      for (let x = Math.round(x0 + W * 0.25); x <= Math.round(x0 + W * 0.7); x++) {
+        const col = runs[x]!;
+        if (col.length && col[0]![1] > back + 8) mids.push(col[0]![1]);
       }
-      if (last > back + 8 && last < belly) belly = last;
+      mids.sort((a, b) => a - b);
+      const q = mids.length ? mids[Math.floor(mids.length * 0.3)]! : belly;
+      if (q < belly) belly = q;
     }
     fr.push({ runs, x0, x1, back, belly });
   }
@@ -198,7 +255,7 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
       if (!col.length) continue;
       const t = col[0]![0];
       if (t > belly) continue; // a leg-only column (no trunk above it)
-      const exposed = t === 0 || grid.role(f, x, t - 1) === 0;
+      const exposed = t === 0 || (grid.role(f, x, t - 1) === 0 && !rider[(f * fh + t - 1) * fw + x]);
       if (exposed) topAt[x] = t;
     }
     // interpolate occluded columns (saddle, rider, reins) between exposed neighbours
@@ -272,6 +329,13 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
         headCols.push(x);
       }
     }
+    // the head is about one barrel depth long: no neck columns past that, and no gaps (tack
+    // and ink split a column's run; every column between the ends belongs to the head)
+    if (!noseLow && headCols.length) {
+      const left = Math.max(headCols[headCols.length - 1]!, Math.ceil(hx1 - H * 1.15));
+      headCols.length = 0;
+      for (let x = hx1; x >= left; x--) if (runs[x]?.length) headCols.push(x);
+    }
     const hx0 = headCols.length ? headCols[headCols.length - 1]! : -1;
     let hy0 = fh;
     let hy1 = 0;
@@ -283,7 +347,7 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
       if (r[0] < hy0) hy0 = r[0];
       if (r[1] > hy1) hy1 = r[1];
     }
-    if (hx0 >= 0 && hx1 - hx0 >= 10 && hy1 - hy0 >= 12) {
+    if (hx0 >= 0 && hx1 - hx0 >= Math.min(10, H * 0.8) && hy1 - hy0 >= 12) {
       const hh = hy1 - hy0;
       const yBrow = hy0 + hh * 0.28;
       const yNose = hy0 + hh * 0.94;
@@ -390,8 +454,10 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
         }
         // hair candidates: empty texels behind (left of) and in front of the lower leg
         const g = p1[at(Math.round(c) >= a && Math.round(c) <= b ? Math.round(c) : a, y)]!;
-        if (g > 0.42) continue;
-        const reachBack = Math.max(3, Math.round(H * 0.3));
+        // hair hangs from the back of a lower leg that stands or swings roughly upright (a leg
+        // stretched out flat has wide rows: no curtain of hair along it)
+        if (g > 0.36 || b - a > H * 0.4) continue;
+        const reachBack = Math.max(3, Math.round(H * 0.24));
         const reachFront = Math.max(2, Math.round(H * 0.12));
         const srcI = at(Math.min(b, Math.max(a, Math.round(c))), y);
         for (let x = a - reachBack; x <= b + reachFront; x++) {
@@ -466,7 +532,13 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
       const bx1 = Math.ceil(Math.max(root[0], tip[0] + ax * reach) + side);
       const by0 = Math.floor(Math.min(root[1], tip[1] + ay * reach) - side);
       const by1 = Math.ceil(Math.max(root[1], tip[1] + ay * reach) + side);
-      for (let y = Math.max(0, by0); y <= Math.min(fh - 1, by1); y++) {
+      // never below the ground line (the lowest hoof of the frame)
+      let ground = 0;
+      for (let x = 0; x < fw; x++) {
+        const col = runs[x]!;
+        if (col.length) ground = Math.max(ground, col[col.length - 1]![1]);
+      }
+      for (let y = Math.max(0, by0); y <= Math.min(ground, by1); y++) {
         for (let x = Math.max(0, bx0); x <= Math.min(fw - 1, bx1); x++) {
           const i = at(x, y);
           if (region[i] || grid.role(f, x, y) !== 0) continue;
@@ -489,7 +561,7 @@ export function rgbaRoleGrid(
   width: number,
   height: number,
   frameWidth: number,
-  keys: { coat: readonly string[]; points?: readonly string[]; mane?: readonly string[]; hoof?: readonly string[] },
+  keys: { coat: readonly string[]; points?: readonly string[]; mane?: readonly string[]; hoof?: readonly string[]; cap?: readonly string[] },
 ): RoleGrid {
   const pack = (h: string) => Number.parseInt(h.slice(1), 16);
   const roles = new Map<number, number>();
@@ -497,6 +569,7 @@ export function rgbaRoleGrid(
   for (const h of keys.points ?? []) roles.set(pack(h), 2);
   for (const h of keys.hoof ?? []) roles.set(pack(h), 2);
   for (const h of keys.mane ?? []) roles.set(pack(h), 3);
+  for (const h of keys.cap ?? []) roles.set(pack(h), 5);
   const frames = Math.max(1, Math.floor(width / frameWidth));
   return {
     frames,

@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, blanket appaloosa: a pure white blanket over the hips and loins with round chestnut spots inside it, the front half chestnut",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7068 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9131,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "ce30a27e-62b6-40bf-81ad-a07367163ff4",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "ce30a27e-62b6-40bf-81ad-a07367163ff4",
+  "status": "completed",
+  "created_at": "2026-10-31T20:12:24.373116+00:00",
+  "last_response": {
+   "seed": 9131,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<25460 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "09d6aafc-9157-4070-be06-69c717afdaad",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<25460 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:12:30.798803+00:00",
+   "original_image_n_colors": 23,
+   "quantized_image_n_colors": 21
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/blanket-1-9131-0.png"
+ ]
+}

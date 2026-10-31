@@ -36,7 +36,7 @@ import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeF
 import { CHIP_H, chipLabel, pickChips, type ChipCandidate } from "./gapMarks";
 import { lookFor, type TracksideLook } from "./looks";
 import { finishTilt, sceneryFor } from "./scenery";
-import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "./strips";
+import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, frameOrigin } from "./strips";
 import * as S from "./shaders";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
@@ -194,6 +194,9 @@ export class TracksideScene {
   private byLane: Runner[] = [];
   private lodTex = new Map<StripSet, LodTex[]>();
   private mskTex = new Map<StripSet, THREE.DataTexture>();
+  private coatTex = new Map<StripSet, { uv: THREE.DataTexture; pq: THREE.DataTexture }>();
+  private keyInfo!: THREE.DataTexture;
+  private atlasTex!: THREE.DataTexture;
   private lut: THREE.DataTexture;
   private sprite: SpriteMetrics;
   private cam = new TracksideCamera();
@@ -311,7 +314,10 @@ export class TracksideScene {
         st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
       );
       this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
+      this.coatTex.set(st, { uv: this.dataTex(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: this.dataTex(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
     }
+    this.keyInfo = this.dataTex(buildKeyInfo(art.palette, art.keys), 64, 2, T.RGBAFormat);
+    this.atlasTex = art.atlas ? this.dataTex(art.atlas.data, art.atlas.width, art.atlas.height, T.RedFormat) : this.dataTex(new Uint8Array(1), 1, 1, T.RedFormat);
     this.buildBackdrop();
     this.into = this.trackLayer;
     this.buildGround();
@@ -623,6 +629,13 @@ export class TracksideScene {
         uNrm: { value: lt.nrm ?? lt.idx },
         uLut: { value: this.lut },
         uMsk: { value: this.mskTex.get(g) },
+        uMsk2: { value: this.coatTex.get(g)!.uv },
+        uMsk3: { value: this.coatTex.get(g)!.pq },
+        uAtlas: { value: this.atlasTex },
+        uAtlasSize: { value: new T.Vector2(this.art.atlas?.width ?? 1, this.art.atlas?.height ?? 1) },
+        uHasAtlas: { value: this.art.atlas ? 1 : 0 },
+        uKeyInfo: { value: this.keyInfo },
+        uGeoH: { value: g.geoH },
         uIdxSize: { value: new T.Vector2(l0.width, l0.height) },
         uMskSize: { value: new T.Vector2(l0.width, l0.height) },
         uMskOrigin: { value: new T.Vector2(0, 0) },
@@ -1185,6 +1198,9 @@ export class TracksideScene {
       u.uNrm!.value = tex.nrm ?? tex.idx;
       u.uUseNrm!.value = tex.nrm ? 1 : 0;
       u.uMsk!.value = this.mskTex.get(st);
+      u.uMsk2!.value = this.coatTex.get(st)!.uv;
+      u.uMsk3!.value = this.coatTex.get(st)!.pq;
+      u.uGeoH!.value = st.geoH;
       (u.uIdxSize!.value as THREE.Vector2).set(lod.width, lod.height);
       (u.uMskSize!.value as THREE.Vector2).set(st.lods[0]!.width, st.lods[0]!.height);
       (u.uMskOrigin!.value as THREE.Vector2).set(...frameOrigin(st.lods[0]!, frame));
@@ -1431,6 +1447,8 @@ export class TracksideScene {
         for (const run of this.runners) {
           run.mat.uniforms.uIdx!.value = lt.idx;
           run.mat.uniforms.uMsk!.value = this.mskTex.get(st);
+          run.mat.uniforms.uMsk2!.value = this.coatTex.get(st)!.uv;
+          run.mat.uniforms.uMsk3!.value = this.coatTex.get(st)!.pq;
         }
         r.compile(this.scene, this.camera);
       }

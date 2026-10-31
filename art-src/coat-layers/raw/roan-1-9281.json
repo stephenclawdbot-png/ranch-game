@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, roan: many single white hairs evenly mixed through the body coat, the head, mane, tail and lower legs stay solid chestnut",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<7052 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9281,
+  "no_background": false,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b5993123-236d-4095-92c1-40c2562b1c36",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "b5993123-236d-4095-92c1-40c2562b1c36",
+  "status": "completed",
+  "created_at": "2026-10-31T20:18:44.091156+00:00",
+  "last_response": {
+   "seed": 9281,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<50660 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "2bad298e-7c5a-4c39-9de7-0b6da58ec01c",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<50660 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:18:50.501323+00:00",
+   "original_image_n_colors": 29,
+   "quantized_image_n_colors": 24
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/roan-1-9281-0.png"
+ ]
+}

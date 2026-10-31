@@ -3,6 +3,7 @@
  * whole-number scale (nearest, never smoothed), and draws the text and the judge's line
  * on top at device resolution so it stays crisp.
  */
+import { atlasFromRgba, type CoatAtlas } from "@thoroughbred/art-pipeline";
 import { parseKeyPalette } from "../three/recolor";
 import { formatPhotoTime } from "./layout";
 import { marginPhrase, type PhotoFinishModel } from "./model";
@@ -23,7 +24,12 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 
 /** Loads `race/horse-lunge.png` and `race/palette.json` from the art base (default "/art"). */
 export async function loadPhotoFinishArt(base = "/art"): Promise<PhotoArt> {
-  const [img, pal] = await Promise.all([loadImage(`${base}/race/horse-lunge.png`), fetch(`${base}/race/palette.json`).then((r) => r.json() as Promise<unknown>)]);
+  const [img, pal, atlasImg] = await Promise.all([
+    loadImage(`${base}/race/horse-lunge.png`),
+    fetch(`${base}/race/palette.json`).then((r) => r.json() as Promise<unknown>),
+    // the coat layers (patterns, markings, long hair): optional, the photo still works without
+    loadImage(`${base}/race/coat-layers.png`).catch(() => null),
+  ]);
   const keys = parseKeyPalette(pal);
   if (!keys) throw new Error("photo finish: bad palette.json");
   const c = document.createElement("canvas");
@@ -32,7 +38,16 @@ export async function loadPhotoFinishArt(base = "/art"): Promise<PhotoArt> {
   const ctx = c.getContext("2d", { willReadFrequently: true })!;
   ctx.drawImage(img, 0, 0);
   const data = ctx.getImageData(0, 0, c.width, c.height).data;
-  return { strip: { data, width: c.width, height: c.height, frameW: LUNGE_FRAME_W }, frame: LUNGE_PHOTO_FRAME, keys };
+  let atlas: CoatAtlas | null = null;
+  if (atlasImg) {
+    const ac = document.createElement("canvas");
+    ac.width = atlasImg.naturalWidth;
+    ac.height = atlasImg.naturalHeight;
+    const ax = ac.getContext("2d", { willReadFrequently: true })!;
+    ax.drawImage(atlasImg, 0, 0);
+    atlas = atlasFromRgba(ax.getImageData(0, 0, ac.width, ac.height).data, ac.width, ac.height, 1);
+  }
+  return { strip: { data, width: c.width, height: c.height, frameW: LUNGE_FRAME_W }, frame: LUNGE_PHOTO_FRAME, keys, atlas };
 }
 
 export interface RenderOptions extends RasterOptions {

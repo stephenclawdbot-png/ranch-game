@@ -1,0 +1,78 @@
+{
+ "endpoint": "/inpaint-v3",
+ "request": {
+  "description": "a plain mid chestnut horse standing side view, detailed pixel art, same pose, same outline, same shading, long hair breed: heavy feathering, long silky hair growing from the backs of the lower legs and falling over the hooves; a very long thick dark mane hanging down the neck; a very long full dark tail reaching the ground",
+  "inpainting_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<28788 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "mask_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<3840 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 504,
+    "height": 362
+   }
+  },
+  "seed": 9390,
+  "no_background": true,
+  "crop_to_mask": true
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6744568a-7b53-4b0d-a678-957935b4e3fc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "6744568a-7b53-4b0d-a678-957935b4e3fc",
+  "status": "completed",
+  "created_at": "2026-10-31T20:06:37.989541+00:00",
+  "last_response": {
+   "seed": 9390,
+   "type": "message_done",
+   "image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<50828 chars>",
+    "height": 362
+   },
+   "action": "Touching up pixels",
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "cecca359-a4ae-4aae-a45d-6784efa878bb",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "generation_mode": "inpainting_v3",
+   "quantized_image": {
+    "type": "base64",
+    "width": 504,
+    "base64": "<50828 chars>",
+    "height": 362
+   },
+   "generation_started_at": "2026-10-31T20:06:44.433047+00:00",
+   "original_image_n_colors": 8915,
+   "quantized_image_n_colors": 33
+  }
+ },
+ "files": [
+  "art-src/coat-layers/raw/feather-0-9390-0.png"
+ ]
+}
