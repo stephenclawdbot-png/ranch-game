@@ -40,6 +40,7 @@ export const LAYER_JOBS = [
   // light layers and skin
   { id: "pangare", mode: "light", mask: "horse", n: 2, text: `${H}, pangare: pale mealy cream colour only around the muzzle and the eyes, under the belly, in the flanks and on the inside of the upper legs; the back, neck and shoulders stay exactly the same chestnut`, seeds: [null, 9471] },
   { id: "skin", mode: "skin", mask: "head", n: 1, text: `${H}, pink skin on the muzzle and the nose and around the eye` },
-  // the feathered long-haired horse
-  { id: "feather", mode: "hair", mask: "hair", n: 2, text: `${H}, long hair breed: heavy feathering, long silky hair growing from the backs of the lower legs and falling over the hooves; a very long thick dark mane hanging down the neck; a very long full dark tail reaching the ground` },
+  // the feathered long-haired horse: a style reference only (the long hair is drawn in code,
+  // packages/art-pipeline/src/longHair.ts; this job is not in the atlas)
+  { reference: true, id: "feather", mode: "hair", mask: "hair", n: 2, text: `${H}, long hair breed: heavy feathering, long silky hair growing from the backs of the lower legs and falling over the hooves; a very long thick dark mane hanging down the neck; a very long full dark tail reaching the ground` },
 ];

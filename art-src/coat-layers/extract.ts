@@ -3,7 +3,7 @@
 // apps/web/public/art/portraits/coat-layers-2x.png (2x, the portraits).
 //   node <tsx> art-src/coat-layers/extract.ts [--sheet out.png]
 import { existsSync, readdirSync } from "node:fs";
-import { ATLAS_CELL, ATLAS_COLS, BODY, CELL_COUNT, COAT_LAYERS, FACE, LAYER_CELL, LEGS, TAIL, atlasSize, spaceXY, type LayerMode } from "../../packages/art-pipeline/src/coatLayers";
+import { ATLAS_CELL, ATLAS_COLS, BODY, CELL_COUNT, COAT_LAYERS, FACE, LAYER_CELL, LEGS, LEG_BODY_V, TAIL, atlasSize, spaceXY, type LayerMode } from "../../packages/art-pipeline/src/coatLayers";
 import { GEO_REGION } from "../../packages/art-pipeline/src/coatGeometry";
 import { ART, ROOT, blank, readPng, writePng, type Img } from "./png";
 import { REF_DIR, REF_SCALE, referenceGeometry } from "./reference";
@@ -12,7 +12,7 @@ import { LAYER_JOBS } from "./jobs.mjs";
 
 const MASK_OF = new Map<string, string>((LAYER_JOBS as { id: string; mask: string }[]).map((j) => [j.id, j.mask]));
 /** Layers whose details are single hairs or freckles: the 1x copy keeps any of them (max, not mean). */
-const SPARSE = new Set(["birdcatcher", "roan", "rabicano", "greying", "varnish"]);
+const SPARSE = new Set(["birdcatcher"]);
 
 const RAW = `${ROOT}/art-src/coat-layers/raw`;
 const S = 2; // atlas scale written first (the 1x atlas is its 2:1 copy)
@@ -82,14 +82,20 @@ for (const [id, mode, n] of COAT_LAYERS) {
         const dx = (X % REF_SCALE) / REF_SCALE - 0.25;
         const dy = (Y % REF_SCALE) / REF_SCALE - 0.25;
         const p2 = region === GEO_REGION.face ? geo.p2[i]! - dx : region >= 1 && region <= 4 ? geo.p2[i]! + dx : geo.p2[i]!;
-        const xy = spaceXY(region, geo.p1[i]!, p2, geo.u[i]! + dx, geo.v[i]! + dy, geo.H);
-        if (!xy) continue;
-        const ax = cx + Math.round(xy[0] * S);
-        const ay = cy + Math.round(xy[1] * S);
-        if (ax < cx || ay < cy || ax >= cx + ATLAS_CELL.w * S || ay >= cy + ATLAS_CELL.h * S) continue;
-        const k = ay * size2.width + ax;
-        val[k]! += valueOf(mode, px(ref, X, Y), px(q, X, Y), out, region);
-        cov[k]! += 1;
+        // every texel lands in its own space, and the head and the legs in body space too (the
+        // patterns read body space there, so the head, the neck and the upper legs join seamlessly)
+        const value = valueOf(mode, px(ref, X, Y), px(q, X, Y), out, region);
+        const targets = [spaceXY(region, geo.p1[i]!, p2, geo.u[i]! + dx, geo.v[i]! + dy, geo.H)];
+        if (!out && (region === GEO_REGION.face || (region >= 1 && region <= 4 && geo.v[i]! <= geo.H * LEG_BODY_V))) targets.push(spaceXY(GEO_REGION.body, 0, 0, geo.u[i]! + dx, geo.v[i]! + dy, geo.H));
+        for (const xy of targets) {
+          if (!xy) continue;
+          const ax = cx + Math.round(xy[0] * S);
+          const ay = cy + Math.round(xy[1] * S);
+          if (ax < cx || ay < cy || ax >= cx + ATLAS_CELL.w * S || ay >= cy + ATLAS_CELL.h * S) continue;
+          const k = ay * size2.width + ax;
+          val[k]! += value;
+          cov[k]! += 1;
+        }
       }
     filled++;
   }
@@ -212,15 +218,16 @@ for (const [id, mode, n] of COAT_LAYERS) {
         return win[Math.floor(win.length / 2)]!;
       };
       for (let y = 0; y < h; y++) {
-        // feathers grow from the fetlock down (the lowest 30 % of the leg) and stand out a few
-        // texels behind it, wider toward the hoof
-        const low = (y / (h - 1) - 0.7) / 0.3;
+        // a soft fringe from the knee / hock down: narrow at the top, widest over the fetlock,
+        // drawn in again over the hoof (never a smear along the ground)
+        const low = (y / (h - 1) - 0.55) / 0.45;
         if (low <= 0) {
           for (let x = 0; x < w; x++) atlas2[at(x, y)] = 0;
           continue;
         }
-        const l = Math.max(med(left, y), zero - Math.round(w * (0.08 + 0.14 * low)));
-        const r = Math.min(med(right, y), zero + Math.round(w * 0.1));
+        const frac = 0.04 + 0.13 * (low < 0.75 ? low / 0.75 : 1 - ((low - 0.75) / 0.25) * 0.7);
+        const l = Math.max(Math.min(med(left, y), zero - Math.round(w * 0.04)), zero - Math.round(w * frac));
+        const r = Math.min(med(right, y), zero + Math.round(w * 0.06));
         const sh = med(shade, y) || 120;
         for (let x = 0; x < w; x++) {
           const inside = x >= l && x <= r && r > l;
@@ -272,14 +279,57 @@ for (const [id, mode, n] of COAT_LAYERS) {
     for (let x = 0; x < w; x++) {
       const win = len.slice(Math.max(0, x - 5 * S), x + 5 * S + 1).sort((p, q) => p - q);
       let end = win[Math.floor(win.length / 2)]!;
-      // taper from the withers (u 1.9 H) over the first 0.35 H of the crest
+      // a long mane: at least a third of a barrel depth down the neck (the painting's own length
+      // where it is longer), tapering from the withers (u 1.9 H) over the first 0.35 H of the crest
       const u = uOf(x);
+      if (u >= 1.9 && u <= 3.05) end = Math.max(end, yOf(0.34));
       if (end >= 0 && u < 2.25) end = Math.round(top + (end - top) * Math.max(0, (u - 1.9) / 0.35));
       const sh = shade[x] || 120;
       for (let y = 0; y < h; y++) {
         const k = at(x, y);
         const q = atlas2[k]!;
         atlas2[k] = end >= 0 && y >= top && y <= end ? Math.max(24, q >= 24 ? q : Math.round(sh * (x % 3 === 0 ? 0.8 : 1))) : 0;
+      }
+    }
+  }
+}
+
+// A fuller tail: per row along the tail (a), the painting's hair from one side to the other as one
+// band, at least 0.14 H wide down to 1.35 tail lengths (the long tail of the feathered horse).
+for (const [id, mode, n] of COAT_LAYERS) {
+  if (mode !== "hair") continue;
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const w = TAIL.w * S;
+    const h = TAIL.h * S;
+    const at = (x: number, y: number) => (cy + TAIL.y * S + y) * size2.width + cx + TAIL.x * S + x;
+    const mid = (w - 1) / 2;
+    const minHalf = ((0.07 / (2 * TAIL.l1)) * (w - 1));
+    for (let y = 0; y < h; y++) {
+      const a = (y / (h - 1)) * TAIL.a1;
+      let l = w;
+      let r = -1;
+      let sum = 0;
+      let c = 0;
+      for (let x = 0; x < w; x++) {
+        const q = atlas2[at(x, y)]!;
+        if (q < 24) continue;
+        l = Math.min(l, x);
+        r = Math.max(r, x);
+        sum += q;
+        c++;
+      }
+      const long = a <= 1.35;
+      if (long) {
+        l = Math.min(l, Math.floor(mid - minHalf * (1 - a / 1.6)));
+        r = Math.max(r, Math.ceil(mid + minHalf * (1 - a / 1.6)));
+      }
+      const sh = c ? sum / c : 110;
+      for (let x = 0; x < w; x++) {
+        const q = atlas2[at(x, y)]!;
+        atlas2[at(x, y)] = r >= l && x >= l && x <= r && (long || q >= 24) ? Math.max(24, q >= 24 ? q : Math.round(sh * (x % 2 ? 0.85 : 1))) : 0;
       }
     }
   }
@@ -330,9 +380,41 @@ for (let v = 0; v < (COAT_LAYERS.find((l) => l[0] === "dun")?.[2] ?? 0); v++) {
   }
 }
 
-// Binary layers stay binary (white, tick, skin: on at half coverage); hair keeps its shade.
+// Ticking (roan, rabicano, varnish, greying) becomes a density: the share of the painting's white
+// hairs around each point (the painters scatter fine single hairs at that density, fixed to the
+// body), so it reads as even white hairs at any scale, never as coarse blots.
 for (const [id, mode, n] of COAT_LAYERS) {
-  if (mode === "dark" || mode === "light" || mode === "hair") continue;
+  if (mode !== "tick") continue;
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const w = ATLAS_CELL.w * S;
+    const h = ATLAS_CELL.h * S;
+    const src = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) src[y * w + x] = atlas2[(cy + y) * size2.width + cx + x]! >= 128 ? 1 : 0;
+    const r = 3 * S;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        let s2 = 0;
+        let c = 0;
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+            s2 += src[yy * w + xx]!;
+            c++;
+          }
+        // a pixel with no hair near it stays 0 (the solid head and legs keep their colour)
+        atlas2[(cy + y) * size2.width + cx + x] = s2 ? Math.min(255, Math.round((s2 / c) * 255 * 1.6)) : 0;
+      }
+  }
+}
+
+// Binary layers stay binary (white, skin: on at half coverage); hair keeps its shade.
+for (const [id, mode, n] of COAT_LAYERS) {
+  if (mode === "dark" || mode === "light" || mode === "hair" || mode === "tick") continue;
   for (let v = 0; v < n; v++) {
     const cell = LAYER_CELL[id] + v;
     const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
@@ -377,6 +459,110 @@ for (const [id, , n] of COAT_LAYERS) {
   }
 }
 
+// White patterns are shapes: a majority (median) filter over each space removes the single-pixel
+// lines and specks the read-back leaves (texels whose geometry wobbles on the reference), so the
+// patches keep clean edges in every pose. Birdcatcher freckles are specks by design: kept.
+for (const [id, mode, n] of COAT_LAYERS) {
+  if (mode !== "white" || id === "birdcatcher") continue;
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const r = id.startsWith("face-") || id.startsWith("leg-") ? 1 : 2;
+    for (const sp of spaces) {
+      const w = sp.w * S;
+      const h = sp.h * S;
+      const at = (x: number, y: number) => (cy + sp.y * S + y) * size2.width + cx + sp.x * S + x;
+      const src = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) src[y * w + x] = atlas2[at(x, y)]! >= 128 ? 1 : 0;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+          let on = 0;
+          let tot = 0;
+          for (let dy = -r; dy <= r; dy++)
+            for (let dx = -r; dx <= r; dx++) {
+              const xx = x + dx;
+              const yy = y + dy;
+              if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+              on += src[yy * w + xx]!;
+              tot++;
+            }
+          atlas2[at(x, y)] = on * 2 > tot ? 255 : 0;
+        }
+    }
+  }
+}
+
+// White on the legs (pinto white legs, socks and stockings): per leg and per height one value,
+// the painting's majority across the leg, so leg white is a clean band that rides up and down
+// with the leg in every pose (no streaks along a swinging leg). Spotted patterns keep their spots.
+const BANDED = new Set(["tobiano", "tobiano-ink", "splash", "splash2", "sabino1", "sabino2", "blanket", "fewspot", "leg-coronet", "leg-sock", "leg-stocking"]);
+for (const [id, , n] of COAT_LAYERS) {
+  if (!BANDED.has(id)) continue;
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const w = LEGS.w * S;
+    const zero = Math.round((-LEGS.s0 / (LEGS.s1 - LEGS.s0)) * (w - 1));
+    const half = Math.round((0.1 / (LEGS.s1 - LEGS.s0)) * (w - 1)); // the leg itself: +-0.1 H
+    for (let k = 0; k < 4; k++) {
+      const at = (x: number, y: number) => (cy + (LEGS.y * S + y)) * size2.width + cx + (LEGS.x + k * LEGS.w) * S + x;
+      const rows: number[] = [];
+      for (let y = 0; y < LEGS.h * S; y++) {
+        let on = 0;
+        let tot = 0;
+        for (let x = zero - half; x <= zero + half; x++) {
+          tot++;
+          if (atlas2[at(x, y)]! >= 128) on++;
+        }
+        rows.push(on * (id === "leg-coronet" ? 3 : 2) > tot ? 255 : 0);
+      }
+      // smooth the band edges over a few rows (no single-row flicker)
+      const sm = id.startsWith("leg-") ? 0 : 2 * S; // a coronet is only a few rows: no smoothing
+      for (let y = 0; y < rows.length; y++) {
+        const win = rows.slice(Math.max(0, y - sm), y + sm + 1);
+        const val = win.filter((q) => q > 0).length * 2 > win.length ? 255 : 0;
+        for (let x = 0; x < w; x++) atlas2[at(x, y)] = val;
+      }
+    }
+  }
+}
+
+// Leg markings: one drawn shape per variant for every leg (the painting's clearest leg; a variant
+// the painting lost entirely takes its sibling's), so a sock is the same sock on any leg.
+for (const [id, , n] of COAT_LAYERS) {
+  if (!id.startsWith("leg-")) continue;
+  const blockOf = (cell: number, k: number) => {
+    const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w * S;
+    const cy = Math.floor(cell / ATLAS_COLS) * ATLAS_CELL.h * S;
+    const out: number[] = [];
+    for (let y = 0; y < LEGS.h * S; y++) for (let x = 0; x < LEGS.w * S; x++) out.push((cy + LEGS.y * S + y) * size2.width + cx + (LEGS.x + k * LEGS.w) * S + x);
+    return out;
+  };
+  const cover = (idx: number[]) => idx.reduce((c, k) => c + (atlas2[k]! >= 128 ? 1 : 0), 0);
+  const best: number[][] = [];
+  for (let v = 0; v < n; v++) {
+    const cell = LAYER_CELL[id] + v;
+    let top: number[] = [];
+    let topN = -1;
+    for (let k = 0; k < 4; k++) {
+      const b = blockOf(cell, k);
+      const c = cover(b);
+      if (c > topN) {
+        topN = c;
+        top = b;
+      }
+    }
+    best.push(topN > 0 ? top.map((k) => atlas2[k]!) : []);
+  }
+  for (let v = 0; v < n; v++) {
+    const vals = best[v]!.length ? best[v]! : best.find((b) => b.length) ?? [];
+    if (!vals.length) continue;
+    for (let k = 0; k < 4; k++) blockOf(LAYER_CELL[id] + v, k).forEach((at, j) => (atlas2[at] = vals[j]!));
+  }
+}
+
 const toImg = (data: Uint8Array, w: number, h: number): Img => {
   const img = blank(w, h);
   for (let i = 0; i < data.length; i++) img.data.set([data[i]!, data[i]!, data[i]!, 255], i * 4);
@@ -400,7 +586,7 @@ for (let y = 0; y < size1.height; y++)
   }
 // re-binarise the 1x copy the same way
 for (const [id, mode, n] of COAT_LAYERS) {
-  if (mode === "dark" || mode === "light" || mode === "hair") continue;
+  if (mode === "dark" || mode === "light" || mode === "hair" || mode === "tick") continue;
   for (let v = 0; v < n; v++) {
     const cell = LAYER_CELL[id] + v;
     const cx = (cell % ATLAS_COLS) * ATLAS_CELL.w;

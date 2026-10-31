@@ -5,7 +5,7 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
+import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
@@ -201,7 +201,7 @@ export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: 
     geo = buildCoatGeometry(rgbaRoleGrid(data, width, height, frameWidth, FULL_KEYS));
     geoCache.set(key, geo);
   }
-  const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false));
+  const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false), sheetSpeed(key));
   data.set(out);
 }
 

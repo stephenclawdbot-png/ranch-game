@@ -255,7 +255,13 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
       if (!col.length) continue;
       const t = col[0]![0];
       if (t > belly) continue; // a leg-only column (no trunk above it)
-      const exposed = t === 0 || (grid.role(f, x, t - 1) === 0 && !rider[(f * fh + t - 1) * fw + x]);
+      // exposed: empty above, or only a thin outline (ink, up to 2 texels) and then empty
+      let exposed = t === 0;
+      for (let k = 1; k <= 3 && !exposed && t - k >= 0; k++) {
+        const r = grid.role(f, x, t - k);
+        if (r === 0 && !rider[(f * fh + t - k) * fw + x]) exposed = true;
+        else if (r !== 4 || k === 3) break;
+      }
       if (exposed) topAt[x] = t;
     }
     // interpolate occluded columns (saddle, rider, reins) between exposed neighbours
@@ -456,7 +462,7 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
         const g = p1[at(Math.round(c) >= a && Math.round(c) <= b ? Math.round(c) : a, y)]!;
         // hair hangs from the back of a lower leg that stands or swings roughly upright (a leg
         // stretched out flat has wide rows: no curtain of hair along it)
-        if (g > 0.36 || b - a > H * 0.4) continue;
+        if (g > 0.45 || g < 0.04 || b - a > H * 0.4) continue;
         const reachBack = Math.max(3, Math.round(H * 0.24));
         const reachFront = Math.max(2, Math.round(H * 0.12));
         const srcI = at(Math.min(b, Math.max(a, Math.round(c))), y);

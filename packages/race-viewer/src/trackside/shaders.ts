@@ -206,8 +206,8 @@ float byteOf(float v) {
 }
 // coat layers (art-pipeline coatLayers.ts): one atlas cell per drawn variant, four horse spaces
 float atlasAt(float cell, vec2 xy) {
-  vec2 o = vec2(mod(cell, 8.0) * 256.0, floor(cell / 8.0) * 144.0);
-  vec2 p = o + clamp(floor(xy), vec2(0.0), vec2(255.0, 143.0));
+  vec2 o = vec2(mod(cell, 8.0) * 256.0, floor(cell / 8.0) * 192.0);
+  vec2 p = o + clamp(floor(xy), vec2(0.0), vec2(255.0, 191.0));
   return byteOf(texture2D(uAtlas, (p + 0.5) / uAtlasSize).r);
 }
 // cell-local position of a geometry point (coatLayers.spaceXY); z = 1 inside a space
@@ -216,7 +216,7 @@ vec3 spaceXY(float greg, float p1, float p2, vec2 uv) {
   if (greg > 0.5 && greg < 4.5) {
     float sx = (p2 / H + 0.45) / 0.7;
     if (sx < 0.0 || sx > 1.0) return vec3(0.0);
-    return vec3((greg - 1.0) * 34.0 + sx * 33.0, 94.0 + (1.0 - clamp(p1, 0.0, 1.0)) * 47.0, 1.0);
+    return vec3((greg - 1.0) * 34.0 + sx * 33.0, 142.0 + (1.0 - clamp(p1, 0.0, 1.0)) * 47.0, 1.0);
   }
   if (greg > 4.5 && greg < 5.5) {
     float ex = p2 / H / 0.8;
@@ -229,9 +229,29 @@ vec3 spaceXY(float greg, float p1, float p2, vec2 uv) {
     return vec3(204.0 + lx * 33.0, 50.0 + clamp(p1, 0.0, 1.0) * 47.0, 1.0);
   }
   float bx = (uv.x / H + 0.6) / 4.2;
-  float by = (uv.y / H + 0.3) / 1.9;
+  float by = (uv.y / H + 0.3) / 2.9;
   if (bx < 0.0 || bx > 1.0 || by < 0.0 || by > 1.0) return vec3(0.0);
-  return vec3(bx * 200.6, by * 90.2, 1.0);
+  return vec3(bx * 200.6, by * 138.2, 1.0);
+}
+// pattern layers read body space on the head and the upper legs (coatLayers.patternXY)
+vec3 patternXY(float greg, float p1, float p2, vec2 uv) {
+  if ((greg > 4.5 && greg < 5.5) || (greg < 4.5 && uv.y <= uGeoH * 1.02)) {
+    vec3 b = spaceXY(6.0, 0.0, 0.0, uv);
+    if (b.z > 0.5) return b;
+  }
+  if (greg < 4.5 && p1 >= 0.45) {
+    vec3 t = spaceXY(6.0, 0.0, 0.0, vec2(uv.x, uGeoH * 1.02));
+    if (t.z > 0.5) return t;
+    return spaceXY(greg, 0.45, p2, uv);
+  }
+  return spaceXY(greg, p1, p2, uv);
+}
+// fine hair noise fixed to the horse (coatLayers.hairHash / tickAt)
+bool tickAt(float density, float greg, float p1, float p2, vec2 uv) {
+  if (density < 0.5) return false;
+  vec2 q = greg < 4.5 ? vec2(p1 * 64.0 + greg * 100.0, floor(p2)) : floor(uv);
+  float h = fract(sin(q.x * 12.9898 + q.y * 78.233) * 43758.5453);
+  return h < (density / 255.0) * 0.85;
 }
 vec4 keyInfo(float idx) {
   return texture2D(uKeyInfo, vec2((idx + 0.5) / 64.0, 0.25));
@@ -271,22 +291,31 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
   float greg = hreg > 12.5 ? 8.0 : hreg > 11.5 ? 7.0 : hreg;
   vec4 cells = lutAt(156.0, rowV);
   float faceCell = byteOf(cells.r);
-  float featherCell = byteOf(cells.g);
+  bool feather = byteOf(cells.g) < 254.5;
   float nSlots = byteOf(cells.b);
   bool coat = uHasAtlas > 0.5 && horseReg;
   vec3 sp = vec3(0.0);
+  vec3 pp = vec3(0.0);
   vec4 m3 = vec4(0.0);
-  float hairV = 0.0;
+  vec2 uv = vec2(0.0);
+  float p2 = 0.0;
   if (coat) {
     vec4 m2 = texture2D(uMsk2, srcP / uMskSize);
     m3 = texture2D(uMsk3, srcP / uMskSize);
-    vec2 uv = vec2(byteOf(m2.r) + byteOf(m2.g) * 256.0 - 32768.0, byteOf(m2.b) + byteOf(m2.a) * 256.0 - 32768.0) / 4.0;
-    sp = spaceXY(greg, m3.r, (byteOf(m3.g) - 128.0) / 4.0, uv);
-    if (featherCell < 254.5 && sp.z > 0.5) hairV = atlasAt(featherCell, sp.xy);
+    uv = vec2(byteOf(m2.r) + byteOf(m2.g) * 256.0 - 32768.0, byteOf(m2.b) + byteOf(m2.a) * 256.0 - 32768.0) / 4.0;
+    p2 = (byteOf(m3.g) - 128.0) / 4.0;
+    sp = spaceXY(greg, m3.r, p2, uv);
+    pp = patternXY(greg, m3.r, p2, uv);
+  } else if (hairCand) {
+    m3 = texture2D(uMsk3, srcP / uMskSize);
   }
+  // the feathered horse's long hair (art-pipeline longHair): its key in the mask's B channel
+  float hairIdx = feather ? byteOf(m3.b) : 0.0;
   if (hairCand) {
-    if (hairV < 0.5) return vec4(0.0);
-    idx = greg < 4.5 ? byteOf(m3.b) : maneKey((hairV - 1.0) / 254.0);
+    if (hairIdx < 0.5) return vec4(0.0);
+    idx = hairIdx;
+  } else if (hairIdx > 0.5) {
+    idx = hairIdx;
   }
   if (idx < 0.5) return vec4(0.0);
   vec3 c = lutAt(idx, rowV).rgb;
@@ -310,22 +339,15 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
     float shade = ki.g;
     if (role > 0.5) {
       bool isHair = role > 2.5;
-      if (hairV > 0.5 && greg > 5.5) {
-        if (!hairCand) {
-          float mi = maneKey((hairV - 1.0) / 254.0);
-          c = lutAt(mi, rowV).rgb;
-          shade = keyInfo(mi).g;
-        }
-        isHair = true;
-      }
       bool white = false;
       for (int k = 0; k < 8; k++) {
         if (float(k) >= nSlots) break;
-        if (sp.z < 0.5) break;
         vec4 pr = lutAt(140.0 + float(k) * 2.0, rowV);
         float mode = byteOf(pr.g);
         if (mode > 4.5 && (greg < 4.5 || greg > 5.5)) continue; // skin: the face only
-        float v = atlasAt(byteOf(pr.r), sp.xy);
+        vec3 at3 = mode > 4.5 ? sp : pp;
+        if (at3.z < 0.5) continue;
+        float v = atlasAt(byteOf(pr.r), at3.xy);
         if (v < 0.5) continue;
         vec3 col = lutAt(141.0 + float(k) * 2.0, rowV).rgb;
         if (mode < 1.5) {
@@ -334,7 +356,7 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
         } else if (isHair) {
           continue; // shading and ticking stay on the coat
         } else if (mode < 2.5) {
-          if (v >= 127.5 && !white) c = mix(c, vec3(1.0), 0.45);
+          if (!white && tickAt(v, greg, m3.r, p2, uv)) c = mix(c, vec3(1.0), 0.5);
         } else if (mode < 4.5) {
           c = mix(c, col, min(1.0, (v / 255.0) * pr.b * (mode > 3.5 ? 0.75 : 0.85)));
         } else if (v >= 127.5) {
@@ -349,7 +371,6 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
         if (lc < 254.5 && atlasAt(lc, sp.xy) >= 127.5) white = true;
       }
       if (white) c = whiteAt(markW, isHair ? 0.55 + shade * 0.45 : shade);
-      if (hairV > 0.5) c = min(vec3(1.0), c * (0.84 + 0.3 * ((hairV - 1.0) / 254.0)));
     }
   } else if (horseReg && hreg < 4.5) {
     // no coat-layer atlas: plain leg markings (legacy)

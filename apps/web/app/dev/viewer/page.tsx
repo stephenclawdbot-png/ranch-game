@@ -38,6 +38,7 @@ export default async function ViewerDevPage({ searchParams }: { searchParams: Pr
     preoff: one("preoff"),
     clip: one("clip"),
     riders: one("riders"),
+    coats: one("coats"),
   };
   return <ViewerHarness params={params} />;
 }

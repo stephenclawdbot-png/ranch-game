@@ -9,7 +9,7 @@
  * zoomed-out horse is still hard-edged palette art, never a resampled blur.
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { buildCoatGeometry, coatPatternOf, GEO_REGION, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, coatPatternOf, GEO_REGION, longHair, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
@@ -21,7 +21,7 @@ export const LUT_W = 158;
 /** First coat-layer slot column (two columns per slot: R cell, G mode, B amount; then RGB colour). */
 export const LUT_SLOT_X = 140;
 export const LUT_SLOTS = 8;
-/** R face cell, G feather cell (255 = none), B slot count. */
+/** R face cell, G feathered long hair (1; 255 = none), B slot count. */
 export const LUT_CELLS_X = 156;
 /** RGBA: the leg-marking cell of front-left, front-right, hind-left, hind-right (255 = none). */
 export const LUT_LEGS_X = 157;
@@ -287,7 +287,7 @@ export function indexedRoleGrid(src: IndexedFrames, palette: Palette, keys: KeyP
  *       under the top line * 32), B = face only: texels from the profile edge * 32.
  * `coatMasks` (below) carries the horse-space coordinates the coat layers are sampled at.
  */
-export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry = buildCoatGeometry(indexedRoleGrid(src, palette, keys))): Uint8Array {
+export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry = buildCoatGeometry(indexedRoleGrid(src, palette, keys)), hair: LongHair | null = null): Uint8Array {
   const out = new Uint8Array(src.width * src.height * 4);
   const { fw, fh } = src;
   for (let f = 0; f < src.frames; f++) {
@@ -296,7 +296,15 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
       for (let x = 0; x < fw; x++) {
         const i = (f * fh + y) * fw + x;
         const r = geo.region[i]!;
-        if (!r) continue;
+        if (!r) {
+          // long hair grown where the horse has no region (strands past the outline): mane hair
+          if (hair && hair.key[i]! >= 0 && !src.index[(oy + y) * src.width + ox + x]) {
+            const o = ((oy + y) * src.width + ox + x) * 4;
+            out[o] = MARK_REGION.hair + MARK_REGION.mane;
+            out[o + 3] = 255;
+          }
+          continue;
+        }
         const o = ((oy + y) * src.width + ox + x) * 4;
         const reg = r === GEO_REGION.mane ? MARK_REGION.mane : r === GEO_REGION.tail ? MARK_REGION.tail : r;
         out[o] = reg + (geo.outside[i] ? MARK_REGION.hair : 0);
@@ -316,7 +324,7 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
  *   pq: R = leg g / face t (0..1) or tail a / 1.7, G = leg s / face e / tail l as 128 + texels * 4,
  *       B = for long hair grown off a leg: the palette index of the leg texel it grows from.
  */
-export function coatMasks(src: IndexedFrames, geo: CoatGeometry): { uv: Uint8Array; pq: Uint8Array; H: number } {
+export function coatMasks(src: IndexedFrames, geo: CoatGeometry, hair: LongHair | null = null, palette: Palette | null = null): { uv: Uint8Array; pq: Uint8Array; H: number } {
   const uv = new Uint8Array(src.width * src.height * 4);
   const pq = new Uint8Array(src.width * src.height * 4);
   const { fw, fh } = src;
@@ -338,16 +346,34 @@ export function coatMasks(src: IndexedFrames, geo: CoatGeometry): { uv: Uint8Arr
         const p1 = r === GEO_REGION.tail ? geo.p1[i]! / 1.7 : geo.p1[i]!;
         pq[o] = Math.round(Math.min(1, Math.max(0, p1)) * 255);
         pq[o + 1] = Math.min(255, Math.max(0, Math.round(128 + geo.p2[i]! * 4)));
-        const s = geo.src[i]!;
-        if (geo.outside[i] && s >= 0) {
-          const sx = s % fw;
-          const sy = Math.floor(s / fw) % fh;
-          pq[o + 2] = src.index[(oy + sy) * src.width + ox + sx]!;
-        }
         pq[o + 3] = 255;
       }
+    // the feathered horse's long hair (art-pipeline longHair): its key's palette index in B
+    if (hair && palette)
+      for (let y = 0; y < fh; y++)
+        for (let x = 0; x < fw; x++) {
+          const i = (f * fh + y) * fw + x;
+          const k = hair.key[i]!;
+          if (k < 0) continue;
+          const pi = palette.lookup.get(k);
+          if (pi === undefined) continue;
+          const o = ((oy + y) * src.width + ox + x) * 4;
+          pq[o + 2] = pi;
+          pq[o + 3] = 255;
+        }
   }
   return { uv, pq, H: geo.H };
+}
+
+/** The long hair of an indexed strip (shared by every feathered runner). */
+export function stripLongHair(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry, speed: number): LongHair {
+  const grid = indexedRoleGrid(src, palette, keys);
+  const keyAt = (f: number, x: number, y: number) => {
+    const [ox, oy] = frameOrigin(src, f);
+    const k = src.index[(oy + y) * src.width + ox + x]!;
+    return k ? palette.colours[k]! : -1;
+  };
+  return longHair(grid, keyAt, geo, keys, speed);
 }
 
 /**
@@ -562,7 +588,7 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     });
     const co = (row * LUT_W + LUT_CELLS_X) * 4;
     lut[co] = pat.faceCell >= 0 ? pat.faceCell : 255;
-    lut[co + 1] = pat.featherCell >= 0 ? pat.featherCell : 255;
+    lut[co + 1] = pat.feather ? 1 : 255;
     lut[co + 2] = layers.length;
     lut[co + 3] = 255;
     const lo = (row * LUT_W + LUT_LEGS_X) * 4;

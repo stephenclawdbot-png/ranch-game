@@ -7,7 +7,7 @@
  * column as the line-scan would see it (nearest column, never resampled smoothly), so it
  * stays crisp pixel art while a slower horse is drawn wider.
  */
-import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, type CoatAtlas } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
 import { applyRecolor, appearanceKey, buildRecolorPlan, type KeyPalette } from "../three/recolor";
 import type { PhotoFinishModel } from "./model";
 import { photoLayout, type LayoutOptions, type PhotoLayout, type SpriteMetrics } from "./layout";
@@ -200,7 +200,7 @@ export function rasterPhotoFinish(model: PhotoFinishModel, art: PhotoArt, opts: 
     let s = recoloured.get(key);
     if (!s) {
       const plan = buildRecolorPlan(art.keys, a);
-      if (geo && art.atlas) s = paintCoatStrip(frame, m.frameW, m.frameW, geo, a, art.atlas, art.keys, (d) => applyRecolor(d, m.frameW, m.frameH, m.frameW, plan));
+      if (geo && art.atlas) s = paintCoatStrip(frame, m.frameW, m.frameW, geo, a, art.atlas, art.keys, (d) => applyRecolor(d, m.frameW, m.frameH, m.frameW, plan), sheetSpeed("race/horse-lunge"));
       else {
         s = frame.slice();
         applyRecolor(s, m.frameW, m.frameH, m.frameW, plan);

@@ -16,7 +16,7 @@ for (const [id, , n] of COAT_LAYERS)
     console.log(
       `${id}#${v}`.padEnd(16),
       "body",
-      String(count(c, BODY.x, BODY.y, 202, 92)).padStart(6),
+      String(count(c, BODY.x, BODY.y, 202, 139)).padStart(6),
       "face",
       String(count(c, FACE.x, FACE.y, FACE.w, FACE.h)).padStart(5),
       "tail",

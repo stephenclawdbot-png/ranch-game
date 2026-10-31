@@ -2,7 +2,7 @@
 // sprites, gallop sprite and share cards draw exactly this; Trackside draws it on the GPU).
 //   node <tsx> art-src/coat-layers/sheet.ts <out.png> <sheet stem> <frames> <frame list|all> <scale> <look,...>
 // Looks are preset names (see LOOKS below).
-import { atlasFromRgba, buildCoatGeometry, coatPatternOf, paintCoatStrip, rgbaRoleGrid, type CoatAtlas } from "../../packages/art-pipeline/src/index";
+import { atlasFromRgba, buildCoatGeometry, coatPatternOf, paintCoatStrip, rgbaRoleGrid, sheetSpeed, type CoatAtlas } from "../../packages/art-pipeline/src/index";
 import { applyRecolor, buildRecolorPlan, parseKeyPalette } from "../../packages/race-viewer/src/three/recolor";
 import type { HorseAppearance, HorseColour } from "../../packages/shared/src/index";
 import { ART, blank, crop, paste, readJson, readPng, writePng, type Img } from "./png";
@@ -101,7 +101,7 @@ export function paintSheet(stem: string, frames: number, look: HorseAppearance):
     geoCache.set(stem, geo);
   }
   const plan = buildRecolorPlan(keys, look);
-  const data = paintCoatStrip(src.data, src.width, fw, geo, look, loadAtlas(), keys, (d) => applyRecolor(d, src.width, src.height, fw, plan));
+  const data = paintCoatStrip(src.data, src.width, fw, geo, look, loadAtlas(), keys, (d) => applyRecolor(d, src.width, src.height, fw, plan), sheetSpeed(stem));
   return { width: src.width, height: src.height, data };
 }
 

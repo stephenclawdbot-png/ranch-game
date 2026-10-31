@@ -30,6 +30,7 @@ import {
   type CoatAtlas,
 } from "./index";
 import { readPng } from "./testPng";
+import { drawLongHair, sheetSpeed } from "./index";
 
 const ART = join(dirname(fileURLToPath(import.meta.url)), "../../../apps/web/public/art");
 const has = existsSync(join(ART, "race/coat-layers.png"));
@@ -122,7 +123,7 @@ describe.skipIf(!has)("coat-layer atlas", () => {
     for (const [id, , n] of COAT_LAYERS) {
       for (let v = 0; v < n; v++) {
         const cell = LAYER_CELL[id] + v;
-        const body = count(atlas, cell, BODY.x, BODY.y, 202, 92);
+        const body = count(atlas, cell, BODY.x, BODY.y, 202, 139);
         const face = count(atlas, cell, FACE.x, FACE.y, FACE.w, FACE.h);
         const legs = count(atlas, cell, LEGS.x, LEGS.y, LEGS.w * 4, LEGS.h);
         const min = id === "birdcatcher" || id === "rabicano" || id === "greying" ? 8 : 12;
@@ -138,7 +139,7 @@ describe.skipIf(!has)("every coat x animation x view is painted from the layers"
   const atlas = has ? atlas1() : null!;
   const sheets = has ? HORSE_SHEETS.map((s) => ({ ...s, img: readPng(join(ART, `${s.stem}.png`)) })) : [];
 
-  it("every sheet the game draws exists, and its geometry finds the horse in (almost) every frame", () => {
+  it("every sheet the game draws exists, and its geometry finds the horse in (almost) every frame", { timeout: 120_000 }, () => {
     for (const s of sheets) {
       const fw = Math.floor(s.img.w / s.frames);
       const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
@@ -152,7 +153,7 @@ describe.skipIf(!has)("every coat x animation x view is painted from the layers"
     }
   });
 
-  it("every phenotype's pattern definition names art that exists; its layers change the sprite", () => {
+  it("every phenotype's pattern definition names art that exists; its layers change the sprite", { timeout: 120_000 }, () => {
     const gallop = sheets[0]!;
     const fw = Math.floor(gallop.img.w / gallop.frames);
     const geo = buildCoatGeometry(rgbaRoleGrid(gallop.img.data, gallop.img.w, gallop.img.h, fw, KEYS!));
@@ -174,12 +175,12 @@ describe.skipIf(!has)("every coat x animation x view is painted from the layers"
     }
   });
 
-  it("the feathered long hair grows on every sheet, every frame, and stays above the ground line", () => {
+  it("the feathered long hair grows on every sheet, every frame, and stays above the ground line", { timeout: 120_000 }, () => {
     const fe = look({ base: "black" }, { feather: true });
     for (const s of sheets) {
       const fw = Math.floor(s.img.w / s.frames);
       const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
-      const out = paintCoatStrip(s.img.data, s.img.w, fw, geo, fe, atlas, KEYS!, () => undefined);
+      const out = paintCoatStrip(s.img.data, s.img.w, fw, geo, fe, atlas, KEYS!, () => undefined, sheetSpeed(s.stem));
       let framesWithHair = 0;
       for (let f = 0; f < s.frames; f++) {
         let grown = 0;
@@ -199,7 +200,7 @@ describe.skipIf(!has)("every coat x animation x view is painted from the layers"
     }
   });
 
-  it("white patterns stay in place frame to frame (no swimming)", () => {
+  it("white patterns stay in place frame to frame (no swimming)", { timeout: 120_000 }, () => {
     for (const s of sheets.filter((q) => q.stem.includes("gallop") || q.stem.includes("loose-walk") || q.stem.includes("celebrate"))) {
       const fw = Math.floor(s.img.w / s.frames);
       const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
@@ -249,5 +250,122 @@ describe("one pattern definition for every view", () => {
     expect(n(GEO_REGION.face)).toBeGreaterThan(1500);
     expect(n(GEO_REGION.body)).toBeGreaterThan(1500);
     expect(n(GEO_REGION.mane)).toBeGreaterThan(500);
+  });
+});
+
+describe.skipIf(!has)("patterns and markings move with the horse in every frame", () => {
+  const atlas = has ? atlas1() : null!;
+  const sheets = has ? HORSE_SHEETS.map((s) => ({ ...s, img: readPng(join(ART, `${s.stem}.png`)) })) : [];
+  const LOOKS: [string, HorseAppearance][] = [
+    ["tobiano", look({ tobiano: 1 })],
+    ["leopard", look({ base: "chestnut", leopard: "leopard" })],
+    ["roan", look({ roan: true })],
+    ["blaze + stockings", look({ base: "chestnut" }, { face: "blaze", legs: ["stocking", "stocking", "stocking", "stocking"] })],
+    ["star + socks", look({}, { face: "star", legs: ["sock", "sock", "sock", "sock"] })],
+    ["sabino", look({ sabino: 2 })],
+  ];
+
+  it("every painted pixel is inside that frame's horse (nothing below the hooves, between the legs or on the rider)", { timeout: 180_000 }, () => {
+    for (const s of sheets) {
+      const fw = Math.floor(s.img.w / s.frames);
+      const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
+      for (const [name, a] of LOOKS) {
+        const out = paintCoatStrip(s.img.data, s.img.w, fw, geo, a, atlas, KEYS!, () => undefined, sheetSpeed(s.stem));
+        for (let f = 0; f < s.frames; f++)
+          for (let y = 0; y < s.img.h; y++)
+            for (let x = 0; x < fw; x++) {
+              const i = (y * s.img.w + f * fw + x) * 4;
+              if (out[i] === s.img.data[i] && out[i + 1] === s.img.data[i + 1] && out[i + 2] === s.img.data[i + 2] && out[i + 3] === s.img.data[i + 3]) continue;
+              const gi = (f * s.img.h + y) * fw + x;
+              const inside = s.img.data[i + 3]! >= 128 && geo.region[gi]! > 0 && !geo.outside[gi];
+              if (!inside) expect(inside, `${s.stem} ${name} frame ${f} (${x},${y}) painted outside the horse`).toBe(true);
+            }
+      }
+    }
+  });
+
+  it("face and leg markings sit at the same place on their body part in every frame", { timeout: 120_000 }, () => {
+    const blaze = LOOKS[3]![1];
+    for (const s of sheets) {
+      const fw = Math.floor(s.img.w / s.frames);
+      const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
+      const out = paintCoatStrip(s.img.data, s.img.w, fw, geo, blaze, atlas, KEYS!, () => undefined);
+      const faceT: number[] = [];
+      const legG: number[] = [];
+      for (let f = 0; f < s.frames; f++) {
+        let ft = 0, fn = 0, lg = 0, ln = 0;
+        for (let y = 0; y < s.img.h; y++)
+          for (let x = 0; x < fw; x++) {
+            const gi = (f * s.img.h + y) * fw + x;
+            const i = (y * s.img.w + f * fw + x) * 4;
+            const white = out[i]! > 200 && out[i + 1]! > 200 && out[i + 2]! > 190 && !(s.img.data[i]! > 200 && s.img.data[i + 1]! > 200);
+            if (!white) continue;
+            const r = geo.region[gi]!;
+            if (r === GEO_REGION.face) {
+              ft += geo.p1[gi]!;
+              fn++;
+            } else if (r >= 1 && r <= 4 && !geo.outside[gi]) {
+              lg = Math.max(lg, geo.p1[gi]!);
+              ln++;
+            }
+          }
+        if (fn > 3) faceT.push(ft / fn);
+        if (ln > 3) legG.push(lg);
+      }
+      const sd = (a: number[]) => {
+        const m = a.reduce((p, q) => p + q, 0) / Math.max(1, a.length);
+        return Math.sqrt(a.reduce((p, q) => p + (q - m) ** 2, 0) / Math.max(1, a.length));
+      };
+      expect(faceT.length, `${s.stem}: blaze drawn`).toBeGreaterThan(s.frames / 2);
+      expect(sd(faceT), `${s.stem}: the blaze slides along the face`).toBeLessThan(0.12);
+      expect(sd(legG), `${s.stem}: the stocking tops jump`).toBeLessThan(0.12);
+    }
+  });
+});
+
+describe.skipIf(!has)("the feathered horse's long hair (drawn in code)", () => {
+  const sheets = has ? HORSE_SHEETS.map((s) => ({ ...s, img: readPng(join(ART, `${s.stem}.png`)) })) : [];
+  it("is deterministic per sheet and frame, never below the ground line and never on the rider", { timeout: 120_000 }, () => {
+    for (const s of sheets) {
+      const fw = Math.floor(s.img.w / s.frames);
+      const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
+      const a = new Uint8ClampedArray(s.img.data);
+      const b = new Uint8ClampedArray(s.img.data);
+      const ka = drawLongHair(a, s.img.w, fw, geo, KEYS!, sheetSpeed(s.stem));
+      const kb = drawLongHair(b, s.img.w, fw, buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!)), KEYS!, sheetSpeed(s.stem));
+      expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
+      expect(Buffer.from(ka).equals(Buffer.from(kb))).toBe(true);
+      const cap = new Set(KEYS!.cap.map((h) => Number.parseInt(h.slice(1), 16)));
+      for (let f = 0; f < s.frames; f++) {
+        let ground = 0;
+        for (let y = 0; y < s.img.h; y++) for (let x = 0; x < fw; x++) if (s.img.data[(y * s.img.w + f * fw + x) * 4 + 3]! >= 128) ground = Math.max(ground, y);
+        for (let y = 0; y < s.img.h; y++)
+          for (let x = 0; x < fw; x++) {
+            const gi = (f * s.img.h + y) * fw + x;
+            if (!ka[gi]) continue;
+            if (y > ground) expect(y, `${s.stem} frame ${f}: hair below the ground`).toBeLessThanOrEqual(ground);
+            const i = (y * s.img.w + f * fw + x) * 4;
+            const k = (s.img.data[i]! << 16) | (s.img.data[i + 1]! << 8) | s.img.data[i + 2]!;
+            if (s.img.data[i + 3]! >= 128 && cap.has(k)) expect.fail(`${s.stem} frame ${f}: hair over the cap`);
+          }
+      }
+    }
+  });
+
+  it("the feathering takes the leg's colour and its marking: white over a stocking", () => {
+    const atlas = atlas1();
+    const s = sheets.find((q) => q.stem === "diorama/horse-loose-walk")!;
+    const fw = Math.floor(s.img.w / s.frames);
+    const geo = buildCoatGeometry(rgbaRoleGrid(s.img.data, s.img.w, s.img.h, fw, KEYS!));
+    const white = look({ base: "black" }, { feather: true, legs: ["stocking", "stocking", "stocking", "stocking"] });
+    const dark = look({ base: "black" }, { feather: true });
+    const count = (a: HorseAppearance) => {
+      const out = paintCoatStrip(s.img.data, s.img.w, fw, geo, a, atlas, KEYS!, () => undefined, 0.12);
+      let w = 0;
+      for (let i = 0; i < out.length; i += 4) if (s.img.data[i + 3]! < 128 && out[i + 3]! >= 128 && out[i]! > 200 && out[i + 1]! > 200) w++;
+      return w;
+    };
+    expect(count(white)).toBeGreaterThan(40);
+    expect(count(dark)).toBe(0);
   });
 });

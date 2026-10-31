@@ -13075,7 +13075,7 @@
    "status": "approved",
    "frameCount": 1,
    "frameWidth": 2048,
-   "frameHeight": 1152,
+   "frameHeight": 1536,
    "fps": 0,
    "anchor": {
     "x": 0.5,
@@ -13098,7 +13098,7 @@
    "status": "approved",
    "frameCount": 1,
    "frameWidth": 4096,
-   "frameHeight": 2304,
+   "frameHeight": 3072,
    "fps": 0,
    "anchor": {
     "x": 0.5,

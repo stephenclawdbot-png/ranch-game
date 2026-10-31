@@ -19,7 +19,7 @@
  */
 import type { FaceMarking, HorseAppearance } from "@thoroughbred/shared";
 import { MARKING_WHITE, resolveHorseColors } from "./palettes";
-import { coatPatternOf, layerAt, type CoatAtlas, type CoatPattern } from "./coatLayers";
+import { coatPatternOf, layerAt, tickAt, type CoatAtlas, type CoatPattern } from "./coatLayers";
 import { GEO_REGION, type CoatGeometry } from "./coatGeometry";
 
 export const PORTRAIT_ART_SIZE = 128;
@@ -743,11 +743,20 @@ function coatLayersAt(
   if (!reg) return { rgb: [r, g, b], white: false };
   const pat = look.pattern;
   let isHair = role === R.mane;
-  // the feathered long mane falls over the neck (body space, like the strips)
-  if (pat.featherCell >= 0 && reg === GEO_REGION.body) {
-    const hv = layerAt(atlas, pat.featherCell, geo, p);
-    if (hv) {
-      const lv = Math.min(255, Math.round(lvl * (0.8 + 0.4 * ((hv - 1) / 254))));
+  // the feathered horse's long hair (the strips' longHair rules): a long wavy mane hanging from the
+  // crest past halfway down the neck, and a longer forelock down the forehead
+  if (pat.feather && role !== R.eye && role !== R.innerEar) {
+    const u = geo.u[p]!;
+    const v = geo.v[p]!;
+    const t = geo.p1[p]!;
+    const e = geo.p2[p]!;
+    const reach = geo.H * (0.5 + 0.06 * Math.sin(u / 4));
+    const maneHair = reg === GEO_REGION.body && v < reach - Math.abs(Math.sin(u / 2.2)) * 3;
+    const forelock = reg === GEO_REGION.face && t < 0.34 && e < 7 * (1 - t / 0.4) + 1;
+    if (maneHair || forelock) {
+      // strands: a darker line every few pixels along the hair's fall
+      const strand = (Math.floor((u + v * 0.35) / 2) % 3 === 0 ? 0.78 : 1) * (maneHair ? 1 - (v / reach) * 0.15 : 1);
+      const lv = Math.min(255, Math.max(0, Math.round(lvl * strand)));
       r = maneLut[lv * 3]!;
       g = maneLut[lv * 3 + 1]!;
       b = maneLut[lv * 3 + 2]!;
