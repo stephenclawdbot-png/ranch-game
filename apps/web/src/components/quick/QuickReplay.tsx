@@ -86,7 +86,10 @@ export function QuickReplay({ v }: { v: QuickRaceView }) {
     <div className="grid gap-4 md:gap-5">
       <section aria-labelledby="quick-name" className="-mx-[var(--gutter)] -mt-4 md:mx-0 md:mt-0">
         <div className="race-plate">
-          <QuickTag label={v.badge} className="hidden shrink-0 sm:inline-flex" />
+          {/* the stage carries the badge too: on a phone the plate keeps its width for the race name */}
+          <span className="hidden shrink-0 sm:block">
+            <QuickTag label={v.badge} />
+          </span>
           <div className="min-w-0 flex-1">
             <p className="eyebrow !text-[0.625rem] !text-sage">
               {v.track} · {formatDistance(v.distanceM)} {SURFACE_LABEL[v.surface].toLowerCase()} · {GOING_LABEL[v.going].toLowerCase()}
@@ -119,7 +122,7 @@ export function QuickReplay({ v }: { v: QuickRaceView }) {
                   {ordinal(v.position)} in the race · {v.daily.rank ? `${ordinal(v.daily.rank)} of ${v.daily.entrants} on the day` : "unranked"} · {v.daily.points}{" "}
                   {v.daily.points === 1 ? "point" : "points"}
                 </b>
-                {v.daily.top && <span className="tag tag-ready ml-2">Top 10%</span>}
+                {v.daily.top && <span className="tag tag-ready ml-2">{v.daily.seed ? "Top 10%" : "Top 10% so far"}</span>}
                 <span className="block text-cream-dim">
                   {v.stableName}: {STYLE_LABEL[v.daily.plan.tactic].toLowerCase()}, {INTENSITY_WORD[v.daily.plan.intensity]}, {GRADE_WORD(v.daily.plan.grade)}
                 </span>
