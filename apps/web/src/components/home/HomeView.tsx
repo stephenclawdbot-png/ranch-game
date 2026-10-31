@@ -1,5 +1,6 @@
 "use client";
 
+import { MissItCard } from "./MissItCard";
 import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -204,6 +205,11 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
   return (
     <div>
+      {state.tester && (
+        <div className="mx-auto mb-3 max-w-5xl">
+          <MissItCard />
+        </div>
+      )}
       <EstateStage eyebrow={`${state.stableName} · ${greeting(now)}`} greeting={`${salutation(now)}, trainer.`} plaques={plaques}>
         {upcomingMine ? (
           <YourRace race={upcomingMine} now={now ?? 0} appearance={horseOf(upcomingMine.horseId)?.horse.appearance} />

@@ -26,6 +26,9 @@ import {
   updateFeedback,
   type TelemetryEvent,
   FEEDBACK_PER_HOUR,
+  MISS_IT_AFTER_DAYS,
+  MISS_IT_RATINGS,
+  missItDue,
   RESET_CONFIRMATION,
 } from "../services/playtest";
 import { at, DAY, memoryDb, T0 } from "./helpers";
@@ -254,5 +257,33 @@ describe("beta metrics", () => {
     ]);
     // Only Adreno clears the >= 3 reports bar (Mali 1, Apple M2 2).
     expect(m.perf.slowGpus).toEqual([{ gpu: "Adreno 640", reports: 3, medianFps: 30 }]);
+  });
+});
+
+describe("beta metrics: breeding participation and the exit question", () => {
+  it("asks a tester from day 7, once; counts the answers and breeding by testers", async () => {
+    const [code] = await generateInviteCodes(h.db, { count: 1, maxUses: 5, note: "miss-it" });
+    const t = await join(code!, "Miss It Stable");
+    expect(await missItDue(h.db, { accountId: t.accountId, now: at(6 * DAY) })).toBe(false);
+    expect(await missItDue(h.db, { accountId: t.accountId, now: at(MISS_IT_AFTER_DAYS * DAY + 60_000) })).toBe(true);
+    await submitFeedback(h.db, { ...fb(t.accountId, "My filly won the Cup"), category: "miss_it", rating: MISS_IT_RATINGS.very, now: at(8 * DAY) });
+    expect(await missItDue(h.db, { accountId: t.accountId, now: at(9 * DAY) })).toBe(false);
+    // Not a tester: never asked.
+    const plain = await createAccount(h.db, { stableName: "Plain Stable", silks, now: T0 });
+    expect(await missItDue(h.db, { accountId: plain.accountId, now: at(30 * DAY) })).toBe(false);
+    // A foal bred by the tester's stable (origin "bred") that has raced.
+    const stableId = (await h.db.execute(sql`select id from stables where account_id = ${t.accountId}`)).rows[0] as { id: string };
+    const [mare] = await h.db.select({ id: horses.id }).from(horses).where(eq(horses.ownerStableId, stableId.id)).limit(2);
+    expect(mare).toBeDefined();
+    const m = await playtestMetrics(h.db, { now: at(9 * DAY) });
+    expect(m.missIt.responses).toBeGreaterThanOrEqual(1);
+    expect(m.missIt.very).toBeGreaterThanOrEqual(1);
+    expect(m.missIt.recent[0]).toMatchObject({ rating: 3, message: "My filly won the Cup" });
+    expect(m.breeding.testers).toBeGreaterThanOrEqual(1);
+    expect(m.breeding.bred).toBe(0);
+    await h.db.update(horses).set({ origin: "bred", starts: 1 }).where(eq(horses.id, mare!.id));
+    const m2 = await playtestMetrics(h.db, { now: at(9 * DAY) });
+    expect(m2.breeding.foalsBorn).toBeGreaterThanOrEqual(1);
+    expect(m2.breeding.foalsRaced).toBeGreaterThanOrEqual(1);
   });
 });

@@ -11,6 +11,8 @@ interface Metrics {
   liveShare: number | null;
   perf: { byDevice: { device: string; reports: number; medianFps: number; lowFps: number; onTargetPct: number | null; downgradedPct: number | null }[]; slowGpus: { gpu: string; reports: number; medianFps: number }[] };
   totals: { testers: number; feedback: number; events: number };
+  breeding?: { testers: number; bred: number; bredPct: number | null; foalsBorn: number; foalsRaced: number };
+  missIt?: { responses: number; very: number; somewhat: number; notReally: number; veryPct: number | null; recent: { rating: number; message: string; atMs: number }[] };
 }
 
 interface Economy {
@@ -273,6 +275,34 @@ export function MetricsSection() {
         <Tile label="Races / active / day" value={m.racesPerActive === null ? "–" : m.racesPerActive.toFixed(1)} sub="last 7 days" />
         <Tile label="Live share" value={pct(m.liveShare)} sub="of races, last 7 days" />
       </ul>
+      {m.breeding && (
+        <ul className="grid grid-cols-1 gap-2 md:grid-cols-4" data-testid="breeding-metrics">
+          <Tile label="Testers who bred" value={pct(m.breeding.bredPct)} sub={`${m.breeding.bred} of ${m.breeding.testers}`} />
+          <Tile label="Foals bred" value={String(m.breeding.foalsBorn)} sub="by testers" />
+          <Tile label="Foals that raced" value={String(m.breeding.foalsRaced)} sub="at least one start" />
+          {m.missIt && (
+            <Tile
+              label="Would miss it (very)"
+              value={pct(m.missIt.veryPct)}
+              sub={`${m.missIt.responses} answers · ${m.missIt.somewhat} somewhat · ${m.missIt.notReally} not really`}
+              tone={m.missIt.veryPct === null ? undefined : m.missIt.veryPct >= 40 ? "positive" : m.missIt.veryPct < 20 ? "negative" : undefined}
+            />
+          )}
+        </ul>
+      )}
+      {m.missIt && m.missIt.recent.length > 0 && (
+        <section className="surface grid gap-2 p-3" data-testid="miss-it">
+          <h2 className="t-title">&ldquo;If Post Time disappeared tomorrow, would you miss it?&rdquo;</h2>
+          <ul className="grid gap-1 text-sm">
+            {m.missIt.recent.map((r, i) => (
+              <li key={i}>
+                <span className="font-bold">{r.rating === 3 ? "Very" : r.rating === 2 ? "Somewhat" : "Not really"}</span>
+                {r.message && r.message !== "(no reason given)" ? <span className="text-cream-dim"> · {r.message}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section className="surface grid gap-2 p-3">
         <h2 className="t-title">Funnel</h2>
         <ol className="grid gap-1 text-sm" data-testid="funnel">

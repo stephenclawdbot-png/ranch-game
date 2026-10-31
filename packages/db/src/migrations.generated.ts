@@ -187,5 +187,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793467328057,
     "hash": "7eb0787d8e96e49c261324fb75597184219eca1a035c4eec1976e169c47986a8",
     "sql": "CREATE TABLE \"login_codes\" (\n\t\"account_id\" uuid PRIMARY KEY NOT NULL,\n\t\"code_hash\" text NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\t\"last_used_at\" timestamp with time zone\n);\n--> statement-breakpoint\nALTER TABLE \"login_codes\" ADD CONSTRAINT \"login_codes_account_id_accounts_id_fk\" FOREIGN KEY (\"account_id\") REFERENCES \"public\".\"accounts\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nCREATE UNIQUE INDEX \"login_codes_hash_uq\" ON \"login_codes\" USING btree (\"code_hash\");"
+  },
+  {
+    "tag": "0031_feedback_miss_it",
+    "when": 1793472226662,
+    "hash": "8d119de1c1cdcb93a0c0f4b16e959666fa3c47fe333f07228f8cd4d3a2d6980a",
+    "sql": "ALTER TABLE \"feedback\" DROP CONSTRAINT \"feedback_category\";--> statement-breakpoint\nALTER TABLE \"feedback\" ADD CONSTRAINT \"feedback_category\" CHECK (\"feedback\".\"category\" in ('bug', 'idea', 'confusing', 'fun', 'miss_it'));"
   }
 ];

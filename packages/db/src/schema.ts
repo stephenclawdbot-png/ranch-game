@@ -1444,7 +1444,7 @@ export const feedback = pgTable(
   (t) => [
     index("feedback_created_idx").on(t.createdAt),
     index("feedback_sender_idx").on(t.senderKey, t.createdAt),
-    check("feedback_category", sql`${t.category} in ('bug', 'idea', 'confusing', 'fun')`),
+    check("feedback_category", sql`${t.category} in ('bug', 'idea', 'confusing', 'fun', 'miss_it')`),
     check("feedback_status", sql`${t.status} in ('new', 'resolved')`),
     check("feedback_rating", sql`${t.rating} is null or ${t.rating} between 1 and 5`),
     check("feedback_message_len", sql`char_length(${t.message}) between 1 and 4000`),

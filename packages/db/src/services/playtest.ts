@@ -272,6 +272,10 @@ export interface PlaytestMetrics {
   /** Race-viewer perf reports (target: phone/tablet 30 fps, desktop 60). */
   perf: { byDevice: PerfDeviceMetrics[]; slowGpus: PerfGpuMetrics[] };
   totals: { testers: number; feedback: number; events: number };
+  /** Testers who bred at least once (as the mare's owner), foals they bred, and how many of those raced. */
+  breeding: { testers: number; bred: number; bredPct: number | null; foalsBorn: number; foalsRaced: number };
+  /** The exit question: answers so far and the latest reasons. */
+  missIt: { responses: number; very: number; somewhat: number; notReally: number; veryPct: number | null; recent: { rating: number; message: string; atMs: number }[] };
 }
 
 export interface PerfDeviceMetrics {
@@ -365,6 +369,22 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
     await ex.execute(sql`select (select count(*) from testers)::int as testers, (select count(*) from feedback)::int as feedback, (select count(*) from telemetry_events)::int as events`),
   );
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n * 1000) / d) / 10 : null);
+  // Breeding participation: tester stables that owned the mare in a covering, and their foals.
+  const [br] = rowsOf<{ testers: number; bred: number; foals: number; raced: number }>(
+    await ex.execute(sql`with ts as (select s.id from testers t join stables s on s.account_id = t.account_id where t.account_id is not null)
+                         select (select count(*) from ts)::int as testers,
+                                (select count(distinct b.dam_owner_stable_id) from breeding_events b where b.dam_owner_stable_id in (select id from ts))::int as bred,
+                                (select count(*) from horses h where h.origin = 'bred' and h.owner_stable_id in (select id from ts))::int as foals,
+                                (select count(*) from horses h where h.origin = 'bred' and h.owner_stable_id in (select id from ts) and h.starts > 0)::int as raced`),
+  );
+  const [mi] = rowsOf<{ n: number; very: number; somewhat: number; not_really: number }>(
+    await ex.execute(sql`select count(*)::int as n, count(*) filter (where rating = 3)::int as very,
+                                count(*) filter (where rating = 2)::int as somewhat, count(*) filter (where rating = 1)::int as not_really
+                           from feedback where category = 'miss_it'`),
+  );
+  const miRecent = rowsOf<{ rating: number; message: string; created_at: Date | string }>(
+    await ex.execute(sql`select rating, message, created_at from feedback where category = 'miss_it' order by created_at desc limit 20`),
+  );
   // Last 7 UTC days of the window: races per active tester and the Live share.
   const last7 = days.slice(-7);
   const races7 = last7.reduce((s, d) => s + d.races, 0);
@@ -415,6 +435,21 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
       slowGpus: gpuRows.map((r) => ({ gpu: String(r.gpu), reports: Number(r.reports), medianFps: Number(r.median_fps ?? 0) })),
     },
     totals: { testers: Number(tot?.testers ?? 0), feedback: Number(tot?.feedback ?? 0), events: Number(tot?.events ?? 0) },
+    breeding: {
+      testers: Number(br?.testers ?? 0),
+      bred: Number(br?.bred ?? 0),
+      bredPct: pct(Number(br?.bred ?? 0), Number(br?.testers ?? 0)),
+      foalsBorn: Number(br?.foals ?? 0),
+      foalsRaced: Number(br?.raced ?? 0),
+    },
+    missIt: {
+      responses: Number(mi?.n ?? 0),
+      very: Number(mi?.very ?? 0),
+      somewhat: Number(mi?.somewhat ?? 0),
+      notReally: Number(mi?.not_really ?? 0),
+      veryPct: pct(Number(mi?.very ?? 0), Number(mi?.n ?? 0)),
+      recent: miRecent.map((r) => ({ rating: Number(r.rating), message: String(r.message), atMs: new Date(r.created_at).getTime() })),
+    },
   };
 }
 
@@ -422,7 +457,26 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
 // Feedback
 // ---------------------------------------------------------------------------
 
-export const FEEDBACK_CATEGORIES = ["bug", "idea", "confusing", "fun"] as const;
+export const FEEDBACK_CATEGORIES = ["bug", "idea", "confusing", "fun", "miss_it"] as const;
+
+/**
+ * The exit question (owner, 2026-11-01): "If Post Time disappeared tomorrow, would you miss it?"
+ * Asked once, from a tester's 7th day; stored as feedback category "miss_it" with rating
+ * 3 = very, 2 = somewhat, 1 = not really, and an optional reason.
+ */
+export const MISS_IT_AFTER_DAYS = 7;
+export const MISS_IT_RATINGS = { very: 3, somewhat: 2, notReally: 1 } as const;
+
+/** Whether this account should be asked the exit question now (a tester, 7+ days in, not asked yet). */
+export async function missItDue(ex: Executor, input: { accountId: string; now: Date }): Promise<boolean> {
+  const [r] = rowsOf<{ due: boolean }>(
+    await ex.execute(sql`select exists (select 1 from testers t join accounts a on a.id = t.account_id
+                                         where t.account_id = ${input.accountId}
+                                           and a.created_at <= ${new Date(input.now.getTime() - MISS_IT_AFTER_DAYS * DAY_MS)})
+                            and not exists (select 1 from feedback f where f.account_id = ${input.accountId} and f.category = 'miss_it') as due`),
+  );
+  return !!r?.due;
+}
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
 export interface FeedbackInput {
