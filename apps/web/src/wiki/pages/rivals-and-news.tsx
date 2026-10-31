@@ -14,6 +14,7 @@ const KIND_LABEL: Record<gc.NewsKind, string> = {
   jockey_claim_out: "An apprentice riding out the claim",
   jockey_retirement_announced: "A jockey announcing retirement",
   jockey_retired: "A jockey retiring",
+  jockey_signed: "A jockey signing for a new stable in the weekly transfer window",
   sale: `A sale on the market of ${formatCredits(NOTABLE_SALE_CREDITS)} credits or more (the price is public)`,
   claim: "A horse claimed out of a claiming race",
   hall_of_fame: "A Hall of Fame entry",
@@ -49,6 +50,26 @@ export default function RivalsAndNewsPage() {
       <P>
         After a race, once the result is on screen, you may see a line such as &ldquo;You beat Thistle Mead&rsquo;s Copper Comet for the first time in 4 meetings&rdquo;. Nothing about a
         race counts until its broadcast is over, so a rival line can never give a result away.
+      </P>
+
+      <H2 id="bring-a-rival">Bring a rival</H2>
+      <P>
+        You don&rsquo;t have to wait for the track to find you a rival. Open <GameLink href="/rival">Bring a rival</GameLink> and send your link to a friend. When they found a stable
+        through it, the two of you are rivals straight away: each Rivals panel shows the other at the top, marked &ldquo;You invited &hellip;&rdquo; or &ldquo;&hellip; invited you&rdquo;,
+        and your head-to-head fills in as your horses meet in Live races.
+      </P>
+      <Facts
+        title="The welcome"
+        rows={[
+          ["Credits for each of you", `${gc.RIVAL_INVITE_CREDITS}, once`],
+          ["Per new stable", "Once: a stable can only be invited once"],
+          ["Inviter's welcomes", `Up to ${gc.RIVAL_INVITE_WEEKLY_WELCOMES} new rivals a week (your friends always get theirs)`],
+          ["Linked accounts", "Still rivals, no welcome"],
+        ]}
+      />
+      <P>
+        Accounts that share a browser, a wallet or an email are linked, as on the market: they still become rivals, but neither gets the welcome. The welcome is Stable Credits only; it is
+        never paid in USDG and credits are never cashed out. Inviting changes nothing else: the same link still counts for the beta&rsquo;s invite programme as before.
       </P>
 
       <H2 id="news">The racing news</H2>

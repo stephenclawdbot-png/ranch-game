@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isUsdgPracticeMode } from "@thoroughbred/game-core";
 import { awardBetaReward, budgetSummary, listBetaRewards, listRewardRules, setBetaRewardStatus, updateRewardRule } from "@thoroughbred/db";
 import { adminRoute } from "@/server/adminHttp";
 import { errorJson, readJson } from "@/server/http";
@@ -28,6 +29,10 @@ export async function POST(req: Request) {
   const parsed = Action.safeParse(await readJson(req));
   if (!parsed.success) return errorJson(400, "invalid_body");
   const a = parsed.data;
+  // Practice mode (USDG_MODE=practice): no real money is paid to anyone, so the payout ledger is read-only.
+  if (a.action !== "rule" && isUsdgPracticeMode(process.env)) {
+    return errorJson(409, "practice_mode", { message: "Real-money payouts are off while USDG_MODE=practice (the beta uses T-USDG test money)." });
+  }
   return adminRoute(async (db, now) => {
     if (a.action === "rule") return { rule: await updateRewardRule(db, a) };
     if (a.action === "award") {

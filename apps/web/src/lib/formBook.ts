@@ -4,6 +4,7 @@
  * the nearest quarter), times as m:ss.hh, draw thirds, rest since the previous run.
  */
 import { HORSE_LENGTH_MM } from "@thoroughbred/shared";
+import { injuryKindOf } from "@thoroughbred/game-core";
 import type { FormLineView, SplitBucketView, SplitsView } from "./types";
 import { GOING_LABEL, STYLE_LABEL, SURFACE_LABEL, formatDistance, ordinal } from "./format";
 
@@ -192,6 +193,10 @@ const ORIGIN_LABEL: Record<string, string> = { starter: "a starter from the Club
 const RETIRE_LABEL: Record<string, string> = { choice: "by choice", max_starts: "after 40 starts", injury: "through injury" };
 const LEASE_END_LABEL: Record<string, string> = { term: "at the end of the term", returned: "handed back early", injured: "after an injury", retired: "on retirement", died: "on its death" };
 const SEVERITY_LABEL: Record<string, string> = { minor: "Minor injury", moderate: "Moderate injury", career_ending: "Career-ending injury", fatal: "Fatal injury" };
+/** The catalogue name of an injury kind (game-core injuries.ts), or null for old entries. */
+function injuryKindName(kind: string): string | null {
+  return kind ? (injuryKindOf(kind)?.name ?? null) : null;
+}
 
 const QUIRK_TEXT: Record<string, string> = { mudlark: "Mudlark", gateShy: "Gate-shy", lateKick: "Late kick", crowdShy: "Crowd-shy" };
 
@@ -232,7 +237,7 @@ export function logEntryText(e: { kind: string; data: Record<string, unknown>; l
       const fb = n(d.fatigueBefore);
       const fa = n(d.fatigueAfter);
       const fatigue = fb !== null && fa !== null ? `fatigue ${fatigueWord(fb)} → ${fatigueWord(fa)}${numbers ? ` (${fb} → ${fa}‰)` : ""}` : "";
-      const notes = [d.overworked ? "tired: half the gains" : "", d.injured ? "picked up a knock" : ""].filter(Boolean).join(", ");
+      const notes = [d.overworked ? "tired: half the gains" : "", d.injured ? `picked up a knock${injuryKindName(s(d.injuryKind)) ? `: ${injuryKindName(s(d.injuryKind))!.toLowerCase()}` : ""}` : ""].filter(Boolean).join(", ");
       const cost = n(d.cost);
       return {
         tag: "Training",
@@ -247,7 +252,14 @@ export function logEntryText(e: { kind: string; data: Record<string, unknown>; l
     }
     case "injury": {
       const back = n(d.backAtMs);
-      return { tag: "Injury", tone: "health", title: `${SEVERITY_LABEL[s(d.severity)] ?? "Injury"}${d.source === "race" ? " in a race" : ""}`, detail: back ? `Expected back ${dateText(back)}` : "" };
+      const named = injuryKindName(s(d.injuryKind));
+      const sev = SEVERITY_LABEL[s(d.severity)] ?? "Injury";
+      return {
+        tag: "Injury",
+        tone: "health",
+        title: `${named ?? sev}${d.source === "race" ? " in a race" : ""}`,
+        detail: [named ? sev : "", back ? `Expected back ${dateText(back)}` : ""].filter(Boolean).join(" · "),
+      };
     }
     case "vet": {
       const back = n(d.backAtMs);

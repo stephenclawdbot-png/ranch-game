@@ -86,6 +86,7 @@ export const ledgerAccountKindEnum = pgEnum("ledger_account_kind", [
   "burn", // system sink: fees, packs, upkeep (credits leave circulation)
   "treasury", // studio revenue
   "escrow", // held funds (e.g. future stud bookings / bids)
+  "tote_house", // the tote's house take (game-core TOTE_TAKEOUT_PERMILLE): never spendable by any player path
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "sold", "cancelled", "expired"]);
 export const rarityEnum = pgEnum("rarity", ["common", "uncommon", "rare", "epic", "legendary"]);
@@ -123,6 +124,8 @@ export const accounts = pgTable(
     // Case-insensitive backstop (wallets are stored checksummed): the race two accounts
     // set the same wallet loses here instead of ending up with two owners.
     uniqueIndex("accounts_wallet_lower_uq").on(sql`lower(${t.walletAddress})`),
+    /** New accounts per day (admin: players by audience). */
+    index("accounts_created_idx").on(t.createdAt),
   ],
 );
 
@@ -2088,9 +2091,14 @@ export const jockeys = pgTable(
     retireAt: ts("retire_at").notNull(),
     retirementAnnouncedAt: ts("retirement_announced_at"),
     retiredAt: ts("retired_at"),
+    /** Phase 2: the transfer window (game week) this jockey is a free agent in, if any. */
+    freeAgentWeek: integer("free_agent_week"),
+    /** Phase 2: the stable that developed them (an apprentice with JOCKEY_DEVELOPED_RIDES rides there). */
+    developedByStableId: uuid("developed_by_stable_id").references(() => stables.id),
     createdAt: createdAt(),
   },
   (t) => [
+    index("jockeys_free_agent_idx").on(t.freeAgentWeek),
     index("jockeys_stable_idx").on(t.stableId, t.retiredAt),
     index("jockeys_active_idx").on(t.retiredAt, t.stableId),
     check("jockeys_stage", sql`${t.stage} in ('apprentice', 'prime', 'veteran')`),
@@ -2168,12 +2176,115 @@ export const jockeyEvents = pgTable(
 
 export type JockeyEventRow = typeof jockeyEvents.$inferSelect;
 
-/** Weekly jockey jobs (intake, veteran decline) that ran, one row per game week (idempotency). */
+/**
+ * Weekly jockey jobs (intake, veteran decline, wages, morale) that ran, one row per game week
+ * (idempotency), and the week's transfer window: the seed committed (sha256) when the week opens and
+ * revealed with the results once the window closes (Sunday 20:00 UTC).
+ */
 export const jockeyWeeks = pgTable("jockey_weeks", {
   week: integer("week").primaryKey(),
   data: jsonb("data").notNull().default({}),
   ranAt: ts("ran_at").notNull(),
+  windowSeed: text("window_seed"),
+  windowCommitment: text("window_commitment"),
+  windowRanAt: ts("window_ran_at"),
+  /** The window's published results (signings, unmatched, offers made). */
+  window: jsonb("window"),
 });
+
+/**
+ * Jockey contracts (Phase 2). One active contract per jockey. A contract ends at the transfer
+ * window of `ends_week`; the jockey becomes a free agent there earlier when the stable couldn't pay a
+ * week's wage (`unpaid_week`, the debt waived) or after JOCKEY_BROKEN_PROMISE_WEEKS of broken
+ * promises (`broken_weeks`). Wages (credits, burned) are charged once a week from the weekly job.
+ */
+export const jockeyContracts = pgTable(
+  "jockey_contracts",
+  {
+    id: id(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    /** "4w" | "8w" | "season". */
+    length: text("length").notNull(),
+    startsAt: ts("starts_at").notNull(),
+    startWeek: integer("start_week").notNull(),
+    /** The contract ends at this week's window. */
+    endsWeek: integer("ends_week").notNull(),
+    wage: credits("wage").notNull(),
+    /** No wage before this week (an apprentice's first contract); null = paid from the start. */
+    wageFreeUntilWeek: integer("wage_free_until_week"),
+    promisedRides: integer("promised_rides").notNull(),
+    buyout: credits("buyout").notNull(),
+    /** Consecutive weeks with fewer rides than promised, and the last week counted. */
+    brokenWeeks: integer("broken_weeks").notNull().default(0),
+    lastRidesWeek: integer("last_rides_week"),
+    lastWeekRides: integer("last_week_rides"),
+    /** The week a wage couldn't be paid (the jockey leaves at the next window, the debt waived). */
+    unpaidWeek: integer("unpaid_week"),
+    wagesPaid: credits("wages_paid").notNull().default(0),
+    /** Notes sent ("2" / "1" weeks before the end), so each goes once. */
+    notes: jsonb("notes").notNull().default([]),
+    status: text("status").notNull().default("active"),
+    endedAt: ts("ended_at"),
+    /** Why it ended: expired, re-signed, moved, walked_out, unpaid, released, idle, retired. */
+    endedWhy: text("ended_why"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("jockey_contracts_active_uq").on(t.jockeyId).where(sql`${t.status} = 'active'`),
+    index("jockey_contracts_stable_idx").on(t.stableId, t.status),
+    check("jockey_contracts_status", sql`${t.status} in ('active', 'ended')`),
+    check("jockey_contracts_terms", sql`${t.wage} >= 0 and ${t.promisedRides} >= 0 and ${t.buyout} >= 0 and ${t.endsWeek} > ${t.startWeek}`),
+  ],
+);
+
+export type JockeyContractRow = typeof jockeyContracts.$inferSelect;
+
+/**
+ * Offers in a week's transfer window. The signing fee is escrowed (ledger `jockey_offer_escrow`,
+ * player → escrow) and either burned when the offer wins (`jockey_signing`) or refunded
+ * (`jockey_offer_refund`). One offer per (jockey, stable, week); amending replaces the terms.
+ */
+export const jockeyOffers = pgTable(
+  "jockey_offers",
+  {
+    id: id(),
+    week: integer("week").notNull(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    length: text("length").notNull(),
+    wage: credits("wage").notNull(),
+    promisedRides: integer("promised_rides").notNull(),
+    buyout: credits("buyout").notNull(),
+    /** Signing fee held in escrow (0 for the jockey's current stable). */
+    fee: credits("fee").notNull().default(0),
+    /** open → won | lost | withdrawn. */
+    status: text("status").notNull().default("open"),
+    /** The jockey's utility for this offer at the deadline (published). */
+    utility: integer("utility"),
+    createdAt: createdAt(),
+    resolvedAt: ts("resolved_at"),
+  },
+  (t) => [
+    uniqueIndex("jockey_offers_week_uq").on(t.week, t.jockeyId, t.stableId),
+    index("jockey_offers_stable_idx").on(t.stableId, t.status),
+    index("jockey_offers_jockey_idx").on(t.jockeyId, t.week),
+    check("jockey_offers_status", sql`${t.status} in ('open', 'won', 'lost', 'withdrawn')`),
+  ],
+);
+
+export type JockeyOfferRow = typeof jockeyOffers.$inferSelect;
 
 /**
  * The racing news (services/news.ts): short public items written from facts at the event
@@ -2246,3 +2357,330 @@ export const raceTargets = pgTable(
 );
 
 export type RaceTargetRow = typeof raceTargets.$inferSelect;
+
+/**
+ * Pick the winner (services/picks.ts, game-core picks.ts): one pick per stable per Live card race,
+ * changeable until the off. Points only, never money: nothing is staked or paid. Scored once the
+ * race's result is public (news.ts resultPublicAt); `postTime` is copied from the race so the
+ * weekly table reads one index.
+ */
+export const racePicks = pgTable(
+  "race_picks",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    postTime: ts("post_time").notNull(),
+    /** open (not scored yet) | won | lost | void (the runner didn't run, or the race was called off). */
+    outcome: text("outcome").notNull().default("open"),
+    points: integer("points").notNull().default(0),
+    /** Rank by rating in the final field (game-core ratingRanks) and the field size, once scored. */
+    rank: integer("rank"),
+    fieldSize: integer("field_size"),
+    scoredAt: ts("scored_at"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("race_picks_race_stable_uq").on(t.raceId, t.stableId),
+    index("race_picks_stable_idx").on(t.stableId, t.postTime),
+    index("race_picks_week_idx").on(t.postTime),
+    index("race_picks_open_idx")
+      .on(t.postTime)
+      .where(sql`${t.outcome} = 'open'`),
+    check("race_picks_outcome", sql`${t.outcome} in ('open','won','lost','void')`),
+  ],
+);
+
+export type RacePickRow = typeof racePicks.$inferSelect;
+
+/**
+ * Declared rivals (services/rivals.ts): stables made rivals by a "Bring a rival" invite, beside
+ * the rivals detected from close finishes. One row per invited stable (an account can only be
+ * invited once). `welcome` records the one-time RIVAL_INVITE_CREDITS: granted, or refused with a
+ * reason (linked accounts: same device, wallet, email ...).
+ */
+export const declaredRivals = pgTable(
+  "declared_rivals",
+  {
+    id: id(),
+    inviterStableId: uuid("inviter_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    inviteeStableId: uuid("invitee_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    source: text("source").notNull().default("invite"),
+    welcome: text("welcome").notNull(),
+    welcomeCredits: integer("welcome_credits").notNull().default(0),
+    refusedReason: text("refused_reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("declared_rivals_invitee_uq").on(t.inviteeStableId),
+    index("declared_rivals_inviter_idx").on(t.inviterStableId),
+    check("declared_rivals_pair", sql`${t.inviterStableId} <> ${t.inviteeStableId}`),
+    check("declared_rivals_welcome", sql`${t.welcome} in ('granted','refused')`),
+  ],
+);
+
+export type DeclaredRivalRow = typeof declaredRivals.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// The tote: spectator pool betting on Live card races (services/tote.ts, game-core tote.ts)
+// ---------------------------------------------------------------------------
+
+export const totePoolEnum = pgEnum("tote_pool", ["win", "place"]);
+/**
+ * open: stake held in escrow until settlement. won / lost: settled (payout may be 0).
+ * returned: nobody backed a paying runner, the net pool came back pro rata. void: refunded in
+ * full (non-runner, abandoned race, no place pool, or a conflict of interest found later).
+ */
+export const toteBetStatusEnum = pgEnum("tote_bet_status", ["open", "won", "lost", "returned", "void"]);
+
+/**
+ * One bet: a stake on one runner in one pool (WIN or PLACE) in one currency ("CR" Stable Credits,
+ * "TUSDG" practice T-USDG). The stake moves player -> escrow when placed and is paid out (or
+ * refunded) from escrow at settlement. Never accepted at or after the off.
+ */
+export const toteBets = pgTable(
+  "tote_bets",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    stableId: uuid("stable_id").references(() => stables.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    pool: totePoolEnum("pool").notNull(),
+    currency: text("currency").notNull(),
+    stake: credits("stake").notNull(),
+    status: toteBetStatusEnum("status").notNull().default("open"),
+    payout: credits("payout").notNull().default(0),
+    voidReason: text("void_reason"),
+    /** Client key for one bet slip submission: a double tap places one bet. */
+    clientKey: text("client_key").notNull(),
+    placedAt: ts("placed_at").notNull(),
+    settledAt: ts("settled_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("tote_bets_client_key_uq").on(t.accountId, t.clientKey),
+    index("tote_bets_race_idx").on(t.raceId, t.pool, t.currency, t.status),
+    index("tote_bets_account_idx").on(t.accountId, t.placedAt),
+    index("tote_bets_open_idx")
+      .on(t.raceId)
+      .where(sql`${t.status} = 'open'`),
+    check("tote_bets_stake_positive", sql`${t.stake} > 0`),
+    check("tote_bets_payout_non_negative", sql`${t.payout} >= 0`),
+    check("tote_bets_currency", sql`${t.currency} in ('CR', 'TUSDG')`),
+  ],
+);
+
+/**
+ * One settled pool (race x pool x currency): the public "Tote audit". Written once, in the
+ * settlement transaction; total = paid + takeout + remainder exactly (CHECK).
+ */
+export const totePools = pgTable(
+  "tote_pools",
+  {
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    pool: totePoolEnum("pool").notNull(),
+    currency: text("currency").notNull(),
+    /** paid | no_winner | void | empty | abandoned */
+    outcome: text("outcome").notNull(),
+    places: integer("places").notNull(),
+    takeoutPermille: integer("takeout_permille").notNull(),
+    total: credits("total").notNull(),
+    takeout: credits("takeout").notNull(),
+    paid: credits("paid").notNull(),
+    remainder: credits("remainder").notNull(),
+    /** Stakes returned in full, outside the pool (non-runners, void pools, abandoned races). */
+    refunded: credits("refunded").notNull(),
+    tickets: integer("tickets").notNull(),
+    winningTickets: integer("winning_tickets").notNull(),
+    bettors: integer("bettors").notNull(),
+    /** [{horseId, name, position, stake, amount, perUnitMilli}] */
+    dividends: jsonb("dividends").notNull(),
+    ledgerTransactionId: uuid("ledger_transaction_id"),
+    settledAt: ts("settled_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.raceId, t.pool, t.currency] }),
+    index("tote_pools_settled_idx").on(t.settledAt),
+    check("tote_pools_balanced", sql`${t.total} = ${t.paid} + ${t.takeout} + ${t.remainder}`),
+  ],
+);
+
+/**
+ * A player's betting settings: the 18+ confirmation, their own (lower) limits and any
+ * self-exclusion. Lowering a limit is immediate; a raise waits TOTE_LIMIT_RAISE_DELAY_MS
+ * (`pending_limits` from `pending_at`). A self-exclusion can't be shortened or lifted early;
+ * `excluded_permanent` never ends.
+ */
+export const toteSettings = pgTable("tote_settings", {
+  accountId: uuid("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+  adultConfirmedAt: ts("adult_confirmed_at"),
+  /** {CR: {perRace, perDay}, TUSDG: {perRace, perDay}}, base units, null = the game's limit. */
+  limits: jsonb("limits").notNull().default({}),
+  pendingLimits: jsonb("pending_limits"),
+  pendingAt: ts("pending_at"),
+  /** A time-out (24 h, 7 d or 30 d) ends here by itself. */
+  excludedUntil: ts("excluded_until"),
+  excludedPermanent: boolean("excluded_permanent").notNull().default(false),
+  /**
+   * A self-exclusion (6 months, 1 year, 5 years) lasts at least until here and then continues
+   * until the player asks to end it; betting reopens TOTE_SELF_EXCLUSION_COOLING_OFF_MS after
+   * that request.
+   */
+  selfExcludedUntil: ts("self_excluded_until"),
+  selfExclusionEndRequestedAt: ts("self_exclusion_end_requested_at"),
+  /** The last reality check the player acknowledged (one is due every 60 min of betting). */
+  realityCheckAckAt: ts("reality_check_ack_at"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Real-USDG tote: DORMANT scaffold (docs/usdg-tote.md). Off unless REAL_TOTE_ENABLED,
+// WEB3_ENABLED and TOTE_POOLS_ADDRESS are all set (legal approval first). Stakes live only in
+// the TotePools contract: these tables mirror chain events for display and record the permits
+// the server signed. They never hold or move player funds.
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per race flagged for a real-money pool: the row IS the race-level flag (no row = the
+ * race runs exactly as before). Created only through `enableRealToteForRace`, which also moves
+ * the field lock to REAL_TOTE_FIELD_LOCK_MS before the off.
+ */
+export const realToteRaces = pgTable(
+  "real_tote_races",
+  {
+    raceId: uuid("race_id")
+      .primaryKey()
+      .references(() => races.id),
+    /** The on-chain market id: keccak256("posttime:race:<uuid>"), 0x hex. */
+    marketKey: text("market_key").notNull(),
+    /** pending (flagged) | open (market created) | entropy_locked | sealed | abandoned | result_posted | finalized | void */
+    status: text("status").notNull().default("pending"),
+    fieldLockAt: ts("field_lock_at").notNull(),
+    /** TotePools closeTime: the entropy can be locked from here. */
+    marketCloseAt: ts("market_close_at").notNull(),
+    /** The contract refuses bets from here (closeTime - CLOSE_MARGIN). */
+    betsCloseAt: ts("bets_close_at").notNull(),
+    entropyBlock: credits("entropy_block"),
+    /** The sealed block hash, 64 lowercase hex, mirrored from EntropySealed. */
+    entropy: text("entropy"),
+    /**
+     * Which seed the race ran on, fixed once at its first simulation: "final" =
+     * sha256(serverSeed ‖ entropy); "server" = the entropy wasn't sealed in time, so the race ran
+     * on its server seed and the market must be cancelled (refunds).
+     */
+    seedMode: text("seed_mode"),
+    /** Mirrored pool totals: {win: {"<runner index>": stake}, place: {...}}, USDG base units. */
+    pools: jsonb("pools").notNull().default({}),
+    voidReason: text("void_reason"),
+    /** Mirrored from ResultPosted / ResultCorrected: when finalize may run. */
+    challengeEndAt: ts("challenge_end_at"),
+    /** The posted result's hash (TotePools.resultHashOf), and what the result attestor attested. */
+    resultHash: text("result_hash"),
+    attestedHash: text("attested_hash"),
+    /** An attestation didn't match the posted result: frozen on chain until the guardian acts. */
+    disputed: boolean("disputed").notNull().default(false),
+    /** The last block whose logs were mirrored (the event sync resumes after it). */
+    syncedBlock: credits("synced_block"),
+    /** Keeper bookkeeping: failures in a row, when to retry, the last error, and when it gave up (with an alert). */
+    keeperAttempts: integer("keeper_attempts").notNull().default(0),
+    keeperNextAt: ts("keeper_next_at"),
+    keeperError: text("keeper_error"),
+    parkedAt: ts("parked_at"),
+    /** When the keeper asked the guardian to step in (void an abandoned market, resolve a dispute, a withheld result). */
+    guardianRequestAt: ts("guardian_request_at"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("real_tote_races_status_idx").on(t.status, t.marketCloseAt),
+    check(
+      "real_tote_races_status",
+      sql`${t.status} in ('pending', 'open', 'entropy_locked', 'sealed', 'abandoned', 'result_posted', 'finalized', 'void')`,
+    ),
+    check("real_tote_races_seed_mode", sql`${t.seedMode} is null or ${t.seedMode} in ('final', 'server')`),
+    check("real_tote_races_entropy", sql`${t.entropy} is null or ${t.entropy} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+/**
+ * A BetPermit the server signed after the off-chain checks (conflicts, linked accounts, limits,
+ * self-exclusion, 18+, location). Counts toward the account's limits until it expires unused;
+ * `used_amount` is mirrored from the BetPlaced event that spent it.
+ */
+export const realTotePermits = pgTable(
+  "real_tote_permits",
+  {
+    /** The permit's uint256 nonce, decimal. Single-use on chain. */
+    nonce: text("nonce").primaryKey(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    wallet: text("wallet").notNull(),
+    maxAmount: credits("max_amount").notNull(),
+    issuedAt: ts("issued_at").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAmount: credits("used_amount"),
+    betTx: text("bet_tx"),
+    /** The runner index (gate - 1) and pool the permit is bound to (signed on chain). */
+    runner: integer("runner"),
+    pool: text("pool"),
+    /** Never used and can't be any more (expired and unused on chain, or betting closed): stops counting toward limits. */
+    lapsedAt: ts("lapsed_at"),
+  },
+  (t) => [
+    index("real_tote_permits_account_idx").on(t.accountId, t.issuedAt),
+    index("real_tote_permits_race_idx").on(t.raceId, t.accountId),
+    check("real_tote_permits_amount", sql`${t.maxAmount} > 0 and (${t.usedAmount} is null or (${t.usedAmount} > 0 and ${t.usedAmount} <= ${t.maxAmount}))`),
+  ],
+);
+
+/** TotePools events mirrored for display (and the audit trail). Idempotent per (tx, log index). */
+export const realToteEvents = pgTable(
+  "real_tote_events",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    kind: text("kind").notNull(),
+    txHash: text("tx_hash").notNull(),
+    logIndex: integer("log_index").notNull(),
+    blockNumber: credits("block_number").notNull(),
+    data: jsonb("data").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("real_tote_events_log_uq").on(t.txHash, t.logIndex), index("real_tote_events_race_idx").on(t.raceId, t.blockNumber)],
+);
+
+export type ToteBetRow = typeof toteBets.$inferSelect;
+export type TotePoolRow = typeof totePools.$inferSelect;
+export type ToteSettingsRow = typeof toteSettings.$inferSelect;
+export type RealToteRaceRow = typeof realToteRaces.$inferSelect;
+export type RealTotePermitRow = typeof realTotePermits.$inferSelect;
+export type RealToteEventRow = typeof realToteEvents.$inferSelect;

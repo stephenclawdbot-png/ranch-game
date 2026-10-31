@@ -1,0 +1,196 @@
+import * as gc from "@thoroughbred/game-core";
+import { Callout, Facts, GameLink, H2, Lead, List, P, Table, WikiLink, pct } from "../kit";
+
+const cr = (n: number) => gc.formatToteAmount("CR", n);
+const usdg = (n: number) => gc.formatToteAmount("TUSDG", n);
+
+/** A worked WIN pool, settled by the game's own code. */
+function example() {
+  const finish = Array.from({ length: 8 }, (_, i) => ({ horseId: `h${i + 1}`, position: i + 1 }));
+  const bets = [
+    { id: "a", bettor: "a", horseId: "h1", stake: 100 },
+    { id: "b", bettor: "b", horseId: "h1", stake: 300 },
+    { id: "c", bettor: "c", horseId: "h2", stake: 600 },
+    { id: "d", bettor: "d", horseId: "h3", stake: 1_000 },
+  ];
+  return gc.settleTotePool("win", bets, finish);
+}
+
+/** A heavy favourite wins: the take is cut so its backers get their stakes back. */
+function favourite() {
+  const finish = Array.from({ length: 6 }, (_, i) => ({ horseId: `h${i + 1}`, position: i + 1 }));
+  return gc.settleTotePool("win", [
+    { id: "a", bettor: "a", horseId: "h1", stake: 950 },
+    { id: "b", bettor: "b", horseId: "h2", stake: 50 },
+  ], finish);
+}
+
+/** Two runners dead-heat for first: stakes back, then half the profit each. */
+function deadHeat() {
+  const finish = [
+    { horseId: "h1", position: 1 },
+    { horseId: "h2", position: 1 },
+    ...Array.from({ length: 6 }, (_, i) => ({ horseId: `h${i + 3}`, position: i + 3 })),
+  ];
+  return gc.settleTotePool("win", [
+    { id: "a", bettor: "a", horseId: "h1", stake: 100 },
+    { id: "b", bettor: "b", horseId: "h2", stake: 300 },
+    { id: "c", bettor: "c", horseId: "h3", stake: 600 },
+  ], finish);
+}
+
+export default function TotePage() {
+  const ex = example();
+  const dh = deadHeat();
+  const fav = favourite();
+  const paid = (s: gc.ToteSettlement, id: string) => s.payouts.find((p) => p.betId === id)?.amount ?? 0;
+  return (
+    <>
+      <Lead>
+        Every Live card race has a tote: pool betting for anyone watching. You back a runner to win or to place, your stake goes into a pool with everyone else&rsquo;s, the house takes up to{" "}
+        {pct(gc.TOTE_TAKEOUT_PERMILLE)} off the top, and the winners share the rest. A winning bet always returns at least its stake. Nobody sets the odds: they come from the pool alone, and they move as bets arrive until the off. Betting is
+        optional, never needed to play, and only ever pays out game currency.
+      </Lead>
+
+      <Facts
+        rows={[
+          ["House take", `up to ${pct(gc.TOTE_TAKEOUT_PERMILLE)} of every pool (to the sink); less when it would leave a winner short`],
+          ["Smallest pool", `${gc.TOTE_MIN_POOL_BETTORS} players backing ${gc.TOTE_MIN_POOL_RUNNERS} runners, or every stake is refunded`],
+          ["Pools", "Win, and Place in fields of 5 or more"],
+          ["Place pays", `the first ${gc.totePlaces(gc.TOTE_PLACE_THREE_FROM)} from ${gc.TOTE_PLACE_THREE_FROM} runners, the first ${gc.totePlaces(gc.TOTE_PLACE_MIN_FIELD)} from ${gc.TOTE_PLACE_MIN_FIELD} to ${gc.TOTE_PLACE_THREE_FROM - 1}`],
+          ["Smallest bet", `${cr(gc.TOTE_MIN_STAKE.CR)} · ${usdg(gc.TOTE_MIN_STAKE.TUSDG)}`],
+          ["Most per race", `${cr(gc.TOTE_MAX_STAKE_PER_RACE.CR)} or ${pct(gc.TOTE_MAX_STAKE_BALANCE_PERMILLE)} of your balance, whichever is lower · ${usdg(gc.TOTE_MAX_STAKE_PER_RACE.TUSDG)}`],
+          ["Most per day", `${cr(gc.TOTE_MAX_STAKE_PER_DAY.CR)} · ${usdg(gc.TOTE_MAX_STAKE_PER_DAY.TUSDG)}`],
+          ["Betting closes", "at the off (post time); never during a race"],
+        ]}
+      />
+
+      <H2 id="pools">Pools and odds</H2>
+      <P>
+        Each race has a <b>Win</b> pool (your runner must win) and, when at least {gc.TOTE_PLACE_MIN_FIELD} run, a <b>Place</b> pool (your runner must finish in the first{" "}
+        {gc.totePlaces(gc.TOTE_PLACE_THREE_FROM)} with {gc.TOTE_PLACE_THREE_FROM} or more runners, the first {gc.totePlaces(gc.TOTE_PLACE_MIN_FIELD)} with {gc.TOTE_PLACE_MIN_FIELD} to{" "}
+        {gc.TOTE_PLACE_THREE_FROM - 1}). Credits and T-USDG have separate pools that never mix.
+      </P>
+      <P>
+        The odds on the panel are the pool&rsquo;s own maths: <b>odds = pool × (1 − {pct(gc.TOTE_TAKEOUT_PERMILLE)}) ÷ the stakes on that runner</b>, as decimal odds (what 1 returns, stake
+        included), never below 1.00. A Place return depends on which other runners place, so the panel shows it as a range: the least if the most-backed other runners place too, the most if
+        no other backed runner does. The panel also shows each pool&rsquo;s total and how many players are in it. The share bar shows how much of the pool is on each runner. Every odds
+        figure is an estimate that changes with every bet until the off; the final odds freeze at the off and show under the broadcast while the race runs.
+      </P>
+      <Callout tone="rule" title="Pure pool betting">
+        <p>
+          The game never bets, never sets a price and never takes the other side of your bet. The Club doesn&rsquo;t bet either. Whatever happens, everything in a pool is either paid to the
+          winners or kept as the take: the house can&rsquo;t win or lose on a result.
+        </p>
+      </Callout>
+
+      <H2 id="settlement">How winnings are worked out</H2>
+      <List
+        items={[
+          <>The take is {pct(gc.TOTE_TAKEOUT_PERMILLE)} of the pool, rounded down. What is left is the net pool.</>,
+          <>Every winning stake comes back first. What is left after the take and the winning stakes is the profit.</>,
+          <>Win: the profit goes to the winner&rsquo;s backers, each in proportion to their stake.</>,
+          <>Place: the profit is split into equal parts, one per paying place; each part goes to the backers of the runner in that place. If nobody backed one of the placed runners, its part goes to the other placed runners&rsquo; backers.</>,
+          <>Winners never lose money: if the take would leave less than the winning stakes, the take is cut (down to zero if it has to be) until every winner gets at least the stake back. The house never pays in.</>,
+          <>Every payout is rounded down to the unit; the few units left over go to the house with the take, so payouts + take + rounding = the pool, exactly.</>,
+          <>Bets are settled only once the result is public, when the broadcast is over: a payout can never give away a result before you have seen the race.</>,
+        ]}
+      />
+      <Table
+        caption={`A worked Win pool of ${cr(ex.total)} (computed by the game's own settlement code)`}
+        head={["Bet", "Stake", "Runner finished", "Paid back"]}
+        rows={[
+          ["A", cr(100), "1st", cr(paid(ex, "a"))],
+          ["B", cr(300), "1st", cr(paid(ex, "b"))],
+          ["C", cr(600), "2nd", cr(0)],
+          ["D", cr(1_000), "3rd", cr(0)],
+          ["House take", "", "", `${cr(ex.takeout)} + ${cr(ex.remainder)} rounding`],
+        ]}
+      />
+      <P>
+        Here the dividend is {gc.formatToteOdds(ex.dividends[0]?.perUnitMilli ?? null)} per credit: ({cr(ex.total)} − {cr(ex.takeout)}) ÷ {cr(400)} on the winner.
+      </P>
+      <P>
+        When a heavy favourite wins, the standard take could leave its backers less than they staked. Then the take is cut: with {cr(950)} on the winner and {cr(50)} on the
+        runner-up, the {pct(gc.TOTE_TAKEOUT_PERMILLE)} take would be {cr(fav.standardTakeout)}, but only {cr(fav.takeout)} is taken and the winner&rsquo;s backer gets {cr(paid(fav, "a"))} back
+        (odds of {gc.formatToteOdds(fav.dividends[0]?.perUnitMilli ?? null)}). The tote audit shows the take actually taken.
+      </P>
+
+      <H2 id="dead-heats">Dead heats</H2>
+      <P>
+        When runners dead-heat they share the places they cover. Two dead-heating for first in the Win pool each get their backers&rsquo; stakes back plus half of the profit; two
+        dead-heating for the last paying place in the Place pool share that place&rsquo;s part of the profit. In a pool of {cr(dh.total)} where the two dead-heaters carry {cr(100)} and{" "}
+        {cr(300)}, the {cr(100)} backer is paid {cr(paid(dh, "a"))} and the {cr(300)} backer {cr(paid(dh, "b"))}. Races in this game are timed finely, so dead heats are very rare; the rule is
+        there for completeness.
+      </P>
+
+      <H2 id="declared">Declared dividends stand</H2>
+      <P>
+        Once a race&rsquo;s dividends are declared (the tote settles only when the result is public), they stand. If a mistake is ever found afterwards, it is put right in the
+        player&rsquo;s favour only: anyone who was paid too little is made good by the house from the take it kept; anyone paid too much keeps it, and the house absorbs it. A payout is
+        never clawed back. (For a real-money pool, the role a racecourse&rsquo;s &ldquo;weighed in&rdquo; plays is taken by its challenge window: the result can be corrected or the pool
+        voided before it is paid, never after.)
+      </P>
+
+      <H2 id="refunds">Refunds</H2>
+      <List
+        items={[
+          <>A runner taken out before the off (scratched, or scratched at the lock): every stake on it is refunded in full, and it leaves the pool.</>,
+          <>An abandoned or called-off race: every stake is refunded in full, with no take.</>,
+          <>Nobody backed the winner (or any placed runner): the net pool goes back to everyone who bet in that pool, in proportion to their stakes. Nothing carries over to another race.</>,
+          <>Too few runners for a place pool when the race runs: every place stake is refunded in full.</>,
+          <>
+            A small pool: fewer than {gc.TOTE_MIN_POOL_BETTORS} players, or fewer than {gc.TOTE_MIN_POOL_RUNNERS} runners backed (among the runners that ran). There is nobody to bet against, so
+            the pool is void and every stake in it is refunded in full, with no take. The panel shows a &ldquo;Small pool&rdquo; note while it is so.
+          </>,
+          <>A bet that turns out to break the fairness rules below is voided and refunded in full.</>,
+        ]}
+      />
+
+      <H2 id="fairness">Fairness rules</H2>
+      <List
+        items={[
+          <>You can&rsquo;t bet on a race in which your stable has a runner, or a stable you lease a horse to or from, or an account linked to yours (the same detection as the <WikiLink slug="the-market">auction house</WikiLink>).</>,
+          <>Linked accounts count as one player for the smallest-pool rule, and linked accounts backing different runners in the same pool are flagged for review (it would be a way to move currency between accounts).</>,
+          <>Staff accounts can&rsquo;t bet.</>,
+          <>If such a horse is entered after you bet, your bets on that race are voided and refunded.</>,
+          <>Bets are accepted only before the off, checked against the server&rsquo;s clock under a lock on the race, so nothing can be bet once the race has started. Each race&rsquo;s result is sealed before it runs (see <WikiLink slug="how-races-are-run">how races are run</WikiLink>).</>,
+          <>After settlement every race shows a tote audit: each pool&rsquo;s total, the take actually taken (and whether it was cut so winners got their stakes back), the number of winning tickets, the dividend per 1 unit with its formula, and the check that payouts + take + rounding = the pool.</>,
+          <>Unusual patterns, such as a horse ridden conservatively while linked accounts bet against it, are flagged for review.</>,
+        ]}
+      />
+
+      <H2 id="currencies">Credits and T-USDG</H2>
+      <P>
+        Credits bets use your Stable Credits; credits never leave the game. The take on credits pools is a sink: those credits leave circulation, like an entry fee. T-USDG pools appear only while
+        the game runs in practice mode with test dollars, have their own (lower) limits, and never touch real money.
+      </P>
+      <P>
+        T-USDG bets come from the same T-USDG balance you use on the <WikiLink slug="usdg-market">T-USDG market</WikiLink>: the {gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)} every account
+        gets once when its wallet first signs in. There is no other way to get T-USDG, so you need your wallet signed in to bet it.
+      </P>
+
+      <H2 id="limits">Limits, breaks and 18+</H2>
+      <P>
+        Betting is for players aged 18 or over: the first time, the panel asks you to confirm it and offers to set a daily limit (you can skip that). On{" "}
+        <GameLink href="/me/betting">Betting limits</GameLink> you can set your own lower limits per race and per day. Lowering one is immediate; raising or removing one takes 24 hours and
+        then only applies once you come back and confirm it.
+      </P>
+      <List
+        items={[
+          <>A <b>time-out</b> of 24 hours, 7 days or 30 days ends by itself.</>,
+          <>A <b>self-exclusion</b> of 6 months, 1 year or 5 years lasts at least that long, and then carries on until you ask to end it; betting reopens a day after you ask.</>,
+          <>Or close betting on your account for good.</>,
+          <>None of them can be shortened or lifted early. Racing, breeding and everything else carry on as normal.</>,
+          <>A <b>reality check</b> comes up after every hour of betting (a session ends after 30 minutes without a bet): how long you&rsquo;ve been betting and your net result for the session. You see it before your next bet, and can carry on or take a break.</>,
+        ]}
+      />
+      <P>
+        <GameLink href="/me/bets">My bets</GameLink> lists every bet with your running profit or loss.
+      </P>
+      <Callout tone="warn" title="Keep it fun">
+        <p>Most bets lose: the take means that, on average, the tote returns less than goes in. Bet small, set a limit, and take a break if it stops being fun.</p>
+      </Callout>
+    </>
+  );
+}

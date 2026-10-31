@@ -150,6 +150,23 @@ towards a hidden potential and are sealed into the locked field as engine kit (b
 about 2-3 OR); apprentices claim 7/5/3 lb off handicap weights. Harness metrics: pool per
 active stable each week, rides per jockey, grades, intake/retirements, freelance and signing fees.
 
+**Jockey contracts and the transfer window** (Phase 2; game-core `jockeyContracts.ts`, db
+`services/jockeyContracts.ts`). Held jockeys are on contracts (4 weeks, 8 weeks or to the end of the
+season) with a weekly wage (A 600 to E 100 credits, kind `jockey_wage`, burned on Monday by the weekly
+job; a stable's first apprentice is wage-free for 4 weeks; a stable that can't pay is never charged
+and loses the jockey at the next window), promised rides a week and a buyout (stored for Phase 3).
+Two weeks with fewer rides than promised and the jockey may walk out. Every Sunday 20:00 UTC the
+window closes: free agents (contracts ending, released, idle stables, unpaid, walkouts, new
+apprentices) take offers (at most 3 open per stable, the signing fee escrowed and refunded if lost)
+by jockey-proposing deferred acceptance over a published personality utility (wage, mean rating of
+the stable's top 5, prestige, promised rides, loyalty, length); stables fill at most their free
+places, ties by a draw from the week's committed seed (sha256 published at the week's start, seed
+revealed with the results on `jockey_weeks`). Unmatched free agents go to the Club pool. An
+apprentice with 25 rides for a stable is "developed" there; a Feature/Final win for another stable
+pays the developer 500 credits (`jockey_development_bonus`, minted). Linked accounts can't sign or
+make offers for each other's jockeys (fraud event). Harness: offers per window, signings, moves,
+wages paid, walkouts, development bonuses.
+
 ---
 
 ## 4. Credits: faucets and sinks
@@ -181,6 +198,7 @@ flowchart LR
     prem[Insurance premiums]
     mfee[Market fee]
     extras["Race-day extras, jockey fees (refunded on a scratch), jockey signing fees"]
+    tote["Tote house take (15% of every pool)"]
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks
@@ -202,6 +220,17 @@ holds the price in escrow (`claim_escrow`); after the race the horse moves and t
 the price less the 5% market fee (`claim_sale`, fee burned) while keeping the purse. Losing draws,
 scratches, abandoned races and fatal injuries refund (`claim_refund`). No credits are created;
 linked accounts are refused as in the market.
+
+The tote (2026-10-31, KNOBS 17) is spectator pool betting on Live card races. Stakes go into
+escrow (`tote_stake`); once the result is public each pool settles in one `tote_settlement`
+transaction: 15% of the pool plus rounding to the `tote_house` system account (no player path
+spends it, so for credits it is a sink), the rest to the winners pro rata. Bets are player money
+moving between bettors through the pool; the only credits that leave circulation are the house
+take. Non-runners, abandoned races and bets voided for a conflict of interest are refunded in
+full (`tote_refund`). Bettors with an interest in a runner (own stable, lease partner, linked
+account) are refused, as in the market. T-USDG pools run only in practice mode, on their own
+ledger currency. The harness's punters (a quarter of casuals and grinders, 10-50 credits a bet)
+report the volume and the sink (`totals.tote`).
 
 Purses were halved and a 5% entry fee added on 2026-10-29 (live purses were about 3x the
 model's; now about 1.7x for ordinary races, KNOBS "Live vs model mismatches" 1), and the

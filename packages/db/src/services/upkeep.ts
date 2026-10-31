@@ -39,7 +39,7 @@ async function usedHorses(db: Db, from: Date, to: Date): Promise<Map<string, Set
         from ledger_transactions t
         join horses h on h.id::text = split_part(t.idempotency_key, ':', 2)
         join ledger_postings p on p.transaction_id = t.id and p.amount < 0
-        join ledger_accounts a on a.id = p.ledger_account_id and a.kind = 'player'
+        join ledger_accounts a on a.id = p.ledger_account_id and a.kind = 'player' and a.currency = 'CR'
         join stables s on s.account_id = a.owner_account_id
        where t.kind = 'training' and t.idempotency_key like 'training:%'
          and t.created_at >= ${from} and t.created_at < ${to}

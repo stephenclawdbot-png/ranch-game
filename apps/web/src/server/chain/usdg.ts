@@ -5,10 +5,24 @@
  * checks EIP-712 bid signatures against the bidder's linked wallet, runs the backstop (close
  * auctions, expire stale orders, settle paid-but-unconfirmed ones) and, on the mock chain,
  * simulates payments so the whole flow is playable with WEB3_ENABLED off.
+ *
+ * Practice mode (USDG_MODE=practice, beta test money "T-USDG"): the same order rows, rules and
+ * fulfilment, but no chain at all. Orders carry the practice market address, nothing is signed,
+ * `practicePay` pays an order from the player's T-USDG balance and fulfils it in one database
+ * transaction (@thoroughbred/db usdgPractice), bids are still EIP-712 signatures from the linked
+ * wallet (free; checked locally, no RPC), and the backstop only closes auctions and expires orders.
  */
-import { getAddress, type Address, type Hex } from "viem";
+import { getAddress, isAddressEqual, recoverTypedDataAddress, type Address, type Hex } from "viem";
 import {
   DomainError,
+  assertPracticeFunds,
+  isPracticeOrder,
+  payUsdgOrderPractice,
+  practiceUsdgBalance,
+  resetPracticeUsdg,
+  topUpPracticeUsdg,
+  usdgListingById,
+  accountIdByStableName,
   clearUsdgOrderTx,
   closeUsdgAuctions,
   delistUsdg,
@@ -50,6 +64,7 @@ import * as gc from "@thoroughbred/game-core";
 import { chainInfo } from "@/lib/chain/chains";
 import {
   TESTNET_FAUCETS,
+  bidTypedData,
   isTestnet,
   orderToJson,
   saleOrderFromJson,
@@ -64,6 +79,7 @@ import type { UsdgCheckView, UsdgHorseView, UsdgLotView, UsdgMarketView, UsdgNet
 import { ecoHorse, friendlyEconomyError, lotNumbers } from "../economy";
 import { parseSilks } from "../horseView";
 import type { Session } from "../session";
+import { ensurePracticeGrant } from "./practice";
 import type { MockUsdgChain, UsdgChain, UsdgOrderKind } from "./usdgChain";
 import type { UsdgConfig } from "./usdgConfig";
 
@@ -87,11 +103,36 @@ function assertOpen(ctx: UsdgCtx): void {
   if (ctx.cfg.mode === "off") throw new UsdgUnavailableError();
 }
 
+/** USDG_MODE=practice: beta test money (T-USDG) from the game ledger, no chain. */
+export const isPractice = (ctx: Pick<UsdgCtx, "cfg">): boolean => ctx.cfg.mode === "practice";
+
+/**
+ * Practice mode, before anything is held (a lot reserved, a mare locked, an order written): the
+ * player has a verified wallet (sign-in or link, as in live mode), has had the one-off grant, and
+ * holds at least `amount` T-USDG.
+ */
+async function practiceGate(ctx: UsdgCtx, session: Session, amount: number, now: Date): Promise<void> {
+  if (!(await verifiedWalletOf(ctx.db, session.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+  await ensurePracticeGrant(ctx.db, session.accountId, now);
+  if (amount > 0) await assertPracticeFunds(ctx.db, session.accountId, amount);
+}
+
+/** The player's practice balance for the views (granting it lazily to wallet holders); null outside practice mode. */
+async function practiceView(ctx: UsdgCtx, session: Session, now: Date): Promise<{ balance: number; grant: number } | null> {
+  if (!isPractice(ctx)) return null;
+  await ensurePracticeGrant(ctx.db, session.accountId, now);
+  return { balance: await practiceUsdgBalance(ctx.db, session.accountId), grant: gc.PRACTICE_USDG_GRANT };
+}
+
 // ---------------------------------------------------------------------------
 // Views
 // ---------------------------------------------------------------------------
 
 export function networkView(ctx: UsdgCtx): UsdgNetworkView {
+  if (isPractice(ctx)) {
+    // No chain, no network prompts, no faucets: test money in the game ledger.
+    return { mode: "practice", chainId: ctx.chain.chainId, networkName: "Practice (test money, no chain)", testnet: false, explorer: null, market: ctx.chain.market, token: ctx.chain.token, faucets: null };
+  }
   const info = chainInfo(ctx.chain.chainId);
   const testnet = isTestnet(ctx.chain.chainId) || ctx.cfg.mode === "mock";
   return {
@@ -142,6 +183,7 @@ const CHECK_LABEL: Record<string, (p: gc.UsdgPolicy, liveStarts: number) => stri
 /** Signs the order a row describes (never stored: re-signed on request, so nothing secret sits in the DB). */
 async function signedOrder(ctx: UsdgCtx, o: UsdgOrderRow): Promise<UsdgOrderJson["signed"]> {
   if (o.status !== "pending") return null;
+  if (isPractice(ctx) || isPracticeOrder(o)) return null; // practice orders are paid from the ledger, never signed
   if (o.kind === "stud") {
     const order: StudOrder = {
       orderId: o.orderId as Hex,
@@ -200,6 +242,7 @@ export async function orderJson(ctx: UsdgCtx, o: UsdgOrderRow, now: Date, horseN
     txHash: o.txHash,
     signed: o.status === "pending" && o.deadline > now ? await signedOrder(ctx, o) : null,
     mock: ctx.chain.kind === "mock",
+    practice: isPracticeOrder(o),
     auction: !!o.bidId,
   };
 }
@@ -265,6 +308,7 @@ export async function usdgMarketView(ctx: UsdgCtx, session: Session, now: Date):
   return {
     network: networkView(ctx),
     policy: policyView(ctx.policy),
+    practice: await practiceView(ctx, session, now),
     wallet: await verifiedWalletOf(ctx.db, session.accountId),
     barredUntilMs: barred?.getTime() ?? null,
     lots: all.filter((l) => !l.mine),
@@ -282,7 +326,7 @@ export async function usdgMarketView(ctx: UsdgCtx, session: Session, now: Date):
  * cron. Only my own few orders, so the chain reads stay small.
  */
 async function resumeMyOrders(ctx: UsdgCtx, session: Session, now: Date): Promise<void> {
-  if (ctx.cfg.mode === "off") return;
+  if (ctx.cfg.mode === "off" || isPractice(ctx)) return;
   for (const o of await myUsdgOrders(ctx.db, { accountId: session.accountId, now })) {
     try {
       const tx = (o.txHash as Hex | null) ?? (await ctx.chain.findPaymentTx(o.kind as UsdgOrderKind, o.orderId as Hex));
@@ -317,6 +361,7 @@ export async function usdgHorseView(ctx: UsdgCtx, session: Session, horseId: str
   return {
     network: networkView(ctx),
     policy: policyView(ctx.policy),
+    practice: await practiceView(ctx, session, now),
     horseId,
     name: horse.name,
     mine: horse.ownerStableId === session.stable.id,
@@ -339,6 +384,7 @@ export async function usdgHorseView(ctx: UsdgCtx, session: Session, horseId: str
 
 export async function registerHorse(ctx: UsdgCtx, session: Session, input: { horseId: string; termsAccepted: boolean }, now: Date): Promise<UsdgOrderJson> {
   assertOpen(ctx);
+  if (isPractice(ctx)) await practiceGate(ctx, session, ctx.policy.registrationFee, now);
   const o = await quoteUsdgRegistration(ctx.db, { accountId: session.accountId, horseId: input.horseId, termsAccepted: input.termsAccepted, chain: chainRef(ctx), now }, ctx.policy);
   return orderJson(ctx, o, now);
 }
@@ -356,6 +402,11 @@ export async function delistHorse(ctx: UsdgCtx, session: Session, listingId: str
 
 export async function buyFixed(ctx: UsdgCtx, session: Session, listingId: string, now: Date): Promise<UsdgOrderJson> {
   assertOpen(ctx);
+  if (isPractice(ctx)) {
+    const listing = await usdgListingById(ctx.db, listingId);
+    // Unknown or closed lots fall through to the quote's own refusal.
+    if (listing && listing.status === "active" && listing.kind === "fixed" && listing.sellerAccountId !== session.accountId) await practiceGate(ctx, session, listing.price, now);
+  }
   const o = await quoteUsdgSale(ctx.db, { accountId: session.accountId, listingId, chain: chainRef(ctx), now }, ctx.policy);
   return orderJson(ctx, o, now);
 }
@@ -366,6 +417,7 @@ export async function buyFixed(ctx: UsdgCtx, session: Session, listingId: string
  */
 export async function bookUsdgStud(ctx: UsdgCtx, session: Session, input: { sireId: string; damId: string }, now: Date): Promise<UsdgOrderJson> {
   assertOpen(ctx);
+  if (isPractice(ctx)) await practiceGate(ctx, session, (await getHorse(ctx.db, input.sireId))?.studFeeUsdg ?? 0, now);
   const o = await quoteUsdgStud(ctx.db, { accountId: session.accountId, sireId: input.sireId, damId: input.damId, chain: chainRef(ctx), now }, ctx.policy).catch((e: unknown) => {
     throw friendlyEconomyError(e);
   });
@@ -383,12 +435,23 @@ export async function standAtStudForUsdg(ctx: UsdgCtx, session: Session, input: 
  * A bid signed by the bidder's wallet (EIP-712 Bid in the HorseMarket domain). The claimed
  * bidder is the account's linked wallet: a signature from any other key is refused.
  */
-export async function bid(ctx: UsdgCtx, session: Session, input: { listingId: string; amount: number; nonce: string; signature: Hex }, now: Date) {
+export async function bid(ctx: UsdgCtx, session: Session, input: { listingId: string; amount: number; nonce: string; signature: Hex; chainId?: number }, now: Date) {
   assertOpen(ctx);
   const wallet = await verifiedWalletOf(ctx.db, session.accountId);
   if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Link your wallet first (one free signature).");
   if (!/^\d{1,78}$/.test(input.nonce)) throw new DomainError("INVALID_INPUT", "bad nonce");
-  const ok = await ctx.chain.verifyBid({ listingId: input.listingId, amount: BigInt(input.amount), bidder: getAddress(wallet), nonce: BigInt(input.nonce) }, input.signature);
+  const theBid = { listingId: input.listingId, amount: BigInt(input.amount), bidder: getAddress(wallet), nonce: BigInt(input.nonce) };
+  let ok: boolean;
+  if (isPractice(ctx)) {
+    // A rehearsal of the real flow: the same free EIP-712 signature, in the domain of whatever chain
+    // the wallet is on (no network switch in practice), recovered locally: no RPC. You can't bid
+    // more T-USDG than you hold.
+    await practiceGate(ctx, session, input.amount, now);
+    const chainId = Number.isSafeInteger(input.chainId) && input.chainId! > 0 ? input.chainId! : ctx.chain.chainId;
+    ok = await recoverTypedDataAddress({ ...bidTypedData(theBid, chainId, ctx.chain.market), signature: input.signature })
+      .then((a) => isAddressEqual(a, theBid.bidder))
+      .catch(() => false);
+  } else ok = await ctx.chain.verifyBid(theBid, input.signature);
   if (!ok) throw new DomainError("NOT_ELIGIBLE", "That bid wasn't signed by your linked wallet.");
   const r = await placeUsdgBid(ctx.db, { accountId: session.accountId, listingId: input.listingId, amount: input.amount, nonce: input.nonce, signature: input.signature, signer: wallet, now }, ctx.policy);
   return { bidId: r.bid.id, amount: r.bid.amount, best: r.best, minNext: r.minNext };
@@ -441,6 +504,7 @@ export async function settleUsdgOrder(ctx: UsdgCtx, order: UsdgOrderRow, txHash:
 }
 
 export async function confirmUsdgOrder(ctx: UsdgCtx, session: Session, input: { orderId: string; txHash: string }, now: Date): Promise<UsdgSettle> {
+  if (isPractice(ctx)) throw new DomainError("NOT_FOUND", "In practice mode orders are paid with T-USDG, not a transaction.");
   const txHash = input.txHash.toLowerCase() as Hex;
   if (!/^0x[0-9a-f]{64}$/.test(txHash)) throw new DomainError("INVALID_INPUT", "bad transaction hash");
   const prev = await getUsdgOrder(ctx.db, input.orderId);
@@ -478,6 +542,46 @@ export async function mockPay(ctx: UsdgCtx, session: Session, orderId: string, n
   return confirmUsdgOrder(ctx, session, { orderId: o.orderId, txHash: tx }, now);
 }
 
+/**
+ * Practice mode only: pays one of my orders from my T-USDG balance and fulfils it in the same
+ * database transaction (registration, purchase, auction win or USDG stud fee). Nothing touches a
+ * chain. Refused (nothing charged) when the balance is short or the order can't be delivered.
+ */
+export async function practicePay(ctx: UsdgCtx, session: Session, orderId: string, now: Date): Promise<UsdgSettle> {
+  if (!isPractice(ctx)) throw new DomainError("NOT_FOUND", "Test-money payments exist only in practice mode.");
+  await practiceGate(ctx, session, 0, now);
+  const r = await payUsdgOrderPractice(ctx.db, { orderId, accountId: session.accountId, now }, ctx.policy);
+  return { status: "fulfilled", orderId: r.order.orderId, horseId: r.order.horseId, duplicate: r.duplicate };
+}
+
+/** Practice-mode backstop: close ended auctions, expire lapsed practice orders and listings. No chain lookups at all. */
+async function practiceBackstop(ctx: UsdgCtx, now: Date, out: UsdgBackstopResult): Promise<UsdgBackstopResult> {
+  const closed = await closeUsdgAuctions(ctx.db, { now, chain: chainRef(ctx) }, ctx.policy);
+  out.auctionsOffered = closed.offered.length;
+  out.auctionsUnsold = closed.unsold;
+  for (const o of await usdgOrdersNeedingAttention(ctx.db, { now })) {
+    // Orders from a live era are left for a human: they could only be checked on-chain.
+    if (!isPracticeOrder(o) || o.status !== "pending") continue;
+    try {
+      const e = await expireUsdgOrder(ctx.db, { orderId: o.orderId, now }, ctx.policy);
+      if (e.expired) out.expired++;
+    } catch (err) {
+      console.error("usdg practice backstop", o.orderId, err);
+    }
+  }
+  out.listingsExpired = await expireUsdgListings(ctx.db, { now });
+  return out;
+}
+
+/** Admin, practice mode: top an account up (by stable name or account id) or reset everything (dry run unless apply). */
+export async function practiceAdmin(ctx: UsdgCtx, input: { action: "topup"; stable: string; amount: number; key: string } | { action: "reset"; apply: boolean }, now: Date) {
+  if (input.action === "reset") return { reset: await resetPracticeUsdg(ctx.db, { apply: input.apply, now, actor: null }) };
+  if (!isPractice(ctx)) throw new DomainError("NOT_ELIGIBLE", "Top-ups exist only in practice mode (USDG_MODE=practice).");
+  const accountId = /^[0-9a-f-]{36}$/i.test(input.stable) ? input.stable : await accountIdByStableName(ctx.db, input.stable);
+  if (!accountId) throw new DomainError("NOT_FOUND", "No stable by that name.");
+  return { topup: await topUpPracticeUsdg(ctx.db, { accountId, amount: input.amount, idempotencyKey: input.key, actor: null, now }) };
+}
+
 // ---------------------------------------------------------------------------
 // Backstop (cron + lazy tick)
 // ---------------------------------------------------------------------------
@@ -500,6 +604,7 @@ export interface UsdgBackstopResult {
 export async function usdgBackstop(ctx: UsdgCtx, now: Date): Promise<UsdgBackstopResult> {
   const out: UsdgBackstopResult = { auctionsOffered: 0, auctionsUnsold: 0, listingsExpired: 0, settled: 0, expired: 0, waiting: 0 };
   if (ctx.cfg.mode === "off") return out;
+  if (isPractice(ctx)) return practiceBackstop(ctx, now, out);
   const closed = await closeUsdgAuctions(ctx.db, { now, chain: chainRef(ctx) }, ctx.policy);
   out.auctionsOffered = closed.offered.length;
   out.auctionsUnsold = closed.unsold;
@@ -546,11 +651,14 @@ export async function usdgTick(ctx: UsdgCtx, now: Date): Promise<void> {
 
 /** Admin: totals plus the orders that need a human (paid but stuck, flagged by the price review). */
 export async function usdgAdminView(ctx: UsdgCtx) {
-  let market: Awaited<ReturnType<UsdgChain["marketState"]>> | { error: string };
-  try {
-    market = await ctx.chain.marketState();
-  } catch (e) {
-    market = { error: (e as Error).message };
+  let market: Awaited<ReturnType<UsdgChain["marketState"]>> | { error: string } | { practice: true };
+  if (isPractice(ctx)) market = { practice: true };
+  else {
+    try {
+      market = await ctx.chain.marketState();
+    } catch (e) {
+      market = { error: (e as Error).message };
+    }
   }
   return {
     network: networkView(ctx),
@@ -559,6 +667,8 @@ export async function usdgAdminView(ctx: UsdgCtx) {
     /** The contract's fee must equal USDG_FEE_BPS, or every signed sale reverts with FeeMismatch. */
     feeMismatch: "feeBps" in market && market.feeBps !== ctx.policy.feeBps,
     summary: await usdgSalesSummary(ctx.db),
+    /** Practice T-USDG in circulation and what a reset would remove (a dry run: changes nothing). */
+    practice: await resetPracticeUsdg(ctx.db, { apply: false, now: new Date() }),
     attention: (await usdgOrdersForReview(ctx.db)).map((o) => ({
       orderId: o.orderId,
       kind: o.kind,

@@ -60,7 +60,21 @@ export type DomainErrorCode =
   /** A stable already holds JOCKEYS_PER_STABLE_MAX jockeys (services/jockeys.ts). */
   | "JOCKEY_LIMIT"
   /** The jockey can't take this ride or move (booked within 10 minutes, retired, rides for another stable). */
-  | "JOCKEY_UNAVAILABLE";
+  | "JOCKEY_UNAVAILABLE"
+  /** The tote isn't open for this race or currency (not a Live card race; T-USDG outside practice mode). */
+  | "TOTE_UNAVAILABLE"
+  /** The bettor (or a linked / leasing stable) has a runner in the race. */
+  | "TOTE_CONFLICT"
+  /** Over a betting limit (the game's or the player's own), or under the minimum stake. */
+  | "TOTE_LIMIT"
+  /** The player has excluded themselves from betting. */
+  | "TOTE_EXCLUDED"
+  /** The 18+ confirmation is needed before a first bet. */
+  | "TOTE_AGE_CONFIRM"
+  /** Staff (an admin session, a system or staff account) can't bet. */
+  | "TOTE_STAFF"
+  /** An hour of betting: the player must look at the session's reality check before the next bet. */
+  | "TOTE_REALITY_CHECK";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

@@ -10,6 +10,7 @@ import type { Executor } from "../types";
 import { weekBounds } from "./leagues";
 import { leaseMetrics, type LeaseMetrics } from "./leasing";
 import { rowsOf } from "./tx";
+import { toteCreditsHealth } from "./tote";
 
 export interface EconomyHealth {
   fromDay: string;
@@ -27,6 +28,8 @@ export interface EconomyHealth {
   leases: LeaseMetrics;
   /** Claiming races in the window: races run, horses entered, claims lodged, horses claimed, credits paid for them. */
   claiming: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
+  /** The tote in credits over the window: the house take ("Tote house take", a sink: credits leave circulation), pool volume, bettors and races settled. */
+  tote: { houseTake: number; volume: number; bettors: number; races: number };
 }
 
 export async function economyHealth(ex: Executor, input: { now: Date; days?: number }): Promise<EconomyHealth> {
@@ -40,7 +43,7 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
         from ledger_postings p
         join ledger_transactions t on t.id = p.transaction_id
         join ledger_accounts a on a.id = p.ledger_account_id
-       where a.kind = 'player' and p.created_at >= ${from}
+       where a.kind = 'player' and a.currency = 'CR' and p.created_at >= ${from}
        group by t.kind
        order by t.kind`),
   ).map((r) => ({ kind: r.kind, earned: Number(r.earned), spent: Number(r.spent) }));
@@ -48,7 +51,7 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
   const spent = byKind.reduce((s, r) => s + r.spent, 0);
   const grants = byKind.filter((r) => /starter|grant|signup/.test(r.kind)).reduce((s, r) => s + r.earned, 0);
   const [bal] = rowsOf<{ total: string | number }>(
-    await ex.execute(sql`select coalesce(sum(p.amount), 0) as total from ledger_postings p join ledger_accounts a on a.id = p.ledger_account_id where a.kind = 'player'`),
+    await ex.execute(sql`select coalesce(sum(p.amount), 0) as total from ledger_postings p join ledger_accounts a on a.id = p.ledger_account_id where a.kind = 'player' and a.currency = 'CR'`),
   );
   const born = rowsOf<{ origin: string; n: number }>(
     await ex.execute(sql`select origin::text as origin, count(*)::int as n from horses where created_at >= ${from} and owner_stable_id is not null group by origin`),
@@ -83,6 +86,7 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
     week: { weekStart, qualifierStables: Number(loop?.q ?? 0), featureStables: Number(loop?.f ?? 0), plateStables: Number(loop?.p ?? 0), liveStables: Number(loop?.live ?? 0) },
     leases: await leaseMetrics(ex, input.now),
     claiming: await claimingMetrics(ex, from),
+    tote: await toteCreditsHealth(ex, from),
   };
 }
 

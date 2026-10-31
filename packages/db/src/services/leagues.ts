@@ -276,6 +276,55 @@ export async function leagueOf(ex: Executor, accountId: string, at: Date): Promi
   return mine ? leagueTable(ex, mine.leagueId) : null;
 }
 
+export interface TierLeader {
+  tier: number;
+  tierName: string;
+  accountId: string;
+  stableName: string;
+  silks: unknown;
+  photoUrl: string | null;
+  points: number;
+  wins: number;
+  runs: number;
+}
+
+/**
+ * The current top of every tier this week, best member across all of the tier's groups (points
+ * computed live from the week's runs, like the tables). Empty when no leagues have formed yet.
+ * The league page's empty state shows this instead of a vacuum.
+ */
+export async function tierLeaders(ex: Executor, now: Date): Promise<TierLeader[]> {
+  const week = utcWeekStart(now);
+  const weekLeagues = await ex.select({ id: leagues.id, tier: leagues.tier }).from(leagues).where(eq(leagues.weekStart, week));
+  if (!weekLeagues.length) return [];
+  const members = await ex
+    .select({ tier: leagues.tier, accountId: leagueMembers.accountId, stableName: stables.name, silks: stables.silks, stableId: stables.id, photoHash: stables.photoHash })
+    .from(leagueMembers)
+    .innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+    .innerJoin(stables, eq(stables.accountId, leagueMembers.accountId))
+    .where(inArray(leagueMembers.leagueId, weekLeagues.map((l) => l.id)));
+  if (!members.length) return [];
+  const scores = scoresByAccount(await liveRunsBetween(ex, { ...weekBounds(week), accountIds: members.map((m) => m.accountId) }));
+  const best = new Map<number, TierLeader>();
+  for (const m of members) {
+    const s = scores.get(m.accountId);
+    const row: TierLeader = {
+      tier: m.tier,
+      tierName: tierName(m.tier),
+      accountId: m.accountId,
+      stableName: m.stableName,
+      silks: m.silks,
+      photoUrl: gc.stablePhotoUrl(m.stableId, m.photoHash),
+      points: s?.points ?? 0,
+      wins: s?.wins ?? 0,
+      runs: s?.runs ?? 0,
+    };
+    const cur = best.get(m.tier);
+    if (!cur || row.points > cur.points || (row.points === cur.points && row.wins > cur.wins) || (row.points === cur.points && row.wins === cur.wins && row.stableName < cur.stableName)) best.set(m.tier, row);
+  }
+  return [...best.values()].sort((a, b) => a.tier - b.tier);
+}
+
 /** Past weeks' results for an account, newest first. */
 export async function leagueHistory(ex: Executor, accountId: string, limit = 8) {
   return ex

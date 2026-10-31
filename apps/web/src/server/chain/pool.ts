@@ -60,6 +60,11 @@ export interface StandingRow {
   me: boolean;
 }
 
+/** Practice mode (USDG_MODE=practice): no real money is paid, so nothing is ever posted to the Prize Pool. */
+function assertNotPractice(ctx: CheckoutCtx): void {
+  if (ctx.cfg.practice) throw new DomainError("NOT_ELIGIBLE", "The Prize Pool is off during the T-USDG practice beta: no real money is paid out.");
+}
+
 export async function poolView(ctx: CheckoutCtx, session: Session | null, now: Date) {
   const { db, chain, cfg } = ctx;
   const rules = DEFAULT_POOL_RULES;
@@ -86,6 +91,8 @@ export async function poolView(ctx: CheckoutCtx, session: Session | null, now: D
   const history = (await listPoolEpochs(db, { chainId: chain.chainId, poolAddress: chain.pool })).filter((e) => e.status === "posted");
   return {
     enabled: cfg.enabled,
+    /** Practice mode: the Prize Pool is off (no real money in or out). */
+    practice: cfg.practice,
     mock: chain.kind === "mock",
     chainId: chain.chainId,
     pool: chain.pool,
@@ -176,6 +183,7 @@ export interface ComputeInput {
 }
 
 export async function computeEpochDraft(ctx: CheckoutCtx, input: ComputeInput) {
+  assertNotPractice(ctx);
   const { db, chain } = ctx;
   const rules: PoolRules = { ...DEFAULT_POOL_RULES, ...(input.rules ?? {}) };
   const weekStart = input.weekStart ?? lastCompletedWeek(input.now);
@@ -257,6 +265,7 @@ async function verifyPosted(chain: BetaChain, epochId: number, root: string): Pr
 
 /** Posts the draft with the server key (POSTER_ROLE + gas) and records it. */
 export async function postEpochWithServer(ctx: CheckoutCtx, draftId: string, now: Date) {
+  assertNotPractice(ctx);
   const d = await getEpochRow(ctx.db, draftId);
   if (!d) throw new DomainError("NOT_FOUND", "draft not found");
   if (d.status === "posted") return d;
@@ -269,6 +278,7 @@ export async function postEpochWithServer(ctx: CheckoutCtx, draftId: string, now
 
 /** The owner posted the root from their wallet: check the chain, then record it. */
 export async function recordWalletPostedEpoch(ctx: CheckoutCtx, draftId: string, txHash: string, now: Date) {
+  assertNotPractice(ctx);
   const d = await getEpochRow(ctx.db, draftId);
   if (!d) throw new DomainError("NOT_FOUND", "draft not found");
   await verifyPosted(ctx.chain, d.epochId, d.root);

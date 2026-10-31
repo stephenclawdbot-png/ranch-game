@@ -8,6 +8,7 @@ import GrowingUpPage from "./pages/growing-up";
 import CareAndConditionPage from "./pages/care-and-condition";
 import TrainingPage from "./pages/training";
 import InjuriesAndInsurancePage from "./pages/injuries-and-insurance";
+import InjuriesPage from "./pages/injuries";
 import RaceTypesPage from "./pages/race-types";
 import EnteringARacePage from "./pages/entering-a-race";
 import JockeysPage from "./pages/jockeys";
@@ -34,9 +35,11 @@ import PacksPage from "./pages/packs";
 import LeaguePage from "./pages/league";
 import PlanningPage from "./pages/planning";
 import RivalsAndNewsPage from "./pages/rivals-and-news";
+import PicksAndTipstersPage from "./pages/picks-and-tipsters";
 import DailyCupPage from "./pages/daily-cup";
 import HallAndTrophiesPage from "./pages/hall-and-trophies";
 import GlossaryPage from "./pages/glossary";
+import TotePage from "./pages/tote";
 
 export const WIKI_CONTENT: Record<string, ComponentType> = {
   "quick-start": QuickStartPage,
@@ -46,6 +49,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "growing-up": GrowingUpPage,
   "care-and-condition": CareAndConditionPage,
   "training": TrainingPage,
+  injuries: InjuriesPage,
   "injuries-and-insurance": InjuriesAndInsurancePage,
   "race-types": RaceTypesPage,
   "entering-a-race": EnteringARacePage,
@@ -73,7 +77,9 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "league": LeaguePage,
   "planning": PlanningPage,
   "rivals-and-news": RivalsAndNewsPage,
+  "picks-and-tipsters": PicksAndTipstersPage,
   "daily-cup": DailyCupPage,
   "hall-and-trophies": HallAndTrophiesPage,
   "glossary": GlossaryPage,
+  "tote": TotePage,
 };

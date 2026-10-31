@@ -61,6 +61,8 @@ export interface RiskRow {
   permille: number;
   careerEndingShare: number;
   factors: string[];
+  /** Most likely injuries if hurt in this context (game-core likelyInjuriesText). */
+  likely?: string;
 }
 
 export interface ConditionView {
@@ -73,7 +75,13 @@ export interface ConditionView {
   peak: { phase: "none" | "building" | "peak" | "fading"; fromMs: number | null; toMs: number | null; bonus: number };
   injury: {
     severity: string;
+    /** The injury's name (game-core injuries.ts), or its severity for old injuries. */
     label: string;
+    /** "Moderate injury" etc. */
+    severityLabel: string;
+    /** Body area and one plain line, when the injury has a catalogue kind. */
+    area: string | null;
+    description: string | null;
     hoursLeft: number;
     untilMs: number;
     careerEnding: boolean;
@@ -132,7 +140,10 @@ export interface TrainingPreviewView {
   overworked: boolean;
   /** Chance of a minor knock this session, permille. */
   injuryPermille: number;
-  setsUpPeak: boolean;
+  /** The freshness peak this session leaves the horse in: null when it sets nothing up and there is nothing pending to keep. */
+  peak: { fromMs: number; toMs: number; setsUp: boolean } | null;
+  /** Hours until the fatigue this session leaves is back below the tired line (0 = ready now). */
+  readyInH: number;
 }
 
 export interface CareerStageRow {

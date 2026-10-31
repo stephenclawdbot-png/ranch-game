@@ -16,6 +16,7 @@ import { WalletSignIn } from "@/components/chain/WalletSignIn";
 import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { ErrorNote } from "@/components/ui/ErrorNote";
+import { deviceId } from "@/lib/deviceId";
 import { api, createStable, legacyProfile, recommendHorse, refreshPlayer, usePlayerState } from "@/lib/player";
 import type { StableHorse } from "@/lib/types";
 import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
@@ -41,9 +42,20 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const [invite, setInvite] = useState<string | null>(null);
   /** Outside the playtest, a referral link (?invite=CODE) still records who invited you. */
   const [referral, setReferral] = useState<string | null>(null);
+  /** "Bring a rival" link (?invite=CODE&rival=1): who challenged you, and the welcome you both get. */
+  const [rival, setRival] = useState<{ stableName: string; credits: number } | null>(null);
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("invite");
-    if (code && /^[A-Za-z0-9-]{4,40}$/.test(code)) setReferral(code);
+    const q = new URLSearchParams(window.location.search);
+    const code = q.get("invite");
+    if (code && /^[A-Za-z0-9-]{4,40}$/.test(code)) {
+      setReferral(code);
+      if (q.get("rival") === "1") {
+        fetch(`/api/rivals/invite?code=${encodeURIComponent(code)}`, { cache: "no-store" })
+          .then((r) => (r.ok ? (r.json() as Promise<{ stableName: string; credits: number }>) : null))
+          .then(setRival)
+          .catch(() => undefined);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -71,7 +83,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     setError(null);
     try {
       const code = invite ?? referral;
-      await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}) });
+      await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}), ...(rival && referral ? { rival: true, deviceId: deviceId() } : {}) });
       setStage("welcome");
       window.scrollTo({ top: 0 });
     } catch (e) {
@@ -91,6 +103,14 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     >
       <div className="grid content-start gap-5">
         <header className="grid gap-2">
+          {rival && (
+            <p className="surface flex flex-wrap items-center gap-2 p-3 text-sm font-bold" data-testid="rival-banner">
+              <span className="tag tag-live">Rival</span>
+              <span className="min-w-0 flex-1">
+                {rival.stableName} challenged you. Found your stable and you&apos;re rivals from day one: you both get {rival.credits} credits.
+              </span>
+            </p>
+          )}
           <h1 className="t-page">Found your stable</h1>
           <p className="t-meta">
             {imported

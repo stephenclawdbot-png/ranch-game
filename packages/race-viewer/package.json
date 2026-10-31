@@ -17,6 +17,7 @@
     "@thoroughbred/art-pipeline": "workspace:*",
     "@thoroughbred/pixel-rig": "workspace:*",
     "@thoroughbred/shared": "workspace:*",
+    "mp4-muxer": "5.2.2",
     "three": "0.180.0"
   },
   "peerDependencies": {

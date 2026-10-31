@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
-import type { RaceCard } from "@/lib/types";
+import type { InjuryCard, RaceCard } from "@/lib/types";
 import * as gc from "@thoroughbred/game-core";
 import { analyseRace } from "@/lib/raceAnalysis";
 import { tryNext } from "@/lib/tryNext";
@@ -30,8 +30,12 @@ export interface Settlement {
   firstWin?: boolean;
   ratingBefore?: number;
   ratingAfter?: number | null;
+  /** One honest line from the rating rule on why the mark moved (or held); null when there is nothing to explain. */
+  ratingWhy?: string | null;
   /** Your horse at the off (fatigue, hours since hard work), for the Why card's "try next". */
   atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
+  /** An injury picked up in this race, named (shown under the result). */
+  injury?: InjuryCard | null;
 }
 
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */
@@ -165,6 +169,17 @@ export function ResultsSequence({
             {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
               ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
               : ""}
+            {/* The why behind the mark (playtest fix 14), from the rule's own expected scores. */}
+            {settlement.ratingWhy && (
+              <>
+                {" "}
+                {settlement.ratingWhy}{" "}
+                <Link href="/wiki/ratings-and-form" className="underline decoration-dotted underline-offset-2">
+                  How the mark is set
+                </Link>
+                .
+              </>
+            )}
           </p>
         </div>
       )}

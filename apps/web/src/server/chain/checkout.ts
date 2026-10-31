@@ -9,12 +9,25 @@
  *              amount, confirmations) and fulfils idempotently (prepaid pulls keyed by orderId).
  *   backstop-> cron re-checks submitted/paid orders and scans for paid quotes whose client
  *              never reported the tx. Unknown orderIds are never fulfilled.
+ *
+ * Practice mode (USDG_MODE=practice, owner decision 2026-10-31): no ETH quote, no chain call and
+ * no real payment. `practiceCheckout` runs the same checks (verified wallet, geo, weekly cap incl.
+ * open orders, the beta lifetime cap, stall, crop) and charges the pack's USD price in T-USDG
+ * (1 T-USDG = 1 USD) from the player's practice balance, in ONE transaction with the order row
+ * and the prepaid pulls (keyed by the order id: seeded, committed, odds and pity unchanged). No
+ * Prize Pool share and no affiliate commission: practice money pays nobody.
  */
 import type { Address, Hex } from "viem";
 import { getAddress } from "viem";
+import { createHash } from "node:crypto";
 import {
   BETA_SKUS,
   DomainError,
+  PRACTICE_STORE_ADDRESS,
+  assertPracticeFunds,
+  chargePracticeUsdgTx,
+  practiceTxHash,
+  practiceUsdgBalance,
   clearOrderTx,
   createChainOrder,
   foalCropStatus,
@@ -40,7 +53,7 @@ import {
   type ChainOrderRow,
   type Db,
 } from "@thoroughbred/db";
-import { PREMIUM_BETA_LIFETIME_USD_CENTS } from "@thoroughbred/game-core";
+import { PREMIUM_BETA_LIFETIME_USD_CENTS, formatPracticeUsdg, practiceUsdgFromUsdCents } from "@thoroughbred/game-core";
 import { ZERO_ADDRESS } from "@/lib/chain/chains";
 import { quoteToJson, type EthQuote, type EthQuoteJson } from "@/lib/chain/quote";
 import { skuId, type BetaChain } from "./adapter";
@@ -48,6 +61,7 @@ import type { BetaChainConfig } from "./config";
 import { PriceUnavailableError, usdCentsToWeiCeil, type PriceService } from "./price";
 import type { Session } from "../session";
 import { trackEvent } from "../playtest";
+import { ensurePracticeGrant } from "./practice";
 
 export interface CheckoutCtx {
   db: Db;
@@ -124,6 +138,7 @@ export async function lifetimeLeftCents(ctx: CheckoutCtx, session: Session, now:
 
 export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: { sku: BetaSku; quantity: number; country: string | null; now: Date }): Promise<QuoteView> {
   const { db, chain, cfg } = ctx;
+  if (cfg.practice) throw new CheckoutUnavailableError("coming_soon", "During the beta Premium Packs are bought with T-USDG (test money), not ETH.");
   if (!checkoutEnabled(cfg)) throw new CheckoutUnavailableError("coming_soon", "Premium Packs for ETH are coming soon.");
   if (input.country && cfg.blockedCountries.includes(input.country.toUpperCase())) {
     throw new CheckoutUnavailableError("geo_blocked", "Paid packs aren't available in your country.");
@@ -208,6 +223,97 @@ export async function quoteCheckout(ctx: CheckoutCtx, session: Session, input: {
   };
 }
 
+/** Practice mode: my T-USDG balance (granting the one-off 100 to a wallet holder first); null without a wallet. */
+export async function practiceBalanceOf(ctx: CheckoutCtx, session: Session, now: Date): Promise<number | null> {
+  if (!ctx.cfg.practice || !(await verifiedWalletOf(ctx.db, session.accountId))) return null;
+  await ensurePracticeGrant(ctx.db, session.accountId, now);
+  return practiceUsdgBalance(ctx.db, session.accountId);
+}
+
+export interface PracticeCheckoutView {
+  status: "fulfilled";
+  orderId: string;
+  pullIds: string[];
+  duplicate: boolean;
+  /** What was charged and what is left, micro-T-USDG. */
+  charged: number;
+  balance: number;
+}
+
+/**
+ * Practice mode: buys Premium Packs with T-USDG (see the module doc). `clientKey` makes a double
+ * tap one purchase. Every check runs before anything is held or charged; the order row, the
+ * T-USDG charge and the pulls commit together or not at all.
+ */
+export async function practiceCheckout(
+  ctx: CheckoutCtx,
+  session: Session,
+  input: { sku: BetaSku; quantity: number; country: string | null; clientKey: string; now: Date },
+): Promise<PracticeCheckoutView> {
+  const { db, cfg } = ctx;
+  if (!cfg.practice) throw new CheckoutUnavailableError("coming_soon", "T-USDG exists only in practice mode.");
+  if (input.country && cfg.blockedCountries.includes(input.country.toUpperCase())) {
+    throw new CheckoutUnavailableError("geo_blocked", "Premium Packs aren't available in your country.");
+  }
+  if (!BETA_SKUS[input.sku]) throw new DomainError("INVALID_INPUT", "Unknown item.");
+  const qty = input.quantity;
+  if (!Number.isInteger(qty) || qty < 1 || qty > 10) throw new DomainError("INVALID_INPUT", "Choose 1 to 10 packs.");
+  if (!/^[A-Za-z0-9_-]{6,80}$/.test(input.clientKey)) throw new DomainError("INVALID_INPUT", "bad checkout key");
+  const orderId = `0x${createHash("sha256").update(`practice-pack:${session.accountId}:${input.clientKey}`).digest("hex")}`;
+  const prior = await getChainOrder(db, orderId);
+  if (prior) {
+    if (prior.accountId !== session.accountId) throw new DomainError("NOT_FOUND", "order not found");
+    return { status: "fulfilled", orderId, pullIds: (prior.pullIds as string[] | null) ?? [], duplicate: true, charged: 0, balance: await practiceUsdgBalance(db, session.accountId) };
+  }
+  const wallet = await verifiedWalletOf(db, session.accountId);
+  if (!wallet) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first (one free signature).");
+  await ensurePracticeGrant(db, session.accountId, input.now);
+
+  await assertPackCaps(db, session, qty, input.now, cfg.premiumUsdCents);
+  const occ = await occupancy(db, session.stable);
+  if (occ.free < qty) throw new DomainError("STABLE_FULL", `You need ${qty} free stall${qty > 1 ? "s" : ""} for ${qty} foal${qty > 1 ? "s" : ""}.`);
+  const crop = await foalCropStatus(db, seasonNumberAt(input.now));
+  if (crop.remaining < qty) throw new DomainError("CROP_SOLD_OUT", "This season's foal crop is all spoken for.");
+  const usdCents = cfg.premiumUsdCents * qty;
+  const amount = practiceUsdgFromUsdCents(usdCents);
+  // Refused before any order, hold or pull exists.
+  await assertPracticeFunds(db, session.accountId, amount);
+
+  const res = await runTx(db, async (tx) => {
+    await lockPremiumCheckout(tx, session.accountId);
+    await assertPackCaps(tx, session, qty, input.now, cfg.premiumUsdCents);
+    await createChainOrder(tx, {
+      orderId,
+      accountId: session.accountId,
+      wallet,
+      sku: input.sku,
+      quantity: qty,
+      usdCents,
+      priceWei: 0n,
+      ethUsdMicros: 0,
+      priceSources: { practice: true, tusdg: amount },
+      chainId: cfg.chainId,
+      storeAddress: PRACTICE_STORE_ADDRESS,
+      deadline: new Date(input.now.getTime() + cfg.quoteTtlSec * 1000),
+      now: input.now,
+      ref1: null,
+      ref2: null,
+    });
+    await chargePracticeUsdgTx(tx, {
+      accountId: session.accountId,
+      amount,
+      idempotencyKey: `usdg-practice:pack:${orderId}`,
+      kind: "usdg_practice_pack",
+      memo: `${qty} Premium Pack${qty > 1 ? "s" : ""} for ${formatPracticeUsdg(amount)} (test money)`,
+      meta: { orderId, sku: input.sku, quantity: qty, usdCents },
+    });
+    // The same idempotent fulfilment as a verified ETH payment: prepaid pulls keyed by the order id.
+    return fulfilChainOrder(tx as unknown as Db, { orderId, txHash: practiceTxHash(orderId), now: input.now, split: { poolShareWei: 0n, treasuryWei: 0n } });
+  });
+  await trackEvent(db, session.accountId, "checkout_paid", { sku: input.sku, qty, usdCents, practice: true });
+  return { status: "fulfilled", orderId, pullIds: res.pulls.map((p) => p.pullId), duplicate: res.duplicate, charged: amount, balance: await practiceUsdgBalance(db, session.accountId) };
+}
+
 export type SettleResult =
   | { status: "fulfilled"; orderId: string; pullIds: string[]; duplicate: boolean }
   | { status: "pending"; orderId: string; reason: string }
@@ -246,6 +352,7 @@ export async function settleOrder(ctx: CheckoutCtx, order: ChainOrderRow, txHash
 }
 
 export async function confirmCheckout(ctx: CheckoutCtx, session: Session, input: { orderId: string; txHash: string; now: Date }): Promise<SettleResult> {
+  if (ctx.cfg.practice) throw new CheckoutUnavailableError("coming_soon", "During the beta Premium Packs are bought with T-USDG, not ETH.");
   const txHash = input.txHash.toLowerCase() as Hex;
   if (!/^0x[0-9a-f]{64}$/.test(txHash)) throw new DomainError("INVALID_INPUT", "bad transaction hash");
   const order = await markOrderSubmitted(ctx.db, { orderId: input.orderId, accountId: session.accountId, txHash, now: input.now });
@@ -282,6 +389,7 @@ export const orderView = (o: ChainOrderRow): OrderView => ({
 
 /** Orders to resume after a reload; submitted/paid ones are re-checked on the way. */
 export async function resumeOrders(ctx: CheckoutCtx, session: Session, now: Date): Promise<OrderView[]> {
+  if (ctx.cfg.practice) return []; // practice orders settle in the request that creates them
   const open = await openChainOrders(ctx.db, { accountId: session.accountId, now });
   for (const o of open) {
     if ((o.status === "submitted" || o.status === "paid") && o.txHash) {
@@ -309,7 +417,7 @@ export async function checkoutBackstop(ctx: CheckoutCtx, now: Date): Promise<{ s
   let settled = 0;
   let expired = 0;
   let waiting = 0;
-  if (!ctx.cfg.enabled) return { settled, expired, waiting };
+  if (!ctx.cfg.enabled || ctx.cfg.practice) return { settled, expired, waiting };
   for (const o of await ordersNeedingAttention(ctx.db, { now })) {
     try {
       let tx = o.txHash as Hex | null;

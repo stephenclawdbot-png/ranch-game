@@ -677,6 +677,8 @@ export const RESET_TABLES = [
   // pool_* and wallet data on testers survive).
   "news_items",
   "race_targets",
+  "race_picks",
+  "declared_rivals",
   "referrals",
   "audit_log",
   "hall_of_fame",
@@ -693,6 +695,8 @@ export const RESET_TABLES = [
   "horse_lease_listings",
   "race_claims",
   // Jockeys follow the stables and races.
+  "jockey_offers",
+  "jockey_contracts",
   "jockey_weeks",
   "jockey_events",
   "jockey_rides",
@@ -706,6 +710,15 @@ export const RESET_TABLES = [
   "inbox_items",
   "entry_movements",
   "race_sponsorships",
+  // Tote bets and settled pools follow the races they were on.
+  "tote_bets",
+  "tote_pools",
+  "tote_settings",
+  // The dormant real-money tote's flags, permits and chain mirror follow the races (no funds:
+  // stakes live only in the TotePools contract).
+  "real_tote_events",
+  "real_tote_permits",
+  "real_tote_races",
   // What-if re-runs follow the races they re-ran.
   "what_if_runs",
   // Quick races (match, ghost, daily challenge) follow the stables and horses.

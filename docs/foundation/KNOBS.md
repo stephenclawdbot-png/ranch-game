@@ -123,7 +123,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Harness: grinder | Qualifier / Weekend Feature: vet check, shoes when offered, physio if fatigue > 300, above 8,000 credits the best Club freelancer whose fee fits a quarter of the surplus, else their own jockey; ordinary race: own jockey, physio for a tired horse half the time; keeps 1,500 credits back; signs a freelancer on 6% of days (keeps 4,000 back) | tools/season-harness/src/agents.ts (`grinderRaceDay`) | Simulated demand for the sink. | `credits.destroyed.race_extras`, `.jockey_fee` |
 | Harness: casual | 12% of visits enter one race from the sheet with a vet check (+ physio when tired) | tools/season-harness/src/agents.ts (`CASUAL_SHEET_PERMILLE`, `casualRaceDay`) | | As above |
 
-### 2b. Jockeys (Phase 1: roster and riding; docs/design/jockeys.md)
+### 2b. Jockeys (Phase 1: roster and riding; Phase 2: contracts and the weekly window; docs/design/jockeys.md)
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
@@ -145,6 +145,19 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `JOCKEY_SIGNING_FEE` | A 4,000; B 2,000; C 1,000; D 500; E 250 | packages/game-core/src/jockeys.ts | One-off fee to sign an unsigned freelancer, kind `jockey_signing` (burn). Refused between linked accounts within 14 days of a release (`JOCKEY_LINKED_SIGN_DAYS`). | Credit sink |
 | `JOCKEY_STARTING_POOL_MIN` | 12 | packages/db/src/services/jockeys.ts | The backfill's starting Club pool: max(12, target − pool), spread over every career stage. | Freelancer supply at launch |
 | `UNNAMED_RIDER_SKILLS` | Club rider 400; legacy journeyman 500, top 850 | packages/db/src/services/jockeys.ts | Skills of a rider with no named jockey (no free freelancer; old-tier entries). | Club runner strength |
+| `JOCKEY_CONTRACT_LENGTHS` / `_WEEKS` | 4 weeks, 8 weeks, or to the end of the season (the last window before the season ends, at least 2 weeks, `JOCKEY_SEASON_CONTRACT_MIN_WEEKS`) | packages/game-core/src/jockeyContracts.ts | Contract lengths a stable can offer (Phase 2). | Turnover, window size |
+| `JOCKEY_WAGE` | A 600, B 400, C 250, D 150, E 100 credits a week | packages/game-core/src/jockeyContracts.ts | Standard wage by grade; charged Monday by the weekly job, kind `jockey_wage` (burn). A stable that can't pay isn't charged (debt waived) and the jockey leaves at the next window. Phase 1 signings migrated to 4 weeks at this wage, 2 rides promised. | Credit sink (weekly), cost of a roster |
+| `JOCKEY_WAGE_OFFER_PCT` | 50%..300% of the standard wage | packages/game-core/src/jockeyContracts.ts | Wage range an offer may name. | Bidding range |
+| `JOCKEY_PROMISED_RIDES_MAX` / `JOCKEY_DEFAULT_PROMISED_RIDES` | 10 / 2 a week | packages/game-core/src/jockeyContracts.ts | Rides an offer may promise; standard terms (direct signings, starting apprentices, migrated signings). | Morale pressure |
+| `JOCKEY_BUYOUT_MULT` | 1×..10× the signing fee, default 2× | packages/game-core/src/jockeyContracts.ts | Buyout price bounds (stored now, used by Phase 3 buyouts). | Phase 3 |
+| `JOCKEY_APPRENTICE_FREE_WEEKS` | 4 | packages/game-core/src/jockeyContracts.ts | An apprentice's first contract pays no wage for its first 4 weekly charges. | New-stable affordability |
+| `JOCKEY_OPEN_OFFERS_PER_STABLE` | 3 | packages/game-core/src/jockeyContracts.ts | Open offers per stable; each escrows the signing fee (`jockey_offer_escrow` → escrow; `jockey_signing` burn when it wins, `jockey_offer_refund` when it loses or is withdrawn). The current stable re-signs without a fee. | Window competition, escrow float |
+| `JOCKEY_WINDOW_OFFSET_MS` | Sunday 20:00 UTC (6 d 20 h after the Monday week start) | packages/game-core/src/jockeyContracts.ts | When the weekly transfer window closes (`runMaintenance`, once per week via `jockey_weeks.window_ran_at`). | Timing |
+| `JOCKEY_UTILITY_WEIGHTS` | money: wage 50, horses 10, prestige 5, rides 15, loyalty 10, length 10; ambitious: 15/30/25/10/10/10; loyal: 20/10/5/15/40/10 (loyalty ×2 vs base 20); workhorse: 20/10/5/45/10/10 (%) | packages/game-core/src/jockeyContracts.ts | Jockeys' utility over offers (each part scored 0..1000: wage 500 at the standard wage, 1000 at 2×+; horses = mean OR of the top 5 racing horses, 30→0, 100→1000; prestige = tier 0..400 + Feature/Final wins ×60 (≤300) + winners in 14 days ×30 (≤300); rides 6/wk = 1000; loyalty (current stable only) 300 + 40/week + 100/big win (purse ≥ 3,000); length 1000 − 83/week off the preferred). Stables prefer the higher wage offered, then the better jockey. Exact ties: seeded draw. | Who signs where |
+| `JOCKEY_PREFERRED_WEEKS` | ambitious 4, others 8 | packages/game-core/src/jockeyContracts.ts | Contract length preference. | Length chosen |
+| `JOCKEY_BROKEN_PROMISE_WEEKS` | 2 | packages/game-core/src/jockeyContracts.ts | Consecutive weeks with fewer rides than promised before the jockey may walk out at the next window (no buyout; won't re-sign that week). | Morale walkouts |
+| `JOCKEY_CONTRACT_NOTE_WEEKS` | 2 and 1 weeks before the end | packages/game-core/src/jockeyContracts.ts | Inbox notes ("Tom Ashby's contract ends Sunday. Offer Tom a new one?"). | Retention |
+| `JOCKEY_DEVELOPED_RIDES` / `JOCKEY_DEVELOPMENT_BONUS` | 25 rides as an apprentice / 500 credits | packages/game-core/src/jockeyContracts.ts | "Developed at" a stable; the developer earns the bonus (`jockey_development_bonus`, mint) when the jockey wins a Feature or Final for another stable. | Faucet (small), developing apprentices |
 
 ## 3. Horse lifecycle
 
@@ -240,6 +253,20 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `INSURANCE_PAYOUT_PERMILLE` | 600 (60% of appraisal) on career-ending or fatal injury | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:664 | Payout minted to the owner. | Credits created |
 | `RULES.insurancePremium` / `insurancePayout` | 300 / 2,000 flat | packages/db/src/rules.ts:36, :37 | Fallback for horses without a real genome only. | Legacy rows only |
 | `RULES.careHealMs` | 12 h | packages/db/src/rules.ts:61 | Healing per care for rows without a genome (duplicate of `CARE_HEAL_BONUS_H`). | Legacy rows only |
+
+### 5a. Named injuries (new 2026-10-31)
+
+The catalogue names an injury after condition.ts has rolled it; it never changes the injury rate, the
+severity split, fatal rules or healing hours (golden test: packages/game-core/src/injuries.test.ts).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `INJURY_KINDS` | 6 minor, 6 moderate, 6 career-ending, 3 fatal; each with an area, a description, typical days inside its severity's `INJURY_DAYS` range, a base weight and context boosts | packages/game-core/src/injuries.ts:83 | Which named injury a rolled severity becomes. Only kinds whose day range covers the rolled healing days are candidates. | Injury names only (no rates) |
+| Kind weight | base × each active boost (permille) | packages/game-core/src/injuries.ts (`injuryKindWeight`) | Context makes a name likelier: firm (shins, bruised foot, fractures), soft/heavy (tendons, suspensory, abscess), long trips and tiredness (tying-up, tendon, bleeding), all-out (tendon, fractures), sprints (shins, splints), fragile legs (fractures, tendons), veteran (joint damage), deep ground when tired (tying-up, back). | Injury names only |
+| `INJURY_SPRINT_MAX_M` / `INJURY_LONG_OVER_M` | 1,400 m / over 2,400 m | packages/game-core/src/injuries.ts:46, :48 | Sprint and long-trip triggers. | Injury names only |
+| Name stream | `${seed}\|injury-kind` | packages/game-core/src/injuries.ts (`pickInjuryKind`) | Separate from `${seed}\|injury` and `${seed}\|fatal`, so names never shift a roll. | Determinism |
+| Training knocks | minor kinds only, context "tired" (+ fragile) | packages/game-core/src/training.ts:200 | Names an overwork injury. | Injury names only |
+| "Most likely if injured today" | top 2 by exact share over the severity split and healing days, plus the likeliest moderate-or-worse one (fatal excluded) | packages/game-core/src/injuries.ts (`likelyInjuries`) | Entry-sheet and Care-tab hint. | Player choices (ride, shoes) |
 
 ## 6. Racing engine
 
@@ -378,6 +405,8 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Tier bonus | top 3: G1 +10, G2 +6, G3/Listed +3 | packages/game-core/src/leagues.ts:30-32 | Big races worth more. Live: Weekend Feature/Final = G1, any graded = G3, listed = listed. | League movement |
 | `WEEKLY_RACE_POINTS_CAP` | 240 | packages/game-core/src/leagues.ts:20, packages/db/src/services/leagues.ts:109 | Volume cap per week, applied after the best-runs cut. | League movement |
 | `BEST_RUNS_COUNTED` | 20 runs (new 2026-10-29; was: every run counted) | packages/game-core/src/leagues.ts:84, packages/db/src/services/leagues.ts:103 | A week's League score sums only a stable's best 20 run scores (then the cap): a bad race never costs points, extra volume helps little. Season tables add up the same weekly scores. | League movement, entries spent per week |
+| `PICK_POINTS_TOP` / `PICK_POINTS_OUTSIDER` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:19, :21, packages/db/src/services/picks.ts | Pick the winner: a winning pick scores by its rating rank in the field at the off, 10 for the top-rated up to 50 for the lowest-rated, linear between (`pickPoints`). Points only: never exchanged for anything. | Tipster table, nothing in the economy |
+| `TIPSTER_BADGE_TOP` / `TIPSTER_TABLE_SHOWN` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:23, :25 | Weekly tipster table (resets Monday 00:00 UTC): the top 10 with points get a badge; the page lists 50. | Tipster badges |
 | Sunday recap | one inbox note (`week_recap`) per stable that raced, at the week's settlement: rank, move, points gap to the promotion line | packages/db/src/services/leagues.ts:155-179 | Tells each stable where its week ended and how far the line was. | Retention (weekly return) |
 | League field size | counts every entered runner incl. house | packages/db/src/services/leagues.ts:59 | Fields ≥ 4 score placings. | League points |
 | Starting tier | 1 (bronze) | packages/db/src/services/competition.ts:107 | New owners start at the bottom. | League movement |
@@ -505,6 +534,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:665 | Kind `insurance_payout`. | Credits created |
 | Release payout | 50 | packages/db/src/rules.ts:47, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
 | Referral active reward | 250 credits to the inviter when an invitee has 5 races and 3 play days | packages/db/src/services/affiliates.ts:74, :437 | Kind `referral_reward`. Runtime-configurable. | Credits created, sybil value |
+| `RIVAL_INVITE_CREDITS` (new 2026-10-31) | 300 to each of the inviter and the invited stable, once per invited account; the inviter's side at most `RIVAL_INVITE_WEEKLY_WELCOMES` = 5 a UTC week; none for linked accounts | packages/game-core/src/picks.ts:31, :36, packages/db/src/services/rivals.ts:184 | "Bring a rival": a friend founds a stable through your rival link; you become declared rivals. Kind `rival_invite`. | Credits created, sybil value |
 | Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:734 | Kind `entry_fee_refund` (burn → player). | Neutral |
 
 ### 10b. Sinks (credits burned, or sent to treasury)
@@ -527,7 +557,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
 | Race-day extras | shoes / physio / vet check, 2% of purse each (40..1,000) | packages/game-core/src/raceDay.ts:75, packages/db/src/services/races.ts:373 | Kind `race_extras` (burn), refunded as `race_extras_refund` on a scratch before close or an abandoned race (§2a). | Credit sink |
-| Jockey fees | freelance booking by grade, A 5% (100..3,000) to E 1% (20..600) of purse; signing A 4,000 to E 250 | packages/game-core/src/jockeys.ts, packages/db/src/services/jockeys.ts | Kinds `jockey_fee` (burn, refunded as `jockey_fee_refund`) and `jockey_signing` (burn) (§2b). | Credit sink |
+| Jockey fees | freelance booking by grade, A 5% (100..3,000) to E 1% (20..600) of purse; signing A 4,000 to E 250; weekly wages A 600 to E 100 (Phase 2) | packages/game-core/src/jockeys.ts, packages/db/src/services/jockeys.ts | Kinds `jockey_fee` (burn, refunded as `jockey_fee_refund`) and `jockey_signing` (burn) (§2b). | Credit sink |
 | `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
 | `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
 | `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a race can be sponsored (beyond the day-ahead card: applied on publication). Only meeting races are for sale; calendar races (Qualifiers, Weekend Feature, Plate, Finals) never are. A sponsored race runs even with no player runner. Sponsorships bought for slots the meetings left empty are refunded when their time comes round. | Sink volume (races on sale ≈ 160 a week, was ≈ 670) |
@@ -543,6 +573,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `insurance_payout` | mint → owner | packages/db/src/services/races.ts:666 |
 | `daily_goal` | mint → player | packages/db/src/services/dailyGoals.ts:41 |
 | `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:86 |
+| `rival_invite` | mint → inviter and invited stable (once per invited account) | packages/db/src/services/rivals.ts:219 |
 | `story_reward` | mint → player | packages/db/src/services/player.ts:228 |
 | `referral_reward` | mint → inviter | packages/db/src/services/affiliates.ts:437 |
 | `adjustment` (release to Club) | mint → player | packages/db/src/services/horses.ts:210 |
@@ -559,6 +590,10 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `market_sale` | buyer → seller, fee → burn | packages/db/src/services/market.ts:165 |
 | `race_extras` / `jockey_fee` | player → burn | packages/db/src/services/races.ts:373, :376 |
 | `race_extras_refund` / `jockey_fee_refund` | burn → player | packages/db/src/services/races.ts:295 (scratch :421, abandoned race :827) |
+| `jockey_wage` | player → burn (weekly) | packages/db/src/services/jockeyContracts.ts (`runContractWeekTx`) |
+| `jockey_offer_escrow` / `jockey_offer_refund` | player → escrow / escrow → player | packages/db/src/services/jockeyContracts.ts (`makeJockeyOffer`, `refundTx`) |
+| `jockey_signing` (window) | escrow → burn | packages/db/src/services/jockeyContracts.ts (`runTransferWindowTx`) |
+| `jockey_development_bonus` | mint → developer | packages/db/src/services/jockeyContracts.ts (`developmentTx`) |
 | `race_sponsorship` | player → burn | packages/db/src/services/sponsorship.ts:271 |
 | `race_sponsorship_refund` | burn → player (abandoned race) | packages/db/src/services/sponsorship.ts:322 |
 | `lease_share` | mint → owner share + lessee share (a leased runner's purse, split exactly; replaces that runner's part of `purse`) | packages/db/src/services/leasing.ts `payLeasedPurseTx`, called from races.ts `settleRace` |
@@ -716,6 +751,9 @@ testnet first). All defaults live in one place, `packages/game-core/src/usdgMark
 | `MAX_ORDER_TTL` | 4 days | packages/contracts/contracts/HorseMarket.sol | On-chain cap on an order's deadline. | |
 | Resale lock | 72 h (`RESALE_LOCK_MS`, shared with credits) | packages/db/src/services/usdgMarket.ts (`usdgResaleLock`) | A bought horse (credits or USDG) can't be listed for USDG for 72 h. | Flipping |
 | Lazy tick | every 20 s per instance | apps/web/src/server/chain/usdg.ts (`usdgTick`) | The USDG views close ended auctions and expire stale orders; the daily cron is the backstop. | Auction close latency |
+| `PRACTICE_USDG_GRANT` | 100 T-USDG (owner decision 2026-10-31) | packages/game-core/src/usdgMarket.ts | Practice mode only (`USDG_MODE=practice`): test money granted once per account on its first wallet sign-in or link, one balance shared by the USDG market, USDG stud fees, Premium Packs and the tote's T-USDG pools. Never convertible to or from credits, never withdrawable, never for sale. The only other source is an admin top-up. | Practice trading volume |
+| `PRACTICE_USDG_TOPUP_MAX` | 10,000 T-USDG | packages/game-core/src/usdgMarket.ts | Largest single admin top-up (typo guard). | |
+| `isUsdgPracticeMode` | on only when `USDG_MODE=practice` exactly | packages/game-core/src/usdgMarket.ts | The one practice switch (market, packs, tote). | Real money on/off |
 
 ---
 
@@ -750,6 +788,47 @@ OPEN (the request passes uncounted). The limiter window is the standard two-wind
 | `LINK_FAIL_LIMIT` | 20 failed redemptions per IP per hour | apps/web/src/server/devices.ts:19 | Failed link-code redemptions per IP over a sliding hour; the 21st is answered 429 with `Retry-After: 3600`. | Code-guessing surface |
 | `WALLET_AUTH_LIMIT` | 30 challenge+verify attempts per IP per hour | apps/web/src/server/walletAuth.ts:52 | Wallet SIWE challenge and verify attempts per IP over a sliding hour; past the limit the endpoint answers 429. | Challenge farming, signature-guessing surface |
 | Rate-limit prune age | 2 hours (two windows of the longest limit) | packages/db/src/services/maintenance.ts (`pruneRateLimits`, `olderThanMs`) | `runMaintenance` deletes `rate_limits` rows whose window is older than two windows of the 1-hour limit. | Table growth |
+
+---
+
+## 17. The tote (spectator pool betting, new 2026-10-31)
+
+Owner decision (2026-10-31): "Live betting using T-USDG & credits with live odds for spectators.
+We need it for economy sink and fun + it's testing. Credits are not cashed out, it stays in
+game." Pure parimutuel: the game never sets odds, never bets and carries no liability. Rules and
+maths in `packages/game-core/src/tote.ts`; bets, settlement, integrity and limits in
+`packages/db/src/services/tote.ts`; web in `apps/web/src/server/tote.ts` and
+`apps/web/src/components/tote/TotePanel.tsx`; wiki page `tote`. Amounts are base units (credits;
+T-USDG in millionths, like USDG).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `TOTE_TAKEOUT_PERMILLE` | 150 (15 %), at most | packages/game-core/src/tote.ts:53 | House take off every pool (rounded down), cut (down to zero) when it would leave a winner less than the stake ("winners never lose": winning stakes come back first, the profit is split by place), plus rounding remainders, to the `tote_house` ledger account (one per currency; no player path spends it). Credits: a sink. Kinds `tote_stake` (player → escrow), `tote_settlement` (escrow → winners + `tote_house`), `tote_refund` (escrow → player). | Credit sink, bettors' returns |
+| `TOTE_RACE_KINDS` | scheduled, feature, final | packages/game-core/src/tote.ts:43 | Races with a tote (the Live card). Never Story, quick, the Daily Cup or what-if. | Where betting happens |
+| `TOTE_PLACE_MIN_FIELD` / `TOTE_PLACE_THREE_FROM` (`totePlaces`) | 5 / 8: first 3 from 8 runners, first 2 from 5-7, no place pool under 5 | packages/game-core/src/tote.ts:76, :78, :142 | Place terms; set by the runners at the off (a void place pool refunds in full). | Place dividends |
+| `TOTE_MIN_STAKE` | 10 credits; 0.5 T-USDG | packages/game-core/src/tote.ts:56 | Smallest bet. | Bet count |
+| `TOTE_MAX_STAKE_PER_RACE` + `TOTE_MAX_STAKE_BALANCE_PERMILLE` | 1,000 credits or 10 % of (balance + already staked on the race), whichever is lower; 10 T-USDG | packages/game-core/src/tote.ts:62, :65 | Most one account stakes on one race (all pools). | Sink volume, loss per race |
+| `TOTE_MAX_STAKE_PER_DAY` | 5,000 credits; 50 T-USDG | packages/game-core/src/tote.ts:68 | Most one account stakes per UTC day. | Sink volume, loss per day |
+| `TOTE_LIMIT_RAISE_DELAY_MS` | 24 h | packages/game-core/src/tote.ts:109 | A player's own lower limit applies at once; raising or removing it waits this long and then applies only when the player confirms it. | Responsible play |
+| `TOTE_SELF_EXCLUSION_MS` | time-outs 24 h, 7 d, 30 d; self-exclusions 6 months, 1 year, 5 years; permanent | packages/game-core/src/tote.ts:86 | Time-outs end by themselves; self-exclusions last at least their length, then until the player asks to end them, plus `TOTE_SELF_EXCLUSION_COOLING_OFF_MS` (1 day, :106). None can be shortened or lifted early. | Responsible play |
+| `TOTE_REALITY_CHECK_MS` / `TOTE_SESSION_GAP_MS` | 60 min / 30 min | packages/game-core/src/tote.ts:112 | A reality check (session time and net result) every 60 minutes of betting, acknowledged before the next bet; a 30-minute gap ends a session. | Responsible play |
+| `TOTE_MIN_POOL_BETTORS` / `TOTE_MIN_POOL_RUNNERS` | 2 / 2 | packages/game-core/src/tote.ts:71 | Minimum pool: 2 distinct bettors (linked accounts count as one) backing 2 distinct runners that ran, or the pool is void and refunded with no take. | Thin-pool refunds, the sink on small races |
+| `TOTE_ODDS_POLL_MS` | 5 s | packages/game-core/src/tote.ts:139 | Tote panel refresh before the off (the board is CDN-cached 2 s, `boardCache` in apps/web/src/server/tote.ts). | Server load, odds freshness |
+| `toteUsdgEnabled()` | on only when `USDG_MODE=practice` | packages/db/src/services/tote.ts (`toteUsdgEnabled`), game-core `toteUsdgEnabledFrom` | The one switch for T-USDG pools (delegates to `isUsdgPracticeMode`); live/mock/off/unset refuse every T-USDG bet. T-USDG bets come from the player's one practice T-USDG balance (ledger currency `TUSDG`, `services/usdgPractice.ts`, shared with the USDG market) and need a verified wallet; there is no tote faucet. | T-USDG betting on/off |
+| Bet rate limit | 30 bets per account per minute | apps/web/src/server/tote.ts (`betLimiter`) | Abuse guard on POST /api/races/:id/tote/bet. | Abuse surface |
+| Harness punters | every 4th casual and every 4th grinder (a quarter of them); 60 % chance per visit to back up to 2 races of the next meeting; 10-50 credits a bet; Win 3 in 4 | tools/season-harness/src/agents.ts (`PUNTER_EVERY`, `PUNTER_BET_PERMILLE`, `PUNTER_RACES_PER_VISIT`) | Simulated betting, so the harness reports tote volume and the sink. | Harness only |
+
+Window and integrity (not knobs, rules): bets open when the race is on the card and close at the
+post time, checked by the database clock under the race row lock; settlement waits for the
+result to be public (news.ts `raceResultPublicAt`). No bets on a race where the bettor's stable,
+a lease partner or a linked account has a runner (linked: fraud event `tote_linked_bet_blocked`);
+entering such a runner later voids and refunds the bets (`tote_linked_bet_voided` when linked).
+A conservative ride while linked accounts bet against the horse raises
+`tote_conservative_ride_linked_bettor` (a flag, no action). Linked accounts backing different
+runners of the same pool raise `tote_linked_opposing_bets` (and count as one bettor). Staff
+(an admin session, `TOTE_STAFF_ACCOUNT_IDS`, system accounts) can't bet. Declared dividends
+stand: an error found later is made good to underpaid players from `tote_house`, never clawed
+back from overpaid ones.
 
 ---
 

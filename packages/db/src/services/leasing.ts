@@ -937,7 +937,7 @@ export async function leaseMetrics(ex: Executor, now: Date): Promise<LeaseMetric
     await ex.execute(sql`
       select coalesce(sum(p.amount), 0) as total
         from ledger_postings p join ledger_transactions x on x.id = p.transaction_id join ledger_accounts a on a.id = p.ledger_account_id
-       where x.kind = 'lease_share' and a.kind = 'player' and p.created_at >= ${week.from} and p.created_at < ${week.to}`),
+       where x.kind = 'lease_share' and a.kind = 'player' and a.currency = 'CR' and p.created_at >= ${week.from} and p.created_at < ${week.to}`),
   );
   return {
     active: Number(l?.active ?? 0),

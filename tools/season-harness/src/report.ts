@@ -123,6 +123,11 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "claimsLodged", label: "Claims lodged", value: t.claiming?.claimsLodged ?? 0 },
     { key: "horsesClaimed", label: "Horses claimed", value: t.claiming?.horsesClaimed ?? 0 },
     { key: "claimCredits", label: "Credits paid for claimed horses", value: t.claiming?.creditsMoved ?? 0 },
+    { key: "toteBets", label: "Tote bets (credits)", value: t.tote?.bets ?? 0 },
+    { key: "toteBettors", label: "Tote bettors", value: t.tote?.bettors ?? 0 },
+    { key: "toteVolume", label: "Tote credits pooled", value: t.tote?.pooled ?? 0 },
+    { key: "toteHouseTake", label: "Tote house take (credits sunk)", value: t.tote?.houseTake ?? 0 },
+    { key: "toteReturned", label: "Tote credits paid back to bettors", value: t.tote?.returned ?? 0 },
     { key: "jockeyPool", label: "Jockeys (not retired) at the end", value: t.jockeys?.pool ?? 0 },
     { key: "jockeyPerActive", label: "Jockeys per active stable", value: t.jockeys?.perActiveStable ?? 0 },
     { key: "jockeyFreelancers", label: "Club freelancers at the end", value: t.jockeys?.freelancers ?? 0 },
@@ -134,6 +139,12 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "jockeyFreelanceFees", label: "Freelance booking fees (credits)", value: t.jockeys?.freelanceFees ?? 0 },
     { key: "jockeySigningFees", label: "Jockey signing fees (credits)", value: t.jockeys?.signingFees ?? 0 },
     { key: "jockeyMaxHeld", label: "Most jockeys held by one stable", value: t.jockeys?.maxHeld ?? 0 },
+    { key: "jockeyWindowOffers", label: "Transfer window offers (all windows)", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.offers, 0) },
+    { key: "jockeyWindowSignings", label: "Transfer window signings", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.signings, 0) },
+    { key: "jockeyWindowMoves", label: "Jockeys moving between stables", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.moves, 0) },
+    { key: "jockeyWages", label: "Jockey wages paid (credits, sink)", value: t.jockeys?.wagesPaid ?? 0 },
+    { key: "jockeyWalkouts", label: "Morale walkouts", value: (t.jockeys?.windows ?? []).reduce((a, w) => a + w.walkouts, 0) },
+    { key: "jockeyDevBonuses", label: "Development bonuses (credits)", value: t.jockeys?.devBonuses.credits ?? 0 },
   ];
   for (const c of COHORTS) {
     if (!r.meta.cohorts[c]) continue;
@@ -218,6 +229,14 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
     if (j.weeks.length) {
       L.push("", "| week | active stables | pool | target | intake | per active stable |", "|---:|---:|---:|---:|---:|---:|");
       for (const w of j.weeks) L.push(`| ${w.week} | ${w.active} | ${w.pool} | ${w.target} | ${w.intake} | ${w.perActive} |`);
+    }
+    if (j.windows) {
+      L.push("", "### Contracts and the transfer window", "");
+      L.push(`Wages paid ${fmt(j.wagesPaid)} credits (sink); contracts unpaid ${j.unpaid}; development bonuses ${j.devBonuses.count} (${fmt(j.devBonuses.credits)} credits). Active contracts at the end ${j.contracts.active}, mean wage ${j.contracts.meanWage}, mean promised rides ${j.contracts.meanPromised}.`);
+      if (j.windows.length) {
+        L.push("", "| window week | free agents | offers | signings | moves | to Club pool | walkouts |", "|---:|---:|---:|---:|---:|---:|---:|");
+        for (const w of j.windows) L.push(`| ${w.week} | ${w.freeAgents} | ${w.offers} | ${w.signings} | ${w.moves} | ${w.unmatched} | ${w.walkouts} |`);
+      }
     }
   }
   L.push("", "## Credits", "");

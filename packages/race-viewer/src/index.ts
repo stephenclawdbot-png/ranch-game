@@ -21,3 +21,6 @@ export { finalePlan, finaleSlides, isPhotoFinish, isCloseFinish, type FinalePlan
 export { officialHandoff } from "./finale/live";
 export { checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";
 export { WHAT_IF_BADGE, whatIfCall, whatIfFlags } from "./whatIf";
+export { ClipShareButton, type ClipShareButtonProps } from "./clip/ClipShareButton";
+export { recordRaceClip, ClipCancelled, clipDateLabel, type RecordClipOptions, type RecordedClip, type ClipMeta } from "./clip/record";
+export { canShareClip, clipWindow, clipSchedule, clipFileName, endCardRows, CLIP_SIZES, CLIP_FPS, type ClipOrientation, type ClipSchedule } from "./clip/plan";

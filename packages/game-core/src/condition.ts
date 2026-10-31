@@ -10,6 +10,7 @@ import type { GameStage, HorseState, Injury, InjurySeverity, RideIntensity } fro
 import { MS_PER_DAY, MS_PER_HOUR, dayIndex } from "./time";
 import { IRON_LEGS_RISK, hasIronLegs, isFragile, potentialOf } from "./genome";
 import { Rng, clampInt } from "./rng";
+import { pickInjuryKind, type InjuryContext } from "./injuries";
 import { PHYSIO_FATIGUE_OFF, SHOES_KEEP_PERMILLE, VET_CHECK_RISK_PERMILLE, shoesFor, type RaceDayChoice } from "./raceDay";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +25,10 @@ export const TIRED_THRESHOLD = 300;
 export const TIRED_MAX_PENALTY = 80;
 /** Freshness peak bonus 3-5 days after hard work, permille. */
 export const FRESHNESS_PEAK_BONUS = 25;
+/** Hours after hard work when the freshness peak reaches its full height. */
+export const FRESHNESS_PEAK_FROM_H = 72;
+/** Hours after hard work when the freshness peak starts to fade. */
+export const FRESHNESS_PEAK_TO_H = 120;
 
 /** Fatigue at `nowMs` (recovers with real time; this is healing, allowed while away). */
 export function fatigueAt(state: Pick<HorseState, "condition">, nowMs: number): number {
@@ -57,9 +62,9 @@ export function freshnessBonus(lastHardWorkMs: number | null, nowMs: number): nu
   if (lastHardWorkMs === null) return 0;
   const h = (nowMs - lastHardWorkMs) / MS_PER_HOUR;
   if (h < 48) return 0;
-  if (h < 72) return Math.round((FRESHNESS_PEAK_BONUS * (h - 48)) / 24);
-  if (h <= 120) return FRESHNESS_PEAK_BONUS;
-  if (h < 192) return Math.round((FRESHNESS_PEAK_BONUS * (192 - h)) / 72);
+  if (h < FRESHNESS_PEAK_FROM_H) return Math.round((FRESHNESS_PEAK_BONUS * (h - 48)) / (FRESHNESS_PEAK_FROM_H - 48));
+  if (h <= FRESHNESS_PEAK_TO_H) return FRESHNESS_PEAK_BONUS;
+  if (h < 192) return Math.round((FRESHNESS_PEAK_BONUS * (192 - h)) / (192 - FRESHNESS_PEAK_TO_H));
   return 0;
 }
 
@@ -151,6 +156,8 @@ export interface InjuryRisk {
   /** Chance that an injury, if it happens, ends the racing career, permille. */
   careerEndingShare: number;
   factors: RiskFactor[];
+  /** The context that names an injury, if one happens (injuries.ts): never changes the chance. */
+  context: InjuryContext;
 }
 
 export interface RiskContext {
@@ -199,7 +206,8 @@ export function injuryRisk(state: HorseState, ctx: RiskContext): InjuryRisk {
   const permille = Math.min(MAX_INJURY_PERMILLE, Math.max(1, Math.round(p / 1000)));
   const ce = clampInt(CAREER_ENDING_SHARE + (fatigue > 700 ? 30 : 0) + (ctx.intensity === "all_out" ? 20 : 0), 0, 200);
   const label = permille < 5 ? "low" : permille < 12 ? "moderate" : permille < 25 ? "elevated" : "high";
-  return { permille, label, careerEndingShare: ce, factors };
+  const context: InjuryContext = { going: ctx.going, distanceM: ctx.distanceM, intensity: ctx.intensity, tired: fatigue > TIRED_THRESHOLD, fragile: isFragile(state.genome), veteran: ctx.stage === "veteran" };
+  return { permille, label, careerEndingShare: ce, factors, context };
 }
 
 export const INJURY_DAYS: Record<InjurySeverity, [number, number]> = { minor: [2, 4], moderate: [6, 12], career_ending: [14, 21], fatal: [21, 21] };
@@ -207,15 +215,30 @@ export const INJURY_DAYS: Record<InjurySeverity, [number, number]> = { minor: [2
 /**
  * Roll for an injury after a start or workout. Deterministic in the seed. A share of career-ending
  * injuries is fatal when `fatal` is allowed (Live races; never Story races or training).
+ *
+ * Whether, how badly and how long: the `${seed}|injury` stream (and `${seed}|fatal`), in the same
+ * order as before injuries had names, so every seed rolls the same severity and healing hours
+ * (condition.test.ts golden). The name (injuries.ts) comes after, from its own stream
+ * (`${seed}|injury-kind`), among the injuries of that severity that heal in that many days,
+ * weighted by `risk.context` (neutral when absent).
  */
-export function rollInjury(risk: Pick<InjuryRisk, "permille" | "careerEndingShare">, seed: string, atMs: number, vetLevel: number, source: string, opts: { fatal?: boolean } = {}): Injury | null {
+export function rollInjury(
+  risk: Pick<InjuryRisk, "permille" | "careerEndingShare"> & { context?: InjuryContext },
+  seed: string,
+  atMs: number,
+  vetLevel: number,
+  source: string,
+  opts: { fatal?: boolean } = {},
+): Injury | null {
   const rng = new Rng(`${seed}|injury`);
   // Roll in 1/1,000,000 so permille risks below 1 still work.
   if (rng.int(1_000_000) >= risk.permille * 1000) return null;
   let sev: InjurySeverity = rng.chance(risk.careerEndingShare) ? "career_ending" : rng.chance(300) ? "moderate" : "minor";
   if (sev === "career_ending" && opts.fatal && new Rng(`${seed}|fatal`).chance(FATAL_SHARE_OF_CAREER_ENDING)) sev = "fatal";
   const [lo, hi] = INJURY_DAYS[sev];
-  return { severity: sev, atMs, unitsRequired: rng.range(lo, hi) * 24, bonusUnits: 0, vetLevel: clampInt(vetLevel, 0, 3), source };
+  const days = rng.range(lo, hi);
+  const kind = pickInjuryKind(sev, days, risk.context ?? {}, seed);
+  return { severity: sev, atMs, unitsRequired: days * 24, bonusUnits: 0, vetLevel: clampInt(vetLevel, 0, 3), source, kind };
 }
 
 /** Healing speed: +25% per vet facility level. */

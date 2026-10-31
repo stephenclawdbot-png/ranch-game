@@ -34,6 +34,7 @@ const CATEGORY_LABEL: Record<FinanceCategory, string> = {
   purchases: "Purchases",
   facilities: "Facilities",
   fees: "Fees burned",
+  tote: "Tote bets",
   other: "Other",
 };
 

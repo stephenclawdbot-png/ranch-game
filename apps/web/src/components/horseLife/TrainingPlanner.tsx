@@ -115,7 +115,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
                   <span className="font-extrabold text-cream-dim">{w?.label ?? key}</span>
                 ) : (
                   <select
-                    className="field min-h-11 w-full"
+                    className="field min-h-11 w-full max-w-full sm:w-max"
                     value={key}
                     aria-label={`Session ${i + 1}`}
                     onChange={(e) => setPlan((p) => p.map((x, j) => (j === i ? e.target.value : x)))}

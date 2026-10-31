@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PixelIcon } from "@/components/icons";
 import { WIKI_PAGES, WIKI_SECTIONS, pagesIn } from "@/wiki/registry";
 import { WikiSearch } from "@/wiki/WikiNav";
+import { practiceWikiText } from "@/wiki/practiceText";
 
 export const metadata: Metadata = { title: { absolute: "Wiki · Post Time" } };
 
@@ -35,9 +36,9 @@ export default function WikiHome() {
                 {pagesIn(s.key).map((p) => (
                   <li key={p.slug}>
                     <Link href={`/wiki/${p.slug}`} className="link font-bold">
-                      {p.title}
+                      {practiceWikiText(p.title)}
                     </Link>
-                    <span className="caption"> · {p.summary}</span>
+                    <span className="caption"> · {practiceWikiText(p.summary)}</span>
                   </li>
                 ))}
               </ul>

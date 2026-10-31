@@ -1,5 +1,5 @@
 {
-  "id": "4a91677e-192c-4fbe-86f4-eca98d249f6b",
+  "id": "64b3f7b1-1127-4d2c-803d-2f83c419ef71",
   "prevId": "10bb322a-c10d-4082-978b-383e508d5bba",
   "version": "7",
   "dialect": "postgresql",
@@ -404,6 +404,21 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounts_created_idx": {
+          "name": "accounts_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1790,6 +1805,138 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.declared_rivals": {
+      "name": "declared_rivals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "inviter_stable_id": {
+          "name": "inviter_stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invitee_stable_id": {
+          "name": "invitee_stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'invite'"
+        },
+        "welcome": {
+          "name": "welcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "welcome_credits": {
+          "name": "welcome_credits",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "refused_reason": {
+          "name": "refused_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "declared_rivals_invitee_uq": {
+          "name": "declared_rivals_invitee_uq",
+          "columns": [
+            {
+              "expression": "invitee_stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "declared_rivals_inviter_idx": {
+          "name": "declared_rivals_inviter_idx",
+          "columns": [
+            {
+              "expression": "inviter_stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "declared_rivals_inviter_stable_id_stables_id_fk": {
+          "name": "declared_rivals_inviter_stable_id_stables_id_fk",
+          "tableFrom": "declared_rivals",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "inviter_stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "declared_rivals_invitee_stable_id_stables_id_fk": {
+          "name": "declared_rivals_invitee_stable_id_stables_id_fk",
+          "tableFrom": "declared_rivals",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "invitee_stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "declared_rivals_pair": {
+          "name": "declared_rivals_pair",
+          "value": "\"declared_rivals\".\"inviter_stable_id\" <> \"declared_rivals\".\"invitee_stable_id\""
+        },
+        "declared_rivals_welcome": {
+          "name": "declared_rivals_welcome",
+          "value": "\"declared_rivals\".\"welcome\" in ('granted','refused')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.economy_config": {
@@ -5702,127 +5849,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.match_race_runners": {
-      "name": "match_race_runners",
-      "schema": "",
-      "columns": {
-        "quick_race_id": {
-          "name": "quick_race_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "horse_id": {
-          "name": "horse_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stable_id": {
-          "name": "stable_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "challenger": {
-          "name": "challenger",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "position": {
-          "name": "position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "match_race_runners_horse_idx": {
-          "name": "match_race_runners_horse_idx",
-          "columns": [
-            {
-              "expression": "horse_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "match_race_runners_quick_race_id_quick_races_id_fk": {
-          "name": "match_race_runners_quick_race_id_quick_races_id_fk",
-          "tableFrom": "match_race_runners",
-          "tableTo": "quick_races",
-          "columnsFrom": [
-            "quick_race_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "match_race_runners_horse_id_horses_id_fk": {
-          "name": "match_race_runners_horse_id_horses_id_fk",
-          "tableFrom": "match_race_runners",
-          "tableTo": "horses",
-          "columnsFrom": [
-            "horse_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "match_race_runners_stable_id_stables_id_fk": {
-          "name": "match_race_runners_stable_id_stables_id_fk",
-          "tableFrom": "match_race_runners",
-          "tableTo": "stables",
-          "columnsFrom": [
-            "stable_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "match_race_runners_quick_race_id_horse_id_pk": {
-          "name": "match_race_runners_quick_race_id_horse_id_pk",
-          "columns": [
-            "quick_race_id",
-            "horse_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.news_items": {
       "name": "news_items",
       "schema": "",
@@ -6868,229 +6894,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.quick_races": {
-      "name": "quick_races",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "mode": {
-          "name": "mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "account_id": {
-          "name": "account_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stable_id": {
-          "name": "stable_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "horse_id": {
-          "name": "horse_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_race_id": {
-          "name": "source_race_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "challenge_day": {
-          "name": "challenge_day",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "engine_version": {
-          "name": "engine_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "input": {
-          "name": "input",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "finish_time_us": {
-          "name": "finish_time_us",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "points": {
-          "name": "points",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "quick_races_stable_idx": {
-          "name": "quick_races_stable_idx",
-          "columns": [
-            {
-              "expression": "stable_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "quick_races_daily_uq": {
-          "name": "quick_races_daily_uq",
-          "columns": [
-            {
-              "expression": "stable_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "challenge_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "quick_races_daily_board_idx": {
-          "name": "quick_races_daily_board_idx",
-          "columns": [
-            {
-              "expression": "challenge_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "position",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "finish_time_us",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "quick_races_account_id_accounts_id_fk": {
-          "name": "quick_races_account_id_accounts_id_fk",
-          "tableFrom": "quick_races",
-          "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "quick_races_stable_id_stables_id_fk": {
-          "name": "quick_races_stable_id_stables_id_fk",
-          "tableFrom": "quick_races",
-          "tableTo": "stables",
-          "columnsFrom": [
-            "stable_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "quick_races_horse_id_horses_id_fk": {
-          "name": "quick_races_horse_id_horses_id_fk",
-          "tableFrom": "quick_races",
-          "tableTo": "horses",
-          "columnsFrom": [
-            "horse_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "quick_races_source_race_id_races_id_fk": {
-          "name": "quick_races_source_race_id_races_id_fk",
-          "tableFrom": "quick_races",
-          "tableTo": "races",
-          "columnsFrom": [
-            "source_race_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.race_claims": {
       "name": "race_claims",
       "schema": "",
@@ -7645,6 +7448,215 @@
         "race_entries_gate": {
           "name": "race_entries_gate",
           "value": "\"race_entries\".\"gate\" is null or \"race_entries\".\"gate\" between 1 and 16"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.race_picks": {
+      "name": "race_picks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "race_id": {
+          "name": "race_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stable_id": {
+          "name": "stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "horse_id": {
+          "name": "horse_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "post_time": {
+          "name": "post_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rank": {
+          "name": "rank",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "field_size": {
+          "name": "field_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scored_at": {
+          "name": "scored_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "race_picks_race_stable_uq": {
+          "name": "race_picks_race_stable_uq",
+          "columns": [
+            {
+              "expression": "race_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "race_picks_stable_idx": {
+          "name": "race_picks_stable_idx",
+          "columns": [
+            {
+              "expression": "stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "post_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "race_picks_week_idx": {
+          "name": "race_picks_week_idx",
+          "columns": [
+            {
+              "expression": "post_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "race_picks_open_idx": {
+          "name": "race_picks_open_idx",
+          "columns": [
+            {
+              "expression": "post_time",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"race_picks\".\"outcome\" = 'open'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "race_picks_race_id_races_id_fk": {
+          "name": "race_picks_race_id_races_id_fk",
+          "tableFrom": "race_picks",
+          "tableTo": "races",
+          "columnsFrom": [
+            "race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "race_picks_stable_id_stables_id_fk": {
+          "name": "race_picks_stable_id_stables_id_fk",
+          "tableFrom": "race_picks",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "race_picks_horse_id_horses_id_fk": {
+          "name": "race_picks_horse_id_horses_id_fk",
+          "tableFrom": "race_picks",
+          "tableTo": "horses",
+          "columnsFrom": [
+            "horse_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "race_picks_outcome": {
+          "name": "race_picks_outcome",
+          "value": "\"race_picks\".\"outcome\" in ('open','won','lost','void')"
         }
       },
       "isRLSEnabled": false

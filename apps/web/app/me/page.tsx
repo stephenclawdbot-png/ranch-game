@@ -62,6 +62,28 @@ function Profile({ state }: { state: PlayerState }) {
           ›
         </span>
       </Link>
+      <div className="-mt-6 grid gap-2 sm:grid-cols-2">
+        <Link href="/me/bets" className="surface flex items-center gap-3 p-3" data-testid="my-bets">
+          <PixelIcon name="ticket" size={32} />
+          <span className="min-w-0 flex-1">
+            <span className="t-title block">My bets</span>
+            <span className="t-meta block">Your tote bets and how they went.</span>
+          </span>
+          <span aria-hidden className="chev">
+            ›
+          </span>
+        </Link>
+        <Link href="/me/betting" className="surface flex items-center gap-3 p-3" data-testid="betting-limits">
+          <PixelIcon name="shield" size={32} />
+          <span className="min-w-0 flex-1">
+            <span className="t-title block">Betting limits</span>
+            <span className="t-meta block">Limits, a break from betting, 18+.</span>
+          </span>
+          <span aria-hidden className="chev">
+            ›
+          </span>
+        </Link>
+      </div>
 
       <section className="grid gap-5 md:grid-cols-[1fr_16rem]" aria-labelledby="colours-h">
         <div className="surface grid content-start gap-5 p-4">

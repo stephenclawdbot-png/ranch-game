@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
-import { MEETINGS_PER_DAY } from "@thoroughbred/game-core";
+import { MEETINGS_PER_DAY, isUsdgPracticeMode } from "@thoroughbred/game-core";
+import { UsdgModeProvider } from "@/components/chain/UsdgMode";
 import { SiteNav } from "@/components/SiteNav";
 import { Telemetry } from "@/components/playtest/Telemetry";
 import { EntryProvider } from "@/components/entry/EntryProvider";
@@ -47,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ArtProvider files={art}>
+          {/* USDG_MODE=practice: T-USDG test money everywhere USDG appears (server env, read here once). */}
+          <UsdgModeProvider practice={isUsdgPracticeMode(process.env)}>
           <EntryProvider>
             <SiteNav />
             <Telemetry />
@@ -54,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
           </EntryProvider>
+          </UsdgModeProvider>
         </ArtProvider>
       </body>
     </html>

@@ -8,7 +8,7 @@
  * nothing is spent until the session is run.
  */
 import type { StatKey, TrainingPreviewView, WorkoutView } from "@/lib/horseLife";
-import { STAT_NAMES } from "@/lib/horseLife";
+import { STAT_NAMES, dayName } from "@/lib/horseLife";
 
 const TIRED = 300;
 const OVERWORK = 600;
@@ -29,6 +29,11 @@ function fatigueWord(f: number): string {
 function pct(permille: number): string {
   const v = permille / 10;
   return `${v >= 1 ? v.toFixed(1).replace(/\.0$/, "") : v.toFixed(1)}%`;
+}
+
+/** Fatigue is permille of 1000: show it as a whole percentage (830 -> 83%). */
+function fPct(f: number): string {
+  return `${Math.round(f / 10)}%`;
 }
 
 export function TrainingBoard({
@@ -87,7 +92,8 @@ export function TrainingBoard({
 
               <div className="tboard-sec" aria-label="Fatigue">
                 <p className="tboard-label">
-                  Fatigue <span className="text-cream">{fatigueWord(p.fatigueBefore)}</span> → <span className={p.fatigueAfter > TIRED ? "text-warn" : "text-positive"}>{fatigueWord(p.fatigueAfter)}</span>
+                  Fatigue <span className="text-cream">{fPct(p.fatigueBefore)} {fatigueWord(p.fatigueBefore)}</span> →{" "}
+                  <span className={p.fatigueAfter > TIRED ? "text-warn" : "text-positive"}>{fPct(p.fatigueAfter)} {fatigueWord(p.fatigueAfter)}</span>
                 </p>
                 <div className="tboard-meter" role="img" aria-label={`Fatigue ${Math.round(p.fatigueBefore / 10)}% to ${Math.round(p.fatigueAfter / 10)}%`}>
                   <span className="tboard-now" style={{ width: `${Math.min(p.fatigueBefore, p.fatigueAfter) / 10}%` }} />
@@ -102,7 +108,24 @@ export function TrainingBoard({
 
               <div className="tboard-sec flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <span className={`tboard-risk ${p.injuryPermille > 0 ? "is-risk" : ""}`}>{p.injuryPermille > 0 ? `Knock risk ${pct(p.injuryPermille)}` : "No injury risk"}</span>
-                {p.setsUpPeak && <span className="text-xs font-bold text-sky">Peak in 3–5 days</span>}
+                {/* The peak line per session (playtest fix 9): hard work sets up a dated window, while
+                    light work and rest only keep the pending one (and say so when there isn't one).
+                    What used to be one identical "Peak in 3-5 days" on every tile; the hours to
+                    race-ready are each session's own wait, from the fatigue it itself adds. */}
+                {p.peak?.setsUp ? (
+                  <span className="text-xs font-bold text-sky" data-testid={`peak-${p.key}`}>
+                    Peak {dayName(p.peak.fromMs)}–{dayName(p.peak.toMs)}
+                    {p.readyInH > 0 ? ` · race-ready in ~${p.readyInH}h` : ""}
+                  </span>
+                ) : p.peak ? (
+                  <span className="text-xs font-bold text-cream-dim" data-testid={`peak-${p.key}`}>
+                    Keeps the peak {dayName(p.peak.fromMs)}–{dayName(p.peak.toMs)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-cream-dim" data-testid={`peak-${p.key}`}>
+                    No peak pending
+                  </span>
+                )}
               </div>
 
               <button

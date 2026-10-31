@@ -166,8 +166,43 @@
     {
       "idx": 23,
       "version": "7",
-      "when": 1793425236861,
-      "tag": "0023_quick_races",
+      "when": 1793424846947,
+      "tag": "0023_picks_rivals",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793428777465,
+      "tag": "0024_tote",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793430554993,
+      "tag": "0025_real_tote",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793438902094,
+      "tag": "0026_jockey_contracts",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793440201913,
+      "tag": "0027_real_tote_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793444077522,
+      "tag": "0028_quick_races",
       "breakpoints": true
     }
   ]

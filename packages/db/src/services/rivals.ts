@@ -5,12 +5,15 @@
  *
  * Club runners have no owner and are never anyone's rival.
  */
-import { inArray, sql } from "drizzle-orm";
-import { raceResults, stables } from "../schema";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { declaredRivals, fraudEvents, inviteCodes, raceResults, stables } from "../schema";
 import { gc } from "../gameCore";
-import type { Executor } from "../types";
+import type { Db, Executor } from "../types";
+import { areLinked, stableOf } from "./accounts";
+import { grantCreditsTx } from "./ledger";
 import { resultPublicAt } from "./news";
-import { rowsOf } from "./tx";
+import { normalizeInviteCode } from "./playtest";
+import { audit, rowsOf, runTx } from "./tx";
 
 const LIVE = sql.raw(`('scheduled','feature','final')`);
 const DAY_MS = 86_400_000;
@@ -68,6 +71,8 @@ export async function meetingsOf(ex: Executor, stableId: string, now: Date, q: M
 
 export interface RivalSummary extends gc.StableH2H {
   silks: unknown;
+  /** A declared rival ("Bring a rival"): you invited them, or they invited you. Null for a detected rival. */
+  declared: "invited" | "invited_by" | null;
 }
 
 export interface RivalsView {
@@ -77,10 +82,21 @@ export interface RivalsView {
   pairs: gc.HorseH2H[];
 }
 
-/** Rival stables over the last RIVAL_WINDOW_DAYS, the nemesis, and the horse pairs behind them. */
+/**
+ * Rival stables: declared rivals first (always shown), then the detected ones over the last
+ * RIVAL_WINDOW_DAYS; the nemesis, and the horse pairs behind them.
+ */
 export async function rivalsView(ex: Executor, stableId: string, now: Date, opts: { limit?: number } = {}): Promise<RivalsView> {
-  const meetings = await meetingsOf(ex, stableId, now, { since: new Date(now.getTime() - gc.RIVAL_WINDOW_DAYS * DAY_MS) });
-  const ranked = gc.rankRivals(gc.stableHeadToHead(meetings, stableId)).slice(0, opts.limit ?? gc.RIVALS_SHOWN);
+  const [meetings, declared] = await Promise.all([meetingsOf(ex, stableId, now, { since: new Date(now.getTime() - gc.RIVAL_WINDOW_DAYS * DAY_MS) }), declaredRivalsOf(ex, stableId)]);
+  const records = gc.stableHeadToHead(meetings, stableId);
+  const declaredIds = new Set(declared.map((d) => d.stableId));
+  const fromDeclared = declared.map((d) => ({ ...(records.find((r) => r.stableId === d.stableId) ?? { stableId: d.stableId, meetings: 0, ahead: 0, behind: 0, close: 0, closeAhead: 0, last: null }), stableName: d.stableName, declared: d.direction }));
+  const detected = gc
+    .rankRivals(records)
+    .filter((r) => !declaredIds.has(r.stableId))
+    .slice(0, opts.limit ?? gc.RIVALS_SHOWN)
+    .map((r) => ({ ...r, declared: null }));
+  const ranked = [...fromDeclared, ...detected];
   const pairs = gc.horseHeadToHead(meetings, stableId);
   const silks = ranked.length ? await ex.select({ id: stables.id, silks: stables.silks }).from(stables).where(inArray(stables.id, ranked.map((r) => r.stableId))) : [];
   const silksOf = new Map(silks.map((s) => [s.id, s.silks]));
@@ -123,4 +139,109 @@ export async function raceRivalLinesFor(ex: Executor, stableId: string, raceId: 
 export async function rivalTags(ex: Executor, stableId: string, now: Date): Promise<{ rivalStableIds: string[]; nemesisHorseId: string | null }> {
   const v = await rivalsView(ex, stableId, now);
   return { rivalStableIds: v.rivals.map((r) => r.stableId), nemesisHorseId: v.nemesis?.horseId ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// Declared rivals: "Bring a rival" invites
+// ---------------------------------------------------------------------------
+
+const RIVAL_INVITE_WEEKLY_WELCOMES = gc.RIVAL_INVITE_WEEKLY_WELCOMES;
+
+export interface DeclaredRival {
+  stableId: string;
+  stableName: string;
+  direction: "invited" | "invited_by";
+  atMs: number;
+}
+
+/** The stable's declared rivals, both ways (you invited them / they invited you), newest first. */
+export async function declaredRivalsOf(ex: Executor, stableId: string): Promise<DeclaredRival[]> {
+  const rows = await ex
+    .select({ inviter: declaredRivals.inviterStableId, invitee: declaredRivals.inviteeStableId, at: declaredRivals.createdAt })
+    .from(declaredRivals)
+    .where(or(eq(declaredRivals.inviterStableId, stableId), eq(declaredRivals.inviteeStableId, stableId)));
+  if (!rows.length) return [];
+  const otherOf = (r: (typeof rows)[number]) => (r.inviter === stableId ? r.invitee : r.inviter);
+  const names = await ex.select({ id: stables.id, name: stables.name }).from(stables).where(inArray(stables.id, rows.map(otherOf)));
+  const nameOf = new Map(names.map((n) => [n.id, n.name]));
+  return rows
+    .map((r) => ({ stableId: otherOf(r), stableName: nameOf.get(otherOf(r)) ?? "A stable", direction: r.inviter === stableId ? ("invited" as const) : ("invited_by" as const), atMs: r.at.getTime() }))
+    .sort((a, b) => b.atMs - a.atMs);
+}
+
+export type RivalInviteResult =
+  | { ok: true; inviterStableId: string; welcome: "granted" | "refused"; reason: string | null; credits: { invitee: number; inviter: number } }
+  | { ok: false; problem: "unknown_code" | "self" | "already" };
+
+/**
+ * A friend founded a stable through a rival invite link (the inviter's personal referral code):
+ * the two stables become declared rivals at once, and both get RIVAL_INVITE_CREDITS once (kind
+ * `rival_invite`; once per invited account: unique invitee). Refused, with a fraud event for
+ * review, when the accounts are linked (a shared device, fingerprint, wallet or email, like the
+ * market's anti-alt check); the inviter's side is also capped at gc.RIVAL_INVITE_WEEKLY_WELCOMES a
+ * week. Never pays USDG; the affiliate tree is untouched (recordReferral does that separately).
+ */
+export async function acceptRivalInvite(db: Db, input: { inviteeAccountId: string; code: string; now: Date }): Promise<RivalInviteResult> {
+  const code = normalizeInviteCode(input.code);
+  const [row] = code ? await db.select().from(inviteCodes).where(eq(inviteCodes.code, code)) : [];
+  if (!row || row.revokedAt || row.kind !== "referral" || !row.ownerAccountId) return { ok: false, problem: "unknown_code" };
+  const inviterAccountId = row.ownerAccountId;
+  if (inviterAccountId === input.inviteeAccountId) return { ok: false, problem: "self" };
+  return runTx(db, async (tx) => {
+    const inviter = await stableOf(tx, inviterAccountId);
+    const invitee = await stableOf(tx, input.inviteeAccountId);
+    const linked = await areLinked(tx, inviterAccountId, input.inviteeAccountId);
+    const weekFrom = new Date(Date.parse(`${utcMonday(input.now)}T00:00:00Z`));
+    const [wk] = rowsOf<{ n: number }>(
+      await tx.execute(sql`select count(*)::int as n from declared_rivals where inviter_stable_id = ${inviter.id} and welcome = 'granted' and created_at >= ${weekFrom.toISOString()}`),
+    );
+    const inviterCapped = Number(wk?.n ?? 0) >= RIVAL_INVITE_WEEKLY_WELCOMES;
+    const amount = gc.RIVAL_INVITE_CREDITS;
+    const inserted = await tx
+      .insert(declaredRivals)
+      .values({
+        inviterStableId: inviter.id,
+        inviteeStableId: invitee.id,
+        source: "invite",
+        welcome: linked ? "refused" : "granted",
+        welcomeCredits: linked ? 0 : amount,
+        refusedReason: linked ? "linked_accounts" : null,
+        createdAt: input.now,
+      })
+      .onConflictDoNothing()
+      .returning({ id: declaredRivals.id });
+    if (!inserted[0]) return { ok: false as const, problem: "already" as const };
+    if (linked) {
+      await tx.insert(fraudEvents).values({ accountId: input.inviteeAccountId, relatedAccountId: inviterAccountId, kind: "rival_invite_linked", severity: 1, data: { code } });
+      return { ok: true as const, inviterStableId: inviter.id, welcome: "refused" as const, reason: "linked_accounts", credits: { invitee: 0, inviter: 0 } };
+    }
+    const key = `rival_invite:${invitee.id}`;
+    await grantCreditsTx(tx, { accountId: input.inviteeAccountId, amount, idempotencyKey: `${key}:invitee`, kind: "rival_invite", memo: `Welcome: you and ${inviter.name} are rivals` });
+    if (!inviterCapped) await grantCreditsTx(tx, { accountId: inviterAccountId, amount, idempotencyKey: `${key}:inviter`, kind: "rival_invite", memo: `Welcome: ${invitee.name} took up your challenge` });
+    await audit(tx, { actor: input.inviteeAccountId, action: "rival.invite", entityType: "stable", entityId: invitee.id, data: { inviterStableId: inviter.id, inviterCapped } });
+    return { ok: true as const, inviterStableId: inviter.id, welcome: "granted" as const, reason: inviterCapped ? "inviter_weekly_cap" : null, credits: { invitee: amount, inviter: inviterCapped ? 0 : amount } };
+  });
+}
+
+/** Rival invites sent and taken up (for the invite page). */
+export async function rivalInviteStats(ex: Executor, stableId: string, now: Date): Promise<{ accepted: number; thisWeek: number }> {
+  const all = await ex.select({ at: declaredRivals.createdAt, welcome: declaredRivals.welcome }).from(declaredRivals).where(eq(declaredRivals.inviterStableId, stableId));
+  const from = Date.parse(`${utcMonday(now)}T00:00:00Z`);
+  return { accepted: all.length, thisWeek: all.filter((r) => r.welcome === "granted" && r.at.getTime() >= from).length };
+}
+
+/** The stable name behind a personal invite code (the rival invite banner), or null. */
+export async function rivalInviterName(ex: Executor, rawCode: string): Promise<string | null> {
+  const code = normalizeInviteCode(rawCode);
+  if (!code) return null;
+  const [row] = await ex
+    .select({ name: stables.name })
+    .from(inviteCodes)
+    .innerJoin(stables, eq(stables.accountId, inviteCodes.ownerAccountId))
+    .where(and(eq(inviteCodes.code, code), eq(inviteCodes.kind, "referral"), isNull(inviteCodes.revokedAt)));
+  return row?.name ?? null;
+}
+
+function utcMonday(at: Date): string {
+  return new Date(gc.tipsterWeekStartMs(at.getTime())).toISOString().slice(0, 10);
 }

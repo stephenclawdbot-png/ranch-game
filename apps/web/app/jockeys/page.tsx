@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JockeyRow } from "@/components/jockeys/JockeyBits";
+import { JockeyTable } from "@/components/jockeys/JockeyTable";
 import { EmptyState, HowItWorks, SceneBand, Section } from "@/components/ui/Page";
 import { JOCKEY_POOL_PER_ACTIVE_STABLE, JOCKEYS_PER_STABLE_MAX } from "@thoroughbred/game-core";
 import { db } from "@/server/db";
@@ -34,13 +35,12 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
                 {f.label}
               </Link>
             ))}
+            <Link href="/jockeys/window" className="fchip" data-testid="jockeys-window-link">
+              Transfer window
+            </Link>
           </nav>
           {view.jockeys.length ? (
-            <ul className="surface rows" data-testid="jockey-list">
-              {view.jockeys.map((j) => (
-                <JockeyRow key={j.id} j={j} />
-              ))}
-            </ul>
+            <JockeyTable jockeys={view.jockeys} />
           ) : (
             <EmptyState icon="horseshoe" title="No jockeys here" text={filter === "mine" ? "Every stable starts with an apprentice; sign a freelancer from the Club pool." : "Check back after the weekly intake."} />
           )}
@@ -50,23 +50,36 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
               with rides, fastest in bigger races, up to a hidden potential that narrows as they ride.
             </p>
             <p className="mt-2">
-              A stable holds up to {JOCKEYS_PER_STABLE_MAX}. Your own jockeys ride your horses free; Club freelancers ride for a fee by grade and purse. New apprentices join each week to keep about{" "}
+              A stable holds up to {JOCKEYS_PER_STABLE_MAX}, on contracts with a weekly wage and rides promised; every Sunday at 20:00 UTC the transfer window settles where free agents go. Your own jockeys ride your horses without a booking fee; Club freelancers ride for a fee by grade and purse. New apprentices join each week to keep about{" "}
               {JOCKEY_POOL_PER_ACTIVE_STABLE} jockeys per active stable. <Link href="/wiki/jockeys" className="underline">More in the wiki</Link>.
             </p>
           </HowItWorks>
         </div>
         <aside className="min-w-0">
-          <Section title="Leading jockeys" className="!mt-0">
-            {view.leaderboard.length ? (
+          {/* Before this season's first winner the season table is all zeros: lead with career
+              winners instead of an empty column (playtest fix 13). */}
+          {view.leaderboard.length && view.leaderboard.some((b) => b.wins > 0) ? (
+            <Section title="Leading jockeys" className="!mt-0">
               <ol className="surface rows" data-testid="jockey-leaderboard">
                 {view.leaderboard.map((b) => (
-                  <JockeyRow key={b.jockey.id} j={b.jockey} extra={`${b.wins}/${b.rides}`} />
+                  <JockeyRow key={b.jockey.id} j={b.jockey} extra={`${b.wins}/${b.rides}`} caption="this season" />
                 ))}
               </ol>
-            ) : (
-              <EmptyState icon="laurel" title="No winners yet" text="The table fills as this season's races are run." />
-            )}
-          </Section>
+            </Section>
+          ) : (
+            <Section title="Leading jockeys · career" className="!mt-0">
+              {view.careerLeaders.length ? (
+                <ol className="surface rows" data-testid="jockey-career-board">
+                  {view.careerLeaders.map((j) => (
+                    <JockeyRow key={j.id} j={j} extra={j.wins} caption="career wins" />
+                  ))}
+                </ol>
+              ) : (
+                <EmptyState icon="laurel" title="No winners yet" text="The table fills as this season's races are run." />
+              )}
+              <p className="caption mt-2">No winner this season yet: the career table leads until the first one crosses the line.</p>
+            </Section>
+          )}
         </aside>
       </div>
     </div>

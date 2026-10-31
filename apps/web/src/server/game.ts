@@ -15,8 +15,9 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
+import { prepareRealToteSeed } from "./chain/toteChain";
 import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
-import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
+import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, mixSeedEntropy, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
   cancelRace,
@@ -94,8 +95,9 @@ import {
   stablePhotoHashes,
   formLineOf,
   rivalTags,
+  carryingDueByDam,
 } from "@thoroughbred/db";
-import { getJockey as dbGetJockey, handicapWeightsFor } from "@thoroughbred/db";
+import { getJockey as dbGetJockey, handicapWeightsFor, settleDueTote } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { replayStartSec } from "@/lib/replayStart";
@@ -124,7 +126,7 @@ import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
 import { houseOwnerFor, settleStoryRace } from "./storyField";
 import { stableNews } from "./moments";
-import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
@@ -279,6 +281,9 @@ async function simulateLocked(db: Db, race: PublicRace, simNow: Date): Promise<R
   // A locked field never changes, so the replay is cached by race id.
   const hit = replayCache.get(race.id);
   if (hit) return hit;
+  // A race with a real-money pool (dormant: a no-op while REAL_TOTE_ENABLED is off) gets its
+  // entropy sealed first if it can; its seed is then decided once, in getRaceForSimulation.
+  await prepareRealToteSeed(db, race.id, simNow);
   const sim = await getRaceForSimulation(db, race.id, simNow, raceHooks);
   const replay = simulateRace(inputFrom(race, sim.field, sim.race.seed));
   replayCache.set(race.id, replay);
@@ -341,6 +346,12 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
       } catch (e) {
         console.error("[game] settlement failed", r.id, e);
       }
+    }
+    // The tote: open bets on races whose result is now public (or that were abandoned) settle here.
+    try {
+      await settleDueTote(db, now);
+    } catch (e) {
+      console.error("[game] tote settlement failed", e);
     }
     return { locked: tick.locked.length, settled, maintenance: tick.maintenance };
   })();
@@ -721,6 +732,23 @@ export async function replayStartFor(db: Db, id: string, at: string | null | und
   return replayStartSec(at, true, winnerUs != null ? winnerUs / 1_000_000 : null);
 }
 
+/**
+ * Finishing positions per runner index (gate - 1; 0 = didn't finish) of a race re-run on its
+ * locked field from a seed the caller supplies: the real-money tote's result attestor passes the
+ * finalSeed it read from the chain (toteAttestor.ts), never the operator's stored result.
+ * SERVER-ONLY: callers only use it once the race is over.
+ */
+export async function replayPositionsFromSeed(db: Db, raceId: string, seedHex: string, now: Date): Promise<number[]> {
+  if (!/^[0-9a-f]{64}$/.test(seedHex)) throw new Error("bad seed");
+  const race = await loadRace(db, raceId);
+  const sim = await getRaceForSimulation(db, raceId, now, raceHooks);
+  const replay = simulateRace(inputFrom(race, sim.field, seedHex));
+  const byHorse = new Map(replay.result.finishOrder.map((f) => [f.horseId, f.position]));
+  const out = new Array<number>(sim.field.runners.length).fill(0);
+  for (const r of sim.field.runners) out[r.gate - 1] = byHorse.get(r.horseId) ?? 0;
+  return out;
+}
+
 export interface VerifyResult {
   commitmentOk: boolean;
   resultHashOk: boolean;
@@ -738,7 +766,12 @@ export async function verifyRace(db: Db, id: string, now: Date, claimed: { commi
   const input = inputFrom(race, sim.field, sim.race.seed);
   const fresh = simulateRace(input);
   const commitment = commitSeed(input.seed);
-  const commitmentOk = commitment === race.seedCommitment && commitment === served.seedCommitment && (claimed.commitment ? claimed.commitment === commitment : true);
+  // A real-money race: the published commitment is the server seed's and the race ran on
+  // sha256(serverSeed ‖ entropy) (docs/usdg-tote.md). Every other race: published = commitment.
+  const rt = sim.realTote;
+  const published = rt ? commitSeed(rt.serverSeed) : commitment;
+  const mixOk = !rt || rt.mode === "server" || (rt.entropy !== null && mixSeedEntropy(rt.serverSeed, rt.entropy) === input.seed);
+  const commitmentOk = published === race.seedCommitment && mixOk && commitment === served.seedCommitment && (claimed.commitment ? claimed.commitment === published : true);
   const resultHashOk =
     verifyReplay(input, served) && fresh.result.resultHash === served.result.resultHash && (claimed.resultHash ? claimed.resultHash === fresh.result.resultHash : true);
   return { commitmentOk, resultHashOk, seed: input.seed, seedCommitment: commitment, resultHash: fresh.result.resultHash, engineVersion: fresh.engineVersion };
@@ -850,6 +883,12 @@ export function entryReason(row: HorseRow, race: PublicRace, now: Date, licenceL
 
 /** entryReason plus the checks that need the database (one Live race a day, Weekend Feature qualifying). */
 export async function entryReasonFull(db: Db, row: HorseRow, race: PublicRace, now: Date, licenceLevel?: number): Promise<string | null> {
+  // Mares in foal don't race (enterRace refuses them): say when she can again, ahead of the
+  // race's own conditions (a licence or class doesn't matter until she has foaled).
+  if (row.sex === "female" && !row.lockKind) {
+    const due = (await carryingDueByDam(db, [row.id])).get(row.id);
+    if (due !== undefined) return inFoalText(due, now.getTime());
+  }
   const base = entryReason(row, race, now, licenceLevel);
   if (base) return base;
   if (race.kind !== "quick" && (await startsOnDay(db, row.id, race.postTime, { liveOnly: true })) >= RULES.liveStartsPerDay) {
@@ -1239,6 +1278,8 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
   const leases = (await stableLeases(db, session.stable.id, now)).filter((l) => l.lease.status === "active");
   const leasedIn = new Map(leases.filter((l) => l.role === "lessee").map((l) => [l.horse.id, l]));
   const names = new Map(rows.map((r) => [r.id, r.name]));
+  // Mares in foal: when each can race again (the stable list shows it as her block).
+  const inFoal = await carryingDueByDam(db, rows.filter((r) => r.sex === "female").map((r) => r.id));
   const [credits, bank, occ, entries, inbox, runs, goals] = [
     await getBalance(db, session.accountId),
     await getEntryBank(db, { accountId: session.accountId, now }),
@@ -1286,7 +1327,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     horses: rows
       .filter((r) => r.careerStatus !== "pasture")
       .map((r) => {
-        const v = stableHorseView(r, silks, nowMs);
+        const v = stableHorseView(r, silks, nowMs, { inFoalDueAtMs: inFoal.get(r.id) ?? null });
         const l = leasedIn.get(r.id);
         return l
           ? {
@@ -1377,10 +1418,14 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
   const fresh = (await dbGetRace(db, raceId))!;
   const mine = await stableEntriesInRace(db, session.stable.id, raceId);
   const story = race.kind === "quick" ? await storyRewardFor(db, raceId) : null;
+  // Why the mark moved (or held): computed from the same field the settlement rated.
+  const rated = ratedFieldOf(await listRaceEntries(db, raceId), replay);
   const runners = [];
   for (const e of mine) {
     const row = await getHorse(db, e.horseId);
     const pos = e.finishPosition ?? replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 0;
+    // An injury picked up in this race (the stored injury names its race as its source).
+    const hurt = row && (row.injury as { source?: unknown } | null)?.source === raceId ? injuryCard(row.injury, now.getTime()) : null;
     runners.push({
       horseId: e.horseId,
       horseName: row?.name ?? "Your horse",
@@ -1390,11 +1435,27 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
       firstWin: story?.firstWin ?? false,
       ratingBefore: e.ratingBefore,
       ratingAfter: e.ratingAfter,
+      // Only a rated run (ratingAfter written) has a why; trials and the Cup never touch the mark.
+      ratingWhy: e.ratingAfter != null ? gc.ratingChangeReason(rated, e.horseId) || null : null,
       atOff: conditionAtOff(e.snapshot, race.postTime.getTime()),
+      injury: hurt,
     });
   }
   const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;
   return { raceId, settled: fresh.status === "settled", firstView, runners };
+}
+
+/**
+ * The field as the rating rule sees it (settleField): each entry's mark and rated runs at entry
+ * plus its finishing position, so the result screen can explain an OR change from the same
+ * numbers that produced it. Runners the race could not place are left out.
+ */
+function ratedFieldOf(entries: RaceEntryRow[], replay: Awaited<ReturnType<typeof replayFor>>): gc.RatedRunner[] {
+  return entries.flatMap((e) => {
+    const state = (e.snapshot as { state?: gc.HorseState | null } | null)?.state;
+    const position = e.finishPosition ?? replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 0;
+    return state && position > 0 ? [{ horseId: e.horseId, or: state.rating.or, ratedRuns: state.rating.ratedRuns, position }] : [];
+  });
 }
 
 /** Three generations above `row` (15 horses at most), fetched a generation at a time. */
@@ -1521,7 +1582,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     mine,
     owned,
     lease,
-    status: mine ? stableHorseView(row, silks, nowMs) : null,
+    status: mine ? stableHorseView(row, silks, nowMs, { inFoalDueAtMs: row.sex === "female" ? ((await carryingDueByDam(db, [row.id])).get(row.id) ?? null) : null }) : null,
     runs,
     form,
     sireLine,

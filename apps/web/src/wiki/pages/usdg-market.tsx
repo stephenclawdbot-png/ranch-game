@@ -9,6 +9,8 @@ const usd = gc.formatUsdgDollars;
 /** The USDG market's rules, every number read live from the policy (game-core defaults + env overrides). */
 export default function UsdgMarketPage() {
   const p = usdgPolicy();
+  // Practice mode (USDG_MODE=practice): no testnet, no faucet, no network to add.
+  const practice = gc.isUsdgPracticeMode(process.env);
   const example = 25 * gc.USDG_UNIT;
   const fee = gc.usdgFee(example, p.feeBps);
   const reserve = 10 * gc.USDG_UNIT;
@@ -17,16 +19,36 @@ export default function UsdgMarketPage() {
   const studCut = gc.usdgFee(studExample, p.feeBps);
   return (
     <>
-      <Lead>
-        Some horses can be sold for real dollars. Once a horse is <b>registered</b> for the USDG market, it can be sold at a fixed price or auctioned for <b>USDG</b>, a dollar stablecoin on Robinhood
-        Chain, and it trades only for USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
-      </Lead>
-      <Callout tone="warn" title="Testnet first">
+      {practice ? (
+        <Lead>
+          During the beta, horses <b>registered</b> for the T-USDG market are sold at a fixed price or auctioned for <b>T-USDG</b>, test money with no real value, and trade only for
+          T-USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
+        </Lead>
+      ) : (
+        <Lead>
+          Some horses can be sold for real dollars. Once a horse is <b>registered</b> for the USDG market, it can be sold at a fixed price or auctioned for <b>USDG</b>, a dollar stablecoin on Robinhood
+          Chain, and it trades only for USDG from then on. Stable Credits never come into it: they can&rsquo;t be bought, sold or cashed out, and race prizes stay in credits.
+        </Lead>
+      )}
+      <Callout tone="tip" title="During the beta: T-USDG, test money">
+        <p data-testid="wiki-tusdg-explainer" data-practice-raw>
+          During the beta, USDG is test money (T-USDG): you sign in with your wallet, nothing is charged and nothing can be withdrawn. Balances may be reset when the beta ends.
+        </p>
         <p>
-          The USDG market opens on Robinhood Chain&rsquo;s <b>testnet</b>, where test USDG has no value (the market tab links the faucets). Real-money trading needs identity and legal checks the Club
-          hasn&rsquo;t finished yet.
+          While the game runs in practice mode, every account gets <b>{gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)}</b> once, the first time its wallet signs in. Everything below works the same,
+          with T-USDG instead of USDG: registration, buying, auctions, USDG stud fees, Premium Packs (1 T-USDG per dollar of the price) and the tote&rsquo;s T-USDG pools all use that one
+          balance. T-USDG can&rsquo;t be bought, sold, withdrawn or swapped for Stable Credits, and no network, faucet or transaction is needed: bids are still free wallet signatures.
+          Horses and trophies are owned in the game only (no NFTs).
         </p>
       </Callout>
+      {!practice && (
+        <Callout tone="warn" title="Testnet first">
+          <p>
+            The USDG market opens on Robinhood Chain&rsquo;s <b>testnet</b>, where test USDG has no value (the market tab links the faucets). Real-money trading needs identity and legal checks the
+            Club hasn&rsquo;t finished yet.
+          </p>
+        </Callout>
+      )}
 
       <H2 id="registering">Registering a horse</H2>
       <P>

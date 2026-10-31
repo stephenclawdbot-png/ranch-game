@@ -36,6 +36,7 @@ export default async function ViewerDevPage({ searchParams }: { searchParams: Pr
     minepos: one("minepos"),
     finale: one("finale"),
     preoff: one("preoff"),
+    clip: one("clip"),
   };
   return <ViewerHarness params={params} />;
 }
