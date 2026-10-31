@@ -279,6 +279,11 @@ type SireSource = "own" | "stud";
 function eligibilityChip(h: { block: string | null; reason: string | null }) {
   return h.block === null ? (
     <span className="text-sm font-extrabold text-positive">✓ Can breed</span>
+  ) : h.block === "stud_resting" ? (
+    <span className="text-sm font-bold text-brass-bright" data-testid="stud-resting">
+      <span aria-hidden>◷ </span>
+      {h.reason}
+    </span>
   ) : (
     <span className="text-sm font-bold text-cream-dim">✗ {h.reason}</span>
   );
@@ -692,7 +697,12 @@ function FinderRow({ r, top }: { r: StudFinderRow; top: boolean }) {
             {r.own ? "Yours" : r.club ? "The Club" : r.stableName}
             {r.usdgOnly ? " · USDG only" : ""}
           </span>
-          {top && <span className="chip text-brass-bright">Best outlook</span>}
+          {top && !r.resting && <span className="chip text-brass-bright">Best outlook</span>}
+          {r.resting && (
+            <span className="chip text-brass-bright" data-testid="finder-resting">
+              ◷ {r.resting}
+            </span>
+          )}
         </span>
         <span className="font-extrabold leading-snug" style={{ color: tone.color }} data-testid="finder-outlook">
           <span aria-hidden>{tone.mark} </span>

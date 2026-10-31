@@ -93,7 +93,7 @@ export function scopedKey(session: Session, purpose: string, key: string): strin
   return `${purpose}:${session.accountId}:${key}`;
 }
 
-const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used: number; lifetime: number }) => string> = {
+const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used: number; lifetime: number; restingHours: number | null }) => string> = {
   self: () => "A horse can't breed with itself.",
   parent_child: () => "Parent and child can't be paired.",
   full_siblings: () => "Full siblings can't be paired.",
@@ -113,12 +113,15 @@ const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used
   no_genome: () => "No pedigree record for this horse.",
   not_at_stud: () => "That stallion isn't standing at stud.",
   not_your_mare: () => "That mare isn't in your stable.",
+  stud_resting: (s) => (s.restingHours ? `Resting · available again in ${s.restingHours} h` : "Resting after a covering"),
 };
 
-export function breedReason(block: string | null, s: { starts: number; minStarts?: number; used: number; lifetime?: number }): string | null {
+export function breedReason(block: string | null, s: { starts: number; minStarts?: number; used: number; lifetime?: number; restingHours?: number | null }): string | null {
   if (!block) return null;
   const f = BREED_REASON[block];
-  return f ? f({ starts: s.starts, minStarts: s.minStarts ?? RULES.breedingMinStarts, used: s.used, lifetime: s.lifetime ?? RULES.breedingLifetimeLimit }) : "Can't breed right now.";
+  return f
+    ? f({ starts: s.starts, minStarts: s.minStarts ?? RULES.breedingMinStarts, used: s.used, lifetime: s.lifetime ?? RULES.breedingLifetimeLimit, restingHours: s.restingHours ?? null })
+    : "Can't breed right now.";
 }
 
 const LOCK_REASON: Record<string, (h: { startsNeeded: number }) => string> = {
@@ -146,6 +149,8 @@ export function friendlyEconomyError(err: unknown): unknown {
       case "BREEDING_NOT_ELIGIBLE":
       case "BREEDING_LIMIT":
       case "BREEDING_SEASON_LIMIT":
+        if (/stand at stud/.test(err.message)) return err.message.replace(/\.?$/, ".");
+        if (d.block === "stud_resting" && typeof d.until === "number") return breedReason("stud_resting", { starts: 0, used: 0, restingHours: gc.hoursUntil(d.until, Date.now()) });
         return typeof d.block === "string" ? (breedReason(d.block, { starts: 0, used: 0 }) ?? err.message) : err.message;
       case "HORSE_IN_FOAL":
         return "That mare is in foal.";
@@ -457,7 +462,9 @@ function compareRows(sort: StudFinderSort): (a: RankedRow, b: RankedRow) => numb
       ? (a: RankedRow, b: RankedRow) => fee(a.row) - fee(b.row)
       : (a: RankedRow, b: RankedRow) => b.score - a.score || fee(a.row) - fee(b.row); // default: best outlook, ties by fee
   // The last tiebreak is only for a stable page order when the sort key ties exactly.
-  return (a, b) => (a.row.usdgOnly ? 1 : 0) - (b.row.usdgOnly ? 1 : 0) || byKey(a, b) || (a.row.id < b.row.id ? -1 : a.row.id > b.row.id ? 1 : 0);
+  // Credits studs, then USDG-only ones; resting studs after the available ones in each.
+  return (a, b) =>
+    (a.row.usdgOnly ? 1 : 0) - (b.row.usdgOnly ? 1 : 0) || (a.row.resting ? 1 : 0) - (b.row.resting ? 1 : 0) || byKey(a, b) || (a.row.id < b.row.id ? -1 : a.row.id > b.row.id ? 1 : 0);
 }
 
 /**
@@ -514,6 +521,7 @@ async function studFinderRows(db: Db, session: Session, mare: HorseRow, now: Dat
         nick: pv.outlook.nick,
         warnings: pv.outlook.warnings.filter((w) => w.tone === "warn").map((w) => w.text),
         look: { appearance: look.appearance, caption: look.caption },
+        resting: pv.sireRestingUntilMs === null ? null : `Resting · available again in ${gc.hoursUntil(pv.sireRestingUntilMs, now.getTime())} h`,
       },
     });
   }

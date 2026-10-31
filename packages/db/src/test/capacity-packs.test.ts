@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { commitSeed } from "../crypto";
 import { isDomainError } from "../errors";
+import { gc } from "../gameCore";
 import { PACKS, RULES, seasonNumberAt } from "../rules";
 import { stables } from "../schema";
 import { occupancy, recordPlayDay, stableOf, upgradeStalls } from "../services/accounts";
@@ -79,7 +80,8 @@ describe("stall capacity", () => {
     await expect(pullPack(h.db, { accountId: p.accountId, packType: "premium", idempotencyKey: k(), now: T0 })).rejects.toMatchObject({ code: "STABLE_FULL" });
     const dam2 = await makeHorse(h.db, null, { sex: "female", ...retired });
     await h.db.execute(`update horses set owner_stable_id = '${p.stableId}' where id = '${dam2.id}'`);
-    await expect(breed(h.db, { accountId: p.accountId, sireId: sire.id, damId: dam2.id, now: T0, idempotencyKey: `ovf2:${dam2.id}` })).rejects.toMatchObject({
+    // (after his stud rest, so only the stall is in the way)
+    await expect(breed(h.db, { accountId: p.accountId, sireId: sire.id, damId: dam2.id, now: at(gc.STUD_COOLDOWN_MS), idempotencyKey: `ovf2:${dam2.id}` })).rejects.toMatchObject({
       code: "STABLE_FULL",
     });
     await releaseToClub(h.db, { accountId: p.accountId, horseId: dam2.id, now: T0 });

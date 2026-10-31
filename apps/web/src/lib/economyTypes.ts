@@ -161,6 +161,8 @@ export interface StudFinderRow {
   warnings: string[];
   /** One sample foal (the first of the day's possible looks for this pairing). */
   look: PossibleLookView;
+  /** "Resting · available again in 7 h" after a covering (listed, not bookable until then; ranked after available studs). */
+  resting: string | null;
 }
 
 /** The stallion finder's answer for one mare: a page of the ranking and what it was sorted by. */

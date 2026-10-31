@@ -3,7 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { isDomainError } from "../errors";
 import { RULES, seasonNumberAt } from "../rules";
-import { breedingEvents, horses, lineageEdges } from "../schema";
+import { breedingEvents, horses, inboxItems, lineageEdges } from "../schema";
+import { gc } from "../gameCore";
+import { breedingStatus, listStuds } from "../services/economyViews";
 import { breed, estimateCoiBp, foal } from "../services/breeding";
 import { setStudFee } from "../services/horses";
 import { getBalance, ledgerHealth } from "../services/ledger";
@@ -79,13 +81,61 @@ describe("breeding", () => {
     ).resolves.toMatchObject({ duplicate: false });
   });
 
-  it("stallions cover at most 4 per season", async () => {
+  it("stallions cover at most 4 per season (one every stud rest)", async () => {
     const p = await stable();
     const stallion = await makeHorse(h.db, p.stableId, { sex: "male", ...retired });
     // The season book (4) equals the lifetime total (4): both caps hold together.
     const mares = await Promise.all(Array.from({ length: 5 }, () => makeHorse(h.db, p.stableId, { sex: "female", ...retired })));
-    const res = await settledAll(mares.map((m) => breed(h.db, { accountId: p.accountId, sireId: stallion.id, damId: m.id, now: T0, idempotencyKey: `book:${m.id}` })));
-    expect(res.ok).toHaveLength(4);
+    const ok: string[] = [];
+    for (const [i, m] of mares.entries()) {
+      const r = await breed(h.db, { accountId: p.accountId, sireId: stallion.id, damId: m.id, now: at(i * gc.STUD_COOLDOWN_MS), idempotencyKey: `book:${m.id}` }).catch((e) => e);
+      if (!isDomainError(r)) ok.push(m.id);
+    }
+    expect(ok).toHaveLength(4);
+  });
+
+  it("a stallion rests half a pregnancy after each covering, any stable's mare; a retry still answers", async () => {
+    expect(gc.STUD_COOLDOWN_MS).toBe(RULES.pregnancyMs / 2);
+    const p = await stable();
+    const other = await stable();
+    const stallion = await makeHorse(h.db, p.stableId, { sex: "male", ...retired });
+    await setStudFee(h.db, { accountId: p.accountId, horseId: stallion.id, fee: 100 });
+    const [m1, m2] = await Promise.all([makeHorse(h.db, p.stableId, { sex: "female", ...retired }), makeHorse(h.db, p.stableId, { sex: "female", ...retired })]);
+    const visitor = await makeHorse(h.db, other.stableId, { sex: "female", ...retired });
+    // Concurrent covers of one stallion: one wins, the rest find him resting (under the locks).
+    const res = await settledAll([m1, m2].map((m) => breed(h.db, { accountId: p.accountId, sireId: stallion.id, damId: m.id, now: T0, idempotencyKey: `rest:${m.id}` })));
+    expect(res.ok).toHaveLength(1);
+    expect(res.errors[0]).toMatchObject({ code: "BREEDING_NOT_ELIGIBLE", details: { block: "stud_resting", until: T0.getTime() + gc.STUD_COOLDOWN_MS } });
+    const [first, waiting] = (await getHorseRow(h.db, m1.id)).breedingCount === 1 ? [m1, m2] : [m2, m1];
+    // The same request again is the same covering (idempotent), even while he rests.
+    await expect(breed(h.db, { accountId: p.accountId, sireId: stallion.id, damId: first.id, now: at(3_600_000), idempotencyKey: `rest:${first.id}` })).resolves.toMatchObject({ duplicate: true });
+    // Another stable's mare, an hour before the rest ends: refused, with the time he is free.
+    await expect(breed(h.db, { accountId: other.accountId, sireId: stallion.id, damId: visitor.id, now: at(gc.STUD_COOLDOWN_MS - 3_600_000), idempotencyKey: `rest-v` })).rejects.toMatchObject({
+      details: { block: "stud_resting" },
+    });
+    const st = await breedingStatus(h.db, await getHorseRow(h.db, stallion.id), at(gc.STUD_COOLDOWN_MS - 7 * 3_600_000));
+    expect(st).toMatchObject({ block: "stud_resting", restingHours: 7, restingUntilMs: T0.getTime() + gc.STUD_COOLDOWN_MS });
+    // Still listed in the stud book while he rests.
+    expect((await listStuds(h.db)).some((x) => x.horse.id === stallion.id)).toBe(true);
+    // Once the rest is over he covers again.
+    await expect(breed(h.db, { accountId: other.accountId, sireId: stallion.id, damId: visitor.id, now: at(gc.STUD_COOLDOWN_MS), idempotencyKey: `rest-v2` })).resolves.toMatchObject({ duplicate: false });
+    expect((await breedingStatus(h.db, await getHorseRow(h.db, waiting.id), at(gc.STUD_COOLDOWN_MS))).block).toBeNull();
+  });
+
+  it("capped = delisted: a racing stallion's last covering takes him off the stud book; he can't stand again", async () => {
+    const p = await stable();
+    const visitor = await stable();
+    const stallion = await makeHorse(h.db, p.stableId, { sex: "male", careerStatus: "racing", starts: 30, breedingCount: 3 });
+    await setStudFee(h.db, { accountId: p.accountId, horseId: stallion.id, fee: 100 });
+    expect((await listStuds(h.db)).some((x) => x.horse.id === stallion.id)).toBe(true);
+    const mare = await makeHorse(h.db, visitor.stableId, { sex: "female", ...retired });
+    await breed(h.db, { accountId: visitor.accountId, sireId: stallion.id, damId: mare.id, now: T0, idempotencyKey: `cap:${mare.id}` });
+    const row = await getHorseRow(h.db, stallion.id);
+    expect(row).toMatchObject({ breedingCount: 4, careerStatus: "racing", studFee: null, studFeeUsdg: null }); // still racing
+    expect((await listStuds(h.db)).some((x) => x.horse.id === stallion.id)).toBe(false);
+    await expect(setStudFee(h.db, { accountId: p.accountId, horseId: stallion.id, fee: 50 })).rejects.toMatchObject({ code: "BREEDING_LIMIT" });
+    const [note] = await h.db.select().from(inboxItems).where(eq(inboxItems.horseId, stallion.id));
+    expect(note?.title).toMatch(/has used every breeding and no longer stands at stud/);
   });
 
   it("no self, parent/child or full-sibling breeding", async () => {

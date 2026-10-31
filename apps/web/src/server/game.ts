@@ -69,6 +69,7 @@ import {
   tickRaceCard,
   toHorseState,
   RULES,
+  studRestingUntilOf,
   classEligibility,
   featureQualificationReason,
   startsOnDay,
@@ -1441,11 +1442,15 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const regNo = gc.registrationNumber(row.generation, row.regNo);
   // Coat genetics are public stud-book information: any viewer gets them.
   const genetics = geneticsView(row, nowMs);
-  const atStud = (row.studFee !== null || row.studFeeUsdg !== null) && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture";
+  // capped = delisted: a stallion with every breeding used no longer stands at stud
+  const atStud = (row.studFee !== null || row.studFeeUsdg !== null) && row.sex === "male" && !row.gelded && row.careerStatus !== "pasture" && row.breedingCount < RULES.breedingLifetimeLimit;
+  // Resting after a covering (game-core STUD_COOLDOWN_MS): listed, not bookable until then.
+  const restingUntil = atStud ? await studRestingUntilOf(db, row.id, now) : null;
+  const resting = restingUntil === null ? null : `Resting · available again in ${gc.hoursUntil(restingUntil, nowMs)} h`;
   if (!row.ownerStableId && !row.lesseeStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true, resting }, actions: null };
     }
     const house = houseStableFor(row.id);
     return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: null, actions: null };
@@ -1480,7 +1485,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     const trade = await tradeStatus(db, row, now);
     actions = {
       cover: row.sex === "female" && breeding.block === null,
-      stud: row.sex === "male" && !row.gelded && (breeding.block === null || breeding.block === "season_limit"),
+      stud: row.sex === "male" && !row.gelded && (breeding.block === null || breeding.block === "season_limit" || breeding.block === "stud_resting"),
       sell: trade.lock === null || trade.lock === "listed",
     };
   }
@@ -1500,7 +1505,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     pedigree,
     tree,
     genetics,
-    stud: atStud ? { fee: row.studFee ?? 0, club: false, feeUsdg: row.studFeeUsdg } : null,
+    stud: atStud ? { fee: row.studFee ?? 0, club: false, feeUsdg: row.studFeeUsdg, resting } : null,
     actions,
   };
 }

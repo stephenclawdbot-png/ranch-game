@@ -339,7 +339,9 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
     weakness"); the COI penalty itself applies at the cover.
   - Breeding needs a mare and a stallion that are both of breeding age.
 - **Stud market.** Owners list stallions with a stud fee in credits; the platform takes 10%,
-  which is burned as a sink.
+  which is burned as a sink. A stallion rests 12 h after each covering (half a pregnancy; owner
+  2026-10-31), still listed as "Resting"; a mare's rest is her 24 h pregnancy. A horse with every
+  breeding used no longer stands at stud.
 - **The breeding preview** shows what a foal *might* be, never the odds (owner decision
   2026-10-31: "breeding preview just what maybe it looks like but its still a chance, no geeky
   genes or numbers to be shown"):

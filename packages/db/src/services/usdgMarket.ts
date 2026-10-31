@@ -84,22 +84,31 @@ export function usdgOrderIsLive(o: Pick<UsdgOrderRow, "status" | "txHash" | "dea
  * A paid order flagged for a refund holds nothing.
  */
 export async function studHoldsOf(ex: Executor, sireId: string, now: Date, excludeOrderId?: string): Promise<number> {
-  const graceCutoff = new Date(now.getTime() - USDG_ORDER_GRACE_MS);
-  const [r] = await ex
-    .select({ n: sql<number>`count(*)::int` })
-    .from(usdgOrders)
-    .where(
-      and(
-        eq(usdgOrders.kind, "stud"),
-        eq(usdgOrders.horseId, sireId),
-        excludeOrderId ? ne(usdgOrders.orderId, excludeOrderId.toLowerCase()) : undefined,
-        or(
-          and(eq(usdgOrders.status, "paid"), eq(usdgOrders.flagged, false)),
-          and(eq(usdgOrders.status, "pending"), or(sql`${usdgOrders.txHash} is not null`, sql`${usdgOrders.deadline} > ${graceCutoff}`)),
-        ),
-      ),
-    );
+  const [r] = await ex.select({ n: sql<number>`count(*)::int` }).from(usdgOrders).where(liveStudHold(sireId, now, excludeOrderId));
   return Number(r?.n ?? 0);
+}
+
+/** The live USDG stud orders of a stallion (studHoldsOf's condition). */
+function liveStudHold(sireId: string, now: Date, excludeOrderId?: string) {
+  const graceCutoff = new Date(now.getTime() - USDG_ORDER_GRACE_MS);
+  return and(
+    eq(usdgOrders.kind, "stud"),
+    eq(usdgOrders.horseId, sireId),
+    excludeOrderId ? ne(usdgOrders.orderId, excludeOrderId.toLowerCase()) : undefined,
+    or(
+      and(eq(usdgOrders.status, "paid"), eq(usdgOrders.flagged, false)),
+      and(eq(usdgOrders.status, "pending"), or(sql`${usdgOrders.txHash} is not null`, sql`${usdgOrders.deadline} > ${graceCutoff}`)),
+    ),
+  );
+}
+
+/**
+ * The latest payment deadline among a stallion's live USDG bookings (null: none). A booked
+ * covering will happen by then, so the stud rest counts from it (breeding.ts studRestingUntilOf).
+ */
+export async function studHoldDeadline(ex: Executor, sireId: string, now: Date, excludeOrderId?: string): Promise<number | null> {
+  const [r] = await ex.select({ at: sql<string | Date | null>`max(${usdgOrders.deadline})` }).from(usdgOrders).where(liveStudHold(sireId, now, excludeOrderId));
+  return r?.at ? Math.max(new Date(r.at).getTime(), now.getTime()) : null;
 }
 
 // ---------------------------------------------------------------------------

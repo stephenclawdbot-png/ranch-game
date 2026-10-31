@@ -9,7 +9,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAccount, createDb, insertHorse, previewPairing, seasonNumberAt, specFromGenome, stableOf, type DbHandle } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
-import { breedingPreview, standAtStud, STUD_FINDER_RUNS_PER_HOUR, studFinder } from "./economy";
+import { breedingPreview, breedingView, coverMare, friendlyEconomyError, standAtStud, STUD_FINDER_RUNS_PER_HOUR, studFinder } from "./economy";
+import { horseDetail } from "./game";
 import type { Session } from "./session";
 
 let h: DbHandle;
@@ -95,10 +96,11 @@ describe("stallion finder", () => {
     // Every row: words, one possible look and the fee, nothing else; the single preview's own words.
     const score = new Map<string, number>();
     for (const row of f.rows) {
-      expect(Object.keys(row).sort()).toEqual(["club", "feeCredits", "id", "look", "name", "nick", "outlook", "own", "stableName", "studFeeUsdg", "usdgOnly", "warnings"]);
+      expect(Object.keys(row).sort()).toEqual(["club", "feeCredits", "id", "look", "name", "nick", "outlook", "own", "resting", "stableName", "studFeeUsdg", "usdgOnly", "warnings"]);
       expect(Object.keys(row.look).sort()).toEqual(["appearance", "caption"]);
       expect(Object.keys(row.outlook).sort()).toEqual(["phrase", "tone"]);
       for (const w of [row.outlook.phrase, row.nick, row.look.caption, ...row.warnings]) expect(w).not.toMatch(/\d/);
+      expect(row.resting).toBeNull();
       const pv = await breedingPreview(h.db, p, { sireId: row.id, damId: mare }, T0);
       expect(pv.block).toBeNull();
       expect(row.feeCredits).toBe(pv.usdgStudFee !== null ? null : pv.fees.totalPaidByMareOwner);
@@ -217,6 +219,45 @@ describe("stallion finder", () => {
     // The next window computes again (two windows on, the over-limit count has fully decayed).
     const later = await studFinder(h.db, p, { mareId: mares[STUD_FINDER_RUNS_PER_HOUR]! }, at(2 * 3_600_000));
     expect(later.total + later.excluded).toBeGreaterThan(0);
+  });
+
+  it("a resting stud stays listed (stud book, finder, horse page) but is marked and ranked after the available ones", async () => {
+    const p = await player("Finder Rest");
+    const rival = await player("Finder Rest Stud");
+    const stud = await studOf(rival, "Resting Stud", 0);
+    // He covers one of his own stable's mares now: he rests half a pregnancy.
+    const ownMare = await mareOf(rival, "Rest Own Mare");
+    await coverMare(h.db, rival, { sireId: stud, damId: ownMare, key: "rest-1" }, T0);
+    const later = at(5 * 3_600_000); // 7 h of his rest left
+    const hours = gc.STUD_COOLDOWN_MS / 3_600_000 - 5;
+    const text = `Resting · available again in ${hours} h`;
+    // Stud book: listed, with the words, after the studs that can cover now.
+    const v = await breedingView(h.db, p, later);
+    const row = v.studs.find((x) => x.id === stud)!;
+    expect(row).toMatchObject({ block: "stud_resting", reason: text });
+    expect(v.studs.findIndex((x) => x.id === stud)).toBeGreaterThan(v.studs.findIndex((x) => x.block === null));
+    // Finder: ranked after every available credits stud, marked.
+    const mare = await mareOf(p, "Rest Finder Mare");
+    const f = await studFinder(h.db, p, { mareId: mare, pageSize: 50 }, later);
+    const fr = f.rows.find((x) => x.id === stud)!;
+    expect(fr.resting).toBe(text);
+    const credits = f.rows.filter((x) => !x.usdgOnly);
+    expect(credits.slice(credits.findIndex((x) => x.resting)).every((x) => x.resting)).toBe(true);
+    // The single preview won't let him cover yet, and says when.
+    const pv = await breedingPreview(h.db, p, { sireId: stud, damId: mare }, later);
+    expect(pv.block).toBe("stud_resting");
+    expect(pv.reason).toBe(`Resting Stud: ${text}`);
+    await expect(coverMare(h.db, p, { sireId: stud, damId: mare, key: "rest-2" }, later)).rejects.toMatchObject({ details: { block: "stud_resting" } });
+    // (the error's hours count from the real clock, so only the words are checked here)
+    expect(friendlyEconomyError(await coverMare(h.db, p, { sireId: stud, damId: mare, key: "rest-3" }, later).catch((e) => e))).toMatchObject({
+      message: expect.stringMatching(/^Resting · available again in \d+ h$/),
+    });
+    // His horse page.
+    expect((await horseDetail(h.db, stud, p, later))!.stud).toMatchObject({ resting: text });
+    // After the rest: bookable again, unmarked.
+    const free = at(gc.STUD_COOLDOWN_MS);
+    expect((await breedingView(h.db, p, free)).studs.find((x) => x.id === stud)!.block).toBeNull();
+    await expect(coverMare(h.db, p, { sireId: stud, damId: mare, key: "rest-4" }, free)).resolves.toMatchObject({ duplicate: false });
   });
 
   it("only ranks a mare of the stable", async () => {

@@ -540,15 +540,19 @@ async function breedMares(c: VisitCtx, s: Session, opts: { retireMares: boolean;
     v = (await c.world.act(c.a, "breeding_view", c.now, () => breedingView(c.world.db, s, c.now))) ?? v;
   }
   let credits = v.credits;
+  // A stallion rests after each covering (game-core STUD_COOLDOWN_MS; the view shows it as
+  // block "stud_resting"): one this visit has just used is resting too, so each mare gets another.
+  const usedSires = new Set<string>();
   for (const mare of v.mares.filter((m) => m.block === null)) {
-    const studs = v.studs.filter((x) => x.block === null && x.studFee <= opts.feeCap && x.studFee + v!.baseFee <= credits);
-    const own = v.stallions.filter((x) => x.block === null);
+    const studs = v.studs.filter((x) => x.block === null && !usedSires.has(x.id) && x.studFee <= opts.feeCap && x.studFee + v!.baseFee <= credits);
+    const own = v.stallions.filter((x) => x.block === null && !usedSires.has(x.id));
     const preferred = opts.preferSireOf ? studs.find((x) => x.id === opts.preferSireOf) : undefined;
     // Pick by the sire's racing class: rating first, then the cheaper fee.
     const sire = preferred ?? [...studs, ...own.map((o) => ({ ...o, studFee: 0, club: false }))].sort((x, y) => y.rating - x.rating || x.studFee - y.studFee)[0];
     if (!sire || credits < v.baseFee + sire.studFee) continue;
     const r = await c.world.act(c.a, "cover", c.now, () => coverMare(c.world.db, s, { sireId: sire.id, damId: mare.id, key: c.world.key(c.a, `cover-${mare.id.slice(0, 8)}`, c.now) }, c.now));
     if (!r) continue;
+    usedSires.add(sire.id);
     c.a.stats.covers++;
     credits -= v.baseFee + sire.studFee;
   }

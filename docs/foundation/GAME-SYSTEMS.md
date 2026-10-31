@@ -129,6 +129,11 @@ published trip and surface, fragile legs, injury, pedigree), so previewing can't
 alleles. The foal itself is still drawn from the true genotypes at the cover. The stallion finder
 ranks on the same public-facts outlook (game-core `breedingOutlook.ts`, KNOBS §9).
 
+Studs rest after each covering (2026-10-31, owner: "the stud and pregnancy should have cooldown,
+stud half as long as pregnancy"): 12 h (`STUD_COOLDOWN_MS` = half of the 24 h pregnancy, which is a
+mare's rest). A resting stud stays listed but can't be booked. A horse that has used every breeding
+no longer stands at stud (capped = delisted, racing ones keep racing).
+
 Levers: breedings per lifetime and per season, career length, fatal share, regression of
 foals toward the family (family limits, ~half of good x good foals land below both parents),
 pack supply (crop cap, weekly limits). Harness metrics: `horses.born`, `horses.retired`,

@@ -125,6 +125,12 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
                   )}{" "}
                   (plus the breeding fee)
                 </p>
+                {view.stud.resting && (
+                  <p className="text-sm font-bold text-brass-bright" data-testid="stud-resting">
+                    <span aria-hidden>◷ </span>
+                    {view.stud.resting}
+                  </p>
+                )}
                 <Link href="/breeding" className="btn w-fit" data-testid="plan-cover-with">
                   Plan a cover with {first}
                 </Link>

@@ -50,6 +50,26 @@ export const STALLION_PER_SEASON = 4;
 export const BREEDING_BASE_FEE = 1500;
 /** Share of the stud fee burned by the platform, permille. */
 export const STUD_FEE_BURN_PERMILLE = 100;
+/**
+ * A stallion rests this long after a covering before he can cover again, any stable's mare
+ * (owner 2026-10-31: "the stud and pregnancy should have cooldown, stud half as long as
+ * pregnancy"). A mare's own rest is her pregnancy: one at a time, PREGNANCY_MS.
+ */
+export const STUD_COOLDOWN_MS = PREGNANCY_MS / 2;
+
+/** When a stallion whose latest covering was at `lastCoverMs` can cover again; null when he can now. */
+export function studRestingUntil(lastCoverMs: number | null, nowMs: number): number | null {
+  if (lastCoverMs === null) return null;
+  const until = lastCoverMs + STUD_COOLDOWN_MS;
+  return nowMs < until ? until : null;
+}
+
+/** Whole hours (rounded up, at least 1) from `nowMs` until `untilMs`: "available again in 7 h". */
+export function hoursUntil(untilMs: number, nowMs: number): number {
+  const HOUR = 3_600_000;
+  return Math.max(1, Math.floor((untilMs - nowMs + HOUR - 1) / HOUR));
+}
+
 /** COI (permille) from which the preview warns "closely related" (in words). */
 export const COI_WARN = 62; // ~ half-sibling level 125/2
 

@@ -31,7 +31,13 @@ export default function BreedingBasicsPage() {
             Geldings never breed. Horses retired for good to the <WikiLink slug="legacy-farm" /> never breed again.
           </>,
           <>
-            Every horse has <b>{gc.BREEDINGS_LIFETIME} breedings</b> in its lifetime. When they are used up, a horse at stud retires for good.
+            Every horse has <b>{gc.BREEDINGS_LIFETIME} breedings</b> in its lifetime. When they are used up it no longer stands at stud (a racing horse keeps racing),
+            and a horse at stud retires for good.
+          </>,
+          <>
+            A stallion <b>rests {HOURS(gc.STUD_COOLDOWN_MS)} hours</b> after each covering, half as long as a pregnancy, before he can cover again, whoever&rsquo;s mare it is. He stays
+            in the stud book meanwhile, marked &ldquo;Resting · available again in &hellip; h&rdquo;. A mare&rsquo;s rest is her pregnancy: one foal at a time,{" "}
+            {HOURS(gc.PREGNANCY_MS)} hours.
           </>,
           <>
             Close relatives can&rsquo;t be paired (parent and child, full siblings), and related pairings carry an inbreeding cost: <WikiLink slug="inbreeding" />.
@@ -44,7 +50,8 @@ export default function BreedingBasicsPage() {
           ["Stallion: coverings per season", gc.STALLION_PER_SEASON],
           ["Breedings per lifetime", gc.BREEDINGS_LIFETIME],
           ["Racing starts before a racing horse can breed", gc.BREED_FROM_STARTS],
-          ["Pregnancy", `${HOURS(gc.PREGNANCY_MS)} hours`],
+          ["Pregnancy (the mare's rest)", `${HOURS(gc.PREGNANCY_MS)} hours`],
+          ["Stallion's rest after a covering", `${HOURS(gc.STUD_COOLDOWN_MS)} hours`],
           ["A season lasts", `${gc.SEASON_DAYS} days`],
         ]}
       />
