@@ -48,13 +48,13 @@ describe("breeding barn", () => {
     const p = await player("Barn Stable");
     const v = await breedingView(h.db, p, T0);
     expect(v.mares.length + v.stallions.length).toBe(3);
-    expect(v.mares.every((m) => m.block === "not_breeding_eligible" && m.reason?.includes("0/25"))).toBe(true);
+    expect(v.mares.every((m) => m.block === "not_breeding_eligible" && m.reason?.includes(`0/${gc.BREED_FROM_STARTS}`))).toBe(true);
     const dam = v.mares[0]!;
     const sire = v.stallions[0]!;
     // The preview shows even while the pairing is blocked.
     const blocked = await breedingPreview(h.db, p, { sireId: sire.id, damId: dam.id }, T0);
     expect(blocked.block).toBe("not_breeding_eligible");
-    expect(blocked.reason).toMatch(/: Breeds from 25 starts/);
+    expect(blocked.reason).toContain(`: Breeds from ${gc.BREED_FROM_STARTS} starts`);
     expect(blocked.looks).toHaveLength(gc.POSSIBLE_LOOKS);
     expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(blocked.outlook.phrase);
     expect(blocked.fees.studFee).toBe(0);

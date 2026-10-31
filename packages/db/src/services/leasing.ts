@@ -7,7 +7,7 @@
  *   is split at settlement (settleLeasedPurseTx: one `lease_share` ledger transaction per runner,
  *   mint -> owner share + lessee share, the purse split exactly with rounding to the lessee)  ->
  *   the lease ends (endLeaseTx) at the end of the term, when the lessee hands the horse back, when
- *   it retires (40 starts, career-ending or fatal injury) or after a moderate or worse injury on
+ *   it retires (its last career start, career-ending or fatal injury) or after a moderate or worse injury on
  *   lease. A horse entered in a race when its lease should end goes home once that race settles.
  *
  * Ownership never moves (horses.owner_stable_id). Who may act on the horse:

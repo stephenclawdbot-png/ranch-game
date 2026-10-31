@@ -20,7 +20,7 @@ import {
   runningStyle,
   SURFACE_HET_ADAPT_BONUS,
 } from "./genome";
-import { CAREER_MAX_STARTS, CARE_TO_RACING, careBonus, displayAge, sexLabel, sharedLifeStage, stageOf } from "./lifecycle";
+import { CAREER_MAX_STARTS, CARE_TO_RACING, CARE_TO_WEAN, CARE_TO_YEARLING, careBonus, displayAge, sexLabel, sharedLifeStage, stageOf } from "./lifecycle";
 import { conditionReport, withPhysio } from "./condition";
 import type { RaceDayChoice } from "./raceDay";
 import { appearanceOf } from "./coat";
@@ -32,13 +32,13 @@ import { abilityOrOf, abilityScore, abilityScoreOfOr, carryWeight } from "./abil
 // ---------------------------------------------------------------------------
 
 /** Peak window [from, to] in starts, by maturity type. */
-export const PEAK_WINDOW: Record<MaturityType, [number, number]> = { early: [6, 18], normal: [10, 28], late: [16, 34] };
+export const PEAK_WINDOW: Record<MaturityType, [number, number]> = { early: [5, 15], normal: [9, 24], late: [14, 29] };
 /** Per-stat shift of the peak window (speed and burst mature first, stamina and temperament later). */
 export const STAT_PEAK_SHIFT: StatRecord<number> = { speed: -2, stamina: 3, burst: -2, durability: 0, adaptability: 3, temperament: 2 };
 /** Maturity (permille) at racing age, 0 starts. */
 export const JUVENILE_BASE: StatRecord<number> = { speed: 900, stamina: 820, burst: 900, durability: 860, adaptability: 820, temperament: 840 };
 export const TYPE_BASE_SHIFT: Record<MaturityType, number> = { early: 40, normal: 0, late: -50 };
-/** Maturity at 40 starts as a share of peak (speed fades first). */
+/** Maturity at the last career start as a share of peak (speed fades first). */
 export const CAREER_END_LEVEL: StatRecord<number> = { speed: 860, stamina: 930, burst: 880, durability: 930, adaptability: 1000, temperament: 1000 };
 export const TYPE_END_SHIFT: Record<MaturityType, number> = { early: -40, normal: 0, late: 20 };
 /** Maturity of a newborn foal (permille). */
@@ -194,7 +194,7 @@ export interface RevealedRange {
 /** Width of the revealed potential range for a horse. Never grows with more information. */
 export function revealWidth(state: Pick<HorseState, "care" | "career" | "reveal">): number {
   const c = state.care.sessions;
-  const base = c < 5 ? REVEAL_BASE_WIDTH.foal : c < 12 ? REVEAL_BASE_WIDTH.weanling : c < CARE_TO_RACING ? REVEAL_BASE_WIDTH.yearling : REVEAL_BASE_WIDTH.racing;
+  const base = c < CARE_TO_WEAN ? REVEAL_BASE_WIDTH.foal : c < CARE_TO_YEARLING ? REVEAL_BASE_WIDTH.weanling : c < CARE_TO_RACING ? REVEAL_BASE_WIDTH.yearling : REVEAL_BASE_WIDTH.racing;
   let w = Math.max(0, base - REVEAL_PER_START * state.career.starts);
   if (state.reveal.scanned) w = Math.floor((w * SCAN_WIDTH_PERMILLE) / 1000);
   return w < REVEAL_EXACT_BELOW ? 0 : w;

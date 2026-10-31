@@ -164,15 +164,15 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `CARE_TO_WEAN` | 5 care sessions | packages/game-core/src/lifecycle.ts:26 | Foal → weanling. | Time to racing, foal quality reveal width |
-| `CARE_TO_YEARLING` | 12 | packages/game-core/src/lifecycle.ts:27 | Weanling → yearling (light training allowed). | Time to racing |
-| `CARE_TO_RACING` | 19 (one counted session per horse per local day) | packages/game-core/src/lifecycle.ts:28 | Yearling → juvenile: racing age. A pack or bred foal needs 19 real days. | Horse population entering racing, time-to-value of packs and foals |
-| `CAREER_MAX_STARTS` | 40 rated starts | packages/game-core/src/lifecycle.ts:30 | Mandatory racing retirement (also a DB CHECK). | Horse population turnover, stud supply, appraisal |
-| `JUVENILE_MAX_STARTS` | 6 | packages/game-core/src/lifecycle.ts:31 | Juvenile stage (0-6 starts); peak maturity windows key off starts. | Stage, appraisal factor |
-| `PRIME_MAX_STARTS` | 28 | packages/game-core/src/lifecycle.ts:32 | Prime 7-28, veteran 29-40 (veteran injury ×1.2). | Injury rate, appraisal (veteran 75%) |
+| `CARE_TO_WEAN` | 3 care sessions (was 5; owner 2026-11-01) | packages/game-core/src/lifecycle.ts:26 | Foal → weanling. | Time to racing, foal quality reveal width |
+| `CARE_TO_YEARLING` | 7 (was 12) | packages/game-core/src/lifecycle.ts:27 | Weanling → yearling (light training allowed). | Time to racing |
+| `CARE_TO_RACING` | 12 (was 19; one counted session per horse per local day) | packages/game-core/src/lifecycle.ts:28 | Yearling → juvenile: racing age. A pack or bred foal needs 12 real days. | Horse population entering racing, time-to-value of packs and foals |
+| `CAREER_MAX_STARTS` | 34 rated starts (was 40; owner 2026-11-01) | packages/game-core/src/lifecycle.ts:30 | Mandatory racing retirement (the DB CHECK stays at the old 40 so finished careers stay valid; the game retires at 34). | Horse population turnover, stud supply, appraisal |
+| `JUVENILE_MAX_STARTS` | 5 (was 6, scaled 34/40) | packages/game-core/src/lifecycle.ts:31 | Juvenile stage (0-5 starts); peak maturity windows key off starts. | Stage, appraisal factor |
+| `PRIME_MAX_STARTS` | 24 (was 28, scaled 34/40) | packages/game-core/src/lifecycle.ts:32 | Prime 6-24, veteran 25-34 (veteran injury ×1.2). | Injury rate, appraisal (veteran 75%) |
 | `MAX_STARTS_PER_DAY` / `RULES.startsPerDay` | 3 per horse per UTC day | packages/game-core/src/lifecycle.ts:36, packages/db/src/rules.ts:31 | Hard cap on a horse's races per day, Live and Story together (enforced packages/db/src/services/races.ts:287; `startsOnDay` ignores scratched entries, packages/db/src/services/horses.ts:259). | Story races per day, injury rate (frequency factor) |
 | `MAX_LIVE_STARTS_PER_DAY` / `RULES.liveStartsPerDay` | 1 Live race (kinds scheduled, feature, final) per horse per UTC day (new 2026-10-29; Live was limited only by the cap of 3) | packages/game-core/src/lifecycle.ts:44, packages/db/src/rules.ts:33 | One Live race a day; Story races don't count towards it but share the cap of 3. Enforced in `enterRace` (packages/db/src/services/races.ts:290) and shown on the entry sheet as "Already raced Live today" (apps/web/src/server/game.ts:667). The harness saw grinders run horses Live ~2× a day and burn a career in ~2.5 weeks. | Career length in days (40 Live starts ≥ 40 days), starts/day per horse, value of a bigger string, injury rate |
-| `BREED_FROM_STARTS` | 25 | packages/game-core/src/lifecycle.ts:34 | Racing horses may breed from 25 starts; retired horses any time. | Stud supply, foal crop |
+| `BREED_FROM_STARTS` | 16 (was 25; owner 2026-11-01) | packages/game-core/src/lifecycle.ts:34 | Racing horses may breed from 16 starts; retired horses any time. | Stud supply, foal crop |
 | `BREEDINGS_LIFETIME` | 4 | packages/game-core/src/lifecycle.ts:45 | Coverings per horse for life (also a DB CHECK). The last covering retires a stallion to pasture. | Foal crop, horse population, stud fees |
 | `PREGNANCY_MS` | 24 h | packages/game-core/src/lifecycle.ts:46 | Covering → foal. | Foal crop timing |
 | `INITIAL_OR` | 40 | packages/game-core/src/lifecycle.ts:48 | Starting rating of every new horse (incl. house horses and studs). | Class entry, sandbagging (ability floor counters it) |
@@ -219,7 +219,7 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | Yearling efficiency | half; light work only | packages/game-core/src/training.ts:139 | | Realised stats |
 | `OVERWORK_INJURY_MAX_PERMILLE` | 60 at fatigue 1000; starts above fatigue 500; scaled by (1500 − durability) | packages/game-core/src/training.ts:116, :146 | Chance of a minor training injury (capped at 4 days). | Injury rate |
 | `RACE_EXPERIENCE` | speed/stamina/burst +6, durability +5, adaptability +12, temperament +10 (base gains per start) | packages/game-core/src/training.ts:212 | Racing realises stats. | Realised stats |
-| `PEAK_WINDOW` | early 6-18, normal 10-28, late 16-34 starts | packages/game-core/src/phenotype.ts:33 | Maturity curve peak by type. | Race strength over a career |
+| `PEAK_WINDOW` | early 5-15, normal 9-24, late 14-29 starts (scaled 34/40 from 6-18, 10-28, 16-34) | packages/game-core/src/phenotype.ts:33 | Maturity curve peak by type. | Race strength over a career |
 | `JUVENILE_BASE` / `TYPE_BASE_SHIFT` | 820-900 permille of potential; early +40, late −50 | packages/game-core/src/phenotype.ts:37, :38 | Maturity before the peak. | Juvenile race strength |
 | `CAREER_END_LEVEL` / `TYPE_END_SHIFT` | 860-1000; early −40, late +20 | packages/game-core/src/phenotype.ts:40, :41 | Decline after the peak. | Veteran race strength |
 | Ride intensity | all_out: burst +25, temperament −20; conservative: burst −20, stamina +10 | packages/game-core/src/phenotype.ts:226-229 | Plan intensity changes the snapshot. | Race strength, injury rate (intensity factor) |

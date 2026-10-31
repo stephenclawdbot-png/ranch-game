@@ -197,7 +197,7 @@ export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCov
   }
   if (sire.lockKind === "market") throw new DomainError("HORSE_LOCKED", "the stallion is listed for sale");
 
-  // The rules (kinship, sexes, racing age, 25 starts or retired, Legacy Farm, lifetime 4,
+  // The rules (kinship, sexes, racing age, BREED_FROM_STARTS starts or retired, Legacy Farm, lifetime 4,
   // mare 1 / stallion 4 per season, mare in foal) are game-core's pairingBlock over states
   // built from the locked rows and the breeding tables.
   const season = seasonNumberAt(input.now);

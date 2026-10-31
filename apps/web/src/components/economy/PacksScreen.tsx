@@ -4,7 +4,7 @@
  * them. Paddock Pack for credits (3 a week) plus a free one every 3rd play day; the Premium
  * Pack is a demo here (no payments). The seasonal foal crop is public.
  */
-import { PREMIUM_PER_WEEK } from "@thoroughbred/game-core";
+import { CARE_TO_RACING, PREMIUM_PER_WEEK } from "@thoroughbred/game-core";
 import Link from "next/link";
 import { useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -335,7 +335,7 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
               </dd>
             </div>
           </dl>
-          <p className="caption">Each pack is a foal: 19 care days in the nursery before it can race, and no stat above the season ceiling ({ceiling}).</p>
+          <p className="caption">Each pack is a foal: {CARE_TO_RACING} care days in the nursery before it can race, and no stat above the season ceiling ({ceiling}).</p>
         </div>
       </details>
       {button && (primary && o.enabled ? <ActionBar>{button}</ActionBar> : button)}

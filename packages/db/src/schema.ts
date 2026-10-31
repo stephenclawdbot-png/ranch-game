@@ -407,7 +407,7 @@ export const horses = pgTable(
     /** Exclusive lock: in a race field, listed on the market, or booked for a USDG covering. */
     lockKind: horseLockEnum("lock_kind"),
     lockRef: uuid("lock_ref"),
-    /** Career starts: the career clock (max 40). */
+    /** Career starts: the career clock (the game retires at CAREER_MAX_STARTS = 34; the checks allow up to 40, the old cap, so finished careers stay valid). */
     starts: integer("starts").notNull().default(0),
     wins: integer("wins").notNull().default(0),
     places: integer("places").notNull().default(0),

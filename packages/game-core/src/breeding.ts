@@ -5,7 +5,7 @@
  * Rules (§7, §4a): 4 breedings per horse for life; a mare at most 1 per competition season;
  * a stallion up to 4 per season within his lifetime 4. No self, parent–child or full-sibling
  * pairings. Both horses must be breeding-eligible: racing age reached and racing-retired or
- * at least 25 starts, not pastured, not a gelding, mare not already in foal.
+ * at least BREED_FROM_STARTS (16) starts, not pastured, not a gelding, mare not already in foal.
  */
 import type { Breed, CoatGenes, Genome, HorseState, PedigreeIndex, StatKey, StatRecord, Binding, DistanceAllele, MaturityType } from "./types";
 import { BREEDS, STAT_KEYS } from "./types";

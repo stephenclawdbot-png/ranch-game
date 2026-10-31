@@ -1,7 +1,7 @@
 /**
  * Club house stallions at stud.
  *
- * A new game has an empty stud book: no player stallion has retired or reached 25 starts yet.
+ * A new game has an empty stud book: no player stallion has retired or reached BREED_FROM_STARTS starts yet.
  * The Club keeps a small roster of retired house stallions standing at public stud so a
  * player can breed as soon as their mare is eligible.
  *

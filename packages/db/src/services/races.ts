@@ -1002,7 +1002,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     for (const e of ordered) {
       const r = byHorse.get(e.horseId)!;
       const h = await lockHorse(tx, e.horseId);
-      const starts = story ? h.starts : Math.min(RULES.maxStarts, h.starts + 1);
+      // Never below the stored count (a horse from before the career was shortened keeps its record).
+      const starts = story ? h.starts : Math.max(h.starts, Math.min(RULES.maxStarts, h.starts + 1));
       const fromState = r.state ? statePatch(r.state, input.now.getTime()) : null;
       const fatal = r.injury?.severity === "fatal" || r.state?.injury?.severity === "fatal";
       const careerEnding = fatal || r.injury?.severity === "career_ending" || r.state?.injury?.severity === "career_ending";

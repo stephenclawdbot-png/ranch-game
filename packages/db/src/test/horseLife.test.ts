@@ -151,7 +151,7 @@ describe("training", () => {
     const p = await newPlayer(h.db, { credits: 50 });
     const foal = await makeHorse(h.db, p.stableId, { careSessions: 2, stage: "foal" });
     await rejects(runTrainingSession(h.db, { accountId: p.accountId, horseId: foal.id, now: T0 }), "HORSE_NOT_OF_AGE");
-    const yearling = await makeHorse(h.db, p.stableId, { careSessions: 14, stage: "yearling" });
+    const yearling = await makeHorse(h.db, p.stableId, { careSessions: 8, stage: "yearling" });
     await rejects(saveTrainingPlan(h.db, { accountId: p.accountId, horseId: yearling.id, slots: ["speed_work", "rest", "rest"], now: T0 }), "NOT_ELIGIBLE");
     await saveTrainingPlan(h.db, { accountId: p.accountId, horseId: yearling.id, slots: ["gate_practice", "swimming", "rest"], now: T0 });
     const horse = await makeHorse(h.db, p.stableId);

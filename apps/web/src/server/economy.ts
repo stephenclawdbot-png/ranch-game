@@ -441,10 +441,10 @@ const KIN_BLOCKS: readonly string[] = ["self", "parent_child", "full_siblings", 
 /**
  * Whether a stallion can cover this mare at all, judged by the same rules the single preview
  * and `breed` apply. Kinship always rules him out. So does his own game-core eligibility
- * (`sireBlock`, the state the preview itself builds: racing age, 25 starts or retired, lifetime
+ * (`sireBlock`, the state the preview itself builds: racing age, BREED_FROM_STARTS starts or retired, lifetime
  * and per-season cover limits — live USDG bookings count as covers) when it is what the preview
  * reports, and the sire-side locks `breed` refuses (listed for sale, away on lease). A block
- * that belongs to the mare alone — in foal, under 25 starts, entered, listed or booked herself
+ * that belongs to the mare alone — in foal, under BREED_FROM_STARTS starts, entered, listed or booked herself
  * — keeps him ranked: her covers can still be planned.
  */
 function sireExcluded(pv: { block: string | null; sire: HorseRow }, sireBlock: string | null): boolean {

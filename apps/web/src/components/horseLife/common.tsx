@@ -48,7 +48,7 @@ export function CellBar({ value, max, cells, label, tone = "brass", className }:
   );
 }
 
-/** Growth towards racing age: 19 care sessions in three stages (5 / 7 / 7). */
+/** Growth towards racing age: CARE_TO_RACING care sessions in three stages (foal, weanling, yearling). */
 export function GrowthTrack({ growth, compact = false }: { growth: GrowthView; compact?: boolean }) {
   const parts = [
     { label: "Foal", len: 5 },

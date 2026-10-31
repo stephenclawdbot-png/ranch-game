@@ -4,6 +4,10 @@ import {
   BREED_FROM_STARTS,
   CAREER_MAX_STARTS,
   CARE_TO_RACING,
+  CARE_TO_WEAN,
+  CARE_TO_YEARLING,
+  JUVENILE_MAX_STARTS,
+  PRIME_MAX_STARTS,
   careBonus,
   displayAge,
   normaliseLocation,
@@ -25,23 +29,25 @@ import { PREGNANCY_MS } from "./lifecycle";
 import { seedFrom } from "./rng";
 
 describe("stages on the career clock", () => {
-  it("foal → weanling → yearling → juvenile by care sessions (5 / 7 / 7)", () => {
+  it("foal → weanling → yearling → juvenile by care sessions (3 / 4 / 5)", () => {
     const at = (care: number) => stageOf(makeHorse("s", { care }));
     expect(at(0)).toBe("foal");
-    expect(at(4)).toBe("foal");
-    expect(at(5)).toBe("weanling");
-    expect(at(11)).toBe("weanling");
-    expect(at(12)).toBe("yearling");
-    expect(at(18)).toBe("yearling");
+    expect(at(CARE_TO_WEAN - 1)).toBe("foal");
+    expect(at(CARE_TO_WEAN)).toBe("weanling");
+    expect(at(CARE_TO_YEARLING - 1)).toBe("weanling");
+    expect(at(CARE_TO_YEARLING)).toBe("yearling");
+    expect(at(CARE_TO_RACING - 1)).toBe("yearling");
     expect(at(CARE_TO_RACING)).toBe("juvenile");
+    expect([CARE_TO_WEAN, CARE_TO_YEARLING, CARE_TO_RACING]).toEqual([3, 7, 12]);
   });
-  it("juvenile 0–6, prime 7–28, veteran 29–40 starts; retired → stud → pasture", () => {
+  it("juvenile 0–5, prime 6–24, veteran 25–34 starts; retired → stud → pasture", () => {
     const at = (starts: number) => stageOf(makeHorse("s", { starts }));
-    expect(at(6)).toBe("juvenile");
-    expect(at(7)).toBe("prime");
-    expect(at(28)).toBe("prime");
-    expect(at(29)).toBe("veteran");
-    expect(at(40)).toBe("veteran");
+    expect(at(JUVENILE_MAX_STARTS)).toBe("juvenile");
+    expect(at(JUVENILE_MAX_STARTS + 1)).toBe("prime");
+    expect(at(PRIME_MAX_STARTS)).toBe("prime");
+    expect(at(PRIME_MAX_STARTS + 1)).toBe("veteran");
+    expect(at(CAREER_MAX_STARTS)).toBe("veteran");
+    expect([JUVENILE_MAX_STARTS, PRIME_MAX_STARTS, CAREER_MAX_STARTS]).toEqual([5, 24, 34]);
     const retired = makeHorse("s", { starts: 12, retired: true });
     expect(stageOf(retired)).toBe("stud");
     expect(stageOf({ ...retired, breeding: { used: 4, bySeason: [] } })).toBe("pasture");
@@ -49,9 +55,9 @@ describe("stages on the career clock", () => {
   });
   it("display age and sex follow the career, never the calendar", () => {
     expect(displayAge(makeHorse("a", { care: 0 }))).toBe(0);
-    expect(displayAge(makeHorse("a", { care: 14 }))).toBe(1);
+    expect(displayAge(makeHorse("a", { care: CARE_TO_YEARLING }))).toBe(1);
     expect(displayAge(makeHorse("a", { starts: 0 }))).toBe(2);
-    expect(displayAge(makeHorse("a", { starts: 40 }))).toBe(7);
+    expect(displayAge(makeHorse("a", { starts: CAREER_MAX_STARTS }))).toBe(7);
     expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS - 1 }))).toBe("filly");
     expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS }))).toBe("mare");
     expect(sexLabel(makeHorse("a", { sex: "colt", retired: true }))).toBe("stallion");

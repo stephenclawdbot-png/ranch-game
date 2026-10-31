@@ -1,5 +1,6 @@
 "use client";
 
+import { CARE_TO_RACING } from "@thoroughbred/game-core";
 import Link from "next/link";
 import { useState } from "react";
 import type { NurseryFoal, NurseryView } from "@/lib/horseLife";
@@ -114,7 +115,7 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="t-title">{g.name}</p>
-                  <p className="text-sm text-positive">✓ Grown up: 19 care sessions done.</p>
+                  <p className="text-sm text-positive">✓ Grown up: {CARE_TO_RACING} care sessions done.</p>
                 </div>
                 <button type="button" className="btn btn-sm" onClick={() => action.run(`grad:${g.id}`, `/api/horses/${g.id}/graduate`)} disabled={action.busy !== null} data-testid="graduate">
                   Welcome to the yard

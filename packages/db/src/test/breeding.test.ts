@@ -170,14 +170,14 @@ describe("breeding", () => {
     expect(edges.map((e) => e.ancestorId).sort()).toEqual([sire.id, dam.id].sort());
   });
 
-  it("racing horses breed only from 25 starts; retired horses always (while breedings remain); Legacy Farm never", async () => {
+  it("racing horses breed only from 16 starts; retired horses always (while breedings remain); Legacy Farm never", async () => {
     const p = await stable();
-    const young = await makeHorse(h.db, p.stableId, { sex: "male", starts: 24 });
+    const young = await makeHorse(h.db, p.stableId, { sex: "male", starts: 15 });
     const mare = await makeHorse(h.db, p.stableId, { sex: "female", ...retired });
     await expect(breed(h.db, { accountId: p.accountId, sireId: young.id, damId: mare.id, now: T0, idempotencyKey: `y:${young.id}` })).rejects.toMatchObject({
       code: "BREEDING_NOT_ELIGIBLE",
     });
-    await h.db.update(horses).set({ starts: 25 }).where(eq(horses.id, young.id));
+    await h.db.update(horses).set({ starts: 16 }).where(eq(horses.id, young.id));
     await expect(breed(h.db, { accountId: p.accountId, sireId: young.id, damId: mare.id, now: T0, idempotencyKey: `y2:${young.id}` })).resolves.toBeDefined();
 
     const legend = await makeHorse(h.db, p.stableId, { sex: "male", ...retired, pasturedAt: T0, careerStatus: "pasture" });

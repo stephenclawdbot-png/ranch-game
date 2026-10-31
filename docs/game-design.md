@@ -122,8 +122,8 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 
 ### 4a amendments (user-approved)
 
-- **Career length:** 40 starts. Juvenile 0–6, prime 7–28, veteran 29–40. Mandatory racing
-  retirement at 40. Breeding is available from start 25 or after retirement.
+- **Career length:** 34 starts (owner, 2026-11-01; was 40). Juvenile 0–5, prime 6–24, veteran 25–34.
+  Mandatory racing retirement at 34. Breeding is available from start 16 or after retirement.
 - **Rest:** freshness recovers in real time. A horse can race again whenever the owner
   chooses, but racing it tired lowers performance and raises injury risk. Hard cap: 3 starts
   per horse per day.
@@ -137,14 +137,14 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   up to 24. A player can never own more horses than stalls, so foaling uses a nursery
   overflow slot and the foal is never lost. The active population is therefore at most
   players × stalls.
-- **Packs produce foals,** which need 19 care days before they can race.
+- **Packs produce foals,** which need 12 care days before they can race.
 - **Pack limits:**
   - Paddock Pack: 1 free every 3rd play day, plus up to 3 bought with credits per week.
   - Premium Pack: up to 5 per week per account in the closed beta, and at most $50 of
     packs per tester over the whole beta (enforced by the server at checkout).
   - A **seasonal global foal crop cap** (e.g. 10,000), with the remaining count shown
     publicly.
-- **Ways out of the active pool:** racing retirement at 40 starts. Pensioned and Legend
+- **Ways out of the active pool:** racing retirement at 34 starts. Pensioned and Legend
   horses move to the **Legacy Farm**, which needs no stall. Any horse can be **released to
   the Club** for a few credits.
 - **Bound horses:** starter horses and free-pack horses are "Club-bred". They can't be sold,

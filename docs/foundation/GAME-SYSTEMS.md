@@ -66,7 +66,7 @@ fuller fields: the race list shows how many stables have entered each race, and 
 nobody entered is called off rather than run by the Club alone (game-core `meetings.ts`, KNOBS §1).
 
 **Scarcity makes the choices.** 10 entries a day, one Live race per horse per day (three
-races counting Story), a 40-start career and 4 lifetime breedings turn every action into a
+races counting Story), a 34-start career and 4 lifetime breedings turn every action into a
 trade-off (KNOBS §2, §3). One Live start a day makes a career last at least 40 days and
 makes a bigger string of horses worth having.
 
@@ -114,7 +114,7 @@ flowchart LR
   packs[Pack foals] --> active
   foals[Bred foals] --> active
   club[Club runners, house studs] -.fill fields.-> active
-  active -->|40 starts / choice| stud[At stud / broodmare]
+  active -->|34 starts / choice| stud[At stud / broodmare]
   stud -->|breedings| foals
   stud -->|last breeding| legacy[Legacy Farm]
   active -->|Retire for good| legacy

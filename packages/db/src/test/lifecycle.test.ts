@@ -122,10 +122,10 @@ describe("racing", () => {
     await expectDbError(h.db.update(horses).set({ careerStatus: "racing", retirementReason: null, retiredAt: null }).where(eq(horses.id, stallion.id)), /final/);
   });
 
-  it("mandatory racing retirement at 40 starts; career-ending injury retires but never kills", async () => {
+  it("mandatory racing retirement at 34 starts; career-ending injury retires but never kills", async () => {
     const p = await newPlayer(h.db);
     const q = await newPlayer(h.db); // one horse per stable per Live race
-    const veteran = await makeHorse(h.db, p.stableId, { starts: 39 });
+    const veteran = await makeHorse(h.db, p.stableId, { starts: 33 });
     const unlucky = await makeHorse(h.db, q.stableId, { starts: 5, insured: true });
     const race = await quickRace(0, { kind: "scheduled", targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: veteran.id, tactic: "front", now: T0 });
@@ -136,7 +136,7 @@ describe("racing", () => {
       [unlucky.id]: { injury: { severity: "career_ending", recoveryMs: 30 * DAY } },
     });
     expect(r.retired.sort()).toEqual([veteran.id, unlucky.id].sort());
-    expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 40, careerStatus: "retired", retirementReason: "max_starts" });
+    expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 34, careerStatus: "retired", retirementReason: "max_starts" });
     expect(await getHorseRow(h.db, unlucky.id)).toMatchObject({ careerStatus: "retired", retirementReason: "injury" });
     expect(await getBalance(h.db, q.accountId)).toBe(before + gc.insurancePayout(toHorseState(unluckyBefore)));
     // The CHECK refuses a racing horse at 40 starts.

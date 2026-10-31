@@ -1,6 +1,6 @@
 /**
  * Race settlement for horses: career clock, record, rating, fatigue, experience, injuries,
- * quirk reveals, mandatory retirement at 40 starts.
+ * quirk reveals, mandatory retirement at CAREER_MAX_STARTS (34) starts.
  *
  * Deterministic: every roll is seeded from the race seed and horse id, so settling the same
  * race twice gives the same result (and settlement can be idempotent).
@@ -45,7 +45,7 @@ export interface HorseRunResult {
   state: HorseState;
   injury: Injury | null;
   revealedQuirks: QuirkKey[];
-  /** Racing career ended in this race (40 starts or career-ending injury). */
+  /** Racing career ended in this race (the last career start or a career-ending injury). */
   retired: boolean;
   /** Insurance pays out (career-ending or fatal injury on an insured horse). */
   insurancePayout: boolean;

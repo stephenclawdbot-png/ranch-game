@@ -4,7 +4,7 @@
  * the nearest quarter), times as m:ss.hh, draw thirds, rest since the previous run.
  */
 import { HORSE_LENGTH_MM } from "@thoroughbred/shared";
-import { injuryKindOf } from "@thoroughbred/game-core";
+import { CAREER_MAX_STARTS, injuryKindOf } from "@thoroughbred/game-core";
 import type { FormLineView, SplitBucketView, SplitsView } from "./types";
 import { GOING_LABEL, STYLE_LABEL, SURFACE_LABEL, formatDistance, ordinal } from "./format";
 
@@ -190,7 +190,7 @@ export function realisationText(permille: number): string {
 const STAT_LABEL: Record<string, string> = { speed: "Speed", stamina: "Stamina", burst: "Burst", durability: "Durability", adaptability: "Adaptability", temperament: "Temperament" };
 const FEED_LABEL: Record<string, string> = { growth_mix: "growth mix", performance: "performance feed", recovery: "recovery feed", maintenance: "maintenance feed" };
 const ORIGIN_LABEL: Record<string, string> = { starter: "a starter from the Club", bred: "bred in the stud book", pack: "from a pack", gift: "a gift from the Club", house: "a Club horse", admin: "registered" };
-const RETIRE_LABEL: Record<string, string> = { choice: "by choice", max_starts: "after 40 starts", injury: "through injury" };
+const RETIRE_LABEL: Record<string, string> = { choice: "by choice", max_starts: `after ${CAREER_MAX_STARTS} starts`, injury: "through injury" };
 const LEASE_END_LABEL: Record<string, string> = { term: "at the end of the term", returned: "handed back early", injured: "after an injury", retired: "on retirement", died: "on its death" };
 const SEVERITY_LABEL: Record<string, string> = { minor: "Minor injury", moderate: "Moderate injury", career_ending: "Career-ending injury", fatal: "Fatal injury" };
 /** The catalogue name of an injury kind (game-core injuries.ts), or null for old entries. */

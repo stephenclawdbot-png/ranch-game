@@ -73,8 +73,8 @@ describe("training", () => {
 
   it("foals can't train; yearlings only light work; plan picks the next slot", () => {
     expect(allowedWorkouts(makeHorse("f", { care: 2 }))).toEqual([]);
-    expect(allowedWorkouts(makeHorse("y", { care: 13 })).sort()).toEqual(["gate_practice", "rest", "swimming"]);
-    expect(train(makeHorse("y", { care: 13 }), "speed_work", ctx).block).toBe("not_light");
+    expect(allowedWorkouts(makeHorse("y", { care: 8 })).sort()).toEqual(["gate_practice", "rest", "swimming"]);
+    expect(train(makeHorse("y", { care: 8 }), "speed_work", ctx).block).toBe("not_light");
     expect(nextPlannedWorkout(DEFAULT_PLAN, makeHorse("n"), MON)).toBe("speed_work");
   });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { breedingFees, cover, deliverFoal, pairingBlock, previewBreeding, usedInSeason, BREEDING_BASE_FEE, MARE_PER_SEASON, STALLION_PER_SEASON } from "./breeding";
-import { BREEDINGS_LIFETIME, PREGNANCY_MS, retireFromRacing } from "./lifecycle";
+import { BREED_FROM_STARTS, BREEDINGS_LIFETIME, PREGNANCY_MS, retireFromRacing } from "./lifecycle";
 import { inherit } from "./genetics";
 import { potentials } from "./genome";
 import { HorseStateSchema, STAT_KEYS, type HorseState, type PedigreeEntry } from "./types";
@@ -12,20 +12,20 @@ const stud = (id: string, rarity: "common" | "rare" = "common") => makeHorse(id,
 const mare = (id: string, rarity: "common" | "rare" = "common") => makeHorse(id, { id, sex: "filly", retired: true, rarity });
 
 describe("breeding rules", () => {
-  it("needs a stallion and a mare, both eligible (racing-retired or ≥25 starts)", () => {
+  it("needs a stallion and a mare, both eligible (racing-retired or ≥16 starts)", () => {
     const s = stud("S");
     const m = mare("M");
     const ped = pedOf(s, m);
     expect(pairingBlock(s, m, ped, 1)).toBeNull();
     expect(pairingBlock(m, s, ped, 1)).toBe("sire_not_male");
-    const young = makeHorse("Y", { id: "Y", sex: "filly", starts: 24 });
+    const young = makeHorse("Y", { id: "Y", sex: "filly", starts: BREED_FROM_STARTS - 1 });
     expect(pairingBlock(s, young, pedOf(s, young), 1)).toBe("not_breeding_eligible");
-    const okYoung = makeHorse("Y2", { id: "Y2", sex: "filly", starts: 25 });
+    const okYoung = makeHorse("Y2", { id: "Y2", sex: "filly", starts: BREED_FROM_STARTS });
     expect(pairingBlock(s, okYoung, pedOf(s, okYoung), 1)).toBeNull();
     const geld = { ...stud("G"), sex: "gelding" as const };
     expect(pairingBlock(geld, m, pedOf(geld, m), 1)).toBe("gelding");
     expect(pairingBlock(s, mare("F0"), pedOf(s), 1)).toBeNull();
-    const foal = makeHorse("F", { id: "F", sex: "filly", care: 3 });
+    const foal = makeHorse("F", { id: "F", sex: "filly", care: 2 });
     expect(pairingBlock(s, foal, pedOf(s, foal), 1)).toBe("not_racing_age");
   });
 

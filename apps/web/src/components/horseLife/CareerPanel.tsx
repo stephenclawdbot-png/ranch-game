@@ -1,5 +1,6 @@
 "use client";
 
+import { CAREER_MAX_STARTS } from "@thoroughbred/game-core";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { HorseLifeView } from "@/lib/horseLife";
@@ -8,9 +9,9 @@ import { ErrorNote } from "../ui/ErrorNote";
 import { ConfirmButton, RangeList, useAction } from "./common";
 import { HorseNameInput, useHorseNameCheck } from "../ui/HorseNameInput";
 
-const REASON: Record<string, string> = { choice: "by your choice", max_starts: "after 40 starts", injury: "after a career-ending injury" };
+const REASON: Record<string, string> = { choice: "by your choice", max_starts: `after ${CAREER_MAX_STARTS} starts`, injury: "after a career-ending injury" };
 
-/** The career clock (n / 40 starts), maturity, revealed potential and the owner's career decisions. */
+/** The career clock (n / CAREER_MAX_STARTS starts), maturity, revealed potential and the owner's career decisions. */
 export function CareerPanel({ view }: { view: HorseLifeView }) {
   const c = view.career;
   const first = view.name;

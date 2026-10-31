@@ -23,15 +23,20 @@ import { dayIndex, MS_PER_HOUR } from "./time";
 import { CARE_HEAL_BONUS_H, fatigueAt, isHealed } from "./condition";
 import { clampInt } from "./rng";
 
-export const CARE_TO_WEAN = 5;
-export const CARE_TO_YEARLING = 12;
-export const CARE_TO_RACING = 19;
+/**
+ * Life clock (owner, 2026-11-01): a foal races after 12 days of care (was 19), careers last 34
+ * starts (was 40, the stage bands and peak windows scaled by 34/40), and a racing horse may breed
+ * from 16 starts (was 25), so a full generation fits a 4-week season at the game's normal pace.
+ */
+export const CARE_TO_WEAN = 3;
+export const CARE_TO_YEARLING = 7;
+export const CARE_TO_RACING = 12;
 
-export const CAREER_MAX_STARTS = 40;
-export const JUVENILE_MAX_STARTS = 6;
-export const PRIME_MAX_STARTS = 28;
+export const CAREER_MAX_STARTS = 34;
+export const JUVENILE_MAX_STARTS = 5;
+export const PRIME_MAX_STARTS = 24;
 /** Racing horses may breed from this many starts; retired horses any time. */
-export const BREED_FROM_STARTS = 25;
+export const BREED_FROM_STARTS = 16;
 /** Hard cap on starts per horse per real day. */
 export const MAX_STARTS_PER_DAY = 3;
 /**
@@ -90,10 +95,10 @@ export function displayAge(state: Pick<HorseState, "care" | "career">): number {
   if (c < CARE_TO_RACING) return 1;
   const s = state.career.starts;
   if (s <= JUVENILE_MAX_STARTS) return 2;
-  if (s <= 14) return 3;
-  if (s <= 21) return 4;
+  if (s <= 12) return 3;
+  if (s <= 18) return 4;
   if (s <= PRIME_MAX_STARTS) return 5;
-  if (s <= 34) return 6;
+  if (s <= 29) return 6;
   return 7;
 }
 
@@ -125,7 +130,7 @@ export interface NewHorseInput {
   bornSeason: number;
   location?: HorseLocation;
   binding?: Binding;
-  /** Starters arrive at racing age (19 care sessions already done). */
+  /** Starters arrive at racing age (CARE_TO_RACING care sessions already done). */
   careSessions?: number;
 }
 

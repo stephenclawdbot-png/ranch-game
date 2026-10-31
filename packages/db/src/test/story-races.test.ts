@@ -64,12 +64,12 @@ describe("Story races and the career clock", () => {
 
   it("never retires a horse at the career cap, and a career-ending injury still does", async () => {
     const p = await newPlayer(h.db);
-    const veteran = await makeHorse(h.db, p.stableId, { starts: 39 });
+    const veteran = await makeHorse(h.db, p.stableId, { starts: 33 });
     const unlucky = await makeHorse(h.db, p.stableId, { starts: 5, insured: true });
     const safe = await storyRace(0, { targetRunners: 4 });
     await enterRace(h.db, { accountId: p.accountId, raceId: safe.id, horseId: veteran.id, tactic: "front", now: T0 });
     await runRace(safe.id, at(11 * MIN), [veteran.id]);
-    expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 39, careerStatus: "racing" });
+    expect(await getHorseRow(h.db, veteran.id)).toMatchObject({ starts: 33, careerStatus: "racing" });
     // The horse can keep racing Story races at the cap (the per-day limit still applies).
     const again = await storyRace(20 * MIN);
     await expect(enterRace(h.db, { accountId: p.accountId, raceId: again.id, horseId: veteran.id, tactic: "front", now: at(15 * MIN) })).resolves.toBeDefined();

@@ -1,5 +1,5 @@
 /**
- * Packs (§8, §4b). Packs produce FOALS (19 care days before they can race), always under the
+ * Packs (§8, §4b). Packs produce FOALS (12 care days before they can race), always under the
  * season's genetic ceiling, with published odds, pity and commit–reveal seeds.
  *
  *   Paddock Pack: 1 free every 3rd play day (play days need not be consecutive) + up to 3
