@@ -32,6 +32,12 @@ import { runJockeyMaintenance, type JockeyMaintenance } from "./jockeys";
 import { seasonNewsSweep } from "./news";
 import { sweepTargets, type SweepReport } from "./planner";
 
+/**
+ * Rate-limit counters older than this are pruned: two windows of the longest limit (the quick
+ * races' one day; the account/wallet limits are an hour).
+ */
+export const RATE_LIMIT_PRUNE_MS = 2 * 86_400_000;
+
 export interface MaintenanceReport {
   healed: number;
   foaled: string[];
@@ -70,8 +76,8 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   const club = await runClubMarket(db, now, hooks);
   // After the expiries: a Club lot that didn't sell is back in the pool, and honest from here.
   const clubRecalibrated = await sweepClubRatings(db, now);
-  // Two windows of the longest limit (1 h): nothing reads a counter this old again.
-  await pruneRateLimits(db, { olderThanMs: 2 * 3_600_000, now: now.getTime() });
+  // Two windows of the longest limit (1 day: quick races per day): nothing reads a counter this old again.
+  await pruneRateLimits(db, { olderThanMs: RATE_LIMIT_PRUNE_MS, now: now.getTime() });
   const jockeys = await runJockeyMaintenance(db, now);
   // Campaign targets (drops and reminders) and the season-end news.
   const plans = await sweepTargets(db, now);

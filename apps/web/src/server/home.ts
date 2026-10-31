@@ -3,13 +3,14 @@
  * built from the area views. Signed-in only; each tile is null when there is nothing to do.
  * No race outcome is ever in here (the Live/result hero stays on the inbox, without spoilers).
  */
-import { careDayOf, lastCareDays, listStableHorses } from "@thoroughbred/db";
+import { careDayOf, lastCareDays, listMatchNotes, listStableHorses, utcDay } from "@thoroughbred/db";
 import type { HomeTiles } from "@/lib/homeTypes";
 import { cupView } from "./competition";
 import type { Db } from "./db";
 import { breedingView, packsView } from "./economy";
 import { nurseryView } from "./horseLife";
 import type { Session } from "./session";
+import { dailyTile } from "./quickRaces";
 import { storyView } from "./story";
 
 async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
@@ -30,6 +31,8 @@ export async function homeTiles(db: Db, session: Session, now: Date): Promise<Ho
     await safe("breeding", () => breedingView(db, session, now)),
     await safe("story", () => storyView(db, session, now)),
   ];
+  const challenge = await safe("challenge", () => dailyTile(db, session, now));
+  const note = await safe("match-note", async () => (await listMatchNotes(db, session.accountId, 1)).find((n) => utcDay(n.createdAt) === utcDay(now)) ?? null);
 
   // Care: every horse can have one care session per local day (foals grow only through it).
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus !== "pasture");
@@ -77,5 +80,7 @@ export async function homeTiles(db: Db, session: Session, now: Date): Promise<Ho
     carrying: carrying ? { damName: carrying.damName, dueAtMs: carrying.dueAtMs } : null,
     story: storyTile,
     giftFoal: giftRow ? { id: giftRow.id, name: giftRow.name } : null,
+    challenge: challenge ? { course: challenge.course, distanceM: challenge.distanceM, closesAtMs: challenge.closesAtMs, mine: challenge.mine } : null,
+    matchNote: note ? { title: note.title, wins: Number((note.data as { wins?: unknown } | null)?.wins ?? 1) } : null,
   };
 }

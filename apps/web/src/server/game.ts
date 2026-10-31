@@ -42,6 +42,7 @@ import {
   testerForAccount,
   tradeStatus,
   isGenome,
+  matchRecordOf,
   listCardRaces,
   listHorseRuns,
   horseFormFigures,
@@ -1607,5 +1608,15 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     genetics,
     stud: atStud ? { fee: row.studFee ?? 0, club: false, feeUsdg: row.studFeeUsdg, resting } : null,
     actions,
+    matchRace: await matchRaceInfo(db, row, mine, now),
   };
+}
+
+/** Quick races on the horse page: whether it can run (yours) or be challenged (another stable's), and its match record. */
+async function matchRaceInfo(db: Db, row: HorseRow, mine: boolean, now: Date): Promise<HorseDetailView["matchRace"]> {
+  const keeper = row.lesseeStableId ?? row.ownerStableId;
+  const can = !!keeper && row.careerStatus === "racing" && isGenome(row.genome) && gc.quickRaceBlock(toHorseState(row), now.getTime()) === null;
+  const record = (await matchRecordOf(db, row.id)).slice(0, 5).map((r) => ({ opponentId: r.opponentId, opponentName: r.opponentName, won: r.won, lost: r.lost, meetings: r.meetings }));
+  if (!can && record.length === 0) return null;
+  return { action: can ? (mine ? "run" : "challenge") : null, record };
 }

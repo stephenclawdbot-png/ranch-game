@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fakeReplay } from "./dev/fakeReplay";
 import { buildRaceCall } from "./call/buildRaceCall";
-import { WHAT_IF_BADGE, whatIfCall, whatIfFlags } from "./whatIf";
+import { WHAT_IF_BADGE, whatIfBadge, whatIfCall, whatIfFlags } from "./whatIf";
 
 describe("what-if mode", () => {
   it("turns the finale and the results card off, and leaves an official replay alone", () => {
@@ -26,5 +26,12 @@ describe("what-if mode", () => {
   it("labels itself as not official", () => {
     expect(WHAT_IF_BADGE.toLowerCase()).toContain("what if");
     expect(WHAT_IF_BADGE.toLowerCase()).toContain("not official");
+  });
+
+  it("takes a host's badge for other unofficial races, the what-if badge otherwise", () => {
+    expect(whatIfBadge("Match race · unofficial")).toBe("Match race · unofficial");
+    expect(whatIfBadge()).toBe(WHAT_IF_BADGE);
+    expect(whatIfBadge("  ")).toBe(WHAT_IF_BADGE);
+    expect(whatIfBadge("x".repeat(80))).toHaveLength(40);
   });
 });

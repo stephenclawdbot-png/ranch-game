@@ -37,6 +37,7 @@ import PlanningPage from "./pages/planning";
 import RivalsAndNewsPage from "./pages/rivals-and-news";
 import PicksAndTipstersPage from "./pages/picks-and-tipsters";
 import DailyCupPage from "./pages/daily-cup";
+import QuickRacesPage from "./pages/quick-races";
 import HallAndTrophiesPage from "./pages/hall-and-trophies";
 import GlossaryPage from "./pages/glossary";
 import TotePage from "./pages/tote";
@@ -79,6 +80,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "rivals-and-news": RivalsAndNewsPage,
   "picks-and-tipsters": PicksAndTipstersPage,
   "daily-cup": DailyCupPage,
+  "quick-races": QuickRacesPage,
   "hall-and-trophies": HallAndTrophiesPage,
   "glossary": GlossaryPage,
   "tote": TotePage,

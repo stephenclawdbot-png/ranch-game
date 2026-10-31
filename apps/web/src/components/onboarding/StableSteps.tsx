@@ -34,7 +34,7 @@ function stepHref(key: string, state: PlayerState): string {
     case "pick":
       return "/races";
     case "quick_race":
-      return "/races";
+      return "/quick";
     case "pin_target":
       return "/week";
     case "breeding_preview":

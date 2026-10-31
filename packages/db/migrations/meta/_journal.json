@@ -204,6 +204,13 @@
       "when": 1793444815334,
       "tag": "0028_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793447444073,
+      "tag": "0029_quick_races",
+      "breakpoints": true
     }
   ]
 }

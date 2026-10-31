@@ -451,6 +451,11 @@ export interface HorseDetailView {
   actions: { cover: boolean; stud: boolean; sell: boolean } | null;
   /** Coat genetics, markings, breed mix, build, inbreeding, revealed quirks (stud-book info). */
   genetics: GeneticsSummary | null;
+  /**
+   * Quick races: "run" (your racing horse), "challenge" (another stable's racing horse) or null,
+   * and its match race head-to-heads (unofficial, separate from the form book).
+   */
+  matchRace?: { action: "run" | "challenge" | null; record: { opponentId: string; opponentName: string; won: number; lost: number; meetings: number }[] } | null;
 }
 
 export interface PedigreeNode {

@@ -23,7 +23,7 @@ import { FRAME_FIELD, FRAME_STRIDE, FURLONG_MM } from "@thoroughbred/shared";
 import { BattleGraphic, CallTicker, Controls, Countdown, Minimap, PhotoStamp, ResultsCard, TopHud, type MinimapDot } from "./hud/Hud";
 import { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hud/battle";
 import { RaceCallFeed, callLineAt } from "./call/ticker";
-import { WHAT_IF_BADGE, whatIfCall, whatIfFlags } from "./whatIf";
+import { whatIfBadge, whatIfCall, whatIfFlags } from "./whatIf";
 import type { CallLine } from "./call/buildRaceCall";
 import { finalePlan, REPLAY_FROM_M, type FinalePlan, type FinaleStepKind } from "./finale/plan";
 import { FinaleRunner, type FinaleState } from "./finale/runner";
@@ -162,6 +162,8 @@ export interface RaceViewerProps {
    * badge stays on the stage; no finale, no results card, and no photograph or result call.
    */
   whatIf?: boolean;
+  /** The stage badge in what-if mode, for other unofficial races ("Match race · unofficial"); default "What if · not official". */
+  whatIfBadge?: string;
 }
 
 /** The finale's step as the overlay renders it. */
@@ -1051,7 +1053,7 @@ export function RaceViewer(props: RaceViewerProps) {
         {h?.buffering && <div className="rv-badge rv-badge-buffer">BUFFERING</div>}
         {whatIf && !preHud && (
           <div className="rv-whatif" data-testid="what-if-badge" role="note">
-            {WHAT_IF_BADGE}
+            {whatIfBadge(props.whatIfBadge)}
           </div>
         )}
         {debug && debugText && (

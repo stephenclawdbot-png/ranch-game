@@ -9,6 +9,15 @@ import type { CallLine } from "./call/buildRaceCall";
 /** The badge text on the stage (both views). */
 export const WHAT_IF_BADGE = "What if · not official";
 
+/**
+ * The badge a host shows instead (an unofficial race of another kind, e.g. "Match race ·
+ * unofficial"); the what-if badge when none is given or it is blank.
+ */
+export function whatIfBadge(label?: string | null): string {
+  const t = (label ?? "").trim();
+  return t ? t.slice(0, 40) : WHAT_IF_BADGE;
+}
+
 /** Call kinds that only belong to an official result. */
 const OFFICIAL_CALLS: ReadonlySet<CallLine["kind"]> = new Set(["photo", "result"]);
 

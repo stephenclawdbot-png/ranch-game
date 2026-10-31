@@ -53,3 +53,4 @@ export * from "./planning";
 export * from "./picks";
 export * from "./tote";
 export * from "./realTote";
+export * from "./quickRaces";

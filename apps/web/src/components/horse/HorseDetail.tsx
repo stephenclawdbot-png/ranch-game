@@ -171,6 +171,15 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
                 )}
               </ul>
             )}
+            {view.matchRace?.action && (
+              <Link
+                href={view.matchRace.action === "run" ? `/quick?tab=match&horse=${horse.id}` : `/quick?tab=match&vs=${horse.id}`}
+                className="btn btn-outline btn-sm w-fit"
+                data-testid="match-race-link"
+              >
+                {view.matchRace.action === "run" ? `Match race with ${first}` : `Challenge ${first} to a match race`}
+              </Link>
+            )}
           </>
         }
       />
@@ -178,6 +187,28 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
       {planner}
 
       {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
+
+      {view.matchRace && view.matchRace.record.length > 0 && (
+        <section className="surface p-4" aria-labelledby="match-h" data-testid="match-record">
+          <h2 id="match-h" className="t-h2">
+            Match races
+          </h2>
+          <p className="mt-1 text-sm text-cream-dim">Unofficial head-to-heads: not on the form book, no rating.</p>
+          <ul className="mt-2 divide-y-2 divide-dotted divide-line text-sm">
+            {view.matchRace.record.map((r) => (
+              <li key={r.opponentId} className="flex items-baseline justify-between gap-3 py-1.5">
+                <Link href={`/horse/${r.opponentId}`} className="link min-w-0 truncate">
+                  v {r.opponentName}
+                </Link>
+                <span className="num shrink-0">
+                  {r.won}–{r.lost}
+                  {r.meetings > r.won + r.lost ? ` (${r.meetings - r.won - r.lost} dead heat${r.meetings - r.won - r.lost === 1 ? "" : "s"})` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-4" aria-labelledby="apt-h">
