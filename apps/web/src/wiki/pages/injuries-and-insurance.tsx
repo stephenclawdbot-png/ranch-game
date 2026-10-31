@@ -80,7 +80,7 @@ export default function InjuriesAndInsurancePage() {
         Racing carries a small risk of injury, and the game shows you that risk before every start. Most injuries are minor and heal in a few days. A few end a racing career, and in Live
         races a very few are fatal. Care, the vet and a sensible ride all help, and insurance softens the worst outcome.
       </Lead>
-      <Figure src="/art/diorama/poster-barn.png" alt="A quiet barn with horses resting in their stalls" caption="Injured horses rest in their stalls; healing carries on while you are away." focus={0.5} />
+      <Figure src="/art/scenes/wiki-box-rest.png" alt="A horse on box rest in deep straw, its foreleg bandaged" caption="Injured horses rest in their stalls; healing carries on while you are away." focus={0.5} />
 
       <H2 id="risk">The risk of each start</H2>
       <P>

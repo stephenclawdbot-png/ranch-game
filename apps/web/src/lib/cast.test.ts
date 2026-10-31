@@ -35,7 +35,7 @@ describe("jockey cast", () => {
   });
 
   it("draws the stored look; jockeys from before looks get a deterministic face of their stage", () => {
-    const look = gc.pickJockeyLook({ seed: "x", stage: "veteran", name: "Amy Ashby" }, []);
+    const look = gc.pickJockeyLook({ seed: "x", stage: "veteran", gender: "f" }, []);
     const p = jockeyPortrait({ id: "j1", name: "Amy Ashby", stage: "apprentice", look });
     expect(p.look).toEqual(look);
     expect(p.id).toBe(look.face);
@@ -46,8 +46,9 @@ describe("jockey cast", () => {
         const a = jockeyPortrait(j);
         expect(jockeyPortrait(j)).toEqual(a);
         expect(gc.jockeyFace(a.id)!.stage).toBe(stage);
+        expect(gc.jockeyFace(a.id)!.presents).toBe(gc.jockeyGender(j.name));
         const who = presentsAs(j.name);
-        if (who) expect(gc.jockeyFace(a.id)!.presents).toBe(who);
+        if (who) expect(who).toBe(gc.jockeyGender(j.name));
       }
     }
   });

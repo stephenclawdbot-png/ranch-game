@@ -2,10 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { formatCredits } from "@/lib/format";
 import { usePlayerState } from "@/lib/player";
 import { PixelIcon, type IconName } from "./icons";
 import { StableBadge } from "./StableBadge";
+
+/**
+ * A sideways-scrolling tab row that says so: when tabs run past an edge, that edge fades wider and
+ * shows a chevron (graphics round 2: "Financ" was cut off on phones with no hint).
+ */
+function ScrollHint({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setMore({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    // bring the current tab into view
+    el.querySelector<HTMLElement>("[aria-current='page']")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return () => {
+      el.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
+  }, []);
+  return (
+    <div className="tabs-hint relative mx-auto max-w-[75rem]" data-more-left={more.left || undefined} data-more-right={more.right || undefined}>
+      <ul ref={ref} className="tabs !px-[var(--gutter)]">
+        {children}
+      </ul>
+      <span aria-hidden className="tabs-chevron tabs-chevron-right">
+        ›
+      </span>
+      <span aria-hidden className="tabs-chevron tabs-chevron-left">
+        ‹
+      </span>
+    </div>
+  );
+}
 
 type Section = { href: string; label: string; icon: IconName; match: (p: string) => boolean; sub?: { href: string; label: string }[] };
 
@@ -190,7 +228,7 @@ export function SiteNav() {
         </div>
         {sub && (
           <nav aria-label={`${sub.section.label} sections`} className="subnav" data-testid="sub-nav">
-            <ul className="tabs mx-auto max-w-[75rem] !px-[var(--gutter)]">
+            <ScrollHint>
               {sub.section.sub!.map((x) => {
                 const active = x.href === sub.active;
                 return (
@@ -201,7 +239,7 @@ export function SiteNav() {
                   </li>
                 );
               })}
-            </ul>
+            </ScrollHint>
           </nav>
         )}
       </header>

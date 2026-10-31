@@ -1,0 +1,173 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, a crumpled racecard lying on the grass beside a brass magnifying glass, an empty white racecourse rail behind",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9883,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<5880 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 64,
+    "height": 64
+   }
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "43feed58-7098-4c0d-92d0-4b5b2c874334",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "43feed58-7098-4c0d-92d0-4b5b2c874334",
+  "status": "completed",
+  "created_at": "2026-10-31T14:57:35.856786+00:00",
+  "last_response": {
+   "seed": 9883,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6236 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4512 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3888 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4924 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4716 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5168 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5908 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4404 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5880 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5428 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4024 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4376 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4560 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5180 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5152 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4580 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "fbdf5a61-ba53-4959-8b52-80037c0b17c0",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T14:57:42.002118+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 74
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/lost-race-9883-0.png",
+  "art-src/raw/vignettes/lost-race-9883-1.png",
+  "art-src/raw/vignettes/lost-race-9883-2.png",
+  "art-src/raw/vignettes/lost-race-9883-3.png",
+  "art-src/raw/vignettes/lost-race-9883-4.png",
+  "art-src/raw/vignettes/lost-race-9883-5.png",
+  "art-src/raw/vignettes/lost-race-9883-6.png",
+  "art-src/raw/vignettes/lost-race-9883-7.png",
+  "art-src/raw/vignettes/lost-race-9883-8.png",
+  "art-src/raw/vignettes/lost-race-9883-9.png",
+  "art-src/raw/vignettes/lost-race-9883-10.png",
+  "art-src/raw/vignettes/lost-race-9883-11.png",
+  "art-src/raw/vignettes/lost-race-9883-12.png",
+  "art-src/raw/vignettes/lost-race-9883-13.png",
+  "art-src/raw/vignettes/lost-race-9883-14.png",
+  "art-src/raw/vignettes/lost-race-9883-15.png"
+ ]
+}

@@ -146,7 +146,7 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
     const n = tiles.care.count;
     list.push({
       key: "care",
-      icon: "horseshoe",
+      icon: "grooming-brush",
       title: `Groom ${n} ${n === 1 ? "horse" : "horses"}`,
       text: tiles.care.foals > 0 ? `${tiles.care.foals} ${tiles.care.foals === 1 ? "foal grows" : "foals grow"} with care. Skipping never hurts.` : "Builds bond. Skipping never hurts.",
       href: tiles.care.href,

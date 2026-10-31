@@ -24,7 +24,7 @@ export default function GlossaryPage() {
       <Lead>
         Racing and breeding come with their own words. Here are the ones Post Time uses, in plain English, each with the page that explains it properly.
       </Lead>
-      <Figure src="/art/scenes/club-library.png" alt="The Club library: stud books and pedigree charts" caption="From foal to Legacy Farm: the words you will meet on the way." focus={0.55} />
+      <Figure src="/art/scenes/wiki-dictionary.png" alt="An old racing dictionary open on a reading stand" caption="From foal to Legacy Farm: the words you will meet on the way." focus={0.55} />
       {GROUPS.map((g) => (
         <section key={g.id}>
           <H2 id={g.id}>{g.title}</H2>

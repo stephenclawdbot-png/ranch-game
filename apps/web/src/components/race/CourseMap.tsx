@@ -54,19 +54,20 @@ export function SceneryThumb({ course, className }: { course: Course; className?
   const grass = `linear-gradient(${r.railFill[0]}, ${r.railFill[1]})`;
   return (
     <div
-      className={`relative overflow-hidden border-2 border-ink ${className ?? ""}`}
-      style={{ aspectRatio: "16 / 7", background: "linear-gradient(#6f97c4, #f3d29a 70%, #ffd79a)" }}
+      className={`scenery-thumb relative h-[112px] overflow-hidden border-2 border-ink md:h-[176px] ${className ?? ""}`}
+      style={{ background: "linear-gradient(#6f97c4, #f3d29a 70%, #ffd79a)" }}
       role="img"
       aria-label={`${course.name} scenery`}
       data-testid="scenery-thumb"
     >
+      {/* Whole-pixel art (1x phones, 2x wider screens), cropped by the frame, never squeezed. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={far} alt="" className="pixelated absolute bottom-[14%] left-0 h-auto w-[200%] max-w-none" draggable={false} loading="lazy" />
+      <img src={far} alt="" className="scenery-px left-0 origin-bottom-left" style={{ bottom: "calc(12px * var(--k))" }} draggable={false} loading="lazy" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={mid} alt="" className="pixelated absolute bottom-[12%] left-[2%] h-auto w-[34%] max-w-none" draggable={false} loading="lazy" />
+      <img src={mid} alt="" className="scenery-px left-[2%] origin-bottom-left" style={{ bottom: "calc(10px * var(--k))" }} draggable={false} loading="lazy" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={stand} alt="" className="pixelated absolute bottom-[12%] right-[2%] h-auto w-[52%] max-w-none" draggable={false} loading="lazy" />
-      <div className="absolute inset-x-0 bottom-0 h-[14%]" style={{ background: grass, boxShadow: "inset 0 2px 0 #f4f4ef" }} />
+      <img src={stand} alt="" className="scenery-px right-[2%] origin-bottom-right" style={{ bottom: "calc(10px * var(--k))" }} draggable={false} loading="lazy" />
+      <div className="absolute inset-x-0 bottom-0" style={{ height: "calc(12px * var(--k))", background: grass, boxShadow: "inset 0 2px 0 #f4f4ef" }} />
     </div>
   );
 }

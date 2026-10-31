@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a wooden clipboard holding a training chart with a red tick and a small horseshoe clip",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9612,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "74f07ca5-0912-4957-a8c7-ce84f554e2ef",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "74f07ca5-0912-4957-a8c7-ce84f554e2ef",
+  "status": "completed",
+  "created_at": "2026-10-31T15:02:22.150450+00:00",
+  "last_response": {
+   "seed": 9612,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1144 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1260 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1408 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1148 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1308 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1012 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<940 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1008 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1212 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1164 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1192 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1132 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1112 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1044 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1008 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1252 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1164 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1012 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1036 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1040 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1008 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<924 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1000 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1156 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<992 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<924 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1100 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1044 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1324 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1052 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1040 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1176 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<816 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1052 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1180 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1204 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1024 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1104 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1084 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1380 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1212 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1152 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1252 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1088 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1136 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1228 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1112 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1264 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1060 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1112 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1028 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1088 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1020 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1080 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1164 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<844 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1184 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1136 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1096 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1180 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1024 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1148 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "e341b07e-6b4e-4f9f-ac0e-a1cc38d3be21",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:02:28.335066+00:00",
+   "original_image_n_colors": 104,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/training-chart-9612-0.png",
+  "art-src/raw/ui2/training-chart-9612-1.png",
+  "art-src/raw/ui2/training-chart-9612-2.png",
+  "art-src/raw/ui2/training-chart-9612-3.png",
+  "art-src/raw/ui2/training-chart-9612-4.png",
+  "art-src/raw/ui2/training-chart-9612-5.png",
+  "art-src/raw/ui2/training-chart-9612-6.png",
+  "art-src/raw/ui2/training-chart-9612-7.png",
+  "art-src/raw/ui2/training-chart-9612-8.png",
+  "art-src/raw/ui2/training-chart-9612-9.png",
+  "art-src/raw/ui2/training-chart-9612-10.png",
+  "art-src/raw/ui2/training-chart-9612-11.png",
+  "art-src/raw/ui2/training-chart-9612-12.png",
+  "art-src/raw/ui2/training-chart-9612-13.png",
+  "art-src/raw/ui2/training-chart-9612-14.png",
+  "art-src/raw/ui2/training-chart-9612-15.png",
+  "art-src/raw/ui2/training-chart-9612-16.png",
+  "art-src/raw/ui2/training-chart-9612-17.png",
+  "art-src/raw/ui2/training-chart-9612-18.png",
+  "art-src/raw/ui2/training-chart-9612-19.png",
+  "art-src/raw/ui2/training-chart-9612-20.png",
+  "art-src/raw/ui2/training-chart-9612-21.png",
+  "art-src/raw/ui2/training-chart-9612-22.png",
+  "art-src/raw/ui2/training-chart-9612-23.png",
+  "art-src/raw/ui2/training-chart-9612-24.png",
+  "art-src/raw/ui2/training-chart-9612-25.png",
+  "art-src/raw/ui2/training-chart-9612-26.png",
+  "art-src/raw/ui2/training-chart-9612-27.png",
+  "art-src/raw/ui2/training-chart-9612-28.png",
+  "art-src/raw/ui2/training-chart-9612-29.png",
+  "art-src/raw/ui2/training-chart-9612-30.png",
+  "art-src/raw/ui2/training-chart-9612-31.png",
+  "art-src/raw/ui2/training-chart-9612-32.png",
+  "art-src/raw/ui2/training-chart-9612-33.png",
+  "art-src/raw/ui2/training-chart-9612-34.png",
+  "art-src/raw/ui2/training-chart-9612-35.png",
+  "art-src/raw/ui2/training-chart-9612-36.png",
+  "art-src/raw/ui2/training-chart-9612-37.png",
+  "art-src/raw/ui2/training-chart-9612-38.png",
+  "art-src/raw/ui2/training-chart-9612-39.png",
+  "art-src/raw/ui2/training-chart-9612-40.png",
+  "art-src/raw/ui2/training-chart-9612-41.png",
+  "art-src/raw/ui2/training-chart-9612-42.png",
+  "art-src/raw/ui2/training-chart-9612-43.png",
+  "art-src/raw/ui2/training-chart-9612-44.png",
+  "art-src/raw/ui2/training-chart-9612-45.png",
+  "art-src/raw/ui2/training-chart-9612-46.png",
+  "art-src/raw/ui2/training-chart-9612-47.png",
+  "art-src/raw/ui2/training-chart-9612-48.png",
+  "art-src/raw/ui2/training-chart-9612-49.png",
+  "art-src/raw/ui2/training-chart-9612-50.png",
+  "art-src/raw/ui2/training-chart-9612-51.png",
+  "art-src/raw/ui2/training-chart-9612-52.png",
+  "art-src/raw/ui2/training-chart-9612-53.png",
+  "art-src/raw/ui2/training-chart-9612-54.png",
+  "art-src/raw/ui2/training-chart-9612-55.png",
+  "art-src/raw/ui2/training-chart-9612-56.png",
+  "art-src/raw/ui2/training-chart-9612-57.png",
+  "art-src/raw/ui2/training-chart-9612-58.png",
+  "art-src/raw/ui2/training-chart-9612-59.png",
+  "art-src/raw/ui2/training-chart-9612-60.png",
+  "art-src/raw/ui2/training-chart-9612-61.png",
+  "art-src/raw/ui2/training-chart-9612-62.png",
+  "art-src/raw/ui2/training-chart-9612-63.png"
+ ]
+}

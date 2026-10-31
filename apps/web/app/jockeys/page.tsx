@@ -42,7 +42,7 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
           {view.jockeys.length ? (
             <JockeyTable jockeys={view.jockeys} />
           ) : (
-            <EmptyState icon="horseshoe" title="No jockeys here" text={filter === "mine" ? "Every stable starts with an apprentice; sign a freelancer from the Club pool." : "Check back after the weekly intake."} />
+            <EmptyState icon="cap-peg" title="No jockeys here" text={filter === "mine" ? "Every stable starts with an apprentice; sign a freelancer from the Club pool." : "Check back after the weekly intake."} />
           )}
           <HowItWorks className="mt-4">
             <p>

@@ -62,6 +62,8 @@ export interface JockeyCard {
   silks: Silks | null;
   /** How the jockey is drawn (game-core JockeyLook, stored at creation). */
   look: gc.JockeyLook;
+  /** The jockey's one stored gender (name, bust and rider sprite follow it). */
+  gender: gc.JockeyGender;
   retireAt: string;
   retiring: boolean;
   retired: boolean;
@@ -99,6 +101,7 @@ function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0, 
     stableName: v.stableName,
     silks: v.silks ? parseSilks(v.silks) : null,
     look: v.look,
+    gender: v.gender,
     retireAt: v.retireAt,
     retiring: v.retirementAnnounced,
     retired: v.retired,

@@ -16,11 +16,11 @@ afterAll(async () => {
 
 async function active() {
   const rows = await h.db.select().from(jockeys).where(isNull(jockeys.retiredAt));
-  return rows.map((r) => ({ id: r.id, name: r.name, stage: r.stage as gc.JockeyStage, look: gc.parseJockeyLook(r.look)! }));
+  return rows.map((r) => ({ id: r.id, name: r.name, gender: r.gender as gc.JockeyGender, stage: r.stage as gc.JockeyStage, look: gc.parseJockeyLook(r.look)! }));
 }
 
-/** Face pool of a jockey: its stage, narrowed to the presentation its name implies. */
-const poolOf = (j: { stage: gc.JockeyStage; name: string }) => gc.facePool(j.stage, j.name).map((f) => f.id);
+/** Face pool of a jockey: its stage and its stored gender. */
+const poolOf = (j: { stage: gc.JockeyStage; gender: gc.JockeyGender }) => gc.facePool(j.stage, j.gender).map((f) => f.id);
 
 describe("jockey looks", () => {
   it("no two active jockeys share a face while unused faces exist for their stage and presentation", async () => {
@@ -37,14 +37,16 @@ describe("jockey looks", () => {
     for (const j of list) {
       if ((worn.get(j.look.face) ?? 0) < 2) continue;
       shared++;
-      expect(poolOf({ stage: gc.jockeyFace(j.look.face)!.stage, name: j.name }).every((f) => (worn.get(f) ?? 0) > 0)).toBe(true);
+      expect(poolOf({ stage: gc.jockeyFace(j.look.face)!.stage, gender: j.gender }).every((f) => (worn.get(f) ?? 0) > 0)).toBe(true);
     }
     expect(shared).toBeGreaterThan(0); // 60 apprentices outnumber a pool, so faces did come round
-    // the face suits the jockey: stage at creation, and the name's presentation when it says one
+    // one gender everywhere: the name's == the stored one == the bust's == the rider sprite's
     for (const j of list) {
-      const face = gc.jockeyFace(j.look.face)!;
-      const who = gc.presentsAs(j.name);
-      if (who) expect(face.presents).toBe(who);
+      expect(j.gender).toBe(gc.jockeyGender(j.name));
+      expect(gc.jockeyFace(j.look.face)!.presents).toBe(j.gender);
+      expect(gc.riderLookOf(j.look).gender).toBe(j.gender);
+      const v = await getJockey(h.db, j.id);
+      expect(v!.gender).toBe(j.gender);
     }
   });
 
@@ -59,7 +61,7 @@ describe("jockey looks", () => {
     // jockeys stored before looks existed
     for (let i = 0; i < 6; i++) {
       const j = await createJockeyTx(h.db, { seed: gc.seedFrom("looks-old", i), stableId: null, now: T0 });
-      await h.db.update(jockeys).set({ look: null }).where(eq(jockeys.id, j.id));
+      await h.db.update(jockeys).set({ look: null, gender: null }).where(eq(jockeys.id, j.id));
     }
     expect(await h.db.transaction((tx) => ensureJockeyLooksTx(tx))).toBe(6);
     expect(await h.db.transaction((tx) => ensureJockeyLooksTx(tx))).toBe(0);
@@ -67,6 +69,7 @@ describe("jockey looks", () => {
     for (const b of before) expect(after.find((a) => a.id === b.id)!.look).toEqual(b.look);
     const keys = after.map((j) => gc.jockeyLookKey(j.look));
     expect(new Set(keys).size).toBe(keys.length);
+    for (const j of after) expect(j.gender).toBe(gc.jockeyGender(j.name));
     // the view carries the stored look
     const v = await getJockey(h.db, after[0]!.id);
     expect(v?.look).toEqual(after[0]!.look);

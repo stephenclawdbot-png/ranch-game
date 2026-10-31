@@ -202,7 +202,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   const status =
     (phase === "pre" || phase === "live") && toOff !== null ? (
       <span className="chip chip-ink shrink-0 !text-cream" data-testid="race-off-in">
-        <PixelIcon name="stopwatch" size={16} /> Off in <span className="tabular">{formatCountdown(toOff)}</span>
+        <PixelIcon name="race-clock" size={16} /> Off in <span className="tabular">{formatCountdown(toOff)}</span>
       </span>
     ) : phase === "live" ? (
       <span className="chip chip-live shrink-0">
@@ -258,7 +258,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
             title={card.fieldLocked ? "This race is sealed: tap for details" : "The seed is committed; the field is sealed when entries close: tap for details"}
             data-testid="seal-badge"
           >
-            <PixelIcon name="shield" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
+            <PixelIcon name="wax-seal" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
           </a>
         </div>
         <div

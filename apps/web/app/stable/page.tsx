@@ -84,7 +84,7 @@ function Stable({ state }: { state: PlayerState }) {
               <li>
                 <Link href="/packs" className="row-link gap-3 px-4 py-3" data-testid="empty-stalls">
                   <span className="empty-slot !h-16 !w-16">
-                    <PixelIcon name="horseshoe" size={32} />
+                    <PixelIcon name="stall-empty" size={32} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="t-title block">
@@ -253,5 +253,5 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
 }
 
 export default function StablePage() {
-  return <PlayerGate band={{ scene: "barn", alt: "Inside your barn", eyebrow: "Your yard", title: "Stable" }}>{(state) => <Stable state={state} />}</PlayerGate>;
+  return <PlayerGate band={{ scene: "pasture", alt: "Your horses out in the pasture", eyebrow: "Your yard", title: "Stable" }}>{(state) => <Stable state={state} />}</PlayerGate>;
 }

@@ -152,6 +152,8 @@ export const HorseAppearanceSchema = z.object({
       skin: z.tuple([HexColor, HexColor, HexColor]),
       hair: z.tuple([HexColor, HexColor, HexColor]),
       long: z.boolean().optional(),
+      /** The jockey's gender: "f" draws the women's rider (slimmer, hair under the cap). */
+      gender: z.enum(["f", "m"]).optional(),
     })
     .optional(),
 });

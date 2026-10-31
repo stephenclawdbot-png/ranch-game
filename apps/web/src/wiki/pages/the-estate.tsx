@@ -51,7 +51,7 @@ export default function TheEstatePage() {
       />
 
       <H2 id="estate">Estate</H2>
-      <Figure src="/art/diorama/poster-yard.png" alt="The estate yard with stables and trees" caption="The Estate: tap a building to go straight there." focus={0.5} />
+      <Figure src="/art/scenes/wiki-estate-map.png" alt="A painted map of the estate pinned up in the yard" caption="The Estate: tap a building to go straight there." focus={0.5} />
       <P>
         The Estate is a picture of your yard with labelled buildings: the <b>Racecourse</b>, <b>The Barn</b>, the <b>Trophy Room</b>, the <b>Breeding Barn</b>, the <b>Gallops</b>{" "}
         and the <b>Sales Ring</b>. Below it the game suggests your next step: your horse in an upcoming race, a result waiting to be watched, or a Quick Pick that sends your best-suited
@@ -75,7 +75,7 @@ export default function TheEstatePage() {
       />
 
       <H2 id="stable">Stable</H2>
-      <Figure src="/art/diorama/poster-barn.png" alt="Inside the barn, horses in their stalls" caption="The Stable: every horse in its stall." focus={0.55} />
+      <Figure src="/art/scenes/wiki-stable-row.png" alt="A row of stable doors, a horse looking out of each" caption="The Stable: every horse in its stall." focus={0.55} />
       <List
         items={[
           <>
@@ -95,7 +95,7 @@ export default function TheEstatePage() {
       />
 
       <H2 id="racing">Racing</H2>
-      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs" caption="Racing: the Live card at Kestrel Downs." focus={0.5} />
+      <Figure src="/art/scenes/wiki-turnstiles.png" alt="Racegoers streaming through the turnstiles on race day" caption="Racing: the Live card at Kestrel Downs." focus={0.5} />
       <List
         items={[
           <>
@@ -119,7 +119,7 @@ export default function TheEstatePage() {
       </P>
 
       <H2 id="club">Club</H2>
-      <Figure src="/art/diorama/poster-track-dusk.png" alt="The track at dusk" caption="The Club: the League, the Daily Cup and the Hall of Fame." focus={0.5} />
+      <Figure src="/art/scenes/wiki-pavilion.png" alt="The Club pavilion with its clock and veranda" caption="The Club: the League, the Daily Cup and the Hall of Fame." focus={0.5} />
       <List
         items={[
           <>
@@ -137,7 +137,7 @@ export default function TheEstatePage() {
       />
 
       <H2 id="sales">Sales</H2>
-      <Figure src="/art/diorama/poster-sales-ring.png" alt="The sales ring" caption="Sales: the auction house and Paddock Packs." focus={0.5} />
+      <Figure src="/art/scenes/wiki-sales-paddock.png" alt="Lots walked round the sales paddock, buyers taking notes" caption="Sales: the auction house and Paddock Packs." focus={0.5} />
       <List
         items={[
           <>

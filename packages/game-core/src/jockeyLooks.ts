@@ -91,12 +91,32 @@ const MEN = new Set([
 const EITHER = new Set(["Alex", "Kit", "Sam", "Charlie"]);
 export const JOCKEY_KNOWN_FIRST_NAMES: ReadonlySet<string> = new Set([...WOMEN, ...MEN, ...EITHER]);
 
+/** A jockey's gender: one stored value (jockeys.gender), set with the name at creation. */
+export type JockeyGender = JockeyPresents;
+
+/**
+ * The gender of the first names that fit either (the name pool has four). Fixed, so a name always
+ * means one gender: the jockey's stored gender, bust, rider sprite and name always agree.
+ */
+export const AMBIGUOUS_NAME_GENDER: Readonly<Record<string, JockeyGender>> = { Alex: "m", Kit: "f", Sam: "f", Charlie: "m" };
+
 /** "f", "m" or null (a name that fits either, or an unknown one) from a jockey's first name. */
 export function presentsAs(name: string): JockeyPresents | null {
   const first = name.trim().split(/\s+/)[0] ?? "";
   if (WOMEN.has(first)) return "f";
   if (MEN.has(first)) return "m";
   return null;
+}
+
+/** The gender a jockey's name gives (stored at creation; the backfill reads old rows the same way). */
+export function jockeyGender(name: string): JockeyGender {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return presentsAs(name) ?? AMBIGUOUS_NAME_GENDER[first] ?? "m";
+}
+
+/** A stored gender, or the name's when the row has none (older rows before the backfill). */
+export function genderOf(j: { name: string; gender?: unknown }): JockeyGender {
+  return j.gender === "f" || j.gender === "m" ? j.gender : jockeyGender(j.name);
 }
 
 /** Hair colours a jockey of this stage may be given (grey and white only with age). */
@@ -126,12 +146,10 @@ function hash32(s: string): number {
   return h >>> 0;
 }
 
-/** Faces a new jockey of this stage and name may wear (the stage's pool, narrowed by the name). */
-export function facePool(stage: JockeyStage, name: string, faces: readonly JockeyFace[] = JOCKEY_FACES): JockeyFace[] {
-  const who = presentsAs(name);
-  const byStage = faces.filter((f) => f.stage === stage);
-  const pool = who ? byStage.filter((f) => f.presents === who) : byStage;
-  return pool.length ? pool : byStage.length ? byStage : [...faces];
+/** Faces a jockey of this stage and gender may wear (women only ever get women's faces, and vice versa). */
+export function facePool(stage: JockeyStage, gender: JockeyGender, faces: readonly JockeyFace[] = JOCKEY_FACES): JockeyFace[] {
+  const pool = faces.filter((f) => f.stage === stage && f.presents === gender);
+  return pool.length ? pool : faces.filter((f) => f.presents === gender);
 }
 
 /** How far two looks of the same face are apart (skin steps, hair and accessories). */
@@ -147,8 +165,8 @@ function lookDistance(a: JockeyLook, b: JockeyLook): number {
  * native colours when nobody active wears it; otherwise the free combination furthest from the
  * looks already on that face. `active` = the looks of jockeys not yet retired.
  */
-export function pickJockeyLook(input: { seed: string; stage: JockeyStage; name: string }, active: readonly JockeyLook[], faces: readonly JockeyFace[] = JOCKEY_FACES): JockeyLook {
-  const pool = facePool(input.stage, input.name, faces);
+export function pickJockeyLook(input: { seed: string; stage: JockeyStage; gender: JockeyGender }, active: readonly JockeyLook[], faces: readonly JockeyFace[] = JOCKEY_FACES): JockeyLook {
+  const pool = facePool(input.stage, input.gender, faces);
   if (!pool.length) throw new Error("no jockey faces");
   const worn = new Map<string, JockeyLook[]>();
   for (const l of active) {
@@ -199,27 +217,31 @@ export function parseJockeyLook(v: unknown): JockeyLook | null {
  * The look of a jockey stored before looks existed (or a face the art no longer has): the face
  * picked from the id within the stage and name's pool, in its native colours. Display only.
  */
-export function fallbackJockeyLook(j: { id: string; name: string; stage: string }): JockeyLook {
+export function fallbackJockeyLook(j: { id: string; name: string; stage: string; gender?: unknown }): JockeyLook {
   const stage = (["apprentice", "prime", "veteran"].includes(j.stage) ? j.stage : "prime") as JockeyStage;
-  const pool = facePool(stage, j.name);
+  const pool = facePool(stage, genderOf(j));
   const face = pool[hash32(j.id) % pool.length]!;
   return { face: face.id, skin: face.skin, hair: face.hair, acc: [] };
 }
 
-/** The look to draw: the stored one when its face exists, else the fallback. */
-export function resolveJockeyLook(j: { id: string; name: string; stage: string; look?: unknown }): JockeyLook {
+/** The look to draw: the stored one when its face exists (and fits the jockey's gender), else the fallback. */
+export function resolveJockeyLook(j: { id: string; name: string; stage: string; gender?: unknown; look?: unknown }): JockeyLook {
   const l = parseJockeyLook(j.look);
-  return l && FACE_BY_ID.has(l.face) ? l : fallbackJockeyLook(j);
+  return l && FACE_BY_ID.get(l.face)?.presents === genderOf(j) ? l : fallbackJockeyLook(j);
 }
 
 /** What the rider sprites need from a look: skin and hair ramps (shade, base, highlight) and the hair cue. */
 export interface RiderLook {
   skin: readonly [string, string, string];
   hair: readonly [string, string, string];
+  /** Long hair shows under the cap (women always show a ponytail, bun or plait on the rider sprite). */
   long: boolean;
+  /** Which rider sprite: the women's variant (slimmer, hair under the cap) or the men's. */
+  gender: JockeyGender;
 }
 
 export function riderLookOf(look: JockeyLook): RiderLook {
   const face = FACE_BY_ID.get(look.face);
-  return { skin: JOCKEY_SKINS[look.skin], hair: JOCKEY_HAIRS[look.hair], long: !!face?.long };
+  const gender = face?.presents ?? "m";
+  return { skin: JOCKEY_SKINS[look.skin], hair: JOCKEY_HAIRS[look.hair], long: gender === "f" || !!face?.long, gender };
 }

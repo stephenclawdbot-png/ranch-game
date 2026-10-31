@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a round brass racecourse clock on a short green post",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9611,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "a885eeda-a07a-4f0c-948e-64c8d31bd9ac",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "a885eeda-a07a-4f0c-948e-64c8d31bd9ac",
+  "status": "completed",
+  "created_at": "2026-10-31T14:59:57.213423+00:00",
+  "last_response": {
+   "seed": 9611,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1368 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1548 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1640 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1348 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1464 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1352 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1276 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1260 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1560 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1604 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1296 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1312 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1560 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1152 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1156 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1332 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1384 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1356 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1532 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1588 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1584 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1392 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1420 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1388 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1000 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1208 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1452 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1344 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1340 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1380 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1396 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1432 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1420 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1452 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1680 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1468 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1380 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1396 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1364 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1676 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1556 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1580 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1304 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1688 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1292 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1424 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1760 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1460 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1664 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1464 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1672 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1404 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1496 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1308 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1460 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1356 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1416 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1504 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1352 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1672 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1516 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "bd086415-afcb-428a-91c7-52898ab9c3f1",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:03.369526+00:00",
+   "original_image_n_colors": 96,
+   "quantized_image_n_colors": 59
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/race-clock-9611-0.png",
+  "art-src/raw/ui2/race-clock-9611-1.png",
+  "art-src/raw/ui2/race-clock-9611-2.png",
+  "art-src/raw/ui2/race-clock-9611-3.png",
+  "art-src/raw/ui2/race-clock-9611-4.png",
+  "art-src/raw/ui2/race-clock-9611-5.png",
+  "art-src/raw/ui2/race-clock-9611-6.png",
+  "art-src/raw/ui2/race-clock-9611-7.png",
+  "art-src/raw/ui2/race-clock-9611-8.png",
+  "art-src/raw/ui2/race-clock-9611-9.png",
+  "art-src/raw/ui2/race-clock-9611-10.png",
+  "art-src/raw/ui2/race-clock-9611-11.png",
+  "art-src/raw/ui2/race-clock-9611-12.png",
+  "art-src/raw/ui2/race-clock-9611-13.png",
+  "art-src/raw/ui2/race-clock-9611-14.png",
+  "art-src/raw/ui2/race-clock-9611-15.png",
+  "art-src/raw/ui2/race-clock-9611-16.png",
+  "art-src/raw/ui2/race-clock-9611-17.png",
+  "art-src/raw/ui2/race-clock-9611-18.png",
+  "art-src/raw/ui2/race-clock-9611-19.png",
+  "art-src/raw/ui2/race-clock-9611-20.png",
+  "art-src/raw/ui2/race-clock-9611-21.png",
+  "art-src/raw/ui2/race-clock-9611-22.png",
+  "art-src/raw/ui2/race-clock-9611-23.png",
+  "art-src/raw/ui2/race-clock-9611-24.png",
+  "art-src/raw/ui2/race-clock-9611-25.png",
+  "art-src/raw/ui2/race-clock-9611-26.png",
+  "art-src/raw/ui2/race-clock-9611-27.png",
+  "art-src/raw/ui2/race-clock-9611-28.png",
+  "art-src/raw/ui2/race-clock-9611-29.png",
+  "art-src/raw/ui2/race-clock-9611-30.png",
+  "art-src/raw/ui2/race-clock-9611-31.png",
+  "art-src/raw/ui2/race-clock-9611-32.png",
+  "art-src/raw/ui2/race-clock-9611-33.png",
+  "art-src/raw/ui2/race-clock-9611-34.png",
+  "art-src/raw/ui2/race-clock-9611-35.png",
+  "art-src/raw/ui2/race-clock-9611-36.png",
+  "art-src/raw/ui2/race-clock-9611-37.png",
+  "art-src/raw/ui2/race-clock-9611-38.png",
+  "art-src/raw/ui2/race-clock-9611-39.png",
+  "art-src/raw/ui2/race-clock-9611-40.png",
+  "art-src/raw/ui2/race-clock-9611-41.png",
+  "art-src/raw/ui2/race-clock-9611-42.png",
+  "art-src/raw/ui2/race-clock-9611-43.png",
+  "art-src/raw/ui2/race-clock-9611-44.png",
+  "art-src/raw/ui2/race-clock-9611-45.png",
+  "art-src/raw/ui2/race-clock-9611-46.png",
+  "art-src/raw/ui2/race-clock-9611-47.png",
+  "art-src/raw/ui2/race-clock-9611-48.png",
+  "art-src/raw/ui2/race-clock-9611-49.png",
+  "art-src/raw/ui2/race-clock-9611-50.png",
+  "art-src/raw/ui2/race-clock-9611-51.png",
+  "art-src/raw/ui2/race-clock-9611-52.png",
+  "art-src/raw/ui2/race-clock-9611-53.png",
+  "art-src/raw/ui2/race-clock-9611-54.png",
+  "art-src/raw/ui2/race-clock-9611-55.png",
+  "art-src/raw/ui2/race-clock-9611-56.png",
+  "art-src/raw/ui2/race-clock-9611-57.png",
+  "art-src/raw/ui2/race-clock-9611-58.png",
+  "art-src/raw/ui2/race-clock-9611-59.png",
+  "art-src/raw/ui2/race-clock-9611-60.png",
+  "art-src/raw/ui2/race-clock-9611-61.png",
+  "art-src/raw/ui2/race-clock-9611-62.png",
+  "art-src/raw/ui2/race-clock-9611-63.png"
+ ]
+}

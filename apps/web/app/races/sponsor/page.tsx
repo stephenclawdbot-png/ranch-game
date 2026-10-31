@@ -19,7 +19,7 @@ export default async function SponsorPage({ searchParams }: { searchParams: Prom
   const view = await sponsorView(database, session, new Date(), { date: date ?? null });
   return (
     <div className="grid gap-6">
-      <PageHeader scene="grandstand" back={{ href: "/races", label: "Race card" }} eyebrow="Kestrel Downs" title="Sponsor a race" meta={`${formatCredits(view.credits)} credits`} />
+      <PageHeader scene="sponsor-marquee" back={{ href: "/races", label: "Race card" }} eyebrow="Kestrel Downs" title="Sponsor a race" meta={`${formatCredits(view.credits)} credits`} />
       <HowItWorks>
         <p>
           Put your stable&rsquo;s name on a Live race up to {view.rules.windowDays} days ahead: the race becomes &ldquo;The {view.stableName} Handicap&rdquo; or whatever its class is, with your

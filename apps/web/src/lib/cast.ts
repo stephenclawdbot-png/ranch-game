@@ -44,7 +44,7 @@ export interface JockeyPortraitArt {
  * at creation, least-used first), painted with that look's skin, hair and accessories by
  * JockeyPortrait. Jockeys stored before looks fall back to a face picked from the id.
  */
-export function jockeyPortrait(j: { id: string; name: string; stage: string; look?: unknown }): JockeyPortraitArt {
+export function jockeyPortrait(j: { id: string; name: string; stage: string; gender?: unknown; look?: unknown }): JockeyPortraitArt {
   const look = gc.resolveJockeyLook(j);
   const anchors = BUST_INDEX.faces[look.face] ?? null;
   return { id: look.face, src: `/art/portraits/jockeys/${look.face}.png`, face: anchors ? [anchors.face[0], anchors.face[1]] : [36, 24], look, anchors };
@@ -58,7 +58,9 @@ export const trainerPortrait = (rivalId: string): string | null => (TRAINERS.has
 export type VignetteName =
   | "win" | "first-win" | "photo-finish" | "purse" | "champion" | "jockey-signed" | "jockey-retires" | "jockey-claim"
   | "sale" | "claim" | "hall-of-fame" | "memorial" | "retired" | "foal" | "vet" | "week" | "improver" | "quirk"
-  | "unlock" | "scan" | "exact" | "legacy" | "stable-steps";
+  | "unlock" | "scan" | "exact" | "legacy" | "stable-steps"
+  // empty and locked states that used to borrow a news picture (graphics round 2)
+  | "empty-bench" | "sale-closed" | "lost-race";
 
 export const NEWS_VIGNETTE: Record<string, VignetteName> = {
   feature_win: "win",

@@ -105,6 +105,7 @@ function MyRaces({ state }: { state: PlayerState }) {
   return (
     <div className="mx-auto grid max-w-6xl content-start gap-4" data-testid="my-races-page">
       <PageHeader
+        scene="owners-office"
         eyebrow={state.stableName}
         title="My races"
         meta={s ? `${s.runs} ${s.runs === 1 ? "run" : "runs"} · ${s.wins} ${s.wins === 1 ? "win" : "wins"} · ${s.places} ${s.places === 1 ? "place" : "places"} · +${formatCredits(s.credits)} credits` : "…"}
@@ -151,10 +152,10 @@ function MyRaces({ state }: { state: PlayerState }) {
       ) : failed ? (
         <EmptyState icon="cross" title="Couldn't load your races" text="Check your connection and try again." action={<button className="btn" onClick={() => void load(null)}>Try again</button>} />
       ) : filtered ? (
-        <EmptyState icon="stopwatch" title="No races match these filters." text="Try another horse or kind, or clear the wins-only tick." />
+        <EmptyState icon="race-diary" title="No races match these filters." text="Try another horse or kind, or clear the wins-only tick." />
       ) : (
         <EmptyState
-          icon="stopwatch"
+          icon="race-diary"
           title="No races yet"
           text="Your first race shows here with its replay."
           action={

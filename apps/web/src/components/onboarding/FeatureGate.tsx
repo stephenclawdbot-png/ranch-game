@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { usePlayerState } from "@/lib/player";
 import type { UnlockFeature } from "@/lib/types";
 import { PixelIcon } from "../icons";
+import { Vignette } from "../ui/Vignette";
 import { LOCKED_COPY } from "./guide";
 
 /** True while a new stable hasn't opened this feature yet (signed out, existing stables: false). */
@@ -18,7 +19,7 @@ export function LockedNote({ feature, compact = false }: { feature: UnlockFeatur
   const c = LOCKED_COPY[feature];
   return (
     <section className={`surface flex items-start gap-3 ${compact ? "p-3" : "p-4"}`} data-testid={`locked-${feature}`} aria-label={`${c.name}: not open yet`}>
-      <PixelIcon name="gate" size={32} />
+      {feature === "market" && !compact ? <Vignette name="sale-closed" /> : <PixelIcon name="gate" size={32} />}
       <div className="min-w-0 flex-1">
         <p className="eyebrow">Opens soon</p>
         <p className="t-title">{c.name}</p>

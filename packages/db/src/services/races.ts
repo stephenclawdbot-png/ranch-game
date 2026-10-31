@@ -514,7 +514,7 @@ export interface FieldRunner {
    * `look` (named jockeys, fields locked since jockey looks) is how the rider is drawn: never
    * hashed, it changes nothing on the track; older fields simply have none.
    */
-  jockey?: { id: string | null; name: string; claimLb: number; look?: gc.JockeyLook };
+  jockey?: { id: string | null; name: string; claimLb: number; look?: gc.JockeyLook; gender?: gc.JockeyGender };
 }
 
 export interface LockedField {
@@ -822,7 +822,7 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
       horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse, ...(w ? { extraWeightLb: w.extraLb } : {}) }) : p.snapshot,
       ...(kit ? { kit } : {}),
       ...(w ? { weightLb: w.weightLb, extraWeightLb: w.extraLb } : {}),
-      ...(rider ? { jockey: { id: rider.id, name: rider.name, claimLb: w ? rider.claimLb : 0, ...(rider.look ? { look: rider.look } : {}) } } : {}),
+      ...(rider ? { jockey: { id: rider.id, name: rider.name, claimLb: w ? rider.claimLb : 0, ...(rider.look ? { look: rider.look } : {}), ...(rider.gender ? { gender: rider.gender } : {}) } } : {}),
     });
   }
   await recordRidesTx(tx, race, runners.flatMap((r) => {

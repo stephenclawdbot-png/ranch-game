@@ -59,7 +59,7 @@ export default async function RacesPage() {
           ) : (
             <section className="min-w-0">
               <h2 className="t-h2 mb-3">Results</h2>
-              <EmptyState icon="stopwatch" title="No results yet today" text="The next race meeting is on the card. Enter a horse, or come back to watch it live." />
+              <EmptyState icon="results-board" title="No results yet today" text="The next race meeting is on the card. Enter a horse, or come back to watch it live." />
             </section>
           )}
         </div>

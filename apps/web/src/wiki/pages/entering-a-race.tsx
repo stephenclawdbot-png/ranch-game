@@ -172,7 +172,7 @@ export default function EnteringARacePage() {
       />
 
       <H2 id="paddock">The paddock and the off</H2>
-      <Figure src="/art/diorama/poster-paddock.png" alt="Horses parading in the paddock" caption="Before the off, the runners parade in the paddock." focus={0.55} />
+      <Figure src="/art/scenes/wiki-declarations.png" alt="Owners and trainers queueing at the declarations office while a clerk chalks the runners up" caption="Entries close before the off; then the field is locked and sealed." focus={0.55} />
       <P>
         The race page counts down to the off. While entries are open it shows how long you have left; entries close {RULES.entriesCloseBeforePostMs / 1000} seconds before the off and the field
         locks. The runners parade in the paddock, with a nameplate for each horse showing its stable and form. In the final seconds they go down to post and the gates load. Then the race goes

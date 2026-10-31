@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default function PlayPage() {
   return (
     <>
-      <SceneBackdrop scene="barn" />
+      <SceneBackdrop scene="registration-desk" />
       <PlayClient playtest={playtestConfig().enabled} />
     </>
   );

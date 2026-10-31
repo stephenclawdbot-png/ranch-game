@@ -197,7 +197,7 @@ function riderOf(r: FieldRunner): Horse["appearance"]["rider"] | undefined {
   const look = r.jockey?.look ? gc.parseJockeyLook(r.jockey.look) : null;
   if (!look || !gc.jockeyFace(look.face)) return undefined;
   const rl = gc.riderLookOf(look);
-  return { skin: [rl.skin[0], rl.skin[1], rl.skin[2]], hair: [rl.hair[0], rl.hair[1], rl.hair[2]], long: rl.long };
+  return { skin: [rl.skin[0], rl.skin[1], rl.skin[2]], hair: [rl.hair[0], rl.hair[1], rl.hair[2]], long: rl.long, gender: rl.gender };
 }
 
 /** A runner's horse with its jockey's look on the appearance (racecard, paddock parade). */

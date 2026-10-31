@@ -368,7 +368,7 @@ function SellRow({ h, v, onView, onListed }: { h: SellableHorse; v: MarketView; 
 // ---------------------------------------------------------------------------
 
 function Mine({ v, onView }: { v: MarketView; onView: (v: MarketView) => void }) {
-  if (!v.mine.length) return <EmptyState icon="papers" title="Nothing listed" text="You have no horses listed. List one from the Sell tab." />;
+  if (!v.mine.length) return <EmptyState icon="sale-board" title="Nothing listed" text="You have no horses listed. List one from the Sell tab." />;
   return (
     <ul className="grid gap-2">
       {v.mine.map((l) => (

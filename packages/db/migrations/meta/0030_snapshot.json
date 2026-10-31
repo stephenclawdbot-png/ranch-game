@@ -1,5 +1,5 @@
 {
-  "id": "8cfd5638-71b2-4741-b78b-50d7b725d3f0",
+  "id": "20dec537-21a7-43c9-9fde-714cd5abcef1",
   "prevId": "65378a8d-2cd9-4311-94c8-2f6c435e3928",
   "version": "7",
   "dialect": "postgresql",
@@ -5384,6 +5384,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -5499,6 +5505,10 @@
         "jockeys_stage": {
           "name": "jockeys_stage",
           "value": "\"jockeys\".\"stage\" in ('apprentice', 'prime', 'veteran')"
+        },
+        "jockeys_gender": {
+          "name": "jockeys_gender",
+          "value": "\"jockeys\".\"gender\" is null or \"jockeys\".\"gender\" in ('f', 'm')"
         },
         "jockeys_personality": {
           "name": "jockeys_personality",

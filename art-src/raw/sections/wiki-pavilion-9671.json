@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a white wooden racing club pavilion with a clock in the gable and a veranda, members in blazers on deck chairs, a flagpole, a neat lawn",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9671,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "fa37be64-0cb6-4c0c-90a6-db15df0b2b95",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "fa37be64-0cb6-4c0c-90a6-db15df0b2b95",
+  "status": "completed",
+  "created_at": "2026-10-31T15:05:45.790790+00:00",
+  "last_response": {
+   "seed": 9671,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<200224 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "e158fac9-f7e2-45cf-9a92-8ac5dcec5942",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:05:52.117248+00:00",
+   "original_image_n_colors": 124,
+   "quantized_image_n_colors": 55
+  }
+ },
+ "files": [
+  "art-src/raw/sections/wiki-pavilion-9671-0.png"
+ ]
+}

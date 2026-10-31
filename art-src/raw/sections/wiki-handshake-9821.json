@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, two horse dealers in tweed shaking hands over a sale in a stable yard, a small leather purse of coins on a barrel, a groom holding the sold racehorse, an open stable door",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9821,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "38c64623-b7a7-4df9-9473-e9fab1f98bb8",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "38c64623-b7a7-4df9-9473-e9fab1f98bb8",
+  "status": "completed",
+  "created_at": "2026-10-31T15:33:17.682394+00:00",
+  "last_response": {
+   "seed": 9821,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<207432 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "c4fe245a-3665-44f8-ba09-6ba3a2650b04",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:33:24.010031+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/raw/sections/wiki-handshake-9821-0.png"
+ ]
+}

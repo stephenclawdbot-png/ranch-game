@@ -60,7 +60,7 @@ export function InviteScreen() {
   const r = v.rules;
   return (
     <div className="grid gap-5" data-testid="invite">
-      <PageHeader scene="grandstand" back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Invite friends" meta="Invite friends to the beta, and earn a share when they buy packs." />
+      <PageHeader scene="club-entrance" back={{ href: "/me", label: "Profile" }} eyebrow="Closed beta" title="Invite friends" meta="Invite friends to the beta, and earn a share when they buy packs." />
 
       <section className="frame-hero grid gap-3 p-4 sm:p-5" aria-labelledby="link-h">
         <h2 id="link-h" className="t-hero">
@@ -98,7 +98,7 @@ export function InviteScreen() {
       <section aria-labelledby="inv-h">
         <SectionHeader id="inv-h" title="Your invitees" />
         {v.invitees.length === 0 ? (
-          <EmptyState icon="ticket" title="Nobody yet" text="Send your link to a friend who'd enjoy running a stable." />
+          <EmptyState icon="invitation" title="Nobody yet" text="Send your link to a friend who'd enjoy running a stable." />
         ) : (
           <ul className="surface rows !p-0" data-testid="invitees">
             {v.invitees.map((i, k) => (

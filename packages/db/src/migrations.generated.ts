@@ -184,8 +184,8 @@ export const MIGRATIONS: readonly BundledMigration[] = [
   },
   {
     "tag": "0030_jockey_faces",
-    "when": 1793459445358,
-    "hash": "104426adcf8b45facc8b8b936dcbb2a30db1e2e044e81fb073bdf8221e477823",
-    "sql": "ALTER TABLE \"jockeys\" ADD COLUMN \"look\" jsonb;"
+    "when": 1793461845675,
+    "hash": "f4dbbf05011a14a65240debc0311f082d2493e92757716c0513b784f6a43ffe1",
+    "sql": "ALTER TABLE \"jockeys\" ADD COLUMN \"look\" jsonb;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD COLUMN \"gender\" text;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD CONSTRAINT \"jockeys_gender\" CHECK (\"jockeys\".\"gender\" is null or \"jockeys\".\"gender\" in ('f', 'm'));"
   }
 ];

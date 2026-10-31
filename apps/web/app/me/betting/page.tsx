@@ -156,6 +156,7 @@ function Betting({ state }: { state: PlayerState }) {
   return (
     <div className="mx-auto grid max-w-3xl content-start gap-4" data-testid="betting-limits-page">
       <PageHeader
+        scene="owners-office"
         back={{ href: "/me", label: "Profile" }}
         eyebrow={state.stableName}
         title="Betting limits"

@@ -51,6 +51,7 @@ function MyBets({ state }: { state: PlayerState }) {
   return (
     <div className="mx-auto grid max-w-4xl content-start gap-4" data-testid="my-bets-page">
       <PageHeader
+        scene="owners-office"
         back={{ href: "/me", label: "Profile" }}
         eyebrow={state.stableName}
         title="My bets"

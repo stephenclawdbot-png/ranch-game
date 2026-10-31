@@ -109,7 +109,7 @@ export default function RaceTypesPage() {
         <b>Story chapters</b> are solo races against the Club&rsquo;s rival stables that you can run whenever you like. On top of that sit the card&rsquo;s Features and the scheduled big
         days: the weekday Qualifiers, the Weekend Feature, the Saturday Plate and the Season Final.
       </Lead>
-      <Figure src="/art/diorama/poster-grandstand.png" alt="The grandstand at Kestrel Downs on race day" caption={`Kestrel Downs on a meeting day: ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart.`} focus={0.45} />
+      <Figure src="/art/scenes/wiki-meeting-day.png" alt="A country race meeting seen from the hill: picnics, tents and the parade ring" caption={`Kestrel Downs on a meeting day: ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart.`} focus={0.45} />
 
       <H2 id="live">Live races</H2>
       <P>

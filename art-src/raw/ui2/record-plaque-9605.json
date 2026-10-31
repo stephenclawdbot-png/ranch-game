@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a brass record plaque with a small clock face and a laurel sprig",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9605,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "0d69d74f-5811-4f81-88a1-9a58aef38055",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "0d69d74f-5811-4f81-88a1-9a58aef38055",
+  "status": "completed",
+  "created_at": "2026-10-31T15:00:21.907765+00:00",
+  "last_response": {
+   "seed": 9605,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1616 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1432 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1368 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2068 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2120 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1836 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1652 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1964 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1616 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1860 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2144 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1828 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1916 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2192 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1444 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1920 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1904 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1692 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1796 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1820 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1992 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1704 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2004 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2032 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2172 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1732 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2040 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2032 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1956 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1764 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1828 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1552 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1672 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1536 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2004 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1740 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1916 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1996 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1932 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1852 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1968 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2088 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2080 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1824 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1980 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1976 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1984 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1808 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2144 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1776 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1864 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1644 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2140 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1948 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2020 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1924 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2028 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2072 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1956 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "74f0763d-b06d-4774-9604-290525f36c7e",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:28.047575+00:00",
+   "original_image_n_colors": 101,
+   "quantized_image_n_colors": 66
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/record-plaque-9605-0.png",
+  "art-src/raw/ui2/record-plaque-9605-1.png",
+  "art-src/raw/ui2/record-plaque-9605-2.png",
+  "art-src/raw/ui2/record-plaque-9605-3.png",
+  "art-src/raw/ui2/record-plaque-9605-4.png",
+  "art-src/raw/ui2/record-plaque-9605-5.png",
+  "art-src/raw/ui2/record-plaque-9605-6.png",
+  "art-src/raw/ui2/record-plaque-9605-7.png",
+  "art-src/raw/ui2/record-plaque-9605-8.png",
+  "art-src/raw/ui2/record-plaque-9605-9.png",
+  "art-src/raw/ui2/record-plaque-9605-10.png",
+  "art-src/raw/ui2/record-plaque-9605-11.png",
+  "art-src/raw/ui2/record-plaque-9605-12.png",
+  "art-src/raw/ui2/record-plaque-9605-13.png",
+  "art-src/raw/ui2/record-plaque-9605-14.png",
+  "art-src/raw/ui2/record-plaque-9605-15.png",
+  "art-src/raw/ui2/record-plaque-9605-16.png",
+  "art-src/raw/ui2/record-plaque-9605-17.png",
+  "art-src/raw/ui2/record-plaque-9605-18.png",
+  "art-src/raw/ui2/record-plaque-9605-19.png",
+  "art-src/raw/ui2/record-plaque-9605-20.png",
+  "art-src/raw/ui2/record-plaque-9605-21.png",
+  "art-src/raw/ui2/record-plaque-9605-22.png",
+  "art-src/raw/ui2/record-plaque-9605-23.png",
+  "art-src/raw/ui2/record-plaque-9605-24.png",
+  "art-src/raw/ui2/record-plaque-9605-25.png",
+  "art-src/raw/ui2/record-plaque-9605-26.png",
+  "art-src/raw/ui2/record-plaque-9605-27.png",
+  "art-src/raw/ui2/record-plaque-9605-28.png",
+  "art-src/raw/ui2/record-plaque-9605-29.png",
+  "art-src/raw/ui2/record-plaque-9605-30.png",
+  "art-src/raw/ui2/record-plaque-9605-31.png",
+  "art-src/raw/ui2/record-plaque-9605-32.png",
+  "art-src/raw/ui2/record-plaque-9605-33.png",
+  "art-src/raw/ui2/record-plaque-9605-34.png",
+  "art-src/raw/ui2/record-plaque-9605-35.png",
+  "art-src/raw/ui2/record-plaque-9605-36.png",
+  "art-src/raw/ui2/record-plaque-9605-37.png",
+  "art-src/raw/ui2/record-plaque-9605-38.png",
+  "art-src/raw/ui2/record-plaque-9605-39.png",
+  "art-src/raw/ui2/record-plaque-9605-40.png",
+  "art-src/raw/ui2/record-plaque-9605-41.png",
+  "art-src/raw/ui2/record-plaque-9605-42.png",
+  "art-src/raw/ui2/record-plaque-9605-43.png",
+  "art-src/raw/ui2/record-plaque-9605-44.png",
+  "art-src/raw/ui2/record-plaque-9605-45.png",
+  "art-src/raw/ui2/record-plaque-9605-46.png",
+  "art-src/raw/ui2/record-plaque-9605-47.png",
+  "art-src/raw/ui2/record-plaque-9605-48.png",
+  "art-src/raw/ui2/record-plaque-9605-49.png",
+  "art-src/raw/ui2/record-plaque-9605-50.png",
+  "art-src/raw/ui2/record-plaque-9605-51.png",
+  "art-src/raw/ui2/record-plaque-9605-52.png",
+  "art-src/raw/ui2/record-plaque-9605-53.png",
+  "art-src/raw/ui2/record-plaque-9605-54.png",
+  "art-src/raw/ui2/record-plaque-9605-55.png",
+  "art-src/raw/ui2/record-plaque-9605-56.png",
+  "art-src/raw/ui2/record-plaque-9605-57.png",
+  "art-src/raw/ui2/record-plaque-9605-58.png",
+  "art-src/raw/ui2/record-plaque-9605-59.png",
+  "art-src/raw/ui2/record-plaque-9605-60.png",
+  "art-src/raw/ui2/record-plaque-9605-61.png",
+  "art-src/raw/ui2/record-plaque-9605-62.png",
+  "art-src/raw/ui2/record-plaque-9605-63.png"
+ ]
+}

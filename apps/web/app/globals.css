@@ -1186,14 +1186,15 @@ dialog.sheet :focus-visible {
     --bh: 120px;
   }
   /* Integer scale only: 1x phones, 2x tablet/desktop, 3x on very wide screens. */
+  /* Cropped around the scene's focal point (--fx, --fy): wider than the band, the focal column
+     sits in the middle as far as the art allows; narrower, the art is centred. */
   .scene-art {
     position: absolute;
-    left: 50%;
     max-width: none;
     width: calc(var(--aw) * var(--k));
     height: calc(var(--ah) * var(--k));
+    left: clamp(min(0px, calc(100% - var(--aw) * var(--k))), calc(50% - var(--fx, 0.5) * var(--aw) * var(--k)), max(0px, calc(50% - var(--aw) * var(--k) / 2)));
     top: clamp(calc(var(--bh) - var(--ah) * var(--k)), calc(var(--bh) / 2 - var(--fy) * var(--ah) * var(--k)), 0px);
-    transform: translateX(-50%);
     image-rendering: pixelated;
   }
   .scene-band::after {
@@ -1264,6 +1265,75 @@ dialog.sheet :focus-visible {
     }
     .scene-band.short {
       --bh: 240px;
+    }
+    /* a still scene at 3x needs the height to show its subject (heads in frame, not cut at the neck) */
+    .scene-band.short.still {
+      --bh: 288px;
+    }
+  }
+  /* scrolling tab rows: a wide fade and a chevron on the side with more tabs */
+  .tabs-hint[data-more-right] > .tabs {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 56px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 56px), transparent 100%);
+  }
+  .tabs-hint[data-more-left][data-more-right] > .tabs {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 56px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 56px), transparent 100%);
+  }
+  .tabs-hint[data-more-left]:not([data-more-right]) > .tabs {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 40px);
+    mask-image: linear-gradient(90deg, transparent 0, #000 40px);
+  }
+  .tabs-chevron {
+    position: absolute;
+    top: 50%;
+    display: none;
+    transform: translateY(-50%);
+    font-weight: 800;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--color-brass);
+    pointer-events: none;
+  }
+  .tabs-chevron-right {
+    right: 8px;
+  }
+  .tabs-chevron-left {
+    left: 6px;
+  }
+  .tabs-hint[data-more-right] > .tabs-chevron-right,
+  .tabs-hint[data-more-left] > .tabs-chevron-left {
+    display: block;
+  }
+  /* course scenery thumbnails (wiki racecourses): art at its own size times a whole number */
+  .scenery-thumb {
+    --k: 1;
+  }
+  @media (min-width: 768px) {
+    .scenery-thumb {
+      --k: 2;
+    }
+  }
+  .scenery-thumb .scenery-px {
+    position: absolute;
+    width: auto;
+    height: auto;
+    max-width: none;
+    transform: scale(var(--k));
+    image-rendering: pixelated;
+  }
+  /* title-less picture strips (the horse sub-pages) */
+  .scene-band.strip {
+    --bh: 120px;
+  }
+  @media (min-width: 768px) {
+    .scene-band.strip {
+      --bh: 176px;
+    }
+  }
+  @media (min-width: 1400px) {
+    .scene-band.strip {
+      --bh: 216px;
     }
   }
   .section {
@@ -2074,12 +2144,21 @@ select.field option {
     0 -1px 0 #050d08,
     0 0 12px rgba(0, 0, 0, 0.8);
 }
-/* Text on art always gets a scrim-strength shadow (REDESIGN §2b: text never sits bare on art). */
+/* Text on art always gets a scrim-strength shadow (REDESIGN §2b: text never sits bare on art),
+   and an ink outline, so an eyebrow reads over bright clouds or a crowd too (graphics round 2). */
 .scene-band .overlay .eyebrow,
-.scene-band .overlay .t-meta {
+.scene-band .overlay .t-meta,
+.wiki-hero-text .label {
   text-shadow:
+    1px 0 0 #050d08,
+    -1px 0 0 #050d08,
+    0 1px 0 #050d08,
+    0 -1px 0 #050d08,
     0 1px 2px rgba(0, 0, 0, 0.9),
     0 0 12px rgba(0, 0, 0, 0.8);
+}
+.wiki-hero-text .label {
+  color: var(--color-brass);
 }
 
 /* ---------------------------------------------------------------- Estate hub (REDESIGN §4.1) */
@@ -2400,7 +2479,8 @@ select.field option {
     position: absolute;
     top: 72px;
     left: 52%;
-    width: min(36rem, calc(48% - var(--gutter)));
+    /* clear of the next-horse arrow (44 px at 10 px from the edge) */
+    width: min(36rem, calc(48% - var(--gutter) - 48px));
     margin: 0;
     padding: 0;
     text-align: left;
@@ -3096,6 +3176,16 @@ dialog.sheet .inset {
 .you-tag,
 .chip-brass {
   box-shadow: inset 0 0 0 2px #1d140a;
+}
+/* The square .chip above comes later than the coloured variants: re-assert their fills, so a
+   brass chip (Daily Cup "Gold") is brass with ink text, never dark on dark green. */
+.chip.chip-brass {
+  color: var(--color-ink);
+  background: var(--color-brass);
+}
+.chip.chip-cream {
+  color: var(--color-ink);
+  background: var(--color-paper);
 }
 .fchip {
   border-radius: 0;
@@ -4267,6 +4357,16 @@ a.ped-node:focus-visible {
   opacity: 0.6;
   filter: grayscale(1) brightness(0.9) drop-shadow(0 3px 0 rgba(0, 0, 0, 0.45));
 }
+/* 2x plaques: locked ones keep their engraving legible (pewter, not a blob) in a dashed slot. */
+.trophy-sprite.plaque-2x {
+  image-rendering: pixelated;
+}
+.plaque-piece.is-locked .trophy-sprite.plaque-2x.is-dim {
+  opacity: 0.88;
+  filter: grayscale(1) brightness(1.08) contrast(1.15) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.5));
+  outline: 2px dashed rgba(243, 231, 201, 0.35);
+  outline-offset: 3px;
+}
 .plaque-piece.is-locked .trophy-card-meta {
   color: var(--color-on-baize);
 }
@@ -4506,7 +4606,7 @@ a.ped-node:focus-visible {
 .wiki-hero-text {
   position: relative;
   padding: var(--s6) var(--s5) var(--s5);
-  background: linear-gradient(180deg, transparent, rgb(8 21 14 / 0.88) 38%);
+  background: linear-gradient(180deg, rgb(8 21 14 / 0.45), rgb(8 21 14 / 0.9) 38%);
   max-width: 100%;
 }
 .wiki-hero-text p:not(.label) {

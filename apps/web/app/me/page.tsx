@@ -50,10 +50,10 @@ function Profile({ state }: { state: PlayerState }) {
 
   return (
     <div className="mx-auto grid max-w-4xl gap-8">
-      <PageHeader eyebrow={state.stableName} title="Profile" meta="Your stable's name and colours, and how the game looks on this device." />
+      <PageHeader scene="owners-office" eyebrow={state.stableName} title="Profile" meta="Your stable's name and colours, and how the game looks on this device." />
 
       <Link href="/me/races" className="surface flex items-center gap-3 p-3" data-testid="my-races">
-        <PixelIcon name="stopwatch" size={32} />
+        <PixelIcon name="race-diary" size={32} />
         <span className="min-w-0 flex-1">
           <span className="t-title block">My races</span>
           <span className="t-meta block">Every run your stable has made, each with its replay.</span>
@@ -74,7 +74,7 @@ function Profile({ state }: { state: PlayerState }) {
           </span>
         </Link>
         <Link href="/me/betting" className="surface flex items-center gap-3 p-3" data-testid="betting-limits">
-          <PixelIcon name="shield" size={32} />
+          <PixelIcon name="purse-lock" size={32} />
           <span className="min-w-0 flex-1">
             <span className="t-title block">Betting limits</span>
             <span className="t-meta block">Limits, a break from betting, 18+.</span>
@@ -111,7 +111,7 @@ function Profile({ state }: { state: PlayerState }) {
                   }
                 }}
               >
-                <PixelIcon name="check" className="h-5 w-5" /> {busy ? "Saving…" : "Save colours"}
+                <PixelIcon name="check" size={16} /> {busy ? "Saving…" : "Save colours"}
               </button>
             </ActionBar>
           ) : (
@@ -279,7 +279,7 @@ function StablePhotoCard({ state }: { state: PlayerState }) {
         <div className="grid gap-2">
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-brass" disabled={busy} onClick={() => inputRef.current?.click()} data-testid="photo-choose">
-              <PixelIcon name="pencil" className="h-5 w-5" /> {busy ? "Uploading…" : state.photoUrl ? "Change photo" : "Upload photo"}
+              <PixelIcon name="pencil" size={16} /> {busy ? "Uploading…" : state.photoUrl ? "Change photo" : "Upload photo"}
             </button>
             {state.photoUrl && (
               <button type="button" className="btn btn-ghost btn-danger-text" disabled={busy} onClick={() => void remove()} data-testid="photo-remove">
@@ -382,7 +382,7 @@ function LinkDeviceCard() {
       )}
       <ActionBar>
         <button type="button" className="btn btn-brass" disabled={busy} onClick={() => void getCode()} data-testid="get-link-code">
-          <PixelIcon name="horseshoe" className="h-5 w-5" /> {busy ? "Making a code…" : code ? "New code" : "Get a link code"}
+          <PixelIcon name="telephone" size={16} /> {busy ? "Making a code…" : code ? "New code" : "Get a link code"}
         </button>
       </ActionBar>
       {error !== null && <ErrorNote error={error} />}

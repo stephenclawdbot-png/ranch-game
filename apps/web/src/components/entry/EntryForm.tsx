@@ -413,7 +413,7 @@ export function EntryForm({
       {showPicker && <HorsePicker horses={racing} selectedId={horseId} onSelect={setHorseId} />}
       <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={(i) => (horse ? storyRisk(horse, i) : null)} />
       <p className="flex items-start gap-2 text-sm text-cream-dim">
-        <PixelIcon name="shield" size={16} className="mt-0.5" />
+        <PixelIcon name="wax-seal" size={16} className="mt-0.5" />
         <span>
           Story race against the Club&rsquo;s horses, usually near {horse ? `${pronoun(horse.horse.sex).his} best trip` : "your horse's best trip"}. Free: no
           stable entries and no career start used. The result is sealed and settled the moment you enter; the gates open 10 seconds later.

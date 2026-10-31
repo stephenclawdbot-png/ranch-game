@@ -75,7 +75,8 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
   const p = weeksIn > 0 ? gc.generateSeasonedJockey(input.seed, weeksIn) : { ...gc.generateApprentice(input.seed), rides: 0, wins: 0, experience: 0 };
   const bornMs = input.now.getTime() - weeksIn * WEEK_MS;
   const stage = gc.jockeyStageAt(bornMs, input.now.getTime());
-  const look = await assignJockeyLookTx(ex, { seed: input.seed, stage, name: p.name });
+  const gender = gc.jockeyGender(p.name);
+  const look = await assignJockeyLookTx(ex, { seed: input.seed, stage, gender });
   const [row] = await ex
     .insert(jockeys)
     .values({
@@ -83,6 +84,7 @@ export async function createJockeyTx(ex: Executor, input: { seed: string; stable
       seed: input.seed,
       bornAt: new Date(bornMs),
       stage,
+      gender,
       look,
       personality: p.personality,
       skills: p.skills,
@@ -114,7 +116,7 @@ export async function activeJockeyLooksTx(ex: Executor): Promise<gc.JockeyLook[]
  * among active jockeys, then the freest skin / hair / accessory combination. One assignment at a
  * time (a transaction-scoped advisory lock), so two jockeys created at once never take one look.
  */
-export async function assignJockeyLookTx(ex: Executor, input: { seed: string; stage: gc.JockeyStage; name: string }): Promise<gc.JockeyLook> {
+export async function assignJockeyLookTx(ex: Executor, input: { seed: string; stage: gc.JockeyStage; gender: gc.JockeyGender }): Promise<gc.JockeyLook> {
   await ex.execute(sql`select pg_advisory_xact_lock(hashtext('jockey-looks'))`);
   return gc.pickJockeyLook(input, await activeJockeyLooksTx(ex));
 }
@@ -125,8 +127,11 @@ export async function assignJockeyLookTx(ex: Executor, input: { seed: string; st
  * while unused ones exist; retired ones after). A look, once set, is never changed.
  */
 export async function ensureJockeyLooksTx(ex: Executor): Promise<number> {
+  // gender first: from the first name (the fixed map for the names that fit either)
+  const ungendered = await ex.select({ id: jockeys.id, name: jockeys.name }).from(jockeys).where(isNull(jockeys.gender));
+  for (const j of ungendered) await ex.update(jockeys).set({ gender: gc.jockeyGender(j.name) }).where(and(eq(jockeys.id, j.id), isNull(jockeys.gender)));
   const missing = await ex
-    .select({ id: jockeys.id, seed: jockeys.seed, name: jockeys.name, stage: jockeys.stage, retiredAt: jockeys.retiredAt })
+    .select({ id: jockeys.id, seed: jockeys.seed, name: jockeys.name, gender: jockeys.gender, stage: jockeys.stage, retiredAt: jockeys.retiredAt })
     .from(jockeys)
     .where(isNull(jockeys.look))
     .orderBy(sql`${jockeys.retiredAt} is not null`, asc(jockeys.createdAt), asc(jockeys.id));
@@ -134,7 +139,7 @@ export async function ensureJockeyLooksTx(ex: Executor): Promise<number> {
   await ex.execute(sql`select pg_advisory_xact_lock(hashtext('jockey-looks'))`);
   const active = await activeJockeyLooksTx(ex);
   for (const j of missing) {
-    const look = gc.pickJockeyLook({ seed: j.seed, stage: j.stage as gc.JockeyStage, name: j.name }, active);
+    const look = gc.pickJockeyLook({ seed: j.seed, stage: j.stage as gc.JockeyStage, gender: gc.genderOf(j) }, active);
     const done = await ex.update(jockeys).set({ look }).where(and(eq(jockeys.id, j.id), isNull(jockeys.look))).returning({ id: jockeys.id });
     if (done.length && !j.retiredAt) active.push(look);
   }
@@ -241,6 +246,8 @@ export interface JockeyView {
   silks: unknown;
   /** The jockey's look (face, skin, hair, accessories): the stored one, else a fallback from the id. */
   look: gc.JockeyLook;
+  /** One stored gender: the name, the bust and the rider sprite all follow it. */
+  gender: gc.JockeyGender;
   retireAt: string;
   retirementAnnounced: boolean;
   retired: boolean;
@@ -272,6 +279,7 @@ export function jockeyView(j: JockeyRow, stable?: { name: string; silks: unknown
     stableName: stable?.name ?? null,
     silks: stable?.silks ?? null,
     look: gc.resolveJockeyLook(j),
+    gender: gc.genderOf(j),
     retireAt: j.retireAt.toISOString(),
     retirementAnnounced: j.retirementAnnouncedAt !== null,
     retired: j.retiredAt !== null,
@@ -545,8 +553,9 @@ export interface FieldJockey {
   stableId: string | null;
   /** Freelance fee this ride was booked for (0 = own jockey, Club runner, or assigned at the lock). */
   fee: number;
-  /** The rider's look (named jockeys only): drawn on the race and paddock sprites. */
+  /** The rider's look and gender (named jockeys only): drawn on the race and paddock sprites. */
   look?: gc.JockeyLook;
+  gender?: gc.JockeyGender;
 }
 
 export interface FieldJockeyRunner {
@@ -563,7 +572,7 @@ export interface FieldJockeyRunner {
 const UNNAMED_NAMES = { club: "Club rider", journeyman: "Journeyman", top: "Top jockey" } as const;
 
 function fieldJockeyOf(j: JockeyRow, fee: number): FieldJockey {
-  return { id: j.id, name: j.name, skills: skillsOf(j), claimLb: gc.apprenticeClaimLb(j.wins), stableId: j.stableId, fee, look: gc.resolveJockeyLook(j) };
+  return { id: j.id, name: j.name, skills: skillsOf(j), claimLb: gc.apprenticeClaimLb(j.wins), stableId: j.stableId, fee, look: gc.resolveJockeyLook(j), gender: gc.genderOf(j) };
 }
 
 /**

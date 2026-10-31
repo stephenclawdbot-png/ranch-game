@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, the members' bar at a racecourse: two rival racehorse owners in tweed suits raising glasses to each other at a polished mahogany bar, framed racehorse paintings, brass rail, a window onto the parade ring",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9551,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "9aac9102-1e1d-4e77-a706-85dd3fdc0f09",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "9aac9102-1e1d-4e77-a706-85dd3fdc0f09",
+  "status": "completed",
+  "created_at": "2026-10-31T14:58:56.949189+00:00",
+  "last_response": {
+   "seed": 9551,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<210068 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "333dac12-7589-44cd-b156-67ef897b7207",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T14:59:06.10989+00:00",
+   "original_image_n_colors": 124,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/raw/sections/owners-bar-9551-0.png"
+ ]
+}

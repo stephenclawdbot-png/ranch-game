@@ -41,6 +41,10 @@ PICKS = {
     "exact": "exact-9871-4",
     "legacy": "legacy-9872-1",
     "stable-steps": "stable-steps-9873-0",
+    # graphics round 2: empty and locked states (art-src/gen-round2.mjs vignettes)
+    "empty-bench": "empty-bench-9881-3",
+    "sale-closed": "sale-closed-9882-15",
+    "lost-race": "lost-race-9883-1",
 }
 
 SIZE = 64

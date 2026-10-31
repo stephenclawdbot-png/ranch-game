@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses with work riders cantering up a grass gallop on the chalk downs in the early morning, a white rail along the gallop, rolling hills, morning mist, low golden sun, a trainer on a grey hack watching beside the rail, no vehicles",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9561,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "1ef2cb1f-f32e-40bc-9457-a1d22d2ad055",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "1ef2cb1f-f32e-40bc-9457-a1d22d2ad055",
+  "status": "completed",
+  "created_at": "2026-10-31T14:58:59.627179+00:00",
+  "last_response": {
+   "seed": 9561,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<153600 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "9c34224f-1b1b-4c44-9b2d-5816a30d1a95",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T14:59:05.950281+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 53
+  }
+ },
+ "files": [
+  "art-src/raw/sections/gallops-downs-9561-0.png"
+ ]
+}

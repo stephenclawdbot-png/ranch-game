@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, an empty wooden coat peg with a jockey's silk cap hanging on it",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9613,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "fa086021-6682-4ef4-a1f8-8eeab25da3d3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "fa086021-6682-4ef4-a1f8-8eeab25da3d3",
+  "status": "completed",
+  "created_at": "2026-10-31T15:01:12.655545+00:00",
+  "last_response": {
+   "seed": 9613,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1692 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1660 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1584 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1704 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1500 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1404 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1076 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1508 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1628 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1532 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1680 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1504 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1500 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1708 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1520 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1712 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1656 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1504 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1612 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1412 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1384 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1564 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1372 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1600 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1548 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1604 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1632 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1428 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1332 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1436 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1548 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1328 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1636 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1432 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1724 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1608 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1648 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1636 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1368 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1612 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1600 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1588 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1416 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1652 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1468 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1784 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1772 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1636 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1576 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1628 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1432 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1520 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1580 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1468 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1576 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1428 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1272 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "ea9724da-360b-410c-96cb-0b95328f9b8b",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:01:18.794507+00:00",
+   "original_image_n_colors": 95,
+   "quantized_image_n_colors": 53
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/cap-peg-9613-0.png",
+  "art-src/raw/ui2/cap-peg-9613-1.png",
+  "art-src/raw/ui2/cap-peg-9613-2.png",
+  "art-src/raw/ui2/cap-peg-9613-3.png",
+  "art-src/raw/ui2/cap-peg-9613-4.png",
+  "art-src/raw/ui2/cap-peg-9613-5.png",
+  "art-src/raw/ui2/cap-peg-9613-6.png",
+  "art-src/raw/ui2/cap-peg-9613-7.png",
+  "art-src/raw/ui2/cap-peg-9613-8.png",
+  "art-src/raw/ui2/cap-peg-9613-9.png",
+  "art-src/raw/ui2/cap-peg-9613-10.png",
+  "art-src/raw/ui2/cap-peg-9613-11.png",
+  "art-src/raw/ui2/cap-peg-9613-12.png",
+  "art-src/raw/ui2/cap-peg-9613-13.png",
+  "art-src/raw/ui2/cap-peg-9613-14.png",
+  "art-src/raw/ui2/cap-peg-9613-15.png",
+  "art-src/raw/ui2/cap-peg-9613-16.png",
+  "art-src/raw/ui2/cap-peg-9613-17.png",
+  "art-src/raw/ui2/cap-peg-9613-18.png",
+  "art-src/raw/ui2/cap-peg-9613-19.png",
+  "art-src/raw/ui2/cap-peg-9613-20.png",
+  "art-src/raw/ui2/cap-peg-9613-21.png",
+  "art-src/raw/ui2/cap-peg-9613-22.png",
+  "art-src/raw/ui2/cap-peg-9613-23.png",
+  "art-src/raw/ui2/cap-peg-9613-24.png",
+  "art-src/raw/ui2/cap-peg-9613-25.png",
+  "art-src/raw/ui2/cap-peg-9613-26.png",
+  "art-src/raw/ui2/cap-peg-9613-27.png",
+  "art-src/raw/ui2/cap-peg-9613-28.png",
+  "art-src/raw/ui2/cap-peg-9613-29.png",
+  "art-src/raw/ui2/cap-peg-9613-30.png",
+  "art-src/raw/ui2/cap-peg-9613-31.png",
+  "art-src/raw/ui2/cap-peg-9613-32.png",
+  "art-src/raw/ui2/cap-peg-9613-33.png",
+  "art-src/raw/ui2/cap-peg-9613-34.png",
+  "art-src/raw/ui2/cap-peg-9613-35.png",
+  "art-src/raw/ui2/cap-peg-9613-36.png",
+  "art-src/raw/ui2/cap-peg-9613-37.png",
+  "art-src/raw/ui2/cap-peg-9613-38.png",
+  "art-src/raw/ui2/cap-peg-9613-39.png",
+  "art-src/raw/ui2/cap-peg-9613-40.png",
+  "art-src/raw/ui2/cap-peg-9613-41.png",
+  "art-src/raw/ui2/cap-peg-9613-42.png",
+  "art-src/raw/ui2/cap-peg-9613-43.png",
+  "art-src/raw/ui2/cap-peg-9613-44.png",
+  "art-src/raw/ui2/cap-peg-9613-45.png",
+  "art-src/raw/ui2/cap-peg-9613-46.png",
+  "art-src/raw/ui2/cap-peg-9613-47.png",
+  "art-src/raw/ui2/cap-peg-9613-48.png",
+  "art-src/raw/ui2/cap-peg-9613-49.png",
+  "art-src/raw/ui2/cap-peg-9613-50.png",
+  "art-src/raw/ui2/cap-peg-9613-51.png",
+  "art-src/raw/ui2/cap-peg-9613-52.png",
+  "art-src/raw/ui2/cap-peg-9613-53.png",
+  "art-src/raw/ui2/cap-peg-9613-54.png",
+  "art-src/raw/ui2/cap-peg-9613-55.png",
+  "art-src/raw/ui2/cap-peg-9613-56.png",
+  "art-src/raw/ui2/cap-peg-9613-57.png",
+  "art-src/raw/ui2/cap-peg-9613-58.png",
+  "art-src/raw/ui2/cap-peg-9613-59.png",
+  "art-src/raw/ui2/cap-peg-9613-60.png",
+  "art-src/raw/ui2/cap-peg-9613-61.png",
+  "art-src/raw/ui2/cap-peg-9613-62.png",
+  "art-src/raw/ui2/cap-peg-9613-63.png"
+ ]
+}

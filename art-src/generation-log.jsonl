@@ -737,3 +737,7 @@
 {"at":"2026-10-31T15:22:15.938Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/jockeys/vf-soft-smile-7226","secs":81,"usage":{"type":"generations","generations":10},"images":4}
 {"at":"2026-10-31T15:28:36.001Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/jockeys/pf-squint-7589","secs":77,"usage":{"type":"generations","generations":10},"images":4}
 {"at":"2026-10-31T15:28:47.084Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/jockeys/vm-mutton-chops-7593","secs":88,"usage":{"type":"generations","generations":10},"images":4}
+{"at":"2026-10-31T15:34:34.957Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/wiki-handshake-9821","secs":78,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-31T15:34:56.814Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/wiki-bloodlines-9811","secs":100,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-31T15:40:46.644Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/wiki-silver-polish-9831","secs":122,"usage":{"type":"generations","generations":25},"images":1}
+{"at":"2026-10-31T15:50:43.483Z","endpoint":"/generate-image-v2","prefix":"art-src/raw/sections/saturday-eve-9571","secs":99,"usage":{"type":"generations","generations":25},"images":1}

@@ -58,7 +58,7 @@ export default function HowRacesAreRunPage() {
         Every race in Post Time is run by the same race engine: a step-by-step simulation of the horses, their stamina, their kick and the traffic around them. It has no hidden hand. The result
         is decided by the horses and one secret number, the race&rsquo;s seed, which is locked in before the off and published afterwards so anyone can check it.
       </Lead>
-      <Figure src="/art/diorama/poster-track-dusk.png" alt="Runners going down to post at dusk" caption="Going down to post. The result was sealed before they left the paddock." focus={0.55} />
+      <Figure src="/art/scenes/wiki-final-furlong.png" alt="Runners at full stretch in the final furlong" caption="The final furlong. The result was sealed before they left the paddock." focus={0.55} />
 
       <H2 id="engine">The race engine</H2>
       <P>

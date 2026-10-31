@@ -54,7 +54,7 @@ export default function TrainingPage() {
         Training brings a horse closer to its genetic potential. Each horse has a weekly plan of {gc.BASE_SLOTS} sessions, and you run each one when you choose. Every workout is a
         trade-off: what it builds, how tired it leaves the horse, what it costs, and whether it risks a knock.
       </Lead>
-      <Figure src="/art/scenes/gallops-morning.png" alt="Horses working up the gallops in the morning mist" caption="The gallops: one session at a time, never while you are away." focus={0.68} />
+      <Figure src="/art/scenes/wiki-exercise-ring.png" alt="Horses walking round the exercise ring, the trainer in the middle with a notebook" caption="The gallops: one session at a time, never while you are away." focus={0.68} />
 
       <H2 id="plan">The weekly plan</H2>
       <Steps

@@ -5,7 +5,7 @@ import { PacksScreen } from "@/components/economy/PacksScreen";
 
 export default function PacksPage() {
   return (
-    <PlayerGate band={{ scene: "paddock", alt: "The paddock", eyebrow: "Market · foals with published odds", title: "Packs" }}>
+    <PlayerGate band={{ scene: "stud-dawn", alt: "Mares and foals at the stud at dawn", eyebrow: "Market · foals with published odds", title: "Packs" }}>
       {() => <PacksScreen />}
     </PlayerGate>
   );

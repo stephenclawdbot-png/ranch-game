@@ -123,7 +123,7 @@ export function HallScreen({ view }: { view: HallView }) {
             <ul className="surface rows" data-testid="hall-seasons">
               {view.seasonWinners.map((s) => (
                 <li key={s.season} className="flex items-center gap-3 px-3 py-2">
-                  <PixelIcon name="trophy" size={24} className="shrink-0" />
+                  <PixelIcon name="trophy" size={32} className="-my-1 shrink-0" />
                   <span className="min-w-0 flex-1 t-title truncate text-cream">{s.stableName}</span>
                   <span className="caption shrink-0 text-cream-dim">
                     Season {s.season} · {s.points} pts
@@ -191,7 +191,7 @@ export function HallScreen({ view }: { view: HallView }) {
             )}
           </>
         ) : (
-          <Empty title="No records yet" icon="stopwatch">Records are set in Live races. The first winner at each trip and surface sets the time to beat.</Empty>
+          <Empty title="No records yet" icon="record-plaque">Records are set in Live races. The first winner at each trip and surface sets the time to beat.</Empty>
         )}
       </section>
 

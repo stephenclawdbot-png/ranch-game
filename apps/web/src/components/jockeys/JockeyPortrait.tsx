@@ -19,7 +19,7 @@ export function JockeyPortrait({
   scale = 1,
   className,
 }: {
-  jockey: { id: string; name: string; stage: string; look?: unknown };
+  jockey: { id: string; name: string; stage: string; gender?: unknown; look?: unknown };
   silks?: (Partial<Silks> & { primary: string; secondary: string; cap: string }) | null;
   variant?: "bust" | "face";
   scale?: 1 | 2;
