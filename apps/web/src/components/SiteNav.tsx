@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { formatCredits } from "@/lib/format";
@@ -129,11 +130,7 @@ export function SiteNav() {
             Found a stable
           </Link>
         )}
-        {!pathname.startsWith("/link") && (
-          <Link href="/link#wallet" className="btn btn-sm btn-brass" data-testid="nav-connect-wallet">
-            Connect wallet
-          </Link>
-        )}
+        {!pathname.startsWith("/link") && !pathname.startsWith("/play") && <ConnectWalletButton />}
       </div>
     ) : (
       <div className="flex items-center gap-1.5">

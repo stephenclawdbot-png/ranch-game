@@ -14,6 +14,8 @@ import { MentorWelcome } from "@/components/onboarding/Mentor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
+import { useWallet } from "@/components/chain/useWallet";
+import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
 import { pronoun } from "@/lib/aptitude";
 import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import { ErrorNote } from "@/components/ui/ErrorNote";
@@ -30,12 +32,12 @@ import { randomSilks } from "@/lib/silks";
 export function PlayClient({ playtest }: { playtest: boolean }) {
   const router = useRouter();
   const state = usePlayerState();
+  /** A wallet connected from the top bar that has no stable yet: found this stable with it. */
+  const wallet = useWallet();
   const [name, setName] = useState("");
   const [silks, setSilks] = useState<SilksT | null>(null);
   const [stage, setStage] = useState<"form" | "mentor" | "welcome">("form");
   const [imported, setImported] = useState(false);
-  /** "Sign in with your wallet" panel under the founding form (an existing stable's wallet). */
-  const [walletOpen, setWalletOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const decided = useRef(false);
@@ -150,34 +152,29 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
           </div>
         </details>
         <ActionBar>
-          <button type="submit" className="btn btn-brass btn-lg" disabled={!valid || busy}>
-            <PixelIcon name="horseshoe" size={32} className="-my-2" /> {busy ? "Registering…" : "Register & get my horses"}
-          </button>
+          {wallet.address ? (
+            <WalletSignIn founding create={{ stableName: valid ? name.trim() : "", silks, inviteCode: invite ?? referral }} />
+          ) : (
+            <button type="submit" className="btn btn-brass btn-lg" disabled={!valid || busy}>
+              <PixelIcon name="horseshoe" size={32} className="-my-2" /> {busy ? "Registering…" : "Register & get my horses"}
+            </button>
+          )}
         </ActionBar>
         {error !== null && <ErrorNote error={error} />}
         <p className="caption">
-          {invite ? `Invite ${invite} accepted. ` : ""}Free. No email, no wallet. Your stable is linked to this browser.
+          {invite ? `Invite ${invite} accepted. ` : ""}
+          {wallet.address ? "Free. Your wallet is your login on any device." : "Free. No email, no wallet needed. Your stable is linked to this browser."}
         </p>
         <p className="caption">
-          Already have a stable?{" "}
-          <button
-            type="button"
-            className="link"
-            data-testid="play-link-wallet"
-            onClick={() => setWalletOpen((o) => !o)}
-          >
-            Sign in with your wallet
-          </button>{" "}
-          · or{" "}
-          <Link href="/link" className="link" data-testid="play-link-device">
-            link this device with a code
-          </Link>
+          {!wallet.address && (
+            <>
+              Already have a stable? <ConnectWalletButton className="link" testId="play-link-wallet" /> · or{" "}
+              <Link href="/link" className="link" data-testid="play-link-device">
+                link this device with a code
+              </Link>
+            </>
+          )}
         </p>
-        {walletOpen && (
-          <div className="surface-2 p-3">
-            <WalletSignIn create={{ stableName: name.trim(), silks, inviteCode: invite ?? referral }} />
-          </div>
-        )}
       </div>
       <aside className="hidden md:block" aria-label="Preview">
         <div className="sticky top-24">

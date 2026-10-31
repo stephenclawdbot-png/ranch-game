@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ActiveEntry, DailyGoalView, InboxView, RaceSummary, StableHorse } from "@/lib/types";
@@ -107,10 +108,7 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
             )}
           </div>
           <p className="landing-sub" data-testid="landing-wallet">
-            Already have a stable?{" "}
-            <Link href="/link#wallet" className="link">
-              Connect your wallet
-            </Link>
+            Already have a stable? <ConnectWalletButton className="link" testId="landing-connect-wallet" />
           </p>
         </div>
       </section>

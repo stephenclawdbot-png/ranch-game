@@ -9,7 +9,7 @@
  * unknown wallet can be linked to the current stable or found a new one ({ create }).
  * Intent "link" (/me): only ever links the wallet to the signed-in stable.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Hex } from "viem";
 import { shortAddress } from "@/lib/chain/format";
@@ -38,6 +38,16 @@ export interface WalletSignInProps {
   create?: { stableName: string; silks: unknown; inviteCode?: string | null };
   /** /me: the wallet was linked to the signed-in stable. */
   onLinked?: (address: string) => void;
+  /**
+   * One-step sign-in (the top bar's Connect wallet): no separate button after connecting, the
+   * signature starts as soon as the wallet is connected; connecting is the 18+ confirmation
+   * (stated next to the button); an unknown wallet goes straight to founding a stable.
+   */
+  auto?: boolean;
+  /** auto: the wallet has no stable (and this browser none): the caller takes it to founding one. */
+  onNeedsStable?: () => void;
+  /** /play with a wallet already connected: the one button founds the stable with this wallet (one signature). */
+  founding?: boolean;
 }
 
 /** Fetch helper that keeps the API's error code and body on the thrown error. */
@@ -65,9 +75,12 @@ function deviceTimezone(): string | undefined {
 /** One attempt: fresh challenge + signature, then verify with the given intent and flags. */
 type Attempt = { intent?: "signin" | "link"; create?: boolean; replace?: boolean };
 
-export function WalletSignIn({ label = "Sign in with wallet", intent = "signin", create, onLinked }: WalletSignInProps) {
+export function WalletSignIn({ label = "Sign in with wallet", intent = "signin", create, onLinked, auto = false, onNeedsStable, founding = false }: WalletSignInProps) {
   const w = useWallet();
-  const [adult, setAdult] = useState(false);
+  const [adultTicked, setAdult] = useState(false);
+  const adult = auto || adultTicked;
+  /** auto: sign as soon as a wallet is connected (once per connection). */
+  const autoFired = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   /** The wallet has no stable and this browser has none either: create one (/play) or go found one. */
@@ -109,6 +122,7 @@ export function WalletSignIn({ label = "Sign in with wallet", intent = "signin",
       }
       // Unknown wallet: link it to this browser's stable, or found a new one.
       if (res.canLinkCurrent) setLinkHere(res.currentStable ?? "your stable");
+      else if (auto && !create && onNeedsStable) onNeedsStable();
       else setNeedsStable(true);
     } catch (e) {
       const thrown = e as Error & { api?: true; code?: string; data?: { currentStable?: string } };
@@ -124,12 +138,44 @@ export function WalletSignIn({ label = "Sign in with wallet", intent = "signin",
     }
   }
 
+  useEffect(() => {
+    if (!auto || !w.address || !w.provider || busy || autoFired.current === w.address) return;
+    autoFired.current = w.address;
+    void run();
+    // run() reads the latest wallet state itself; firing once per connected address is the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, w.address, w.provider]);
+
+  if (founding && w.address && create) {
+    return (
+      <div className="grid gap-2" data-testid="wallet-founding">
+        <button type="button" className="btn btn-brass btn-lg" onClick={() => void run({ create: true })} disabled={busy || !create.stableName} data-testid="wallet-signin-create">
+          {busy ? "Check your wallet…" : "Register & get my horses"}
+        </button>
+        <p className="t-meta">
+          With wallet {shortAddress(w.address)}: one free signature, no transaction, no gas. Signing confirms you&rsquo;re 18 or older (Robinhood Chain terms).
+        </p>
+        {err && (
+          <p role="alert" className="text-sm font-bold text-negative">
+            {err}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-2" data-testid="wallet-signin">
-      <label className="flex items-start gap-2">
-        <input type="checkbox" className="mt-1" checked={adult} onChange={(e) => setAdult(e.target.checked)} data-testid="wallet-adult" />
-        <span className="t-meta">I&rsquo;m 18 or older (Robinhood Chain terms)</span>
-      </label>
+      {auto ? (
+        <p className="t-meta" data-testid="wallet-adult-note">
+          Connecting confirms you&rsquo;re 18 or older (Robinhood Chain terms).
+        </p>
+      ) : (
+        <label className="flex items-start gap-2">
+          <input type="checkbox" className="mt-1" checked={adultTicked} onChange={(e) => setAdult(e.target.checked)} data-testid="wallet-adult" />
+          <span className="t-meta">I&rsquo;m 18 or older (Robinhood Chain terms)</span>
+        </label>
+      )}
       {linked ? (
         <p className="text-sm font-bold text-turf" data-testid="wallet-signin-linked">
           ✓ {shortAddress(linked)} can now sign you in on any device.
@@ -201,7 +247,7 @@ export function WalletSignIn({ label = "Sign in with wallet", intent = "signin",
           {err}
         </p>
       )}
-      <p className="caption">A wallet is optional. Signing is free: no transaction, no gas.</p>
+      {!auto && <p className="caption">A wallet is optional. Signing is free: no transaction, no gas.</p>}
     </div>
   );
 }
