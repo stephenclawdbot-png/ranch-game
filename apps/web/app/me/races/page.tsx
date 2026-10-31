@@ -103,7 +103,7 @@ function MyRaces({ state }: { state: PlayerState }) {
 
   const s = summary;
   return (
-    <div className="mx-auto grid max-w-4xl content-start gap-4" data-testid="my-races-page">
+    <div className="mx-auto grid max-w-6xl content-start gap-4" data-testid="my-races-page">
       <PageHeader
         eyebrow={state.stableName}
         title="My races"

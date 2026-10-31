@@ -4842,6 +4842,10 @@ a.pill:hover,
 .splits-table tbody th {
   text-align: left;
 }
+.splits-table thead th,
+.splits-table td {
+  white-space: nowrap;
+}
 .splits-table tr.is-small th,
 .splits-table tr.is-small td {
   color: var(--color-sage);

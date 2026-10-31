@@ -17,6 +17,8 @@ import {
   dateText,
   drawText,
   fatigueWord,
+  fieldText,
+  shortMeta,
   jockeyText,
   lengthsText,
   marginPhrase,
@@ -57,7 +59,7 @@ function Detail({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean; 
     ["Course", l.course ?? "—"],
     ["Trip", formatDistance(l.distanceM)],
     ["Surface · going", `${SURFACE_LABEL[l.surface]} · ${GOING_LABEL[l.going]}`],
-    ["Field · draw", `${l.fieldSize} ran · gate ${drawText(l)}`],
+    ["Field · draw", `${fieldText(l)} · ${l.gate ? `gate ${drawText(l)}` : "draw at entry close"}`],
     ["Tactic", `${tacticLabel(l.tactic)}${l.intensity ? ` · ${INTENSITY_LABEL[l.intensity] ?? l.intensity}` : ""}`],
     ["Jockey", jockeyText(l.jockey)],
     ["Race-day extras", l.extras.length ? l.extras.map((x) => EXTRA_LABEL[x] ?? x).join(", ") : "None"],
@@ -102,10 +104,7 @@ function PhoneRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
             {showHorse && l.horseName ? `${l.horseName} · ` : ""}
             {l.raceName}
           </span>
-          <span className="t-meta block truncate !text-[0.8125rem]">
-            {dateText(l.postTimeMs)} · {l.course ? `${l.course} · ` : ""}
-            {formatDistance(l.distanceM)} · {GOING_LABEL[l.going]}
-          </span>
+          <span className="t-meta block truncate !text-[0.8125rem]">{shortMeta(l)}</span>
         </span>
         <span className="grid shrink-0 justify-items-end text-right">
           <span className="num text-sm text-cream">{l.result ? lengthsText(l.result.beatenMm, l.result.position) : "—"}</span>
@@ -127,7 +126,12 @@ function TableRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
   return (
     <>
       <tr className={`cursor-pointer ${open ? "is-open" : ""}`} onClick={() => setOpen((o) => !o)} data-testid="form-row">
-        <td className="whitespace-nowrap">{dateText(l.postTimeMs)}</td>
+        <td className="whitespace-nowrap">
+          <span className="chev mr-1 inline-block w-3 text-xs" aria-hidden>
+            {open ? "▾" : "▸"}
+          </span>
+          {dateText(l.postTimeMs)}
+        </td>
         <td className="max-w-[16rem]">
           <Link href={`/race/${l.raceId}`} className="block truncate font-extrabold text-cream hover:underline" onClick={(e) => e.stopPropagation()}>
             {showHorse && l.horseName ? `${l.horseName} · ` : ""}
@@ -156,13 +160,10 @@ function TableRow({ l, numbers, showHorse }: { l: FormLineView; numbers: boolean
         <td className="num whitespace-nowrap">{r ? raceTimeText(r.timeUs) : "—"}</td>
         <td className={`num whitespace-nowrap ${rd.cls}`}>{rd.text}</td>
         <td className="num whitespace-nowrap text-right">{r && r.prize > 0 ? <span className="text-brass-hi">+{formatCredits(r.prize)}</span> : "—"}</td>
-        <td className="chev w-6 text-center" aria-hidden>
-          {open ? "▴" : "▾"}
-        </td>
       </tr>
       {open && (
         <tr className="form-detail">
-          <td colSpan={numbers ? 14 : 13}>
+          <td colSpan={numbers ? 13 : 12}>
             <Detail l={l} numbers={numbers} showHorse={showHorse} />
           </td>
         </tr>
@@ -220,9 +221,6 @@ export function FormLines({ lines, numbers = false, showHorse = false, initial =
               </th>
               <th scope="col" className="text-right">
                 Won
-              </th>
-              <th scope="col">
-                <span className="sr-only">Details</span>
               </th>
             </tr>
           </thead>

@@ -107,6 +107,8 @@ export function pickPhrase(dimension: string, key: string): string {
       return JOCKEY_LABEL[key] ? `a ${l.toLowerCase()}` : l;
     case "draw":
       return `a ${l.toLowerCase()}`;
+    case "course":
+      return `at ${l}`;
     case "rest":
       return key === "first" ? "the first run in the book" : key === "same_day" ? "a second run the same day" : `${l} since the last run`;
     default:
@@ -138,6 +140,18 @@ export function jockeyText(j: FormLineView["jockey"]): string {
 /** Draw as "4/10". */
 export function drawText(l: Pick<FormLineView, "gate" | "fieldSize">): string {
   return l.gate ? `${l.gate}/${l.fieldSize}` : "—";
+}
+
+/** Field size: "10 ran" once run; "8 runners" when the field is locked; "3 declared so far" before. */
+export function fieldText(l: Pick<FormLineView, "result" | "gate" | "fieldSize">): string {
+  if (l.result) return `${l.fieldSize} ran`;
+  return l.gate ? `${l.fieldSize} runners` : `${l.fieldSize} declared so far`;
+}
+
+/** The meta line of a phone row: date, trip, going, and the course unless the race is named after it. */
+export function shortMeta(l: Pick<FormLineView, "postTimeMs" | "course" | "raceName" | "distanceM" | "going">): string {
+  const course = l.course && !l.raceName.startsWith(l.course) ? l.course : null;
+  return [dateText(l.postTimeMs), formatDistance(l.distanceM), GOING_LABEL[l.going], course].filter(Boolean).join(" · ");
 }
 
 /** Weight carried: "131 lb (+5)"; "—" at level weights. */
@@ -205,7 +219,7 @@ export function logEntryText(e: { kind: string; data: Record<string, unknown>; l
     case "race": {
       const l = e.line!;
       const r = l.result;
-      const cond = `${conditionsText(l)} · ${l.fieldSize} ran`;
+      const cond = `${conditionsText(l)} · ${fieldText(l)}`;
       if (!r) return { tag: "Race", tone: "race", title: `${l.status === "running" ? "Running in" : "Declared for"} the ${l.raceName}`, detail: cond };
       const res = r.position === 1 ? `Won the ${l.raceName}${r.marginLabel ? ` by ${marginPhrase(r.marginLabel)}` : ""}` : `${ordinal(r.position)} in the ${l.raceName}, beaten ${lengthsText(r.beatenMm)}`;
       const extra = [cond, `OR ${ratingText(l.ratingBefore, r.ratingAfter)}`, r.prize > 0 ? `+${r.prize.toLocaleString("en-GB")} credits` : ""].filter(Boolean).join(" · ");

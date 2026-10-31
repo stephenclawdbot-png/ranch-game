@@ -1,12 +1,19 @@
+"use client";
+
 /**
  * Splits (the form book): win-place-runs and average beaten distance by going, trip, surface,
  * course, tactic, jockey, draw and rest, from settled runs only (game-core formSplits). The best
  * and worst condition lead; buckets under the minimum sample are greyed and never picked.
  */
+import { useState } from "react";
 import type { SplitsView } from "@/lib/types";
 import { DIMENSION_LABEL, DISTANCE_BAND_RANGE, avgLengthsText, bestWorstText, bucketLabel, recordText } from "@/lib/formBook";
 
+/** Splits shown on a phone before "All splits". */
+const PHONE_GROUPS = 3;
+
 export function SplitsPanel({ splits, subject, empty }: { splits: SplitsView; subject: string; empty?: string }) {
+  const [all, setAll] = useState(false);
   const bw = bestWorstText(splits);
   if (splits.total.runs === 0) {
     return <p className="surface t-meta p-4">{empty ?? `No settled runs yet: ${subject}'s splits fill in after the first result.`}</p>;
@@ -36,9 +43,9 @@ export function SplitsPanel({ splits, subject, empty }: { splits: SplitsView; su
           W-2-3 = wins, seconds, thirds. Btn = average distance behind the winner (winners count 0). Greyed: under {splits.minRuns} runs, too few to read much into.
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {splits.groups.map((g) => (
-          <section key={g.dimension} className="surface p-3" aria-label={`By ${DIMENSION_LABEL[g.dimension] ?? g.dimension}`} data-testid={`splits-${g.dimension}`}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {splits.groups.map((g, i) => (
+          <section key={g.dimension} className={`surface p-3 ${i >= PHONE_GROUPS && !all ? "hidden sm:block" : ""}`} aria-label={`By ${DIMENSION_LABEL[g.dimension] ?? g.dimension}`} data-testid={`splits-${g.dimension}`}>
             <h3 className="label mb-1">{DIMENSION_LABEL[g.dimension] ?? g.dimension}</h3>
             <table className="splits-table">
               <thead>
@@ -81,6 +88,11 @@ export function SplitsPanel({ splits, subject, empty }: { splits: SplitsView; su
           </section>
         ))}
       </div>
+      {splits.groups.length > PHONE_GROUPS && (
+        <button type="button" className="btn btn-sm w-fit sm:hidden" onClick={() => setAll((a) => !a)} data-testid="splits-all">
+          {all ? "Fewer splits" : `${splits.groups.length - PHONE_GROUPS} more splits: ${splits.groups.slice(PHONE_GROUPS, PHONE_GROUPS + 2).map((g) => (DIMENSION_LABEL[g.dimension] ?? g.dimension).toLowerCase()).join(", ")}…`}
+        </button>
+      )}
     </div>
   );
 }
