@@ -11,8 +11,9 @@ chain, using `MockChainAdapter`. The architecture, the threat model and the roll
 | `contracts/PremiumStore.sol` | Checkout for premium SKUs: an allow-listed stablecoin (EIP-712 `Order`) **and native ETH** (EIP-712 `EthQuote`, closed beta): `poolBps` (10–50 %) to the PrizePool, 2-level affiliate commissions (≤ 15 % / 5 %) and the rest to the treasury, in the same tx. Optional Chainlink tolerance check. |
 | `contracts/PrizePool.sol` | Closed-beta Prize Pool: ETH only from the store and owner top-ups; weekly Merkle epochs, never over-allocated (`total ≤ maxEpochBps × (balance − outstanding)`); per-account cap; linear vesting; revoke / cancel / expiry return funds **to the pool**; no withdraw or sweep. |
 | `contracts/HorseMarket.sol` | USDG horse market (`docs/usdg-market.md`): `buy(SaleOrder, sig)` pays the seller `price − fee` and the treasury `fee` straight from the buyer in one tx (`Sold`); `register(RegistrationOrder, sig)` pays the registration fee to the treasury (`Registered`); `payStudFee(StudOrder, sig)` pays a registered stallion's USDG stud fee to his owner (`price − fee`) and the treasury (`fee`) for one covering (`StudFeePaid`). Never holds funds; USDG allow-list, exact amounts, fee ≤ 10 %, single-use orderId, pause. Deployed with `scripts/deploy-horse-market.ts` (not deployed yet). |
+| `contracts/TotePools.sol` | **DORMANT** real-USDG pari-mutuel tote (`docs/usdg-tote.md`). Not deployed; no deploy script. Non-custodial: stakes sit only in the contract, pull-payment claims, no owner withdrawal of player funds, no upgrade path. Markets carry the seed commitment before betting opens; bets need a short-lived single-use EIP-712 `BetPermit` from the server and close `CLOSE_MARGIN` before `closeTime`; entropy from a future L2 block hash (`lockEntropy` / `sealEntropy`, anyone); results open a guardian challenge window; the split runs on chain with game-core's rules; unsettled markets expire to refunds. |
 | `contracts/ThoroughbredToken.sol` | OPTIONAL capped ERC20 + permit, with a genesis mint only. **Not deployed by default.** |
-| `contracts/mocks/*` | Test-only: 6-decimal blocklist/fee stablecoin, reentrant token, ETH receiver (accept/reject/re-enter), Chainlink-style price feed. |
+| `contracts/mocks/*` | Test-only: 6-decimal blocklist/fee stablecoin, reentrant tokens (transferFrom; transfer + transferFrom for the tote), an ArbSys block-read stand-in, ETH receiver (accept/reject/re-enter), Chainlink-style price feed. |
 | `scripts/export-web.ts` | Writes `apps/web/src/lib/chain/contracts.generated.ts` (ABIs + bytecode for the browser deploy on `/admin/chain`, EIP-712 types). `pnpm --filter @thoroughbred/contracts export:web` after any contract change; `test/export-web.test.ts` fails when stale. |
 | `adapter/` | Server-side `ChainAdapter` (mock + viem EVM), Merkle batching and EIP-712 vouchers. Exported as `@thoroughbred/contracts/adapter`. |
 | `scripts/deploy.ts` | Deploy and configure, then hand admin to a multisig. Tested against the in-process Hardhat network. |
@@ -66,7 +67,20 @@ await chain.getBalances(address);                 // display only
 - Pairs use OpenZeppelin's commutative keccak256. Leaves are sorted, and an odd node is promoted.
 - `seedCommitment = sha256(seed bytes)`, which is the racing engine's `commitSeed`. The contract re-checks it with the sha256 precompile in `verifyRace`.
 
-## What is tested (145 tests; coverage: 100% lines/functions on the 5 production contracts, 94–100% branches)
+## What is tested (177 tests; coverage: 100% lines/functions on the 5 production contracts, 94–100% branches; TotePools coverage not yet measured)
+
+**TotePools** (`test/tote-pools.test.ts`, 31 tests; dormant, never deployed)
+- [x] full lifecycle: bets, entropy lock and seal (the stored entropy is the target block's hash), result with the revealed seed (`sha256(seed)` = the engine's `commitSeed`), `finalSeed = sha256(seed ‖ entropy)` equals the adapter's `toteFinalSeed`, challenge window, finalize, claims; every payout equals the game-core rules (`test/toteReference.ts`, a copy proven identical to game-core `settleTotePool` by game-core's `tote.parity.test.ts`); `claimable` previews `claim`; payouts + take + remainder = stakes; the contract holds 0 after all claims and `withdrawTreasury`
+- [x] late bets: accepted 1 s before `closeTime − CLOSE_MARGIN`, refused at exactly the margin and after the close
+- [x] permits: missing/garbage signature, tampered fields, a non-signer key, another bettor's permit, another race's permit, above `maxAmount`, TTL > 10 min, expired, reused nonce
+- [x] caps: min stake, max per bet, max per wallet per race (across pools), max pool (per pool); bad runner; no place pool; unknown market; pause blocks bets only (claims work while paused); fee-on-transfer token refused
+- [x] entropy: not before the close, locked once, sealed once, only after its block exists; a missed 256-block window voids the market (refunds); the ArbSys path (block number and hash from the precompile, out-of-range revert → void)
+- [x] results: operator only, entropy sealed first, seed mismatch, malformed finishes (length, range, gaps, wrong dead-heat ranking); guardian correction only inside the window; guardian void (open or within the window) refunds in full; operator cancel only before the entropy is sealed; anyone expires an unsettled market after `MAX_SETTLE_DELAY` and a late result is refused
+- [x] settlement: dead heat for first (WIN), dead heat for the last paying place (PLACE), unbacked paying runner's share to the others, no-winner pro-rata refund of the net pool, non-runners refunded in full, too few runners for a place pool → place stakes refunded
+- [x] claims: once per wallet, never before finalize, a frozen winner can claim to another address, `NothingToClaim`; admin-only stake limits and treasury; the ABI has no function that sends tokens anywhere but a claimant's address or the treasury
+- [x] reentrancy through a hostile token blocked on `bet`, `claim` and `withdrawTreasury`
+- [x] randomized pools (20 rounds, up to 24 runners, random dead heats and non-runners, takeouts 0 / 15 / 12.34 / 25 %): payouts equal the reference, conservation holds, the contract empties
+- [x] gas printed (bet ≈ 231k, finalize ≈ 285k for 12 runners, claim ≈ 103k)
 
 **HorseMarket** (`test/horse-market.test.ts`)
 - [x] buy: seller gets `price − fee`, treasury gets `fee`, buyer pays exactly `price`, the contract keeps 0; `Sold` fields; property test over random prices and fee rates
