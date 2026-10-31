@@ -59,3 +59,4 @@ export * from "./services/news";
 export * from "./services/rivals";
 export * from "./services/planner";
 export * from "./services/whatIf";
+export * from "./services/picks";
