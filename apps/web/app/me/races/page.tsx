@@ -8,7 +8,9 @@ import { PositionBadge } from "@/components/ui/PositionBadge";
 import { EmptyState, PageHeader } from "@/components/ui/Page";
 import { SURFACE_LABEL, formatCredits, formatDistance } from "@/lib/format";
 import type { PlayerState } from "@/lib/player";
-import type { MyRacesView, RunView } from "@/lib/types";
+import type { MyRacesView, RunView, StableFormBookView } from "@/lib/types";
+import { FormLines } from "@/components/formBook/FormLines";
+import { SplitsPanel } from "@/components/formBook/SplitsPanel";
 
 type Kind = "all" | "live" | "story";
 const KINDS: { v: Kind; label: string }[] = [
@@ -49,6 +51,27 @@ function MyRaces({ state }: { state: PlayerState }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const filtered = kind !== "all" || winsOnly || horseId !== "";
+  const [numbers, setNumbers] = useState(false);
+  const [book, setBook] = useState<StableFormBookView | null>(null);
+  const lines = rows.flatMap((r) => (r.line ? [r.line] : []));
+
+  // The stable's splits (or one horse's): settled runs only, refreshed when the horse changes.
+  useEffect(() => {
+    let live = true;
+    const p = new URLSearchParams();
+    if (horseId) p.set("horse", horseId);
+    fetch(`/api/me/formbook?${p}`, { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<StableFormBookView>) : null))
+      .then((v) => {
+        if (live) setBook(v);
+      })
+      .catch(() => {
+        if (live) setBook(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [horseId]);
 
   const load = useCallback(
     async (cursor: string | null) => {
@@ -80,7 +103,7 @@ function MyRaces({ state }: { state: PlayerState }) {
 
   const s = summary;
   return (
-    <div className="mx-auto grid max-w-4xl content-start gap-4" data-testid="my-races-page">
+    <div className="mx-auto grid max-w-6xl content-start gap-4" data-testid="my-races-page">
       <PageHeader
         eyebrow={state.stableName}
         title="My races"
@@ -106,14 +129,23 @@ function MyRaces({ state }: { state: PlayerState }) {
         <label className="flex min-h-11 items-center gap-2 text-sm font-bold" data-testid="races-wins-only">
           <input type="checkbox" checked={winsOnly} onChange={(e) => setWinsOnly(e.target.checked)} /> Wins only
         </label>
+        <button type="button" className="btn-ghost min-h-11 text-sm font-bold" aria-pressed={numbers} onClick={() => setNumbers((n) => !n)} data-testid="races-numbers">
+          {numbers ? "Hide numbers" : "Show numbers"}
+        </button>
       </div>
 
       {rows.length > 0 ? (
-        <ul className="surface rows" data-testid="my-races-rows">
-          {rows.map((r) => (
-            <RunRow key={`${r.raceId}:${r.horseId}`} r={r} />
-          ))}
-        </ul>
+        lines.length === rows.length ? (
+          <div data-testid="my-races-rows">
+            <FormLines lines={lines} numbers={numbers} showHorse={horseId === ""} initial={lines.length} />
+          </div>
+        ) : (
+          <ul className="surface rows" data-testid="my-races-rows">
+            {rows.map((r) => (
+              <RunRow key={`${r.raceId}:${r.horseId}`} r={r} />
+            ))}
+          </ul>
+        )
       ) : busy ? (
         <div className="min-h-40" aria-busy />
       ) : failed ? (
@@ -143,6 +175,18 @@ function MyRaces({ state }: { state: PlayerState }) {
         <button type="button" className="btn w-full" disabled={busy} onClick={() => void load(nextCursor)} data-testid="load-more">
           {busy ? "Loading…" : "Load more"}
         </button>
+      )}
+
+      {book && book.splits.total.runs > 0 && (
+        <section aria-labelledby="book-h" className="grid gap-3" data-testid="stable-splits">
+          <div>
+            <h2 id="book-h" className="t-h2">
+              Form book
+            </h2>
+            <p className="t-meta">{horseId ? "This horse's" : "The whole stable's"} settled runs, split by the conditions they were run under (every race kind, whatever the filters above).</p>
+          </div>
+          <SplitsPanel splits={book.splits} subject={horseId ? (state.horses.find((h) => h.id === horseId)?.horse.name ?? "This horse") : state.stableName} />
+        </section>
       )}
     </div>
   );

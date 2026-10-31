@@ -89,6 +89,7 @@ import {
   slotIndexOf,
   slotKeyOf,
   stablePhotoHashes,
+  formLineOf,
 } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
@@ -112,6 +113,7 @@ import type {
   RaceSummary,
   RiskView,
   RunView,
+  FormLineView,
 } from "@/lib/types";
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
@@ -121,6 +123,7 @@ import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } 
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
 import { raceGroundTrend } from "./ground";
+import { horseForm, sireLineSplits } from "./formBook";
 
 // ---------------------------------------------------------------------------
 // Hooks, ids, small helpers
@@ -1304,7 +1307,12 @@ export async function myRaces(db: Db, session: Session, filter: MyRacesFilter, c
   const q = { stableId: session.stable.id, horseId: filter.horseId && UUID_RE.test(filter.horseId) ? filter.horseId : null, kind: filter.kind, winsOnly: filter.winsOnly };
   const [page, summary] = [await pageStableRuns(db, q, cursor, limit), await stableRunSummary(db, q)];
   const names = new Map(page.rows.map((r) => [r.horseId, r.horseName]));
-  return { rows: page.rows.map((r) => runView(r, names)), summary, nextCursor: page.nextCursor };
+  const nowMs = Date.now();
+  return {
+    rows: page.rows.map((r) => ({ ...runView(r, names), line: formLineOf(r, { nowMs, keeper: true }) as FormLineView })),
+    summary,
+    nextCursor: page.nextCursor,
+  };
 }
 
 /** The viewer's own result in a race. Only after the broadcast is over; settles lazily; marks the inbox read. */
@@ -1370,7 +1378,27 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const row = await getHorse(db, horseId);
   if (!row) return null;
   const nowMs = now.getTime();
-  const runs = (await listHorseRuns(db, horseId, 20)).map((r) => runView(r, new Map([[row.id, row.name]])));
+  // The form book (every start's form line, no result before settlement) and the splits.
+  const form = await horseForm(db, row, session, now);
+  const runs: RunView[] = form.lines
+    .filter((l) => l.result)
+    .slice(0, 20)
+    .map((l) => ({
+      raceId: l.raceId,
+      raceName: l.raceName,
+      kind: l.kind,
+      horseId: l.horseId,
+      horseName: row.name,
+      position: l.result!.position,
+      fieldSize: l.fieldSize,
+      prize: l.result!.prize,
+      postTimeMs: l.postTimeMs,
+      distanceM: l.distanceM,
+      surface: l.surface,
+      ratingBefore: l.ratingBefore,
+      ratingAfter: l.result!.ratingAfter,
+    }));
+  const sireLine = await sireLineSplits(db, row, now);
   const parentRows = [row.sireId, row.damId].filter((x): x is string => !!x);
   const parents = new Map<string, { name: string; regNo: string }>();
   for (const id of parentRows) {
@@ -1387,10 +1415,10 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   if (!row.ownerStableId && !row.lesseeStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, pedigree, tree, genetics, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: null, actions: null };
   }
   // A Club horse away on lease (owner null) shows under its lessee's colours like any leased horse.
   const stable = row.ownerStableId ? await getStable(db, row.ownerStableId) : null;
@@ -1437,6 +1465,8 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     lease,
     status: mine ? stableHorseView(row, silks, nowMs) : null,
     runs,
+    form,
+    sireLine,
     pedigree,
     tree,
     genetics,

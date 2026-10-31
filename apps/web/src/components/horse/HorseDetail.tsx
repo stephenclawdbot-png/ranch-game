@@ -6,7 +6,7 @@ import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseDetailView } from "@/lib/types";
 import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
-import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits, formatDistance } from "@/lib/format";
+import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
 import { GradeBadge, StatBars } from "../StatBars";
 import { useEntry } from "../entry/EntryProvider";
@@ -18,6 +18,8 @@ import { PedigreeTree } from "./PedigreeTree";
 import { UsdgHorsePanel } from "./UsdgHorsePanel";
 import { HorseLeasePanel } from "./HorseLeasePanel";
 import { PositionBadge } from "../ui/PositionBadge";
+import { FormLines } from "../formBook/FormLines";
+import { SplitsPanel } from "../formBook/SplitsPanel";
 
 export { PositionBadge };
 
@@ -64,7 +66,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
   const horse = view.horse;
   const record: HorseRecord = horse.record;
   const stableName = view.stableName;
-  const history = view.runs;
+  const form = view.form;
   const st = view.status;
   const apt = aptitudes(horse);
   const tripName = (id: string) => TRIP_BANDS.find((b) => b.id === id)!.label;
@@ -196,32 +198,55 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
 
       {view.genetics && <Genetics gen={view.genetics} />}
 
-      {(isMine || history.length > 0) && (
-        <section aria-labelledby="history-h">
-          <h2 id="history-h" className="t-h2 mb-3">
-            Form
-          </h2>
-          {history.length === 0 ? (
+      {(isMine || form.lines.length > 0) && (
+        <section aria-labelledby="history-h" className="grid gap-3">
+          <div className="flex items-end justify-between gap-2">
+            <h2 id="history-h" className="t-h2">
+              Form
+            </h2>
+            {form.lines.length > 0 && (
+              <button type="button" className="btn-ghost min-h-11 text-sm font-bold" aria-pressed={numbers} onClick={() => setNumbers((n) => !n)} data-testid="form-numbers">
+                {numbers ? "Hide numbers" : "Show numbers"}
+              </button>
+            )}
+          </div>
+          {form.lines.length === 0 ? (
             <EmptyState icon="stopwatch" title="No runs yet" text={`${first}'s first start shows here with its replay.`} />
           ) : (
-            <ul className="surface rows" data-testid="history">
-              {history.map((h) => (
-                <li key={h.raceId}>
-                  <Link href={`/race/${h.raceId}`} className="row-link group gap-3 px-4 py-3">
-                    <PositionBadge position={h.position} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-extrabold group-hover:underline">{h.raceName}</p>
-                      <p className="t-meta">
-                        {h.kind === "live" ? "Live" : "Story"} · {formatDistance(h.distanceM)} · {SURFACE_LABEL[h.surface]} · {h.fieldSize} ran ·{" "}
-                        {new Date(h.postTimeMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                      </p>
-                    </div>
-                    {h.prize > 0 ? <span className="reward">+{formatCredits(h.prize)}</span> : <span className="chev">▶</span>}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FormLines lines={form.lines} numbers={numbers} />
           )}
+          {isMine && (
+            <p className="t-meta">
+              Every session, care day, injury and owner change is in{" "}
+              <Link href={`/horse/${horse.id}/log`} className="link" data-testid="log-link">
+                {first}&rsquo;s log
+              </Link>
+              .
+            </p>
+          )}
+        </section>
+      )}
+
+      {form.splits.total.runs > 0 && (
+        <section aria-labelledby="splits-h" className="grid gap-3" data-testid="horse-splits">
+          <h2 id="splits-h" className="t-h2">
+            Form book
+          </h2>
+          <SplitsPanel splits={form.splits} subject={first} />
+        </section>
+      )}
+
+      {view.sireLine && (
+        <section aria-labelledby="sireline-h" className="grid gap-3" data-testid="sire-line">
+          <div>
+            <h2 id="sireline-h" className="t-h2">
+              Sire line
+            </h2>
+            <p className="t-meta">
+              How {first}&rsquo;s offspring run: {view.sireLine.runners} {view.sireLine.runners === 1 ? "runner" : "runners"}, settled races only.
+            </p>
+          </div>
+          <SplitsPanel splits={view.sireLine.splits} subject={`${first}'s offspring`} />
         </section>
       )}
 

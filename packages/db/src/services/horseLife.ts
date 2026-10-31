@@ -30,6 +30,7 @@ import { completeGoal } from "./dailyGoals";
 import { localDate } from "./entries";
 import { keptBy, lockKeptHorse, lockOwnedHorse } from "./horses";
 import { getBalance, spendCreditsTx } from "./ledger";
+import { logHorseEventTx } from "./horseLog";
 import { audit, runTx } from "./tx";
 
 // ---------------------------------------------------------------------------
@@ -201,7 +202,7 @@ async function careTx(tx: Tx, accountId: string, horse: HorseRow, day: string, n
   const quality = state ? gc.careQualityFor(state, feed, nowMs) : 650;
   const inserted = await tx
     .insert(careLog)
-    .values({ horseId: horse.id, accountId, day, actions: { feed, groom: actions.groom !== false, turnout: actions.turnout !== false }, quality })
+    .values({ horseId: horse.id, accountId, day, actions: { feed, groom: actions.groom !== false, turnout: actions.turnout !== false }, quality, createdAt: now })
     .onConflictDoNothing({ target: [careLog.horseId, careLog.day] })
     .returning({ id: careLog.id });
   if (!inserted[0]) return noop(feed);
@@ -386,6 +387,34 @@ export async function runTrainingSession(
       });
     }
     const patch = statePatch(res.state, nowMs);
+    // The horse's log keeps what the session did (the toast is gone after a few seconds).
+    const gains: Record<string, number> = {};
+    for (const k of gc.STAT_KEYS) {
+      const d = res.state.training.realisation[k] - state.training.realisation[k];
+      if (d !== 0) gains[k] = d;
+    }
+    await logHorseEventTx(tx, {
+      horseId: horse.id,
+      kind: "training",
+      stableId: stable.id,
+      at: input.now,
+      dedupeKey: `${gc.weekIndex(nowMs)}:${used}`,
+      data: {
+        workout,
+        label: gc.WORKOUTS[workout].label,
+        cost: res.cost,
+        session: used + 1,
+        gains,
+        fatigueBefore: gc.fatigueAt(state, nowMs),
+        fatigueAfter: gc.fatigueAt(res.state, nowMs),
+        fitnessBefore: state.condition.fitness,
+        fitnessAfter: res.state.condition.fitness,
+        realisation: res.state.training.realisation,
+        overworked: res.overworked,
+        injured: res.injured,
+        ...(res.injured && patch.injuredUntil ? { backAtMs: patch.injuredUntil.getTime() } : {}),
+      },
+    });
     const [updated] = await tx
       .update(horses)
       .set({
@@ -436,6 +465,14 @@ export async function treatHorseInjury(db: Db, input: { accountId: string; horse
       .set({ injury: patch.injury, injuredUntil: patch.injuredUntil, updatedAt: input.now })
       .where(eq(horses.id, horse.id))
       .returning();
+    await logHorseEventTx(tx, {
+      horseId: horse.id,
+      kind: "vet",
+      stableId: stable.id,
+      at: input.now,
+      dedupeKey: vetTreatmentKey(horse.id, state.injury.atMs, day),
+      data: { cost: gc.VET_TREATMENT_COST, backAtMs: patch.injuredUntil ? patch.injuredUntil.getTime() : null },
+    });
     return { horse: updated!, treated: true, cost: gc.VET_TREATMENT_COST };
   });
 }

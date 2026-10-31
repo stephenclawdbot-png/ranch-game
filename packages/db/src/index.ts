@@ -50,3 +50,5 @@ export * from "./services/clubFill";
 export * from "./services/claiming";
 export * from "./services/stablePhoto";
 export * from "./services/rateLimit";
+export * from "./services/formBook";
+export * from "./services/horseLog";

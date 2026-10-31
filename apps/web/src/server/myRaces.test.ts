@@ -10,13 +10,15 @@ const jar = vi.hoisted(() => ({ token: null as string | null }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => (jar.token ? { value: jar.token } : undefined) }) }));
 
 import { GET } from "../../app/api/me/races/route";
+import { GET as GET_LOG } from "../../app/api/horses/[id]/log/route";
+import { GET as GET_BOOK } from "../../app/api/me/formbook/route";
 import { createAccount, getRace, listStableHorses, resetDbSingleton, stableOf, type DbHandle } from "@thoroughbred/db";
 import { dbHandle } from "./db";
 import { broadcastEndsAtMs } from "./live";
 import type { Session } from "./session";
-import { createStoryRace, driveCard, enterLive, entryOptions, myRaces, raceList, replayStartFor, servedReplay } from "./game";
+import { createStoryRace, driveCard, enterLive, entryOptions, horseDetail, myRaces, raceList, replayStartFor, servedReplay } from "./game";
 import { FINISH_LEAD_SEC } from "@/lib/replayStart";
-import type { MyRacesView } from "@/lib/types";
+import type { HorseLogView, MyRacesView, StableFormBookView } from "@/lib/types";
 
 let h: DbHandle;
 const T0 = new Date(Date.UTC(2026, 10, 2, 12, 0, 7));
@@ -36,6 +38,8 @@ let watchedStory: string;
 let live: { raceId: string; postTimeMs: number };
 let pendingLive: { raceId: string } | null = null;
 let names: Map<string, string>;
+let liveHorse: string;
+let pendingHorse: string;
 
 async function get(url: string): Promise<Response> {
   return GET(new Request(`https://tb.example${url}`));
@@ -65,6 +69,7 @@ beforeAll(async () => {
     const horseId = await enter(r.id);
     if (!horseId) continue;
     entered.add(horseId);
+    liveHorse = horseId;
     liveRow = { id: r.id, postTimeMs: r.postTimeMs };
     break;
   }
@@ -75,6 +80,7 @@ beforeAll(async () => {
     const horseId = await enter(r.id);
     if (!horseId) continue;
     entered.add(horseId);
+    pendingHorse = horseId;
     pendingRow = { id: r.id };
     break;
   }
@@ -183,5 +189,78 @@ describe("replayStartFor (?at=)", () => {
     expect(await replayStartFor(h.db, live.raceId, "finish", T0)).toBeUndefined();
     expect(await replayStartFor(h.db, live.raceId, "finish", new Date(live.postTimeMs + 5_000))).toBeUndefined();
     expect(await replayStartFor(h.db, pendingLive!.raceId, "finish", T0)).toBeUndefined();
+  });
+});
+
+describe("the form book", () => {
+  it("shows a Live race still to run, then running, with no result at all", async () => {
+    const postMs = (await getRace(h.db, pendingLive!.raceId))!.postTime.getTime();
+    const before = await horseDetail(h.db, pendingHorse, p, T0);
+    const declared = before!.form.lines.find((l) => l.raceId === pendingLive!.raceId)!;
+    expect(declared).toMatchObject({ status: "declared", result: null });
+    const during = await horseDetail(h.db, pendingHorse, p, new Date(postMs + 5_000));
+    const running = during!.form.lines.find((l) => l.raceId === pendingLive!.raceId)!;
+    expect(running).toMatchObject({ status: "running", result: null });
+    // Nothing of the result travels: no position, margin, time, rating after or purse won.
+    expect(JSON.stringify(running)).not.toMatch(/"position"|"beatenMm"|"timeUs"|"ratingAfter"|"prize"/);
+    // Splits never count it.
+    expect(during!.form.splits.total.runs).toBe(during!.form.lines.filter((l) => l.result).length);
+  });
+
+  it("gives the settled Live race a full form line; condition at the off for the keeper only", async () => {
+    const now = new Date(live.postTimeMs + 3_600_000);
+    const mine = await horseDetail(h.db, liveHorse, p, now);
+    const line = mine!.form.lines.find((l) => l.raceId === live.raceId)!;
+    expect(line.status).toBe("settled");
+    expect(line.result!.position).toBeGreaterThanOrEqual(1);
+    expect(line.gate).toBeGreaterThanOrEqual(1);
+    expect(line.fieldSize).toBeGreaterThanOrEqual(5);
+    expect(line.course).not.toBeNull();
+    expect(line.result!.winningTimeUs).toBeGreaterThan(0);
+    expect(line.result!.timeUs).toBeGreaterThanOrEqual(line.result!.winningTimeUs!);
+    expect(line.result!.beatenMm === 0).toBe(line.result!.position === 1);
+    expect(line.intensity).toBe("normal");
+    expect(line.fatigue).not.toBeNull();
+    expect(mine!.form.splits.total.runs).toBeGreaterThanOrEqual(1);
+    // The runs list (older callers) still comes along.
+    expect(mine!.runs.some((r) => r.raceId === live.raceId)).toBe(true);
+    const publicView = await horseDetail(h.db, liveHorse, null, now);
+    const pub = publicView!.form.lines.find((l) => l.raceId === live.raceId)!;
+    expect(pub.result).toEqual(line.result);
+    expect(pub.fatigue).toBeNull();
+    expect(pub.freshness).toBeNull();
+    expect(pub.intensity).toBeNull();
+  });
+
+  it("serves /me/races rows with their form lines and the stable's splits", async () => {
+    const page = (await (await get("/api/me/races")).json()) as MyRacesView;
+    expect(page.rows.every((r) => r.line && r.line.result && r.line.result.position === r.position)).toBe(true);
+    const res = await GET_BOOK(new Request("https://tb.example/api/me/formbook"));
+    expect(res.status).toBe(200);
+    const book = (await res.json()) as StableFormBookView;
+    expect(book.splits.total.runs).toBe(page.summary.runs);
+    const one = (await (await GET_BOOK(new Request(`https://tb.example/api/me/formbook?horse=${liveHorse}`))).json()) as StableFormBookView;
+    expect(one.horseId).toBe(liveHorse);
+    expect(one.splits.total.runs).toBe(page.rows.filter((r) => r.horseId === liveHorse).length);
+  });
+
+  it("serves the horse's log to its keeper only", async () => {
+    const url = `https://tb.example/api/horses/${liveHorse}/log`;
+    const ctx = { params: Promise.resolve({ id: liveHorse }) };
+    const res = await GET_LOG(new Request(url), ctx);
+    expect(res.status).toBe(200);
+    const log = (await res.json()) as HorseLogView;
+    expect(log.entries.some((e) => e.kind === "race" && e.raceId === live.raceId && e.line?.result)).toBe(true);
+    const pendingLog = (await (await GET_LOG(new Request(`https://tb.example/api/horses/${pendingHorse}/log`), { params: Promise.resolve({ id: pendingHorse }) })).json()) as HorseLogView;
+    const declared = pendingLog.entries.find((e) => e.kind === "race" && e.raceId === pendingLive!.raceId)!;
+    expect(declared.line).toMatchObject({ result: null });
+    expect(log.entries.at(-1)!.kind).toBe("born");
+
+    jar.token = null;
+    expect((await GET_LOG(new Request(url), { params: Promise.resolve({ id: liveHorse }) })).status).toBe(401);
+    const other = await createAccount(h.db, { stableName: "Nosy Parker Yard", silks: { pattern: "hoops", primary: "#223344", secondary: "#556677", cap: "#8899aa" }, now: T0 });
+    jar.token = other.token;
+    expect((await GET_LOG(new Request(url), { params: Promise.resolve({ id: liveHorse }) })).status).toBe(404);
+    jar.token = token;
   });
 });

@@ -134,6 +134,13 @@
       "when": 1793389629481,
       "tag": "0018_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793410741079,
+      "tag": "0019_horse_log",
+      "breakpoints": true
     }
   ]
 }
