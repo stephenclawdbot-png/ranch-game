@@ -23,6 +23,8 @@ export interface OwnerStats {
   seasonFinalWins: number;
   hallOfFame: number;
   careDays: number;
+  /** Finished Stable steps, the first-week guide (onboarding.ts). Absent for older callers. */
+  stableSteps?: boolean;
 }
 
 export interface Achievement {
@@ -51,6 +53,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   { id: "final_win", title: "Season Champion", description: "Win a Season Final.", test: (s) => s.seasonFinalWins >= 1 },
   { id: "hall_of_fame", title: "Immortal", description: "Have a horse inducted into the Hall of Fame.", test: (s) => s.hallOfFame >= 1 },
   { id: "carer", title: "Good Hands", description: "Give 30 days of care (any days).", test: (s) => s.careDays >= 30 },
+  { id: "stable_steps", title: "Learned the Ropes", description: "Finish Stable steps, the first-week guide on the Estate.", test: (s) => s.stableSteps === true },
 ];
 
 export function unlockedAchievements(s: OwnerStats, already: ReadonlySet<string> = new Set()): Achievement[] {

@@ -14,7 +14,8 @@ import { QUIRK_LABEL } from "./geneticsSummary";
 import { CROWD_SHY_FIELD, QUIRK_EFFECT, QUIRK_REVEAL_PERMILLE, progressionGainOr, progressionOf, revealWidth, revealedRanges } from "./phenotype";
 import { QUIRK_KEYS, STAT_KEYS, type HorseState, type QuirkKey, type RetireReason, type StatKey } from "./types";
 
-export type MomentKind = "quirk" | "improver" | "exact" | "scan" | "first_win" | "first_feature" | "retired" | "legacy" | "memorial";
+/** `unlock` and `stable_steps` are stable-wide (no horse): a feature opened, the first-week guide finished. */
+export type MomentKind = "quirk" | "improver" | "exact" | "scan" | "first_win" | "first_feature" | "retired" | "legacy" | "memorial" | "unlock" | "stable_steps";
 
 /** What a retired horse did on the racecourse: the tribute card. */
 export interface Tribute {

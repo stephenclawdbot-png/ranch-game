@@ -112,3 +112,156 @@ export function createGiftFoal(input: StarterInput & { name: string }): HorseSta
 
 /** Default stable silks if the player skips the editor. */
 export const DEFAULT_SILKS: Silks = { primary: "#1d3557", secondary: "#f1faee", pattern: "hoops", cap: "#e63946" };
+
+// ---------------------------------------------------------------------------
+// Stable steps: the first-week guide on Home (2026-10-31, owner-approved)
+// ---------------------------------------------------------------------------
+
+/**
+ * One step of the first-week guide. Each completes from the real server event (the care
+ * session, the saved plan, the Live entry ...), once per account, and pays its credits once.
+ */
+export type StableStepKey =
+  | "care"
+  | "train_plan"
+  | "enter_live"
+  | "watch_live"
+  | "read_why"
+  | "daily_cup"
+  | "pick"
+  | "quick_race"
+  | "pin_target"
+  | "breeding_preview";
+
+/** A feature a step needs before it can be offered (detected on the server at run time). */
+export type GuideFeature = "quickRaces";
+
+export interface StableStepDef {
+  key: StableStepKey;
+  /** Credits paid once when the step completes (ledger kind `stable_step`). */
+  credits: number;
+  /** Only offered when this feature exists in the running build; otherwise skipped. */
+  requires?: GuideFeature;
+}
+
+/**
+ * The guide, in order: look after a horse, plan its week, race it Live, watch and understand
+ * the result, then the daily and weekly tools (Cup, picks, quick races, the planner) and a
+ * first look at breeding. Total with every step and the bonus: 830 credits (770 without quick
+ * races), about a quarter of the starter grant and roughly six days of daily goals; a one-off
+ * per account, so it never changes the steady-state economy (KNOBS §10a, season harness).
+ */
+export const STABLE_STEPS: readonly StableStepDef[] = [
+  { key: "care", credits: 50 },
+  { key: "train_plan", credits: 60 },
+  { key: "enter_live", credits: 80 },
+  { key: "watch_live", credits: 60 },
+  { key: "read_why", credits: 60 },
+  { key: "daily_cup", credits: 60 },
+  { key: "pick", credits: 60 },
+  { key: "quick_race", credits: 60, requires: "quickRaces" },
+  { key: "pin_target", credits: 70 },
+  { key: "breeding_preview", credits: 70 },
+];
+
+/** Paid once when every step on offer is done (ledger kind `stable_step`); also earns the "Learned the Ropes" plaque. */
+export const STABLE_STEPS_BONUS = 200;
+
+export type GuideFeatures = Readonly<Partial<Record<GuideFeature, boolean>>>;
+
+export function isStableStepKey(x: unknown): x is StableStepKey {
+  return typeof x === "string" && STABLE_STEPS.some((s) => s.key === x);
+}
+
+/** The steps on offer in this build: a step whose feature is missing is skipped, not shown locked. */
+export function stableStepsFor(features: GuideFeatures = {}): StableStepDef[] {
+  return STABLE_STEPS.filter((s) => !s.requires || features[s.requires] === true);
+}
+
+/** Everything the guide can pay in this build: every step on offer plus the finishing bonus. */
+export function stableStepsTotal(features: GuideFeatures = {}): number {
+  return stableStepsFor(features).reduce((sum, s) => sum + s.credits, 0) + STABLE_STEPS_BONUS;
+}
+
+export interface StableStepsProgress {
+  steps: { key: StableStepKey; credits: number; done: boolean }[];
+  /** The first step not done yet, in order (null when complete). */
+  next: StableStepKey | null;
+  done: number;
+  total: number;
+  complete: boolean;
+}
+
+/** Progress through the guide from the set of completed step keys. */
+export function stableStepsProgress(done: ReadonlySet<string>, features: GuideFeatures = {}): StableStepsProgress {
+  const steps = stableStepsFor(features).map((s) => ({ key: s.key, credits: s.credits, done: done.has(s.key) }));
+  const count = steps.filter((s) => s.done).length;
+  return { steps, next: steps.find((s) => !s.done)?.key ?? null, done: count, total: steps.length, complete: count === steps.length };
+}
+
+// ---------------------------------------------------------------------------
+// Progressive unlocks (2026-10-31, owner-approved)
+// ---------------------------------------------------------------------------
+
+/** Features a brand-new stable meets a little later, so day one isn't every system at once. */
+export type UnlockFeature = "tote" | "market" | "leasing" | "claiming" | "jockey_contracts";
+export const UNLOCK_FEATURES: readonly UnlockFeature[] = ["tote", "market", "leasing", "claiming", "jockey_contracts"];
+
+/** Market and leasing open from the stable's third day (founding day + 2, the free-pack day). */
+export const UNLOCK_MARKET_DAYS = 2;
+/** Licence level reached by finishing Story chapter 1: opens market, leasing, claiming and jockey contracts. */
+export const UNLOCK_CHAPTER_LICENCE = 2;
+
+export type UnlockReason = "existing_stable" | "wallet" | "watched_live" | "day_three" | "story_chapter" | "already_used";
+
+export interface UnlockFacts {
+  /** False for stables founded before the guide shipped: they keep everything. */
+  guided: boolean;
+  /** Signed in with a wallet: they came for the USDG features (the tote and the market). */
+  wallet: boolean;
+  /** Has watched the result of one of its own Live races. */
+  watchedLiveRace: boolean;
+  /** UTC days since founding (0 on founding day). */
+  daysSinceFounding: number;
+  licenceLevel: number;
+  /** A feature the stable already used stays open, whatever else holds. */
+  used?: Readonly<Partial<Record<UnlockFeature, boolean>>>;
+}
+
+/**
+ * Why each feature is open, or null while it is still to come. Never takes anything away: an
+ * existing stable has everything, a used feature stays open, and every rule only ever opens.
+ */
+export function unlockState(f: UnlockFacts): Record<UnlockFeature, UnlockReason | null> {
+  const chapter = f.licenceLevel >= UNLOCK_CHAPTER_LICENCE;
+  const day3 = f.daysSinceFounding >= UNLOCK_MARKET_DAYS;
+  const rule = (feature: UnlockFeature): UnlockReason | null => {
+    if (!f.guided) return "existing_stable";
+    if (f.used?.[feature]) return "already_used";
+    switch (feature) {
+      case "tote":
+        return f.wallet ? "wallet" : f.watchedLiveRace ? "watched_live" : null;
+      case "market":
+      case "leasing":
+        return f.wallet ? "wallet" : chapter ? "story_chapter" : day3 ? "day_three" : null;
+      case "claiming":
+      case "jockey_contracts":
+        return chapter ? "story_chapter" : null;
+    }
+  };
+  return { tote: rule("tote"), market: rule("market"), leasing: rule("leasing"), claiming: rule("claiming"), jockey_contracts: rule("jockey_contracts") };
+}
+
+// ---------------------------------------------------------------------------
+// Welcome back
+// ---------------------------------------------------------------------------
+
+/** Away at least this long and Home opens with a "welcome back" card. Never a penalty, just a catch-up. */
+export const WELCOME_BACK_AFTER_MS = 24 * 3_600_000;
+/** The card stays until dismissed, or this long after the visit that raised it. */
+export const WELCOME_BACK_SHOW_MS = 6 * 3_600_000;
+
+/** True when a visit at `nowMs` after the last one at `lastVisitMs` is a "welcome back". */
+export function isWelcomeBack(lastVisitMs: number | null, nowMs: number): boolean {
+  return lastVisitMs !== null && nowMs - lastVisitMs >= WELCOME_BACK_AFTER_MS;
+}
