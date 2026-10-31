@@ -112,8 +112,9 @@ export interface ToteRunnerOdds {
   sharePermille: number;
   /**
    * Decimal odds x 1000 (what 1 unit returns, stake included) if this runner wins (WIN) or
-   * places (PLACE) at the current pool; null when nobody has backed it yet. PLACE assumes every
-   * other paying place is backed too (it can only be higher otherwise).
+   * places (PLACE) at the current pool; null when nobody has backed it yet. PLACE divides the net
+   * pool by the paying places that can be backed (the places, or fewer when fewer runners are
+   * backed): exact when the other placed runners are backed, higher when one of them isn't.
    */
   oddsMilli: number | null;
 }
@@ -127,8 +128,14 @@ export interface TotePoolView {
   runners: ToteRunnerOdds[];
 }
 
+/** Parts the net pool is shown split into: 1 for WIN; for PLACE the paying places, or fewer when fewer runners are backed. */
+function shownParts(kind: TotePoolKind, places: number, backed: number): number {
+  return kind === "win" ? 1 : Math.max(1, Math.min(places, backed));
+}
+
 /**
- * Live odds from the pool alone: odds = (pool x (1 - take)) / (stake on the runner x places).
+ * Live odds from the pool alone: odds = (pool x (1 - take)) / (stake on the runner x parts), where
+ * parts is 1 for WIN and the paying places for PLACE (fewer when fewer runners are backed).
  * `stakes` maps runner -> total staked; `runnerIds` lists every runner (unbacked ones show null).
  */
 export function totePoolView(kind: TotePoolKind, runnerIds: readonly string[], stakes: ReadonlyMap<string, number>, fieldSize: number, permille: number = TOTE_TAKEOUT_PERMILLE): TotePoolView {
@@ -137,13 +144,14 @@ export function totePoolView(kind: TotePoolKind, runnerIds: readonly string[], s
   for (const id of runnerIds) total += stakes.get(id) ?? 0;
   const takeout = toteTakeout(total, permille);
   const net = total - takeout;
+  const parts = shownParts(kind, places, runnerIds.filter((id) => (stakes.get(id) ?? 0) > 0).length);
   const runners = runnerIds.map((horseId) => {
     const stake = stakes.get(horseId) ?? 0;
     return {
       horseId,
       stake,
       sharePermille: total > 0 ? Math.floor((stake * 1000) / total) : 0,
-      oddsMilli: stake > 0 && places > 0 ? Math.floor((net * 1000) / (stake * places)) : null,
+      oddsMilli: stake > 0 && places > 0 ? Math.floor((net * 1000) / (stake * parts)) : null,
     };
   });
   return { kind, total, takeout, net, places, runners };
@@ -160,7 +168,9 @@ export function toteReturnIfPlaced(kind: TotePoolKind, stakes: ReadonlyMap<strin
   for (const v of stakes.values()) total += v;
   const net = total - toteTakeout(total, permille);
   const onRunner = (stakes.get(horseId) ?? 0) + stake;
-  return Math.floor((net * stake) / (onRunner * places));
+  let backed = 0;
+  for (const [id, v] of stakes) if (v > 0 && id !== horseId) backed++;
+  return Math.floor((net * stake) / (onRunner * shownParts(kind, places, backed + 1)));
 }
 
 // ---------------------------------------------------------------------------

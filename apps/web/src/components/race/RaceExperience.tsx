@@ -349,7 +349,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           )}
         </div>
         <div className="grid content-start gap-4">
-          {card.kind === "live" && <TotePanel raceId={card.id} />}
+          {card.kind === "live" && <TotePanel raceId={card.id} reveal={phase === "result" && !holdResults} />}
           <FairnessPanel card={card} replay={phase === "result" ? replay : null} />
           {phase !== "result" && (
             <Link href={mine ? "/" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">

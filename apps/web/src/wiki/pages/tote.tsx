@@ -62,7 +62,7 @@ export default function TotePage() {
       </P>
       <P>
         The odds on the panel are the pool&rsquo;s own maths: <b>odds = pool × (1 − {pct(gc.TOTE_TAKEOUT_PERMILLE)}) ÷ the stakes on that runner</b>, as decimal odds (what 1 returns, stake
-        included). For Place it is divided again by the number of paying places, assuming each of them is backed (it can only be higher otherwise). The share bar shows how much of the pool is on
+        included). For Place it is divided again by the number of paying places (or by the number of runners backed, when fewer are): exact when the other placed runners are backed, higher when one of them isn&rsquo;t. The share bar shows how much of the pool is on
         each runner. The odds change with every bet until the off, so the return shown on your bet slip is labelled as an estimate; the final odds freeze at the off and show under the broadcast
         while the race runs.
       </P>

@@ -68,7 +68,7 @@ function MyBets({ state }: { state: PlayerState }) {
         <div className="grid gap-3 sm:grid-cols-2" data-testid="bets-summary">
           {data.summary.map((s) => (
             <div key={s.currency} className="surface grid gap-1 p-4">
-              <p className="label">{CURRENCY_LABEL[s.currency]}</p>
+              <p className="label">{CURRENCY_LABEL[s.currency]} · net on settled bets</p>
               <p className={`num text-[1.75rem] leading-8 ${s.net > 0 ? "text-positive" : s.net < 0 ? "text-negative" : "text-cream"}`} data-testid={`bets-net-${s.currency}`}>
                 {s.net > 0 ? "+" : s.net < 0 ? "−" : ""}
                 {gc.formatToteAmount(s.currency, Math.abs(s.net))}

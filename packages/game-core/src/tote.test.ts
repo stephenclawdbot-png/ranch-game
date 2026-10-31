@@ -59,10 +59,15 @@ describe("live odds", () => {
     expect(formatToteOdds(null)).toBe("–");
   });
 
-  it("place odds divide by the paying places", () => {
+  it("place odds divide by the paying places (fewer when fewer runners are backed)", () => {
     const v = totePoolView("place", ["h1", "h2"], new Map([["h1", 100], ["h2", 100]]), 8);
     expect(v.places).toBe(3);
-    expect(v.runners[0]!.oddsMilli).toBe(Math.floor((170 * 1000) / 300));
+    expect(v.runners[0]!.oddsMilli).toBe(Math.floor((170 * 1000) / 200));
+    const four = totePoolView("place", ["h1", "h2", "h3", "h4"], new Map([["h1", 100], ["h2", 100], ["h3", 100], ["h4", 100]]), 8);
+    expect(four.runners[0]!.oddsMilli).toBe(Math.floor((340 * 1000) / 300));
+    // matches what settlement pays when those runners place (settlement rounds the part down first)
+    const s = settleTotePool("place", [bet("a", "h1", 100), bet("b", "h2", 100), bet("c", "h3", 100), bet("d", "h4", 100)], field(8));
+    expect(Math.abs(s.dividends[0]!.perUnitMilli - four.runners[0]!.oddsMilli!)).toBeLessThanOrEqual(10);
   });
 
   it("the bet slip's return counts the new bet in the pool", () => {

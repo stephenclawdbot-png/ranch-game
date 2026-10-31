@@ -109,7 +109,7 @@ function OddsRow({
           <span className="block h-full bg-brass" style={{ width: `${Math.max(share > 0 ? 2 : 0, share / 10)}%` }} />
         </span>
         <span className="t-meta block truncate">
-          {runner.isHouse ? "The Club" : runner.stableName ?? ""} · {(share / 10).toFixed(1)}% of pool · {amountShort(currency, odds?.stake ?? 0)}
+          {(share / 10).toFixed(1)}% · {amountShort(currency, odds?.stake ?? 0)} · {runner.isHouse ? "The Club" : (runner.stableName ?? "")}
         </span>
       </span>
       <span className="w-14 shrink-0 text-right">
@@ -137,8 +137,10 @@ function OddsRow({
   );
 }
 
-function betStatusText(b: MyToteBet, closed: boolean): string {
+function betStatusText(b: MyToteBet, closed: boolean, reveal: boolean): string {
   const amt = (n: number) => gc.formatToteAmount(b.currency, n);
+  // While the finish is still being called on the page, a settled bet waits too (no spoiler).
+  if (!reveal && (b.status === "won" || b.status === "lost" || b.status === "returned")) return "Waiting for the result";
   switch (b.status) {
     case "open":
       if (closed) return b.potentialReturn !== null ? `Waiting for the result · returns ${amt(b.potentialReturn)} if it ${b.pool === "win" ? "wins" : "places"} (final odds)` : "Waiting for the result";
@@ -154,7 +156,7 @@ function betStatusText(b: MyToteBet, closed: boolean): string {
   }
 }
 
-export function YourBets({ bets, closed }: { bets: MyToteBet[]; closed: boolean }) {
+export function YourBets({ bets, closed, reveal = true }: { bets: MyToteBet[]; closed: boolean; reveal?: boolean }) {
   if (!bets.length) return null;
   return (
     <div className="grid gap-1.5" data-testid="tote-your-bets">
@@ -168,7 +170,7 @@ export function YourBets({ bets, closed }: { bets: MyToteBet[]; closed: boolean 
               </span>
               <span className="num">{gc.formatToteAmount(b.currency, b.stake)}</span>
             </span>
-            <span className={`text-cream-dim ${b.status === "won" ? "!text-positive font-bold" : ""}`}>{betStatusText(b, closed)}</span>
+            <span className={`text-cream-dim ${b.status === "won" && reveal ? "!text-positive font-bold" : ""}`}>{betStatusText(b, closed, reveal)}</span>
           </li>
         ))}
       </ul>
@@ -239,8 +241,12 @@ function ordinalSuffix(n: number): string {
   return ["th", "st", "nd", "rd"][(v - 20) % 10] ?? ["th", "st", "nd", "rd"][v] ?? "th";
 }
 
-/** The Tote panel for a Live card race. Renders nothing for races without a tote. */
-export function TotePanel({ raceId }: { raceId: string }) {
+/**
+ * The Tote panel for a Live card race. Renders nothing for races without a tote. `reveal`: the
+ * page is showing the result (false while the finale is still being called in the stage), so
+ * the audit and settled bets wait for it.
+ */
+export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: boolean }) {
   const { board, me, setMe, reload } = useTote(raceId);
   const [pool, setPool] = useState<Pool>("win");
   const [currency, setCurrency] = useState<Currency>("CR");
@@ -308,11 +314,13 @@ export function TotePanel({ raceId }: { raceId: string }) {
   }
 
   const statusChip = open ? (
-    <span className="chip chip-cream">Open · closes at the off</span>
+    <span className="chip">Open · closes at the off</span>
   ) : closed ? (
     <span className="chip">Closed at the off</span>
+  ) : board.status === "settled" && reveal ? (
+    <span className="chip">✓ Settled</span>
   ) : board.status === "settled" ? (
-    <span className="chip chip-cream">✓ Settled</span>
+    <span className="chip">Closed at the off</span>
   ) : (
     <span className="chip">Refunded</span>
   );
@@ -419,7 +427,7 @@ export function TotePanel({ raceId }: { raceId: string }) {
               id="tote-stake"
               className="field w-28"
               inputMode={currency === "CR" ? "numeric" : "decimal"}
-              placeholder={stakeText(currency, gc.TOTE_MIN_STAKE[currency])}
+              placeholder={`min ${stakeText(currency, gc.TOTE_MIN_STAKE[currency])}`}
               value={stake}
               onChange={(e) => setStake(e.target.value)}
               data-testid="tote-stake"
@@ -464,8 +472,8 @@ export function TotePanel({ raceId }: { raceId: string }) {
         </p>
       )}
 
-      {mine && <YourBets bets={mine.bets} closed={!open} />}
-      {board.status === "settled" && <ToteAudit audit={board.audit} />}
+      {mine && <YourBets bets={mine.bets} closed={!open} reveal={reveal} />}
+      {board.status === "settled" && reveal && <ToteAudit audit={board.audit} />}
       {board.status === "abandoned" && <ToteAudit audit={board.audit} />}
     </section>
   );

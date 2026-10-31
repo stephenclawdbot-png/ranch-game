@@ -32,7 +32,7 @@
  *   can see them.
  */
 import * as gc from "@thoroughbred/game-core";
-import { DomainError, RULES, recordAccountSignal, signJockey, stableOf, type Db } from "@thoroughbred/db";
+import { DomainError, RULES, confirmToteAdult, myToteRace, placeToteBet, recordAccountSignal, signJockey, stableOf, toteBoard, type Db } from "@thoroughbred/db";
 import { jockeysPage } from "@/server/jockeys";
 import { claimLive, enterLive, entryOptions, playerView, quickPickLive, raceCard, raceList, refill } from "@/server/game";
 import { breedingView, buy, coverMare, foalAndName, listForSale, marketView, MAX_STUD_FEE, packsView, pull, standAtStud } from "@/server/economy";
@@ -113,6 +113,9 @@ export interface AgentStats {
   /** Claiming races: horses entered (owners) and claims lodged (claimants). */
   claimEntries: number;
   claimsLodged: number;
+  /** The tote (punters only): bets placed and credits staked. */
+  toteBets: number;
+  toteStaked: number;
   /** Refused actions by DomainError code. */
   refused: Record<string, number>;
 }
@@ -121,7 +124,7 @@ function emptyStats(): AgentStats {
   return {
     visits: 0, liveEntries: 0, storyRaces: 0, cupRuns: 0, careSessions: 0, trainingSessions: 0, trainingInjuries: 0, vetTreatments: 0, refills: 0,
     facilities: 0, packsFree: 0, packsPaid: 0, covers: 0, foaled: 0, studStands: 0, listings: 0, purchases: 0, retired: 0, legacy: 0, fqEntries: 0,
-    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, freelanceRides: 0, freelanceSpend: 0, jockeySignings: 0, jockeySigningSpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, refused: {},
+    wfEntries: 0, raceDayEntries: 0, raceDaySpend: 0, freelanceRides: 0, freelanceSpend: 0, jockeySignings: 0, jockeySigningSpend: 0, washStudFees: 0, washMarket: 0, sponsorships: 0, sponsorSpend: 0, leaseOffers: 0, leasesTaken: 0, leasesReturned: 0, claimEntries: 0, claimsLodged: 0, toteBets: 0, toteStaked: 0, refused: {},
   };
 }
 
@@ -708,6 +711,7 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
       // Now and then a casual with a free stall and savings browses the sales (Club lots ask 110%).
       if (a.rng.chance(CASUAL_SHOP_PERMILLE)) await shop(c, s, 4_000, 1.15);
       if (a.rng.chance(CASUAL_CLAIM_PERMILLE)) await maybeClaim(c, s, ((await fresh(c, s)) ?? view), 4_000);
+      await maybeBet(c, s);
       return;
     case "grinder":
       return grinderVisit(c, s, view);
@@ -813,6 +817,61 @@ async function grinderVisit(c: VisitCtx, s: Session, view: View): Promise<void> 
     }
     // a rich grinder now and then puts the stable's name on a race
     await maybeSponsor(c, s, ((await fresh(c, s)) ?? v).credits, 30_000, 100);
+  }
+  await maybeBet(c, s);
+}
+
+// ---------------------------------------------------------------------------
+// The tote (spectator pool betting, packages/db tote.ts)
+// ---------------------------------------------------------------------------
+
+/** Every PUNTER_EVERY-th casual and every PUNTER_EVERY-th grinder (by founding order within the cohort) bets on the tote: a quarter of them. */
+const PUNTER_EVERY = 4;
+/** Chance per visit (permille) that a punter looks at the tote. */
+const PUNTER_BET_PERMILLE = 600;
+/** Races a punter backs at most per visit (each a separate small bet). */
+const PUNTER_RACES_PER_VISIT = 2;
+
+/**
+ * A punter (a quarter of casuals and grinders) now and then backs runners in upcoming Live races
+ * of the next meeting that it has no runner in: up to PUNTER_RACES_PER_VISIT modest bets a visit
+ * (10-50 credits each, within the limits), Win three times in four, Place otherwise. Decisions
+ * come from their own stream (one per agent and visit), so the rest of an agent's day draws
+ * exactly what it did before the tote. The bet goes through the tote service on the harness
+ * clock (`dbClock: false`): the simulated season runs ahead of the database's real clock.
+ */
+async function maybeBet(c: VisitCtx, s: Session): Promise<void> {
+  const { a, now, world } = c;
+  if (a.cohort !== "casual" && a.cohort !== "grinder") return;
+  if (world.agents.filter((x) => x.cohort === a.cohort).indexOf(a) % PUNTER_EVERY !== 0) return;
+  const rng = new gc.Rng(gc.seedFrom("season-harness", world.seed, "tote", a.index, now.getTime()));
+  if (!rng.chance(PUNTER_BET_PERMILLE)) return;
+  const list = await world.act(a, "race_list", now, () => raceList(world.db, now, s.stable.id));
+  const soon = (list?.upcoming ?? []).filter((r) => r.postTimeMs > now.getTime() + 60_000 && r.postTimeMs < now.getTime() + meetingsAheadMs(now, 1));
+  const start = soon.length ? rng.int(soon.length) : 0;
+  for (let tries = 0, placed = 0; tries < soon.length && placed < PUNTER_RACES_PER_VISIT; tries++) {
+    const race = soon[(start + tries) % soon.length]!;
+    const board = await toteBoard(world.db, race.id, now);
+    if (!board || board.status !== "open" || board.runners.length < 2) continue;
+    let me = await myToteRace(world.db, a.accountId, race.id, now);
+    if (me && !me.canBet.ok && me.canBet.reason === "age") {
+      await world.act(a, "tote_adult", now, () => confirmToteAdult(world.db, { accountId: a.accountId, now }));
+      me = await myToteRace(world.db, a.accountId, race.id, now);
+    }
+    if (!me?.canBet.ok) continue;
+    const allowance = me.allowance.find((x) => x.currency === "CR");
+    const stake = Math.min(10 * (1 + rng.int(5)), allowance ? Math.min(allowance.race, allowance.day) : 0);
+    if (stake < gc.TOTE_MIN_STAKE.CR) return;
+    const horse = board.runners[rng.int(board.runners.length)]!;
+    const pool = board.places > 0 && rng.chance(250) ? "place" : "win";
+    const bet = await world.act(a, "tote_bet", now, () =>
+      placeToteBet(world.db, { accountId: a.accountId, raceId: race.id, horseId: horse.horseId, pool, currency: "CR", stake, clientKey: world.key(a, `tote-${race.id}`, now), now }, { dbClock: false }),
+    );
+    if (bet) {
+      placed++;
+      a.stats.toteBets++;
+      a.stats.toteStaked += stake;
+    }
   }
 }
 
