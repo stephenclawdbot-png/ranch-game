@@ -327,8 +327,12 @@ export interface WeekView {
     /** "3 points from safety" / "8 points clear of the drop"; null in tiers that never relegate. */
     relegation?: string | null;
   } | null;
-  /** The season's Season Final: its rating floor and the stable's closest horses to it (best first). */
-  seasonFinal?: { postTimeMs: number; minRating: number; horses: { id: string; name: string; rating: number; short: number; text: string }[] } | null;
+  /**
+   * The season's Season Final: its rating floor and the stable's closest horses to it (best
+   * first). Each carries a trajectory line (game-core ratingTrajectory): the recent per-week
+   * rate turned into "about N weeks", or what would move the mark.
+   */
+  seasonFinal?: { postTimeMs: number; minRating: number; horses: { id: string; name: string; rating: number; short: number; text: string; trajectory: string }[] } | null;
   /** Upkeep for the horses used so far this week (charged after the week ends; unused horses are free). */
   upkeep: { horses: number; due: number };
   /** One plain-English line: what to do next. */

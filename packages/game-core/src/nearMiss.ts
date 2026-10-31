@@ -6,6 +6,7 @@
  */
 import { FEATURE_QUALIFY_TOP, FEATURE_RATING_BY_RIGHT, SEASON_FINAL_MIN_RATING } from "./seasons";
 import { LEAGUE_TIERS, PROMOTE, RELEGATE, RELEGATION_FROM_TIER, standings } from "./leagues";
+import { TIER_RULES, classBand } from "./eligibility";
 import type { LeagueMember, LeagueTier } from "./types";
 
 const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
@@ -32,6 +33,42 @@ export function ratingGap(or: number, needed: number): { short: number; text: st
 export const featureRatingGap = (or: number) => ratingGap(or, FEATURE_RATING_BY_RIGHT);
 /** The Season Final's floor (SEASON_FINAL_MIN_RATING). */
 export const seasonFinalGap = (or: number) => ratingGap(or, SEASON_FINAL_MIN_RATING);
+
+/** The race level a horse with this mark runs in right now, as the card names it ("Hcp 70-95"). */
+function levelLabel(or: number): string {
+  return TIER_RULES[classBand(or)].label.replace(/^Handicap \((.*)\)$/, "Hcp $1");
+}
+
+export interface RatingTrajectory {
+  /** Whole weeks at the recent rate, when there is one; null when no honest number exists. */
+  weeks: number | null;
+  /** The recent average OR change per week (null when there is no rise to average). */
+  ratePerWeek: number | null;
+  /** One line for the Road to Saturday; always "about", never a promise. */
+  text: string;
+}
+
+/**
+ * A realistic trajectory from a rating gap (playtest fix 15): the same "OR 40, needs 95: 55
+ * short" honesty, plus how long it has been taking. The rate is the horse's own recent rated
+ * runs (their deltas, grouped by the week they ran in) averaged over the weeks they span;
+ * with nothing to average — or a mark that hasn't risen — the line says what the rules would
+ * move it: wins at the horse's own level.
+ */
+export function ratingTrajectory(or: number, recent: readonly { delta: number; week: number }[], target: number): RatingTrajectory {
+  const short = Math.max(0, target - or);
+  const level = levelLabel(or);
+  if (short <= 0) return { weeks: null, ratePerWeek: null, text: `OR ${or} already clears ${target}` };
+  if (recent.length === 0) return { weeks: null, ratePerWeek: null, text: `Needs a win or two at ${level} level to start the mark moving` };
+  const first = Math.min(...recent.map((r) => r.week));
+  const last = Math.max(...recent.map((r) => r.week));
+  const span = Math.max(1, last - first + 1);
+  const rate = recent.reduce((s, r) => s + r.delta, 0) / span;
+  if (rate <= 0) return { weeks: null, ratePerWeek: null, text: `The mark hasn't risen over recent weeks: about a win or two at ${level} level would move it` };
+  const weeks = Math.ceil(short / rate);
+  const rateText = Number.isInteger(rate) ? `${rate}` : rate.toFixed(1);
+  return { weeks, ratePerWeek: rate, text: `At your current rate (+${rateText} OR a week), about ${weeks} ${weeks === 1 ? "week" : "weeks"}` };
+}
 
 export interface LeagueNearMiss {
   rank: number;

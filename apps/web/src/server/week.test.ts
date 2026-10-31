@@ -44,6 +44,12 @@ describe("weekView", () => {
     expect(v.seasonFinal).not.toBeNull();
     expect(v.seasonFinal!.minRating).toBe(gc.SEASON_FINAL_MIN_RATING);
     for (const x of v.seasonFinal!.horses) expect(x.short).toBe(Math.max(0, gc.SEASON_FINAL_MIN_RATING - x.rating));
+    // each gap carries a trajectory (playtest fix 15); with no rated runs yet there is no rate
+    // to average, so the line names the level the rules would move the mark at — never a promise
+    for (const x of v.seasonFinal!.horses) expect(x.trajectory).toMatch(/^(Needs a win or two at|The mark hasn't risen|At your current rate \()/);
+    expect(v.seasonFinal!.horses.every((x) => x.trajectory.startsWith("Needs a win or two at"))).toBe(true);
+    // every not-yet horse gets the same signpost in its near-miss lines
+    for (const x of v.horses) expect(x.nearMiss?.some((t) => /win or two at|At your current rate/.test(t))).toBe(true);
     // nobody has run a qualifier yet: no qualifier near miss
     expect(v.horses.flatMap((x) => x.nearMiss ?? []).some((t) => t.includes("Qualifier"))).toBe(false)
 
