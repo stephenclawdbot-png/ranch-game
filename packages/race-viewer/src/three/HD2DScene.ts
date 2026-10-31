@@ -24,6 +24,7 @@ import { hexToRgb, rng } from "./color";
 import { blobShadow, cloudSprite, gatePanelTile, grassTile, hedgeTile, hillsStrip, skyStrip, sunSprite, surfaceTile, type Look } from "./pixelTextures";
 import { PostFX } from "./post";
 import { PixelRain } from "./vfx";
+import { ORGANIC_MID, taperCutEdges } from "./edgeTaper";
 import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
 import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
@@ -181,6 +182,21 @@ class Spring3 {
 }
 
 /** Field/rail colour as a multiplier over the grass tile (brightest channel -> ~1). */
+/** A copy of a scenery image with its cut edges rounded off (it stands alone in 3D). */
+function taperedCopy(img: HTMLCanvasElement | HTMLImageElement): HTMLCanvasElement {
+  const w = img instanceof HTMLCanvasElement ? img.width : img.naturalWidth || img.width;
+  const h = img instanceof HTMLCanvasElement ? img.height : img.naturalHeight || img.height;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const g = c.getContext("2d")!;
+  g.drawImage(img, 0, 0);
+  const px = g.getImageData(0, 0, w, h);
+  taperCutEdges(px.data, w, h);
+  g.putImageData(px, 0, 0);
+  return c;
+}
+
 function tintOver(hex: string, lift = 1): string {
   const [r, g, b] = hexToRgb(hex);
   const m = Math.max(r, g, b, 1);
@@ -634,7 +650,8 @@ export class HD2DScene {
       const img = this.stageArt.get(src);
       if (!img) continue;
       const first = list[0]!;
-      const mesh = new T.InstancedMesh(this.uprightGeo(first.widthM, first.heightM), this.billboardMat(this.tex(img, { mip: true })), list.length);
+      const art = ORGANIC_MID.test(src) ? taperedCopy(img) : img;
+      const mesh = new T.InstancedMesh(this.uprightGeo(first.widthM, first.heightM), this.billboardMat(this.tex(art, { mip: true })), list.length);
       list.forEach((m, i) => {
         dummy.position.set(m.xM, m.y, m.z);
         dummy.scale.set(m.flip ? -1 : 1, 1, 1);
