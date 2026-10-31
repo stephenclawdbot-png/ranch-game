@@ -38,6 +38,7 @@ import RivalsAndNewsPage from "./pages/rivals-and-news";
 import DailyCupPage from "./pages/daily-cup";
 import HallAndTrophiesPage from "./pages/hall-and-trophies";
 import GlossaryPage from "./pages/glossary";
+import TotePage from "./pages/tote";
 
 export const WIKI_CONTENT: Record<string, ComponentType> = {
   "quick-start": QuickStartPage,
@@ -78,4 +79,5 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "daily-cup": DailyCupPage,
   "hall-and-trophies": HallAndTrophiesPage,
   "glossary": GlossaryPage,
+  "tote": TotePage,
 };
