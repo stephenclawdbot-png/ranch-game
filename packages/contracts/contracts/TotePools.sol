@@ -18,7 +18,7 @@ interface IArbSysBlocks {
 }
 
 /// @title TotePools
-/// @notice DORMANT scaffold of a real-USDG pari-mutuel tote for POST TIME (docs/usdg-tote.md).
+/// @notice DORMANT scaffold of a real-money pari-mutuel tote for POST TIME (docs/usdg-tote.md).
 /// Not deployed; nothing in the app talks to it unless REAL_TOTE_ENABLED, WEB3_ENABLED and
 /// TOTE_POOLS_ADDRESS are all set, which needs legal approval first.
 ///
@@ -26,6 +26,12 @@ interface IArbSysBlocks {
 /// move a player's stake or winnings anywhere but back to that player: there is no owner
 /// withdrawal, no upgrade path and no arbitrary transfer. The treasury only ever receives the
 /// takeout and rounding dust, which the contract accounts for itself.
+///
+/// Stake asset: a per-market property. Each market settles entirely in its own asset: an
+/// allow-listed ERC-20 (USDG, allow-listed at deployment) or native ETH (address(0), payable
+/// `bet` with msg.value == amount; pull-based ETH payouts). No conversion, no price oracle: a
+/// race can have a USDG market and an ETH market side by side under different market ids. ETH is
+/// disabled until an admin sets its stake limits and allow-lists it.
 ///
 /// Lifecycle of one race market:
 ///  1. OPERATOR `createMarket` when the field locks, with the race's seed commitment
@@ -114,6 +120,8 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint8 placeTerms;
         Status status;
         uint128 maxPool;
+        /// @dev the stake asset: an allow-listed ERC-20, or NATIVE_ETH
+        address asset;
         bytes32 seedCommitment;
         bytes32 entropy;
         bytes32 revealedSeed;
@@ -139,9 +147,17 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint64 expiry; // unix seconds, at most MAX_PERMIT_TTL ahead
     }
 
+    /// @notice Native ETH as a stake asset (msg.value bets, call-based payouts).
+    address public constant NATIVE_ETH = address(0);
+
+    struct StakeLimits {
+        uint128 minStake;
+        uint128 maxStakePerBet;
+        uint128 maxStakePerWalletPerRace;
+    }
+
     // ---------------------------------------------------------------- immutables
 
-    IERC20 public immutable token;
     /// @notice Bets are refused from closeTime - CLOSE_MARGIN (covers sequencer timestamp drift).
     uint64 public immutable CLOSE_MARGIN;
     uint64 public immutable CHALLENGE_WINDOW;
@@ -155,11 +171,12 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------- storage
 
     address public treasury;
-    /// @notice Takeout and rounding dust owed to the treasury (never player stakes).
-    uint256 public treasuryOwed;
-    uint128 public minStake;
-    uint128 public maxStakePerBet;
-    uint128 public maxStakePerWalletPerRace;
+    /// @notice Stake assets new markets may use (and new bets may be placed in).
+    mapping(address asset => bool) public assetAllowed;
+    /// @notice Per-asset stake limits, in that asset's base units.
+    mapping(address asset => StakeLimits) public stakeLimits;
+    /// @notice Takeout and rounding dust owed to the treasury, per asset (never player stakes).
+    mapping(address asset => uint256) public treasuryOwed;
 
     mapping(bytes32 raceId => Market) private _markets;
     mapping(bytes32 raceId => mapping(uint8 pool => PoolState)) private _pools;
@@ -176,7 +193,14 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     // ---------------------------------------------------------------- events
 
     event MarketCreated(
-        bytes32 indexed raceId, uint64 closeTime, uint8 runnerCount, uint8 placeTerms, bytes32 seedCommitment, uint16 takeoutBps, uint128 maxPool
+        bytes32 indexed raceId,
+        address indexed asset,
+        uint64 closeTime,
+        uint8 runnerCount,
+        uint8 placeTerms,
+        bytes32 seedCommitment,
+        uint16 takeoutBps,
+        uint128 maxPool
     );
     event BetPlaced(
         bytes32 indexed raceId, address indexed bettor, uint8 pool, uint8 runner, uint256 amount, uint256 indexed nonce, uint256 poolTotal, uint256 runnerTotal
@@ -189,9 +213,10 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     event MarketVoided(bytes32 indexed raceId, bytes32 reason);
     event Claimed(bytes32 indexed raceId, address indexed bettor, address to, uint256 amount);
     event DustSwept(bytes32 indexed raceId, uint8 pool, uint256 amount);
-    event TreasuryWithdrawn(address indexed treasury, uint256 amount);
+    event TreasuryWithdrawn(address indexed asset, address indexed treasury, uint256 amount);
     event TreasurySet(address indexed oldTreasury, address indexed newTreasury);
-    event StakeLimitsSet(uint128 minStake, uint128 maxStakePerBet, uint128 maxStakePerWalletPerRace);
+    event StakeLimitsSet(address indexed asset, uint128 minStake, uint128 maxStakePerBet, uint128 maxStakePerWalletPerRace);
+    event AssetAllowedSet(address indexed asset, bool allowed);
 
     // ---------------------------------------------------------------- errors
 
@@ -232,6 +257,9 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     error NotClaimable(bytes32 raceId);
     error AlreadyClaimed();
     error NothingToClaim();
+    error AssetNotAllowed(address asset);
+    error WrongEthAmount(uint256 expected, uint256 sent);
+    error EthTransferFailed();
 
     constructor(
         address admin,
@@ -239,7 +267,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         address permitSigner,
         address guardian,
         address treasury_,
-        address token_,
+        address usdg,
         address arbSys_,
         uint64 closeMargin,
         uint64 challengeWindow,
@@ -248,7 +276,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     ) EIP712("PostTimeTotePools", "1") {
         if (
             admin == address(0) || operator == address(0) || permitSigner == address(0) || guardian == address(0) || treasury_ == address(0)
-                || token_ == address(0)
+                || usdg == address(0)
         ) revert ZeroAddress();
         if (
             closeMargin == 0 || closeMargin > 1 hours || challengeWindow < 10 minutes || challengeWindow > 7 days || maxSettleDelay < challengeWindow
@@ -259,7 +287,6 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         _grantRole(OPERATOR_ROLE, operator);
         _grantRole(PERMIT_SIGNER_ROLE, permitSigner);
         _grantRole(GUARDIAN_ROLE, guardian);
-        token = IERC20(token_);
         arbSys = arbSys_;
         CLOSE_MARGIN = closeMargin;
         CHALLENGE_WINDOW = challengeWindow;
@@ -267,15 +294,20 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         ENTROPY_DELAY_BLOCKS = entropyDelayBlocks;
         treasury = treasury_;
         emit TreasurySet(address(0), treasury_);
-        // USDG has 6 decimals: 1 USDG minimum, 100 per bet, 250 per wallet per race until set.
-        _setStakeLimits(1e6, 100e6, 250e6);
+        // Only USDG is allow-listed at deployment (6 decimals: 1 USDG minimum, 100 per bet, 250
+        // per wallet per race until changed). ETH stays off until an admin configures it.
+        _setStakeLimits(usdg, 1e6, 100e6, 250e6);
+        assetAllowed[usdg] = true;
+        emit AssetAllowedSet(usdg, true);
     }
 
     // ---------------------------------------------------------------- markets
 
-    /// @notice Opens a race market. The seed commitment is fixed here, before any bet, forever.
+    /// @notice Opens a race market in one stake asset. The seed commitment is fixed here, before
+    /// any bet, forever.
     function createMarket(
         bytes32 raceId,
+        address asset,
         uint64 closeTime,
         uint8 runnerCount,
         uint8 placeTerms,
@@ -284,6 +316,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint128 maxPool
     ) external onlyRole(OPERATOR_ROLE) {
         if (_markets[raceId].status != Status.None) revert MarketExists(raceId);
+        if (!assetAllowed[asset]) revert AssetNotAllowed(asset);
         if (raceId == bytes32(0) || seedCommitment == bytes32(0) || maxPool == 0) revert BadMarket();
         if (closeTime <= block.timestamp + CLOSE_MARGIN || closeTime > block.timestamp + MAX_MARKET_LEAD) revert BadMarket();
         if (runnerCount < 2 || runnerCount > MAX_RUNNERS) revert BadMarket();
@@ -295,27 +328,40 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         m.placeTerms = placeTerms;
         m.takeoutBps = takeoutBps;
         m.maxPool = maxPool;
+        m.asset = asset;
         m.seedCommitment = seedCommitment;
         m.status = Status.Open;
-        emit MarketCreated(raceId, closeTime, runnerCount, placeTerms, seedCommitment, takeoutBps, maxPool);
+        emit MarketCreated(raceId, asset, closeTime, runnerCount, placeTerms, seedCommitment, takeoutBps, maxPool);
     }
 
-    /// @notice Places a bet. The bettor must have approved `amount` of the token. Bets are final.
+    /// @notice Places a bet in the market's asset: an ERC-20 market needs `amount` approved and
+    /// no ETH sent; an ETH market needs msg.value == amount. Bets are final.
     function bet(bytes32 raceId, uint8 runner, Pool pool, uint256 amount, BetPermit calldata permit, bytes calldata signature)
         external
+        payable
         nonReentrant
         whenNotPaused
     {
         _checkPermit(raceId, amount, permit, signature);
         nonceUsed[msg.sender][permit.nonce] = true;
         (uint256 pTotal, uint256 rTotal) = _recordBet(raceId, runner, uint8(pool), amount);
-
-        // Interaction: pull the stake and check exactly that much arrived.
-        uint256 before = token.balanceOf(address(this));
-        token.safeTransferFrom(msg.sender, address(this), amount);
-        uint256 received = token.balanceOf(address(this)) - before;
-        if (received != amount) revert UnexpectedAmountReceived(amount, received);
+        _collect(_markets[raceId].asset, amount);
         emit BetPlaced(raceId, msg.sender, uint8(pool), runner, amount, permit.nonce, pTotal, rTotal);
+    }
+
+    /// @dev Takes the stake: ETH must arrive as msg.value; an ERC-20 is pulled and the exact
+    /// amount received checked (fee-on-transfer tokens are refused).
+    function _collect(address asset, uint256 amount) private {
+        if (asset == NATIVE_ETH) {
+            if (msg.value != amount) revert WrongEthAmount(amount, msg.value);
+            return;
+        }
+        if (msg.value != 0) revert WrongEthAmount(0, msg.value);
+        IERC20 t = IERC20(asset);
+        uint256 before = t.balanceOf(address(this));
+        t.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 received = t.balanceOf(address(this)) - before;
+        if (received != amount) revert UnexpectedAmountReceived(amount, received);
     }
 
     /// @dev Market, timing and cap checks, then the bookkeeping (before any token call).
@@ -325,10 +371,12 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         if (block.timestamp + CLOSE_MARGIN >= m.closeTime) revert BettingClosed(m.closeTime - CLOSE_MARGIN);
         if (runner >= m.runnerCount) revert BadRunner(runner);
         if (pool == uint8(Pool.PLACE) && m.placeTerms == 0) revert NoPlacePool();
-        if (amount < minStake) revert StakeBelowMin(amount, minStake);
-        if (amount > maxStakePerBet) revert StakeAboveMax(amount, maxStakePerBet);
+        if (!assetAllowed[m.asset]) revert AssetNotAllowed(m.asset); // a de-listed asset takes no new bets
+        StakeLimits memory lim = stakeLimits[m.asset];
+        if (amount < lim.minStake) revert StakeBelowMin(amount, lim.minStake);
+        if (amount > lim.maxStakePerBet) revert StakeAboveMax(amount, lim.maxStakePerBet);
         uint256 wTotal = walletTotal[raceId][msg.sender] + amount;
-        if (wTotal > maxStakePerWalletPerRace) revert WalletCapExceeded(wTotal, maxStakePerWalletPerRace);
+        if (wTotal > lim.maxStakePerWalletPerRace) revert WalletCapExceeded(wTotal, lim.maxStakePerWalletPerRace);
         PoolState storage ps = _pools[raceId][pool];
         pTotal = ps.total + amount;
         if (pTotal > m.maxPool) revert PoolCapExceeded(pTotal, m.maxPool);
@@ -458,7 +506,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
         uint256 places = _placesFor(ran);
         if (m.placeTerms < places) places = m.placeTerms;
         toTreasury += _settlePool(raceId, 1, places, tie);
-        treasuryOwed += toTreasury;
+        treasuryOwed[m.asset] += toTreasury;
         emit MarketFinalized(raceId, _pools[raceId][0].total, _pools[raceId][1].total, toTreasury);
     }
 
@@ -469,6 +517,7 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
     function claim(bytes32 raceId, address to) external nonReentrant returns (uint256 amount) {
         if (to == address(0)) revert ZeroAddress();
         Status s = _markets[raceId].status;
+        address asset = _markets[raceId].asset;
         if (s != Status.Finalized && s != Status.Void) revert NotClaimable(raceId);
         if (claimed[raceId][msg.sender]) revert AlreadyClaimed();
         if (_walletKeys[raceId][msg.sender] == 0) revert NothingToClaim();
@@ -487,21 +536,21 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
             if (ps.claimedStake == ps.entitledStake && ps.paid < ps.toPay) {
                 uint256 dust = ps.toPay - ps.paid;
                 ps.paid = ps.toPay;
-                treasuryOwed += dust;
+                treasuryOwed[asset] += dust;
                 emit DustSwept(raceId, p, dust);
             }
         }
         // Interaction
-        if (amount > 0) token.safeTransfer(to, amount);
+        if (amount > 0) _send(asset, to, amount);
         emit Claimed(raceId, msg.sender, to, amount);
     }
 
-    /// @notice Anyone: sends the accrued takeout and dust to the treasury. Never player funds.
-    function withdrawTreasury() external nonReentrant {
-        uint256 amount = treasuryOwed;
-        treasuryOwed = 0;
-        if (amount > 0) token.safeTransfer(treasury, amount);
-        emit TreasuryWithdrawn(treasury, amount);
+    /// @notice Anyone: sends one asset's accrued takeout and dust to the treasury. Never player funds.
+    function withdrawTreasury(address asset) external nonReentrant {
+        uint256 amount = treasuryOwed[asset];
+        treasuryOwed[asset] = 0;
+        if (amount > 0) _send(asset, treasury, amount);
+        emit TreasuryWithdrawn(asset, treasury, amount);
     }
 
     // ---------------------------------------------------------------- views
@@ -556,8 +605,18 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
     // ---------------------------------------------------------------- admin
 
-    function setStakeLimits(uint128 min_, uint128 perBet, uint128 perWalletPerRace) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setStakeLimits(min_, perBet, perWalletPerRace);
+    /// @notice Stake limits of one asset (its base units), for bets from now on.
+    function setStakeLimits(address asset, uint128 min_, uint128 perBet, uint128 perWalletPerRace) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setStakeLimits(asset, min_, perBet, perWalletPerRace);
+    }
+
+    /// @notice Allow-lists (or de-lists) a stake asset; NATIVE_ETH is address(0). Allowing needs
+    /// its stake limits set first. De-listing stops new markets and new bets in that asset; it
+    /// never blocks results, refunds or claims of existing markets.
+    function setAssetAllowed(address asset, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (allowed && stakeLimits[asset].minStake == 0) revert BadConfig();
+        assetAllowed[asset] = allowed;
+        emit AssetAllowedSet(asset, allowed);
     }
 
     function setTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -577,12 +636,21 @@ contract TotePools is AccessControl, Pausable, ReentrancyGuard, EIP712 {
 
     // ---------------------------------------------------------------- internals
 
-    function _setStakeLimits(uint128 min_, uint128 perBet, uint128 perWalletPerRace) private {
+    function _setStakeLimits(address asset, uint128 min_, uint128 perBet, uint128 perWalletPerRace) private {
         if (min_ == 0 || perBet < min_ || perWalletPerRace < perBet) revert BadConfig();
-        minStake = min_;
-        maxStakePerBet = perBet;
-        maxStakePerWalletPerRace = perWalletPerRace;
-        emit StakeLimitsSet(min_, perBet, perWalletPerRace);
+        stakeLimits[asset] = StakeLimits(min_, perBet, perWalletPerRace);
+        emit StakeLimitsSet(asset, min_, perBet, perWalletPerRace);
+    }
+
+    /// @dev Pays out in a market's asset. ETH by call (callers are nonReentrant; a recipient that
+    /// refuses ETH fails only its own claim, and can claim to another address).
+    function _send(address asset, address to, uint256 amount) private {
+        if (asset == NATIVE_ETH) {
+            (bool ok,) = payable(to).call{value: amount}("");
+            if (!ok) revert EthTransferFailed();
+        } else {
+            IERC20(asset).safeTransfer(to, amount);
+        }
     }
 
     function _checkPermit(bytes32 raceId, uint256 amount, BetPermit calldata permit, bytes calldata signature) private view {

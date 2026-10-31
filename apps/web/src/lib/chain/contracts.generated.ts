@@ -4767,7 +4767,7 @@ export const totePoolsAbi = [
       },
       {
         "internalType": "address",
-        "name": "token_",
+        "name": "usdg",
         "type": "address"
       },
       {
@@ -4839,6 +4839,17 @@ export const totePoolsAbi = [
   {
     "inputs": [],
     "name": "AlreadyClaimed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
+    "name": "AssetNotAllowed",
     "type": "error"
   },
   {
@@ -4945,6 +4956,11 @@ export const totePoolsAbi = [
       }
     ],
     "name": "EntropyTooEarly",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EthTransferFailed",
     "type": "error"
   },
   {
@@ -5204,9 +5220,44 @@ export const totePoolsAbi = [
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "expected",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "sent",
+        "type": "uint256"
+      }
+    ],
+    "name": "WrongEthAmount",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "ZeroAddress",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "AssetAllowedSet",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -5377,6 +5428,12 @@ export const totePoolsAbi = [
         "internalType": "bytes32",
         "name": "raceId",
         "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
       },
       {
         "indexed": false,
@@ -5622,6 +5679,12 @@ export const totePoolsAbi = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint128",
         "name": "minStake",
@@ -5665,6 +5728,12 @@ export const totePoolsAbi = [
   {
     "anonymous": false,
     "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
       {
         "indexed": true,
         "internalType": "address",
@@ -5865,6 +5934,19 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
+    "name": "NATIVE_ETH",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "OPERATOR_ROLE",
     "outputs": [
       {
@@ -5996,6 +6078,25 @@ export const totePoolsAbi = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
+    "name": "assetAllowed",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "raceId",
         "type": "bytes32"
@@ -6055,7 +6156,7 @@ export const totePoolsAbi = [
     ],
     "name": "bet",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -6167,6 +6268,11 @@ export const totePoolsAbi = [
         "internalType": "bytes32",
         "name": "raceId",
         "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
       },
       {
         "internalType": "uint64",
@@ -6348,6 +6454,11 @@ export const totePoolsAbi = [
             "internalType": "uint128",
             "name": "maxPool",
             "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "asset",
+            "type": "address"
           },
           {
             "internalType": "bytes32",
@@ -6560,45 +6671,6 @@ export const totePoolsAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "maxStakePerBet",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "",
-        "type": "uint128"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "maxStakePerWalletPerRace",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "",
-        "type": "uint128"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "minStake",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "",
-        "type": "uint128"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -6789,6 +6861,29 @@ export const totePoolsAbi = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "setAssetAllowed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
         "internalType": "uint128",
         "name": "min_",
         "type": "uint128"
@@ -6820,6 +6915,35 @@ export const totePoolsAbi = [
     "name": "setTreasury",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
+    "name": "stakeLimits",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "minStake",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "maxStakePerBet",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "maxStakePerWalletPerRace",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -6877,19 +7001,6 @@ export const totePoolsAbi = [
   },
   {
     "inputs": [],
-    "name": "token",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "treasury",
     "outputs": [
       {
@@ -6902,7 +7013,13 @@ export const totePoolsAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
     "name": "treasuryOwed",
     "outputs": [
       {
@@ -6959,7 +7076,13 @@ export const totePoolsAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
     "name": "withdrawTreasury",
     "outputs": [],
     "stateMutability": "nonpayable",
