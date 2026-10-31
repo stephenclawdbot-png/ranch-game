@@ -1,5 +1,6 @@
 "use client";
 
+import { useUsdg } from "@/components/chain/UsdgMode";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -27,6 +28,7 @@ export function searchWiki(q: string): WikiPageMeta[] {
 /** Search box with instant results. */
 export function WikiSearch({ autoFocus, className }: { autoFocus?: boolean; className?: string }) {
   const [q, setQ] = useState("");
+  const u = useUsdg();
   const hits = useMemo(() => searchWiki(q).slice(0, 8), [q]);
   return (
     <div className={`wiki-search ${className ?? ""}`} role="search">
@@ -49,8 +51,8 @@ export function WikiSearch({ autoFocus, className }: { autoFocus?: boolean; clas
             hits.map((p) => (
               <li key={p.slug}>
                 <Link href={`/wiki/${p.slug}`} onClick={() => setQ("")}>
-                  <span className="font-extrabold">{p.title}</span>
-                  <span className="caption block">{p.summary}</span>
+                  <span className="font-extrabold">{u.t(p.title)}</span>
+                  <span className="caption block">{u.t(p.summary)}</span>
                 </Link>
               </li>
             ))
@@ -66,6 +68,7 @@ export function WikiSearch({ autoFocus, className }: { autoFocus?: boolean; clas
 /** The contents sidebar: every section and page; a fold-out on phones. */
 export function WikiNav() {
   const pathname = usePathname() ?? "/wiki";
+  const u = useUsdg();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
   const list = (
@@ -85,7 +88,7 @@ export function WikiNav() {
               return (
                 <li key={p.slug}>
                   <Link href={`/wiki/${p.slug}`} className={on ? "is-on" : ""} aria-current={on ? "page" : undefined}>
-                    {p.title}
+                    {u.t(p.title)}
                   </Link>
                 </li>
               );

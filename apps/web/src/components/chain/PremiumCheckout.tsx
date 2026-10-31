@@ -318,8 +318,9 @@ function PracticePackCheckout({
   const [msg, setMsg] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(st.practiceBalance);
   const [done, setDone] = useState(false);
+  const [leftCents, setLeftCents] = useState(st.lifetimeLeftCents);
   const price = (n: number) => practiceDollars(practiceUsdgFromUsdCents(st.packUsdCents * n));
-  const lifetimeLeft = Math.floor(st.lifetimeLeftCents / st.packUsdCents);
+  const lifetimeLeft = Math.floor(leftCents / st.packUsdCents);
   const affordable = balance === null ? 0 : Math.floor(balance / practiceUsdgFromUsdCents(st.packUsdCents));
   const maxQty = Math.max(0, Math.min(10, weeklyLeft, stallsFree, lifetimeLeft, affordable));
 
@@ -330,6 +331,7 @@ function PracticePackCheckout({
       const key = `pp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const r = await call<{ pullIds: string[]; balance: number }>("/api/checkout/practice", { sku: "premium_pack", quantity: qty, clientKey: key });
       setBalance(r.balance);
+      setLeftCents((c) => Math.max(0, c - st.packUsdCents * qty));
       setDone(true);
       onFulfilled(r.pullIds);
     } catch (e) {
@@ -402,7 +404,7 @@ function PracticePackCheckout({
         </p>
       )}
       <p className="caption">
-        {PRACTICE_EXPLAINER} Max 5 Premium Packs a week and {practiceDollars(practiceUsdgFromUsdCents(PREMIUM_BETA_LIFETIME_USD_CENTS))} over the beta, {practiceDollars(practiceUsdgFromUsdCents(st.lifetimeLeftCents))} left.
+        {PRACTICE_EXPLAINER} Max 5 Premium Packs a week and {practiceDollars(practiceUsdgFromUsdCents(PREMIUM_BETA_LIFETIME_USD_CENTS))} over the beta, {practiceDollars(practiceUsdgFromUsdCents(leftCents))} left.
       </p>
     </div>
   );

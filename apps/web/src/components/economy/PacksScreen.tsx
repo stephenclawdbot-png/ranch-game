@@ -123,7 +123,7 @@ export function PacksScreen() {
                     <span className="t-title">{p.horseName ?? "Foal"}</span>
                   )}
                   <span className="t-meta block">
-                    {p.packType === "premium" ? "Premium" : "Paddock"} #{p.pullIndex} · {p.free ? "free" : `${formatCredits(p.price)} credits`}
+                    {p.packType === "premium" ? "Premium" : "Paddock"} #{p.pullIndex} · {p.free ? "free" : p.packType === "premium" && p.price === 0 ? "prepaid" : `${formatCredits(p.price)} credits`}
                     {p.pityApplied ? ` · pity (${p.pityApplied === "epic" ? "Epic" : p.packType === "paddock" ? "Uncommon" : "Rare"} guarantee)` : ""} ·{" "}
                     {new Date(p.createdAtMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </span>

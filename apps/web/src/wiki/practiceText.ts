@@ -29,7 +29,13 @@ function rewrite(v: unknown): unknown {
         changed = true;
       }
     }
-    return changed ? cloneElement(el, next) : el;
+    if (!changed) return el;
+    // Static JSX children go back as arguments (not one array), so React doesn't ask for keys.
+    if ("children" in next && Array.isArray(next.children)) {
+      const { children, ...rest } = next;
+      return cloneElement(el, rest, ...(children as ReactNode[]));
+    }
+    return cloneElement(el, next);
   }
   return v;
 }
