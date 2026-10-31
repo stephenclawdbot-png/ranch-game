@@ -145,6 +145,18 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                           </>
                         )}
                       </p>
+                      {e.jockey && (
+                        <p className="racecard-meta" data-testid="runner-jockey">
+                          <span className="sr-only">Jockey: </span>
+                          {e.jockey.id ? (
+                            <Link href={`/jockeys/${e.jockey.id}`} className="underline decoration-dotted underline-offset-2">
+                              {e.jockey.cardName}
+                            </Link>
+                          ) : (
+                            e.jockey.cardName
+                          )}
+                        </p>
+                      )}
                       <p className="racecard-meta">
                         {h.age > 0 ? `${h.age}yo ` : ""}
                         {coatLabel(h.appearance).toLowerCase()} {SEX_LABEL[h.sex].toLowerCase()}

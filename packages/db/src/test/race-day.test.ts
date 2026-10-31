@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { ledgerTransactions } from "../schema";
+import { jockeys, ledgerTransactions } from "../schema";
+import { createJockeyTx, getJockey } from "../services/jockeys";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { cancelRace, createRace, enterRace, fieldHashOf, lockField, scratchEntry, storedRaceDay, type CreateRaceInput } from "../services/races";
 import { at, MIN, makeHorse, memoryDb, newPlayer, T0 } from "./helpers";
@@ -10,6 +11,14 @@ import { at, MIN, makeHorse, memoryDb, newPlayer, T0 } from "./helpers";
 let h: DbHandle;
 beforeAll(async () => {
   h = await memoryDb();
+  // Club freelancers: a paid tier books one of matching grade (A for "top", C for "journeyman").
+  for (const [grade, v] of [["A", 850], ["C", 500]] as const) {
+    for (let i = 0; i < 8; i++) {
+      const j = await createJockeyTx(h.db, { seed: gc.seedFrom("race-day-freelancer", grade, i), stableId: null, now: T0 });
+      const skills = { gate: v, pace: v, finish: v, handling: v };
+      await h.db.update(jockeys).set({ skills, potential: skills, rides: 400, wins: 80 }).where(eq(jockeys.id, j.id));
+    }
+  }
 });
 afterAll(async () => {
   await h.close();
@@ -49,7 +58,9 @@ describe("race-day extras and jockeys", () => {
     expect(quote.jockeyFee).toBe(800);
     const entry = await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "stalker", now: T0, raceDay: FULL });
     expect(await getBalance(h.db, p.accountId)).toBe(5_000 + gc.DAILY_GOAL_CREDITS - quote.total);
-    expect(storedRaceDay(entry.snapshot)).toEqual({ ...FULL, paid: { extras: 960, jockey: 800 } });
+    // The old "top" tier books an A-grade Club freelancer, charged what the top jockey cost.
+    expect(storedRaceDay(entry.snapshot)).toEqual({ extras: FULL.extras, jockey: "apprentice", jockeyId: entry.jockeyId, paid: { extras: 960, jockey: 800 } });
+    expect((await getJockey(h.db, entry.jockeyId!))!.grade).toBe("A");
     const k = await kinds(race.id);
     expect(k).toContain("race_extras");
     expect(k).toContain("jockey_fee");
@@ -125,13 +136,14 @@ describe("race-day extras and jockeys", () => {
     const field = (await lockField(h.db, race.id, at(9 * MIN)))!;
     const ra = field.runners.find((r) => r.horseId === a.id)!;
     const rb = field.runners.find((r) => r.horseId === b.id)!;
-    expect(ra.kit).toEqual({ goingPenaltyPermille: 500, formAmpPermille: 800, keenPermille: 500 });
-    expect(rb.kit).toBeUndefined(); // a vet check acts on the injury roll, not on the track
-    expect("kit" in rb).toBe(false);
-    for (const r of field.runners.filter((x) => x.isHouse)) expect(r.kit).toBeUndefined();
+    // Shoes keep their field; the jockey's skills make the rest (a vet check acts on the injury roll).
+    const skillsOf = async (id: string | null | undefined) => (await getJockey(h.db, id!))!.skills;
+    expect(ra.kit).toEqual({ goingPenaltyPermille: 500, ...gc.jockeyKit(await skillsOf(ra.jockey?.id)) });
+    expect(rb.kit).toEqual(gc.jockeyKit(await skillsOf(rb.jockey?.id)));
+    for (const r of field.runners.filter((x) => x.isHouse)) expect(r.kit).toMatchObject({ battlePermille: expect.any(Number) });
     expect(field.fieldHash).toBe(fieldHashOf(field.runners, null, field.model));
-    // A runner list without kit (or weights) hashes exactly as the old formula did.
-    const old = field.runners.map(({ kit: _k, weightLb: _w, extraWeightLb: _x, ...r }) => r);
+    // A runner list without kit, weights or jockey hashes exactly as the old formula did.
+    const old = field.runners.map(({ kit: _k, weightLb: _w, extraWeightLb: _x, jockey: _j, ...r }) => r);
     const { sha256Hex } = await import("../crypto");
     expect(fieldHashOf(old)).toBe(sha256Hex(JSON.stringify(old.map((r) => [r.gate, r.horseId, r.tactic, r.horse]))));
   });

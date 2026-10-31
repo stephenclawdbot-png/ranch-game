@@ -130,6 +130,8 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
   drainMul = Math.trunc((drainMul * durMul) / 1000);
   drainMul = Math.trunc((drainMul * tacMul) / 1000);
   drainMul = clamp(drainMul, 450, 2500);
+  // A jockey's pace judgement wastes less of the tank (after the clamp, so it always counts).
+  if (kit?.drainPermille !== undefined) drainMul = Math.trunc((drainMul * clamp(kit.drainPermille, 0, 1000)) / 1000);
 
   const distScale = clamp(1000 + Math.trunc((D - 1600) / 4), 820, 1400);
   const kickAtMm = KICK_BASE_M[entry.tactic] * distScale;
@@ -139,7 +141,10 @@ export function buildProfile(entry: RaceEntry, race: RaceConfig, laneMax: number
 
   // Gate break.
   let reactTicks = 2 + form.int(4) + Math.trunc(temperGap / 250);
-  const slowStart = form.chance(15 + Math.trunc(temperGap / 10));
+  // A jockey's gate skill scales the slow-start chance (the same single draw either way).
+  let slowChance = 15 + Math.trunc(temperGap / 10);
+  if (kit?.slowStartPermille !== undefined) slowChance = Math.trunc((slowChance * clamp(kit.slowStartPermille, 0, 1000)) / 1000);
+  const slowStart = form.chance(slowChance);
   if (slowStart) reactTicks += form.range(6, 14);
 
   // Lateral preference: most want the rail, some are happy a little wider.

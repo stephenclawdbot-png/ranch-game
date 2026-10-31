@@ -124,7 +124,7 @@ export default function EnteringARacePage() {
           ["Form", "The last three finishes, oldest first. 0 means it finished outside the first nine."],
           ["OR", "The official rating going into this race."],
           ["Plan", "How the horse will be ridden: Front, Stalk or Close."],
-          ["Under the stable", "Race-day equipment and a booked jockey, in italics: \"Soft shoes · Vet-checked · Top jockey\". Nothing printed means the stable apprentice and no extras."],
+          ["Under the stable", "The jockey, with any apprentice claim (\"T. Ashby (5)\"), then race-day equipment in italics: \"Soft shoes · Vet-checked\"."],
           ["Best trip", "The distance the horse prefers."],
           ["Spd · Sta · Brs", "Grades for speed, stamina and burst."],
         ]}
@@ -231,22 +231,18 @@ export default function EnteringARacePage() {
           return [d.label, d.goings ? `${d.goings.join(" or ")} going` : "every Live race", d.effect, priceRule(d.price)];
         })}
       />
+      <P>
+        The jockey is picked on the same sheet: your best jockey free at the off rides for nothing, or book a Club freelancer for a fee by grade and purse. Skills, claims and fees are on the{" "}
+        <WikiLink slug="jockeys">Jockeys</WikiLink> page.
+      </P>
       <Table
-        head={["Jockey", "What it does", "Price"]}
-        rows={gc.JOCKEY_KEYS.map((k) => {
-          const j = gc.JOCKEYS[k];
-          return [j.label, j.effect, priceRule(j.price)];
-        })}
-        caption="Day form is each horse's luck on the day, the main source of upsets. A better jockey narrows it both ways: fewer bad days, but fewer lucky ones too, so a long shot may prefer the apprentice."
-      />
-      <Table
-        head={["Race", "Purse", ...gc.RACE_EXTRA_KEYS.filter((k) => k !== "firm_shoes").map((k) => gc.RACE_EXTRAS[k].tag), gc.JOCKEYS.journeyman.label, gc.JOCKEYS.top.label]}
+        head={["Race", "Purse", ...gc.RACE_EXTRA_KEYS.filter((k) => k !== "firm_shoes").map((k) => gc.RACE_EXTRAS[k].tag), "C freelancer", "A freelancer"]}
         rows={PRICE_PURSES.map((r) => [
           r.label,
           formatCredits(r.purse),
           ...gc.RACE_EXTRA_KEYS.filter((k) => k !== "firm_shoes").map((k) => formatCredits(gc.raceDayPrice(gc.RACE_EXTRAS[k].price, r.purse))),
-          formatCredits(gc.raceDayPrice(gc.JOCKEYS.journeyman.price, r.purse)),
-          formatCredits(gc.raceDayPrice(gc.JOCKEYS.top.price, r.purse)),
+          formatCredits(gc.freelanceFee("C", r.purse)),
+          formatCredits(gc.freelanceFee("A", r.purse)),
         ])}
         caption="Prices in credits on today's Live card. Firm-ground shoes cost the same as soft-ground shoes."
       />

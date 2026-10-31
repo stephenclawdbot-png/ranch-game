@@ -13,6 +13,7 @@ import { ensureDailyEntries, isValidTimezone } from "./entries";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
 import { claimChosenName, claimSystemName } from "./naming";
+import { ensureStableApprenticeTx } from "./jockeys";
 
 export interface CreateAccountInput {
   stableName: string;
@@ -60,6 +61,8 @@ export async function createAccount(db: Db, input: CreateAccountInput, hooks: Ga
     if (credits > 0) {
       await grantCreditsTx(tx, { accountId: account!.id, amount: credits, idempotencyKey: `starter-grant:${account!.id}`, kind: "starter_grant" });
     }
+    // Every stable starts with one apprentice jockey (jockeys.ts).
+    await ensureStableApprenticeTx(tx, stable!.id, now);
     // Day one's Live entry allowance.
     await ensureDailyEntries(tx, (await lockStable(tx, stable!.id))!, now);
     const seed = newSeed();

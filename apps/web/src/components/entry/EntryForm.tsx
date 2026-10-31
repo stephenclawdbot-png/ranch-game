@@ -8,7 +8,9 @@ import { STYLE_LABEL, SURFACE_LABEL, formatCredits, formatDistance } from "@/lib
 import { api, type PlayerState } from "@/lib/player";
 import type { RaceDayOffer, RacePlan, RideIntensity, RiskView, StableHorse } from "@/lib/types";
 import type { JockeyKey, RaceDayChoice, RaceExtraKey } from "@thoroughbred/game-core";
+import type { RiderOption } from "@/lib/types";
 import { HorsePortrait } from "../HorsePortrait";
+import { GradeBadge } from "../StatBars";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
 
@@ -218,7 +220,61 @@ export function PlanPicker({
 export function raceDayCost(offer: RaceDayOffer | null | undefined, choice: RaceDayChoice): number {
   if (!offer) return 0;
   const extras = offer.extras.filter((x) => choice.extras.includes(x.key)).reduce((a, x) => a + x.price, 0);
-  return extras + (offer.jockeys.find((j) => j.key === choice.jockey)?.price ?? 0);
+  const rider = choice.jockeyId ? [...(offer.riders?.own ?? []), ...(offer.riders?.freelancers ?? [])].find((r) => r.id === choice.jockeyId) : undefined;
+  return extras + (rider ? rider.fee : (offer.jockeys.find((j) => j.key === choice.jockey)?.price ?? 0));
+}
+
+/**
+ * The entry sheet's jockey picker (Live races): your own jockeys ride free, Club freelancers for a
+ * fee by grade and the purse. The default is your best jockey who is free at the off.
+ */
+export function JockeyPicker({ riders, choice, onChange }: { riders: NonNullable<RaceDayOffer["riders"]>; choice: RaceDayChoice; onChange: (c: RaceDayChoice) => void }) {
+  const pick = (id: string | undefined) => onChange({ ...choice, jockey: "apprentice", ...(id ? { jockeyId: id } : { jockeyId: undefined }) });
+  const row = (r: RiderOption) => {
+    const on = choice.jockeyId === r.id;
+    return (
+      <label
+        key={r.id}
+        className={`surface-2 flex min-h-11 items-center gap-2 p-2.5 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brass-bright ${r.busy ? "opacity-60" : "cursor-pointer"} ${on ? "is-selected" : r.busy ? "" : "hover:brightness-110"}`}
+        data-testid={`rider-${r.own ? "own" : "freelance"}`}
+      >
+        <input type="radio" name="jockey" checked={on} disabled={!!r.busy} onChange={() => pick(r.id)} className="h-4 w-4 shrink-0 accent-[#f2c86a]" />
+        <GradeBadge grade={r.grade} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-extrabold">{r.cardName}</span>
+          <span className="block text-xs text-cream-dim">
+            {r.stage === "apprentice" ? "Apprentice" : r.stage === "veteran" ? "Veteran" : "Prime"}
+            {r.busy ? ` · ${r.busy}` : ""}
+          </span>
+        </span>
+        <span className="num shrink-0 text-sm text-cream">{r.own ? "free" : `${formatCredits(r.fee)} cr`}</span>
+      </label>
+    );
+  };
+  return (
+    <div className="mt-3" data-testid="jockey-picker">
+      <p className="mb-1 text-sm font-bold text-cream">Jockey</p>
+      {riders.own.length > 0 && (
+        <>
+          <p className="caption mb-1">Your jockeys</p>
+          <div className="grid gap-2 sm:grid-cols-2">{riders.own.map(row)}</div>
+        </>
+      )}
+      {riders.freelancers.length > 0 && (
+        <>
+          <p className="caption mb-1 mt-2">Club freelancers</p>
+          <div className="grid gap-2 sm:grid-cols-2">{riders.freelancers.map(row)}</div>
+        </>
+      )}
+      {!choice.jockeyId && <p className="mt-2 text-sm text-cream-dim">No jockey picked: one of yours if free at the off, else a Club rider, at no charge.</p>}
+      <p className="mt-2 text-sm text-cream-dim">
+        Better jockeys break faster, waste less energy and fight harder at the finish: worth about 2-3 rating points between the best and the worst. Apprentices claim weight in handicaps.{" "}
+        <a href="/jockeys" className="underline">
+          All jockeys
+        </a>
+      </p>
+    </div>
+  );
 }
 
 /**
@@ -228,7 +284,7 @@ export function raceDayCost(offer: RaceDayOffer | null | undefined, choice: Race
  * its genes: extras only take away part of a cost or narrow the day-form swing.
  */
 export function ExtrasPicker({ offer, choice, onChange }: { offer: RaceDayOffer; choice: RaceDayChoice; onChange: (c: RaceDayChoice) => void }) {
-  if (!offer.jockeys.length && !offer.extras.length) return null;
+  if (!offer.jockeys.length && !offer.extras.length && !offer.riders) return null;
   const toggle = (k: RaceExtraKey) => onChange({ ...choice, extras: choice.extras.includes(k) ? choice.extras.filter((x) => x !== k) : [...choice.extras, k] });
   const jockey = offer.jockeys.find((j) => j.key === choice.jockey);
   const total = raceDayCost(offer, choice);
@@ -259,6 +315,7 @@ export function ExtrasPicker({ offer, choice, onChange }: { offer: RaceDayOffer;
           );
         })}
       </div>
+      {offer.riders && <JockeyPicker riders={offer.riders} choice={choice} onChange={onChange} />}
       {offer.jockeys.length > 0 && (
         <div className="mt-3">
           <p className="mb-1 text-sm font-bold text-cream">Jockey</p>

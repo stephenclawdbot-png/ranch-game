@@ -78,6 +78,17 @@ verifyReplay({ race, entries, seed }, replay);   // true only if a fresh re-simu
   moves. Day form × `DRAMA_FORM_PERMILLE` (0.85). A race without a model runs exactly as before;
   `src/fixtures/pre-1.4.0-races.json` holds two Live-like 1.3.0 races (one with kit) simulated by
   the committed engine before 1.4.0 that must keep verifying.
+- Jockey kit fields (no version bump; game-core `jockeys.ts` `jockeyKit`, balance
+  `tools/balance/jockeys.report.ts`): three more optional permille shares on `kit`, each acting only
+  when present: `slowStartPermille` (gate: the slow-start chance, the same single form draw),
+  `drainPermille` (pace judgement: the energy drain multiplier, after its clamp) and
+  `battlePermille` (finishing drive: the share of the 1.4.0 late-battle response, `jockeyBattle`).
+  Together with `formAmpPermille` and `keenPermille` (horse handling) best vs worst jockey is worth
+  about 2-3 OR. No version bump because no existing input changes output: a race without the new
+  fields simulates exactly as before, and a race with them seals them in its input (and in the
+  locked field's hash), so a verifier needs the same engine anyway.
+  `src/fixtures/pre-jockeys-races.json` holds two 1.4.0 Live-like races (one with the older kit)
+  simulated before these fields existed that must keep verifying (`src/jockey-kit.test.ts`).
 
 ## Model summary
 

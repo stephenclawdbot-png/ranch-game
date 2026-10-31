@@ -33,6 +33,8 @@ export interface FieldEntry {
   weightLb?: number | null;
   /** Race-day equipment and a hired jockey, as racecard tags ("Soft shoes", "Vet-checked", "Top jockey"); empty for none. */
   gear: string[];
+  /** Who rides (Live races): frozen at the lock, or the booked jockey before it; null when unknown. */
+  jockey?: RunnerJockey | null;
   /** Claiming races: the runner's claim price and the number of claims lodged on it (never who). */
   claim?: { price: number; claims: number } | null;
 }
@@ -40,11 +42,37 @@ export interface FieldEntry {
 /** A claim's state (services/claiming.ts): lodged → drawn / lost at the lock → claimed / void after the race; refunded on a scratch or abandoned race. */
 export type ClaimStatus = "lodged" | "drawn" | "lost" | "claimed" | "void" | "refunded";
 
+/** One jockey the entry sheet offers: the stable's own (free) or a Club freelancer (a fee by grade and purse). */
+export interface RiderOption {
+  id: string;
+  name: string;
+  /** Racecard name with any apprentice claim ("T. Ashby (5)"). */
+  cardName: string;
+  grade: "A" | "B" | "C" | "D" | "E";
+  stage: "apprentice" | "prime" | "veteran";
+  own: boolean;
+  fee: number;
+  /** Null when free to ride; otherwise why not ("Booked within 10 minutes"). */
+  busy: string | null;
+}
+
 /** Race-day extras and jockeys on offer for one race, priced in credits (entry sheet). */
 export interface RaceDayOffer {
   extras: { key: RaceExtraKey; label: string; tag: string; effect: string; price: number }[];
-  /** Always the three jockeys for a Live race (the apprentice is free); empty for Story races. */
+  /** Legacy jockey tiers; empty since named jockeys (`riders`) replaced them. */
   jockeys: { key: JockeyKey; label: string; effect: string; price: number }[];
+  /** Live races: your jockeys (free) and Club freelancers (a fee); `defaultId` = your best free jockey. */
+  riders?: { own: RiderOption[]; freelancers: RiderOption[]; defaultId: string | null };
+}
+
+/** The jockey on a racecard runner (frozen at the lock, or booked before it). */
+export interface RunnerJockey {
+  /** Null for an unnamed rider (a Club rider when no freelancer was free, or an old jockey tier). */
+  id: string | null;
+  name: string;
+  /** "T. Ashby (5)": the claim shows only where it comes off a handicap weight. */
+  cardName: string;
+  claimLb: number;
 }
 
 export interface RaceCard {

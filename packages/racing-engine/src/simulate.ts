@@ -108,6 +108,11 @@ export function battleResponse(temperament: number, rng: Rng): number {
   return BATTLE_BASE + Math.trunc((temperament * BATTLE_TEMPER) / 1000) + rng.range(0, BATTLE_GRIT);
 }
 
+/** A battle response after the jockey's finishing drive (kit `battlePermille`; absent = unchanged). */
+export function jockeyBattle(response: number, battlePermille: number | undefined): number {
+  return battlePermille === undefined ? response : Math.trunc((response * clamp(battlePermille, 0, 1000)) / 1000);
+}
+
 /** Entries sorted by gate; throws on duplicate gates / horse ids. */
 export function normalizeEntries(entries: readonly RaceEntry[]): RaceEntry[] {
   const sorted = [...entries].sort((a, b) => a.gate - b.gate);
@@ -205,7 +210,8 @@ export function runRace(input: RaceInput): RaceReplay {
   let fieldCruise = 0;
   for (const p of profiles) fieldCruise += p.cruise;
   fieldCruise = Math.floor(fieldCruise / n);
-  const battle = entries.map((e) => (drama ? battleResponse(e.horse.stats.temperament, new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_DRAMA))) : 0));
+  // A jockey's finishing drive: the share of that response the rider gets out of the horse.
+  const battle = entries.map((e) => (drama ? jockeyBattle(battleResponse(e.horse.stats.temperament, new Rng(streamSeedBytes(input.seed, e.gate, PURPOSE_DRAMA))), e.kit?.battlePermille) : 0));
 
   // --- state ---------------------------------------------------------------
   // Int32 is ample: positions stay below 2^31 sub-mm even at the tick cap.

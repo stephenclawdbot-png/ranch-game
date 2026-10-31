@@ -292,6 +292,9 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       })
       .then((d) => {
         setData(d);
+        // The jockey defaults to your best one free at the off.
+        const defaultId = d.raceDay?.riders?.defaultId;
+        if (defaultId) setRaceDay((c) => ({ ...c, jockeyId: defaultId }));
         // Preselect the best fit among eligible horses, resting tired ones (as Quick Pick does).
         const tiredPenalty = (id: string) => (state.horses.find((x) => x.id === id)?.condition === "tired" ? 1000 : 0);
         const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss + tiredPenalty(a.horseId) - (b.fitLoss + tiredPenalty(b.horseId)))[0];
@@ -317,7 +320,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
     setBusy(true);
     setError(null);
     try {
-      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 ? { raceDay } : {}), ...(claimPrice !== undefined ? { claimPrice } : {}) } });
+      await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 || raceDay.jockeyId ? { raceDay } : {}), ...(claimPrice !== undefined ? { claimPrice } : {}) } });
       setEntered(horse.horse.name);
       router.refresh();
     } catch (e) {

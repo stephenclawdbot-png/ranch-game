@@ -34,6 +34,7 @@ import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId, type Post
 import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { audit, runTx } from "./tx";
 import { ensureClubCalibrated, trueMarkOf } from "./clubFill";
+import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -392,7 +393,12 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       const plan = (input.meta as { plan?: { intensity?: unknown } } | undefined)?.plan;
       await leasedEntryCheckTx(tx, { horse, stableId: stable.id, race, intensity: typeof plan?.intensity === "string" ? plan.intensity : null, now: input.now });
     }
-    const quote = gc.raceDayQuote(raceDay, race.purse);
+    // The jockey (Live races): one of the stable's own (free) or a Club freelancer (a fee). An old
+    // paid tier books a freelancer of matching grade and is charged as that jockey, not the tier.
+    const live = (LIVE_RACE_KINDS as readonly string[]).includes(race.kind);
+    const booking = live ? await bookRideTx(tx, { stableId: stable.id, race, choice: raceDay }) : { jockeyId: null, fee: 0 };
+    const quote = gc.raceDayQuote(live ? { ...raceDay, jockey: "apprentice" } : raceDay, race.purse);
+    const jockeyFee = live ? booking.fee : quote.jockeyFee;
     // A claiming race: the horse is for sale at its claim price (the market's checks).
     const claimPrice = await claimingEntryCheckTx(tx, { accountId: input.accountId, stable, horse, race, claimPrice: input.claimPrice, now: input.now }, hooks);
 
@@ -404,11 +410,13 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     if (quote.extrasTotal > 0) {
       await spendCreditsTx(tx, { accountId: input.accountId, amount: quote.extrasTotal, idempotencyKey: `race-extras:${race.id}:${horse.id}`, kind: "race_extras", memo: quote.extras.map((x) => x.key).join(",") });
     }
-    if (quote.jockeyFee > 0) {
-      await spendCreditsTx(tx, { accountId: input.accountId, amount: quote.jockeyFee, idempotencyKey: `jockey-fee:${race.id}:${horse.id}`, kind: "jockey_fee", memo: raceDay.jockey });
+    if (jockeyFee > 0) {
+      await spendCreditsTx(tx, { accountId: input.accountId, amount: jockeyFee, idempotencyKey: `jockey-fee:${race.id}:${horse.id}`, kind: "jockey_fee", memo: booking.name ?? raceDay.jockey });
     }
-    const stored: StoredRaceDay | null = gc.hasRaceDay(raceDay)
-      ? { extras: quote.extras.map((x) => x.key), jockey: raceDay.jockey, paid: { extras: quote.extrasTotal, jockey: quote.jockeyFee } }
+    const chosen: gc.RaceDayChoice = live ? { extras: raceDay.extras, jockey: "apprentice", ...(booking.jockeyId ? { jockeyId: booking.jockeyId } : {}) } : raceDay;
+    // Stored only when the entry bought something (or kept an old tier); the booked jockey is on the entry row.
+    const stored: StoredRaceDay | null = chosen.extras.length > 0 || chosen.jockey !== "apprentice" || jockeyFee > 0
+      ? { extras: quote.extras.map((x) => x.key), jockey: chosen.jockey, ...(chosen.jockeyId ? { jockeyId: chosen.jockeyId } : {}), paid: { extras: quote.extrasTotal, jockey: jockeyFee } }
       : null;
     const [entry] = await tx
       .insert(raceEntries)
@@ -421,6 +429,7 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
         ratingBefore: horse.rating,
         entryCost: race.entryCost,
         claimPrice,
+        jockeyId: booking.jockeyId,
         enteredAt: input.now,
       })
       .returning();
@@ -486,6 +495,12 @@ export interface FieldRunner {
    */
   weightLb?: number;
   extraWeightLb?: number;
+  /**
+   * Who rode (Live fields locked since jockeys): the jockey's id (null for an unnamed rider), name
+   * and apprentice claim (lb off a handicap weight; weightLb is then the net weight). The kit
+   * carries their skills. Hashed only when present, so older fields hash exactly as they did.
+   */
+  jockey?: { id: string | null; name: string; claimLb: number };
 }
 
 export interface LockedField {
@@ -697,8 +712,21 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
     race.seed,
     "gate-draw",
   );
-  // Handicap weights (Live handicaps): from the ratings at entry (house horses: at the lock).
-  const weights = handicapWeightsFor(race) ? new Map(gc.handicapWeights(pending.map((p) => ({ horseId: p.horseId, or: p.or })), true).map((w) => [w.horseId, w])) : null;
+  // Jockeys (Live races): who rides each runner, frozen with the field.
+  const riders = modelForRace(race)
+    ? await assignFieldJockeysTx(
+        tx,
+        race,
+        pending.map((p) => {
+          const entry = p.entryId ? players.find((e) => e.id === p.entryId) : undefined;
+          const rd = p.isHouse ? null : storedRaceDay(p.snapshot);
+          return { horseId: p.horseId, stableId: p.stableId, isHouse: p.isHouse, jockeyId: entry?.jockeyId ?? null, legacyTier: rd && !entry?.jockeyId ? rd.jockey : null, fee: rd?.paid.jockey ?? 0 };
+        }),
+      )
+    : new Map<string, FieldJockey>();
+  // Handicap weights (Live handicaps): from the ratings at entry (house horses: at the lock), less
+  // any apprentice claim; the lb carried above the lightest runner come from the net weights.
+  const weights = handicapWeightsFor(race) ? netWeights(gc.handicapWeights(pending.map((p) => ({ horseId: p.horseId, or: p.or })), true), riders) : null;
   const runners: FieldRunner[] = [];
   for (let i = 0; i < drawn.length; i++) {
     const p = drawn[i]!;
@@ -722,7 +750,10 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
     }
     const w = weights?.get(p.horseId);
     const rd = p.isHouse ? null : storedRaceDay(p.snapshot);
-    const kit = rd ? gc.raceDayKit(rd, raceGoing(race)) : undefined;
+    const rider = riders.get(p.horseId);
+    // An old-tier entry's paid tier is carried by its unnamed rider's skills, not the tier's kit.
+    const dayKit = rd ? gc.raceDayKit(rider ? { ...rd, jockey: "apprentice" } : rd, raceGoing(race)) : undefined;
+    const kit = rider ? gc.withJockeyKit(dayKit, rider.skills) : dayKit;
     runners.push({
       gate,
       tactic: p.tactic,
@@ -732,8 +763,13 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
       horse: hooks.engineHorse ? hooks.engineHorse({ snapshot: p.snapshot, race, isHouse: p.isHouse, ...(w ? { extraWeightLb: w.extraLb } : {}) }) : p.snapshot,
       ...(kit ? { kit } : {}),
       ...(w ? { weightLb: w.weightLb, extraWeightLb: w.extraLb } : {}),
+      ...(rider ? { jockey: { id: rider.id, name: rider.name, claimLb: w ? rider.claimLb : 0 } } : {}),
     });
   }
+  await recordRidesTx(tx, race, runners.flatMap((r) => {
+    const j = riders.get(r.horseId);
+    return j ? [{ horseId: r.horseId, stableId: r.stableId, jockey: { ...j, claimLb: r.jockey?.claimLb ?? 0 } }] : [];
+  }));
   // Course character: the course's shape is frozen into the field with the runners.
   const course = courseForRace(race);
   // The race model (engine 1.4.0 close finishes) is frozen with it.
@@ -747,6 +783,13 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   return field;
 }
 
+/** Handicap weights less each rider's apprentice claim; extraLb recomputed from the net weights. */
+export function netWeights(assigned: readonly gc.WeightAssignment[], riders: ReadonlyMap<string, Pick<FieldJockey, "claimLb">>): Map<string, gc.WeightAssignment> {
+  const net = assigned.map((w) => ({ ...w, weightLb: w.weightLb - (riders.get(w.horseId)?.claimLb ?? 0) }));
+  const min = Math.min(...net.map((w) => w.weightLb));
+  return new Map(net.map((w) => [w.horseId, { ...w, extraLb: w.weightLb - min }]));
+}
+
 /**
  * sha256 of the canonical runner list (a runner's kit and handicap weight are hashed only when it
  * has them); a field with a race model hashes [runners, course or null, model], one with only a
@@ -756,6 +799,7 @@ export function fieldHashOf(runners: readonly FieldRunner[], course?: RaceCourse
   const list = runners.map((r) => {
     const row: unknown[] = r.kit ? [r.gate, r.horseId, r.tactic, r.horse, r.kit] : [r.gate, r.horseId, r.tactic, r.horse];
     if (r.weightLb !== undefined) row.push(["weight", r.weightLb, r.extraWeightLb ?? 0]);
+    if (r.jockey) row.push(["jockey", r.jockey.id, r.jockey.name, r.jockey.claimLb]);
     return row;
   });
   // The course as a fixed-order tuple (stored JSON may reorder object keys).
@@ -998,6 +1042,9 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       ledgerTransactionId,
     });
     await tx.update(races).set({ status: "settled", settledAt: input.now }).where(eq(races.id, race.id));
+    // Jockeys: each ride's result, rides/wins, experience and growth (once, with the settlement).
+    const fieldMeanOr = entries.length ? Math.floor(entries.reduce((a, e) => a + e.ratingBefore, 0) / entries.length) : 0;
+    await settleJockeyRidesTx(tx, race, new Map(input.runners.map((r) => [r.horseId, r.position])), fieldMeanOr, input.now);
     // A claiming race: claimed horses move to their claimants (purses above went to the old owners).
     await settleClaimsTx(tx, race, fatalities, input.now);
     // A sponsored race: the sponsor hears who won their race (sponsorship.ts).
@@ -1053,6 +1100,7 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
     }
     await refundSponsorshipForRace(tx, race, input.now);
     await refundClaimsTx(tx, race, input.now, "the race was abandoned");
+    await cancelJockeyRidesTx(tx, race.id);
     await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
     await audit(tx, { actor: null, action: "race.cancel", entityType: "race", entityId: race.id, data: { reason: input.reason } });
   });

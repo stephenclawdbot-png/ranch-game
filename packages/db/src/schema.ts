@@ -745,11 +745,18 @@ export const raceEntries = pgTable(
     ratingAfter: integer("rating_after"),
     /** Claim price the owner set at entry: claiming races only (services/claiming.ts). */
     claimPrice: credits("claim_price"),
+    /**
+     * The jockey booked for this ride (services/jockeys.ts): one of the stable's own or a Club
+     * freelancer. Null for entries made before jockeys, house runners and non-Live races; the
+     * lock then assigns one (the field freezes who actually rode).
+     */
+    jockeyId: uuid("jockey_id").references((): AnyPgColumn => jockeys.id),
     enteredAt: createdAt(),
     scratchedAt: ts("scratched_at"),
   },
   (t) => [
     uniqueIndex("race_entries_race_horse_uq").on(t.raceId, t.horseId),
+    index("race_entries_jockey_idx").on(t.jockeyId),
     uniqueIndex("race_entries_race_gate_uq").on(t.raceId, t.gate),
     index("race_entries_horse_idx").on(t.horseId, t.enteredAt),
     index("race_entries_stable_idx").on(t.stableId, t.enteredAt),
@@ -1947,3 +1954,125 @@ export const rateLimits = pgTable(
 );
 
 export type RateLimitRow = typeof rateLimits.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Jockeys (docs/design/jockeys.md, Phase 1: roster and riding; services/jockeys.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Computer-controlled riders. `stable_id` null = a Club freelancer (any stable can book one for a
+ * ride, or sign them); otherwise the stable that holds them (at most JOCKEYS_PER_STABLE_MAX).
+ * Skills and potential are game-core JockeySkills ({ gate, pace, finish, handling }, 0..1000).
+ * Credits only: nothing here is ever bought or paid in USDG.
+ */
+export const jockeys = pgTable(
+  "jockeys",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    /** 64-hex seed the name, personality, potential and career length were drawn from. */
+    seed: text("seed").notNull(),
+    /** Start of the riding career (stage and retirement count from here). */
+    bornAt: ts("born_at").notNull(),
+    stage: text("stage").notNull().default("apprentice"),
+    personality: text("personality").notNull(),
+    skills: jsonb("skills").notNull(),
+    potential: jsonb("potential").notNull(),
+    experience: integer("experience").notNull().default(0),
+    rides: integer("rides").notNull().default(0),
+    wins: integer("wins").notNull().default(0),
+    stableId: uuid("stable_id").references(() => stables.id),
+    /** When the current stable took them on (null for freelancers). */
+    joinedAt: ts("joined_at"),
+    /** The stable that last let them go, and when (linked-account refusal on signing). */
+    lastStableId: uuid("last_stable_id").references(() => stables.id),
+    releasedAt: ts("released_at"),
+    retireAt: ts("retire_at").notNull(),
+    retirementAnnouncedAt: ts("retirement_announced_at"),
+    retiredAt: ts("retired_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("jockeys_stable_idx").on(t.stableId, t.retiredAt),
+    index("jockeys_active_idx").on(t.retiredAt, t.stableId),
+    check("jockeys_stage", sql`${t.stage} in ('apprentice', 'prime', 'veteran')`),
+    check("jockeys_personality", sql`${t.personality} in ('money', 'ambitious', 'loyal', 'workhorse')`),
+    check("jockeys_counts", sql`${t.rides} >= 0 and ${t.wins} between 0 and ${t.rides} and ${t.experience} >= 0`),
+  ],
+);
+
+export type JockeyRow = typeof jockeys.$inferSelect;
+
+/**
+ * One ride: written when the field locks (who rode which horse, frozen with the field), the result
+ * filled in at settlement (in the settlement's transaction, so growth is applied exactly once).
+ */
+export const jockeyRides = pgTable(
+  "jockey_rides",
+  {
+    id: id(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** The horse's stable for this race (null = a Club runner). */
+    stableId: uuid("stable_id").references(() => stables.id),
+    /** The jockey's own stable at the lock (null = rode as a freelancer). */
+    jockeyStableId: uuid("jockey_stable_id").references(() => stables.id),
+    postTime: ts("post_time").notNull(),
+    claimLb: integer("claim_lb").notNull().default(0),
+    /** Freelance fee paid for this ride (0 for own jockeys and Club runners). */
+    fee: credits("fee").notNull().default(0),
+    position: integer("position"),
+    experience: integer("experience"),
+    settledAt: ts("settled_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("jockey_rides_race_jockey_uq").on(t.raceId, t.jockeyId),
+    uniqueIndex("jockey_rides_race_horse_uq").on(t.raceId, t.horseId),
+    index("jockey_rides_jockey_idx").on(t.jockeyId, t.postTime),
+    index("jockey_rides_post_idx").on(t.postTime),
+  ],
+);
+
+export type JockeyRideRow = typeof jockeyRides.$inferSelect;
+
+/**
+ * Career path: debut, signed (by a stable), released (back to the Club pool), retirement
+ * announced, retired. `key` makes each event idempotent.
+ */
+export const jockeyEvents = pgTable(
+  "jockey_events",
+  {
+    id: id(),
+    key: text("key").notNull(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    kind: text("kind").notNull(),
+    stableId: uuid("stable_id").references(() => stables.id),
+    at: ts("at").notNull(),
+    data: jsonb("data").notNull().default({}),
+  },
+  (t) => [
+    uniqueIndex("jockey_events_key_uq").on(t.key),
+    index("jockey_events_jockey_idx").on(t.jockeyId, t.at),
+    index("jockey_events_stable_idx").on(t.stableId, t.kind),
+    check("jockey_events_kind", sql`${t.kind} in ('debut', 'signed', 'released', 'retirement_announced', 'retired')`),
+  ],
+);
+
+export type JockeyEventRow = typeof jockeyEvents.$inferSelect;
+
+/** Weekly jockey jobs (intake, veteran decline) that ran, one row per game week (idempotency). */
+export const jockeyWeeks = pgTable("jockey_weeks", {
+  week: integer("week").primaryKey(),
+  data: jsonb("data").notNull().default({}),
+  ranAt: ts("ran_at").notNull(),
+});

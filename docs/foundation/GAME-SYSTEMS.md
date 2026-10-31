@@ -127,6 +127,17 @@ foals toward the family (family limits, ~half of good x good foals land below bo
 pack supply (crop cap, weekly limits). Harness metrics: `horses.born`, `horses.retired`,
 `horses.legacy`, `horses.died`, population by stage.
 
+**Jockeys** (docs/design/jockeys.md, Phase 1) are a second population with the same rule: what
+comes in goes out. Every stable starts with an apprentice; each game week `runMaintenance` takes
+in new apprentices to hold the pool at about 1.5 per active stable (raced or seen within 14 days),
+veterans decline, and jockeys retire after 20-24 weeks (announced 2 weeks ahead). A stable holds
+at most 3; unsigned jockeys are Club freelancers that any stable books for one ride (a fee by
+grade and purse, burned) and that ride Club runners for free; a stable idle 21 days releases its
+jockeys. Four skills (gate, pace judgement, finishing drive, horse handling) grow with rides
+towards a hidden potential and are sealed into the locked field as engine kit (best vs worst
+about 2-3 OR); apprentices claim 7/5/3 lb off handicap weights. Harness metrics: pool per
+active stable each week, rides per jockey, grades, intake/retirements, freelance and signing fees.
+
 ---
 
 ## 4. Credits: faucets and sinks
@@ -157,7 +168,7 @@ flowchart LR
     refill[Entry refills]
     prem[Insurance premiums]
     mfee[Market fee]
-    extras["Race-day extras, jockey fees (refunded on a scratch)"]
+    extras["Race-day extras, jockey fees (refunded on a scratch), jockey signing fees"]
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks

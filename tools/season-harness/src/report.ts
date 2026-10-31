@@ -123,6 +123,17 @@ export function keyNumbers(r: RunResult): KeyNumber[] {
     { key: "claimsLodged", label: "Claims lodged", value: t.claiming?.claimsLodged ?? 0 },
     { key: "horsesClaimed", label: "Horses claimed", value: t.claiming?.horsesClaimed ?? 0 },
     { key: "claimCredits", label: "Credits paid for claimed horses", value: t.claiming?.creditsMoved ?? 0 },
+    { key: "jockeyPool", label: "Jockeys (not retired) at the end", value: t.jockeys?.pool ?? 0 },
+    { key: "jockeyPerActive", label: "Jockeys per active stable", value: t.jockeys?.perActiveStable ?? 0 },
+    { key: "jockeyFreelancers", label: "Club freelancers at the end", value: t.jockeys?.freelancers ?? 0 },
+    { key: "jockeyRides", label: "Jockey rides settled", value: t.jockeys?.rides ?? 0 },
+    { key: "jockeyRidesMedian", label: "Rides per jockey (median)", value: t.jockeys?.ridesPerJockey.median ?? 0 },
+    { key: "jockeyIntake", label: "Apprentice intake", value: t.jockeys?.intake ?? 0 },
+    { key: "jockeyRetired", label: "Jockey retirements", value: t.jockeys?.retired ?? 0 },
+    { key: "jockeySigned", label: "Freelancers signed", value: t.jockeys?.signed ?? 0 },
+    { key: "jockeyFreelanceFees", label: "Freelance booking fees (credits)", value: t.jockeys?.freelanceFees ?? 0 },
+    { key: "jockeySigningFees", label: "Jockey signing fees (credits)", value: t.jockeys?.signingFees ?? 0 },
+    { key: "jockeyMaxHeld", label: "Most jockeys held by one stable", value: t.jockeys?.maxHeld ?? 0 },
   ];
   for (const c of COHORTS) {
     if (!r.meta.cohorts[c]) continue;
@@ -197,6 +208,17 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
   for (const k of keys) {
     const b = baseKeys?.get(k.key);
     L.push(baseKeys ? `| ${k.label} | ${fmt(k.value, k.unit)} | ${b ? fmt(b.value, b.unit) : "–"} | ${b ? delta(k.value, b.value) : "–"} |` : `| ${k.label} | ${fmt(k.value, k.unit)} |`);
+  }
+  if (t.jockeys) {
+    const j = t.jockeys;
+    L.push("", "## Jockeys", "");
+    L.push(`Pool ${j.pool} (${j.freelancers} Club freelancers, starting pool ${j.startingPool}), ${j.perActiveStable} per active stable at the end; most held by one stable ${j.maxHeld}.`);
+    L.push(`Rides ${j.rides} by ${j.ridesPerJockey.jockeys} jockeys (median ${j.ridesPerJockey.median}, max ${j.ridesPerJockey.max}). Intake ${j.intake}, retirements ${j.retired}, signed ${j.signed}.`);
+    L.push(`Grades now: ${Object.entries(j.grades).map(([g, n]) => `${g} ${n}`).join(", ")}. Freelance fees ${fmt(j.freelanceFees)} credits, signing fees ${fmt(j.signingFees)} credits.`);
+    if (j.weeks.length) {
+      L.push("", "| week | active stables | pool | target | intake | per active stable |", "|---:|---:|---:|---:|---:|---:|");
+      for (const w of j.weeks) L.push(`| ${w.week} | ${w.active} | ${w.pool} | ${w.target} | ${w.intake} | ${w.perActive} |`);
+    }
   }
   L.push("", "## Credits", "");
   L.push("Created by source: " + top(t.created).map(([k, v]) => `${k} ${fmt(v)}`).join(", ") + ".");

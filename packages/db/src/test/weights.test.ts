@@ -52,7 +52,8 @@ describe("handicap weights and the race model at the field lock", () => {
     }))!;
     expect(field.model).toBe("1.4.0");
     expect(field.runners).toHaveLength(6);
-    const top = Math.max(...field.runners.map((x) => x.weightLb!));
+    // Before apprentice claims (jockeys.ts), the top-rated runner carries top weight.
+    const top = Math.max(...field.runners.map((x) => x.weightLb! + (x.jockey?.claimLb ?? 0)));
     expect(top).toBe(gc.TOP_WEIGHT_LB);
     const a = field.runners.find((x) => x.horseId === hi)!;
     const b = field.runners.find((x) => x.horseId === lo)!;

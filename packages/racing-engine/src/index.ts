@@ -9,7 +9,7 @@ import { COURSE_ENGINE_VERSION, ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGIN
 import { sha256Hex } from "./hash";
 
 export { ENGINE_VERSION, COURSE_ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
-export { BATTLE_AHEAD_MM, BATTLE_BASE, BATTLE_BEHIND_MM, BATTLE_FROM_MM, BATTLE_GRIT, BATTLE_TEMPER, PACK_CARRY, PACK_PULL, battleResponse, packCarried, packPull } from "./simulate";
+export { BATTLE_AHEAD_MM, BATTLE_BASE, BATTLE_BEHIND_MM, BATTLE_FROM_MM, BATTLE_GRIT, BATTLE_TEMPER, PACK_CARRY, PACK_PULL, battleResponse, jockeyBattle, packCarried, packPull } from "./simulate";
 export { DRAMA_FORM_PERMILLE } from "./model";
 export {
   BEND_LANE_LOSS_MM,

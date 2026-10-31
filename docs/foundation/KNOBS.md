@@ -118,12 +118,33 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `PHYSIO_FATIGUE_OFF` | 150 (not below 0) | packages/game-core/src/raceDay.ts:70 | Fatigue a physio session removes. | As above |
 | Pre-race vet check | 2% of purse, 40..1,000; every Live race | packages/game-core/src/raceDay.ts:100 | A "Vet-checked" injury factor line (packages/game-core/src/condition.ts:195). | Injury rate, credit sink |
 | `VET_CHECK_RISK_PERMILLE` | 750 (risk × 0.75) | packages/game-core/src/raceDay.ts:72 | Vet check multiplier. | Injury rate |
-| Jockey: stable apprentice | free (default) | packages/game-core/src/raceDay.ts:111 | Rides as every horse did before (no kit). | None |
-| Jockey: journeyman | 2.5% of purse, 50..1,500 | packages/game-core/src/raceDay.ts:121 | Day-form amplitude × 0.9, keen-early extra drain × 0.75 (engine kit). | Upset rate (both ways), value of temperament, credit sink |
-| Jockey: top jockey | 5% of purse, 100..3,000 | packages/game-core/src/raceDay.ts:130 | Day-form amplitude × 0.8, keen-early extra drain × 0.5. | As above |
+| Jockey tiers (legacy) | apprentice free; journeyman 2.5% of purse 50..1,500; top 5% 100..3,000 | packages/game-core/src/raceDay.ts:111 | Kept only for entries stored before named jockeys (their paid tier rides as an unnamed rider of skills 500 / 850, `UNNAMED_RIDER_SKILLS`); a request naming a paid tier books a Club freelancer of grade C / A. | None (back-compat) |
 | Example prices | Maiden 2,000: 40 / 40 / 40, jockeys 50 / 100; Feature Qualifier 16,000: 320 each, jockeys 400 / 800; Weekend Feature 48,000: 960 each, jockeys 1,200 / 2,400 | derived | Shoes / physio / vet check, then journeyman / top. All-in at a Qualifier: 1,760 (plus the 800 entry fee). | Credit sink per Feature entry |
-| Harness: grinder | Qualifier / Weekend Feature: vet check, shoes when offered, physio if fatigue > 300, top jockey above 8,000 credits else journeyman; ordinary race: physio for a tired horse half the time; keeps 1,500 credits back | tools/season-harness/src/agents.ts (`grinderRaceDay`) | Simulated demand for the sink. | `credits.destroyed.race_extras`, `.jockey_fee` |
+| Harness: grinder | Qualifier / Weekend Feature: vet check, shoes when offered, physio if fatigue > 300, above 8,000 credits the best Club freelancer whose fee fits a quarter of the surplus, else their own jockey; ordinary race: own jockey, physio for a tired horse half the time; keeps 1,500 credits back; signs a freelancer on 6% of days (keeps 4,000 back) | tools/season-harness/src/agents.ts (`grinderRaceDay`) | Simulated demand for the sink. | `credits.destroyed.race_extras`, `.jockey_fee` |
 | Harness: casual | 12% of visits enter one race from the sheet with a vet check (+ physio when tired) | tools/season-harness/src/agents.ts (`CASUAL_SHEET_PERMILLE`, `casualRaceDay`) | | As above |
+
+### 2b. Jockeys (Phase 1: roster and riding; docs/design/jockeys.md)
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `JOCKEYS_PER_STABLE_MAX` | 3 | packages/game-core/src/jockeys.ts | Most jockeys a stable holds; every stable starts with one apprentice. Enforced on signing and stable creation. | Roster value, signing-fee sink |
+| `JOCKEY_POOL_PER_ACTIVE_STABLE` | 1.5 | packages/game-core/src/jockeys.ts | Weekly intake tops the pool (unretired jockeys) up to ceil(1.5 × active stables); surplus drains by retirement. | Freelancer supply, grade spread, no inflation |
+| `JOCKEY_ACTIVE_STABLE_DAYS` | 14 | packages/game-core/src/jockeys.ts | Active = raced (an entry) or seen within this many days. | Intake size |
+| `JOCKEY_IDLE_RELEASE_DAYS` | 21 | packages/game-core/src/jockeys.ts | A stable idle this long releases its jockeys to the Club pool. | Freelancer supply |
+| `JOCKEY_CAREER_WEEKS` | apprentice 4, prime 12, veteran 4-8 (drawn per jockey) | packages/game-core/src/jockeys.ts | Career stages and retirement (20-24 weeks). | Turnover, retirements/intake |
+| `JOCKEY_RETIREMENT_NOTICE_WEEKS` | 2 | packages/game-core/src/jockeys.ts | Retirement announced this far ahead. | Farewell rides |
+| `APPRENTICE_CLAIMS` | 7 / 5 / 3 lb until 10 / 25 / 50 winners | packages/game-core/src/jockeys.ts | Taken off the handicap weight at the lock (Live handicaps only; extraWeightLb from net weights). | Value of apprentices, handicap balance |
+| `JOCKEY_CLASH_MS` | 10 min | packages/game-core/src/jockeys.ts | A jockey can't ride two races whose post times are closer (and rides one horse per race). | Freelancer availability |
+| `JOCKEY_GROWTH_DIV` | 1,400 | packages/game-core/src/jockeys.ts | Each skill grows floor(gap × xp / 1,400) per ride (at least 1 below potential). | Speed of development |
+| `JOCKEY_XP_BASE` / `_FIELD_MAX` / `_PURSE_MAX` | 10 / 15 / 15 | packages/game-core/src/jockeys.ts | Experience per ride: base + field strength (mean OR 30→90) + purse (0→6,000). | Development in big races |
+| `JOCKEY_VETERAN_DECLINE` | gate 14, pace 2, finish 12, handling 8 per week | packages/game-core/src/jockeys.ts | Veteran decline (realised and potential); pace judgement holds. | Late-career value |
+| `JOCKEY_SCOUT_RIDES` / `_SPREAD` | 60 rides / 300 points | packages/game-core/src/jockeys.ts | Potential range shown on the page narrows to the true value over 60 rides. | Scouting |
+| `JOCKEY_KIT` | slow start × (1 − 0.5 gate), drain × (1 − 0.04 pace), battle × (0.70 + 0.30 finish), day form × (1 − 0.22 handling), keen waste × (1 − 0.55 handling) | packages/game-core/src/jockeys.ts (`jockeyKit`), engine kit | Skills (0..1 here) → sealed engine kit. Best (A, 900) vs worst (E, 150) ≈ 2.2 OR by wins, 2.75 OR by mean position (tools/balance/jockeys.report.ts). | Value of jockeys, upset rate |
+| `JOCKEY_GRADE_FLOORS` | A 750, B 600, C 450, D 300, E below | packages/game-core/src/jockeys.ts | Grade of the mean of the four skills. | Fees |
+| `JOCKEY_FREELANCE_PRICE` | A 5% 100..3,000; B 3.75% 80..2,250; C 2.5% 50..1,500; D 1.5% 30..900; E 1% 20..600 of purse | packages/game-core/src/jockeys.ts | Booking fee for a Club freelancer, kind `jockey_fee` (burn), refunded on a scratch / abandoned race. C = the old journeyman, A = the old top jockey. | Credit sink |
+| `JOCKEY_SIGNING_FEE` | A 4,000; B 2,000; C 1,000; D 500; E 250 | packages/game-core/src/jockeys.ts | One-off fee to sign an unsigned freelancer, kind `jockey_signing` (burn). Refused between linked accounts within 14 days of a release (`JOCKEY_LINKED_SIGN_DAYS`). | Credit sink |
+| `JOCKEY_STARTING_POOL_MIN` | 12 | packages/db/src/services/jockeys.ts | The backfill's starting Club pool: max(12, target − pool), spread over every career stage. | Freelancer supply at launch |
+| `UNNAMED_RIDER_SKILLS` | Club rider 400; legacy journeyman 500, top 850 | packages/db/src/services/jockeys.ts | Skills of a rider with no named jockey (no free freelancer; old-tier entries). | Club runner strength |
 
 ## 3. Horse lifecycle
 
@@ -495,7 +516,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance premium | 5% of appraisal, one-off | packages/game-core/src/economy.ts:71, packages/db/src/services/horses.ts:237 | Kind `insurance_premium` → **treasury**, not burn. | Credit sink |
 | Market fee | 5% of price (burn) | packages/game-core/src/economy.ts:73, packages/db/src/services/market.ts:164-172 | Kind `market_sale` (buyer → seller minus fee). | Credit sink, market prices |
 | Race-day extras | shoes / physio / vet check, 2% of purse each (40..1,000) | packages/game-core/src/raceDay.ts:75, packages/db/src/services/races.ts:373 | Kind `race_extras` (burn), refunded as `race_extras_refund` on a scratch before close or an abandoned race (§2a). | Credit sink |
-| Jockey fees | journeyman 2.5% (50..1,500), top 5% (100..3,000) of purse | packages/game-core/src/raceDay.ts:111, packages/db/src/services/races.ts:376 | Kind `jockey_fee` (burn), refunded as `jockey_fee_refund` (§2a). | Credit sink |
+| Jockey fees | freelance booking by grade, A 5% (100..3,000) to E 1% (20..600) of purse; signing A 4,000 to E 250 | packages/game-core/src/jockeys.ts, packages/db/src/services/jockeys.ts | Kinds `jockey_fee` (burn, refunded as `jockey_fee_refund`) and `jockey_signing` (burn) (§2b). | Credit sink |
 | `SPONSORSHIP.purseMultiple` / `sponsorshipPrice` | 3 × the slot's purse: Maiden 3,000; Novice 3,750; Hcp 4,500 / 6,000 / 7,500; Listed 12,000; Feature 24,000 (Listed) / 36,000 (G3) | packages/db/src/services/sponsorship.ts:41, :53 | Price to sponsor a Live race (kind `race_sponsorship`, burn; refunded if the race is abandoned). Cosmetic only: the race name, silks on the racecard, result note, Trophy Room plaque. | Credit sink (prestige), casual/rich balances |
 | `SPONSORSHIP.minPrice` | 3,000 | packages/db/src/services/sponsorship.ts:43 | Price floor. | Credit sink |
 | `SPONSORSHIP.windowMs` | 7 days | packages/db/src/services/sponsorship.ts:45 | How far ahead a race can be sponsored (beyond the day-ahead card: applied on publication). Only meeting races are for sale; calendar races (Qualifiers, Weekend Feature, Plate, Finals) never are. A sponsored race runs even with no player runner. Sponsorships bought for slots the meetings left empty are refunded when their time comes round. | Sink volume (races on sale ≈ 160 a week, was ≈ 670) |
