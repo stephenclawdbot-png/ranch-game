@@ -146,6 +146,33 @@ export const Genes2Schema = z.object({
 });
 export type Genes2 = z.infer<typeof Genes2Schema>;
 
+/** Polygenic shade allele 0..100 (sooty, flaxen, pangaré: the pair's sum against a threshold). */
+const ShadeAllele = z.number().int().min(0).max(100);
+/**
+ * Cosmetic colour genes (coat audit, 2026-11): shade modifiers and rare colours. Purely visual:
+ * no rule reads them for racing or breeding performance (a test guards it). Optional: horses
+ * minted or bred before them have none (= wild type, no shade). Brindle (BR1) is X-linked: a
+ * male carries one X (slot 0); slot 1 of a male is always "n".
+ */
+export const CosmeticGenesSchema = z.object({
+  sooty: z.tuple([ShadeAllele, ShadeAllele]),
+  flaxen: z.tuple([ShadeAllele, ShadeAllele]),
+  pangare: z.tuple([ShadeAllele, ShadeAllele]),
+  /** Mushroom (recessive): mu/mu turns chestnut into a soft grey-brown. */
+  mushroom: z.tuple([z.enum(["mu", "n"]), z.enum(["mu", "n"])]),
+  /** Rabicano (dominant): white ticking on the flanks and a skunk tail. */
+  rabicano: z.tuple([z.enum(["Rb", "n"]), z.enum(["Rb", "n"])]),
+  /** Brindle 1 (X-linked dominant): dark vertical stripes. */
+  brindle: z.tuple([z.enum(["BR1", "n"]), z.enum(["BR1", "n"])]),
+  /** Dominant white (W, dominant, not lethal in this game): white from birth, dark eyes. */
+  dominantWhite: z.tuple([z.enum(["W", "n"]), z.enum(["W", "n"])]),
+  /** Bend Or spots (dominant): dark smudges on a red coat. */
+  bendOr: z.tuple([z.enum(["BO", "n"]), z.enum(["BO", "n"])]),
+  /** Birdcatcher spots (dominant): small white freckles. */
+  birdcatcher: z.tuple([z.enum(["Bc", "n"]), z.enum(["Bc", "n"])]),
+});
+export type CosmeticGenes = z.infer<typeof CosmeticGenesSchema>;
+
 export const BREEDS = [
   "thoroughbred",
   "arabian",
@@ -206,6 +233,8 @@ export const GenomeSchema = z.object({
   coat: CoatGenesSchema,
   /** The 14 genetics-v2 loci (colour/pattern, body and performance genes). */
   genes2: Genes2Schema,
+  /** Cosmetic shade modifiers and rare colours (absent on older horses = wild type). */
+  cosmetic: CosmeticGenesSchema.optional(),
   /** Polygenic white-spotting tendency, 0..100 per allele. */
   white: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100)]),
   morph: MorphGenesSchema,

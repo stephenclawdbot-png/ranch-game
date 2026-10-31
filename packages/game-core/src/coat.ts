@@ -19,6 +19,7 @@ import type { Coat, FaceMarking, HorseAppearance, HorseColour, LegMarking, Silks
 import { BREEDS, MORPH_KEYS, type CoatGenes, type Genome, type MorphKey, type RigLook } from "./types";
 import { BREED_PROFILES } from "./genome";
 import { Rng, clamp } from "./rng";
+import { FLAXEN_SHOWS, PANGARE_SHOWS, SOOTY_HEAVY, SOOTY_LIGHT, rareShows, shadeSum } from "./cosmetic";
 
 export type BaseColour = "chestnut" | "liver_chestnut" | "bay" | "dark_bay" | "black";
 
@@ -151,8 +152,10 @@ export function horseColour(genome: Genome, progress: { racingAge: boolean; star
   // Genetics v2 colour/pattern genes, only when they show (same rules as visibleTraits), so
   // a horse without them keeps the exact same appearance object as before.
   const g2 = genome.genes2;
-  if (!g2) return out;
   const red = out.base === "chestnut" || out.base === "liver";
+  // the per-horse pattern seed: every view picks the same drawn pattern variants from it
+  out.seed = genome.markingSeed >>> 0;
+  if (!g2) return out;
   if (count(g2.champagne, "Ch") > 0) out.champagne = true;
   if (count(g2.silver, "Z") > 0 && !red) out.silver = true;
   const prl = count(g2.pearl, "prl");
@@ -164,7 +167,79 @@ export function horseColour(genome: Genome, progress: { racingAge: boolean; star
   else if (lp === 1) out.leopard = count(g2.patn1, "PATN1") > 0 ? "leopard" : "varnish";
   const sw = count(g2.splash, "SW");
   if (sw > 0) out.splash = sw as 1 | 2;
+  // Cosmetic shade modifiers and rare colours (cosmetic.ts), only when they show.
+  if (genome.cosmetic) {
+    const greyedOut = out.grey === "dapple" || out.grey === "white";
+    if (rareShows(genome, "dominantWhite")) out.dominantWhite = true;
+    else {
+      if (!greyedOut) {
+        const sooty = shadeSum(genome, "sooty");
+        if (out.base !== "black" && sooty >= SOOTY_LIGHT) out.sooty = sooty >= SOOTY_HEAVY ? 2 : 1;
+        if (red && out.cream === 0 && shadeSum(genome, "flaxen") >= FLAXEN_SHOWS) out.flaxen = true;
+        if (out.base !== "black" && shadeSum(genome, "pangare") >= PANGARE_SHOWS) out.pangare = true;
+        if (red && rareShows(genome, "mushroom")) out.mushroom = true;
+        if (red && out.cream < 2 && rareShows(genome, "bendOr")) out.bendOr = true;
+        if (rareShows(genome, "brindle")) out.brindle = true;
+      }
+      if (out.grey !== "white" && rareShows(genome, "rabicano")) out.rabicano = true;
+      if (out.grey !== "white" && rareShows(genome, "birdcatcher")) out.birdcatcher = true;
+    }
+  }
   return out;
+}
+
+const CHAMPAGNE_WORD: Record<HorseColour["base"], string> = { chestnut: "Gold", liver: "Dark Gold", bay: "Amber", seal_brown: "Sable", black: "Classic" };
+
+/**
+ * The full display name of the coat as it shows now: base and dilutions, champagne, silver,
+ * pearl, mushroom, shade modifiers, brindle, white patterns and spots, e.g. "Sooty Amber
+ * Champagne Tobiano", "Flaxen Chestnut with Bend Or spots", "Dominant White".
+ */
+export function fullCoatName(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }): string {
+  const col = horseColour(genome, progress);
+  if (col.dominantWhite) return "Dominant White";
+  const red = col.base === "chestnut" || col.base === "liver";
+  let name: string;
+  if (col.grey === "white") name = "Grey";
+  else if (col.grey === "dapple") name = "Dapple Grey";
+  else {
+    name = colouredCoat(genome.coat).coatName;
+    if (col.base === "liver" && col.cream === 1) name = name.replace(/^Palomino/, "Dark Palomino");
+    if (col.base === "liver" && name === "Strawberry Roan") name = "Liver Roan";
+    if (col.base === "seal_brown" && name === "Bay Roan") name = "Brown Roan";
+    if (col.champagne) {
+      const w = CHAMPAGNE_WORD[col.base];
+      name = col.cream === 2 ? (col.base === "chestnut" ? "Ivory Champagne" : `Ivory ${w} Champagne`) : col.cream === 1 ? `${w} Cream Champagne` : `${w} Champagne`;
+      if (col.dun) name += " Dun";
+      if (col.roan) name += " Roan";
+    }
+    if (col.mushroom) name = name === "Chestnut" ? "Mushroom" : name === "Liver Chestnut" ? "Dark Mushroom" : `Mushroom ${name}`;
+    if (col.silver) name = `Silver ${name}`;
+    if (col.pearl) name = name === "Chestnut" ? "Apricot Pearl" : `Pearl ${name}`;
+  }
+  const pre: string[] = [];
+  if (col.sooty) pre.push(col.sooty === 2 ? "Dark Sooty" : "Sooty");
+  if (col.flaxen) pre.push("Flaxen");
+  if (col.pangare) pre.push("Pangaré");
+  if (col.brindle) pre.push("Brindle");
+  const post: string[] = [];
+  if (col.rabicano) post.push("Rabicano");
+  if (col.tobiano) post.push("Tobiano");
+  if (col.leopard === "leopard") post.push("Leopard");
+  else if (col.leopard === "fewspot") post.push("Few-spot");
+  else if (col.leopard === "varnish") post.push("Varnish Roan");
+  if (col.splash) post.push("Splash");
+  if (col.sabino === 2) post.push("Sabino");
+  const spots = [col.bendOr ? "Bend Or" : "", col.birdcatcher ? "Birdcatcher" : ""].filter(Boolean);
+  let out = [...pre, name, ...post].join(" ");
+  if (spots.length) out += ` with ${spots.join(" and ")} spots`;
+  if (col.grey === "greying") out += " (greying)";
+  return out;
+}
+
+/** The full adult coat name (greys as "Grey"), for the horse page and the breeding preview. */
+export function adultFullCoatName(genome: Genome): string {
+  return fullCoatName(genome, { racingAge: true, starts: 0, retired: true });
 }
 
 /**
@@ -174,10 +249,11 @@ export function horseColour(genome: Genome, progress: { racingAge: boolean; star
  */
 export function resolveCoat(genome: Genome, progress: { racingAge: boolean; starts: number; retired: boolean }): CoatPhenotype {
   const c = colouredCoat(genome.coat);
-  if (count(genome.coat.grey, "G") === 0) return c;
-  if (!progress.racingAge) return { ...c, coatName: `${c.coatName} (greying)` };
+  const coatName = fullCoatName(genome, progress);
+  if (count(genome.coat.grey, "G") === 0) return { ...c, coatName };
+  if (!progress.racingAge) return { ...c, coatName };
   const white = progress.retired || progress.starts >= GREY_WHITE_AT_STARTS;
-  return { coat: white ? "grey" : "dapple_grey", coatName: white ? "Grey" : "Dapple Grey", base: c.base, special: c.special };
+  return { coat: white ? "grey" : "dapple_grey", coatName, base: c.base, special: c.special };
 }
 
 // ---------------------------------------------------------------------------
@@ -296,6 +372,8 @@ export function appearanceOf(genome: Genome, progress: { racingAge: boolean; sta
   // is greying out hides them once the grey shows (foals born to grey still show them).
   const greyShown = count(genome.coat.grey, "G") > 0 && progress.racingAge;
   if (count(genome.coat.dun, "D") > 0 && !greyShown) out.dun = true;
+  // feathering (fe/fe): long mane and tail, feathered lower legs, in every view
+  if (count(genome.genes2.feather, "fe") === 2) out.feather = true;
   return out;
 }
 

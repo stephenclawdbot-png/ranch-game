@@ -80,6 +80,30 @@ export const HorseColourSchema = z.object({
   leopard: z.enum(["varnish", "leopard", "fewspot"]).optional(),
   /** Splash white (SW) copies: big blaze and blue eyes; two copies a bald face and white throat. */
   splash: z.union([z.literal(1), z.literal(2)]).optional(),
+  // Cosmetic shade modifiers and rare colours (coat audit), set only when they show.
+  /** Sooty: a darker, dappled top line (1 light, 2 heavy). */
+  sooty: z.union([z.literal(1), z.literal(2)]).optional(),
+  /** Flaxen: a pale mane and tail on a chestnut. */
+  flaxen: z.literal(true).optional(),
+  /** Pangaré: pale muzzle, flanks and belly. */
+  pangare: z.literal(true).optional(),
+  /** Mushroom (mu/mu on chestnut): a soft grey-brown body. */
+  mushroom: z.literal(true).optional(),
+  /** Rabicano: white ticking on the flanks and a skunk tail. */
+  rabicano: z.literal(true).optional(),
+  /** Brindle: dark vertical stripes. */
+  brindle: z.literal(true).optional(),
+  /** Dominant white: white from birth, dark eyes. */
+  dominantWhite: z.literal(true).optional(),
+  /** Bend Or spots: dark smudges on a red coat. */
+  bendOr: z.literal(true).optional(),
+  /** Birdcatcher spots: small white freckles. */
+  birdcatcher: z.literal(true).optional(),
+  /**
+   * Per-horse pattern seed (the genome's marking seed), present only when the coat shows a
+   * placed pattern: every view picks the same drawn pattern from it (art-pipeline coatPatternOf).
+   */
+  seed: z.number().int().min(0).max(0xffffffff).optional(),
 });
 export type HorseColour = z.infer<typeof HorseColourSchema>;
 
@@ -142,6 +166,8 @@ export const HorseAppearanceSchema = z.object({
    */
   head: z.string().max(32).optional(),
   age: z.enum(["foal", "yearling"]).optional(),
+  /** Feathering (fe/fe): long mane and tail and feathered lower legs, drawn in every view. */
+  feather: z.literal(true).optional(),
   /**
    * How the rider is drawn (named jockeys, fields locked since jockey looks): skin and hair
    * ramps (shade, base, highlight) and whether long hair shows under the cap. Optional: old

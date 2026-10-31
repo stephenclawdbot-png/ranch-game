@@ -11,7 +11,8 @@
  * with one exception. Big heart stays unknown until the horse races or is scanned.
  */
 import type { FaceMarking, HorseAppearance, LegMarking } from "@thoroughbred/shared";
-import { adultCoatName } from "./coat";
+import { adultCoatName, adultFullCoatName } from "./coat";
+import { FLAXEN_SHOWS, PANGARE_SHOWS, SOOTY_HEAVY, SOOTY_LIGHT, cosmeticOf, rareShows, shadeSum } from "./cosmetic";
 import { BIG_HEART_STAMINA, IRON_LEGS_RISK, MSTN_STAT_SHIFT, MSTN_TRIP_M, SIZE_PER_HT_PERMILLE, isFragile, mstnType, sizePermille, sizeStatDelta } from "./genome";
 import { BREEDS, QUIRK_KEYS, STAT_KEYS, type Breed, type BreedShares, type Genome, type QuirkKey } from "./types";
 
@@ -26,7 +27,9 @@ export interface GeneLine {
 
 export interface GeneticsSummary {
   /** Phenotype, plus the colour a grey was born as (null for non-greys). */
-  coat: { name: string; bornAs: string | null; loci: GeneLine[] };
+  coat: { name: string; bornAs: string | null; loci: GeneLine[]; fullName?: string };
+  /** Cosmetic shade modifiers and rare colours (stud-book DNA tests, public like the coat). */
+  cosmetic?: GeneLine[];
   /** The 14 genetics-v2 loci (colour/pattern, body and performance genes). */
   genes2: GeneLine[];
   /** Visible v2 traits by name (champagne, tobiano, leopard...). Not drawn by any renderer yet. */
@@ -322,9 +325,52 @@ export function visibleTraits(g: Genome): string[] {
   else if (lp === 1) out.push(count(g2.patn1, "PATN1") > 0 ? "Leopard" : "Varnish roan");
   if (count(g2.splash, "SW") > 0) out.push("Splash white");
   if (count(g2.feather, "fe") === 2) out.push("Feathered legs");
+  if (g.cosmetic) {
+    const red = count(g.coat.extension, "E") === 0;
+    const black = !red && count(g.coat.agouti, "a") === 2;
+    const cream = count(g.coat.cream, "Cr");
+    if (rareShows(g, "dominantWhite")) out.push("Dominant white");
+    else {
+      if (!black && shadeSum(g, "sooty") >= SOOTY_LIGHT) out.push("Sooty");
+      if (red && cream === 0 && shadeSum(g, "flaxen") >= FLAXEN_SHOWS) out.push("Flaxen");
+      if (!black && shadeSum(g, "pangare") >= PANGARE_SHOWS) out.push("Pangaré");
+      if (red && rareShows(g, "mushroom")) out.push("Mushroom");
+      if (rareShows(g, "brindle")) out.push("Brindle");
+      if (rareShows(g, "rabicano")) out.push("Rabicano");
+      if (red && cream < 2 && rareShows(g, "bendOr")) out.push("Bend Or spots");
+      if (rareShows(g, "birdcatcher")) out.push("Birdcatcher spots");
+    }
+  }
   if (count(g2.curledEars, "Ce") > 0) out.push("Curled ears");
   if (count(g2.dish, "Dh") === 2) out.push("Dished face");
   return out;
+}
+
+/** The cosmetic loci in standard notation (empty for a horse from before them). */
+function cosmeticLoci(g: Genome): GeneLine[] {
+  if (!g.cosmetic) return [];
+  const c = cosmeticOf(g);
+  const red = count(g.coat.extension, "E") === 0;
+  const shade = (locus: string, k: "sooty" | "flaxen" | "pangare", at: number, shows: string, needs: boolean, hidden: string): GeneLine => {
+    const sum = shadeSum(g, k);
+    const on = needs && sum >= at;
+    return { locus, alleles: `${c[k][0]}+${c[k][1]}`, meaning: on ? (k === "sooty" && sum >= SOOTY_HEAVY ? "dark sooty top line" : shows) : sum >= at ? hidden : "not shown", carried: !on && sum >= at - 30 };
+  };
+  const rare = (locus: string, pair: readonly [string, string], allele: string, shows: string, showsNow: boolean, hiddenText: string): GeneLine => {
+    const n = count(pair as readonly [string, string], allele);
+    return { locus, alleles: [...pair].sort((a, b) => (a === allele ? -1 : b === allele ? 1 : 0)).join("/"), meaning: n === 0 ? "not carried" : showsNow ? shows : hiddenText, carried: n > 0 && !showsNow };
+  };
+  return [
+    shade("Sooty", "sooty", SOOTY_LIGHT, "darker, dappled top line", count(g.coat.agouti, "a") < 2 || red, "hidden on a black coat"),
+    shade("Flaxen", "flaxen", FLAXEN_SHOWS, "pale mane and tail", red, "hidden (shows only on a chestnut)"),
+    shade("Pangaré", "pangare", PANGARE_SHOWS, "pale muzzle, flanks and belly", count(g.coat.agouti, "a") < 2 || red, "hidden on a black coat"),
+    rare("Mushroom", c.mushroom, "mu", "soft grey-brown body", red && rareShows(g, "mushroom"), count(c.mushroom, "mu") === 1 ? "carrier (recessive)" : "hidden (shows only on a chestnut)"),
+    rare("Rabicano", c.rabicano, "Rb", "white ticking on the flanks, skunk tail", rareShows(g, "rabicano"), ""),
+    rare("Brindle", c.brindle, "BR1", "dark vertical stripes", rareShows(g, "brindle"), ""),
+    rare("Dominant white", c.dominantWhite, "W", "white from birth, dark eyes", rareShows(g, "dominantWhite"), ""),
+    rare("Bend Or spots", c.bendOr, "BO", "dark smudges on a red coat", red && rareShows(g, "bendOr"), "hidden (shows only on a red coat)"),
+    rare("Birdcatcher spots", c.birdcatcher, "Bc", "small white freckles", rareShows(g, "birdcatcher"), ""),
+  ];
 }
 
 /** Body size for display, e.g. { pct: 6, text: "Tall (+6%)", effect: "speed +12 · stamina +6 · burst −12 · durability −6" }. */
@@ -364,7 +410,9 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
       name: adultCoatName(genome.coat),
       bornAs: grey ? adultCoatName({ ...genome.coat, grey: ["n", "n"] }) : null,
       loci: coatLoci(genome),
+      fullName: adultFullCoatName(genome),
     },
+    cosmetic: cosmeticLoci(genome),
     genes2: genes2Loci(genome, !!opts.heartKnown),
     traits: visibleTraits(genome),
     size: sizeSummary(genome),

@@ -27,13 +27,13 @@
  */
 import type { FaceMarking, HorseAppearance, Silks, Surface } from "@thoroughbred/shared";
 import { COI_WARN, nickRating } from "./breeding";
-import { FACE_STEPS, adultCoatName, appearanceOf, resolveMarkings } from "./coat";
+import { FACE_STEPS, adultFullCoatName, appearanceOf, resolveMarkings } from "./coat";
 import { inherit } from "./genetics";
 import { breedLabel, visibleTraits } from "./geneticsSummary";
 import { INBREEDING_AFFECTED, INBREEDING_DEPRESSION_PERMILLE, OVERALL_WEIGHTS, blendBreeds, breedBlend, distanceBand, isFragile, preferredDistanceM, preferredSurface } from "./genome";
 import { revealedRanges } from "./phenotype";
 import { Rng, clampInt, seedFrom } from "./rng";
-import { STAT_KEYS, type BreedShares, type CoatGenes, type DistanceAllele, type Genes2, type Genome, type HorseState, type StatRecord } from "./types";
+import { STAT_KEYS, type BreedShares, type CoatGenes, type CosmeticGenes, type DistanceAllele, type Genes2, type Genome, type HorseState, type StatRecord } from "./types";
 
 // ---------------------------------------------------------------------------
 // What is public about a parent
@@ -45,6 +45,8 @@ export interface PublicParent {
   coat: CoatGenes;
   /** Stud-book genetics-v2 loci, big heart blanked (unknown until raced or scanned). */
   genes2: Genes2;
+  /** Stud-book cosmetic genes (shade modifiers, rare colours); absent on older horses. */
+  cosmetic?: CosmeticGenes;
   breed: BreedShares;
   /** The face marking everyone can see. */
   face: FaceMarking;
@@ -69,6 +71,7 @@ export function publicParentOf(state: HorseState): PublicParent {
     id: state.id,
     coat: g.coat,
     genes2: { ...g.genes2, bigHeart: ["n", "n"] },
+    ...(g.cosmetic ? { cosmetic: g.cosmetic } : {}),
     breed: g.breed,
     face: resolveMarkings(g).face, // the marking everyone sees on the horse
     ranges,
@@ -144,6 +147,7 @@ function lookGenome(p: PublicParent, white: [number, number]): Genome {
     maturity: ["normal", "normal"],
     coat: p.coat,
     genes2: p.genes2,
+    ...(p.cosmetic ? { cosmetic: p.cosmetic } : {}),
     white,
     morph: { legLength: flat, neckLength: flat, girth: flat, height: flat, headSize: flat },
     variants: { head: [0, 0], mane: [0, 0], tail: [0, 0], build: [0, 0] },
@@ -172,7 +176,10 @@ function sampleLook(sire: PublicParent, dam: PublicParent, day: number, silks: S
   const g = inherit(sg, dg, seedFrom("breeding-look", sire.id, dam.id, day, i));
   const appearance = appearanceOf(g, { racingAge: true, starts: 0, retired: false }, silks);
   const face = FACE_WORD[appearance.face];
-  return { appearance, caption: [adultCoatName(g.coat), ...(face ? [face] : []), ...visibleTraits(g)].join(" · ") };
+  // the full coat name (dilutions, shades, rare colours, patterns), then what it doesn't say
+  const name = adultFullCoatName(g);
+  const extra = visibleTraits(g).filter((t) => !name.toLowerCase().includes(t.toLowerCase().replace(/ (spots|white)$/, "")));
+  return { appearance, caption: [name, ...(face ? [face] : []), ...extra].join(" · ") };
 }
 
 /**
