@@ -206,10 +206,18 @@ describe("finances: per horse", () => {
     expect(racerFin.starts).toBe(1);
     expect(racerFin.earnedPurses).toBe(purse);
     expect(racerFin.costEntry).toBe(race.entryFee);
-    expect(racerFin.costRaceDay).toBe(quote.total);
+    // Since jockeys Phase 1 a Live race books a named rider: the fee charged is the booking's
+    // (a freelancer's grade price, or 0 for a stable's own rider), not the old tier's quote.
+    const jf = await h.db
+      .select({ amount: ledgerPostings.amount })
+      .from(ledgerPostings)
+      .innerJoin(ledgerTransactions, eq(ledgerPostings.transactionId, ledgerTransactions.id))
+      .where(eq(ledgerTransactions.idempotencyKey, `jockey-fee:${race.id}:${racer.id}`));
+    const raceDayCharged = quote.extrasTotal + jf.reduce((m, r) => Math.max(m, Number(r.amount)), 0);
+    expect(racerFin.costRaceDay).toBe(raceDayCharged);
     expect(racerFin.costTraining).toBe(300);
     expect(racerFin.costUpkeep).toBe(gc.UPKEEP_RACING_PER_WEEK);
-    expect(racerFin.cost).toBe(race.entryFee + quote.total + 300 + gc.UPKEEP_RACING_PER_WEEK);
+    expect(racerFin.cost).toBe(race.entryFee + raceDayCharged + 300 + gc.UPKEEP_RACING_PER_WEEK);
     expect(racerFin.net).toBe(racerFin.earned - racerFin.cost);
     expect(racerFin.costPerStart).toBe(racerFin.cost);
 
@@ -327,6 +335,11 @@ describe("finances: per horse", () => {
  * services is either mapped or knowingly something else.
  */
 const NON_LEDGER_KINDS = new Set([
+  // form book race kinds, horse log entry kinds and moment kinds (not ledger transactions)
+  "live",
+  "story",
+  "injury",
+  "quirk",
   // ledger account kinds
   "player",
   // entry bank movements and refills

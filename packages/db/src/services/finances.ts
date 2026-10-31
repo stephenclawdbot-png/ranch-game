@@ -105,6 +105,7 @@ export const KIND_CATEGORIES: Record<string, KindCategory> = {
   race_extras_refund: k("race_day", "race_day"),
   jockey_fee: k("race_day", "race_day"),
   jockey_fee_refund: k("race_day", "race_day"),
+  jockey_signing: k("race_day", "race_day"),
   training: k("other", "training"),
   vet: k("other", "training"),
   pedigree_scan: k("other", "training"),
