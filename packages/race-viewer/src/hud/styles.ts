@@ -222,6 +222,8 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-fin-seal{font-size:11px}
 .rv-narrow .rv-fin-panel{padding:7px 8px 8px;width:calc(100% - 12px);top:auto;bottom:6px;transform:translateX(-50%);max-height:calc(100% - 52px)}
 .rv-narrow .rv-fin-s-strip .rv-fin-skip{top:6px;bottom:auto}
+.rv-narrow .rv-fin-strip{display:flex;flex-direction:column;height:calc(100% - 52px);overflow:hidden}
+.rv-narrow .rv-fin-strip .rv-fin-panel-h,.rv-narrow .rv-fin-strip .rv-fin-verdict{flex:none}
 .rv-narrow .rv-fin-lower{left:6px;right:6px;top:46px;bottom:auto;max-width:none;padding:5px 8px 6px}
 .rv-narrow .rv-fin-lower-t{font-size:12.5px}
 .rv-narrow .rv-fin-badges{left:6px;top:8px}

@@ -175,7 +175,7 @@ function StripPanel({
       </div>
       {/* Phones: the verdict sits above the strip (the strip fills the panel). */}
       {narrow && <div className={`rv-fin-verdict${verdict ? " rv-fin-verdict-on" : ""}`}>{prettyLengths(model.verdict)}</div>}
-      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate onVerdict={() => setVerdict(true)} className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} />
+      <PhotoFinish model={model} art={art ?? undefined} artBase={artBase} animate onVerdict={() => setVerdict(true)} className={narrow ? "rv-fin-photo rv-fin-photo-n" : "rv-fin-photo"} fitHeight={narrow} />
     </div>
   );
 }
