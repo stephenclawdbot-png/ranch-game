@@ -675,6 +675,8 @@ export async function testerBetaProgress(ex: Executor, input: { testerId: string
 export const RESET_TABLES = [
   // The affiliate tree follows the accounts (beta money: referral_earnings, chain_orders,
   // pool_* and wallet data on testers survive).
+  "news_items",
+  "race_targets",
   "referrals",
   "audit_log",
   "hall_of_fame",

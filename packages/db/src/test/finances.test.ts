@@ -340,6 +340,13 @@ const NON_LEDGER_KINDS = new Set([
   "story",
   "injury",
   "quirk",
+  // news item kinds (news.ts) and the planner's inbox reminder (planner.ts)
+  "photo_finish",
+  "claim",
+  "hall_of_fame",
+  "jockey_retired",
+  "jockey_retirement_announced",
+  "plan_reminder",
   // ledger account kinds
   "player",
   // entry bank movements and refills

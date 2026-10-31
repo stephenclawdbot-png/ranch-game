@@ -55,3 +55,6 @@ export * from "./services/formBook";
 export * from "./services/horseLog";
 export * from "./services/jockeys";
 export * from "./services/moments";
+export * from "./services/news";
+export * from "./services/rivals";
+export * from "./services/planner";

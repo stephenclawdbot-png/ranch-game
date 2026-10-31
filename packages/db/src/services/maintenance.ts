@@ -11,7 +11,9 @@
  *   - prunes rate-limit counters past the oldest window anyone counts (rateLimit.ts);
  *   - jockeys (jockeys.ts): backfill, stages, retirements, idle-stable releases, and once a game
  *     week veteran decline and the apprentice intake. Jockeys are riders, not horses: their
- *     careers run on the calendar by design (docs/design/jockeys.md).
+ *     careers run on the calendar by design (docs/design/jockeys.md);
+ *   - campaign targets: drops targets that can no longer happen, sends the entry reminders (planner.ts);
+ *   - once a season is over, its champions in the news (news.ts).
  */
 import { settleUpkeep } from "./upkeep";
 import { and, isNotNull, lte } from "drizzle-orm";
@@ -27,6 +29,8 @@ import { runClubMarket, type ClubMarketRun } from "./clubMarket";
 import { sweepClubRatings } from "./clubFill";
 import { runTx } from "./tx";
 import { runJockeyMaintenance, type JockeyMaintenance } from "./jockeys";
+import { seasonNewsSweep } from "./news";
+import { sweepTargets, type SweepReport } from "./planner";
 
 export interface MaintenanceReport {
   healed: number;
@@ -37,6 +41,8 @@ export interface MaintenanceReport {
   /** Club horses whose stamped rating was set to their real ability mark this run. */
   clubRecalibrated: number;
   jockeys: JockeyMaintenance;
+  plans: SweepReport;
+  seasonNews: number;
 }
 
 export async function healInjuries(db: Db, now: Date): Promise<number> {
@@ -67,5 +73,8 @@ export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defau
   // Two windows of the longest limit (1 h): nothing reads a counter this old again.
   await pruneRateLimits(db, { olderThanMs: 2 * 3_600_000, now: now.getTime() });
   const jockeys = await runJockeyMaintenance(db, now);
-  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated, jockeys };
+  // Campaign targets (drops and reminders) and the season-end news.
+  const plans = await sweepTargets(db, now);
+  const seasonNews = await seasonNewsSweep(db, now);
+  return { healed, foaled, listingsExpired, leasesEnded: leases.leasesEnded, club, clubRecalibrated, jockeys, plans, seasonNews };
 }

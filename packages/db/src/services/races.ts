@@ -35,6 +35,8 @@ import { noteSponsorResult, refundSponsorshipForRace } from "./sponsorship";
 import { careerTribute, isFirstFeatureRun, momentHorse, sendMomentsTx } from "./moments";
 import { audit, runTx } from "./tx";
 import { ensureClubCalibrated, trueMarkOf } from "./clubFill";
+import { raceNewsTx } from "./news";
+import { targetScratchedTx, targetsAfterRaceTx } from "./planner";
 import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
 
 export type RaceKind = RaceRow["kind"];
@@ -463,6 +465,7 @@ export async function scratchEntry(db: Db, input: { accountId: string; raceId: s
     await tx.update(raceEntries).set({ status: "scratched", scratchedAt: input.now }).where(eq(raceEntries.id, entry.id));
     await refundRaceDay(tx, input.accountId, race.id, horse.id, entry.snapshot);
     await refundClaimsTx(tx, race, input.now, "the horse was scratched", horse.id);
+    await targetScratchedTx(tx, race, horse.id, input.now);
     if (horse.lockKind === "race" && horse.lockRef === race.id) {
       await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: input.now }).where(eq(horses.id, horse.id));
     }
@@ -1081,6 +1084,10 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       entries.length,
       input.now,
     );
+    // The racing news (public once the broadcast is over) and the runners' campaign targets.
+    const positions = new Map(input.runners.map((r) => [r.horseId, r.position]));
+    await raceNewsTx(tx, race, entries, positions, input.result, prizes, input.now);
+    await targetsAfterRaceTx(tx, race, entries, positions, input.now);
     await audit(tx, { actor: null, action: "race.settle", entityType: "race", entityId: race.id, data: { prizes, retired, resultHash: input.resultHash } });
     return { alreadySettled: false, prizes, retired };
   });

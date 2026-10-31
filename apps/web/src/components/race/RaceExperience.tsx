@@ -19,6 +19,7 @@ import { DioramaSlot } from "../diorama/DioramaSlot";
 import { SilksIcon } from "../Silks";
 import { PaddockParade, type ParadeRunner } from "./PaddockParade";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
+import { RivalLines } from "../social/RivalLines";
 import { PhotoFinishCard } from "../results/PhotoFinishCard";
 import { FitList } from "../ui/FitChip";
 import { Saddlecloth } from "./Saddlecloth";
@@ -303,6 +304,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
             <>
               <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
+              {state && card.kind === "live" && <RivalLines raceId={card.id} />}
             </>
           ) : (
             <>

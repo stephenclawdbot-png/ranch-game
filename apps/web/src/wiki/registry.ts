@@ -57,6 +57,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "weather-and-going", section: "racing", title: "Weather & going", summary: "Seasons of the year, each course's weather, how the going is worked out, frost and the forecast.", keywords: ["weather", "going", "rain", "ground", "firm", "soft", "heavy", "frost", "forecast", "spring", "summer", "autumn", "winter", "drying", "course"] },
   { slug: "how-races-are-run", section: "racing", title: "How races are run", summary: "The race engine, close finishes, form on the day, handicap weights, improvers, sealed seeds and replays you can verify.", keywords: ["engine", "fair", "seed", "replay", "photo finish", "verify", "course character", "bends", "draw", "home straight", "uphill", "close finish", "battle", "form", "upset", "weight", "handicap", "improving", "improver"] },
   { slug: "racecourses", section: "racing", title: "Racecourses", summary: "The six courses: their shapes, way round, home straights, gradients, surfaces and scenery, with maps.", keywords: ["course", "track", "racecourse", "map", "left-handed", "right-handed", "straight", "uphill", "gradient", "ashcombe", "kestrel downs", "saltmarsh", "bellmont", "larkspur", "harrowgate"] },
+  { slug: "planning", section: "racing", title: "Planning a campaign", summary: "Aim a horse at a future race: targets, eligibility, the freshness peak, clashes, the entry window and reminders.", keywords: ["plan", "planner", "campaign", "target", "aim", "reminder", "clash", "freshness", "peak", "entries open"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands, form figures and reading the form book (form lines, splits, the log).", keywords: ["rating", "or", "form", "band", "form book", "splits", "form lines", "log", "beaten", "draw"] },
 
   // Breeding & genetics
@@ -81,6 +82,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "packs", section: "economy", title: "Packs", summary: "What packs contain, the odds and the pity counter.", keywords: ["pack", "odds", "pity", "rarity"] },
 
   // Club & glory
+  { slug: "rivals-and-news", section: "club", title: "Rivals & news", summary: "Rival stables, head-to-head records, your nemesis, and the racing news.", keywords: ["rival", "rivals", "nemesis", "head-to-head", "h2h", "news", "close finish", "my stable"] },
   { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, promotion, the road to Saturday and the Season Final.", keywords: ["league", "season", "points", "division", "relegation", "floor", "recap", "this week", "saturday", "plate", "weekend feature"] },
   { slug: "daily-cup", section: "club", title: "The Daily Cup", summary: "One run a day through a ladder of races.", keywords: ["cup", "daily", "run"] },
   { slug: "hall-and-trophies", section: "club", title: "Hall of Fame & Trophy Room", summary: "Legends, honours and the silverware on your shelves.", keywords: ["hall", "fame", "trophy", "honours", "legend"] },

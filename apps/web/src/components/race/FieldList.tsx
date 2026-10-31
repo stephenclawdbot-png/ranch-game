@@ -28,6 +28,7 @@ const CLAIM_STATUS: Record<string, string> = {
  * stable; the Club's horses (house runners that fill the gates at the close) are marked Club.
  * A claiming race prints each runner's claim price and how many claims it has (never who), the
  * rules in one line and, while entries are open, a Claim button on other stables' runners.
+ * Runners from the viewer's rival stables carry a Rival tag, the viewer's nemesis a Nemesis tag.
  */
 export function FieldList({ card, highlightHorseId, open = true }: { card: RaceCard; highlightHorseId?: string; open?: boolean }) {
   // Handicap weights print once the field is locked (Live handicaps).
@@ -135,7 +136,26 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
                       {/* the connections first, on their own line, so a narrow card never cuts them off */}
                       <p className="racecard-meta !text-[#2c2116]">
                         {e.isPlayer ? (
-                          <span data-testid="runner-stable">{e.stableName}</span>
+                          <>
+                            {e.rival && (
+                              <>
+                                <span
+                                  className={`tag !h-[16px] !px-1 align-[1px] !text-[0.625rem] !leading-[16px] ${e.rival === "nemesis" ? "tag-live" : "tag-you"}`}
+                                  data-testid={e.rival === "nemesis" ? "nemesis-tag" : "rival-tag"}
+                                  title={e.rival === "nemesis" ? "Your nemesis: this horse has beaten yours in the most close finishes" : "A rival stable: your horses keep finishing close to theirs"}
+                                >
+                                  {e.rival === "nemesis" ? "Nemesis" : "Rival"}
+                                </span>{" "}
+                              </>
+                            )}
+                            {e.stableId ? (
+                              <Link href={`/stables/${e.stableId}`} className="underline-offset-2 hover:underline" data-testid="runner-stable">
+                                {e.stableName}
+                              </Link>
+                            ) : (
+                              <span data-testid="runner-stable">{e.stableName}</span>
+                            )}
+                          </>
                         ) : (
                           <>
                             <span className="tag !h-[16px] !px-1 align-[1px] !text-[0.625rem] !leading-[16px]" data-testid="club-runner" title="A Club horse: it fills an empty gate">

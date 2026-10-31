@@ -3,19 +3,26 @@ import { notFound } from "next/navigation";
 import { HorseDetail } from "@/components/horse/HorseDetail";
 import { HorseTabs } from "@/components/horseLife/HorseTabs";
 import { MomentHighlights } from "@/components/moments/MomentHighlights";
+import { PlannerPanel } from "@/components/planner/PlannerPanel";
 import { db } from "@/server/db";
 import { horseDetail } from "@/server/game";
 import { horseHighlights } from "@/server/moments";
 import { getSession } from "@/server/session";
+import { stablePlan } from "@/server/social";
 
 export const dynamic = "force-dynamic";
 
 async function load(id: string) {
   const database = await db();
   const session = await getSession(database);
-  const view = await horseDetail(database, id, session, new Date());
+  const now = new Date();
+  const view = await horseDetail(database, id, session, now);
+  if (!view) return null;
   // the owner's one-time highlights: discoveries and milestones since they last looked
-  return view ? { ...view, highlights: view.owned || view.mine ? await horseHighlights(database, session, view.horse.id) : [] } : null;
+  const highlights = view.owned || view.mine ? await horseHighlights(database, session, view.horse.id) : [];
+  // the campaign plan: the keeper's targets for this horse (racing horses only)
+  const plan = view.mine && session && view.status?.careerStatus === "racing" ? await stablePlan(database, session, now, view.horse.id) : null;
+  return { ...view, highlights, plan };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -30,6 +37,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
   return (
     <HorseDetail
       view={view}
+      planner={view.plan ? <PlannerPanel initial={view.plan} horses={[{ id: view.horse.id, name: view.horse.name }]} horseId={view.horse.id} /> : undefined}
       tabs={
         view.mine || highlights ? (
           <>

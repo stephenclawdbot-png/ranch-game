@@ -37,6 +37,10 @@ export interface FieldEntry {
   jockey?: RunnerJockey | null;
   /** Claiming races: the runner's claim price and the number of claims lodged on it (never who). */
   claim?: { price: number; claims: number } | null;
+  /** The runner's stable (null for a Club horse): its public page is /stables/<id>. */
+  stableId?: string | null;
+  /** The viewer's rival stable's runner, or the viewer's nemesis horse (from public results only). */
+  rival?: "rival" | "nemesis" | null;
 }
 
 /** A claim's state (services/claiming.ts): lodged → drawn / lost at the lock → claimed / void after the race; refunded on a scratch or abandoned race. */

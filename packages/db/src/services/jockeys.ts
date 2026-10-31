@@ -21,6 +21,7 @@ import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, lockStableOf } from "./accounts";
 import { spendCreditsTx } from "./ledger";
 import { audit, runTx } from "./tx";
+import { jockeyEventNewsTx } from "./news";
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = 7 * DAY_MS;
@@ -62,6 +63,7 @@ async function event(ex: Executor, e: { key: string; jockeyId: string; kind: "de
     .insert(jockeyEvents)
     .values({ key: e.key, jockeyId: e.jockeyId, kind: e.kind, stableId: e.stableId, at: e.at, data: e.data ?? {} })
     .onConflictDoNothing();
+  await jockeyEventNewsTx(ex, e);
 }
 
 /** Inserts a jockey drawn from `seed`: a new apprentice, or (weeksIn > 0) a seasoned rider for the starting pool. */

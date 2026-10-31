@@ -2076,3 +2076,75 @@ export const jockeyWeeks = pgTable("jockey_weeks", {
   data: jsonb("data").notNull().default({}),
   ranAt: ts("ran_at").notNull(),
 });
+
+/**
+ * The racing news (services/news.ts): short public items written from facts at the event
+ * (settlement, a sale, maintenance). One row per dedupe key. `publicAt` hides an item about a
+ * race until its broadcast is over. `stableIds` are the stables involved (owners, buyer and
+ * seller, a jockey's stable) for the "My stable" tab.
+ */
+export const newsItems = pgTable(
+  "news_items",
+  {
+    id: id(),
+    dedupeKey: text("dedupe_key").notNull(),
+    kind: text("kind").notNull(),
+    headline: text("headline").notNull(),
+    href: text("href").notNull(),
+    publicAt: ts("public_at").notNull(),
+    raceId: uuid("race_id").references(() => races.id),
+    horseId: uuid("horse_id").references(() => horses.id),
+    jockeyId: uuid("jockey_id").references(() => jockeys.id),
+    stableIds: uuid("stable_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    data: jsonb("data").notNull().default({}),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("news_items_dedupe_uq").on(t.dedupeKey),
+    index("news_items_public_idx").on(t.publicAt),
+    index("news_items_stables_idx").using("gin", t.stableIds),
+  ],
+);
+
+export type NewsItemRow = typeof newsItems.$inferSelect;
+
+/**
+ * Campaign targets (services/planner.ts): a horse aimed at a future race, by card slot index (a
+ * calendar race can be pinned before it is published; `raceId` is set once it is, or at once for
+ * a published race). Up to five active per horse. `removedAt` + `removedReason` when it ran, was
+ * scratched, became ineligible or the race went by; reminders are sent once each.
+ */
+export const raceTargets = pgTable(
+  "race_targets",
+  {
+    id: id(),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    slotIndex: integer("slot_index").notNull(),
+    raceId: uuid("race_id").references(() => races.id),
+    name: text("name").notNull(),
+    raceClass: text("race_class").notNull(),
+    postTime: ts("post_time").notNull(),
+    remindedOpenAt: ts("reminded_open_at"),
+    remindedCloseAt: ts("reminded_close_at"),
+    removedAt: ts("removed_at"),
+    removedReason: text("removed_reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("race_targets_active_uq")
+      .on(t.horseId, t.slotIndex)
+      .where(sql`${t.removedAt} is null`),
+    index("race_targets_stable_idx").on(t.stableId, t.postTime),
+    index("race_targets_horse_idx").on(t.horseId, t.postTime),
+    index("race_targets_due_idx")
+      .on(t.postTime)
+      .where(sql`${t.removedAt} is null`),
+  ],
+);
+
+export type RaceTargetRow = typeof raceTargets.$inferSelect;
