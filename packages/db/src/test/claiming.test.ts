@@ -1,11 +1,12 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
+import { RULES } from "../rules";
 import { fraudEvents, horseLeaseListings, horses, inboxItems, raceClaims, stables } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
-import { cardSlotAt, claimingSlotOfMeeting, isCalendarSlot, isClaimingSlot, meetingRaceOf, slotIndexAt, slotPostTime } from "../services/card";
-import { claimingCard, claimPriceBand, isClaimingRace, lodgeClaim } from "../services/claiming";
+import { cardSlotAt, claimingSlotOfMeeting, ensureRaceCard, isCalendarSlot, isClaimingSlot, meetingRaceOf, slotIndexAt, slotIndexOf, slotKeyOf, slotPostTime } from "../services/card";
+import { claimingCard, claimingEligibleCount, claimPriceBand, isClaimingRace, lodgeClaim } from "../services/claiming";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { listHorse } from "../services/market";
 import { cancelRace, createRace, enterRace, lockField, scratchEntry, settleRace, type RunnerOutcome } from "../services/races";
@@ -107,6 +108,74 @@ describe("claiming races: the card", () => {
       expect(race.name).not.toMatch(/Claiming/);
       expect(isClaimingRace(race)).toBe(false);
       if (m.ofDay !== 2) expect(claimingSlotOfMeeting(m)).toBeNull();
+    }
+  });
+});
+
+describe("the claiming gate (CLAIMING_MIN_ELIGIBLE)", () => {
+  // Runs before the entering/claims describes below, on the still-empty world: this one owns the
+  // horses it counts. The 0-55 band is the one fresh test horses fit (rating 0).
+  function hcp55Candidate(from: number): number {
+    for (let i = from; ; i++) if (isClaimingSlot(i) && meetingRaceOf(i)!.race === 2) return i;
+  }
+  const c1 = hcp55Candidate(slotIndexAt(T0) + 1);
+  const c2 = hcp55Candidate(c1 + 1);
+  /** Publishes the card for the 24 h around a candidate slot and returns it. */
+  const publish = (i: number, horizonMs = RULES.cardHorizonMs) => ensureRaceCard(h.db, new Date(slotPostTime(i).getTime() - 60 * MIN), {}, horizonMs);
+  const raceAt = (card: Awaited<ReturnType<typeof publish>>, i: number) => card.find((r) => r.slotKey === slotKeyOf(i))!;
+
+  it("no eligible horses: the candidate slot is published as the ordinary handicap", async () => {
+    expect(await claimingEligibleCount(h.db, { minRating: 0, maxRating: 55, now: T0 })).toBe(0);
+    const card = await publish(c1);
+    const race = raceAt(card, c1);
+    expect(race.name).toMatch(/Handicap \(0-55\)$/);
+    expect(isClaimingRace(race)).toBe(false);
+    // the evening meeting keeps its full card: the slot was never lost
+    expect(card.filter((r) => r.postTime.getUTCHours() >= 19)).toHaveLength(8);
+  });
+
+  it("at the threshold it is published as the claiming race; below it is not, and it never flips after publishing", async () => {
+    // one short of the knob: still the handicap
+    const a = await seller();
+    const short: string[] = [];
+    for (let k = 0; k < gc.CLAIMING_MIN_ELIGIBLE - 1; k++) short.push((await makeHorse(h.db, a.stableId)).id);
+    expect(await claimingEligibleCount(h.db, { minRating: 0, maxRating: 55, now: T0 })).toBe(gc.CLAIMING_MIN_ELIGIBLE - 1);
+    const below = await publish(c2);
+    expect(raceAt(below, c2).name).toMatch(/Handicap \(0-55\)$/);
+    // already published: a sixth eligible horse appearing later changes nothing
+    const b = await seller();
+    short.push((await makeHorse(h.db, b.stableId)).id);
+    expect(await claimingEligibleCount(h.db, { minRating: 0, maxRating: 55, now: T0 })).toBe(gc.CLAIMING_MIN_ELIGIBLE);
+    expect(raceAt(await publish(c2), c2).name).toMatch(/Handicap \(0-55\)$/);
+
+    // the next 0-55 candidate, with enough eligible horses from the start: published as claiming
+    const c3 = hcp55Candidate(c2 + 1);
+    const at = await publish(c3);
+    const race = raceAt(at, c3);
+    expect(race.name).toMatch(/Claiming Stakes \(0-55\)$/);
+    expect(isClaimingRace(race)).toBe(true);
+    expect(race.conditions).toMatchObject({ claiming: true, minRating: 0, maxRating: 55 });
+    // eligibility disappears later (the horses become Club-bred and untradeable): the published
+    // claiming race keeps its kind for good
+    await h.db.update(horses).set({ bound: true }).where(inArray(horses.id, short));
+    expect(await claimingEligibleCount(h.db, { minRating: 0, maxRating: 55, now: T0 })).toBe(0);
+    expect(isClaimingRace(raceAt(await publish(c3), c3))).toBe(true);
+  });
+
+  it("calendar races are untouched by the gate", async () => {
+    const card = await publish(c2 + 1, 8 * DAY);
+    const cal = card.filter((r) => {
+      const i = slotIndexOf(r.slotKey);
+      return i !== null && isCalendarSlot(i);
+    });
+    expect(cal.length).toBeGreaterThanOrEqual(3);
+    for (const r of cal) {
+      const def = cardSlotAt(slotIndexOf(r.slotKey)!)!;
+      expect(r.name).toBe(def.name);
+      expect(r.conditions).toEqual(def.conditions);
+      expect(r.raceClass).toBe(def.raceClass);
+      expect(r.kind).toBe(def.kind);
+      expect(isClaimingRace(r)).toBe(false);
     }
   });
 });

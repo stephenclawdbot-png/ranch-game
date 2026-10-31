@@ -129,10 +129,10 @@ describe("race card", () => {
     expect(listed).toBeGreaterThan(40);
     expect(features).toBeGreaterThan(40);
     // juvenile races cover every surface and trip zone within a day
-    const juvenile = slots.slice(0, gc.LIVE_RACES_PER_DAY).map(defaultCardSlot).filter((r) => r.raceClass === "maiden" || r.raceClass === "novice");
+    const juvenile = slots.slice(0, gc.LIVE_RACES_PER_DAY).map((i) => defaultCardSlot(i)).filter((r) => r.raceClass === "maiden" || r.raceClass === "novice");
     expect(new Set(juvenile.map((r) => `${r.conditions.surface}:${r.conditions.distanceM}`)).size).toBe(12);
     // maidens alone run every trip over two meetings
-    expect(new Set(slots.slice(0, 16).map(defaultCardSlot).filter((r) => r.raceClass === "maiden").map((r) => r.conditions.distanceM)).size).toBe(4);
+    expect(new Set(slots.slice(0, 16).map((i) => defaultCardSlot(i)).filter((r) => r.raceClass === "maiden").map((r) => r.conditions.distanceM)).size).toBe(4);
   });
 
   it("calls off an ordinary race that no player entered; a race with players gets Club horses up to its target; calendar races always run", async () => {

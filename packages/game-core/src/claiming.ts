@@ -10,7 +10,9 @@
  *
  * Which slot: the evening meeting's handicaps, rotating through the three bands day by day; a
  * calendar race on that day's band moves the claiming race to the next band, and a day whose three
- * handicaps are all calendar races (the Season Finals' day) has none.
+ * handicaps are all calendar races (the Season Finals' day) has none. The slot only becomes a
+ * claiming race when at least `CLAIMING_MIN_ELIGIBLE` horses could enter one today; otherwise it
+ * stays the ordinary handicap it would have been (the check runs when the card is published).
  *
  * Integer maths only, like the rest of game-core.
  */
@@ -28,6 +30,15 @@ export const CLAIM_REENTRY_LOCK_DAYS = 3;
 export const CLAIM_REENTRY_LOCK_MS = CLAIM_REENTRY_LOCK_DAYS * MS_PER_DAY;
 /** Claiming races a day (in the evening meeting). */
 export const CLAIMING_RACES_PER_DAY = 1;
+/**
+ * Fewest horses that could enter a claiming race today (tradeable for credits, still racing,
+ * inside the band) for the evening meeting's claiming slot to be published as one; below this
+ * the slot stays the ordinary handicap. A fresh world has none for weeks (starter horses are
+ * Club-bred and untradeable, foals are not of racing age), and an evening handicap was being
+ * called off every day for an empty claiming race. Checked once, when the card is published
+ * (24 h ahead), and the published race keeps its kind for good.
+ */
+export const CLAIMING_MIN_ELIGIBLE = 6;
 /** The meeting of the day that carries the claiming race (0-based: 2 = the 19:00 UTC meeting). */
 export const CLAIMING_MEETING_OF_DAY = MEETINGS_PER_DAY - 1;
 /** Claims one stable may lodge in one claiming race. */

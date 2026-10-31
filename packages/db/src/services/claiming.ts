@@ -2,7 +2,9 @@
  * Claiming races: the race is the market (race meetings plan, 2026-10-30, item 4; rules and
  * numbers in game-core claiming.ts).
  *
- *   card.ts publishes one claiming race a day (an evening handicap, `conditions.claiming`)
+ *   card.ts publishes at most one claiming race a day (an evening handicap, `conditions.claiming`),
+ *       and only when CLAIMING_MIN_ELIGIBLE horses could enter one today (claimingEligibleCount
+ *       below): the candidate slot otherwise stays the ordinary handicap it would have been
  *   →  enterRace: the owner sets a claim price (required), inside the market's appraisal band;
  *       only a horse that could be sold for credits today may run (assertTradeableTx, the
  *       market's checks), and not within CLAIM_REENTRY_LOCK_DAYS of being claimed
@@ -19,17 +21,17 @@
  * `claim_sale` (escrow → old owner, fee → burn). Every posting is keyed by the claim, so retries
  * never move credits twice. The resale lock (market.ts resaleLock) reads claimed rows too.
  */
-import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { DomainError } from "../errors";
-import { gc, isGenome, toHorseState } from "../gameCore";
-import { fraudEvents, horses, inboxItems, raceClaims, raceEntries, races, type HorseRow, type RaceClaimRow, type RaceRow, type StableRow } from "../schema";
-import { defaultAppraise, type GameHooks } from "../rules";
+import { bandRatingOf, gc, isGenome, toHorseState } from "../gameCore";
+import { fraudEvents, horseLeaseListings, horses, inboxItems, pregnancies, raceClaims, raceEntries, races, stables, trades, type HorseRow, type RaceClaimRow, type RaceRow, type StableRow } from "../schema";
+import { RULES, defaultAppraise, type GameHooks } from "../rules";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked, lockStable, lockStableOf, occupancy } from "./accounts";
-import { assertTradeableTx } from "./market";
-import { isUsdgRegistered } from "./usdgMarket";
+import { assertTradeableTx, sellerEligibility } from "./market";
+import { isUsdgRegistered, usdgRegisteredIds } from "./usdgMarket";
 import { playerLedgerAccountId, post, spendCreditsTx, systemAccountId } from "./ledger";
 import { audit, runTx } from "./tx";
 
@@ -59,6 +61,88 @@ export async function claimReentryLock(ex: Executor, horseId: string, now: Date)
     .orderBy(sql`${raceClaims.closedAt} desc`)
     .limit(1);
   return c?.closedAt ? new Date(c.closedAt.getTime() + gc.CLAIM_REENTRY_LOCK_MS) : null;
+}
+
+/**
+ * Horses that could enter a claiming race today: still racing and of racing age, inside the
+ * band (the band rating, as the entry sheet checks it), and tradeable for credits — the same
+ * checks `assertTradeableTx` runs at entry (binding, trade starts, lease, locks, USDG
+ * registration, in foal, resale lock, the owner's seller requirements). This is the yardstick of
+ * game-core `CLAIMING_MIN_ELIGIBLE`: card.ts counts it when the card is published, and the
+ * evening meeting's claiming slot only becomes a claiming race when there are enough.
+ *
+ * Read-only and best-effort by design (an injury or a listing tomorrow changes nothing about a
+ * race already published); `readLimit` caps the candidate read, so a world at the cap reports
+ * at least that many.
+ */
+export async function claimingEligibleCount(
+  ex: Executor,
+  input: { minRating?: number; maxRating?: number; now: Date; readLimit?: number },
+): Promise<number> {
+  const rows = await ex
+    .select({ horse: horses, accountId: stables.accountId })
+    .from(horses)
+    .innerJoin(stables, eq(stables.id, horses.ownerStableId))
+    .where(
+      and(
+        eq(horses.careerStatus, "racing"),
+        gte(horses.careSessions, RULES.careToRacing),
+        eq(horses.bound, false),
+        gte(horses.starts, horses.tradeMinStarts),
+        isNull(horses.lesseeStableId),
+        isNull(horses.lockKind),
+        isNull(horses.releasedAt),
+        or(isNull(horses.injuredUntil), lte(horses.injuredUntil, input.now)),
+        input.minRating !== undefined ? gte(horses.rating, input.minRating) : undefined,
+      ),
+    )
+    .limit(input.readLimit ?? 500);
+  if (!rows.length) return 0;
+  const inBand = input.maxRating === undefined ? rows : rows.filter((r) => bandRatingOf(r.horse).rating <= input.maxRating!);
+  if (!inBand.length) return 0;
+  const ids = inBand.map((r) => r.horse.id);
+  // The per-horse market locks, one query each.
+  const usdg = await usdgRegisteredIds(ex, ids);
+  const carrying = new Set(
+    (await ex
+      .select({ damId: pregnancies.damId })
+      .from(pregnancies)
+      .where(and(inArray(pregnancies.damId, ids), eq(pregnancies.status, "carrying")))).map((r) => r.damId),
+  );
+  const leaseOffered = new Set(
+    (await ex
+      .select({ horseId: horseLeaseListings.horseId })
+      .from(horseLeaseListings)
+      .where(and(inArray(horseLeaseListings.horseId, ids), eq(horseLeaseListings.status, "active")))).map((r) => r.horseId),
+  );
+  // A resale lock: this stable's latest buy (or winning claim) of the horse is still inside the window.
+  const buys = new Map<string, Date>();
+  const bump = (horseId: string, stableId: string, at: Date) => {
+    if (inBand.find((r) => r.horse.id === horseId)?.horse.ownerStableId !== stableId) return;
+    const cur = buys.get(horseId);
+    if (!cur || at > cur) buys.set(horseId, at);
+  };
+  for (const t of await ex.select({ horseId: trades.horseId, buyerStableId: trades.buyerStableId, createdAt: trades.createdAt }).from(trades).where(inArray(trades.horseId, ids))) bump(t.horseId, t.buyerStableId, t.createdAt);
+  for (const c of await ex
+    .select({ horseId: raceClaims.horseId, claimantStableId: raceClaims.claimantStableId, closedAt: raceClaims.closedAt })
+    .from(raceClaims)
+    .where(and(inArray(raceClaims.horseId, ids), eq(raceClaims.status, "claimed")))) {
+    if (c.closedAt) bump(c.horseId, c.claimantStableId, c.closedAt);
+  }
+  // The owner's seller requirements, once per stable.
+  const canSell = new Map<string, boolean>();
+  const sellerOf = async (accountId: string, stableId: string) => {
+    if (!canSell.has(stableId)) canSell.set(stableId, (await sellerEligibility(ex, accountId, stableId, input.now)).length === 0);
+    return canSell.get(stableId)!;
+  };
+  let n = 0;
+  for (const r of inBand) {
+    if (usdg.has(r.horse.id) || carrying.has(r.horse.id) || leaseOffered.has(r.horse.id)) continue;
+    const boughtAt = buys.get(r.horse.id);
+    if (boughtAt && input.now.getTime() - boughtAt.getTime() < RULES.resaleLockMs) continue;
+    if (await sellerOf(r.accountId, r.horse.ownerStableId!)) n++;
+  }
+  return n;
 }
 
 /**
