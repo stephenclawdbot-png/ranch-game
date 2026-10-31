@@ -751,6 +751,48 @@ export async function leasingTotals(world: World): Promise<LeasingTotals> {
   };
 }
 
+/** The tote over the run (packages/db tote.ts), credits only: volume, the house take (a sink) and who bet. */
+export interface ToteTotals {
+  bets: number;
+  bettors: number;
+  /** Credits staked (void bets excluded) and paid back to bettors (refunds excluded). */
+  staked: number;
+  returned: number;
+  /** Credits pooled in settled pools, and the house take on them (take + rounding: credits leave circulation). */
+  pooled: number;
+  houseTake: number;
+  /** The tote_house ledger balance at the end (equals houseTake when every pool is settled). */
+  houseBalance: number;
+  racesWithPools: number;
+  voided: number;
+}
+
+export async function toteTotals(world: World): Promise<ToteTotals> {
+  const db = world.db;
+  const [b] = await q<{ n: number; bettors: number; staked: string; returned: string; voided: number }>(
+    db,
+    `select count(*) filter (where status <> 'void')::int n, count(distinct account_id)::int bettors, coalesce(sum(stake) filter (where status <> 'void'), 0)::bigint staked,
+            coalesce(sum(payout) filter (where status in ('won', 'lost', 'returned')), 0)::bigint returned, count(*) filter (where status = 'void')::int voided
+       from tote_bets where currency = 'CR'`,
+  );
+  const [p] = await q<{ pooled: string; take: string; races: number }>(
+    db,
+    `select coalesce(sum(total), 0)::bigint pooled, coalesce(sum(takeout + remainder), 0)::bigint take, count(distinct race_id)::int races from tote_pools where currency = 'CR'`,
+  );
+  const [h] = await q<{ b: string }>(db, `select coalesce(sum(balance), 0)::bigint b from ledger_accounts where kind = 'tote_house' and currency = 'CR'`);
+  return {
+    bets: num(b?.n),
+    bettors: num(b?.bettors),
+    staked: num(b?.staked),
+    returned: num(b?.returned),
+    pooled: num(p?.pooled),
+    houseTake: num(p?.take),
+    houseBalance: num(h?.b),
+    racesWithPools: num(p?.races),
+    voided: num(b?.voided),
+  };
+}
+
 export interface ClaimingTotals {
   /** Claiming races that ran (settled), and those called off with no player runner. */
   racesRun: number;

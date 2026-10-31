@@ -169,6 +169,13 @@
       "when": 1793424846947,
       "tag": "0023_picks_rivals",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793428777465,
+      "tag": "0024_tote",
+      "breakpoints": true
     }
   ]
 }

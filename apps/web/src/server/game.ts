@@ -96,7 +96,7 @@ import {
   rivalTags,
   carryingDueByDam,
 } from "@thoroughbred/db";
-import { getJockey as dbGetJockey, handicapWeightsFor } from "@thoroughbred/db";
+import { getJockey as dbGetJockey, handicapWeightsFor, settleDueTote } from "@thoroughbred/db";
 import { conditionRating } from "@/lib/aptitude";
 import { raceDayRiskKey } from "@/lib/raceDay";
 import { replayStartSec } from "@/lib/replayStart";
@@ -342,6 +342,12 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
       } catch (e) {
         console.error("[game] settlement failed", r.id, e);
       }
+    }
+    // The tote: open bets on races whose result is now public (or that were abandoned) settle here.
+    try {
+      await settleDueTote(db, now);
+    } catch (e) {
+      console.error("[game] tote settlement failed", e);
     }
     return { locked: tick.locked.length, settled, maintenance: tick.maintenance };
   })();

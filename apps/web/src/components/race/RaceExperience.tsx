@@ -32,6 +32,7 @@ import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
 import { sealCopy, sealState } from "@/lib/seal";
 import { broadcastOffAt, msToBroadcastOff } from "@/lib/offClock";
+import { FinalOddsStrip, TotePanel } from "../tote/TotePanel";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -288,6 +289,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
         </div>
       </section>
 
+      {/* The tote's final odds, frozen at the off: shown while the race runs, never a bet button. */}
+      {phase === "live" && card.kind === "live" && <FinalOddsStrip raceId={card.id} />}
+
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="t-meta">
           {card.kind === "story" ? "Story race" : "Live race"} · {CLASS_LABEL[config.raceClass]} · post {formatClock(config.postTimeMs)}
@@ -347,6 +351,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
         </div>
         <div className="grid content-start gap-4">
           {card.kind === "live" && <PickBlock raceId={card.id} phase={phase} signedIn={!!state} />}
+          {card.kind === "live" && <TotePanel raceId={card.id} reveal={phase === "result" && !holdResults} />}
           <FairnessPanel card={card} replay={phase === "result" ? replay : null} />
           {phase !== "result" && (
             <Link href={mine ? "/" : "/races"} className="btn-ghost inline-flex min-h-11 w-fit items-center font-bold">

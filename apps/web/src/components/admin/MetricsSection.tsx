@@ -35,6 +35,8 @@ interface Economy {
   };
   /** Claiming races in the window (packages/db health.ts); absent on older servers. */
   claiming?: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
+  /** The tote in credits (packages/db tote.ts toteCreditsHealth); absent on older servers. */
+  tote?: { houseTake: number; volume: number; bettors: number; races: number };
 }
 
 /** Players by audience (packages/db audience.ts); absent on older servers. */
@@ -85,6 +87,13 @@ function EconomyHealth({ e }: { e: Economy }) {
             label="Claiming races"
             value={`${e.claiming.horsesClaimed} claimed · ${n0(e.claiming.creditsMoved)} cr`}
             sub={`${e.claiming.racesRun} races · ${e.claiming.horsesEntered} runners · ${e.claiming.claimsLodged} claims lodged`}
+          />
+        )}
+        {e.tote && (
+          <Tile
+            label="Tote house take"
+            value={`${n0(e.tote.houseTake)} cr`}
+            sub={`a sink · ${n0(e.tote.volume)} cr pooled · ${e.tote.bettors} bettors · ${e.tote.races} races`}
           />
         )}
         {e.leases?.club && (

@@ -708,6 +708,10 @@ export const RESET_TABLES = [
   "inbox_items",
   "entry_movements",
   "race_sponsorships",
+  // Tote bets and settled pools follow the races they were on.
+  "tote_bets",
+  "tote_pools",
+  "tote_settings",
   // What-if re-runs follow the races they re-ran.
   "what_if_runs",
   "race_results",

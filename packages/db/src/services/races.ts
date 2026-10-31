@@ -38,6 +38,7 @@ import { ensureClubCalibrated, trueMarkOf } from "./clubFill";
 import { raceNewsTx } from "./news";
 import { targetScratchedTx, targetsAfterRaceTx } from "./planner";
 import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, settleJockeyRidesTx, type FieldJockey } from "./jockeys";
+import { refundToteRaceTx, voidConflictedToteBetsTx, voidToteBetsOnHorseTx } from "./tote";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -437,6 +438,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
       })
       .returning();
     await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
+    // The tote: a bet by anyone with an interest in this runner (own, lease partner, linked) is void.
+    await voidConflictedToteBetsTx(tx, { raceId: race.id, horseId: horse.id, stableId: stable.id, ownerStableId: horse.ownerStableId, now: input.now });
     await recordPlayDay(tx, input.accountId, input.now);
     // One gate left in a Live card race: open a sister course in the same slot (§4d, card.ts).
     if (active.length + 1 >= race.maxRunners - 1) await ensureSisterRace(tx, race, input.now);
@@ -465,6 +468,7 @@ export async function scratchEntry(db: Db, input: { accountId: string; raceId: s
     await tx.update(raceEntries).set({ status: "scratched", scratchedAt: input.now }).where(eq(raceEntries.id, entry.id));
     await refundRaceDay(tx, input.accountId, race.id, horse.id, entry.snapshot);
     await refundClaimsTx(tx, race, input.now, "the horse was scratched", horse.id);
+    await voidToteBetsOnHorseTx(tx, race.id, horse.id, "void: non-runner (scratched)", input.now);
     await targetScratchedTx(tx, race, horse.id, input.now);
     if (horse.lockKind === "race" && horse.lockRef === race.id) {
       await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: input.now }).where(eq(horses.id, horse.id));
@@ -675,6 +679,7 @@ export function callsOffWithoutPlayers(race: Pick<RaceRow, "kind" | "slotKey" | 
  */
 async function callOffTx(tx: Tx, race: RaceRow, now: Date): Promise<void> {
   await refundClaimsTx(tx, race, now, "the race was called off");
+  await refundToteRaceTx(tx, race.id, "void: the race was called off", now);
   await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
   await audit(tx, { actor: null, action: "race.call_off", entityType: "race", entityId: race.id, data: { reason: "no_player_runners", at: now.toISOString() } });
 }
@@ -711,6 +716,7 @@ async function scratchInFoalAtLockTx(tx: Tx, race: RaceRow, entries: readonly Ra
     }
     await refundRaceDay(tx, accountId, race.id, e.horseId, e.snapshot);
     await refundClaimsTx(tx, race, now, "the mare is in foal", e.horseId);
+    await voidToteBetsOnHorseTx(tx, race.id, e.horseId, "void: non-runner (scratched at the lock)", now);
     await targetScratchedTx(tx, race, e.horseId, now);
     await tx.update(horses).set({ lockKind: null, lockRef: null, updatedAt: now }).where(and(eq(horses.id, e.horseId), eq(horses.lockKind, "race"), eq(horses.lockRef, race.id)));
     await audit(tx, { actor: null, action: "race.scratch_in_foal", entityType: "race", entityId: race.id, data: { horseId: e.horseId } });
@@ -1188,6 +1194,7 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
     }
     await refundSponsorshipForRace(tx, race, input.now);
     await refundClaimsTx(tx, race, input.now, "the race was abandoned");
+    await refundToteRaceTx(tx, race.id, "void: the race was abandoned", input.now);
     await cancelJockeyRidesTx(tx, race.id);
     await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
     await audit(tx, { actor: null, action: "race.cancel", entityType: "race", entityId: race.id, data: { reason: input.reason } });

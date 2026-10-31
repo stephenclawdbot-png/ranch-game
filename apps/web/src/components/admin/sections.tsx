@@ -11,6 +11,7 @@ import { MetricsSection } from "./MetricsSection";
 import { PayoutsSection } from "./PayoutsSection";
 import { ResetSection } from "./ResetSection";
 import { TestersSection } from "./TestersSection";
+import { ToteSection } from "./ToteSection";
 import { AffiliatesAdminSection } from "@/components/chain/admin/AffiliatesAdminSection";
 import { PoolAdminSection } from "@/components/chain/admin/PoolAdminSection";
 
@@ -25,6 +26,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: "invites", label: "Invites", Component: InvitesSection },
   { key: "testers", label: "Testers", Component: TestersSection },
   { key: "feedback", label: "Feedback", Component: FeedbackSection },
+  { key: "tote", label: "Tote", Component: ToteSection },
   { key: "pool", label: "Prize Pool", Component: PoolAdminSection },
   { key: "affiliates", label: "Affiliates", Component: AffiliatesAdminSection },
   { key: "payouts", label: "Payouts (manual)", Component: PayoutsSection },

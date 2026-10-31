@@ -77,6 +77,7 @@ export type FinanceCategory =
   | "purchases" // Purchases: market, Club lots, packs, claims (and claim refunds)
   | "facilities" // Facilities and stalls
   | "fees" // Fees burned: race sponsorship, entry refills
+  | "tote" // The tote: stakes, returns and refunds
   | "other"; // Kinds not in KIND_CATEGORIES yet: kept visible, never silently dropped
 
 export interface KindCategory {
@@ -124,6 +125,10 @@ export const KIND_CATEGORIES: Record<string, KindCategory> = {
   entry_refill: k("fees", "fees"),
   race_sponsorship: k("fees", "fees"),
   race_sponsorship_refund: k("fees", "fees"),
+  tote_stake: k("tote", "tote"),
+  tote_settlement: k("tote", "tote"),
+  tote_refund: k("tote", "tote"),
+  practice_usdg_grant: k("other", "other"),
 };
 
 /** Unmapped kinds stay visible instead of vanishing from a player's finances. */
@@ -213,6 +218,7 @@ export const FINANCE_CATEGORY_ORDER: readonly FinanceCategory[] = [
   "purchases",
   "facilities",
   "fees",
+  "tote",
   "other",
 ];
 
@@ -278,7 +284,7 @@ export async function stableFinances(db: Db, input: { stableId: string; period: 
   const { from, to } = financePeriodBounds(input.period, input.now);
 
   // The player's ledger account, as a sub-select: every query below filters the same way.
-  const player = sql`(select a.id from ledger_accounts a where a.kind = 'player' and a.owner_account_id = ${accountId})`;
+  const player = sql`(select a.id from ledger_accounts a where a.kind = 'player' and a.currency = 'CR' and a.owner_account_id = ${accountId})`;
 
   // 1. Categories: postings grouped by transaction kind.
   const kindRows = rowsOf<KindRow>(

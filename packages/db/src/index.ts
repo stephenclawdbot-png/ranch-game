@@ -61,3 +61,4 @@ export * from "./services/planner";
 export * from "./services/whatIf";
 export * from "./services/picks";
 export * from "./services/audience";
+export * from "./services/tote";
