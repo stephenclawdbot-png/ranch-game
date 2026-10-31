@@ -16,7 +16,7 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, claimingTotals, jockeyTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type JockeyTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
+import { activity, checks, claimingTotals, toteTotals, type ToteTotals, jockeyTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type JockeyTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
 import { median, sum } from "./stats";
 
 const DAY = 86_400_000;
@@ -80,6 +80,8 @@ export interface Totals {
   leasing?: LeasingTotals;
   /** Claiming races over the run (packages/db claiming.ts). */
   claiming?: ClaimingTotals;
+  /** The tote over the run (packages/db tote.ts), credits. */
+  tote?: ToteTotals;
   /** Jockeys over the run (packages/db services/jockeys.ts). */
   jockeys?: JockeyTotals;
 }
@@ -275,7 +277,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         finishedAt: utcDay(new Date()),
       },
       days,
-      totals: { ...totalsOf(days, last), leasing: await leasingTotals(world), claiming: await claimingTotals(world), jockeys: await jockeyTotals(world) },
+      totals: { ...totalsOf(days, last), leasing: await leasingTotals(world), claiming: await claimingTotals(world), tote: await toteTotals(world), jockeys: await jockeyTotals(world) },
       outcomes: await outcomes(world),
       farmers: await farmerReport(world),
       notables: await notables(world),

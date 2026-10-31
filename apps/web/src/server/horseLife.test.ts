@@ -4,7 +4,8 @@
  * career decisions and facilities, through the same server functions the routes call.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAccount, createDb, gameCoreHooks, getBalance, insertHorse, listStableHorses, stableOf, toHorseState, type DbHandle } from "@thoroughbred/db";
+import { breed, createAccount, createDb, createRace, gameCoreHooks, getBalance, insertHorse, listStableHorses, stableOf, toHorseState, type DbHandle } from "@thoroughbred/db";
+import { entryReasonFull } from "./game";
 import * as gc from "@thoroughbred/game-core";
 import {
   careAction,
@@ -131,6 +132,36 @@ describe("training, career, facilities", () => {
     const expected = (r.permille * r.careerEndingShare) / 1000;
     expect(v!.condition.insurance.careerEndingPerRace).toBeCloseTo(expected, 6);
     expect(expected).toBeGreaterThan(0);
+  });
+
+  it("a current injury shows by name, area and line; the risk names the likeliest injuries", async () => {
+    const p = await player("Named Knocks");
+    const [starter] = await listStableHorses(h.db, p.stable.id);
+    const injury: gc.Injury = { severity: "moderate", atMs: T0.getTime(), unitsRequired: 8 * 24, bonusUnits: 0, vetLevel: 0, source: "race-x", kind: "tendon_strain" };
+    await h.db.execute(`update horses set injury = '${JSON.stringify(injury)}'::jsonb, injured_until = '${at(8 * DAY).toISOString()}' where id = '${starter!.id}'`);
+    const v = await horseLifeView(h.db, p, starter!.id, T0);
+    expect(v!.condition.injury).toMatchObject({ label: "Tendon strain", severityLabel: "Moderate injury", area: "Front leg", hoursLeft: 8 * 24, careerEnding: false });
+    expect(v!.condition.injury!.description).toMatch(/tendon/);
+    expect(v!.status.injury).toMatchObject({ name: "Tendon strain" });
+    expect(v!.condition.risks[1]!.likely).toMatch(/^[a-z ,;-]+$/);
+    // an old injury without a kind still reads as its severity
+    await h.db.execute(`update horses set injury = injury - 'kind' where id = '${starter!.id}'`);
+    expect((await horseLifeView(h.db, p, starter!.id, T0))!.condition.injury).toMatchObject({ label: "Moderate injury", area: null, description: null });
+  });
+
+  it("a mare in foal shows when she can race again, on the horse page and the entry sheet", async () => {
+    const p = await player("Foaling Barn");
+    const [a, b] = await listStableHorses(h.db, p.stable.id);
+    await h.db.execute(`update horses set sex = 'female', starts = 26 where id = '${a!.id}'`);
+    await h.db.execute(`update horses set sex = 'male', career_status = 'retired', retirement_reason = 'choice', retired_at = '${T0.toISOString()}' where id = '${b!.id}'`);
+    await breed(h.db, { accountId: p.accountId, sireId: b!.id, damId: a!.id, now: T0, idempotencyKey: `foal-barn:${a!.id}` });
+    const now = at(60 * 60_000);
+    const hoursLeft = Math.ceil((gc.PREGNANCY_MS - 60 * 60_000) / 3_600_000);
+    const v = await horseLifeView(h.db, p, a!.id, now);
+    expect(v!.status.block).toBe(`In foal · can race again after foaling (in ${hoursLeft} h)`);
+    const race = await createRace(h.db, { kind: "scheduled", name: "Mares Plate", raceClass: "maiden", conditions: { distanceM: 1600, surface: "turf" }, postTime: at(DAY), entriesCloseAt: at(DAY - 60_000), targetRunners: 4 });
+    const row = (await listStableHorses(h.db, p.stable.id)).find((r) => r.id === a!.id)!;
+    expect(await entryReasonFull(h.db, row, race, now)).toBe(`In foal · can race again after foaling (in ${hoursLeft} h)`);
   });
 
   it("facilities come with game-core prices; a stable hand enables care for all", async () => {

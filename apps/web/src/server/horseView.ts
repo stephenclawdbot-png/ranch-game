@@ -5,8 +5,8 @@
 import type { Horse, Silks } from "@thoroughbred/shared";
 import { SilksSchema } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
-import { isGenome, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
-import type { RacePlan, RiskView, StableHorse } from "@/lib/types";
+import { isGenome, isInjury, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
+import type { InjuryCard, RacePlan, RiskView, StableHorse } from "@/lib/types";
 import { houseOwnerFor, storyHouseHorse } from "./storyField";
 
 export const DEFAULT_SILKS: Silks = { pattern: "hoops", primary: "#16224d", secondary: "#e2b33c", cap: "#e2b33c" };
@@ -137,7 +137,30 @@ export function diedAtOf(row: HorseRow): number | null {
 }
 
 export function riskView(r: gc.InjuryRisk): RiskView {
-  return { permille: r.permille, label: r.label, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text) };
+  return { permille: r.permille, label: r.label, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuriesText(gc.likelyInjuries(r.context, r.careerEndingShare)) };
+}
+
+/** The stored injury (horses.injury jsonb) as the player sees it: catalogue name, area and line. */
+export function injuryCard(raw: unknown, nowMs: number): InjuryCard | null {
+  const inj = raw as Partial<gc.Injury> | null;
+  if (!inj || typeof inj.severity !== "string") return null;
+  const kind = gc.injuryKindOf(inj.kind);
+  const fatal = inj.severity === "fatal";
+  return {
+    severity: inj.severity,
+    name: gc.injuryNameOf(inj.severity, inj.kind),
+    area: kind ? gc.INJURY_AREA_LABEL[kind.area] : null,
+    description: kind?.description ?? null,
+    careerEnding: fatal || inj.severity === "career_ending",
+    fatal,
+    hoursLeft: !fatal && isInjury(inj) ? gc.hoursToHeal(inj, nowMs) : 0,
+  };
+}
+
+/** "In foal · can race again after foaling (in 30 h)" (horse page and entry sheet). */
+export function inFoalText(dueAtMs: number, nowMs: number): string {
+  const h = Math.max(0, Math.ceil((dueAtMs - nowMs) / 3_600_000));
+  return h > 0 ? `In foal · can race again after foaling (in ${h} h)` : "In foal · can race again after foaling (due now)";
 }
 
 const BLOCK_TEXT: Record<string, string> = {
@@ -150,7 +173,7 @@ const BLOCK_TEXT: Record<string, string> = {
 };
 
 /** Everything the stable pages show about one of the player's horses. */
-export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): StableHorse {
+export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number, opts: { inFoalDueAtMs?: number | null } = {}): StableHorse {
   const horse = horseFromRow(row, silks, nowMs);
   const base = {
     id: row.id,
@@ -161,7 +184,14 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
     starts: row.starts,
     maxStarts: gc.CAREER_MAX_STARTS,
     rating: row.rating,
-    injury: row.injury && row.injuredUntil && row.injuredUntil.getTime() > nowMs ? { severity: String((row.injury as { severity?: string }).severity ?? "minor"), untilMs: row.injuredUntil.getTime() } : null,
+    injury:
+      row.injury && row.injuredUntil && row.injuredUntil.getTime() > nowMs
+        ? {
+            severity: String((row.injury as { severity?: string }).severity ?? "minor"),
+            name: gc.injuryNameOf((row.injury as { severity?: string }).severity, (row.injury as { kind?: string }).kind),
+            untilMs: row.injuredUntil.getTime(),
+          }
+        : null,
     lockedRaceId: row.lockKind === "race" ? row.lockRef : null,
   };
   if (!isGenome(row.genome)) {
@@ -183,7 +213,9 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number): Sta
     ranToday,
     block: base.lockedRaceId
       ? "Entered in a race"
-      : block
+      : opts.inFoalDueAtMs != null && row.careerStatus === "racing"
+        ? inFoalText(opts.inFoalDueAtMs, nowMs)
+        : block
         ? (BLOCK_TEXT[block] ?? block)
         : row.lesseeStableId && fatigue > gc.TIRED_THRESHOLD
           ? "Tired: a leased horse races only when fresh"

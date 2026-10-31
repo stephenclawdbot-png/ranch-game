@@ -15,6 +15,8 @@ import type { Db, Executor } from "../types";
 import { runTx } from "./tx";
 
 export type SystemAccount = "mint" | "burn" | "treasury" | "escrow";
+/** Ledger currencies: Stable Credits, and practice T-USDG (the tote's placeholder practice ledger). */
+export type LedgerCurrency = "CR" | "TUSDG";
 
 export interface Posting {
   ledgerAccountId: string;
@@ -43,20 +45,35 @@ export async function systemAccountId(ex: Executor, kind: SystemAccount): Promis
   return row.id;
 }
 
-/** The player's credits account (created on demand). */
-export async function playerLedgerAccountId(ex: Executor, accountId: string): Promise<string> {
+/** The player's credits account (or, with `currency`, their account in that currency), created on demand. */
+export async function playerLedgerAccountId(ex: Executor, accountId: string, currency: LedgerCurrency = "CR"): Promise<string> {
   const found = await ex
     .select({ id: ledgerAccounts.id })
     .from(ledgerAccounts)
-    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, "CR")));
+    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, currency)));
   if (found[0]) return found[0].id;
   const inserted = await ex
     .insert(ledgerAccounts)
-    .values({ kind: "player", ownerAccountId: accountId })
+    .values({ kind: "player", ownerAccountId: accountId, currency })
     .onConflictDoNothing()
     .returning({ id: ledgerAccounts.id });
   if (inserted[0]) return inserted[0].id;
-  return playerLedgerAccountId(ex, accountId);
+  return playerLedgerAccountId(ex, accountId, currency);
+}
+
+/**
+ * A system account in any currency, created on demand. The migrations seed only the credits
+ * mint/burn/treasury/escrow; the tote's `tote_house` and every T-USDG system account are made
+ * here the first time they are needed (an enum value can't be used in the migration that adds it).
+ */
+export async function ensureSystemAccountId(ex: Executor, kind: SystemAccount | "tote_house", currency: LedgerCurrency): Promise<string> {
+  const where = and(eq(ledgerAccounts.kind, kind), isNull(ledgerAccounts.ownerAccountId), eq(ledgerAccounts.currency, currency));
+  const [row] = await ex.select({ id: ledgerAccounts.id }).from(ledgerAccounts).where(where);
+  if (row) return row.id;
+  await ex.insert(ledgerAccounts).values({ kind, currency, allowNegative: kind === "mint" }).onConflictDoNothing();
+  const [made] = await ex.select({ id: ledgerAccounts.id }).from(ledgerAccounts).where(where);
+  if (!made) throw new Error(`system ledger account ${kind}/${currency} could not be created`);
+  return made.id;
 }
 
 /**
@@ -95,19 +112,16 @@ export async function post(ex: Executor, input: PostInput): Promise<PostResult> 
 
   const ids = [...new Set(postings.map((p) => p.ledgerAccountId))].sort();
   const accounts = await ex
-    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative, currency: ledgerAccounts.currency })
+    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative })
     .from(ledgerAccounts)
     .where(inArray(ledgerAccounts.id, ids))
     .orderBy(asc(ledgerAccounts.id))
     .for("update");
   if (accounts.length !== ids.length) throw new DomainError("NOT_FOUND", "ledger account not found");
-  // One currency per transaction: credits never convert to or from anything else (e.g. the
-  // practice T-USDG currency, services/usdgPractice.ts).
-  if (new Set(accounts.map((a) => a.currency)).size > 1) throw new DomainError("INVALID_INPUT", "a ledger transaction can't mix currencies");
   for (const a of accounts) {
     const delta = postings.filter((p) => p.ledgerAccountId === a.id).reduce((s, p) => s + p.amount, 0);
     if (!a.allowNegative && a.balance + delta < 0) {
-      throw new DomainError("INSUFFICIENT_FUNDS", a.currency === "CR" ? "not enough credits" : "not enough funds", { balance: a.balance, required: -delta });
+      throw new DomainError("INSUFFICIENT_FUNDS", "not enough credits", { balance: a.balance, required: -delta });
     }
   }
   const ordered = [...postings].sort((a, b) => (a.ledgerAccountId < b.ledgerAccountId ? -1 : a.ledgerAccountId > b.ledgerAccountId ? 1 : 0));
@@ -167,12 +181,11 @@ export async function spendCreditsTx(ex: Executor, input: CreditInput & { sink?:
   });
 }
 
-/** The player's Stable Credits balance (currency CR; other ledger currencies are separate). */
-export async function getBalance(ex: Executor, accountId: string): Promise<number> {
+export async function getBalance(ex: Executor, accountId: string, currency: LedgerCurrency = "CR"): Promise<number> {
   const [row] = await ex
     .select({ balance: ledgerAccounts.balance })
     .from(ledgerAccounts)
-    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, "CR")));
+    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, currency)));
   return row?.balance ?? 0;
 }
 

@@ -19,6 +19,10 @@ const CreateSchema = z.object({
   timezone: z.string().max(64).optional(),
   /** Closed playtest (PLAYTEST_MODE=1): the invite code. Outside the playtest: an optional referral code. */
   inviteCode: z.string().max(40).optional(),
+  /** "Bring a rival": the invite code came from a rival invite link. */
+  rival: z.boolean().optional(),
+  /** This browser's random id (anti-alt device signal). */
+  deviceId: z.string().regex(/^[A-Za-z0-9-]{8,64}$/).optional(),
 });
 
 /**
@@ -40,9 +44,11 @@ export async function POST(req: Request) {
       silks: parsed.data.silks,
       timezone: parsed.data.timezone,
       inviteCode: parsed.data.inviteCode ?? null,
+      rival: parsed.data.rival,
+      deviceId: parsed.data.deviceId ?? null,
       now,
     });
-    await trackEvent(database, acc.accountId, "signup", { playtest: acc.playtest });
+    await trackEvent(database, acc.accountId, "signup", { playtest: acc.playtest, ...(acc.rival ? { rival: acc.rival.ok ? acc.rival.welcome : acc.rival.problem } : {}) });
     const session = { accountId: acc.accountId, stable: await stableOf(database, acc.accountId) };
     const res = json({ created: true, player: await playerView(database, session, now) }, { status: 201 });
     setSessionCookie(res, acc.token);

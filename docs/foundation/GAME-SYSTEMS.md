@@ -181,6 +181,7 @@ flowchart LR
     prem[Insurance premiums]
     mfee[Market fee]
     extras["Race-day extras, jockey fees (refunded on a scratch), jockey signing fees"]
+    tote["Tote house take (15% of every pool)"]
   end
   Faucets --> wallet((Stable balances))
   wallet --> Sinks
@@ -202,6 +203,17 @@ holds the price in escrow (`claim_escrow`); after the race the horse moves and t
 the price less the 5% market fee (`claim_sale`, fee burned) while keeping the purse. Losing draws,
 scratches, abandoned races and fatal injuries refund (`claim_refund`). No credits are created;
 linked accounts are refused as in the market.
+
+The tote (2026-10-31, KNOBS 17) is spectator pool betting on Live card races. Stakes go into
+escrow (`tote_stake`); once the result is public each pool settles in one `tote_settlement`
+transaction: 15% of the pool plus rounding to the `tote_house` system account (no player path
+spends it, so for credits it is a sink), the rest to the winners pro rata. Bets are player money
+moving between bettors through the pool; the only credits that leave circulation are the house
+take. Non-runners, abandoned races and bets voided for a conflict of interest are refunded in
+full (`tote_refund`). Bettors with an interest in a runner (own stable, lease partner, linked
+account) are refused, as in the market. T-USDG pools run only in practice mode, on their own
+ledger currency. The harness's punters (a quarter of casuals and grinders, 10-50 credits a bet)
+report the volume and the sink (`totals.tote`).
 
 Purses were halved and a 5% entry fee added on 2026-10-29 (live purses were about 3x the
 model's; now about 1.7x for ordinary races, KNOBS "Live vs model mismatches" 1), and the

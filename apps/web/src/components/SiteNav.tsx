@@ -47,12 +47,13 @@ export const SECTIONS: Section[] = [
     href: "/league",
     label: "Club",
     icon: "trophy",
-    match: (p) => starts(p, "/league", "/cup", "/hall", "/news", "/stables", "/pool", "/invite", "/beta"),
+    match: (p) => starts(p, "/league", "/cup", "/tipsters", "/hall", "/news", "/stables", "/pool", "/invite", "/beta", "/rival"),
     // Beta & wallet pages (/pool, /invite, /beta) stay off the core nav (brand doc §5): they are
     // linked from Profile's "Beta & wallet" section.
     sub: [
       { href: "/league", label: "League" },
       { href: "/cup", label: "Daily Cup" },
+      { href: "/tipsters", label: "Tipsters" },
       { href: "/hall", label: "Hall of Fame" },
       { href: "/news", label: "News" },
     ],

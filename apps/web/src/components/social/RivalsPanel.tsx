@@ -15,7 +15,17 @@ export const scoreLine = (r: { ahead: number; behind: number }) => `${r.ahead}�
 export function RivalsPanel({ rivals, nemesis, compact = false }: { rivals: RivalView[]; nemesis: NemesisView | null; compact?: boolean }) {
   if (!rivals.length && !nemesis) {
     return (
-      <EmptyState title="No rivals yet" icon="silks-sash" testId="rivals-empty" text="Finish within a length of the same stable three times in Live races (last 28 days) and they become your rival." />
+      <EmptyState
+        title="No rivals yet"
+        icon="silks-sash"
+        testId="rivals-empty"
+        text="Finish within a length of the same stable three times in Live races (last 28 days) and they become your rival. Or bring a friend as your rival."
+        action={
+          <Link href="/rival" className="btn btn-sm" data-testid="bring-rival-link">
+            Bring a rival
+          </Link>
+        }
+      />
     );
   }
   return (
@@ -33,6 +43,11 @@ export function RivalsPanel({ rivals, nemesis, compact = false }: { rivals: Riva
                   H2H {scoreLine(r)}
                 </span>
               </div>
+              {r.declared && (
+                <p className="text-sm font-bold" data-testid="rival-declared">
+                  <span className="tag">{r.declared === "invited" ? `You invited ${r.stableName}` : `${r.stableName} invited you`}</span>
+                </p>
+              )}
               <p className="t-meta">
                 {r.meetings} {r.meetings === 1 ? "meeting" : "meetings"} · {r.close} close {r.close === 1 ? "finish" : "finishes"}
                 {r.last && (
@@ -59,6 +74,11 @@ export function RivalsPanel({ rivals, nemesis, compact = false }: { rivals: Riva
             </li>
           ))}
         </ul>
+      )}
+      {rivals.length > 0 && (
+        <Link href="/rival" className="link w-fit text-sm" data-testid="bring-rival-link">
+          Bring a rival ›
+        </Link>
       )}
       {nemesis && (
         <p className="surface flex items-center gap-2 px-4 py-3 text-sm" data-testid="nemesis">

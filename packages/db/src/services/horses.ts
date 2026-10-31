@@ -3,7 +3,7 @@
  * insurance, stud listing. Nothing here (or anywhere) changes a horse because time
  * passed, except healing and pregnancy completion (see maintenance.ts).
  */
-import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { utcDay } from "../crypto";
 import { DomainError } from "../errors";
 import { careLog, horseLeaseListings, horses, pregnancies, trainingPlans, type HorseRow } from "../schema";
@@ -110,6 +110,16 @@ export async function isCarrying(ex: Executor, horseId: string): Promise<boolean
     .from(pregnancies)
     .where(and(eq(pregnancies.damId, horseId), eq(pregnancies.status, "carrying")));
   return !!p;
+}
+
+/** When each carrying mare among `horseIds` is due to foal (ms): mares in foal don't race until then. */
+export async function carryingDueByDam(ex: Executor, horseIds: readonly string[]): Promise<Map<string, number>> {
+  if (!horseIds.length) return new Map();
+  const rows = await ex
+    .select({ damId: pregnancies.damId, dueAt: pregnancies.dueAt })
+    .from(pregnancies)
+    .where(and(inArray(pregnancies.damId, [...horseIds]), eq(pregnancies.status, "carrying")));
+  return new Map(rows.map((r) => [r.damId, r.dueAt.getTime()]));
 }
 
 // ---------------------------------------------------------------------------

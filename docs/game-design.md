@@ -390,6 +390,13 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   - Pulls are seeded and committed like races.
   - Premium Packs are geo-blocked where paid loot boxes are restricted.
 - **Phase 2 (later):** USDC and token as premium currency. Credits are never cashed out.
+- **The tote (owner decision, 2026-10-31).** Spectators may bet on Live card races in a pari-mutuel
+  pool: Stable Credits always, T-USDG only while `USDG_MODE=practice`, never real USDG. 15% of each
+  pool is the house take (a `tote_house` ledger account no player can spend: an economy sink), the
+  rest is shared by the winners. Bets close at the off; no bets on races where your stable, a lease
+  partner or a linked account has a runner; per-race and daily limits, 18+ confirmation and
+  self-exclusion. Every settled pool publishes a tote audit. Real-money betting would need
+  gambling licences and a separate legal decision. Wiki: "The tote".
 
 ## 9. Social & status
 

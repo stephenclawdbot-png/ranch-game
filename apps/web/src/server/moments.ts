@@ -80,7 +80,8 @@ export async function legacyFarmView(db: Db, session: Session, now: Date): Promi
         appearance: h.appearance,
         sex: h.sex,
         tribute,
-        died,
+        // the cause, named from the catalogue when the stored injury has a kind (game-core injuries.ts)
+        died: died ? { ...died, cause: (row.injury as { severity?: string } | null)?.severity === "fatal" ? (gc.injuryKindOf((row.injury as { kind?: string }).kind)?.name ?? null) : null } : null,
         retiredAtMs: (row.pasturedAt ?? row.retiredAt)?.getTime() ?? null,
       };
     }),

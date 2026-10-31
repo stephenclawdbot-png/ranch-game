@@ -145,13 +145,25 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
             Fatal injury. In memoriam: the horse rests on the Legacy Farm, and its record and foals carry the line on.
           </p>
         ) : cond.injury ? (
-          <div className="grid gap-2">
+          <div className="grid gap-2" data-testid="injury-card">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <p className="t-title text-negative" data-testid="injury-name">
+                {cond.injury.label}
+              </p>
+              {cond.injury.label !== cond.injury.severityLabel && <span className="chip !py-0 text-xs text-cream">{cond.injury.severityLabel}</span>}
+              {cond.injury.area && <span className="chip !py-0 text-xs text-cream-dim">{cond.injury.area}</span>}
+            </div>
+            {cond.injury.description && <p className="text-sm text-cream">{cond.injury.description}</p>}
             <p className="font-extrabold text-negative" data-testid="injury-status">
-              {cond.injury.label} · back in {hoursText(cond.injury.hoursLeft)} ({dayName(cond.injury.untilMs)})
+              {cond.injury.careerEnding ? "Settled" : "Back"} in {hoursText(cond.injury.hoursLeft)} ({dayName(cond.injury.untilMs)})
             </p>
+            {cond.injury.careerEnding && (
+              <p className="text-sm font-bold text-cream" data-testid="injury-career-ending">
+                {first} can&rsquo;t race again. {view.horse.sex === "filly" || view.horse.sex === "mare" ? "She can join your broodmares" : "He can stand at stud"} once healed, or retire to the Legacy Farm.
+              </p>
+            )}
             <p className="text-sm text-cream-dim">
-              Healing carries on while you&rsquo;re away. Each care session takes 12 h off; vet treatment takes 24 h off.
-              {cond.injury.careerEnding && " This injury ended the racing career; the horse can still go to stud."}
+              What helps: rest (healing carries on in real time, even while you&rsquo;re away), a care session (12 h off, once a day) and vet treatment (24 h off, once a day). A better vet facility heals faster.
             </p>
             <button
               type="button"
@@ -186,6 +198,11 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
           </table>
         )}
         {cond.risks[1] && cond.risks[1].factors.length > 0 && career.racingAge && <p className="caption">{cond.risks[1].factors.join(" · ")}</p>}
+        {cond.risks[1]?.likely && career.careerStatus === "racing" && career.racingAge && (
+          <p className="caption" data-testid="likely-injuries">
+            Most likely if injured: {cond.risks[1].likely}.
+          </p>
+        )}
 
         <div className="grid gap-2 border-t-2 border-line pt-3" data-testid="insurance">
           <h3 className="t-title">Insurance</h3>

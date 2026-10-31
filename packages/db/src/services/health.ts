@@ -10,6 +10,7 @@ import type { Executor } from "../types";
 import { weekBounds } from "./leagues";
 import { leaseMetrics, type LeaseMetrics } from "./leasing";
 import { rowsOf } from "./tx";
+import { toteCreditsHealth } from "./tote";
 
 export interface EconomyHealth {
   fromDay: string;
@@ -27,6 +28,8 @@ export interface EconomyHealth {
   leases: LeaseMetrics;
   /** Claiming races in the window: races run, horses entered, claims lodged, horses claimed, credits paid for them. */
   claiming: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
+  /** The tote in credits over the window: the house take ("Tote house take", a sink: credits leave circulation), pool volume, bettors and races settled. */
+  tote: { houseTake: number; volume: number; bettors: number; races: number };
 }
 
 export async function economyHealth(ex: Executor, input: { now: Date; days?: number }): Promise<EconomyHealth> {
@@ -83,6 +86,7 @@ export async function economyHealth(ex: Executor, input: { now: Date; days?: num
     week: { weekStart, qualifierStables: Number(loop?.q ?? 0), featureStables: Number(loop?.f ?? 0), plateStables: Number(loop?.p ?? 0), liveStables: Number(loop?.live ?? 0) },
     leases: await leaseMetrics(ex, input.now),
     claiming: await claimingMetrics(ex, from),
+    tote: await toteCreditsHealth(ex, from),
   };
 }
 

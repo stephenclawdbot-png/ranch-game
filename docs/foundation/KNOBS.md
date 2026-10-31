@@ -241,6 +241,20 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `RULES.insurancePremium` / `insurancePayout` | 300 / 2,000 flat | packages/db/src/rules.ts:36, :37 | Fallback for horses without a real genome only. | Legacy rows only |
 | `RULES.careHealMs` | 12 h | packages/db/src/rules.ts:61 | Healing per care for rows without a genome (duplicate of `CARE_HEAL_BONUS_H`). | Legacy rows only |
 
+### 5a. Named injuries (new 2026-10-31)
+
+The catalogue names an injury after condition.ts has rolled it; it never changes the injury rate, the
+severity split, fatal rules or healing hours (golden test: packages/game-core/src/injuries.test.ts).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `INJURY_KINDS` | 6 minor, 6 moderate, 6 career-ending, 3 fatal; each with an area, a description, typical days inside its severity's `INJURY_DAYS` range, a base weight and context boosts | packages/game-core/src/injuries.ts:83 | Which named injury a rolled severity becomes. Only kinds whose day range covers the rolled healing days are candidates. | Injury names only (no rates) |
+| Kind weight | base × each active boost (permille) | packages/game-core/src/injuries.ts (`injuryKindWeight`) | Context makes a name likelier: firm (shins, bruised foot, fractures), soft/heavy (tendons, suspensory, abscess), long trips and tiredness (tying-up, tendon, bleeding), all-out (tendon, fractures), sprints (shins, splints), fragile legs (fractures, tendons), veteran (joint damage), deep ground when tired (tying-up, back). | Injury names only |
+| `INJURY_SPRINT_MAX_M` / `INJURY_LONG_OVER_M` | 1,400 m / over 2,400 m | packages/game-core/src/injuries.ts:46, :48 | Sprint and long-trip triggers. | Injury names only |
+| Name stream | `${seed}\|injury-kind` | packages/game-core/src/injuries.ts (`pickInjuryKind`) | Separate from `${seed}\|injury` and `${seed}\|fatal`, so names never shift a roll. | Determinism |
+| Training knocks | minor kinds only, context "tired" (+ fragile) | packages/game-core/src/training.ts:200 | Names an overwork injury. | Injury names only |
+| "Most likely if injured today" | top 2 by exact share over the severity split and healing days, plus the likeliest moderate-or-worse one (fatal excluded) | packages/game-core/src/injuries.ts (`likelyInjuries`) | Entry-sheet and Care-tab hint. | Player choices (ride, shoes) |
+
 ## 6. Racing engine
 
 | Knob | Value | Where | What it does | Moves which outcomes |
@@ -378,6 +392,8 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Tier bonus | top 3: G1 +10, G2 +6, G3/Listed +3 | packages/game-core/src/leagues.ts:30-32 | Big races worth more. Live: Weekend Feature/Final = G1, any graded = G3, listed = listed. | League movement |
 | `WEEKLY_RACE_POINTS_CAP` | 240 | packages/game-core/src/leagues.ts:20, packages/db/src/services/leagues.ts:109 | Volume cap per week, applied after the best-runs cut. | League movement |
 | `BEST_RUNS_COUNTED` | 20 runs (new 2026-10-29; was: every run counted) | packages/game-core/src/leagues.ts:84, packages/db/src/services/leagues.ts:103 | A week's League score sums only a stable's best 20 run scores (then the cap): a bad race never costs points, extra volume helps little. Season tables add up the same weekly scores. | League movement, entries spent per week |
+| `PICK_POINTS_TOP` / `PICK_POINTS_OUTSIDER` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:19, :21, packages/db/src/services/picks.ts | Pick the winner: a winning pick scores by its rating rank in the field at the off, 10 for the top-rated up to 50 for the lowest-rated, linear between (`pickPoints`). Points only: never exchanged for anything. | Tipster table, nothing in the economy |
+| `TIPSTER_BADGE_TOP` / `TIPSTER_TABLE_SHOWN` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:23, :25 | Weekly tipster table (resets Monday 00:00 UTC): the top 10 with points get a badge; the page lists 50. | Tipster badges |
 | Sunday recap | one inbox note (`week_recap`) per stable that raced, at the week's settlement: rank, move, points gap to the promotion line | packages/db/src/services/leagues.ts:155-179 | Tells each stable where its week ended and how far the line was. | Retention (weekly return) |
 | League field size | counts every entered runner incl. house | packages/db/src/services/leagues.ts:59 | Fields ≥ 4 score placings. | League points |
 | Starting tier | 1 (bronze) | packages/db/src/services/competition.ts:107 | New owners start at the bottom. | League movement |
@@ -505,6 +521,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:665 | Kind `insurance_payout`. | Credits created |
 | Release payout | 50 | packages/db/src/rules.ts:47, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
 | Referral active reward | 250 credits to the inviter when an invitee has 5 races and 3 play days | packages/db/src/services/affiliates.ts:74, :437 | Kind `referral_reward`. Runtime-configurable. | Credits created, sybil value |
+| `RIVAL_INVITE_CREDITS` (new 2026-10-31) | 300 to each of the inviter and the invited stable, once per invited account; the inviter's side at most `RIVAL_INVITE_WEEKLY_WELCOMES` = 5 a UTC week; none for linked accounts | packages/game-core/src/picks.ts:31, :36, packages/db/src/services/rivals.ts:184 | "Bring a rival": a friend founds a stable through your rival link; you become declared rivals. Kind `rival_invite`. | Credits created, sybil value |
 | Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:734 | Kind `entry_fee_refund` (burn → player). | Neutral |
 
 ### 10b. Sinks (credits burned, or sent to treasury)
@@ -543,6 +560,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `insurance_payout` | mint → owner | packages/db/src/services/races.ts:666 |
 | `daily_goal` | mint → player | packages/db/src/services/dailyGoals.ts:41 |
 | `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:86 |
+| `rival_invite` | mint → inviter and invited stable (once per invited account) | packages/db/src/services/rivals.ts:219 |
 | `story_reward` | mint → player | packages/db/src/services/player.ts:228 |
 | `referral_reward` | mint → inviter | packages/db/src/services/affiliates.ts:437 |
 | `adjustment` (release to Club) | mint → player | packages/db/src/services/horses.ts:210 |
@@ -750,6 +768,41 @@ OPEN (the request passes uncounted). The limiter window is the standard two-wind
 | `LINK_FAIL_LIMIT` | 20 failed redemptions per IP per hour | apps/web/src/server/devices.ts:19 | Failed link-code redemptions per IP over a sliding hour; the 21st is answered 429 with `Retry-After: 3600`. | Code-guessing surface |
 | `WALLET_AUTH_LIMIT` | 30 challenge+verify attempts per IP per hour | apps/web/src/server/walletAuth.ts:52 | Wallet SIWE challenge and verify attempts per IP over a sliding hour; past the limit the endpoint answers 429. | Challenge farming, signature-guessing surface |
 | Rate-limit prune age | 2 hours (two windows of the longest limit) | packages/db/src/services/maintenance.ts (`pruneRateLimits`, `olderThanMs`) | `runMaintenance` deletes `rate_limits` rows whose window is older than two windows of the 1-hour limit. | Table growth |
+
+---
+
+## 17. The tote (spectator pool betting, new 2026-10-31)
+
+Owner decision (2026-10-31): "Live betting using T-USDG & credits with live odds for spectators.
+We need it for economy sink and fun + it's testing. Credits are not cashed out, it stays in
+game." Pure parimutuel: the game never sets odds, never bets and carries no liability. Rules and
+maths in `packages/game-core/src/tote.ts`; bets, settlement, integrity and limits in
+`packages/db/src/services/tote.ts`; web in `apps/web/src/server/tote.ts` and
+`apps/web/src/components/tote/TotePanel.tsx`; wiki page `tote`. Amounts are base units (credits;
+T-USDG in millionths, like USDG).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `TOTE_TAKEOUT_PERMILLE` | 150 (15 %) | packages/game-core/src/tote.ts:44 | House take off every pool (rounded down), plus rounding remainders, to the `tote_house` ledger account (one per currency; no player path spends it). Credits: a sink. Kinds `tote_stake` (player → escrow), `tote_settlement` (escrow → winners + `tote_house`), `tote_refund` (escrow → player). | Credit sink, bettors' returns |
+| `TOTE_RACE_KINDS` | scheduled, feature, final | packages/game-core/src/tote.ts:34 | Races with a tote (the Live card). Never Story, quick, the Daily Cup or what-if. | Where betting happens |
+| `TOTE_PLACE_MIN_FIELD` / `TOTE_PLACE_THREE_FROM` (`totePlaces`) | 5 / 8: first 3 from 8 runners, first 2 from 5-7, no place pool under 5 | packages/game-core/src/tote.ts:62, :64, :82 | Place terms; set by the runners at the off (a void place pool refunds in full). | Place dividends |
+| `TOTE_MIN_STAKE` | 10 credits; 0.5 T-USDG | packages/game-core/src/tote.ts:47 | Smallest bet. | Bet count |
+| `TOTE_MAX_STAKE_PER_RACE` + `TOTE_MAX_STAKE_BALANCE_PERMILLE` | 1,000 credits or 10 % of (balance + already staked on the race), whichever is lower; 10 T-USDG | packages/game-core/src/tote.ts:53, :56 | Most one account stakes on one race (all pools). | Sink volume, loss per race |
+| `TOTE_MAX_STAKE_PER_DAY` | 5,000 credits; 50 T-USDG | packages/game-core/src/tote.ts:59 | Most one account stakes per UTC day. | Sink volume, loss per day |
+| `TOTE_LIMIT_RAISE_DELAY_MS` | 24 h | packages/game-core/src/tote.ts:76 | A player's own lower limit applies at once; raising or removing it waits this long. | Responsible play |
+| `TOTE_SELF_EXCLUSION_MS` | 24 h, 7 d, 30 d, permanent | packages/game-core/src/tote.ts:67 | Self-exclusion lengths; can be lengthened, never shortened or lifted early. | Responsible play |
+| `TOTE_ODDS_POLL_MS` | 5 s | packages/game-core/src/tote.ts:79 | Tote panel refresh before the off (the board is CDN-cached 2 s, `boardCache` in apps/web/src/server/tote.ts). | Server load, odds freshness |
+| `toteUsdgEnabled()` | on only when `USDG_MODE=practice` | packages/db/src/services/tote.ts (`toteUsdgEnabled`), game-core `toteUsdgEnabledFrom` | The one switch for T-USDG pools; live/mock/off/unset refuse every T-USDG bet. T-USDG lives in a placeholder practice ledger (ledger accounts in currency `TUSDG`) until the practice-USDG mode wires its own (`setPracticeUsdgLedger`). | T-USDG betting on/off |
+| Bet rate limit | 30 bets per account per minute | apps/web/src/server/tote.ts (`betLimiter`) | Abuse guard on POST /api/races/:id/tote/bet. | Abuse surface |
+| Harness punters | every 4th casual and every 4th grinder (a quarter of them); 60 % chance per visit to back up to 2 races of the next meeting; 10-50 credits a bet; Win 3 in 4 | tools/season-harness/src/agents.ts (`PUNTER_EVERY`, `PUNTER_BET_PERMILLE`, `PUNTER_RACES_PER_VISIT`) | Simulated betting, so the harness reports tote volume and the sink. | Harness only |
+
+Window and integrity (not knobs, rules): bets open when the race is on the card and close at the
+post time, checked by the database clock under the race row lock; settlement waits for the
+result to be public (news.ts `raceResultPublicAt`). No bets on a race where the bettor's stable,
+a lease partner or a linked account has a runner (linked: fraud event `tote_linked_bet_blocked`);
+entering such a runner later voids and refunds the bets (`tote_linked_bet_voided` when linked).
+A conservative ride while linked accounts bet against the horse raises
+`tote_conservative_ride_linked_bettor` (a flag, no action).
 
 ---
 

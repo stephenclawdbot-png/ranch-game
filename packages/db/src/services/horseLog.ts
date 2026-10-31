@@ -127,7 +127,9 @@ export async function logRaceOutcomeTx(
   if (severity) {
     const nowMs = input.now.getTime();
     const backAtMs = input.fatal ? null : input.injury ? nowMs + input.injury.recoveryMs : fromState ? nowMs + Math.ceil(gc.hoursToHeal(fromState, nowMs)) * 3_600_000 : null;
-    await logHorseEventTx(ex, { horseId: input.horse.id, kind: "injury", stableId: input.stableId, raceId: input.raceId, at: input.now, dedupeKey: `injury:race:${input.raceId}`, data: { severity, source: "race", backAtMs } });
+    // the catalogue name (game-core injuries.ts), when the injury has one
+    const kind = fromState?.kind ?? null;
+    await logHorseEventTx(ex, { horseId: input.horse.id, kind: "injury", stableId: input.stableId, raceId: input.raceId, at: input.now, dedupeKey: `injury:race:${input.raceId}`, data: { severity, source: "race", backAtMs, ...(kind ? { injuryKind: kind } : {}) } });
   }
   const had = new Set((input.horse.quirks as string[] | null) ?? []);
   const fresh = [...new Set([...(input.quirksRevealed ?? []), ...(input.state?.reveal.quirks ?? [])])].filter((q) => !had.has(q)).sort();

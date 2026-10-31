@@ -47,6 +47,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "growing-up", section: "horses", title: "Growing up", summary: "From foal to veteran: life stages, care to racing age and the peak window.", keywords: ["foal", "weanling", "yearling", "juvenile", "prime", "veteran", "maturity", "nursery"] },
   { slug: "care-and-condition", section: "horses", title: "Care & condition", summary: "Daily care, feeds, fatigue, freshness, fitness, bond and morale.", keywords: ["feed", "groom", "fatigue", "fresh", "bond", "morale"] },
   { slug: "training", section: "horses", title: "Training", summary: "The trade-off board: what a session gains and what it risks.", keywords: ["train", "workout", "overwork", "realisation"] },
+  { slug: "injuries", section: "horses", title: "Injuries", summary: "Every named injury by severity, where it is, how long it takes and what makes it likelier.", keywords: ["injury", "injuries", "tendon", "shins", "fracture", "bleeding", "lame", "healing", "in foal"] },
   { slug: "injuries-and-insurance", section: "horses", title: "Injuries & insurance", summary: "Injury risk, the four severities, the vet, and what insurance pays.", keywords: ["injury", "vet", "fatal", "career-ending", "insurance", "risk"] },
 
   // Racing
@@ -59,6 +60,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "racecourses", section: "racing", title: "Racecourses", summary: "The six courses: their shapes, way round, home straights, gradients, surfaces and scenery, with maps.", keywords: ["course", "track", "racecourse", "map", "left-handed", "right-handed", "straight", "uphill", "gradient", "ashcombe", "kestrel downs", "saltmarsh", "bellmont", "larkspur", "harrowgate"] },
   { slug: "planning", section: "racing", title: "Planning a campaign", summary: "Aim a horse at a future race: targets, eligibility, the freshness peak, clashes, the entry window and reminders.", keywords: ["plan", "planner", "campaign", "target", "aim", "reminder", "clash", "freshness", "peak", "entries open"] },
   { slug: "ratings-and-form", section: "racing", title: "Ratings & form", summary: "Official ratings, rating bands, form figures and reading the form book (form lines, splits, the log).", keywords: ["rating", "or", "form", "band", "form book", "splits", "form lines", "log", "beaten", "draw"] },
+  { slug: "tote", section: "racing", title: "The tote", summary: "Pool betting on Live races for spectators: pools, odds, the house take, place terms, dead heats, refunds, limits and taking a break.", keywords: ["tote", "bet", "betting", "wager", "odds", "pool", "parimutuel", "win", "place", "dividend", "takeout", "limits", "self-exclusion", "t-usdg"] },
 
   // Breeding & genetics
   { slug: "breeding-basics", section: "breeding", title: "Breeding basics", summary: "Covering a mare, seasons, fees, foaling and standing a stallion.", keywords: ["breed", "cover", "stud", "mare", "foal", "season", "fee"] },
@@ -83,6 +85,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
 
   // Club & glory
   { slug: "rivals-and-news", section: "club", title: "Rivals & news", summary: "Rival stables, head-to-head records, your nemesis, and the racing news.", keywords: ["rival", "rivals", "nemesis", "head-to-head", "h2h", "news", "close finish", "my stable"] },
+  { slug: "picks-and-tipsters", section: "club", title: "Picks & tipsters", summary: "Pick the winner of any Live race for points (never money): scoring, the weekly tipster table and badges.", keywords: ["pick", "picks", "tipster", "tipsters", "tip", "winner", "points", "streak", "badge"] },
   { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, promotion, the road to Saturday and the Season Final.", keywords: ["league", "season", "points", "division", "relegation", "floor", "recap", "this week", "saturday", "plate", "weekend feature"] },
   { slug: "daily-cup", section: "club", title: "The Daily Cup", summary: "One run a day through a ladder of races.", keywords: ["cup", "daily", "run"] },
   { slug: "hall-and-trophies", section: "club", title: "Hall of Fame & Trophy Room", summary: "Legends, honours and the silverware on your shelves.", keywords: ["hall", "fame", "trophy", "honours", "legend"] },

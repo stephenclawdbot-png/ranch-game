@@ -21,6 +21,7 @@ import {
   getHorse,
   graduateFoal,
   isCarrying,
+  carryingDueByDam,
   isGenome,
   lastCareDays,
   listStableHorses,
@@ -150,7 +151,7 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
   const inj = state.injury && !gc.isHealed(state.injury, nowMs) ? state.injury : null;
   const risks = (["conservative", "normal", "all_out"] as const).map((intensity) => {
     const r = gc.injuryRisk(state, { nowMs, going: "good", distanceM: horse.preferredDistanceM, intensity, stage });
-    return { intensity, label: r.label, permille: r.permille, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text) };
+    return { intensity, label: r.label, permille: r.permille, careerEndingShare: r.careerEndingShare, factors: r.factors.map((f) => f.text), likely: gc.likelyInjuriesText(gc.likelyInjuries(r.context, r.careerEndingShare)) };
   });
   // The quote for the insurance panel: the normal-ride risk in the same context as the horse
   // page's risk badge (stableHorseView), so the two always agree.
@@ -164,7 +165,10 @@ async function conditionView(db: Db, row: HorseRow, state: gc.HorseState, horse:
     injury: inj
       ? {
           severity: inj.severity,
-          label: inj.severity === "fatal" ? "Fatal injury" : inj.severity === "career_ending" ? "Career-ending injury" : inj.severity === "moderate" ? "Moderate injury" : "Minor injury",
+          label: gc.injuryName(inj),
+          severityLabel: gc.INJURY_SEVERITY_LABEL[inj.severity],
+          area: gc.injuryKindOf(inj.kind) ? gc.INJURY_AREA_LABEL[gc.injuryKindOf(inj.kind)!.area] : null,
+          description: gc.injuryKindOf(inj.kind)?.description ?? null,
           hoursLeft: gc.hoursToHeal(inj, nowMs),
           untilMs: nowMs + gc.hoursToHeal(inj, nowMs) * HOUR,
           careerEnding: inj.severity === "career_ending" || inj.severity === "fatal",
@@ -299,7 +303,7 @@ export async function horseLifeView(db: Db, session: Session, horseId: string, n
     id: row.id,
     name: row.name,
     horse,
-    status: stableHorseView(row, silks, nowMs),
+    status: stableHorseView(row, silks, nowMs, { inFoalDueAtMs: row.sex === "female" ? ((await carryingDueByDam(db, [row.id])).get(row.id) ?? null) : null }),
     care: careView(row, day, last, nowMs),
     condition: await conditionView(db, row, state, horse, day, nowMs),
     training: await trainingView(db, row, state, horse, stable, nowMs, balance),

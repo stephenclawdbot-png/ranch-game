@@ -24,6 +24,8 @@ export interface RivalView extends H2HView {
   stableId: string;
   stableName: string;
   silks: Silks | null;
+  /** A declared rival ("Bring a rival"): you invited them, or they invited you. */
+  declared: "invited" | "invited_by" | null;
   /** The closest-fought horse pairs against this stable (most meetings first). */
   pairs: HorsePairView[];
 }

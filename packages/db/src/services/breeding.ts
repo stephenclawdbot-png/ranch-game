@@ -18,7 +18,7 @@
 import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
 import { DomainError, type DomainErrorCode } from "../errors";
-import { breedingEvents, horses, inboxItems, lineageEdges, pregnancies, type HorseRow, type PregnancyRow } from "../schema";
+import { breedingEvents, horses, inboxItems, lineageEdges, pregnancies, raceEntries, races, type HorseRow, type PregnancyRow } from "../schema";
 import { RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { gc, toHorseState } from "../gameCore";
 import { defaultHooks } from "../hooks";
@@ -175,6 +175,23 @@ export async function coverTx(tx: Executor, input: BreedInput & { usdg?: UsdgCov
     throw new DomainError("NOT_OWNER", "that stallion is not standing at stud");
   }
   const bookedForThis = !!usdg && dam.lockKind === "stud" && dam.lockRef === usdg.orderRowId;
+  // A mare entered in a race that hasn't run yet is not covered: mares in foal don't race. Refused
+  // (her entry stands); the owner scratches her while entries are open, or covers her after the race.
+  const [entered] = await tx
+    .select({ raceId: races.id, name: races.name, status: races.status, entriesCloseAt: races.entriesCloseAt })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(eq(raceEntries.horseId, dam.id), eq(raceEntries.status, "entered"), inArray(races.status, ["open", "locked"])))
+    .orderBy(asc(races.postTime))
+    .limit(1);
+  if (entered) {
+    const canScratch = entered.status === "open" && input.now < entered.entriesCloseAt;
+    throw new DomainError(
+      "HORSE_LOCKED",
+      `${dam.name} is entered in the ${entered.name}. Mares in foal can't race, so cover her after that race${canScratch ? ", or scratch her entry first" : ""}.`,
+      { block: "entered_in_race", raceId: entered.raceId },
+    );
+  }
   if (dam.lockKind && !bookedForThis) {
     throw new DomainError("HORSE_LOCKED", dam.lockKind === "stud" ? "the mare is booked for a USDG covering" : "the mare is entered in a race or listed");
   }

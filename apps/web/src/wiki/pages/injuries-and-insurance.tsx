@@ -137,6 +137,9 @@ export default function InjuriesAndInsurancePage() {
           ];
         })}
       />
+      <P>
+        Each injury also has a real name, such as sore shins or a bowed tendon: the full list, where on the horse each one is and what makes it likelier is in <WikiLink slug="injuries" />.
+      </P>
       <P>When an injury does happen, this is how it turns out at the base career-ending chance, from 4,000 injuries rolled by the game&rsquo;s own code:</P>
       <ShareBar
         label="What 4,000 injuries in Live races turned out to be"

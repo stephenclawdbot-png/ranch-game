@@ -162,6 +162,8 @@ export interface RiskView {
   label: "low" | "moderate" | "elevated" | "high";
   careerEndingShare: number;
   factors: string[];
+  /** The injuries most likely IF the horse is hurt in this context: "sore shins, knocked joint; if serious, tendon strain". */
+  likely?: string;
 }
 
 export interface StableHorse {
@@ -183,7 +185,8 @@ export interface StableHorse {
   /** Freshness bar 0..1000 for display. */
   freshness: number;
   condition: "fresh" | "ok" | "tired";
-  injury: { severity: string; untilMs: number | null } | null;
+  /** `name`: the injury's catalogue name, or its severity for old injuries ("Minor injury"). */
+  injury: { severity: string; name: string; untilMs: number | null } | null;
   /** Race the horse is entered in (locked), if any. */
   lockedRaceId: string | null;
   ranToday: number;
@@ -363,7 +366,7 @@ export interface LegacyFarmView {
     sex: Horse["sex"];
     tribute: TributeView;
     /** A horse lost to a race injury: a memorial, not a tribute. */
-    died: { atMs: number; raceId: string | null; raceName: string | null } | null;
+    died: { atMs: number; raceId: string | null; raceName: string | null; cause?: string | null } | null;
     retiredAtMs: number | null;
   }[];
 }
@@ -419,6 +422,20 @@ export interface PedigreeNode {
   dam: PedigreeNode | null;
 }
 
+/** A named injury as the result screen and the horse page show it. */
+export interface InjuryCard {
+  severity: string;
+  /** Catalogue name, or the severity for old injuries ("Minor injury"). */
+  name: string;
+  /** Body area ("Front leg") and one plain line, when the injury has a catalogue kind. */
+  area: string | null;
+  description: string | null;
+  careerEnding: boolean;
+  fatal: boolean;
+  /** Hours of healing left (0 when healed or fatal). */
+  hoursLeft: number;
+}
+
 /** The viewer's own result in a race (only after the broadcast is over). */
 export interface MyRaceResult {
   raceId: string;
@@ -436,6 +453,8 @@ export interface MyRaceResult {
     ratingAfter: number | null;
     /** The owner's horse at the off (from its entry): fatigue and hours since its last hard work (Why card "try next"). */
     atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
+    /** An injury picked up in this race, named (game-core injuries.ts). */
+    injury?: InjuryCard | null;
   }[];
 }
 
