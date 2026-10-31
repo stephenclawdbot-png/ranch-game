@@ -1,293 +1,71 @@
 "use client";
 /**
- * The breeding preview: the exact odds of a pairing, before the player commits (game-design
- * §7). Overall first (range, ranking, nick), then the depth: stat ranges, coat colours,
- * new-gene traits, the foal's breed, hidden carriers, aptitudes, inbreeding and fees.
+ * The breeding preview (owner decision 2026-10-31: "just what maybe it looks like but its still
+ * a chance, no geeky genes or numbers"): sample foals as portraits, the outlook in words, the
+ * nick in a word, warnings in words, and the fees. No odds, genes or numbers but the fees: the
+ * server builds it from public facts only, and the real foal is still a surprise at birth.
  */
-import { BIG_HEART_STAMINA, IRON_LEGS_RISK, MSTN_STAT_SHIFT, MSTN_TRIP_M, SIZE_STAT_PER_PCT } from "@thoroughbred/game-core";
 import type { PreviewView } from "@/lib/economyTypes";
 import { formatCredits } from "@/lib/format";
 import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
-import { GRADE_COLOR, GRADE_TEXT } from "@/components/StatBars";
+import { PossibleLooks } from "./PossibleLooks";
 import { Credits } from "./kit";
 
-const STATS = [
-  ["speed", "Speed"],
-  ["stamina", "Stamina"],
-  ["burst", "Burst"],
-  ["durability", "Durability"],
-  ["adaptability", "Adaptability"],
-  ["temperament", "Temperament"],
-] as const;
-const GRADES = ["S", "A", "B", "C", "D", "E"] as const;
-const LO = 300;
-const HI = 950;
-
-/** game-core gradeOf: E < 500 <= D < 600 <= C < 700 <= B < 800 <= A < 900 <= S. */
-export function gradeOf(v: number): (typeof GRADES)[number] {
-  return v >= 900 ? "S" : v >= 800 ? "A" : v >= 700 ? "B" : v >= 600 ? "C" : v >= 500 ? "D" : "E";
-}
-const pos = (v: number) => `${Math.max(0, Math.min(100, ((v - LO) / (HI - LO)) * 100))}%`;
-const signedPct = (v: number) => (v > 0 ? `+${v}%` : v < 0 ? `−${-v}%` : "0%");
-const signed = (v: number) => (v > 0 ? `+${v}` : `−${-v}`);
-const pct = (permille: number) => `${(permille / 10).toFixed(permille < 100 && permille % 10 ? 1 : 0)}%`;
-
-function OddsBars({ title, items }: { title: string; items: { label: string; permille: number }[] }) {
-  const shown = items.filter((i) => i.permille > 0).sort((a, b) => b.permille - a.permille);
-  return (
-    <div>
-      <h4 className="label mb-1">{title}</h4>
-      <ul className="grid gap-1">
-        {shown.map((i) => (
-          <li key={i.label} className="grid grid-cols-[minmax(0,7.5rem)_1fr_3.25rem] items-center gap-2 text-sm">
-            <span className="truncate font-bold text-cream">{i.label}</span>
-            <span className="h-3 bg-[#050b08] p-[2px]" aria-hidden>
-              <span className="block h-full bg-cream-dim" style={{ width: `${Math.max(2, i.permille / 10)}%` }} />
-            </span>
-            <span className="num text-right text-cream">{pct(i.permille)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-const LABEL: Record<string, string> = {
-  sprint: "Sprint",
-  mile: "Mile",
-  middle: "Middle",
-  staying: "Staying",
-  turf: "Turf",
-  dirt: "Dirt",
-  synthetic: "Synthetic",
-  front: "Front-runner",
-  stalker: "Stalker",
-  closer: "Closer",
-  early: "Early peaker",
-  normal: "Normal",
-  late: "Late peaker",
-  sprinter: "Sprinter (C/C)",
-  miler: "Miler (C/T)",
-  stayer: "Stayer (T/T)",
+/** Outlook colour by band (always with the words, never colour alone). */
+export const OUTLOOK_TONE: Record<PreviewView["outlook"]["key"], { color: string; mark: string }> = {
+  upside: { color: "#f2c86a", mark: "★" },
+  level: { color: "#9fe0a8", mark: "●" },
+  longshot: { color: "#cdbf9c", mark: "◆" },
+  risk: { color: "#ff8a7a", mark: "▼" },
 };
-/** What the line means for the foal's limits (game-core familyRange). */
-const LINEAGE: Record<"deep" | "rising" | "foundation", { tag: string; text: string }> = {
-  deep: {
-    tag: "Established line",
-    text: "Parents and grandparents are of a level, so a foal can land up to 40 above its best parent's genes. Mutations lean back toward the family's level.",
-  },
-  rising: {
-    tag: "Rising line",
-    text: "These parents are well above their own parents: a one-generation jump. The foal gets less headroom above them, and mutations lean back toward the family.",
-  },
-  foundation: {
-    tag: "Foundation stock",
-    text: "No grandparents on record: the limits come from the parents alone. Breeding on from this foal builds a line.",
-  },
-};
-const entries = (o: Partial<Record<string, number>>) => Object.entries(o).map(([k, v]) => ({ label: LABEL[k] ?? k, permille: v ?? 0 }));
+
+export function nickColor(nick: PreviewView["nick"]): string {
+  return nick.startsWith("Excellent") ? "#f2c86a" : nick.startsWith("Good") ? "#9fe0a8" : nick.startsWith("Fair") ? "#cdbf9c" : "#ff8a7a";
+}
 
 export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
-  const p = v.preview;
-  const o = p.overall;
-  const nickColor = p.nick.label === "Excellent" ? "#f2c86a" : p.nick.label === "Good" ? "#9fe0a8" : p.nick.label === "Fair" ? "#cdbf9c" : "#ff8a7a";
+  const tone = OUTLOOK_TONE[v.outlook.key];
+  const warns = v.warnings.filter((w) => w.tone === "warn");
+  const notes = v.warnings.filter((w) => w.tone === "note");
   return (
     <div className="grid gap-4" data-testid="breeding-preview">
-      {/* Headline: the predicted overall and the nick. */}
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-        <div className="inset grid gap-2 p-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h4 className="label">Predicted overall potential</h4>
-            {v.topPercent ? (
-              <span className="chip" data-testid="preview-percentile">
-                Likely top {v.topPercent.p50}% · best case top {v.topPercent.p90}%
-              </span>
-            ) : (
-              <span className="caption">Ranking appears once 10+ horses are in the game</span>
-            )}
-          </div>
-          <div className="flex items-baseline gap-3">
-            <span className="score text-[2.5rem] text-cream" data-testid="preview-p50">
-              {o.p50}
-            </span>
-            <span className="t-meta">
-              likely · range <span className="num text-cream">{o.p10}</span>–<span className="num text-cream">{o.p90}</span> (80% of foals)
-            </span>
-          </div>
-          {/* Range bar: p10..p90 band, p50 tick, both parents marked. */}
-          <div className="relative h-6 bg-[#050b08]" role="img" aria-label={`Range ${o.p10} to ${o.p90}, most likely ${o.p50}. Sire ${v.parents.sire}, dam ${v.parents.dam}.`}>
-            <span className="absolute inset-y-1 bg-[#3f8558]" style={{ left: pos(o.p10), width: `calc(${pos(o.p90)} - ${pos(o.p10)})` }} />
-            <span className="absolute inset-y-0 w-[3px] bg-brass-bright" style={{ left: pos(o.p50) }} />
-            <span className="absolute -bottom-0 h-2 w-2 bg-sky" style={{ left: pos(v.parents.sire) }} title={`Sire ${v.parents.sire}`} />
-            <span className="absolute -bottom-0 h-2 w-2 bg-claret" style={{ left: pos(v.parents.dam) }} title={`Dam ${v.parents.dam}`} />
-          </div>
-          <p className="caption">
-            <span className="text-sky">■</span> Sire {v.parents.sire} · <span className="text-claret">■</span> Dam {v.parents.dam} · Beats both parents: <span className="num text-cream">{pct(o.beatsBothParents)}</span> · Below both: <span className="num text-cream" data-testid="preview-below">{pct(o.belowBothParents)}</span>
-          </p>
-          <div className="flex flex-wrap gap-1.5" aria-label="Chance per grade">
-            {GRADES.filter((g) => (o.grades[g] ?? 0) > 0).map((g) => (
-              <span key={g} className="chip">
-                <span className="font-extrabold" style={{ color: GRADE_TEXT[g] }}>
-                  {g}
-                </span>
-                {pct(o.grades[g] ?? 0)}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="inset grid min-w-[9rem] content-center justify-items-center gap-1 p-3 text-center">
-          <h4 className="label">Nick rating</h4>
-          <span className="score text-[2.5rem]" style={{ color: nickColor }} data-testid="preview-nick">
-            {p.nick.score}
-          </span>
-          <span className="font-extrabold" style={{ color: nickColor }}>
-            {p.nick.label}
-          </span>
-          <span className="caption">How well the lines combine</span>
-        </div>
-      </div>
+      <PossibleLooks looks={v.looks} note={v.looksNote} />
 
-      {/* Family limits: the lowest and highest this foal can possibly be, set by the line. */}
-      <div className="inset grid gap-2 p-3" data-testid="preview-limits">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h4 className="label">Family limits</h4>
-          <span className="chip">{LINEAGE[p.limits.lineage].tag}</span>
-        </div>
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          <span className="t-meta">
-            Lowest possible{" "}
-            <span className="num text-cream" data-testid="limit-floor">
-              {p.limits.overall.floor}
-            </span>{" "}
-            <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(p.limits.overall.floor)] }}>
-              {gradeOf(p.limits.overall.floor)}
-            </span>
-          </span>
-          <span className="t-meta">
-            Highest possible{" "}
-            <span className="num text-cream" data-testid="limit-ceiling">
-              {p.limits.overall.ceiling}
-            </span>{" "}
-            <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(p.limits.overall.ceiling)] }}>
-              {gradeOf(p.limits.overall.ceiling)}
-            </span>
-          </span>
-        </div>
-        <div className="relative h-5 bg-[#050b08]" role="img" aria-label={`Possible ${p.limits.overall.floor} to ${p.limits.overall.ceiling}; 80% of foals ${o.p10} to ${o.p90}.`}>
-          <span className="absolute inset-y-1 bg-[#23402f]" style={{ left: pos(p.limits.overall.floor), width: `calc(${pos(p.limits.overall.ceiling)} - ${pos(p.limits.overall.floor)})` }} />
-          <span className="absolute inset-y-1 bg-[#3f8558]" style={{ left: pos(o.p10), width: `calc(${pos(o.p90)} - ${pos(o.p10)})` }} />
-        </div>
-        <p className="caption">{LINEAGE[p.limits.lineage].text}</p>
-      </div>
-
-      {p.fragile.permille > 0 && (
-        <p className="inset p-3 text-sm" data-testid="preview-fragile">
-          <span className="font-extrabold text-claret">Fragile legs: {pct(p.fragile.permille)}</span>{" "}
-          <span className="text-cream-dim">
-            {p.fragile.fromInjury
-              ? "A parent's racing ended in an injury. The foal may inherit fragile legs: more injuries in races and lower durability. The gamble is yours."
-              : "A parent carries the fragile-legs gene. The foal may inherit it: more injuries in races and lower durability."}
-          </span>
+      {/* The outlook in words. */}
+      <div className="inset grid gap-2 p-3" data-testid="preview-outlook">
+        <h4 className="label">Outlook</h4>
+        <p className="t-display-m leading-tight" style={{ color: tone.color }} data-outlook={v.outlook.key}>
+          <span aria-hidden>{tone.mark} </span>
+          {v.outlook.phrase}
         </p>
-      )}
-
-      {/* Inbreeding. */}
-      <div className={`flex flex-wrap items-center gap-2 p-3 ${p.coiWarning ? "px-oxblood" : "inset"}`} data-testid="preview-coi">
-        <span className="font-extrabold">{p.coiWarning ? "⚠ Inbreeding warning" : "✓ Inbreeding"}</span>
-        <span className="text-sm">
-          COI <span className="num">{(p.coi / 10).toFixed(1)}%</span>
-          {p.coiWarning ? " — close relatives: lower durability and temperament, more negative mutations." : p.coi > 0 ? " — distant shared ancestors." : " — no shared ancestors."}
-        </span>
-        <span className="caption w-full">
-          Mutations: {(p.mutation.ratePermille / 10).toFixed(1)}% per allele, up to ±{p.mutation.maxStep}; {(p.mutation.negPermille / 10).toFixed(0)}% of them negative.
-        </span>
+        <p className="text-sm text-cream-dim">{v.certainty.phrase}</p>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="chip font-extrabold" style={{ color: nickColor(v.nick) }} title="How well the lines combine" data-testid="preview-nick">
+            {v.nick}
+          </span>
+          <span className="chip" data-testid="preview-breed">
+            {v.breed}
+          </span>
+        </div>
       </div>
 
-      {/* Stat ranges. */}
-      <div>
-        <h4 className="label mb-1">Stat potential ranges</h4>
-        <ul className="grid gap-1.5">
-          {STATS.map(([k, label]) => {
-            const s = p.stats[k];
-            const g = gradeOf(s.expected);
-            return (
-              <li key={k} className="grid grid-cols-[6.5rem_1fr_5.5rem] items-center gap-2 text-sm">
-                <span className="font-bold text-cream">{label}</span>
-                <span className="relative h-4 bg-[#050b08]" role="img" aria-label={`${label}: ${s.min} to ${s.max}, expected ${s.expected}; possible ${p.limits.stats[k].floor} to ${p.limits.stats[k].ceiling}`}>
-                  <span className="absolute inset-y-[5px] bg-[#1c3427]" style={{ left: pos(p.limits.stats[k].floor), width: `calc(${pos(p.limits.stats[k].ceiling)} - ${pos(p.limits.stats[k].floor)})` }} />
-                  <span className="absolute inset-y-1 bg-[#2c6645]" style={{ left: pos(s.min), width: `max(3px, calc(${pos(s.max)} - ${pos(s.min)}))` }} />
-                  <span className="absolute inset-y-0 w-[3px]" style={{ left: pos(s.expected), background: GRADE_COLOR[g] }} />
-                </span>
-                <span className="num text-right text-cream">
-                  {s.min}–{s.max}{" "}
-                  <span className="font-extrabold" style={{ color: GRADE_TEXT[gradeOf(s.max)] }}>
-                    {gradeOf(s.min) === gradeOf(s.max) ? gradeOf(s.min) : `${gradeOf(s.min)}–${gradeOf(s.max)}`}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
+      {(warns.length > 0 || notes.length > 0) && (
+        <ul className="grid gap-2" data-testid="preview-warnings">
+          {warns.map((w) => (
+            <li key={w.key} className="px-oxblood p-3 text-sm" data-warning={w.key}>
+              <span aria-hidden className="font-extrabold">
+                ⚠{" "}
+              </span>
+              {w.text}
+            </li>
+          ))}
+          {notes.map((w) => (
+            <li key={w.key} className="caption px-1" data-note={w.key}>
+              {w.text}
+            </li>
+          ))}
         </ul>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <OddsBars title="Coat colour" items={p.coats.map((c) => ({ label: c.name, permille: c.permille }))} />
-        <OddsBars title="Best trip" items={entries(p.distance)} />
-        <OddsBars title="Surface" items={entries(p.surface)} />
-        <OddsBars title="Running style" items={entries(p.style)} />
-        <OddsBars title="Maturity" items={entries(p.maturity)} />
-        <div data-testid="preview-traits">
-          <OddsBars title="Patterns, body and performance genes" items={p.traits.map((t) => ({ label: t.name, permille: t.permille }))} />
-          {p.traits.length === 0 ? (
-            <p className="caption">Neither parent carries any of them.</p>
-          ) : (
-            <p className="caption mt-1">
-              Iron legs: injury risk {signed(Math.round((IRON_LEGS_RISK - 1000) / 10))}%. Big heart: stamina {signed(BIG_HEART_STAMINA)}. Patterns and colours are listed on the horse page; the portrait doesn&apos;t draw them yet.
-            </p>
-          )}
-        </div>
-        <div>
-          <OddsBars title="Speed gene (MSTN)" items={entries(p.mstn)} />
-          <p className="caption mt-1">
-            Sprinters: best trip {MSTN_TRIP_M} m shorter, burst {signed(MSTN_STAT_SHIFT)}, stamina {signed(-MSTN_STAT_SHIFT)}. Stayers the reverse.
-          </p>
-        </div>
-      </div>
-
-      {/* The foal's exact breed and size, and anything a foal could carry unseen. */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="inset grid content-start gap-1 p-3" data-testid="preview-breed">
-          <h4 className="label">Foal&apos;s breed</h4>
-          <span className="font-extrabold text-cream">{p.breed.label}</span>
-          <span className="caption">
-            {p.breed.shares.map((s) => `${(s.share / 10).toFixed(s.share % 10 ? 1 : 0)}% ${s.label}`).join(" · ")}
-          </span>
-          <h4 className="label mt-2">Foal&apos;s size</h4>
-          <span className="text-sm" data-testid="preview-size">
-            <span className="font-extrabold text-cream">{signedPct(p.size.likely)}</span> most likely
-            {p.size.min !== p.size.max ? (
-              <>
-                {" "}
-                · {signedPct(p.size.min)} to {signedPct(p.size.max)}
-              </>
-            ) : null}
-          </span>
-          <span className="caption">
-            Against an average Thoroughbred. Each 1% taller: speed {signed(SIZE_STAT_PER_PCT.speed)}, stamina {signed(SIZE_STAT_PER_PCT.stamina)}, burst {signed(SIZE_STAT_PER_PCT.burst)}, durability{" "}
-            {signed(SIZE_STAT_PER_PCT.durability)}. Smaller is the reverse; the total never changes.
-          </span>
-        </div>
-        {p.hidden.length > 0 && (
-          <div className="inset grid content-start gap-1 p-3" data-testid="preview-hidden">
-            <h4 className="label">Hidden genes</h4>
-            <ul className="grid gap-0.5 text-sm">
-              {p.hidden.map((h) => (
-                <li key={h}>{h}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Fees. */}
       <div className="inset grid gap-1 p-3 text-sm" data-testid="preview-fees">

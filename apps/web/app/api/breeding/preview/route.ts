@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const Schema = z.object({ sireId: IdSchema, damId: IdSchema });
 
-/** The exact breeding preview (stat ranges, overall, coats, aptitudes, COI, nick) for a pairing. Read-only. */
+/** The breeding preview for a pairing: possible looks, an outlook and warnings in words, and the fees (public facts only; no odds or genes). Read-only. */
 export async function POST(req: Request) {
   const body = await parseBody(req, Schema, "Choose a mare and a stallion.");
   if (!body.ok) return body.res;

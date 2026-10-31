@@ -1,12 +1,13 @@
 /**
  * The stallion finder (src/server/economy.ts `studFinder`) against an in-memory PGlite
- * database: the ranking order (default: chance of beating both parents, ties by fee), the
- * exclusion rules (the mare's close kin, stallions at a cover limit, locked or leased-out
- * studs), that each row is exactly the single preview's information, the per-(mare, day)
- * cache, and the rate limit on fresh computes.
+ * database: the ranking order (default: the best outlook by the internal public-facts score,
+ * ties by fee; or the fee), that rows carry only words, one possible look and the fee (the
+ * single preview's own words), the exclusion rules (the mare's close kin, stallions at a cover
+ * limit, locked or leased-out studs), the per-(mare, day) cache, and the rate limit on fresh
+ * computes.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAccount, createDb, insertHorse, seasonNumberAt, specFromGenome, stableOf, type DbHandle } from "@thoroughbred/db";
+import { createAccount, createDb, insertHorse, previewPairing, seasonNumberAt, specFromGenome, stableOf, type DbHandle } from "@thoroughbred/db";
 import * as gc from "@thoroughbred/game-core";
 import { breedingPreview, standAtStud, STUD_FINDER_RUNS_PER_HOUR, studFinder } from "./economy";
 import type { Session } from "./session";
@@ -65,7 +66,7 @@ afterAll(async () => {
 });
 
 describe("stallion finder", () => {
-  it("ranks every available stallion by the exact preview, default order upside then fee", async () => {
+  it("ranks every available stallion by the internal outlook score and shows only words, a look and the fee", async () => {
     const p = await player("Finder Home");
     const mare = await mareOf(p, "Ranked Mare");
     // A rival's stallions at stud, one of them standing for USDG only.
@@ -76,6 +77,7 @@ describe("stallion finder", () => {
 
     const f = await studFinder(h.db, p, { mareId: mare, pageSize: 50 }, T0);
     expect(f.mareName).toBe("Ranked Mare");
+    expect(f.sort).toBe("outlook");
     const credits = f.rows.filter((r) => !r.usdgOnly);
     const usdg = f.rows.filter((r) => r.usdgOnly);
     // The Club's four house studs and the rival's credits stud are all ranked; the USDG-only
@@ -90,29 +92,36 @@ describe("stallion finder", () => {
     expect(f.rows.some((r) => r.own)).toBe(false);
     expect(f.excluded).toBeGreaterThanOrEqual(2);
 
-    // Every row is the single preview's information, nothing else.
+    // Every row: words, one possible look and the fee, nothing else; the single preview's own words.
+    const score = new Map<string, number>();
     for (const row of f.rows) {
+      expect(Object.keys(row).sort()).toEqual(["club", "feeCredits", "id", "look", "name", "nick", "outlook", "own", "stableName", "studFeeUsdg", "usdgOnly", "warnings"]);
+      expect(Object.keys(row.look).sort()).toEqual(["appearance", "caption"]);
+      expect(Object.keys(row.outlook).sort()).toEqual(["key", "phrase"]);
+      for (const w of [row.outlook.phrase, row.nick, row.look.caption, ...row.warnings]) expect(w).not.toMatch(/\d/);
       const pv = await breedingPreview(h.db, p, { sireId: row.id, damId: mare }, T0);
       expect(pv.block).toBeNull();
       expect(row.feeCredits).toBe(pv.usdgStudFee !== null ? null : pv.fees.totalPaidByMareOwner);
-      expect(row.overall).toMatchObject({ p10: pv.preview.overall.p10, p50: pv.preview.overall.p50, p90: pv.preview.overall.p90 });
-      expect(row.p50Grade).toBe(gc.gradeOf(pv.preview.overall.p50));
-      expect(row.beatsBothPermille).toBe(pv.preview.overall.beatsBothParents);
-      expect(row.nickScore).toBe(pv.preview.nick.score);
-      expect(row.coiPermille).toBe(pv.preview.coi);
-      expect(row.coiWarning).toBe(pv.preview.coiWarning);
-      expect(row.fragile).toEqual(pv.preview.fragile);
-      expect(row.coats).toEqual([...pv.preview.coats].sort((a, b) => b.permille - a.permille).slice(0, 3));
+      expect(row.outlook).toEqual(pv.outlook);
+      expect(row.nick).toBe(pv.nick);
+      expect(row.look).toEqual(pv.looks[0]);
+      expect(row.warnings).toEqual(pv.warnings.filter((w) => w.tone === "warn").map((w) => w.text));
+      // The internal score the ranking uses (server-side only).
+      score.set(row.id, (await previewPairing(h.db, { accountId: p.accountId, sireId: row.id, damId: mare, now: T0 })).quality.score);
     }
 
-    // Default sort: chance of beating both parents first, ties by fee; credits before USDG.
-    const upside = [...f.rows].sort((a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || b.beatsBothPermille - a.beatsBothPermille || (a.feeCredits ?? 0) - (b.feeCredits ?? 0) || (a.id < b.id ? -1 : 1));
-    expect(f.rows.map((r) => r.id)).toEqual(upside.map((r) => r.id));
+    // Default sort: best outlook (internal score) first, ties by fee; credits before USDG.
+    const fee = (r: (typeof f.rows)[number]) => r.feeCredits ?? r.studFeeUsdg ?? 0;
+    const best = [...f.rows].sort((a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || score.get(b.id)! - score.get(a.id)! || fee(a) - fee(b) || (a.id < b.id ? -1 : 1));
+    expect(f.rows.map((r) => r.id)).toEqual(best.map((r) => r.id));
     // The fee sort is a fresh request over the same cached day: cheapest credits stud first.
-    const feeSorted = (await studFinder(h.db, p, { mareId: mare, sort: "fee", pageSize: 50 }, at(3_600_000))).rows;
-    const feeExpected = [...f.rows].sort((a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || (a.feeCredits ?? a.studFeeUsdg ?? 0) - (b.feeCredits ?? b.studFeeUsdg ?? 0) || (a.id < b.id ? -1 : 1));
-    expect(feeSorted.map((r) => r.id)).toEqual(feeExpected.map((r) => r.id));
-    expect(feeSorted.filter((r) => !r.usdgOnly)[0]!.feeCredits).toBeLessThanOrEqual(gc.BREEDING_BASE_FEE + 100);
+    const feeView = await studFinder(h.db, p, { mareId: mare, sort: "fee", pageSize: 50 }, at(3_600_000));
+    expect(feeView.sort).toBe("fee");
+    const feeExpected = [...f.rows].sort((a, b) => (a.usdgOnly ? 1 : 0) - (b.usdgOnly ? 1 : 0) || fee(a) - fee(b) || (a.id < b.id ? -1 : 1));
+    expect(feeView.rows.map((r) => r.id)).toEqual(feeExpected.map((r) => r.id));
+    expect(feeView.rows.filter((r) => !r.usdgOnly)[0]!.feeCredits).toBeLessThanOrEqual(gc.BREEDING_BASE_FEE + 100);
+    // Old numeric sorts fall back to the best outlook.
+    expect((await studFinder(h.db, p, { mareId: mare, sort: "coi", pageSize: 50 }, T0)).sort).toBe("outlook");
   });
 
   it("paginates the ranking and clamps out-of-range pages", async () => {

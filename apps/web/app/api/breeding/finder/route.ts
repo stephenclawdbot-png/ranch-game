@@ -6,9 +6,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * The stallion finder for one mare (GET): every available stallion ranked by the exact breeding
- * preview — fee, likely foal grade, chance of beating both parents, nick, COI, fragile legs and
- * coat odds — a page at a time. The ranking is cached per (player, mare, day); fresh computes
+ * The stallion finder for one mare (GET): every available stallion with the breeding preview's
+ * outlook and nick in words, warnings in words, one possible look and the fee, a page at a time
+ * (sort: "outlook", the default, ranked on the server by the public-facts outlook; or "fee").
+ * No odds or numbers but the fee. The ranking is cached per (player, mare, day); fresh computes
  * are rate-limited, because every row runs the preview.
  */
 export async function GET(req: Request) {
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   return withPlayer((db, session, now) =>
     studFinder(db, session, {
       mareId: mareId.data,
-      sort: q.get("sort") ?? "upside",
+      sort: q.get("sort") ?? "outlook",
       page: Number.isFinite(page) ? page : 0,
       pageSize: Number.isFinite(pageSize) ? pageSize : undefined,
     }, now),

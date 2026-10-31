@@ -2,8 +2,8 @@
  * Shapes the economy screens (breeding barn, stud book, packs, market) receive. Types only:
  * safe to import from client components.
  */
-import type { Horse, Silks } from "@thoroughbred/shared";
-import type { BreedingFees, BreedingPreview, PityState } from "@thoroughbred/game-core";
+import type { Horse, HorseAppearance, Silks } from "@thoroughbred/shared";
+import type { BreedingFees, CertaintyKey, NickWord, OutlookKey, OutlookWarning, PityState } from "@thoroughbred/game-core";
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type PackType = "paddock" | "premium";
@@ -96,6 +96,18 @@ export interface BreedingView {
   serverNowMs: number;
 }
 
+/** One sample foal of a pairing: what it could look like (a genetic 3/4 portrait) and a few words. */
+export interface PossibleLookView {
+  appearance: HorseAppearance;
+  /** e.g. "Bay · blaze · Tobiano". */
+  caption: string;
+}
+
+/**
+ * The breeding preview (owner decision 2026-10-31): possible looks, an outlook in words and
+ * warnings in words. No odds, no genes, no numbers but the fees: it is built from public facts
+ * only, so previewing a horse can't reveal its hidden genes. The real foal is still a surprise.
+ */
 export interface PreviewView {
   sireId: string;
   damId: string;
@@ -105,24 +117,29 @@ export interface PreviewView {
   /** null = this cover can go ahead. */
   block: string | null;
   reason: string | null;
-  preview: BreedingPreview;
+  /** Sample foals (the same all day). */
+  looks: PossibleLookView[];
+  /** "Foals from this pairing could look like this. It's still a chance." */
+  looksNote: string;
+  outlook: { key: OutlookKey; phrase: string };
+  certainty: { key: CertaintyKey; phrase: string };
+  nick: NickWord;
+  warnings: OutlookWarning[];
+  /** The foal's breed by name, e.g. "Anglo-Arab". */
+  breed: string;
   fees: BreedingFees;
   /** The stallion stands for a USDG stud fee (micro-USDG), paid on-chain to his owner: not in credits. */
   usdgStudFee: number | null;
   /** The market fee out of it (to the Club), and the stable that receives the rest. */
   usdgFee: number | null;
   stallionOwner: string | null;
-  parents: { sire: number; dam: number };
-  /**
-   * Where the predicted foal's overall would rank among the game's horses: "top N%" for its
-   * p10 / p50 / p90 outcomes (lower is better).
-   */
-  topPercent: { p10: number; p50: number; p90: number } | null;
-  populationSize: number;
   credits: number;
 }
 
-/** One stallion of the finder's ranking for a mare: the single preview's headline numbers. */
+/**
+ * One stallion of the finder's ranking for a mare, in words: the outlook, the nick word, the
+ * warnings and one possible look. Ranked on the server by the public-facts outlook (never sent).
+ */
 export interface StudFinderRow {
   id: string;
   name: string;
@@ -136,21 +153,12 @@ export interface StudFinderRow {
   studFeeUsdg: number | null;
   /** True when he stands only for USDG: listed after the credits ranking, not ranked by credits price. */
   usdgOnly: boolean;
-  /** The predicted overall (game-core preview): p10–p90 range and the likely (p50) outcome. */
-  overall: { p10: number; p50: number; p90: number };
-  /** Grade of the likely (p50) outcome, game-core gradeOf. */
-  p50Grade: string;
-  /** Chance (permille) the foal beats both parents. */
-  beatsBothPermille: number;
-  nickScore: number;
-  nickLabel: "Excellent" | "Good" | "Fair" | "Poor";
-  /** Inbreeding coefficient (permille) and whether it is over the warning line. */
-  coiPermille: number;
-  coiWarning: boolean;
-  /** Chance (permille) of fragile legs, and whether a parent's career-ending injury is why. */
-  fragile: { permille: number; fromInjury: boolean };
-  /** Coat colour odds (permille), most likely first. */
-  coats: { name: string; permille: number }[];
+  outlook: { key: OutlookKey; phrase: string };
+  nick: NickWord;
+  /** Warnings only (inbreeding, fragile legs), in words. */
+  warnings: string[];
+  /** One sample foal (the first of the day's possible looks for this pairing). */
+  look: PossibleLookView;
 }
 
 /** The stallion finder's answer for one mare: a page of the ranking and what it was sorted by. */
