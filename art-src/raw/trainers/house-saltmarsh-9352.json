@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period clothing, Jory Salt, a rugged weatherbeaten Cornish racehorse trainer man in his fifties, salt-and-pepper beard, squinting into the wind, navy wool flat cap, a sky blue and white striped fisherman's smock under a heavy navy reefer jacket",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 9352,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "e42fa96d-2bbc-4514-93d5-921270826e66",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "e42fa96d-2bbc-4514-93d5-921270826e66",
+  "status": "completed",
+  "created_at": "2026-10-31T14:56:05.984690+00:00",
+  "last_response": {
+   "seed": 9352,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12104 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12308 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12532 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13548 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "be1da48c-1d18-41a0-b017-a359c83146ea",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T14:56:12.128153+00:00",
+   "original_image_n_colors": 115,
+   "quantized_image_n_colors": 62
+  }
+ },
+ "files": [
+  "art-src/raw/trainers/house-saltmarsh-9352-0.png",
+  "art-src/raw/trainers/house-saltmarsh-9352-1.png",
+  "art-src/raw/trainers/house-saltmarsh-9352-2.png",
+  "art-src/raw/trainers/house-saltmarsh-9352-3.png"
+ ]
+}

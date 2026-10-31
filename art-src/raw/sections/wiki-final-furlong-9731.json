@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, racehorses at full gallop in the final furlong, jockeys crouched low in colourful silks, the white winning post ahead, the crowd a blur behind the rail",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9731,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b82271de-7243-4f75-8fe0-cb206e4880e5",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "b82271de-7243-4f75-8fe0-cb206e4880e5",
+  "status": "completed",
+  "created_at": "2026-10-31T15:07:15.262322+00:00",
+  "last_response": {
+   "seed": 9731,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<211060 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "d62d79c6-cc10-4acf-82b2-6d93c38b0e5b",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:07:21.990162+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 60
+  }
+ },
+ "files": [
+  "art-src/raw/sections/wiki-final-furlong-9731-0.png"
+ ]
+}

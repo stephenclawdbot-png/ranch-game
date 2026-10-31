@@ -1,0 +1,340 @@
+{
+ "endpoint": "/edit-animation-v2",
+ "request": {
+  "description": "turn the jockey into a woman jockey: a slightly slimmer, narrower back and shoulders, and a ponytail of bright lime green hair hanging from under the back of the cap down to the shoulders; keep the pose, the cap, the silks colours, the goggles, the hands and the whole horse exactly the same",
+  "frames": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4040 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<6008 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5736 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5244 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4624 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<3988 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4044 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4112 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4000 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<3600 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   }
+  ],
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "seed": 7708,
+  "no_background": true,
+  "target_palette": {
+   "colors": [
+    "#02010e",
+    "#a39eaa",
+    "#e4e3e4",
+    "#843216",
+    "#760960",
+    "#0e8dac",
+    "#170b10",
+    "#36e1ec",
+    "#1e1c26",
+    "#682213",
+    "#15b2cd",
+    "#f344cc",
+    "#401115",
+    "#c112a7",
+    "#a44519",
+    "#ed8f39",
+    "#ab1495",
+    "#0c0c19",
+    "#ae1397",
+    "#90097b",
+    "#bbb8bf",
+    "#2e2a2e",
+    "#7c0a66",
+    "#f344cd",
+    "#025f7f",
+    "#504b4c",
+    "#cac7ce",
+    "#110f1e",
+    "#6a4a3c",
+    "#1f2b46",
+    "#02010c",
+    "#242229",
+    "#84096f",
+    "#493cae",
+    "#561511",
+    "#270b11",
+    "#f89f4f",
+    "#4c4747",
+    "#2164c2",
+    "#fb72a8",
+    "#a47254",
+    "#010113",
+    "#3f8f1a",
+    "#6fcf2f",
+    "#a8f060"
+   ]
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "8b4b21ce-8b2d-44c9-abaa-3d212cbe54bf",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "8b4b21ce-8b2d-44c9-abaa-3d212cbe54bf",
+  "status": "completed",
+  "created_at": "2026-10-31T15:58:35.261325+00:00",
+  "last_response": {
+   "seed": 7708,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4716 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5564 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5200 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4832 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4140 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3652 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3668 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3300 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "b5423286-d9eb-4d2d-b3bb-47c89e47bf2f",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4716 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5564 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5200 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4832 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4140 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3652 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3668 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3300 chars>",
+     "height": 64
+    }
+   ],
+   "generation_started_at": "2026-10-31T15:58:41.441168+00:00",
+   "original_image_n_colors": 117,
+   "quantized_image_n_colors": 37
+  }
+ },
+ "files": [
+  "art-src/raw/riders/race--horse-pullup-7708-0.png",
+  "art-src/raw/riders/race--horse-pullup-7708-1.png",
+  "art-src/raw/riders/race--horse-pullup-7708-2.png",
+  "art-src/raw/riders/race--horse-pullup-7708-3.png",
+  "art-src/raw/riders/race--horse-pullup-7708-4.png",
+  "art-src/raw/riders/race--horse-pullup-7708-5.png",
+  "art-src/raw/riders/race--horse-pullup-7708-6.png",
+  "art-src/raw/riders/race--horse-pullup-7708-7.png",
+  "art-src/raw/riders/race--horse-pullup-7708-8.png",
+  "art-src/raw/riders/race--horse-pullup-7708-9.png"
+ ]
+}

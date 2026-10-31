@@ -51,7 +51,7 @@ export default async function TransferWindowPage() {
                 ))}
               </ul>
             ) : (
-              <EmptyState vignette="jockey-signed" title="No free agents yet" text="Contracts ending, released jockeys and new apprentices appear here during the week." />
+              <EmptyState vignette="empty-bench" title="No free agents yet" text="Contracts ending, released jockeys and new apprentices appear here during the week." />
             )}
           </Section>
           <HowItWorks className="mt-4">

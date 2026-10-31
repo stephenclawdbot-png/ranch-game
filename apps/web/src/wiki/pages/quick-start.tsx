@@ -37,7 +37,7 @@ export default function QuickStartPage() {
         Post Time is a racing stable you run a few minutes at a time. You found a stable, meet three horses that are ready to race, and send one to the gates straight away. After that, each day
         is a short round: care for your horses, run a race or two, and watch your yard grow.
       </Lead>
-      <Figure src="/art/diorama/poster-yard.png" alt="The stable yard on a sunny morning" caption="Your estate: the yard, the barn and the way to the racecourse." focus={0.55} />
+      <Figure src="/art/scenes/wiki-first-horse.png" alt="A new owner patting their first racehorse in the yard" caption="Your estate: the yard, the barn and the way to the racecourse." focus={0.55} />
 
       <H2 id="found">Found your stable</H2>
       <Steps

@@ -17,7 +17,8 @@ export function lodStrip(a: AnimItem, f: number, viewH = Infinity): { src: strin
   if (!a.lod || f === 1 || a.lodMax !== undefined) return { src: a.src, fw: a.fw, fh: a.fh, frames: a.frames, r: 1 };
   const n = a.lod * f;
   const name = `${lodBase(a.src)}-s${n}`;
-  const at = ANIMS[name];
+  // a woman rider's strip (-f) has the same frames as the shared one: its LOD copies too
+  const at = ANIMS[name] ?? ANIMS[name.replace(/-f-s(\d)$/, "-s$1")];
   if (!at) return null;
   return { src: `diorama/${name}.png`, fw: at.fw, fh: at.fh, frames: at.frames, r: f };
 }

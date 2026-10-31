@@ -7,11 +7,13 @@ describe("portraitRamp", () => {
   const body = "#8a4527";
   const hi = "#b5683d";
 
-  it("hits the four stops exactly (shade x 0.55 -> shade -> body -> highlight)", () => {
-    expect(portraitRamp(0, shade, body, hi)).toEqual(hexToRgb(shade).map((v) => Math.round(v * 0.55)));
+  // round 2: deeper shadows and a brighter sheen (coats differ at a glance)
+  const sheen = hexToRgb(hi).map((v) => Math.round(Math.min(255, v * 1.08 + 6)));
+  it("hits the four stops exactly (shade x 0.42 -> shade -> body -> highlight sheen)", () => {
+    expect(portraitRamp(0, shade, body, hi)).toEqual(hexToRgb(shade).map((v) => Math.round(v * 0.42)));
     expect(portraitRamp(0.25, shade, body, hi)).toEqual(hexToRgb(shade));
     expect(portraitRamp(0.6, shade, body, hi)).toEqual(hexToRgb(body));
-    expect(portraitRamp(1, shade, body, hi)).toEqual(hexToRgb(hi));
+    expect(portraitRamp(1, shade, body, hi)).toEqual(sheen);
   });
 
   it("is monotone in lightness across the range and clamps out-of-range levels", () => {
@@ -22,7 +24,7 @@ describe("portraitRamp", () => {
       expect(l).toBeGreaterThanOrEqual(prev);
       prev = l;
     }
-    expect(portraitRamp(1.4, shade, body, hi)).toEqual(hexToRgb(hi));
+    expect(portraitRamp(1.4, shade, body, hi)).toEqual(sheen);
   });
 });
 

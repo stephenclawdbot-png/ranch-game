@@ -394,7 +394,7 @@ function MatchPanel({ v, initialHorse, initialVs }: { v: QuickHubView; initialHo
   }
 
   if (!v.signedIn) return <JoinNudge compact />;
-  if (v.horses.length === 0) return <EmptyState title="No racing horses yet" text="A match race needs one of your racing horses. Young horses join in once they are of racing age." action={<Link href="/stable" className="btn">Your stable</Link>} />;
+  if (v.horses.length === 0) return <EmptyState icon="lead-rope" title="No racing horses yet" text="A match race needs one of your racing horses. Young horses join in once they are of racing age." action={<Link href="/stable" className="btn">Your stable</Link>} />;
   const shown = results.filter((r) => !opponents.some((o) => o.id === r.id));
   return (
     <section className="surface grid gap-4 p-4" aria-labelledby="match-h" data-testid="match-panel">
@@ -544,7 +544,7 @@ function GhostPanel({ v, initialHorse }: { v: QuickHubView; initialHorse?: strin
   }
 
   if (!v.signedIn) return <JoinNudge compact />;
-  if (v.horses.length === 0) return <EmptyState title="No racing horses yet" text="A ghost race needs one of your racing horses." action={<Link href="/stable" className="btn">Your stable</Link>} />;
+  if (v.horses.length === 0) return <EmptyState icon="lead-rope" title="No racing horses yet" text="A ghost race needs one of your racing horses." action={<Link href="/stable" className="btn">Your stable</Link>} />;
   return (
     <section className="surface grid gap-4 p-4" aria-labelledby="ghost-h" data-testid="ghost-panel">
       <div>

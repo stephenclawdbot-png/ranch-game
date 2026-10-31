@@ -35,7 +35,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
         </Link>
       </nav>
       {tab === "mine" && !session ? (
-        <EmptyState title="Sign in for your news" text="The My stable tab follows your horses, your jockeys and your rivals." action={<Link href="/play" className="btn">Start a stable</Link>} />
+        <EmptyState icon="door-key" title="Sign in for your news" text="The My stable tab follows your horses, your jockeys and your rivals." action={<Link href="/play" className="btn">Start a stable</Link>} />
       ) : items.length === 0 ? (
         <EmptyState icon="flag" title="No news yet" text={tab === "mine" ? "When your horses, jockeys or rivals make the news, it shows here." : "The first big results will be here soon."} testId="news-empty" />
       ) : (

@@ -39,7 +39,7 @@ export default function TheMarketPage() {
         The auction house is where stables buy and sell horses, for Stable Credits only. Every horse for sale is a lot in the Sales Ring, with an asking price its seller chose inside a band set by
         the Club&rsquo;s appraisal.
       </Lead>
-      <Figure src="/art/diorama/poster-sales-ring.png" alt="The Sales Ring" caption="The Sales Ring: the lot that closes soonest is led round in its own coat." focus={0.5} />
+      <Figure src="/art/scenes/wiki-auction-rostrum.png" alt="The auctioneer at the rostrum, gavel raised" caption="The Sales Ring: the lot that closes soonest is led round in its own coat." focus={0.5} />
 
       <H2 id="buying">Buying a horse</H2>
       <P>

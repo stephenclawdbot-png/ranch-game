@@ -35,7 +35,7 @@ function Beta() {
   const v = data;
   return (
     <div className="grid gap-6">
-      <PageHeader scene="grandstand" back={{ href: "/me", label: "Profile" }} eyebrow="Closed playtest" title="Your beta" meta="Thank you for testing Post Time. Your notes shape the game." />
+      <PageHeader scene="prize-giving" back={{ href: "/me", label: "Profile" }} eyebrow="Closed playtest" title="Your beta" meta="Thank you for testing Post Time. Your notes shape the game." />
       <FeedbackButton variant="fab" />
       <HowItWorks label="About tester rewards">
         <p>Testers get an exclusive item later, and some rewards during the beta. Stable Credits stay in the game: they are never converted to money.</p>

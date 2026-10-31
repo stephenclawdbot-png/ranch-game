@@ -107,7 +107,7 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
         {care.canCare && (
           <ActionBar>
             <button type="button" className="btn btn-brass btn-lg" onClick={doCare} disabled={care.caredToday || action.busy !== null} data-testid="care-now">
-              <PixelIcon name="horseshoe" size={32} className="-my-2" />
+              <PixelIcon name="grooming-brush" size={32} className="-my-2" />
               {care.caredToday ? "Cared for today · back tomorrow" : action.busy === "care" ? "Caring…" : `Care for ${first}`}
             </button>
           </ActionBar>

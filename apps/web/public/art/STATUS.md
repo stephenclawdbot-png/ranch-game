@@ -192,6 +192,17 @@ prompts in `assets.json` (`python3 -I art-src/register_cast.py`), chosen raws on
 | `vignettes/<kind>.png` | 64x64 | One framed vignette per news / moment kind (win, first-win, photo-finish, purse, champion, jockey-signed, jockey-retires, jockey-claim, sale, claim, hall-of-fame, memorial, retired, legacy, foal, vet, week, improver, quirk, unlock, scan, exact, stable-steps); same 6 px frame on all. |
 | `trophies/plaques.png` + `plaques.json` | 17 cells of 45x42 | One engraved brass plaque per achievement (game-core `ACHIEVEMENTS`), in `plaques.json` order. |
 
+## 5c. Round 2 (READY): looks, women riders, page families, heads, icons
+
+| Files | Size | What |
+|---|---|---|
+| `portraits/jockeys/<id>.png` + `index.json` (v2) | 128x128, 126 base faces | Period kit, keyed for skin (8), lips (3), hair (6, from a lime-green key) and silks; `index.json` has the key ramps, the 56 px head crop and the accessory anchors. The catalogue the game assigns from is `packages/game-core/src/jockeyFaces.json` (same writer: `art-src/process_jockeys.py`). |
+| `race/horse-<strip>-f.png`, `diorama/horse-{walk-jockey,canter,gallop}-f[-sN].png` | as the shared strips | Women riders: the same frames with the rider edited (slimmer back, ponytail in `palette.json` `hair` keys). |
+| `scenes/*.png` (round 2) | 688x288 | Page families: owners-office, club-entrance, prize-giving, sponsor-marquee, stable-arch, registration-desk, owners-bar, saturday-eve; Story: story-road, chapter-club / county / national / classics; horse sub-pages: grooming-bay, trainer-gallops, trophy-shelf, logbook-desk; Quick races: gallops-downs (replaces gallops-morning, which had a motor car); wiki only: wiki-* (28). |
+| `ui/icon-<meaning>.png` + `ui/icon16/*.png` | 32 / 16 | One icon per meaning (stall-empty, telephone, race-diary, results-board, record-plaque, licence, purse-lock, wax-seal, invitation, stalls-empty, race-clock, training-chart, cap-peg, door-key, lead-rope, sale-board) and a 16 px drawing of every 32 px icon. |
+| `vignettes/{empty-bench,sale-closed,lost-race}.png` | 64x64 | Transfer window empty, Market locked, What-if not found. |
+| `portraits/trainers/house-{larkspur,saltmarsh,kestrel}.png` | 128x128 | Repainted in period dress. |
+
 ## pixel-rig (HD, opt-in in the viewer via `?rig=1`) — owner: pixel-rig agent
 
 Code-animated HD-2D horse + jockey (`@thoroughbred/pixel-rig`), cut from **256×192** PixelLab

@@ -78,7 +78,7 @@ export default function LinkPage() {
       }}
       data-testid="link-page"
     >
-      <SceneBackdrop scene="stable" />
+      <SceneBackdrop scene="owners-office" />
       <header>
         <p className="w-fit">
           <Wordmark />
@@ -130,7 +130,7 @@ export default function LinkPage() {
       {error !== null && <ErrorNote error={error} />}
       <ActionBar>
         <button type="submit" className="btn btn-brass btn-lg" disabled={busy || code.replace(/[^A-Z0-9]/g, "").length < 8} data-testid="link-submit">
-          <PixelIcon name="flag" className="h-5 w-5" /> {busy ? "Signing in…" : "Sign in"}
+          <PixelIcon name="telephone" size={16} /> {busy ? "Signing in…" : "Sign in"}
         </button>
       </ActionBar>
       <p className="caption">

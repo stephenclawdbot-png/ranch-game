@@ -56,7 +56,7 @@ import {
   type WhatIfRunnerLine,
   type WhatIfView,
 } from "@/lib/whatIf";
-import { lockedRaceInput } from "./game";
+import { lockedRaceInput, withRiders } from "./game";
 import { engineHorseFromSnapshot, parsePlan, raceConds } from "./horseView";
 import { sharedLimiter } from "./rateLimit";
 import type { Session } from "./session";
@@ -440,7 +440,8 @@ export async function whatIfReplay(db: Db, session: Session, raceId: string, hor
   const { ctx, row } = await cachedRow(db, session, raceId, horseId, key, now);
   const hit = replays.get(row.id);
   if (hit) return hit;
-  const replay = rerun(ctx.input, row.resolved as ResolvedRunner);
+  // the riders drawn as on the official replay (display only: never part of the result)
+  const replay = withRiders(rerun(ctx.input, row.resolved as ResolvedRunner), ctx.field);
   if (replay.engineVersion !== row.engineVersion) throw new DomainError("INVALID_INPUT", "this what-if can no longer be replayed exactly");
   remember(row.id, replay);
   return replay;

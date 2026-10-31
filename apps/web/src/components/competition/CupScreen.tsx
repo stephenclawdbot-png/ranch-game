@@ -244,7 +244,7 @@ export function CupScreen({ view, signedIn }: { view: CupView; signedIn: boolean
           </section>
           <section className="surface p-4" aria-labelledby="seal-h">
             <h2 id="seal-h" className="t-h2 mb-1 flex items-center gap-2">
-              <PixelIcon name="shield" size={32} /> Sealed ✓
+              <PixelIcon name="wax-seal" size={32} /> Sealed ✓
             </h2>
             <p className="caption text-cream-dim">
               Today&rsquo;s seed was fixed before the first run: fingerprint <HashValue value={view.seedCommitment} />. It&rsquo;s revealed when the Cup closes, so

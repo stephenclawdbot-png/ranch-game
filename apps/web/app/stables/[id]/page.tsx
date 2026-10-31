@@ -30,7 +30,7 @@ export default async function StablePublicPage({ params }: { params: Promise<{ i
   return (
     <div className="grid gap-5">
       <PageHeader
-        scene="barn"
+        scene="stable-arch"
         back={{ href: "/news", label: "Racing news" }}
         eyebrow={v.mine ? "Your stable, as others see it" : "Stable"}
         title={
@@ -110,7 +110,7 @@ export default async function StablePublicPage({ params }: { params: Promise<{ i
             ))}
           </ul>
         ) : (
-          <EmptyState title="No runners yet" text="This stable hasn't had a horse on the course yet." />
+          <EmptyState icon="stalls-empty" title="No runners yet" text="This stable hasn't had a horse on the course yet." />
         )}
       </Section>
 

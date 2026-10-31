@@ -16,33 +16,53 @@ import type { VignetteName } from "@/lib/cast";
  */
 
 /**
- * Still scenes: one wide PixelLab scene per section that has no living diorama of its own
- * (art/scenes/<id>.png, 688x288), so no two sections open on the same picture. `fy` is where to
- * centre the band vertically (fraction of the art height) so the subject shows.
+ * Still scenes: one wide PixelLab scene per section or page family that has no living diorama of
+ * its own (art/scenes/<id>.png, 688x288), so no two families open on the same picture
+ * (page-scenes.test.ts checks it). `fx`/`fy` are the focal point (fractions of the art): the
+ * band keeps it in view at every width (the heads of the people and horses that make the
+ * picture), so a phone's 390 px window and a desktop's 3x crop both show the subject.
  */
 export const STILL_SCENES = {
-  "club-lawn": { fy: 0.56 },
-  "winners-enclosure": { fy: 0.6 },
-  "weighing-room": { fy: 0.55 },
-  "stud-dawn": { fy: 0.6 },
-  "hall-of-fame": { fy: 0.45 },
-  "press-room": { fy: 0.5 },
-  "form-rail": { fy: 0.62 },
-  "foaling-barn": { fy: 0.62 },
-  "estate-office": { fy: 0.55 },
-  "retirement-meadow": { fy: 0.6 },
-  "gallops-morning": { fy: 0.68 },
-  "club-library": { fy: 0.55 },
-  "yard-works": { fy: 0.55 },
-  "stud-book": { fy: 0.55 },
-} as const;
+  "club-lawn": { fx: 0.5, fy: 0.6 },
+  "winners-enclosure": { fx: 0.55, fy: 0.52 },
+  "weighing-room": { fx: 0.5, fy: 0.55 },
+  "stud-dawn": { fx: 0.5, fy: 0.6 },
+  "hall-of-fame": { fx: 0.5, fy: 0.45 },
+  "press-room": { fx: 0.5, fy: 0.5 },
+  "form-rail": { fx: 0.5, fy: 0.62 },
+  "foaling-barn": { fx: 0.4, fy: 0.68 },
+  "estate-office": { fx: 0.5, fy: 0.55 },
+  "retirement-meadow": { fx: 0.5, fy: 0.6 },
+  "gallops-downs": { fx: 0.5, fy: 0.68 },
+  "club-library": { fx: 0.5, fy: 0.55 },
+  "yard-works": { fx: 0.5, fy: 0.55 },
+  "stud-book": { fx: 0.5, fy: 0.55 },
+  // graphics round 2: page families that shared a backdrop, Story, the horse sub-pages
+  "story-road": { fx: 0.5, fy: 0.55 },
+  "chapter-club": { fx: 0.55, fy: 0.55 },
+  "chapter-county": { fx: 0.5, fy: 0.62 },
+  "chapter-national": { fx: 0.55, fy: 0.65 },
+  "chapter-classics": { fx: 0.4, fy: 0.55 },
+  "owners-office": { fx: 0.5, fy: 0.5 },
+  "club-entrance": { fx: 0.5, fy: 0.55 },
+  "prize-giving": { fx: 0.5, fy: 0.55 },
+  "sponsor-marquee": { fx: 0.5, fy: 0.55 },
+  "grooming-bay": { fx: 0.55, fy: 0.45 },
+  "trainer-gallops": { fx: 0.45, fy: 0.4 },
+  "trophy-shelf": { fx: 0.5, fy: 0.45 },
+  "logbook-desk": { fx: 0.5, fy: 0.42 },
+  "stable-arch": { fx: 0.5, fy: 0.55 },
+  "registration-desk": { fx: 0.5, fy: 0.55 },
+  "owners-bar": { fx: 0.5, fy: 0.55 },
+  "saturday-eve": { fx: 0.55, fy: 0.5 },
+} as const satisfies Record<string, { fx: number; fy: number }>;
 export type StillSceneName = keyof typeof STILL_SCENES;
 const STILL_W = 688;
 const STILL_H = 288;
 const isStill = (s: string): s is StillSceneName => s in STILL_SCENES;
 
 /** Living diorama scenes a page can open on (diorama ids beyond the four page-kit names). */
-type DioramaPageScene = "track-dusk" | "pasture";
+type DioramaPageScene = "track-dusk" | "pasture" | "sales-ring";
 
 export type SceneName = "stable" | "barn" | "grandstand" | "paddock" | DioramaPageScene | StillSceneName;
 
@@ -57,6 +77,7 @@ const backdropOf = (scene: SceneName): string =>
         paddock: "/art/diorama/poster-paddock.png",
         "track-dusk": "/art/diorama/poster-track-dusk.png",
         pasture: "/art/diorama/poster-pasture.png",
+        "sales-ring": "/art/diorama/poster-sales-ring.png",
       }[scene];
 
 /** Fixed, blurred, dimmed scene behind the whole page (Ledger mode). */
@@ -92,9 +113,9 @@ export function SceneArt({ scene, alt }: { scene: ArtSlotScene; alt: string }) {
   return <img className="scene-art" src={artUrl(art)} alt={alt} style={style} draggable={false} />;
 }
 
-/** A still scene at an integer scale (1x phones, 2x desktop, 3x wide), centred and cropped, never stretched. */
-function StillScene({ scene, alt }: { scene: StillSceneName; alt: string }) {
-  const style = { ["--aw" as string]: `${STILL_W}px`, ["--ah" as string]: `${STILL_H}px`, ["--fy" as string]: STILL_SCENES[scene].fy } as CSSProperties;
+/** A still scene at an integer scale (1x phones, 2x desktop, 3x wide), cropped around its focal point, never stretched. */
+export function StillScene({ scene, alt }: { scene: StillSceneName; alt: string }) {
+  const style = { ["--aw" as string]: `${STILL_W}px`, ["--ah" as string]: `${STILL_H}px`, ["--fx" as string]: STILL_SCENES[scene].fx, ["--fy" as string]: STILL_SCENES[scene].fy } as CSSProperties;
   // eslint-disable-next-line @next/next/no-img-element
   return <img className="scene-art" src={`/art/scenes/${scene}.png`} width={STILL_W} height={STILL_H} alt={alt} style={style} draggable={false} fetchPriority="high" data-still-scene={scene} />;
 }
@@ -141,6 +162,21 @@ export function SceneBand({
         </div>
       </div>
       {children}
+    </section>
+  );
+}
+
+/**
+ * A picture strip with no title (the page's header follows it): the crop-size band of a still
+ * scene, over the same scene blurred behind the page. The horse sub-pages open on their own.
+ */
+export function SceneStrip({ scene, alt, testId }: { scene: StillSceneName; alt: string; testId?: string }) {
+  return (
+    <section className="scene-band bleed crop still strip" data-testid={testId ?? "scene-strip"} data-scene={scene}>
+      <SceneBackdrop scene={scene} />
+      <div className="absolute inset-0" data-slot="diorama" data-scene={scene}>
+        <StillScene scene={scene} alt={alt} />
+      </div>
     </section>
   );
 }

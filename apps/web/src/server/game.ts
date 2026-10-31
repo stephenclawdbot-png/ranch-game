@@ -189,6 +189,31 @@ function runnerHorse(r: FieldRunner, race: PublicRace): Horse {
   return parsed.success ? parsed.data : engineHorseFromSnapshot(r.horse as Record<string, unknown>, race, r.isHouse, r.extraWeightLb ?? 0);
 }
 
+/**
+ * How a runner's jockey is drawn (jockey looks): skin, hair and the long-hair cue from the look
+ * frozen with the field. Display only: added to the appearance the viewer gets, never to the
+ * engine input, so results and hashes are untouched; fields locked before looks have none.
+ */
+function riderOf(r: FieldRunner): Horse["appearance"]["rider"] | undefined {
+  const look = r.jockey?.look ? gc.parseJockeyLook(r.jockey.look) : null;
+  if (!look || !gc.jockeyFace(look.face)) return undefined;
+  const rl = gc.riderLookOf(look);
+  return { skin: [rl.skin[0], rl.skin[1], rl.skin[2]], hair: [rl.hair[0], rl.hair[1], rl.hair[2]], long: rl.long, gender: rl.gender };
+}
+
+/** A runner's horse with its jockey's look on the appearance (racecard, paddock parade). */
+function withRider(h: Horse, r: FieldRunner): Horse {
+  const rider = riderOf(r);
+  return rider ? { ...h, appearance: { ...h.appearance, rider } } : h;
+}
+
+/** The replay with each named jockey's look on its runner's appearance (see riderOf). */
+export function withRiders(replay: RaceReplay, field: LockedField): RaceReplay {
+  const riders = new Map(field.runners.map((r) => [r.horseId, riderOf(r)] as const));
+  if (![...riders.values()].some(Boolean)) return replay;
+  return { ...replay, horses: replay.horses.map((h) => (riders.get(h.horseId) ? { ...h, appearance: { ...h.appearance, rider: riders.get(h.horseId)! } } : h)) };
+}
+
 function stableNameOf(e: RaceEntryRow | undefined, horseId: string, isHouse: boolean, race?: Pick<PublicRace, "kind" | "conditions">): string {
   if (isHouse || !e?.stableId) return houseOwnerFor(race, horseId).name;
   const n = snapshotOf(e).stableName;
@@ -288,7 +313,7 @@ async function simulateLocked(db: Db, race: PublicRace, simNow: Date): Promise<R
   // entropy sealed first if it can; its seed is then decided once, in getRaceForSimulation.
   await prepareRealToteSeed(db, race.id, simNow);
   const sim = await getRaceForSimulation(db, race.id, simNow, raceHooks);
-  const replay = simulateRace(inputFrom(race, sim.field, sim.race.seed));
+  const replay = withRiders(simulateRace(inputFrom(race, sim.field, sim.race.seed)), sim.field);
   replayCache.set(race.id, replay);
   return replay;
 }
@@ -466,7 +491,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
           tactic: r.tactic as FieldEntry["tactic"],
           // A weighted runner's sealed horse has the weight folded into its stats: the card shows
           // the horse itself (grades as entered) and the weight in its own column.
-          horse: r.weightLb !== undefined && e ? engineHorseFromSnapshot(snapshotOf(e), race, r.isHouse) : runnerHorse(r, race),
+          horse: withRider(r.weightLb !== undefined && e ? engineHorseFromSnapshot(snapshotOf(e), race, r.isHouse) : runnerHorse(r, race), r),
           weightLb: r.weightLb ?? null,
           stableName: stableNameOf(e, r.horseId, r.isHouse, race),
           isPlayer: !r.isHouse,
@@ -677,7 +702,8 @@ function headerFromField(race: PublicRace, field: LockedField): RaceBroadcastHea
     laneCount: Math.max(6, runners.length),
     horses: runners.map((r) => {
       const h = runnerHorse(r, race);
-      return { horseId: h.id, name: h.name, gate: r.gate, tactic: r.tactic as Horse["style"], appearance: h.appearance };
+      const rider = riderOf(r);
+      return { horseId: h.id, name: h.name, gate: r.gate, tactic: r.tactic as Horse["style"], appearance: rider ? { ...h.appearance, rider } : h.appearance };
     }),
   };
 }

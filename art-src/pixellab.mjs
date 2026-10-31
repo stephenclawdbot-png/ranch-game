@@ -121,7 +121,17 @@ export function b64img(file) {
  */
 export async function run(endpoint, request, prefix) {
   const t0 = Date.now();
-  const response = await post(endpoint, request);
+  // The plan allows a fixed number of concurrent jobs: wait and retry on 429 instead of failing.
+  let response;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await post(endpoint, request);
+      break;
+    } catch (e) {
+      if (e.status !== 429 || attempt >= 120) throw e;
+      await sleep(10_000 + Math.floor(Math.random() * 5_000));
+    }
+  }
   const jobId = response.background_job_id ?? response.job_id ?? null;
   let job = null;
   if (jobId) job = await pollJob(jobId);

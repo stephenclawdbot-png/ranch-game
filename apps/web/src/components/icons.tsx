@@ -358,34 +358,63 @@ const ART_ONLY = {
   "trophy-silver": "trophy",
   trunk: "stable",
   whistle: "flag",
+  // graphics round 2: one picture per meaning (no icon stands for two things)
+  "stall-empty": "stable",
+  telephone: "pencil",
+  "race-diary": "pencil",
+  "results-board": "flag",
+  "record-plaque": "trophy",
+  licence: "shield",
+  "purse-lock": "coin",
+  "wax-seal": "shield",
+  invitation: "pencil",
+  "stalls-empty": "flag",
+  "race-clock": "stopwatch",
+  "training-chart": "pencil",
+  "cap-peg": "flag",
+  "door-key": "check",
+  "lead-rope": "horseshoe",
+  "sale-board": "coin",
+  "horseshoe-pair": "horseshoe",
 } as const satisfies Record<string, keyof typeof ICONS>;
 
 export type IconName = keyof typeof ICONS | keyof typeof ART_ONLY;
 
+/** Icon sizes the art is drawn at: 16 (its own 16 px drawing, the 32 px file on 2x screens) or whole multiples of 32. */
+export const ICON_SIZES = [16, 32, 64, 96] as const;
+
+/** The 16 px drawing of a 32 px icon file (art-src/process_icons2.py). */
+export const icon16Url = (url: string) => url.replace(/\/ui\/icon-([^/?]+)$/, "/ui/icon16/$1").replace(/\/ui\/icon-([^/?]+)\?/, "/ui/icon16/$1?");
+
 /**
  * Pixel icon. Uses the PixelLab icon (32 px native) when it exists, else the code-drawn 12x12 map.
- * Pass `size` (CSS px) to lock the icon to the art grid: 16 / 32 / 64 show the 32 px PNGs at an
- * exact half / 1x / 2x (crisp on 2x screens); other sizes are smoothed rather than unevenly pixelated.
+ * `size` (CSS px) snaps to the art grid (graphics round 2): up to 24 draws the icon's own 16 px
+ * drawing (the 32 px file on 2x screens), larger sizes whole multiples of 32, so every icon is
+ * whole pixels at every density. Without `size` the art shows at its native 32 px.
  */
 export function PixelIcon({ name, className, title, size }: { name: IconName; className?: string; title?: string; size?: number }) {
   const art = useArt(ART_SLOTS.icon(name));
-  const style = size ? { width: size, height: size } : undefined;
   if (art && name !== "arrow" && name !== "play") {
-    const crisp = !size || size % art.w === 0 || size * 2 === art.w;
+    const px = size === undefined ? art.w : size <= 24 ? 16 : Math.max(32, Math.round(size / 32) * 32);
+    const url = artUrl(art);
+    const small = px === 16 && art.w === 32;
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={artUrl(art)}
+        src={small ? icon16Url(url) : url}
+        srcSet={small ? `${icon16Url(url)} 1x, ${url} 2x` : undefined}
         alt={title ?? ""}
         aria-hidden={title ? undefined : true}
-        width={size}
-        height={size}
-        style={style}
-        className={`${crisp ? "pixelated" : "downscaled"} shrink-0 object-contain ${className ?? ""}`}
+        width={px}
+        height={px}
+        style={{ width: px, height: px }}
+        className={`pixelated shrink-0 ${className ?? ""}`}
+        data-icon={name}
         draggable={false}
       />
     );
   }
+  const style = size ? { width: size, height: size } : undefined;
   const code = name in ICONS ? (name as keyof typeof ICONS) : ART_ONLY[name as keyof typeof ART_ONLY];
   return <PixelGrid rows={ICONS[code]} palette={PAL} className={`shrink-0 ${className ?? ""}`} style={style} title={title} />;
 }

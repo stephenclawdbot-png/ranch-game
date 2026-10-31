@@ -2179,6 +2179,16 @@ export const jockeys = pgTable(
     freeAgentWeek: integer("free_agent_week"),
     /** Phase 2: the stable that developed them (an apprentice with JOCKEY_DEVELOPED_RIDES rides there). */
     developedByStableId: uuid("developed_by_stable_id").references(() => stables.id),
+    /**
+     * The jockey's look (game-core JockeyLook: base face, skin, hair, accessories), chosen once
+     * at creation (least-used first) and never changed. Null only before the backfill reached it.
+     */
+    look: jsonb("look"),
+    /**
+     * The jockey's gender ("f" | "m"), one stored value set with the name at creation (game-core
+     * jockeyGender); it picks the bust's base faces and the rider sprite. Null only before the backfill.
+     */
+    gender: text("gender"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -2186,6 +2196,7 @@ export const jockeys = pgTable(
     index("jockeys_stable_idx").on(t.stableId, t.retiredAt),
     index("jockeys_active_idx").on(t.retiredAt, t.stableId),
     check("jockeys_stage", sql`${t.stage} in ('apprentice', 'prime', 'veteran')`),
+    check("jockeys_gender", sql`${t.gender} is null or ${t.gender} in ('f', 'm')`),
     check("jockeys_personality", sql`${t.personality} in ('money', 'ambitious', 'loyal', 'workhorse')`),
     check("jockeys_counts", sql`${t.rides} >= 0 and ${t.wins} between 0 and ${t.rides} and ${t.experience} >= 0`),
   ],

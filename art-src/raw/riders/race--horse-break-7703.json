@@ -1,0 +1,294 @@
+{
+ "endpoint": "/edit-animation-v2",
+ "request": {
+  "description": "turn the jockey into a woman jockey: a slightly slimmer, narrower back and shoulders, and a ponytail of bright lime green hair hanging from under the back of the cap down to the shoulders; keep the pose, the cap, the silks colours, the goggles, the hands and the whole horse exactly the same",
+  "frames": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4224 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5160 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5068 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5480 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5416 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5484 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5372 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5440 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   }
+  ],
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "seed": 7703,
+  "no_background": true,
+  "target_palette": {
+   "colors": [
+    "#02010e",
+    "#e4e3e4",
+    "#843216",
+    "#682213",
+    "#a39eaa",
+    "#15b2cd",
+    "#c112a7",
+    "#0c0c19",
+    "#760960",
+    "#401115",
+    "#02010c",
+    "#0e8dac",
+    "#1e1c26",
+    "#a44519",
+    "#2e2a2e",
+    "#ed8f39",
+    "#cac7ce",
+    "#025f7f",
+    "#bbb8bf",
+    "#ae1397",
+    "#110f1e",
+    "#f344cc",
+    "#504b4c",
+    "#90097b",
+    "#7c0a66",
+    "#36e1ec",
+    "#f344cd",
+    "#493cae",
+    "#561511",
+    "#170b10",
+    "#1f2b46",
+    "#6a4a3c",
+    "#242229",
+    "#36e1ed",
+    "#4c4747",
+    "#2164c2",
+    "#84096f",
+    "#270b11",
+    "#e4e3e5",
+    "#ab1495",
+    "#fb72a8",
+    "#010113",
+    "#fdbd52",
+    "#a47254",
+    "#3f8f1a",
+    "#6fcf2f",
+    "#a8f060"
+   ]
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c787c9ff-b557-4601-84b6-56249a6316e3",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "c787c9ff-b557-4601-84b6-56249a6316e3",
+  "status": "completed",
+  "created_at": "2026-10-31T15:58:35.341375+00:00",
+  "last_response": {
+   "seed": 7703,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4572 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4828 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4720 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5200 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5128 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4432 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5156 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5092 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "b389be27-3dde-41de-bb90-a549e9c8ed04",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4572 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4828 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4720 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5200 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5128 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4432 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5156 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5092 chars>",
+     "height": 64
+    }
+   ],
+   "generation_started_at": "2026-10-31T15:58:41.887285+00:00",
+   "original_image_n_colors": 117,
+   "quantized_image_n_colors": 42
+  }
+ },
+ "files": [
+  "art-src/raw/riders/race--horse-break-7703-0.png",
+  "art-src/raw/riders/race--horse-break-7703-1.png",
+  "art-src/raw/riders/race--horse-break-7703-2.png",
+  "art-src/raw/riders/race--horse-break-7703-3.png",
+  "art-src/raw/riders/race--horse-break-7703-4.png",
+  "art-src/raw/riders/race--horse-break-7703-5.png",
+  "art-src/raw/riders/race--horse-break-7703-6.png",
+  "art-src/raw/riders/race--horse-break-7703-7.png"
+ ]
+}

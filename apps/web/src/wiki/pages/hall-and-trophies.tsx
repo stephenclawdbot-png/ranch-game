@@ -54,7 +54,7 @@ export default function HallAndTrophiesPage() {
         Two places keep your racing history. The <b>Hall of Fame</b> is the Club&rsquo;s permanent roll of honour, shared by every stable. Your <b>Trophy Room</b> is your own: every cup,
         rosette and plaque your stable has won, on the shelves.
       </Lead>
-      <Figure src="/art/diorama/trophy-room.png" alt="A wood-panelled trophy room with shelves of cups" caption="Your Trophy Room: everything your stable has won." height={240} focus={0.5} />
+      <Figure src="/art/scenes/wiki-silver-polish.png" alt="A stable lad polishing a row of silver cups in the tack room" caption="Your Trophy Room: everything your stable has won." height={240} focus={0.5} />
 
       <H2 id="hall">The Hall of Fame</H2>
       <P>

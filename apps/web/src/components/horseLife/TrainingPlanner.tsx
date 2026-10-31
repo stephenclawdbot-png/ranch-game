@@ -184,7 +184,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
             disabled={!next || action.busy !== null || (next?.cost ?? 0) > credits}
             data-testid="train-now"
           >
-            <PixelIcon name="stopwatch" size={32} className="-my-2" />
+            <PixelIcon name="training-chart" size={32} className="-my-2" />
             {!next
               ? `All ${t.slots} sessions done · new week ${dayName(t.weekResetsMs)}`
               : action.busy === "train"

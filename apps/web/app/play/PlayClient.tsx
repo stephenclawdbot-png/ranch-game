@@ -141,7 +141,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
         <div className="surface grid gap-4 p-4">
           <NameField name={name} onChange={setName} />
           <button type="button" className="btn btn-outline w-fit" onClick={() => setSilks(randomSilks())}>
-            <PixelIcon name="dice" className="h-5 w-5" /> New colours
+            <PixelIcon name="dice" size={16} /> New colours
           </button>
         </div>
         <details className="surface group p-4 [&[open]>summary_.chev]:rotate-90">

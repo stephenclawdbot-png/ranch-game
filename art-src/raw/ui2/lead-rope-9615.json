@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a coiled lead rope with a brass clip",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9615,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c714f940-7cd9-4208-a248-42b6c08b011c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "c714f940-7cd9-4208-a248-42b6c08b011c",
+  "status": "completed",
+  "created_at": "2026-10-31T14:59:57.238460+00:00",
+  "last_response": {
+   "seed": 9615,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1852 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1904 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1844 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1832 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1676 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1812 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1912 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1940 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1912 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1808 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1664 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1304 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1896 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1728 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2036 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1920 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1904 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1476 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2124 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1804 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2248 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1768 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2060 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2116 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1824 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1852 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2084 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1396 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1960 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1816 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2236 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1508 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1876 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1504 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1840 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2108 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1956 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2092 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1688 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1604 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1684 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1348 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1972 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2048 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1804 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1744 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1776 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1684 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1788 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1796 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1880 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2072 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2020 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1824 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1848 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2140 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1800 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1712 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1640 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1660 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1920 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1552 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1568 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1604 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "24e2c678-ef3c-44a3-bbb9-a882fd3c4b78",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:03.384617+00:00",
+   "original_image_n_colors": 94,
+   "quantized_image_n_colors": 59
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/lead-rope-9615-0.png",
+  "art-src/raw/ui2/lead-rope-9615-1.png",
+  "art-src/raw/ui2/lead-rope-9615-2.png",
+  "art-src/raw/ui2/lead-rope-9615-3.png",
+  "art-src/raw/ui2/lead-rope-9615-4.png",
+  "art-src/raw/ui2/lead-rope-9615-5.png",
+  "art-src/raw/ui2/lead-rope-9615-6.png",
+  "art-src/raw/ui2/lead-rope-9615-7.png",
+  "art-src/raw/ui2/lead-rope-9615-8.png",
+  "art-src/raw/ui2/lead-rope-9615-9.png",
+  "art-src/raw/ui2/lead-rope-9615-10.png",
+  "art-src/raw/ui2/lead-rope-9615-11.png",
+  "art-src/raw/ui2/lead-rope-9615-12.png",
+  "art-src/raw/ui2/lead-rope-9615-13.png",
+  "art-src/raw/ui2/lead-rope-9615-14.png",
+  "art-src/raw/ui2/lead-rope-9615-15.png",
+  "art-src/raw/ui2/lead-rope-9615-16.png",
+  "art-src/raw/ui2/lead-rope-9615-17.png",
+  "art-src/raw/ui2/lead-rope-9615-18.png",
+  "art-src/raw/ui2/lead-rope-9615-19.png",
+  "art-src/raw/ui2/lead-rope-9615-20.png",
+  "art-src/raw/ui2/lead-rope-9615-21.png",
+  "art-src/raw/ui2/lead-rope-9615-22.png",
+  "art-src/raw/ui2/lead-rope-9615-23.png",
+  "art-src/raw/ui2/lead-rope-9615-24.png",
+  "art-src/raw/ui2/lead-rope-9615-25.png",
+  "art-src/raw/ui2/lead-rope-9615-26.png",
+  "art-src/raw/ui2/lead-rope-9615-27.png",
+  "art-src/raw/ui2/lead-rope-9615-28.png",
+  "art-src/raw/ui2/lead-rope-9615-29.png",
+  "art-src/raw/ui2/lead-rope-9615-30.png",
+  "art-src/raw/ui2/lead-rope-9615-31.png",
+  "art-src/raw/ui2/lead-rope-9615-32.png",
+  "art-src/raw/ui2/lead-rope-9615-33.png",
+  "art-src/raw/ui2/lead-rope-9615-34.png",
+  "art-src/raw/ui2/lead-rope-9615-35.png",
+  "art-src/raw/ui2/lead-rope-9615-36.png",
+  "art-src/raw/ui2/lead-rope-9615-37.png",
+  "art-src/raw/ui2/lead-rope-9615-38.png",
+  "art-src/raw/ui2/lead-rope-9615-39.png",
+  "art-src/raw/ui2/lead-rope-9615-40.png",
+  "art-src/raw/ui2/lead-rope-9615-41.png",
+  "art-src/raw/ui2/lead-rope-9615-42.png",
+  "art-src/raw/ui2/lead-rope-9615-43.png",
+  "art-src/raw/ui2/lead-rope-9615-44.png",
+  "art-src/raw/ui2/lead-rope-9615-45.png",
+  "art-src/raw/ui2/lead-rope-9615-46.png",
+  "art-src/raw/ui2/lead-rope-9615-47.png",
+  "art-src/raw/ui2/lead-rope-9615-48.png",
+  "art-src/raw/ui2/lead-rope-9615-49.png",
+  "art-src/raw/ui2/lead-rope-9615-50.png",
+  "art-src/raw/ui2/lead-rope-9615-51.png",
+  "art-src/raw/ui2/lead-rope-9615-52.png",
+  "art-src/raw/ui2/lead-rope-9615-53.png",
+  "art-src/raw/ui2/lead-rope-9615-54.png",
+  "art-src/raw/ui2/lead-rope-9615-55.png",
+  "art-src/raw/ui2/lead-rope-9615-56.png",
+  "art-src/raw/ui2/lead-rope-9615-57.png",
+  "art-src/raw/ui2/lead-rope-9615-58.png",
+  "art-src/raw/ui2/lead-rope-9615-59.png",
+  "art-src/raw/ui2/lead-rope-9615-60.png",
+  "art-src/raw/ui2/lead-rope-9615-61.png",
+  "art-src/raw/ui2/lead-rope-9615-62.png",
+  "art-src/raw/ui2/lead-rope-9615-63.png"
+ ]
+}

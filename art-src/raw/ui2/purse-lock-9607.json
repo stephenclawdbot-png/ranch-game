@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a brown leather coin purse fastened with a small brass padlock",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9607,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "c5aa5502-982f-4f08-a45c-1dccee7bba7c",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "c5aa5502-982f-4f08-a45c-1dccee7bba7c",
+  "status": "completed",
+  "created_at": "2026-10-31T14:59:57.252523+00:00",
+  "last_response": {
+   "seed": 9607,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1092 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1324 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1208 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1476 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1476 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1436 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1444 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1160 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1208 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1284 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1488 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1540 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1228 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1440 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1828 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1516 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1308 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1064 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1192 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1428 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1384 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1524 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1296 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1356 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1304 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1300 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1352 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1252 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1444 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1380 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1424 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1256 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1376 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1228 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1232 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1408 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1352 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1472 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1328 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1360 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1332 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1308 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1544 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1432 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1224 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1344 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1324 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1528 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1504 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1392 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1564 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1540 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1248 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1300 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1360 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1532 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1576 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1420 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1560 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1620 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1168 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "5951fe7e-cf59-4b29-8548-b3378e6fd25a",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:03.815592+00:00",
+   "original_image_n_colors": 99,
+   "quantized_image_n_colors": 47
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/purse-lock-9607-0.png",
+  "art-src/raw/ui2/purse-lock-9607-1.png",
+  "art-src/raw/ui2/purse-lock-9607-2.png",
+  "art-src/raw/ui2/purse-lock-9607-3.png",
+  "art-src/raw/ui2/purse-lock-9607-4.png",
+  "art-src/raw/ui2/purse-lock-9607-5.png",
+  "art-src/raw/ui2/purse-lock-9607-6.png",
+  "art-src/raw/ui2/purse-lock-9607-7.png",
+  "art-src/raw/ui2/purse-lock-9607-8.png",
+  "art-src/raw/ui2/purse-lock-9607-9.png",
+  "art-src/raw/ui2/purse-lock-9607-10.png",
+  "art-src/raw/ui2/purse-lock-9607-11.png",
+  "art-src/raw/ui2/purse-lock-9607-12.png",
+  "art-src/raw/ui2/purse-lock-9607-13.png",
+  "art-src/raw/ui2/purse-lock-9607-14.png",
+  "art-src/raw/ui2/purse-lock-9607-15.png",
+  "art-src/raw/ui2/purse-lock-9607-16.png",
+  "art-src/raw/ui2/purse-lock-9607-17.png",
+  "art-src/raw/ui2/purse-lock-9607-18.png",
+  "art-src/raw/ui2/purse-lock-9607-19.png",
+  "art-src/raw/ui2/purse-lock-9607-20.png",
+  "art-src/raw/ui2/purse-lock-9607-21.png",
+  "art-src/raw/ui2/purse-lock-9607-22.png",
+  "art-src/raw/ui2/purse-lock-9607-23.png",
+  "art-src/raw/ui2/purse-lock-9607-24.png",
+  "art-src/raw/ui2/purse-lock-9607-25.png",
+  "art-src/raw/ui2/purse-lock-9607-26.png",
+  "art-src/raw/ui2/purse-lock-9607-27.png",
+  "art-src/raw/ui2/purse-lock-9607-28.png",
+  "art-src/raw/ui2/purse-lock-9607-29.png",
+  "art-src/raw/ui2/purse-lock-9607-30.png",
+  "art-src/raw/ui2/purse-lock-9607-31.png",
+  "art-src/raw/ui2/purse-lock-9607-32.png",
+  "art-src/raw/ui2/purse-lock-9607-33.png",
+  "art-src/raw/ui2/purse-lock-9607-34.png",
+  "art-src/raw/ui2/purse-lock-9607-35.png",
+  "art-src/raw/ui2/purse-lock-9607-36.png",
+  "art-src/raw/ui2/purse-lock-9607-37.png",
+  "art-src/raw/ui2/purse-lock-9607-38.png",
+  "art-src/raw/ui2/purse-lock-9607-39.png",
+  "art-src/raw/ui2/purse-lock-9607-40.png",
+  "art-src/raw/ui2/purse-lock-9607-41.png",
+  "art-src/raw/ui2/purse-lock-9607-42.png",
+  "art-src/raw/ui2/purse-lock-9607-43.png",
+  "art-src/raw/ui2/purse-lock-9607-44.png",
+  "art-src/raw/ui2/purse-lock-9607-45.png",
+  "art-src/raw/ui2/purse-lock-9607-46.png",
+  "art-src/raw/ui2/purse-lock-9607-47.png",
+  "art-src/raw/ui2/purse-lock-9607-48.png",
+  "art-src/raw/ui2/purse-lock-9607-49.png",
+  "art-src/raw/ui2/purse-lock-9607-50.png",
+  "art-src/raw/ui2/purse-lock-9607-51.png",
+  "art-src/raw/ui2/purse-lock-9607-52.png",
+  "art-src/raw/ui2/purse-lock-9607-53.png",
+  "art-src/raw/ui2/purse-lock-9607-54.png",
+  "art-src/raw/ui2/purse-lock-9607-55.png",
+  "art-src/raw/ui2/purse-lock-9607-56.png",
+  "art-src/raw/ui2/purse-lock-9607-57.png",
+  "art-src/raw/ui2/purse-lock-9607-58.png",
+  "art-src/raw/ui2/purse-lock-9607-59.png",
+  "art-src/raw/ui2/purse-lock-9607-60.png",
+  "art-src/raw/ui2/purse-lock-9607-61.png",
+  "art-src/raw/ui2/purse-lock-9607-62.png",
+  "art-src/raw/ui2/purse-lock-9607-63.png"
+ ]
+}

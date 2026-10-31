@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, a busy country racecourse on race day seen from the hill: picnic crowds, white tents, a parade ring, a little grandstand, horses cantering on the far side",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9721,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "28857654-cbc5-4bbc-a467-77498e3d4173",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "28857654-cbc5-4bbc-a467-77498e3d4173",
+  "status": "completed",
+  "created_at": "2026-10-31T15:07:15.188929+00:00",
+  "last_response": {
+   "seed": 9721,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<292756 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "f1593765-f4b6-44af-a9b3-a2e0a40e7db7",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:07:21.529883+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 59
+  }
+ },
+ "files": [
+  "art-src/raw/sections/wiki-meeting-day-9721-0.png"
+ ]
+}

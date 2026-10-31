@@ -342,12 +342,17 @@ export function raceSnapshot(state: HorseState, ctx: SnapshotContext): Snapshot 
     style: runningStyle(state.genome) as RunningStyle,
     appearance: appearanceOf(
       state.genome,
-      { racingAge: state.care.sessions >= CARE_TO_RACING, starts: state.career.starts, retired: state.career.racingRetired !== null },
+      { racingAge: state.care.sessions >= CARE_TO_RACING, starts: state.career.starts, retired: state.career.racingRetired !== null, young: youngHead(state.care.sessions) },
       ctx.silks,
     ),
     record: state.record,
   };
   return { horse, conditionPermille: cond.multiplier, quirksActive };
+}
+
+/** The portrait's young head while the horse is in the nursery: a foal (and weanling), then a yearling. */
+export function youngHead(careSessions: number): "foal" | "yearling" | null {
+  return careSessions < CARE_TO_YEARLING ? "foal" : careSessions < CARE_TO_RACING ? "yearling" : null;
 }
 
 /** Resting snapshot for display (no race conditions, no weight, no plan). */

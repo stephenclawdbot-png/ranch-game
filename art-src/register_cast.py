@@ -43,12 +43,12 @@ def prompt(raw_dir, stem, post):
 
 def main():
     entries = []
-    for pid, stem in load("process_jockeys").items():
+    for pid, stem in json.load(open(os.path.join(ROOT, "art-src/jockey_picks.json"))).items():
         entries.append({
             "id": f"portrait.jockey.{pid}", "kind": "jockey", "depthBand": "overlay", "src": f"portraits/jockeys/{pid}.png",
             "optimizationTier": "hero", "anchor": {"x": 0.5, "y": 0.5},
-            "sourcePrompt": prompt("jockeys", stem, "silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)"),
-            "variants": ["silks-keyed"],
+            "sourcePrompt": prompt("jockeys", stem, "base face: silks, lime-green hair key, skin and lips snapped to key ramps (art-src/process_jockeys.py); the look is painted at runtime"),
+            "variants": ["silks-keyed", "skin-keyed", "hair-keyed"],
         })
     for tid, stem in load("process_trainers").items():
         entries.append({
@@ -67,6 +67,20 @@ def main():
             "id": f"vignettes.{vid}", "kind": "ui_portrait", "depthBand": "overlay", "src": f"vignettes/{vid}.png",
             "optimizationTier": "standard", "anchor": {"x": 0.5, "y": 0.5},
             "sourcePrompt": prompt("vignettes", stem, "centre 52 px in the shared 6 px frame (art-src/process_vignettes.py)"), "variants": [],
+        })
+    # graphics round 2: one icon per meaning, and a 16 px drawing of every 32 px icon
+    for name in load("process_icons2"):
+        meta = json.load(open(os.path.join(ROOT, f"art-src/meta/ui/icon-{name}.meta.json")))
+        entries.append({
+            "id": f"ui.icon-{name}", "kind": "ui_portrait", "depthBand": "overlay", "src": f"ui/icon-{name}.png",
+            "optimizationTier": "standard", "anchor": {"x": 0.5, "y": 0.5}, "sourcePrompt": meta["sourcePrompt"], "variants": ["32px", "16px"],
+        })
+    for f in sorted(os.listdir(os.path.join(ROOT, "apps/web/public/art/ui/icon16"))):
+        name = f[:-4]
+        entries.append({
+            "id": f"ui.icon16.{name}", "kind": "ui_portrait", "depthBand": "overlay", "src": f"ui/icon16/{f}",
+            "optimizationTier": "standard", "anchor": {"x": 0.5, "y": 0.5},
+            "sourcePrompt": f"16 px drawing of ui/icon-{name}.png (2:1 blocks, edge blocks keep the outline; art-src/process_icons2.py)", "variants": ["16px"],
         })
     plaques = load("process_plaques")
     entries.append({

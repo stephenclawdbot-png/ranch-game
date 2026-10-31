@@ -1,0 +1,173 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "tiny square pixel art vignette, a little framed scene with a thin dark wood border, warm golden-hour light, racing-club palette of deep racing green, warm cream, brass gold and oxblood red, clear readable silhouette at small size, high-res pixel art, selective dark outline, no text, an empty wooden bench in a jockeys' weighing room under a row of bare coat pegs, one forgotten silk cap on the bench",
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "no_background": false,
+  "seed": 9881,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<5880 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 64,
+    "height": 64
+   }
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "b1d8702f-4b2a-4c4f-824e-09acb70b30dc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "b1d8702f-4b2a-4c4f-824e-09acb70b30dc",
+  "status": "completed",
+  "created_at": "2026-10-31T14:57:35.543781+00:00",
+  "last_response": {
+   "seed": 9881,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3960 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5612 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6080 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3956 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4496 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3648 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4796 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4868 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5380 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4520 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6140 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5752 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5112 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<3380 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5372 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<6108 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "15d8f5a9-7c1e-454e-8b11-2f807c6a4e9d",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T14:57:41.694835+00:00",
+   "original_image_n_colors": 126,
+   "quantized_image_n_colors": 74
+  }
+ },
+ "files": [
+  "art-src/raw/vignettes/empty-bench-9881-0.png",
+  "art-src/raw/vignettes/empty-bench-9881-1.png",
+  "art-src/raw/vignettes/empty-bench-9881-2.png",
+  "art-src/raw/vignettes/empty-bench-9881-3.png",
+  "art-src/raw/vignettes/empty-bench-9881-4.png",
+  "art-src/raw/vignettes/empty-bench-9881-5.png",
+  "art-src/raw/vignettes/empty-bench-9881-6.png",
+  "art-src/raw/vignettes/empty-bench-9881-7.png",
+  "art-src/raw/vignettes/empty-bench-9881-8.png",
+  "art-src/raw/vignettes/empty-bench-9881-9.png",
+  "art-src/raw/vignettes/empty-bench-9881-10.png",
+  "art-src/raw/vignettes/empty-bench-9881-11.png",
+  "art-src/raw/vignettes/empty-bench-9881-12.png",
+  "art-src/raw/vignettes/empty-bench-9881-13.png",
+  "art-src/raw/vignettes/empty-bench-9881-14.png",
+  "art-src/raw/vignettes/empty-bench-9881-15.png"
+ ]
+}

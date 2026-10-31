@@ -1,0 +1,388 @@
+{
+ "endpoint": "/edit-animation-v2",
+ "request": {
+  "description": "turn the jockey into a woman jockey: a slightly slimmer, narrower back and shoulders, and a ponytail of bright lime green hair hanging from under the back of the cap down to the shoulders; keep the pose, the cap, the silks colours, the goggles, the hands and the whole horse exactly the same",
+  "frames": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5220 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5092 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5208 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5164 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5184 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5156 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5376 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5524 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5800 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5356 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5572 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5504 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   }
+  ],
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "seed": 7709,
+  "no_background": true,
+  "target_palette": {
+   "colors": [
+    "#02010e",
+    "#e4e3e4",
+    "#a39eaa",
+    "#843216",
+    "#c112a7",
+    "#760960",
+    "#170b10",
+    "#401115",
+    "#0e8dac",
+    "#36e1ec",
+    "#682213",
+    "#a44519",
+    "#242229",
+    "#110f1e",
+    "#02010c",
+    "#2e2a2e",
+    "#ed8f39",
+    "#15b2cd",
+    "#f344cc",
+    "#ae1397",
+    "#025f7f",
+    "#504b4c",
+    "#0c0c19",
+    "#1e1c26",
+    "#4c4747",
+    "#cac7ce",
+    "#7c0a66",
+    "#90097b",
+    "#f344cd",
+    "#ab1495",
+    "#561511",
+    "#1f2b46",
+    "#270b11",
+    "#010113",
+    "#6a4a3c",
+    "#84096f",
+    "#493cae",
+    "#fb72a8",
+    "#bbb8bf",
+    "#2164c2",
+    "#a47254",
+    "#fdbd52",
+    "#3f8f1a",
+    "#6fcf2f",
+    "#a8f060"
+   ]
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6c94e2c5-8a9b-4e99-9b9b-7e0118211825",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "6c94e2c5-8a9b-4e99-9b9b-7e0118211825",
+  "status": "completed",
+  "created_at": "2026-10-31T15:58:35.271859+00:00",
+  "last_response": {
+   "seed": 7709,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4904 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4656 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4620 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4768 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4680 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4696 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5024 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5116 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5236 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4192 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5148 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5040 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "171175b4-1aaa-42fb-acac-51bd28fd219c",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4904 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4656 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4620 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4768 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4680 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4696 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5024 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5116 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5236 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4192 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5148 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<5040 chars>",
+     "height": 64
+    }
+   ],
+   "generation_started_at": "2026-10-31T15:58:41.457272+00:00",
+   "original_image_n_colors": 116,
+   "quantized_image_n_colors": 37
+  }
+ },
+ "files": [
+  "art-src/raw/riders/diorama--horse-canter-7709-0.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-1.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-2.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-3.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-4.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-5.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-6.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-7.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-8.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-9.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-10.png",
+  "art-src/raw/riders/diorama--horse-canter-7709-11.png"
+ ]
+}

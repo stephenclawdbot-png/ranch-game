@@ -88,7 +88,7 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
     <section className="surface h-fit p-3" aria-labelledby="fair-h" data-testid="fairness">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="fair-h" className="flex items-center gap-2 font-extrabold">
-          <PixelIcon name="shield" size={32} className="-my-1" />
+          <PixelIcon name="wax-seal" size={32} className="-my-1" />
           {copy.title}
         </h2>
         {replay && !verify && (

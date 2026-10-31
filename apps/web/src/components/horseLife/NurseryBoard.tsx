@@ -162,7 +162,7 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
       {view.stableHand && view.uncared > 0 ? (
         <ActionBar>
           <button type="button" className="btn btn-brass btn-lg" onClick={() => action.run("all", "/api/nursery/care-all")} disabled={action.busy !== null} data-testid="care-all">
-            <PixelIcon name="horseshoe" size={32} className="-my-2" /> {action.busy === "all" ? "Caring…" : `Care for all (${view.uncared})`}
+            <PixelIcon name="grooming-brush" size={32} className="-my-2" /> {action.busy === "all" ? "Caring…" : `Care for all (${view.uncared})`}
           </button>
         </ActionBar>
       ) : firstUncared ? (
@@ -174,7 +174,7 @@ export function NurseryBoard({ view }: { view: NurseryView }) {
             disabled={action.busy !== null}
             data-testid="care-next"
           >
-            <PixelIcon name="horseshoe" size={32} className="-my-2" /> Care for {firstUncared.name}
+            <PixelIcon name="grooming-brush" size={32} className="-my-2" /> Care for {firstUncared.name}
           </button>
         </ActionBar>
       ) : null}

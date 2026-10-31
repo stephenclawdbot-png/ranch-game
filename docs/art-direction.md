@@ -159,6 +159,54 @@ minus its median at that LEVEL), white patterns from masks in still space, and f
 in the same box, caches it per genes, and keeps the painted file if anything fails. Legacy
 appearances (no layered `colour`) keep the painting. `/dev/coats` has a cell per coat and gene.
 
+### Portrait heads: breed and age (round 2)
+
+The genetic portrait is one painted Thoroughbred head, so every horse also gets a head shape
+(`portraitShape.ts`, pure): its main breed's (`appearance.head`, set by game-core `appearanceOf`
+from the genome's largest breed share: dished Arabian, Roman-nosed Andalusian and Friesian,
+heavy-jawed Quarter Horse and Paint, long Akhal-Teke, curled Marwari ears...) with a small
+per-horse nudge from its genes, and while it is young (`appearance.age`) a yearling's or a
+foal's head (shorter muzzle, bigger eye, thinner neck, short mane; no bridle for a foal). It is
+a warp built from `roles.png`: each output pixel points at the still pixel it shows, so the gene
+recolour, the face markings and the patterns run unchanged through it, and the idle loop is
+reshaped with it. Small markings are drawn a pixel bolder and the coat ramp is deeper
+(`PORTRAIT_RECOLOUR_VERSION` 2), so two bays side by side still differ.
+
+### Jockeys: a look, not a picture (round 2)
+
+A jockey is drawn from layers. Base faces (`portraits/jockeys/<id>.png`, 126 PixelLab busts,
+at least 20 per career stage and gender, 1920s-30s kit: soft silk caps with a short peak, no
+helmets) are painted with KEY colours: lime-green hair, eyebrows and beards, the magenta /
+cyan silks keys, natural skin. `art-src/process_jockeys.py` snaps them to key ramps (skin 8,
+lips 3, hair 6, silks as `race/palette.json`) and measures accessory anchors (eyes, mouth).
+A jockey's **look** (game-core `jockeyLooks.ts`: base face, skin tone of 8, hair colour of 8,
+freckles / spectacles / moustache) and **gender** are stored on the jockey at creation and never
+change: the least-worn face of its stage and gender first, then the free skin / hair /
+accessory combination furthest from the looks already wearing that face (thousands per pool).
+`JockeyPortrait` paints the bust from the look and the stable's silks, pattern included (the
+jacket on the 16x13 jersey grid of the silks icon; the cap by `capPatternAt`).
+
+The rider sprites follow the same look: the locked field carries each named jockey's look and
+gender (never hashed), the served replay and the race card put `appearance.rider` (skin and
+hair ramps, long hair, gender) on each runner, and every renderer paints the rider's face
+(found geometrically on the keyed strip: small coat / mane / skin patches under the cap), the
+hair cue and the cap pattern from it: the paddock parade and post parade dioramas
+(`applyRiderLook`), Trackside and 3D (mask regions 7-11 and LUT columns 131-139 in
+`trackside/strips.ts` + `shaders.ts`), and the 3D horse rig. Women ride the women's copies of
+the rider strips (`<strip>-f.png`, same frames: the rider edited with PixelLab
+`edit-animation-v2` to a slimmer back and a ponytail in lime HAIR keys, recoloured to the
+jockey's hair). `art-src/grow-jockey-faces.mjs` adds base faces when a pool's share of worn faces
+passes a threshold, without code changes.
+
+### Scenes, focal points and icons (round 2)
+
+Every page family opens on its own picture (`page-scenes.test.ts` checks that no backdrop is used
+by two families and that no wiki picture is a page backdrop). Each still scene has a focal point
+(`STILL_SCENES` `fx` / `fy`): the band keeps it in view at 390 and at 1440, heads in frame.
+Icons: one picture per meaning (no horseshoe for grooming *and* empty stalls). Every 32 px icon
+has a hand-tuned 16 px drawing (`ui/icon16/`): `PixelIcon` draws 16 px icons from it (the 32 px
+file on 2x screens) and anything larger at whole multiples of 32, never 20 or 24.
+
 ### One picture per thing
 
 Every person, place and kind of event has its own art. Don't stand one sprite or scene in for

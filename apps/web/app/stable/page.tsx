@@ -84,7 +84,7 @@ function Stable({ state }: { state: PlayerState }) {
               <li>
                 <Link href="/packs" className="row-link gap-3 px-4 py-3" data-testid="empty-stalls">
                   <span className="empty-slot !h-16 !w-16">
-                    <PixelIcon name="horseshoe" size={32} />
+                    <PixelIcon name="stall-empty" size={32} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="t-title block">
@@ -135,9 +135,9 @@ function Stable({ state }: { state: PlayerState }) {
           <Section title="Around the yard" className="!mt-0 lg:!mt-[52px]">
             <ul className="surface rows">
               <YardRow icon="feed-bucket" title="Care" text="Feed, groom and turn out. Builds bond." href={state.horses[0] ? `/horse/${state.horses[0].id}/care` : "/nursery"} />
-              <YardRow icon="stable" title="Facilities" text="More stalls, a vet room, a gallop." href="/facilities" />
+              <YardRow icon="stall-number" title="Facilities" text="More stalls, a vet room, a gallop." href="/facilities" />
               <YardRow icon="coin" title="Finances" text="Every credit in and out, horse by horse." href="/stable/finances" />
-              <YardRow icon="star" title="Nursery" text="Foals grow with daily care." href="/nursery" />
+              <YardRow icon="carrots" title="Nursery" text="Foals grow with daily care." href="/nursery" />
               <YardRow icon="laurel" title="Legacy Farm" text="Retired for good: their records and best wins." href="/legacy" />
               <li>
                 <div className="flex items-center gap-3 px-4 py-3">
@@ -253,5 +253,5 @@ function RosterRow({ s, form, recommended, onRace }: { s: StableHorse; form: str
 }
 
 export default function StablePage() {
-  return <PlayerGate band={{ scene: "barn", alt: "Inside your barn", eyebrow: "Your yard", title: "Stable" }}>{(state) => <Stable state={state} />}</PlayerGate>;
+  return <PlayerGate band={{ scene: "pasture", alt: "Your horses out in the pasture", eyebrow: "Your yard", title: "Stable" }}>{(state) => <Stable state={state} />}</PlayerGate>;
 }

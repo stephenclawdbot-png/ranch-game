@@ -1,0 +1,74 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "wide side-on pixel art scene, HD-2D diorama look, warm golden-hour English racing world of the 1920s, period costume, no cars, no modern objects, honey sunlight, long soft shadows, deep greens and warm browns, rich detail, high-res pixel art, selective dark outline, no text, no letters, crowds of 1920s racegoers streaming through the wooden turnstiles and iron gates of a racecourse on race day, flags, a grandstand roof behind",
+  "image_size": {
+   "width": 688,
+   "height": 288
+  },
+  "no_background": false,
+  "seed": 9661,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<186828 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 880,
+    "height": 360
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "d068b200-b807-4a97-b937-7ac814ec0b6a",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 25
+  },
+  "id": "d068b200-b807-4a97-b937-7ac814ec0b6a",
+  "status": "completed",
+  "created_at": "2026-10-31T15:05:25.390111+00:00",
+  "last_response": {
+   "seed": 9661,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 688,
+     "base64": "<248048 chars>",
+     "height": 288
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 25
+   },
+   "generation_id": "6da711ae-5848-490b-949d-3cb368d328d2",
+   "usage_cost_usd": 0.15,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:05:31.70217+00:00",
+   "original_image_n_colors": 128,
+   "quantized_image_n_colors": 55
+  }
+ },
+ "files": [
+  "art-src/raw/sections/wiki-turnstiles-9661-0.png"
+ ]
+}

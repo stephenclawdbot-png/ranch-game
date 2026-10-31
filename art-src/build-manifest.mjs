@@ -109,6 +109,25 @@ const extra = existsSync(join(ROOT, "..", "..", "..", "..", "art-src", "assets.j
   : [];
 R.push(...extra);
 
+// Women riders (graphics round 2): every rider strip has a -f copy with the same frames, the
+// rider edited with PixelLab (slimmer back, hair under the cap as lime HAIR keys).
+const WOMAN = /^race\/horse-(gallop|idle|break|drive|lunge|easeup|celebrate|pullup)\.png$/;
+for (const r of [...R]) {
+  if (!WOMAN.test(r.src ?? "")) continue;
+  const meta = r.sourcePromptFrom ? extraMeta(r.sourcePromptFrom) : {};
+  R.push({
+    ...r,
+    id: `${r.id}.woman`,
+    src: r.src.replace(/\.png$/, "-f.png"),
+    sourcePromptFrom: undefined,
+    frameCount: r.frameCount ?? meta.frameCount,
+    fps: meta.fps ?? r.fps,
+    anchor: meta.anchor ?? r.anchor,
+    variants: [...(r.variants ?? []), "woman-rider"],
+    sourcePrompt: `women riders: edit-animation-v2 on 64x64 rider crops of ${r.src} ('turn the jockey into a woman jockey: a slightly slimmer back and a ponytail of lime green hair under the cap; keep everything else'), target palette = the strip's keys + 3 lime hair keys (palette.json 'hair'), pasted back rider-only (art-src/gen-female-riders.mjs, art-src/process_female_riders.py)`,
+  });
+}
+
 const assets = [];
 for (const r of R) {
   const file = join(ROOT, r.src);

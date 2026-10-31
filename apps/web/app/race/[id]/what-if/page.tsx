@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { isDomainError } from "@thoroughbred/db";
 import { WhatIfReplay } from "@/components/whatIf/WhatIfReplay";
+import { EmptyState } from "@/components/ui/Page";
 import type { WhatIfView } from "@/lib/whatIf";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
@@ -32,13 +33,17 @@ export default async function WhatIfPage({ params, searchParams }: { params: Pro
   }
   if (!view) {
     return (
-      <div className="surface grid gap-3 p-4" data-testid="what-if-missing">
-        <p className="eyebrow">What if?</p>
-        <p className="font-bold">{message}</p>
-        <Link href={`/race/${raceId}`} className="btn w-fit">
-          ‹ The race
-        </Link>
-      </div>
+      <EmptyState
+        vignette="lost-race"
+        testId="what-if-missing"
+        title={<span className="eyebrow !mb-0 block">What if?</span>}
+        text={<span className="font-bold text-cream">{message}</span>}
+        action={
+          <Link href={`/race/${raceId}`} className="btn w-fit">
+            ‹ The race
+          </Link>
+        }
+      />
     );
   }
   return <WhatIfReplay v={view} />;

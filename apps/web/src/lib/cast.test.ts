@@ -3,6 +3,7 @@ import { join } from "node:path";
 import * as gc from "@thoroughbred/game-core";
 import { describe, expect, it } from "vitest";
 import { JOCKEY_BUST, JOCKEY_FACE, KNOWN_FIRST_NAMES, MOMENT_VIGNETTE, NEWS_VIGNETTE, jockeyPortrait, presentsAs, trainerPortrait, vignetteSrc } from "./cast";
+import { BUST_INDEX } from "./jockeyBust";
 
 const PUBLIC = join(__dirname, "../../public");
 const exists = (url: string) => existsSync(join(PUBLIC, url));
@@ -17,30 +18,39 @@ describe("jockey cast", () => {
     expect([...unknown]).toEqual([]);
   });
 
-  it("is deterministic, stays in the jockey's stage and matches the name", () => {
-    for (const stage of gc.JOCKEY_STAGES) {
-      for (let i = 0; i < 300; i++) {
-        const j = { id: `j-${stage}-${i}`, name: gc.jockeyName(`n-${i}`), stage };
-        const a = jockeyPortrait(j);
-        expect(jockeyPortrait(j)).toEqual(a);
-        expect(exists(a.src), a.src).toBe(true);
-        const prefix = { apprentice: "a-", prime: "j-", veteran: "v-" }[stage];
-        expect(a.id.startsWith(prefix), `${stage} -> ${a.id}`).toBe(true);
-        const who = presentsAs(j.name);
-        if (who === "f") expect(a.id, j.name).toMatch(/woman|girl/);
-        if (who === "m") expect(a.id, j.name).not.toMatch(/woman|girl/);
-        expect(a.face[0]).toBeGreaterThanOrEqual(0);
-        expect(a.face[1] + JOCKEY_FACE).toBeLessThanOrEqual(JOCKEY_BUST);
-      }
+  it("has a keyed bust and anchors for every face the game assigns, and nothing else", () => {
+    const files = readdirSync(join(PUBLIC, "art/portraits/jockeys")).filter((f) => f.endsWith(".png")).map((f) => f.slice(0, -4));
+    const ids = gc.JOCKEY_FACES.map((f) => f.id);
+    expect(new Set(files)).toEqual(new Set(ids));
+    expect(new Set(Object.keys(BUST_INDEX.faces))).toEqual(new Set(ids));
+    expect(ids.length).toBeGreaterThanOrEqual(100);
+    for (const stage of gc.JOCKEY_STAGES) for (const who of ["f", "m"] as const) expect(gc.JOCKEY_FACES.filter((f) => f.stage === stage && f.presents === who).length).toBeGreaterThanOrEqual(20);
+    for (const f of gc.JOCKEY_FACES) {
+      const a = BUST_INDEX.faces[f.id]!;
+      expect(a.face[0]).toBeGreaterThanOrEqual(0);
+      expect(a.face[1] + JOCKEY_FACE).toBeLessThanOrEqual(JOCKEY_BUST);
+      expect(!!a.eyes, f.id).toBe(f.eyes);
+      expect(!!a.mouth, f.id).toBe(f.mouth);
     }
   });
 
-  it("spreads jockeys over the whole cast (no face stands in for everyone)", () => {
-    const used = new Set<string>();
-    for (const stage of gc.JOCKEY_STAGES) for (let i = 0; i < 400; i++) used.add(jockeyPortrait({ id: `x-${stage}-${i}`, name: gc.jockeyName(`m-${i}`), stage }).id);
-    const all = readdirSync(join(PUBLIC, "art/portraits/jockeys")).filter((f) => f.endsWith(".png"));
-    expect(all.length).toBeGreaterThanOrEqual(24);
-    expect(used.size).toBe(all.length);
+  it("draws the stored look; jockeys from before looks get a deterministic face of their stage", () => {
+    const look = gc.pickJockeyLook({ seed: "x", stage: "veteran", gender: "f" }, []);
+    const p = jockeyPortrait({ id: "j1", name: "Amy Ashby", stage: "apprentice", look });
+    expect(p.look).toEqual(look);
+    expect(p.id).toBe(look.face);
+    expect(exists(p.src)).toBe(true);
+    for (const stage of gc.JOCKEY_STAGES) {
+      for (let i = 0; i < 100; i++) {
+        const j = { id: `j-${stage}-${i}`, name: gc.jockeyName(`n-${i}`), stage };
+        const a = jockeyPortrait(j);
+        expect(jockeyPortrait(j)).toEqual(a);
+        expect(gc.jockeyFace(a.id)!.stage).toBe(stage);
+        expect(gc.jockeyFace(a.id)!.presents).toBe(gc.jockeyGender(j.name));
+        const who = presentsAs(j.name);
+        if (who) expect(who).toBe(gc.jockeyGender(j.name));
+      }
+    }
   });
 });
 

@@ -1,0 +1,435 @@
+{
+ "endpoint": "/edit-animation-v2",
+ "request": {
+  "description": "turn the jockey into a woman jockey: a slightly slimmer, narrower back and shoulders, and a ponytail of bright lime green hair hanging from under the back of the cap down to the shoulders; keep the pose, the cap, the silks colours, the goggles, the hands and the whole horse exactly the same",
+  "frames": [
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<3972 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5008 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4924 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5072 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5136 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5164 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5064 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5080 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5064 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5164 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5136 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5072 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<4924 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   },
+   {
+    "image": {
+     "type": "base64",
+     "base64": "<5008 chars>",
+     "format": "png"
+    },
+    "size": {
+     "width": 64,
+     "height": 64
+    }
+   }
+  ],
+  "image_size": {
+   "width": 64,
+   "height": 64
+  },
+  "seed": 7702,
+  "no_background": true,
+  "target_palette": {
+   "colors": [
+    "#02010e",
+    "#e4e3e5",
+    "#c112a7",
+    "#0e8dac",
+    "#90097b",
+    "#bbb8bf",
+    "#36e1ed",
+    "#a39eaa",
+    "#15b2cd",
+    "#1e1c26",
+    "#170b10",
+    "#cac7ce",
+    "#ae1397",
+    "#f344cc",
+    "#a44519",
+    "#242229",
+    "#401115",
+    "#760960",
+    "#ab1495",
+    "#843216",
+    "#025f7f",
+    "#ed8f39",
+    "#4c4747",
+    "#f89f50",
+    "#1f2b46",
+    "#02010c",
+    "#2e2a2e",
+    "#682213",
+    "#f344cd",
+    "#6a4a3c",
+    "#270b11",
+    "#110f1e",
+    "#84096f",
+    "#561511",
+    "#7c0a66",
+    "#504b4c",
+    "#493cae",
+    "#a47254",
+    "#0c0c19",
+    "#2164c2",
+    "#010113",
+    "#3f8f1a",
+    "#6fcf2f",
+    "#a8f060"
+   ]
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "af5d0102-87bd-48d1-8753-b69fb6cc8d60",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "af5d0102-87bd-48d1-8753-b69fb6cc8d60",
+  "status": "completed",
+  "created_at": "2026-10-31T15:58:35.284548+00:00",
+  "last_response": {
+   "seed": 7702,
+   "type": "done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4300 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4632 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4552 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4700 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4692 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4904 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4852 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4936 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4760 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4992 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4936 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4944 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4736 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4812 chars>",
+     "height": 64
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "499c64f5-d94e-486a-998f-7a207fcac2fa",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "quantized_images": [
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4300 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4632 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4552 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4700 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4692 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4904 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4852 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4936 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4760 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4992 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4936 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4944 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4736 chars>",
+     "height": 64
+    },
+    {
+     "type": "base64",
+     "width": 64,
+     "base64": "<4812 chars>",
+     "height": 64
+    }
+   ],
+   "generation_started_at": "2026-10-31T15:58:41.493143+00:00",
+   "original_image_n_colors": 115,
+   "quantized_image_n_colors": 34
+  }
+ },
+ "files": [
+  "art-src/raw/riders/race--horse-idle-7702-0.png",
+  "art-src/raw/riders/race--horse-idle-7702-1.png",
+  "art-src/raw/riders/race--horse-idle-7702-2.png",
+  "art-src/raw/riders/race--horse-idle-7702-3.png",
+  "art-src/raw/riders/race--horse-idle-7702-4.png",
+  "art-src/raw/riders/race--horse-idle-7702-5.png",
+  "art-src/raw/riders/race--horse-idle-7702-6.png",
+  "art-src/raw/riders/race--horse-idle-7702-7.png",
+  "art-src/raw/riders/race--horse-idle-7702-8.png",
+  "art-src/raw/riders/race--horse-idle-7702-9.png",
+  "art-src/raw/riders/race--horse-idle-7702-10.png",
+  "art-src/raw/riders/race--horse-idle-7702-11.png",
+  "art-src/raw/riders/race--horse-idle-7702-12.png",
+  "art-src/raw/riders/race--horse-idle-7702-13.png"
+ ]
+}

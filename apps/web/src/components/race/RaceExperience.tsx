@@ -15,7 +15,8 @@ import { RaceMetaChips } from "../RaceMeta";
 import { RaceViewerClient } from "../RaceViewerClient";
 import { PixelIcon } from "../icons";
 import { Digits } from "../Countdown";
-import { DioramaSlot } from "../diorama/DioramaSlot";
+import { Diorama } from "../diorama/Diorama";
+import { postParadeScene } from "../diorama/scenes";
 import { SilksIcon } from "../Silks";
 import { PaddockParade, type ParadeRunner } from "./PaddockParade";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
@@ -201,7 +202,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   const status =
     (phase === "pre" || phase === "live") && toOff !== null ? (
       <span className="chip chip-ink shrink-0 !text-cream" data-testid="race-off-in">
-        <PixelIcon name="stopwatch" size={16} /> Off in <span className="tabular">{formatCountdown(toOff)}</span>
+        <PixelIcon name="race-clock" size={16} /> Off in <span className="tabular">{formatCountdown(toOff)}</span>
       </span>
     ) : phase === "live" ? (
       <span className="chip chip-live shrink-0">
@@ -257,7 +258,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
             title={card.fieldLocked ? "This race is sealed: tap for details" : "The seed is committed; the field is sealed when entries close: tap for details"}
             data-testid="seal-badge"
           >
-            <PixelIcon name="shield" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
+            <PixelIcon name="wax-seal" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
           </a>
         </div>
         <div
@@ -405,6 +406,13 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   );
 }
 
+/** The runners cantering down to post at dusk, each in its own coat, silks and jockey's look. */
+function PostParade({ runners }: { runners: readonly ParadeRunner[] }) {
+  const ids = runners.map((r) => r.id).join(",");
+  const def = useMemo(() => postParadeScene(runners.slice(0, 4).map((r) => ({ coat: r.appearance.coat, appearance: r.appearance }))), [ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <Diorama scene="track-dusk" sceneDef={def} aspect={null} label="The runners cantering down to post at dusk" style={{ position: "absolute", inset: 0 }} />;
+}
+
 /** `localPost` is the off as the broadcast shows it (offClock.ts), in this browser's clock. */
 function PreRace({ localPost, localClose, now, card, runners }: { localPost: number; localClose: number; now: number | null; card: RaceCard; runners: readonly ParadeRunner[] }) {
   const remaining = now === null ? null : localPost - now;
@@ -417,7 +425,7 @@ function PreRace({ localPost, localClose, now, card, runners }: { localPost: num
   const toPost = remaining !== null && remaining < 25_000;
   return (
     <div className="relative flex h-full min-h-52 w-full flex-col items-center justify-center overflow-hidden px-4 text-center">
-      {toPost ? <DioramaSlot scene="track-dusk" alt="Horses cantering down to post at dusk" /> : <PaddockParade runners={runners} />}
+      {toPost ? <PostParade runners={runners} /> : <PaddockParade runners={runners} />}
       {/* Starting stalls, one per runner, with saddlecloth numbers (empty until the field locks) */}
       <div className={`absolute bottom-[6%] left-1/2 flex -translate-x-1/2 items-end gap-[3px] sm:gap-1 ${toPost ? "" : "hidden"}`} aria-hidden>
         {(card.fieldLocked ? card.field : Array.from({ length: card.targetRunners }, (_, i) => card.field[i] ?? null)).map((e, i) => (

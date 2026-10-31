@@ -30,7 +30,7 @@ export default async function QuickRacesPage({ searchParams }: { searchParams: P
     <div className="grid gap-4">
       {/* A new daily challenge is published at 00:00 UTC: refresh then. */}
       <AutoRefresh atMs={view.daily.closesAtMs} serverNowMs={now.getTime()} />
-      <SceneBand scene="gallops-morning" alt="Horses working up the gallops in the morning mist" eyebrow="Racing" title="Quick races" meta="Instant and unofficial: no rating, fatigue, injuries or credits." />
+      <SceneBand scene="gallops-downs" alt="Horses cantering up the gallop on the downs in the morning mist" eyebrow="Racing" title="Quick races" meta="Instant and unofficial: no rating, fatigue, injuries or credits." />
       <QuickHub v={view} tab={tab} horse={horse} vs={vs} />
     </div>
   );

@@ -193,5 +193,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793472226662,
     "hash": "8d119de1c1cdcb93a0c0f4b16e959666fa3c47fe333f07228f8cd4d3a2d6980a",
     "sql": "ALTER TABLE \"feedback\" DROP CONSTRAINT \"feedback_category\";--> statement-breakpoint\nALTER TABLE \"feedback\" ADD CONSTRAINT \"feedback_category\" CHECK (\"feedback\".\"category\" in ('bug', 'idea', 'confusing', 'fun', 'miss_it'));"
+  },
+  {
+    "tag": "0032_jockey_faces",
+    "when": 1793474636680,
+    "hash": "f4dbbf05011a14a65240debc0311f082d2493e92757716c0513b784f6a43ffe1",
+    "sql": "ALTER TABLE \"jockeys\" ADD COLUMN \"look\" jsonb;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD COLUMN \"gender\" text;--> statement-breakpoint\nALTER TABLE \"jockeys\" ADD CONSTRAINT \"jockeys_gender\" CHECK (\"jockeys\".\"gender\" is null or \"jockeys\".\"gender\" in ('f', 'm'));"
   }
 ];

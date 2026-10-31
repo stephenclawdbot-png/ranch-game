@@ -46,7 +46,27 @@ interface Placed {
  * far horses roam a short beat of their column (walk, graze, turn, walk back); youngstock are
  * drawn smaller. Deterministic per horse.
  */
+/** Art px kept clear inside the visible edges (pointer parallax and the tags' room). */
+export const HERD_MARGIN = 10;
+
+/**
+ * Keep a sprite, and its whole roaming beat, inside the visible range [l, r] (graphics round 2:
+ * a horse at a phone's edge used to be cut in half, its tag with it).
+ */
+export function clampToView(item: AnimItem, l: number, r: number): AnimItem {
+  const range = item.roam?.range ?? 0;
+  // a roaming horse walks `range` px forward from x (backward when flipped) and back
+  const back = item.flip ? range : 0;
+  const ahead = item.flip ? 0 : range;
+  const lo = l + HERD_MARGIN + back;
+  const hi = r - HERD_MARGIN - item.fw - ahead;
+  const x = hi < lo ? Math.round((lo + hi) / 2) : Math.min(hi, Math.max(lo, item.x));
+  return x === item.x ? item : { ...item, x };
+}
+
 export function layoutHerd(horses: StableHorse[], l: number, r: number): { placed: Placed[]; inBarn: number } {
+  l += HERD_MARGIN;
+  r -= HERD_MARGIN;
   const span = Math.max(0, r - l - 24);
   const placed: Placed[] = [];
   const look = (s: StableHorse) => ({ coat: s.horse.appearance.coat, appearance: s.horse.appearance });
@@ -107,10 +127,54 @@ export function layoutHerd(horses: StableHorse[], l: number, r: number): { place
       }),
     });
   });
+  // nothing past the visible edges, whatever the column maths gave
+  for (const p of placed) p.item = clampToView(p.item, l - HERD_MARGIN, r + HERD_MARGIN);
   // back to front, so nearer horses' tags and tap areas sit on top
   const order = { far: 0, mid: 1, near: 2 } as const;
   placed.sort((a, b) => order[a.row] - order[b.row]);
   return { placed, inBarn: horses.length - placed.length };
+}
+
+export interface TagBox {
+  id: string;
+  /** The horse's drawn box (stage px). */
+  x: number;
+  y: number;
+  w: number;
+  /** The tag's size. */
+  tw: number;
+  th: number;
+  far: boolean;
+}
+
+/**
+ * Name tags laid out over the herd (graphics round 2): each tag centred over its horse, kept
+ * inside the stage, and lifted above any tag it would cover (nearest the horse first), with a
+ * leader line back down to its horse. Returns each tag's offset from its horse's box and the
+ * leader's length (stage px). Pure, so the layout is tested without a browser.
+ */
+export function placeTags(boxes: readonly TagBox[], stageW: number, pad = 4): { id: string; dx: number; dy: number; lead: number; left: number; top: number }[] {
+  const placed: { id: string; left: number; top: number; tw: number; th: number }[] = [];
+  const out: { id: string; dx: number; dy: number; lead: number; left: number; top: number }[] = [];
+  // nearer horses (lower on the stage) first: they keep the spot right over the horse
+  const order = [...boxes].sort((a, b) => b.y - a.y || a.x - b.x);
+  for (const b of order) {
+    const gap = b.far ? 6 : 4;
+    const homeTop = b.y - b.th - gap;
+    let left = Math.round(b.x + b.w / 2 - b.tw / 2);
+    left = Math.max(pad, Math.min(stageW - pad - b.tw, left));
+    let top = Math.max(pad, homeTop);
+    const hits = (t: number) => placed.find((p) => left < p.left + p.tw + 2 && p.left < left + b.tw + 2 && t < p.top + p.th + 2 && p.top < t + b.th + 2);
+    for (let guard = 0; guard < 24; guard++) {
+      const h = hits(top);
+      if (!h) break;
+      const up = h.top - b.th - 3;
+      top = up >= pad ? up : h.top + h.th + 3; // no room above: just below the other tag
+    }
+    placed.push({ id: b.id, left, top, tw: b.tw, th: b.th });
+    out.push({ id: b.id, dx: left - b.x, dy: top - b.y, lead: Math.max(0, homeTop - top), left, top });
+  }
+  return out;
 }
 
 interface View {
@@ -158,9 +222,11 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
       }),
     [herd],
   );
-  // Name tags ride on the horses: each frame, read where the engine drew them.
+  // Name tags ride on the horses: each frame, read where the engine drew them, then lay the
+  // tags out so none covers another or leaves the stage (placeTags), each tied to its horse.
   const engine = useRef<DioramaEngine | null>(null);
   const tags = useRef(new Map<string, HTMLLIElement>());
+  const rows = useRef(new Map<string, "far" | "mid" | "near">());
   useEffect(() => {
     let raf = 0;
     const tick = () => {
@@ -170,12 +236,23 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
       if (!e || !el) return;
       const W = el.clientWidth;
       const H = el.clientHeight;
+      const boxes: TagBox[] = [];
       for (const [id, a] of e.anchors()) {
         const li = tags.current.get(id);
         if (!li) continue;
-        li.style.transform = `translate(${Math.round(a.x * W)}px, ${Math.round(a.y * H)}px)`;
+        const x = Math.round(a.x * W);
+        const y = Math.round(a.y * H);
+        li.style.transform = `translate(${x}px, ${y}px)`;
         li.style.width = `${Math.round(a.w * W)}px`;
         li.style.height = `${Math.round(a.h * H)}px`;
+        const tag = li.querySelector<HTMLElement>(".ranch-tag");
+        if (tag) boxes.push({ id, x, y, w: Math.round(a.w * W), tw: tag.offsetWidth, th: tag.offsetHeight, far: rows.current.get(id) === "far" });
+      }
+      for (const p of placeTags(boxes, W)) {
+        const tag = tags.current.get(p.id)?.querySelector<HTMLElement>(".ranch-tag");
+        if (!tag) continue;
+        tag.style.transform = `translate(${p.dx}px, ${p.dy}px)`;
+        tag.style.setProperty("--lead", `${p.lead}px`);
       }
     };
     raf = requestAnimationFrame(tick);
@@ -202,6 +279,7 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
         {view && (
           <ul className="ranch-tags" aria-label="Horses in the paddocks">
             {herd.placed.map(({ s, item, row }) => {
+              rows.current.set(s.id, row);
               // until the engine reports where it drew the horse: its authored spot
               const left = (item.x - view.vx) * view.u;
               const top = (item.y - item.fh - view.vy) * view.u;

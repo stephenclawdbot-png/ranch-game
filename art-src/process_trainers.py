@@ -15,10 +15,10 @@ OUT = os.path.join(ROOT, "apps/web/public/art/portraits/trainers")
 
 PICKS = {
     "house-harrowgate": "house-harrowgate-9301-0",
-    "house-larkspur": "house-larkspur-9302-1",
+    "house-larkspur": "house-larkspur-9351-1",  # round 2: period dress (gen-round2.mjs trainers)
     "house-vicarage": "house-vicarage-9303-0",
-    "house-saltmarsh": "house-saltmarsh-9304-1",
-    "house-kestrel": "house-kestrel-9305-2",
+    "house-saltmarsh": "house-saltmarsh-9352-1",  # round 2: period dress
+    "house-kestrel": "house-kestrel-9353-0",  # round 2: period dress
     "house-bellmont": "house-bellmont-9306-0",
     "house-copperfield": "house-copperfield-9307-0",
     "house-ashcombe": "house-ashcombe-9308-1",

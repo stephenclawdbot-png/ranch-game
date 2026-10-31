@@ -15,7 +15,7 @@ import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
 import { PositionBadge } from "../ui/PositionBadge";
 import { TrackTile } from "../RaceList";
-import { HowItWorks, SceneArt, SceneBand } from "../ui/Page";
+import { HowItWorks, SceneBand, StillScene, type StillSceneName } from "../ui/Page";
 
 type Mode = "watch" | "instant";
 
@@ -129,14 +129,18 @@ function RaceCard({ race, chapter, rivals, signedIn }: { race: StoryRaceView; ch
   );
 }
 
+/** One scene per chapter: the meetings grow from a village point-to-point to Classic day. */
+const CHAPTER_SCENE: Record<string, StillSceneName> = { club: "chapter-club", county: "chapter-county", national: "chapter-national", classics: "chapter-classics" };
+
 function ChapterPanel({ chapter, view, signedIn }: { chapter: ChapterView; view: StoryView; signedIn: boolean }) {
   const pct = Math.min(100, Math.round((Math.min(chapter.wins, chapter.winsToComplete) * 100) / chapter.winsToComplete));
   return (
     <section className="grid gap-4" aria-labelledby={`ch-${chapter.id}`} data-testid="story-chapter" data-chapter={chapter.id}>
       <div className="frame-hero grid gap-3 overflow-hidden p-4 sm:p-5">
-        <div className="relative -mx-4 -mt-4 h-28 overflow-hidden sm:-mx-5 sm:-mt-5 [--bh:112px] [--k:1] md:h-40 md:[--bh:160px]">
-          <SceneArt scene={chapter.number % 2 ? "paddock" : "grandstand"} alt="" />
-          <span className="absolute bottom-2 left-4 tag tag-ready">Chapter {chapter.number}</span>
+        {/* each chapter its own meeting (village point-to-point .. the Classics), full width at 1x / 2x */}
+        <div className="chapter-scene relative -mx-4 -mt-4 h-28 overflow-hidden sm:-mx-5 sm:-mt-5 [--bh:112px] [--k:1] md:h-40 md:[--bh:160px] md:[--k:2]" data-chapter-scene={CHAPTER_SCENE[chapter.id] ?? "chapter-club"}>
+          <StillScene scene={CHAPTER_SCENE[chapter.id] ?? "chapter-club"} alt="" />
+          <span className="absolute bottom-3 left-4 z-[1] tag tag-ready shadow-[0_2px_0_#050d08]">Chapter {chapter.number}</span>
         </div>
         <div>
           <p className="eyebrow">{chapter.tagline}</p>
@@ -191,7 +195,7 @@ export function StoryScreen({ view, signedIn }: { view: StoryView; signedIn: boo
   };
   return (
     <div className="grid gap-6">
-      <SceneBand scene="paddock" alt="The paddock" eyebrow="Your career, solo" title="Story" />
+      <SceneBand scene="story-road" alt="A young owner and an old trainer at the gate, the road to the racecourse ahead" eyebrow="Your career, solo" title="Story" testId="story-band" />
       <HowItWorks className="-mt-2">
         <p>From the Club to the Classics, against named rival stables. Story races are free (no stable entries, never a career start) and you can watch or skip to the result.</p>
         <p>Win three races in a chapter to earn its licence, which opens bigger Live races. First wins pay in full; replays pay a little, up to the chapter&rsquo;s credit cap.</p>
@@ -200,7 +204,7 @@ export function StoryScreen({ view, signedIn }: { view: StoryView; signedIn: boo
       {!signedIn && <JoinNudge compact />}
 
       <section className="surface flex flex-wrap items-center gap-3 p-4" aria-label="Your licence" data-testid="story-licence">
-        <PixelIcon name="shield" size={32} className="shrink-0" />
+        <PixelIcon name="licence" size={32} className="shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="t-title text-cream">{view.licence.name}</p>
           <p className="t-meta">Live races open to you: {view.licence.unlocks.join("; ")}.</p>

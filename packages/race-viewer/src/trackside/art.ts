@@ -7,7 +7,7 @@
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
-import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, type IndexedFrames, type Palette } from "./strips";
+import { downsampleFrames, buildMarkMasks, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
 import type { AnimId } from "../stage/motion";
 import type { RaceStage } from "../stage/buildRaceStage";
 
@@ -96,7 +96,15 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
   const l1 = indexStrip(rgba, img.naturalWidth, fh, frames, palette, anchor, nrm);
   if (!l1) return null;
   const lods = [l1, downsampleFrames(l1, 2, palette), downsampleFrames(l1, 3, palette), downsampleFrames(l1, 4, palette)];
-  return { lods, silk: new Float32Array(0), mask: buildMarkMasks(l1, palette, keys), pxPerM };
+  const mask = buildMarkMasks(l1, palette, keys);
+  // women riders: the -f strip's differences go into the same mask (one strip for every runner)
+  const fEntry = approved(art, `${stem}-f.png`);
+  const fImg = fEntry?.src ? await loadImg(urlOf(art, fEntry.src)).catch(() => null) : null;
+  if (fImg && fImg.naturalWidth === img.naturalWidth && fImg.naturalHeight === img.naturalHeight) {
+    const lf = indexStrip(pixels(fImg), img.naturalWidth, fh, frames, palette, anchor, null);
+    if (lf) womanMasks(l1, lf, mask);
+  }
+  return { lods, silk: new Float32Array(0), mask, pxPerM };
 }
 
 /** A course's scenery art (manifest src paths), approved files only; missing ones are skipped. */

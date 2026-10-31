@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, an empty green racecourse starting stall with both front gates open",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9610,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4bd59b61-508c-4448-8859-8f14b7b84323",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "4bd59b61-508c-4448-8859-8f14b7b84323",
+  "status": "completed",
+  "created_at": "2026-10-31T15:00:23.606445+00:00",
+  "last_response": {
+   "seed": 9610,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1636 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1792 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1644 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1764 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2000 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1800 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1444 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1412 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1912 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1928 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1916 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1536 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1992 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1740 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1812 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1888 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2100 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1648 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1780 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1808 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1952 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1840 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1440 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1508 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1688 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1916 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1768 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1648 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1716 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1520 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1792 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1512 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1904 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2024 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1924 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2004 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1984 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1780 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1928 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1960 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1804 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1812 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1760 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1772 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1544 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1588 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2120 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1988 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<2052 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1952 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1788 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1656 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1552 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1580 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1764 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1604 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1832 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1768 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1812 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1624 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1724 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1420 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1660 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1684 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "ac5c4e77-4dfa-42e4-a011-098bde8befd4",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:29.911648+00:00",
+   "original_image_n_colors": 106,
+   "quantized_image_n_colors": 70
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/stalls-empty-9610-0.png",
+  "art-src/raw/ui2/stalls-empty-9610-1.png",
+  "art-src/raw/ui2/stalls-empty-9610-2.png",
+  "art-src/raw/ui2/stalls-empty-9610-3.png",
+  "art-src/raw/ui2/stalls-empty-9610-4.png",
+  "art-src/raw/ui2/stalls-empty-9610-5.png",
+  "art-src/raw/ui2/stalls-empty-9610-6.png",
+  "art-src/raw/ui2/stalls-empty-9610-7.png",
+  "art-src/raw/ui2/stalls-empty-9610-8.png",
+  "art-src/raw/ui2/stalls-empty-9610-9.png",
+  "art-src/raw/ui2/stalls-empty-9610-10.png",
+  "art-src/raw/ui2/stalls-empty-9610-11.png",
+  "art-src/raw/ui2/stalls-empty-9610-12.png",
+  "art-src/raw/ui2/stalls-empty-9610-13.png",
+  "art-src/raw/ui2/stalls-empty-9610-14.png",
+  "art-src/raw/ui2/stalls-empty-9610-15.png",
+  "art-src/raw/ui2/stalls-empty-9610-16.png",
+  "art-src/raw/ui2/stalls-empty-9610-17.png",
+  "art-src/raw/ui2/stalls-empty-9610-18.png",
+  "art-src/raw/ui2/stalls-empty-9610-19.png",
+  "art-src/raw/ui2/stalls-empty-9610-20.png",
+  "art-src/raw/ui2/stalls-empty-9610-21.png",
+  "art-src/raw/ui2/stalls-empty-9610-22.png",
+  "art-src/raw/ui2/stalls-empty-9610-23.png",
+  "art-src/raw/ui2/stalls-empty-9610-24.png",
+  "art-src/raw/ui2/stalls-empty-9610-25.png",
+  "art-src/raw/ui2/stalls-empty-9610-26.png",
+  "art-src/raw/ui2/stalls-empty-9610-27.png",
+  "art-src/raw/ui2/stalls-empty-9610-28.png",
+  "art-src/raw/ui2/stalls-empty-9610-29.png",
+  "art-src/raw/ui2/stalls-empty-9610-30.png",
+  "art-src/raw/ui2/stalls-empty-9610-31.png",
+  "art-src/raw/ui2/stalls-empty-9610-32.png",
+  "art-src/raw/ui2/stalls-empty-9610-33.png",
+  "art-src/raw/ui2/stalls-empty-9610-34.png",
+  "art-src/raw/ui2/stalls-empty-9610-35.png",
+  "art-src/raw/ui2/stalls-empty-9610-36.png",
+  "art-src/raw/ui2/stalls-empty-9610-37.png",
+  "art-src/raw/ui2/stalls-empty-9610-38.png",
+  "art-src/raw/ui2/stalls-empty-9610-39.png",
+  "art-src/raw/ui2/stalls-empty-9610-40.png",
+  "art-src/raw/ui2/stalls-empty-9610-41.png",
+  "art-src/raw/ui2/stalls-empty-9610-42.png",
+  "art-src/raw/ui2/stalls-empty-9610-43.png",
+  "art-src/raw/ui2/stalls-empty-9610-44.png",
+  "art-src/raw/ui2/stalls-empty-9610-45.png",
+  "art-src/raw/ui2/stalls-empty-9610-46.png",
+  "art-src/raw/ui2/stalls-empty-9610-47.png",
+  "art-src/raw/ui2/stalls-empty-9610-48.png",
+  "art-src/raw/ui2/stalls-empty-9610-49.png",
+  "art-src/raw/ui2/stalls-empty-9610-50.png",
+  "art-src/raw/ui2/stalls-empty-9610-51.png",
+  "art-src/raw/ui2/stalls-empty-9610-52.png",
+  "art-src/raw/ui2/stalls-empty-9610-53.png",
+  "art-src/raw/ui2/stalls-empty-9610-54.png",
+  "art-src/raw/ui2/stalls-empty-9610-55.png",
+  "art-src/raw/ui2/stalls-empty-9610-56.png",
+  "art-src/raw/ui2/stalls-empty-9610-57.png",
+  "art-src/raw/ui2/stalls-empty-9610-58.png",
+  "art-src/raw/ui2/stalls-empty-9610-59.png",
+  "art-src/raw/ui2/stalls-empty-9610-60.png",
+  "art-src/raw/ui2/stalls-empty-9610-61.png",
+  "art-src/raw/ui2/stalls-empty-9610-62.png",
+  "art-src/raw/ui2/stalls-empty-9610-63.png"
+ ]
+}

@@ -1,0 +1,515 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "small game UI icon, single object centred, chunky readable pixel art with dark ink outline, warm racing-club palette: deep racing green, warm cream, brass gold, oxblood red, ink black, transparent background, no text, a small wooden auction lot board on a stand with a gavel resting on it",
+  "image_size": {
+   "width": 32,
+   "height": 32
+  },
+  "no_background": true,
+  "seed": 9616,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<2168 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 32,
+    "height": 32
+   }
+  },
+  "style_options": {
+   "color_palette": true,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "3b5b718a-b4e6-4055-bb70-1568b8ef2c35",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "3b5b718a-b4e6-4055-bb70-1568b8ef2c35",
+  "status": "completed",
+  "created_at": "2026-10-31T14:59:57.229594+00:00",
+  "last_response": {
+   "seed": 9616,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1416 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1260 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1276 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1344 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1428 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1260 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1108 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1220 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1388 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1348 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1404 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1468 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1148 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1212 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1300 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1228 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1208 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1292 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1324 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1424 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1084 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1368 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1376 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1292 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1308 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1276 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1268 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1292 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1016 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1128 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1316 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1452 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1288 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1448 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1364 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1140 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1272 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1268 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1092 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1488 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1488 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1228 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1032 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1416 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1276 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1380 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1196 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1452 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1400 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1124 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1340 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1320 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1280 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1024 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1112 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1156 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1048 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1036 chars>",
+     "height": 32
+    },
+    {
+     "type": "base64",
+     "width": 32,
+     "base64": "<1428 chars>",
+     "height": 32
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "b9a4d168-c93b-44d9-bcf8-1529fc5bbf1a",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:00:03.377529+00:00",
+   "original_image_n_colors": 98,
+   "quantized_image_n_colors": 54
+  }
+ },
+ "files": [
+  "art-src/raw/ui2/sale-board-9616-0.png",
+  "art-src/raw/ui2/sale-board-9616-1.png",
+  "art-src/raw/ui2/sale-board-9616-2.png",
+  "art-src/raw/ui2/sale-board-9616-3.png",
+  "art-src/raw/ui2/sale-board-9616-4.png",
+  "art-src/raw/ui2/sale-board-9616-5.png",
+  "art-src/raw/ui2/sale-board-9616-6.png",
+  "art-src/raw/ui2/sale-board-9616-7.png",
+  "art-src/raw/ui2/sale-board-9616-8.png",
+  "art-src/raw/ui2/sale-board-9616-9.png",
+  "art-src/raw/ui2/sale-board-9616-10.png",
+  "art-src/raw/ui2/sale-board-9616-11.png",
+  "art-src/raw/ui2/sale-board-9616-12.png",
+  "art-src/raw/ui2/sale-board-9616-13.png",
+  "art-src/raw/ui2/sale-board-9616-14.png",
+  "art-src/raw/ui2/sale-board-9616-15.png",
+  "art-src/raw/ui2/sale-board-9616-16.png",
+  "art-src/raw/ui2/sale-board-9616-17.png",
+  "art-src/raw/ui2/sale-board-9616-18.png",
+  "art-src/raw/ui2/sale-board-9616-19.png",
+  "art-src/raw/ui2/sale-board-9616-20.png",
+  "art-src/raw/ui2/sale-board-9616-21.png",
+  "art-src/raw/ui2/sale-board-9616-22.png",
+  "art-src/raw/ui2/sale-board-9616-23.png",
+  "art-src/raw/ui2/sale-board-9616-24.png",
+  "art-src/raw/ui2/sale-board-9616-25.png",
+  "art-src/raw/ui2/sale-board-9616-26.png",
+  "art-src/raw/ui2/sale-board-9616-27.png",
+  "art-src/raw/ui2/sale-board-9616-28.png",
+  "art-src/raw/ui2/sale-board-9616-29.png",
+  "art-src/raw/ui2/sale-board-9616-30.png",
+  "art-src/raw/ui2/sale-board-9616-31.png",
+  "art-src/raw/ui2/sale-board-9616-32.png",
+  "art-src/raw/ui2/sale-board-9616-33.png",
+  "art-src/raw/ui2/sale-board-9616-34.png",
+  "art-src/raw/ui2/sale-board-9616-35.png",
+  "art-src/raw/ui2/sale-board-9616-36.png",
+  "art-src/raw/ui2/sale-board-9616-37.png",
+  "art-src/raw/ui2/sale-board-9616-38.png",
+  "art-src/raw/ui2/sale-board-9616-39.png",
+  "art-src/raw/ui2/sale-board-9616-40.png",
+  "art-src/raw/ui2/sale-board-9616-41.png",
+  "art-src/raw/ui2/sale-board-9616-42.png",
+  "art-src/raw/ui2/sale-board-9616-43.png",
+  "art-src/raw/ui2/sale-board-9616-44.png",
+  "art-src/raw/ui2/sale-board-9616-45.png",
+  "art-src/raw/ui2/sale-board-9616-46.png",
+  "art-src/raw/ui2/sale-board-9616-47.png",
+  "art-src/raw/ui2/sale-board-9616-48.png",
+  "art-src/raw/ui2/sale-board-9616-49.png",
+  "art-src/raw/ui2/sale-board-9616-50.png",
+  "art-src/raw/ui2/sale-board-9616-51.png",
+  "art-src/raw/ui2/sale-board-9616-52.png",
+  "art-src/raw/ui2/sale-board-9616-53.png",
+  "art-src/raw/ui2/sale-board-9616-54.png",
+  "art-src/raw/ui2/sale-board-9616-55.png",
+  "art-src/raw/ui2/sale-board-9616-56.png",
+  "art-src/raw/ui2/sale-board-9616-57.png",
+  "art-src/raw/ui2/sale-board-9616-58.png",
+  "art-src/raw/ui2/sale-board-9616-59.png",
+  "art-src/raw/ui2/sale-board-9616-60.png",
+  "art-src/raw/ui2/sale-board-9616-61.png",
+  "art-src/raw/ui2/sale-board-9616-62.png",
+  "art-src/raw/ui2/sale-board-9616-63.png"
+ ]
+}

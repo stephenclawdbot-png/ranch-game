@@ -15,7 +15,7 @@ export default function BreedingBasicsPage() {
         Breeding is how a stable gets better than the horses it started with. You pair a stallion with a mare, the foal arrives a day later, and its genes are a fresh roll of both parents. Good
         lines compound over generations; bad luck is part of it too.
       </Lead>
-      <Figure src="/art/diorama/poster-pasture.png" alt="Mares and foals turned out in the paddock" caption="Your mares and youngstock live out on the Ranch between races." focus={0.62} />
+      <Figure src="/art/scenes/wiki-mare-foal.png" alt="A chestnut mare and her foal under an oak in a buttercup paddock" caption="Your mares and youngstock live out on the Ranch between races." focus={0.62} />
 
       <H2 id="who-can-breed">Who can breed</H2>
       <List

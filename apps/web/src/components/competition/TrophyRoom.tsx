@@ -34,17 +34,21 @@ function Sprite({ piece, dim = false }: { piece: Piece; dim?: boolean }) {
   );
 }
 
+/** Plaques are small engravings (45x42): drawn at 2x so the engraving reads (graphics round 2). */
+const PLAQUE_SCALE = 2;
+
 /** Each achievement's own engraved plaque (art/trophies/plaques.png); unknown ids use the shared one. */
 function Plaque({ id, dim }: { id: string; dim: boolean }) {
   const i = PLAQUES.ids.indexOf(id);
   if (i < 0) return <Sprite piece="plaque" dim={dim} />;
   const [w, h] = PLAQUES.cell as [number, number];
+  const k = PLAQUE_SCALE;
   return (
     <span
-      className={`trophy-sprite ${dim ? "is-dim" : ""}`}
+      className={`trophy-sprite plaque-2x ${dim ? "is-dim" : ""}`}
       aria-hidden
       data-plaque={id}
-      style={{ width: w, height: h, backgroundImage: "url(/art/trophies/plaques.png)", backgroundPosition: `${-i * w}px 0px`, backgroundSize: `${w * PLAQUES.ids.length}px ${h}px` }}
+      style={{ width: w * k, height: h * k, backgroundImage: "url(/art/trophies/plaques.png)", backgroundPosition: `${-i * w * k}px 0px`, backgroundSize: `${w * k * PLAQUES.ids.length}px ${h * k}px` }}
     />
   );
 }

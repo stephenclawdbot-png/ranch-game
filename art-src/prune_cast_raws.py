@@ -10,12 +10,15 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BATCH = {"jockeys": "process_jockeys", "trainers": "process_trainers", "sections": "process_sections", "vignettes": "process_vignettes", "plaques": "process_plaques"}
+BATCH = {"jockeys": "process_jockeys", "trainers": "process_trainers", "sections": "process_sections", "vignettes": "process_vignettes", "plaques": "process_plaques", "ui2": "process_icons2"}
 # style references the generators read
 KEEP_ALWAYS = {"plaques": {"style-old-plaque.png"}, "vignettes": {"photo-finish-9803-5.png"}}
 
 
 def picks(mod):
+    if mod == "process_jockeys":
+        import json
+        return json.load(open(os.path.join(ROOT, "art-src/jockey_picks.json"))).values()
     spec = importlib.util.spec_from_file_location(mod, os.path.join(ROOT, "art-src", mod + ".py"))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
