@@ -4,11 +4,11 @@
  * Pure functions only: no Date, no Math.random, no Node or DOM APIs.
  */
 import { RaceInputSchema, type RaceInput, type RaceReplay } from "@thoroughbred/shared";
-import { commitSeed, deriveSeed } from "./hash";
+import { commitSeed, deriveSeed, mixSeedEntropy } from "./hash";
 import { COURSE_ENGINE_VERSION, ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, canonicalResult, engineVersionFor, runRace } from "./simulate";
 import { sha256Hex } from "./hash";
 
-export { ENGINE_VERSION, COURSE_ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed };
+export { ENGINE_VERSION, COURSE_ENGINE_VERSION, KIT_ENGINE_VERSION, LEGACY_ENGINE_VERSION, engineVersionFor, commitSeed, deriveSeed, mixSeedEntropy };
 export { BATTLE_AHEAD_MM, BATTLE_BASE, BATTLE_BEHIND_MM, BATTLE_FROM_MM, BATTLE_GRIT, BATTLE_TEMPER, PACK_CARRY, PACK_PULL, battleResponse, jockeyBattle, packCarried, packPull } from "./simulate";
 export { DRAMA_FORM_PERMILLE } from "./model";
 export {
