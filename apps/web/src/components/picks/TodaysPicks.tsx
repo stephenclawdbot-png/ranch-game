@@ -44,10 +44,10 @@ export function TodaysPicks() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold text-cream">{r.name}</span>
                     <span className="caption block">
-                      Off <LocalTime ms={r.postTimeMs} /> · {r.runners} declared
+                      Off <LocalTime ms={r.postTimeMs} /> · {r.runners} declared{r.mine ? ` · your pick: ${r.mine.horseName}` : ""}
                     </span>
                   </span>
-                  <span className={r.mine ? "tag tag-good max-w-[45%] truncate" : "btn btn-sm"}>{r.mine ? `Picked: ${r.mine.horseName}` : "Pick"}</span>
+                  <span className={r.mine ? "tag tag-good shrink-0" : "btn btn-sm shrink-0"}>{r.mine ? "Picked ✓" : "Pick"}</span>
                 </Link>
               </li>
             ))}

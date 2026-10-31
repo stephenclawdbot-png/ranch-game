@@ -65,7 +65,7 @@ export function BringRival() {
         </div>
       </section>
 
-      <Section id="declared-h" title="Your invited rivals" aside={<span className="eyebrow">{v.accepted} took up the challenge</span>}>
+      <Section id="declared-h" title="Your invited rivals" aside={<span className="eyebrow shrink-0">{v.accepted} accepted</span>}>
         {v.declared.length === 0 ? (
           <EmptyState icon="silks-sash" title="No one yet" text="Send your link to a friend who'd enjoy beating you." />
         ) : (

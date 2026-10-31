@@ -134,7 +134,7 @@ function AudiencePanel({ a }: { a: Audience }) {
         Players by audience <span className="text-sm font-normal text-cream-dim">({a.fromDay} to {a.toDay}, UTC)</span>
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[34rem] text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-left">
               <th className="p-1" />
@@ -155,13 +155,13 @@ function AudiencePanel({ a }: { a: Audience }) {
                 ["Active days", (g: AudienceGroup) => n0(g.activeDays)],
                 ["Credits spent / active day (median)", (g: AudienceGroup) => (g.medianSpentPerActiveDay === null ? "–" : n0(g.medianSpentPerActiveDay))],
                 ["Races entered / active day", (g: AudienceGroup) => (g.racesPerActiveDay === null ? "–" : g.racesPerActiveDay.toFixed(2))],
-                ["USDG / T-USDG actions", (g: AudienceGroup) => (g.usdg ? `${n0(g.usdg.actions)} (orders: ${g.usdg.testnetOrders} testnet · ${g.usdg.mainnetOrders} mainnet)` : "n/a")],
+                ["USDG / T-USDG actions", (g: AudienceGroup) => (g.usdg ? `${n0(g.usdg.actions)} · orders ${g.usdg.testnetOrders} testnet, ${g.usdg.mainnetOrders} mainnet` : "n/a")],
               ] as const
             ).map(([label, f]) => (
               <tr key={label} className="border-t-2 border-line">
                 <td className="p-1 font-bold">{label}</td>
                 {a.groups.map((g) => (
-                  <td key={g.key} className="num p-1 text-right">
+                  <td key={g.key} className="num p-1 text-right align-top">
                     {f(g)}
                   </td>
                 ))}
