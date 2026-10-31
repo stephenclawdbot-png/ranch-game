@@ -75,3 +75,17 @@ match the risk model (`injuryRisk` at the off): Club fill runs 104 injuries vs 9
     holds, look at tired entries (grinders enter with `tiredOk`) and the going at meeting times.
 - **Undetected alt groups** still move ~6k a season through stud fees (under the fee cap).
 - Casual stables rarely reach Saturday (10%): expected for one visit a day; watch in the beta.
+
+## 2026-10-31 decision: Club fill stays at [P-2, P+10] (owner chose option A)
+
+Compared after clubfill11 (the merged Club fill with race-day parity):
+
+| Option | Purses vs courses1 | Players win races they enter | Per start | Spent per 100 |
+|---|---|---|---|---|
+| **A: [P-2, P+10] (kept)** | −29% | 52.8% | 8.6% | 86.5 |
+| B: [P-4, P+8] (clubfill12) | −18% | 57.1% | 9.1% | 83.9 |
+| C: A + everyday card purses ×1.2 (purse120) | −22% | 51.4% | 8.4% | 86.0 |
+
+C only lifts purses ~10% net because card entry fees are 5% of the purse. The owner wants Club
+fields to be a real challenge for players ("median and above"), so A stays; revisit purses if
+the beta shows stables going broke (grinder median balances swing 145-954 between runs).
