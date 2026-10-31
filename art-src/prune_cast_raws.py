@@ -16,6 +16,9 @@ KEEP_ALWAYS = {"plaques": {"style-old-plaque.png"}, "vignettes": {"photo-finish-
 
 
 def picks(mod):
+    if mod == "process_jockeys":
+        import json
+        return json.load(open(os.path.join(ROOT, "art-src/jockey_picks.json"))).values()
     spec = importlib.util.spec_from_file_location(mod, os.path.join(ROOT, "art-src", mod + ".py"))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)

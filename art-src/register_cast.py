@@ -43,12 +43,12 @@ def prompt(raw_dir, stem, post):
 
 def main():
     entries = []
-    for pid, stem in load("process_jockeys").items():
+    for pid, stem in json.load(open(os.path.join(ROOT, "art-src/jockey_picks.json"))).items():
         entries.append({
             "id": f"portrait.jockey.{pid}", "kind": "jockey", "depthBand": "overlay", "src": f"portraits/jockeys/{pid}.png",
             "optimizationTier": "hero", "anchor": {"x": 0.5, "y": 0.5},
-            "sourcePrompt": prompt("jockeys", stem, "silks snapped to race/palette.json silks keys, face masked out (art-src/process_jockeys.py)"),
-            "variants": ["silks-keyed"],
+            "sourcePrompt": prompt("jockeys", stem, "base face: silks, lime-green hair key, skin and lips snapped to key ramps (art-src/process_jockeys.py); the look is painted at runtime"),
+            "variants": ["silks-keyed", "skin-keyed", "hair-keyed"],
         })
     for tid, stem in load("process_trainers").items():
         entries.append({

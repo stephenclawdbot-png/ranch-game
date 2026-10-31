@@ -11,7 +11,7 @@
  * shadow, a few dozen 1-px motes, 2 ray sprites, a vignette sprite. All blurs are baked once.
  */
 import { computeFrame, lodStrip, MARGIN } from "./frame";
-import { applyRecolor, lookKey, recolorMap } from "./recolor";
+import { applyRiderLook, lookKey } from "./recolor";
 import type { AnimItem, Layer, Overlay, RaySet, SceneDef, StaticItem } from "./scenes";
 
 const ART = "/art/";
@@ -534,7 +534,7 @@ export class DioramaEngine {
         } else x.drawImage(im, 0, 0);
         if (a.look) {
           const d = x.getImageData(0, 0, c.width, c.height);
-          applyRecolor(d.data, recolorMap(a.look));
+          applyRiderLook(d.data, c.width, c.height, v.fw, a.look, !!a.flip);
           x.putImageData(d, 0, 0);
         }
         this.gradeSprite(c);

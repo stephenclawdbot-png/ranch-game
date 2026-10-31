@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period portrait, an 18-year-old apprentice jockey girl, pale skin, a lime green bob, green eyes, freckles, cheeky wink, hair, eyebrows and any beard or moustache painted in flat bright lime green as a colour key, wearing 1920s racing silks: a loose bright magenta silk jacket with a buttoned collar and bright cyan silk sleeves, a soft bright magenta silk jockey's cap with a short peak, no helmet, no chin strap, white stock tie",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 7152,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "875192a0-1522-49be-ba90-37364c882265",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "875192a0-1522-49be-ba90-37364c882265",
+  "status": "completed",
+  "created_at": "2026-10-31T15:11:30.660715+00:00",
+  "last_response": {
+   "seed": 7152,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11612 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12796 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11176 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12212 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "3517cd6c-400c-44c7-8bf3-0e1f25776e60",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:11:36.797848+00:00",
+   "original_image_n_colors": 121,
+   "quantized_image_n_colors": 61
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/af-copper-wink-7152-0.png",
+  "art-src/raw/jockeys/af-copper-wink-7152-1.png",
+  "art-src/raw/jockeys/af-copper-wink-7152-2.png",
+  "art-src/raw/jockeys/af-copper-wink-7152-3.png"
+ ]
+}

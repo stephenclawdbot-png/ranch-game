@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period portrait, a young woman apprentice jockey, about 18, fair skin, a lime green ponytail, rosy cheeks, gap-toothed laugh, hair, eyebrows and any beard or moustache painted in flat bright lime green as a colour key, wearing 1920s racing silks: a loose bright magenta silk jacket with a buttoned collar and bright cyan silk sleeves, a soft bright magenta silk jockey's cap with a short peak, no helmet, no chin strap, white stock tie",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 7106,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "6f50f365-6b1f-44ab-bdf4-6406b3184dfc",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "6f50f365-6b1f-44ab-bdf4-6406b3184dfc",
+  "status": "completed",
+  "created_at": "2026-10-31T15:05:14.460717+00:00",
+  "last_response": {
+   "seed": 7106,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<10932 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<10488 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<10956 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11172 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "07c491b1-a30c-438d-897b-9777b74ec897",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:05:20.601679+00:00",
+   "original_image_n_colors": 118,
+   "quantized_image_n_colors": 56
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/a-blonde-girl-7106-0.png",
+  "art-src/raw/jockeys/a-blonde-girl-7106-1.png",
+  "art-src/raw/jockeys/a-blonde-girl-7106-2.png",
+  "art-src/raw/jockeys/a-blonde-girl-7106-3.png"
+ ]
+}

@@ -19,7 +19,7 @@ export const PH_SCALE = 0.4;
 /** Nose tip on the ground, in frame pixels. */
 export const PH_ANCHOR = { x: 112, y: 96 };
 
-export const PLACEHOLDER_KEYS: Required<KeyPalette> = {
+export const PLACEHOLDER_KEYS: Required<Omit<KeyPalette, "skin">> & Pick<KeyPalette, "skin"> = {
   coat: ["#3a1c10", "#5a2a16", "#8a4527", "#b5683d"],
   mane: ["#120c0a", "#2a1c16", "#3e2a20"],
   points: ["#140e0b", "#241a15"],

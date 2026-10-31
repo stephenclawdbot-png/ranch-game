@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period portrait, a jockey woman about 27, sun-tanned white skin, freckles, lime green hair in a bun, big laugh, hair, eyebrows and any beard or moustache painted in flat bright lime green as a colour key, wearing 1920s racing silks: a loose bright magenta silk jacket with a buttoned collar and bright cyan silk sleeves, a soft bright magenta silk jockey's cap with a short peak, no helmet, no chin strap, white stock tie",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 7179,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "4c5fe9d1-4d55-425d-9a6a-6146a1d63e81",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "4c5fe9d1-4d55-425d-9a6a-6146a1d63e81",
+  "status": "completed",
+  "created_at": "2026-10-31T15:14:50.269868+00:00",
+  "last_response": {
+   "seed": 7179,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<11876 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13172 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12048 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13000 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "03958444-7df6-4500-9513-b9a855a97056",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:14:56.447383+00:00",
+   "original_image_n_colors": 124,
+   "quantized_image_n_colors": 64
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/pf-sunny-7179-0.png",
+  "art-src/raw/jockeys/pf-sunny-7179-1.png",
+  "art-src/raw/jockeys/pf-sunny-7179-2.png",
+  "art-src/raw/jockeys/pf-sunny-7179-3.png"
+ ]
+}

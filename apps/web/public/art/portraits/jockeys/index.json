@@ -1,221 +1,2508 @@
 {
+ "version": 2,
  "size": 128,
  "faceSize": 56,
- "cast": {
+ "keys": {
+  "skin": [
+   "#5a3324",
+   "#77452f",
+   "#94593c",
+   "#ad6e4d",
+   "#c58662",
+   "#d89d79",
+   "#e6b392",
+   "#f1caae"
+  ],
+  "lip": [
+   "#6b2b2d",
+   "#93403f",
+   "#b85a55"
+  ],
+  "hair": [
+   "#24160d",
+   "#3b2516",
+   "#55361f",
+   "#70492b",
+   "#8d6039",
+   "#ad7c4f"
+  ]
+ },
+ "faces": {
   "a-freckled-lad": {
-   "stage": "apprentice",
-   "presents": "m",
-   "face": [
-    38,
-    24
-   ]
-  },
-  "a-young-woman-braid": {
-   "stage": "apprentice",
-   "presents": "f",
-   "face": [
-    47,
-    26
-   ]
-  },
-  "a-shy-lad": {
-   "stage": "apprentice",
-   "presents": "m",
-   "face": [
-    47,
-    25
-   ]
-  },
-  "a-bright-girl": {
-   "stage": "apprentice",
-   "presents": "f",
    "face": [
     42,
-    27
-   ]
+    26
+   ],
+   "eyes": [
+    [
+     74,
+     49,
+     4
+    ],
+    [
+     91,
+     51,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "a-young-woman-braid": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "a-shy-lad": {
+   "face": [
+    47,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     49,
+     4
+    ],
+    [
+     88,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "a-bright-girl": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     69,
+     49,
+     4
+    ],
+    [
+     87,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
   },
   "a-lanky-lad": {
-   "stage": "apprentice",
-   "presents": "m",
    "face": [
-    41,
-    26
-   ]
+    19,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
   },
   "a-blonde-girl": {
-   "stage": "apprentice",
-   "presents": "f",
-   "face": [
-    34,
-    25
-   ]
-  },
-  "j-calm-man": {
-   "stage": "prime",
-   "presents": "m",
-   "face": [
-    41,
-    27
-   ]
-  },
-  "j-sharp-woman": {
-   "stage": "prime",
-   "presents": "f",
    "face": [
     41,
     26
-   ]
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "a-quiet-girl": {
+   "face": [
+    28,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     51,
+     4
+    ],
+    [
+     89,
+     51,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "j-calm-man": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "j-sharp-woman": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     74,
+     49,
+     4
+    ],
+    [
+     89,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
   },
   "j-grinning-man": {
-   "stage": "prime",
-   "presents": "m",
    "face": [
     41,
-    27
-   ]
+    26
+   ],
+   "eyes": [
+    [
+     75,
+     48,
+     4
+    ],
+    [
+     91,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
   },
   "j-stern-woman": {
-   "stage": "prime",
-   "presents": "f",
-   "face": [
-    41,
-    25
-   ]
-  },
-  "j-irish-man": {
-   "stage": "prime",
-   "presents": "m",
    "face": [
     40,
     25
-   ]
+   ],
+   "eyes": [
+    [
+     68,
+     49,
+     4
+    ],
+    [
+     86,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "j-irish-man": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
   },
   "j-moustache-man": {
-   "stage": "prime",
-   "presents": "m",
    "face": [
     40,
     27
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    79,
+    84,
+    58
    ]
   },
   "j-kind-woman": {
-   "stage": "prime",
-   "presents": "f",
-   "face": [
-    47,
-    27
-   ]
-  },
-  "j-scar-man": {
-   "stage": "prime",
-   "presents": "m",
-   "face": [
-    41,
-    24
-   ]
-  },
-  "j-glasses-woman": {
-   "stage": "prime",
-   "presents": "f",
-   "face": [
-    45,
-    27
-   ]
-  },
-  "j-curly-man": {
-   "stage": "prime",
-   "presents": "m",
    "face": [
     48,
-    27
-   ]
-  },
-  "j-focused-woman": {
-   "stage": "prime",
-   "presents": "f",
-   "face": [
-    42,
-    24
-   ]
-  },
-  "j-pale-man": {
-   "stage": "prime",
-   "presents": "m",
-   "face": [
-    42,
-    24
-   ]
-  },
-  "v-grey-man": {
-   "stage": "veteran",
-   "presents": "m",
-   "face": [
-    41,
     26
-   ]
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
   },
-  "v-silver-woman": {
-   "stage": "veteran",
-   "presents": "f",
-   "face": [
-    41,
-    24
-   ]
-  },
-  "v-craggy-man": {
-   "stage": "veteran",
-   "presents": "m",
-   "face": [
-    40,
-    26
-   ]
-  },
-  "v-wily-man": {
-   "stage": "veteran",
-   "presents": "m",
-   "face": [
-    47,
-    26
-   ]
-  },
-  "v-steely-woman": {
-   "stage": "veteran",
-   "presents": "f",
-   "face": [
-    41,
-    24
-   ]
-  },
-  "v-jolly-man": {
-   "stage": "veteran",
-   "presents": "m",
-   "face": [
-    40,
-    24
-   ]
-  },
-  "v-wise-woman": {
-   "stage": "veteran",
-   "presents": "f",
-   "face": [
-    47,
-    26
-   ]
-  },
-  "a-quiet-girl": {
-   "stage": "apprentice",
-   "presents": "f",
-   "face": [
-    46,
-    24
-   ]
-  },
-  "j-ginger-woman": {
-   "stage": "prime",
-   "presents": "f",
+  "j-scar-man": {
    "face": [
     41,
     25
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    62,
+    78,
+    77
+   ]
+  },
+  "j-glasses-woman": {
+   "face": [
+    41,
+    23
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     92,
+     44,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "j-curly-man": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": null,
+   "mouth": null
+  },
+  "j-focused-woman": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     68,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    78,
+    85,
+    71
+   ]
+  },
+  "j-pale-man": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     46,
+     45,
+     4
+    ],
+    [
+     72,
+     47,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "j-ginger-woman": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     69,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "v-grey-man": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "v-silver-woman": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     74,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    90,
+    93,
+    59
+   ]
+  },
+  "v-craggy-man": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "v-wily-man": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "v-steely-woman": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    69,
+    78,
+    79
+   ]
+  },
+  "v-jolly-man": {
+   "face": [
+    46,
+    24
+   ],
+   "eyes": [
+    [
+     72,
+     65,
+     4
+    ],
+    [
+     90,
+     68,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "v-wise-woman": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-jug-ears": {
+   "face": [
+    39,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-dimples": {
+   "face": [
+    47,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-cowlick": {
+   "face": [
+    42,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     51,
+     4
+    ],
+    [
+     92,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-first-tache": {
+   "face": [
+    39,
+    24
+   ],
+   "eyes": [
+    [
+     72,
+     49,
+     4
+    ],
+    [
+     91,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-black-curls": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-apple-cheeks": {
+   "face": [
+    40,
+    23
+   ],
+   "eyes": [
+    [
+     74,
+     50,
+     4
+    ],
+    [
+     90,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-thoughtful": {
+   "face": [
+    45,
+    27
+   ],
+   "eyes": [
+    [
+     70,
+     50,
+     4
+    ],
+    [
+     92,
+     51,
+     3
+    ]
+   ],
+   "mouth": [
+    87,
+    103,
+    95
+   ]
+  },
+  "am-cocky": {
+   "face": [
+    42,
+    24
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    79,
+    87,
+    60
+   ]
+  },
+  "am-gentle": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-nervous": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     71,
+     51,
+     4
+    ],
+    [
+     89,
+     51,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-white-blond": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     70,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-toothy": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     49,
+     4
+    ],
+    [
+     89,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-mole": {
+   "face": [
+    29,
+    27
+   ],
+   "eyes": [
+    [
+     70,
+     48,
+     4
+    ],
+    [
+     88,
+     49,
+     3
+    ]
+   ],
+   "mouth": [
+    78,
+    92,
+    60
+   ]
+  },
+  "am-blue-eyes": {
+   "face": [
+    39,
+    23
+   ],
+   "eyes": [
+    [
+     72,
+     50,
+     4
+    ],
+    [
+     89,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-thick-brows": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-sleepy": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     71,
+     49,
+     4
+    ],
+    [
+     88,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-black-eye": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     68,
+     48,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "am-wavy": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    73,
+    85,
+    65
+   ]
+  },
+  "af-shingle-bob": {
+   "face": [
+    46,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     49,
+     4
+    ],
+    [
+     89,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-plaits": {
+   "face": [
+    42,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     91,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-short-curls": {
+   "face": [
+    40,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     49,
+     4
+    ],
+    [
+     89,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-fringe": {
+   "face": [
+    44,
+    24
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-giggle": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     49,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-long-plait": {
+   "face": [
+    42,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     47,
+     4
+    ],
+    [
+     89,
+     47,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-copper-wink": {
+   "face": [
+    39,
+    26
+   ],
+   "eyes": null,
+   "mouth": null
+  },
+  "af-tied-back": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-shy": {
+   "face": [
+    42,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     52,
+     4
+    ],
+    [
+     89,
+     53,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-finger-waves": {
+   "face": [
+    45,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-auburn-curls": {
+   "face": [
+    40,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     50,
+     4
+    ],
+    [
+     90,
+     51,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-proud": {
+   "face": [
+    21,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     93,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-spectacles": {
+   "face": [
+    48,
+    27
+   ],
+   "eyes": [
+    [
+     74,
+     50,
+     4
+    ],
+    [
+     94,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-dark-eyes": {
+   "face": [
+    27,
+    24
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     92,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-tomboy": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     68,
+     49,
+     4
+    ],
+    [
+     89,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-dreamy": {
+   "face": [
+    40,
+    23
+   ],
+   "eyes": [
+    [
+     71,
+     49,
+     4
+    ],
+    [
+     92,
+     47,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "af-steady": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     89,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-pencil-tache": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-boxer": {
+   "face": [
+    42,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     91,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-neat-tache": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-trim-beard": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     75,
+     49,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-film-star": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     67,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-gaunt": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     75,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-ginger-burns": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     91,
+     47,
+     3
+    ]
+   ],
+   "mouth": [
+    75,
+    85,
+    58
+   ]
+  },
+  "pm-cool": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     91,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-big-tache": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     66,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    81,
+    85,
+    65
+   ]
+  },
+  "pm-wire-specs": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     93,
+     46,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-split-brow": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     87,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-baby-face": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": null,
+   "mouth": null
+  },
+  "pm-freckled": {
+   "face": [
+    40,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pm-stoic": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     92,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-platinum": {
+   "face": [
+    44,
+    25
+   ],
+   "eyes": [
+    [
+     71,
+     48,
+     4
+    ],
+    [
+     90,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-glossy-bob": {
+   "face": [
+    45,
+    24
+   ],
+   "eyes": [
+    [
+     68,
+     49,
+     4
+    ],
+    [
+     87,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-sunny": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-severe": {
+   "face": [
+    42,
+    24
+   ],
+   "eyes": [
+    [
+     68,
+     50,
+     4
+    ],
+    [
+     91,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-nose-ring": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-playful": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-red-curls": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     68,
+     50,
+     4
+    ],
+    [
+     90,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-beauty-mark": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    79,
+    85,
+    65
+   ]
+  },
+  "pf-composed": {
+   "face": [
+    41,
+    23
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     47,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-curly-puff": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     67,
+     51,
+     4
+    ],
+    [
+     90,
+     51,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-strong-brows": {
+   "face": [
+    42,
+    24
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     47,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-tortoiseshell": {
+   "face": [
+    45,
+    24
+   ],
+   "eyes": [
+    [
+     70,
+     48,
+     4
+    ],
+    [
+     87,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-squint": {
+   "face": [
+    42,
+    27
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    78,
+    83,
+    59
+   ]
+  },
+  "pf-cropped": {
+   "face": [
+    46,
+    27
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "pf-pixie": {
+   "face": [
+    39,
+    25
+   ],
+   "eyes": [
+    [
+     66,
+     50,
+     4
+    ],
+    [
+     85,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-walrus": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-mutton-chops": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-grey-stubble": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     87,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    70,
+    81,
+    60
+   ]
+  },
+  "vm-hawk": {
+   "face": [
+    42,
+    27
+   ],
+   "eyes": [
+    [
+     75,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-white-beard": {
+   "face": [
+    40,
+    26
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    67,
+    77,
+    80
+   ]
+  },
+  "vm-wry": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-missing-tooth": {
+   "face": [
+    40,
+    26
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-kindly": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     91,
+     49,
+     3
+    ]
+   ],
+   "mouth": [
+    63,
+    79,
+    77
+   ]
+  },
+  "vm-proud": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-faded-ginger": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    90,
+    93,
+    58
+   ]
+  },
+  "vm-heavy-lids": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    77,
+    85,
+    60
+   ]
+  },
+  "vm-haunted": {
+   "face": [
+    42,
+    25
+   ],
+   "eyes": [
+    [
+     77,
+     48,
+     4
+    ],
+    [
+     92,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-belly-laugh": {
+   "face": [
+    42,
+    27
+   ],
+   "eyes": [
+    [
+     76,
+     47,
+     4
+    ],
+    [
+     92,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-scowl": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    75,
+    86,
+    58
+   ]
+  },
+  "vm-silver-tache": {
+   "face": [
+    25,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-cheek-scar": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     70,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vm-leathery": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-silver-bob": {
+   "face": [
+    47,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-grey-curls": {
+   "face": [
+    39,
+    24
+   ],
+   "eyes": [
+    [
+     61,
+     37,
+     4
+    ],
+    [
+     84,
+     34,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-weathered": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-round-face": {
+   "face": [
+    47,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    75,
+    86,
+    66
+   ]
+  },
+  "vf-grey-streak": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    77,
+    83,
+    70
+   ]
+  },
+  "vf-stern": {
+   "face": [
+    40,
+    24
+   ],
+   "eyes": [
+    [
+     75,
+     48,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    70,
+    78,
+    78
+   ]
+  },
+  "vf-faded-red": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     90,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-knowing": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    74,
+    84,
+    65
+   ]
+  },
+  "vf-half-moons": {
+   "face": [
+    41,
+    24
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     90,
+     49,
+     3
+    ]
+   ],
+   "mouth": [
+    68,
+    82,
+    76
+   ]
+  },
+  "vf-plait": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     72,
+     48,
+     4
+    ],
+    [
+     88,
+     49,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-hearty": {
+   "face": [
+    41,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     88,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    75,
+    85,
+    57
+   ]
+  },
+  "vf-afro-puff": {
+   "face": [
+    41,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     48,
+     4
+    ],
+    [
+     90,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-lean": {
+   "face": [
+    38,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     49,
+     4
+    ],
+    [
+     93,
+     50,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-pearls": {
+   "face": [
+    33,
+    27
+   ],
+   "eyes": [
+    [
+     72,
+     47,
+     4
+    ],
+    [
+     91,
+     48,
+     3
+    ]
+   ],
+   "mouth": null
+  },
+  "vf-dignified": {
+   "face": [
+    47,
+    26
+   ],
+   "eyes": [
+    [
+     73,
+     47,
+     4
+    ],
+    [
+     91,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    78,
+    82,
+    59
+   ]
+  },
+  "vf-grey-pixie": {
+   "face": [
+    41,
+    25
+   ],
+   "eyes": [
+    [
+     74,
+     51,
+     4
+    ],
+    [
+     90,
+     51,
+     3
+    ]
+   ],
+   "mouth": [
+    79,
+    86,
+    61
+   ]
+  },
+  "vf-chin-scar": {
+   "face": [
+    27,
+    27
+   ],
+   "eyes": [
+    [
+     71,
+     47,
+     4
+    ],
+    [
+     89,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    76,
+    77,
+    82
+   ]
+  },
+  "vf-soft-smile": {
+   "face": [
+    40,
+    25
+   ],
+   "eyes": [
+    [
+     51,
+     46,
+     4
+    ],
+    [
+     74,
+     48,
+     3
+    ]
+   ],
+   "mouth": [
+    54,
+    57,
+    70
    ]
   }
  }

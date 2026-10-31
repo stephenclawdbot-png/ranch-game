@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period portrait, a craggy veteran jockey man about fifty, Black, dark skin, short lime green beard, deep wrinkles, wise calm look, hair, eyebrows and any beard or moustache painted in flat bright lime green as a colour key, wearing 1920s racing silks: a loose bright magenta silk jacket with a buttoned collar and bright cyan silk sleeves, a soft bright magenta silk jockey's cap with a short peak, no helmet, no chin strap, white stock tie",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 7123,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "89e187aa-eabb-4866-871d-4898c6ed216f",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "89e187aa-eabb-4866-871d-4898c6ed216f",
+  "status": "completed",
+  "created_at": "2026-10-31T15:07:50.361537+00:00",
+  "last_response": {
+   "seed": 7123,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13112 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<15420 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<13068 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<15048 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "80aa1a82-c5a8-4ecc-9230-5d9f8635a5a0",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:07:56.500653+00:00",
+   "original_image_n_colors": 122,
+   "quantized_image_n_colors": 69
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/v-craggy-man-7123-0.png",
+  "art-src/raw/jockeys/v-craggy-man-7123-1.png",
+  "art-src/raw/jockeys/v-craggy-man-7123-2.png",
+  "art-src/raw/jockeys/v-craggy-man-7123-3.png"
+ ]
+}

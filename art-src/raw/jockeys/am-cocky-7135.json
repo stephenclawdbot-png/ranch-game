@@ -1,0 +1,95 @@
+{
+ "endpoint": "/generate-image-v2",
+ "request": {
+  "description": "detailed HD character portrait bust, head and shoulders, three-quarter view facing right, cropped at the chest, warm golden-hour light from the left, high-res pixel art, selective dark outline, rich shading, transparent background, 1920s period portrait, a 19-year-old apprentice jockey boy, white, slicked lime green hair, crooked nose, cocky smirk, one eyebrow raised, hair, eyebrows and any beard or moustache painted in flat bright lime green as a colour key, wearing 1920s racing silks: a loose bright magenta silk jacket with a buttoned collar and bright cyan silk sleeves, a soft bright magenta silk jockey's cap with a short peak, no helmet, no chin strap, white stock tie",
+  "image_size": {
+   "width": 128,
+   "height": 128
+  },
+  "no_background": true,
+  "seed": 7135,
+  "style_image": {
+   "image": {
+    "type": "base64",
+    "base64": "<15872 chars>",
+    "format": "png"
+   },
+   "size": {
+    "width": 128,
+    "height": 128
+   }
+  },
+  "style_options": {
+   "color_palette": false,
+   "outline": true,
+   "detail": true,
+   "shading": true
+  }
+ },
+ "response": {
+  "usage": null,
+  "background_job_id": "fb696858-c992-4f4b-81cf-b4e229763d0b",
+  "status": "processing"
+ },
+ "job": {
+  "usage": {
+   "type": "generations",
+   "generations": 10
+  },
+  "id": "fb696858-c992-4f4b-81cf-b4e229763d0b",
+  "status": "completed",
+  "created_at": "2026-10-31T15:09:18.120633+00:00",
+  "last_response": {
+   "seed": 7135,
+   "type": "message_done",
+   "action": "Touching up pixels",
+   "images": [
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<9976 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<10744 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<12388 chars>",
+     "height": 128
+    },
+    {
+     "type": "base64",
+     "width": 128,
+     "base64": "<10968 chars>",
+     "height": 128
+    }
+   ],
+   "progress": 0.85,
+   "billing_usage": {
+    "usd": 0,
+    "type": "generations",
+    "generations": 10
+   },
+   "generation_id": "da71e991-ffe2-4656-97ff-8255e4192956",
+   "usage_cost_usd": 0.08,
+   "billing_charged": true,
+   "style_reference": "user style image",
+   "style_selection": null,
+   "style_reference_path": null,
+   "generation_started_at": "2026-10-31T15:09:24.260308+00:00",
+   "original_image_n_colors": 123,
+   "quantized_image_n_colors": 57
+  }
+ },
+ "files": [
+  "art-src/raw/jockeys/am-cocky-7135-0.png",
+  "art-src/raw/jockeys/am-cocky-7135-1.png",
+  "art-src/raw/jockeys/am-cocky-7135-2.png",
+  "art-src/raw/jockeys/am-cocky-7135-3.png"
+ ]
+}

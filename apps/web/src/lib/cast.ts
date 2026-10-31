@@ -3,50 +3,22 @@
  * "2026-10-31 graphics audit"): jockey busts, rival trainers, news and moment vignettes, and a
  * scene per section. Pure and deterministic (assignment by id), client-safe.
  */
-import CAST from "../../public/art/portraits/jockeys/index.json";
+import * as gc from "@thoroughbred/game-core";
+import { BUST_INDEX, type BustAnchors } from "./jockeyBust";
 
 export type JockeyStageName = "apprentice" | "prime" | "veteran";
 
-interface CastEntry {
-  stage: JockeyStageName;
-  presents: "f" | "m";
-  face: number[];
-}
-const ENTRIES = Object.entries(CAST.cast as Record<string, CastEntry>);
-
 /** Native size of a jockey bust and of its head crop (art px). */
-export const JOCKEY_BUST = CAST.size;
-export const JOCKEY_FACE = CAST.faceSize;
+export const JOCKEY_BUST = BUST_INDEX.size;
+export const JOCKEY_FACE = BUST_INDEX.faceSize;
 
-/**
- * First names in the jockey name pool (game-core jockeyName) that are women's names. Names that
- * fit either (Alex, Kit, Sam, Charlie) and unknown names draw from the whole stage.
- */
-const WOMEN = new Set([
-  "Amy", "Lucy", "Ellie", "Grace", "Hannah", "Megan", "Chloe", "Isla", "Freya", "Molly",
-  "Rosie", "Daisy", "Bethan", "Siobhan", "Niamh", "Kirsty", "Fern", "Harriet", "Jess", "Poppy",
-]);
-const EITHER = new Set(["Alex", "Kit", "Sam", "Charlie"]);
-/** Men's first names in the pool (the rest of game-core's list). */
-const MEN = new Set([
-  "Tom", "Harry", "Jack", "Oliver", "George", "Alfie", "Freddie", "Archie", "Theo", "Ollie",
-  "Joe", "Ben", "Callum", "Rory", "Finn", "Ewan", "Lewis", "Hamish", "Dougie", "Conor",
-  "Niall", "Rhys", "Owen", "Gareth", "Dylan", "Ned",
-]);
-
-/** "f", "m" or null (either / unknown) from a jockey's first name. */
-export function presentsAs(name: string): "f" | "m" | null {
-  const first = name.trim().split(/\s+/)[0] ?? "";
-  if (EITHER.has(first)) return null;
-  if (WOMEN.has(first)) return "f";
-  if (MEN.has(first)) return "m";
-  return null;
-}
+/** "f", "m" or null (either / unknown) from a jockey's first name (game-core jockeyLooks). */
+export const presentsAs = gc.presentsAs;
 
 /** Known first names (tests check every generated jockey name is covered). */
-export const KNOWN_FIRST_NAMES: ReadonlySet<string> = new Set([...WOMEN, ...MEN, ...EITHER]);
+export const KNOWN_FIRST_NAMES: ReadonlySet<string> = gc.JOCKEY_KNOWN_FIRST_NAMES;
 
-/** FNV-1a, 32-bit: a stable spread of ids over the cast. */
+/** FNV-1a, 32-bit: a stable spread of ids. */
 export function hash32(s: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
@@ -57,25 +29,25 @@ export function hash32(s: string): number {
 }
 
 export interface JockeyPortraitArt {
+  /** The base face's id. */
   id: string;
   src: string;
   /** Top-left of the head crop (JOCKEY_FACE square) inside the bust. */
   face: [number, number];
+  /** The jockey's look (stored at creation; a fallback from the id for very old rows). */
+  look: gc.JockeyLook;
+  anchors: BustAnchors | null;
 }
 
 /**
- * The bust for a jockey: same stage (apprentices young, veterans older), same presentation as
- * the name when it says, then picked by the jockey's id. The same jockey always gets the same
- * face; they move to an older face as their career moves on.
+ * The bust for a jockey: the base face of its stored look (game-core JockeyLook, assigned once
+ * at creation, least-used first), painted with that look's skin, hair and accessories by
+ * JockeyPortrait. Jockeys stored before looks fall back to a face picked from the id.
  */
-export function jockeyPortrait(j: { id: string; name: string; stage: string }): JockeyPortraitArt {
-  const stage = (["apprentice", "prime", "veteran"].includes(j.stage) ? j.stage : "prime") as JockeyStageName;
-  const who = presentsAs(j.name);
-  const byStage = ENTRIES.filter(([, e]) => e.stage === stage);
-  const pool = who ? byStage.filter(([, e]) => e.presents === who) : byStage;
-  const list = pool.length ? pool : byStage.length ? byStage : ENTRIES;
-  const [id, e] = list[hash32(j.id) % list.length]!;
-  return { id, src: `/art/portraits/jockeys/${id}.png`, face: [e.face[0]!, e.face[1]!] };
+export function jockeyPortrait(j: { id: string; name: string; stage: string; look?: unknown }): JockeyPortraitArt {
+  const look = gc.resolveJockeyLook(j);
+  const anchors = BUST_INDEX.faces[look.face] ?? null;
+  return { id: look.face, src: `/art/portraits/jockeys/${look.face}.png`, face: anchors ? [anchors.face[0], anchors.face[1]] : [36, 24], look, anchors };
 }
 
 /** Story rival trainers (game-core RIVAL_STABLES ids) with their own busts (128 px). */

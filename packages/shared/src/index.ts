@@ -135,6 +135,25 @@ export const HorseAppearanceSchema = z.object({
   /** Layered coat genetics (v2). Absent on older clients and saved replays. */
   colour: HorseColourSchema.optional(),
   silks: SilksSchema,
+  /**
+   * Portrait head (graphics round 2): the breed whose head shape the portrait takes (the horse's
+   * main breed) and, while it is young, its age stage (foal or yearling head). Optional: absent on
+   * older snapshots, which keep the standard head.
+   */
+  head: z.string().max(32).optional(),
+  age: z.enum(["foal", "yearling"]).optional(),
+  /**
+   * How the rider is drawn (named jockeys, fields locked since jockey looks): skin and hair
+   * ramps (shade, base, highlight) and whether long hair shows under the cap. Optional: old
+   * replays and unnamed riders render the generic rider as before.
+   */
+  rider: z
+    .object({
+      skin: z.tuple([HexColor, HexColor, HexColor]),
+      hair: z.tuple([HexColor, HexColor, HexColor]),
+      long: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type HorseAppearance = z.infer<typeof HorseAppearanceSchema>;
 

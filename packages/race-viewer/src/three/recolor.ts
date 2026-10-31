@@ -7,7 +7,7 @@
  * swapped for the horse's own ramp, preserving the shade index, and the silks
  * pattern is painted over the primary-key pixels.
  */
-import { resolveHorseColors } from "@thoroughbred/art-pipeline";
+import { capPatternAt, paintRiderLook, prepareRider, resolveHorseColors } from "@thoroughbred/art-pipeline";
 import type { HorseAppearance, SilkPattern } from "@thoroughbred/shared";
 import { hexToRgb, luminance, mixHex, packRgb, rampAround, resampleRamp } from "./color";
 
@@ -20,6 +20,8 @@ export interface KeyPalette {
   /** Lower legs; follow the coat's points colour. */
   points?: string[];
   hoof?: string[];
+  /** The rider's skin keys (palette fixed.skin): faces are repainted per jockey. */
+  skin?: string[];
 }
 
 export function parseKeyPalette(v: unknown): KeyPalette | null {
@@ -31,7 +33,9 @@ export function parseKeyPalette(v: unknown): KeyPalette | null {
   };
   const coat = ramp("coat");
   if (!coat || coat.length === 0) return null;
-  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof") };
+  const fixed = o.fixed && typeof o.fixed === "object" ? (o.fixed as Record<string, unknown>) : null;
+  const skin = Array.isArray(fixed?.skin) && (fixed!.skin as unknown[]).every((c) => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) ? (fixed!.skin as string[]) : undefined;
+  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof"), skin };
 }
 
 type Role = "coat" | "mane" | "silksPrimary" | "silksSecondary" | "cap" | "points" | "hoof";
@@ -43,6 +47,16 @@ export interface RecolorPlan {
   primaryIndex: Map<number, number>;
   secondaryRamp: number[];
   pattern: SilkPattern;
+  /** packed source rgb of cap keys -> shade index, and the cap pattern's secondary colours. */
+  capIndex: Map<number, number>;
+  capSecondary: number[];
+  /** The rider's look (named jockeys): face and hair repainted after the recolour. */
+  rider: HorseAppearance["rider"] | null;
+  /** Packed keys a rider face may be drawn with (coat, mane, points, fixed skin). */
+  riderFaceKeys: number[];
+  /** The sprite's own skin keys (dark -> light). */
+  riderSkinKeys: number[];
+  capKeys: number[];
 }
 
 /** Target ramps for one horse, matched in length to the key ramps. */
@@ -88,7 +102,26 @@ export function buildRecolorPlan(keys: KeyPalette, appearance: HorseAppearance):
     const [r, g, b] = hexToRgb(h);
     return packRgb(r, g, b);
   });
-  return { map, primaryIndex, secondaryRamp, pattern: appearance.silks.pattern };
+  const capIndex = new Map<number, number>();
+  const capKeys: number[] = [];
+  (keys.cap ?? []).forEach((h, i) => {
+    const [r, g, b] = hexToRgb(h);
+    capIndex.set(packRgb(r, g, b), i);
+    capKeys.push(packRgb(r, g, b));
+  });
+  const capSecondary = rampAround(appearance.silks.secondary, Math.max(1, keys.cap?.length ?? 1)).map((h) => {
+    const [r, g, b] = hexToRgb(h);
+    return packRgb(r, g, b);
+  });
+  const riderFaceKeys = [...(keys.coat ?? []), ...(keys.mane ?? []), ...(keys.points ?? []), ...(keys.skin ?? [])].map((h) => {
+    const [r, g, b] = hexToRgb(h);
+    return packRgb(r, g, b);
+  });
+  const riderSkinKeys = (keys.skin ?? []).map((h) => {
+    const [r, g, b] = hexToRgb(h);
+    return packRgb(r, g, b);
+  });
+  return { map, primaryIndex, secondaryRamp, pattern: appearance.silks.pattern, capIndex, capSecondary, rider: appearance.rider ?? null, riderFaceKeys, riderSkinKeys, capKeys };
 }
 
 /** Is local point (u, v) in [0,1]^2 of the silks bounding box painted in the secondary colour? */
@@ -121,6 +154,8 @@ export function patternHit(pattern: SilkPattern, u: number, v: number, px: numbe
  */
 export function applyRecolor(data: Uint8ClampedArray, width: number, height: number, frameWidth: number, plan: RecolorPlan): void {
   const frames = Math.max(1, Math.floor(width / frameWidth));
+  // the rider's face is found on the keyed source, before the coat recolour takes its keys
+  const rider = plan.rider && plan.capKeys.length ? prepareRider(data, width, height, frameWidth, { cap: plan.capKeys, face: plan.riderFaceKeys, skin: plan.riderSkinKeys }) : null;
   for (let f = 0; f < frames; f++) {
     const x0 = f * frameWidth;
     // Silks bounding box in this frame.
@@ -144,6 +179,7 @@ export function applyRecolor(data: Uint8ClampedArray, width: number, height: num
     }
     const bw = Math.max(1, bx1 - bx0 + 1);
     const bh = Math.max(1, by1 - by0 + 1);
+    const cap = rider?.caps[f] ?? (plan.pattern !== "solid" ? capBox(data, width, height, x0, frameWidth, plan.capIndex) : null);
     for (let y = 0; y < height; y++) {
       for (let x = x0; x < x0 + frameWidth; x++) {
         const i = (y * width + x) * 4;
@@ -157,16 +193,42 @@ export function applyRecolor(data: Uint8ClampedArray, width: number, height: num
           const v = (y - by0) / bh;
           if (patternHit(plan.pattern, u, v, x - bx0, y - by0)) out = plan.secondaryRamp[pi] ?? out;
         }
+        const ci = cap && plan.pattern !== "solid" ? plan.capIndex.get(key) : undefined;
+        if (ci !== undefined && cap) {
+          const u = (x - cap[0]) / Math.max(1, cap[2] - cap[0]);
+          const v = (y - cap[1]) / Math.max(1, cap[3] - cap[1]);
+          if (capPatternAt(plan.pattern, u, v)) out = plan.capSecondary[ci] ?? out;
+        }
         data[i] = (out >> 16) & 255;
         data[i + 1] = (out >> 8) & 255;
         data[i + 2] = out & 255;
       }
     }
   }
+  if (rider && plan.rider) paintRiderLook(data, width, height, frameWidth, rider, plan.rider);
+}
+
+/** The cap's box in one frame (strip coordinates), or null. */
+function capBox(data: Uint8ClampedArray, width: number, height: number, x0: number, frameWidth: number, capIndex: Map<number, number>): [number, number, number, number] | null {
+  let a = Infinity,
+    b = Infinity,
+    c = -1,
+    d = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = x0; x < x0 + frameWidth; x++) {
+      const i = (y * width + x) * 4;
+      if (data[i + 3]! < 8 || !capIndex.has(packRgb(data[i]!, data[i + 1]!, data[i + 2]!))) continue;
+      if (x < a) a = x;
+      if (x > c) c = x;
+      if (y < b) b = y;
+      if (y > d) d = y;
+    }
+  }
+  return c < 0 ? null : [a, b, c, d];
 }
 
 /** Stable cache key for an appearance's recolour result. */
 export function appearanceKey(a: HorseAppearance): string {
   const s = a.silks;
-  return [a.coat, a.colour ? JSON.stringify(a.colour) : "", a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern].join("|");
+  return [a.coat, a.colour ? JSON.stringify(a.colour) : "", a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern, a.rider ? JSON.stringify(a.rider) : ""].join("|");
 }

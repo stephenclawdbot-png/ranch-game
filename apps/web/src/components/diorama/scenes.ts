@@ -681,6 +681,18 @@ export function paddockScene(looks: DioramaHorseLook[]): SceneDef {
   };
 }
 
+/**
+ * Going down to post at dusk with the race's own runners (coat, silks pattern and each jockey's
+ * look), up to four in the canter. No runners = the generic string.
+ */
+export function postParadeScene(looks: DioramaHorseLook[]): SceneDef {
+  if (!looks.length) return dusk;
+  return {
+    ...dusk,
+    layers: dusk.layers.map((l) => (l.id === "focal" ? { ...l, anims: (l.anims ?? []).slice(0, Math.min(4, looks.length)).map((a, i) => ({ ...a, look: looks[i]! })) } : l)),
+  };
+}
+
 // ---------------------------------------------------------------------------- the Ranch
 /**
  * HD-2.5D pasture: three depth rows. The far row stands small and soft in the field, the mid row

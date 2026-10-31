@@ -176,6 +176,14 @@ bool silkHit(float pat, vec2 uv, vec2 p) {
   if (pat < 6.5) return abs(mod(p.x, 6.0) - 3.0) + abs(mod(p.y, 6.0) - 3.0) <= 1.5;
   return abs(mod(p.x, 5.0) - 2.0) < 0.5 && abs(mod(p.y, 4.0) - 1.0) < 0.5;
 }
+bool capHit(float pat, vec2 uv) {
+  if (pat < 1.5) return (uv.y > 0.3 && uv.y < 0.5) || (uv.y > 0.7 && uv.y < 0.88);
+  if (pat < 2.5) return mod(floor(uv.x * 6.0), 2.0) > 0.5;
+  if (pat < 3.5) return (uv.x < 0.5) != (uv.y < 0.55);
+  if (pat < 5.5) return false;
+  if (pat < 6.5) return mod(floor(uv.x * 6.0) + floor(uv.y * 4.0), 2.0) < 0.5;
+  return abs(uv.x - 0.5) * 6.0 + abs(uv.y - 0.45) * 5.0 < 1.0;
+}
 float mhash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
@@ -183,21 +191,35 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW, vec4 stripe) {
   if (t.x < 0.0 || t.y < 0.0 || t.x >= uFrame.z || t.y >= uFrame.w) return vec4(0.0);
   vec2 at = (uFrame.xy + t + 0.5) / uIdxSize;
   float idx = floor(texture2D(uIdx, at).r * 255.0 + 0.5);
-  if (idx < 0.5) return vec4(0.0);
   float rowV = (uRow + 0.5) / uLutRows;
-  vec3 c = texture2D(uLut, vec2((idx + 0.5) / 131.0, rowV)).rgb;
-  if (uPattern > 0.5) {
-    vec4 pc = texture2D(uLut, vec2((64.0 + idx + 0.5) / 131.0, rowV));
+  // markings / coat texture / rider: one mask lookup, sampled at source-strip resolution so it
+  // stays registered to the gallop frames at every level of detail.
+  vec2 srcP = uMskOrigin + (t + 0.5) * uLodS;
+  vec4 mk = texture2D(uMsk, srcP / uMskSize);
+  float region = floor(mk.r * 255.0 + 0.5);
+  vec4 rider = texture2D(uLut, vec2(138.5 / 140.0, rowV));
+  if (region > 7.5 && region < 8.5 && rider.r > 0.5) {
+    // the rider's hair: a nape line under the cap; the ponytail only for long hair
+    float hg = floor(mk.g * 255.0 + 0.5);
+    bool tail = mod(floor(hg / 32.0), 2.0) > 0.5;
+    if ((tail && rider.g > 0.5) || (!tail && idx > 0.5)) return vec4(texture2D(uLut, vec2((135.0 + floor(hg / 64.0) + 0.5) / 140.0, rowV)).rgb, 1.0);
+  }
+  if (idx < 0.5) return vec4(0.0);
+  vec3 c = texture2D(uLut, vec2((idx + 0.5) / 140.0, rowV)).rgb;
+  if (region > 8.5) {
+    // the cap: its own pattern (the bust's cap wears the same)
+    vec4 cc = texture2D(uLut, vec2((64.0 + idx + 0.5) / 140.0, rowV));
+    if (uPattern > 0.5 && cc.a > 0.5 && capHit(uPattern, mk.gb)) c = cc.rgb;
+  } else if (region > 6.5 && region < 7.5) {
+    // the rider's face in the jockey's skin
+    if (rider.r > 0.5) c = texture2D(uLut, vec2((131.0 + floor(mk.g * 255.0 / 64.0) + 0.5) / 140.0, rowV)).rgb;
+  } else if (uPattern > 0.5) {
+    vec4 pc = texture2D(uLut, vec2((64.0 + idx + 0.5) / 140.0, rowV));
     if (pc.a > 0.5) {
       vec2 sp = floor((t + 0.5) * uLodS) - uSilk.xy;
       if (silkHit(uPattern, sp / uSilk.zw, sp)) c = pc.rgb;
     }
   }
-  // markings / coat texture: one mask lookup, sampled at source-strip resolution so it
-  // stays registered to the gallop frames at every level of detail.
-  vec2 srcP = uMskOrigin + (t + 0.5) * uLodS;
-  vec4 mk = texture2D(uMsk, srcP / uMskSize);
-  float region = floor(mk.r * 255.0 + 0.5);
   if (region > 0.5 && region < 4.5) {
     // legs: R byte packs FL, FR, HL, HR (2 bits each); regions are near/far per pair
     float legsB = floor(flags.r * 255.0 + 0.5);
@@ -225,7 +247,7 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW, vec4 stripe) {
     else if (tid > 3.5 && tid < 4.5) hit = tt > 0.0 && tt < 0.98 && de < 3.4; // blaze
     else if (tid > 4.5) hit = de < 5.2; // bald
     if (hit) c = markW;
-  } else if (region > 5.5) {
+  } else if (region > 5.5 && region < 6.5) {
     // body: coat texture (roan ticking / dapple rings; the portrait's 6 px dapple grid).
     // Roan ticks over the horse's OWN body colour (blue roan = black + white hairs), ~35 %
     // of body pixels, stable per source texel.
@@ -259,9 +281,9 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW, vec4 stripe) {
 }
 void main() {
   float rowV = (uRow + 0.5) / uLutRows;
-  vec4 flags = texture2D(uLut, vec2(128.5 / 131.0, rowV));
-  vec3 markW = texture2D(uLut, vec2(129.5 / 131.0, rowV)).rgb;
-  vec4 stripe = texture2D(uLut, vec2(130.5 / 131.0, rowV));
+  vec4 flags = texture2D(uLut, vec2(128.5 / 140.0, rowV));
+  vec3 markW = texture2D(uLut, vec2(129.5 / 140.0, rowV)).rgb;
+  vec4 stripe = texture2D(uLut, vec2(130.5 / 140.0, rowV));
   vec2 p = vUv * uFrame.zw;
   vec2 d = max(fwidth(p), vec2(1e-4));
   vec2 b = floor(p - 0.5);

@@ -60,6 +60,8 @@ export interface JockeyCard {
   stableId: string | null;
   stableName: string | null;
   silks: Silks | null;
+  /** How the jockey is drawn (game-core JockeyLook, stored at creation). */
+  look: gc.JockeyLook;
   retireAt: string;
   retiring: boolean;
   retired: boolean;
@@ -96,6 +98,7 @@ function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0, 
     stableId: v.stableId,
     stableName: v.stableName,
     silks: v.silks ? parseSilks(v.silks) : null,
+    look: v.look,
     retireAt: v.retireAt,
     retiring: v.retirementAnnounced,
     retired: v.retired,

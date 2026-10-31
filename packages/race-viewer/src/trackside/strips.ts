@@ -9,12 +9,17 @@
  * zoomed-out horse is still hard-edged palette art, never a resampled blur.
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { resolveHorseColors } from "@thoroughbred/art-pipeline";
+import { rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
- * 128 marking flags, 129 marking white, 130 dun stripe colour. */
-export const LUT_W = 131;
+ * 128 marking flags, 129 marking white, 130 dun stripe colour, 131..134 the rider's skin
+ * (dark -> light), 135..137 the rider's hair, 138 rider flags, 139 spare. */
+export const LUT_W = 140;
+/** LUT columns of the rider's look (jockey looks): skin x4, hair x3, flags (R: has a look, G: long hair). */
+export const LUT_SKIN_X = 131;
+export const LUT_HAIR_X = 135;
+export const LUT_RIDER_X = 138;
 /** LUT column of the per-runner marking flags (R: leg levels packed 2 bits x4, G: face | coat pattern<<4). */
 export const LUT_FLAG_X = 128;
 /** LUT column of the marking paint colour (warm white, MARKING_WHITE in art-pipeline/palettes). */
@@ -34,7 +39,7 @@ export const FACE_ID: Record<string, number> = { none: 0, star: 1, snip: 2, stri
 export const COAT_PATTERN_ID: Record<string, number> = { none: 0, roan: 1, dapple: 2 };
 
 /** Marking mask regions (mask R channel). */
-export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6 } as const;
+export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9 } as const;
 
 export interface Palette {
   /** packed rgb per index; index 0 = transparent. */
@@ -464,7 +469,100 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
       }
     }
   }
+  riderMasks(src, palette, keys, out);
   return out;
+}
+
+/**
+ * Rider regions of the mask (jockey looks): per frame, the cap's texels (R = 9, G/B = their
+ * place in the cap's box, for the cap pattern), the rider's face (R = 7, G = skin level * 64 + 32:
+ * the small coat / mane / skin-keyed patches under and in front of the cap; the horse's own coat
+ * always runs out of that window) and the hair cue (R = 8): a nape line under the back of the
+ * cap (G = level * 64) and a ponytail behind it (G = level * 64 + 32, drawn on empty texels too,
+ * only for long-haired jockeys). Riders face right.
+ */
+function riderMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, out: Uint8Array): void {
+  const set = (ramp?: string[]) => {
+    const r = new Set<number>();
+    for (const h of ramp ?? []) {
+      const k = palette.lookup.get(Number.parseInt(h.slice(1), 16));
+      if (k !== undefined) r.add(k);
+    }
+    return r;
+  };
+  const isCap = set(keys.cap);
+  const faceKeys = new Set([...set(keys.coat), ...set(keys.mane), ...set(keys.points), ...set(keys.skin)]);
+  if (!isCap.size) return;
+  const skinIdx = (keys.skin ?? []).map((h) => palette.lookup.get(Number.parseInt(h.slice(1), 16)) ?? -1);
+  const levelOf = (k: number) => {
+    const i = skinIdx.indexOf(k);
+    return i >= 0 ? skinKeyLevel(i, skinIdx.length) : riderSkinLevel(palette.luma[k]!);
+  };
+  const { fw, fh } = src;
+  const paint = (f: [number, number], x: number, y: number, r: number, g: number, b: number) => {
+    if (x < 0 || y < 0 || x >= fw || y >= fh) return;
+    const o = ((f[1] + y) * src.width + f[0] + x) * 4;
+    out[o] = r;
+    out[o + 1] = g;
+    out[o + 2] = b;
+    out[o + 3] = 255;
+  };
+  for (let fr = 0; fr < src.frames; fr++) {
+    const f = frameOrigin(src, fr);
+    const idx = (x: number, y: number) => src.index[(f[1] + y) * src.width + f[0] + x]!;
+    let cx0 = fw, cy0 = fh, cx1 = -1, cy1 = -1;
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++)
+        if (isCap.has(idx(x, y))) {
+          cx0 = Math.min(cx0, x);
+          cx1 = Math.max(cx1, x);
+          cy0 = Math.min(cy0, y);
+          cy1 = Math.max(cy1, y);
+        }
+    if (cx1 < 0) continue;
+    for (let y = cy0; y <= cy1; y++)
+      for (let x = cx0; x <= cx1; x++)
+        if (isCap.has(idx(x, y))) paint(f, x, y, MARK_REGION.cap, Math.round(((x - cx0) / Math.max(1, cx1 - cx0)) * 255), Math.round(((y - cy0) / Math.max(1, cy1 - cy0)) * 255));
+    const capW = cx1 - cx0 + 1;
+    const wx0 = Math.max(0, cx0 - 2);
+    const wx1 = Math.min(fw - 1, cx1 + Math.max(4, Math.round(capW * 0.35)));
+    const wy1 = Math.min(fh - 1, cy1 + Math.max(8, Math.round(capW * 0.9)));
+    const inWin = (x: number, y: number) => x >= wx0 && x <= wx1 && y >= cy0 && y <= wy1;
+    const cand = (x: number, y: number) => inWin(x, y) && faceKeys.has(idx(x, y));
+    const seen = new Set<number>();
+    const face = new Set<number>();
+    for (let y = cy0; y <= wy1; y++) {
+      for (let x = wx0; x <= wx1; x++) {
+        if (seen.has(y * fw + x) || !cand(x, y)) continue;
+        const patch: number[] = [];
+        let edge = false;
+        const stack = [x, y];
+        seen.add(y * fw + x);
+        while (stack.length) {
+          const py = stack.pop()!;
+          const px = stack.pop()!;
+          patch.push(px, py);
+          if (px === wx1 || py === wy1) edge = true;
+          for (const [qx, qy] of [[px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]] as const) {
+            if (seen.has(qy * fw + qx) || !cand(qx, qy)) continue;
+            seen.add(qy * fw + qx);
+            stack.push(qx, qy);
+          }
+        }
+        if (edge || patch.length / 2 > Math.max(40, capW * 6)) continue;
+        for (let n = 0; n < patch.length; n += 2) {
+          face.add(patch[n + 1]! * fw + patch[n]!);
+          paint(f, patch[n]!, patch[n + 1]!, MARK_REGION.riderFace, levelOf(idx(patch[n]!, patch[n + 1]!)) * 64 + 32, 0);
+        }
+      }
+    }
+    // hair: the nape under the back of the cap, a ponytail behind it
+    for (let x = cx0; x <= Math.min(cx1, cx0 + 2); x++) if (face.has((cy1 + 1) * fw + x)) paint(f, x, cy1 + 1, MARK_REGION.riderHair, x === cx0 ? 0 : 64, 0);
+    for (const [x, y, k] of [[cx0 - 1, cy1 - 1, 1], [cx0 - 1, cy1, 1], [cx0 - 2, cy1 + 1, 2], [cx0 - 2, cy1 + 2, 1], [cx0 - 3, cy1 + 3, 0], [cx0 - 1, cy1 + 1, 0]] as const) {
+      if (x < 0 || y >= fh || isCap.has(idx(x, y))) continue;
+      paint(f, x, y, MARK_REGION.riderHair, k * 64 + 32, 0);
+    }
+  }
 }
 
 /**
@@ -504,6 +602,30 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     const fr = LEG_LEVEL[a.legs?.[1] ?? "none"] ?? 0;
     const hl = LEG_LEVEL[a.legs?.[2] ?? "none"] ?? 0;
     const hr = LEG_LEVEL[a.legs?.[3] ?? "none"] ?? 0;
+    // the cap pattern's colour: the secondary silks ramp at the cap key's shade
+    plan.capIndex.forEach((ci, src) => {
+      const k = palette.lookup.get(src);
+      if (k === undefined || plan.pattern === "solid") return;
+      const sec = plan.capSecondary[ci] ?? src;
+      const p = (row * LUT_W + 64 + k) * 4;
+      lut[p] = (sec >> 16) & 255;
+      lut[p + 1] = (sec >> 8) & 255;
+      lut[p + 2] = sec & 255;
+      lut[p + 3] = 255;
+    });
+    // the rider's look (named jockeys)
+    if (a.rider) {
+      const put = (x: number, c: [number, number, number]) => {
+        const o = (row * LUT_W + x) * 4;
+        lut[o] = c[0];
+        lut[o + 1] = c[1];
+        lut[o + 2] = c[2];
+        lut[o + 3] = 255;
+      };
+      rampRgb(a.rider.skin, 4).forEach((c, i) => put(LUT_SKIN_X + i, c));
+      rampRgb(a.rider.hair, 3).forEach((c, i) => put(LUT_HAIR_X + i, c));
+      put(LUT_RIDER_X, [255, a.rider.long ? 255 : 0, 0]);
+    }
     const fo = (row * LUT_W + LUT_FLAG_X) * 4;
     lut[fo] = fl | (fr << 2) | (hl << 4) | (hr << 6);
     lut[fo + 1] = (FACE_ID[a.face ?? "none"] ?? 0) | ((COAT_PATTERN_ID[colors.texture] ?? 0) << 4);
