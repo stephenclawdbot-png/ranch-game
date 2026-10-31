@@ -743,7 +743,7 @@ export async function transferWindow(ex: Executor, input: { stableId: string | n
   if (agents.length) for (const c of await ex.select().from(jockeyContracts).where(and(eq(jockeyContracts.status, "active"), inArray(jockeyContracts.jockeyId, agents.map((a) => a.id))))) contracts.set(c.jockeyId, c);
   const why = (j: JockeyRow) => {
     const c = contracts.get(j.id);
-    if (!j.stableId || !c) return j.rides === 0 ? "New apprentice" : "Club freelancer";
+    if (!j.stableId || !c) return j.lastStableId ? "Released" : j.rides === 0 ? "New apprentice" : "Club freelancer";
     if (c.unpaidWeek !== null) return "Wage unpaid";
     if (c.brokenWeeks >= gc.JOCKEY_BROKEN_PROMISE_WEEKS) return "Wants to leave";
     return "Contract ends";

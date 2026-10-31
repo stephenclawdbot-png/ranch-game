@@ -167,16 +167,16 @@ export async function jockeyPage(db: Db, session: Session | null, id: string, no
         : v.stableId
           ? `Rides for ${v.stableName ?? "another stable"}`
           : market.freeAgent
-            ? "A free agent in this week's transfer window: make an offer"
-          : held >= gc.JOCKEYS_PER_STABLE_MAX
-            ? `You have ${gc.JOCKEYS_PER_STABLE_MAX} jockeys already`
-            : null;
+            ? null
+            : held >= gc.JOCKEYS_PER_STABLE_MAX
+              ? `You have ${gc.JOCKEYS_PER_STABLE_MAX} jockeys already`
+              : null;
   return {
     jockey: card(v, viewer, wins.get(v.id) ?? 0),
     career: career.map((e) => ({ kind: e.kind, at: e.at.toISOString(), stableName: e.stableName, text: (CAREER_TEXT[e.kind] ?? (() => e.kind))(e.stableName) })),
     rides: rides.map((r) => ({ raceId: r.raceId, raceName: r.raceName, horseName: r.horseName, stableName: r.stableName, position: r.raceStatus === "settled" ? r.position : null, claimLb: r.claimLb, postTime: r.postTime })),
     actions: {
-      canSign: !!viewer && !signBlock && v.stableId === null,
+      canSign: !!viewer && !signBlock && v.stableId === null && !market.freeAgent,
       signFee: gc.signingFee(v.grade),
       canRelease: !!viewer && v.stableId === viewer && !v.retired,
       signBlock: v.stableId === viewer ? null : signBlock,

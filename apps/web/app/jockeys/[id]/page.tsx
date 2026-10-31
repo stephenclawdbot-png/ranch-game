@@ -70,8 +70,8 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
             </span>
           </div>
           {view.market.freeAgent && (
-            <p className="tag mt-3" data-testid="jockey-free-agent">
-              Free agent: the <Link href="/jockeys/window" className="underline">transfer window</Link> closes <LocalTime ms={view.market.deadlineMs} withDate />
+            <p className="t-meta mt-3" data-testid="jockey-free-agent">
+              <span className="tag tag-ready">Free agent</span> The <Link href="/jockeys/window" className="underline">transfer window</Link> closes <LocalTime ms={view.market.deadlineMs} withDate />.
             </p>
           )}
           <div className="mt-3">

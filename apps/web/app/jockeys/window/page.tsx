@@ -33,7 +33,7 @@ export default async function TransferWindowPage() {
                 {view.freeAgents.map((f) => (
                   <JockeyRow
                     key={f.jockey.id}
-                    j={{ ...f.jockey, stableName: f.from ? `${f.why}, ${f.from}` : f.why }}
+                    j={{ ...f.jockey, stableName: f.from ? `${f.why} at ${f.from}` : f.why }}
                     extra={
                       <span>
                         {f.offers}
