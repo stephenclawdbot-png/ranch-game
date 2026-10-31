@@ -89,7 +89,7 @@ export function BringRival() {
         </p>
         <p>Accounts that share a browser, wallet or email are linked: they still become rivals, but nobody gets the welcome. Credits are never cashed out and nothing here pays USDG.</p>
         <p>
-          <Link href="/wiki/rivals#bring-a-rival" className="link">
+          <Link href="/wiki/rivals-and-news#bring-a-rival" className="link">
             More in the wiki
           </Link>
         </p>

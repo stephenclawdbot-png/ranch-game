@@ -7,7 +7,7 @@
  *     (entries close 30 s before the off, so the final field is known too briefly to be the only
  *     window); a pick on a runner that doesn't run (scratched, race called off) is void;
  *   - the score: a public, rule-based estimate of how unlikely the pick was, the runner's rank by
- *     official rating within the final field (no odds): the top-rated winner scores
+ *     official rating within the final field (a rule, nothing quoted): the top-rated winner scores
  *     PICK_POINTS_TOP, the lowest-rated PICK_POINTS_OUTSIDER, linearly between;
  *   - the tipster table: points per UTC week (Monday to Monday), the weekly top
  *     TIPSTER_BADGE_TOP get a badge; all-time best week and the best run of winning picks.

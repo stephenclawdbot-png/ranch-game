@@ -378,6 +378,8 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Tier bonus | top 3: G1 +10, G2 +6, G3/Listed +3 | packages/game-core/src/leagues.ts:30-32 | Big races worth more. Live: Weekend Feature/Final = G1, any graded = G3, listed = listed. | League movement |
 | `WEEKLY_RACE_POINTS_CAP` | 240 | packages/game-core/src/leagues.ts:20, packages/db/src/services/leagues.ts:109 | Volume cap per week, applied after the best-runs cut. | League movement |
 | `BEST_RUNS_COUNTED` | 20 runs (new 2026-10-29; was: every run counted) | packages/game-core/src/leagues.ts:84, packages/db/src/services/leagues.ts:103 | A week's League score sums only a stable's best 20 run scores (then the cap): a bad race never costs points, extra volume helps little. Season tables add up the same weekly scores. | League movement, entries spent per week |
+| `PICK_POINTS_TOP` / `PICK_POINTS_OUTSIDER` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:19, :21, packages/db/src/services/picks.ts | Pick the winner: a winning pick scores by its rating rank in the field at the off, 10 for the top-rated up to 50 for the lowest-rated, linear between (`pickPoints`). Points only: never exchanged for anything. | Tipster table, nothing in the economy |
+| `TIPSTER_BADGE_TOP` / `TIPSTER_TABLE_SHOWN` (new 2026-10-31) | 10 / 50 | packages/game-core/src/picks.ts:23, :25 | Weekly tipster table (resets Monday 00:00 UTC): the top 10 with points get a badge; the page lists 50. | Tipster badges |
 | Sunday recap | one inbox note (`week_recap`) per stable that raced, at the week's settlement: rank, move, points gap to the promotion line | packages/db/src/services/leagues.ts:155-179 | Tells each stable where its week ended and how far the line was. | Retention (weekly return) |
 | League field size | counts every entered runner incl. house | packages/db/src/services/leagues.ts:59 | Fields ≥ 4 score placings. | League points |
 | Starting tier | 1 (bronze) | packages/db/src/services/competition.ts:107 | New owners start at the bottom. | League movement |
@@ -505,6 +507,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | Insurance payout | 60% of appraisal | packages/game-core/src/economy.ts:72, packages/db/src/services/races.ts:665 | Kind `insurance_payout`. | Credits created |
 | Release payout | 50 | packages/db/src/rules.ts:47, packages/db/src/services/horses.ts:210 | Kind `adjustment`. | Credits created |
 | Referral active reward | 250 credits to the inviter when an invitee has 5 races and 3 play days | packages/db/src/services/affiliates.ts:74, :437 | Kind `referral_reward`. Runtime-configurable. | Credits created, sybil value |
+| `RIVAL_INVITE_CREDITS` (new 2026-10-31) | 300 to each of the inviter and the invited stable, once per invited account; the inviter's side at most `RIVAL_INVITE_WEEKLY_WELCOMES` = 5 a UTC week; none for linked accounts | packages/game-core/src/picks.ts:31, :36, packages/db/src/services/rivals.ts:184 | "Bring a rival": a friend founds a stable through your rival link; you become declared rivals. Kind `rival_invite`. | Credits created, sybil value |
 | Entry fee refund | full fee back when a race is abandoned | packages/db/src/services/races.ts:734 | Kind `entry_fee_refund` (burn → player). | Neutral |
 
 ### 10b. Sinks (credits burned, or sent to treasury)
@@ -543,6 +546,7 @@ All in packages/game-core/src/clubFill.ts; applied by packages/db/src/services/r
 | `insurance_payout` | mint → owner | packages/db/src/services/races.ts:666 |
 | `daily_goal` | mint → player | packages/db/src/services/dailyGoals.ts:41 |
 | `daily_cup` | mint → player | packages/db/src/services/dailyCup.ts:86 |
+| `rival_invite` | mint → inviter and invited stable (once per invited account) | packages/db/src/services/rivals.ts:219 |
 | `story_reward` | mint → player | packages/db/src/services/player.ts:228 |
 | `referral_reward` | mint → inviter | packages/db/src/services/affiliates.ts:437 |
 | `adjustment` (release to Club) | mint → player | packages/db/src/services/horses.ts:210 |
