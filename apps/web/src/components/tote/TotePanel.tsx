@@ -196,11 +196,17 @@ export function ToteAudit({ audit }: { audit: ToteAuditRow[] }) {
             {a.outcome === "abandoned" ? (
               <p className="text-cream-dim">The race didn&rsquo;t run: every stake ({amt(a.refunded)}) was refunded in full. No take.</p>
             ) : a.outcome === "void" ? (
-              <p className="text-cream-dim">Too few runners for a place pool: every stake ({amt(a.refunded)}) was refunded in full.</p>
+              <p className="text-cream-dim" data-testid="tote-audit-void">
+                {a.voidReason === "thin_pool"
+                  ? `Small pool: fewer than ${gc.TOTE_MIN_POOL_BETTORS} players backing ${gc.TOTE_MIN_POOL_RUNNERS} runners, so every stake (${amt(a.refunded)}) was refunded in full. No take.`
+                  : `Too few runners for a place pool: every stake (${amt(a.refunded)}) was refunded in full. No take.`}
+              </p>
             ) : (
               <>
                 <p className="text-cream-dim">
-                  Pool {amt(a.total)} · house take {a.takeoutPermille / 10}% {amt(a.takeout)} · {a.tickets} {a.tickets === 1 ? "ticket" : "tickets"} from {a.bettors}{" "}
+                  Pool {amt(a.total)} · house take <span data-testid="tote-audit-take">{amt(a.takeout)}</span>
+                  {a.takeoutReduced ? ` (cut from ${a.takeoutPermille / 10}% so every winner got the stake back)` : ` (${a.takeoutPermille / 10}%)`} · {a.tickets}{" "}
+                  {a.tickets === 1 ? "ticket" : "tickets"} from {a.bettors}{" "}
                   {a.bettors === 1 ? "player" : "players"}
                   {a.refunded > 0 ? ` · ${amt(a.refunded)} refunded (non-runners)` : ""}
                 </p>
@@ -222,7 +228,8 @@ export function ToteAudit({ audit }: { audit: ToteAuditRow[] }) {
                   </ul>
                 )}
                 <p className="caption">
-                  Dividend = (pool − take) ÷ {a.pool === "win" ? "1" : "paying places"} ÷ stakes on the runner (dead heats share their places). Paid {amt(a.paid)} to {a.winningTickets} winning{" "}
+                  Dividend = 1 + (pool − take − winning stakes) ÷ {a.pool === "win" ? "1" : "paying places"} ÷ stakes on the runner (dead heats share their places): every winner gets the stake back
+                  first, never less. Paid {amt(a.paid)} to {a.winningTickets} winning{" "}
                   {a.winningTickets === 1 ? "ticket" : "tickets"}; rounding {amt(a.remainder)} to the house.
                 </p>
                 <p className={`text-sm font-bold ${a.balanced ? "text-positive" : "text-negative"}`} data-testid="tote-audit-check">
@@ -335,7 +342,8 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
         {statusChip}
       </div>
       <p className="text-sm text-cream-dim" data-testid="tote-take">
-        Pool betting: takes {TAKE_PCT}% to the sink; winners share the rest. The odds come from the pool alone and move as bets arrive, until the off.{" "}
+        Pool betting: takes up to {TAKE_PCT}% to the sink; winners share the rest and never get back less than their stake. The odds come from the pool alone and move as bets arrive,
+        until the off.{" "}
         <Link href="/me/betting" className="link font-bold">
           Betting limits
         </Link>{" "}
@@ -372,6 +380,11 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
             {poolView.total > 0 ? ` · ${gc.formatToteAmount(currency, poolView.net)} to share after the take` : " · no bets yet"}
             {!board.fieldLocked && board.runners.length > 0 ? " · Club runners join when entries close" : ""}
           </p>
+          {open && poolView.thin && (
+            <p className="caption" data-testid="tote-small-pool">
+              Small pool: refunded if fewer than {gc.TOTE_MIN_POOL_BETTORS} players bet (on at least {gc.TOTE_MIN_POOL_RUNNERS} runners).
+            </p>
+          )}
           {board.runners.length === 0 ? (
             <p className="text-sm text-cream-dim">No runners yet: the field fills as stables enter.</p>
           ) : (
@@ -453,7 +466,7 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
             </p>
           )}
           <p className="caption" data-testid="tote-slip-take">
-            {TAKE_PCT}% of every pool goes to the house take (a sink); winners share the rest. Bets are final.
+            Up to {TAKE_PCT}% of every pool goes to the house take (a sink); winners share the rest and always get at least their stake back. Bets are final.
           </p>
           {units !== null && problem === "below_min" && <p className="text-sm font-bold text-negative">The smallest bet is {gc.formatToteAmount(currency, gc.TOTE_MIN_STAKE[currency])}.</p>}
           {units !== null && (problem === "race_limit" || problem === "day_limit") && <p className="text-sm font-bold text-negative">That&rsquo;s over your limit for this race or today.</p>}

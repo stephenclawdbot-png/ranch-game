@@ -8,6 +8,8 @@ export type RefPoolKind = "win" | "place";
 
 export interface RefBet {
   id: string;
+  /** Who placed it (a wallet on chain): the minimum pool counts distinct bettors. */
+  bettor: string;
   horseId: string;
   stake: number;
 }
@@ -21,11 +23,13 @@ export interface RefSettlement {
   places: number;
   total: number;
   takeout: number;
+  standardTakeout: number;
   net: number;
   payouts: { betId: string; amount: number }[];
   refunds: { betId: string; amount: number }[];
   remainder: number;
   outcome: "paid" | "no_winner" | "void" | "empty";
+  voidReason: "no_place_pool" | "thin_pool" | "winners_short" | null;
 }
 
 const DEAD_HEAT_DENOM = 5_354_228_880n;
@@ -40,18 +44,19 @@ export function refSettle(kind: RefPoolKind, bets: readonly RefBet[], finishers:
   const ran = new Map(finishers.map((f) => [f.horseId, f.position]));
   const places = kind === "win" ? 1 : refPlaces(finishers.length);
   const sorted = [...bets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const zero = { places, payouts: [] as RefSettlement["payouts"], total: 0, takeout: 0, standardTakeout: 0, net: 0, remainder: 0 };
+  const voidAll = (voidReason: NonNullable<RefSettlement["voidReason"]>): RefSettlement => ({ ...zero, refunds: sorted.map((b) => ({ betId: b.id, amount: b.stake })), outcome: "void", voidReason });
+  if (places === 0) return sorted.length ? voidAll("no_place_pool") : { ...zero, refunds: [], outcome: "empty", voidReason: null };
   const refunds: RefSettlement["refunds"] = [];
   const live: RefBet[] = [];
   for (const b of sorted) {
-    if (!ran.has(b.horseId) || places === 0) refunds.push({ betId: b.id, amount: b.stake });
+    if (!ran.has(b.horseId)) refunds.push({ betId: b.id, amount: b.stake });
     else live.push(b);
   }
-  const empty = { places, refunds, payouts: [] as RefSettlement["payouts"], total: 0, takeout: 0, net: 0, remainder: 0 };
-  if (places === 0) return { ...empty, outcome: refunds.length ? "void" : "empty" };
   const total = live.reduce((s, b) => s + b.stake, 0);
-  if (total === 0) return { ...empty, outcome: "empty" };
-  const takeout = Math.floor((total * permille) / 1000);
-  const net = total - takeout;
+  if (total === 0) return { ...zero, refunds, outcome: "empty", voidReason: null };
+  if (new Set(live.map((b) => b.bettor)).size < 2 || new Set(live.map((b) => b.horseId)).size < 2) return voidAll("thin_pool");
+  const standardTakeout = Math.floor((total * permille) / 1000);
 
   const onRunner = new Map<string, number>();
   for (const b of live) onRunner.set(b.horseId, (onRunner.get(b.horseId) ?? 0) + b.stake);
@@ -66,19 +71,24 @@ export function refSettle(kind: RefPoolKind, bets: readonly RefBet[], finishers:
   const paying = [...weight.entries()].filter(([id]) => (onRunner.get(id) ?? 0) > 0).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
   const W = paying.reduce((s, [, w]) => s + w, 0n);
   const payouts: RefSettlement["payouts"] = [];
-  const netB = BigInt(net);
   if (W === 0n) {
+    const net = total - standardTakeout;
     const totalB = BigInt(total);
     for (const b of live) {
-      const amount = Number((netB * BigInt(b.stake)) / totalB);
+      const amount = Number((BigInt(net) * BigInt(b.stake)) / totalB);
       if (amount > 0) payouts.push({ betId: b.id, amount });
     }
     const paid = payouts.reduce((s, p) => s + p.amount, 0);
-    return { places, refunds, payouts, total, takeout, net, remainder: net - paid, outcome: "no_winner" };
+    return { places, refunds, payouts, total, takeout: standardTakeout, standardTakeout, net, remainder: net - paid, outcome: "no_winner", voidReason: null };
   }
+  const winningStakes = paying.reduce((s, [id]) => s + onRunner.get(id)!, 0);
+  const takeout = Math.min(standardTakeout, total - winningStakes);
+  const net = total - takeout;
+  if (net < winningStakes) return voidAll("winners_short");
+  const profitB = BigInt(net - winningStakes);
   for (const [horseId, w] of paying) {
     const S = onRunner.get(horseId)!;
-    const amount = Number((netB * w) / W);
+    const amount = S + Number((profitB * w) / W);
     for (const b of live) {
       if (b.horseId !== horseId) continue;
       const a = Number((BigInt(amount) * BigInt(b.stake)) / BigInt(S));
@@ -86,5 +96,5 @@ export function refSettle(kind: RefPoolKind, bets: readonly RefBet[], finishers:
     }
   }
   const paid = payouts.reduce((s, p) => s + p.amount, 0);
-  return { places, refunds, payouts, total, takeout, net, remainder: net - paid, outcome: "paid" };
+  return { places, refunds, payouts, total, takeout, standardTakeout, net, remainder: net - paid, outcome: "paid", voidReason: null };
 }

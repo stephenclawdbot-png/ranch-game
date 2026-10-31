@@ -140,7 +140,8 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
     <div className="inset grid gap-2 p-3" data-testid="real-tote-slip">
       <p className="font-extrabold">Real-money pool (USDG)</p>
       <p className="caption" data-testid="real-tote-disclaimer">
-        Pool betting in USDG: {board.takeoutBps / 100}% take; winners share the rest. The odds shown move with every bet and are final only when betting closes, before the off.
+        Pool betting in USDG: up to {board.takeoutBps / 100}% take; winners share the rest and always get at least their stake back. A pool with fewer than{" "}
+        {gc.TOTE_MIN_POOL_BETTORS} players (or {gc.TOTE_MIN_POOL_RUNNERS} runners backed) is refunded in full. The odds shown move with every bet and are final only when betting closes, before the off.
         Real-money bets can&rsquo;t be cancelled or changed once sent.
       </p>
       {!open ? (
@@ -154,6 +155,11 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
               </button>
             ))}
           </div>
+          {view?.thin && (
+            <p className="caption" data-testid="real-tote-small-pool">
+              Small pool: refunded if fewer than {gc.TOTE_MIN_POOL_BETTORS} players bet (on at least {gc.TOTE_MIN_POOL_RUNNERS} runners).
+            </p>
+          )}
           <ul className="grid gap-1" role="radiogroup" aria-label="Pick a runner">
             {runners.map((r) => {
               const o = view?.runners.find((x) => x.horseId === r.horseId);

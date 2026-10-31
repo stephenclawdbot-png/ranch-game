@@ -158,7 +158,7 @@ describe("the tote: pools, settlement and the house take", () => {
     await ledgerClean();
   });
 
-  it("dead heat for first: each dead-heated runner's backers share half the net win pool", async () => {
+  it("dead heat for first: stakes back, then each dead-heated runner's backers share half the profit", async () => {
     const { race, owners } = await raceWithField(6);
     const [a, b, c] = [await bettor(), await bettor(), await bettor()];
     const [w1, w2, x] = owners.map((o) => o.horseId);
@@ -169,8 +169,9 @@ describe("the tote: pools, settlement and the house take", () => {
     await settleTote(h.db, race.id, at(30 * MIN));
     const [p] = await h.db.select().from(totePools).where(and(eq(totePools.raceId, race.id), eq(totePools.pool, "win")));
     expect(p).toMatchObject({ total: 1000, takeout: 150, paid: 850, remainder: 0 });
-    expect(await getBalance(h.db, a.accountId)).toBe(50_000 - 100 + 425);
-    expect(await getBalance(h.db, b.accountId)).toBe(50_000 - 300 + 425);
+    // net 850 - winning stakes 400 = 450 profit, 225 per dead-heater on top of the stake
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000 - 100 + 325);
+    expect(await getBalance(h.db, b.accountId)).toBe(50_000 - 300 + 525);
     await ledgerClean();
   });
 
@@ -202,6 +203,49 @@ describe("the tote: pools, settlement and the house take", () => {
     const [v] = await h.db.select().from(toteBets).where(and(eq(toteBets.raceId, race.id), eq(toteBets.horseId, owners[0]!.horseId)));
     expect(v).toMatchObject({ status: "void", payout: 200 });
     expect(v!.voidReason).toMatch(/non-runner/);
+    await ledgerClean();
+  });
+
+  it("a thin pool (one player, or one runner backed) is void: every stake back in full, no take", async () => {
+    const { race, owners } = await raceWithField(6);
+    const [a, b] = [await bettor(), await bettor()];
+    const houseBefore = await house();
+    // WIN: one player on two runners. PLACE: two players on the same runner.
+    await bet(a.accountId, race.id, owners[0]!.horseId, 200);
+    await bet(a.accountId, race.id, owners[1]!.horseId, 100);
+    await bet(a.accountId, race.id, owners[0]!.horseId, 50, { pool: "place" });
+    await bet(b.accountId, race.id, owners[0]!.horseId, 70, { pool: "place" });
+    const open = (await toteBoard(h.db, race.id, at(6 * MIN)))!;
+    expect(open.pools[0]!.win.thin).toBe(true);
+    expect(open.pools[0]!.win.bettors).toBe(1);
+    expect(open.pools[0]!.place!.thin).toBe(true);
+    await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, race.id, at(30 * MIN));
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000);
+    expect(await getBalance(h.db, b.accountId)).toBe(50_000);
+    expect(await house()).toBe(houseBefore);
+    const bets = await h.db.select().from(toteBets).where(eq(toteBets.raceId, race.id));
+    expect(bets.every((x) => x.status === "void" && x.payout === x.stake && /fewer than 2 players/.test(x.voidReason ?? ""))).toBe(true);
+    const board = (await toteBoard(h.db, race.id, at(30 * MIN)))!;
+    expect(board.audit.map((x) => [x.pool, x.outcome, x.voidReason, x.takeout])).toEqual([
+      ["place", "void", "thin_pool", 0],
+      ["win", "void", "thin_pool", 0],
+    ]);
+    await ledgerClean();
+  });
+
+  it("winners never lose: the take is cut so the favourite's backer gets the stake back", async () => {
+    const { race, owners } = await raceWithField(6);
+    const [a, b] = [await bettor(), await bettor()];
+    const houseBefore = await house();
+    await bet(a.accountId, race.id, owners[0]!.horseId, 950);
+    await bet(b.accountId, race.id, owners[1]!.horseId, 50);
+    await runRace(race.id, Object.fromEntries(owners.map((o, i) => [o.horseId, i + 1])));
+    await settleTote(h.db, race.id, at(30 * MIN));
+    expect(await getBalance(h.db, a.accountId)).toBe(50_000);
+    expect(await house()).toBe(houseBefore + 50);
+    const board = (await toteBoard(h.db, race.id, at(30 * MIN)))!;
+    expect(board.audit[0]).toMatchObject({ pool: "win", outcome: "paid", takeout: 50, takeoutReduced: true, balanced: true });
     await ledgerClean();
   });
 

@@ -658,7 +658,7 @@ async function settlePoolTx(
   input: { raceId: string; pool: TotePoolKind; currency: ToteCurrency; bets: ToteBetRow[]; finishers: gc.ToteFinisher[]; names: ReadonlyMap<string, string>; now: Date },
 ): Promise<void> {
   const { raceId, pool, currency, bets, now } = input;
-  const s = gc.settleTotePool(pool, bets.map((b) => ({ id: b.id, horseId: b.horseId, stake: b.stake })), input.finishers);
+  const s = gc.settleTotePool(pool, bets.map((b) => ({ id: b.id, bettor: b.accountId, horseId: b.horseId, stake: b.stake })), input.finishers);
   if (!gc.toteSettlementBalanced(s)) throw new Error(`tote pool ${raceId}/${pool}/${currency} does not balance`);
   const ledger = toteLedger(currency);
   const byId = new Map(bets.map((b) => [b.id, b]));
@@ -684,7 +684,14 @@ async function settlePoolTx(
     ledgerTransactionId = (await post(tx, { idempotencyKey: `tote-settle:${raceId}:${pool}:${currency}`, kind: "tote_settlement", meta: { raceId, pool, outcome: s.outcome }, postings })).transactionId;
   }
   const winners = new Set(s.dividends.map((d) => d.horseId));
-  const voidWhy = s.outcome === "void" ? `void: no place pool with fewer than ${gc.TOTE_PLACE_MIN_FIELD} runners` : "void: non-runner";
+  const voidWhy =
+    s.voidReason === "no_place_pool"
+      ? `void: no place pool with fewer than ${gc.TOTE_PLACE_MIN_FIELD} runners`
+      : s.voidReason === "thin_pool"
+        ? `void: fewer than ${gc.TOTE_MIN_POOL_BETTORS} players backing ${gc.TOTE_MIN_POOL_RUNNERS} runners`
+        : s.voidReason === "winners_short"
+          ? "void: the pool couldn't return the winners' stakes"
+          : "void: non-runner";
   for (const b of bets) {
     const r = refund.get(b.id);
     const status = r !== undefined ? "void" : s.outcome === "no_winner" ? "returned" : winners.has(b.horseId) ? "won" : "lost";
@@ -783,6 +790,10 @@ export interface ToteAuditRow {
   winningTickets: number;
   bettors: number;
   dividends: ToteDividendRow[];
+  /** Why a void pool was refunded: too few runners for a place pool, or a thin pool (under 2 players or 2 runners backed). */
+  voidReason: "no_place_pool" | "thin_pool" | null;
+  /** The take was cut below takeoutPermille so every winner got at least the stake back. */
+  takeoutReduced: boolean;
   /** paid + takeout + remainder = total (always true; shown to players). */
   balanced: boolean;
 }
@@ -818,6 +829,16 @@ async function poolStakes(ex: Executor, raceId: string): Promise<Map<string, Map
   return out;
 }
 
+/** Distinct players with a stake (on runners still in the race) per currency and pool: the minimum pool's count. */
+async function poolBettors(ex: Executor, raceId: string): Promise<Map<string, number>> {
+  const rows = await ex
+    .select({ currency: toteBets.currency, pool: toteBets.pool, n: sql<number>`count(distinct ${toteBets.accountId})::int` })
+    .from(toteBets)
+    .where(and(eq(toteBets.raceId, raceId), ne(toteBets.status, "void")))
+    .groupBy(toteBets.currency, toteBets.pool);
+  return new Map(rows.map((r) => [`${r.currency}|${r.pool}`, Number(r.n)]));
+}
+
 function auditRow(p: TotePoolRow): ToteAuditRow {
   return {
     pool: p.pool,
@@ -834,6 +855,8 @@ function auditRow(p: TotePoolRow): ToteAuditRow {
     winningTickets: p.winningTickets,
     bettors: p.bettors,
     dividends: (p.dividends ?? []) as ToteDividendRow[],
+    voidReason: p.outcome !== "void" ? null : p.places === 0 ? "no_place_pool" : "thin_pool",
+    takeoutReduced: p.outcome === "paid" && p.takeout < gc.toteTakeout(p.total, p.takeoutPermille),
     balanced: p.paid + p.takeout + p.remainder === p.total,
   };
 }
@@ -849,6 +872,7 @@ export async function toteBoard(ex: Executor, raceId: string, now: Date, env?: R
   const runners = await runnersOf(ex, raceId);
   const fieldSize = fieldSizeOf(race, runners.length);
   const stakes = await poolStakes(ex, raceId);
+  const bettors = await poolBettors(ex, raceId);
   const settledPools = await ex.select().from(totePools).where(eq(totePools.raceId, raceId));
   const currencies = toteCurrencies(env);
   // T-USDG pools that exist from before practice mode was switched off still settle and show.
@@ -859,8 +883,9 @@ export async function toteBoard(ex: Executor, raceId: string, now: Date, env?: R
   const ids = runners.map((r) => r.horseId);
   const pools = currencies.map((currency) => ({
     currency,
-    win: gc.totePoolView("win", ids, stakes.get(`${currency}|win`) ?? new Map(), fieldSize),
-    place: gc.totePlaces(fieldSize) > 0 ? gc.totePoolView("place", ids, stakes.get(`${currency}|place`) ?? new Map(), fieldSize) : null,
+    win: gc.totePoolView("win", ids, stakes.get(`${currency}|win`) ?? new Map(), fieldSize, gc.TOTE_TAKEOUT_PERMILLE, bettors.get(`${currency}|win`) ?? 0),
+    place:
+      gc.totePlaces(fieldSize) > 0 ? gc.totePoolView("place", ids, stakes.get(`${currency}|place`) ?? new Map(), fieldSize, gc.TOTE_TAKEOUT_PERMILLE, bettors.get(`${currency}|place`) ?? 0) : null,
   }));
   const status: ToteBoard["status"] =
     race.status === "cancelled" ? "abandoned" : settledPools.length && race.status === "settled" ? "settled" : now >= race.postTime || race.status === "settled" ? "closed" : "open";

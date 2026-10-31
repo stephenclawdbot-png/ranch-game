@@ -8,15 +8,24 @@ const usdg = (n: number) => gc.formatToteAmount("TUSDG", n);
 function example() {
   const finish = Array.from({ length: 8 }, (_, i) => ({ horseId: `h${i + 1}`, position: i + 1 }));
   const bets = [
-    { id: "a", horseId: "h1", stake: 100 },
-    { id: "b", horseId: "h1", stake: 300 },
-    { id: "c", horseId: "h2", stake: 600 },
-    { id: "d", horseId: "h3", stake: 1_000 },
+    { id: "a", bettor: "a", horseId: "h1", stake: 100 },
+    { id: "b", bettor: "b", horseId: "h1", stake: 300 },
+    { id: "c", bettor: "c", horseId: "h2", stake: 600 },
+    { id: "d", bettor: "d", horseId: "h3", stake: 1_000 },
   ];
   return gc.settleTotePool("win", bets, finish);
 }
 
-/** Two runners dead-heat for first: each takes half the net pool. */
+/** A heavy favourite wins: the take is cut so its backers get their stakes back. */
+function favourite() {
+  const finish = Array.from({ length: 6 }, (_, i) => ({ horseId: `h${i + 1}`, position: i + 1 }));
+  return gc.settleTotePool("win", [
+    { id: "a", bettor: "a", horseId: "h1", stake: 950 },
+    { id: "b", bettor: "b", horseId: "h2", stake: 50 },
+  ], finish);
+}
+
+/** Two runners dead-heat for first: stakes back, then half the profit each. */
 function deadHeat() {
   const finish = [
     { horseId: "h1", position: 1 },
@@ -24,27 +33,29 @@ function deadHeat() {
     ...Array.from({ length: 6 }, (_, i) => ({ horseId: `h${i + 3}`, position: i + 3 })),
   ];
   return gc.settleTotePool("win", [
-    { id: "a", horseId: "h1", stake: 100 },
-    { id: "b", horseId: "h2", stake: 300 },
-    { id: "c", horseId: "h3", stake: 600 },
+    { id: "a", bettor: "a", horseId: "h1", stake: 100 },
+    { id: "b", bettor: "b", horseId: "h2", stake: 300 },
+    { id: "c", bettor: "c", horseId: "h3", stake: 600 },
   ], finish);
 }
 
 export default function TotePage() {
   const ex = example();
   const dh = deadHeat();
+  const fav = favourite();
   const paid = (s: gc.ToteSettlement, id: string) => s.payouts.find((p) => p.betId === id)?.amount ?? 0;
   return (
     <>
       <Lead>
-        Every Live card race has a tote: pool betting for anyone watching. You back a runner to win or to place, your stake goes into a pool with everyone else&rsquo;s, the house takes{" "}
-        {pct(gc.TOTE_TAKEOUT_PERMILLE)} off the top, and the winners share the rest. Nobody sets the odds: they come from the pool alone, and they move as bets arrive until the off. Betting is
+        Every Live card race has a tote: pool betting for anyone watching. You back a runner to win or to place, your stake goes into a pool with everyone else&rsquo;s, the house takes up to{" "}
+        {pct(gc.TOTE_TAKEOUT_PERMILLE)} off the top, and the winners share the rest. A winning bet always returns at least its stake. Nobody sets the odds: they come from the pool alone, and they move as bets arrive until the off. Betting is
         optional, never needed to play, and only ever pays out game currency.
       </Lead>
 
       <Facts
         rows={[
-          ["House take", `${pct(gc.TOTE_TAKEOUT_PERMILLE)} of every pool (to the sink)`],
+          ["House take", `up to ${pct(gc.TOTE_TAKEOUT_PERMILLE)} of every pool (to the sink); less when it would leave a winner short`],
+          ["Smallest pool", `${gc.TOTE_MIN_POOL_BETTORS} players backing ${gc.TOTE_MIN_POOL_RUNNERS} runners, or every stake is refunded`],
           ["Pools", "Win, and Place in fields of 5 or more"],
           ["Place pays", `the first ${gc.totePlaces(gc.TOTE_PLACE_THREE_FROM)} from ${gc.TOTE_PLACE_THREE_FROM} runners, the first ${gc.totePlaces(gc.TOTE_PLACE_MIN_FIELD)} from ${gc.TOTE_PLACE_MIN_FIELD} to ${gc.TOTE_PLACE_THREE_FROM - 1}`],
           ["Smallest bet", `${cr(gc.TOTE_MIN_STAKE.CR)} · ${usdg(gc.TOTE_MIN_STAKE.TUSDG)}`],
@@ -77,8 +88,10 @@ export default function TotePage() {
       <List
         items={[
           <>The take is {pct(gc.TOTE_TAKEOUT_PERMILLE)} of the pool, rounded down. What is left is the net pool.</>,
-          <>Win: the net pool goes to the winner&rsquo;s backers, each in proportion to their stake.</>,
-          <>Place: the net pool is split into equal parts, one per paying place; each part goes to the backers of the runner in that place. If nobody backed one of the placed runners, its part goes to the other placed runners&rsquo; backers.</>,
+          <>Every winning stake comes back first. What is left after the take and the winning stakes is the profit.</>,
+          <>Win: the profit goes to the winner&rsquo;s backers, each in proportion to their stake.</>,
+          <>Place: the profit is split into equal parts, one per paying place; each part goes to the backers of the runner in that place. If nobody backed one of the placed runners, its part goes to the other placed runners&rsquo; backers.</>,
+          <>Winners never lose money: if the take would leave less than the winning stakes, the take is cut (down to zero if it has to be) until every winner gets at least the stake back. The house never pays in.</>,
           <>Every payout is rounded down to the unit; the few units left over go to the house with the take, so payouts + take + rounding = the pool, exactly.</>,
           <>Bets are settled only once the result is public, when the broadcast is over: a payout can never give away a result before you have seen the race.</>,
         ]}
@@ -97,12 +110,17 @@ export default function TotePage() {
       <P>
         Here the dividend is {gc.formatToteOdds(ex.dividends[0]?.perUnitMilli ?? null)} per credit: ({cr(ex.total)} − {cr(ex.takeout)}) ÷ {cr(400)} on the winner.
       </P>
+      <P>
+        When a heavy favourite wins, the standard take could leave its backers less than they staked. Then the take is cut: with {cr(950)} on the winner and {cr(50)} on the
+        runner-up, the {pct(gc.TOTE_TAKEOUT_PERMILLE)} take would be {cr(fav.standardTakeout)}, but only {cr(fav.takeout)} is taken and the winner&rsquo;s backer gets {cr(paid(fav, "a"))} back
+        (odds of {gc.formatToteOdds(fav.dividends[0]?.perUnitMilli ?? null)}). The tote audit shows the take actually taken.
+      </P>
 
       <H2 id="dead-heats">Dead heats</H2>
       <P>
-        When runners dead-heat they share the places they cover. Two dead-heating for first in the Win pool each take half of the net pool for their backers; two dead-heating for the last
-        paying place in the Place pool share that place&rsquo;s part. In a pool of {cr(dh.total)} where the two dead-heaters carry {cr(100)} and {cr(300)}, each side gets {cr(paid(dh, "a"))}: the{" "}
-        {cr(100)} backer is paid {cr(paid(dh, "a"))} and the {cr(300)} backers {cr(paid(dh, "b"))} between them. Races in this game are timed finely, so dead heats are very rare; the rule is
+        When runners dead-heat they share the places they cover. Two dead-heating for first in the Win pool each get their backers&rsquo; stakes back plus half of the profit; two
+        dead-heating for the last paying place in the Place pool share that place&rsquo;s part of the profit. In a pool of {cr(dh.total)} where the two dead-heaters carry {cr(100)} and{" "}
+        {cr(300)}, the {cr(100)} backer is paid {cr(paid(dh, "a"))} and the {cr(300)} backer {cr(paid(dh, "b"))}. Races in this game are timed finely, so dead heats are very rare; the rule is
         there for completeness.
       </P>
 
@@ -113,6 +131,10 @@ export default function TotePage() {
           <>An abandoned or called-off race: every stake is refunded in full, with no take.</>,
           <>Nobody backed the winner (or any placed runner): the net pool goes back to everyone who bet in that pool, in proportion to their stakes. Nothing carries over to another race.</>,
           <>Too few runners for a place pool when the race runs: every place stake is refunded in full.</>,
+          <>
+            A small pool: fewer than {gc.TOTE_MIN_POOL_BETTORS} players, or fewer than {gc.TOTE_MIN_POOL_RUNNERS} runners backed (among the runners that ran). There is nobody to bet against, so
+            the pool is void and every stake in it is refunded in full, with no take. The panel shows a &ldquo;Small pool&rdquo; note while it is so.
+          </>,
           <>A bet that turns out to break the fairness rules below is voided and refunded in full.</>,
         ]}
       />
@@ -123,7 +145,7 @@ export default function TotePage() {
           <>You can&rsquo;t bet on a race in which your stable has a runner, or a stable you lease a horse to or from, or an account linked to yours (the same detection as the <WikiLink slug="the-market">auction house</WikiLink>).</>,
           <>If such a horse is entered after you bet, your bets on that race are voided and refunded.</>,
           <>Bets are accepted only before the off, checked against the server&rsquo;s clock under a lock on the race, so nothing can be bet once the race has started. Each race&rsquo;s result is sealed before it runs (see <WikiLink slug="how-races-are-run">how races are run</WikiLink>).</>,
-          <>After settlement every race shows a tote audit: each pool&rsquo;s total, the take, the number of winning tickets, the dividend per 1 unit with its formula, and the check that payouts + take + rounding = the pool.</>,
+          <>After settlement every race shows a tote audit: each pool&rsquo;s total, the take actually taken (and whether it was cut so winners got their stakes back), the number of winning tickets, the dividend per 1 unit with its formula, and the check that payouts + take + rounding = the pool.</>,
           <>Unusual patterns, such as a horse ridden conservatively while linked accounts bet against it, are flagged for review.</>,
         ]}
       />
