@@ -73,6 +73,7 @@ import {
   featureQualificationReason,
   startsOnDay,
   storedRaceDay,
+  upkeepThisWeek,
   raceSponsor,
   leaseForHorse,
   CLUB_OWNER_NAME,
@@ -1242,6 +1243,7 @@ export async function playerView(db: Db, session: Session, now: Date): Promise<P
     credits,
     entries: { balance: bank.balance, cap: bank.cap, allowance: bank.allowance, refillAvailable: bank.refillAvailable, refillPrice: RULES.entryRefillPrice },
     stalls: { slots: occ.slots, used: occ.used },
+    upkeep: await upkeepThisWeek(db, session.stable.id, now),
     horses: rows
       .filter((r) => r.careerStatus !== "pasture")
       .map((r) => {

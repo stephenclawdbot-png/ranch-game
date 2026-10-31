@@ -519,14 +519,22 @@ export async function stableFinances(db: Db, input: { stableId: string; period: 
   let spend = 0;
   for (const r of kindRows) {
     const c = kindCategory(r.kind);
-    const line = categories.get(c.income) ?? { category: c.income, income: 0, spend: 0 };
-    line.income += Number(r.income);
-    categories.set(c.income, line);
-    const s = categories.get(c.spend) ?? { category: c.spend, income: 0, spend: 0 };
-    s.spend += Number(r.spend);
-    categories.set(c.spend, s);
-    income += Number(r.income);
-    spend += Number(r.spend);
+    const incomeOf = Number(r.income);
+    const spendOf = Number(r.spend);
+    // A kind maps to an income AND a spend category, but only the side it actually moved
+    // earns a row — a zero side must not conjure an empty category line on the page.
+    if (incomeOf > 0) {
+      const line = categories.get(c.income) ?? { category: c.income, income: 0, spend: 0 };
+      line.income += incomeOf;
+      categories.set(c.income, line);
+    }
+    if (spendOf > 0) {
+      const s = categories.get(c.spend) ?? { category: c.spend, income: 0, spend: 0 };
+      s.spend += spendOf;
+      categories.set(c.spend, s);
+    }
+    income += incomeOf;
+    spend += spendOf;
   }
 
   const involved = [...sheets.keys()].filter((id) => /^[0-9a-f-]{36}$/.test(id));

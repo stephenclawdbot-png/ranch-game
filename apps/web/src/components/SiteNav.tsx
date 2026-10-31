@@ -28,6 +28,7 @@ export const SECTIONS: Section[] = [
       { href: "/nursery", label: "Nursery" },
       { href: "/breeding", label: "Breeding" },
       { href: "/facilities", label: "Facilities" },
+      { href: "/stable/finances", label: "Finances" },
     ],
   },
   {
