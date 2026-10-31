@@ -97,6 +97,17 @@ describe("the build-up before the off", () => {
     expect(loadingAt(plan, LOAD_FROM).loaded).toBe(0);
   });
 
+  it("every field size (1-24) is fully loaded at least a second before the off", () => {
+    for (let n = 1; n <= 24; n++) {
+      const plan = preOffPlan(Array.from({ length: n }, (_, i) => ({ gate: i + 1 })), 1200);
+      expect(loadingAt(plan, -1).loaded).toBe(n);
+      for (const at of plan.loadAt) {
+        expect(at).toBeGreaterThanOrEqual(LOAD_FROM);
+        expect(at + WALK_IN_S).toBeLessThanOrEqual(-1);
+      }
+    }
+  });
+
   it("the director frames the field going down to post, then the stalls, and the race as before", () => {
     const d = new Director();
     const runners = replay.horses.map((h) => ({ id: h.horseId, x: 1170 }));
