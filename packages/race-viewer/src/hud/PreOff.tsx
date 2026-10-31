@@ -83,7 +83,7 @@ export function PreOffOverlay({
       </div>
       <button
         type="button"
-        className="rv-btn rv-pre-skip"
+        className={`rv-btn rv-pre-skip${pre.kind === "parade" ? " rv-pre-skip-top" : ""}`}
         onClick={(e) => {
           e.stopPropagation();
           onSkip();

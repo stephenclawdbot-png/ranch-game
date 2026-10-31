@@ -252,6 +252,8 @@ export const VIEWER_CSS = `
 .rv-pre-count-k{font:9px var(--rv-f-pixel);text-transform:uppercase;letter-spacing:.06em;color:var(--rv-brass2)}
 .rv-pre-count-v{font-family:var(--rv-f-num);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
 .rv-pre-skip{position:absolute;right:12px;bottom:64px}
+.rv-pre-skip.rv-pre-skip-top{top:64px;bottom:auto}
+.rv-narrow .rv-pre-skip.rv-pre-skip-top{top:52px;bottom:auto}
 .rv-pre-on{position:absolute;right:12px;top:12px;opacity:.85}
 .rv-narrow .rv-pre-lower{left:6px;right:auto;bottom:54px;max-width:calc(100% - 132px);padding:5px 8px 6px}
 .rv-narrow .rv-pre-t{font-size:12.5px}
