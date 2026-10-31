@@ -8,13 +8,13 @@
  * secret (economy_config, like the Daily Cup's). It never touches horses, entries, results,
  * ratings, form, the ledger, leagues, jockeys or records, and none of those read these tables.
  */
-import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { newSeed, utcDay } from "../crypto";
 import { DomainError } from "../errors";
-import { economyConfig, horses, inboxItems, matchRaceRunners, quickRaces, stables, type QuickRaceRow } from "../schema";
+import { economyConfig, horses, inboxItems, matchRaceRunners, quickRaces, stables, type HorseRow, type QuickRaceRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
-import { runTx } from "./tx";
+import { rowsOf, runTx } from "./tx";
 
 export type QuickRaceMode = "match" | "ghost" | "daily";
 
@@ -275,4 +275,82 @@ export async function dailyChallengeSeed(ex: Executor, day: number): Promise<str
   const seed = (row?.value as { seed?: unknown } | undefined)?.seed;
   if (typeof seed !== "string") throw new DomainError("NOT_FOUND", "daily challenge seed missing");
   return seed;
+}
+
+// ---------------------------------------------------------------------------
+// Match race opponents
+// ---------------------------------------------------------------------------
+
+export interface KeptHorse {
+  horse: HorseRow;
+  /** The stable it stands in (the lessee while on lease, else the owner). */
+  stableId: string;
+  stableName: string;
+  silks: unknown;
+}
+
+/** SQL: the stable a horse stands in. */
+const keeper = sql<string>`coalesce(${horses.lesseeStableId}, ${horses.ownerStableId})`;
+
+/** Racing horses with the stable they stand in (missing ids and stable-less horses are left out). */
+export async function keptHorses(ex: Executor, ids: readonly string[]): Promise<KeptHorse[]> {
+  if (ids.length === 0) return [];
+  const rows = await ex
+    .select({ horse: horses, stableId: stables.id, stableName: stables.name, silks: stables.silks })
+    .from(horses)
+    .innerJoin(stables, eq(stables.id, keeper))
+    .where(inArray(horses.id, [...ids]));
+  return rows;
+}
+
+/**
+ * Other stables' racing horses whose name contains `q` (case-insensitive), for the match race
+ * search: the stable's own horses are left out, and so are horses no stable keeps (the Club's).
+ */
+export async function searchMatchOpponents(ex: Executor, input: { q: string; excludeStableId: string; limit?: number }): Promise<KeptHorse[]> {
+  const q = input.q.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+  if (q.length < 2) return [];
+  return ex
+    .select({ horse: horses, stableId: stables.id, stableName: stables.name, silks: stables.silks })
+    .from(horses)
+    .innerJoin(stables, eq(stables.id, keeper))
+    .where(
+      and(
+        eq(horses.careerStatus, "racing"),
+        isNotNull(horses.ownerStableId),
+        ne(keeper, input.excludeStableId),
+        or(ilike(horses.name, `%${q}%`), ilike(stables.name, `%${q}%`)),
+      ),
+    )
+    .orderBy(asc(horses.name))
+    .limit(input.limit ?? 12);
+}
+
+// ---------------------------------------------------------------------------
+// Daily challenge standings over time
+// ---------------------------------------------------------------------------
+
+export interface DailyStandingLine {
+  day: string;
+  rank: number;
+  entrants: number;
+  position: number;
+  points: number;
+}
+
+/** A stable's rank on each day it tried the daily challenge (newest first), ranked as dailyBoard orders. */
+export async function dailyStandingsOf(ex: Executor, stableId: string, limit = 400): Promise<DailyStandingLine[]> {
+  const res = await ex.execute(sql`
+    select day, rank, entrants, position, points from (
+      select challenge_day::text as day, stable_id, position, points,
+        row_number() over (partition by challenge_day order by position asc, finish_time_us asc, created_at asc, stable_id asc)::int as rank,
+        count(*) over (partition by challenge_day)::int as entrants
+      from quick_races
+      where mode = 'daily' and challenge_day in (select challenge_day from quick_races where stable_id = ${stableId} and mode = 'daily')
+    ) t
+    where stable_id = ${stableId}
+    order by day desc
+    limit ${limit}`);
+  const rows = rowsOf<{ day: string; rank: number; entrants: number; position: number; points: number }>(res);
+  return rows.map((r) => ({ day: String(r.day), rank: Number(r.rank), entrants: Number(r.entrants), position: Number(r.position), points: Number(r.points) }));
 }

@@ -13,6 +13,9 @@ import {
   dailyBoard,
   dailyChallengeSeed,
   dailyHistory,
+  dailyStandingsOf,
+  keptHorses,
+  searchMatchOpponents,
   getQuickRace,
   listMatchNotes,
   listQuickRaces,
@@ -103,6 +106,24 @@ describe("quick races storage", () => {
     const board = await dailyBoard(h.db, day);
     expect(board.map((r) => r.stableId)).toEqual([b.stableId, a.stableId]);
     expect((await dailyHistory(h.db, a.stableId)).map((r) => r.day)).toEqual(["2026-11-03", day]);
+    const standings = await dailyStandingsOf(h.db, a.stableId);
+    expect(standings).toEqual([
+      { day: "2026-11-03", rank: 1, entrants: 1, position: 2, points: 5 },
+      { day, rank: 2, entrants: 2, position: 3, points: 5 },
+    ]);
+  });
+
+  it("finds other stables' racing horses by horse or stable name, never your own", async () => {
+    const a = await newPlayer(h.db);
+    const b = await newPlayer(h.db);
+    await makeHorse(h.db, a.stableId, { name: "Zephyr Mine" });
+    const theirs = await makeHorse(h.db, b.stableId, { name: "Zephyr Theirs" });
+    const found = await searchMatchOpponents(h.db, { q: "zephyr", excludeStableId: a.stableId });
+    expect(found.map((r) => r.horse.id)).toEqual([theirs.id]);
+    expect(found[0]!.stableId).toBe(b.stableId);
+    expect(await searchMatchOpponents(h.db, { q: "z", excludeStableId: a.stableId })).toEqual([]);
+    expect(await searchMatchOpponents(h.db, { q: "%", excludeStableId: a.stableId })).toEqual([]);
+    expect((await keptHorses(h.db, [theirs.id]))[0]!.stableName).toBeTruthy();
   });
 
   it("keeps one seed per challenge day", async () => {
