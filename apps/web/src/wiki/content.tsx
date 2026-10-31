@@ -35,6 +35,7 @@ import PacksPage from "./pages/packs";
 import LeaguePage from "./pages/league";
 import PlanningPage from "./pages/planning";
 import RivalsAndNewsPage from "./pages/rivals-and-news";
+import PicksAndTipstersPage from "./pages/picks-and-tipsters";
 import DailyCupPage from "./pages/daily-cup";
 import HallAndTrophiesPage from "./pages/hall-and-trophies";
 import GlossaryPage from "./pages/glossary";
@@ -75,6 +76,7 @@ export const WIKI_CONTENT: Record<string, ComponentType> = {
   "league": LeaguePage,
   "planning": PlanningPage,
   "rivals-and-news": RivalsAndNewsPage,
+  "picks-and-tipsters": PicksAndTipstersPage,
   "daily-cup": DailyCupPage,
   "hall-and-trophies": HallAndTrophiesPage,
   "glossary": GlossaryPage,

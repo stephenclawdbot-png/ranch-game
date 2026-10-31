@@ -123,6 +123,8 @@ export const accounts = pgTable(
     // Case-insensitive backstop (wallets are stored checksummed): the race two accounts
     // set the same wallet loses here instead of ending up with two owners.
     uniqueIndex("accounts_wallet_lower_uq").on(sql`lower(${t.walletAddress})`),
+    /** New accounts per day (admin: players by audience). */
+    index("accounts_created_idx").on(t.createdAt),
   ],
 );
 
@@ -2180,3 +2182,78 @@ export const raceTargets = pgTable(
 );
 
 export type RaceTargetRow = typeof raceTargets.$inferSelect;
+
+/**
+ * Pick the winner (services/picks.ts, game-core picks.ts): one pick per stable per Live card race,
+ * changeable until the off. Points only, never money: nothing is staked or paid. Scored once the
+ * race's result is public (news.ts resultPublicAt); `postTime` is copied from the race so the
+ * weekly table reads one index.
+ */
+export const racePicks = pgTable(
+  "race_picks",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    postTime: ts("post_time").notNull(),
+    /** open (not scored yet) | won | lost | void (the runner didn't run, or the race was called off). */
+    outcome: text("outcome").notNull().default("open"),
+    points: integer("points").notNull().default(0),
+    /** Rank by rating in the final field (game-core ratingRanks) and the field size, once scored. */
+    rank: integer("rank"),
+    fieldSize: integer("field_size"),
+    scoredAt: ts("scored_at"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("race_picks_race_stable_uq").on(t.raceId, t.stableId),
+    index("race_picks_stable_idx").on(t.stableId, t.postTime),
+    index("race_picks_week_idx").on(t.postTime),
+    index("race_picks_open_idx")
+      .on(t.postTime)
+      .where(sql`${t.outcome} = 'open'`),
+    check("race_picks_outcome", sql`${t.outcome} in ('open','won','lost','void')`),
+  ],
+);
+
+export type RacePickRow = typeof racePicks.$inferSelect;
+
+/**
+ * Declared rivals (services/rivals.ts): stables made rivals by a "Bring a rival" invite, beside
+ * the rivals detected from close finishes. One row per invited stable (an account can only be
+ * invited once). `welcome` records the one-time RIVAL_INVITE_CREDITS: granted, or refused with a
+ * reason (linked accounts: same device, wallet, email ...).
+ */
+export const declaredRivals = pgTable(
+  "declared_rivals",
+  {
+    id: id(),
+    inviterStableId: uuid("inviter_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    inviteeStableId: uuid("invitee_stable_id")
+      .notNull()
+      .references(() => stables.id),
+    source: text("source").notNull().default("invite"),
+    welcome: text("welcome").notNull(),
+    welcomeCredits: integer("welcome_credits").notNull().default(0),
+    refusedReason: text("refused_reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("declared_rivals_invitee_uq").on(t.inviteeStableId),
+    index("declared_rivals_inviter_idx").on(t.inviterStableId),
+    check("declared_rivals_pair", sql`${t.inviterStableId} <> ${t.inviteeStableId}`),
+    check("declared_rivals_welcome", sql`${t.welcome} in ('granted','refused')`),
+  ],
+);
+
+export type DeclaredRivalRow = typeof declaredRivals.$inferSelect;

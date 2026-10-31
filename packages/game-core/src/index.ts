@@ -49,3 +49,4 @@ export * from "./nearMiss";
 export * from "./rivals";
 export * from "./news";
 export * from "./planning";
+export * from "./picks";

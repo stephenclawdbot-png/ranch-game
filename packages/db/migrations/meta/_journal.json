@@ -162,6 +162,13 @@
       "when": 1793418916727,
       "tag": "0022_what_if",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793424846947,
+      "tag": "0023_picks_rivals",
+      "breakpoints": true
     }
   ]
 }

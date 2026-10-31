@@ -37,6 +37,24 @@ interface Economy {
   claiming?: { racesRun: number; horsesEntered: number; claimsLodged: number; horsesClaimed: number; creditsMoved: number };
 }
 
+/** Players by audience (packages/db audience.ts); absent on older servers. */
+interface AudienceGroup {
+  key: "crypto" | "other";
+  accounts: number;
+  newPerDay: { day: string; n: number }[];
+  day1: { eligible: number; returned: number; pct: number | null };
+  day7: { eligible: number; returned: number; pct: number | null };
+  activeDays: number;
+  medianSpentPerActiveDay: number | null;
+  racesPerActiveDay: number | null;
+  usdg: { actions: number; testnetOrders: number; mainnetOrders: number } | null;
+}
+interface Audience {
+  fromDay: string;
+  toDay: string;
+  groups: AudienceGroup[];
+}
+
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
 const n0 = (v: number) => v.toLocaleString("en-GB");
 
@@ -99,6 +117,95 @@ function EconomyHealth({ e }: { e: Economy }) {
   );
 }
 
+const AUDIENCE_LABEL = { crypto: "Crypto players", other: "Everyone else" } as const;
+
+/**
+ * Players by audience: crypto players (a linked or signed-in wallet, ever) against everyone else.
+ * Returned = any activity (race entry, care, training, Cup, play day, credits spent) on that day
+ * after signup; per-active-day figures are over (account, UTC day) pairs with activity.
+ */
+function AudiencePanel({ a }: { a: Audience }) {
+  const days = [...new Set(a.groups.flatMap((g) => g.newPerDay.map((d) => d.day)))].sort();
+  const newOn = (g: AudienceGroup, day: string) => g.newPerDay.find((d) => d.day === day)?.n ?? 0;
+  const ret = (r: AudienceGroup["day1"]) => `${pct(r.pct)} (${r.returned}/${r.eligible})`;
+  return (
+    <section className="grid gap-2" data-testid="audience-panel">
+      <h3 className="t-h2">
+        Players by audience <span className="text-sm font-normal text-cream-dim">({a.fromDay} to {a.toDay}, UTC)</span>
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left">
+              <th className="p-1" />
+              {a.groups.map((g) => (
+                <th key={g.key} className="p-1 text-right">
+                  {AUDIENCE_LABEL[g.key]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                ["Accounts (all time)", (g: AudienceGroup) => n0(g.accounts)],
+                ["New in the window", (g: AudienceGroup) => n0(g.newPerDay.reduce((s, d) => s + d.n, 0))],
+                ["Day-1 return", (g: AudienceGroup) => ret(g.day1)],
+                ["Day-7 return", (g: AudienceGroup) => ret(g.day7)],
+                ["Active days", (g: AudienceGroup) => n0(g.activeDays)],
+                ["Credits spent / active day (median)", (g: AudienceGroup) => (g.medianSpentPerActiveDay === null ? "–" : n0(g.medianSpentPerActiveDay))],
+                ["Races entered / active day", (g: AudienceGroup) => (g.racesPerActiveDay === null ? "–" : g.racesPerActiveDay.toFixed(2))],
+                ["USDG / T-USDG actions", (g: AudienceGroup) => (g.usdg ? `${n0(g.usdg.actions)} · orders ${g.usdg.testnetOrders} testnet, ${g.usdg.mainnetOrders} mainnet` : "n/a")],
+              ] as const
+            ).map(([label, f]) => (
+              <tr key={label} className="border-t-2 border-line">
+                <td className="p-1 font-bold">{label}</td>
+                {a.groups.map((g) => (
+                  <td key={g.key} className="num p-1 text-right align-top">
+                    {f(g)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {days.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-sm font-bold">New accounts per day</summary>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[20rem] text-sm" data-testid="audience-new-per-day">
+              <thead>
+                <tr className="text-left">
+                  <th className="p-1">Day</th>
+                  {a.groups.map((g) => (
+                    <th key={g.key} className="p-1 text-right">
+                      {AUDIENCE_LABEL[g.key]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {days.map((d) => (
+                  <tr key={d} className="border-t-2 border-line">
+                    <td className="p-1">{d}</td>
+                    {a.groups.map((g) => (
+                      <td key={g.key} className="num p-1 text-right">
+                        {newOn(g, d)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+      <p className="text-xs text-cream-dim">Crypto = an account with a linked or signed-in wallet (now or before). Returned = any race entry, care, training plan, Daily Cup run, play day or credits spent on that day after signup.</p>
+    </section>
+  );
+}
+
 /** Seconds as "m:ss" (e.g. 82.5 -> "1:23"). */
 const mmss = (sec: number | null) => {
   if (sec === null) return "–";
@@ -119,7 +226,7 @@ const FUNNEL_STEPS: [label: string, short: string, key: keyof Metrics["funnel"]]
 const FPS_TARGET: Record<string, number> = { phone: 30, tablet: 30, desktop: 60 };
 
 export function MetricsSection() {
-  const { data, error } = useAdminData<{ metrics: Metrics; economy?: Economy }>("/api/admin/metrics?days=14");
+  const { data, error } = useAdminData<{ metrics: Metrics; economy?: Economy; audience?: Audience }>("/api/admin/metrics?days=14");
   if (error) return <p className="font-bold text-negative">{error}</p>;
   if (!data) return <p className="text-cream-dim">Loading…</p>;
   const m = data.metrics;
@@ -139,6 +246,7 @@ export function MetricsSection() {
   return (
     <div className="grid gap-4" data-testid="metrics">
       {data.economy && <EconomyHealth e={data.economy} />}
+      {data.audience && <AudiencePanel a={data.audience} />}
       <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tile label="Testers" value={String(m.totals.testers)} />
         <Tile label="Day-1 retention" value={pct(m.retention.day1)} sub={`of ${m.retention.day1Eligible} who could`} />

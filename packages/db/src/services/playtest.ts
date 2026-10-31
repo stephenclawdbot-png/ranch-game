@@ -677,6 +677,8 @@ export const RESET_TABLES = [
   // pool_* and wallet data on testers survive).
   "news_items",
   "race_targets",
+  "race_picks",
+  "declared_rivals",
   "referrals",
   "audit_log",
   "hall_of_fame",

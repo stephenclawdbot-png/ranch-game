@@ -84,6 +84,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
 
   // Club & glory
   { slug: "rivals-and-news", section: "club", title: "Rivals & news", summary: "Rival stables, head-to-head records, your nemesis, and the racing news.", keywords: ["rival", "rivals", "nemesis", "head-to-head", "h2h", "news", "close finish", "my stable"] },
+  { slug: "picks-and-tipsters", section: "club", title: "Picks & tipsters", summary: "Pick the winner of any Live race for points (never money): scoring, the weekly tipster table and badges.", keywords: ["pick", "picks", "tipster", "tipsters", "tip", "winner", "points", "streak", "badge"] },
   { slug: "league", section: "club", title: "The League", summary: "Weekly leagues: points, promotion, the road to Saturday and the Season Final.", keywords: ["league", "season", "points", "division", "relegation", "floor", "recap", "this week", "saturday", "plate", "weekend feature"] },
   { slug: "daily-cup", section: "club", title: "The Daily Cup", summary: "One run a day through a ladder of races.", keywords: ["cup", "daily", "run"] },
   { slug: "hall-and-trophies", section: "club", title: "Hall of Fame & Trophy Room", summary: "Legends, honours and the silverware on your shelves.", keywords: ["hall", "fame", "trophy", "honours", "legend"] },
