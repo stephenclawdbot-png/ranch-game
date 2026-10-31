@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import { errorJson, handleError, json, readJson } from "@/server/http";
 import { requireSession } from "@/server/session";
 import { RealToteGeoError, RealToteOffError, realToteOn, requestBetPermit } from "@/server/chain/toteChain";
+import { isToteStaff } from "@/server/tote";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const database = await db();
     const session = await requireSession(database);
-    const signed = await requestBetPermit(database, session, { raceId: decodeURIComponent(id), horseId: parsed.data.horseId, pool: parsed.data.pool, amount: Number(parsed.data.amount), wallet: parsed.data.wallet, country: req.headers.get("x-vercel-ip-country"), now: new Date() });
+    const signed = await requestBetPermit(database, session, { raceId: decodeURIComponent(id), horseId: parsed.data.horseId, pool: parsed.data.pool, amount: Number(parsed.data.amount), wallet: parsed.data.wallet, country: req.headers.get("x-vercel-ip-country"), now: new Date(), staff: await isToteStaff(session) });
     return json(signed);
   } catch (err) {
     if (err instanceof RealToteOffError) return errorJson(503, "real_tote_off", { message: "Real-money betting is off." });

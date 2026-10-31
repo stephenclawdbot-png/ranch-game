@@ -23,7 +23,7 @@ type Signed = {
   chainId: number;
   totePools: Address;
   bet: { raceId: Hex; runner: number; pool: number; amount: string };
-  permit: { bettor: Address; raceId: Hex; maxAmount: string; nonce: string; expiry: string };
+  permit: { bettor: Address; raceId: Hex; runner: number; pool: number; maxAmount: string; nonce: string; issuedAt: string; expiry: string };
   signature: Hex;
   preview: { amount: string; amountLabel: string; expiresAtMs: number };
 };
@@ -120,7 +120,7 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
         address: signed.totePools,
         abi: totePoolsAbi,
         functionName: "bet",
-        args: [signed.bet.raceId, signed.bet.runner, signed.bet.pool, amount, { bettor: p.bettor, raceId: p.raceId, maxAmount: BigInt(p.maxAmount), nonce: BigInt(p.nonce), expiry: BigInt(p.expiry) }, signed.signature],
+        args: [signed.bet.raceId, signed.bet.runner, signed.bet.pool, amount, { bettor: p.bettor, raceId: p.raceId, runner: p.runner, pool: p.pool, maxAmount: BigInt(p.maxAmount), nonce: BigInt(p.nonce), issuedAt: BigInt(p.issuedAt), expiry: BigInt(p.expiry) }, signed.signature],
         account,
         chain: wallet.chain,
       });

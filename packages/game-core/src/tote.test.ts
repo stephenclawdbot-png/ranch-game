@@ -4,17 +4,22 @@ import {
   TOTE_MAX_STAKE_PER_DAY,
   TOTE_MAX_STAKE_PER_RACE,
   TOTE_MIN_STAKE,
+  TOTE_SELF_EXCLUSIONS,
   TOTE_TAKEOUT_PERMILLE,
+  TOTE_TIME_OUTS,
   TOTE_USDG_UNIT,
   formatToteAmount,
   formatToteOdds,
   settleTotePool,
   toteDayAllowance,
+  toteBreakKind,
   toteExclusionEnd,
   totePlaces,
   totePoolView,
   toteRaceAllowance,
+  toteRealityCheckDue,
   toteReturnIfPlaced,
+  toteSessionStart,
   toteSettlementBalanced,
   toteStakeProblem,
   toteTakeout,
@@ -78,6 +83,26 @@ describe("live odds", () => {
     expect(toteReturnIfPlaced("place", new Map(), "h1", 100, 4)).toBe(0);
     // winners never lose: at least the stake back, also in the preview
     expect(toteReturnIfPlaced("win", new Map([["h1", 900], ["h2", 10]]), "h1", 100, 8)).toBe(100);
+  });
+
+  it("place odds as a range: least when the most-backed others place, most when no other backed runner does", () => {
+    // 8 runners, 3 places; pool 1000, take 150. h1 100, h2 500, h3 300, h4 100.
+    const stakes = new Map([["h1", 100], ["h2", 500], ["h3", 300], ["h4", 100]]);
+    const v = totePoolView("place", ["h1", "h2", "h3", "h4"], stakes, 8);
+    // least: h2 and h3 place with h1: winning stakes 900, take cut to 100, profit 0 -> 1.00
+    // most: h1 the only backed placer: 850 for 100 -> 8.50
+    expect(v.runners[0]!.oddsRangeMilli).toEqual([1000, 8500]);
+    // h2 least: h3 and h1 (or h4) place: winning 900, profit 0 -> 1.00; most 850 / 500 = 1.70
+    expect(v.runners[1]!.oddsRangeMilli).toEqual([1000, 1700]);
+    // the range always holds what settlement pays
+    for (const placed of [["h1", "h2", "h3"], ["h1", "h4", "h9"], ["h1", "h8", "h9"]]) {
+      const fin = [...placed, ...["h2", "h3", "h4", "h5", "h6", "h7", "h8", "h9"].filter((x) => !placed.includes(x))].slice(0, 8).map((horseId, i) => ({ horseId, position: i + 1 }));
+      const bets = [...stakes].map(([h, st], i) => bet(`b${i}`, h, st));
+      const d = settleTotePool("place", bets, fin).dividends.find((x) => x.horseId === "h1")!;
+      expect(d.perUnitMilli).toBeGreaterThanOrEqual(v.runners[0]!.oddsRangeMilli![0]);
+      expect(d.perUnitMilli).toBeLessThanOrEqual(v.runners[0]!.oddsRangeMilli![1]);
+    }
+    expect(totePoolView("win", ["h1"], new Map([["h1", 10]]), 8).runners[0]!.oddsRangeMilli).toBe(null);
   });
 
   it("odds never show below 1.00, and a pool flags itself thin until 2 players back 2 runners", () => {
@@ -234,6 +259,28 @@ describe("settleTotePool", () => {
   it("is independent of bet order", () => {
     const bets = [bet("a", "h1", 70), bet("b", "h2", 33), bet("c", "h1", 41), bet("d", "h3", 9)];
     expect(settleTotePool("place", bets, field(8))).toEqual(settleTotePool("place", [...bets].reverse(), field(8)));
+  });
+});
+
+describe("breaks and reality checks", () => {
+  it("time-outs end by themselves; self-exclusions continue until the player acts; permanent never ends", () => {
+    expect(TOTE_TIME_OUTS.map(toteBreakKind)).toEqual(["time_out", "time_out", "time_out"]);
+    expect(TOTE_SELF_EXCLUSIONS.map(toteBreakKind)).toEqual(["self_exclusion", "self_exclusion", "self_exclusion", "permanent"]);
+    expect(toteExclusionEnd("6m", 0)).toBe(182 * 86_400_000);
+    expect(toteExclusionEnd("5y", 0)).toBe(1_826 * 86_400_000);
+  });
+
+  it("a session runs until a 30-minute gap; a reality check is due every 60 minutes of it", () => {
+    const M = 60_000;
+    expect(toteSessionStart([], 0)).toBe(null);
+    expect(toteSessionStart([0], 30 * M)).toBe(null); // last bet 30 min ago: no session
+    expect(toteSessionStart([0, 20 * M, 45 * M, 70 * M], 80 * M)).toBe(0);
+    expect(toteSessionStart([0, 40 * M, 50 * M], 60 * M)).toBe(40 * M); // a 40-minute gap started a new one
+    expect(toteRealityCheckDue(0, null, 59 * M)).toBe(false);
+    expect(toteRealityCheckDue(0, null, 60 * M)).toBe(true);
+    expect(toteRealityCheckDue(0, 60 * M, 100 * M)).toBe(false);
+    expect(toteRealityCheckDue(0, 60 * M, 120 * M)).toBe(true);
+    expect(toteRealityCheckDue(null, null, 120 * M)).toBe(false);
   });
 });
 

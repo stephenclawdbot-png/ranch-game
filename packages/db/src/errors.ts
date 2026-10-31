@@ -70,7 +70,11 @@ export type DomainErrorCode =
   /** The player has excluded themselves from betting. */
   | "TOTE_EXCLUDED"
   /** The 18+ confirmation is needed before a first bet. */
-  | "TOTE_AGE_CONFIRM";
+  | "TOTE_AGE_CONFIRM"
+  /** Staff (an admin session, a system or staff account) can't bet. */
+  | "TOTE_STAFF"
+  /** An hour of betting: the player must look at the session's reality check before the next bet. */
+  | "TOTE_REALITY_CHECK";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

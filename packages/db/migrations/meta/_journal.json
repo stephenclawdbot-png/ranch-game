@@ -183,6 +183,13 @@
       "when": 1793430554993,
       "tag": "0025_real_tote",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793438297557,
+      "tag": "0026_real_tote_hardening",
+      "breakpoints": true
     }
   ]
 }

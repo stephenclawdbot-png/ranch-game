@@ -11,11 +11,12 @@
  *    `REAL_TOTE_ENTROPY_LEAD_MS` before the off, and the contract refuses bets a further
  *    `REAL_TOTE_CLOSE_MARGIN_MS` before that (sequencer clock drift);
  *  - the race runs on finalSeed = sha256(serverSeed ‖ entropy), where the entropy is a future
- *    block hash fixed on chain after betting closed. Nobody, the operator included, can know the
- *    outcome while bets are open.
+ *    mix of several block hashes fixed on chain after betting closed. Nobody, the operator
+ *    included, can know the outcome while bets are open (residual trust: docs/usdg-tote.md).
  *
  * Stakes stay in the TotePools contract; the database only mirrors chain events for display.
- * The pool maths are tote.ts's (the contract implements the same rules on chain).
+ * The pool maths are tote.ts's (the contract implements the same rules on chain, including the
+ * minimum pool and "winners never lose").
  *
  * Integer maths only, no clocks: callers pass time in.
  */
@@ -86,6 +87,37 @@ export function realToteBetsCloseMs(postTimeMs: number): number {
 /** A permit issued at `nowMs` expires at this time: a short TTL, never past the betting close. */
 export function realTotePermitExpiryMs(nowMs: number, postTimeMs: number): number {
   return Math.min(nowMs + REAL_TOTE_PERMIT_TTL_MS, realToteBetsCloseMs(postTimeMs));
+}
+
+/**
+ * A permit's on-chain `issuedAt` is backdated by this much (the chain's clock can lag ours). The
+ * contract refuses a permit before `issuedAt` and more than 10 minutes after it.
+ */
+export const REAL_TOTE_PERMIT_CLOCK_SKEW_MS = 30_000;
+
+/** A permit's on-chain validity window, unix seconds: [issuedAt, expiry]. */
+export function realTotePermitWindowS(nowMs: number, postTimeMs: number): { issuedAt: number; expiry: number } {
+  return { issuedAt: Math.floor((nowMs - REAL_TOTE_PERMIT_CLOCK_SKEW_MS) / 1000), expiry: Math.floor(realTotePermitExpiryMs(nowMs, postTimeMs) / 1000) };
+}
+
+/** An expired permit that no mirrored bet used is checked on chain (nonceUsed) after this grace, then stops counting. */
+export const REAL_TOTE_PERMIT_LAPSE_GRACE_MS = 1 * MS_PER_MINUTE;
+
+/** TotePools deployment: consecutive block hashes mixed into the entropy (ENTROPY_BLOCKS). */
+export const REAL_TOTE_ENTROPY_BLOCKS = 3;
+
+/** TotePools deployment: MAX_SETTLE_DELAY. After it an unsettled market expires to refunds (anyone can call it). */
+export const REAL_TOTE_MAX_SETTLE_DELAY_MS = 1 * MS_PER_DAY;
+
+/** A result public this long but still not posted on chain raises a "withheld result" alert. */
+export const REAL_TOTE_RESULT_ALERT_MS = 30 * MS_PER_MINUTE;
+
+/** The keeper retries a failing step with backoff and parks the market (with an alert) after this many failures in a row. */
+export const REAL_TOTE_KEEPER_MAX_ATTEMPTS = 6;
+
+/** Wait before the keeper retries a step that failed `attempts` times in a row: 30 s doubling, at most 30 min. */
+export function realToteKeeperBackoffMs(attempts: number): number {
+  return Math.min(30_000 * 2 ** Math.max(0, attempts - 1), 30 * MS_PER_MINUTE);
 }
 
 /** The most this account may still stake (base units) on this race and today, with its own lower limits. */

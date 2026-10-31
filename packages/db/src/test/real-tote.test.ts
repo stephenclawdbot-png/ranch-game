@@ -3,13 +3,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { commitSeed, mixSeedEntropy } from "../crypto";
 import { gc } from "../gameCore";
-import { accounts, fraudEvents, races, realTotePermits } from "../schema";
+import { accounts, auditLog, fraudEvents, races, realTotePermits, realToteRaces } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { createRace, enterRace, getRaceForSimulation, listRaceEntries, lockField, settleRace, type CreateRaceInput } from "../services/races";
 import {
+  closeUnopenedRealToteRace,
   enableRealToteForRace,
   getRealToteRace,
   issueRealTotePermit,
+  lapseRealTotePermits,
+  raiseRealToteAlert,
+  realToteAttestWork,
+  realToteUnsettledPermits,
+  recordRealToteKeeperOutcome,
+  setRealToteSyncedBlock,
+  unparkRealToteRace,
   realToteBoard,
   realToteDueWork,
   realToteEnabled,
@@ -85,8 +93,8 @@ async function openMarket(raceId: string) {
   await recordRealToteEvent(h.db, ev(raceId, "MarketCreated"), at(15 * MIN));
 }
 
-function permit(b: { accountId: string; wallet: string }, raceId: string, horseId: string, amount: number, now = at(16 * MIN)) {
-  return issueRealTotePermit(h.db, { accountId: b.accountId, raceId, horseId, pool: "win", amount, wallet: b.wallet, now, env: ON });
+function permit(b: { accountId: string; wallet: string }, raceId: string, horseId: string, amount: number, now = at(16 * MIN), pool: "win" | "place" = "win") {
+  return issueRealTotePermit(h.db, { accountId: b.accountId, raceId, horseId, pool, amount, wallet: b.wallet, now, env: ON });
 }
 
 describe("real-USDG tote (dormant scaffold)", () => {
@@ -167,7 +175,11 @@ describe("real-USDG tote (dormant scaffold)", () => {
     const g = await permit(b, race.id, owners[3]!.horseId, 5 * U);
     const [row] = await h.db.select().from(races).where(eq(races.id, race.id));
     const gate = (row!.field as { runners: { horseId: string; gate: number }[] }).runners.find((r) => r.horseId === owners[3]!.horseId)!.gate;
-    expect(g).toMatchObject({ runner: gate - 1, pool: "win", maxAmount: 5 * U, wallet: b.wallet });
+    expect(g).toMatchObject({ runner: gate - 1, pool: "win", maxAmount: 5 * U, wallet: b.wallet, issuedAt: at(16 * MIN) });
+    const [stored] = await h.db.select().from(realTotePermits).where(eq(realTotePermits.nonce, g.nonce));
+    expect(stored).toMatchObject({ runner: gate - 1, pool: "win" }); // bound on chain too (signed into the permit)
+    // staff can't bet
+    await expect(issueRealTotePermit(h.db, { accountId: b.accountId, raceId: race.id, horseId: horse, pool: "win", amount: U, wallet: b.wallet, now: at(16 * MIN), env: ON, staff: true })).rejects.toMatchObject({ code: "TOTE_STAFF" });
     expect(g.expiresAt).toEqual(at(16 * MIN + gc.REAL_TOTE_PERMIT_TTL_MS));
     expect(BigInt(g.nonce) > 0n).toBe(true);
     // betting closed
@@ -177,7 +189,7 @@ describe("real-USDG tote (dormant scaffold)", () => {
     expect(late.expiresAt).toEqual(at(28 * MIN));
   });
 
-  it("limits: per bet, per race (spent permits at what was staked, live ones at their maximum, expired ones free)", async () => {
+  it("limits: per bet, per race (spent permits at what was staked, others at their maximum until they lapse)", async () => {
     const { race, owners } = await flaggedRace(6);
     await openMarket(race.id);
     const b = await bettor();
@@ -192,9 +204,33 @@ describe("real-USDG tote (dormant scaffold)", () => {
     const [spent] = await h.db.select().from(realTotePermits).where(eq(realTotePermits.nonce, p1.nonce));
     expect(spent!.usedAmount).toBe(10 * U);
     await permit(b, race.id, horse, 60 * U);
-    // an unused permit stops counting once it expires
-    await expect(permit(b, race.id, horse, 90 * U, at(17 * MIN))).rejects.toMatchObject({ code: "TOTE_LIMIT" });
-    await permit(b, race.id, horse, 80 * U, at(20 * MIN));
+    // L5: an expired permit with no mirrored bet still counts at its maximum (its bet may have
+    // landed on chain without being mirrored yet) ...
+    await expect(permit(b, race.id, horse, 90 * U, at(20 * MIN))).rejects.toMatchObject({ code: "TOTE_LIMIT" });
+    // ... until a chain check (nonceUsed) shows it was never used and it lapses
+    const unsettled = await realToteUnsettledPermits(h.db, b.accountId, at(20 * MIN));
+    expect(unsettled.map((x) => x.nonce)).not.toContain(p1.nonce); // spent: settled by the mirror
+    expect(unsettled.length).toBe(2);
+    await lapseRealTotePermits(h.db, unsettled.map((x) => x.nonce), at(20 * MIN));
+    await permit(b, race.id, horse, 90 * U, at(20 * MIN));
+    // betting closed on chain (EntropyLocked): every permit without a mirrored bet lapses
+    await recordRealToteEvent(h.db, ev(race.id, "EntropyLocked", { entropyBlock: "5" }), at(29 * MIN));
+    const left = await h.db.select().from(realTotePermits).where(eq(realTotePermits.raceId, race.id));
+    expect(left.filter((x) => x.usedAmount === null).every((x) => x.lapsedAt !== null)).toBe(true);
+  });
+
+  it("linked accounts can't back different runners of the same real-money pool (fraud event)", async () => {
+    const { race, owners } = await flaggedRace(6);
+    await openMarket(race.id);
+    const [a, b] = [await bettor(), await bettor()];
+    await recordAccountSignal(h.db, { accountId: a.accountId, kind: "device", value: `rt-pair-${race.id}` });
+    await recordAccountSignal(h.db, { accountId: b.accountId, kind: "device", value: `rt-pair-${race.id}` });
+    await permit(a, race.id, owners[0]!.horseId, U);
+    await permit(b, race.id, owners[0]!.horseId, U); // the same runner: fine
+    await permit(b, race.id, owners[1]!.horseId, U, at(16 * MIN), "place"); // another pool: fine
+    await expect(permit(b, race.id, owners[1]!.horseId, U)).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
+    const frauds = await h.db.select().from(fraudEvents).where(eq(fraudEvents.accountId, b.accountId));
+    expect(frauds.some((f) => f.kind === "tote_linked_opposing_bets")).toBe(true);
   });
 
   it("mirrors chain events idempotently and shows odds from the on-chain totals", async () => {
@@ -203,11 +239,14 @@ describe("real-USDG tote (dormant scaffold)", () => {
     const e = ev(race.id, "BetPlaced", { pool: 0, runner: 1, amount: String(4 * U), nonce: "1", poolTotal: String(4 * U), runnerTotal: String(4 * U) });
     expect(await recordRealToteEvent(h.db, e, at(16 * MIN))).toBe(true);
     expect(await recordRealToteEvent(h.db, e, at(16 * MIN))).toBe(false);
-    await recordRealToteEvent(h.db, ev(race.id, "BetPlaced", { pool: 0, runner: 2, amount: String(6 * U), nonce: "2", poolTotal: String(10 * U), runnerTotal: String(6 * U) }), at(16 * MIN));
+    const thin = (await realToteBoard(h.db, race.id))!.pools[0]!;
+    expect([thin.bettors, thin.thin]).toEqual([0, true]); // events without a bettor: unknown wallets
+    await recordRealToteEvent(h.db, ev(race.id, "BetPlaced", { pool: 0, runner: 2, amount: String(6 * U), nonce: "2", poolTotal: String(10 * U), runnerTotal: String(6 * U), bettor: WALLET(7) }), at(16 * MIN));
     const board = (await realToteBoard(h.db, race.id))!;
     expect(board.status).toBe("open");
     const win = board.pools.find((p) => p.kind === "win")!;
     expect(win.total).toBe(10 * U);
+    expect([win.bettors, win.thin]).toEqual([1, true]); // only one known wallet so far
     const [row] = await h.db.select().from(races).where(eq(races.id, race.id));
     const byGate = (g: number) => (row!.field as { runners: { horseId: string; gate: number }[] }).runners.find((r) => r.gate === g)!.horseId;
     expect(win.runners.find((r) => r.horseId === byGate(2))!.oddsMilli).toBe(2_125); // 8.5 / 4
@@ -253,6 +292,7 @@ describe("real-USDG tote (dormant scaffold)", () => {
     await recordRealToteEvent(h.db, ev(race.id, "EntropySealed", { entropy: `0x${"ef".repeat(32)}` }), at(31 * MIN));
     expect((await getRaceForSimulation(h.db, race.id, at(31 * MIN))).race.seed).toBe(row!.seed);
     expect((await getRealToteRace(h.db, race.id))!.status).toBe("abandoned");
+    // no entropy block was picked: the operator may still cancel
     expect((await realToteDueWork(h.db, at(31 * MIN))).cancel).toContain(race.id);
     await expect(realToteResultFor(h.db, race.id, at(60 * MIN))).rejects.toMatchObject({ code: "TOTE_UNAVAILABLE" });
     await recordRealToteEvent(h.db, ev(race.id, "MarketVoided", { reason: "cancelled" }), at(32 * MIN));
@@ -277,9 +317,98 @@ describe("real-USDG tote (dormant scaffold)", () => {
     const [row] = await h.db.select().from(races).where(eq(races.id, race.id));
     expect(r.serverSeed).toBe(row!.seed);
     expect((await realToteDueWork(h.db, at(40 * MIN))).post).toContain(race.id);
-    await recordRealToteEvent(h.db, ev(race.id, "ResultPosted", {}), at(41 * MIN));
-    expect((await realToteDueWork(h.db, at(41 * MIN))).finalize).toContain(race.id);
+    const end = Math.floor(at(101 * MIN).getTime() / 1000);
+    const hash = `0x${"77".repeat(32)}`;
+    await recordRealToteEvent(h.db, ev(race.id, "ResultPosted", { resultHash: hash, challengeEnd: String(end) }), at(41 * MIN));
+    // H1: no attestation yet: the attestor's list has it; finalize waits even after the window
+    expect(await realToteAttestWork(h.db)).toContain(race.id);
+    expect((await realToteDueWork(h.db, at(41 * MIN))).finalize).not.toContain(race.id);
+    expect((await realToteDueWork(h.db, at(102 * MIN))).finalize).not.toContain(race.id);
+    expect((await realToteDueWork(h.db, at(102 * MIN))).guardian).toContainEqual({ raceId: race.id, reason: "attestation_missing" });
+    await recordRealToteEvent(h.db, ev(race.id, "ResultAttested", { attestedHash: hash, matches: true }), at(42 * MIN));
+    expect(await realToteAttestWork(h.db)).not.toContain(race.id);
+    expect((await realToteDueWork(h.db, at(100 * MIN))).finalize).not.toContain(race.id); // window still open
+    expect((await realToteDueWork(h.db, at(102 * MIN))).finalize).toContain(race.id);
     await recordRealToteEvent(h.db, ev(race.id, "MarketFinalized", {}), at(102 * MIN));
     expect((await getRealToteRace(h.db, race.id))!.status).toBe("finalized");
+  });
+
+  it("a mismatching attestation marks the market disputed (for the guardian) until a correction", async () => {
+    const { race } = await flaggedRace(5);
+    await openMarket(race.id);
+    await recordRealToteEvent(h.db, ev(race.id, "EntropyLocked", { entropyBlock: "9" }), at(29 * MIN));
+    await recordRealToteEvent(h.db, ev(race.id, "EntropySealed", { entropy: `0x${"34".repeat(32)}` }), at(29 * MIN));
+    const end = Math.floor(at(101 * MIN).getTime() / 1000);
+    await recordRealToteEvent(h.db, ev(race.id, "ResultPosted", { resultHash: `0x${"aa".repeat(32)}`, challengeEnd: String(end) }), at(41 * MIN));
+    await recordRealToteEvent(h.db, ev(race.id, "ResultAttested", { attestedHash: `0x${"bb".repeat(32)}`, matches: false }), at(42 * MIN));
+    expect((await getRealToteRace(h.db, race.id))!.disputed).toBe(true);
+    expect(await realToteAttestWork(h.db)).not.toContain(race.id); // waits for the guardian
+    expect((await realToteDueWork(h.db, at(50 * MIN))).guardian).toContainEqual({ raceId: race.id, reason: "result_disputed" });
+    await recordRealToteEvent(h.db, ev(race.id, "ResultCorrected", { resultHash: `0x${"bb".repeat(32)}`, challengeEnd: String(end + 3600) }), at(60 * MIN));
+    const rt = (await getRealToteRace(h.db, race.id))!;
+    expect(rt.disputed).toBe(false);
+    expect(rt.attestedHash).toBe(rt.resultHash); // the correction matches the replay
+    expect((await realToteDueWork(h.db, at(102 * MIN))).finalize).not.toContain(race.id); // the reopened window
+    expect((await realToteDueWork(h.db, at(162 * MIN))).finalize).toContain(race.id);
+  });
+
+  it("the keeper: M1 abandoned after the entropy block goes to the guardian, M3 expiry, never-opened races, backoff and parking", async () => {
+    // abandoned after the entropy block was picked: no operator cancel; a guardian request, then expiry
+    const a = await flaggedRace(5);
+    await openMarket(a.race.id);
+    await recordRealToteEvent(h.db, ev(a.race.id, "EntropyLocked", { entropyBlock: "11" }), at(29 * MIN));
+    await getRaceForSimulation(h.db, a.race.id, at(30 * MIN)); // no sealed entropy at the off: abandoned
+    const w1 = await realToteDueWork(h.db, at(31 * MIN));
+    expect(w1.cancel).not.toContain(a.race.id);
+    expect(w1.guardian).toContainEqual({ raceId: a.race.id, reason: "abandoned_after_entropy" });
+    expect(await raiseRealToteAlert(h.db, { raceId: a.race.id, kind: "abandoned_after_entropy" }, at(31 * MIN))).toBe(true);
+    expect(await raiseRealToteAlert(h.db, { raceId: a.race.id, kind: "abandoned_after_entropy" }, at(32 * MIN))).toBe(false); // once
+    const after = at(29 * MIN + gc.REAL_TOTE_MAX_SETTLE_DELAY_MS + MIN);
+    expect((await realToteDueWork(h.db, after)).expire).toContain(a.race.id);
+
+    // flagged but the market never got created before betting closed: closed locally
+    const b = await flaggedRace(5);
+    expect((await realToteDueWork(h.db, at(28 * MIN))).close).toContain(b.race.id);
+    await closeUnopenedRealToteRace(h.db, b.race.id, at(28 * MIN));
+    expect((await getRealToteRace(h.db, b.race.id))!).toMatchObject({ status: "void", voidReason: "never_opened" });
+
+    // a failing step backs off, and after REAL_TOTE_KEEPER_MAX_ATTEMPTS the market is parked (with an alert)
+    const c = await flaggedRace(5);
+    await openMarket(c.race.id);
+    expect((await realToteDueWork(h.db, at(29 * MIN))).lock).toContain(c.race.id);
+    expect(await recordRealToteKeeperOutcome(h.db, c.race.id, { ok: false, step: "lock", error: "rpc down" }, at(29 * MIN))).toBe(false);
+    expect((await realToteDueWork(h.db, at(29 * MIN))).lock).not.toContain(c.race.id); // backing off
+    expect((await realToteDueWork(h.db, at(29 * MIN + 30_000))).lock).toContain(c.race.id);
+    let parked = false;
+    for (let i = 1; i < gc.REAL_TOTE_KEEPER_MAX_ATTEMPTS; i++) parked = await recordRealToteKeeperOutcome(h.db, c.race.id, { ok: false, step: "lock", error: "rpc down" }, at(30 * MIN));
+    expect(parked).toBe(true);
+    expect((await getRealToteRace(h.db, c.race.id))!.keeperError).toBe("lock: rpc down");
+    expect((await realToteDueWork(h.db, at(300 * MIN))).lock).not.toContain(c.race.id);
+    const alerts = await h.db.select().from(auditLog).where(eq(auditLog.entityId, c.race.id));
+    expect(alerts.some((x) => x.action === "real_tote.alert.keeper_parked")).toBe(true);
+    await unparkRealToteRace(h.db, c.race.id, at(300 * MIN));
+    expect((await realToteDueWork(h.db, at(300 * MIN))).lock).toContain(c.race.id);
+    await recordRealToteKeeperOutcome(h.db, c.race.id, { ok: true }, at(300 * MIN));
+    expect((await getRealToteRace(h.db, c.race.id))!.keeperAttempts).toBe(0);
+  });
+
+  it("M3: stuck old markets don't hold up newer ones (ordered by when their step fell due, parked rows skipped)", async () => {
+    const old = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await flaggedRace(5);
+      await openMarket(r.race.id);
+      await h.db.update(realToteRaces).set({ parkedAt: at(MIN) }).where(eq(realToteRaces.raceId, r.race.id));
+      old.push(r.race.id);
+    }
+    const fresh = await flaggedRace(5);
+    await openMarket(fresh.race.id);
+    const work = await realToteDueWork(h.db, at(29 * MIN), 1);
+    expect(work.lock.length).toBe(1);
+    expect(work.lock.some((id) => old.includes(id))).toBe(false);
+    expect((await realToteDueWork(h.db, at(29 * MIN), 50)).lock).toContain(fresh.race.id);
+    // the sync cursor only moves forward
+    await setRealToteSyncedBlock(h.db, fresh.race.id, 500, at(29 * MIN));
+    await setRealToteSyncedBlock(h.db, fresh.race.id, 400, at(29 * MIN));
+    expect((await getRealToteRace(h.db, fresh.race.id))!.syncedBlock).toBe(500);
   });
 });

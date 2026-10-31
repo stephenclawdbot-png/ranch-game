@@ -7,7 +7,10 @@
  * runs only once the result is public (the broadcast is over), so dividends never appear early.
  */
 import {
+  acknowledgeToteRealityCheck,
   confirmToteAdult,
+  confirmToteLimitRaise,
+  endToteSelfExclusion,
   isDomainError,
   myToteBets,
   myToteRace,
@@ -25,6 +28,7 @@ import {
 } from "@thoroughbred/db";
 import { z } from "zod";
 import { cardFrozen } from "./game";
+import { isAdmin } from "./playtest";
 import type { Session } from "./session";
 import { sharedLimiter } from "./rateLimit";
 
@@ -50,9 +54,27 @@ export function boardCache(board: ToteBoard | null): string {
   return "public, s-maxage=2, stale-while-revalidate=3";
 }
 
+/**
+ * Staff never bet: a request carrying the admin session, or an account listed in
+ * TOTE_STAFF_ACCOUNT_IDS (comma-separated account ids of staff players). System accounts are
+ * refused by the db checks too.
+ */
+export async function isToteStaff(session: Pick<Session, "accountId">, env: Record<string, string | undefined> = process.env): Promise<boolean> {
+  const listed = (env.TOTE_STAFF_ACCOUNT_IDS ?? "")
+    .split(",")
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+  if (listed.includes(session.accountId.toLowerCase())) return true;
+  try {
+    return await isAdmin();
+  } catch {
+    return false; // outside a request (tests, jobs): no admin cookie
+  }
+}
+
 export async function myRaceTote(db: Db, session: Session, raceId: string, now: Date): Promise<MyToteRace | null> {
   if (!UUID_RE.test(raceId)) return null;
-  return myToteRace(db, session.accountId, raceId, now);
+  return myToteRace(db, session.accountId, raceId, now, undefined, await isToteStaff(session));
 }
 
 export const BetSchema = z.object({
@@ -71,8 +93,9 @@ export class TooManyBetsError extends Error {}
 export async function placeBet(db: Db, session: Session, raceId: string, body: z.infer<typeof BetSchema>, now: Date): Promise<MyToteRace | null> {
   if (!UUID_RE.test(raceId)) return null;
   if (await betLimiter.hit(db, session.accountId, now.getTime())) throw new TooManyBetsError();
-  await placeToteBet(db, { accountId: session.accountId, raceId, horseId: body.horseId, pool: body.pool, currency: body.currency, stake: body.stake, clientKey: body.clientKey, now });
-  return myToteRace(db, session.accountId, raceId, now);
+  const staff = await isToteStaff(session);
+  await placeToteBet(db, { accountId: session.accountId, raceId, horseId: body.horseId, pool: body.pool, currency: body.currency, stake: body.stake, clientKey: body.clientKey, now, staff });
+  return myToteRace(db, session.accountId, raceId, now, undefined, staff);
 }
 
 export async function myBetsHistory(db: Db, session: Session, now: Date): Promise<MyToteHistory> {
@@ -87,7 +110,14 @@ export const SettingsActionSchema = z.discriminatedUnion("action", [
     perRace: z.number().int().positive().nullable(),
     perDay: z.number().int().positive().nullable(),
   }),
-  z.object({ action: z.literal("exclude"), choice: z.enum(["24h", "7d", "30d", "permanent"]) }),
+  /** A time-out (24h, 7d, 30d) or a self-exclusion (6m, 1y, 5y, permanent). */
+  z.object({ action: z.literal("exclude"), choice: z.enum(["24h", "7d", "30d", "6m", "1y", "5y", "permanent"]) }),
+  /** Apply a limit raise once its 24 h are over. */
+  z.object({ action: z.literal("confirm_raise") }),
+  /** Ask to end a self-exclusion whose minimum is over (betting reopens after a 1-day cooling-off). */
+  z.object({ action: z.literal("end_self_exclusion") }),
+  /** The hourly reality check was seen. */
+  z.object({ action: z.literal("reality_ack") }),
 ]);
 
 export async function bettingSettings(db: Db, session: Session, now: Date): Promise<ToteSettingsView> {
@@ -97,6 +127,9 @@ export async function bettingSettings(db: Db, session: Session, now: Date): Prom
 export async function updateBettingSettings(db: Db, session: Session, body: z.infer<typeof SettingsActionSchema>, now: Date): Promise<ToteSettingsView> {
   if (body.action === "confirm_adult") await confirmToteAdult(db, { accountId: session.accountId, now });
   else if (body.action === "limits") await setToteLimits(db, { accountId: session.accountId, currency: body.currency, perRace: body.perRace, perDay: body.perDay, now });
+  else if (body.action === "confirm_raise") await confirmToteLimitRaise(db, { accountId: session.accountId, now });
+  else if (body.action === "end_self_exclusion") await endToteSelfExclusion(db, { accountId: session.accountId, now });
+  else if (body.action === "reality_ack") await acknowledgeToteRealityCheck(db, { accountId: session.accountId, now });
   else await selfExcludeTote(db, { accountId: session.accountId, choice: body.choice, now });
   return toteSettingsView(db, session.accountId, now);
 }

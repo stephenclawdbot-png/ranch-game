@@ -14,7 +14,9 @@ import {
   realToteEntriesCloseMs,
   realToteGate,
   realToteMarketCloseMs,
+  realToteKeeperBackoffMs,
   realTotePermitExpiryMs,
+  realTotePermitWindowS,
   realToteStakeProblem,
 } from "./realTote";
 import { TOTE_TAKEOUT_PERMILLE } from "./tote";
@@ -39,6 +41,16 @@ describe("real-USDG tote (dormant)", () => {
     expect(realTotePermitExpiryMs(POST - 600_000, POST)).toBe(POST - 480_000);
     expect(realTotePermitExpiryMs(POST - 130_000, POST)).toBe(POST - 120_000);
     expect(REAL_TOTE_TAKEOUT_BPS).toBe(TOTE_TAKEOUT_PERMILLE * 10);
+  });
+
+  it("a permit's on-chain window: issued 30 s back (clock skew), well inside the contract's 10 min from issue", () => {
+    const w = realTotePermitWindowS(POST - 600_000, POST);
+    expect(w).toEqual({ issuedAt: (POST - 630_000) / 1000, expiry: (POST - 480_000) / 1000 });
+    expect(w.expiry - w.issuedAt).toBeLessThanOrEqual(600);
+  });
+
+  it("keeper backoff doubles from 30 s and caps at 30 min", () => {
+    expect([1, 2, 3, 10, 50].map(realToteKeeperBackoffMs)).toEqual([30_000, 60_000, 120_000, 1_800_000, 1_800_000]);
   });
 
   it("allowance: per bet, per race, per day and the player's own lower limits", () => {

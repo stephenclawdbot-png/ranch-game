@@ -14,17 +14,23 @@
  *    the market opens then;
  *  - betting closes before the off (gc.realToteBetsCloseMs);
  *  - the race runs on sha256(serverSeed ‖ entropy) (`resolveRealToteSeed`), the entropy being a
- *    block hash fixed on chain after betting closed. The choice of seed is persisted at the first
+ *    mix of block hashes fixed on chain after betting closed. The choice of seed is persisted at the first
  *    simulation, so every server instance simulates the same race; if the entropy wasn't there
- *    in time the race runs on its server seed as usual and the market is cancelled (refunds).
+ *    in time the race runs on its server seed as usual and the market is cancelled (refunds;
+ *    by the guardian once the entropy blocks were picked).
+ *
+ * The keeper's work list (`realToteDueWork`) is ordered by when each step fell due, retries with
+ * backoff and parks a market that keeps failing (with an alert), so one stuck market never holds
+ * up the others. Alerts go to the audit log as `real_tote.alert.<kind>`.
  */
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { commitSeed, mixSeedEntropy } from "../crypto";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { accounts, raceEntries, races, realToteEvents, realTotePermits, realToteRaces, type RaceRow, type RealToteRaceRow, type ToteSettingsRow } from "../schema";
+import { accounts, fraudEvents, raceEntries, races, realToteEvents, realTotePermits, realToteRaces, type RaceRow, type RealToteRaceRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor } from "../types";
+import { areLinked } from "./accounts";
 import { raceResultPublicAt } from "./news";
 import { isToteRace, toteBettorChecksTx, type TotePoolKind } from "./tote";
 import { audit, runTx } from "./tx";
@@ -130,39 +136,45 @@ export interface RealTotePermitGrant {
   raceId: string;
   marketKey: string;
   wallet: string;
-  /** The runner's index on chain: gate - 1. */
+  /** The runner's index on chain: gate - 1. Signed into the permit. */
   runner: number;
+  /** Signed into the permit. */
   pool: TotePoolKind;
   maxAmount: number;
+  issuedAt: Date;
   expiresAt: Date;
 }
 
-/** The player's own real-money limits ({USDG: {perRace, perDay}} in tote_settings), raises after their delay. */
-export function realToteOwnLimits(row: Pick<ToteSettingsRow, "limits" | "pendingLimits" | "pendingAt"> | null, now: Date): gc.TotePlayerLimits | null {
-  const pick = (json: unknown) => {
-    const v = (json as Record<string, { perRace?: unknown; perDay?: unknown }> | null)?.USDG;
-    return v ? { perRace: typeof v.perRace === "number" ? v.perRace : null, perDay: typeof v.perDay === "number" ? v.perDay : null } : null;
-  };
-  if (!row) return null;
-  const pending = row.pendingLimits && row.pendingAt && row.pendingAt <= now ? pick(row.pendingLimits) : null;
-  return pending ?? pick(row.limits);
-}
-
-/** Stakes that count toward limits: spent permits at what was staked, live unspent ones at their maximum. */
-function committedSql(now: Date) {
-  return sql<string>`coalesce(sum(case when ${realTotePermits.usedAmount} is not null then ${realTotePermits.usedAmount} when ${realTotePermits.expiresAt} > ${now} then ${realTotePermits.maxAmount} else 0 end), 0)`;
+/**
+ * The player's own real-money limits ({USDG: {perRace, perDay}} in tote_settings). A raise only
+ * counts once the player has confirmed it after its delay (it is then moved into `limits`).
+ */
+export function realToteOwnLimits(row: Pick<ToteSettingsRow, "limits" | "pendingLimits" | "pendingAt"> | null, _now: Date): gc.TotePlayerLimits | null {
+  const v = (row?.limits as Record<string, { perRace?: unknown; perDay?: unknown }> | null)?.USDG;
+  return v ? { perRace: typeof v.perRace === "number" ? v.perRace : null, perDay: typeof v.perDay === "number" ? v.perDay : null } : null;
 }
 
 /**
- * Signs nothing: runs every check the in-game tote runs (18+, self-exclusion, the horse is
- * running, place pool, conflicts of interest incl. linked accounts, the player's own limits) plus
- * the real-money ones (the switch, a live market, the betting close, the account's linked wallet,
- * the real-money caps), then records a single-use permit for the caller (apps/web toteChain.ts)
- * to sign. The permit counts toward the limits until it expires unused.
+ * Stakes that count toward limits: a spent permit at what was staked, a lapsed one (never used,
+ * and now unusable) at 0, and every other permit at its maximum, expired or not, until the
+ * mirror or a chain check settles it (an unmirrored spent permit must never count as free).
+ */
+function committedSql() {
+  return sql<string>`coalesce(sum(case when ${realTotePermits.usedAmount} is not null then ${realTotePermits.usedAmount} when ${realTotePermits.lapsedAt} is not null then 0 else ${realTotePermits.maxAmount} end), 0)`;
+}
+
+/**
+ * Signs nothing: runs every check the in-game tote runs (18+, self-exclusion and time-outs, the
+ * horse is running, place pool, conflicts of interest incl. linked accounts, the player's own
+ * limits, staff) plus the real-money ones (the switch, a live market, the betting close, the
+ * account's linked wallet, no linked account on another runner of the same pool, the
+ * real-money caps), then records a single-use permit bound to the runner and pool for the caller
+ * (apps/web toteChain.ts) to sign. The permit counts toward the limits until it is spent (at the
+ * amount staked) or lapses unused.
  */
 export async function issueRealTotePermit(
   db: Db,
-  input: { accountId: string; raceId: string; horseId: string; pool: TotePoolKind; amount: number; wallet: string; now: Date; env?: Env },
+  input: { accountId: string; raceId: string; horseId: string; pool: TotePoolKind; amount: number; wallet: string; now: Date; env?: Env; staff?: boolean },
 ): Promise<RealTotePermitGrant> {
   assertRealTote(input.env);
   if (input.pool !== "win" && input.pool !== "place") throw new DomainError("INVALID_INPUT", "pool must be win or place");
@@ -179,28 +191,63 @@ export async function issueRealTotePermit(
     const [acc] = await tx.select({ wallet: accounts.walletAddress }).from(accounts).where(eq(accounts.id, input.accountId));
     if (!acc?.wallet || acc.wallet.toLowerCase() !== input.wallet.toLowerCase()) throw new DomainError("NOT_ELIGIBLE", "bet from the wallet linked to your stable");
 
-    const checked = await toteBettorChecksTx(tx, { accountId: input.accountId, race, horseId: input.horseId, pool: input.pool, now: input.now, fraudData: { stake: input.amount, currency: "USDG" } });
+    const checked = await toteBettorChecksTx(tx, { accountId: input.accountId, race, horseId: input.horseId, pool: input.pool, now: input.now, staff: input.staff, fraudData: { stake: input.amount, currency: "USDG" } });
     if (checked instanceof DomainError) return checked;
     const field = race.field as { runners?: { horseId: string; gate: number }[] } | null;
     const gate = field?.runners?.find((r) => r.horseId === input.horseId)?.gate;
     if (!gate) throw new DomainError("TOO_EARLY", "real-money betting opens when the field locks");
 
+    // Linked accounts are one bettor: they may not back different runners of the same pool (a
+    // way to move money between accounts through the pool). Fraud event, then refused.
+    const others = await tx
+      .select({ accountId: realTotePermits.accountId, runner: realTotePermits.runner })
+      .from(realTotePermits)
+      .where(and(eq(realTotePermits.raceId, race.id), eq(realTotePermits.pool, input.pool), ne(realTotePermits.accountId, input.accountId), isNull(realTotePermits.lapsedAt)));
+    for (const o of others) {
+      if (o.runner === gate - 1 || !(await areLinked(tx, input.accountId, o.accountId))) continue;
+      await tx.insert(fraudEvents).values({ accountId: input.accountId, relatedAccountId: o.accountId, kind: "tote_linked_opposing_bets", severity: 2, data: { raceId: race.id, pool: input.pool, runner: gate - 1, theirs: o.runner, currency: "USDG" } });
+      return new DomainError("LINKED_ACCOUNTS", "an account linked to yours has bet on another runner in this pool");
+    }
+
     const dayStart = new Date(gc.realToteDayStartMs(input.now.getTime()));
     const mine = eq(realTotePermits.accountId, input.accountId);
-    const [onRace] = await tx.select({ s: committedSql(input.now) }).from(realTotePermits).where(and(mine, eq(realTotePermits.raceId, race.id)));
-    const [today] = await tx.select({ s: committedSql(input.now) }).from(realTotePermits).where(and(mine, gte(realTotePermits.issuedAt, dayStart)));
+    const [onRace] = await tx.select({ s: committedSql() }).from(realTotePermits).where(and(mine, eq(realTotePermits.raceId, race.id)));
+    const [today] = await tx.select({ s: committedSql() }).from(realTotePermits).where(and(mine, gte(realTotePermits.issuedAt, dayStart)));
     const allowance = gc.realToteAllowance({ stakedOnRace: Number(onRace?.s ?? 0), stakedToday: Number(today?.s ?? 0), own: realToteOwnLimits(checked.settings, input.now) });
     if (input.amount < gc.REAL_TOTE_MIN_STAKE) throw new DomainError("TOTE_LIMIT", `the smallest bet is ${gc.formatRealToteUsdg(gc.REAL_TOTE_MIN_STAKE)}`);
     if (input.amount > allowance) throw new DomainError("TOTE_LIMIT", `that's over your limit: ${gc.formatRealToteUsdg(allowance)} left`);
 
     const nonce = BigInt(`0x${randomBytes(32).toString("hex")}`).toString();
     const expiresAt = new Date(gc.realTotePermitExpiryMs(input.now.getTime(), race.postTime.getTime()));
-    await tx.insert(realTotePermits).values({ nonce, raceId: race.id, accountId: input.accountId, wallet: input.wallet, maxAmount: input.amount, issuedAt: input.now, expiresAt });
+    await tx.insert(realTotePermits).values({ nonce, raceId: race.id, accountId: input.accountId, wallet: input.wallet, maxAmount: input.amount, issuedAt: input.now, expiresAt, runner: gate - 1, pool: input.pool });
     await audit(tx, { actor: input.accountId, action: "real_tote.permit", entityType: "race", entityId: race.id, data: { nonce, horseId: input.horseId, pool: input.pool, maxAmount: input.amount } });
-    return { nonce, raceId: race.id, marketKey: rt.marketKey, wallet: input.wallet, runner: gate - 1, pool: input.pool, maxAmount: input.amount, expiresAt };
+    return { nonce, raceId: race.id, marketKey: rt.marketKey, wallet: input.wallet, runner: gate - 1, pool: input.pool, maxAmount: input.amount, issuedAt: input.now, expiresAt };
   });
   if (out instanceof DomainError) throw out;
   return out;
+}
+
+/**
+ * This account's permits that expired at least REAL_TOTE_PERMIT_LAPSE_GRACE_MS ago with no
+ * mirrored bet: the caller checks each nonce on chain (TotePools.nonceUsed) and lapses the
+ * unused ones (an expired permit can never be used again).
+ */
+export async function realToteUnsettledPermits(ex: Executor, accountId: string, now: Date): Promise<{ nonce: string; wallet: string }[]> {
+  const before = new Date(now.getTime() - gc.REAL_TOTE_PERMIT_LAPSE_GRACE_MS);
+  return ex
+    .select({ nonce: realTotePermits.nonce, wallet: realTotePermits.wallet })
+    .from(realTotePermits)
+    .where(and(eq(realTotePermits.accountId, accountId), isNull(realTotePermits.usedAmount), isNull(realTotePermits.lapsedAt), lt(realTotePermits.expiresAt, before)))
+    .limit(50);
+}
+
+/** Marks permits as never used (they stop counting toward limits). Spent ones are left alone. */
+export async function lapseRealTotePermits(ex: Executor, nonces: readonly string[], now: Date): Promise<void> {
+  if (!nonces.length) return;
+  await ex
+    .update(realTotePermits)
+    .set({ lapsedAt: now })
+    .where(and(inArray(realTotePermits.nonce, [...nonces]), isNull(realTotePermits.usedAmount), isNull(realTotePermits.lapsedAt)));
 }
 
 // ---------------------------------------------------------------------------
@@ -243,7 +290,19 @@ export async function resolveRealToteSeed(db: Db, race: Pick<RaceRow, "id" | "se
 // Chain mirror
 // ---------------------------------------------------------------------------
 
-export type RealToteEventKind = "MarketCreated" | "BetPlaced" | "EntropyLocked" | "EntropySealed" | "ResultPosted" | "MarketFinalized" | "MarketVoided" | "ResultCorrected" | "Claimed";
+export type RealToteEventKind =
+  | "MarketCreated"
+  | "BetPlaced"
+  | "EntropyLocked"
+  | "BlockEntropyStored"
+  | "EntropySealed"
+  | "ResultPosted"
+  | "ResultAttested"
+  | "ResultCorrected"
+  | "MarketFinalized"
+  | "PoolRefunded"
+  | "MarketVoided"
+  | "Claimed";
 
 export interface RealToteChainEvent {
   raceId: string;
@@ -264,9 +323,14 @@ const STATUS_AFTER: Partial<Record<RealToteEventKind, RealToteRaceRow["status"]>
   MarketVoided: "void",
 };
 
+const hex32 = (v: unknown) => String(v ?? "").toLowerCase();
+const secondsToDate = (v: unknown) => new Date(Number(v) * 1000);
+
 /**
- * Mirrors one TotePools event (idempotent per tx and log index). Display only: nothing here
- * moves money. Returns false when the event was already recorded.
+ * Mirrors one TotePools event (idempotent per tx and log index). Display and bookkeeping only:
+ * nothing here moves money. Returns false when the event was already recorded. Events of one
+ * market must be recorded in chain order (the sync does): once betting has closed on chain
+ * (EntropyLocked) or the market is void, every permit no mirrored bet used has lapsed.
  */
 export async function recordRealToteEvent(db: Db, ev: RealToteChainEvent, now: Date): Promise<boolean> {
   return runTx(db, async (tx) => {
@@ -285,6 +349,22 @@ export async function recordRealToteEvent(db: Db, ev: RealToteChainEvent, now: D
     if (ev.kind === "EntropyLocked") patch.entropyBlock = Number(ev.data.entropyBlock);
     if (ev.kind === "EntropySealed" && !rt.seedMode) patch.entropy = String(ev.data.entropy).replace(/^0x/, "").toLowerCase();
     if (ev.kind === "MarketVoided") patch.voidReason = String(ev.data.reason ?? "");
+    if (ev.kind === "ResultPosted") {
+      if (ev.data.challengeEnd != null) patch.challengeEndAt = secondsToDate(ev.data.challengeEnd);
+      if (ev.data.resultHash != null) patch.resultHash = hex32(ev.data.resultHash);
+      patch.attestedHash = null;
+      patch.disputed = false;
+    }
+    if (ev.kind === "ResultCorrected") {
+      if (ev.data.challengeEnd != null) patch.challengeEndAt = secondsToDate(ev.data.challengeEnd);
+      if (ev.data.resultHash != null) patch.resultHash = hex32(ev.data.resultHash);
+      patch.disputed = false;
+    }
+    if (ev.kind === "ResultAttested") {
+      patch.attestedHash = hex32(ev.data.attestedHash);
+      // Sticky on chain: only a guardian correction clears it.
+      if (ev.data.matches === false || ev.data.matches === "false") patch.disputed = true;
+    }
     if (ev.kind === "BetPlaced") {
       const pools = { ...((rt.pools ?? {}) as Record<string, Record<string, number>>) };
       const key = Number(ev.data.pool) === 1 ? "place" : "win";
@@ -295,13 +375,28 @@ export async function recordRealToteEvent(db: Db, ev: RealToteChainEvent, now: D
         .set({ usedAmount: Number(ev.data.amount), betTx: ev.txHash.toLowerCase() })
         .where(and(eq(realTotePermits.nonce, String(ev.data.nonce)), eq(realTotePermits.raceId, ev.raceId)));
     }
+    if (ev.kind === "EntropyLocked" || ev.kind === "MarketVoided") {
+      await tx
+        .update(realTotePermits)
+        .set({ lapsedAt: now })
+        .where(and(eq(realTotePermits.raceId, ev.raceId), isNull(realTotePermits.usedAmount), isNull(realTotePermits.lapsedAt)));
+    }
+    if (ev.kind === "MarketFinalized" || ev.kind === "MarketVoided") Object.assign(patch, { keeperAttempts: 0, keeperNextAt: null, keeperError: null });
     await tx.update(realToteRaces).set(patch).where(eq(realToteRaces.raceId, ev.raceId));
     return true;
   });
 }
 
+/** Where the event sync resumes: the last block whose logs were mirrored for this market. */
+export async function setRealToteSyncedBlock(ex: Executor, raceId: string, block: number, now: Date): Promise<void> {
+  await ex
+    .update(realToteRaces)
+    .set({ syncedBlock: block, updatedAt: now })
+    .where(and(eq(realToteRaces.raceId, raceId), or(isNull(realToteRaces.syncedBlock), lt(realToteRaces.syncedBlock, block))));
+}
+
 // ---------------------------------------------------------------------------
-// Results, odds and the backstop job's work list
+// Results, odds and the keeper's work list
 // ---------------------------------------------------------------------------
 
 export interface RealToteResult {
@@ -338,7 +433,7 @@ export interface RealToteBoard {
   pools: gc.TotePoolView[];
 }
 
-/** Live odds for display, from the mirrored on-chain pool totals (the chain is the truth). */
+/** Live odds for display, from the mirrored on-chain pool totals and bets (the chain is the truth). */
 export async function realToteBoard(ex: Executor, raceId: string): Promise<RealToteBoard | null> {
   const rt = await getRealToteRace(ex, raceId);
   if (!rt) return null;
@@ -346,50 +441,193 @@ export async function realToteBoard(ex: Executor, raceId: string): Promise<RealT
   const runners = ((race?.field as { runners?: { horseId: string; gate: number }[] } | null)?.runners ?? []).slice().sort((a, b) => a.gate - b.gate);
   const ids = runners.map((r) => r.horseId);
   const mirrored = (rt.pools ?? {}) as Record<string, Record<string, number>>;
+  // Distinct wallets per pool (the contract's minimum pool counts wallets).
+  const bets = await ex.select({ data: realToteEvents.data }).from(realToteEvents).where(and(eq(realToteEvents.raceId, raceId), eq(realToteEvents.kind, "BetPlaced")));
+  const wallets: Record<TotePoolKind, Set<string>> = { win: new Set(), place: new Set() };
+  for (const b of bets) {
+    const d = b.data as { pool?: unknown; bettor?: unknown };
+    if (typeof d.bettor === "string" && d.bettor) wallets[Number(d.pool) === 1 ? "place" : "win"].add(d.bettor.toLowerCase());
+  }
   const view = (kind: TotePoolKind) => {
     const stakes = new Map(runners.map((r) => [r.horseId, Number(mirrored[kind]?.[String(r.gate - 1)] ?? 0)]));
-    return gc.totePoolView(kind, ids, stakes, ids.length, gc.REAL_TOTE_TAKEOUT_BPS / 10);
+    return gc.totePoolView(kind, ids, stakes, ids.length, gc.REAL_TOTE_TAKEOUT_BPS / 10, wallets[kind].size);
   };
   return { status: rt.status, betsCloseAtMs: rt.betsCloseAt.getTime(), takeoutBps: gc.REAL_TOTE_TAKEOUT_BPS, pools: [view("win"), ...(gc.totePlaces(ids.length) ? [view("place")] : [])] };
 }
 
+/** Why a market needs the guardian multisig (the keeper raises an alert once per market). */
+export type RealToteGuardianReason = "abandoned_after_entropy" | "result_disputed" | "attestation_missing" | "result_withheld";
+
 export interface RealToteWork {
   /** Field locked, market not yet on chain. */
   create: string[];
+  /** Flagged but betting closed before a market was created: closed locally (no chain step). */
+  close: string[];
   /** Market closed: lockEntropy. */
   lock: string[];
-  /** Entropy block fixed: sealEntropy. */
+  /** Entropy blocks picked: sealEntropy. */
   seal: string[];
-  /** Ran on the server seed: cancelMarket (refunds). */
+  /** Ran on the server seed before any entropy block was picked: the operator's cancelMarket (refunds). */
   cancel: string[];
   /** Result public: postResult. */
   post: string[];
-  /** Result posted: finalize once the challenge window is over (the chain decides). */
+  /** Window over and the result attestor's hash matches: finalize. */
   finalize: string[];
+  /** Past TotePools' MAX_SETTLE_DELAY without a settleable result: expireMarket (anyone; refunds). */
+  expire: string[];
+  /** Needs the guardian: void an abandoned market, resolve a dispute, chase a missing attestation or a withheld result. */
+  guardian: { raceId: string; reason: RealToteGuardianReason }[];
 }
 
-/** The backstop job's to-do list (apps/web toteChain.ts runs it; empty when nothing is flagged). */
+const ACTIVE: RealToteRaceRow["status"][] = ["pending", "open", "entropy_locked", "sealed", "abandoned", "result_posted"];
+
+/** When a row's next step falls due (its due action, not its age, orders the work list). */
+const dueAtSql = sql<Date>`case ${realToteRaces.status}
+  when 'pending' then ${realToteRaces.fieldLockAt}
+  when 'result_posted' then case when ${realToteRaces.disputed} then ${realToteRaces.marketCloseAt} else coalesce(${realToteRaces.challengeEndAt}, ${realToteRaces.marketCloseAt}) end
+  else ${realToteRaces.marketCloseAt} end`;
+
+/**
+ * The keeper's to-do list (apps/web toteChain.ts runs it; empty when nothing is flagged). Rows
+ * come in order of when their next step fell due, skipping parked rows and rows waiting out a
+ * retry backoff, so a stuck market can never hold up the others.
+ */
 export async function realToteDueWork(ex: Executor, now: Date, limit = 20): Promise<RealToteWork> {
   const rows = await ex
     .select({ rt: realToteRaces, raceStatus: races.status, hasField: sql<boolean>`${races.field} is not null` })
     .from(realToteRaces)
     .innerJoin(races, eq(races.id, realToteRaces.raceId))
-    .where(inArray(realToteRaces.status, ["pending", "open", "entropy_locked", "sealed", "abandoned", "result_posted"]))
-    .orderBy(asc(realToteRaces.marketCloseAt))
+    .where(and(inArray(realToteRaces.status, ACTIVE), isNull(realToteRaces.parkedAt), or(isNull(realToteRaces.keeperNextAt), lte(realToteRaces.keeperNextAt, now)), lte(dueAtSql, now)))
+    .orderBy(asc(dueAtSql))
     .limit(limit * 4);
-  const work: RealToteWork = { create: [], lock: [], seal: [], cancel: [], post: [], finalize: [] };
+  const work: RealToteWork = { create: [], close: [], lock: [], seal: [], cancel: [], post: [], finalize: [], expire: [], guardian: [] };
+  const guardian = (raceId: string, reason: RealToteGuardianReason) => work.guardian.push({ raceId, reason });
+  const nowMs = now.getTime();
   for (const { rt, raceStatus, hasField } of rows) {
-    if (rt.status === "abandoned") work.cancel.push(rt.raceId);
-    else if (rt.status === "pending" && hasField && now < rt.betsCloseAt) work.create.push(rt.raceId);
-    else if (rt.status === "open" && now >= rt.marketCloseAt) work.lock.push(rt.raceId);
+    const settleBy = rt.marketCloseAt.getTime() + gc.REAL_TOTE_MAX_SETTLE_DELAY_MS;
+    if (rt.status === "result_posted") {
+      const finalizable = !rt.disputed && !!rt.attestedHash && rt.attestedHash === rt.resultHash;
+      const end = rt.challengeEndAt?.getTime() ?? null;
+      if (finalizable && end !== null && nowMs >= end) work.finalize.push(rt.raceId);
+      else if (!finalizable && end !== null && nowMs > end + gc.REAL_TOTE_MAX_SETTLE_DELAY_MS) work.expire.push(rt.raceId);
+      else if (rt.disputed) guardian(rt.raceId, "result_disputed");
+      else if (!finalizable && end !== null && nowMs >= end) guardian(rt.raceId, "attestation_missing");
+      continue;
+    }
+    if (rt.status !== "pending" && nowMs > settleBy) {
+      work.expire.push(rt.raceId);
+      continue;
+    }
+    if (rt.status === "pending") {
+      if (nowMs >= rt.betsCloseAt.getTime()) work.close.push(rt.raceId);
+      else if (hasField) work.create.push(rt.raceId);
+    } else if (rt.status === "abandoned") {
+      // Once the entropy blocks are picked the outcome may be knowable: only the guardian voids
+      // (or anyone expires it after MAX_SETTLE_DELAY).
+      if (rt.entropyBlock === null) work.cancel.push(rt.raceId);
+      else guardian(rt.raceId, "abandoned_after_entropy");
+    } else if (rt.status === "open" && nowMs >= rt.marketCloseAt.getTime()) work.lock.push(rt.raceId);
     else if (rt.status === "entropy_locked") work.seal.push(rt.raceId);
     else if (rt.status === "sealed" && raceStatus === "settled") {
       const publicAt = await raceResultPublicAt(ex, rt.raceId);
-      if (publicAt && now >= publicAt) work.post.push(rt.raceId);
-    } else if (rt.status === "result_posted") work.finalize.push(rt.raceId);
+      if (publicAt && nowMs >= publicAt.getTime()) {
+        work.post.push(rt.raceId);
+        // Withholding a result can only ever end in refunds (expiry), but it is watched.
+        if (nowMs >= publicAt.getTime() + gc.REAL_TOTE_RESULT_ALERT_MS) guardian(rt.raceId, "result_withheld");
+      }
+    }
   }
-  for (const k of Object.keys(work) as (keyof RealToteWork)[]) work[k] = work[k].slice(0, limit);
+  for (const k of Object.keys(work) as (keyof RealToteWork)[]) (work[k] as unknown[]).splice(limit);
   return work;
+}
+
+/** A flagged race whose betting closed before its market was created: nothing on chain, closed here. */
+export async function closeUnopenedRealToteRace(db: Db, raceId: string, now: Date): Promise<void> {
+  await runTx(db, async (tx) => {
+    const [rt] = await tx.select().from(realToteRaces).where(eq(realToteRaces.raceId, raceId)).for("update");
+    if (!rt || rt.status !== "pending" || now < rt.betsCloseAt) return;
+    await tx.update(realToteRaces).set({ status: "void", voidReason: "never_opened", updatedAt: now }).where(eq(realToteRaces.raceId, raceId));
+    await audit(tx, { actor: null, action: "real_tote.never_opened", entityType: "race", entityId: raceId });
+  });
+}
+
+export interface RealToteAlert {
+  raceId: string;
+  kind: RealToteGuardianReason | "keeper_parked" | "result_mismatch" | "attestor_error";
+  detail?: string;
+}
+
+/**
+ * Records an alert for the operators and the guardian (audit log `real_tote.alert.<kind>`). A
+ * guardian request is recorded once per market (`guardian_request_at`); returns false when it
+ * was already raised.
+ */
+export async function raiseRealToteAlert(db: Db, alert: RealToteAlert, now: Date): Promise<boolean> {
+  return runTx(db, async (tx) => {
+    const [rt] = await tx.select().from(realToteRaces).where(eq(realToteRaces.raceId, alert.raceId)).for("update");
+    if (!rt) return false;
+    const guardianRequest = alert.kind !== "keeper_parked" && alert.kind !== "attestor_error";
+    if (guardianRequest && rt.guardianRequestAt) return false;
+    if (guardianRequest) await tx.update(realToteRaces).set({ guardianRequestAt: now, updatedAt: now }).where(eq(realToteRaces.raceId, alert.raceId));
+    await audit(tx, { actor: null, action: `real_tote.alert.${alert.kind}`, entityType: "race", entityId: alert.raceId, data: { marketKey: rt.marketKey, status: rt.status, detail: alert.detail ?? null } });
+    return true;
+  });
+}
+
+/**
+ * Keeper bookkeeping for one market: a success clears the failure count; a failure backs off
+ * (gc.realToteKeeperBackoffMs) and, after REAL_TOTE_KEEPER_MAX_ATTEMPTS in a row, parks the
+ * market (skipped by the work list until `unparkRealToteRace`) with an alert. Returns true when
+ * this failure parked it.
+ */
+export async function recordRealToteKeeperOutcome(db: Db, raceId: string, outcome: { ok: true } | { ok: false; step: string; error: string }, now: Date): Promise<boolean> {
+  if (outcome.ok) {
+    await db
+      .update(realToteRaces)
+      .set({ keeperAttempts: 0, keeperNextAt: null, keeperError: null })
+      .where(and(eq(realToteRaces.raceId, raceId), sql`${realToteRaces.keeperAttempts} > 0`));
+    return false;
+  }
+  const parked = await runTx(db, async (tx) => {
+    const [rt] = await tx.select().from(realToteRaces).where(eq(realToteRaces.raceId, raceId)).for("update");
+    if (!rt) return false;
+    const attempts = rt.keeperAttempts + 1;
+    const park = attempts >= gc.REAL_TOTE_KEEPER_MAX_ATTEMPTS;
+    await tx
+      .update(realToteRaces)
+      .set({
+        keeperAttempts: attempts,
+        keeperNextAt: new Date(now.getTime() + gc.realToteKeeperBackoffMs(attempts)),
+        keeperError: `${outcome.step}: ${outcome.error}`.slice(0, 500),
+        parkedAt: park ? now : rt.parkedAt,
+        updatedAt: now,
+      })
+      .where(eq(realToteRaces.raceId, raceId));
+    return park && !rt.parkedAt;
+  });
+  if (parked) await raiseRealToteAlert(db, { raceId, kind: "keeper_parked", detail: `${outcome.step}: ${outcome.error}`.slice(0, 200) }, now);
+  return parked;
+}
+
+/** Puts a parked market back on the keeper's list (after someone fixed what blocked it). */
+export async function unparkRealToteRace(db: Db, raceId: string, now: Date): Promise<void> {
+  await db.update(realToteRaces).set({ parkedAt: null, keeperAttempts: 0, keeperNextAt: null, updatedAt: now }).where(eq(realToteRaces.raceId, raceId));
+  await audit(db, { actor: null, action: "real_tote.unpark", entityType: "race", entityId: raceId });
+}
+
+/**
+ * The result attestor's to-do list (apps/web toteAttestor.ts, a separate service and key): posted
+ * results it hasn't matched yet (no attestation, or one made before a correction). Disputed
+ * markets wait for the guardian.
+ */
+export async function realToteAttestWork(ex: Executor, limit = 20): Promise<string[]> {
+  const rows = await ex
+    .select({ raceId: realToteRaces.raceId })
+    .from(realToteRaces)
+    .where(and(eq(realToteRaces.status, "result_posted"), eq(realToteRaces.disputed, false), or(isNull(realToteRaces.attestedHash), sql`${realToteRaces.attestedHash} is distinct from ${realToteRaces.resultHash}`)))
+    .orderBy(asc(realToteRaces.challengeEndAt))
+    .limit(limit);
+  return rows.map((r) => r.raceId);
 }
 
 /** Checks a revealed server seed against the race's commitment (what the contract checks on chain). */

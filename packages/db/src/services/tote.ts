@@ -30,7 +30,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { fraudEvents, horses, raceEntries, races, stables, toteBets, totePools, toteSettings, type RaceRow, type ToteBetRow, type TotePoolRow, type ToteSettingsRow } from "../schema";
+import { accounts, fraudEvents, horses, raceEntries, races, realTotePermits, stables, toteBets, totePools, toteSettings, type RaceRow, type ToteBetRow, type TotePoolRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked } from "./accounts";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, type LedgerCurrency, type Posting } from "./ledger";
@@ -231,16 +231,30 @@ function limitsOf(json: unknown): LimitsJson {
   return out;
 }
 
-/** The player's own limits in force at `now` (a pending raise counts once its delay has passed). */
-export function effectiveToteLimits(row: Pick<ToteSettingsRow, "limits" | "pendingLimits" | "pendingAt"> | null | undefined, now: Date): LimitsJson {
+/**
+ * The player's own limits in force at `now`. A pending raise never applies by itself: after its
+ * delay the player must confirm it (`confirmToteLimitRaise`), which moves it into `limits`.
+ */
+export function effectiveToteLimits(row: Pick<ToteSettingsRow, "limits" | "pendingLimits" | "pendingAt"> | null | undefined, _now: Date): LimitsJson {
   if (!row) return {};
-  const base = limitsOf(row.limits);
-  if (row.pendingLimits && row.pendingAt && row.pendingAt <= now) return { ...base, ...limitsOf(row.pendingLimits) };
-  return base;
+  return limitsOf(row.limits);
 }
 
-export function toteExcluded(row: Pick<ToteSettingsRow, "excludedUntil" | "excludedPermanent"> | null | undefined, now: Date): boolean {
-  return !!row && (row.excludedPermanent || (!!row.excludedUntil && row.excludedUntil > now));
+type ExclusionRow = Pick<ToteSettingsRow, "excludedUntil" | "excludedPermanent" | "selfExcludedUntil" | "selfExclusionEndRequestedAt">;
+
+/** When a self-exclusion lets betting reopen: never before the player asked to end it (after its minimum) plus the cooling-off. */
+function selfExclusionEndsAt(row: ExclusionRow): Date | null {
+  if (!row.selfExcludedUntil || !row.selfExclusionEndRequestedAt) return null;
+  return new Date(row.selfExclusionEndRequestedAt.getTime() + gc.TOTE_SELF_EXCLUSION_COOLING_OFF_MS);
+}
+
+/** On a break: a running time-out, a self-exclusion not yet ended by the player (plus its cooling-off), or for good. */
+export function toteExcluded(row: ExclusionRow | null | undefined, now: Date): boolean {
+  if (!row) return false;
+  if (row.excludedPermanent || (!!row.excludedUntil && row.excludedUntil > now)) return true;
+  if (!row.selfExcludedUntil) return false;
+  const ends = selfExclusionEndsAt(row);
+  return ends === null || ends > now;
 }
 
 async function settingsRow(ex: Executor, accountId: string): Promise<ToteSettingsRow | null> {
@@ -258,11 +272,20 @@ export interface ToteSettingsView {
   adultConfirmed: boolean;
   /** Own limits in force, base units (null = the game's limit). */
   limits: Record<ToteCurrency, gc.TotePlayerLimits>;
-  /** A raise waiting for its delay, and when it applies. */
+  /** A raise waiting for its delay, and from when the player can confirm it (it never applies by itself). */
   pending: LimitsJson | null;
   pendingAtMs: number | null;
+  /** The delay is over: the raise applies once the player confirms it. */
+  pendingConfirmable: boolean;
+  /** A running time-out ends here. */
   excludedUntilMs: number | null;
   excludedPermanent: boolean;
+  /** A self-exclusion's minimum end (it continues after it until the player asks to end it). */
+  selfExcludedUntilMs: number | null;
+  /** The player asked to end the self-exclusion: betting reopens at this time (the cooling-off). */
+  selfExclusionEndsAtMs: number | null;
+  /** The minimum is over and no end was asked for yet. */
+  canEndSelfExclusion: boolean;
   excluded: boolean;
   currencies: ToteCurrency[];
   game: { min: Record<ToteCurrency, number>; perRace: Record<ToteCurrency, number>; perDay: Record<ToteCurrency, number>; balancePermille: number; takeoutPermille: number };
@@ -271,14 +294,20 @@ export interface ToteSettingsView {
 export async function toteSettingsView(ex: Executor, accountId: string, now: Date, env?: Record<string, string | undefined>): Promise<ToteSettingsView> {
   const row = await settingsRow(ex, accountId);
   const eff = effectiveToteLimits(row, now);
-  const pendingLive = row?.pendingLimits && row.pendingAt && row.pendingAt > now;
+  const pendingLive = !!(row?.pendingLimits && row.pendingAt);
+  const selfOn = !!row?.selfExcludedUntil && toteExcluded({ excludedUntil: null, excludedPermanent: false, selfExcludedUntil: row.selfExcludedUntil, selfExclusionEndRequestedAt: row.selfExclusionEndRequestedAt }, now);
+  const endsAt = row ? selfExclusionEndsAt(row) : null;
   return {
     adultConfirmed: !!row?.adultConfirmedAt,
     limits: { CR: eff.CR ?? NO_LIMITS, TUSDG: eff.TUSDG ?? NO_LIMITS },
     pending: pendingLive ? limitsOf(row!.pendingLimits) : null,
     pendingAtMs: pendingLive ? row!.pendingAt!.getTime() : null,
+    pendingConfirmable: pendingLive && row!.pendingAt! <= now,
     excludedUntilMs: row?.excludedUntil && row.excludedUntil > now ? row.excludedUntil.getTime() : null,
     excludedPermanent: !!row?.excludedPermanent,
+    selfExcludedUntilMs: selfOn ? row!.selfExcludedUntil!.getTime() : null,
+    selfExclusionEndsAtMs: selfOn && endsAt ? endsAt.getTime() : null,
+    canEndSelfExclusion: selfOn && !row!.selfExclusionEndRequestedAt && row!.selfExcludedUntil! <= now,
     excluded: toteExcluded(row, now),
     currencies: toteCurrencies(env),
     game: {
@@ -311,7 +340,8 @@ const lowerOrEqual = (next: number | null, cur: number | null) => next !== null 
 
 /**
  * Sets the player's own limits for one currency. Lowering is immediate; a raise or a removal
- * waits TOTE_LIMIT_RAISE_DELAY_MS (until then the lower limit stays in force).
+ * waits TOTE_LIMIT_RAISE_DELAY_MS and then applies only when the player confirms it
+ * (`confirmToteLimitRaise`); until then the lower limit stays in force.
  */
 export async function setToteLimits(db: Db, input: { accountId: string; currency: ToteCurrency; perRace: number | null; perDay: number | null; now: Date }): Promise<ToteSettingsView> {
   if (!gc.TOTE_CURRENCIES.includes(input.currency)) throw new DomainError("INVALID_INPUT", "unknown currency");
@@ -321,9 +351,8 @@ export async function setToteLimits(db: Db, input: { accountId: string; currency
     const row = await lockSettings(tx, input.accountId, input.now);
     const eff = effectiveToteLimits(row, input.now);
     const cur = eff[input.currency] ?? NO_LIMITS;
-    // Pending raises that have matured become the base; unmatured ones for other currencies stay pending.
-    const matured = row.pendingAt && row.pendingAt <= input.now;
-    const pending: LimitsJson = matured ? {} : limitsOf(row.pendingLimits);
+    // Raises for other currencies stay pending (and keep their own confirmation).
+    const pending: LimitsJson = limitsOf(row.pendingLimits);
     const immediate: gc.TotePlayerLimits = {
       perRace: lowerOrEqual(perRace, cur.perRace) ? perRace : cur.perRace,
       perDay: lowerOrEqual(perDay, cur.perDay) ? perDay : cur.perDay,
@@ -347,18 +376,114 @@ export async function setToteLimits(db: Db, input: { accountId: string; currency
   return toteSettingsView(db, input.accountId, input.now);
 }
 
-/** Self-exclusion: can be lengthened, never shortened or lifted early; "permanent" never ends. */
+/**
+ * After its delay, applies the player's pending limit raise (a raise never applies by itself).
+ * TOO_EARLY before the delay is over; a no-op without a pending raise.
+ */
+export async function confirmToteLimitRaise(db: Db, input: { accountId: string; now: Date }): Promise<ToteSettingsView> {
+  await runTx(db, async (tx) => {
+    const row = await lockSettings(tx, input.accountId, input.now);
+    if (!row.pendingLimits || !row.pendingAt) return;
+    if (row.pendingAt > input.now) throw new DomainError("TOO_EARLY", "a higher limit can be confirmed 24 hours after you asked for it");
+    await tx
+      .update(toteSettings)
+      .set({ limits: { ...limitsOf(row.limits), ...limitsOf(row.pendingLimits) }, pendingLimits: null, pendingAt: null, updatedAt: input.now })
+      .where(eq(toteSettings.accountId, input.accountId));
+    await audit(tx, { actor: input.accountId, action: "tote.limits_raise_confirmed", entityType: "account", entityId: input.accountId, data: { limits: row.pendingLimits } });
+  });
+  return toteSettingsView(db, input.accountId, input.now);
+}
+
+/**
+ * A break from betting, never shortened or lifted early. A time-out (24 h, 7 d, 30 d) ends by
+ * itself and can be lengthened. A self-exclusion (6 months, 1 year, 5 years) lasts at least that
+ * long, then continues until the player asks to end it (`endToteSelfExclusion`), plus a 1-day
+ * cooling-off. "permanent" never ends.
+ */
 export async function selfExcludeTote(db: Db, input: { accountId: string; choice: gc.ToteSelfExclusion; now: Date }): Promise<ToteSettingsView> {
   if (!(input.choice in gc.TOTE_SELF_EXCLUSION_MS)) throw new DomainError("INVALID_INPUT", "unknown exclusion length");
   await runTx(db, async (tx) => {
     const row = await lockSettings(tx, input.accountId, input.now);
     const end = gc.toteExclusionEnd(input.choice, input.now.getTime());
-    const permanent = row.excludedPermanent || end === null;
-    const until = end === null ? row.excludedUntil : new Date(Math.max(end, row.excludedUntil?.getTime() ?? 0));
-    await tx.update(toteSettings).set({ excludedPermanent: permanent, excludedUntil: until, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
-    await audit(tx, { actor: input.accountId, action: "tote.self_exclude", entityType: "account", entityId: input.accountId, data: { choice: input.choice } });
+    const kind = gc.toteBreakKind(input.choice);
+    if (kind === "time_out") {
+      const until = new Date(Math.max(end!, row.excludedUntil?.getTime() ?? 0));
+      await tx.update(toteSettings).set({ excludedUntil: until, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
+    } else if (kind === "permanent") {
+      await tx.update(toteSettings).set({ excludedPermanent: true, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
+    } else {
+      // A new self-exclusion (or a longer one) restarts the "until you act" part: an earlier end request no longer counts.
+      const minimum = new Date(Math.max(end!, toteExcluded(row, input.now) ? (row.selfExcludedUntil?.getTime() ?? 0) : 0));
+      await tx.update(toteSettings).set({ selfExcludedUntil: minimum, selfExclusionEndRequestedAt: null, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
+    }
+    await audit(tx, { actor: input.accountId, action: "tote.self_exclude", entityType: "account", entityId: input.accountId, data: { choice: input.choice, kind } });
   });
   return toteSettingsView(db, input.accountId, input.now);
+}
+
+/**
+ * The player asks to end a self-exclusion whose minimum is over: betting reopens after
+ * TOTE_SELF_EXCLUSION_COOLING_OFF_MS. TOO_EARLY before the minimum; a no-op if already asked.
+ */
+export async function endToteSelfExclusion(db: Db, input: { accountId: string; now: Date }): Promise<ToteSettingsView> {
+  await runTx(db, async (tx) => {
+    const row = await lockSettings(tx, input.accountId, input.now);
+    if (!row.selfExcludedUntil || row.selfExclusionEndRequestedAt) return;
+    if (row.selfExcludedUntil > input.now) throw new DomainError("TOO_EARLY", "a self-exclusion can't end before its minimum length");
+    await tx.update(toteSettings).set({ selfExclusionEndRequestedAt: input.now, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
+    await audit(tx, { actor: input.accountId, action: "tote.self_exclusion_end_requested", entityType: "account", entityId: input.accountId });
+  });
+  return toteSettingsView(db, input.accountId, input.now);
+}
+
+// ---------------------------------------------------------------------------
+// Reality checks
+// ---------------------------------------------------------------------------
+
+export interface ToteRealityCheck {
+  /** A check is due: the player must acknowledge it before the next bet. */
+  due: boolean;
+  sessionStartMs: number;
+  /** Minutes since the session started. */
+  minutes: number;
+  /** Net result of the session's bets per currency (payouts less stakes; open bets count as staked). */
+  net: Partial<Record<ToteCurrency, number>>;
+}
+
+/**
+ * The current betting session (bets and real-money permits, sessions split by a 30-minute gap)
+ * and whether a reality check is due (every 60 minutes of it). Null with no session going on.
+ */
+export async function toteRealityCheck(ex: Executor, accountId: string, settings: Pick<ToteSettingsRow, "realityCheckAckAt"> | null, now: Date): Promise<ToteRealityCheck | null> {
+  const since = new Date(now.getTime() - DAY_MS);
+  const bets = await ex
+    .select({ at: toteBets.placedAt, stake: toteBets.stake, payout: toteBets.payout, status: toteBets.status, currency: toteBets.currency })
+    .from(toteBets)
+    .where(and(eq(toteBets.accountId, accountId), gte(toteBets.placedAt, since)));
+  const permits = await ex.select({ at: realTotePermits.issuedAt }).from(realTotePermits).where(and(eq(realTotePermits.accountId, accountId), gte(realTotePermits.issuedAt, since)));
+  const start = gc.toteSessionStart([...bets.map((b) => b.at.getTime()), ...permits.map((p) => p.at.getTime())], now.getTime());
+  if (start === null) return null;
+  const net: ToteRealityCheck["net"] = {};
+  for (const b of bets) {
+    if (b.at.getTime() < start) continue;
+    const c = b.currency as ToteCurrency;
+    net[c] = (net[c] ?? 0) + (b.status === "open" ? 0 : b.payout) - b.stake;
+  }
+  return {
+    due: gc.toteRealityCheckDue(start, settings?.realityCheckAckAt?.getTime() ?? null, now.getTime()),
+    sessionStartMs: start,
+    minutes: Math.floor((now.getTime() - start) / 60_000),
+    net,
+  };
+}
+
+/** The player saw the reality check and chose to carry on. */
+export async function acknowledgeToteRealityCheck(db: Db, input: { accountId: string; now: Date }): Promise<void> {
+  await runTx(db, async (tx) => {
+    await lockSettings(tx, input.accountId, input.now);
+    await tx.update(toteSettings).set({ realityCheckAckAt: input.now, updatedAt: input.now }).where(eq(toteSettings.accountId, input.accountId));
+    await audit(tx, { actor: input.accountId, action: "tote.reality_check_ack", entityType: "account", entityId: input.accountId });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +501,8 @@ export interface PlaceToteBetInput {
   clientKey: string;
   now: Date;
   env?: Record<string, string | undefined>;
+  /** Staff (an admin session or a staff account): never allowed to bet. */
+  staff?: boolean;
 }
 
 export interface ToteOptions {
@@ -406,20 +533,24 @@ export interface ToteBettorChecked {
 }
 
 /**
- * The bettor checks every tote bet runs, in this order: 18+ confirmed, not self-excluded, the
- * horse is running, a place pool exists for the field, and no conflict of interest (own runner,
+ * The bettor checks every tote bet runs, in this order: not staff, 18+ confirmed, not on a break,
+ * no reality check waiting, the horse is running, a place pool exists for the field, and no
+ * conflict of interest (own runner,
  * a lease partner's, or a linked account's: the last also records a fraud event and comes back
  * as a DomainError for the caller to return so the event commits). Shared by the in-game tote and
  * the dormant real-USDG permits (realTote.ts). Caller holds the race row lock.
  */
 export async function toteBettorChecksTx(
   tx: Tx,
-  input: { accountId: string; race: RaceRow; horseId: string; pool: TotePoolKind; now: Date; fraudData: Record<string, unknown> },
+  input: { accountId: string; race: RaceRow; horseId: string; pool: TotePoolKind; now: Date; fraudData: Record<string, unknown>; staff?: boolean },
 ): Promise<ToteBettorChecked | DomainError> {
   const { race } = input;
+  const [acc] = await tx.select({ isSystem: accounts.isSystem }).from(accounts).where(eq(accounts.id, input.accountId));
+  if (input.staff || acc?.isSystem) throw new DomainError("TOTE_STAFF", "staff accounts can't bet");
   const settings = await lockSettings(tx, input.accountId, input.now);
   if (!settings.adultConfirmedAt) throw new DomainError("TOTE_AGE_CONFIRM", "confirm you are 18 or over before your first bet");
   if (toteExcluded(settings, input.now)) throw new DomainError("TOTE_EXCLUDED", "you have taken a break from betting");
+  if ((await toteRealityCheck(tx, input.accountId, settings, input.now))?.due) throw new DomainError("TOTE_REALITY_CHECK", "you've been betting for an hour: look at your session first");
 
   const runners = await runnersOf(tx, race.id);
   if (!runners.some((r) => r.horseId === input.horseId)) throw new DomainError("NOT_FOUND", "that horse isn't running in this race");
@@ -467,7 +598,7 @@ export async function placeToteBet(db: Db, input: PlaceToteBetInput, opts: ToteO
     const clock = opts.dbClock === false ? input.now : new Date(Math.max(input.now.getTime(), (await dbClockNow(tx)).getTime()));
     if (race.status === "settled" || clock >= race.postTime) throw new DomainError("RACE_CLOSED", "betting closed at the off");
 
-    const checked = await toteBettorChecksTx(tx, { accountId: input.accountId, race, horseId: input.horseId, pool: input.pool, now: input.now, fraudData: { stake: input.stake, currency: input.currency } });
+    const checked = await toteBettorChecksTx(tx, { accountId: input.accountId, race, horseId: input.horseId, pool: input.pool, now: input.now, staff: input.staff, fraudData: { stake: input.stake, currency: input.currency } });
     if (checked instanceof DomainError) return checked;
     const { settings, stableId } = checked;
 
@@ -658,7 +789,8 @@ async function settlePoolTx(
   input: { raceId: string; pool: TotePoolKind; currency: ToteCurrency; bets: ToteBetRow[]; finishers: gc.ToteFinisher[]; names: ReadonlyMap<string, string>; now: Date },
 ): Promise<void> {
   const { raceId, pool, currency, bets, now } = input;
-  const s = gc.settleTotePool(pool, bets.map((b) => ({ id: b.id, bettor: b.accountId, horseId: b.horseId, stake: b.stake })), input.finishers);
+  const bettorOf = await linkedBettorsTx(tx, { raceId, pool, currency, bets });
+  const s = gc.settleTotePool(pool, bets.map((b) => ({ id: b.id, bettor: bettorOf.get(b.accountId)!, horseId: b.horseId, stake: b.stake })), input.finishers);
   if (!gc.toteSettlementBalanced(s)) throw new Error(`tote pool ${raceId}/${pool}/${currency} does not balance`);
   const ledger = toteLedger(currency);
   const byId = new Map(bets.map((b) => [b.id, b]));
@@ -723,6 +855,41 @@ async function settlePoolTx(
       settledAt: now,
     })
     .onConflictDoNothing();
+}
+
+/**
+ * Linked accounts (same detection as the market) count as ONE bettor for the minimum pool: each
+ * account maps to the smallest account id of its linked group within this pool. Linked accounts
+ * backing different runners of the same pool raise a fraud event (a way to move money between
+ * accounts through the pool).
+ */
+async function linkedBettorsTx(tx: Tx, input: { raceId: string; pool: TotePoolKind; currency: ToteCurrency; bets: readonly ToteBetRow[] }): Promise<Map<string, string>> {
+  const ids = [...new Set(input.bets.map((b) => b.accountId))].sort();
+  const parent = new Map(ids.map((id) => [id, id]));
+  const find = (x: string): string => {
+    while (parent.get(x) !== x) x = parent.get(x)!;
+    return x;
+  };
+  const runnersOfAcc = new Map<string, Set<string>>();
+  for (const b of input.bets) {
+    if (!runnersOfAcc.has(b.accountId)) runnersOfAcc.set(b.accountId, new Set());
+    runnersOfAcc.get(b.accountId)!.add(b.horseId);
+  }
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = ids[i]!;
+      const b = ids[j]!;
+      if (!(await areLinked(tx, a, b))) continue;
+      const [ra, rb] = [find(a), find(b)];
+      if (ra !== rb) parent.set(ra < rb ? rb : ra, ra < rb ? ra : rb);
+      const ha = runnersOfAcc.get(a)!;
+      const hb = runnersOfAcc.get(b)!;
+      if ([...ha].some((h) => !hb.has(h)) || [...hb].some((h) => !ha.has(h))) {
+        await tx.insert(fraudEvents).values({ accountId: a, relatedAccountId: b, kind: "tote_linked_opposing_bets", severity: 2, data: { raceId: input.raceId, pool: input.pool, currency: input.currency } });
+      }
+    }
+  }
+  return new Map(ids.map((id) => [id, find(id)]));
 }
 
 /**
@@ -925,8 +1092,10 @@ export interface MyToteBet {
 export interface MyToteRace {
   bets: MyToteBet[];
   /** Can this player bet on this race now? */
-  canBet: { ok: true } | { ok: false; reason: "closed" | "conflict" | "excluded" | "age" | "unavailable"; message: string };
+  canBet: { ok: true } | { ok: false; reason: "closed" | "conflict" | "excluded" | "age" | "unavailable" | "staff" | "reality_check"; message: string };
   adultConfirmed: boolean;
+  /** The current betting session (time and net result) and whether its hourly reality check is waiting. */
+  realityCheck: ToteRealityCheck | null;
   /** Per currency: what may still be staked on this race and today, the balance and the minimum. */
   allowance: { currency: ToteCurrency; race: number; day: number; balance: number; min: number }[];
 }
@@ -939,7 +1108,7 @@ function potentialReturnOf(b: Pick<ToteBetRow, "status" | "currency" | "pool" | 
 }
 
 /** The signed-in player's side of a race's tote: their bets, whether they may bet, and their allowances. */
-export async function myToteRace(ex: Executor, accountId: string, raceId: string, now: Date, env?: Record<string, string | undefined>): Promise<MyToteRace | null> {
+export async function myToteRace(ex: Executor, accountId: string, raceId: string, now: Date, env?: Record<string, string | undefined>, staffSession = false): Promise<MyToteRace | null> {
   const [race] = await ex.select().from(races).where(eq(races.id, raceId));
   if (!race || !isToteRace(race)) return null;
   const runners = await runnersOf(ex, raceId);
@@ -982,15 +1151,20 @@ export async function myToteRace(ex: Executor, accountId: string, raceId: string
       min: gc.TOTE_MIN_STAKE[currency],
     });
   }
+  const [acc] = await ex.select({ isSystem: accounts.isSystem }).from(accounts).where(eq(accounts.id, accountId));
+  const staff = staffSession || !!acc?.isSystem;
+  const realityCheck = await toteRealityCheck(ex, accountId, settings, now);
   let canBet: MyToteRace["canBet"] = { ok: true };
   if (race.status === "cancelled" || race.status === "settled" || now >= race.postTime) canBet = { ok: false, reason: "closed", message: "Betting closed at the off." };
+  else if (staff) canBet = { ok: false, reason: "staff", message: "Staff accounts can't bet." };
   else if (toteExcluded(settings, now)) canBet = { ok: false, reason: "excluded", message: "You've taken a break from betting." };
   else {
     const conflict = await conflictOf(ex, { accountId, stableId: await stableIdOf(ex, accountId) }, runners);
     if (conflict) canBet = { ok: false, reason: "conflict", message: CONFLICT_MESSAGE[conflict.kind].replace(/^./, (c) => c.toUpperCase()) + "." };
     else if (!settings?.adultConfirmedAt) canBet = { ok: false, reason: "age", message: "Confirm you are 18 or over to bet." };
+    else if (realityCheck?.due) canBet = { ok: false, reason: "reality_check", message: "You've been betting for an hour." };
   }
-  return { bets, canBet, adultConfirmed: !!settings?.adultConfirmedAt, allowance };
+  return { bets, canBet, adultConfirmed: !!settings?.adultConfirmedAt, allowance, realityCheck };
 }
 
 export interface MyToteHistory {

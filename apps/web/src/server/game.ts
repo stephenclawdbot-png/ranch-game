@@ -732,6 +732,23 @@ export async function replayStartFor(db: Db, id: string, at: string | null | und
   return replayStartSec(at, true, winnerUs != null ? winnerUs / 1_000_000 : null);
 }
 
+/**
+ * Finishing positions per runner index (gate - 1; 0 = didn't finish) of a race re-run on its
+ * locked field from a seed the caller supplies: the real-money tote's result attestor passes the
+ * finalSeed it read from the chain (toteAttestor.ts), never the operator's stored result.
+ * SERVER-ONLY: callers only use it once the race is over.
+ */
+export async function replayPositionsFromSeed(db: Db, raceId: string, seedHex: string, now: Date): Promise<number[]> {
+  if (!/^[0-9a-f]{64}$/.test(seedHex)) throw new Error("bad seed");
+  const race = await loadRace(db, raceId);
+  const sim = await getRaceForSimulation(db, raceId, now, raceHooks);
+  const replay = simulateRace(inputFrom(race, sim.field, seedHex));
+  const byHorse = new Map(replay.result.finishOrder.map((f) => [f.horseId, f.position]));
+  const out = new Array<number>(sim.field.runners.length).fill(0);
+  for (const r of sim.field.runners) out[r.gate - 1] = byHorse.get(r.horseId) ?? 0;
+  return out;
+}
+
 export interface VerifyResult {
   commitmentOk: boolean;
   resultHashOk: boolean;

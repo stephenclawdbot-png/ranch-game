@@ -31,7 +31,7 @@
  *
  * Integer maths only (BigInt inside the pool split), no clocks: callers pass time in.
  */
-import { MS_PER_DAY, MS_PER_HOUR } from "./time";
+import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from "./time";
 
 export type ToteCurrency = "CR" | "TUSDG";
 export const TOTE_CURRENCIES = ["CR", "TUSDG"] as const satisfies readonly ToteCurrency[];
@@ -76,17 +76,63 @@ export const TOTE_PLACE_MIN_FIELD = 5;
 /** From this many runners the place pool pays the first three (below it, the first two). */
 export const TOTE_PLACE_THREE_FROM = 8;
 
-/** Self-exclusion lengths a player can choose. None can be undone early. */
+/**
+ * Breaks a player can choose. Time-outs (24 h, 7 d, 30 d) end by themselves. Self-exclusions
+ * (6 months, 1 year, 5 years) last at least that long and then continue until the player asks
+ * to end them, followed by TOTE_SELF_EXCLUSION_COOLING_OFF_MS; "permanent" never ends. None can
+ * be shortened or lifted early.
+ */
 export const TOTE_SELF_EXCLUSION_MS = {
   "24h": 24 * MS_PER_HOUR,
   "7d": 7 * MS_PER_DAY,
   "30d": 30 * MS_PER_DAY,
+  "6m": 182 * MS_PER_DAY,
+  "1y": 365 * MS_PER_DAY,
+  "5y": 1_826 * MS_PER_DAY,
   permanent: null,
 } as const satisfies Record<string, number | null>;
 export type ToteSelfExclusion = keyof typeof TOTE_SELF_EXCLUSION_MS;
+export const TOTE_TIME_OUTS = ["24h", "7d", "30d"] as const satisfies readonly ToteSelfExclusion[];
+export const TOTE_SELF_EXCLUSIONS = ["6m", "1y", "5y", "permanent"] as const satisfies readonly ToteSelfExclusion[];
 
-/** A player's own limit takes effect at once when lowered; a raise (or removal) waits this long. */
+/** A time-out ends by itself; a self-exclusion continues past its minimum until the player acts; permanent never ends. */
+export function toteBreakKind(choice: ToteSelfExclusion): "time_out" | "self_exclusion" | "permanent" {
+  if (choice === "permanent") return "permanent";
+  return (TOTE_TIME_OUTS as readonly string[]).includes(choice) ? "time_out" : "self_exclusion";
+}
+
+/** After a player asks to end a self-exclusion (past its minimum), betting reopens this much later. */
+export const TOTE_SELF_EXCLUSION_COOLING_OFF_MS = 1 * MS_PER_DAY;
+
+/** A player's own limit takes effect at once when lowered; a raise (or removal) waits this long, then needs the player's confirmation. */
 export const TOTE_LIMIT_RAISE_DELAY_MS = 24 * MS_PER_HOUR;
+
+/** A reality check (time and net result this session) is due after this much betting activity. */
+export const TOTE_REALITY_CHECK_MS = 60 * MS_PER_MINUTE;
+/** A gap with no bets this long ends a betting session. */
+export const TOTE_SESSION_GAP_MS = 30 * MS_PER_MINUTE;
+
+/**
+ * The current betting session's start: walking back from the latest bet, a session runs until a
+ * gap of TOTE_SESSION_GAP_MS. Null when the last bet is that long ago (no session going on).
+ */
+export function toteSessionStart(betTimesMs: readonly number[], nowMs: number): number | null {
+  const t = [...betTimesMs].sort((a, b) => b - a);
+  if (!t.length || nowMs - t[0]! >= TOTE_SESSION_GAP_MS) return null;
+  let start = t[0]!;
+  for (let i = 1; i < t.length; i++) {
+    if (start - t[i]! >= TOTE_SESSION_GAP_MS) break;
+    start = t[i]!;
+  }
+  return start;
+}
+
+/** Is a reality check due: a session going on for TOTE_REALITY_CHECK_MS since it started or since the last acknowledged check? */
+export function toteRealityCheckDue(sessionStartMs: number | null, lastAckMs: number | null, nowMs: number): boolean {
+  if (sessionStartMs === null) return false;
+  const from = lastAckMs !== null && lastAckMs > sessionStartMs ? lastAckMs : sessionStartMs;
+  return nowMs - from >= TOTE_REALITY_CHECK_MS;
+}
 
 /** How often the tote panel refreshes the pools before the off (ms). */
 export const TOTE_ODDS_POLL_MS = 5_000;
@@ -131,6 +177,36 @@ export interface ToteRunnerOdds {
    * lose (the take is cut when it would make them).
    */
   oddsMilli: number | null;
+  /**
+   * PLACE only (null for WIN or an unbacked runner): what 1 unit returns if this runner places,
+   * x 1000, from the least (the other places go to the most-backed runners) to the most (no other
+   * backed runner places). A place dividend depends on which other runners place, so the panel
+   * shows this range rather than one number.
+   */
+  oddsRangeMilli: [number, number] | null;
+}
+
+/** The place range for one runner at the current pool (see ToteRunnerOdds.oddsRangeMilli). */
+export function totePlaceRangeMilli(stakes: ReadonlyMap<string, number>, horseId: string, places: number, permille: number = TOTE_TAKEOUT_PERMILLE): [number, number] | null {
+  const S = stakes.get(horseId) ?? 0;
+  if (S <= 0 || places <= 0) return null;
+  let total = 0;
+  const others: number[] = [];
+  for (const [id, v] of stakes) {
+    total += v;
+    if (id !== horseId && v > 0) others.push(v);
+  }
+  const std = toteTakeout(total, permille);
+  const milli = (amount: number) => Math.max(1000, Math.floor((amount * 1000) / S));
+  // Most: the only backed runner to place takes the whole profit (the take is cut if it must be).
+  const high = milli(Math.max(S, total - std));
+  // Least: the other places go to the most-backed runners; their stakes come back first too.
+  const top = others.sort((x, y) => y - x).slice(0, places - 1);
+  const win = S + top.reduce((x, y) => x + y, 0);
+  const take = Math.min(std, total - win);
+  const profit = total - take - win;
+  const low = milli(S + Math.floor(profit / (1 + top.length)));
+  return [low, high];
 }
 
 export interface TotePoolView {
@@ -183,6 +259,7 @@ export function totePoolView(
       stake,
       sharePermille: total > 0 ? Math.floor((stake * 1000) / total) : 0,
       oddsMilli: stake > 0 && places > 0 ? Math.max(1000, Math.floor((net * 1000) / (stake * parts))) : null,
+      oddsRangeMilli: kind === "place" ? totePlaceRangeMilli(stakes, horseId, places, permille) : null,
     };
   });
   // Without a bettor count only the runner half of the rule can be shown.
