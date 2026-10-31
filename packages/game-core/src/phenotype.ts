@@ -230,6 +230,9 @@ export interface QuirkContext {
   bigCrowd: boolean;
 }
 
+/** Field size from which a crowd-shy horse is unsettled even in an ordinary race. */
+export const CROWD_SHY_FIELD = 12;
+
 /** Whether a quirk shows itself in a race with these conditions (only then can it be revealed). */
 export function quirkTriggered(q: QuirkKey, ctx: QuirkContext): boolean {
   switch (q) {
@@ -240,7 +243,7 @@ export function quirkTriggered(q: QuirkKey, ctx: QuirkContext): boolean {
     case "lateKick":
       return true;
     case "crowdShy":
-      return ctx.bigCrowd || ctx.fieldSize >= 12;
+      return ctx.bigCrowd || ctx.fieldSize >= CROWD_SHY_FIELD;
   }
 }
 

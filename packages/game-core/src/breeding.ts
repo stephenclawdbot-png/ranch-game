@@ -342,6 +342,30 @@ function deltaBounds(sg: Genome, dg: Genome): { lo: StatRecord<number>; hi: Stat
 }
 
 /**
+ * The nick rating's weights: a base, plus the share of foals that beat both parents (upside),
+ * plus how sure the foal's best trip band and surface are (coherence: the share of the most
+ * likely one), minus the inbreeding coefficient (COI, basis points) over a divisor. Clamped to
+ * 0..100. The wiki prints these numbers.
+ */
+export const NICK_WEIGHTS = { base: 25, beatsBoth: 60, tripCertainty: 15, surfaceCertainty: 10, coiDivisor: 4 } as const;
+/** Nick labels by minimum score, best first ("Poor" below the last). */
+export const NICK_LABELS: readonly { min: number; label: "Excellent" | "Good" | "Fair" }[] = [
+  { min: 70, label: "Excellent" },
+  { min: 55, label: "Good" },
+  { min: 40, label: "Fair" },
+];
+
+/**
+ * Nick rating from its parts: `beats` = share (0..1) of foals that beat both parents, `topBand`
+ * and `topSurface` = share (0..1) of the most likely trip band and surface, `coi` in basis points.
+ */
+export function nickRating(beats: number, topBand: number, topSurface: number, coi: number): { score: number; label: "Excellent" | "Good" | "Fair" | "Poor" } {
+  const w = NICK_WEIGHTS;
+  const score = clampInt(w.base + w.beatsBoth * beats + w.tripCertainty * topBand + w.surfaceCertainty * topSurface - coi / w.coiDivisor, 0, 100);
+  return { score, label: NICK_LABELS.find((l) => score >= l.min)?.label ?? "Poor" };
+}
+
+/**
  * Exact preview of a pairing (before mutation, which the preview shows separately). Uses the
  * true genotypes: the odds are what they are, published before the player commits.
  */
@@ -516,8 +540,7 @@ export function previewBreeding(sire: HorseState, dam: HorseState, ped: Pedigree
   // Nick rating: upside (beat both parents), aptitude coherence, minus COI.
   const topBand = Math.max(...distance.values());
   const topSurface = Math.max(...surface.values());
-  const score = clampInt(25 + 60 * beats + 15 * topBand + 10 * topSurface - coi / 4, 0, 100);
-  const label = score >= 70 ? "Excellent" : score >= 55 ? "Good" : score >= 40 ? "Fair" : "Poor";
+  const { score, label } = nickRating(beats, topBand, topSurface, coi);
   const mp = mutationParams(coi);
 
   // Family limits in potential terms: the allele range at both loci, with the vigour range a

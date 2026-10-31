@@ -40,3 +40,5 @@ export * from "./stablePhoto";
 export * from "./meetings";
 export * from "./courses";
 export * from "./climate";
+export * from "./moments";
+export * from "./nearMiss";

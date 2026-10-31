@@ -243,7 +243,7 @@ function specialCardSlot(index: number, sp: gc.RaceSlot): CreateRaceInput {
       // rating floor: a horse rated 85-94 that places in a qualifier must be able to run.
       // Qualifiers are open to every rating (the harness found no player rated 85+ within a
       // season); a top 3 is the test. Only the Season Final keeps a floor.
-      ...(final ? { minRating: 95 } : {}),
+      ...(final ? { minRating: gc.SEASON_FINAL_MIN_RATING } : {}),
       distanceM: sp.distanceM,
       surface: place.surface,
       going: place.going,
