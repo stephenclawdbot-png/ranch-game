@@ -213,7 +213,7 @@ export function HorseDetail({ view, tabs }: { view: HorseDetailView; tabs?: Reac
           {form.lines.length === 0 ? (
             <EmptyState icon="stopwatch" title="No runs yet" text={`${first}'s first start shows here with its replay.`} />
           ) : (
-            <FormLines lines={form.lines} numbers={numbers} />
+            <FormLines lines={form.lines} numbers={numbers} whatIf={isMine} horseName={first} />
           )}
           {isMine && (
             <p className="t-meta">

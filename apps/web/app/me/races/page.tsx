@@ -137,7 +137,7 @@ function MyRaces({ state }: { state: PlayerState }) {
       {rows.length > 0 ? (
         lines.length === rows.length ? (
           <div data-testid="my-races-rows">
-            <FormLines lines={lines} numbers={numbers} showHorse={horseId === ""} initial={lines.length} />
+            <FormLines lines={lines} numbers={numbers} showHorse={horseId === ""} initial={lines.length} whatIf />
           </div>
         ) : (
           <ul className="surface rows" data-testid="my-races-rows">
