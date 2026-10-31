@@ -29,7 +29,13 @@
     mode; 15 % take to the `tote_house` account; bets close at the off; no bets on races where your
     stable, a lease partner or a linked account runs; limits, 18+ and self-exclusion; a public
     tote audit per pool. The real-money version is the dormant non-custodial `TotePools` scaffold
-    (see docs/usdg-tote.md).
+    (see docs/usdg-tote.md). Thin-pool rules (owner-approved, same in game and on chain): a pool
+    needs 2 bettors (linked accounts count as one) on 2 runners or it is refunded with no take;
+    winning stakes come back first and the take is cut so winners never get back less than they
+    staked. Responsible play: limit raises need a confirmation after 24 h; 24h/7d/30d time-outs and
+    6m/1y/5y self-exclusions (until the player acts, then 1-day cooling-off); an hourly reality
+    check; staff can't bet. Agent decisions to confirm: the real-money permit route refuses linked
+    accounts on different runners of a pool (the in-game tote only flags them).
   - Stable Credits are never cashed out. Club fill stays at [P-2, P+10] (option A). Breeding
     preview shows possible looks and words only (no genes, no odds); stallions rest 12 h after a
     cover; capped horses are delisted.

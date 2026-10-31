@@ -73,9 +73,9 @@ export default function TotePage() {
       </P>
       <P>
         The odds on the panel are the pool&rsquo;s own maths: <b>odds = pool × (1 − {pct(gc.TOTE_TAKEOUT_PERMILLE)}) ÷ the stakes on that runner</b>, as decimal odds (what 1 returns, stake
-        included). For Place it is divided again by the number of paying places (or by the number of runners backed, when fewer are): exact when the other placed runners are backed, higher when one of them isn&rsquo;t. The share bar shows how much of the pool is on
-        each runner. The odds change with every bet until the off, so the return shown on your bet slip is labelled as an estimate; the final odds freeze at the off and show under the broadcast
-        while the race runs.
+        included), never below 1.00. A Place return depends on which other runners place, so the panel shows it as a range: the least if the most-backed other runners place too, the most if
+        no other backed runner does. The panel also shows each pool&rsquo;s total and how many players are in it. The share bar shows how much of the pool is on each runner. Every odds
+        figure is an estimate that changes with every bet until the off; the final odds freeze at the off and show under the broadcast while the race runs.
       </P>
       <Callout tone="rule" title="Pure pool betting">
         <p>
@@ -124,6 +124,14 @@ export default function TotePage() {
         there for completeness.
       </P>
 
+      <H2 id="declared">Declared dividends stand</H2>
+      <P>
+        Once a race&rsquo;s dividends are declared (the tote settles only when the result is public), they stand. If a mistake is ever found afterwards, it is put right in the
+        player&rsquo;s favour only: anyone who was paid too little is made good by the house from the take it kept; anyone paid too much keeps it, and the house absorbs it. A payout is
+        never clawed back. (For a real-money pool, the role a racecourse&rsquo;s &ldquo;weighed in&rdquo; plays is taken by its challenge window: the result can be corrected or the pool
+        voided before it is paid, never after.)
+      </P>
+
       <H2 id="refunds">Refunds</H2>
       <List
         items={[
@@ -143,6 +151,8 @@ export default function TotePage() {
       <List
         items={[
           <>You can&rsquo;t bet on a race in which your stable has a runner, or a stable you lease a horse to or from, or an account linked to yours (the same detection as the <WikiLink slug="the-market">auction house</WikiLink>).</>,
+          <>Linked accounts count as one player for the smallest-pool rule, and linked accounts backing different runners in the same pool are flagged for review (it would be a way to move currency between accounts).</>,
+          <>Staff accounts can&rsquo;t bet.</>,
           <>If such a horse is entered after you bet, your bets on that race are voided and refunded.</>,
           <>Bets are accepted only before the off, checked against the server&rsquo;s clock under a lock on the race, so nothing can be bet once the race has started. Each race&rsquo;s result is sealed before it runs (see <WikiLink slug="how-races-are-run">how races are run</WikiLink>).</>,
           <>After settlement every race shows a tote audit: each pool&rsquo;s total, the take actually taken (and whether it was cut so winners got their stakes back), the number of winning tickets, the dividend per 1 unit with its formula, and the check that payouts + take + rounding = the pool.</>,
@@ -158,9 +168,21 @@ export default function TotePage() {
 
       <H2 id="limits">Limits, breaks and 18+</H2>
       <P>
-        Betting is for players aged 18 or over: the first time, the panel asks you to confirm it. On <GameLink href="/me/betting">Betting limits</GameLink> you can set your own lower limits per
-        race and per day (lowering one is immediate, raising or removing one takes 24 hours) and take a break from betting for 24 hours, 7 days, 30 days or for good. A break can&rsquo;t be
-        shortened or lifted early. Racing, breeding and everything else carry on as normal. <GameLink href="/me/bets">My bets</GameLink> lists every bet with your running profit or loss.
+        Betting is for players aged 18 or over: the first time, the panel asks you to confirm it and offers to set a daily limit (you can skip that). On{" "}
+        <GameLink href="/me/betting">Betting limits</GameLink> you can set your own lower limits per race and per day. Lowering one is immediate; raising or removing one takes 24 hours and
+        then only applies once you come back and confirm it.
+      </P>
+      <List
+        items={[
+          <>A <b>time-out</b> of 24 hours, 7 days or 30 days ends by itself.</>,
+          <>A <b>self-exclusion</b> of 6 months, 1 year or 5 years lasts at least that long, and then carries on until you ask to end it; betting reopens a day after you ask.</>,
+          <>Or close betting on your account for good.</>,
+          <>None of them can be shortened or lifted early. Racing, breeding and everything else carry on as normal.</>,
+          <>A <b>reality check</b> comes up after every hour of betting (a session ends after 30 minutes without a bet): how long you&rsquo;ve been betting and your net result for the session. You see it before your next bet, and can carry on or take a break.</>,
+        ]}
+      />
+      <P>
+        <GameLink href="/me/bets">My bets</GameLink> lists every bet with your running profit or loss.
       </P>
       <Callout tone="warn" title="Keep it fun">
         <p>Most bets lose: the take means that, on average, the tote returns less than goes in. Bet small, set a limit, and take a break if it stops being fun.</p>

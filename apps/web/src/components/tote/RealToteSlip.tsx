@@ -157,7 +157,7 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
           </div>
           {view?.thin && (
             <p className="caption" data-testid="real-tote-small-pool">
-              Small pool: refunded if fewer than {gc.TOTE_MIN_POOL_BETTORS} players bet (on at least {gc.TOTE_MIN_POOL_RUNNERS} runners).
+              Small pool: refunded unless at least {gc.TOTE_MIN_POOL_BETTORS} players bet on {gc.TOTE_MIN_POOL_RUNNERS} different horses.
             </p>
           )}
           <ul className="grid gap-1" role="radiogroup" aria-label="Pick a runner">
@@ -169,7 +169,9 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
                     <span>
                       <input type="radio" name="real-tote-runner" checked={horseId === r.horseId} onChange={() => setHorseId(r.horseId)} /> {r.gate ?? "–"}. {r.name}
                     </span>
-                    <span className="num">{gc.formatToteOdds(o?.oddsMilli ?? null)}</span>
+                    <span className="num" title="An estimate from the pool now: final when betting closes">
+                      {o?.oddsRangeMilli ? `${gc.formatToteOdds(o.oddsRangeMilli[0])}–${gc.formatToteOdds(o.oddsRangeMilli[1])}` : gc.formatToteOdds(o?.oddsMilli ?? null)} est.
+                    </span>
                   </label>
                 </li>
               );

@@ -783,15 +783,17 @@ T-USDG in millionths, like USDG).
 
 | Knob | Value | Where | What it does | Moves which outcomes |
 |---|---|---|---|---|
-| `TOTE_TAKEOUT_PERMILLE` | 150 (15 %) | packages/game-core/src/tote.ts:44 | House take off every pool (rounded down), plus rounding remainders, to the `tote_house` ledger account (one per currency; no player path spends it). Credits: a sink. Kinds `tote_stake` (player → escrow), `tote_settlement` (escrow → winners + `tote_house`), `tote_refund` (escrow → player). | Credit sink, bettors' returns |
-| `TOTE_RACE_KINDS` | scheduled, feature, final | packages/game-core/src/tote.ts:34 | Races with a tote (the Live card). Never Story, quick, the Daily Cup or what-if. | Where betting happens |
-| `TOTE_PLACE_MIN_FIELD` / `TOTE_PLACE_THREE_FROM` (`totePlaces`) | 5 / 8: first 3 from 8 runners, first 2 from 5-7, no place pool under 5 | packages/game-core/src/tote.ts:62, :64, :82 | Place terms; set by the runners at the off (a void place pool refunds in full). | Place dividends |
-| `TOTE_MIN_STAKE` | 10 credits; 0.5 T-USDG | packages/game-core/src/tote.ts:47 | Smallest bet. | Bet count |
-| `TOTE_MAX_STAKE_PER_RACE` + `TOTE_MAX_STAKE_BALANCE_PERMILLE` | 1,000 credits or 10 % of (balance + already staked on the race), whichever is lower; 10 T-USDG | packages/game-core/src/tote.ts:53, :56 | Most one account stakes on one race (all pools). | Sink volume, loss per race |
-| `TOTE_MAX_STAKE_PER_DAY` | 5,000 credits; 50 T-USDG | packages/game-core/src/tote.ts:59 | Most one account stakes per UTC day. | Sink volume, loss per day |
-| `TOTE_LIMIT_RAISE_DELAY_MS` | 24 h | packages/game-core/src/tote.ts:76 | A player's own lower limit applies at once; raising or removing it waits this long. | Responsible play |
-| `TOTE_SELF_EXCLUSION_MS` | 24 h, 7 d, 30 d, permanent | packages/game-core/src/tote.ts:67 | Self-exclusion lengths; can be lengthened, never shortened or lifted early. | Responsible play |
-| `TOTE_ODDS_POLL_MS` | 5 s | packages/game-core/src/tote.ts:79 | Tote panel refresh before the off (the board is CDN-cached 2 s, `boardCache` in apps/web/src/server/tote.ts). | Server load, odds freshness |
+| `TOTE_TAKEOUT_PERMILLE` | 150 (15 %), at most | packages/game-core/src/tote.ts:52 | House take off every pool (rounded down), cut (down to zero) when it would leave a winner less than the stake ("winners never lose": winning stakes come back first, the profit is split by place), plus rounding remainders, to the `tote_house` ledger account (one per currency; no player path spends it). Credits: a sink. Kinds `tote_stake` (player → escrow), `tote_settlement` (escrow → winners + `tote_house`), `tote_refund` (escrow → player). | Credit sink, bettors' returns |
+| `TOTE_RACE_KINDS` | scheduled, feature, final | packages/game-core/src/tote.ts:42 | Races with a tote (the Live card). Never Story, quick, the Daily Cup or what-if. | Where betting happens |
+| `TOTE_PLACE_MIN_FIELD` / `TOTE_PLACE_THREE_FROM` (`totePlaces`) | 5 / 8: first 3 from 8 runners, first 2 from 5-7, no place pool under 5 | packages/game-core/src/tote.ts:75, :77, :141 | Place terms; set by the runners at the off (a void place pool refunds in full). | Place dividends |
+| `TOTE_MIN_STAKE` | 10 credits; 0.5 T-USDG | packages/game-core/src/tote.ts:55 | Smallest bet. | Bet count |
+| `TOTE_MAX_STAKE_PER_RACE` + `TOTE_MAX_STAKE_BALANCE_PERMILLE` | 1,000 credits or 10 % of (balance + already staked on the race), whichever is lower; 10 T-USDG | packages/game-core/src/tote.ts:61, :64 | Most one account stakes on one race (all pools). | Sink volume, loss per race |
+| `TOTE_MAX_STAKE_PER_DAY` | 5,000 credits; 50 T-USDG | packages/game-core/src/tote.ts:67 | Most one account stakes per UTC day. | Sink volume, loss per day |
+| `TOTE_LIMIT_RAISE_DELAY_MS` | 24 h | packages/game-core/src/tote.ts:108 | A player's own lower limit applies at once; raising or removing it waits this long and then applies only when the player confirms it. | Responsible play |
+| `TOTE_SELF_EXCLUSION_MS` | time-outs 24 h, 7 d, 30 d; self-exclusions 6 months, 1 year, 5 years; permanent | packages/game-core/src/tote.ts:85 | Time-outs end by themselves; self-exclusions last at least their length, then until the player asks to end them, plus `TOTE_SELF_EXCLUSION_COOLING_OFF_MS` (1 day, :105). None can be shortened or lifted early. | Responsible play |
+| `TOTE_REALITY_CHECK_MS` / `TOTE_SESSION_GAP_MS` | 60 min / 30 min | packages/game-core/src/tote.ts:111 | A reality check (session time and net result) every 60 minutes of betting, acknowledged before the next bet; a 30-minute gap ends a session. | Responsible play |
+| `TOTE_MIN_POOL_BETTORS` / `TOTE_MIN_POOL_RUNNERS` | 2 / 2 | packages/game-core/src/tote.ts:70 | Minimum pool: 2 distinct bettors (linked accounts count as one) backing 2 distinct runners that ran, or the pool is void and refunded with no take. | Thin-pool refunds, the sink on small races |
+| `TOTE_ODDS_POLL_MS` | 5 s | packages/game-core/src/tote.ts:138 | Tote panel refresh before the off (the board is CDN-cached 2 s, `boardCache` in apps/web/src/server/tote.ts). | Server load, odds freshness |
 | `toteUsdgEnabled()` | on only when `USDG_MODE=practice` | packages/db/src/services/tote.ts (`toteUsdgEnabled`), game-core `toteUsdgEnabledFrom` | The one switch for T-USDG pools; live/mock/off/unset refuse every T-USDG bet. T-USDG lives in a placeholder practice ledger (ledger accounts in currency `TUSDG`) until the practice-USDG mode wires its own (`setPracticeUsdgLedger`). | T-USDG betting on/off |
 | Bet rate limit | 30 bets per account per minute | apps/web/src/server/tote.ts (`betLimiter`) | Abuse guard on POST /api/races/:id/tote/bet. | Abuse surface |
 | Harness punters | every 4th casual and every 4th grinder (a quarter of them); 60 % chance per visit to back up to 2 races of the next meeting; 10-50 credits a bet; Win 3 in 4 | tools/season-harness/src/agents.ts (`PUNTER_EVERY`, `PUNTER_BET_PERMILLE`, `PUNTER_RACES_PER_VISIT`) | Simulated betting, so the harness reports tote volume and the sink. | Harness only |
@@ -802,7 +804,11 @@ result to be public (news.ts `raceResultPublicAt`). No bets on a race where the 
 a lease partner or a linked account has a runner (linked: fraud event `tote_linked_bet_blocked`);
 entering such a runner later voids and refunds the bets (`tote_linked_bet_voided` when linked).
 A conservative ride while linked accounts bet against the horse raises
-`tote_conservative_ride_linked_bettor` (a flag, no action).
+`tote_conservative_ride_linked_bettor` (a flag, no action). Linked accounts backing different
+runners of the same pool raise `tote_linked_opposing_bets` (and count as one bettor). Staff
+(an admin session, `TOTE_STAFF_ACCOUNT_IDS`, system accounts) can't bet. Declared dividends
+stand: an error found later is made good to underpaid players from `tote_house`, never clawed
+back from overpaid ones.
 
 ---
 

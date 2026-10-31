@@ -113,11 +113,13 @@ function OddsRow({
           {(share / 10).toFixed(1)}% · {amountShort(currency, odds?.stake ?? 0)} · {runner.isHouse ? "The Club" : (runner.stableName ?? "")}
         </span>
       </span>
-      <span className="w-14 shrink-0 text-right">
+      <span className="min-w-14 shrink-0 text-right">
         <span className="num block text-[1.125rem] leading-6 text-cream" data-testid="tote-odds">
-          {gc.formatToteOdds(odds?.oddsMilli ?? null)}
+          {odds?.oddsRangeMilli ? `${gc.formatToteOdds(odds.oddsRangeMilli[0])}–${gc.formatToteOdds(odds.oddsRangeMilli[1])}` : gc.formatToteOdds(odds?.oddsMilli ?? null)}
         </span>
-        <span className="caption block">odds</span>
+        <span className="caption block" title="An estimate from the pool now: final at the off">
+          est. odds
+        </span>
       </span>
     </>
   );
@@ -264,6 +266,7 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<string | null>(null);
   const [adultTick, setAdultTick] = useState(false);
+  const [dayLimit, setDayLimit] = useState("");
 
   const view = board?.pools.find((p) => p.currency === currency) ?? board?.pools[0];
   const poolView = view ? (pool === "place" ? view.place : view.win) : null;
@@ -307,12 +310,32 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
     }
   }
 
+  async function settings(body: unknown) {
+    const res = await fetch("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error("Couldn't save that. Try again.");
+  }
+
+  async function acknowledgeReality() {
+    setBusy(true);
+    setError(null);
+    try {
+      await settings({ action: "reality_ack" });
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirmAdult() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "confirm_adult" }) });
-      if (!res.ok) throw new Error("Couldn't save that. Try again.");
+      await settings({ action: "confirm_adult" });
+      // The optional limit asked for with the 18+ prompt (a new limit applies at once).
+      const limit = dayLimit.trim() ? parseStake("CR", dayLimit) : null;
+      if (limit !== null) await settings({ action: "limits", currency: "CR", perRace: null, perDay: limit });
       await reload();
     } catch (e) {
       setError((e as Error).message);
@@ -377,14 +400,19 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
         <>
           <p className="t-meta" data-testid="tote-pool-total">
             {pool === "win" ? "Win" : "Place"} pool {gc.formatToteAmount(currency, poolView.total)}
-            {poolView.total > 0 ? ` · ${gc.formatToteAmount(currency, poolView.net)} to share after the take` : " · no bets yet"}
+            {poolView.bettors !== null ? ` · ${poolView.bettors} ${poolView.bettors === 1 ? "player" : "players"}` : ""}
+            {poolView.total > 0 ? ` · up to ${gc.formatToteAmount(currency, poolView.net)} to share after the take` : " · no bets yet"}
             {!board.fieldLocked && board.runners.length > 0 ? " · Club runners join when entries close" : ""}
           </p>
-          {open && poolView.thin && (
-            <p className="caption" data-testid="tote-small-pool">
-              Small pool: refunded if fewer than {gc.TOTE_MIN_POOL_BETTORS} players bet (on at least {gc.TOTE_MIN_POOL_RUNNERS} runners).
+          {(open || closed) && poolView.thin && (
+            <p className="text-sm font-bold text-cream-dim" data-testid="tote-small-pool">
+              Small pool: refunded unless at least {gc.TOTE_MIN_POOL_BETTORS} players bet on {gc.TOTE_MIN_POOL_RUNNERS} different horses.
             </p>
           )}
+          <p className="caption" data-testid="tote-odds-estimate">
+            Every odds figure is an estimate from the pool now: final at the off.
+            {pool === "place" ? " A place return depends on which other runners place, so it shows as a range: least if the most-backed others place too, most if no other backed runner does." : ""}
+          </p>
           {board.runners.length === 0 ? (
             <p className="text-sm text-cream-dim">No runners yet: the field fills as stables enter.</p>
           ) : (
@@ -412,12 +440,45 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={adultTick} onChange={(e) => setAdultTick(e.target.checked)} data-testid="tote-age-tick" /> I confirm I am 18 or over
           </label>
-          <button type="button" className="btn btn-sm w-fit" disabled={!adultTick || busy} onClick={confirmAdult} data-testid="tote-age-confirm">
-            Confirm
+          <label className="grid gap-1">
+            <span>Set a daily limit for yourself (credits, optional: you can skip this and set one later)</span>
+            <input
+              className="field w-36"
+              inputMode="numeric"
+              placeholder="e.g. 200"
+              value={dayLimit}
+              onChange={(e) => setDayLimit(e.target.value)}
+              data-testid="tote-age-limit"
+            />
+          </label>
+          <button type="button" className="btn btn-sm w-fit" disabled={!adultTick || busy || (dayLimit.trim() !== "" && parseStake("CR", dayLimit) === null)} onClick={confirmAdult} data-testid="tote-age-confirm">
+            {dayLimit.trim() ? "Confirm and set the limit" : "Confirm"}
           </button>
         </div>
       )}
-      {open && mine && !mine.canBet.ok && mine.canBet.reason !== "age" && (
+      {open && mine && !mine.canBet.ok && mine.canBet.reason === "reality_check" && mine.realityCheck && (
+        <div className="inset grid gap-2 p-3 text-sm" role="alertdialog" aria-labelledby="tote-reality-h" data-testid="tote-reality-check">
+          <p id="tote-reality-h" className="font-bold">
+            Reality check: you&rsquo;ve been betting for {Math.floor(mine.realityCheck.minutes / 60)} h {mine.realityCheck.minutes % 60} min.
+          </p>
+          <p>
+            Net result this session:{" "}
+            {Object.keys(mine.realityCheck.net).length
+              ? (Object.entries(mine.realityCheck.net) as [Currency, number][]).map(([c, n]) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${gc.formatToteAmount(c, Math.abs(n))}`).join(" · ")
+              : "nothing settled yet"}{" "}
+            (bets still running count as staked).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-sm" disabled={busy} onClick={acknowledgeReality} data-testid="tote-reality-continue">
+              Keep betting
+            </button>
+            <Link href="/me/betting" className="btn-ghost btn-sm">
+              Take a break
+            </Link>
+          </div>
+        </div>
+      )}
+      {open && mine && !mine.canBet.ok && mine.canBet.reason !== "age" && mine.canBet.reason !== "reality_check" && (
         <p className="text-sm font-bold text-cream-dim" data-testid="tote-cant-bet">
           {mine.canBet.message}
         </p>
