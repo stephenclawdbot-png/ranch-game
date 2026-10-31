@@ -29,7 +29,7 @@ import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
 import { POST_CANTER, preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
-import { TRACK_POST, TRACK_PRE, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
+import { TRACK_POST, TRACK_PRE, groundSpan, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
 import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "../trackside/strips";
 import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
@@ -491,8 +491,9 @@ export class HD2DScene {
   private buildGround(art: ArtSet, surface: RaceReplay["race"]["surface"]): void {
     const T = this.T;
     const L = this.L;
-    const len = L + TRACK_PRE + TRACK_POST;
-    const cx = (L - TRACK_PRE + L + TRACK_POST) / 2;
+    // Centred on the built strip (an off-centre span once left long races with no ground behind
+    // the far rail for their first few hundred metres: the sky's last row showed through).
+    const { cx, len } = groundSpan(L);
     const sc = this.stage.scenery;
     // Outfield and the field beyond the far rail in the course's colours (stage), the inner
     // field in front of the track plain grass.

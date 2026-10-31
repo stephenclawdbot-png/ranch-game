@@ -10,6 +10,14 @@ import type { PlateGrid } from "../stage/plates";
 export const TRACK_PRE = 180;
 export const TRACK_POST = 340;
 
+/** The built strip along x and the ground fields' span around it (margin m past each end):
+ *  the far-rail field and the infield must cover every x the cameras can look at. */
+export function groundSpan(L: number, margin = 800): { cx: number; len: number; x0: number; x1: number } {
+  const len = L + TRACK_PRE + TRACK_POST;
+  const cx = (-TRACK_PRE + L + TRACK_POST) / 2;
+  return { cx, len, x0: cx - len / 2 - margin, x1: cx + len / 2 + margin };
+}
+
 export interface Hd2dProp {
   kind: "pole" | "board" | "post" | "judge";
   label: string;
