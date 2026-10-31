@@ -42,6 +42,7 @@ import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
 import { buildRaceStage, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
+import { preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { tracksideInventory, tracksidePlan, type TracksidePlan } from "./stagePlan";
 
@@ -55,6 +56,8 @@ export interface TracksideOptions {
   stage?: RaceStage;
   /** Horses injured in the race (pulled up after the line). Default: the replay's injury events. */
   injured?: ReadonlySet<string>;
+  /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
+  preOff?: PreOffPlan | null;
 }
 
 /** Art the stage needs beyond the strips (loaded once in `create`). */
@@ -207,6 +210,8 @@ export class TracksideScene {
   private animTime = 0;
   private realTime = 0;
   private firstFrame = true;
+  /** Build-up shot last frame (0 none, 1 to post, 2 the stalls): a change is a cut. */
+  private preCut = 0;
   private winnerTime = Number.POSITIVE_INFINITY;
   private prevCx = Number.NaN;
   private camSpeed = 0;
@@ -267,7 +272,7 @@ export class TracksideScene {
     this.course = opts.course ?? null;
     this.stage = opts.stage ?? buildRaceStage(this.course, data);
     this.plan = tracksidePlan(this.stage);
-    this.motion = new FieldMotion(data, { injured: opts.injured ?? injuredFromEvents(data.events) });
+    this.motion = new FieldMotion(data, { injured: opts.injured ?? injuredFromEvents(data.events), preOff: opts.preOff ?? null });
     this.L = this.stage.L;
     this.railLane = this.stage.lanes.count + 0.8;
     this.highlight = data.horses.findIndex((h) => h.horseId === opts.highlightHorseId);
@@ -781,6 +786,11 @@ export class TracksideScene {
     this.winnerTime = res ? res.winningTimeUs / 1e6 : Number.POSITIVE_INFINITY;
   }
 
+  /** The build-up before the off on (a plan) or off (null: standing in the stalls). */
+  setPreOff(plan: PreOffPlan | null): void {
+    this.motion.setPreOff(plan);
+  }
+
   /** The race is over: switch to the official replay (same horses, same scene). */
   setFinal(final: RaceReplay): void {
     this.data = final;
@@ -800,7 +810,14 @@ export class TracksideScene {
       for (const p of this.fx) p.age = -1;
     }
     if (f.frozen) simDt = 0;
-    const snap = this.firstFrame || seek || Number.isNaN(this.lastTime);
+    // The build-up before the off: going down to post and the stalls are two places on the
+    // course; the camera cuts between them (the 3D view cuts at the same moment).
+    const pre = this.motion.preOffAt(raceT);
+    const preKind = pre ? preOffStep(raceT).kind : null;
+    const preCut = !pre ? 0 : preKind === "parade" || preKind === "post" ? 1 : 2;
+    const cut = preCut !== 0 && this.preCut !== 0 && preCut !== this.preCut;
+    this.preCut = preCut;
+    const snap = this.firstFrame || seek || cut || Number.isNaN(this.lastTime);
     this.lastTime = raceT;
     this.animTime += simDt;
     const realDt = Math.min(0.1, Math.max(0, f.realDt));
@@ -810,7 +827,7 @@ export class TracksideScene {
     // --- Runners: the shared motion (replay x up to the line, the run-out after it) ----
     this.states = this.motion.stateAt(raceT, this.states);
     this.samples = this.motion.samples;
-    const haveFrames = this.data.frames.length > 0;
+    const haveFrames = this.data.frames.length > 0 || pre;
     for (const r of this.runners) {
       const st = this.states[r.index]!;
       r.st = st;
@@ -829,12 +846,12 @@ export class TracksideScene {
     // switch keeps its shot); on "pull-up follow" the camera goes with the horse being
     // celebrated (the 3D view frames the same horse); "Follow mine" always wins.
     const winner = this.motion.winner();
-    if (f.director) this.direct(f.director, raceT, seek || snap, winner);
+    if (f.director) this.direct(f.director, raceT, seek || snap, winner, preCut);
     const intent = f.director ? f.director.intent : null;
     const followWinner = intent?.kind === "pullup" && winner >= 0 && tS > this.winnerTime + 2;
     // The finish replay: the side camera goes with its subject (the 3D view frames the same).
     const replayIdx = intent?.kind === "replay" ? this.data.horses.findIndex((h) => h.horseId === intent.subject) : -1;
-    const followIdx = replayIdx >= 0 ? replayIdx : f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
+    const followIdx = pre ? -1 : replayIdx >= 0 ? replayIdx : f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
     const followOn = followIdx >= 0;
     // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
     // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the
@@ -901,7 +918,7 @@ export class TracksideScene {
   private dirEvents: { type: string; horseId?: string }[] = [];
 
   /** Feed the shared director the same inputs the 3D view gives it. */
-  private direct(d: Director, raceT: number, jumped: boolean, winner: number) {
+  private direct(d: Director, raceT: number, jumped: boolean, winner: number, preCut = 0) {
     const evs = this.data.events;
     const tS = Math.max(0, raceT);
     if (jumped) {
@@ -921,6 +938,7 @@ export class TracksideScene {
     inp.newEvents = ne;
     inp.highlightId = this.highlight >= 0 ? this.data.horses[this.highlight]!.horseId : null;
     inp.winnerId = winner >= 0 ? this.data.horses[winner]!.horseId : null;
+    inp.preOff = preCut === 1 ? "post" : preCut === 2 ? "loading" : null;
     d.compact = this.W < 640;
     d.update(inp);
   }

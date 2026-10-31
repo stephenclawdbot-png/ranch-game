@@ -7,9 +7,11 @@
  * The viewer never decides anything: positions come from replay frames, the
  * winner and finishing order from replay.result.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import type { LiveRaceFeed, RaceReplay } from "@thoroughbred/shared";
-import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
+import { LiveClock, PlaybackClock, PRE_ROLL_SEC, timeLeaderReaches } from "./playback";
+import { PRE_OFF_SEC, loadingAt, preOffPlan, preOffStep } from "./stage/preoff";
+import { PreOffOverlay, type PreOffHud } from "./hud/PreOff";
 import { Director } from "./director";
 import { buildRaceStage } from "./stage/buildRaceStage";
 import { injuredFromEvents } from "./stage/motion";
@@ -37,6 +39,23 @@ import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideSce
 type AnyScene = HD2DSceneT | TracksideSceneT;
 const VIEW_KEY = "rv:view";
 const FOLLOW_KEY = "rv:follow";
+/** "skip": this viewer skips the build-up before the off (remembered per browser). */
+const PREOFF_KEY = "rv:preoff";
+
+/** Does this viewer skip the build-up (their remembered choice, or reduced motion)? */
+function preOffSkipped(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
+  } catch {
+    /* no matchMedia */
+  }
+  try {
+    return window.localStorage.getItem(PREOFF_KEY) === "skip";
+  } catch {
+    return false;
+  }
+}
 
 export interface RaceViewerProps {
   /** A finished race (full controls). Provide exactly one of `replay` or `feed`. */
@@ -124,6 +143,15 @@ export interface RaceViewerProps {
   finale?: boolean;
   /** The finale started ("running") or ended / was skipped ("done"). */
   onFinale?: (state: "running" | "done") => void;
+  /**
+   * The build-up before the off (stage/preoff.ts): the paddock, going down to post, loading the
+   * stalls one by one, then the off; ~24 s, from the locked field and the clock only. Default: on
+   * for a live broadcast (it fits the time before the off; a late arrival joins where the clock
+   * is), off for a replay. Skippable with one tap (remembered per viewer); reduced motion skips it.
+   */
+  preOff?: boolean;
+  /** The paddock scene shown during the parade (the host's own); default: a runner list. */
+  paddock?: ReactNode;
 }
 
 /** The finale's step as the overlay renders it. */
@@ -192,6 +220,8 @@ interface HudState {
   battle: Battle | null;
   /** Inside the final furlong: the HUD clears down to essentials. */
   ff: boolean;
+  /** The build-up before the off, while it plays. */
+  pre: PreOffHud | null;
 }
 
 const NARROW_PX = 560;
@@ -276,7 +306,9 @@ export function RaceViewer(props: RaceViewerProps) {
     renderPortrait,
     finale: finaleOn = true,
     onFinale,
+    paddock,
   } = props;
+  const preOffWanted = props.preOff ?? !!feed;
   // Resolved on the client only (URL / localStorage), so SSR and hydration agree.
   const [view, setViewState] = useState<ViewMode | null>(props.view ?? null);
   useEffect(() => {
@@ -356,6 +388,36 @@ export function RaceViewer(props: RaceViewerProps) {
   const raceStage = useMemo(() => buildRaceStage(course, stageData), [course, stageData]);
   const injuredKey = injuredHorseIds?.join(",") ?? "";
   const injured = useMemo(() => (injuredHorseIds ? new Set(injuredHorseIds) : injuredFromEvents(stageData.events)), [injuredKey, stageData]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The build-up before the off: from the locked field (stalls) and the clock alone.
+  const preOffPlanned = useMemo(() => preOffPlan(stageData.horses, stageData.trackLengthMm / 1000, stageData.laneCount), [stageData]);
+  const [preSkip, setPreSkip] = useState(false);
+  useEffect(() => setPreSkip(preOffSkipped()), []);
+  const preOffOn = preOffWanted && !preSkip;
+  const preOffRef = useRef(preOffOn ? preOffPlanned : null);
+  preOffRef.current = preOffOn ? preOffPlanned : null;
+  useEffect(() => {
+    const sc = sceneRef.current;
+    if (sc) sc.setPreOff(preOffOn ? preOffPlanned : null);
+  }, [preOffOn, preOffPlanned, ready]);
+  const skipPreOff = useCallback(() => {
+    setPreSkip(true);
+    try {
+      window.localStorage.setItem(PREOFF_KEY, "skip");
+    } catch {
+      /* storage blocked: skipped for this page only */
+    }
+    // A replay jumps to the stalls; a live broadcast waits for the real off at the stalls.
+    const c = clockRef.current;
+    if (c instanceof PlaybackClock && c.time < -PRE_ROLL_SEC) c.time = -PRE_ROLL_SEC;
+  }, []);
+  const watchPreOff = useCallback(() => {
+    setPreSkip(false);
+    try {
+      window.localStorage.removeItem(PREOFF_KEY);
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
   const directorRef = useRef<Director>(new Director());
   useEffect(() => {
     directorRef.current = new Director();
@@ -437,7 +499,9 @@ export function RaceViewer(props: RaceViewerProps) {
     setReplayBadge(false);
     if (initialFinal) {
       const start = feed ? feed.broadcastStartMs : startAtMs;
-      clockRef.current = new PlaybackClock(initialFinal, { startAtMs: start, autoplay, initialTimeSec });
+      // A replay with the build-up opens at its start (a viewer who skips it gets the stalls).
+      const preStart = props.preOff && start === undefined && initialTimeSec === undefined && autoplay && !preOffSkipped() ? -PRE_OFF_SEC : undefined;
+      clockRef.current = new PlaybackClock(initialFinal, { startAtMs: start, autoplay, initialTimeSec: initialTimeSec ?? preStart });
     } else if (feed) {
       clockRef.current = new LiveClock(liveClockSource(feed), autoplay);
     }
@@ -448,7 +512,7 @@ export function RaceViewer(props: RaceViewerProps) {
     setFinaleState(finaleRef.current.state);
     finishedFired.current = false;
     setDismissed(false);
-  }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]);
+  }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const publish = useCallback(() => {
     const clock = clockRef.current;
@@ -483,7 +547,15 @@ export function RaceViewer(props: RaceViewerProps) {
     for (const s of samples) leadM = Math.max(leadM, s.x / 1000);
     const marker = samples.length && t >= 0 ? distanceMarker(markers, leadM, src.trackLengthMm / 1000) : null;
     const finaleOnNow = finaleRef.current.running;
+    const plan = preOffRef.current;
+    let pre: PreOffHud | null = null;
+    if (plan && t < 0) {
+      const st = preOffStep(t);
+      const ld = loadingAt(plan, t);
+      pre = { kind: st.kind, toOff: -t, loaded: ld.loaded, total: ld.total, walking: st.kind === "loading" ? ld.walking : -1 };
+    }
     setHud({
+      pre,
       call,
       marker,
       battle: finaleOnNow ? null : battleAt(samples, src.trackLengthMm),
@@ -545,7 +617,7 @@ export function RaceViewer(props: RaceViewerProps) {
       if (view === "trackside") {
         try {
           const { TracksideScene } = await import("./trackside/TracksideScene");
-          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured });
+          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured, preOff: preOffRef.current });
           artNote = "trackside";
         } catch (err) {
           console.warn("[RaceViewer] Trackside view unavailable, using the classic view", err);
@@ -574,7 +646,7 @@ export function RaceViewer(props: RaceViewerProps) {
           return;
         }
         try {
-          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, stage: raceStage, stageArt, strips, fxPalette: fx, injured });
+          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, stage: raceStage, stageArt, strips, fxPalette: fx, injured, preOff: preOffRef.current });
         } catch (err) {
           rigs.factory.dispose();
           throw err;
@@ -601,6 +673,16 @@ export function RaceViewer(props: RaceViewerProps) {
         };
       }
       if (hook) (window as unknown as { __rvScene?: unknown }).__rvScene = sc;
+      if (hook) {
+        // Dev hook: put the playhead anywhere, the build-up before the off included (contact sheets).
+        (window as unknown as { __rvClock?: unknown }).__rvClock = {
+          time: () => clockRef.current?.time ?? 0,
+          seek: (t: number) => {
+            const c = clockRef.current;
+            if (c) c.time = t;
+          },
+        };
+      }
       if (hook) {
         // Dev hook: step through the finale (contact sheets). goto(i, s, pause) shows step i, s seconds in.
         (window as unknown as { __rvFinale?: unknown }).__rvFinale = {
@@ -765,6 +847,7 @@ export function RaceViewer(props: RaceViewerProps) {
         if (hook) delete (window as unknown as { __rvTrackside?: unknown }).__rvTrackside;
         if (hook) delete (window as unknown as { __rvFinale?: unknown }).__rvFinale;
         if (hook) delete (window as unknown as { __rvScene?: unknown }).__rvScene;
+        if (hook) delete (window as unknown as { __rvClock?: unknown }).__rvClock;
       };
     })().catch((err) => {
       console.error("[RaceViewer] failed to start renderer", err);
@@ -848,6 +931,9 @@ export function RaceViewer(props: RaceViewerProps) {
     if (e.key === "Escape" && finaleRef.current.running) {
       e.preventDefault();
       onFinaleSkipAll();
+    } else if (e.key === "Escape" && hud?.pre) {
+      e.preventDefault();
+      skipPreOff();
     } else if (e.key === " " || e.key === "k") {
       e.preventDefault();
       onToggle();
@@ -868,7 +954,8 @@ export function RaceViewer(props: RaceViewerProps) {
   // eased down when there was none to play).
   const finaleRunning = finaleState === "running" && !!finaleView && !!final && !!plan;
   const showResults = resultsCard && !!h && !!final && h.mode === "replay" && !dismissed && !h.frozen && !finaleRunning && (finaleState === "done" || h.settled);
-  const quiet = finaleRunning || showResults;
+  const preHud = h?.pre ?? null;
+  const quiet = finaleRunning || showResults || !!preHud;
   const isLive = h?.mode === "live";
   const pip = pipRect(width, stageRef.current?.clientHeight ?? 0);
   const furlongs = useMemo(() => {
@@ -891,7 +978,7 @@ export function RaceViewer(props: RaceViewerProps) {
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
         {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
-        {h && !finaleRunning && (
+        {h && !finaleRunning && !preHud && (
           <TopHud
             race={info.race}
             showTitle={hudTitle}
@@ -911,7 +998,15 @@ export function RaceViewer(props: RaceViewerProps) {
             <CallTicker key={`${h.call.atSec}-${h.call.kind}`} line={h.call} mine={hasHighlight && h.call.horseIds.includes(highlightHorseId!)} />
           </div>
         )}
-        {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
+        {h && h.time < 0 && !preHud && <Countdown seconds={-h.time} live={h.live} />}
+        {preHud && (
+          <PreOffOverlay pre={preHud} horses={info.horses} raceName={info.race.name} paddock={paddock} highlightHorseId={hasHighlight ? highlightHorseId : undefined} onSkip={skipPreOff} />
+        )}
+        {h && !preHud && preOffWanted && preSkip && h.time < -3 && (
+          <button type="button" className="rv-btn rv-pre-on" onClick={watchPreOff}>
+            Watch the build-up
+          </button>
+        )}
         {h?.frozen && <PhotoStamp />}
         {h && !quiet && !h.ff && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
         {h?.battle && !quiet && <BattleGraphic battle={h.battle} horses={info.horses} highlightHorseId={hasHighlight ? highlightHorseId : undefined} />}

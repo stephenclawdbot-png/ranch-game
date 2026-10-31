@@ -27,6 +27,7 @@ import { PixelRain } from "./vfx";
 import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
 import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
+import { POST_CANTER, preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { TRACK_POST, TRACK_PRE, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
@@ -81,6 +82,8 @@ export interface HD2DSceneOptions {
   fxPalette?: FxPalette | null;
   /** Horses injured in the race (pulled up after the line). */
   injured?: ReadonlySet<string>;
+  /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
+  preOff?: PreOffPlan | null;
 }
 
 /**
@@ -243,6 +246,8 @@ export class HD2DScene {
   /** Sky drift (art px), real time. */
   private skyDrift = 0;
   private firstFrame = true;
+  /** Build-up shot last frame (0 none, 1 to post, 2 the stalls): a change is a cut. */
+  private preCut = 0;
   private quality: RenderQuality;
   private pixelated: boolean;
   private highlight: number;
@@ -277,7 +282,7 @@ export class HD2DScene {
     this.stageArt = opts.stageArt ?? new Map();
     this.strips = opts.strips ?? null;
     this.fxPal = opts.fxPalette ?? null;
-    this.motion = new FieldMotion(replay, { injured: opts.injured ?? injuredFromEvents(replay.events) });
+    this.motion = new FieldMotion(replay, { injured: opts.injured ?? injuredFromEvents(replay.events), preOff: opts.preOff ?? null });
     this.look = this.stage.look.three;
     this.L = this.stage.L;
     this.trackW = this.plan.trackW;
@@ -1136,7 +1141,14 @@ export class HD2DScene {
     this.samples = this.motion.samples;
     let lead: Runner | null = null;
     let last: Runner | null = null;
-    const haveFrames = this.replay.frames.length > 0;
+    // The build-up before the off: lanes come from the shared motion, and going down to post /
+    // the stalls are two places on the course (a cut between them, as Trackside cuts).
+    const pre = this.motion.preOffAt(raceT);
+    const preKind = pre ? preOffStep(raceT).kind : null;
+    const preCut = !pre ? 0 : preKind === "parade" || preKind === "post" ? 1 : 2;
+    const cut = preCut !== 0 && this.preCut !== 0 && preCut !== this.preCut;
+    this.preCut = preCut;
+    const haveFrames = this.replay.frames.length > 0 || pre;
     for (const r of this.runners) {
       const st = this.states[r.index]!;
       r.st = st;
@@ -1177,6 +1189,7 @@ export class HD2DScene {
     dirInput.highlightId = mine?.horseId ?? null;
     dirInput.winnerId = winner?.horseId ?? null;
     dirInput.pipForMine = !!this.pipCam && this.quality === "high" && pipRect(this.W, this.H) !== null;
+    dirInput.preOff = preCut === 1 ? "post" : preCut === 2 ? "loading" : null;
     let shotType: ShotType;
     let subjectId: string | null;
     if (mode === "director") {
@@ -1186,7 +1199,7 @@ export class HD2DScene {
     } else {
       const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
       const after = tS > this.winnerTime + 0.9;
-      shotType = raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
+      shotType = preCut === 1 ? "topost" : raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
       subjectId = mode === "mine" ? mine!.horseId : shotType === "post" ? (winner?.horseId ?? null) : null;
     }
     this.shotType = shotType;
@@ -1195,7 +1208,7 @@ export class HD2DScene {
     const pos = this.v1;
     const at = this.v2;
     const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, mode === "director" ? this.director.mustFrame : NO_IDS);
-    if (this.firstFrame || seek) {
+    if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
       this.fov.snap(sc.fov);
@@ -1241,7 +1254,7 @@ export class HD2DScene {
     const focus = subject;
 
     // The near rail would cut across the horses in the low shots: fade it there.
-    const lowShot = shotType !== "establish" && shotType !== "wide" && shotType !== "gate";
+    const lowShot = shotType !== "establish" && shotType !== "wide" && shotType !== "gate" && shotType !== "topost";
     const aim = lowShot ? 0 : 1;
     this.nearRailA += (aim - this.nearRailA) * (1 - Math.exp(-(realDt || 0.016) * 4));
     for (const m of this.nearRail) {
@@ -1562,6 +1575,11 @@ export class HD2DScene {
     this.photoFinish = res ? res.photoFinish : false;
   }
 
+  /** The build-up before the off on (a plan) or off (null: standing in the stalls). */
+  setPreOff(plan: PreOffPlan | null): void {
+    this.motion.setPreOff(plan);
+  }
+
   /** The race is over: switch to the official replay (same horses, same scene). */
   setFinal(final: RaceReplay): void {
     this.replay = final;
@@ -1622,6 +1640,19 @@ export class HD2DScene {
         composeShift = 0.16;
         break;
       }
+      case "topost":
+        // Going down to post: the whole field cantering past the stands, the stand above it.
+        group = byX;
+        elev = 9;
+        yaw = -3;
+        fillX = 0.86;
+        fillY = 0.42;
+        fov = 32;
+        vel = POST_CANTER;
+        maxSpan = 1e9;
+        leadPad = 2;
+        composeShift = 0.3;
+        break;
       case "close":
         // Side-on tracking, 2-4 horses filling the frame.
         group = near(SHOT_REACH.close, 4);
