@@ -3813,6 +3813,16 @@ a.ped-node:focus-visible {
 .racecard-name:hover {
   text-decoration: underline;
 }
+/* Phones: a long name wraps to a second line instead of being cut to "Brave …". */
+@media (max-width: 639px) {
+  .racecard-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 .racecard-meta {
   overflow: hidden;
   text-overflow: ellipsis;
