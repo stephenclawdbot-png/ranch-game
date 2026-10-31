@@ -73,6 +73,22 @@ broadcast craft, photo finish, track design, racing games) and `docs/reports/202
 Parade in the paddock (existing), going down to post (canter), loading into the stalls one by one
 (the gate-break art), the off. Short and skippable.
 
+Built (2026-10-31), `packages/race-viewer/src/stage/preoff.ts`, pure and deterministic from the locked
+field (stall numbers), the distance and race time only (never the result or the seed):
+
+| Race time (s) | Step | Both views |
+|---|---|---|
+| < -18 | Paddock | The host's paddock scene as an overlay (the race page's `PaddockParade`), else a runner list |
+| -18 to -10 | Going down to post | The field canters in pairs past the stands (left to right, the race direction; centre passes the stand mid-way), ease-up canter frames; director shot `topost` |
+| -10 to -1.2 | Loading | Odd stalls first, then even, each led in from ~6-7.5 m behind the stalls over 1.8 s (trot frames); waiting horses idle; in the bay: break frame 0. Lower third "Loading · n of N in" + the horse being led in |
+| -1.2 to 0 | Under starter's orders | All in, gates shut |
+
+The going-to-post and stall shots are a cut in both views at the same moment. On by default for live
+feeds (the race page mounts the viewer 32 s before the off; a late arrival joins wherever the broadcast
+clock is; it never delays the off), off for replays unless `preOff` is set. One tap skips it and is
+remembered per viewer (`rv:preoff` in localStorage, try/catch); reduced motion skips it. Harness:
+`/dev/viewer?preoff=1&t=-24` (replay) or `?live=24` (live).
+
 ## Order and dependencies
 
 The Trackside gap fix and the race-day animation art land first, then A (one builder), then B and C,
