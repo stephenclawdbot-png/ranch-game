@@ -121,16 +121,17 @@ export function HorsePicker({
               disabled={!!reason}
               aria-pressed={selected}
               onClick={() => onSelect(s.id)}
-              className={`surface-2 flex w-52 shrink-0 snap-start items-center gap-2 p-1.5 text-left disabled:opacity-50 md:w-auto ${selected ? "is-selected" : "hover:brightness-110"}`}
+              className={`surface-2 flex w-64 shrink-0 snap-start items-center gap-2 p-1.5 text-left disabled:opacity-50 md:w-auto ${selected ? "is-selected" : "hover:brightness-110"}`}
               data-testid="pick-horse"
             >
               <HorsePortrait appearance={h.appearance} scale="thumb" />
               <span className="min-w-0">
-                <span className="block truncate font-extrabold">{h.name}</span>
-                <span className="block truncate text-sm text-cream-dim">
+                {/* Names and details wrap (never clipped at phone width). */}
+                <span className="block break-words font-extrabold leading-tight">{h.name}</span>
+                <span className="block break-words text-sm leading-snug text-cream-dim">
                   {formatDistance(h.preferredDistanceM)} · {SURFACE_LABEL[h.preferredSurface]} · {s.starts}/{s.maxStarts} starts
                 </span>
-                <span className={`block truncate text-xs font-semibold ${reason ? "text-negative" : cond.tone}`}>{reason ?? cond.text}</span>
+                <span className={`block break-words text-xs font-semibold leading-snug ${reason ? "text-negative" : cond.tone}`}>{reason ?? cond.text}</span>
               </span>
             </button>
           );

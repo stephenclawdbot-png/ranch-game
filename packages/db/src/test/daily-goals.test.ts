@@ -160,7 +160,7 @@ describe("daily goals", () => {
     const p = await newPlayer(h.db, { credits: 0 });
     await runTx(h.db, (tx) => completeGoal(tx, { accountId: p.accountId, goal: "cup", now: T0 }));
     expect(await goalsForToday(h.db, p.accountId, T0)).toEqual([
-      { goal: "race", label: "Run a race", done: false, credits: GOAL },
+      { goal: "race", label: "Run a Story or Live race", done: false, credits: GOAL },
       { goal: "care", label: "Care for a horse", done: false, credits: GOAL },
       { goal: "cup", label: "Run the Daily Cup", done: true, credits: GOAL },
     ]);

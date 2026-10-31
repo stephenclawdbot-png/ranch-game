@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/lib/types";
 import { shortHash } from "@/lib/format";
+import { sealCopy, sealState } from "@/lib/seal";
 import { PixelIcon } from "../icons";
 
 /** sha256 over the raw seed bytes, exactly as the engine's commitSeed() does — computed locally. */
@@ -50,8 +51,8 @@ function Check({ ok, children }: { ok: boolean; children: React.ReactNode }) {
 }
 
 /**
- * Race integrity as a quiet seal (no casino language): "Sealed" before the off with the
- * fingerprint one tap away; after the finish the seed is revealed and the browser can verify.
+ * Race integrity as a quiet seal (no casino language): "Seed committed" while entries are open,
+ * "Sealed" once the field locks, with the fingerprint one tap away; after the finish the seed is revealed and the browser can verify.
  * The seed and result only appear once the official result exists (`replay`).
  */
 export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceReplay | null }) {
@@ -79,14 +80,16 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
     }
   }
 
-  const verified = verify && verify.commitmentOk && verify.resultHashOk && localOk !== false;
+  const verified = !!verify && verify.commitmentOk && verify.resultHashOk && localOk !== false;
+  // Before entries close the seed is only committed; "sealed" once the field locks (never earlier).
+  const copy = sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified }), shortHash(card.seedCommitment, 6));
 
   return (
     <section className="surface h-fit p-3" aria-labelledby="fair-h" data-testid="fairness">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="fair-h" className="flex items-center gap-2 font-extrabold">
           <PixelIcon name="shield" size={32} className="-my-1" />
-          {verified ? "Verified race" : replay ? "Sealed race · result revealed" : "Sealed race"}
+          {copy.title}
         </h2>
         {replay && !verify && (
           <button type="button" onClick={run} disabled={busy} className="btn btn-sm" data-testid="verify-button">
@@ -94,10 +97,8 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
           </button>
         )}
       </div>
-      <p className="mt-1 text-sm text-cream-dim">
-        {replay
-          ? "The secret seed is now public. Verify re-checks it against the fingerprint published before the off and re-runs the race."
-          : `The outcome was locked when entries closed. Fingerprint ${shortHash(card.seedCommitment, 6)}.`}
+      <p className="mt-1 text-sm text-cream-dim" data-testid="seal-copy">
+        {copy.body}
       </p>
       {verify && (
         <ul className="mt-3 grid gap-1.5 text-sm" data-testid="verify-result">

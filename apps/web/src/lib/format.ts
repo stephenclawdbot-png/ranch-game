@@ -70,3 +70,15 @@ export const SEX_LABEL: Record<Sex, string> = { colt: "Colt", filly: "Filly", st
 export function shortHash(hex: string, n = 10): string {
   return hex.length > n * 2 ? `${hex.slice(0, n)}…${hex.slice(-n)}` : hex;
 }
+
+/** Fields smaller than this show the rank alone ("1st of 4"): a percentile of a handful says nothing. */
+export const TOP_PERCENT_MIN_FIELD = 10;
+
+/**
+ * "Top n%" for a rank in a field: rank / field, rounded up (1st of 200 is top 1%, 1st of 1 would be
+ * top 100%). Null for fields under TOP_PERCENT_MIN_FIELD.
+ */
+export function topPercent(rank: number, field: number): number | null {
+  if (field < TOP_PERCENT_MIN_FIELD || rank < 1) return null;
+  return Math.min(100, Math.ceil((Math.min(rank, field) * 100) / field));
+}

@@ -29,6 +29,8 @@ import { ShareReplay } from "./ShareReplay";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
+import { sealCopy, sealState } from "@/lib/seal";
+import { broadcastOffAt, msToBroadcastOff } from "@/lib/offClock";
 
 type Phase = "loading" | "pre" | "live" | "result";
 
@@ -70,6 +72,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   const highlightHorseId = mine?.horse.id;
 
   const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
+  // The header pill and tab title count to the off the broadcast shows (post time + the broadcast
+  // delay, on the feed's server-synced clock), the same moment as the viewer's own countdown.
+  const offAt = broadcastOffAt(localPost, feed?.broadcastStartMs);
+  const toOff = replay ? null : msToBroadcastOff(now, offAt);
   // The build-up before the off plays in the viewer (both views), from the locked field and the
   // broadcast clock: it never delays the off, and a late arrival joins wherever the clock is.
   const buildUp = phase === "pre" && card.fieldLocked && !!feed && now !== null && feed.broadcastStartMs - now < BUILD_UP_LEAD_MS;
@@ -146,10 +152,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   useEffect(() => {
     baseTitle.current ??= document.title;
     const base = baseTitle.current;
-    if (phase === "pre" && now !== null) document.title = `Off in ${formatCountdown(localPost - now)} · ${config.name}`;
+    if ((phase === "pre" || phase === "live") && toOff !== null) document.title = `Off in ${formatCountdown(toOff)} · ${config.name}`;
     else if (phase === "live") document.title = `LIVE · ${config.name}`;
     else document.title = base;
-  }, [phase, now, localPost, config.name]);
+  }, [phase, toOff, config.name]);
   useEffect(
     () => () => {
       if (baseTitle.current) document.title = baseTitle.current;
@@ -184,11 +190,11 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
     };
   }, []);
 
-  const remaining = now === null ? null : localPost - now;
+  const remaining = toOff;
   const status =
-    phase === "pre" ? (
-      <span className="chip chip-ink shrink-0 !text-cream">
-        <PixelIcon name="stopwatch" size={16} /> Off in <span className="tabular">{formatCountdown(remaining ?? 0)}</span>
+    (phase === "pre" || phase === "live") && toOff !== null ? (
+      <span className="chip chip-ink shrink-0 !text-cream" data-testid="race-off-in">
+        <PixelIcon name="stopwatch" size={16} /> Off in <span className="tabular">{formatCountdown(toOff)}</span>
       </span>
     ) : phase === "live" ? (
       <span className="chip chip-live shrink-0">
@@ -203,7 +209,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   const myRec = replay && mine ? replay.result.finishOrder.find((f) => f.horseId === mine.horse.id) : undefined;
   const winnerName = replay ? card.field.find((e) => e.horse.id === replay.result.finishOrder[0]?.horseId)?.horse.name : undefined;
   const announcement =
-    phase === "pre" && remaining !== null && remaining < 10_000
+    (phase === "pre" || phase === "live") && remaining !== null && remaining < 10_000
       ? "Gates loading."
       : phase === "live"
         ? "They're off."
@@ -241,9 +247,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           <a
             href="#fair-h"
             className="flex shrink-0 items-center gap-1 text-sm font-bold text-cream-dim hover:text-cream"
-            title="This race is sealed: tap for details"
+            title={card.fieldLocked ? "This race is sealed: tap for details" : "The seed is committed; the field is sealed when entries close: tap for details"}
+            data-testid="seal-badge"
           >
-            <PixelIcon name="shield" size={16} /> {replay ? "Sealed ✓" : "Sealed"}
+            <PixelIcon name="shield" size={16} /> {sealCopy(sealState({ fieldLocked: card.fieldLocked, revealed: !!replay, verified: false }), "").badge}
           </a>
         </div>
         <div
@@ -255,7 +262,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
           aria-label={`${config.name}: ${phase === "pre" ? "pre-race" : phase === "live" ? "race in progress" : "replay"}. The field and results are listed below.`}
         >
           {(phase === "pre" || phase === "loading") && !buildUp ? (
-            <PreRace localPost={localPost} localClose={localClose} now={now} card={card} runners={paradeRunners} />
+            <PreRace localPost={offAt} localClose={localClose} now={now} card={card} runners={paradeRunners} />
           ) : feed ? (
             <div data-testid="viewer" className="h-full">
               <RaceViewerClient
@@ -349,6 +356,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec }: { card: Ra
   );
 }
 
+/** `localPost` is the off as the broadcast shows it (offClock.ts), in this browser's clock. */
 function PreRace({ localPost, localClose, now, card, runners }: { localPost: number; localClose: number; now: number | null; card: RaceCard; runners: readonly ParadeRunner[] }) {
   const remaining = now === null ? null : localPost - now;
   const entriesOpen = !card.fieldLocked && (now === null || now < localClose);

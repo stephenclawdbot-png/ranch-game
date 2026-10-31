@@ -15,6 +15,7 @@ import { raceMetaLine } from "../RaceMeta";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
 import { EntryForm, ExtrasPicker, HorsePicker, PlanPicker, quickPickRace, raceDayCost, type QuickPickResult } from "./EntryForm";
+import { entryBlocker } from "@/lib/entryBlocker";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -336,6 +337,13 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   const short = creditCost > state.credits;
   // The risk shown follows the extras ticked (physio, vet check, shoes), live.
   const riskFor = (i: RacePlan["intensity"]) => option?.riskBy?.[raceDayRiskKey(i, raceDay.extras)] ?? option?.risk[i] ?? null;
+  // A blocker (licence, rating, entries...) shows first and collapses the steps it would make moot.
+  const blocker = entryBlocker({
+    options: data ? data.options.filter((o) => racing.some((h) => h.id === o.horseId)) : null,
+    selected: horse ? { id: horse.id, name: horse.horse.name } : null,
+    entriesLeft: state.entries.balance,
+    entryCost: race?.entryCost ?? 1,
+  });
   if (entered && race) {
     return (
       <div className="grid gap-3" data-testid="live-entered">
@@ -372,14 +380,20 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
         </p>
       )}
       {loadError !== null && <ErrorNote error={loadError} />}
+      {blocker && (
+        <div role="alert" className="surface-2 border-l-4 border-negative p-3" data-testid="entry-blocker">
+          <p className="font-extrabold text-negative">{blocker.title}</p>
+          <p className="text-sm text-cream-dim">{blocker.detail}</p>
+        </div>
+      )}
       {data && <HorsePicker horses={racing} selectedId={horseId} onSelect={(id) => {
         setHorseId(id);
         const h = racing.find((x) => x.id === id);
         if (h) setPlan((p) => ({ ...p, tactic: h.horse.style }));
       }} reasons={reasons} />}
-      {data && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={riskFor} />}
-      {data?.raceDay && <ExtrasPicker offer={data.raceDay} choice={raceDay} onChange={setRaceDay} />}
-      {race?.claiming && (
+      {data && !blocker && <PlanPicker horse={horse} plan={plan} onChange={setPlan} risk={riskFor} />}
+      {data?.raceDay && !blocker && <ExtrasPicker offer={data.raceDay} choice={raceDay} onChange={setRaceDay} />}
+      {race?.claiming && !blocker && (
         <div className="surface-2 grid gap-2 p-3" data-testid="claim-price">
           <p className="text-sm text-cream-dim">{CLAIMING_ENTRY_NOTE}</p>
           {claimBand && (
@@ -402,7 +416,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       )}
       {error !== null && <ErrorNote error={error} onRetry={go} />}
       <div className="grid [&>.btn]:w-full">
-        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || busy || !data || short || claimBad} onClick={go} data-testid="enter-live">
+        <button type="button" className="btn btn-brass btn-lg" disabled={!horse || !!reasons[horse?.id ?? ""] || !!blocker || busy || !data || short || claimBad} onClick={go} data-testid="enter-live">
           <PixelIcon name="flag" size={32} className="-my-2" />
           {busy ? "Entering…" : `Enter ${horse?.horse.name ?? ""} · ${race?.entryCost ?? 1} ${race?.entryCost === 2 ? "entries" : "entry"}${creditCost > 0 ? ` + ${formatCredits(creditCost)} cr` : ""}`}
         </button>

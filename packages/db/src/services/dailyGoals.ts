@@ -20,7 +20,7 @@ export type DailyGoal = (typeof dailyGoalEnum.enumValues)[number];
 
 /** The three goals, in display order. */
 export const DAILY_GOALS: readonly { goal: DailyGoal; label: string }[] = [
-  { goal: "race", label: "Run a race" },
+  { goal: "race", label: "Run a Story or Live race" },
   { goal: "care", label: "Care for a horse" },
   { goal: "cup", label: "Run the Daily Cup" },
 ];
