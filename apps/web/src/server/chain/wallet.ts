@@ -10,12 +10,15 @@ import { getAddress, isAddress, type Address, type Hex } from "viem";
 import { consumeWalletChallenge, createWalletChallenge, linkVerifiedWallet, loginWalletOf, testerOfAccount, type Db } from "@thoroughbred/db";
 import { DomainError } from "@thoroughbred/db";
 import type { BetaChain } from "./adapter";
+import { ensurePracticeGrant, practiceOn } from "./practice";
 import type { Session } from "../session";
 
 const TTL_MS = 10 * 60_000;
 
 /** SIWE statement for linking a payout wallet (signed in on /me). */
 export const LINK_STATEMENT = "Link this wallet to my Post Time stable. One wallet per stable; it receives Prize Pool payouts and affiliate commissions. Signing is free and sends no transaction.";
+/** Practice mode (T-USDG test money): nothing is paid to the wallet, so the statement says so. */
+export const PRACTICE_LINK_STATEMENT = "Link this wallet to my Post Time stable. One wallet per stable. During the beta it only signs: T-USDG is test money, nothing is paid or charged. Signing is free and sends no transaction.";
 /** SIWE statement for wallet sign-in (no session): different wording, so a link signature can never be replayed as a sign-in. */
 export const LOGIN_STATEMENT = "Sign in to Post Time with this wallet. Signing is free and sends no transaction.";
 
@@ -24,7 +27,7 @@ export function siweMessage(input: { domain: string; uri: string; address: Addre
     `${input.domain} wants you to sign in with your Ethereum account:`,
     input.address,
     "",
-    input.statement ?? LINK_STATEMENT,
+    input.statement ?? (practiceOn() ? PRACTICE_LINK_STATEMENT : LINK_STATEMENT),
     "",
     `URI: ${input.uri}`,
     "Version: 1",
@@ -57,6 +60,8 @@ export async function linkWallet(db: Db, chain: BetaChain, session: Session, inp
   if (!address) throw new DomainError("INVALID_INPUT", "Malformed sign-in message.");
   if (!(await chain.verifySignature(address, message, input.signature))) throw new DomainError("INVALID_INPUT", "The signature doesn't match that wallet.");
   const { tester, linkedAccounts } = await linkVerifiedWallet(db, { accountId: session.accountId, address, stableName: session.stable.name, now: input.now });
+  // Practice mode: the one-off T-USDG grant (idempotent; never fails the link).
+  await ensurePracticeGrant(db, session.accountId, input.now);
   return { address: tester.walletAddress!, verifiedAtMs: tester.walletVerifiedAt!.getTime(), linkedAccounts: linkedAccounts.length };
 }
 

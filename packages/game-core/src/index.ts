@@ -13,6 +13,7 @@ export * from "./condition";
 export * from "./injuries";
 export * from "./raceDay";
 export * from "./jockeys";
+export * from "./jockeyContracts";
 export * from "./lifecycle";
 export * from "./phenotype";
 export * from "./training";

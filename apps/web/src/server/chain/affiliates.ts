@@ -10,6 +10,7 @@ import {
   verifiedWalletOf,
   type Db,
 } from "@thoroughbred/db";
+import * as gc from "@thoroughbred/game-core";
 import type { BetaChain } from "./adapter";
 import type { Session } from "../session";
 
@@ -25,6 +26,8 @@ export async function inviteView(db: Db, chain: BetaChain, session: Session, inp
     wallet: await verifiedWalletOf(db, session.accountId),
     isOwner: (await ownerAccountId(db)) === session.accountId,
     chainId: chain.chainId,
+    /** Practice mode (T-USDG test money): no commission is paid on anything. */
+    practice: gc.isUsdgPracticeMode(process.env),
     rules: {
       level1Pct: cfg.ref1Bps / 100,
       level2Pct: cfg.ref2Bps / 100,

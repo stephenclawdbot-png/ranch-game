@@ -6,6 +6,7 @@ import { errorJson, handleError, json } from "../http";
 import { adminSecret, isAdmin } from "../playtest";
 import { requireSession, type Session } from "../session";
 import { BetaConfigError } from "./config";
+import { practiceWording, usdgText } from "./practice";
 import { UsdgUnavailableError, usdgTick, type UsdgCtx } from "./usdg";
 import { usdgChain } from "./usdgChain";
 import { readUsdgConfig } from "./usdgConfig";
@@ -15,6 +16,8 @@ export async function usdgCtx(): Promise<UsdgCtx> {
 }
 
 export function usdgError(err: unknown): NextResponse {
+  // Practice mode: "T-USDG" wording in every refusal (handleError does the same for domain errors).
+  if (err instanceof Error) err.message = usdgText(err.message);
   if (err instanceof UsdgUnavailableError) return errorJson(503, "coming_soon", { message: err.message });
   if (err instanceof BetaConfigError) return errorJson(503, "chain_not_configured", { message: err.message });
   return handleError(err);
@@ -27,7 +30,7 @@ export async function withUsdgPlayer<T>(fn: (ctx: UsdgCtx, session: Session, now
     const session = await requireSession(ctx.db);
     const now = new Date();
     if (opts.tick) await usdgTick(ctx, now);
-    return json(await fn(ctx, session, now), { status: opts.status ?? 200 });
+    return json(practiceWording(await fn(ctx, session, now)), { status: opts.status ?? 200 });
   } catch (err) {
     return usdgError(err);
   }

@@ -164,6 +164,100 @@ flowchart LR
 - Horse page: "Register for the USDG market" (requirements checklist, fee), then list or
   auction.
 - Wallet connect and network switch (existing SIWE flow); testnet faucet link on testnet.
+- Practice mode: T-USDG balance with the badge, a wallet chip, the explainer, one "Pay N T-USDG"
+  button per order; no network switch, no faucet (see "Practice mode").
+
+## Practice mode (T-USDG, the closed beta)
+
+**Owner decision (2026-10-31):** "For the testers I don't want them to spend money yet... pretend
+the USDG is just test, like credits, but shown as USDG, but they still need to log in using a
+wallet." Turned on explicitly with **`USDG_MODE=practice`** (exactly that value; a near miss such
+as `Practice` is a configuration error, never a silent fallback to real money). It wins over
+`WEB3_ENABLED`, `HORSE_MARKET_ADDRESS` and every key: in practice mode nothing touches a chain
+(no RPC, no contract write, no signer, no ETH price feed).
+
+**The currency.** Players see **T-USDG** everywhere ("120 T-USDG", badge "T-USDG · test money,
+no real value"), never plain "USDG" or a dollar sign. One balance per account, in the game's
+double-entry ledger as currency `TUSDG` (6 decimals like USDG), shared by the market, USDG stud
+fees, Premium Packs and the tote's T-USDG pools. A ledger transaction can never mix currencies,
+so T-USDG is never convertible to or from Stable Credits; it is never withdrawable or purchasable,
+and there is no faucet.
+
+- **Grant:** `PRACTICE_USDG_GRANT` = **100 T-USDG**, once per account (idempotency key
+  `usdg-practice:grant:<account>`), on the first wallet sign-in, founding or wallet link while
+  practice mode is on (and lazily when a wallet holder opens a T-USDG view). Refused outside
+  practice mode.
+- **Admin top-up:** `POST /api/admin/usdg { action: "practice_topup", stable, amount, key }`
+  (stable name or account id, decimal T-USDG, idempotent per key, max 10,000 per top-up).
+- **Wallet required:** every T-USDG action needs a verified wallet (the existing SIWE sign-in or
+  link; signing is free). Auction bids are still EIP-712 signatures from the linked wallet,
+  signed on whatever network the wallet is on (no network switch) and verified locally.
+- **Payments:** orders keep every market rule (requirements, reservation, 15-minute hold, 5 % fee,
+  auction window and fallback, non-payer bar, the 12 h stallion rest). Instead of a chain payment,
+  `POST /api/usdg/orders/<id>/practice-pay` moves the T-USDG and runs the normal fulfilment in
+  **one database transaction**: registration fee to the practice burn; sale or auction price to
+  the seller minus the 5 % fee (fee to the burn); stud fee to the stallion owner minus 5 %. If the
+  order can't be delivered, the whole transaction rolls back and nothing is charged; it lapses
+  through the normal expiry (lot, stallion slot and mare released). A short balance is refused
+  **before** anything is held (lot, mare, order row). Practice orders carry a placeholder market
+  address (`0x…7e57`), so a real order can never be paid with test money.
+- **Premium Packs:** the pack's USD price in T-USDG (1 T-USDG = 1 USD, 4.99 T-USDG by default),
+  `POST /api/checkout/practice`. Same checks as ETH checkout (wallet, geo-block, 5 a week incl.
+  open orders, the $50 beta lifetime cap counted as 50 T-USDG, free stall, foal crop), the same
+  seeded, committed pulls with published odds and pity, idempotent per order id, charged in the
+  same transaction as the order row and the pulls. **No affiliate commission and no Prize Pool
+  share** on practice purchases (decision taken: practice money pays nobody).
+- **Horses and trophies** are owned in the game only. No NFTs.
+
+### Real-money path audit (practice mode)
+
+| Path | Code | Real money in practice mode? | What happens instead |
+|---|---|---|---|
+| USDG market: registration, fixed-price buy, auction settlement | `apps/web/src/server/chain/usdg.ts`, `usdgChain.ts` (`PracticeUsdgChain` throws on every method), db `services/usdgPractice.ts` | No | Paid in T-USDG via `practice-pay`; `confirm` and `mock-pay` refused; nothing signed |
+| USDG stud fees | `usdg.ts` `bookUsdgStud`, db `usdgStud.ts` | No | Stud fee in T-USDG to the stallion owner minus 5 %; credits base fee unchanged |
+| Refunds, expiries, backstop | `usdg.ts` `practiceBackstop` | No | Closes auctions and expires practice orders; never looks for chain payments |
+| Premium Store / packs checkout (ETH) | `apps/web/src/server/chain/checkout.ts` (`quoteCheckout`, `confirmCheckout`, `checkoutBackstop`, `resumeOrders`) | No | ETH quote and confirm refused (503 `coming_soon`); backstop does nothing; packs bought with T-USDG (`practiceCheckout`) |
+| Premium Pack for credits (`PREMIUM_PACK_DEMO`) | `apps/web/src/server/economy.ts` `pull` | No | Refused in practice mode: the pack is bought with T-USDG only |
+| Prize Pool (PrizePool contract, weekly epochs, claims) | `apps/web/src/server/chain/pool.ts` | No | Draft, server post and wallet-post record refused; the pool page says it is off; no sale adds a pool share |
+| Affiliate commissions (ETH, from the store contract) | `services/affiliates.ts` `referralPlan` / `recordReferralEarnings`, `apps/web/src/server/chain/affiliates.ts` | No | Only paid by ETH purchases, which are refused; practice packs carry no referrer; `/invite` says no commission is paid (the credits invite reward stays) |
+| Manual tester payouts (beta-money ledger) | `apps/web/app/api/admin/payouts/route.ts`, db `betaMoney.ts` | No | `award`, `approve`, `paid` refused (409 `practice_mode`); rules stay editable; `/beta` says payouts are paused |
+| Tote | db `services/tote.ts` | No | Credits pools always; T-USDG pools only in practice mode, from the one T-USDG balance; never real USDG |
+| Race sponsorships | db `services/sponsorship.ts` | No (never was) | Stable Credits only |
+| Wallet link statement | `apps/web/src/server/chain/wallet.ts` | – | The SIWE text says nothing is paid or charged during the beta |
+| Beta money config | `apps/web/src/server/chain/config.ts` | – | `USDG_MODE=practice` forces `enabled: false` (mock beta chain, no RPC) whatever `WEB3_ENABLED` says |
+
+Tests: `apps/web/src/server/chain/usdg-practice.test.ts` (every chain method, the beta chain's
+signer and pool calls, the price feed and `fetch` are spies that must never be called),
+`packages/db/src/test/usdg-practice.test.ts`, `packages/db/src/test/tote.test.ts` (T-USDG).
+
+### Turning it on (Vercel)
+
+Set on the environment (Production, or Preview first) and redeploy (the client reads the mode at
+build time, the server at run time; Vercel applies both on a deploy):
+
+```sh
+USDG_MODE=practice
+# the USDG market off in production otherwise; practice mode needs nothing else.
+# Leave WEB3_ENABLED unset (practice wins anyway). No chain keys are read.
+```
+
+### Reset at the end of the beta
+
+Dry run by default:
+
+```sh
+ADMIN_SECRET=... node apps/web/scripts/practice-reset.mjs --url https://<host>          # counts only
+ADMIN_SECRET=... node apps/web/scripts/practice-reset.mjs --url https://<host> --apply  # wipes
+```
+
+(or `POST /api/admin/usdg { action: "practice_reset", apply }`; `GET /api/admin/usdg` shows the
+dry-run counts.) Apply, in one transaction: drains every T-USDG balance (players, the tote's
+T-USDG escrow and house) to the practice burn, unlocks horses on open practice listings, releases
+pending practice stud bookings (mare freed, credits base fee returned), clears T-USDG stud fees,
+and deletes practice orders, bids, listings, registrations, T-USDG Premium Pack orders (so they
+never count toward a real-money cap later) and T-USDG tote bets and pools. Horses, foals and
+trophies stay with their owners; Stable Credits are never touched; the 100 T-USDG grant is not
+given again.
 
 ## Gates before mainnet (not needed for testnet)
 

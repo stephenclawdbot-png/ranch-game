@@ -140,3 +140,20 @@ export function walletErrorText(e: unknown): string {
   if (/insufficient funds/i.test(err.message ?? "")) return "Not enough ETH in this wallet for the price plus a little gas.";
   return err.shortMessage ?? err.message ?? "The wallet reported an error.";
 }
+
+/**
+ * Practice mode (T-USDG): signs EIP-712 typed data on whatever network the wallet is on, without
+ * switching or adding a network (no chain is used at all; the server checks the signature
+ * locally). Returns the chain id it signed for, which the server needs to rebuild the domain.
+ */
+export async function signTypedDataOnCurrentChain<T>(
+  provider: EIP1193Provider,
+  account: Address,
+  typedData: (chainId: number) => T,
+): Promise<{ signature: `0x${string}`; chainId: number }> {
+  const chainId = Number(await provider.request({ method: "eth_chainId" }));
+  const wallet = createWalletClient({ transport: custom(provider) });
+  type Args = Parameters<WalletClient["signTypedData"]>[0];
+  const signature = await wallet.signTypedData({ ...(typedData(chainId) as object), account } as Args);
+  return { signature, chainId };
+}

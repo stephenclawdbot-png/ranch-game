@@ -2,9 +2,10 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { accounts, jockeyEvents, jockeyRides, jockeys, raceEntries } from "../schema";
+import { accounts, fraudEvents, jockeyEvents, jockeyRides, jockeys, raceEntries } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
 import { getBalance } from "../services/ledger";
+import { makeJockeyOffer } from "../services/jockeyContracts";
 import {
   activeStableIds,
   createJockeyTx,
@@ -51,7 +52,7 @@ async function freelancer(grade: gc.JockeyGrade = "C") {
   const v = { A: 850, B: 650, C: 500, D: 350, E: 150 }[grade];
   const j = await createJockeyTx(h.db, { seed: gc.seedFrom("test-freelancer", ++n), stableId: null, now: T0 });
   const skills = { gate: v, pace: v, finish: v, handling: v };
-  await h.db.update(jockeys).set({ skills, potential: skills, wins: 60, rides: 300 }).where(eq(jockeys.id, j.id));
+  await h.db.update(jockeys).set({ skills, potential: skills, wins: 60, rides: 300, freeAgentWeek: null }).where(eq(jockeys.id, j.id));
   return j.id;
 }
 
@@ -116,10 +117,15 @@ describe("signing and releasing", () => {
     await recordAccountSignal(h.db, { accountId: b.accountId, kind: "wallet", value: "0xjockeylink" });
     const [mine] = await stableJockeys(h.db, a.stableId);
     await releaseJockey(h.db, { accountId: a.accountId, jockeyId: mine!.id, now: T0 });
+    // Released, the jockey is a free agent in this week's window (Phase 2): offers, not direct signings.
+    const terms = { wage: 100, length: "4w" as const, promisedRides: 2, buyout: 500 };
     await expect(signJockey(h.db, { accountId: b.accountId, jockeyId: mine!.id, now: at(MIN) })).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
-    // An unrelated stable can.
+    await expect(makeJockeyOffer(h.db, { accountId: b.accountId, jockeyId: mine!.id, now: at(MIN), terms })).rejects.toMatchObject({ code: "LINKED_ACCOUNTS" });
+    const fraud = await h.db.select().from(fraudEvents).where(and(eq(fraudEvents.accountId, b.accountId), eq(fraudEvents.kind, "linked_trade_blocked")));
+    expect(fraud.length).toBe(2);
+    // An unrelated stable can make an offer.
     const c = await newPlayer(h.db, { credits: 20_000 });
-    await signJockey(h.db, { accountId: c.accountId, jockeyId: mine!.id, now: at(MIN) });
+    await makeJockeyOffer(h.db, { accountId: c.accountId, jockeyId: mine!.id, now: at(MIN), terms });
   });
 });
 

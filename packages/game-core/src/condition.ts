@@ -25,6 +25,10 @@ export const TIRED_THRESHOLD = 300;
 export const TIRED_MAX_PENALTY = 80;
 /** Freshness peak bonus 3-5 days after hard work, permille. */
 export const FRESHNESS_PEAK_BONUS = 25;
+/** Hours after hard work when the freshness peak reaches its full height. */
+export const FRESHNESS_PEAK_FROM_H = 72;
+/** Hours after hard work when the freshness peak starts to fade. */
+export const FRESHNESS_PEAK_TO_H = 120;
 
 /** Fatigue at `nowMs` (recovers with real time; this is healing, allowed while away). */
 export function fatigueAt(state: Pick<HorseState, "condition">, nowMs: number): number {
@@ -58,9 +62,9 @@ export function freshnessBonus(lastHardWorkMs: number | null, nowMs: number): nu
   if (lastHardWorkMs === null) return 0;
   const h = (nowMs - lastHardWorkMs) / MS_PER_HOUR;
   if (h < 48) return 0;
-  if (h < 72) return Math.round((FRESHNESS_PEAK_BONUS * (h - 48)) / 24);
-  if (h <= 120) return FRESHNESS_PEAK_BONUS;
-  if (h < 192) return Math.round((FRESHNESS_PEAK_BONUS * (192 - h)) / 72);
+  if (h < FRESHNESS_PEAK_FROM_H) return Math.round((FRESHNESS_PEAK_BONUS * (h - 48)) / (FRESHNESS_PEAK_FROM_H - 48));
+  if (h <= FRESHNESS_PEAK_TO_H) return FRESHNESS_PEAK_BONUS;
+  if (h < 192) return Math.round((FRESHNESS_PEAK_BONUS * (192 - h)) / (192 - FRESHNESS_PEAK_TO_H));
   return 0;
 }
 

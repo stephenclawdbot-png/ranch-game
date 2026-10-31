@@ -17,6 +17,7 @@ export type NewsKind =
   | "jockey_claim_out"
   | "jockey_retirement_announced"
   | "jockey_retired"
+  | "jockey_signed"
   | "sale"
   | "claim"
   | "hall_of_fame";
@@ -31,6 +32,7 @@ export const NEWS_KINDS: readonly NewsKind[] = [
   "jockey_claim_out",
   "jockey_retirement_announced",
   "jockey_retired",
+  "jockey_signed",
   "sale",
   "claim",
   "hall_of_fame",
@@ -113,6 +115,11 @@ export const NEWS_TEMPLATES: Record<NewsKind, readonly Template[]> = {
     (f) => `${f.jockey} retires after ${f.rides} rides and ${f.wins} winners`,
     (f) => `Farewell to ${f.jockey}: ${f.wins} winners from ${f.rides} rides`,
     (f) => `${f.jockey} rides into retirement`,
+  ],
+  jockey_signed: [
+    (f) => `${f.jockey} signs for ${f.stable}`,
+    (f) => `${f.stable} land ${f.jockey} in the transfer window`,
+    (f) => `New colours for ${f.jockey}: ${f.stable}`,
   ],
   sale: [
     (f) => `${f.horse} changes hands for ${cr(f.amount)}: ${f.otherStable} to ${f.stable}`,

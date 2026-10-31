@@ -154,8 +154,14 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
                 <Link href={`/horse/${h.id}`} className="link font-bold">
                   {h.name}
                 </Link>
-                <span className={`text-sm font-bold ${h.short > 0 ? "text-warn" : "text-positive"}`} data-testid="final-gap">
-                  {h.text}
+                <span className="grid justify-items-end gap-0.5 text-right">
+                  <span className={`text-sm font-bold ${h.short > 0 ? "text-warn" : "text-positive"}`} data-testid="final-gap">
+                    {h.text}
+                  </span>
+                  {/* The gap as a trajectory (playtest fix 15): the recent rate as "about N weeks". */}
+                  <span className={`text-sm font-bold ${h.short > 0 ? "text-cream-dim" : "text-positive"}`} data-testid="final-trajectory">
+                    {h.trajectory}
+                  </span>
                 </span>
               </li>
             ))}

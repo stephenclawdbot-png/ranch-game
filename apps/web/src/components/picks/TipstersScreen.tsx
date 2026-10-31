@@ -4,6 +4,7 @@
  * week's top 10 with their badge, the best weeks ever, and your own line. Points can never be
  * exchanged for anything.
  */
+import { UsdgText } from "@/components/chain/UsdgMode";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState, HowItWorks, PageHeader, Section } from "../ui/Page";
@@ -98,7 +99,7 @@ export function TipstersScreen() {
             </p>
             <p>Points are added once the race&apos;s result is public, after the broadcast. The table resets every Monday at 00:00 UTC; the week&apos;s top {v.rules.badgeTop} get a badge.</p>
             <p className="font-bold">
-              Points are just for fun. They can never be exchanged for credits, USDG, money or anything else, and there is nothing to stake.{" "}
+              Points are just for fun. <UsdgText>They can never be exchanged for credits, USDG, money or anything else, and there is nothing to stake.</UsdgText>{" "}
               <Link href="/wiki/picks-and-tipsters" className="link">
                 More in the wiki
               </Link>

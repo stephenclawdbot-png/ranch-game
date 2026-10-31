@@ -42,6 +42,8 @@ export interface FinaleOverlayProps {
   seal: SealState;
   onSkip(): void;
   onSkipAll(): void;
+  /** The "Share clip" button, built by the viewer (it owns the recording context). */
+  clipButton?: ReactNode;
 }
 
 function Swatch({ primary, secondary, size }: { primary: string; secondary: string; size: number }) {
@@ -83,7 +85,7 @@ export function FinaleOverlay(p: FinaleOverlayProps) {
           </div>
         </div>
       )}
-      {step.kind === "strip" && model && <StripPanel model={model} replay={replay} art={p.photoArt} artBase={p.artBase} narrow={narrow} courseName={p.courseName} connections={p.connections} />}
+      {step.kind === "strip" && model && <StripPanel model={model} replay={replay} art={p.photoArt} artBase={p.artBase} narrow={narrow} courseName={p.courseName} connections={p.connections} clipButton={p.clipButton} />}
       {step.kind === "replay" && (
         <>
           <div className="rv-fin-badges">
@@ -129,6 +131,7 @@ function StripPanel({
   narrow,
   courseName,
   connections,
+  clipButton,
 }: {
   model: PhotoFinishModel;
   replay: RaceReplay;
@@ -137,6 +140,7 @@ function StripPanel({
   narrow: boolean;
   courseName?: string | null;
   connections?: Readonly<Record<string, RunnerConnections>>;
+  clipButton?: ReactNode;
 }) {
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState(false);
@@ -169,9 +173,12 @@ function StripPanel({
     <div className="rv-fin-panel rv-fin-strip" onClick={(e) => e.stopPropagation()}>
       <div className="rv-fin-panel-h">
         <span className="rv-fin-k">Photo finish · judge&rsquo;s verdict</span>
-        <button type="button" className="rv-btn rv-fin-share" onClick={() => void share()} disabled={!art || busy} data-rv-share="">
-          {busy ? "…" : "Share"}
-        </button>
+        <span className="rv-fin-actions">
+          {clipButton}
+          <button type="button" className="rv-btn rv-fin-share" onClick={() => void share()} disabled={!art || busy} data-rv-share="">
+            {busy ? "…" : "Share"}
+          </button>
+        </span>
       </div>
       {/* Phones: the verdict sits above the strip (the strip fills the panel). */}
       {narrow && <div className={`rv-fin-verdict${verdict ? " rv-fin-verdict-on" : ""}`}>{prettyLengths(model.verdict)}</div>}

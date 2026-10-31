@@ -91,6 +91,8 @@ export interface UsdgOrderJson {
   signed: { order: Record<string, string>; signature: Hex } | null;
   /** True on the mock chain (WEB3_ENABLED off): "pay" is simulated by the server. */
   mock: boolean;
+  /** Practice mode (USDG_MODE=practice): paid from the player's T-USDG test balance, never on-chain. */
+  practice: boolean;
   /** An auction win (pay within the window) rather than a fixed-price buy. */
   auction: boolean;
 }

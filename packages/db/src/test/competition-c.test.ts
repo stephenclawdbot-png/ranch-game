@@ -12,7 +12,7 @@ import { getBalance } from "../services/ledger";
 import { createRace } from "../services/races";
 import { recordStoryResult, storyState } from "../services/story";
 import { cupDayEntries, cupDaySecret, runCupEntry } from "../services/dailyCup";
-import { ensureLeagueMembership, leagueOf, nextTier, seasonStandings, settleLeagueWeeks, weekScore } from "../services/leagues";
+import { ensureLeagueMembership, leagueOf, nextTier, seasonStandings, settleLeagueWeeks, tierLeaders, weekScore } from "../services/leagues";
 import { championHorses, inductHallOfFame, listAchievements, ownerStats, recordTimes, rivalsOf, syncAchievements } from "../services/hall";
 import { at, DAY, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
 import type { Db } from "../types";
@@ -122,6 +122,15 @@ describe("weekly leagues", () => {
     expect(live.rows[0]!.accountId).toBe(owners[0]!.accountId);
     expect(live.rows[0]!.points).toBe(3 * weekScore([{ position: 1, fieldSize: 11, raceClass: "maiden" }]).points);
     expect(live.rows.find((r) => r.accountId === owners[11]!.accountId)!.points).toBe(0);
+
+    // The top of each tier for the league page's empty state: best member per tier, live points.
+    const tops = await tierLeaders(h.db, T0);
+    expect(tops.map((t) => t.tierName)).toEqual(["bronze"]);
+    expect(tops[0]!.accountId).toBe(owners[0]!.accountId);
+    expect(tops[0]!.points).toBe(live.rows[0]!.points);
+    expect(tops[0]!.stableName).toBeTruthy();
+    // A week no leagues have formed in yet has no leaders.
+    expect(await tierLeaders(h.db, new Date(monday.getTime() + 14 * DAY))).toEqual([]);
 
     // Next week: settles the finished week once.
     const nextWeek = new Date(monday.getTime() + 7 * DAY + 3_600_000);

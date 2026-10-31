@@ -13,13 +13,20 @@ import {
   jockeyRecentRides,
   jockeyWinsBetween,
   jockeyBusyTx,
+  jockeyMarketInfo,
+  jockeyView,
+  contractsOfStable,
   listJockeys,
+  transferWindow,
   seasonBounds,
   seasonNumberAt,
   stableJockeys,
   type Db,
+  type ContractView,
   type JockeyFilter,
+  type JockeyMarketInfo,
   type JockeyView,
+  type WindowResult,
   type PublicRace,
 } from "@thoroughbred/db";
 import type { RiderOption } from "@/lib/types";
@@ -42,7 +49,13 @@ export interface JockeyCard {
   potential: string;
   rides: number;
   wins: number;
+  /** Career strike rate: percent of career rides won (null before the first ride). */
+  strikeRate: number | null;
+  /** Settled rides this season. */
+  ridesThisSeason: number;
   winsThisSeason: number;
+  /** The least a booking costs (the grade's floor fee); null for stable jockeys, who ride free. */
+  feeFrom: number | null;
   claimLb: number;
   stableId: string | null;
   stableName: string | null;
@@ -53,7 +66,7 @@ export interface JockeyCard {
   mine: boolean;
 }
 
-function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0): JockeyCard {
+function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0, ridesThisSeason = 0): JockeyCard {
   const p = gc.JOCKEY_PERSONALITY_LABELS[v.personality];
   return {
     id: v.id,
@@ -75,7 +88,10 @@ function card(v: JockeyView, viewerStableId: string | null, winsThisSeason = 0):
     potential: v.potential.overall.label,
     rides: v.rides,
     wins: v.wins,
+    strikeRate: v.rides > 0 ? Math.round((v.wins * 100) / v.rides) : null,
+    ridesThisSeason,
     winsThisSeason,
+    feeFrom: v.stableId === null && !v.retired ? gc.freelanceFee(v.grade, 0) : null,
     claimLb: v.claimLb,
     stableId: v.stableId,
     stableName: v.stableName,
@@ -97,6 +113,11 @@ export interface JockeysPageView {
   season: number;
   jockeys: JockeyCard[];
   leaderboard: { jockey: JockeyCard; wins: number; rides: number }[];
+  /**
+   * Career winners, best first: the sidebar's table before this season has its first winner
+   * (playtest fix 13 — a fresh season used to show an empty "Leading jockeys" column).
+   */
+  careerLeaders: JockeyCard[];
   signedIn: boolean;
   held: number;
   max: number;
@@ -109,13 +130,19 @@ export async function jockeysPage(db: Db, session: Session | null, filter: Jocke
   const viewer = session?.stable.id ?? null;
   const wins = await jockeyWinsBetween(db, s.startsAt, s.endsAt);
   const list = await listJockeys(db, { filter, stableId: viewer });
-  const board = await jockeyLeaderboard(db, { from: s.startsAt, to: s.endsAt, limit: 10 });
+  // The season board carries every jockey's settled rides this season, so it doubles as the
+  // source for the list's "rides this season" column.
+  const board = await jockeyLeaderboard(db, { from: s.startsAt, to: s.endsAt, limit: 1000 });
+  const seasonRides = new Map(board.map((b) => [b.jockey.id, b.rides] as const));
+  const careerPool = filter === "all" ? list : await listJockeys(db, {});
   const held = viewer ? (await stableJockeys(db, viewer)).length : 0;
+  const toCard = (v: JockeyView) => card(v, viewer, wins.get(v.id) ?? 0, seasonRides.get(v.id) ?? 0);
   return {
     filter,
     season: s.number,
-    jockeys: list.map((v) => card(v, viewer, wins.get(v.id) ?? 0)),
-    leaderboard: board.map((b) => ({ jockey: card(b.jockey, viewer, b.wins), wins: b.wins, rides: b.rides })),
+    jockeys: list.map(toCard),
+    leaderboard: board.slice(0, 10).map((b) => ({ jockey: toCard(b.jockey), wins: b.wins, rides: b.rides })),
+    careerLeaders: [...careerPool].sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name)).slice(0, 10).map(toCard),
     signedIn: !!session,
     held,
     max: gc.JOCKEYS_PER_STABLE_MAX,
@@ -127,6 +154,9 @@ export interface JockeyPageView {
   career: { kind: string; at: string; stableName: string | null; text: string }[];
   rides: { raceId: string; raceName: string; horseName: string; stableName: string | null; position: number | null; claimLb: number; postTime: string }[];
   actions: { canSign: boolean; signFee: number; canRelease: boolean; signBlock: string | null; held: number; max: number };
+  /** Phase 2: contract, morale, wants, developed at, the window and the viewer's offer. */
+  market: JockeyMarketInfo;
+  signedIn: boolean;
 }
 
 const CAREER_TEXT: Record<string, (stable: string | null) => string> = {
@@ -140,6 +170,8 @@ const CAREER_TEXT: Record<string, (stable: string | null) => string> = {
 export async function jockeyPage(db: Db, session: Session | null, id: string, now: Date): Promise<JockeyPageView | null> {
   const v = await getJockey(db, id);
   if (!v) return null;
+  const market = await jockeyMarketInfo(db, v.id, session ? { stableId: session.stable.id, accountId: session.accountId } : null, now);
+  if (!market) return null;
   const s = season(now);
   const viewer = session?.stable.id ?? null;
   const wins = await jockeyWinsBetween(db, s.startsAt, s.endsAt);
@@ -154,28 +186,68 @@ export async function jockeyPage(db: Db, session: Session | null, id: string, no
         ? null
         : v.stableId
           ? `Rides for ${v.stableName ?? "another stable"}`
-          : held >= gc.JOCKEYS_PER_STABLE_MAX
-            ? `You have ${gc.JOCKEYS_PER_STABLE_MAX} jockeys already`
-            : null;
+          : market.freeAgent
+            ? null
+            : held >= gc.JOCKEYS_PER_STABLE_MAX
+              ? `You have ${gc.JOCKEYS_PER_STABLE_MAX} jockeys already`
+              : null;
   return {
     jockey: card(v, viewer, wins.get(v.id) ?? 0),
     career: career.map((e) => ({ kind: e.kind, at: e.at.toISOString(), stableName: e.stableName, text: (CAREER_TEXT[e.kind] ?? (() => e.kind))(e.stableName) })),
     rides: rides.map((r) => ({ raceId: r.raceId, raceName: r.raceName, horseName: r.horseName, stableName: r.stableName, position: r.raceStatus === "settled" ? r.position : null, claimLb: r.claimLb, postTime: r.postTime })),
     actions: {
-      canSign: !!viewer && !signBlock && v.stableId === null,
+      canSign: !!viewer && !signBlock && v.stableId === null && !market.freeAgent,
       signFee: gc.signingFee(v.grade),
       canRelease: !!viewer && v.stableId === viewer && !v.retired,
       signBlock: v.stableId === viewer ? null : signBlock,
       held,
       max: gc.JOCKEYS_PER_STABLE_MAX,
     },
+    market,
+    signedIn: !!viewer,
   };
 }
 
-export async function myJockeys(db: Db, session: Session, now: Date): Promise<JockeyCard[]> {
+export type MyJockey = JockeyCard & { contract: ContractView | null; freeAgent: boolean };
+
+/** Stable → Your jockeys: each with its contract (wage, promised vs actual rides, morale). */
+export async function myJockeys(db: Db, session: Session, now: Date): Promise<MyJockey[]> {
   const s = season(now);
   const wins = await jockeyWinsBetween(db, s.startsAt, s.endsAt);
-  return (await stableJockeys(db, session.stable.id)).map((v) => card(v, session.stable.id, wins.get(v.id) ?? 0));
+  const contracts = await contractsOfStable(db, session.stable.id, now);
+  const list = await stableJockeys(db, session.stable.id);
+  const rows = new Map((await Promise.all(list.map(async (v) => [v.id, await jockeyMarketInfo(db, v.id, null, now)] as const))).map(([id, m]) => [id, m]));
+  return list.map((v) => ({ ...card(v, session.stable.id, wins.get(v.id) ?? 0), contract: contracts.get(v.id) ?? null, freeAgent: !!rows.get(v.id)?.freeAgent }));
+}
+
+export interface TransferWindowPageView {
+  signedIn: boolean;
+  deadlineMs: number;
+  commitment: string | null;
+  freeAgents: { jockey: JockeyCard; from: string | null; offers: number; why: string; wage: number }[];
+  myOffers: { jockeyId: string; jockeyName: string; wage: number; length: string; promisedRides: number; fee: number; status: string; thisWeek: boolean }[];
+  openOffers: number;
+  maxOffers: number;
+  last: WindowResult | null;
+}
+
+/** Racing → Jockeys → Transfer window: free agents this week, your offers, last week's results. */
+export async function transferWindowPage(db: Db, session: Session | null, now: Date): Promise<TransferWindowPageView> {
+  await ensureJockeyBackfill(db, now);
+  const viewer = session?.stable.id ?? null;
+  const v = await transferWindow(db, { stableId: viewer, now });
+  return {
+    signedIn: !!session,
+    deadlineMs: v.deadlineMs,
+    commitment: v.commitment,
+    freeAgents: v.freeAgents
+      .map((f) => ({ jockey: card(jockeyView(f.jockey, f.fromStableName ? { name: f.fromStableName, silks: null } : null), viewer), from: f.fromStableName, offers: f.offers, why: f.why, wage: gc.jockeyWage(jockeyView(f.jockey).grade) }))
+      .sort((a, b) => b.jockey.overall - a.jockey.overall || a.jockey.name.localeCompare(b.jockey.name)),
+    myOffers: v.myOffers.map((o) => ({ jockeyId: o.jockeyId, jockeyName: o.jockeyName, wage: o.wage, length: gc.JOCKEY_CONTRACT_LENGTH_LABELS[o.length as gc.JockeyContractLength] ?? o.length, promisedRides: o.promisedRides, fee: o.fee, status: o.status, thisWeek: o.week === v.week })),
+    openOffers: v.myOffers.filter((o) => o.status === "open").length,
+    maxOffers: gc.JOCKEY_OPEN_OFFERS_PER_STABLE,
+    last: v.last,
+  };
 }
 
 /** The entry sheet's jockeys for a Live race: own first (best first), then free Club freelancers (best first, a short list). */

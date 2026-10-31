@@ -4,6 +4,7 @@ import type { TelemetryEvent } from "@thoroughbred/db";
 import { trackEvent } from "./playtest";
 import { db, type Db } from "./db";
 import { friendlyEconomyError } from "./economy";
+import { practiceWording } from "./chain/practice";
 import { errorJson, handleError, json, readJson } from "./http";
 import { requireSession, type Session } from "./session";
 
@@ -18,7 +19,8 @@ export async function withPlayer<T>(fn: (database: Db, session: Session, now: Da
     const session = await requireSession(database);
     const out = await fn(database, session, new Date());
     if (event) await trackEvent(database, session.accountId, event);
-    return json(out, { status });
+    // Practice mode: any USDG wording in these views (stud blocks, USDG-only lots) reads T-USDG.
+    return json(practiceWording(out), { status });
   } catch (err) {
     return handleError(friendlyEconomyError(err));
   }

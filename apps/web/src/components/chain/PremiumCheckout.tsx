@@ -6,17 +6,22 @@
  *   payment on-chain and grants the pulls -> reveal. Pending orders resume after a reload.
  * A share of each sale (poolBps) goes to the on-chain Prize Pool, but the checkout never sells
  * that: prizes need no purchase, and the pool is mostly a fixed weekly budget from the Club.
+ * Practice mode (USDG_MODE=practice): the pack costs its USD price in T-USDG test money (1:1),
+ * paid from the T-USDG balance in one request (no quote, no ETH, no network).
  */
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address, Hex } from "viem";
-import { PREMIUM_BETA_LIFETIME_USD_CENTS } from "@thoroughbred/game-core";
+import { PREMIUM_BETA_LIFETIME_USD_CENTS, practiceUsdgFromUsdCents } from "@thoroughbred/game-core";
 import { premiumStoreAbi } from "@/lib/chain/contracts.generated";
 import { txUrl } from "@/lib/chain/chains";
 import { formatEth, formatUsdCents, shortAddress } from "@/lib/chain/format";
 import { quoteFromJson, type EthQuoteJson } from "@/lib/chain/quote";
 import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
+import { PRACTICE_EXPLAINER, PracticeBadge, WalletChip, usdgDisplay } from "./UsdgMode";
 import { WalletLink, useWalletStatus } from "./WalletLink";
+
+const practiceDollars = usdgDisplay(true).dollars;
 import { WalletPicker } from "./WalletPicker";
 import { useWallet } from "./useWallet";
 
@@ -33,6 +38,10 @@ interface OrderView {
 }
 interface CheckoutStatus {
   enabled: boolean;
+  /** Practice mode: packs cost T-USDG (POST /api/checkout/practice). */
+  practice: boolean;
+  /** My T-USDG balance (micro), null without a wallet. */
+  practiceBalance: number | null;
   chainId: number;
   store: Address;
   packUsdCents: number;
@@ -66,9 +75,10 @@ async function call<T>(url: string, body?: unknown): Promise<T> {
   return data;
 }
 
-function useEthPrice(): number | null {
+function useEthPrice(on: boolean): number | null {
   const [usd, setUsd] = useState<number | null>(null);
   useEffect(() => {
+    if (!on) return; // practice mode: no ETH price at all
     let live = true;
     const load = () =>
       fetch("/api/price", { cache: "no-store" })
@@ -81,7 +91,7 @@ function useEthPrice(): number | null {
       live = false;
       clearInterval(t);
     };
-  }, []);
+  }, [on]);
   return usd;
 }
 
@@ -98,7 +108,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
   const [tx, setTx] = useState<Hex | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const ethUsd = useEthPrice();
+  const ethUsd = useEthPrice(!!st?.enabled && !st.practice);
   const w = useWallet();
   const { status: wallet, reload: reloadWallet } = useWalletStatus();
   const requoted = useRef<string | null>(null);
@@ -199,6 +209,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
   }
 
   if (!st) return null;
+  if (st.practice) return <PracticePackCheckout st={st} weeklyLeft={weeklyLeft} stallsFree={stallsFree} wallet={wallet?.address ?? null} onLinked={() => void reloadWallet()} onFulfilled={onFulfilled} />;
   if (!st.enabled) return null; // the pack card shows "coming soon"
 
   const lifetimeLeft = Math.floor(st.lifetimeLeftCents / st.packUsdCents); // packs the beta allowance still covers
@@ -281,6 +292,119 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
         <Link href="/pool" className="underline">
           Prize Pool
         </Link>
+      </p>
+    </div>
+  );
+}
+
+/** Practice mode: "Buy for 4.99 T-USDG" from the test balance, pulled in the same request. */
+function PracticePackCheckout({
+  st,
+  weeklyLeft,
+  stallsFree,
+  wallet,
+  onLinked,
+  onFulfilled,
+}: {
+  st: CheckoutStatus;
+  weeklyLeft: number;
+  stallsFree: number;
+  wallet: string | null;
+  onLinked: () => void;
+  onFulfilled: (pullIds: string[]) => void;
+}) {
+  const [qty, setQty] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(st.practiceBalance);
+  const [done, setDone] = useState(false);
+  const [leftCents, setLeftCents] = useState(st.lifetimeLeftCents);
+  const price = (n: number) => practiceDollars(practiceUsdgFromUsdCents(st.packUsdCents * n));
+  const lifetimeLeft = Math.floor(leftCents / st.packUsdCents);
+  const affordable = balance === null ? 0 : Math.floor(balance / practiceUsdgFromUsdCents(st.packUsdCents));
+  const maxQty = Math.max(0, Math.min(10, weeklyLeft, stallsFree, lifetimeLeft, affordable));
+
+  async function buy() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const key = `pp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const r = await call<{ pullIds: string[]; balance: number }>("/api/checkout/practice", { sku: "premium_pack", quantity: qty, clientKey: key });
+      setBalance(r.balance);
+      setLeftCents((c) => Math.max(0, c - st.packUsdCents * qty));
+      setDone(true);
+      onFulfilled(r.pullIds);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="inset grid gap-3 p-3" data-testid="premium-checkout" data-mode="practice">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="label">Buy with T-USDG</span>
+        <PracticeBadge />
+      </div>
+      {!wallet ? (
+        <>
+          <p className="text-sm">Sign in with your wallet to get your T-USDG (one free signature, no transaction).</p>
+          <WalletLink onLinked={onLinked} />
+        </>
+      ) : (
+        <>
+          <span className="flex flex-wrap items-center gap-2">
+            <WalletChip address={wallet} />
+            {balance !== null && (
+              <span className="text-sm" data-testid="tusdg-pack-balance">
+                Your T-USDG: <b className="num text-cream">{practiceDollars(balance)}</b>
+              </span>
+            )}
+          </span>
+          {done ? (
+            <p className="font-bold text-cream" data-testid="checkout-done">
+              ✓ Paid with T-USDG. Your foal{qty > 1 ? "s are" : " is"} in the nursery.{" "}
+              <button type="button" className="underline" onClick={() => setDone(false)}>
+                Buy another
+              </button>
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm">
+                <span className="sr-only">Quantity</span>
+                <select className="field min-h-11" value={qty} onChange={(e) => setQty(Number(e.target.value))} disabled={maxQty === 0} data-testid="checkout-qty">
+                  {Array.from({ length: Math.max(1, maxQty) }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1} pack{i ? "s" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className="btn btn-brass" onClick={() => void buy()} disabled={busy || maxQty === 0} data-testid="checkout-buy-tusdg">
+                {busy
+                  ? "Opening…"
+                  : maxQty === 0
+                    ? weeklyLeft <= 0
+                      ? "Weekly limit reached"
+                      : lifetimeLeft <= 0
+                        ? "Beta limit reached"
+                        : stallsFree <= 0
+                          ? "No free stall"
+                          : "Not enough T-USDG"
+                    : `Buy for ${price(qty)}`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+      {msg && (
+        <p role="alert" className="text-sm font-bold text-negative" data-testid="checkout-error">
+          {msg}
+        </p>
+      )}
+      <p className="caption">
+        {PRACTICE_EXPLAINER} Max 5 Premium Packs a week and {practiceDollars(practiceUsdgFromUsdCents(PREMIUM_BETA_LIFETIME_USD_CENTS))} over the beta, {practiceDollars(practiceUsdgFromUsdCents(leftCents))} left.
       </p>
     </div>
   );

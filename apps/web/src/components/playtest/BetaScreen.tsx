@@ -9,6 +9,7 @@ import { ErrorNote } from "../ui/ErrorNote";
 import { SectionHeader } from "../ui/SectionHeader";
 import { HowItWorks, PageHeader } from "../ui/Page";
 import { FeedbackButton } from "./FeedbackButton";
+import { PracticeAware } from "../chain/UsdgMode";
 
 interface BetaView {
   playtest: boolean;
@@ -81,7 +82,12 @@ function Beta() {
               </li>
             ))}
           </ul>
-          <p className="caption mt-2">Reviewed by the team and paid by hand in USDG to your wallet on Robinhood Chain. Amounts can change during the beta.</p>
+          <p className="caption mt-2">
+            <PracticeAware
+              live="Reviewed by the team and paid by hand in USDG to your wallet on Robinhood Chain. Amounts can change during the beta."
+              practice="Paused while the beta uses T-USDG test money: no real money is paid out for now."
+            />
+          </p>
         </section>
       )}
 

@@ -16,8 +16,9 @@ import { useWallet } from "@/components/chain/useWallet";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { EmptyState, HowItWorks } from "@/components/ui/Page";
 import { shortAddress } from "@/lib/chain/format";
-import { bidTypedData, formatUsdgDollars, formatUsdgToken, type UsdgOrderJson } from "@/lib/chain/usdg";
-import { clients, ensureChain, walletErrorText } from "@/lib/chain/wallet";
+import { bidTypedData, type UsdgOrderJson } from "@/lib/chain/usdg";
+import { clients, ensureChain, signTypedDataOnCurrentChain, walletErrorText } from "@/lib/chain/wallet";
+import { PRACTICE_EXPLAINER, PracticeBalance, WalletChip, useUsdg } from "@/components/chain/UsdgMode";
 import { api } from "@/lib/player";
 import type { UsdgLotView, UsdgMarketView } from "@/lib/usdgTypes";
 import { HorseLine, Skeleton, stageLabel, useEcoView } from "./kit";
@@ -33,15 +34,23 @@ function endsIn(ms: number): string {
 }
 
 export function Usd({ micro, className }: { micro: number; className?: string }) {
+  const u = useUsdg();
+  if (u.practice)
+    return (
+      <span className={className}>
+        <span className="lot-price">{u.dollars(micro)}</span>
+      </span>
+    );
   return (
     <span className={className}>
-      <span className="lot-price">{formatUsdgDollars(micro)}</span> <span className="caption num">{formatUsdgToken(micro)}</span>
+      <span className="lot-price">{u.dollars(micro)}</span> <span className="caption num">{u.token(micro)}</span>
     </span>
   );
 }
 
 export function UsdgMarket() {
   const { data, error, reload } = useEcoView<UsdgMarketView>("/api/usdg");
+  const u = useUsdg();
   if (error && !data) return <ErrorNote error={error} onRetry={reload} />;
   if (!data) return <Skeleton rows={4} />;
   const v = data;
@@ -49,43 +58,61 @@ export function UsdgMarket() {
     return (
       <EmptyState
         icon="coin"
-        title="The USDG market is coming soon"
-        text="Registered horses will trade for USDG, Robinhood Chain's dollar stablecoin. Credits stay in the game: they are never bought or cashed out."
+        title={u.t("The USDG market is coming soon")}
+        text={u.t("Registered horses will trade for USDG, Robinhood Chain's dollar stablecoin. Credits stay in the game: they are never bought or cashed out.")}
         testId="usdg-off"
       />
     );
   const fixed = v.lots.filter((l) => l.kind === "fixed");
   const auctions = v.lots.filter((l) => l.kind === "auction");
+  const practice = v.network.mode === "practice";
   return (
     <div className="grid gap-5" data-testid="usdg-market">
-      <HowItWorks label="How the USDG market works">
+      {practice && (
+        <section className="surface-2 grid gap-2 p-3" aria-label="Test money" data-testid="tusdg-explainer">
+          <PracticeBalance micro={v.practice?.balance ?? null} />
+          <p className="text-sm">{PRACTICE_EXPLAINER}</p>
+        </section>
+      )}
+      <HowItWorks label={u.t("How the USDG market works")}>
+        {practice ? (
+          <p>
+            Horses registered for the T-USDG market change hands for T-USDG, the beta&rsquo;s test money. Every wallet that signs in gets {u.dollars(v.practice?.grant ?? 0)} once. The price moves
+            from the buyer&rsquo;s balance to the seller&rsquo;s, minus a {v.policy.feeBps / 100}% market fee. Bids are free wallet signatures. Stable Credits are never involved.
+          </p>
+        ) : (
         <p>
           Horses registered for the USDG market change hands for USDG, a dollar stablecoin ({v.network.networkName}). The price goes straight from the buyer&rsquo;s wallet to the seller&rsquo;s, minus a{" "}
           {v.policy.feeBps / 100}% market fee to the Club. Stable Credits are never involved.
         </p>
+        )}
         <p>
-          Any horse with {v.policy.minLiveStarts} Live starts that isn&rsquo;t Club-bred, a starter or a Premium pull can register, once, for {formatUsdgDollars(v.policy.registrationFee)}. A
-          registered horse sells only for USDG from then on. Auction bids are free signatures; the winner has {v.policy.paymentWindowHours} h to pay, or the next bidder gets the chance and the
+          Any horse with {v.policy.minLiveStarts} Live starts that isn&rsquo;t Club-bred, a starter or a Premium pull can register, once, for {u.dollars(v.policy.registrationFee)}. A
+          registered horse sells only for {u.name} from then on. Auction bids are free signatures; the winner has {v.policy.paymentWindowHours} h to pay, or the next bidder gets the chance and the
           non-payer can&rsquo;t bid for {v.policy.nonPayerBarDays} days. <Link href="/wiki/usdg-market" className="underline">Read the rules</Link>.
         </p>
       </HowItWorks>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <TestnetNote chainId={v.network.chainId} mock={v.network.mode === "mock"} />
+        <TestnetNote chainId={v.network.chainId} mock={v.network.mode === "mock"} practice={practice} />
         {v.wallet ? (
-          <span className="chip text-sm font-bold text-cream" title={v.wallet} data-testid="usdg-wallet">
-            Wallet {shortAddress(v.wallet)}
-          </span>
+          practice ? (
+            <WalletChip address={v.wallet} />
+          ) : (
+            <span className="chip text-sm font-bold text-cream" title={v.wallet} data-testid="usdg-wallet">
+              Wallet {shortAddress(v.wallet)}
+            </span>
+          )
         ) : null}
       </div>
       {!v.wallet && (
         <section className="surface grid gap-2 p-3" aria-label="Wallet">
-          <p className="font-bold">Link a wallet to buy, bid or sell for USDG.</p>
+          <p className="font-bold">{practice ? "Sign in with your wallet to get your T-USDG and buy, bid or sell. Signing is free and sends no transaction." : "Link a wallet to buy, bid or sell for USDG."}</p>
           <WalletLink compact />
         </section>
       )}
       {v.barredUntilMs && (
         <p className="surface-2 p-3 text-sm font-bold text-negative" role="status" data-testid="usdg-barred">
-          You didn&rsquo;t pay for an auction you won, so you can&rsquo;t bid in USDG auctions until {new Date(v.barredUntilMs).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.
+          You didn&rsquo;t pay for an auction you won, so you can&rsquo;t bid in {u.name} auctions until {new Date(v.barredUntilMs).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.
         </p>
       )}
       {v.orders.length > 0 && <OpenOrders orders={v.orders} onChange={reload} />}
@@ -170,6 +197,7 @@ function LotHead({ l }: { l: UsdgLotView }) {
 }
 
 function FixedLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onChange: () => void }) {
+  const u = useUsdg();
   const [order, setOrder] = useState<UsdgOrderJson | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -191,7 +219,7 @@ function FixedLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onCha
       <LotHead l={l} />
       <Usd micro={l.price} />
       <p className="caption">
-        Seller receives {formatUsdgDollars(l.sellerReceives)} · market fee {formatUsdgDollars(l.fee)} · ends in {endsIn(l.endsAtMs - v.serverNowMs)}
+        Seller receives {u.dollars(l.sellerReceives)} · market fee {u.dollars(l.fee)} · ends in {endsIn(l.endsAtMs - v.serverNowMs)}
       </p>
       {done ? (
         <p className="font-bold text-positive" role="status">
@@ -207,7 +235,7 @@ function FixedLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onCha
         />
       ) : (
         <button type="button" className="btn w-fit" onClick={() => void buy()} disabled={busy || !v.wallet || full || l.reserved} data-testid="usdg-buy">
-          {!v.wallet ? "Link a wallet to buy" : full ? "No free stall" : l.reserved ? "Someone is paying for this lot" : busy ? "Reserving…" : `Buy for ${formatUsdgDollars(l.price)}`}
+          {!v.wallet ? "Link a wallet to buy" : full ? "No free stall" : l.reserved ? "Someone is paying for this lot" : busy ? "Reserving…" : `Buy for ${u.dollars(l.price)}`}
         </button>
       )}
       {error ? <ErrorNote error={error} /> : null}
@@ -216,6 +244,7 @@ function FixedLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onCha
 }
 
 function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onChange: () => void }) {
+  const u = useUsdg();
   const w = useWallet();
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -230,11 +259,18 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
     setBusy(true);
     setError(null);
     try {
-      await ensureChain(w.provider, v.network.chainId);
-      const { wallet } = clients(w.provider, v.network.chainId, w.address);
       const nonce = BigInt(Date.now()) * 1000n + BigInt(Math.floor(Math.random() * 1000));
-      const signature = await wallet.signTypedData({ account: w.address, ...bidTypedData({ listingId: l.listingId, amount: BigInt(micro!), bidder: w.address, nonce }, v.network.chainId, v.network.market as `0x${string}`) });
-      await api(`/api/usdg/listings/${l.listingId}/bid`, { body: { amount: micro, nonce: nonce.toString(), signature } });
+      const theBid = { listingId: l.listingId, amount: BigInt(micro!), bidder: w.address, nonce };
+      if (u.practice) {
+        // Practice: the same free signature, on whatever network the wallet is on (no switch, no chain).
+        const { signature, chainId } = await signTypedDataOnCurrentChain(w.provider, w.address, (id) => bidTypedData(theBid, id, v.network.market as `0x${string}`));
+        await api(`/api/usdg/listings/${l.listingId}/bid`, { body: { amount: micro, nonce: nonce.toString(), signature, chainId } });
+      } else {
+        await ensureChain(w.provider, v.network.chainId);
+        const { wallet } = clients(w.provider, v.network.chainId, w.address);
+        const signature = await wallet.signTypedData({ account: w.address, ...bidTypedData(theBid, v.network.chainId, v.network.market as `0x${string}`) });
+        await api(`/api/usdg/listings/${l.listingId}/bid`, { body: { amount: micro, nonce: nonce.toString(), signature } });
+      }
       setPlaced(micro);
       setAmount("");
       onChange();
@@ -257,7 +293,7 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
           {l.bidCount} {l.bidCount === 1 ? "bid" : "bids"} · {open ? `closes in ${endsIn(l.endsAtMs - v.serverNowMs)}` : "bidding closed"}
         </span>
       </div>
-      {l.myBestBid !== null && <p className="caption font-bold">Your best bid: {formatUsdgDollars(l.myBestBid)}{l.bestBid === l.myBestBid ? " (leading)" : ""}</p>}
+      {l.myBestBid !== null && <p className="caption font-bold">Your best bid: {u.dollars(l.myBestBid)}{l.bestBid === l.myBestBid ? " (leading)" : ""}</p>}
       {!open ? (
         <p className="caption" data-testid="usdg-offering">
           {l.offeredToMe ? "You won: pay from “To pay” above before the window ends." : "Closed: the winner is paying. If they don't, the next bidder is offered the horse."}
@@ -265,7 +301,7 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
       ) : !v.wallet ? (
         <p className="caption">Link a wallet to bid.</p>
       ) : v.barredUntilMs ? (
-        <p className="caption">USDG bidding is closed to you for now.</p>
+        <p className="caption">{u.name} bidding is closed to you for now.</p>
       ) : !w.address ? (
         <WalletPicker label="Connect your wallet to bid" />
       ) : wrongWallet ? (
@@ -273,24 +309,25 @@ function AuctionLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onC
       ) : (
         <div className="flex flex-wrap items-end gap-2">
           <label className="grid gap-1">
-            <span className="label">Your bid (USDG)</span>
+            <span className="label">Your bid ({u.name})</span>
             <input className="field w-32" inputMode="decimal" placeholder={String(l.minNextBid! / 1_000_000)} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} data-testid="usdg-bid-amount" />
           </label>
           <button type="button" className="btn btn-brass" onClick={() => void placeBid()} disabled={!valid || busy} data-testid="usdg-bid">
             {busy ? "Sign in your wallet…" : "Sign bid"}
           </button>
           <span className="caption basis-full">
-            At least {formatUsdgDollars(l.minNextBid!)}. A bid is a free signature, no transaction; you pay only if you win ({v.policy.paymentWindowHours} h to pay).
+            At least {u.dollars(l.minNextBid!)}. A bid is a free signature, no transaction; you pay only if you win ({v.policy.paymentWindowHours} h to pay).
           </span>
         </div>
       )}
-      {placed !== null && <p className="text-sm font-bold text-positive">✓ Bid of {formatUsdgDollars(placed)} placed.</p>}
+      {placed !== null && <p className="text-sm font-bold text-positive">✓ Bid of {u.dollars(placed)} placed.</p>}
       {error ? <ErrorNote error={error} /> : null}
     </li>
   );
 }
 
 function MySide({ v, onChange }: { v: UsdgMarketView; onChange: () => void }) {
+  const u = useUsdg();
   const [listing, setListing] = useState<string | null>(null);
   return (
     <section aria-labelledby="usdg-mine-h" className="grid gap-2" data-testid="usdg-mine">
@@ -299,7 +336,7 @@ function MySide({ v, onChange }: { v: UsdgMarketView; onChange: () => void }) {
       </h2>
       {v.registered.length === 0 ? (
         <p className="caption">
-          None yet. Register a horse from its horse page (&ldquo;Register for the USDG market&rdquo;) once it has {v.policy.minLiveStarts} Live starts.
+          None yet. Register a horse from its horse page (&ldquo;Register for the {u.name} market&rdquo;) once it has {v.policy.minLiveStarts} Live starts.
         </p>
       ) : (
         <ul className="grid gap-2">
@@ -307,7 +344,7 @@ function MySide({ v, onChange }: { v: UsdgMarketView; onChange: () => void }) {
             const lot = v.mine.find((l) => l.id === h.id);
             return (
               <li key={h.id} className="surface grid gap-2 p-3" data-testid="usdg-registered">
-                <HorseLine h={h} meta={<>{stageLabel(h.stage)} · {h.starts} starts · registered for USDG</>} />
+                <HorseLine h={h} meta={<>{stageLabel(h.stage)} · {h.starts} starts · registered for {u.name}</>} />
                 {lot ? (
                   <MyLot l={lot} v={v} onChange={onChange} />
                 ) : h.block ? (
@@ -325,7 +362,7 @@ function MySide({ v, onChange }: { v: UsdgMarketView; onChange: () => void }) {
                   />
                 ) : (
                   <button type="button" className="btn w-fit" onClick={() => setListing(h.id)} data-testid="usdg-list-open">
-                    List for USDG
+                    List for {u.name}
                   </button>
                 )}
               </li>
@@ -338,6 +375,7 @@ function MySide({ v, onChange }: { v: UsdgMarketView; onChange: () => void }) {
 }
 
 function MyLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onChange: () => void }) {
+  const u = useUsdg();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   async function delist() {
@@ -357,15 +395,15 @@ function MyLot({ l, v, onChange }: { l: UsdgLotView; v: UsdgMarketView; onChange
       <p className="text-sm">
         {l.kind === "fixed" ? (
           <>
-            Listed at <b>{formatUsdgDollars(l.price)}</b>: you receive {formatUsdgDollars(l.sellerReceives)} · ends in {endsIn(l.endsAtMs - v.serverNowMs)}
+            Listed at <b>{u.dollars(l.price)}</b>: you receive {u.dollars(l.sellerReceives)} · ends in {endsIn(l.endsAtMs - v.serverNowMs)}
             {l.reserved ? " · a buyer is paying now" : ""}
           </>
         ) : l.status === "closed" ? (
-          <>Auction closed: the top bidder is paying ({l.bestBid ? formatUsdgDollars(l.bestBid) : "–"}).</>
+          <>Auction closed: the top bidder is paying ({l.bestBid ? u.dollars(l.bestBid) : "–"}).</>
         ) : (
           <>
-            Auction: reserve {formatUsdgDollars(l.price)} · {l.bidCount} {l.bidCount === 1 ? "bid" : "bids"}
-            {l.bestBid ? `, best ${formatUsdgDollars(l.bestBid)}` : ""} · closes in {endsIn(l.endsAtMs - v.serverNowMs)}
+            Auction: reserve {u.dollars(l.price)} · {l.bidCount} {l.bidCount === 1 ? "bid" : "bids"}
+            {l.bestBid ? `, best ${u.dollars(l.bestBid)}` : ""} · closes in {endsIn(l.endsAtMs - v.serverNowMs)}
           </>
         )}
       </p>

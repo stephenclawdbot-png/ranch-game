@@ -1,5 +1,5 @@
 {
-  "id": "8f83dc9c-1d7a-4a06-900c-3d925ee42ab7",
+  "id": "e32fe821-fd96-47e3-beea-d9cacdd7c55c",
   "prevId": "c1ed1674-b90d-49f6-9e0e-bc3c4d803443",
   "version": "7",
   "dialect": "postgresql",
@@ -4312,6 +4312,225 @@
       },
       "isRLSEnabled": false
     },
+    "public.jockey_contracts": {
+      "name": "jockey_contracts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "jockey_id": {
+          "name": "jockey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stable_id": {
+          "name": "stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "length": {
+          "name": "length",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_week": {
+          "name": "start_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_week": {
+          "name": "ends_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wage": {
+          "name": "wage",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wage_free_until_week": {
+          "name": "wage_free_until_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promised_rides": {
+          "name": "promised_rides",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyout": {
+          "name": "buyout",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "broken_weeks": {
+          "name": "broken_weeks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_rides_week": {
+          "name": "last_rides_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_week_rides": {
+          "name": "last_week_rides",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unpaid_week": {
+          "name": "unpaid_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wages_paid": {
+          "name": "wages_paid",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "notes": {
+          "name": "notes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_why": {
+          "name": "ended_why",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "jockey_contracts_active_uq": {
+          "name": "jockey_contracts_active_uq",
+          "columns": [
+            {
+              "expression": "jockey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"jockey_contracts\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "jockey_contracts_stable_idx": {
+          "name": "jockey_contracts_stable_idx",
+          "columns": [
+            {
+              "expression": "stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jockey_contracts_jockey_id_jockeys_id_fk": {
+          "name": "jockey_contracts_jockey_id_jockeys_id_fk",
+          "tableFrom": "jockey_contracts",
+          "tableTo": "jockeys",
+          "columnsFrom": [
+            "jockey_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "jockey_contracts_stable_id_stables_id_fk": {
+          "name": "jockey_contracts_stable_id_stables_id_fk",
+          "tableFrom": "jockey_contracts",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "jockey_contracts_status": {
+          "name": "jockey_contracts_status",
+          "value": "\"jockey_contracts\".\"status\" in ('active', 'ended')"
+        },
+        "jockey_contracts_terms": {
+          "name": "jockey_contracts_terms",
+          "value": "\"jockey_contracts\".\"wage\" >= 0 and \"jockey_contracts\".\"promised_rides\" >= 0 and \"jockey_contracts\".\"buyout\" >= 0 and \"jockey_contracts\".\"ends_week\" > \"jockey_contracts\".\"start_week\""
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.jockey_events": {
       "name": "jockey_events",
       "schema": "",
@@ -4455,6 +4674,222 @@
         "jockey_events_kind": {
           "name": "jockey_events_kind",
           "value": "\"jockey_events\".\"kind\" in ('debut', 'signed', 'released', 'retirement_announced', 'retired')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jockey_offers": {
+      "name": "jockey_offers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "week": {
+          "name": "week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jockey_id": {
+          "name": "jockey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stable_id": {
+          "name": "stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "length": {
+          "name": "length",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wage": {
+          "name": "wage",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "promised_rides": {
+          "name": "promised_rides",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyout": {
+          "name": "buyout",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fee": {
+          "name": "fee",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "utility": {
+          "name": "utility",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "jockey_offers_week_uq": {
+          "name": "jockey_offers_week_uq",
+          "columns": [
+            {
+              "expression": "week",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "jockey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "jockey_offers_stable_idx": {
+          "name": "jockey_offers_stable_idx",
+          "columns": [
+            {
+              "expression": "stable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "jockey_offers_jockey_idx": {
+          "name": "jockey_offers_jockey_idx",
+          "columns": [
+            {
+              "expression": "jockey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "week",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jockey_offers_jockey_id_jockeys_id_fk": {
+          "name": "jockey_offers_jockey_id_jockeys_id_fk",
+          "tableFrom": "jockey_offers",
+          "tableTo": "jockeys",
+          "columnsFrom": [
+            "jockey_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "jockey_offers_stable_id_stables_id_fk": {
+          "name": "jockey_offers_stable_id_stables_id_fk",
+          "tableFrom": "jockey_offers",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "jockey_offers_account_id_accounts_id_fk": {
+          "name": "jockey_offers_account_id_accounts_id_fk",
+          "tableFrom": "jockey_offers",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "jockey_offers_status": {
+          "name": "jockey_offers_status",
+          "value": "\"jockey_offers\".\"status\" in ('open', 'won', 'lost', 'withdrawn')"
         }
       },
       "isRLSEnabled": false
@@ -4721,6 +5156,30 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "window_seed": {
+          "name": "window_seed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "window_commitment": {
+          "name": "window_commitment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "window_ran_at": {
+          "name": "window_ran_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "window": {
+          "name": "window",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -4848,6 +5307,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "free_agent_week": {
+          "name": "free_agent_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "developed_by_stable_id": {
+          "name": "developed_by_stable_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -4857,6 +5328,21 @@
         }
       },
       "indexes": {
+        "jockeys_free_agent_idx": {
+          "name": "jockeys_free_agent_idx",
+          "columns": [
+            {
+              "expression": "free_agent_week",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "jockeys_stable_idx": {
           "name": "jockeys_stable_idx",
           "columns": [
@@ -4920,6 +5406,19 @@
           "tableTo": "stables",
           "columnsFrom": [
             "last_stable_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "jockeys_developed_by_stable_id_stables_id_fk": {
+          "name": "jockeys_developed_by_stable_id_stables_id_fk",
+          "tableFrom": "jockeys",
+          "tableTo": "stables",
+          "columnsFrom": [
+            "developed_by_stable_id"
           ],
           "columnsTo": [
             "id"
@@ -8629,24 +9128,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "runner": {
-          "name": "runner",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pool": {
-          "name": "pool",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lapsed_at": {
-          "name": "lapsed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -8801,68 +9282,6 @@
         "void_reason": {
           "name": "void_reason",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "challenge_end_at": {
-          "name": "challenge_end_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "result_hash": {
-          "name": "result_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attested_hash": {
-          "name": "attested_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "disputed": {
-          "name": "disputed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "synced_block": {
-          "name": "synced_block",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "keeper_attempts": {
-          "name": "keeper_attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "keeper_next_at": {
-          "name": "keeper_next_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "keeper_error": {
-          "name": "keeper_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parked_at": {
-          "name": "parked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "guardian_request_at": {
-          "name": "guardian_request_at",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -10231,24 +10650,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "self_excluded_until": {
-          "name": "self_excluded_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "self_exclusion_end_requested_at": {
-          "name": "self_exclusion_end_requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reality_check_ack_at": {
-          "name": "reality_check_ack_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",

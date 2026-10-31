@@ -32,6 +32,7 @@
  * Integer maths only (BigInt inside the pool split), no clocks: callers pass time in.
  */
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from "./time";
+import { isUsdgPracticeMode } from "./usdgMarket";
 
 export type ToteCurrency = "CR" | "TUSDG";
 export const TOTE_CURRENCIES = ["CR", "TUSDG"] as const satisfies readonly ToteCurrency[];
@@ -155,8 +156,8 @@ export function toteTakeout(total: number, permille: number = TOTE_TAKEOUT_PERMI
 }
 
 /** Is T-USDG betting switched on? Only when the practice-USDG mode is: never live, mock or off. */
-export function toteUsdgEnabledFrom(env: { USDG_MODE?: string | undefined }): boolean {
-  return env.USDG_MODE === "practice";
+export function toteUsdgEnabledFrom(env: { readonly [key: string]: string | undefined }): boolean {
+  return isUsdgPracticeMode(env);
 }
 
 // ---------------------------------------------------------------------------

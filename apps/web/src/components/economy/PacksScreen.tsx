@@ -17,6 +17,7 @@ import type { PackOffer, PacksView, PullResultView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
 import { FoalReveal } from "./FoalReveal";
 import { PremiumCheckout } from "@/components/chain/PremiumCheckout";
+import { PracticeBadge } from "@/components/chain/UsdgMode";
 import { Credits, RARITY_COLOR, RARITY_LABEL, RarityBadge, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
 export function PacksScreen() {
@@ -88,7 +89,7 @@ export function PacksScreen() {
         <PackCard o={v.paddock} busy={busy} primary={!freeReady} onOpen={() => open("paddock", false)} ceiling={v.ceiling} />
         <div className="grid content-start gap-3">
           <PackCard o={v.premium} busy={busy} primary={false} onOpen={() => open("premium", false)} ceiling={v.ceiling} />
-          {/* Closed beta: buy with ETH on Robinhood Chain (renders nothing unless WEB3_ENABLED). */}
+          {/* Closed beta: buy with ETH on Robinhood Chain, or with T-USDG in practice mode (renders nothing otherwise). */}
           <PremiumCheckout
             weeklyLeft={v.premium.weeklyLimit - v.premium.paidThisWeek}
             stallsFree={v.stalls.free}
@@ -122,7 +123,7 @@ export function PacksScreen() {
                     <span className="t-title">{p.horseName ?? "Foal"}</span>
                   )}
                   <span className="t-meta block">
-                    {p.packType === "premium" ? "Premium" : "Paddock"} #{p.pullIndex} · {p.free ? "free" : `${formatCredits(p.price)} credits`}
+                    {p.packType === "premium" ? "Premium" : "Paddock"} #{p.pullIndex} · {p.free ? "free" : p.packType === "premium" && p.price === 0 ? "prepaid" : `${formatCredits(p.price)} credits`}
                     {p.pityApplied ? ` · pity (${p.pityApplied === "epic" ? "Epic" : p.packType === "paddock" ? "Uncommon" : "Rare"} guarantee)` : ""} ·{" "}
                     {new Date(p.createdAtMs).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </span>
@@ -230,12 +231,13 @@ function PlayDays({ playDays, every, next }: { playDays: number; every: number; 
 function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: string | null; primary: boolean; onOpen: () => void; ceiling: number }) {
   const slot = `${o.type}:false`;
   const eth = o.demo && o.disabledReason === "Pay with ETH below";
+  const tusdg = o.demo && o.disabledReason === "Pay with T-USDG below";
   const button = o.enabled ? (
     <button type="button" className={`btn ${primary ? "btn-brass btn-lg" : ""}`} onClick={onOpen} disabled={busy !== null} data-testid={`open-${o.type}`}>
       {busy === slot ? "Opening…" : `Open for ${formatCredits(o.price)}`}
     </button>
   ) : o.demo ? (
-    eth ? null : (
+    eth || tusdg ? null : (
       <p className="t-meta font-bold" data-testid={`open-${o.type}`}>
         Coming soon: no payments in this demo.
       </p>
@@ -255,7 +257,9 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
           <h2 id={`${o.type}-h`} className="t-hero">
             {o.name}
           </h2>
-          {eth ? (
+          {tusdg ? (
+            <PracticeBadge />
+          ) : eth ? (
             <span className="tag tag-locked w-fit normal-case" data-testid="premium-eth">
               ETH · closed beta
             </span>
@@ -270,7 +274,9 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
             </span>
           )}
           <p className="t-meta">
-            {eth
+            {tusdg
+              ? "Better odds, still under the genetic ceiling. Bought with T-USDG test money during the beta, below."
+              : eth
               ? "Better odds, still under the genetic ceiling. Bought with ETH on Robinhood Chain, below."
               : o.demo
                 ? "Better odds, still under the genetic ceiling. A preview for now: nothing to buy."

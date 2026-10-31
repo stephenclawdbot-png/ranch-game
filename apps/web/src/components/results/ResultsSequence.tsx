@@ -30,6 +30,8 @@ export interface Settlement {
   firstWin?: boolean;
   ratingBefore?: number;
   ratingAfter?: number | null;
+  /** One honest line from the rating rule on why the mark moved (or held); null when there is nothing to explain. */
+  ratingWhy?: string | null;
   /** Your horse at the off (fatigue, hours since hard work), for the Why card's "try next". */
   atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
   /** An injury picked up in this race, named (shown under the result). */
@@ -167,6 +169,17 @@ export function ResultsSequence({
             {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
               ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
               : ""}
+            {/* The why behind the mark (playtest fix 14), from the rule's own expected scores. */}
+            {settlement.ratingWhy && (
+              <>
+                {" "}
+                {settlement.ratingWhy}{" "}
+                <Link href="/wiki/ratings-and-form" className="underline decoration-dotted underline-offset-2">
+                  How the mark is set
+                </Link>
+                .
+              </>
+            )}
           </p>
         </div>
       )}

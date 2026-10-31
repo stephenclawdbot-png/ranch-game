@@ -13,6 +13,7 @@ const ICON: Record<string, IconName> = {
   jockey_claim_out: "silks-sash",
   jockey_retirement_announced: "silks-sash",
   jockey_retired: "silks-sash",
+  jockey_signed: "silks-sash",
   sale: "coin",
   claim: "coin",
   hall_of_fame: "laurel",

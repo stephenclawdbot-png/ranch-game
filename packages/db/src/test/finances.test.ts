@@ -351,6 +351,8 @@ const NON_LEDGER_KINDS = new Set([
   "jockey_retired",
   "jockey_retirement_announced",
   "plan_reminder",
+  // the practice T-USDG sale note (an inbox kind, usdgPractice.ts)
+  "usdg_sale",
   // fraud events (tote.ts)
   "tote_linked_bet_blocked",
   // ledger account kinds

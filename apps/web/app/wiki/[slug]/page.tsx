@@ -5,6 +5,7 @@ import { PixelIcon } from "@/components/icons";
 import { WIKI_CONTENT } from "@/wiki/content";
 import { WIKI_PAGES, neighbours, pageMeta, sectionOf } from "@/wiki/registry";
 import { OnThisPage } from "@/wiki/WikiNav";
+import { practiceWiki, practiceWikiText, wikiPracticeOn } from "@/wiki/practiceText";
 
 export const dynamicParams = false;
 
@@ -14,7 +15,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const m = pageMeta((await params).slug);
-  return m ? { title: m.title, description: m.summary } : {};
+  return m ? { title: practiceWikiText(m.title), description: practiceWikiText(m.summary) } : {};
 }
 
 export default async function WikiArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -35,18 +36,19 @@ export default async function WikiArticlePage({ params }: { params: Promise<{ sl
           <PixelIcon name={section.icon} size={16} />
           {section.title}
         </p>
-        <h1 className="t-page">{meta.title}</h1>
-        <p className="text-cream-dim">{meta.summary}</p>
+        <h1 className="t-page">{practiceWikiText(meta.title)}</h1>
+        <p className="text-cream-dim">{practiceWikiText(meta.summary)}</p>
       </header>
       <OnThisPage />
       <div className="wiki-body">
-        <Body />
+        {/* Practice mode: the page body in T-USDG wording (server components: no hooks, safe to call). */}
+        {wikiPracticeOn() ? practiceWiki(await (Body as () => React.ReactNode | Promise<React.ReactNode>)()) : <Body />}
       </div>
       <footer className="wiki-pager">
         {prev ? (
           <Link href={`/wiki/${prev.slug}`} className="wiki-pager-link">
             <span className="label">‹ Previous</span>
-            <span className="font-extrabold">{prev.title}</span>
+            <span className="font-extrabold">{practiceWikiText(prev.title)}</span>
           </Link>
         ) : (
           <span />
@@ -54,7 +56,7 @@ export default async function WikiArticlePage({ params }: { params: Promise<{ sl
         {next && (
           <Link href={`/wiki/${next.slug}`} className="wiki-pager-link text-right">
             <span className="label">Next ›</span>
-            <span className="font-extrabold">{next.title}</span>
+            <span className="font-extrabold">{practiceWikiText(next.title)}</span>
           </Link>
         )}
       </footer>

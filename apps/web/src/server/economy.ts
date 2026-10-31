@@ -588,6 +588,9 @@ const RARITIES: readonly Rarity[] = ["common", "uncommon", "rare", "epic", "lege
 /** PackOffer.disabledReason when the Premium Pack is sold for ETH (the card points to the checkout). */
 export const ETH_CHECKOUT = "Pay with ETH below";
 
+/** PackOffer.disabledReason in practice mode: the Premium Pack is bought with T-USDG (PremiumCheckout), never credits or ETH. */
+export const TUSDG_CHECKOUT = "Pay with T-USDG below";
+
 export function premiumDemoEnabled(): boolean {
   return process.env.PREMIUM_PACK_DEMO === "1";
 }
@@ -618,7 +621,9 @@ function offer(type: PackType, st: PackState, ctx: { credits: number; stallsFree
   let disabledReason: string | null = null;
   const demo = type === "premium";
   // Closed beta with WEB3_ENABLED: the Premium Pack is bought with ETH (PremiumCheckout), never credits.
-  if (demo && !premiumDemoEnabled()) disabledReason = process.env.WEB3_ENABLED?.trim().toLowerCase() === "true" ? ETH_CHECKOUT : "Coming soon";
+  // Practice mode (USDG_MODE=practice): bought with T-USDG test money, whatever the other switches say.
+  if (demo && gc.isUsdgPracticeMode(process.env)) disabledReason = TUSDG_CHECKOUT;
+  else if (demo && !premiumDemoEnabled()) disabledReason = process.env.WEB3_ENABLED?.trim().toLowerCase() === "true" ? ETH_CHECKOUT : "Coming soon";
   else if (ctx.stallsFree <= 0) disabledReason = "No free stall";
   else if (ctx.cropLeft <= 0) disabledReason = "Crop sold out";
   else if (st.paidThisWeek >= st.weeklyLimit) disabledReason = "Weekly limit reached";
@@ -674,6 +679,9 @@ async function pullRows(db: Db, accountId: string): Promise<PullRow[]> {
 }
 
 export async function pull(db: Db, session: Session, input: { packType: PackType; free: boolean; key: string }, now: Date): Promise<PullResultView> {
+  if (input.packType === "premium" && gc.isUsdgPracticeMode(process.env)) {
+    throw new DomainError("NOT_ELIGIBLE", "During the beta Premium Packs are bought with T-USDG (test money): use the checkout below the pack.");
+  }
   if (input.packType === "premium" && !premiumDemoEnabled()) {
     throw new DomainError("NOT_ELIGIBLE", "The Premium Pack is coming soon. There are no payments in this demo.");
   }

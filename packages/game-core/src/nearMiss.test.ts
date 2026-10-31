@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FEATURE_QUALIFY_TOP,
+  FEATURE_RATING_BY_RIGHT,
   PROMOTE,
   RELEGATE,
   Rng,
@@ -10,6 +11,7 @@ import {
   promotionText,
   qualifierNearMiss,
   ratingGap,
+  ratingTrajectory,
   relegationText,
   seasonFinalGap,
   settleLeague,
@@ -33,6 +35,43 @@ describe("near misses: qualifiers and ratings", () => {
     expect(seasonFinalGap(SEASON_FINAL_MIN_RATING + 3).text).toMatch(/high enough/);
     expect(featureRatingGap(99).short).toBe(1);
     expect(ratingGap(0, 1).short).toBe(1);
+  });
+
+  it("a trajectory from recent rated runs: about N weeks, or what would move the mark (fix 15)", () => {
+    // +6 OR over two weeks of runs: about 55 short at +3 a week is about 19 weeks.
+    const rising = ratingTrajectory(40, [
+      { delta: 3, week: 10 },
+      { delta: 3, week: 11 },
+    ], SEASON_FINAL_MIN_RATING);
+    expect(rising).toMatchObject({ weeks: 19, ratePerWeek: 3 });
+    expect(rising.text).toBe("At your current rate (+3 OR a week), about 19 weeks");
+
+    // A fractional rate rounds for reading, not for the sum.
+    const half = ratingTrajectory(88, [
+      { delta: 2, week: 4 },
+      { delta: 2, week: 4 },
+      { delta: 3, week: 5 },
+    ], SEASON_FINAL_MIN_RATING);
+    expect(half.weeks).toBe(2);
+    expect(half.text).toBe("At your current rate (+3.5 OR a week), about 2 weeks");
+
+    // No rated runs yet: the line names the level the rules would move the mark at.
+    const unraced = ratingTrajectory(72, [], FEATURE_RATING_BY_RIGHT);
+    expect(unraced.weeks).toBeNull();
+    expect(unraced.text).toBe("Needs a win or two at Hcp 70-95 level to start the mark moving");
+
+    // Recent form that hasn't risen: honest about it, still no promise.
+    const flat = ratingTrajectory(90, [
+      { delta: -2, week: 1 },
+      { delta: 2, week: 2 },
+    ], SEASON_FINAL_MIN_RATING);
+    expect(flat.weeks).toBeNull();
+    expect(flat.text).toBe("The mark hasn't risen over recent weeks: about a win or two at Listed level would move it");
+
+    // Already there: nothing to project.
+    expect(ratingTrajectory(100, [{ delta: 5, week: 1 }], FEATURE_RATING_BY_RIGHT).text).toBe("OR 100 already clears 100");
+    // A low mark names its own band, the level the horse actually runs in.
+    expect(ratingTrajectory(40, [], 95).text).toBe("Needs a win or two at Hcp 0-55 level to start the mark moving");
   });
 });
 

@@ -23,8 +23,9 @@
  * linked to its connections bet against it raises a fraud event (a flag, no automatic action).
  *
  * Currencies: Stable Credits ("CR") always; T-USDG ("TUSDG", practice dollars) only while
- * `toteUsdgEnabled()` (USDG_MODE=practice). T-USDG balances live in the placeholder practice
- * ledger below (ledger accounts in currency TUSDG) until the practice-USDG mode wires its own.
+ * `toteUsdgEnabled()` (USDG_MODE=practice), from the player's one practice T-USDG balance
+ * (services/usdgPractice.ts, shared with the USDG market). A T-USDG bet needs a verified wallet,
+ * like every other T-USDG feature.
  */
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
@@ -33,7 +34,8 @@ import { gc } from "../gameCore";
 import { accounts, fraudEvents, horses, raceEntries, races, realTotePermits, stables, toteBets, totePools, toteSettings, type RaceRow, type ToteBetRow, type TotePoolRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked } from "./accounts";
-import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, type LedgerCurrency, type Posting } from "./ledger";
+import { verifiedWalletOf } from "./betaMoney";
+import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY, type LedgerCurrency, type Posting } from "./ledger";
 import { raceResultPublicAt } from "./news";
 import { audit, rowsOf, runTx } from "./tx";
 
@@ -76,37 +78,15 @@ function ledgerIn(currency: LedgerCurrency): ToteLedger {
 
 const creditsLedger = ledgerIn("CR");
 /**
- * PLACEHOLDER practice ledger for T-USDG: ledger accounts in currency "TUSDG" (never mixed with
- * credits: every transaction is single-currency). The practice-USDG mode replaces it with
- * `setPracticeUsdgLedger` once it lands. Never real USDG, never a chain.
+ * T-USDG: the ONE practice T-USDG balance per account (ledger accounts in currency "TUSDG",
+ * services/usdgPractice.ts), shared with the USDG market and stud fees. Never mixed with credits
+ * (every ledger transaction is single-currency), never real USDG, never a chain. The only way in
+ * is the one-off practice grant on wallet sign-in (plus admin top-ups): the tote has no faucet.
  */
-let practiceLedger: ToteLedger = ledgerIn("TUSDG");
-
-/** Wires the practice-USDG mode's own ledger in place of the placeholder. */
-export function setPracticeUsdgLedger(l: ToteLedger): void {
-  practiceLedger = l;
-}
+const practiceLedger: ToteLedger = ledgerIn(USDG_PRACTICE_CURRENCY);
 
 export function toteLedger(currency: ToteCurrency): ToteLedger {
   return currency === "CR" ? creditsLedger : practiceLedger;
-}
-
-/**
- * PLACEHOLDER practice faucet (tests, dev): mints T-USDG to a player on the placeholder ledger.
- * Refused unless practice mode is on. The practice-USDG mode brings the real one.
- */
-export async function grantPracticeUsdg(db: Db, input: { accountId: string; amount: number; idempotencyKey: string; env?: Record<string, string | undefined> }): Promise<void> {
-  if (!toteUsdgEnabled(input.env)) throw new DomainError("TOTE_UNAVAILABLE", "T-USDG exists only in practice mode");
-  await runTx(db, async (tx) => {
-    await post(tx, {
-      idempotencyKey: input.idempotencyKey,
-      kind: "practice_usdg_grant",
-      postings: [
-        { ledgerAccountId: await ensureSystemAccountId(tx, "mint", "TUSDG"), amount: -input.amount },
-        { ledgerAccountId: await playerLedgerAccountId(tx, input.accountId, "TUSDG"), amount: input.amount },
-      ],
-    });
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -586,6 +566,8 @@ export async function placeToteBet(db: Db, input: PlaceToteBetInput, opts: ToteO
   if (!input.clientKey || input.clientKey.length > 80) throw new DomainError("INVALID_INPUT", "bad bet slip key");
   // The hard lock: T-USDG betting is impossible unless practice mode is on.
   if (input.currency === "TUSDG" && !toteUsdgEnabled(input.env)) throw new DomainError("TOTE_UNAVAILABLE", "T-USDG betting is only open in practice mode");
+  // Like every T-USDG feature: a wallet signed in or linked (one free signature).
+  if (input.currency === "TUSDG" && !(await verifiedWalletOf(db, input.accountId))) throw new DomainError("NOT_ELIGIBLE", "Sign in with your wallet first to bet T-USDG (one free signature).");
   if (!Number.isSafeInteger(input.stake) || input.stake <= 0) throw new DomainError("INVALID_INPUT", "stake must be a whole positive amount");
 
   const out = await runTx(db, async (tx): Promise<ToteBetRow | DomainError> => {

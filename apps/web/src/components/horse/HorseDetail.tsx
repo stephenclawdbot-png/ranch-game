@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import type { HorseRecord, LegMarking } from "@thoroughbred/shared";
 import type { HorseDetailView } from "@/lib/types";
-import { formatUsdgDollars, formatUsdgToken } from "@/lib/chain/usdg";
+import { UsdgMoney } from "@/components/chain/UsdgMode";
 import { TRIP_BANDS, aptitudes, horseSummary, type AptitudeCell } from "@/lib/aptitude";
 import { GOING_LABEL, SEX_LABEL, STYLE_LABEL, SURFACE_LABEL, coatLabel, formatCredits } from "@/lib/format";
 import { riskText } from "../entry/EntryForm";
@@ -117,9 +117,7 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
                 <p className="t-meta">
                   {view.stud.club ? "A Club stallion standing at stud" : "Standing at stud"} · fee{" "}
                   {view.stud.feeUsdg ? (
-                    <span className="num text-cream" data-testid="stud-fee-usdg">
-                      {formatUsdgDollars(view.stud.feeUsdg)} ({formatUsdgToken(view.stud.feeUsdg)}, paid to his owner)
-                    </span>
+                    <UsdgMoney micro={view.stud.feeUsdg} suffix="paid to his owner" testId="stud-fee-usdg" />
                   ) : (
                     <span className="num text-cream">{formatCredits(view.stud.fee)}</span>
                   )}{" "}
@@ -150,7 +148,17 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
                 {view.actions.stud && (
                   <li>
                     <Link href="/breeding#studs" className="btn btn-outline btn-sm" data-testid="stand-at-stud">
-                      {view.stud ? `At stud · ${view.stud.feeUsdg ? formatUsdgDollars(view.stud.feeUsdg) : formatCredits(view.stud.fee)}` : "Stand at stud"}
+                      {view.stud ? (
+                        view.stud.feeUsdg ? (
+                          <>
+                            At stud · <UsdgMoney micro={view.stud.feeUsdg} />
+                          </>
+                        ) : (
+                          `At stud · ${formatCredits(view.stud.fee)}`
+                        )
+                      ) : (
+                        "Stand at stud"
+                      )}
                     </Link>
                   </li>
                 )}

@@ -2025,9 +2025,14 @@ export const jockeys = pgTable(
     retireAt: ts("retire_at").notNull(),
     retirementAnnouncedAt: ts("retirement_announced_at"),
     retiredAt: ts("retired_at"),
+    /** Phase 2: the transfer window (game week) this jockey is a free agent in, if any. */
+    freeAgentWeek: integer("free_agent_week"),
+    /** Phase 2: the stable that developed them (an apprentice with JOCKEY_DEVELOPED_RIDES rides there). */
+    developedByStableId: uuid("developed_by_stable_id").references(() => stables.id),
     createdAt: createdAt(),
   },
   (t) => [
+    index("jockeys_free_agent_idx").on(t.freeAgentWeek),
     index("jockeys_stable_idx").on(t.stableId, t.retiredAt),
     index("jockeys_active_idx").on(t.retiredAt, t.stableId),
     check("jockeys_stage", sql`${t.stage} in ('apprentice', 'prime', 'veteran')`),
@@ -2105,12 +2110,115 @@ export const jockeyEvents = pgTable(
 
 export type JockeyEventRow = typeof jockeyEvents.$inferSelect;
 
-/** Weekly jockey jobs (intake, veteran decline) that ran, one row per game week (idempotency). */
+/**
+ * Weekly jockey jobs (intake, veteran decline, wages, morale) that ran, one row per game week
+ * (idempotency), and the week's transfer window: the seed committed (sha256) when the week opens and
+ * revealed with the results once the window closes (Sunday 20:00 UTC).
+ */
 export const jockeyWeeks = pgTable("jockey_weeks", {
   week: integer("week").primaryKey(),
   data: jsonb("data").notNull().default({}),
   ranAt: ts("ran_at").notNull(),
+  windowSeed: text("window_seed"),
+  windowCommitment: text("window_commitment"),
+  windowRanAt: ts("window_ran_at"),
+  /** The window's published results (signings, unmatched, offers made). */
+  window: jsonb("window"),
 });
+
+/**
+ * Jockey contracts (Phase 2). One active contract per jockey. A contract ends at the transfer
+ * window of `ends_week`; the jockey becomes a free agent there earlier when the stable couldn't pay a
+ * week's wage (`unpaid_week`, the debt waived) or after JOCKEY_BROKEN_PROMISE_WEEKS of broken
+ * promises (`broken_weeks`). Wages (credits, burned) are charged once a week from the weekly job.
+ */
+export const jockeyContracts = pgTable(
+  "jockey_contracts",
+  {
+    id: id(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    /** "4w" | "8w" | "season". */
+    length: text("length").notNull(),
+    startsAt: ts("starts_at").notNull(),
+    startWeek: integer("start_week").notNull(),
+    /** The contract ends at this week's window. */
+    endsWeek: integer("ends_week").notNull(),
+    wage: credits("wage").notNull(),
+    /** No wage before this week (an apprentice's first contract); null = paid from the start. */
+    wageFreeUntilWeek: integer("wage_free_until_week"),
+    promisedRides: integer("promised_rides").notNull(),
+    buyout: credits("buyout").notNull(),
+    /** Consecutive weeks with fewer rides than promised, and the last week counted. */
+    brokenWeeks: integer("broken_weeks").notNull().default(0),
+    lastRidesWeek: integer("last_rides_week"),
+    lastWeekRides: integer("last_week_rides"),
+    /** The week a wage couldn't be paid (the jockey leaves at the next window, the debt waived). */
+    unpaidWeek: integer("unpaid_week"),
+    wagesPaid: credits("wages_paid").notNull().default(0),
+    /** Notes sent ("2" / "1" weeks before the end), so each goes once. */
+    notes: jsonb("notes").notNull().default([]),
+    status: text("status").notNull().default("active"),
+    endedAt: ts("ended_at"),
+    /** Why it ended: expired, re-signed, moved, walked_out, unpaid, released, idle, retired. */
+    endedWhy: text("ended_why"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("jockey_contracts_active_uq").on(t.jockeyId).where(sql`${t.status} = 'active'`),
+    index("jockey_contracts_stable_idx").on(t.stableId, t.status),
+    check("jockey_contracts_status", sql`${t.status} in ('active', 'ended')`),
+    check("jockey_contracts_terms", sql`${t.wage} >= 0 and ${t.promisedRides} >= 0 and ${t.buyout} >= 0 and ${t.endsWeek} > ${t.startWeek}`),
+  ],
+);
+
+export type JockeyContractRow = typeof jockeyContracts.$inferSelect;
+
+/**
+ * Offers in a week's transfer window. The signing fee is escrowed (ledger `jockey_offer_escrow`,
+ * player → escrow) and either burned when the offer wins (`jockey_signing`) or refunded
+ * (`jockey_offer_refund`). One offer per (jockey, stable, week); amending replaces the terms.
+ */
+export const jockeyOffers = pgTable(
+  "jockey_offers",
+  {
+    id: id(),
+    week: integer("week").notNull(),
+    jockeyId: uuid("jockey_id")
+      .notNull()
+      .references(() => jockeys.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    length: text("length").notNull(),
+    wage: credits("wage").notNull(),
+    promisedRides: integer("promised_rides").notNull(),
+    buyout: credits("buyout").notNull(),
+    /** Signing fee held in escrow (0 for the jockey's current stable). */
+    fee: credits("fee").notNull().default(0),
+    /** open → won | lost | withdrawn. */
+    status: text("status").notNull().default("open"),
+    /** The jockey's utility for this offer at the deadline (published). */
+    utility: integer("utility"),
+    createdAt: createdAt(),
+    resolvedAt: ts("resolved_at"),
+  },
+  (t) => [
+    uniqueIndex("jockey_offers_week_uq").on(t.week, t.jockeyId, t.stableId),
+    index("jockey_offers_stable_idx").on(t.stableId, t.status),
+    index("jockey_offers_jockey_idx").on(t.jockeyId, t.week),
+    check("jockey_offers_status", sql`${t.status} in ('open', 'won', 'lost', 'withdrawn')`),
+  ],
+);
+
+export type JockeyOfferRow = typeof jockeyOffers.$inferSelect;
 
 /**
  * The racing news (services/news.ts): short public items written from facts at the event
