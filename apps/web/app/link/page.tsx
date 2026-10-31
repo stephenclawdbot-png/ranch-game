@@ -76,11 +76,13 @@ export default function LinkPage() {
         <p className="w-fit">
           <Wordmark />
         </p>
-        <h1 className="t-display-xl">Bring your stable here</h1>
-        <p className="mt-1 text-lg text-cream-dim">
-          Playing on a new phone or browser? Enter the link code from your other device and this one signs in to the same stable.
-        </p>
+        <h1 className="t-display-xl">Sign in to your stable</h1>
+        <p className="mt-1 text-lg text-cream-dim">Connect the wallet your stable uses: a free signature, no transaction.</p>
       </header>
+      <div id="wallet" className="grid scroll-mt-24 gap-2" data-testid="link-wallet">
+        <WalletSignIn />
+      </div>
+      <p className="caption">Or, on a new phone or browser, enter the link code from your other device:</p>
       <label className="grid gap-1">
         <span className="font-extrabold">Link code</span>
         <input
@@ -124,10 +126,6 @@ export default function LinkPage() {
           <PixelIcon name="flag" className="h-5 w-5" /> {busy ? "Linking…" : "Link this device"}
         </button>
       </ActionBar>
-      <div className="grid gap-2" data-testid="link-wallet">
-        <p className="caption">Or sign in with a wallet — a free signature, no code needed.</p>
-        <WalletSignIn />
-      </div>
       <p className="caption">
         New here, without a code?{" "}
         <Link href="/play" className="link">

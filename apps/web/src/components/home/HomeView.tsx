@@ -106,6 +106,12 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
               </Link>
             )}
           </div>
+          <p className="landing-sub" data-testid="landing-wallet">
+            Already have a stable?{" "}
+            <Link href="/link#wallet" className="link">
+              Connect your wallet
+            </Link>
+          </p>
         </div>
       </section>
 

@@ -123,11 +123,18 @@ export function SiteNav() {
     state === undefined ? (
       <span className="h-9 w-24" aria-hidden />
     ) : state === null ? (
-      pathname.startsWith("/play") || pathname === "/" ? null : (
-        <Link href="/play" className="btn btn-sm">
-          Found a stable
-        </Link>
-      )
+      <div className="flex items-center gap-1.5">
+        {!(pathname.startsWith("/play") || pathname === "/") && (
+          <Link href="/play" className="btn btn-sm max-sm:hidden">
+            Found a stable
+          </Link>
+        )}
+        {!pathname.startsWith("/link") && (
+          <Link href="/link#wallet" className="btn btn-sm btn-brass" data-testid="nav-connect-wallet">
+            Connect wallet
+          </Link>
+        )}
+      </div>
     ) : (
       <div className="flex items-center gap-1.5">
         <Pill
