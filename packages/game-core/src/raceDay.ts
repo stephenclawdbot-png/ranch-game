@@ -10,9 +10,11 @@
  *   injury risk (firm costs no pace).
  * - Physio session: takes PHYSIO fatigue off before the race (never below 0).
  * - Pre-race vet check: multiplies the race's injury risk (a "Vet-checked" factor line).
- * - Jockeys: the stable apprentice (free, as before), a journeyman or a top jockey: a narrower
+ * - Jockeys (legacy tiers): the stable apprentice (free), a journeyman or a top jockey: a narrower
  *   day-form swing (both ways: fewer bad days and fewer lucky ones) and a keen horse settled
- *   early (less of its extra early energy drain).
+ *   early (less of its extra early energy drain). Since jockeys (jockeys.ts) a ride books a named
+ *   jockey (`jockeyId`) whose skills make the kit; the tiers remain only for entries stored
+ *   before that, and a request naming a paid tier books a Club freelancer of matching grade.
  *
  * Prices are a share of the race's purse with a floor and a cap, so they scale with the race's
  * class and size. Charged in Stable Credits with the entry (burned; never USDG) and refunded
@@ -146,6 +148,12 @@ export const RaceDayChoiceSchema = z.object({
     .refine((xs) => new Set(xs).size === xs.length, "each extra once")
     .default([]),
   jockey: z.enum(JOCKEY_KEYS).default("apprentice"),
+  /**
+   * The jockey booked for this ride (jockeys.ts): one of the stable's own (free) or a Club
+   * freelancer (a fee by grade and purse). Absent on entries made before jockeys existed: their
+   * `jockey` tier still decides the kit they paid for.
+   */
+  jockeyId: z.string().min(1).max(64).optional(),
 });
 export type RaceDayChoice = z.infer<typeof RaceDayChoiceSchema>;
 
@@ -185,7 +193,7 @@ export function raceDayQuote(choice: RaceDayChoice, purse: number): RaceDayQuote
 
 /** Why a choice can't be bought for this race (null = fine). Extras are for Live races only. */
 export function raceDayProblem(choice: RaceDayChoice, race: { going: Going; live: boolean }): string | null {
-  const any = choice.extras.length > 0 || choice.jockey !== "apprentice";
+  const any = choice.extras.length > 0 || choice.jockey !== "apprentice" || choice.jockeyId !== undefined;
   if (!any) return null;
   if (!race.live) return "race-day extras and jockeys are for Live races";
   for (const k of choice.extras) {
@@ -201,7 +209,7 @@ export function parseRaceDay(x: unknown): RaceDayChoice {
 }
 
 export function hasRaceDay(choice: RaceDayChoice): boolean {
-  return choice.extras.length > 0 || choice.jockey !== "apprentice";
+  return choice.extras.length > 0 || choice.jockey !== "apprentice" || choice.jockeyId !== undefined;
 }
 
 /**

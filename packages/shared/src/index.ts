@@ -202,6 +202,18 @@ export const RaceKitSchema = z.object({
   formAmpPermille: z.number().int().min(0).max(1000).optional(),
   /** Share of the keen-early extra energy drain (low temperament) that applies. */
   keenPermille: z.number().int().min(0).max(1000).optional(),
+  /**
+   * Jockey (gate skill): share of the horse's slow-start chance that applies. Scales the same
+   * single draw, so no stream shifts. Absent = the horse's own chance.
+   */
+  slowStartPermille: z.number().int().min(0).max(1000).optional(),
+  /** Jockey (pace judgement): share of the horse's energy drain that applies. Absent = all of it. */
+  drainPermille: z.number().int().min(0).max(1000).optional(),
+  /**
+   * Jockey (finishing drive): share of the horse's late-battle response (1.4.0 model) the rider
+   * gets out of it. Absent = all of it; a jockey never adds fight the horse doesn't have.
+   */
+  battlePermille: z.number().int().min(0).max(1000).optional(),
 });
 export type RaceKit = z.infer<typeof RaceKitSchema>;
 
