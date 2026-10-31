@@ -272,8 +272,7 @@ describe("beta metrics: breeding participation and the exit question", () => {
     const plain = await createAccount(h.db, { stableName: "Plain Stable", silks, now: T0 });
     expect(await missItDue(h.db, { accountId: plain.accountId, now: at(30 * DAY) })).toBe(false);
     // A foal bred by the tester's stable (origin "bred") that has raced.
-    const stableId = (await h.db.execute(sql`select id from stables where account_id = ${t.accountId}`)).rows[0] as { id: string };
-    const [mare] = await h.db.select({ id: horses.id }).from(horses).where(eq(horses.ownerStableId, stableId.id)).limit(2);
+    const [mare] = await h.db.select({ id: horses.id }).from(horses).where(eq(horses.ownerStableId, t.stableId)).limit(2);
     expect(mare).toBeDefined();
     const m = await playtestMetrics(h.db, { now: at(9 * DAY) });
     expect(m.missIt.responses).toBeGreaterThanOrEqual(1);
