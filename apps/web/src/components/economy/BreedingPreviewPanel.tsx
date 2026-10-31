@@ -38,6 +38,9 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
           <span aria-hidden>{tone.mark} </span>
           {v.outlook.phrase}
         </p>
+        <p className="font-extrabold text-cream" data-testid="preview-versus-mare">
+          {v.versusMare.phrase}
+        </p>
         <p className="text-sm text-cream-dim">{v.certainty.phrase}</p>
         <div className="flex flex-wrap gap-1.5">
           <span className="chip font-extrabold" style={{ color: nickColor(v.nick) }} title="How well the lines combine" data-testid="preview-nick">
@@ -47,20 +50,20 @@ export function BreedingPreviewPanel({ v }: { v: PreviewView }) {
             {v.breed}
           </span>
         </div>
+        {notes.map((w) => (
+          <p key={w.key} className="caption" data-note={w.key}>
+            {w.text}
+          </p>
+        ))}
       </div>
 
-      {(warns.length > 0 || notes.length > 0) && (
+      {warns.length > 0 && (
         <ul className="grid gap-2" data-testid="preview-warnings">
           {warns.map((w) => (
             <li key={w.key} className="px-oxblood p-3 text-sm" data-warning={w.key}>
               <span aria-hidden className="font-extrabold">
                 ⚠{" "}
               </span>
-              {w.text}
-            </li>
-          ))}
-          {notes.map((w) => (
-            <li key={w.key} className="caption px-1" data-note={w.key}>
               {w.text}
             </li>
           ))}

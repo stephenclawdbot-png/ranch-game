@@ -5,6 +5,7 @@ import {
   outlookBand,
   outlookNumbers,
   pairingOutlook,
+  versusMareBand,
   possibleLooks,
   publicLevel,
   publicParentOf,
@@ -108,6 +109,12 @@ describe("breeding preview from public facts", () => {
     expect(outlookBand(119, 100)).toBe("longshot");
     expect(outlookBand(0, 0)).toBe("longshot");
     expect(Object.keys(OUTLOOK_PHRASES).sort()).toEqual(["level", "longshot", "risk", "upside"]);
+    expect(versusMareBand(40)).toBe("better");
+    expect(versusMareBand(39)).toBe("bitBetter");
+    expect(versusMareBand(12)).toBe("bitBetter");
+    expect(versusMareBand(11)).toBe("same");
+    expect(versusMareBand(-11)).toBe("same");
+    expect(versusMareBand(-12)).toBe("worse");
   });
 
   it("level parents have a real chance; far-apart parents make beating both a long shot; inbreeding is a risk", () => {
@@ -119,6 +126,10 @@ describe("breeding preview from public facts", () => {
     expect(publicLevel(a)).toBe(600);
     expect(pairingOutlook(a, b, { coi: 0 }).outlook.key).toBe("upside");
     expect(pairingOutlook(a, far, { coi: 0 }).outlook.key).toBe("longshot");
+    // ...but a much better stallion should still improve on the mare (the dam).
+    expect(pairingOutlook(far, a, { coi: 0 }).versusMare.key).toBe("better");
+    expect(pairingOutlook(a, b, { coi: 0 }).versusMare.key).toBe("same");
+    expect(pairingOutlook(a, far, { coi: 0 }).versusMare.key).toBe("worse");
     const inbred = pairingOutlook(a, b, { coi: 250 });
     expect(inbred.outlook.key).toBe("risk");
     expect(inbred.warnings.map((w) => w.key)).toContain("inbreeding");

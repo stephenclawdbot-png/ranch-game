@@ -96,14 +96,14 @@ describe("breeding preview answer", () => {
     const pv = await breedingPreview(h.db, p, { sireId: stud, damId: mare }, T0);
     expect(pv.block).toBeNull();
     expect(Object.keys(pv).sort()).toEqual(
-      ["block", "breed", "certainty", "credits", "damId", "damName", "fees", "looks", "looksNote", "nick", "outlook", "ownSire", "reason", "sireId", "sireName", "stallionOwner", "usdgFee", "usdgStudFee", "warnings"].sort(),
+      ["block", "breed", "certainty", "credits", "damId", "damName", "fees", "looks", "looksNote", "nick", "outlook", "ownSire", "reason", "sireId", "sireName", "stallionOwner", "usdgFee", "usdgStudFee", "versusMare", "warnings"].sort(),
     );
     const { numbers, keys } = scan(pv);
     // The only numbers: fees and the purse.
     expect(numbers.filter((n) => !/^fees\.|^credits$|^usdgStudFee$|^usdgFee$/.test(n))).toEqual([]);
     expect(keys.filter((k) => FORBIDDEN_KEY.test(k))).toEqual([]);
     // Words: none of them carries a digit.
-    const words = [pv.outlook.phrase, pv.certainty.phrase, pv.nick, pv.breed, pv.looksNote, ...pv.warnings.map((w) => w.text), ...pv.looks.map((l) => l.caption)];
+    const words = [pv.outlook.phrase, pv.versusMare.phrase, pv.certainty.phrase, pv.nick, pv.breed, pv.looksNote, ...pv.warnings.map((w) => w.text), ...pv.looks.map((l) => l.caption)];
     for (const w of words) expect(w).not.toMatch(/\d/);
     expect(Object.values(gc.OUTLOOK_PHRASES)).toContain(pv.outlook.phrase);
     expect(pv.looksNote).toBe("Foals from this pairing could look like this. It's still a chance.");

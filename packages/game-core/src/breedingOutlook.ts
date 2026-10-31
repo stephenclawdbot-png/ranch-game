@@ -203,6 +203,27 @@ export const CERTAINTY_PHRASES: Record<CertaintyKey, string> = {
   hazy: "Not much is known yet about one parent's ability, so expect surprises either way.",
 };
 
+/**
+ * The foal against the mare (the dam is always the player's own mare in the preview): the
+ * expected foal level minus her public level, in overall points (internal only). At or above
+ * `better` -> "better", at or above `bitBetter` -> "bitBetter", above `same` -> "same", else
+ * "worse". This is what the stallion finder's "Best outlook" order means in words.
+ */
+export const VERSUS_MARE_BANDS = { better: 40, bitBetter: 12, same: -12 } as const;
+export type VersusMareKey = "better" | "bitBetter" | "same" | "worse";
+export const VERSUS_MARE_PHRASES: Record<VersusMareKey, string> = {
+  better: "Should improve on your mare",
+  bitBetter: "Could improve on your mare a little",
+  same: "Close to your mare's level",
+  worse: "Likely below your mare",
+};
+
+/** The band for the foal's expected level minus the mare's public level. */
+export function versusMareBand(diff: number): VersusMareKey {
+  const b = VERSUS_MARE_BANDS;
+  return diff >= b.better ? "better" : diff >= b.bitBetter ? "bitBetter" : diff > b.same ? "same" : "worse";
+}
+
 export type NickWord = "Excellent nick" | "Good nick" | "Fair nick" | "Poor nick";
 
 export interface OutlookWarning {
@@ -214,6 +235,8 @@ export interface OutlookWarning {
 /** What the player sees: words only. */
 export interface PairingOutlook {
   outlook: { key: OutlookKey; phrase: string };
+  /** The foal against the mare (the dam). */
+  versusMare: { key: VersusMareKey; phrase: string };
   certainty: { key: CertaintyKey; phrase: string };
   /** How well the lines combine, from public facts (outlook, trips, surfaces, kinship). */
   nick: NickWord;
@@ -235,6 +258,8 @@ export interface OutlookNumbers {
   score: number;
   lineage: "foundation" | "rising" | "established";
   clear: boolean;
+  /** Expected foal level minus the dam's public level. */
+  versusMare: number;
 }
 
 const OVERALL_DEN = STAT_KEYS.reduce((a, k) => a + OVERALL_WEIGHTS[k], 0);
@@ -291,7 +316,7 @@ export function outlookNumbers(sire: PublicParent, dam: PublicParent, opts: Outl
   const spread = OUTLOOK_SEGREGATION + Math.floor((ws + wd) / OUTLOOK_UNCERTAINTY_DIV);
   const beats = tailAbove(Math.max(ls, ld) - centre, spread);
   const below = 1000 - tailAbove(Math.min(ls, ld) - centre, spread);
-  return { centre, spread, beats, below, score: centre * 1000 + beats, lineage, clear: ws <= OUTLOOK_CLEAR_WIDTH && wd <= OUTLOOK_CLEAR_WIDTH };
+  return { centre, spread, beats, below, score: centre * 1000 + beats, lineage, clear: ws <= OUTLOOK_CLEAR_WIDTH && wd <= OUTLOOK_CLEAR_WIDTH, versusMare: centre - ld };
 }
 
 /**
@@ -313,6 +338,7 @@ export function pairingOutlook(sire: PublicParent, dam: PublicParent, opts: Outl
   else warnings.push({ key: "established", tone: "note", text: "Established line: the family sets how far above its best a foal can land." });
   return {
     outlook: { key, phrase: OUTLOOK_PHRASES[key] },
+    versusMare: { key: versusMareBand(n.versusMare), phrase: VERSUS_MARE_PHRASES[versusMareBand(n.versusMare)] },
     certainty: { key: n.clear ? "clear" : "hazy", phrase: CERTAINTY_PHRASES[n.clear ? "clear" : "hazy"] },
     nick: `${nick} nick` as NickWord,
     warnings,
