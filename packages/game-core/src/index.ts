@@ -44,3 +44,6 @@ export * from "./climate";
 export * from "./formBook";
 export * from "./moments";
 export * from "./nearMiss";
+export * from "./rivals";
+export * from "./news";
+export * from "./planning";
