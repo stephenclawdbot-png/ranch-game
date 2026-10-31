@@ -344,7 +344,7 @@ function deltaBounds(sg: Genome, dg: Genome): { lo: StatRecord<number>; hi: Stat
 /**
  * The nick rating's weights: a base, plus the share of foals that beat both parents (upside),
  * plus how sure the foal's best trip band and surface are (coherence: the share of the most
- * likely one), minus the inbreeding coefficient (COI, basis points) over a divisor. Clamped to
+ * likely one), minus the inbreeding coefficient (COI, permille) over a divisor. Clamped to
  * 0..100. The wiki prints these numbers.
  */
 export const NICK_WEIGHTS = { base: 25, beatsBoth: 60, tripCertainty: 15, surfaceCertainty: 10, coiDivisor: 4 } as const;
@@ -357,7 +357,7 @@ export const NICK_LABELS: readonly { min: number; label: "Excellent" | "Good" | 
 
 /**
  * Nick rating from its parts: `beats` = share (0..1) of foals that beat both parents, `topBand`
- * and `topSurface` = share (0..1) of the most likely trip band and surface, `coi` in basis points.
+ * and `topSurface` = share (0..1) of the most likely trip band and surface, `coi` in permille.
  */
 export function nickRating(beats: number, topBand: number, topSurface: number, coi: number): { score: number; label: "Excellent" | "Good" | "Fair" | "Poor" } {
   const w = NICK_WEIGHTS;
