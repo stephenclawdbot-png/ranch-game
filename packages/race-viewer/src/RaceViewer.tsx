@@ -600,6 +600,7 @@ export function RaceViewer(props: RaceViewerProps) {
           gaps: () => sc.debugGapMarks(),
         };
       }
+      if (hook) (window as unknown as { __rvScene?: unknown }).__rvScene = sc;
       if (hook) {
         // Dev hook: step through the finale (contact sheets). goto(i, s, pause) shows step i, s seconds in.
         (window as unknown as { __rvFinale?: unknown }).__rvFinale = {
@@ -763,6 +764,7 @@ export function RaceViewer(props: RaceViewerProps) {
         sc.canvas.remove();
         if (hook) delete (window as unknown as { __rvTrackside?: unknown }).__rvTrackside;
         if (hook) delete (window as unknown as { __rvFinale?: unknown }).__rvFinale;
+        if (hook) delete (window as unknown as { __rvScene?: unknown }).__rvScene;
       };
     })().catch((err) => {
       console.error("[RaceViewer] failed to start renderer", err);

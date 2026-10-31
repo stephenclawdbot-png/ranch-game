@@ -1400,12 +1400,30 @@ export class HD2DScene {
       const auto = r.autoClear;
       r.autoClear = false;
       r.clear(true, true, false);
+      const t0 = performance.now();
+      const p0 = r.info.programs?.length ?? 0;
+      const x0 = r.info.memory.textures;
       r.render(this.scene, this.pipCam);
+      const ms = performance.now() - t0;
+      const ps = this.pipStats;
+      if (ps.draws === 0) {
+        ps.firstMs = ms;
+        ps.progNew = (r.info.programs?.length ?? 0) - p0;
+        ps.texNew = r.info.memory.textures - x0;
+      }
+      else ps.maxLaterMs = Math.max(ps.maxLaterMs, ms);
+      ps.draws++;
       r.autoClear = auto;
       r.setScissorTest(false);
       r.setViewport(0, 0, this.W, this.H);
     }
   }
+
+  /**
+   * PiP draw timings (CPU ms) and what the first draw had to create (dev measurement of the
+   * first-appearance stall; read through the viewer's `rvdebug` hook).
+   */
+  pipStats = { draws: 0, firstMs: 0, maxLaterMs: 0, progNew: 0, texNew: 0 };
 
   private emitFx(r: Runner, wx: number): void {
     if (!this.fx.length) return;
@@ -1463,12 +1481,18 @@ export class HD2DScene {
     if (this.pipCam) {
       // A real (tiny) picture-in-picture draw: it renders straight to the screen, so its
       // program variants and shadow pass must exist before the first time it shows mid-race.
+      // It must see EVERY object (the main warm camera's whole-course frustum, not the inset's
+      // narrow 22-degree lens): each object drawn into the screen framebuffer for the first time
+      // costs a pipeline build for that target, which was the 0.3-0.8 s stall when the inset
+      // first appeared mid-race (no new programs or textures were involved).
       this.pipCam.position.copy(cam.position);
       this.pipCam.quaternion.copy(cam.quaternion);
+      const pipFov = this.pipCam.fov;
+      this.pipCam.fov = cam.fov;
+      this.pipCam.aspect = cam.aspect;
+      this.pipCam.updateProjectionMatrix();
       const rect = pipRect(this.W, this.H) ?? { right: 12, bottom: 100, w: 320, h: 180 };
       const x = Math.max(0, this.W - rect.right - rect.w);
-      this.pipCam.aspect = rect.w / rect.h;
-      this.pipCam.updateProjectionMatrix();
       r.setRenderTarget(null);
       r.setScissorTest(true);
       r.setScissor(x, rect.bottom, rect.w, rect.h);
@@ -1480,6 +1504,9 @@ export class HD2DScene {
       r.autoClear = auto;
       r.setScissorTest(false);
       r.setViewport(0, 0, this.W, this.H);
+      this.pipCam.fov = pipFov;
+      this.pipCam.aspect = rect.w / rect.h;
+      this.pipCam.updateProjectionMatrix();
     }
     for (const p of this.fx) p.mesh.visible = false;
     // Draw one horse quad with every strip level of detail bound (and every fx material), so
