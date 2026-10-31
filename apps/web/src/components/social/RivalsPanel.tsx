@@ -29,8 +29,8 @@ export function RivalsPanel({ rivals, nemesis, compact = false }: { rivals: Riva
                 <Link href={`/stables/${r.stableId}`} className="t-title min-w-0 flex-1 truncate underline-offset-2 hover:underline">
                   {r.stableName}
                 </Link>
-                <span className="num whitespace-nowrap text-sm font-bold" title="Meetings where your best runner finished ahead of theirs, and behind">
-                  You {scoreLine(r)}
+                <span className="num whitespace-nowrap text-sm font-bold" title="Head-to-head: meetings where your best runner finished ahead of theirs, and behind">
+                  H2H {scoreLine(r)}
                 </span>
               </div>
               <p className="t-meta">

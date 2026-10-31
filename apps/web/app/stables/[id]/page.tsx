@@ -51,9 +51,9 @@ export default async function StablePublicPage({ params }: { params: Promise<{ i
           <div className="surface grid gap-2 p-4">
             <p className="flex flex-wrap items-center gap-2">
               {v.record.rival && <span className="tag tag-live">Rival</span>}
-              <span className="num text-lg font-extrabold">You {scoreLine(v.record)}</span>
+              <span className="num text-lg font-extrabold">H2H {scoreLine(v.record)}</span>
               <span className="t-meta">
-                in {v.record.meetings} {v.record.meetings === 1 ? "meeting" : "meetings"} · {v.record.close} close {v.record.close === 1 ? "finish" : "finishes"}
+                (you first) in {v.record.meetings} {v.record.meetings === 1 ? "meeting" : "meetings"} · {v.record.close} close {v.record.close === 1 ? "finish" : "finishes"}
               </span>
             </p>
             {v.record.last && (
