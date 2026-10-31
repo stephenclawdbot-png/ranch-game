@@ -80,7 +80,7 @@ export default function DailyCupPage() {
         The Daily Cup is one race a day that everyone runs on equal terms. Each stable gets one <b>Cup Run</b> a day with any horse it likes, against the same Club field, in the same conditions,
         with the same luck. The fastest time wins. It is free, it pays a few credits for taking part, and it never tires your horse.
       </Lead>
-      <Figure src="/art/diorama/poster-track-dusk.png" alt="The track at dusk" caption="One field, one seed, one day: a time trial against the same rivals." focus={0.35} />
+      <Figure src="/art/scenes/winners-enclosure.png" alt="The winners' enclosure: a garlanded winner and the cup" caption="One field, one seed, one day: a time trial against the same rivals." focus={0.6} />
 
       <H2 id="how-it-works">How it works</H2>
       <Steps

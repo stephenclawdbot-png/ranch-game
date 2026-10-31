@@ -36,7 +36,7 @@ export default function StudAndBroodmaresPage() {
         When a racehorse stops racing, its second career begins. A stallion goes <b>to stud</b>, a mare becomes a <b>broodmare</b>: no more races, but it stays in your stable and can breed
         until its lifetime breedings are used up. It is how a good racehorse keeps paying you back.
       </Lead>
-      <Figure src="/art/diorama/poster-pasture.png" alt="Broodmares and foals in the pasture" caption="Broodmares and their foals out on the Ranch." focus={0.6} />
+      <Figure src="/art/scenes/stud-dawn.png" alt="Mares and foals at the stud at dawn" caption="Broodmares and their foals out on the Ranch." focus={0.6} />
 
       <H2 id="ending-racing">Ending a racing career</H2>
       <P>

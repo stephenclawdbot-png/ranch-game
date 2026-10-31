@@ -63,8 +63,8 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
   return (
     <div>
       <SceneBand
-        scene="stable"
-        alt="The yard at first light"
+        scene="estate-office"
+        alt="The estate office: the ledger open on the desk"
         eyebrow="Stable · the books"
         title="Finances"
         meta={`${scope} · balance now ${formatCredits(fin.balanceAtEnd)} credits`}

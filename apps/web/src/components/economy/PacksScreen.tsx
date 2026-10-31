@@ -56,7 +56,7 @@ export function PacksScreen() {
 
   return (
     <div className="grid gap-5">
-      <SceneBand scene="paddock" alt="The paddock" eyebrow="Market · foals with published odds" title="Packs" />
+      <SceneBand scene="stud-dawn" alt="Mares and foals at the stud at dawn" eyebrow="Market · foals with published odds" title="Packs" />
 
       {/* Free pack progress. */}
       <section className={`${freeReady ? "frame-hero" : "surface"} flex items-center gap-4 p-4`} aria-labelledby="free-h" data-testid="free-pack">

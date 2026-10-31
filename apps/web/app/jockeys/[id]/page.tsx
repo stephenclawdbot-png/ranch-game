@@ -32,12 +32,12 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
   const j = view.jockey;
   return (
     <div>
-      <PageHeader back={{ href: "/jockeys", label: "Jockeys" }} eyebrow={`${STAGE_LABEL[j.stage]} · ${j.stableName ?? "Club freelancer"}`} title={j.name} />
+      <PageHeader scene="weighing-room" back={{ href: "/jockeys", label: "Jockeys" }} eyebrow={`${STAGE_LABEL[j.stage]} · ${j.stableName ?? "Club freelancer"}`} title={j.name} />
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <div className="surface flex items-center gap-4 p-4" data-testid="jockey-header">
             <span className="well grid shrink-0 place-items-center overflow-hidden p-1">
-              <JockeyPortrait silks={j.silks} scale={2} />
+              <JockeyPortrait jockey={j} silks={j.silks} />
             </span>
             <span className="grid min-w-0 gap-1">
               <span className="flex items-center gap-2">

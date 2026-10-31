@@ -1,8 +1,11 @@
 import Link from "next/link";
 import type { NewsItemView } from "@/lib/socialTypes";
 import { LocalTime } from "../competition/LocalTime";
+import { NEWS_VIGNETTE } from "@/lib/cast";
 import { PixelIcon, type IconName } from "../icons";
+import { Vignette } from "../ui/Vignette";
 
+/** Icons for any kind without its own vignette (lib/cast NEWS_VIGNETTE). */
 const ICON: Record<string, IconName> = {
   feature_win: "trophy",
   first_big_win: "star",
@@ -26,7 +29,7 @@ export function NewsList({ items, testId = "news-list" }: { items: NewsItemView[
       {items.map((n) => (
         <li key={n.id}>
           <Link href={n.href} className="row-link items-start gap-3 px-4 py-3" data-testid="racing-news-item" data-kind={n.kind}>
-            <PixelIcon name={ICON[n.kind] ?? "star"} size={32} className="mt-0.5 shrink-0" />
+            {NEWS_VIGNETTE[n.kind] ? <Vignette name={NEWS_VIGNETTE[n.kind]!} /> : <PixelIcon name={ICON[n.kind] ?? "star"} size={32} className="mt-0.5 shrink-0" />}
             <span className="min-w-0 flex-1">
               <span className="t-title block">{n.headline}</span>
               <span className="t-meta block">

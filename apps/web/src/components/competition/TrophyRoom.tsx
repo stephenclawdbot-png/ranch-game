@@ -14,6 +14,7 @@ import { DIORAMA_ATLAS } from "../diorama/atlas.generated";
 import { HorsePortrait } from "../HorsePortrait";
 import { Silks } from "../Silks";
 import { InwardCard } from "./InwardCard";
+import PLAQUES from "../../../public/art/trophies/plaques.json";
 
 const RECTS = DIORAMA_ATLAS.props.trophies as unknown as readonly (readonly [number, number, number, number])[];
 const SHEET = DIORAMA_ATLAS.files.trophies;
@@ -29,6 +30,21 @@ function Sprite({ piece, dim = false }: { piece: Piece; dim?: boolean }) {
       className={`trophy-sprite ${dim ? "is-dim" : ""}`}
       aria-hidden
       style={{ width: w, height: h, backgroundPosition: `${-x}px ${-y}px`, backgroundSize: `${SHEET.w}px ${SHEET.h}px` }}
+    />
+  );
+}
+
+/** Each achievement's own engraved plaque (art/trophies/plaques.png); unknown ids use the shared one. */
+function Plaque({ id, dim }: { id: string; dim: boolean }) {
+  const i = PLAQUES.ids.indexOf(id);
+  if (i < 0) return <Sprite piece="plaque" dim={dim} />;
+  const [w, h] = PLAQUES.cell as [number, number];
+  return (
+    <span
+      className={`trophy-sprite ${dim ? "is-dim" : ""}`}
+      aria-hidden
+      data-plaque={id}
+      style={{ width: w, height: h, backgroundImage: "url(/art/trophies/plaques.png)", backgroundPosition: `${-i * w}px 0px`, backgroundSize: `${w * PLAQUES.ids.length}px ${h}px` }}
     />
   );
 }
@@ -179,7 +195,7 @@ export function TrophyRoom({ view }: { view: TrophyRoomView }) {
             <li key={a.id}>
               <InwardCard>
                 <span className={`plaque-piece ${a.earned ? "" : "is-locked"}`} tabIndex={0} data-testid={a.earned ? "plaque-earned" : "plaque-locked"}>
-                  <Sprite piece="plaque" dim={!a.earned} />
+                  <Plaque id={a.id} dim={!a.earned} />
                   <span className="trophy-card">
                     <span className="trophy-card-tier">{a.earned ? `Earned ${when(a.earnedAtMs)}` : "Still to win"}</span>
                     <span className="trophy-card-race">{a.title}</span>

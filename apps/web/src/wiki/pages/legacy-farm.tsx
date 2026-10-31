@@ -22,7 +22,7 @@ export default function LegacyFarmPage() {
         The Legacy Farm is where horses go when their working life is over. A horse retired here never races or breeds again, takes no stall and costs nothing, ever. It is never deleted: its
         record, its foals and its place in the Hall of Fame stay with your stable for good.
       </Lead>
-      <Figure src="/art/diorama/pasture-far.png" alt="Rolling farmland with a fenced paddock and a farmhouse" caption="The Legacy Farm: open country, no stalls, no bills." height={160} focus={0.5} />
+      <Figure src="/art/scenes/retirement-meadow.png" alt="Retired horses grazing in the meadow at sunset" caption="The Legacy Farm: open country, no stalls, no bills." height={160} focus={0.6} />
 
       <H2 id="retire-for-good">Retire for good</H2>
       <P>

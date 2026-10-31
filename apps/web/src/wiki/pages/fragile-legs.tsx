@@ -37,7 +37,7 @@ export default function FragileLegsPage() {
         Fragile legs is a weakness a horse can inherit. It costs durability, raises the risk of injury in every race, and it can be passed on. It enters a family when a horse whose racing ended in
         an injury goes on to breed.
       </Lead>
-      <Figure src="/art/diorama/poster-barn.png" alt="The barn aisle" caption="Fragile legs don't show in the coat: you find them in the horse's Genetics panel." focus={0.55} />
+      <Figure src="/art/scenes/farrier-forge.png" alt="The farrier fitting a plate at the forge" caption="Fragile legs don't show in the coat: you find them in the horse's Genetics panel." focus={0.6} />
 
       <H2 id="what-it-does">What fragile legs do</H2>
       <List

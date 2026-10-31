@@ -42,7 +42,7 @@ export default function InjuriesPage() {
         Racehorses get hurt the way real racehorses do: sore shins on firm ground, a strained tendon at the end of a long, tiring race, a bruised foot from a stone. Every injury in the game has a
         name, a place on the horse and a typical recovery time. Most are minor. A few end a racing career, and in Live races a very few are fatal.
       </Lead>
-      <Figure src="/art/diorama/poster-barn.png" alt="A quiet barn with horses resting in their stalls" caption="Injured horses rest in their stalls; healing carries on while you are away." focus={0.5} />
+      <Figure src="/art/scenes/vet-room.png" alt="The vet checking a horse's foreleg in the vet room" caption="Injured horses rest in their stalls; healing carries on while you are away." focus={0.55} />
 
       <H2 id="catalogue">Every injury, by severity</H2>
       <P>

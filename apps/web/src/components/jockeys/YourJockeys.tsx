@@ -6,6 +6,7 @@ import { formatCredits } from "@/lib/format";
 import type { MyJockey } from "@/server/jockeys";
 import { GradeBadge } from "../StatBars";
 import { Section } from "../ui/Page";
+import { JockeyPortrait } from "./JockeyPortrait";
 
 type Note = { id: string; title: string; href: string | null; atMs: number };
 
@@ -37,6 +38,9 @@ export function YourJockeys({ max = 3 }: { max?: number }) {
         {list?.map((j) => (
           <li key={j.id} className="yours">
             <Link href={`/jockeys/${j.id}`} className="row-link gap-3 px-3 py-2.5" data-testid="your-jockey">
+              <span className="well shrink-0 overflow-hidden">
+                <JockeyPortrait jockey={j} silks={j.silks} variant="face" />
+              </span>
               <GradeBadge grade={j.grade} />
               <span className="min-w-0 flex-1">
                 <span className="t-title block truncate">

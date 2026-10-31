@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NewsList } from "@/components/social/NewsList";
-import { EmptyState, PageHeader } from "@/components/ui/Page";
+import { EmptyState, SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
 import { newsFeed } from "@/server/social";
@@ -25,7 +25,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
   const older = items.length >= 50 ? items[items.length - 1]!.atMs : null;
   return (
     <div className="grid gap-5">
-      <PageHeader scene="grandstand" eyebrow="Kestrel Downs and beyond" title="Racing news" meta="Big wins, photo-finishes, champions, jockeys and sales: written from the results, the moment they're public." />
+      <SceneBand scene="press-room" alt="The press room above the course" eyebrow="Kestrel Downs and beyond" title="Racing news" meta="Big wins, photo-finishes, champions, jockeys and sales: written from the results, the moment they're public." />
       <nav className="flex gap-2" aria-label="News filter">
         <Link href="/news" className="fchip" aria-pressed={tab === "all"} data-testid="news-tab-all">
           All

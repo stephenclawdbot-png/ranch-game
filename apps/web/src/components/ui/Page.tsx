@@ -6,6 +6,8 @@ import { ART_SLOTS, artUrl } from "@/lib/art";
 import { useArt } from "../pixel/ArtProvider";
 import { PixelIcon, type IconName } from "../icons";
 import { DioramaSlot } from "../diorama/DioramaSlot";
+import { Vignette } from "./Vignette";
+import type { VignetteName } from "@/lib/cast";
 
 /**
  * Design System v2 page kit (docs/brand-and-design-v2.md §4.5): the scene band at the top of
@@ -13,19 +15,53 @@ import { DioramaSlot } from "../diorama/DioramaSlot";
  * empty states that point somewhere.
  */
 
-export type SceneName = "stable" | "barn" | "grandstand" | "paddock";
+/**
+ * Still scenes: one wide PixelLab scene per section that has no living diorama of its own
+ * (art/scenes/<id>.png, 688x288), so no two sections open on the same picture. `fy` is where to
+ * centre the band vertically (fraction of the art height) so the subject shows.
+ */
+export const STILL_SCENES = {
+  "club-lawn": { fy: 0.56 },
+  "winners-enclosure": { fy: 0.6 },
+  "weighing-room": { fy: 0.55 },
+  "stud-dawn": { fy: 0.6 },
+  "hall-of-fame": { fy: 0.45 },
+  "press-room": { fy: 0.5 },
+  "form-rail": { fy: 0.62 },
+  "foaling-barn": { fy: 0.62 },
+  "estate-office": { fy: 0.55 },
+  "retirement-meadow": { fy: 0.6 },
+  "gallops-morning": { fy: 0.68 },
+  "club-library": { fy: 0.55 },
+  "yard-works": { fy: 0.55 },
+  "stud-book": { fy: 0.55 },
+} as const;
+export type StillSceneName = keyof typeof STILL_SCENES;
+const STILL_W = 688;
+const STILL_H = 288;
+const isStill = (s: string): s is StillSceneName => s in STILL_SCENES;
 
-/** The poster each scene's page sits over, blurred (design system v3: the world never disappears). */
-const BACKDROP: Record<SceneName, string> = {
-  stable: "/art/diorama/poster-yard.png",
-  barn: "/art/diorama/poster-barn.png",
-  grandstand: "/art/diorama/poster-grandstand.png",
-  paddock: "/art/diorama/poster-paddock.png",
-};
+/** Living diorama scenes a page can open on (diorama ids beyond the four page-kit names). */
+type DioramaPageScene = "track-dusk" | "pasture";
+
+export type SceneName = "stable" | "barn" | "grandstand" | "paddock" | DioramaPageScene | StillSceneName;
+
+/** The picture each scene's page sits over, blurred (design system v3: the world never disappears). */
+const backdropOf = (scene: SceneName): string =>
+  isStill(scene)
+    ? `/art/scenes/${scene}.png`
+    : {
+        stable: "/art/diorama/poster-yard.png",
+        barn: "/art/diorama/poster-barn.png",
+        grandstand: "/art/diorama/poster-grandstand.png",
+        paddock: "/art/diorama/poster-paddock.png",
+        "track-dusk": "/art/diorama/poster-track-dusk.png",
+        pasture: "/art/diorama/poster-pasture.png",
+      }[scene];
 
 /** Fixed, blurred, dimmed scene behind the whole page (Ledger mode). */
 export function SceneBackdrop({ scene }: { scene: SceneName }) {
-  return <div className="scene-backdrop" style={{ backgroundImage: `url(${BACKDROP[scene]})` }} aria-hidden data-testid="scene-backdrop" />;
+  return <div className="scene-backdrop" style={{ backgroundImage: `url(${backdropOf(scene)})` }} aria-hidden data-testid="scene-backdrop" />;
 }
 
 /**
@@ -40,19 +76,27 @@ const BAND_FRAMING: Partial<Record<SceneName, { focusY?: number; ground?: boolea
 };
 
 /** Where to centre each scene vertically (fraction of the art height) so its subject shows. */
-const FOCUS: Record<SceneName, number> = { stable: 0.42, barn: 0.5, grandstand: 0.58, paddock: 0.55 };
+const FOCUS: Record<ArtSlotScene, number> = { stable: 0.42, barn: 0.5, grandstand: 0.58, paddock: 0.55 };
+type ArtSlotScene = "stable" | "barn" | "grandstand" | "paddock";
 
 /**
  * The scene art at an integer scale (1x phones, 2x desktop), centred and cropped, never
  * stretched. This is the slot the HD-2D diorama replaces (`data-slot="diorama"`): keep the
  * wrapper and swap the <img> for the live scene.
  */
-export function SceneArt({ scene, alt }: { scene: SceneName; alt: string }) {
+export function SceneArt({ scene, alt }: { scene: ArtSlotScene; alt: string }) {
   const art = useArt(ART_SLOTS.scene[scene]);
   if (!art) return <div className="absolute inset-0 bg-[linear-gradient(180deg,#2d5a78_0_22%,#4f86a0_22%_40%,#86b4b8_40%_56%,#d9c48a_56%_68%,#3e6e52_68%)]" aria-hidden />;
   const style = { ["--aw" as string]: `${art.w}px`, ["--ah" as string]: `${art.h}px`, ["--fy" as string]: FOCUS[scene] } as CSSProperties;
   // eslint-disable-next-line @next/next/no-img-element
   return <img className="scene-art" src={artUrl(art)} alt={alt} style={style} draggable={false} />;
+}
+
+/** A still scene at an integer scale (1x phones, 2x desktop, 3x wide), centred and cropped, never stretched. */
+function StillScene({ scene, alt }: { scene: StillSceneName; alt: string }) {
+  const style = { ["--aw" as string]: `${STILL_W}px`, ["--ah" as string]: `${STILL_H}px`, ["--fy" as string]: STILL_SCENES[scene].fy } as CSSProperties;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="scene-art" src={`/art/scenes/${scene}.png`} width={STILL_W} height={STILL_H} alt={alt} style={style} draggable={false} fetchPriority="high" data-still-scene={scene} />;
 }
 
 /**
@@ -81,10 +125,10 @@ export function SceneBand({
   testId?: string;
 }) {
   return (
-    <section className={`scene-band bleed ${size === "home" ? "" : size === "crop" ? "crop" : "short"}`} data-testid={testId ?? "scene-band"}>
+    <section className={`scene-band bleed ${size === "home" ? "" : size === "crop" ? "crop" : "short"} ${isStill(scene) ? "still" : ""}`} data-testid={testId ?? "scene-band"}>
       <SceneBackdrop scene={scene} />
       <div className="absolute inset-0" data-slot="diorama" data-scene={scene}>
-        <DioramaSlot scene={scene} alt={alt} framing={BAND_FRAMING[scene]} />
+        {isStill(scene) ? <StillScene scene={scene} alt={alt} /> : <DioramaSlot scene={scene} alt={alt} framing={BAND_FRAMING[scene]} />}
       </div>
       <div className="overlay">
         <div className="mx-auto flex max-w-[75rem] items-end justify-between gap-3 px-[var(--gutter)]">
@@ -192,6 +236,7 @@ export function HowItWorks({ children, label = "How it works", className }: { ch
 /** Empty state: a 64-px illustration in a well, a one-line title, why or what next, one action. */
 export function EmptyState({
   icon = "horseshoe",
+  vignette,
   title,
   text,
   action,
@@ -199,6 +244,8 @@ export function EmptyState({
   testId,
 }: {
   icon?: IconName;
+  /** A 64 px scene vignette (art/vignettes) instead of the icon. */
+  vignette?: VignetteName;
   title: ReactNode;
   text: ReactNode;
   action?: ReactNode;
@@ -207,9 +254,13 @@ export function EmptyState({
 }) {
   return (
     <div className={`surface flex items-center gap-4 p-4 ${className ?? ""}`} data-testid={testId ?? "empty-state"}>
-      <span className="empty-slot" aria-hidden>
-        <PixelIcon name={icon} size={64} />
-      </span>
+      {vignette ? (
+        <Vignette name={vignette} />
+      ) : (
+        <span className="empty-slot" aria-hidden>
+          <PixelIcon name={icon} size={64} />
+        </span>
+      )}
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="t-title">{title}</p>
         <p className="t-meta">{text}</p>

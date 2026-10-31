@@ -12,6 +12,7 @@ import type { JockeyCard } from "@/server/jockeys";
 import { formatCredits } from "@/lib/format";
 import { GradeBadge } from "../StatBars";
 import { STAGE_LABEL } from "./JockeyBits";
+import { JockeyPortrait } from "./JockeyPortrait";
 
 type SortKey = "overall" | "name" | "rides" | "wins" | "strikeRate" | "ridesThisSeason" | "feeFrom";
 
@@ -77,6 +78,9 @@ export function JockeyTable({ jockeys, testId = "jockey-list" }: { jockeys: Jock
         {rows.map((j) => (
           <li key={j.id} className={j.mine ? "yours" : undefined}>
             <Link href={`/jockeys/${j.id}`} className="row-link gap-3 px-3 py-2.5" data-testid="jockey-row">
+              <span className="well shrink-0 overflow-hidden">
+                <JockeyPortrait jockey={j} silks={j.silks} variant="face" />
+              </span>
               <GradeBadge grade={j.grade} />
               <span className="min-w-0 flex-1">
                 <span className="t-title block truncate">
@@ -107,15 +111,20 @@ export function JockeyTable({ jockeys, testId = "jockey-list" }: { jockeys: Jock
                 <GradeBadge grade={j.grade} />
               </td>
               <td className="min-w-0 p-2">
-                <Link href={`/jockeys/${j.id}`} className="row-link block px-1 py-0" data-testid="jockey-link">
-                  <span className="t-title block truncate">
-                    {j.name}
-                    {j.claimLb > 0 && <span className="t-meta"> ({j.claimLb})</span>}
-                    {j.mine && <span className="you-tag ml-2 align-middle">You</span>}
+                <Link href={`/jockeys/${j.id}`} className="row-link flex items-center gap-3 px-1 py-0" data-testid="jockey-link">
+                  <span className="well shrink-0 overflow-hidden">
+                    <JockeyPortrait jockey={j} silks={j.silks} variant="face" />
                   </span>
-                  <span className="t-meta block truncate">
-                    {STAGE_LABEL[j.stage]} · {j.stableName ?? "Club freelancer"}
-                    {j.retiring ? " · retiring" : ""}
+                  <span className="min-w-0">
+                    <span className="t-title block truncate">
+                      {j.name}
+                      {j.claimLb > 0 && <span className="t-meta"> ({j.claimLb})</span>}
+                      {j.mine && <span className="you-tag ml-2 align-middle">You</span>}
+                    </span>
+                    <span className="t-meta block truncate">
+                      {STAGE_LABEL[j.stage]} · {j.stableName ?? "Club freelancer"}
+                      {j.retiring ? " · retiring" : ""}
+                    </span>
                   </span>
                 </Link>
               </td>

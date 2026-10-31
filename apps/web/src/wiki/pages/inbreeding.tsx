@@ -83,7 +83,7 @@ export default function InbreedingPage() {
         Breeding two relatives doubles up on the same genes. The game measures that with a coefficient of inbreeding (COI), blocks the closest pairings outright, and makes inbred foals pay for it:
         weaker legs and nerves, and more mutations that go the wrong way.
       </Lead>
-      <Figure src="/art/diorama/poster-pasture.png" alt="Mares and foals out at grass" caption="Every horse's sire and dam are kept in the stud book, so the game always knows who is related." focus={0.6} />
+      <Figure src="/art/scenes/pedigree-wall.png" alt="A pedigree family tree pinned across the study wall" caption="Every horse's sire and dam are kept in the stud book, so the game always knows who is related." focus={0.4} />
 
       <H2 id="coi">What COI means</H2>
       <P>

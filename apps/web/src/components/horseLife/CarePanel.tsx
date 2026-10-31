@@ -5,6 +5,7 @@ import type { HorseLifeView } from "@/lib/horseLife";
 import { INTENSITY_LABEL, RISK_LABEL, dayName, hoursText } from "@/lib/horseLife";
 import { formatCredits, oneInText } from "@/lib/format";
 import { PixelIcon } from "../icons";
+import { Vignette } from "../ui/Vignette";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
 import { CellBar, GrowthTrack, useAction } from "./common";
@@ -145,35 +146,38 @@ export function CarePanel({ view }: { view: HorseLifeView }) {
             Fatal injury. In memoriam: the horse rests on the Legacy Farm, and its record and foals carry the line on.
           </p>
         ) : cond.injury ? (
-          <div className="grid gap-2" data-testid="injury-card">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <p className="t-title text-negative" data-testid="injury-name">
-                {cond.injury.label}
+          <div className="flex items-start gap-3" data-testid="injury-card">
+            <Vignette name="vet" className="hidden sm:block" />
+            <div className="grid min-w-0 flex-1 gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <p className="t-title text-negative" data-testid="injury-name">
+                  {cond.injury.label}
+                </p>
+                {cond.injury.label !== cond.injury.severityLabel && <span className="chip !py-0 text-xs text-cream">{cond.injury.severityLabel}</span>}
+                {cond.injury.area && <span className="chip !py-0 text-xs text-cream-dim">{cond.injury.area}</span>}
+              </div>
+              {cond.injury.description && <p className="text-sm text-cream">{cond.injury.description}</p>}
+              <p className="font-extrabold text-negative" data-testid="injury-status">
+                {cond.injury.careerEnding ? "Settled" : "Back"} in {hoursText(cond.injury.hoursLeft)} ({dayName(cond.injury.untilMs)})
               </p>
-              {cond.injury.label !== cond.injury.severityLabel && <span className="chip !py-0 text-xs text-cream">{cond.injury.severityLabel}</span>}
-              {cond.injury.area && <span className="chip !py-0 text-xs text-cream-dim">{cond.injury.area}</span>}
+              {cond.injury.careerEnding && (
+                <p className="text-sm font-bold text-cream" data-testid="injury-career-ending">
+                  {first} can&rsquo;t race again. {view.horse.sex === "filly" || view.horse.sex === "mare" ? "She can join your broodmares" : "He can stand at stud"} once healed, or retire to the Legacy Farm.
+                </p>
+              )}
+              <p className="text-sm text-cream-dim">
+                What helps: rest (healing carries on in real time, even while you&rsquo;re away), a care session (12 h off, once a day) and vet treatment (24 h off, once a day). A better vet facility heals faster.
+              </p>
+              <button
+                type="button"
+                className="btn btn-sm w-fit"
+                onClick={() => action.run("vet", `${base}/vet`)}
+                disabled={cond.injury.treatedToday || action.busy !== null || view.credits < cond.injury.vetCost}
+                data-testid="vet-treat"
+              >
+                {cond.injury.treatedToday ? "Treated today ✓" : `Vet treatment · ${formatCredits(cond.injury.vetCost)} cr`}
+              </button>
             </div>
-            {cond.injury.description && <p className="text-sm text-cream">{cond.injury.description}</p>}
-            <p className="font-extrabold text-negative" data-testid="injury-status">
-              {cond.injury.careerEnding ? "Settled" : "Back"} in {hoursText(cond.injury.hoursLeft)} ({dayName(cond.injury.untilMs)})
-            </p>
-            {cond.injury.careerEnding && (
-              <p className="text-sm font-bold text-cream" data-testid="injury-career-ending">
-                {first} can&rsquo;t race again. {view.horse.sex === "filly" || view.horse.sex === "mare" ? "She can join your broodmares" : "He can stand at stud"} once healed, or retire to the Legacy Farm.
-              </p>
-            )}
-            <p className="text-sm text-cream-dim">
-              What helps: rest (healing carries on in real time, even while you&rsquo;re away), a care session (12 h off, once a day) and vet treatment (24 h off, once a day). A better vet facility heals faster.
-            </p>
-            <button
-              type="button"
-              className="btn btn-sm w-fit"
-              onClick={() => action.run("vet", `${base}/vet`)}
-              disabled={cond.injury.treatedToday || action.busy !== null || view.credits < cond.injury.vetCost}
-              data-testid="vet-treat"
-            >
-              {cond.injury.treatedToday ? "Treated today ✓" : `Vet treatment · ${formatCredits(cond.injury.vetCost)} cr`}
-            </button>
           </div>
         ) : (
           <p className="text-cream-dim">

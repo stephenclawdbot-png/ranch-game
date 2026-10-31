@@ -7,7 +7,7 @@
 import { UsdgText } from "@/components/chain/UsdgMode";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EmptyState, HowItWorks, PageHeader, Section } from "../ui/Page";
+import { EmptyState, HowItWorks, SceneBand, Section } from "../ui/Page";
 
 interface Row {
   position: number;
@@ -45,7 +45,7 @@ export function TipstersScreen() {
 
   return (
     <div className="grid gap-5" data-testid="tipsters">
-      <PageHeader scene="grandstand" eyebrow="Club" title="Tipsters" meta="Pick the winner of any Live race. Points only: nothing to stake, nothing to win but bragging rights." />
+      <SceneBand scene="form-rail" alt="Racegoers studying form on the rail" eyebrow="Club" title="Tipsters" meta="Pick the winner of any Live race. Points only: nothing to stake, nothing to win but bragging rights." />
       {err && <p className="surface p-3 text-negative">{err}</p>}
       {!v && !err && <p className="surface caption p-3" aria-busy>Loading…</p>}
       {v && (

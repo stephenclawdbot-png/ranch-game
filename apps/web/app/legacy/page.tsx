@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { TributeCard } from "@/components/moments/TributeCard";
-import { PageHeader } from "@/components/ui/Page";
+import { EmptyState, SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { legacyFarmView } from "@/server/moments";
 import { getSession } from "@/server/session";
@@ -22,22 +22,30 @@ export default async function LegacyFarmPage() {
   if (!session) redirect("/play");
   const view = await legacyFarmView(database, session, new Date());
   return (
-    <div className="mx-auto grid max-w-4xl gap-6" data-testid="legacy-farm">
-      <PageHeader
-        scene="paddock"
-        back={{ href: "/stable", label: "Stable" }}
+    <div data-testid="legacy-farm">
+      <SceneBand
+        scene="retirement-meadow"
+        alt="Retired horses grazing in the meadow at sunset"
         eyebrow={view.stableName}
         title="The Legacy Farm"
         meta="Retired for good: no racing, no breeding, no upkeep. Their records stay in your books and the Hall."
       />
+      <div className="mx-auto mt-6 grid max-w-4xl gap-6">
       {view.horses.length === 0 ? (
-        <p className="surface p-4 text-cream-dim" data-testid="legacy-empty">
-          No horses here yet. A horse moves to the Legacy Farm from its Career page when its racing and breeding days are done (see the{" "}
-          <Link href="/wiki/legacy-farm" className="link">
-            wiki
-          </Link>
-          ).
-        </p>
+        <EmptyState
+          vignette="legacy"
+          title="No horses here yet"
+          testId="legacy-empty"
+          text={
+            <>
+              A horse moves to the Legacy Farm from its Career page when its racing and breeding days are done (see the{" "}
+              <Link href="/wiki/legacy-farm" className="link">
+                wiki
+              </Link>
+              ).
+            </>
+          }
+        />
       ) : (
         <ul className="grid gap-4">
           {view.horses.map((h) => (
@@ -58,6 +66,7 @@ export default async function LegacyFarmPage() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }

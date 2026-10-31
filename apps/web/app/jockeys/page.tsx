@@ -26,7 +26,7 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
   const view = await jockeysPage(database, session, filter, new Date());
   return (
     <div>
-      <SceneBand scene="paddock" alt="Jockeys in the paddock" eyebrow={`Season ${view.season}`} title="Jockeys" testId="jockeys-band" />
+      <SceneBand scene="weighing-room" alt="Jockeys weighing out in the weighing room" eyebrow={`Season ${view.season}`} title="Jockeys" testId="jockeys-band" />
       <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <nav className="-mx-[var(--gutter)] flex gap-2 overflow-x-auto px-[var(--gutter)] pb-3" aria-label="Filter jockeys">

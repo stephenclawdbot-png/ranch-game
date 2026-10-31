@@ -92,3 +92,19 @@ all drawn with `image-rendering: pixelated` at 1x/2x/3x.
 4. Vignettes per news/moment kind.
 5. Wiki figures and section cards spread over the new scenes (plus vet room, grooming aisle,
    farrier, stud book, starting stalls).
+
+## What was done (same day)
+
+| Finding | Fix |
+|---|---|
+| R1 jockeys | 27 PixelLab busts (`portraits/jockeys`, 7 apprentices, 13 prime, 7 veterans; men and women; many skin tones), silks keyed to `race/palette.json` and painted in the jockey's stable colours (Club grey for freelancers). `lib/cast.ts` picks one per jockey id within the jockey's stage and the presentation their first name implies; the jockey page shows the 128 px bust, jockey tables and Your jockeys a 56 px head. |
+| R2-R4 banners | 14 still scenes (`scenes/<id>.png`, shown at 1x/2x/3x): League club lawn, Daily Cup winners' enclosure, Jockeys weighing room, Packs stud at dawn, Hall of Fame hall, News press room, Tipsters form on the rail, Quick races morning gallops, Nursery foaling barn, Breeding stud book, Facilities yard works, Finances estate office, Legacy Farm retirement meadow (it had no scene), Wiki library. Road to Saturday uses the dusk diorama; Bring a rival sits on the paddock. The paddock diorama is now Story's, the grandstand the race card's, the barn the horse pages', the yard Home's. |
+| R5 trainers | Eight trainer busts on the Story rival cards, dressed in their stable colours. |
+| R6 news | 23 framed vignettes, one per news and moment kind (`vignettes/`), on Racing news, Home's stable news and horse highlights; also on the Legacy Farm, Nursery, Transfer window empty states and the injury card. |
+| Plaques | The Trophy Room's 17 achievements each have their own engraved plaque (`trophies/plaques.png`) instead of one shared plaque. |
+| R7 wiki | 13 articles moved to their own scenes (plus vet room, grooming aisle, farrier, pedigree wall, starting stalls); the wiki hero is the library. |
+| Weak spots | Wiki figures, wiki cards and the Trophy Room banner were `object-fit: cover` (non-integer scaling): now drawn at whole-number scales. Top-bar silks avatar now 2x (was 1.5x). |
+
+Left as is, by design: horse portraits (one genetic painting per horse), stable avatars (the
+stable's own silks), the race viewer's sprites, the wiki section cards (each reuses a figure from
+its own section as a cover), and blurred backdrops behind Invite, Pool, Beta and the Me pages.

@@ -41,8 +41,10 @@ export function P({ children }: { children: ReactNode }) {
 export function Figure({ src, alt, caption, height = 200, focus = 0.5, contain }: { src: string; alt: string; caption?: ReactNode; height?: number; focus?: number; contain?: boolean }) {
   return (
     <figure className="wiki-figure">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="pixelated" style={{ height, objectFit: contain ? "contain" : "cover", objectPosition: `50% ${focus * 100}%` }} draggable={false} loading="lazy" />
+      <div className={`wiki-figure-frame ${contain ? "is-contain" : ""}`} style={{ height, ["--fy" as string]: `${focus * 100}%` }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="pixelated" draggable={false} loading="lazy" />
+      </div>
       {caption && <figcaption className="caption">{caption}</figcaption>}
     </figure>
   );

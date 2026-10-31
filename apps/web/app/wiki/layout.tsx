@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function WikiLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <SceneBackdrop scene="stable" />
+      <SceneBackdrop scene="club-library" />
       <div className="wiki-shell">
         <WikiNav />
         <div className="min-w-0">{children}</div>

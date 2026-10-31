@@ -39,7 +39,7 @@ export default function LeaguePage() {
         The League is where your stable competes with other owners. Every week you race in a league of up to {gc.LEAGUE_SIZE} stables, scoring points from your Live races. Finish near the top
         and you go up a tier; the weeks add up to a {gc.SEASON_DAYS}-day season that ends with the Season Final.
       </Lead>
-      <Figure src="/art/diorama/poster-paddock.png" alt="The paddock at Kestrel Downs" caption="League tables are settled on the track: only Live races score." focus={0.4} />
+      <Figure src="/art/scenes/club-lawn.png" alt="Members on the clubhouse lawn beside the league board" caption="League tables are settled on the track: only Live races score." focus={0.5} />
 
       <H2 id="weekly">Weekly leagues</H2>
       <P>

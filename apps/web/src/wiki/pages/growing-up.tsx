@@ -46,7 +46,7 @@ export default function GrowingUpPage() {
         A horse grows up on its own clock, not the calendar. A youngster moves on with each day you care for it; a racehorse moves on with each start. Nothing ages while you are away, so a
         foal left alone for a month is still the same foal, waiting for you.
       </Lead>
-      <Figure src="/art/diorama/poster-pasture.png" alt="Mares and foals out at pasture" caption="Foals grow up through daily care, then move on to the racecourse." focus={0.6} />
+      <Figure src="/art/scenes/foaling-barn.png" alt="A mare and her foal in the foaling barn" caption="Foals grow up through daily care, then move on to the racecourse." focus={0.62} />
 
       <H2 id="stages">The life stages</H2>
       <Table
