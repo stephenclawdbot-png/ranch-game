@@ -97,6 +97,8 @@ describe("Story mode", () => {
     const r = mine.runners[0]!;
     expect(credits).toBe(3000 + r.storyReward + DAILY_GOAL_CREDITS); // entering also paid the day's race goal
     expect(r.storyReward).toBe(r.position === 1 ? 400 : 20);
+    // The result explains its own rating change from the rule (playtest fix 14).
+    expect(r.ratingWhy).toMatch(/^OR (unchanged: finished|\-?\+?\d+(\.\d+)?: finished) \d+(st|nd|rd|th) of \d+ in a race the handicapper expected it to /);
     // Viewing again or re-settling never pays twice; Story races cost no stable entries.
     expect(await settleIfDue(h.db, created.raceId, at(60_000))).toBe(false);
     await myRaceResult(h.db, p, created.raceId, at(60_000));
@@ -195,6 +197,12 @@ describe("Live card", () => {
     expect(mine.position).toBe(replay.result.finishOrder.find((f) => f.horseId === pick.horseId)!.position);
     expect(await getBalance(h.db, a.accountId)).toBe(before + mine.prize);
     expect(mine.prize).toBe(replay.result.finishOrder.find((f) => f.horseId === pick.horseId)!.prize);
+    // The rating reason states the same delta the card's before/after shows (playtest fix 14).
+    expect(mine.ratingAfter).not.toBeNull();
+    const stated = mine.ratingWhy?.match(/^OR (unchanged|([+-]?\d+(?:\.\d+)?))/);
+    expect(stated).not.toBeNull();
+    if (mine.ratingAfter === mine.ratingBefore) expect(mine.ratingWhy).toMatch(/^OR unchanged:/);
+    else expect(Number(stated![2])).toBe(mine.ratingAfter! - mine.ratingBefore);
     const v = await verifyRace(h.db, pick.raceId, end, { commitment: open.seedCommitment, resultHash: replay.result.resultHash });
     expect(v.commitmentOk && v.resultHashOk).toBe(true);
     const finished = await raceList(h.db, end, a.stable.id);

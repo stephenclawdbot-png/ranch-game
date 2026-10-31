@@ -1392,6 +1392,8 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
   const fresh = (await dbGetRace(db, raceId))!;
   const mine = await stableEntriesInRace(db, session.stable.id, raceId);
   const story = race.kind === "quick" ? await storyRewardFor(db, raceId) : null;
+  // Why the mark moved (or held): computed from the same field the settlement rated.
+  const rated = ratedFieldOf(await listRaceEntries(db, raceId), replay);
   const runners = [];
   for (const e of mine) {
     const row = await getHorse(db, e.horseId);
@@ -1407,12 +1409,27 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
       firstWin: story?.firstWin ?? false,
       ratingBefore: e.ratingBefore,
       ratingAfter: e.ratingAfter,
+      // Only a rated run (ratingAfter written) has a why; trials and the Cup never touch the mark.
+      ratingWhy: e.ratingAfter != null ? gc.ratingChangeReason(rated, e.horseId) || null : null,
       atOff: conditionAtOff(e.snapshot, race.postTime.getTime()),
       injury: hurt,
     });
   }
   const firstView = (await markInboxRead(db, { accountId: session.accountId, raceId, now })) > 0;
   return { raceId, settled: fresh.status === "settled", firstView, runners };
+}
+
+/**
+ * The field as the rating rule sees it (settleField): each entry's mark and rated runs at entry
+ * plus its finishing position, so the result screen can explain an OR change from the same
+ * numbers that produced it. Runners the race could not place are left out.
+ */
+function ratedFieldOf(entries: RaceEntryRow[], replay: Awaited<ReturnType<typeof replayFor>>): gc.RatedRunner[] {
+  return entries.flatMap((e) => {
+    const state = (e.snapshot as { state?: gc.HorseState | null } | null)?.state;
+    const position = e.finishPosition ?? replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 0;
+    return state && position > 0 ? [{ horseId: e.horseId, or: state.rating.or, ratedRuns: state.rating.ratedRuns, position }] : [];
+  });
 }
 
 /** Three generations above `row` (15 horses at most), fetched a generation at a time. */
