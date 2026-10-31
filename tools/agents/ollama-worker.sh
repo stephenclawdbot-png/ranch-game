@@ -20,6 +20,6 @@ env -i PATH="$PATH" HOME="$HOME" \
   https_proxy="${https_proxy:-}" no_proxy="${no_proxy:-}" NODE_OPTIONS="${NODE_OPTIONS:-}" \
   NODE_EXTRA_CA_CERTS="${NODE_EXTRA_CA_CERTS:-}" SSL_CERT_FILE="${SSL_CERT_FILE:-}" REQUESTS_CA_BUNDLE="${REQUESTS_CA_BUNDLE:-}" \
   ANTHROPIC_BASE_URL=https://ollama.com ANTHROPIC_AUTH_TOKEN="$key" \
-  claude -p "$(cat "$promptf")" --model "${OLLAMA_MODEL:-glm-5.3}" --output-format text --max-turns 150 \
+  claude -p "$(cat "$promptf")" --model "${OLLAMA_MODEL:-glm-5.3}" --output-format text --max-turns ${MAX_TURNS:-150} \
   --allowedTools "$@" > "$out/$name.out" 2> >(grep -v unrecognized_model > "$out/$name.err")
 echo "exit=$?" >> "$out/$name.out"
