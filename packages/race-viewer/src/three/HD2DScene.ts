@@ -105,6 +105,33 @@ const HORSE_FRAG_3D = HORSE_FRAG.replace(
 }`,
 );
 
+/** Device rows per sky art-pixel step: the sky's whole-pixel scale is round(viewport h / this)
+ *  (about Trackside's backdrop scale: 1 on a 700 px desktop stage, 2-3 on a phone). */
+const SKY_ROWS_PER_K = 560;
+/** Art rows of the sky's bottom tucked below the horizon (behind the far hills). */
+const SKY_SINK = 10;
+/** Sky parallax (art px per metre of camera travel) and drift (art px per second). */
+const SKY_PARALLAX = 0.5;
+const SKY_DRIFT = 1.2;
+
+const SKY_VERT = /* glsl */ `
+void main() { gl_Position = vec4(position.xy, 1.0, 1.0); }
+`;
+
+/** Screen-space pixel sky: whole device pixels per art pixel (nearest), mirror-tiled in x. */
+const SKY_FRAG = /* glsl */ `
+uniform sampler2D uSky; uniform vec2 uSize; uniform float uK; uniform float uHorizon; uniform float uOff; uniform float uVpX;
+void main() {
+  float y = floor((gl_FragCoord.y - uHorizon) / uK);
+  float x = floor((gl_FragCoord.x - uVpX) / uK + uOff);
+  float m = mod(x, 2.0 * uSize.x);
+  float xx = m < uSize.x ? m : 2.0 * uSize.x - 1.0 - m;
+  vec2 uv = vec2((xx + 0.5) / uSize.x, (clamp(y, 0.0, uSize.y - 1.0) + 0.5) / uSize.y);
+  gl_FragColor = vec4(texture2D(uSky, uv).rgb, 1.0);
+  #include <colorspace_fragment>
+}
+`;
+
 interface Runner {
   index: number;
   horseId: string;
@@ -213,6 +240,8 @@ export class HD2DScene {
   private pipWasActive = false;
   private lastTime = Number.NaN;
   private animTime = 0;
+  /** Sky drift (art px), real time. */
+  private skyDrift = 0;
   private firstFrame = true;
   private quality: RenderQuality;
   private pixelated: boolean;
@@ -379,12 +408,45 @@ export class HD2DScene {
   private buildSky(art: ArtSet): THREE.Mesh {
     const T = this.T;
     const artSky = art.images.get(this.stage.look.sky.art);
-    const map = this.tex(artSky ?? skyStrip(this.look));
-    // The sky is a soft backdrop stretched over a dome: filtered, never blocky.
-    map.magFilter = T.LinearFilter;
-    map.minFilter = T.LinearFilter;
-    const sky = new T.Mesh(this.own(new T.SphereGeometry(1800, 24, 24)), this.own(new T.MeshBasicMaterial({ map, side: T.BackSide, fog: false, depthWrite: false })));
+    const src = artSky ?? skyStrip(this.look);
+    const map = this.tex(src);
+    // The sky is pixel art drawn the way Trackside draws it: in screen space, at a whole
+    // number of device pixels per art pixel, its bottom on the horizon, mirror-tiled sideways
+    // and drifting a little with the camera. (A dome stretched ~70 art pixels across the
+    // screen in the wide shots: huge blurred blocks.)
+    const w = src instanceof HTMLCanvasElement ? src.width : src.naturalWidth || src.width;
+    const h = src instanceof HTMLCanvasElement ? src.height : src.naturalHeight || src.height;
+    const mat = this.own(
+      new T.ShaderMaterial({
+        vertexShader: SKY_VERT,
+        fragmentShader: SKY_FRAG,
+        uniforms: { uSky: { value: map }, uSize: { value: new T.Vector2(w, h) }, uK: { value: 1 }, uHorizon: { value: 0 }, uOff: { value: 0 }, uVpX: { value: 0 } },
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    const sky = new T.Mesh(this.own(new T.PlaneGeometry(2, 2)), mat);
+    sky.frustumCulled = false;
     sky.renderOrder = -10;
+    // Per camera (the main view, the post target and the PiP inset): the horizon's row in
+    // that viewport and the art scale for its height.
+    const vp = new T.Vector4();
+    const fwd = new T.Vector3();
+    const hp = new T.Vector3();
+    sky.onBeforeRender = (renderer, _scene, camera) => {
+      renderer.getCurrentViewport(vp);
+      const u = mat.uniforms;
+      const k = Math.max(1, Math.round(vp.w / SKY_ROWS_PER_K));
+      camera.getWorldDirection(fwd);
+      fwd.y = 0;
+      if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
+      fwd.normalize();
+      hp.copy(camera.position).addScaledVector(fwd, 5000).project(camera);
+      u.uK!.value = k;
+      u.uHorizon!.value = vp.y + ((hp.y + 1) / 2) * vp.w - SKY_SINK * k;
+      u.uVpX!.value = vp.x;
+      u.uOff!.value = this.skyDrift + camera.position.x * SKY_PARALLAX;
+    };
     this.scene.add(sky);
     if (this.look.sunDisc && this.stage.look.sun) {
       this.sun = new T.Sprite(this.own(new T.SpriteMaterial({ map: this.tex(sunSprite(this.look)), fog: false, depthWrite: false, transparent: true })));
@@ -392,10 +454,11 @@ export class HD2DScene {
       this.sun.renderOrder = -9;
       this.scene.add(this.sun);
     }
-    // Pixel clouds, far away (so they barely parallax).
+    // Code-drawn pixel clouds, far away, only over the code-drawn sky: the art sky has its own
+    // clouds (as in Trackside), and these blocky sprites magnified over it were the "pixelated sky".
     const r = rng(77);
-    const cloudTex = [0, 1, 2].map((i) => this.tex(cloudSprite(this.look, 100 + i)));
-    for (let i = 0; i < this.look.cloudCount; i++) {
+    const cloudTex = artSky ? [] : [0, 1, 2].map((i) => this.tex(cloudSprite(this.look, 100 + i)));
+    for (let i = 0; i < (artSky ? 0 : this.look.cloudCount); i++) {
       const s = new T.Sprite(this.own(new T.SpriteMaterial({ map: cloudTex[i % 3]!, fog: false, depthWrite: false, transparent: true, alphaTest: 0.5 })));
       const w = 180 + r() * 160;
       s.scale.set(w, w * 0.42, 1);
@@ -1210,7 +1273,7 @@ export class HD2DScene {
     this.pipWasActive = this.pipActive;
 
     // --- World animation ---------------------------------------------------------
-    this.sky.position.copy(cam.position);
+    if (!f.frozen) this.skyDrift += realDt * SKY_DRIFT;
     if (this.sun) this.sun.position.copy(cam.position).addScaledVector(this.sunDir, 1500);
     this.sunLight.target.position.set(focus.x, this.el(focus.x), -this.trackW / 2);
     this.sunLight.position.copy(this.sunLight.target.position).addScaledVector(this.keyDir, 80);
@@ -1561,10 +1624,10 @@ export class HD2DScene {
         elev = 11;
         yaw = -3;
         fillX = 0.92;
-        fillY = 0.24;
+        fillY = 0.3;
         fov = 36;
         leadPad = 3;
-        maxSpan = 56;
+        maxSpan = 42;
         composeShift = 0.42;
         vel = (byX[0]!.speed + byX[byX.length - 1]!.speed) / 2;
         break;
