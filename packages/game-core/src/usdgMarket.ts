@@ -91,8 +91,12 @@ export const PRACTICE_USDG_TOPUP_MAX = 10_000 * USDG_UNIT;
  * The one practice-mode switch, shared by the USDG market, Premium Packs and the tote: on only
  * when `USDG_MODE` is exactly "practice". Everything else (unset, live, mock, off, a typo) is off.
  */
-export function isUsdgPracticeMode(env: { USDG_MODE?: string | undefined }): boolean {
+export function isUsdgPracticeMode(env: { readonly [key: string]: string | undefined }): boolean {
   return env.USDG_MODE === "practice";
+}
+/** A USD price in cents as micro-T-USDG (practice mode prices Premium Packs at 1 T-USDG per USD). */
+export function practiceUsdgFromUsdCents(cents: number): number {
+  return cents * (USDG_UNIT / 100);
 }
 /** What players see instead of "USDG" while practice mode is on. */
 export const PRACTICE_USDG_LABEL = "T-USDG";

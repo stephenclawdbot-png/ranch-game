@@ -4,18 +4,13 @@
  * a dollar sign, while practice mode is on). Server only.
  */
 import { grantPracticeUsdg, verifiedWalletOf, type Db } from "@thoroughbred/db";
-import { practiceUsdgText } from "@thoroughbred/game-core";
-import { isPracticeEnv } from "./config";
+import { isUsdgPracticeMode, practiceUsdgText } from "@thoroughbred/game-core";
 
 type Env = Record<string, string | undefined>;
 
-/** Practice mode on? (A malformed USDG_MODE reads as off here; the market itself refuses to start with it.) */
+/** Practice mode on? (USDG_MODE=practice exactly; a near miss reads as off here and the market refuses to start with it.) */
 export function practiceOn(env: Env = process.env): boolean {
-  try {
-    return isPracticeEnv(env);
-  } catch {
-    return false;
-  }
+  return isUsdgPracticeMode(env);
 }
 
 /** A player-facing sentence, in T-USDG wording while practice mode is on. */
@@ -44,7 +39,7 @@ export async function ensurePracticeGrant(db: Db, accountId: string, now: Date, 
   if (!practiceOn(env)) return null;
   try {
     if (!(await verifiedWalletOf(db, accountId))) return null;
-    return await grantPracticeUsdg(db, { accountId, now });
+    return await grantPracticeUsdg(db, { accountId, now, env });
   } catch (err) {
     console.error("practice grant", accountId, err);
     return null;

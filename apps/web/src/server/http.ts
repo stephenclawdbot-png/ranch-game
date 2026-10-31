@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { httpStatusFor, isDomainError, type DomainErrorCode } from "@thoroughbred/db";
-import { practiceUsdgText } from "@thoroughbred/game-core";
+import { isUsdgPracticeMode, practiceUsdgText } from "@thoroughbred/game-core";
 import { RaceNotFoundError, TooEarlyError, UnauthorizedError } from "./errors";
 
 export function json(data: unknown, init?: ResponseInit & { cache?: string }): NextResponse {
@@ -62,7 +62,7 @@ export function handleError(err: unknown): NextResponse {
   if (isDomainError(err)) {
     const code = err.code as DomainErrorCode;
     // Practice mode (USDG_MODE=practice): players only ever see "T-USDG", never plain "USDG".
-    const message = (process.env.USDG_MODE ?? "").trim().toLowerCase() === "practice" && /USDG/.test(err.message) ? practiceUsdgText(err.message) : err.message;
+    const message = isUsdgPracticeMode(process.env) && /USDG|\$/.test(err.message) ? practiceUsdgText(err.message) : err.message;
     return errorJson(httpStatusFor(code), code, { message: message && message !== code ? capitalise(message) : FRIENDLY[code], details: err.details });
   }
   throw err;

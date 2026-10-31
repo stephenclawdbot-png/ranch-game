@@ -20,18 +20,23 @@
  *   (`fulfilUsdgPayment`: moves or registers the horse, or runs the covering). If the order can't
  *   be delivered, the whole transaction rolls back: nothing is charged, the order stays pending and
  *   lapses through the normal expiry (which releases the lot, the stallion slot and the mare).
+ * - Premium Packs (owner decision 2026-10-31): in practice mode they cost their USD price in
+ *   T-USDG (1 T-USDG = 1 USD), charged to the burn by `chargePracticeUsdgTx` in the same
+ *   transaction as the prepaid pulls (apps/web checkout.ts `practiceCheckout`). No Prize Pool
+ *   share and no affiliate commission: practice money pays nobody.
  * - Only orders written with the practice market address (`USDG_PRACTICE_MARKET`) can be paid
  *   this way, so a real order can never be settled with test money.
  * - Reset (`resetPracticeUsdg`, dry run unless `apply`): drains every T-USDG balance (players,
  *   the tote's T-USDG escrow and house) to the burn, releases open practice listings and bookings,
- *   and deletes practice orders, bids, listings, registrations and T-USDG tote bets and pools.
+ *   and deletes practice orders, bids, listings, registrations, T-USDG Premium Pack orders and
+ *   T-USDG tote bets and pools.
  *   Horses that changed hands during the beta stay where they are.
  */
 import { createHash } from "node:crypto";
 import { and, eq, gt, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
-import { horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type UsdgListingRow, type UsdgOrderRow } from "../schema";
+import { chainOrders, horses, inboxItems, ledgerAccounts, stables, toteBets, totePools, usdgBids, usdgListings, usdgOrders, usdgRegistrations, type ChainOrderRow, type UsdgListingRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { verifiedWalletOf } from "./betaMoney";
 import { ensureSystemAccountId, getBalance, playerLedgerAccountId, post, USDG_PRACTICE_CURRENCY } from "./ledger";
@@ -144,6 +149,35 @@ export function practiceTxHash(orderId: string): string {
 
 export const isPracticeOrder = (o: Pick<UsdgOrderRow, "marketAddress">): boolean => lower(o.marketAddress) === USDG_PRACTICE_MARKET;
 
+/** Placeholder store address written on Premium Pack orders paid in T-USDG (never a real contract). */
+export const PRACTICE_STORE_ADDRESS = "0x0000000000000000000000000000000000007e58";
+export const isPracticeChainOrder = (o: Pick<ChainOrderRow, "storeAddress">): boolean => lower(o.storeAddress) === PRACTICE_STORE_ADDRESS;
+
+/**
+ * Charges T-USDG to the practice burn inside the caller's transaction (Premium Packs bought in
+ * practice mode: 1 T-USDG per USD of the pack price). Idempotent per key; refuses an overdraft
+ * with INSUFFICIENT_FUNDS (nothing moves) and anything outside practice mode.
+ */
+export async function chargePracticeUsdgTx(
+  tx: Executor,
+  input: { accountId: string; amount: number; idempotencyKey: string; kind: string; memo: string; meta?: Record<string, unknown>; env?: Env },
+): Promise<{ duplicate: boolean }> {
+  if (!usdgPracticeOn(input.env)) throw new DomainError("NOT_ELIGIBLE", "T-USDG exists only in practice mode.");
+  if (!Number.isSafeInteger(input.amount) || input.amount <= 0) throw new DomainError("INVALID_INPUT", "bad T-USDG amount");
+  await assertPracticeFunds(tx, input.accountId, input.amount);
+  const r = await post(tx, {
+    idempotencyKey: input.idempotencyKey,
+    kind: input.kind,
+    memo: input.memo,
+    meta: input.meta,
+    postings: [
+      { ledgerAccountId: await practiceLedgerAccountId(tx, input.accountId), amount: -input.amount },
+      { ledgerAccountId: await practiceSystemAccountId(tx, "burn"), amount: input.amount },
+    ],
+  });
+  return { duplicate: r.duplicate };
+}
+
 /**
  * Pays one practice order from the payer's T-USDG and fulfils it, atomically (see the module doc).
  * Idempotent: a fulfilled order returns `duplicate: true` and moves nothing.
@@ -230,6 +264,8 @@ export interface PracticeResetReport {
   registrations: number;
   /** Stallions whose T-USDG stud fee is cleared (their practice registration goes). */
   studFeesCleared: number;
+  /** Premium Pack orders paid in T-USDG (deleted so they never count toward a real-money cap later; the foals stay). */
+  packOrders: number;
   /** T-USDG tote bets (all, and still open) and settled T-USDG pools. */
   toteBets: number;
   openToteBets: number;
@@ -271,6 +307,7 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
       .from(toteBets)
       .where(eq(toteBets.currency, USDG_PRACTICE_CURRENCY));
     const [pools] = await tx.select({ n: sql<number>`count(*)::int` }).from(totePools).where(eq(totePools.currency, USDG_PRACTICE_CURRENCY));
+    const [packs] = await tx.select({ n: sql<number>`count(*)::int` }).from(chainOrders).where(eq(chainOrders.storeAddress, PRACTICE_STORE_ADDRESS));
     const openListings = listings.filter((l) => l.status === "active" || l.status === "closed");
     const openOrders = orders.filter((o) => o.status === "pending" || o.status === "paid");
     const report: PracticeResetReport = {
@@ -284,6 +321,7 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
       bids: Number(bidCount?.n ?? 0),
       registrations: regs.length,
       studFeesCleared: studFees.length,
+      packOrders: Number(packs?.n ?? 0),
       toteBets: Number(tote[0]?.n ?? 0),
       openToteBets: Number(tote[0]?.open ?? 0),
       totePools: Number(pools?.n ?? 0),
@@ -299,6 +337,7 @@ export async function resetPracticeUsdg(db: Db, input: { apply: boolean; now: Da
     if (orderIds.length) await tx.delete(usdgOrders).where(inArray(usdgOrders.orderId, orderIds));
     if (listingIds.length) await tx.delete(usdgListings).where(inArray(usdgListings.id, listingIds));
     if (regs.length) await tx.delete(usdgRegistrations).where(inArray(usdgRegistrations.id, regs.map((r) => r.id)));
+    await tx.delete(chainOrders).where(eq(chainOrders.storeAddress, PRACTICE_STORE_ADDRESS));
     // T-USDG tote bets go with the balances (open stakes sit in the T-USDG escrow, drained below).
     await tx.delete(toteBets).where(eq(toteBets.currency, USDG_PRACTICE_CURRENCY));
     await tx.delete(totePools).where(eq(totePools.currency, USDG_PRACTICE_CURRENCY));

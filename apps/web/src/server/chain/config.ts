@@ -24,6 +24,7 @@
  *                              chain, no RPC): no real purchase, no payout, no commission.
  */
 import { getAddress, isAddress, type Address, type Hex } from "viem";
+import { isUsdgPracticeMode } from "@thoroughbred/game-core";
 
 export interface BetaChainConfig {
   enabled: boolean;
@@ -54,12 +55,16 @@ function addr(env: Env, k: string): Address | null {
   return getAddress(v);
 }
 
-/** USDG_MODE=practice (explicit). Unset/empty: false. Any other value: a configuration error, never a silent fallback. */
+/**
+ * USDG_MODE=practice, exactly (game-core `isUsdgPracticeMode`, the same switch as the tote's
+ * T-USDG pools). A near miss ("Practice", " practice") is a configuration error, never a silent
+ * fallback to real money; any other value (unset, live, mock, off) means practice mode is off.
+ */
 export function isPracticeEnv(env: Env = process.env): boolean {
+  if (isUsdgPracticeMode(env)) return true;
   const v = (env.USDG_MODE ?? "").trim().toLowerCase();
-  if (!v) return false;
-  if (v === "practice") return true;
-  throw new BetaConfigError(`USDG_MODE must be "practice" or unset (got "${v.slice(0, 20)}")`);
+  if (v === "practice") throw new BetaConfigError(`USDG_MODE must be exactly "practice" (got "${(env.USDG_MODE ?? "").slice(0, 20)}")`);
+  return false;
 }
 
 export function readBetaConfig(env: Env = process.env): BetaChainConfig {

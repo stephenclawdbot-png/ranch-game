@@ -97,7 +97,7 @@ export function toteTakeout(total: number, permille: number = TOTE_TAKEOUT_PERMI
 }
 
 /** Is T-USDG betting switched on? Only when the practice-USDG mode is: never live, mock or off. */
-export function toteUsdgEnabledFrom(env: { USDG_MODE?: string | undefined }): boolean {
+export function toteUsdgEnabledFrom(env: { readonly [key: string]: string | undefined }): boolean {
   return isUsdgPracticeMode(env);
 }
 
