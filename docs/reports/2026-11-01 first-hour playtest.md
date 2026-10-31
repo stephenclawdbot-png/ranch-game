@@ -165,30 +165,41 @@ racing age. Retiring asks for a confirmation (it is permanent).
 
 ## 5. Before and after
 
+Final run on the final code (fresh database), against the baseline:
+
 | | Phone before | Phone after | Desktop before | Desktop after |
 |---|---|---|---|---|
-| First race entered (robot) | 7.2 s, 8 clicks | 15.1 s, 8 clicks | 8.6 s, 8 clicks | 9.3 s, 8 clicks |
-| First result (incl. broadcast) | 117 s (1,000 m) | 153 s (1,400 m) | 148 s (1,400 m) | 167 s (1,000 m) |
-| A concrete reason for the result | no ("pace slow, conditions suited") | yes | partly (fit) | yes |
-| One suggested change | none | one, one tap | two tips, no button | one, one tap |
-| Why on the phone page | ~1,900 px down | ~1,520 px down, button floats | | |
-| Second race entered | 142 s, 9 clicks (same plan) | 173 s, 9 clicks (with the change) | 182 s, 9 clicks | 205 s, 9 clicks |
-| First-race conditions | random (heavy, too far possible) | horse's best | | |
-| First-race wins (probe) | 3 % | 22 % | | |
+| First race entered (robot) | 7.2 s, 8 clicks | 8.2 s, 8 clicks | 8.6 s, 8 clicks | 5.3 s, 8 clicks |
+| First result (incl. broadcast) | 117 s | 131 s | 148 s | 158 s |
+| First result | 9th of 9 (best conditions) | won, made all | 8th of 8 (heavy, too far) | 2nd of 8 (best conditions) |
+| A concrete reason | no ("pace slow, conditions suited") | yes | partly (fit only) | yes |
+| One suggested change, one tap | none | (a win: race again) | two tips, no button | "Race Bright Idea instead" |
+| Why on the phone result page | ~1,900 px down, button ~2,500 px | 1,426 px down, its button floats in the thumb zone | | |
+| Second race entered | 142 s, 9 clicks (same plan) | 143 s, 9 clicks | 182 s, 9 clicks | 338 s, 9 clicks (see below) |
+| Total to the wiki | 259 s, 10 clicks | 319 s, 10 clicks | 326 s, 10 clicks | 403 s, 10 clicks |
+| First-race conditions | random | horse's best | random | horse's best |
+| First-race wins (probe of new stables) | 3 % | 22 % | | |
 
-The robot's seconds went up with machine load (load average 17-22 from other agents during the
-after runs) and with the race drawn (1,000 m vs 1,400 m), not with the flow: clicks are unchanged
-and the second race now carries the change. The after runs said, verbatim:
+Clicks are unchanged (the path to the first race was already 8 taps); what changed is what the
+taps lead to. The robot's seconds swing with machine load (load average 17-22 from four other
+agents on 4 cores) and with the trip drawn. On desktop, opening the second race from the result
+page took 152 s on that machine (the replay keeps rendering while the next route renders): the
+player arrives with the race nearly over. The baseline showed the same (21 s, and 31 s to reach
+the stable); recommendation 2 below.
 
-- Phone: *"First Light used too much early chasing the leader, and had nothing left with the
-  final furlong to go, dropping from 2nd to 6th."* → a race with the change → 3rd of 9.
-- Desktop: *"Sable Pennant used too much early leading, and had nothing left in the closing
-  stages, dropping from 1st to 2nd."*; after the second race (ridden off-style): back to its own
-  style.
-- Rating: *"Down 6: finished 6th of 8 when, on the ratings, it was expected to finish close up."*
+The final runs said, verbatim:
 
-(Those runs predate the measured rule above, so their change was "ride as a stalker"; the final
-code says stamina ran out and offers a fresh horse.)
+- Desktop, first race: *"Bold Harvest used too much early leading, and had nothing left with the
+  final furlong to go, dropping from 1st to 2nd."* Try this: *"Going from the front is still his
+  best way: stamina is what ran out, and stamina work on the gallops builds it. Give Bright Idea a
+  run meanwhile: fresh and ready."* Button: **Race Bright Idea instead**.
+- Phone, second race (the Story secretary drew 2,000 m): *"Brave Heart ran out of energy with the
+  last 500 m to go, dropping from 2nd to 9th: 2,000 m is further than her best (1,450 m)."* Change:
+  **Try again at a race that suits**.
+- Rating: *"Up 1: finished 2nd of 8 when, on the ratings, it was expected to finish close up."*
+- An earlier after-run (before the measured rule) showed the loop working end to end on the phone:
+  *"First Light used too much early chasing the leader ... dropping from 2nd to 6th"*, one tap, a
+  new race with the change, 3rd of 9.
 
 ## 6. Recommendations (not built: larger or design-changing)
 
