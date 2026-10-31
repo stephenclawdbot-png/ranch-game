@@ -15,3 +15,8 @@ export { courseGeometry, pointAt, runnerArcM, startArcM, type CourseGeometry, ty
 export { SCENERY, sceneryFor, type SceneryRecipe } from "./trackside/scenery";
 export { buildRaceCall, CALL_MIN_GAP_SEC, PHOTO_CALL_MM, type CallCourse, type CallKind, type CallLine, type LiveReplayView, type RaceCallInput } from "./call";
 export * from "./photo";
+export { RaceCallFeed, callLineAt, type CallFeedOptions, type TickerPick } from "./call/ticker";
+export { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hud/battle";
+export { finalePlan, finaleSlides, isPhotoFinish, isCloseFinish, type FinalePlan, type FinaleSlide, type FinaleStep, type FinaleStepKind } from "./finale/plan";
+export { officialHandoff } from "./finale/live";
+export { checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";

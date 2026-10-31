@@ -38,6 +38,8 @@ import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
  * passes its header with the frames/events received so far and no result (the scene
  * never reads a result it doesn't have; `setFinal` hands it over at the end).
  */
+const NO_IDS: readonly string[] = [];
+
 export interface SceneRaceData {
   race: RaceReplay["race"];
   horses: RaceReplay["horses"];
@@ -1111,6 +1113,7 @@ export class HD2DScene {
     dirInput.newEvents = newEvents;
     dirInput.highlightId = mine?.horseId ?? null;
     dirInput.winnerId = winner?.horseId ?? null;
+    dirInput.pipForMine = !!this.pipCam && this.quality === "high" && pipRect(this.W, this.H) !== null;
     let shotType: ShotType;
     let subjectId: string | null;
     if (mode === "director") {
@@ -1128,7 +1131,7 @@ export class HD2DScene {
     const subject = (subjectId ? this.runners.find((r) => r.horseId === subjectId) : null) ?? lead;
     const pos = this.v1;
     const at = this.v2;
-    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at);
+    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, mode === "director" ? this.director.mustFrame : NO_IDS);
     if (this.firstFrame || seek) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
@@ -1481,7 +1484,7 @@ export class HD2DScene {
    * Camera for one shot type around `sub`: writes the target position/aim into `pos` /
    * `at` and returns the lens, tracking velocity and the framed box.
    */
-  private shotCamera(type: ShotType, sub: Runner, byX: Runner[], raceT: number, pos: THREE.Vector3, at: THREE.Vector3) {
+  private shotCamera(type: ShotType, sub: Runner, byX: Runner[], raceT: number, pos: THREE.Vector3, at: THREE.Vector3, must: readonly string[] = NO_IDS) {
     const L = this.L;
     let group: Runner[] = [sub];
     let elev = 8;
@@ -1587,6 +1590,36 @@ export class HD2DScene {
         vel = sub.speed;
         maxSpan = 16;
         break;
+      case "replay":
+        // The slow-motion finish replay: low and side-on, the winner and its nearest rivals.
+        group = near(SHOT_REACH.replay, 4);
+        elev = 6;
+        yaw = -4;
+        fillX = 0.86;
+        fillY = 0.6;
+        fov = 22;
+        maxSpan = 12;
+        leadPad = 1.5;
+        break;
+    }
+    // The director's framing rules (final furlong: everything within two lengths of the
+    // leader; your horse when the shot was chosen to show it) widen the group as needed.
+    let mustSpan = 0;
+    if (must.length) {
+      if (group !== buf) {
+        buf.length = 0;
+        for (const r of group) buf.push(r);
+        group = buf;
+      }
+      let m0 = Infinity;
+      let m1 = -Infinity;
+      for (const r of byX) {
+        if (!must.includes(r.horseId)) continue;
+        if (!group.includes(r)) group.push(r);
+        m0 = Math.min(m0, r.x - 2.7);
+        m1 = Math.max(m1, r.x + 0.3);
+      }
+      if (m1 > m0) mustSpan = m1 - m0 + 1;
     }
     let x0 = Infinity;
     let x1 = -Infinity;
@@ -1613,6 +1646,7 @@ export class HD2DScene {
     maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
     if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 8);
     fillY *= 0.85 + 0.15 * narrowK;
+    maxSpan = Math.max(maxSpan, mustSpan);
     if (x1 - x0 > maxSpan) {
       // Keep the subject in the frame, trimmed towards the front of the group.
       const keepFront = Math.min(x1, Math.max(sub.x + 0.3, x0 + maxSpan));

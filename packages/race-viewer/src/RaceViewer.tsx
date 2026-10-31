@@ -8,17 +8,25 @@
  * winner and finishing order from replay.result.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import type { LiveRaceFeed, RaceEvent, RaceReplay } from "@thoroughbred/shared";
-import { LiveClock, PlaybackClock } from "./playback";
+import type { LiveRaceFeed, RaceReplay } from "@thoroughbred/shared";
+import { LiveClock, PlaybackClock, timeLeaderReaches } from "./playback";
 import { Director } from "./director";
 import { buildRaceStage } from "./stage/buildRaceStage";
 import { injuredFromEvents } from "./stage/motion";
 import { perfReport, type PerfReport } from "./perfReport";
 import { replayTiming } from "./sampleReplay";
-import { commentaryAt, distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
+import { distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
 import { pipRect, type CameraMode, type QualitySetting, type RenderQuality, type ViewMode } from "./types";
 import { FRAME_FIELD, FRAME_STRIDE, FURLONG_MM } from "@thoroughbred/shared";
-import { Controls, Countdown, Minimap, PhotoStamp, ResultsCard, Ticker, TopHud, type MinimapDot } from "./hud/Hud";
+import { BattleGraphic, CallTicker, Controls, Countdown, Minimap, PhotoStamp, ResultsCard, TopHud, type MinimapDot } from "./hud/Hud";
+import { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hud/battle";
+import { RaceCallFeed, callLineAt } from "./call/ticker";
+import type { CallLine } from "./call/buildRaceCall";
+import { finalePlan, REPLAY_FROM_M, type FinalePlan, type FinaleStepKind } from "./finale/plan";
+import { FinaleRunner, type FinaleState } from "./finale/runner";
+import { officialHandoff } from "./finale/live";
+import { FinaleOverlay, checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";
+import type { PhotoArt } from "./photo/raster";
 import type { CourseMapRunner } from "./hud/CourseMap";
 import { CourseMapPanel } from "./hud/CourseMapPanel";
 import { injectViewerCss } from "./hud/styles";
@@ -100,6 +108,28 @@ export interface RaceViewerProps {
    * broadcast may already show (never before the race is over on a live broadcast).
    */
   injuredHorseIds?: readonly string[];
+  /**
+   * The viewer's own horses (the race call says "your X"; each gets its own card in the
+   * finale even outside the places). Default: `highlightHorseId`.
+   */
+  mineHorseIds?: readonly string[];
+  /** Stable name / photo and jockey line per horseId, for the finale's cards (from the racecard). */
+  connections?: Readonly<Record<string, RunnerConnections>>;
+  /** Draws a horse's genetic 3/4 portrait for the finale's cards (loaded only when a card shows). */
+  renderPortrait?: PortraitRenderer;
+  /**
+   * The finish as an event after the line (default true): photograph and verdict, slow-motion
+   * replay, weighed in, the placed horses' cards. Only ever from the official result.
+   */
+  finale?: boolean;
+  /** The finale started ("running") or ended / was skipped ("done"). */
+  onFinale?: (state: "running" | "done") => void;
+}
+
+/** The finale's step as the overlay renders it. */
+interface FinaleView {
+  index: number;
+  kind: FinaleStepKind;
 }
 
 /** Minimap dots as course-map runners (distance covered from each dot's share of the race). */
@@ -156,7 +186,12 @@ interface HudState {
   canGoLive: boolean;
   toGoM: number;
   standings: StandingRow[];
-  commentary: RaceEvent | null;
+  /** The race call line at the playhead. */
+  call: CallLine | null;
+  marker: DistanceMarker | null;
+  battle: Battle | null;
+  /** Inside the final furlong: the HUD clears down to essentials. */
+  ff: boolean;
 }
 
 const NARROW_PX = 560;
@@ -236,6 +271,11 @@ export function RaceViewer(props: RaceViewerProps) {
     resultsCard = true,
     course = null,
     injuredHorseIds,
+    mineHorseIds,
+    connections,
+    renderPortrait,
+    finale: finaleOn = true,
+    onFinale,
   } = props;
   // Resolved on the client only (URL / localStorage), so SSR and hydration agree.
   const [view, setViewState] = useState<ViewMode | null>(props.view ?? null);
@@ -323,6 +363,73 @@ export function RaceViewer(props: RaceViewerProps) {
 
   useEffect(() => injectViewerCss(), []);
 
+  // ---- The finale (photograph, replay, weighed in, the placed horses' cards) ---------------
+  // Built only from an official result: a finished replay, or a live feed's `final` once the
+  // playhead has reached the end of the broadcast (finale/live.ts officialHandoff).
+  const mineKey = (mineHorseIds ?? (highlightHorseId ? [highlightHorseId] : [])).join(",");
+  const mine = useMemo(() => (mineKey ? mineKey.split(",") : []), [mineKey]);
+  const finaleRef = useRef(new FinaleRunner());
+  const [finaleView, setFinaleView] = useState<FinaleView | null>(null);
+  const [finaleState, setFinaleState] = useState<FinaleState>("idle");
+  const [seal, setSeal] = useState<SealState>("checking");
+  const [photoArt, setPhotoArt] = useState<PhotoArt | null>(null);
+  const onFinaleRef = useRef(onFinale);
+  onFinaleRef.current = onFinale;
+  const planCache = useRef(new WeakMap<RaceReplay, FinalePlan>());
+  const planFor = useCallback(
+    (fin: RaceReplay): FinalePlan | null => {
+      if (!finaleOn) return null;
+      let p = planCache.current.get(fin);
+      if (!p) {
+        p = finalePlan(fin, { mine, replayFrom: timeLeaderReaches(fin, REPLAY_FROM_M) });
+        planCache.current.set(fin, p);
+      }
+      return p;
+    },
+    [finaleOn, mine],
+  );
+  // Seal check for "Weighed in" (the browser hashes the revealed seed itself).
+  useEffect(() => {
+    if (!final) return;
+    let live = true;
+    setSeal("checking");
+    void checkSeal(final).then((s) => live && setSeal(s));
+    return () => {
+      live = false;
+    };
+  }, [final]);
+  // The photograph's art loads only when a finale with a photo starts.
+  const plan = final ? planFor(final) : null;
+  useEffect(() => {
+    if (!plan?.photo || finaleState !== "running" || photoArt) return;
+    let live = true;
+    void import("./photo/render").then(({ loadPhotoFinishArt }) =>
+      loadPhotoFinishArt(artBaseUrl ?? "/art").then(
+        (a) => live && setPhotoArt(a),
+        () => undefined,
+      ),
+    );
+    return () => {
+      live = false;
+    };
+  }, [plan, finaleState, photoArt, artBaseUrl]);
+
+  // Race call (the commentary ticker): the whole call for a finished race, or rebuilt from the
+  // live frames up to the data edge. Shown only up to the playhead.
+  const callFeed = useMemo(
+    () =>
+      new RaceCallFeed({
+        names: Object.fromEntries(stageData.horses.map((h) => [h.horseId, h.name])),
+        mine,
+        distanceM: stageData.race.distanceM,
+        course: course ? { name: course.name, homeStraightM: course.homeStraightM, finishGradientPermille: course.finishGradientPermille } : null,
+        going: stageData.race.going,
+        seed: stageData.race.id,
+      }),
+    [stageData, mine, course],
+  );
+  const markers = useMemo(() => [...raceStage.landmarks.poles, ...raceStage.landmarks.boards], [raceStage]);
+
   // Playback clock: rebuilt when the race source or its timing inputs change.
   useEffect(() => {
     finalRef.current = initialFinal;
@@ -334,9 +441,14 @@ export function RaceViewer(props: RaceViewerProps) {
     } else if (feed) {
       clockRef.current = new LiveClock(liveClockSource(feed), autoplay);
     }
+    finaleRef.current.setPlan(initialFinal ? planFor(initialFinal) : null, clockRef.current?.time ?? 0);
+    finaleViewRef.current = null;
+    setFinaleView(null);
+    finaleStateRef.current = finaleRef.current.state;
+    setFinaleState(finaleRef.current.state);
     finishedFired.current = false;
     setDismissed(false);
-  }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec]);
+  }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]);
 
   const publish = useCallback(() => {
     const clock = clockRef.current;
@@ -362,7 +474,20 @@ export function RaceViewer(props: RaceViewerProps) {
         leader: i === leadIdx && t > 0,
       };
     });
+    const fin = finalRef.current;
+    if (fin) callFeed.update(fin, true, Number.POSITIVE_INFINITY);
+    else if (feed) callFeed.update(live!, false, clock instanceof LiveClock ? clock.dataEdge() : t);
+    const rate = clock.rate || 1;
+    const call = t >= 0 ? callLineAt(callFeed.lines, t, { minShowSec: (narrowRef.current ? 3 : 2.5) * rate, holdSec: 6 * Math.max(1, rate) }) : null;
+    let leadM = 0;
+    for (const s of samples) leadM = Math.max(leadM, s.x / 1000);
+    const marker = samples.length && t >= 0 ? distanceMarker(markers, leadM, src.trackLengthMm / 1000) : null;
+    const finaleOnNow = finaleRef.current.running;
     setHud({
+      call,
+      marker,
+      battle: finaleOnNow ? null : battleAt(samples, src.trackLengthMm),
+      ff: !!marker?.finalFurlong && !finaleOnNow,
       dots,
       pip: !!scene?.pipShown,
       mode: isLive ? "live" : "replay",
@@ -379,9 +504,15 @@ export function RaceViewer(props: RaceViewerProps) {
       canGoLive: clock.canGoLive(),
       toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
       standings: samples.length ? standingsAt(src, samples) : [],
-      commentary: t >= 0 ? (commentaryAt(src, isLive ? t : Math.min(t, clock.duration + 4), narrowRef.current ? 3.5 : 6, 1)[0] ?? null) : null,
     });
-  }, [live, highlightHorseId]);
+  }, [live, feed, highlightHorseId, callFeed, markers]);
+  // The render loop outlives a publish/plan rebuild (e.g. the viewer's horses change): it reads these refs.
+  const publishRef = useRef(publish);
+  publishRef.current = publish;
+  const planForRef = useRef(planFor);
+  planForRef.current = planFor;
+  const finaleViewRef = useRef<FinaleView | null>(null);
+  const finaleStateRef = useRef<FinaleState>("idle");
 
   /** Sends the perf report once (20 s in, or on unmount); only the send allocates. */
   const sendPerfReport = useCallback(() => {
@@ -469,6 +600,20 @@ export function RaceViewer(props: RaceViewerProps) {
           gaps: () => sc.debugGapMarks(),
         };
       }
+      if (hook) {
+        // Dev hook: step through the finale (contact sheets). goto(i, s, pause) shows step i, s seconds in.
+        (window as unknown as { __rvFinale?: unknown }).__rvFinale = {
+          state: () => finaleRef.current.state,
+          steps: () => finaleRef.current.plan?.steps.map((s) => (s.kind === "slide" ? `slide-${s.slide!.mine ? "mine" : s.slide!.position}` : s.kind)) ?? [],
+          goto: (i: number, s = 0, pause = true) => {
+            finaleRef.current.goto(i, s);
+            finaleRef.current.paused = pause;
+          },
+          resume: () => {
+            finaleRef.current.paused = false;
+          },
+        };
+      }
 
       let hudAcc = 1;
       let dbgAcc = 0;
@@ -495,18 +640,52 @@ export function RaceViewer(props: RaceViewerProps) {
         const dt = deltaMS / 1000;
         // Live -> final: once the result exists and the playhead has reached the end of
         // the broadcast, hand the scene the official replay and carry on from the same
-        // moment (no jump back: the run-out keeps playing; the photo replay is Phase B).
-        if (clock instanceof LiveClock && feed?.final && clock.time >= clock.dataEdge() - feed.header.sampleEvery / feed.header.tickHz - 1e-6) {
-          const fin = feed.final;
-          sc.setFinal(fin);
-          finalRef.current = fin;
-          setFinal(fin);
-          clockRef.current = new PlaybackClock(fin, { autoplay: clock.playing || clock.live, initialTimeSec: clock.time });
+        // moment (no jump back: the run-out keeps playing), and the finale starts.
+        const official = clock instanceof LiveClock && feed ? officialHandoff(feed, clock.time) : null;
+        if (clock instanceof LiveClock && official) {
+          sc.setFinal(official);
+          finalRef.current = official;
+          setFinal(official);
+          const pc = new PlaybackClock(official, { autoplay: clock.playing || clock.live, initialTimeSec: clock.time });
+          clockRef.current = pc;
+          finaleRef.current.setPlan(planForRef.current(official), pc.time, true);
           setReplayBadge(false);
           return;
         }
+        const prevT = clock.time;
         const fr = clock.tick(dt);
-        sc.render({ time: fr.time, realDt: dt, camera: cameraRef.current, follow: followRef.current, frozen: fr.frozen, flash: fr.flash, director: directorRef.current });
+        // The finale runs in real seconds over the scene; during its replay the scene shows the
+        // replay window (both views: the director holds a side-on replay shot on the winner).
+        const fin = finaleRef.current;
+        if (clock instanceof PlaybackClock) fin.update(prevT, fr.time, dt);
+        const cur = fin.current();
+        const replaying = cur.step?.kind === "replay";
+        const winnerId = finalRef.current?.result.finishOrder[0]?.horseId ?? null;
+        directorRef.current.force(replaying ? { type: "replay", subject: winnerId } : null);
+        const sceneT = fin.sceneTime() ?? fr.time;
+        sc.render({
+          time: sceneT,
+          realDt: dt,
+          camera: fin.running && fin.plan?.replay ? "director" : cameraRef.current,
+          follow: fin.running ? false : followRef.current,
+          frozen: fr.frozen,
+          flash: fr.flash,
+          director: directorRef.current,
+        });
+        const view = finaleViewRef.current;
+        const nextKind = cur.step?.kind ?? null;
+        if ((view?.index ?? -1) !== cur.index || (view?.kind ?? null) !== nextKind) {
+          const nv = cur.step ? { index: cur.index, kind: cur.step.kind } : null;
+          finaleViewRef.current = nv;
+          setFinaleView(nv);
+        }
+        if (fin.state !== finaleStateRef.current) {
+          const was = finaleStateRef.current;
+          finaleStateRef.current = fin.state;
+          setFinaleState(fin.state);
+          if (fin.state === "running") onFinaleRef.current?.("running");
+          else if (was === "running" && fin.state === "done") onFinaleRef.current?.("done");
+        }
         const work = performance.now() - t0;
 
         if (clock instanceof PlaybackClock && clock.ended && !finishedFired.current) {
@@ -519,7 +698,7 @@ export function RaceViewer(props: RaceViewerProps) {
           hudAcc = 0;
           flags.frozen = fr.frozen;
           flags.slowmo = fr.slowmo;
-          publish();
+          publishRef.current();
         }
 
         // Perf: auto-downgrade when the device can't hold ~40 fps.
@@ -583,6 +762,7 @@ export function RaceViewer(props: RaceViewerProps) {
         sc.destroy();
         sc.canvas.remove();
         if (hook) delete (window as unknown as { __rvTrackside?: unknown }).__rvTrackside;
+        if (hook) delete (window as unknown as { __rvFinale?: unknown }).__rvFinale;
       };
     })().catch((err) => {
       console.error("[RaceViewer] failed to start renderer", err);
@@ -616,15 +796,31 @@ export function RaceViewer(props: RaceViewerProps) {
     fn(c);
     publish();
   };
-  const onToggle = () => act((c) => c.toggle());
+  /** A seek / restart re-arms the finale (it plays again when the playhead next crosses it). */
+  const rearm = () => {
+    const c = clockRef.current;
+    if (c) finaleRef.current.rearm(c.time);
+  };
+  const onToggle = () => {
+    const fin = finaleRef.current;
+    if (fin.running) {
+      fin.paused = !fin.paused;
+      return;
+    }
+    act((c) => c.toggle());
+  };
   const onRestart = () => {
     setDismissed(false);
     act((c) => c.restart());
+    rearm();
   };
   const onSeek = (t: number) => {
     if (!final || t < duration) setDismissed(false);
     act((c) => c.seek(t));
+    rearm();
   };
+  const onFinaleSkip = () => finaleRef.current.skip();
+  const onFinaleSkipAll = () => finaleRef.current.skipAll();
   const onScrubStart = () => {
     const c = clockRef.current;
     if (!c) return;
@@ -647,19 +843,30 @@ export function RaceViewer(props: RaceViewerProps) {
   };
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).tagName === "INPUT" && e.key !== " ") return;
-    if (e.key === " " || e.key === "k") {
+    if (e.key === "Escape" && finaleRef.current.running) {
+      e.preventDefault();
+      onFinaleSkipAll();
+    } else if (e.key === " " || e.key === "k") {
       e.preventDefault();
       onToggle();
-    } else if (e.key === "ArrowRight") act((c) => c.seek(c.time + 5));
-    else if (e.key === "ArrowLeft") act((c) => c.seek(c.time - 5));
+    } else if (e.key === "ArrowRight") {
+      act((c) => c.seek(c.time + 5));
+      rearm();
+    } else if (e.key === "ArrowLeft") {
+      act((c) => c.seek(c.time - 5));
+      rearm();
+    }
   };
 
   const narrow = width > 0 && width < NARROW_PX;
   narrowRef.current = narrow;
   const stageStyle: CSSProperties = height !== undefined ? { height } : { aspectRatio: "16 / 9", minHeight: 320 };
   const h = hud;
-  // The results card waits for the horses to ease down (the run-out is part of the finish).
-  const showResults = resultsCard && !!h && !!final && h.mode === "replay" && h.settled && !dismissed && !h.frozen;
+  // The finale runs first; then the results card (after a finale, or once the horses have
+  // eased down when there was none to play).
+  const finaleRunning = finaleState === "running" && !!finaleView && !!final && !!plan;
+  const showResults = resultsCard && !!h && !!final && h.mode === "replay" && !dismissed && !h.frozen && !finaleRunning && (finaleState === "done" || h.settled);
+  const quiet = finaleRunning || showResults;
   const isLive = h?.mode === "live";
   const pip = pipRect(width, stageRef.current?.clientHeight ?? 0);
   const furlongs = useMemo(() => {
@@ -668,12 +875,13 @@ export function RaceViewer(props: RaceViewerProps) {
     for (let i = 1; L - i * FURLONG_MM > 0; i++) out.push((L - i * FURLONG_MM) / L);
     return out;
   }, [info.trackLengthMm]);
-  const maxStandings = narrow ? 3 : width < 900 ? 6 : 16;
+  // Final furlong: the HUD clears down to the leaders (and your horse) and the readout.
+  const maxStandings = narrow || h?.ff ? 3 : width < 900 ? 6 : 16;
 
   return (
     <div
-      className={`rv-root${narrow ? " rv-narrow" : ""}${course ? " rv-has-cmap" : ""}${className ? ` ${className}` : ""}`}
-      style={{ ["--rv-cmap-top" as string]: `${hudTitle ? (narrow ? 84 : 98) : narrow ? 50 : 56}px` }}
+      className={`rv-root${narrow ? " rv-narrow" : ""}${course ? " rv-has-cmap" : ""}${h?.ff ? " rv-ff" : ""}${className ? ` ${className}` : ""}`}
+      style={{ ["--rv-cmap-top" as string]: `${hudTitle ? (narrow ? 88 : 104) : narrow ? 80 : 96}px` }}
       tabIndex={0}
       onKeyDown={onKey}
       data-race-viewer=""
@@ -681,7 +889,7 @@ export function RaceViewer(props: RaceViewerProps) {
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
         {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
-        {h && (
+        {h && !finaleRunning && (
           <TopHud
             race={info.race}
             showTitle={hudTitle}
@@ -691,19 +899,21 @@ export function RaceViewer(props: RaceViewerProps) {
             toGoM={h.toGoM}
             standings={h.standings}
             maxStandings={maxStandings}
-            commentary={h.frozen || showResults || narrow ? null : h.commentary}
+            commentary={h.frozen || quiet || narrow ? null : h.call}
             highlightHorseId={hasHighlight ? highlightHorseId : undefined}
+            marker={h.marker}
           />
         )}
-        {h && narrow && h.commentary && !h.frozen && !showResults && (
-          <div className="rv-ticker-low">
-            <Ticker key={`${h.commentary.tick}-${h.commentary.type}`} event={h.commentary} />
+        {h && narrow && h.call && !h.frozen && !quiet && (
+          <div className="rv-ticker-low" style={h.battle ? { bottom: 96 } : h.ff ? { bottom: 52 } : undefined}>
+            <CallTicker key={`${h.call.atSec}-${h.call.kind}`} line={h.call} mine={hasHighlight && h.call.horseIds.includes(highlightHorseId!)} />
           </div>
         )}
         {h && h.time < 0 && <Countdown seconds={-h.time} live={h.live} />}
         {h?.frozen && <PhotoStamp />}
-        {h && !showResults && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
-        {course && h && !showResults && !h.frozen && (
+        {h && !quiet && !h.ff && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
+        {h?.battle && !quiet && <BattleGraphic battle={h.battle} horses={info.horses} highlightHorseId={hasHighlight ? highlightHorseId : undefined} />}
+        {course && h && !quiet && !h.ff && !h.frozen && (
           <CourseMapPanel
             course={course}
             distanceM={info.trackLengthMm / 1000}
@@ -712,7 +922,7 @@ export function RaceViewer(props: RaceViewerProps) {
             onSlope={h.time > 0 && h.toGoM > 0 && h.toGoM <= course.homeStraightM}
           />
         )}
-        {h?.pip && pip && (
+        {h?.pip && pip && !finaleRunning && (
           <div className="rv-pip" style={{ right: pip.right, bottom: pip.bottom, width: pip.w, height: pip.h }}>
             <span>My horse</span>
           </div>
@@ -724,6 +934,23 @@ export function RaceViewer(props: RaceViewerProps) {
           <div className="rv-debug" data-rv-debug="">
             {debugText}
           </div>
+        )}
+        {finaleRunning && finaleView && plan && final && plan.steps[finaleView.index] && (
+          <FinaleOverlay
+            replay={final}
+            plan={plan}
+            step={plan.steps[finaleView.index]!}
+            stepIndex={finaleView.index}
+            narrow={narrow}
+            connections={connections}
+            renderPortrait={renderPortrait}
+            courseName={course?.name ?? null}
+            photoArt={photoArt}
+            artBase={artBaseUrl ?? "/art"}
+            seal={seal}
+            onSkip={onFinaleSkip}
+            onSkipAll={onFinaleSkipAll}
+          />
         )}
         {showResults && final && <ResultsCard replay={final} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} />}
         {h && (

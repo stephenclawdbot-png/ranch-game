@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 /** Presentational HUD pieces. All state comes from RaceViewer; nothing here touches Pixi. */
-import { formatRaceTime, type RaceConfig, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
+import { formatRaceTime, type RaceConfig, type RaceReplay } from "@thoroughbred/shared";
 import type { StandingRow } from "../timeline";
+import type { CallLine } from "../call/buildRaceCall";
+import { battleGapLabel, type Battle, type DistanceMarker } from "./battle";
 import type { CameraMode, ViewMode } from "../types";
 import { PLAYBACK_RATES } from "../playback";
 
@@ -36,8 +38,11 @@ export interface TopHudProps {
   toGoM: number;
   standings: StandingRow[];
   maxStandings: number;
-  commentary: RaceEvent | null;
+  /** The race call line showing at the playhead (never ahead of it). */
+  commentary: CallLine | null;
   highlightHorseId?: string;
+  /** The next pole / board and metres to go (large readout). */
+  marker?: DistanceMarker | null;
 }
 
 /** Measure chips pre-paint when we can (SSR renders the hidden fallback and never runs effects). */
@@ -88,7 +93,7 @@ export function visibleStandings(standings: StandingRow[], k: number, meIdx: num
   return me && meIdx >= k && k > 1 ? [...standings.slice(0, k - 1), me] : standings.slice(0, k);
 }
 
-export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId }: TopHudProps) {
+export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId, marker }: TopHudProps) {
   const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
   const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
   const show = raceTime >= 0;
@@ -168,7 +173,11 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
         </div>
         <div className="rv-clock" aria-live="off">
           <div className="rv-time">{clock}</div>
-          <div className="rv-togo">{raceTime < 0 ? "At the start" : toGoM > 0.5 ? `${Math.ceil(toGoM)}m to go` : winnerHome ? "Winning time" : "Finish"}</div>
+          {raceTime >= 0 && toGoM > 0.5 ? (
+            <DistanceReadout toGoM={toGoM} marker={marker ?? null} />
+          ) : (
+            <div className="rv-togo">{raceTime < 0 ? "At the start" : winnerHome ? "Winning time" : "Finish"}</div>
+          )}
         </div>
       </div>
       {show && (
@@ -193,15 +202,60 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
           </div>
         </>
       )}
-      {commentary && <Ticker event={commentary} />}
+      {commentary && <CallTicker line={commentary} mine={!!highlightHorseId && commentary.horseIds.includes(highlightHorseId)} />}
     </div>
   );
 }
 
-export function Ticker({ event }: { event: RaceEvent }) {
+/** Large distance-to-go: the next pole's (or board's) colour-coded plate and the metres left. */
+export function DistanceReadout({ toGoM, marker }: { toGoM: number; marker: DistanceMarker | null }) {
+  const ff = !!marker?.finalFurlong;
+  const board = !!marker && /^\d+$/.test(marker.label);
   return (
-    <div key={`${event.tick}-${event.type}`} className="rv-ticker" aria-live="polite">
-      {event.text}
+    <div className={`rv-dist${ff ? " rv-dist-ff" : ""}`} aria-label={`${Math.ceil(toGoM)} metres to go`}>
+      {marker?.label ? (
+        <span className={`rv-dist-plate${board ? " rv-dist-plate-board" : ""}`} style={{ background: marker.colour }}>
+          {marker.label}
+        </span>
+      ) : null}
+      <span className="rv-dist-m">
+        {Math.ceil(toGoM)}
+        <small>m</small>
+      </span>
+    </div>
+  );
+}
+
+const CALL_TAG: Partial<Record<CallLine["kind"], string>> = { photo: "Photo", finish: "Line", result: "Result", challenge: "Duel", move: "Move", home: "Home", fraction: "Split" };
+
+/** One line of the race call (replaces the old one-line event ticker). */
+export function CallTicker({ line, mine }: { line: CallLine; mine: boolean }) {
+  const hot = line.priority >= 75 || line.kind === "photo" || line.kind === "finish";
+  return (
+    <div key={`${line.atSec}-${line.kind}`} className={`rv-call${hot ? " rv-call-hot" : ""}${mine || line.kind === "you" ? " rv-call-you" : ""}`} aria-live="polite" data-rv-call={line.kind}>
+      <span className="rv-call-k">{line.kind === "you" ? "You" : (CALL_TAG[line.kind] ?? "Call")}</span>
+      <span>{line.text}</span>
+    </div>
+  );
+}
+
+/** "Battle" graphic: two or three horses within half a length in the final 200 m. */
+export function BattleGraphic({ battle, horses, highlightHorseId }: { battle: Battle; horses: RaceReplay["horses"]; highlightHorseId?: string }) {
+  const byId = new Map(horses.map((h) => [h.horseId, h]));
+  return (
+    <div className="rv-battle" data-rv-battle={battle.horseIds.length} aria-hidden>
+      <span className="rv-battle-k">{battle.horseIds.length > 2 ? "Three" : "Neck"}<br />{battle.horseIds.length > 2 ? "abreast" : "& neck"}</span>
+      {battle.horseIds.map((id, i) => {
+        const h = byId.get(id);
+        if (!h) return null;
+        return (
+          <span key={id} className={`rv-battle-h${id === highlightHorseId ? " rv-me" : ""}`}>
+            <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />
+            <span>{h.name}</span>
+            {i > 0 && <span className="rv-battle-gap">{battleGapLabel(battle.behindMm[i]!)}</span>}
+          </span>
+        );
+      })}
     </div>
   );
 }
