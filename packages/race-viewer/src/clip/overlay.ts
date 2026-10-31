@@ -33,8 +33,8 @@ export interface ClipLayout {
   captionBottom: number;
   wordmarkPx: number;
   endCard: { w: number; x: number; headerPx: number; rowPx: number; rowH: number; padY: number; bottom: number };
-  /** Photo-card fit box (contain). */
-  photo: { x: number; y: number; w: number; h: number };
+  /** Photo-finish hold: the strip window and text sizes. */
+  photo: { boxW: number; stripTargetH: number; cy: number; titlePx: number; verdictPx: number };
 }
 
 export function clipLayout(W: number, H: number): ClipLayout {
@@ -44,6 +44,10 @@ export function clipLayout(W: number, H: number): ClipLayout {
   const captionMaxW = W - pad * 2;
   const captionBottom = Math.round(150 * u);
   const endCardW = Math.min(W - pad * 2, Math.round(860 * u));
+  // The photo hold parks the strip a touch below centre: title above, verdict below,
+  // with room left for both on whichever orientation.
+  const stripTargetH = Math.round(H * 0.3);
+  const cy = Math.round(H * 0.44 + (stripTargetH - Math.round(560 * u)) / 4);
   return {
     W,
     H,
@@ -65,7 +69,7 @@ export function clipLayout(W: number, H: number): ClipLayout {
       padY: Math.round(26 * u),
       bottom: captionBottom + Math.round(120 * u),
     },
-    photo: { x: 0, y: 0, w: W, h: H },
+    photo: { boxW: W - pad * 2, stripTargetH, cy, titlePx: Math.round(54 * u), verdictPx: Math.round(38 * u) },
   };
 }
 
@@ -212,21 +216,63 @@ export function drawEndCard(ctx: CanvasRenderingContext2D, l: ClipLayout, rows: 
 }
 
 /**
- * The photo-finish hold: the share card (already rendered to a canvas) fitted into the
- * frame on the raceday green. Pixel-crisp at integer scales only when it fits 1:1;
- * otherwise smoothed is fine for the card's text (its strip inside was rasterised crisp).
+ * The photo-hold strip window at progress `t01` (0 = parked on the winner's nose at the
+ * right edge, 1 = panned back so `endRight` — just ahead of the last placed nose — sits
+ * at the right edge). Pure: the same replay pans identically every time. `dx` centres a
+ * strip narrower than the box.
  */
-export function drawPhotoCard(ctx: CanvasRenderingContext2D, l: ClipLayout, card: HTMLCanvasElement): void {
-  ctx.fillStyle = GREEN;
-  ctx.fillRect(0, 0, l.W, l.H);
-  const scale = Math.min(l.photo.w / card.width, l.photo.h / card.height);
-  const w = Math.round(card.width * scale);
-  const h = Math.round(card.height * scale);
-  const x = Math.round((l.W - w) / 2);
-  const y = Math.round((l.H - h) / 2);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(card, x, y, w, h);
-  ctx.imageSmoothingEnabled = false;
+export function photoPan(contentW: number, boxW: number, endRight: number, t01: number): { sx: number; dx: number } {
+  const visW = Math.min(boxW, contentW);
+  const maxLeft = Math.max(0, contentW - visW);
+  const l0 = maxLeft;
+  const l1 = Math.min(maxLeft, Math.max(0, Math.round(endRight - visW)));
+  const e = t01 <= 0 ? 0 : t01 >= 1 ? 1 : t01 * t01 * (3 - 2 * t01);
+  return { sx: Math.round(l0 + (l1 - l0) * e), dx: Math.round((boxW - visW) / 2) };
 }
 
-export { GREEN, GREEN2, CREAM, BRASS, BRASS2, INK };
+export interface PhotoHold {
+  /** The line-scan photograph, pre-rendered at an integer scale. */
+  photo: HTMLCanvasElement;
+  /** The judge's verdict, wrapped to `layout.photo.boxW`. */
+  verdict: readonly string[];
+  sx: number;
+  dx: number;
+}
+
+/**
+ * The photo-finish hold: the line-scan strip big and centre frame, panning from the
+ * winner's nose back through the placed horses over the hold, with the verdict in big
+ * type below. Drawn 1:1 from the pre-rendered photograph, so the pixel art stays crisp.
+ */
+export function drawPhotoHold(ctx: CanvasRenderingContext2D, l: ClipLayout, hold: PhotoHold): void {
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(0, 0, l.W, l.H);
+  const { photo } = hold;
+  const sw = Math.min(l.photo.boxW, photo.width - hold.sx);
+  const h = photo.height;
+  const x = Math.round((l.W - l.photo.boxW) / 2) + hold.dx;
+  const y = l.photo.cy - Math.round(h / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = BRASS2;
+  ctx.font = `700 ${l.photo.titlePx}px ${DISPLAY}`;
+  ctx.fillText("PHOTO FINISH", l.W / 2, y - Math.round(26 * l.u));
+  ctx.imageSmoothingEnabled = false;
+  if (sw > 0) ctx.drawImage(photo, hold.sx, 0, sw, h, x, y, sw, h);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = Math.max(2, Math.round(4 * l.u));
+  ctx.strokeRect(x, y, sw, h);
+  ctx.strokeStyle = "rgba(242,200,106,0.8)";
+  ctx.lineWidth = Math.max(1, Math.round(2 * l.u));
+  ctx.strokeRect(x + 4, y + 4, sw - 8, h - 8);
+  ctx.fillStyle = CREAM;
+  ctx.font = `600 ${l.photo.verdictPx}px ${SANS}`;
+  const lineH = Math.round(l.photo.verdictPx * 1.35);
+  let vy = y + h + Math.round(30 * l.u) + l.photo.verdictPx;
+  for (const line of hold.verdict.slice(0, 3)) {
+    ctx.fillText(line, l.W / 2, vy);
+    vy += lineH;
+  }
+}
+
+export { GREEN, GREEN2, CREAM, BRASS, BRASS2, INK, SANS };

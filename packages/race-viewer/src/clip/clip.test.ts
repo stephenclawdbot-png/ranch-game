@@ -28,7 +28,7 @@ import {
   endCardRows,
   overlayAt,
 } from "./plan";
-import { clipLayout, endCardHeight, wrapLines } from "./overlay";
+import { clipLayout, endCardHeight, photoPan, wrapLines } from "./overlay";
 
 const speed = 16_500;
 /** A settled race: first two a nose apart, the rest strung out. */
@@ -218,6 +218,9 @@ describe("overlay layout math", () => {
       expect(height - (cardY + cardH)).toBeGreaterThan(0); // and inside the frame
       expect(l.endCard.x).toBeGreaterThanOrEqual(0);
       expect(l.endCard.x + l.endCard.w).toBeLessThanOrEqual(width);
+      expect(l.photo.boxW).toBe(width - l.pad * 2);
+      expect(l.photo.stripTargetH).toBeLessThanOrEqual(Math.round(height * 0.32));
+      expect(l.photo.cy).toBeGreaterThan(l.bannerH); // clear of the banner
     }
   });
 
@@ -231,5 +234,29 @@ describe("overlay layout math", () => {
     expect(wrapLines(measure, "one two three four", 110)).toEqual(["one two", "three four"]);
     expect(wrapLines(measure, "antidisestablishmentarianism ok", 110)).toEqual(["antidisestablishmentarianism", "ok"]);
     expect(wrapLines(measure, "", 110)).toEqual([]);
+  });
+});
+
+describe("photoPan", () => {
+  it("starts parked on the winner's nose and pans back to the anchor by t01 = 1", () => {
+    expect(photoPan(3000, 1080, 2285, 0)).toEqual({ sx: 1920, dx: 0 });
+    expect(photoPan(3000, 1080, 2285, 1).sx).toBe(1205);
+    let prev = Infinity;
+    for (let i = 0; i <= 60; i++) {
+      const { sx } = photoPan(3000, 1080, 2285, i / 60);
+      expect(sx).toBeLessThanOrEqual(prev); // pans one way only
+      expect(sx).toBeGreaterThanOrEqual(0);
+      expect(sx).toBeLessThanOrEqual(3000 - 1080); // never shows beyond the photograph
+      prev = sx;
+    }
+  });
+
+  it("clamps an unreachable anchor to the end of the photograph", () => {
+    expect(photoPan(2000, 1080, 4000, 1).sx).toBe(920);
+    expect(photoPan(2000, 1080, 100, 1).sx).toBe(0);
+  });
+
+  it("centres a strip narrower than the box and never pans", () => {
+    for (const t of [0, 0.5, 1]) expect(photoPan(600, 1080, 600, t)).toEqual({ sx: 0, dx: 240 });
   });
 });

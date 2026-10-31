@@ -16,11 +16,12 @@ import { Director } from "../director";
 import { buildRaceCall } from "../call/buildRaceCall";
 import { isPhotoFinish } from "../finale/plan";
 import { photoFinishModel } from "../photo/model";
-import { loadPhotoFinishArt, renderPhotoShareCard } from "../photo/render";
+import { loadPhotoFinishArt, renderPhotoFinish } from "../photo/render";
+import { rasterPhotoFinish } from "../photo/raster";
 import type { HD2DScene as HD2DSceneT } from "../three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "../trackside/TracksideScene";
 import { createClipEncoder } from "./encode";
-import { clipLayout, drawBanner, drawCaption, drawEndCard, drawPhotoCard, drawWordmark } from "./overlay";
+import { clipLayout, drawBanner, drawCaption, drawEndCard, drawPhotoHold, drawWordmark, photoPan, SANS, wrapLines } from "./overlay";
 import { CLIP_FPS, CLIP_SIZES, CLIP_WARMUP_SEC, clipFileName, clipSchedule, endCardRows, overlayAt, type ClipOrientation } from "./plan";
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
@@ -158,14 +159,22 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
     seed: replay.race.id,
   });
   const rows = endCardRows(replay);
-  const photoCard =
+  // The photo-finish hold: the line-scan photograph pre-rendered once at an integer
+  // scale picked for this orientation, plus the pan target (just ahead of the last
+  // placed nose) and the verdict wrapped to the window width.
+  const photoHold =
     schedule.photoFrames > 0 && photoArt
-      ? renderPhotoShareCard(photoFinishModel(replay), photoArt, {
-          course: opts.meta?.courseName ?? replay.race.name,
-          raceName: replay.race.name,
-          date: opts.meta?.dateLabel,
-          stables: opts.meta?.stables,
-        })
+      ? (() => {
+          const model = photoFinishModel(replay);
+          const raster = rasterPhotoFinish(model, photoArt);
+          const s = Math.max(1, Math.min(6, Math.round(layout.photo.stripTargetH / raster.height)));
+          const canvas = renderPhotoFinish(model, photoArt, { raster, scale: s, judge: 1, textPx: 9 * s });
+          ctx.font = `600 ${layout.photo.verdictPx}px ${SANS}`;
+          const verdict = wrapLines((t) => ctx.measureText(t).width, model.verdict, layout.photo.boxW);
+          const last = raster.layout.placements[2] ?? raster.layout.placements[raster.layout.placements.length - 1];
+          const endRight = Math.min(canvas.width, Math.round((last ? last.noseX : raster.layout.winnerX) * s + layout.photo.boxW * 0.06));
+          return { canvas, verdict, endRight };
+        })()
       : null;
   const dateLabel = opts.meta?.dateLabel ?? clipDateLabel(replay.race.postTimeMs);
   const subtitle = [opts.meta?.courseName, dateLabel, `${replay.race.distanceM} m`].filter(Boolean).join(" · ");
@@ -188,7 +197,10 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
       if (opts.signal?.aborted) throw new ClipCancelled();
       const f = schedule.frames[i]!;
       if (f.photo) {
-        drawPhotoCard(ctx, layout, photoCard!);
+        const k = schedule.photoFrames > 1 ? (i - schedule.raceFrames) / (schedule.photoFrames - 1) : 1;
+        const { sx, dx } = photoPan(photoHold!.canvas.width, layout.photo.boxW, photoHold!.endRight, k);
+        drawPhotoHold(ctx, layout, { photo: photoHold!.canvas, verdict: photoHold!.verdict, sx, dx });
+        drawBanner(ctx, layout, replay.race.name, subtitle);
         drawWordmark(ctx, layout, url);
       } else if (f.timeSec !== null) {
         renderSceneAt(f.timeSec);
