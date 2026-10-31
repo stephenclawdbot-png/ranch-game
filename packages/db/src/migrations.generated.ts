@@ -187,5 +187,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793467328057,
     "hash": "7eb0787d8e96e49c261324fb75597184219eca1a035c4eec1976e169c47986a8",
     "sql": "CREATE TABLE \"login_codes\" (\n\t\"account_id\" uuid PRIMARY KEY NOT NULL,\n\t\"code_hash\" text NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\t\"last_used_at\" timestamp with time zone\n);\n--> statement-breakpoint\nALTER TABLE \"login_codes\" ADD CONSTRAINT \"login_codes_account_id_accounts_id_fk\" FOREIGN KEY (\"account_id\") REFERENCES \"public\".\"accounts\"(\"id\") ON DELETE no action ON UPDATE no action;--> statement-breakpoint\nCREATE UNIQUE INDEX \"login_codes_hash_uq\" ON \"login_codes\" USING btree (\"code_hash\");"
+  },
+  {
+    "tag": "0031_commentary_names",
+    "when": 1793472296136,
+    "hash": "b61ad7fd5c72665041c1ce2fb990c921c1a811320d9f2c5e14a89ca01f617e18",
+    "sql": "CREATE TABLE \"commentary_names\" (\n\t\"name_key\" text NOT NULL,\n\t\"caster\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"recipe\" integer NOT NULL,\n\t\"calm\" \"bytea\" NOT NULL,\n\t\"building\" \"bytea\" NOT NULL,\n\t\"climax\" \"bytea\" NOT NULL,\n\t\"bytes\" integer NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"commentary_names_name_key_caster_pk\" PRIMARY KEY(\"name_key\",\"caster\"),\n\tCONSTRAINT \"commentary_names_bytes\" CHECK (\"commentary_names\".\"bytes\" > 0 and \"commentary_names\".\"bytes\" <= 98304)\n);\n"
   }
 ];

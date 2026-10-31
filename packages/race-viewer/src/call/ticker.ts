@@ -8,7 +8,7 @@
  * faster than they can be read (2x / 4x playback) the lower-priority ones are dropped.
  */
 import type { RaceReplay } from "@thoroughbred/shared";
-import { buildRaceCall, type CallCourse, type CallLine, type LiveReplayView } from "./buildRaceCall";
+import { buildVoicedRaceCall, type CallCourse, type CallLine, type LiveReplayView, type VoicedCallLine } from "./buildRaceCall";
 
 export interface CallFeedOptions {
   /** horseId -> display name. */
@@ -23,7 +23,8 @@ export interface CallFeedOptions {
 }
 
 export class RaceCallFeed {
-  lines: CallLine[] = [];
+  /** The call so far, each line with its spoken form (the radio commentary). */
+  lines: VoicedCallLine[] = [];
   private builtFrames = -1;
   private builtFinal = false;
 
@@ -47,9 +48,9 @@ export class RaceCallFeed {
     this.lines = this.build(source, Math.max(-1, edgeSec));
   }
 
-  private build(source: RaceReplay | LiveReplayView, uptoSec: number): CallLine[] {
+  private build(source: RaceReplay | LiveReplayView, uptoSec: number): VoicedCallLine[] {
     const o = this.opts;
-    return buildRaceCall({
+    return buildVoicedRaceCall({
       replay: source,
       names: o.names,
       mine: [...o.mine],

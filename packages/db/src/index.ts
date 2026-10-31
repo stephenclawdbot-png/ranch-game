@@ -68,3 +68,4 @@ export * from "./services/audience";
 export * from "./services/tote";
 export * from "./services/realTote";
 export * from "./services/quickRaces";
+export * from "./services/commentary";

@@ -14,6 +14,13 @@ export { CourseMap, describeCourse, type CourseMapProps, type CourseMapRunner } 
 export { courseGeometry, pointAt, runnerArcM, startArcM, type CourseGeometry, type CourseInfo, type CourseSceneryId, type CourseShapeId } from "./course/geometry";
 export { SCENERY, sceneryFor, type SceneryRecipe } from "./trackside/scenery";
 export { buildRaceCall, CALL_MIN_GAP_SEC, PHOTO_CALL_MM, type CallCourse, type CallKind, type CallLine, type LiveReplayView, type RaceCallInput } from "./call";
+// The radio commentary (call/voice, docs/commentary.md): the spoken call, casters, clip library and timing.
+export { buildVoicedRaceCall, type VoicedCallLine } from "./call/buildRaceCall";
+export { VOCABULARY, SPOKEN, COURSE_NAMES, INTENSITIES, phraseId, speak, type Intensity, type Speech, type SpeechToken } from "./call/voice/speech";
+export { CASTERS, CASTER_IDS, pickCaster, type Caster } from "./call/voice/casters";
+export { COMMENTARY_BASE, MIX, nameKey, nameUrl, phraseUrl, makeResolver, clipsFor, type CommentaryManifest } from "./call/voice/library";
+export { planSpeech, crowdCues, crowdAt, cheersBetween, joinAt, dueLines, SPEECH, type SpeechPlan, type PlannedLine, type CrowdCue, type CrowdBed } from "./call/voice/schedule";
+export { RadioToggle } from "./hud/Hud";
 export * from "./photo";
 export { RaceCallFeed, callLineAt, type CallFeedOptions, type TickerPick } from "./call/ticker";
 export { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hud/battle";

@@ -1,0 +1,92 @@
+# Voices new horse names for the radio commentary (docs/commentary.md).
+# Every hour (and on demand): asks POST TIME which names have no clips yet, renders them with the
+# open-source Kokoro voice and the shared radio recipe, and uploads them. Free: it runs on GitHub's
+# runners, and POST TIME only stores the small clips.
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions -> New repository secret):
+#   POST_TIME_URL             the site's address, e.g. https://ranch-game.vercel.app (no trailing slash)
+#   COMMENTARY_UPLOAD_SECRET  the same value as the COMMENTARY_UPLOAD_SECRET env var on Vercel
+name: Commentary names
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Names to voice in this run"
+        required: false
+        default: "150"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commentary-names
+  cancel-in-progress: false
+
+jobs:
+  voice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      POST_TIME_URL: ${{ secrets.POST_TIME_URL }}
+      COMMENTARY_UPLOAD_SECRET: ${{ secrets.COMMENTARY_UPLOAD_SECRET }}
+    steps:
+      - name: Check the secrets are set
+        run: |
+          if [ -z "$POST_TIME_URL" ] || [ -z "$COMMENTARY_UPLOAD_SECRET" ]; then
+            echo "::warning::Add the POST_TIME_URL and COMMENTARY_UPLOAD_SECRET repository secrets (docs/commentary.md). Skipping."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Anything to voice? (an idle run stops here, in seconds)
+        if: env.SKIP != '1'
+        run: |
+          n=$(curl -sSf --retry 3 -H "Authorization: Bearer $COMMENTARY_UPLOAD_SECRET" "$POST_TIME_URL/api/commentary/names/missing?limit=1" \
+            | python3 -c "import sys, json; print(len(json.load(sys.stdin)['names']))")
+          if [ "$n" = "0" ]; then echo "Every name is voiced."; echo "SKIP=1" >> "$GITHUB_ENV"; fi
+
+      - uses: actions/checkout@v4
+        if: env.SKIP != '1'
+        with:
+          sparse-checkout: tools/commentary
+
+      - uses: actions/setup-python@v5
+        if: env.SKIP != '1'
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/commentary/requirements.txt
+
+      - name: Install ffmpeg (with rubberband) and the voice
+        if: env.SKIP != '1'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng
+          ffmpeg -hide_banner -filters | grep -q rubberband
+          pip install -r tools/commentary/requirements.txt
+
+      - name: Cache the Kokoro model files
+        if: env.SKIP != '1'
+        uses: actions/cache@v4
+        with:
+          path: ~/kokoro
+          key: kokoro-model-files-v1.0
+
+      - name: Download the Kokoro model files (kokoro-onnx release)
+        if: env.SKIP != '1'
+        run: |
+          mkdir -p ~/kokoro
+          cd ~/kokoro
+          base=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
+          [ -s kokoro-v1.0.onnx ] || curl -sSfL -o kokoro-v1.0.onnx "$base/kokoro-v1.0.onnx"
+          [ -s voices-v1.0.bin ] || curl -sSfL -o voices-v1.0.bin "$base/voices-v1.0.bin"
+          ls -la
+
+      - name: Voice the missing names and upload them
+        if: env.SKIP != '1'
+        run: |
+          python3 tools/commentary/render_names.py \
+            --model ~/kokoro/kokoro-v1.0.onnx --voices ~/kokoro/voices-v1.0.bin \
+            --limit "${{ github.event.inputs.limit || '150' }}" --max-minutes 40

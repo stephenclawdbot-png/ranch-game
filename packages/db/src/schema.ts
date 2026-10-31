@@ -2768,3 +2768,34 @@ export type ToteSettingsRow = typeof toteSettings.$inferSelect;
 export type RealToteRaceRow = typeof realToteRaces.$inferSelect;
 export type RealTotePermitRow = typeof realTotePermits.$inferSelect;
 export type RealToteEventRow = typeof realToteEvents.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Radio commentary: horse-name clips (docs/commentary.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * One horse name voiced by one radio caster, at the three intensities (calm / building /
+ * climax): small MP3s (about 3-5 KB each) rendered once by the commentary-names GitHub workflow
+ * and kept for good. Stored as bytea, not base64 text: a third smaller, and the route serves
+ * the bytes as they are. Keyed by the normalised name (lowercase, single spaces), never a horse
+ * or race id, so a clip says nothing about any race. `recipe` is the voice recipe version
+ * (tools/commentary/recipe.py); a new recipe re-renders every name.
+ */
+export const commentaryNames = pgTable(
+  "commentary_names",
+  {
+    nameKey: text("name_key").notNull(),
+    caster: text("caster").notNull(),
+    /** The name as voiced (display casing). */
+    name: text("name").notNull(),
+    recipe: integer("recipe").notNull(),
+    calm: bytea("calm").notNull(),
+    building: bytea("building").notNull(),
+    climax: bytea("climax").notNull(),
+    bytes: integer("bytes").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.nameKey, t.caster] }), check("commentary_names_bytes", sql`${t.bytes} > 0 and ${t.bytes} <= 98304`)],
+);
+
+export type CommentaryNameRow = typeof commentaryNames.$inferSelect;

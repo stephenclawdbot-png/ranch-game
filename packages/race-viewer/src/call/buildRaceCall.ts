@@ -12,6 +12,7 @@
 import { FURLONG_MM, HORSE_LENGTH_MM, FRAME_FIELD, FRAME_STRIDE, type RaceEvent, type RaceReplay } from "@thoroughbred/shared";
 import { TEMPLATES, type Beat } from "./templates";
 import { capitalise, goingPhrase, hash32, lanePhrase, lengthsPhrase, listPhrase, marginPhrase, metresPhrase, ordinal, timePhrase } from "./phrases";
+import { INTENSITIES, joinSpeech, speak, speakOrder, type Intensity, type NameToken, type Speech, type SpeechSlots, type SpokenBeat } from "./voice/speech";
 
 export type CallKind = "off" | "order" | "position" | "move" | "challenge" | "fraction" | "home" | "finish" | "photo" | "result" | "you";
 
@@ -26,13 +27,19 @@ export interface CallLine {
   priority: number;
 }
 
+/** A call line with its spoken form (the radio commentary; null when the line is not voiced). */
+export interface VoicedCallLine extends CallLine {
+  speech: Speech | null;
+}
+
 /** What the call reads from a live broadcast: the header plus frames and events received so far. */
 export interface LiveReplayView {
   race?: { name?: string; going?: string };
   tickHz: number;
   sampleEvery: number;
   trackLengthMm: number;
-  horses: ReadonlyArray<{ horseId: string; name?: string }>;
+  /** `gate` is the saddle-cloth number the commentary says until a name has a clip. */
+  horses: ReadonlyArray<{ horseId: string; name?: string; gate?: number }>;
   frames: ReadonlyArray<ReadonlyArray<number>>;
   events: ReadonlyArray<RaceEvent>;
 }
@@ -81,10 +88,29 @@ interface Candidate {
   afterLine?: boolean;
   /** Allowed even when the leader is about to reach the line. */
   urgent?: boolean;
-  render: () => { text: string; horseIds: string[] } | null;
+  render: () => Rendered | null;
 }
 
+interface Rendered {
+  text: string;
+  horseIds: string[];
+  speech?: Speech | null;
+}
+
+/** Horses within this distance of the leader in the final furlong make it a duel (climax). */
+export const DUEL_MM = HORSE_LENGTH_MM;
+/** A leader this far clear late on is an easy winner: the caster stays calmer. */
+export const EASY_MM = 3 * HORSE_LENGTH_MM;
+
 export function buildRaceCall(input: RaceCallInput): CallLine[] {
+  return buildVoicedRaceCall(input).map(({ speech: _speech, ...line }) => line);
+}
+
+/**
+ * The race call with each line's spoken form. Same forward pass, same text as buildRaceCall
+ * (the speech is built beside the text and never changes it), so the same no-spoiler rules hold.
+ */
+export function buildVoicedRaceCall(input: RaceCallInput): VoicedCallLine[] {
   const { replay, seed } = input;
   const frames = replay.frames;
   const n = replay.horses.length;
@@ -141,8 +167,42 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
   const read = (f: number, h: number, field: keyof typeof FRAME_FIELD) => frames[Math.min(f, lastFrame)]![h * FRAME_STRIDE + FRAME_FIELD[field]] ?? 0;
   const gapTo = (h: number) => Math.max(0, x[order[0]!]! - x[h]!);
 
+  // ---- speech (the radio commentary) -----------------------------------------------------
+  const gateOf = (h: number): number => {
+    const g = (replay.horses[h] as { gate?: number }).gate;
+    return typeof g === "number" && g > 0 ? g : h + 1;
+  };
+  const nameToken = (h: number, called?: boolean): NameToken => {
+    const tok: NameToken = { k: "name", name: name(h), num: gateOf(h) };
+    if (called && mine.has(ids[h]!)) tok.your = true;
+    return tok;
+  };
+  const voice = (beat: SpokenBeat, slots: SpeechSlots, intensity: Intensity): Speech | null => speak(beat, slots, intensity, { name: nameToken, key: `${seed}|${lines.length}` });
+  /** Positions at halfway, for comebacks (a horse in the back half there, in the first two late on). */
+  let halfwayPos: number[] | null = null;
+  const backHalf = (p: number) => p >= Math.max(4, Math.ceil(n / 2) + 1);
+  const comeback = (h: number): boolean => !!halfwayPos && n >= 4 && x[order[0]!]! >= L - 3 * FURLONG_MM && backHalf(halfwayPos[h]!) && pos[h]! <= 2;
+  /**
+   * The intensity of a line from the race state now: `base` for the beat, raised for a
+   * comeback horse late on and to climax for a duel in the final furlong (the first two within
+   * DUEL_MM), capped at building when the leader is clear late (an easy winner).
+   */
+  const heat = (base: Intensity, involved: number[] = []): Intensity => {
+    let i = INTENSITIES.indexOf(base);
+    const lx = x[order[0]!]!;
+    const late = lx >= L - 2 * FURLONG_MM;
+    const last = lx >= L - FURLONG_MM;
+    const gap12 = order[1] !== undefined ? lx - x[order[1]]! : Number.POSITIVE_INFINITY;
+    if (involved.some(comeback)) i = Math.max(i, last ? 2 : 1);
+    if (last && gap12 < DUEL_MM) i = 2;
+    if (late && gap12 > EASY_MM) i = Math.min(i, 1);
+    return INTENSITIES[i]!;
+  };
+  /** calm early, building from 60% of the trip. */
+  const phase = (): Intensity => (x[order[0]!]! >= 0.6 * L ? "building" : "calm");
+
   // ---- candidate queue -------------------------------------------------------------------
-  const lines: CallLine[] = [];
+  const lines: VoicedCallLine[] = [];
   let pending: Candidate[] = [];
   let seq = 0;
   let lastAt = Number.NEGATIVE_INFINITY;
@@ -188,34 +248,48 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           if (crossT[h] !== null || (!settle && t - lastYouPos[h]! < YOU_POSITION_EVERY_SEC)) return null;
           lastYouPos[h] = t;
           const vars = { a: name(h), pos: ordinal(pos[h]!), lane: lanePhrase(lane[h]!), gap: lengthsPhrase(gapTo(h)) };
-          if (pos[h] === 1) return { text: say("youLead", { ...vars, gap: lengthsPhrase(x[h]! - x[order[1] ?? h]!) }), horseIds: [id] };
-          return { text: say(settle ? "youSettle" : "youPos", vars), horseIds: [id] };
+          const slots: SpeechSlots = { a: h, pos: pos[h]!, lane: lane[h]! };
+          if (pos[h] === 1) return { text: say("youLead", { ...vars, gap: lengthsPhrase(x[h]! - x[order[1] ?? h]!) }), horseIds: [id], speech: voice("youLead", slots, heat(phase(), [h])) };
+          return { text: say(settle ? "youSettle" : "youPos", vars), horseIds: [id], speech: voice(settle ? "youSettle" : "youPos", slots, heat(phase(), [h])) };
         },
       });
     }
   };
 
-  const positionLine = (spread: boolean): { text: string; horseIds: string[] } => {
+  const positionLine = (spread: boolean): Rendered => {
     const [a, b, c, d] = order;
-    if (b === undefined) return { text: capitalise(`${call(a!)} is out on their own.`), horseIds: [ids[a!]!] };
-    const gap = lengthsPhrase(x[a!]! - x[b]!);
+    if (b === undefined) return { text: capitalise(`${call(a!)} is out on their own.`), horseIds: [ids[a!]!], speech: null };
+    const gapMm = x[a!]! - x[b]!;
+    const gap = lengthsPhrase(gapMm);
     let text: string;
     const hs = [a!, b];
-    if (c === undefined) text = say("positionTwo", { a: call(a!), b: call(b), gap });
-    else {
+    const level = heat(phase(), [a!, b]);
+    const slots: SpeechSlots = { a: a!, b, c, d, gap: gapMm, called: true };
+    let speech: Speech | null;
+    if (c === undefined) {
+      text = say("positionTwo", { a: call(a!), b: call(b), gap });
+      speech = voice("positionTwo", slots, level);
+    } else {
       text = say("position", { a: call(a!), b: call(b), c: call(c), gap });
+      speech = voice("position", slots, level);
       hs.push(c);
       if (d !== undefined && n >= 6) {
         text = text.replace(/[.!]$/, "") + say("fourth", { d: call(d) });
+        speech = joinSpeech(speech, voice("fourth", slots, level));
         hs.push(d);
       }
     }
     if (spread && n >= 4) {
       const span = x[order[0]!]! - x[order[n - 1]!]!;
-      if (span > 12 * HORSE_LENGTH_MM) text += ` ${say("strung", { gap: lengthsPhrase(span) })}`;
-      else if (span < 4 * HORSE_LENGTH_MM) text += ` ${say("bunched", { gap: lengthsPhrase(span) })}`;
+      if (span > 12 * HORSE_LENGTH_MM) {
+        text += ` ${say("strung", { gap: lengthsPhrase(span) })}`;
+        speech = joinSpeech(speech, voice("strung", {}, level));
+      } else if (span < 4 * HORSE_LENGTH_MM) {
+        text += ` ${say("bunched", { gap: lengthsPhrase(span) })}`;
+        speech = joinSpeech(speech, voice("bunched", {}, level));
+      }
     }
-    return { text: capitalise(text), horseIds: hs.map((h) => ids[h]!) };
+    return { text: capitalise(text), horseIds: hs.map((h) => ids[h]!), speech };
   };
 
   /** The first call: every runner, leader to last. Splits a big field over two lines. */
@@ -234,8 +308,11 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           return say("orderRear", { a: name(snap[k]!) }) + adrift;
         };
         const open = say("orderOpen", { a: name(snap[0]!), b: snap[1] !== undefined ? item(1) : "" });
-        if (n === 1) return { text: `${name(snap[0]!)} goes round alone.`, horseIds: [ids[snap[0]!]!] };
-        if (n === 2) return { text: `${open}.`, horseIds: snap.map((h) => ids[h]!) };
+        if (n === 1) return { text: `${name(snap[0]!)} goes round alone.`, horseIds: [ids[snap[0]!]!], speech: null };
+        const split0 = n > 7 ? Math.ceil(n / 2) : n;
+        // Spoken: the leader, second, a couple more and (whole field in one line) the backmarker.
+        const spokenFirst = speakOrder((split0 === n ? snap : snap.slice(0, split0)).map((h) => nameToken(h)), "calm", false, split0 === n);
+        if (n === 2) return { text: `${open}.`, horseIds: snap.map((h) => ids[h]!), speech: spokenFirst };
         const split = n > 7 ? Math.ceil(n / 2) : n;
         let text: string;
         if (split === n) {
@@ -258,14 +335,14 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
               const rest = items.length ? `${listPhrase(items)}, ${rear(n - 1)}` : rear(n - 1);
               orderDone = true;
               queueYouPositions(new Set(), true);
-              return { text: say("orderCont", { rest }), horseIds: restIds.map((h) => ids[h]!) };
+              return { text: say("orderCont", { rest }), horseIds: restIds.map((h) => ids[h]!), speech: speakOrder(restIds.map((h) => nameToken(h)), "calm", true) };
             },
           });
-          return { text: capitalise(text), horseIds: snap.slice(0, split).map((h) => ids[h]!) };
+          return { text: capitalise(text), horseIds: snap.slice(0, split).map((h) => ids[h]!), speech: spokenFirst };
         }
         orderDone = true;
         queueYouPositions(new Set(), true);
-        return { text: capitalise(text), horseIds: snap.map((h) => ids[h]!) };
+        return { text: capitalise(text), horseIds: snap.map((h) => ids[h]!), speech: spokenFirst };
       },
     });
   };
@@ -281,14 +358,14 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
       case "slow_start":
         if (h === undefined) return;
         if (!offDone) slowAtOff.add(h);
-        else queue({ kind: "move", priority: 50, expires: t + 4, render: () => ({ text: capitalise(say("slowLate", { a: call(h) })), horseIds: [ids[h]!] }) });
+        else queue({ kind: "move", priority: 50, expires: t + 4, render: () => ({ text: capitalise(say("slowLate", { a: call(h) })), horseIds: [ids[h]!], speech: voice("slowLate", { a: h, called: true }, "calm") }) });
         return;
       case "lead_change": {
         if (h === undefined || !offDone) return;
         const b = prevLeader !== h ? prevLeader : order.find((o) => o !== h);
         if (mine.has(ids[h]!)) {
           lastFrontCall[h] = t;
-          queue({ kind: "you", priority: 78, expires: t + 2.5, render: () => ({ text: say("youFront", { a: name(h) }), horseIds: [ids[h]!] }) });
+          queue({ kind: "you", priority: 78, expires: t + 2.5, render: () => ({ text: say("youFront", { a: name(h) }), horseIds: [ids[h]!], speech: voice("youFront", { a: h }, heat("building", [h])) }) });
           return;
         }
         if (b === undefined) return;
@@ -297,26 +374,44 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           kind: late ? "challenge" : "move",
           priority: late ? 80 : 58,
           expires: t + (late ? 2 : 3),
-          render: () => ({ text: capitalise(say(late ? "leadLate" : "leadTake", { a: call(h), b: call(b) })), horseIds: [ids[h]!, ids[b]!] }),
+          render: () => ({
+            text: capitalise(say(late ? "leadLate" : "leadTake", { a: call(h), b: call(b) })),
+            horseIds: [ids[h]!, ids[b]!],
+            speech: voice(late ? "leadLate" : "leadTake", { a: h, b, called: true }, late ? heat("climax", [h]) : heat(phase(), [h])),
+          }),
         });
         return;
       }
       case "move":
         if (h === undefined) return;
         if (mine.has(ids[h]!)) {
-          queue({ kind: "you", priority: 64, expires: t + 3, render: () => ({ text: say("youGain", { a: name(h), pos: ordinal(pos[h]!) }), horseIds: [ids[h]!] }) });
+          queue({ kind: "you", priority: 64, expires: t + 3, render: () => ({ text: say("youGain", { a: name(h), pos: ordinal(pos[h]!) }), horseIds: [ids[h]!], speech: voice("youGain", { a: h, pos: pos[h]! }, heat(phase(), [h])) }) });
           return;
         }
-        queue({ kind: "move", priority: 55, expires: t + 3, render: () => ({ text: capitalise(say(lane[h]! >= 1.5 ? "moveWide" : "moveInside", { a: call(h) })), horseIds: [ids[h]!] }) });
+        queue({
+          kind: "move",
+          priority: 55,
+          expires: t + 3,
+          render: () => ({
+            text: capitalise(say(lane[h]! >= 1.5 ? "moveWide" : "moveInside", { a: call(h) })),
+            horseIds: [ids[h]!],
+            speech: voice(lane[h]! >= 1.5 ? "moveWide" : "moveInside", { a: h, called: true }, heat(phase(), [h])),
+          }),
+        });
         return;
       case "boxed_in":
         if (h === undefined) return;
-        if (mine.has(ids[h]!)) queue({ kind: "you", priority: 62, expires: t + 3, render: () => ({ text: say("youBoxed", { a: name(h) }), horseIds: [ids[h]!] }) });
-        else queue({ kind: "move", priority: 50, expires: t + 3, render: () => ({ text: capitalise(say("boxedIn", { a: call(h) })), horseIds: [ids[h]!] }) });
+        if (mine.has(ids[h]!)) queue({ kind: "you", priority: 62, expires: t + 3, render: () => ({ text: say("youBoxed", { a: name(h) }), horseIds: [ids[h]!], speech: voice("youBoxed", { a: h }, heat(phase())) }) });
+        else queue({ kind: "move", priority: 50, expires: t + 3, render: () => ({ text: capitalise(say("boxedIn", { a: call(h) })), horseIds: [ids[h]!], speech: voice("boxedIn", { a: h, called: true }, heat(phase())) }) });
         return;
       case "kick":
         if (h === undefined) return;
-        queue({ kind: "move", priority: mine.has(ids[h]!) ? 63 : 57, expires: t + 2.5, render: () => ({ text: capitalise(say("kick", { a: call(h) })), horseIds: [ids[h]!] }) });
+        queue({
+          kind: "move",
+          priority: mine.has(ids[h]!) ? 63 : 57,
+          expires: t + 2.5,
+          render: () => ({ text: capitalise(say("kick", { a: call(h) })), horseIds: [ids[h]!], speech: voice("kick", { a: h, called: true }, heat("building", [h])) }),
+        });
         return;
       case "tiring": {
         if (h === undefined) return;
@@ -326,7 +421,7 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           kind: "move",
           priority: pos[h] === 1 ? 60 : 45,
           expires: t + 3,
-          render: () => ({ text: capitalise(say(beat, { a: call(h), going })), horseIds: [ids[h]!] }),
+          render: () => ({ text: capitalise(say(beat, { a: call(h), going })), horseIds: [ids[h]!], speech: voice(beat, { a: h, going: goingRaw, called: true }, "calm") }),
         });
         return;
       }
@@ -365,6 +460,7 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
     });
     order.forEach((h, r) => (pos[h] = r + 1));
     posHistory.push([...pos]);
+    if (!halfwayPos && x[order[0]!]! >= 0.5 * L) halfwayPos = [...pos];
     const leader = order[0]!;
     const second = order[1];
     const leaderX = x[leader]!;
@@ -385,7 +481,8 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           const slow = [...slowAtOff];
           const vars = { race: raceName, going, n: `${n}`, rest: listPhrase(slow.map(call)) };
           const text = capitalise(slow.length ? say("offSlow", vars) : say("off", vars));
-          return { text, horseIds: slow.map((h) => ids[h]!) };
+          const speech = voice(slow.length ? "offSlow" : "off", { rest: slow, going: goingRaw, called: true }, "building");
+          return { text, horseIds: slow.map((h) => ids[h]!), speech };
         },
       });
     }
@@ -407,7 +504,13 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
       const u = leaderX > best ? (mark - best) / (leaderX - best) : 1;
       const at = (i - 1 + Math.min(1, Math.max(0, u))) * dt;
       const vars = { dist: metresPhrase(mark / 1000), time: timePhrase(at), a: call(leader) };
-      queue({ kind: "fraction", priority: 50, expires: t + 4, render: () => ({ text: capitalise(say(q === 2 ? "half" : "fraction", vars)), horseIds: [ids[leader]!] }) });
+      queue({
+        kind: "fraction",
+        priority: 50,
+        expires: t + 4,
+        // Times aren't voiced: only halfway is spoken (who leads there).
+        render: () => ({ text: capitalise(say(q === 2 ? "half" : "fraction", vars)), horseIds: [ids[leader]!], speech: q === 2 ? voice("half", { a: leader, called: true }, "calm") : null }),
+      });
     }
 
     // Position checkpoints, with your horses after.
@@ -450,14 +553,22 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         expires: t + 4,
         render: () => {
           queueYouPositions(new Set(order.slice(0, 1)), false);
-          return { text: capitalise(say(beat, { a: call(order[0]!), course: course?.name ?? "" })), horseIds: [ids[order[0]!]!] };
+          const slots: SpeechSlots = { a: order[0]!, course: course?.name, called: true };
+          const level = heat(x[order[0]!]! - x[order[1] ?? order[0]!]! > 5 * HORSE_LENGTH_MM ? "calm" : "building", [order[0]!]);
+          const speech = voice(beat, slots, level) ?? voice("home", slots, level);
+          return { text: capitalise(say(beat, { a: call(order[0]!), course: course?.name ?? "" })), horseIds: [ids[order[0]!]!], speech };
         },
       });
     }
     if (!hillDone && course && Math.abs(course.finishGradientPermille) >= 8 && leaderX >= L - Math.min(300_000, hs * 0.7)) {
       hillDone = true;
       const beat: Beat = course.finishGradientPermille > 0 ? "hillUp" : "hillDown";
-      queue({ kind: "home", priority: 55, expires: t + 3, render: () => ({ text: capitalise(say(beat, { a: call(order[0]!), course: course.name })), horseIds: [ids[order[0]!]!] }) });
+      queue({
+        kind: "home",
+        priority: 55,
+        expires: t + 3,
+        render: () => ({ text: capitalise(say(beat, { a: call(order[0]!), course: course.name })), horseIds: [ids[order[0]!]!], speech: voice(beat, { a: order[0]!, called: true }, heat("building", [order[0]!])) }),
+      });
     }
     if (!twoOutDone && second !== undefined && L >= 1000_000 && leaderX >= L - 2 * FURLONG_MM && winner < 0) {
       twoOutDone = true;
@@ -467,7 +578,11 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         kind: "home",
         priority: 68,
         expires: t + 3,
-        render: () => ({ text: capitalise(say("twoOut", { a: call(order[0]!), b: call(order[1]!), gap: lengthsPhrase(gapTo(order[1]!)) })), horseIds: [ids[order[0]!]!, ids[order[1]!]!] }),
+        render: () => ({
+          text: capitalise(say("twoOut", { a: call(order[0]!), b: call(order[1]!), gap: lengthsPhrase(gapTo(order[1]!)) })),
+          horseIds: [ids[order[0]!]!, ids[order[1]!]!],
+          speech: voice("twoOut", { a: order[0]!, b: order[1]!, called: true }, heat("building", [order[0]!, order[1]!])),
+        }),
       });
     }
     if (!furlongDone && winner < 0 && (furlongEvent || leaderX >= L - FURLONG_MM)) {
@@ -481,7 +596,8 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           const gap = b !== undefined ? x[a!]! - x[b]! : Number.POSITIVE_INFINITY;
           const clear = gap > 3 * HORSE_LENGTH_MM;
           const text = say(clear ? "finalFurlongClear" : "finalFurlong", { a: call(a!), b: b !== undefined ? call(b) : "", gap: lengthsPhrase(gap) });
-          return { text: capitalise(text), horseIds: clear || b === undefined ? [ids[a!]!] : [ids[a!]!, ids[b]!] };
+          const speech = voice(clear || b === undefined ? "finalFurlongClear" : "finalFurlong", { a: a!, b, called: true }, heat("building", b === undefined ? [a!] : [a!, b]));
+          return { text: capitalise(text), horseIds: clear || b === undefined ? [ids[a!]!] : [ids[a!]!, ids[b]!], speech };
         },
       });
     }
@@ -491,10 +607,24 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
       const gap = leaderX - x[second]!;
       if (!duelDone && leaderX >= L - 250_000 && gap < 0.3 * HORSE_LENGTH_MM) {
         duelDone = true;
-        queue({ kind: "challenge", priority: 76, expires: t + 2, render: () => ({ text: capitalise(say("duel", { a: call(leader), b: call(second) })), horseIds: [ids[leader]!, ids[second]!] }) });
+        queue({
+          kind: "challenge",
+          priority: 76,
+          expires: t + 2,
+          render: () => ({ text: capitalise(say("duel", { a: call(leader), b: call(second) })), horseIds: [ids[leader]!, ids[second]!], speech: voice("duel", { a: leader, b: second }, "climax") }),
+        });
       } else if (!challenged.has(second) && gap < 0.75 * HORSE_LENGTH_MM && v[second]! > v[leader]! + 200) {
         challenged.add(second);
-        queue({ kind: "challenge", priority: 72, expires: t + 2, render: () => ({ text: capitalise(say("challenge", { a: call(leader), b: call(second) })), horseIds: [ids[second]!, ids[leader]!] }) });
+        queue({
+          kind: "challenge",
+          priority: 72,
+          expires: t + 2,
+          render: () => ({
+            text: capitalise(say("challenge", { a: call(leader), b: call(second) })),
+            horseIds: [ids[second]!, ids[leader]!],
+            speech: voice("challenge", { a: leader, b: second, called: true }, heat("building", [leader, second])),
+          }),
+        });
       }
     }
     if (!hundredDone && winner < 0 && leaderX >= L - 100_000) {
@@ -503,7 +633,11 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         kind: "home",
         priority: 75,
         expires: t + 1.5,
-        render: () => ({ text: capitalise(say("hundred", { a: call(order[0]!), b: order[1] !== undefined ? call(order[1]) : call(order[0]!) })), horseIds: order.slice(0, 2).map((h) => ids[h]!) }),
+        render: () => ({
+          text: capitalise(say("hundred", { a: call(order[0]!), b: order[1] !== undefined ? call(order[1]) : call(order[0]!) })),
+          horseIds: order.slice(0, 2).map((h) => ids[h]!),
+          speech: voice("hundred", { a: order[0]!, b: order[1] ?? order[0]!, called: true }, heat("building", order.slice(0, 2))),
+        }),
       });
     }
 
@@ -515,16 +649,27 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         const isMine = mine.has(ids[h]!);
         if (isMine && pos[h] === 1 && posHistory[i - 1]?.[h] !== 1 && t - lastFrontCall[h]! > 10) {
           lastFrontCall[h] = t;
-          queue({ kind: "you", priority: 78, expires: t + 2.5, render: () => ({ text: say("youFront", { a: name(h) }), horseIds: [ids[h]!] }) });
+          queue({ kind: "you", priority: 78, expires: t + 2.5, render: () => ({ text: say("youFront", { a: name(h) }), horseIds: [ids[h]!], speech: voice("youFront", { a: h }, heat("building", [h])) }) });
           continue;
         }
         if (t - lastGainCall[h]! < 10) continue;
         if (isMine && back3 && back3[h]! - pos[h]! >= 2 && pos[h]! > 1) {
           lastGainCall[h] = t;
-          queue({ kind: "you", priority: 66, expires: t + 2, render: () => ({ text: say("youGain", { a: name(h), pos: ordinal(pos[h]!) }), horseIds: [ids[h]!] }) });
+          queue({ kind: "you", priority: 66, expires: t + 2, render: () => ({ text: say("youGain", { a: name(h), pos: ordinal(pos[h]!) }), horseIds: [ids[h]!], speech: voice("youGain", { a: h, pos: pos[h]! }, heat(phase(), [h])) }) });
         } else if (back && back[h]! - pos[h]! >= 3 && pos[h]! > 1) {
           lastGainCall[h] = t;
-          queue({ kind: "move", priority: 54, expires: t + 2, render: () => ({ text: capitalise(say("gain", { a: call(h), pos: ordinal(pos[h]!) })), horseIds: [ids[h]!] }) });
+          const from = back[h]!;
+          queue({
+            kind: "move",
+            priority: 54,
+            expires: t + 2,
+            render: () => {
+              // Big ground late from the back half of the field: the comeback call.
+              const late = x[order[0]!]! >= 0.6 * L && (backHalf(from) || (!!halfwayPos && backHalf(halfwayPos[h]!)));
+              const speech = late || comeback(h) ? voice("comeback", { a: h, called: true }, heat("building", [h])) : voice("gain", { a: h, pos: pos[h]!, called: true }, heat(phase(), [h]));
+              return { text: capitalise(say("gain", { a: call(h), pos: ordinal(pos[h]!) })), horseIds: [ids[h]!], speech };
+            },
+          });
         }
       }
     }
@@ -543,6 +688,7 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         gapMm = crossT[r] !== null ? (crossT[r]! - winnerT) * (crossV[r] || v[r]!) : L - x2;
       }
       photo = r !== undefined && gapMm < PHOTO_CALL_MM;
+      const wonFromBack = !!halfwayPos && n >= 4 && backHalf(halfwayPos[w]!);
       const beat: Beat = photo ? "photo" : gapMm < HORSE_LENGTH_MM ? "finishClose" : gapMm > 5 * HORSE_LENGTH_MM ? "finishEasy" : "finish";
       queue({
         kind: photo ? "photo" : "finish",
@@ -554,7 +700,10 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
           // In a photo nobody is named the winner yet: "a" is simply the inside horse.
           const [a, b] = photo && lane[r!]! < lane[w]! ? [r!, w] : [w, r];
           const text = say(beat, { a: call(a), b: b !== undefined ? call(b) : "", race: raceName });
-          return { text: capitalise(text), horseIds: b !== undefined && (photo || beat === "finishClose") ? [ids[a]!, ids[b]!] : [ids[a]!] };
+          // A photo, a close finish or a comeback winner is the climax; an easy winner is called calmer.
+          const level: Intensity = photo || beat === "finishClose" || wonFromBack ? "climax" : "building";
+          const speech = voice(beat, { a, b, called: true }, level);
+          return { text: capitalise(text), horseIds: b !== undefined && (photo || beat === "finishClose") ? [ids[a]!, ids[b]!] : [ids[a]!], speech };
         },
       });
     }
@@ -572,11 +721,14 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         urgent: true,
         render: () => {
           resultDone = true;
-          if (b === undefined) return { text: `${name(a!)} completes the course.`, horseIds: [ids[a!]!] };
+          if (b === undefined) return { text: `${name(a!)} completes the course.`, horseIds: [ids[a!]!], speech: null };
           const marginMm = (crossT[b]! - crossT[a!]!) * (crossV[b] || v[b]!);
           const vars = { a: name(a!), b: name(b), c: c !== undefined ? name(c) : "", margin: marginPhrase(marginMm) };
           const beat: Beat = marginMm < 10 ? "deadHeat" : c === undefined ? "resultTwo" : photo ? "resultPhoto" : "result";
-          return { text: say(beat, vars), horseIds: placed.map((h) => ids[h]!) };
+          // The verdict of a photograph is shouted; an easy result is read out calmly.
+          const level: Intensity = beat === "deadHeat" || beat === "resultPhoto" ? "climax" : marginMm > EASY_MM ? "calm" : "building";
+          const speech = voice(beat, { a: a!, b, c, margin: marginMm }, level);
+          return { text: say(beat, vars), horseIds: placed.map((h) => ids[h]!), speech };
         },
       });
     }
@@ -589,7 +741,8 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
         youFinishQueued.add(h);
         const p = pos[h]!;
         const beat: Beat = p === 1 ? "youWon" : p <= 3 ? "youPlaced" : "youOther";
-        queue({ kind: "you", priority: 60, expires: Number.POSITIVE_INFINITY, afterLine: true, urgent: true, render: () => ({ text: say(beat, { a: name(h), pos: ordinal(p) }), horseIds: [id] }) });
+        const level: Intensity = p === 1 ? "climax" : p <= 3 ? "building" : "calm";
+        queue({ kind: "you", priority: 60, expires: Number.POSITIVE_INFINITY, afterLine: true, urgent: true, render: () => ({ text: say(beat, { a: name(h), pos: ordinal(p) }), horseIds: [id], speech: voice(beat, { a: h, pos: p }, level) }) });
       }
     }
 
@@ -604,7 +757,7 @@ export function buildRaceCall(input: RaceCallInput): CallLine[] {
       pending = pending.filter((p) => p !== c);
       const out = c.render();
       if (!out) continue;
-      lines.push({ atSec: Math.round(t * 1000) / 1000, text: out.text, kind: c.kind, horseIds: out.horseIds, priority: c.priority });
+      lines.push({ atSec: Math.round(t * 1000) / 1000, text: out.text, kind: c.kind, horseIds: out.horseIds, priority: c.priority, speech: out.speech ?? null });
       lastAt = t;
       break;
     }

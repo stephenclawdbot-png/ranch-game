@@ -847,6 +847,26 @@ Unlocks are UI gates plus a route guard (`apps/web/src/server/guide.ts` `require
 tote bet, claim, claiming-race entry, market buy/list, lease offer/take and jockey sign/offer
 routes. The season harness acts through the server functions, so it is not gated.
 
+## 19. Radio commentary (new 2026-10-31)
+
+Presentation only: none of these touch a result. See [`docs/commentary.md`](../commentary.md).
+
+| Knob | Value | Where | What it does | Moves which outcomes |
+|---|---|---|---|---|
+| `INTENSITY` (speed, pitch, gain) | calm 1.04 / 0 st / -1 dB; building 1.14 / +1 st / +2 dB; climax 1.26 / +2.5 st / +5.5 dB | tools/commentary/recipe.py | How the caster delivers each intensity (Kokoro speed, rubberband pitch, gain). A change bumps `RECIPE_VERSION` and re-renders the library and every name. | The build-up from the off to the finish (about 5 dB of voice) |
+| `RECIPE_VERSION` / `COMMENTARY_RECIPE` | 1 | tools/commentary/recipe.py, packages/db/src/services/commentary.ts | Voice recipe version; name clips of another version are not served. | Which name clips play |
+| `DUEL_MM` | 1 length | packages/race-viewer/src/call/buildRaceCall.ts | The first two within this in the final furlong: climax. | How often the call reaches climax |
+| `EASY_MM` | 3 lengths | packages/race-viewer/src/call/buildRaceCall.ts | Leader clear by more late on: capped at building; a result margin above it is read calmly. | Calmer easy wins |
+| comeback | back half at halfway, first two inside the last 3 furlongs (or a 3-place gain from the back half after 60% of the trip) | packages/race-viewer/src/call/buildRaceCall.ts (`comeback`, `backHalf`) | Raises the horse's lines (building, climax in the final furlong), the "But look at this!" call, and a climax finish. | Excitement on comebacks |
+| `SPEECH.lineGapSec` / `wordGapSec` | 0.3 s / 0.03 s | packages/race-viewer/src/call/voice/schedule.ts | Gaps between lines and between the clips of a line. | Pace of the call |
+| `SPEECH.maxDelaySec` | 1.6 s | packages/race-viewer/src/call/voice/schedule.ts | Latest a line may start behind its call time; later routine lines are dropped. | How much of the call is spoken in busy finishes |
+| `SPEECH.keyPriority` | 75 | packages/race-viewer/src/call/voice/schedule.ts | Lines at or above it cut the previous line short instead of being dropped. | The finish is always called on time |
+| `SPEECH.keyKinds` | finish, photo, result | packages/race-viewer/src/call/voice/schedule.ts | The only calls spoken at 2x / 4x / 0.5x (in real time). | Commentary at other speeds |
+| `MIX.beds` | murmur 0.2, building 0.32, roar 0.5, hush 0.1 (linear) | packages/race-viewer/src/call/voice/library.ts | Crowd level under the voice per bed; `cheer` 0.55, `static` 1, `crowdFadeSec` 0.8, `preOffCrowd` 0.7. | Crowd swell, voice clarity |
+| clip format | 22.05 kHz mono MP3, 32 kbps | tools/commentary/recipe.py (`OUT_SR`, `OUT_BITRATE`) | Size of the library (about 8 MB) and of each name clip (about 4 KB). | Download per race, database size |
+| name clip limits | 200 B - 32 KB per clip, 160 KB per upload, names up to 40 characters | packages/db/src/services/commentary.ts, apps/web/src/server/commentary.ts | Upload checks. | Abuse resistance |
+| workflow batch | 150 names, 40 minutes, hourly at :23 | .github/workflows/commentary-names.yml | Names voiced per run. | How soon a new horse is called by name |
+
 ---
 
 ## Values duplicated in more than one place
