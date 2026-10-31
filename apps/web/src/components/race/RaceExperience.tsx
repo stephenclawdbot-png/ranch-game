@@ -21,7 +21,7 @@ import { SilksIcon } from "../Silks";
 import { PaddockParade, type ParadeRunner } from "./PaddockParade";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
 import { RivalLines } from "../social/RivalLines";
-import { PhotoFinishCard } from "../results/PhotoFinishCard";
+import { LoginCodeAfterResult } from "../chain/LoginCodeCard";
 import { FitList } from "../ui/FitChip";
 import { Saddlecloth } from "./Saddlecloth";
 import { FairnessPanel } from "./FairnessPanel";
@@ -285,6 +285,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
                 course={courseByName(card.track)}
                 siteHost={siteHost}
                 paddock={paddock}
+                rest={phase === "result" && !holdResults}
               />
             </div>
           ) : (
@@ -313,9 +314,12 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
         {phase === "result" && replay && <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} siteHost={siteHost} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />}
       </div>
 
-      <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
-
-      <CourseStrip track={card.track} distanceM={config.distanceM} />
+      {phase !== "result" && (
+        <>
+          <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
+          <CourseStrip track={card.track} distanceM={config.distanceM} />
+        </>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid min-w-0 content-start gap-4">
@@ -325,9 +329,10 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
             </p>
           ) : phase === "result" && replay ? (
             <>
-              <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               <ResultsSequence replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={mine ? settlement : null} />
               {mine && settlement?.injury && <RaceInjuryNote injury={settlement.injury} name={mine.horse.name} sex={mine.horse.sex} horseId={mine.horse.id} />}
+              {/* Testers: save the login code, after the first result rather than before the first race. */}
+              {mine && settlement && <LoginCodeAfterResult />}
               {state && card.kind === "live" && <RivalLines raceId={card.id} />}
               {mine && settlement && (
                 <section className="surface flex flex-wrap items-center gap-3 p-3 sm:p-4" aria-label="What if?" data-testid="what-if-panel">
@@ -338,6 +343,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
                   <WhatIfButton raceId={card.id} horseId={mine.horse.id} horseName={mine.horse.name} className="btn btn-brass" />
                 </section>
               )}
+              {/* The race explained and the course: under the result once it's in (they lead before the off). */}
+              <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
+              <CourseStrip track={card.track} distanceM={config.distanceM} />
             </>
           ) : (
             <>

@@ -18,6 +18,7 @@ import { PedigreeTree } from "./PedigreeTree";
 import { UsdgHorsePanel } from "./UsdgHorsePanel";
 import { HorseLeasePanel } from "./HorseLeasePanel";
 import { CareerStory } from "./CareerStory";
+import { CareerStoryRead } from "../onboarding/WhyRead";
 import { PositionBadge } from "../ui/PositionBadge";
 import { FormLines } from "../formBook/FormLines";
 import { SplitsPanel } from "../formBook/SplitsPanel";
@@ -187,7 +188,9 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
 
       {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
 
-      <CareerStory story={view.story} name={first} female={horse.sex === "filly" || horse.sex === "mare"} />
+      <CareerStoryRead enabled={isMine && view.story.entries.length > 0}>
+        <CareerStory story={view.story} name={first} female={horse.sex === "filly" || horse.sex === "mare"} />
+      </CareerStoryRead>
 
       {view.matchRace && view.matchRace.record.length > 0 && (
         <section className="surface p-4" aria-labelledby="match-h" data-testid="match-record">

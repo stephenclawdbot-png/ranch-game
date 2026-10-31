@@ -32,7 +32,7 @@ const POLL_MS = 60_000;
  * "Today" on Home: the few things worth doing, in priority order (the Daily Cup, the gift foal,
  * care, a free pack, a mare ready to foal, the next Story race). Secondary to the hero action.
  */
-export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
+export function TodayTiles({ refreshKey, hide, title = "Today" }: { refreshKey?: string; /** Tile keys to leave out (the first-week list already has them). */ hide?: readonly string[]; title?: string }) {
   const [tiles, setTiles] = useState<HomeTiles | null | undefined>(undefined);
   const now = useNow(1000);
 
@@ -58,8 +58,10 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
   }, [load, refreshKey]);
 
   if (tiles === undefined) {
+    // In the first week only a few tiles can show: no skeleton holding space for a list that may be empty.
+    if (hide?.length) return null;
     return (
-      <Section id="today-h" title="Today">
+      <Section id="today-h" title={title}>
         <ul className="surface rows" aria-busy aria-label="Loading today's list" data-testid="today-skeleton">
           {[0, 1, 2].map((i) => (
             <li key={i} className="flex items-center gap-3 px-4 py-3" aria-hidden>
@@ -190,13 +192,14 @@ export function TodayTiles({ refreshKey }: { refreshKey?: string }) {
     const left = tiles.carrying.dueAtMs - (now + skew);
     list.push({ key: "carrying", icon: "hay", title: `${tiles.carrying.damName} is in foal`, text: left > 0 ? `Due in ${formatCountdown(left)}` : "Due now", href: "/breeding", cta: "Barn", locked: left > 0 });
   }
-  if (list.length === 0) return null;
+  const shown = hide?.length ? list.filter((t) => !hide.includes(t.key)) : list;
+  if (shown.length === 0) return null;
 
-  const left = list.filter((t) => !t.locked && !t.done).length;
+  const left = shown.filter((t) => !t.locked && !t.done).length;
   return (
-    <Section id="today-h" title="Today" testId="today" aside={<span className="eyebrow">{left} to do</span>}>
+    <Section id="today-h" title={title} testId="today" aside={<span className="eyebrow">{left} to do</span>}>
       <ul className="surface rows">
-        {list.map((t) => (
+        {shown.map((t) => (
           <li key={t.key} className={t.locked ? "opacity-60" : ""}>
             <Link href={t.href} className="row-link gap-3 px-4 py-3" data-testid={`tile-${t.key}`} aria-label={`${t.title}: ${t.cta}`}>
               <PixelIcon name={t.icon} size={32} className="shrink-0" />

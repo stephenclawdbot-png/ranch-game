@@ -38,6 +38,7 @@ import { injectViewerCss } from "./hud/styles";
 import { ClipShareButton } from "./clip/ClipShareButton";
 import { canShareClip } from "./clip/plan";
 import type { CourseInfo } from "./course/geometry";
+import { RestGate, shouldPauseForRest } from "./rest";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideScene";
 
@@ -168,6 +169,12 @@ export interface RaceViewerProps {
   whatIf?: boolean;
   /** The stage badge in what-if mode, for other unofficial races ("Match race · unofficial"); default "What if · not official". */
   whatIfBadge?: string;
+  /**
+   * The host shows its results below the stage (rest.ts): pause playback once when this turns on
+   * (never mid-finale), then stop drawing while nothing on the stage changes. Play, a seek, a
+   * camera change or a resize draws again. Default false.
+   */
+  rest?: boolean;
 }
 
 /** The finale's step as the overlay renders it. */
@@ -325,6 +332,7 @@ export function RaceViewer(props: RaceViewerProps) {
     onFinale,
     paddock,
     whatIf = false,
+    rest = false,
   } = props;
   const { finale: finaleOn, resultsCard } = whatIfFlags(whatIf, { finale: finaleWanted, resultsCard: resultsCardWanted });
   const preOffWanted = props.preOff ?? !!feed;
@@ -456,6 +464,8 @@ export function RaceViewer(props: RaceViewerProps) {
   const [photoArt, setPhotoArt] = useState<PhotoArt | null>(null);
   const onFinaleRef = useRef(onFinale);
   onFinaleRef.current = onFinale;
+  const restRef = useRef(rest);
+  restRef.current = rest;
   const planCache = useRef(new WeakMap<RaceReplay, FinalePlan>());
   const planFor = useCallback(
     (fin: RaceReplay): FinalePlan | null => {
@@ -581,6 +591,15 @@ export function RaceViewer(props: RaceViewerProps) {
     finishedFired.current = false;
     setDismissed(false);
   }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Rest: the host's results are on screen. Pause once, but only past the line (the run-out): a
+  // stage still showing the race (a lagging broadcast) or the finale plays on, and the clock stops
+  // on its own at the end. The loop then stops drawing (rest.ts).
+  useEffect(() => {
+    if (!rest) return;
+    const c = clockRef.current;
+    if (shouldPauseForRest(c instanceof PlaybackClock ? { kind: "replay", time: c.time, duration: c.duration, playing: c.playing || c.live } : null, finaleRef.current.running)) c!.pause();
+  }, [rest]);
 
   const publish = useCallback(() => {
     const clock = clockRef.current;
@@ -782,6 +801,10 @@ export function RaceViewer(props: RaceViewerProps) {
       let ftMax = 0;
       let raf = 0;
       let last = performance.now();
+      // Rest (rest.ts): skip drawing a still stage while the host shows its results.
+      const restGate = new RestGate();
+      let sizeTick = 0;
+      let restMarked = false;
       const frame = (now: number) => {
         raf = requestAnimationFrame(frame);
         const deltaMS = Math.min(250, Math.max(0, now - last));
@@ -817,6 +840,13 @@ export function RaceViewer(props: RaceViewerProps) {
         const winnerId = finalRef.current?.result.finishOrder[0]?.horseId ?? null;
         directorRef.current.force(replaying ? { type: "replay", subject: winnerId } : null);
         const sceneT = fin.sceneTime() ?? fr.time;
+        const resting = restRef.current && !clock.playing && !clock.live && !fin.running;
+        const drawNow = restGate.draw(resting, `${sceneT.toFixed(3)}|${cameraRef.current}|${followRef.current}|${sizeTick}|${qualityRef.current}`);
+        if (restGate.idle !== restMarked) {
+          restMarked = restGate.idle;
+          stage.dataset.rvRest = restMarked ? "1" : "0";
+        }
+        if (!drawNow) return;
         sc.render({
           time: sceneT,
           realDt: dt,
@@ -900,6 +930,7 @@ export function RaceViewer(props: RaceViewerProps) {
       raf = requestAnimationFrame(frame);
 
       const ro = new ResizeObserver(() => {
+        sizeTick++;
         const w = Math.max(1, stage.clientWidth);
         const h = Math.max(1, stage.clientHeight);
         sc.resize(w, h);

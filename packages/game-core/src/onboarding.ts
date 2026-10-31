@@ -200,6 +200,119 @@ export function stableStepsProgress(done: ReadonlySet<string>, features: GuideFe
 }
 
 // ---------------------------------------------------------------------------
+// The first week on Home (2026-11-01, owner-approved after the first-hour playtest)
+// ---------------------------------------------------------------------------
+
+/**
+ * Jobs on the first-week list that pay nothing: the paid Stable steps above carry the guide's
+ * rewards (and the daily goals pay for racing, care and the Cup), so these only point the way.
+ * Each is ticked from the stable's own records, never from a click on the list.
+ */
+export type FirstWeekExtraKey = "first_race" | "rename" | "qualifier" | "career_story";
+export type FirstWeekKey = StableStepKey | FirstWeekExtraKey;
+
+/** The list shows from founding day until this many days later (day 0 to day 6), then hides for good. */
+export const FIRST_WEEK_DAYS = 7;
+/** How many jobs to do the list shows at once (the rest wait under "All"). */
+export const FIRST_WEEK_SHOWN = 3;
+
+/**
+ * The order a new trainer meets things: the first race and its "why" (both usually done in the
+ * first minutes), care and training, a Live race and its result, naming a horse while it still
+ * can be, the daily and weekly tools, a Feature Qualifier, a look at breeding, a career story.
+ */
+export const FIRST_WEEK_ORDER: readonly FirstWeekKey[] = [
+  "first_race",
+  "read_why",
+  "care",
+  "train_plan",
+  "enter_live",
+  "watch_live",
+  "rename",
+  "daily_cup",
+  "qualifier",
+  "pick",
+  "quick_race",
+  "pin_target",
+  "breeding_preview",
+  "career_story",
+];
+
+/** What the stable's records say about the unpaid jobs. */
+export interface FirstWeekFacts {
+  guided: boolean;
+  /** UTC days since founding (0 on founding day). */
+  daysSinceFounding: number;
+  /** A race of the stable's has a result (Story or Live). */
+  firstRace: boolean;
+  /** The player has renamed a horse. */
+  renamed: boolean;
+  /** A horse at home can still be renamed (it hasn't started yet). */
+  canRename: boolean;
+  /** The stable has entered a Feature Qualifier. */
+  qualifier: boolean;
+  /** The player has read one of their horses' career stories. */
+  careerStory: boolean;
+}
+
+export interface FirstWeekItem {
+  key: FirstWeekKey;
+  /** Credits the job pays (a paid Stable step's own credits; 0 for the extras). Never paid twice. */
+  credits: number;
+  done: boolean;
+}
+
+export interface FirstWeekList {
+  items: FirstWeekItem[];
+  /** The next jobs to do, in order (at most FIRST_WEEK_SHOWN). */
+  next: FirstWeekKey[];
+  done: number;
+  total: number;
+  /** Shown on Home: a guided stable in its first week with something left to do. */
+  visible: boolean;
+  /** The last day (days since founding) the list shows. */
+  lastDay: number;
+}
+
+export function isFirstWeekKey(x: unknown): x is FirstWeekKey {
+  return typeof x === "string" && (FIRST_WEEK_ORDER as readonly string[]).includes(x);
+}
+
+/**
+ * The first-week list: the paid Stable steps on offer and the unpaid extras, in the order a new
+ * trainer meets them, each done from the records. Renaming is only on the list while it can be
+ * done (or once it was). Hidden once everything is done or the first week is over.
+ */
+export function firstWeekList(steps: StableStepsProgress, f: FirstWeekFacts, shown = FIRST_WEEK_SHOWN): FirstWeekList {
+  const paid = new Map(steps.steps.map((s) => [s.key as FirstWeekKey, s]));
+  const extra: Record<FirstWeekExtraKey, { offered: boolean; done: boolean }> = {
+    first_race: { offered: true, done: f.firstRace },
+    rename: { offered: f.renamed || f.canRename, done: f.renamed },
+    qualifier: { offered: true, done: f.qualifier },
+    career_story: { offered: true, done: f.careerStory },
+  };
+  const items: FirstWeekItem[] = [];
+  for (const key of FIRST_WEEK_ORDER) {
+    const p = paid.get(key);
+    if (p) items.push({ key, credits: p.credits, done: p.done });
+    else if (key in extra) {
+      const e = extra[key as FirstWeekExtraKey];
+      if (e.offered) items.push({ key, credits: 0, done: e.done });
+    }
+  }
+  const done = items.filter((i) => i.done).length;
+  const lastDay = FIRST_WEEK_DAYS - 1;
+  return {
+    items,
+    next: items.filter((i) => !i.done).slice(0, shown).map((i) => i.key),
+    done,
+    total: items.length,
+    visible: f.guided && f.daysSinceFounding >= 0 && f.daysSinceFounding <= lastDay && done < items.length,
+    lastDay,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Progressive unlocks (2026-10-31, owner-approved)
 // ---------------------------------------------------------------------------
 

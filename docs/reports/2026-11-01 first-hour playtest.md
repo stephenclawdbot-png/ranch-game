@@ -104,11 +104,11 @@ annoyed by the bare "Race again". Stays, but grumbles about the first race and t
 | 7 | Advice to wait 3-5 days in the first ten minutes | b | **Fixed** as the one change: a fresh horse in the stable instead |
 | 8 | Jockey wages and transfer window on the Stable page while contracts are locked | b (a) | **Fixed**: hidden until jockey contracts open |
 | 9 | Premium Packs buyable with T-USDG on day one | a | **Fixed**: the odds stay published; buying opens with the market (day 3 / chapter 1 / wallet) |
-| 10 | Home after two races: three to-do lists, Road to Saturday, Live card, Rivals | b | Partly: Road to Saturday waits for the first Live entry; rest is a **recommendation** |
+| 10 | Home after two races: three to-do lists, Road to Saturday, Live card, Rivals | b | **Fixed** (§8): one first-week list; Road to Saturday and Rivals wait for the first Live entry |
 | 11 | Racecard names break mid-word on phones | b | **Fixed** (wrap between words, slightly smaller on phones) |
-| 12 | Desktop result pages are heavy: navigating away took 20-140 s on a busy machine (the replay keeps rendering) | c | **Recommendation** (pre-existing) |
-| 13 | The login code card (a 23-character code) sits on the starters screen before the first race | a | **Recommendation** (it's how testers get back in; move it after the first result) |
-| 14 | The photo card repeats the board above your result | b | **Recommendation** |
+| 12 | Desktop result pages are heavy: navigating away took 20-140 s on a busy machine (the replay keeps rendering) | c | **Fixed** (§8): the replay rests once the results show |
+| 13 | The login code card (a 23-character code) sits on the starters screen before the first race | a | **Fixed** (§8): after the first result, dismissible once; still on Profile |
+| 14 | The photo card repeats the board above your result | b | **Fixed** (§8): your result and the verdict come first, the photo card below |
 
 ## 4. What changed
 
@@ -201,22 +201,24 @@ The final runs said, verbatim:
   *"First Light used too much early chasing the leader ... dropping from 2nd to 6th"*, one tap, a
   new race with the change, 3rd of 9.
 
-## 6. Recommendations (not built: larger or design-changing)
+## 6. Recommendations (larger or design-changing)
 
-1. **One to-do list on Home for the first week.** Stable steps, Today and Today's goals overlap
+The owner approved 1, 2, 3 and 6; they are built (§8). 4 and 5 are still open.
+
+1. **Built (§8). One to-do list on Home for the first week.** Stable steps, Today and Today's goals overlap
    (care and the Daily Cup appear twice). Fold Today's goals into Stable steps until the guide is
    done, and show Rivals and the Live card after the first Live entry.
-2. **Lighter result page.** For your own runner, put the verdict above the photo card, and pause
+2. **Built (§8). Lighter result page.** For your own runner, put the verdict above the photo card, and pause
    the replay viewer when the results are on screen (desktop navigation from a result page took
    20-140 s on a busy machine because the replay keeps rendering).
-3. **Move the login-code card** from the starters screen to just after the first result ("save
+3. **Built (§8). Move the login-code card** from the starters screen to just after the first result ("save
    this to come back on another device"): one less thing before the first race.
 4. **Stamina as a visible lever.** The engine's most common loss is "ran out of energy"; a one-tap
    "stamina week" training plan from the verdict would make the fix playable in the first hour.
 5. **Story difficulty curve.** The level first race fixes the first impression; races 2-5 still
    use band −12/+12 against a novice whose band rating runs above its ability. Consider easing the
    Club window by real ability for the first few Story races (needs the lead's balance call).
-6. **Explain energy on the Why card** (an energy bar per third, from the frames) for the sim fans.
+6. **Built (§8). Explain energy on the Why card** (an energy bar per third, from the frames) for the sim fans.
 
 ## 7. Artefacts
 
@@ -226,3 +228,72 @@ The final runs said, verbatim:
   `apps/web/src/lib/tryNext.test.ts` (pronouns), `apps/web/src/server/firstStory.test.ts`,
   `apps/web/src/server/guide.test.ts` and `packages/db/src/test/guide.test.ts` (the nudge),
   `packages/game-core/src/bloodlineNudge.test.ts`, `packages/game-core/src/ratings.test.ts`.
+- Tests for §8: `packages/game-core/src/firstWeek.test.ts`, `packages/db/src/test/guide.test.ts`
+  ("the first-week list on Home"), `apps/web/src/components/onboarding/firstWeek.test.ts`,
+  `apps/web/src/lib/energyTrace.test.ts`, `packages/race-viewer/src/rest.test.ts`.
+
+## 8. The four approved recommendations, built (2026-11-01)
+
+**One first-week list on Home (recommendation 1).** Stable steps *is* the first-week list, so it
+became the single to-do on Home rather than a new system. game-core `firstWeekList` puts the paid
+Stable steps (unchanged credits, paid once each, same bonus and plaque) in the order a new trainer
+meets them and adds four unpaid jobs ticked from the records: the first race (a result in
+`race_entries`), naming a horse (the `horse.rename` audit row; on the list only while a horse
+hasn't started, or once done), a Feature Qualifier entry (a race whose calendar kind is
+`feature_qualifier`) and reading a career story (a one-time mark, `career_story`, sent after one
+of your own horses' stories has been on screen two seconds). db `firstWeekView` is the player
+view's `onboarding.firstWeek`. Home shows the next three jobs, each one tap to where it is done
+(a Live entry opens the quick-pick sheet), today's three goals folded into the same card, and the
+whole week under "The whole first week". The card hides once everything is done or after day 6.
+While it shows, the separate "Today's goals" card is gone and "Today" keeps only what isn't on the
+list (a gift foal, a free pack, a foaling: "Also today"); Rivals now waits for the first Live entry
+like Road to Saturday. No new rewards: the extras pay 0, and a test checks the list pays exactly
+what the steps pay.
+
+**A lighter result page (recommendation 2).** For your own runner: your result, then Wilf's verdict
+with its one change and "Try again", then the rating line, then the photo card and the board, the
+race in numbers, the next actions and the full result. The course strip and "In plain words" move
+under the result once it is in (they still lead before the off). Nothing was removed. The replay
+viewer gets a `rest` prop: once the results show it pauses the run-out (never the race itself on a
+broadcast running behind, never the finale) and stops drawing while nothing on the stage changes;
+play, a seek, a camera change or a resize draws again (`race-viewer/src/rest.ts`).
+
+**The login code after the first result (recommendation 3).** Off the starters screen; on your own
+result pages for testers ("Save this to come back on another device", Copy), under the next
+actions, until "Saved it, hide this" (a one-time mark kept on the server). Still on Profile.
+
+**Energy on the Why card (recommendation 6).** `lib/energyTrace.ts` reads the horse's energy
+(`FRAME_FIELD.energy`, the engine's tank, 0-1000) at 25 points of the trip straight from the replay
+frames, with the other runners' median beside it. The Why card draws it as a line from the off to
+the finish post, the engine's tiring line (7 %) dotted, and a "ran low" mark where the tank first
+fell to it (more than 25 m out). One sentence under it ("ran low on energy with 300 m to go" /
+"still had 28 % left at the line" / "used up the tank at about the right time"), and the whole
+line in words as the image's label and under "In words".
+
+Same script, same machine (load average 6-8 from other agents), fresh database each run; the
+"after" columns are the final run (an earlier after-run gave the same positions within 4 px):
+
+| | Phone before | Phone after | Desktop before | Desktop after |
+|---|---|---|---|---|
+| Verdict's top on the result page | 1,438 px | **826 px** | 1,544 px | **1,005 px** |
+| Photo card's top | above the verdict | 1,325 px (below it) | above the verdict | 1,231 px |
+| Its "Try again" button | under the verdict text | 1,134 px | | |
+| Result page height | 3,728 px | 4,292 px (+ energy line, login code) | 2,671 px | 3,193 px |
+| Opening the next race from the result page | 2.4 s | 0.8 s | **> 240 s (run failed)** | **0.5 s** |
+| Replay at rest after the result (`data-rv-rest`) | (kept drawing) | yes | (kept drawing) | yes |
+| Login code before the first race | yes | no (starters screen 2,009 → 1,651 px) | yes | no |
+| Login code after the first result | no | yes, dismissible | no | yes |
+| To-do lists on Home after two races | 3 (Stable steps, Today 4, Today's goals) + Rivals | 1 ("Your first week", goals folded in) | 3 + Rivals | 1 |
+| Home page height after two races | 3,008 px | 2,383 px | | |
+| First-week list | | 2 of 14 done; next: care, training plan, Live race | | same |
+| Total to the wiki | 276 s, 10 clicks | 247 s, 10 clicks | failed at the second race | 264 s, 10 clicks |
+
+The desktop "before" run reproduced the friction-list item 12 exactly: tapping "Race First Light
+again" on the result page never reached the next race within the script's 240 s. After the change
+it took 0.5-0.6 s on both after-runs. The result page is longer in total because it now carries the
+energy line and (testers) the login code, but what a player needs first sits about one phone screen
+higher. The energy lines in these runs read, verbatim: *"Steady On's energy: 100% at the off, 71% a
+third of the way, 51% two-thirds of the way and 28% at the finish (a typical rival had 42%
+two-thirds of the way and 4% at the finish). Steady On still had 28% left at the line: energy to
+spare."*
+
