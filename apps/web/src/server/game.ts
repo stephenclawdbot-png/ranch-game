@@ -16,6 +16,7 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { prepareRealToteSeed } from "./chain/toteChain";
+import { horseCareerStory } from "./careerStory";
 import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, mixSeedEntropy, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
@@ -1531,6 +1532,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
       ratingAfter: l.result!.ratingAfter,
     }));
   const sireLine = await sireLineSplits(db, row, now);
+  const story = await horseCareerStory(db, row, now);
   const parentRows = [row.sireId, row.damId].filter((x): x is string => !!x);
   const parents = new Map<string, { name: string; regNo: string }>();
   for (const id of parentRows) {
@@ -1551,10 +1553,10 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   if (!row.ownerStableId && !row.lesseeStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true, resting }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, story, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true, resting }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, sireLine, pedigree, tree, genetics, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, story, sireLine, pedigree, tree, genetics, stud: null, actions: null };
   }
   // A Club horse away on lease (owner null) shows under its lessee's colours like any leased horse.
   const stable = row.ownerStableId ? await getStable(db, row.ownerStableId) : null;
@@ -1602,6 +1604,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     status: mine ? stableHorseView(row, silks, nowMs, { inFoalDueAtMs: row.sex === "female" ? ((await carryingDueByDam(db, [row.id])).get(row.id) ?? null) : null }) : null,
     runs,
     form,
+    story,
     sireLine,
     pedigree,
     tree,

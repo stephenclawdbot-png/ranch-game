@@ -2,7 +2,7 @@
  * No spoilers, across every client-facing race endpoint: while a locked race is running (post
  * time passed, broadcast not over) nothing a client can GET for that race (the card, the live
  * feed, the replay and verify routes, the entry options, the rivals, the pick, the what-if, the
- * signed-in views, the tote board, the bettor's tote side, the real-money board) may carry the
+ * signed-in views, the tote board, the bettor's tote side, the real-money board, a runner's career story) may carry the
  * race's seed, its result hash or any runner's finish time. Checked both signed out and signed in
  * as the owner of a runner and as a bettor. The result is learned afterwards from the official
  * replay, so the test knows exactly what must not have leaked.
@@ -28,6 +28,7 @@ import { GET as toteMe } from "../../app/api/races/[id]/tote/me/route";
 import { GET as toteReal } from "../../app/api/races/[id]/tote/real/route";
 import { GET as verify } from "../../app/api/races/[id]/verify/route";
 import { GET as whatIf } from "../../app/api/races/[id]/what-if/route";
+import { GET as horseStory } from "../../app/api/horses/[id]/story/route";
 import { dbHandle } from "./db";
 import { driveCard, enterLive, entryOptions, raceList, servedReplay } from "./game";
 import { broadcastEndsAtMs } from "./live";
@@ -53,6 +54,7 @@ const ENDPOINTS: [string, Handler, string][] = [
 ];
 
 let raceId: string;
+let runnerId: string;
 let postTimeMs: number;
 let ownerToken: string;
 let bettorToken: string;
@@ -92,6 +94,7 @@ beforeAll(async () => {
     if (!ok) continue;
     await enterLive(h.db, p, r.id, ok.horseId, { tactic: "stalker", intensity: "normal" }, T0);
     raceId = r.id;
+    runnerId = ok.horseId;
     postTimeMs = r.postTimeMs;
     break;
   }
@@ -134,6 +137,10 @@ describe("no endpoint leaks a running race's result or seed", () => {
         for (const secret of secrets) expect(body.includes(secret), `${viewer} ${endpoint} leaks ${secret.slice(0, 12)}…`).toBe(false);
       }
     }
+    // the runner's career story (public) says nothing about the race until its broadcast is over
+    const story = await at(mid, async () => (await horseStory(new Request(`https://tb.example/api/horses/${runnerId}/story`), { params: Promise.resolve({ id: runnerId }) })).text());
+    expect(story).not.toContain(raceId);
+    for (const secret of secrets) expect(story.includes(secret)).toBe(false);
     // and the sweep really reached the endpoints (not just 404s)
     expect(seen.anonymous.card).toMatch(/^200 /);
     expect(seen.bettor["tote me"]).toMatch(/^200 /);

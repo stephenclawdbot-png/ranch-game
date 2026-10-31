@@ -280,6 +280,17 @@ export default function RatingsAndFormPage() {
         care days, every race with its replay and rating change, injuries and the vet, quirks revealed, an improver&rsquo;s step up (only once it has happened), covers and foals, sales,
         claims and lease periods. Training and care are explained on <WikiLink slug="training" /> and <WikiLink slug="care-and-condition" />.
       </P>
+      <H3>The career story</H3>
+      <P>
+        Every horse page, yours or anyone&rsquo;s, tells the horse&rsquo;s <b>career story</b>: one short line for each moment that mattered, oldest first, with a replay link where there was
+        a race. Ordinary runs get no line. A line can be the debut, the first win, the biggest win (Season Finals, then Features, Group, Listed, handicap, novice and maiden races, then the
+        purse), any other Feature, Final, Group or Listed win, an <b>upset</b> (a win in a field of {gc.STORY_UPSET_MIN_FIELD} or more while rated in the bottom half on the official
+        ratings before the off, and no better than 3rd), a photo finish won or lost (the result&rsquo;s photo, or a margin of {gc.STORY_PHOTO_LABELS.join(", ")}), the career-high
+        rating, a quirk a race revealed, a race injury with the days off and the comeback win, the rival (the other stable&rsquo;s horse it met most, at least{" "}
+        {gc.STORY_RIVAL_MIN_MEETINGS} times, with the record), Hall of Fame inductions, retirement (to stud, the broodmare band or the Legacy Farm) and, later, its foals&rsquo; first
+        wins and big wins. Everything one race meant goes into that race&rsquo;s single line. The best <b>{gc.STORY_HIGHLIGHTS}</b> lines show first; <b>Show full career</b> opens the
+        rest. Only finished races count (never one still being broadcast), Story races are left out, and nothing private (credits, training, care, the vet) is ever in it.
+      </P>
       <P>
         Ratings decide the classes; the classes and their purses are on <WikiLink slug="race-types" />. A horse&rsquo;s ability rises and falls over its career too: see{" "}
         <WikiLink slug="racing-career" />.
