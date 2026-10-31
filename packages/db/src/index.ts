@@ -43,6 +43,7 @@ export * from "./services/naming";
 export * from "./services/health";
 export * from "./services/usdgMarket";
 export * from "./services/upkeep";
+export * from "./services/finances";
 export * from "./services/usdgStud";
 export * from "./services/leasing";
 export * from "./services/clubMarket";

@@ -48,6 +48,12 @@ export default function CreditsAndEntriesPage() {
           Stable Credits have no cash value. They can&rsquo;t be withdrawn, sold or exchanged for money, and races pay prizes in credits only. They exist to run your stable.
         </p>
       </Callout>
+      <P>
+        <b>Your finances page.</b> The <GameLink href="/stable/finances">Finances</GameLink> page on your stable is the full set of books: every credit in and out for the week, the
+        season or all time, grouped by what it was for, and a per-horse sheet that answers &ldquo;is this horse paying for itself?&rdquo; — what it earned in purses, sales, stud fees
+        and lease shares against what it cost in training, upkeep, entry fees and its purchase price, right down to the cost per start. The stable page shows this week&rsquo;s upkeep
+        building up as you play.
+      </P>
 
       <H2 id="earning">How you earn credits</H2>
       <Table

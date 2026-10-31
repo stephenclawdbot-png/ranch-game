@@ -300,6 +300,8 @@ export interface PlayerView {
   credits: number;
   entries: EntryBankView;
   stalls: { slots: number; used: number };
+  /** Weekly upkeep so far this week (used horses and what they would cost), for the stable page. */
+  upkeep: { horses: number; due: number };
   horses: StableHorse[];
   /** The stable's own horses away on lease (they stand in the lessee's stall). */
   leasedOut?: LeasedOutHorse[];

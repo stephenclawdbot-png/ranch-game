@@ -135,6 +135,7 @@ function Stable({ state }: { state: PlayerState }) {
             <ul className="surface rows">
               <YardRow icon="feed-bucket" title="Care" text="Feed, groom and turn out. Builds bond." href={state.horses[0] ? `/horse/${state.horses[0].id}/care` : "/nursery"} />
               <YardRow icon="stable" title="Facilities" text="More stalls, a vet room, a gallop." href="/facilities" />
+              <YardRow icon="coin" title="Finances" text="Every credit in and out, horse by horse." href="/stable/finances" />
               <YardRow icon="star" title="Nursery" text="Foals grow with daily care." href="/nursery" />
               <YardRow icon="laurel" title="Legacy Farm" text="Retired for good: their records and best wins." href="/legacy" />
               <li>
@@ -150,6 +151,19 @@ function Stable({ state }: { state: PlayerState }) {
                 </div>
               </li>
             </ul>
+            <p className="caption mt-2" data-testid="upkeep-so-far">
+              {state.upkeep.horses > 0 ? (
+                <>
+                  Upkeep this week so far: <strong className="text-cream-dim">{formatCredits(state.upkeep.due)} credits</strong> ({state.upkeep.horses}{" "}
+                  {state.upkeep.horses === 1 ? "horse" : "horses"} used) — charged after Sunday.{" "}
+                </>
+              ) : (
+                <>No upkeep this week yet: you pay only for horses you race, train or breed. </>
+              )}
+              <Link href="/stable/finances" className="link">
+                Full books
+              </Link>
+            </p>
           </Section>
           <YourJockeys />
         </aside>
