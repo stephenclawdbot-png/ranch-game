@@ -1,0 +1,6913 @@
+{
+ "beds": {
+  "building": {
+   "duration": 8.072,
+   "file": "crowd-building.mp3",
+   "loop": true
+  },
+  "cheer": {
+   "duration": 5.094,
+   "file": "crowd-cheer.mp3",
+   "loop": false
+  },
+  "hush": {
+   "duration": 8.072,
+   "file": "crowd-hush.mp3",
+   "loop": true
+  },
+  "murmur": {
+   "duration": 8.072,
+   "file": "crowd-murmur.mp3",
+   "loop": true
+  },
+  "roar": {
+   "duration": 8.072,
+   "file": "crowd-roar.mp3",
+   "loop": true
+  },
+  "static": {
+   "duration": 8.072,
+   "file": "static.mp3",
+   "loop": true
+  }
+ },
+ "bitrate": "32k",
+ "casters": [
+  "bm_george",
+  "bm_lewis",
+  "bm_daniel"
+ ],
+ "clips": {
+  "bm_daniel": {
+   "building": {
+    "a_fine_run": {
+     "d": 1.123,
+     "h": "7e1a4a1876a2d5dd"
+    },
+    "a_furlong_to_run": {
+     "d": 1.28,
+     "h": "90bdb33ddfc9be4e"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.541,
+     "h": "f562676335a94336"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.646,
+     "h": "97ab62bd1763bd9e"
+    },
+    "a_hundred_to_go": {
+     "d": 1.28,
+     "h": "b06f6a7188f0b144"
+    },
+    "a_slow_start_from": {
+     "d": 1.332,
+     "h": "200c275be0fa7b89"
+    },
+    "and": {
+     "d": 0.575,
+     "h": "6b52fea6fb9c00e3"
+    },
+    "and_away_they_go_on": {
+     "d": 1.332,
+     "h": "de4e7eb417683e21"
+    },
+    "and_here_comes": {
+     "d": 1.123,
+     "h": "1e5c1648d1912979"
+    },
+    "and_theyre_off": {
+     "d": 1.071,
+     "h": "b47d15e07a08a7fb"
+    },
+    "and_your": {
+     "d": 0.758,
+     "h": "c85fcbdf334fe38c"
+    },
+    "at_the_rear": {
+     "d": 0.993,
+     "h": "cc33ba28414c6e16"
+    },
+    "beaten": {
+     "d": 0.758,
+     "h": "2c03cea03b552bda"
+    },
+    "but_look_at_this": {
+     "d": 1.123,
+     "h": "ec2730b22dcb1f23"
+    },
+    "by": {
+     "d": 0.653,
+     "h": "7085c9ec623bd843"
+    },
+    "by_a_whisker_from": {
+     "d": 1.202,
+     "h": "81bf5b67eb889083"
+    },
+    "came_home": {
+     "d": 0.967,
+     "h": "1a34bbce985b1e1a"
+    },
+    "closing": {
+     "d": 0.862,
+     "h": "ac479f939a12a3e6"
+    },
+    "coming_from_nowhere": {
+     "d": 1.254,
+     "h": "2ed37d1ee4769555"
+    },
+    "course_ashcombe": {
+     "d": 0.862,
+     "h": "a382abd7bfa1c050"
+    },
+    "course_bellmont": {
+     "d": 0.784,
+     "h": "184a751c083b95b1"
+    },
+    "course_harrowgate": {
+     "d": 0.914,
+     "h": "041f3328c87450ba"
+    },
+    "course_kestrel_downs": {
+     "d": 1.202,
+     "h": "e30afe575699e249"
+    },
+    "course_larkspur": {
+     "d": 0.81,
+     "h": "6023d2cc8f048c9d"
+    },
+    "course_saltmarsh": {
+     "d": 0.862,
+     "h": "b085174edd1d9881"
+    },
+    "downhill_to_the_line": {
+     "d": 1.358,
+     "h": "2f19f0f0174da2ad"
+    },
+    "finishes": {
+     "d": 0.862,
+     "h": "67ffdc50a60c7ba4"
+    },
+    "first": {
+     "d": 0.731,
+     "h": "2e6d3566d3e2b8a4"
+    },
+    "from": {
+     "d": 0.601,
+     "h": "fbd2e6b75804bc4a"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.515,
+     "h": "a1f9276bb265e814"
+    },
+    "further_back": {
+     "d": 0.993,
+     "h": "6346acaaff4fd610"
+    },
+    "goes_past": {
+     "d": 0.993,
+     "h": "02bf2d67a74604cf"
+    },
+    "goes_to_the_front": {
+     "d": 1.306,
+     "h": "16eafa48b74ad88e"
+    },
+    "going_away": {
+     "d": 1.071,
+     "h": "e79f51a284dfd7a7"
+    },
+    "going_fast_ground": {
+     "d": 1.097,
+     "h": "6258c5579cb3ed87"
+    },
+    "going_good_ground": {
+     "d": 1.019,
+     "h": "206f61fdaf4cbd6f"
+    },
+    "going_heavy_ground": {
+     "d": 1.097,
+     "h": "d87cdbe377325ca1"
+    },
+    "going_soft_ground": {
+     "d": 1.097,
+     "h": "75db7141af09d0f0"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.332,
+     "h": "57dd3dbbecb487a8"
+    },
+    "hacks_up": {
+     "d": 0.914,
+     "h": "3b1178a593a20acf"
+    },
+    "halfway_and": {
+     "d": 1.228,
+     "h": "b0741920d642851d"
+    },
+    "has_had_enough": {
+     "d": 1.097,
+     "h": "f5fdf09551571ed5"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.411,
+     "h": "a4e96b2dcc21edc5"
+    },
+    "has_settled": {
+     "d": 0.94,
+     "h": "219c1a72795ad3d3"
+    },
+    "has_won_it": {
+     "d": 0.993,
+     "h": "7845cfe6cdaf1a87"
+    },
+    "head_to_head": {
+     "d": 1.097,
+     "h": "6fb4ba005b005e02"
+    },
+    "here_comes": {
+     "d": 0.967,
+     "h": "78a480bfb2e82587"
+    },
+    "here_comes_your": {
+     "d": 1.071,
+     "h": "1bf88327aa1075f4"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.429,
+     "h": "58fc8ecc1606c6ee"
+    },
+    "hits_the_front": {
+     "d": 1.097,
+     "h": "d3dcfde476e2e5b6"
+    },
+    "holds_on_in_front": {
+     "d": 1.437,
+     "h": "fb1b9d5f183d2ece"
+    },
+    "in_front": {
+     "d": 0.94,
+     "h": "345c5f8f1d96b9cf"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.593,
+     "h": "6c023e8fe85aded8"
+    },
+    "into_the_final_furlong": {
+     "d": 1.567,
+     "h": "e865e52de9ad6f16"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.437,
+     "h": "e88212afcc67661c"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.437,
+     "h": "02950b4b46631f6a"
+    },
+    "into_the_straight_and": {
+     "d": 1.358,
+     "h": "71c6bde4f3b86f5b"
+    },
+    "into_the_straight_at": {
+     "d": 1.254,
+     "h": "823fca9408a1cb41"
+    },
+    "is": {
+     "d": 0.549,
+     "h": "0a9b17c623760d3c"
+    },
+    "is_clear": {
+     "d": 0.914,
+     "h": "2225e5ecafa4189a"
+    },
+    "is_feeling_the": {
+     "d": 1.123,
+     "h": "0c43a16282631f99"
+    },
+    "is_flying_up_to": {
+     "d": 1.332,
+     "h": "58f730af554a8dc3"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.776,
+     "h": "90e6c604cd2fb986"
+    },
+    "is_in_front": {
+     "d": 1.097,
+     "h": "defabbaad2ecb6d3"
+    },
+    "is_picking_them_off": {
+     "d": 1.28,
+     "h": "c4e681d4e52ef59f"
+    },
+    "is_the_leader": {
+     "d": 1.019,
+     "h": "381fb018969b5ff9"
+    },
+    "is_weakening": {
+     "d": 1.045,
+     "h": "4676ec1bbfc268b7"
+    },
+    "its": {
+     "d": 0.522,
+     "h": "b2551b0e76b496b8"
+    },
+    "its_a_dead_heat": {
+     "d": 1.254,
+     "h": "906c560ecaef91a2"
+    },
+    "just_holds": {
+     "d": 1.019,
+     "h": "1510e080027d2114"
+    },
+    "kicks_for_home": {
+     "d": 1.097,
+     "h": "8a3ec848f275a937"
+    },
+    "lane_on_the_rail": {
+     "d": 0.914,
+     "h": "1f8d7b8a7115a49e"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.123,
+     "h": "c98ae474391c2e24"
+    },
+    "lane_out_wide": {
+     "d": 0.967,
+     "h": "8269f99654a660a8"
+    },
+    "lane_three_wide": {
+     "d": 0.967,
+     "h": "feeb8fbd70f20afa"
+    },
+    "leading": {
+     "d": 0.81,
+     "h": "abc57eeb96af6c80"
+    },
+    "leads": {
+     "d": 0.862,
+     "h": "ddd0b993f63575b6"
+    },
+    "leads_by": {
+     "d": 0.94,
+     "h": "1deeca7d9f8d509b"
+    },
+    "leads_from": {
+     "d": 0.967,
+     "h": "d03a24779673d09c"
+    },
+    "look_at": {
+     "d": 0.758,
+     "h": "1a251bfc9ed67473"
+    },
+    "m_a_head": {
+     "d": 0.784,
+     "h": "aae65891a0e7f974"
+    },
+    "m_a_length": {
+     "d": 0.758,
+     "h": "3e15cfc3c3584e23"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.202,
+     "h": "161bef09e8eeaf4f"
+    },
+    "m_a_neck": {
+     "d": 0.731,
+     "h": "b8051896236bd739"
+    },
+    "m_a_nose": {
+     "d": 0.914,
+     "h": "6bb1eb855286ec10"
+    },
+    "m_a_short_head": {
+     "d": 1.071,
+     "h": "f07e1e5da5ab172e"
+    },
+    "m_eight_lengths": {
+     "d": 0.94,
+     "h": "edec65021ab30986"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.045,
+     "h": "53d0476e4e4c5721"
+    },
+    "m_eleven_lengths": {
+     "d": 1.071,
+     "h": "a66d30fdda1bccf7"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.123,
+     "h": "6e5b8999c9534fd5"
+    },
+    "m_five_lengths": {
+     "d": 0.993,
+     "h": "878b0db95a5938c9"
+    },
+    "m_four_lengths": {
+     "d": 0.888,
+     "h": "aca407be79ccf4ec"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.071,
+     "h": "c768171eb09c110f"
+    },
+    "m_half_a_length": {
+     "d": 1.045,
+     "h": "f5749dfca0c2e9ff"
+    },
+    "m_nine_lengths": {
+     "d": 0.993,
+     "h": "28ce8803bd66f355"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.123,
+     "h": "d545c87862040b89"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.228,
+     "h": "d8bc15cdeac15a67"
+    },
+    "m_seven_lengths": {
+     "d": 0.993,
+     "h": "158c706f322bf6a5"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.254,
+     "h": "5c50b667991d64fa"
+    },
+    "m_six_lengths": {
+     "d": 0.94,
+     "h": "0d9ad3c7c1c668a8"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.123,
+     "h": "5cb450ba6a948205"
+    },
+    "m_ten_lengths": {
+     "d": 0.967,
+     "h": "c71f196a4a597865"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.097,
+     "h": "62eea467d5a2c511"
+    },
+    "m_three_lengths": {
+     "d": 0.94,
+     "h": "3b0388fa008c54e0"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.593,
+     "h": "8f52fc6e82178cef"
+    },
+    "m_twelve_lengths": {
+     "d": 0.993,
+     "h": "0d9b58cbdf983d2d"
+    },
+    "m_twenty_lengths": {
+     "d": 0.967,
+     "h": "a5b3f10280525e3f"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.384,
+     "h": "9ac378e420b0b811"
+    },
+    "m_two_lengths": {
+     "d": 0.888,
+     "h": "74df98c0f704815e"
+    },
+    "missed_the_break": {
+     "d": 1.097,
+     "h": "4b75ff56b32a018e"
+    },
+    "needs_a_gap": {
+     "d": 1.149,
+     "h": "a54b16088bc29e5f"
+    },
+    "num_1": {
+     "d": 0.993,
+     "h": "d7f74e3c52d48e25"
+    },
+    "num_10": {
+     "d": 1.019,
+     "h": "557f6186ae17351b"
+    },
+    "num_11": {
+     "d": 1.149,
+     "h": "119d6accf3bff03d"
+    },
+    "num_12": {
+     "d": 1.071,
+     "h": "1bb39673edc175f0"
+    },
+    "num_13": {
+     "d": 1.176,
+     "h": "e6e7d7b0dad2be41"
+    },
+    "num_14": {
+     "d": 1.202,
+     "h": "75dad99910ec32d2"
+    },
+    "num_15": {
+     "d": 1.202,
+     "h": "f263e0d66808cda7"
+    },
+    "num_16": {
+     "d": 1.176,
+     "h": "3c687b386193fde9"
+    },
+    "num_17": {
+     "d": 1.254,
+     "h": "d3e116477d214399"
+    },
+    "num_18": {
+     "d": 1.149,
+     "h": "9311a54ae9b0f258"
+    },
+    "num_19": {
+     "d": 1.254,
+     "h": "52c5c3bce2713e8b"
+    },
+    "num_2": {
+     "d": 1.019,
+     "h": "3651e23afd859fca"
+    },
+    "num_20": {
+     "d": 1.149,
+     "h": "da85cae48c204ae8"
+    },
+    "num_21": {
+     "d": 1.045,
+     "h": "417c1284ffce077f"
+    },
+    "num_22": {
+     "d": 1.306,
+     "h": "2bf3ca50569d012e"
+    },
+    "num_23": {
+     "d": 1.358,
+     "h": "1b2feb4918e55188"
+    },
+    "num_24": {
+     "d": 1.358,
+     "h": "5892b2409fa536a8"
+    },
+    "num_3": {
+     "d": 0.993,
+     "h": "57ad18dc130aedd9"
+    },
+    "num_4": {
+     "d": 0.967,
+     "h": "a2dfb62dc8681ccd"
+    },
+    "num_5": {
+     "d": 1.071,
+     "h": "9cee67f6ffdc3b2e"
+    },
+    "num_6": {
+     "d": 0.993,
+     "h": "ed09d5873fd015b8"
+    },
+    "num_7": {
+     "d": 1.097,
+     "h": "a7319200bb575de1"
+    },
+    "num_8": {
+     "d": 0.993,
+     "h": "4c0444c266904951"
+    },
+    "num_9": {
+     "d": 1.071,
+     "h": "9876421f5e1c188c"
+    },
+    "on_the_outside": {
+     "d": 1.254,
+     "h": "37650e7c2f395ef4"
+    },
+    "ord_1": {
+     "d": 0.705,
+     "h": "58c2f390c028fd61"
+    },
+    "ord_10": {
+     "d": 0.601,
+     "h": "dbdce54c17b1c425"
+    },
+    "ord_11": {
+     "d": 0.758,
+     "h": "e1e297bfd8a647db"
+    },
+    "ord_12": {
+     "d": 0.705,
+     "h": "a7e6dc80cabd6e48"
+    },
+    "ord_13": {
+     "d": 0.888,
+     "h": "f00bdbca11415671"
+    },
+    "ord_14": {
+     "d": 0.888,
+     "h": "c8e520dddad6eae9"
+    },
+    "ord_15": {
+     "d": 0.914,
+     "h": "c6f13621fadb6dcc"
+    },
+    "ord_16": {
+     "d": 0.888,
+     "h": "7f09aa23ff96b4bb"
+    },
+    "ord_17": {
+     "d": 1.045,
+     "h": "86190ea1ac28b01b"
+    },
+    "ord_18": {
+     "d": 0.81,
+     "h": "445524ecd8fc70b5"
+    },
+    "ord_19": {
+     "d": 0.94,
+     "h": "8ae489020a35e6d1"
+    },
+    "ord_2": {
+     "d": 0.81,
+     "h": "bcb29efc94499fda"
+    },
+    "ord_20": {
+     "d": 0.836,
+     "h": "4f72cd09ef186de8"
+    },
+    "ord_21": {
+     "d": 1.045,
+     "h": "f6021f4ea09be05c"
+    },
+    "ord_22": {
+     "d": 1.097,
+     "h": "cd82e9cb072b609e"
+    },
+    "ord_23": {
+     "d": 0.967,
+     "h": "b973b28300458867"
+    },
+    "ord_24": {
+     "d": 0.993,
+     "h": "c1569af28eed71fb"
+    },
+    "ord_3": {
+     "d": 0.549,
+     "h": "a418b111d6a054f9"
+    },
+    "ord_4": {
+     "d": 0.653,
+     "h": "3ff1944f8a23a77a"
+    },
+    "ord_5": {
+     "d": 0.653,
+     "h": "de07a0fddbbc51f6"
+    },
+    "ord_6": {
+     "d": 0.653,
+     "h": "0916ba599aa3e169"
+    },
+    "ord_7": {
+     "d": 0.81,
+     "h": "7ada66262b3b3b79"
+    },
+    "ord_8": {
+     "d": 0.601,
+     "h": "4c26c3bc4f4c7068"
+    },
+    "ord_9": {
+     "d": 0.784,
+     "h": "33049710cc3d70f8"
+    },
+    "quickens": {
+     "d": 0.888,
+     "h": "64360f001636f654"
+    },
+    "second": {
+     "d": 0.784,
+     "h": "1252c71337a1402d"
+    },
+    "slowly_away": {
+     "d": 1.149,
+     "h": "2082add77a541180"
+    },
+    "still_in_front": {
+     "d": 1.123,
+     "h": "f43f1b094f5af7bf"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.463,
+     "h": "a2002b7f45dddc2e"
+    },
+    "takes_it_up_from": {
+     "d": 1.123,
+     "h": "fb8caed252f420b0"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.011,
+     "h": "b5ccbd9772f0d147"
+    },
+    "then": {
+     "d": 0.653,
+     "h": "57dfe5bfe311e941"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.351,
+     "h": "df54ebc658639950"
+    },
+    "they_turn_for_home": {
+     "d": 1.254,
+     "h": "ded92262b68a2c4e"
+    },
+    "theyre_away_but": {
+     "d": 1.149,
+     "h": "289a44d7c00c5c2a"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.358,
+     "h": "97e474a0722ff05b"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.437,
+     "h": "336bdcdae497af5f"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.593,
+     "h": "01e9b18a46c6d4bb"
+    },
+    "third": {
+     "d": 0.758,
+     "h": "47ab6b6cfdede491"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.489,
+     "h": "bd54cdd388271677"
+    },
+    "to_take_on": {
+     "d": 1.019,
+     "h": "9ac75ed2529ad3b9"
+    },
+    "together_on_the_line_photograph": {
+     "d": 1.907,
+     "h": "ae9f3fe23c3e06be"
+    },
+    "tracking": {
+     "d": 0.81,
+     "h": "f1496bc5eac83f1c"
+    },
+    "two_furlongs_out": {
+     "d": 1.358,
+     "h": "7bc0c379b5bb37c6"
+    },
+    "two_to_run": {
+     "d": 1.019,
+     "h": "f7982733645b9989"
+    },
+    "up_into": {
+     "d": 0.888,
+     "h": "1ca17c62d60d5769"
+    },
+    "up_on": {
+     "d": 0.81,
+     "h": "017db88e9e6dcff0"
+    },
+    "up_the_hill_now": {
+     "d": 1.176,
+     "h": "f343b916c0f149a8"
+    },
+    "up_to": {
+     "d": 0.705,
+     "h": "ba6ca2651f40e3b7"
+    },
+    "was_slowly_away": {
+     "d": 1.28,
+     "h": "f504d52ad7a23802"
+    },
+    "wins_easily": {
+     "d": 1.254,
+     "h": "0ee71f82f2348df3"
+    },
+    "wins_it": {
+     "d": 0.862,
+     "h": "6d4ce77809634edf"
+    },
+    "with": {
+     "d": 0.653,
+     "h": "c05c10a3496fd40f"
+    },
+    "your": {
+     "d": 0.549,
+     "h": "83acc156098006d2"
+    }
+   },
+   "calm": {
+    "a_fine_run": {
+     "d": 1.202,
+     "h": "2c87360f0dcc29f7"
+    },
+    "a_furlong_to_run": {
+     "d": 1.384,
+     "h": "c1ba5f5a1a92b42c"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.672,
+     "h": "e32212ac8e503a35"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.75,
+     "h": "428d8e940999cc35"
+    },
+    "a_hundred_to_go": {
+     "d": 1.358,
+     "h": "a665a229c509dd6d"
+    },
+    "a_slow_start_from": {
+     "d": 1.437,
+     "h": "e8e395da44d17a23"
+    },
+    "and": {
+     "d": 0.653,
+     "h": "ec9c82051b8e622b"
+    },
+    "and_away_they_go_on": {
+     "d": 1.411,
+     "h": "d7fd376c5f1a3222"
+    },
+    "and_here_comes": {
+     "d": 1.306,
+     "h": "c1f650281995b7db"
+    },
+    "and_theyre_off": {
+     "d": 1.149,
+     "h": "b055e9108329a1c2"
+    },
+    "and_your": {
+     "d": 0.836,
+     "h": "a12384b080a9f9da"
+    },
+    "at_the_rear": {
+     "d": 1.019,
+     "h": "fe5e556097592f31"
+    },
+    "beaten": {
+     "d": 0.862,
+     "h": "128701bcd89b18a9"
+    },
+    "but_look_at_this": {
+     "d": 1.202,
+     "h": "4fc461338a1c9ff8"
+    },
+    "by": {
+     "d": 0.705,
+     "h": "7753ee66ae82f3c3"
+    },
+    "by_a_whisker_from": {
+     "d": 1.358,
+     "h": "e400b36544f785ba"
+    },
+    "came_home": {
+     "d": 1.071,
+     "h": "f4ed8f70d8fc2bd1"
+    },
+    "closing": {
+     "d": 0.94,
+     "h": "68b32a877e697cdc"
+    },
+    "coming_from_nowhere": {
+     "d": 1.411,
+     "h": "39a4d7ea94218579"
+    },
+    "course_ashcombe": {
+     "d": 0.914,
+     "h": "1f74c267d36f7b25"
+    },
+    "course_bellmont": {
+     "d": 0.862,
+     "h": "02ac820dffe9b364"
+    },
+    "course_harrowgate": {
+     "d": 0.94,
+     "h": "f3126b1bfc780537"
+    },
+    "course_kestrel_downs": {
+     "d": 1.306,
+     "h": "8e896f102e4cd2c0"
+    },
+    "course_larkspur": {
+     "d": 0.862,
+     "h": "18c92b915ea829ba"
+    },
+    "course_saltmarsh": {
+     "d": 0.94,
+     "h": "9e540102aea88864"
+    },
+    "downhill_to_the_line": {
+     "d": 1.437,
+     "h": "9436a988a5679959"
+    },
+    "finishes": {
+     "d": 0.94,
+     "h": "eaeb07332b128a57"
+    },
+    "first": {
+     "d": 0.836,
+     "h": "a819f5f5c958a82c"
+    },
+    "from": {
+     "d": 0.679,
+     "h": "c2f2a52ed0e72da7"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.62,
+     "h": "8da12f06d57135ad"
+    },
+    "further_back": {
+     "d": 1.071,
+     "h": "e08f8faf319dbc36"
+    },
+    "goes_past": {
+     "d": 1.097,
+     "h": "de4bb5475624c391"
+    },
+    "goes_to_the_front": {
+     "d": 1.463,
+     "h": "55a08f738ff6e996"
+    },
+    "going_away": {
+     "d": 1.176,
+     "h": "b9c9d5472a40c437"
+    },
+    "going_fast_ground": {
+     "d": 1.176,
+     "h": "207f00d1948a4a21"
+    },
+    "going_good_ground": {
+     "d": 1.045,
+     "h": "98fa4afbc615afa9"
+    },
+    "going_heavy_ground": {
+     "d": 1.123,
+     "h": "2daf5d35c651be52"
+    },
+    "going_soft_ground": {
+     "d": 1.149,
+     "h": "6435f9447c6abe45"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.437,
+     "h": "5fb5b2832480840c"
+    },
+    "hacks_up": {
+     "d": 0.993,
+     "h": "a80251df44b97a85"
+    },
+    "halfway_and": {
+     "d": 1.306,
+     "h": "d19d302363c215e1"
+    },
+    "has_had_enough": {
+     "d": 1.228,
+     "h": "0d7a05450eac474b"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.515,
+     "h": "5c625f0f3786d0bd"
+    },
+    "has_settled": {
+     "d": 1.045,
+     "h": "286114aa580378e9"
+    },
+    "has_won_it": {
+     "d": 1.123,
+     "h": "d85bb93ab2509b7d"
+    },
+    "head_to_head": {
+     "d": 1.228,
+     "h": "782b98d938aa377d"
+    },
+    "here_comes": {
+     "d": 1.045,
+     "h": "5cb58d9881ad24b4"
+    },
+    "here_comes_your": {
+     "d": 1.202,
+     "h": "d7377925d8e8cf17"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.586,
+     "h": "542b952ed4a5fa5d"
+    },
+    "hits_the_front": {
+     "d": 1.176,
+     "h": "c8ff2e9b0c65d482"
+    },
+    "holds_on_in_front": {
+     "d": 1.593,
+     "h": "1d80edf4e2cb934c"
+    },
+    "in_front": {
+     "d": 0.993,
+     "h": "a4636f65b897a76c"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.75,
+     "h": "58b6307ce6f62289"
+    },
+    "into_the_final_furlong": {
+     "d": 1.672,
+     "h": "ebfed45f62570a62"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.593,
+     "h": "7a7e6ef909caeccd"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.515,
+     "h": "17c93e9a69577751"
+    },
+    "into_the_straight_and": {
+     "d": 1.463,
+     "h": "4282aa167cf982e6"
+    },
+    "into_the_straight_at": {
+     "d": 1.306,
+     "h": "9ae97cdc00c45527"
+    },
+    "is": {
+     "d": 0.601,
+     "h": "d3affc8d09c912e9"
+    },
+    "is_clear": {
+     "d": 0.993,
+     "h": "037326e4c366404f"
+    },
+    "is_feeling_the": {
+     "d": 1.228,
+     "h": "3da16a67a93953bb"
+    },
+    "is_flying_up_to": {
+     "d": 1.463,
+     "h": "565e951167962a4f"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.881,
+     "h": "a12368f875686f05"
+    },
+    "is_in_front": {
+     "d": 1.149,
+     "h": "66cc42a4fa32b06e"
+    },
+    "is_picking_them_off": {
+     "d": 1.384,
+     "h": "561cd7a3cbf1e6b0"
+    },
+    "is_the_leader": {
+     "d": 1.097,
+     "h": "b2de3c80a34ca295"
+    },
+    "is_weakening": {
+     "d": 1.123,
+     "h": "942dbdaa1888eda4"
+    },
+    "its": {
+     "d": 0.575,
+     "h": "b3753e51e3c5f65b"
+    },
+    "its_a_dead_heat": {
+     "d": 1.306,
+     "h": "7dae0d44742847cf"
+    },
+    "just_holds": {
+     "d": 1.097,
+     "h": "a6c771497ebd0f24"
+    },
+    "kicks_for_home": {
+     "d": 1.149,
+     "h": "36477fe42c8dbafe"
+    },
+    "lane_on_the_rail": {
+     "d": 0.993,
+     "h": "52371d8d266dca2a"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.149,
+     "h": "2723cc4bf85f872f"
+    },
+    "lane_out_wide": {
+     "d": 1.019,
+     "h": "c5827ef046f7c43a"
+    },
+    "lane_three_wide": {
+     "d": 1.097,
+     "h": "6d7bf5f42d3231f5"
+    },
+    "leading": {
+     "d": 0.888,
+     "h": "6237b55f484839fb"
+    },
+    "leads": {
+     "d": 0.914,
+     "h": "ae24837c42e0d782"
+    },
+    "leads_by": {
+     "d": 0.967,
+     "h": "0a47afd252d8c696"
+    },
+    "leads_from": {
+     "d": 1.019,
+     "h": "9c240430e1da7d1b"
+    },
+    "look_at": {
+     "d": 0.81,
+     "h": "c3c4141c217e283c"
+    },
+    "m_a_head": {
+     "d": 0.784,
+     "h": "95a9144eb32326e5"
+    },
+    "m_a_length": {
+     "d": 0.836,
+     "h": "8162fbdc2e8fdb0f"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.28,
+     "h": "6a84bcfd38880bc2"
+    },
+    "m_a_neck": {
+     "d": 0.758,
+     "h": "527361fa8cd04ee0"
+    },
+    "m_a_nose": {
+     "d": 0.967,
+     "h": "b65aaff3d1f49c6e"
+    },
+    "m_a_short_head": {
+     "d": 1.123,
+     "h": "8fd8375711d83f88"
+    },
+    "m_eight_lengths": {
+     "d": 0.993,
+     "h": "a13c58959f333f6c"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.176,
+     "h": "23089f1d443f4ebe"
+    },
+    "m_eleven_lengths": {
+     "d": 1.123,
+     "h": "2d5bca531d774c72"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.228,
+     "h": "1774f15ebdca9170"
+    },
+    "m_five_lengths": {
+     "d": 1.071,
+     "h": "e5571e9b0fdddb2a"
+    },
+    "m_four_lengths": {
+     "d": 0.967,
+     "h": "a180339aba91b996"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.254,
+     "h": "0b49bc1846229dda"
+    },
+    "m_half_a_length": {
+     "d": 1.097,
+     "h": "c1b9a3758afdd0b7"
+    },
+    "m_nine_lengths": {
+     "d": 1.097,
+     "h": "069b97a456e0e85e"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.228,
+     "h": "471d480bbe150d87"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.384,
+     "h": "da69234213fde3b8"
+    },
+    "m_seven_lengths": {
+     "d": 1.045,
+     "h": "6333c132a6d2c0ea"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.306,
+     "h": "544dc3c9904b81d3"
+    },
+    "m_six_lengths": {
+     "d": 0.993,
+     "h": "07c2f9e8199c5906"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.228,
+     "h": "75535f700e583902"
+    },
+    "m_ten_lengths": {
+     "d": 1.019,
+     "h": "5925fe9e6e8fc976"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.176,
+     "h": "1866ef1a2dda397d"
+    },
+    "m_three_lengths": {
+     "d": 1.019,
+     "h": "05cf1304566e6e1a"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.698,
+     "h": "2ee36a7ef154b755"
+    },
+    "m_twelve_lengths": {
+     "d": 1.071,
+     "h": "1bce85e15c59ecef"
+    },
+    "m_twenty_lengths": {
+     "d": 1.045,
+     "h": "de5c4d8916922946"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.463,
+     "h": "5007217425a0e5b6"
+    },
+    "m_two_lengths": {
+     "d": 0.94,
+     "h": "d2d9b69c1a448609"
+    },
+    "missed_the_break": {
+     "d": 1.202,
+     "h": "07ccd017e495df39"
+    },
+    "needs_a_gap": {
+     "d": 1.176,
+     "h": "e6b85b1dfc55d9d0"
+    },
+    "num_1": {
+     "d": 1.045,
+     "h": "48cf6e440b60f994"
+    },
+    "num_10": {
+     "d": 1.097,
+     "h": "608a1416f59f56b9"
+    },
+    "num_11": {
+     "d": 1.228,
+     "h": "6f9d68369cb3a48a"
+    },
+    "num_12": {
+     "d": 1.149,
+     "h": "9bcfa0ed03d05b95"
+    },
+    "num_13": {
+     "d": 1.28,
+     "h": "a0688e01f34c8401"
+    },
+    "num_14": {
+     "d": 1.28,
+     "h": "ec577e7a56057579"
+    },
+    "num_15": {
+     "d": 1.28,
+     "h": "e46e1c1f5fcbd11c"
+    },
+    "num_16": {
+     "d": 1.332,
+     "h": "73e6a8c93445a754"
+    },
+    "num_17": {
+     "d": 1.384,
+     "h": "d0e66a9ee3c2db0d"
+    },
+    "num_18": {
+     "d": 1.28,
+     "h": "a8f23d3bc0fbc125"
+    },
+    "num_19": {
+     "d": 1.306,
+     "h": "68a150a21533ee6b"
+    },
+    "num_2": {
+     "d": 1.045,
+     "h": "471351c76f696d67"
+    },
+    "num_20": {
+     "d": 1.228,
+     "h": "641df7899111be7d"
+    },
+    "num_21": {
+     "d": 1.176,
+     "h": "0fd149f8aebe951c"
+    },
+    "num_22": {
+     "d": 1.463,
+     "h": "9c7704cd4efbcfad"
+    },
+    "num_23": {
+     "d": 1.489,
+     "h": "ca72a91d9e0db536"
+    },
+    "num_24": {
+     "d": 1.463,
+     "h": "a5dcd5275e6a221d"
+    },
+    "num_3": {
+     "d": 1.045,
+     "h": "a837877147cd2d70"
+    },
+    "num_4": {
+     "d": 1.045,
+     "h": "c7ebec2dac996c6f"
+    },
+    "num_5": {
+     "d": 1.176,
+     "h": "e35e079c03fbdf4c"
+    },
+    "num_6": {
+     "d": 1.019,
+     "h": "0e2e9fdcda4ce8f0"
+    },
+    "num_7": {
+     "d": 1.202,
+     "h": "7df14adbcb75f96f"
+    },
+    "num_8": {
+     "d": 1.071,
+     "h": "d7a7735ff6b44c95"
+    },
+    "num_9": {
+     "d": 1.123,
+     "h": "07bb48aa65a26e1f"
+    },
+    "on_the_outside": {
+     "d": 1.384,
+     "h": "1d92f2d26787db05"
+    },
+    "ord_1": {
+     "d": 0.784,
+     "h": "81b07ae335b980b2"
+    },
+    "ord_10": {
+     "d": 0.679,
+     "h": "bf401312587a6666"
+    },
+    "ord_11": {
+     "d": 0.836,
+     "h": "78f27fa80e4f79b3"
+    },
+    "ord_12": {
+     "d": 0.731,
+     "h": "6081917cc8348dcc"
+    },
+    "ord_13": {
+     "d": 0.914,
+     "h": "12ca8921946471d9"
+    },
+    "ord_14": {
+     "d": 0.967,
+     "h": "944af603f9cd0c7c"
+    },
+    "ord_15": {
+     "d": 0.94,
+     "h": "498ff0fea97c8c62"
+    },
+    "ord_16": {
+     "d": 0.94,
+     "h": "1f9e87b16bbf7b4f"
+    },
+    "ord_17": {
+     "d": 1.123,
+     "h": "10ce76a70b467131"
+    },
+    "ord_18": {
+     "d": 0.888,
+     "h": "ff80aaa892c65057"
+    },
+    "ord_19": {
+     "d": 0.993,
+     "h": "dec105a0721a00e0"
+    },
+    "ord_2": {
+     "d": 0.862,
+     "h": "e368436acfc2f5d1"
+    },
+    "ord_20": {
+     "d": 0.862,
+     "h": "ddcce91e23b305c6"
+    },
+    "ord_21": {
+     "d": 1.097,
+     "h": "37d9e615215de642"
+    },
+    "ord_22": {
+     "d": 1.28,
+     "h": "16d9520e1822de04"
+    },
+    "ord_23": {
+     "d": 1.071,
+     "h": "18e0ce66a4dd299c"
+    },
+    "ord_24": {
+     "d": 1.123,
+     "h": "4baf4f65ca44e6fb"
+    },
+    "ord_3": {
+     "d": 0.575,
+     "h": "b03813ca3bcb0c94"
+    },
+    "ord_4": {
+     "d": 0.705,
+     "h": "086ea84a52b60f52"
+    },
+    "ord_5": {
+     "d": 0.705,
+     "h": "eb6ef5ff76b6598a"
+    },
+    "ord_6": {
+     "d": 0.758,
+     "h": "e01051139d4b451f"
+    },
+    "ord_7": {
+     "d": 0.862,
+     "h": "daba664fcf1d90da"
+    },
+    "ord_8": {
+     "d": 0.679,
+     "h": "92a555b5b2fcf79c"
+    },
+    "ord_9": {
+     "d": 0.81,
+     "h": "bd1255aff45fefb4"
+    },
+    "quickens": {
+     "d": 0.94,
+     "h": "67ee74e3b174e4b2"
+    },
+    "second": {
+     "d": 0.862,
+     "h": "88a8896f86450bb8"
+    },
+    "slowly_away": {
+     "d": 1.254,
+     "h": "d1cf6e915edffa93"
+    },
+    "still_in_front": {
+     "d": 1.254,
+     "h": "280145f6026a8273"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.646,
+     "h": "1fe80da3d5f4732e"
+    },
+    "takes_it_up_from": {
+     "d": 1.176,
+     "h": "8c07b6bc080e4b13"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.064,
+     "h": "c96d1df555ed8547"
+    },
+    "then": {
+     "d": 0.705,
+     "h": "2d413174b82c2ba5"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.482,
+     "h": "15b70bd873f1aff4"
+    },
+    "they_turn_for_home": {
+     "d": 1.28,
+     "h": "d8e815f7a4a0d55d"
+    },
+    "theyre_away_but": {
+     "d": 1.28,
+     "h": "7b25294c20360167"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.463,
+     "h": "525558a175004ff4"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.62,
+     "h": "44dd7c15cabf554e"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.724,
+     "h": "b377203b0a58e375"
+    },
+    "third": {
+     "d": 0.81,
+     "h": "51b820cdaedd85b0"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.62,
+     "h": "0fe4dee902e1253f"
+    },
+    "to_take_on": {
+     "d": 1.123,
+     "h": "670b65e69badba4f"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.011,
+     "h": "ae9dd3a9e2ae6d25"
+    },
+    "tracking": {
+     "d": 0.862,
+     "h": "340c316ed2a2ee19"
+    },
+    "two_furlongs_out": {
+     "d": 1.437,
+     "h": "7bc0dffaa539bc58"
+    },
+    "two_to_run": {
+     "d": 1.071,
+     "h": "0e057fae19829fe1"
+    },
+    "up_into": {
+     "d": 0.967,
+     "h": "7edd1dd10f0762ef"
+    },
+    "up_on": {
+     "d": 0.888,
+     "h": "1f1558f29c39fb9b"
+    },
+    "up_the_hill_now": {
+     "d": 1.254,
+     "h": "71067d1c29fdada3"
+    },
+    "up_to": {
+     "d": 0.784,
+     "h": "1d0b8582de030ae4"
+    },
+    "was_slowly_away": {
+     "d": 1.384,
+     "h": "82e602d32d3bb0de"
+    },
+    "wins_easily": {
+     "d": 1.306,
+     "h": "442891496e1a7df4"
+    },
+    "wins_it": {
+     "d": 0.914,
+     "h": "bca77e4b821cd91a"
+    },
+    "with": {
+     "d": 0.679,
+     "h": "10ea9371ee12453a"
+    },
+    "your": {
+     "d": 0.601,
+     "h": "0244f9bc856ff278"
+    }
+   },
+   "climax": {
+    "a_fine_run": {
+     "d": 0.993,
+     "h": "9228a253052a0026"
+    },
+    "a_furlong_to_run": {
+     "d": 1.176,
+     "h": "c8daee4f5d729fb0"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.411,
+     "h": "c1f7b830af1c60ab"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.515,
+     "h": "d255136745590d01"
+    },
+    "a_hundred_to_go": {
+     "d": 1.202,
+     "h": "cef2bf1c8ac582ca"
+    },
+    "a_slow_start_from": {
+     "d": 1.254,
+     "h": "933b4b8f41d7fc64"
+    },
+    "and": {
+     "d": 0.549,
+     "h": "0ac5dc77fb81b5ba"
+    },
+    "and_away_they_go_on": {
+     "d": 1.254,
+     "h": "4aa8facd9da9309c"
+    },
+    "and_here_comes": {
+     "d": 1.019,
+     "h": "16967c87492aa968"
+    },
+    "and_theyre_off": {
+     "d": 0.993,
+     "h": "65ec729bec4fdc1e"
+    },
+    "and_your": {
+     "d": 0.679,
+     "h": "202aa4abf8f63faa"
+    },
+    "at_the_rear": {
+     "d": 0.888,
+     "h": "99574ea1443126b0"
+    },
+    "beaten": {
+     "d": 0.705,
+     "h": "133d80c384dfa67b"
+    },
+    "but_look_at_this": {
+     "d": 1.019,
+     "h": "1a7d048076a70465"
+    },
+    "by": {
+     "d": 0.575,
+     "h": "63d6148e53a1cad4"
+    },
+    "by_a_whisker_from": {
+     "d": 1.123,
+     "h": "a2809e15f5be4347"
+    },
+    "came_home": {
+     "d": 0.914,
+     "h": "c52fcade281ff174"
+    },
+    "closing": {
+     "d": 0.784,
+     "h": "5a66e6ff4a609c39"
+    },
+    "coming_from_nowhere": {
+     "d": 1.176,
+     "h": "9e3a6ada605ef202"
+    },
+    "course_ashcombe": {
+     "d": 0.758,
+     "h": "5f82dc72998e8e0d"
+    },
+    "course_bellmont": {
+     "d": 0.705,
+     "h": "166bf26cbccb1e30"
+    },
+    "course_harrowgate": {
+     "d": 0.836,
+     "h": "83bc1ccc05e60c22"
+    },
+    "course_kestrel_downs": {
+     "d": 1.123,
+     "h": "d436b81e8fe50cfa"
+    },
+    "course_larkspur": {
+     "d": 0.731,
+     "h": "3cda192120a76400"
+    },
+    "course_saltmarsh": {
+     "d": 0.81,
+     "h": "2d6547c3d65219e8"
+    },
+    "downhill_to_the_line": {
+     "d": 1.228,
+     "h": "1d87407c5442d818"
+    },
+    "finishes": {
+     "d": 0.758,
+     "h": "dd36084899597857"
+    },
+    "first": {
+     "d": 0.705,
+     "h": "9977df5bbf05e0b8"
+    },
+    "from": {
+     "d": 0.601,
+     "h": "27120152f0ad26bd"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.384,
+     "h": "109eaae33c39339a"
+    },
+    "further_back": {
+     "d": 0.914,
+     "h": "413f9201d02ed4c8"
+    },
+    "goes_past": {
+     "d": 0.914,
+     "h": "2c1b10c23911668d"
+    },
+    "goes_to_the_front": {
+     "d": 1.176,
+     "h": "a9c9717b4a22bdd7"
+    },
+    "going_away": {
+     "d": 0.993,
+     "h": "234b3268c2ee1e2b"
+    },
+    "going_fast_ground": {
+     "d": 1.019,
+     "h": "8657bec403b21c1c"
+    },
+    "going_good_ground": {
+     "d": 0.888,
+     "h": "3d6941970690d0e9"
+    },
+    "going_heavy_ground": {
+     "d": 0.94,
+     "h": "ff71d2ea40023e00"
+    },
+    "going_soft_ground": {
+     "d": 1.045,
+     "h": "bdc9f1ff9148c369"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.28,
+     "h": "8159cbea0fdb6a96"
+    },
+    "hacks_up": {
+     "d": 0.836,
+     "h": "b2bcaffaf0afcfd1"
+    },
+    "halfway_and": {
+     "d": 1.071,
+     "h": "855da28bb5a0c29c"
+    },
+    "has_had_enough": {
+     "d": 0.993,
+     "h": "e946db51fdba322d"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.332,
+     "h": "ae9f0f6ac5d6fbc7"
+    },
+    "has_settled": {
+     "d": 0.914,
+     "h": "1ee5dee4f7688507"
+    },
+    "has_won_it": {
+     "d": 0.94,
+     "h": "9d90eed447bf63aa"
+    },
+    "head_to_head": {
+     "d": 0.967,
+     "h": "dcc729d89adee960"
+    },
+    "here_comes": {
+     "d": 0.888,
+     "h": "add262e086828298"
+    },
+    "here_comes_your": {
+     "d": 0.94,
+     "h": "b9e996c5b16e54cc"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.168,
+     "h": "715866e18c15931d"
+    },
+    "hits_the_front": {
+     "d": 1.019,
+     "h": "c5f92f26b087ed8f"
+    },
+    "holds_on_in_front": {
+     "d": 1.306,
+     "h": "e66469509083973b"
+    },
+    "in_front": {
+     "d": 0.836,
+     "h": "d294c5927e31b6df"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.437,
+     "h": "4bc9f35e253d20fc"
+    },
+    "into_the_final_furlong": {
+     "d": 1.437,
+     "h": "11e3427b28276732"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.332,
+     "h": "e9e99f5e771e5243"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.332,
+     "h": "87ea4927a51f12b5"
+    },
+    "into_the_straight_and": {
+     "d": 1.254,
+     "h": "b55a04bde2cc5efb"
+    },
+    "into_the_straight_at": {
+     "d": 1.097,
+     "h": "57d4d11c74117a41"
+    },
+    "is": {
+     "d": 0.522,
+     "h": "6171c587e3920b5c"
+    },
+    "is_clear": {
+     "d": 0.836,
+     "h": "1cb543d8308fc15b"
+    },
+    "is_feeling_the": {
+     "d": 1.019,
+     "h": "526ae0250311b134"
+    },
+    "is_flying_up_to": {
+     "d": 1.202,
+     "h": "ee9c5fff6ced2117"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.567,
+     "h": "6a798d055a3720e8"
+    },
+    "is_in_front": {
+     "d": 0.967,
+     "h": "53c9e59ca357d2d9"
+    },
+    "is_picking_them_off": {
+     "d": 1.123,
+     "h": "9a7742ef017b56ec"
+    },
+    "is_the_leader": {
+     "d": 0.914,
+     "h": "8f34e4c10e0aaf66"
+    },
+    "is_weakening": {
+     "d": 0.967,
+     "h": "d62f1f9b5c153fb3"
+    },
+    "its": {
+     "d": 0.496,
+     "h": "fc97e015b89929f5"
+    },
+    "its_a_dead_heat": {
+     "d": 1.149,
+     "h": "924cb85b8103c7ef"
+    },
+    "just_holds": {
+     "d": 0.94,
+     "h": "ccfee5607eba6c82"
+    },
+    "kicks_for_home": {
+     "d": 1.019,
+     "h": "0dbbb9fef605f941"
+    },
+    "lane_on_the_rail": {
+     "d": 0.862,
+     "h": "f896f2ec8220a850"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.019,
+     "h": "b8b4db8fc6196e77"
+    },
+    "lane_out_wide": {
+     "d": 0.914,
+     "h": "b96be89558c6e587"
+    },
+    "lane_three_wide": {
+     "d": 0.888,
+     "h": "a2c934c261ec4de0"
+    },
+    "leading": {
+     "d": 0.731,
+     "h": "e64717f38dbdfac2"
+    },
+    "leads": {
+     "d": 0.81,
+     "h": "1691c2464985a3a2"
+    },
+    "leads_by": {
+     "d": 0.862,
+     "h": "6384ca47dcf7cff0"
+    },
+    "leads_from": {
+     "d": 0.914,
+     "h": "148745a4d5df2edf"
+    },
+    "look_at": {
+     "d": 0.705,
+     "h": "7581ff839de6fc35"
+    },
+    "m_a_head": {
+     "d": 0.731,
+     "h": "0069fcd93065d46a"
+    },
+    "m_a_length": {
+     "d": 0.731,
+     "h": "3b6a607927ba97b1"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.123,
+     "h": "39c25889874038bf"
+    },
+    "m_a_neck": {
+     "d": 0.627,
+     "h": "e15ac6dcc7f1e27b"
+    },
+    "m_a_nose": {
+     "d": 0.81,
+     "h": "609c7fbf8e9ed8f0"
+    },
+    "m_a_short_head": {
+     "d": 0.967,
+     "h": "52877801174159c3"
+    },
+    "m_eight_lengths": {
+     "d": 0.862,
+     "h": "65ffffc50180ec13"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.019,
+     "h": "c19527150a2b730d"
+    },
+    "m_eleven_lengths": {
+     "d": 0.993,
+     "h": "c020b25cd76c05ee"
+    },
+    "m_fifteen_lengths": {
+     "d": 0.993,
+     "h": "a388990a688923ce"
+    },
+    "m_five_lengths": {
+     "d": 0.914,
+     "h": "23376bd3869ad883"
+    },
+    "m_four_lengths": {
+     "d": 0.836,
+     "h": "3695182cbc559789"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.045,
+     "h": "23cee356febecbb6"
+    },
+    "m_half_a_length": {
+     "d": 0.94,
+     "h": "c9b58c3c6ec74894"
+    },
+    "m_nine_lengths": {
+     "d": 0.94,
+     "h": "f6fa3944c3ae2c0a"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.045,
+     "h": "6c83b58cfc810f33"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.149,
+     "h": "97b06bbcce520d45"
+    },
+    "m_seven_lengths": {
+     "d": 0.94,
+     "h": "baded5ca065b465b"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.176,
+     "h": "fa3733935ce7f9ad"
+    },
+    "m_six_lengths": {
+     "d": 0.914,
+     "h": "51608555f61b52f6"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.071,
+     "h": "5e56f342966f704c"
+    },
+    "m_ten_lengths": {
+     "d": 0.836,
+     "h": "4134f7c327b43196"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.019,
+     "h": "1b30bdf20e90a935"
+    },
+    "m_three_lengths": {
+     "d": 0.888,
+     "h": "26115095e1560ee8"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.411,
+     "h": "377800a3076793d8"
+    },
+    "m_twelve_lengths": {
+     "d": 0.94,
+     "h": "bbe60b5c282f9ecc"
+    },
+    "m_twenty_lengths": {
+     "d": 0.862,
+     "h": "da16ef8e33a92a3c"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.306,
+     "h": "7518e3ca097c0ca8"
+    },
+    "m_two_lengths": {
+     "d": 0.862,
+     "h": "a6b4f3befd891768"
+    },
+    "missed_the_break": {
+     "d": 0.967,
+     "h": "cd731a352adc58af"
+    },
+    "needs_a_gap": {
+     "d": 0.993,
+     "h": "dbd8f6c2a222070b"
+    },
+    "num_1": {
+     "d": 0.914,
+     "h": "5fb4b41409dbbcbf"
+    },
+    "num_10": {
+     "d": 0.967,
+     "h": "e9eb7ee4509b5164"
+    },
+    "num_11": {
+     "d": 1.045,
+     "h": "ccfc6af2b8d10532"
+    },
+    "num_12": {
+     "d": 1.019,
+     "h": "a342e86f73e00255"
+    },
+    "num_13": {
+     "d": 1.123,
+     "h": "25892fb42ee89add"
+    },
+    "num_14": {
+     "d": 1.149,
+     "h": "374ad01d86d7b939"
+    },
+    "num_15": {
+     "d": 1.097,
+     "h": "45a41da0fa454aad"
+    },
+    "num_16": {
+     "d": 1.097,
+     "h": "e6a16ca9d7884d62"
+    },
+    "num_17": {
+     "d": 1.176,
+     "h": "361b98452b26760d"
+    },
+    "num_18": {
+     "d": 1.123,
+     "h": "485712af0d783980"
+    },
+    "num_19": {
+     "d": 1.097,
+     "h": "1217e954989ad8f9"
+    },
+    "num_2": {
+     "d": 0.888,
+     "h": "5514c015975137b5"
+    },
+    "num_20": {
+     "d": 1.071,
+     "h": "82da8861b7ecab1f"
+    },
+    "num_21": {
+     "d": 1.019,
+     "h": "8936a3c3e5836b47"
+    },
+    "num_22": {
+     "d": 1.202,
+     "h": "37bbf66977bed606"
+    },
+    "num_23": {
+     "d": 1.228,
+     "h": "c8227eaf321d13d1"
+    },
+    "num_24": {
+     "d": 1.228,
+     "h": "f533f4a3d39e03e8"
+    },
+    "num_3": {
+     "d": 0.94,
+     "h": "c802d27d5062e8f7"
+    },
+    "num_4": {
+     "d": 0.94,
+     "h": "a70c34886491bf99"
+    },
+    "num_5": {
+     "d": 0.967,
+     "h": "ff4bbf3de4603df8"
+    },
+    "num_6": {
+     "d": 0.914,
+     "h": "eec28d2d94ebd0f0"
+    },
+    "num_7": {
+     "d": 0.993,
+     "h": "4eea7fdcaa8f1827"
+    },
+    "num_8": {
+     "d": 0.94,
+     "h": "dc92e65ca3cf9205"
+    },
+    "num_9": {
+     "d": 0.967,
+     "h": "3784e1d9e33fe7e7"
+    },
+    "on_the_outside": {
+     "d": 1.097,
+     "h": "da3c8cfc91681098"
+    },
+    "ord_1": {
+     "d": 0.679,
+     "h": "b5d26dbe2c12c958"
+    },
+    "ord_10": {
+     "d": 0.549,
+     "h": "481c25e3d9194972"
+    },
+    "ord_11": {
+     "d": 0.731,
+     "h": "4a6f88dcbb1318fe"
+    },
+    "ord_12": {
+     "d": 0.627,
+     "h": "45fe9251a4b07151"
+    },
+    "ord_13": {
+     "d": 0.81,
+     "h": "c9d7951d2c3bfc39"
+    },
+    "ord_14": {
+     "d": 0.862,
+     "h": "2c4978f4d4e3de9c"
+    },
+    "ord_15": {
+     "d": 0.784,
+     "h": "e891585873f634e9"
+    },
+    "ord_16": {
+     "d": 0.836,
+     "h": "38f2e025a7486c3c"
+    },
+    "ord_17": {
+     "d": 0.967,
+     "h": "4cce05c7d51650ce"
+    },
+    "ord_18": {
+     "d": 0.836,
+     "h": "f2812d717654af24"
+    },
+    "ord_19": {
+     "d": 0.888,
+     "h": "7c6eb793b46add6b"
+    },
+    "ord_2": {
+     "d": 0.758,
+     "h": "8523e85716a8da76"
+    },
+    "ord_20": {
+     "d": 0.731,
+     "h": "e135be18bfc45188"
+    },
+    "ord_21": {
+     "d": 0.94,
+     "h": "02a270c324221a4c"
+    },
+    "ord_22": {
+     "d": 0.993,
+     "h": "2f5f9a647ab2240d"
+    },
+    "ord_23": {
+     "d": 0.94,
+     "h": "fddf0b3228fc555e"
+    },
+    "ord_24": {
+     "d": 0.914,
+     "h": "5ff57e9499754836"
+    },
+    "ord_3": {
+     "d": 0.522,
+     "h": "08d0f412ae87c5a9"
+    },
+    "ord_4": {
+     "d": 0.601,
+     "h": "fa6c7a1e82982b35"
+    },
+    "ord_5": {
+     "d": 0.627,
+     "h": "6fa919c963d168ef"
+    },
+    "ord_6": {
+     "d": 0.627,
+     "h": "be02532973efbad3"
+    },
+    "ord_7": {
+     "d": 0.731,
+     "h": "a637649584c8ef12"
+    },
+    "ord_8": {
+     "d": 0.549,
+     "h": "0d2e999b2be3972b"
+    },
+    "ord_9": {
+     "d": 0.705,
+     "h": "5f042be65146ded3"
+    },
+    "quickens": {
+     "d": 0.81,
+     "h": "f52fca412275f5cd"
+    },
+    "second": {
+     "d": 0.731,
+     "h": "b41b7f7cce55997c"
+    },
+    "slowly_away": {
+     "d": 1.071,
+     "h": "d42780d1e2e69373"
+    },
+    "still_in_front": {
+     "d": 1.071,
+     "h": "86df35d20690c551"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.384,
+     "h": "a0a2f0b86efca2d2"
+    },
+    "takes_it_up_from": {
+     "d": 1.045,
+     "h": "37bc495e54d6c2c6"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 1.802,
+     "h": "e6a36fa0a4608c0e"
+    },
+    "then": {
+     "d": 0.601,
+     "h": "e9eff2f38ea01401"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.116,
+     "h": "6ae0c35cbbf3d6fe"
+    },
+    "they_turn_for_home": {
+     "d": 1.149,
+     "h": "a8621bd4c57e64fa"
+    },
+    "theyre_away_but": {
+     "d": 1.045,
+     "h": "55aa6a99412f2d5f"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.254,
+     "h": "d42361cce98df75d"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.332,
+     "h": "d6b2de7e79da6007"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.463,
+     "h": "fc4b713b14e1bb37"
+    },
+    "third": {
+     "d": 0.705,
+     "h": "703f45427c0a93c3"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.384,
+     "h": "873d827ae5a02b91"
+    },
+    "to_take_on": {
+     "d": 0.967,
+     "h": "ce4b5487bb0a1dcc"
+    },
+    "together_on_the_line_photograph": {
+     "d": 1.802,
+     "h": "ff7525b33f7ead03"
+    },
+    "tracking": {
+     "d": 0.784,
+     "h": "4cfad00df167991a"
+    },
+    "two_furlongs_out": {
+     "d": 1.254,
+     "h": "0ef2dd0775f6961b"
+    },
+    "two_to_run": {
+     "d": 0.914,
+     "h": "4f7ebb9987933bf1"
+    },
+    "up_into": {
+     "d": 0.784,
+     "h": "98fece6c03d92f4a"
+    },
+    "up_on": {
+     "d": 0.784,
+     "h": "ff7e95922ff6eff3"
+    },
+    "up_the_hill_now": {
+     "d": 1.071,
+     "h": "47f578f2e4058f73"
+    },
+    "up_to": {
+     "d": 0.653,
+     "h": "1d5882b639178d64"
+    },
+    "was_slowly_away": {
+     "d": 1.149,
+     "h": "e8900b056484d0e2"
+    },
+    "wins_easily": {
+     "d": 1.097,
+     "h": "9e7debfff53d43e8"
+    },
+    "wins_it": {
+     "d": 0.784,
+     "h": "95ecabd1a9a81a20"
+    },
+    "with": {
+     "d": 0.627,
+     "h": "3fc06dc2bd282d7c"
+    },
+    "your": {
+     "d": 0.496,
+     "h": "979e620b03f70bd0"
+    }
+   }
+  },
+  "bm_george": {
+   "building": {
+    "a_fine_run": {
+     "d": 1.123,
+     "h": "be310863438314ac"
+    },
+    "a_furlong_to_run": {
+     "d": 1.384,
+     "h": "885705e8b287b503"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.75,
+     "h": "0a944d45c77b5b7e"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.724,
+     "h": "d1b11776cedf0630"
+    },
+    "a_hundred_to_go": {
+     "d": 1.306,
+     "h": "495e38fb3b4f3389"
+    },
+    "a_slow_start_from": {
+     "d": 1.437,
+     "h": "1b92af7a2677f0bf"
+    },
+    "and": {
+     "d": 0.601,
+     "h": "67f6a58779663178"
+    },
+    "and_away_they_go_on": {
+     "d": 1.567,
+     "h": "3bbfebb0f839685b"
+    },
+    "and_here_comes": {
+     "d": 1.176,
+     "h": "7ee36caf9e9ba929"
+    },
+    "and_theyre_off": {
+     "d": 1.045,
+     "h": "a0eb30a578709a23"
+    },
+    "and_your": {
+     "d": 0.784,
+     "h": "4505565eed5fedd8"
+    },
+    "at_the_rear": {
+     "d": 0.94,
+     "h": "45ff3aa9ab109f6c"
+    },
+    "beaten": {
+     "d": 0.81,
+     "h": "926b2e6e35ee231d"
+    },
+    "but_look_at_this": {
+     "d": 1.071,
+     "h": "1517cbb3670e4571"
+    },
+    "by": {
+     "d": 0.679,
+     "h": "fe593bbc0d6ca6dd"
+    },
+    "by_a_whisker_from": {
+     "d": 1.411,
+     "h": "c60c83efef32e820"
+    },
+    "came_home": {
+     "d": 0.967,
+     "h": "18aaa38b50e5cfcb"
+    },
+    "closing": {
+     "d": 0.81,
+     "h": "76c4a3e66f9a072e"
+    },
+    "coming_from_nowhere": {
+     "d": 1.254,
+     "h": "aaad0155ae18ef09"
+    },
+    "course_ashcombe": {
+     "d": 0.888,
+     "h": "2ab6b4811fc03d64"
+    },
+    "course_bellmont": {
+     "d": 0.81,
+     "h": "1bf283c39180fc14"
+    },
+    "course_harrowgate": {
+     "d": 0.967,
+     "h": "44003c9464ede45e"
+    },
+    "course_kestrel_downs": {
+     "d": 1.176,
+     "h": "b0b3d9723b1b331d"
+    },
+    "course_larkspur": {
+     "d": 0.914,
+     "h": "d623a5401d6d1e47"
+    },
+    "course_saltmarsh": {
+     "d": 0.888,
+     "h": "14bf6c92529aab36"
+    },
+    "downhill_to_the_line": {
+     "d": 1.463,
+     "h": "8fad6040714b65e9"
+    },
+    "finishes": {
+     "d": 0.94,
+     "h": "de97ba9c405a0b4f"
+    },
+    "first": {
+     "d": 0.705,
+     "h": "17f30efb79464d57"
+    },
+    "from": {
+     "d": 0.679,
+     "h": "4252fe2a56260af4"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.541,
+     "h": "11705465d86fac36"
+    },
+    "further_back": {
+     "d": 0.914,
+     "h": "7ca68375cfd522de"
+    },
+    "goes_past": {
+     "d": 1.045,
+     "h": "b01e7c8a77f45ae5"
+    },
+    "goes_to_the_front": {
+     "d": 1.306,
+     "h": "6d5210d9cfd895c4"
+    },
+    "going_away": {
+     "d": 1.019,
+     "h": "77561186c9e0acdf"
+    },
+    "going_fast_ground": {
+     "d": 1.071,
+     "h": "e9d7594a8d75656f"
+    },
+    "going_good_ground": {
+     "d": 0.993,
+     "h": "d489a502a6584c66"
+    },
+    "going_heavy_ground": {
+     "d": 1.045,
+     "h": "dd3a7e6fcc94ea52"
+    },
+    "going_soft_ground": {
+     "d": 1.071,
+     "h": "71e216a9af41c8f3"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.384,
+     "h": "1d499b3ac5e521bd"
+    },
+    "hacks_up": {
+     "d": 0.888,
+     "h": "eccfe36a6076d076"
+    },
+    "halfway_and": {
+     "d": 1.306,
+     "h": "ee0c85f0d93cedcd"
+    },
+    "has_had_enough": {
+     "d": 1.097,
+     "h": "573329505f864e3e"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.489,
+     "h": "d0ad505f952c7877"
+    },
+    "has_settled": {
+     "d": 0.94,
+     "h": "6ade2662be59e03d"
+    },
+    "has_won_it": {
+     "d": 0.967,
+     "h": "1a8b7e5bfd0c743d"
+    },
+    "head_to_head": {
+     "d": 1.123,
+     "h": "346f748403a49721"
+    },
+    "here_comes": {
+     "d": 0.967,
+     "h": "8c3cc727be02e902"
+    },
+    "here_comes_your": {
+     "d": 1.123,
+     "h": "3384bdad66f3c95f"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.795,
+     "h": "522010b1757f5914"
+    },
+    "hits_the_front": {
+     "d": 1.045,
+     "h": "db4ee0a84b3caa80"
+    },
+    "holds_on_in_front": {
+     "d": 1.541,
+     "h": "15831ebee05f77e5"
+    },
+    "in_front": {
+     "d": 0.94,
+     "h": "3c26e970523b2f1f"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.724,
+     "h": "29781c62f427705a"
+    },
+    "into_the_final_furlong": {
+     "d": 1.593,
+     "h": "58ff57eecd7d5077"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.437,
+     "h": "73bb64112a246b8c"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.384,
+     "h": "acda2140c628f238"
+    },
+    "into_the_straight_and": {
+     "d": 1.541,
+     "h": "b39cc27dcb5acbb5"
+    },
+    "into_the_straight_at": {
+     "d": 1.228,
+     "h": "263958337af22274"
+    },
+    "is": {
+     "d": 0.522,
+     "h": "f1a17a91d86de995"
+    },
+    "is_clear": {
+     "d": 0.888,
+     "h": "4f1cf56c4fb5d038"
+    },
+    "is_feeling_the": {
+     "d": 1.176,
+     "h": "acd1bce3cd340644"
+    },
+    "is_flying_up_to": {
+     "d": 1.515,
+     "h": "20ca75dd56fd5361"
+    },
+    "is_improving_along_the_rail": {
+     "d": 2.038,
+     "h": "1651bda3dc4f407d"
+    },
+    "is_in_front": {
+     "d": 1.097,
+     "h": "2057dd92452e4d39"
+    },
+    "is_picking_them_off": {
+     "d": 1.28,
+     "h": "dc94e2ab1336bc68"
+    },
+    "is_the_leader": {
+     "d": 1.019,
+     "h": "077342d734970c46"
+    },
+    "is_weakening": {
+     "d": 1.019,
+     "h": "d33305e1670dfdb0"
+    },
+    "its": {
+     "d": 0.496,
+     "h": "0564ed13b556303f"
+    },
+    "its_a_dead_heat": {
+     "d": 1.176,
+     "h": "a1b231c1e0f93bd4"
+    },
+    "just_holds": {
+     "d": 0.967,
+     "h": "df59315434736807"
+    },
+    "kicks_for_home": {
+     "d": 1.071,
+     "h": "41b9744beb060452"
+    },
+    "lane_on_the_rail": {
+     "d": 0.967,
+     "h": "d0260f20b161142f"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.254,
+     "h": "1455da8b61ff0880"
+    },
+    "lane_out_wide": {
+     "d": 0.993,
+     "h": "05c99f461fd53d02"
+    },
+    "lane_three_wide": {
+     "d": 0.94,
+     "h": "b479ff006ecf9691"
+    },
+    "leading": {
+     "d": 0.731,
+     "h": "be5b815c9511f8d1"
+    },
+    "leads": {
+     "d": 0.784,
+     "h": "7caa4cd9deee896d"
+    },
+    "leads_by": {
+     "d": 0.993,
+     "h": "dc63119239087aab"
+    },
+    "leads_from": {
+     "d": 0.967,
+     "h": "cf388f6718aa22a8"
+    },
+    "look_at": {
+     "d": 0.758,
+     "h": "f391f76c9a27338d"
+    },
+    "m_a_head": {
+     "d": 0.758,
+     "h": "182a2c512bdf3895"
+    },
+    "m_a_length": {
+     "d": 0.81,
+     "h": "16a86be6dfde067a"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.306,
+     "h": "5820af74519b4265"
+    },
+    "m_a_neck": {
+     "d": 0.784,
+     "h": "ac1c4df246c8d419"
+    },
+    "m_a_nose": {
+     "d": 0.914,
+     "h": "6dabfd70084ce937"
+    },
+    "m_a_short_head": {
+     "d": 1.045,
+     "h": "d52276d4a72d50cb"
+    },
+    "m_eight_lengths": {
+     "d": 1.019,
+     "h": "4aed551e3af89135"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.228,
+     "h": "79e6d3fa0bb32f7f"
+    },
+    "m_eleven_lengths": {
+     "d": 1.123,
+     "h": "c5a6a3dd352cef2e"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.149,
+     "h": "bbecedb72755da86"
+    },
+    "m_five_lengths": {
+     "d": 1.045,
+     "h": "5ef20e145c0357bc"
+    },
+    "m_four_lengths": {
+     "d": 0.94,
+     "h": "a19b68ce000c01a9"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.254,
+     "h": "7e4cf332784af741"
+    },
+    "m_half_a_length": {
+     "d": 1.071,
+     "h": "7550621278f47a46"
+    },
+    "m_nine_lengths": {
+     "d": 1.097,
+     "h": "df86a100dc7b2167"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.254,
+     "h": "ec214745d16b7b01"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.358,
+     "h": "3f57c6c4c8a90ea3"
+    },
+    "m_seven_lengths": {
+     "d": 0.993,
+     "h": "4d2d72d5bea45ba0"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.306,
+     "h": "bfa161b0423c0fb8"
+    },
+    "m_six_lengths": {
+     "d": 0.967,
+     "h": "2f8dd72f9fb42853"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.202,
+     "h": "6c44f3989b8e79f6"
+    },
+    "m_ten_lengths": {
+     "d": 1.071,
+     "h": "a75152f1fe17d44f"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.202,
+     "h": "50108cc4f21d1ad5"
+    },
+    "m_three_lengths": {
+     "d": 0.94,
+     "h": "18431ea3f862399e"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.855,
+     "h": "dca438dcfcafc40d"
+    },
+    "m_twelve_lengths": {
+     "d": 1.097,
+     "h": "97aef0ab08482610"
+    },
+    "m_twenty_lengths": {
+     "d": 0.993,
+     "h": "d4bc778c8a3aea86"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.463,
+     "h": "6c08e09d6217578b"
+    },
+    "m_two_lengths": {
+     "d": 0.914,
+     "h": "c7e87de9e9170d22"
+    },
+    "missed_the_break": {
+     "d": 1.123,
+     "h": "3dee6d75c80bcce3"
+    },
+    "needs_a_gap": {
+     "d": 1.045,
+     "h": "450b1763adc5ec89"
+    },
+    "num_1": {
+     "d": 0.993,
+     "h": "792d2283d207f158"
+    },
+    "num_10": {
+     "d": 1.019,
+     "h": "78cfc660de1cf964"
+    },
+    "num_11": {
+     "d": 1.123,
+     "h": "b3514c3194644f3d"
+    },
+    "num_12": {
+     "d": 1.071,
+     "h": "54cf2d8f7b34481c"
+    },
+    "num_13": {
+     "d": 1.254,
+     "h": "cea9e6c5f7262da8"
+    },
+    "num_14": {
+     "d": 1.254,
+     "h": "ec771a65ae962978"
+    },
+    "num_15": {
+     "d": 1.228,
+     "h": "01fd6659d4caaff4"
+    },
+    "num_16": {
+     "d": 1.306,
+     "h": "f51b5f2be6dc58db"
+    },
+    "num_17": {
+     "d": 1.332,
+     "h": "654994c14387e185"
+    },
+    "num_18": {
+     "d": 1.228,
+     "h": "46a9f8570b6f79c2"
+    },
+    "num_19": {
+     "d": 1.202,
+     "h": "b11089854ec95985"
+    },
+    "num_2": {
+     "d": 1.045,
+     "h": "56079b8c1a6306c8"
+    },
+    "num_20": {
+     "d": 1.202,
+     "h": "f7b540df516e4822"
+    },
+    "num_21": {
+     "d": 1.149,
+     "h": "4f4db5e6c122f7f4"
+    },
+    "num_22": {
+     "d": 1.358,
+     "h": "6d7be20e6506447b"
+    },
+    "num_23": {
+     "d": 1.437,
+     "h": "c3bfb7653576abba"
+    },
+    "num_24": {
+     "d": 1.384,
+     "h": "e4e7fc311247a9b4"
+    },
+    "num_3": {
+     "d": 1.045,
+     "h": "63ce3fac5c2afa22"
+    },
+    "num_4": {
+     "d": 1.045,
+     "h": "2ea507d2572d1607"
+    },
+    "num_5": {
+     "d": 1.123,
+     "h": "3c3e761acb3c1de3"
+    },
+    "num_6": {
+     "d": 1.045,
+     "h": "7fd63cf46323cd51"
+    },
+    "num_7": {
+     "d": 1.097,
+     "h": "31a62d6d9309dab0"
+    },
+    "num_8": {
+     "d": 0.967,
+     "h": "fae263272c24f85f"
+    },
+    "num_9": {
+     "d": 1.045,
+     "h": "26303b2cbd1eb15d"
+    },
+    "on_the_outside": {
+     "d": 1.28,
+     "h": "a0e0c35d9034bee7"
+    },
+    "ord_1": {
+     "d": 0.679,
+     "h": "e757848b63bc05b3"
+    },
+    "ord_10": {
+     "d": 0.601,
+     "h": "1b21a0e264b8dc24"
+    },
+    "ord_11": {
+     "d": 0.836,
+     "h": "d366b77815989b9c"
+    },
+    "ord_12": {
+     "d": 0.731,
+     "h": "300e4baca0182388"
+    },
+    "ord_13": {
+     "d": 0.914,
+     "h": "d2a8fa8781aa0c59"
+    },
+    "ord_14": {
+     "d": 0.888,
+     "h": "bbbb3c7918e24855"
+    },
+    "ord_15": {
+     "d": 0.888,
+     "h": "0c8e995440a69a0f"
+    },
+    "ord_16": {
+     "d": 0.94,
+     "h": "06b4bc3c837681a9"
+    },
+    "ord_17": {
+     "d": 1.019,
+     "h": "ca27cd9835a9da1d"
+    },
+    "ord_18": {
+     "d": 0.862,
+     "h": "b8587c7920b8eed1"
+    },
+    "ord_19": {
+     "d": 0.94,
+     "h": "7ad455555aa034df"
+    },
+    "ord_2": {
+     "d": 0.784,
+     "h": "7b2cf9d7c911f9e0"
+    },
+    "ord_20": {
+     "d": 0.862,
+     "h": "6ecb43cb53906b02"
+    },
+    "ord_21": {
+     "d": 1.019,
+     "h": "ee9bfdbbb2654cee"
+    },
+    "ord_22": {
+     "d": 1.176,
+     "h": "69764ff8e496ea53"
+    },
+    "ord_23": {
+     "d": 0.993,
+     "h": "4cd39b48e9c19bd6"
+    },
+    "ord_24": {
+     "d": 1.019,
+     "h": "57068080a18dd883"
+    },
+    "ord_3": {
+     "d": 0.601,
+     "h": "9a43ff2580a18cac"
+    },
+    "ord_4": {
+     "d": 0.627,
+     "h": "3da68d0ef12a0a0a"
+    },
+    "ord_5": {
+     "d": 0.627,
+     "h": "8c05d436dd912ce9"
+    },
+    "ord_6": {
+     "d": 0.627,
+     "h": "7c3e41388c12d95a"
+    },
+    "ord_7": {
+     "d": 0.784,
+     "h": "b81dfb173cf9a27b"
+    },
+    "ord_8": {
+     "d": 0.601,
+     "h": "2f791710c4159872"
+    },
+    "ord_9": {
+     "d": 0.705,
+     "h": "0db37f3ef88659d6"
+    },
+    "quickens": {
+     "d": 0.836,
+     "h": "3d059f0604c05af4"
+    },
+    "second": {
+     "d": 0.758,
+     "h": "051fd659cea60af0"
+    },
+    "slowly_away": {
+     "d": 1.123,
+     "h": "df9936b0184f0999"
+    },
+    "still_in_front": {
+     "d": 1.123,
+     "h": "3c27f28506ca7e17"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.489,
+     "h": "95d6c8de884c2e33"
+    },
+    "takes_it_up_from": {
+     "d": 1.149,
+     "h": "ad3bdf000a65ba0d"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.22,
+     "h": "dbd9930ce41faed8"
+    },
+    "then": {
+     "d": 0.705,
+     "h": "a6547e54f005bd4d"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.664,
+     "h": "25f636c8ba0b0637"
+    },
+    "they_turn_for_home": {
+     "d": 1.28,
+     "h": "3f748ed9a991252a"
+    },
+    "theyre_away_but": {
+     "d": 1.228,
+     "h": "4491b61e99cb49ed"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.332,
+     "h": "9fc871095bb20960"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.646,
+     "h": "5ea2d2496ec8cf3f"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.724,
+     "h": "7e42189e4d7f483f"
+    },
+    "third": {
+     "d": 0.731,
+     "h": "791dfc8a63d35f28"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.62,
+     "h": "679ba4b8cdfc46a6"
+    },
+    "to_take_on": {
+     "d": 1.019,
+     "h": "71d5857f7511f699"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.168,
+     "h": "d4ec5602d12a7b52"
+    },
+    "tracking": {
+     "d": 0.81,
+     "h": "ed455ac51cddb45c"
+    },
+    "two_furlongs_out": {
+     "d": 1.437,
+     "h": "8a0fe7a8a13c62d5"
+    },
+    "two_to_run": {
+     "d": 1.045,
+     "h": "7b10952e6aa2b9c5"
+    },
+    "up_into": {
+     "d": 1.019,
+     "h": "ddcc6ecb90c4b117"
+    },
+    "up_on": {
+     "d": 0.784,
+     "h": "011c00c19e37d7cb"
+    },
+    "up_the_hill_now": {
+     "d": 1.202,
+     "h": "5a4f6986dc26f12f"
+    },
+    "up_to": {
+     "d": 0.81,
+     "h": "5e74307a5a4c0da7"
+    },
+    "was_slowly_away": {
+     "d": 1.254,
+     "h": "db9b6fac4c1a695d"
+    },
+    "wins_easily": {
+     "d": 1.254,
+     "h": "f3f0b76d58ca11d1"
+    },
+    "wins_it": {
+     "d": 0.81,
+     "h": "8c9399265ba5ea7a"
+    },
+    "with": {
+     "d": 0.705,
+     "h": "3b772f890887426e"
+    },
+    "your": {
+     "d": 0.627,
+     "h": "ba6b4da81e14160c"
+    }
+   },
+   "calm": {
+    "a_fine_run": {
+     "d": 1.228,
+     "h": "0e85af867ee8316f"
+    },
+    "a_furlong_to_run": {
+     "d": 1.489,
+     "h": "c21e67e48a55939c"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.907,
+     "h": "8bde27496ea8fce3"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.881,
+     "h": "933b657aa2c14c8d"
+    },
+    "a_hundred_to_go": {
+     "d": 1.437,
+     "h": "df54fd6d2a5cbfd1"
+    },
+    "a_slow_start_from": {
+     "d": 1.489,
+     "h": "82eb40bd4c553c9a"
+    },
+    "and": {
+     "d": 0.627,
+     "h": "0fe96f371230423d"
+    },
+    "and_away_they_go_on": {
+     "d": 1.698,
+     "h": "6f1574cb017781f3"
+    },
+    "and_here_comes": {
+     "d": 1.28,
+     "h": "80cb73830d0b5e35"
+    },
+    "and_theyre_off": {
+     "d": 1.123,
+     "h": "01a15b37d6ca2738"
+    },
+    "and_your": {
+     "d": 0.914,
+     "h": "66cf959ae20cf1e1"
+    },
+    "at_the_rear": {
+     "d": 0.993,
+     "h": "b2a18e51bc4666e6"
+    },
+    "beaten": {
+     "d": 0.862,
+     "h": "46cf951892f4e337"
+    },
+    "but_look_at_this": {
+     "d": 1.149,
+     "h": "fdcf296d91b6c41d"
+    },
+    "by": {
+     "d": 0.784,
+     "h": "b199704462ab3b14"
+    },
+    "by_a_whisker_from": {
+     "d": 1.463,
+     "h": "76cde24b195cf751"
+    },
+    "came_home": {
+     "d": 1.071,
+     "h": "0827b9582c027328"
+    },
+    "closing": {
+     "d": 0.914,
+     "h": "db6cdf5431bd861e"
+    },
+    "coming_from_nowhere": {
+     "d": 1.332,
+     "h": "0a8ee6cd5ef86453"
+    },
+    "course_ashcombe": {
+     "d": 0.993,
+     "h": "a37d9a7fdea3cd8a"
+    },
+    "course_bellmont": {
+     "d": 0.862,
+     "h": "ea7de0f1616859a1"
+    },
+    "course_harrowgate": {
+     "d": 1.019,
+     "h": "ff631633ce032af7"
+    },
+    "course_kestrel_downs": {
+     "d": 1.254,
+     "h": "d4849f316b6d5aed"
+    },
+    "course_larkspur": {
+     "d": 0.993,
+     "h": "52580463fa2075ce"
+    },
+    "course_saltmarsh": {
+     "d": 0.967,
+     "h": "cc1fd1e03a6c7102"
+    },
+    "downhill_to_the_line": {
+     "d": 1.541,
+     "h": "fa4580d08277132c"
+    },
+    "finishes": {
+     "d": 1.019,
+     "h": "0200550b309261c9"
+    },
+    "first": {
+     "d": 0.758,
+     "h": "d439e2021ec33330"
+    },
+    "from": {
+     "d": 0.731,
+     "h": "e571ee3ee89424b1"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.672,
+     "h": "4b0a6aee5df96c0f"
+    },
+    "further_back": {
+     "d": 0.993,
+     "h": "316a49c2784766ab"
+    },
+    "goes_past": {
+     "d": 1.176,
+     "h": "d75a57e1e0cf9b69"
+    },
+    "goes_to_the_front": {
+     "d": 1.437,
+     "h": "23fecc96087d1dcb"
+    },
+    "going_away": {
+     "d": 1.123,
+     "h": "1c8940a75767c456"
+    },
+    "going_fast_ground": {
+     "d": 1.149,
+     "h": "b1498e91355ea409"
+    },
+    "going_good_ground": {
+     "d": 1.045,
+     "h": "d8528968d4f7bc9b"
+    },
+    "going_heavy_ground": {
+     "d": 1.097,
+     "h": "9aba2430c82d0d17"
+    },
+    "going_soft_ground": {
+     "d": 1.149,
+     "h": "93a98df7c5273478"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.489,
+     "h": "2c06d3de5c53efe4"
+    },
+    "hacks_up": {
+     "d": 0.993,
+     "h": "c6725753c62ea57d"
+    },
+    "halfway_and": {
+     "d": 1.358,
+     "h": "525d31fc0885da51"
+    },
+    "has_had_enough": {
+     "d": 1.176,
+     "h": "efb8137f3e87088a"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.593,
+     "h": "177e82f22698a55b"
+    },
+    "has_settled": {
+     "d": 1.019,
+     "h": "093fa549bd161f1b"
+    },
+    "has_won_it": {
+     "d": 1.071,
+     "h": "ffa2afb8a068ac86"
+    },
+    "head_to_head": {
+     "d": 1.228,
+     "h": "a719c75432febc9f"
+    },
+    "here_comes": {
+     "d": 1.045,
+     "h": "5788de092f2c4b45"
+    },
+    "here_comes_your": {
+     "d": 1.228,
+     "h": "7d603543bc3f715f"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.952,
+     "h": "30b0d0a5fd1d54ad"
+    },
+    "hits_the_front": {
+     "d": 1.149,
+     "h": "c0c138ce9c5ef199"
+    },
+    "holds_on_in_front": {
+     "d": 1.646,
+     "h": "532d017295abaa7b"
+    },
+    "in_front": {
+     "d": 0.967,
+     "h": "b1b23a5f0e6945cc"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.802,
+     "h": "cda4e2d90b6e255d"
+    },
+    "into_the_final_furlong": {
+     "d": 1.698,
+     "h": "19854ddab89101c2"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.593,
+     "h": "05fee04ad704afd1"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.541,
+     "h": "c9411b40f88aeb35"
+    },
+    "into_the_straight_and": {
+     "d": 1.672,
+     "h": "26ddc8ea51cfff90"
+    },
+    "into_the_straight_at": {
+     "d": 1.306,
+     "h": "dfc2d6a573580cc0"
+    },
+    "is": {
+     "d": 0.575,
+     "h": "5e2a3fd74d95a64b"
+    },
+    "is_clear": {
+     "d": 0.993,
+     "h": "a0d565a1fa4a6435"
+    },
+    "is_feeling_the": {
+     "d": 1.254,
+     "h": "92559917ef020ad0"
+    },
+    "is_flying_up_to": {
+     "d": 1.646,
+     "h": "b7a40fccdfc92d97"
+    },
+    "is_improving_along_the_rail": {
+     "d": 2.247,
+     "h": "72889759d506d473"
+    },
+    "is_in_front": {
+     "d": 1.202,
+     "h": "06886b5944a0b4b1"
+    },
+    "is_picking_them_off": {
+     "d": 1.332,
+     "h": "6a91126f7ed0dfec"
+    },
+    "is_the_leader": {
+     "d": 1.045,
+     "h": "b788e78dce746be1"
+    },
+    "is_weakening": {
+     "d": 1.071,
+     "h": "d47afeab260f8045"
+    },
+    "its": {
+     "d": 0.522,
+     "h": "7006699d9e3b2370"
+    },
+    "its_a_dead_heat": {
+     "d": 1.306,
+     "h": "87f89bee2d1ba62b"
+    },
+    "just_holds": {
+     "d": 1.071,
+     "h": "4e697e348211cea5"
+    },
+    "kicks_for_home": {
+     "d": 1.123,
+     "h": "3e8f3b9f81ca774d"
+    },
+    "lane_on_the_rail": {
+     "d": 1.019,
+     "h": "a2c963175f31a47c"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.358,
+     "h": "006fd92145df3418"
+    },
+    "lane_out_wide": {
+     "d": 1.045,
+     "h": "61219c6d23c8acf6"
+    },
+    "lane_three_wide": {
+     "d": 1.019,
+     "h": "5081e262d4ccc3e7"
+    },
+    "leading": {
+     "d": 0.81,
+     "h": "3deef49a3f19534e"
+    },
+    "leads": {
+     "d": 0.81,
+     "h": "192b44ccdad15002"
+    },
+    "leads_by": {
+     "d": 1.123,
+     "h": "65f8046d34bd56e5"
+    },
+    "leads_from": {
+     "d": 1.045,
+     "h": "eb30464fc6fd099c"
+    },
+    "look_at": {
+     "d": 0.81,
+     "h": "e636d1a177a19802"
+    },
+    "m_a_head": {
+     "d": 0.784,
+     "h": "f594fa59ff87e8f1"
+    },
+    "m_a_length": {
+     "d": 0.888,
+     "h": "2eddbcc9eb6fe312"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.463,
+     "h": "a2224d10cecf428c"
+    },
+    "m_a_neck": {
+     "d": 0.81,
+     "h": "468c09e33e7f6db6"
+    },
+    "m_a_nose": {
+     "d": 0.993,
+     "h": "25f402b05ab0c93b"
+    },
+    "m_a_short_head": {
+     "d": 1.097,
+     "h": "ac21f4826d0fa603"
+    },
+    "m_eight_lengths": {
+     "d": 1.071,
+     "h": "fb60990271250534"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.254,
+     "h": "7de91202cc58dcbe"
+    },
+    "m_eleven_lengths": {
+     "d": 1.228,
+     "h": "78f4af9a2885bc89"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.306,
+     "h": "9b2145d6213e94ad"
+    },
+    "m_five_lengths": {
+     "d": 1.123,
+     "h": "7dcd04428b52b6a1"
+    },
+    "m_four_lengths": {
+     "d": 0.967,
+     "h": "7ee48c7a01ef7200"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.306,
+     "h": "8b9ed4fa3369427e"
+    },
+    "m_half_a_length": {
+     "d": 1.149,
+     "h": "ff64047a3719c9d7"
+    },
+    "m_nine_lengths": {
+     "d": 1.176,
+     "h": "61ee1fd9e60c387a"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.306,
+     "h": "61c15eeb08b20f2b"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.411,
+     "h": "afb0eb82c68d1d0e"
+    },
+    "m_seven_lengths": {
+     "d": 1.071,
+     "h": "a49d2c89166fc689"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.411,
+     "h": "bf87c06800afbcf2"
+    },
+    "m_six_lengths": {
+     "d": 1.045,
+     "h": "1649e464ff639b12"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.332,
+     "h": "d4955103b359d00d"
+    },
+    "m_ten_lengths": {
+     "d": 1.202,
+     "h": "6795b3084aebe6ad"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.306,
+     "h": "ba34fb46345d5e3f"
+    },
+    "m_three_lengths": {
+     "d": 1.019,
+     "h": "71fe0440dcd6cc6c"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.985,
+     "h": "6437480e8c0d3069"
+    },
+    "m_twelve_lengths": {
+     "d": 1.202,
+     "h": "e6d2c84d5a7e8628"
+    },
+    "m_twenty_lengths": {
+     "d": 1.071,
+     "h": "fcdd17660ec040aa"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.593,
+     "h": "eb979567fb191b27"
+    },
+    "m_two_lengths": {
+     "d": 0.993,
+     "h": "5cf4345f52cf6c40"
+    },
+    "missed_the_break": {
+     "d": 1.228,
+     "h": "d684da8afd00917c"
+    },
+    "needs_a_gap": {
+     "d": 1.176,
+     "h": "1c5a95a7316e0934"
+    },
+    "num_1": {
+     "d": 1.019,
+     "h": "487f62a823665b60"
+    },
+    "num_10": {
+     "d": 1.123,
+     "h": "7d603ab69da58c10"
+    },
+    "num_11": {
+     "d": 1.228,
+     "h": "cc8fab2a4d26e5e5"
+    },
+    "num_12": {
+     "d": 1.176,
+     "h": "264f82ad5396b6d4"
+    },
+    "num_13": {
+     "d": 1.358,
+     "h": "050fa58e40821127"
+    },
+    "num_14": {
+     "d": 1.332,
+     "h": "b4efcf9c895f8f8d"
+    },
+    "num_15": {
+     "d": 1.358,
+     "h": "4cc055f0ab534ad7"
+    },
+    "num_16": {
+     "d": 1.411,
+     "h": "645bb97ee5d87c5c"
+    },
+    "num_17": {
+     "d": 1.437,
+     "h": "83ee31c7c92d61a1"
+    },
+    "num_18": {
+     "d": 1.28,
+     "h": "1aabffbd1f0ea0db"
+    },
+    "num_19": {
+     "d": 1.28,
+     "h": "60cb18245b94ea38"
+    },
+    "num_2": {
+     "d": 1.097,
+     "h": "1d5c1c52401977c2"
+    },
+    "num_20": {
+     "d": 1.306,
+     "h": "20b4f651fcad16ea"
+    },
+    "num_21": {
+     "d": 1.202,
+     "h": "b4159853bb09102d"
+    },
+    "num_22": {
+     "d": 1.541,
+     "h": "8b8d84ed07bbde8f"
+    },
+    "num_23": {
+     "d": 1.567,
+     "h": "ed60bf48928e3e89"
+    },
+    "num_24": {
+     "d": 1.515,
+     "h": "1eb56f8806b1f71d"
+    },
+    "num_3": {
+     "d": 1.123,
+     "h": "e34ba87f388b35f6"
+    },
+    "num_4": {
+     "d": 1.123,
+     "h": "6cca6053b6930421"
+    },
+    "num_5": {
+     "d": 1.202,
+     "h": "3fd58fac71b8807f"
+    },
+    "num_6": {
+     "d": 1.097,
+     "h": "cbe2495b47879508"
+    },
+    "num_7": {
+     "d": 1.176,
+     "h": "0bd7cb4f83f685ec"
+    },
+    "num_8": {
+     "d": 1.045,
+     "h": "9b58786440e33e18"
+    },
+    "num_9": {
+     "d": 1.097,
+     "h": "5df1a612b5cd38a9"
+    },
+    "on_the_outside": {
+     "d": 1.332,
+     "h": "ba4a280564d525f6"
+    },
+    "ord_1": {
+     "d": 0.731,
+     "h": "de5b1de3ffe103a4"
+    },
+    "ord_10": {
+     "d": 0.653,
+     "h": "f48c6524370cf1a6"
+    },
+    "ord_11": {
+     "d": 0.888,
+     "h": "db4cd7d3c7d839f5"
+    },
+    "ord_12": {
+     "d": 0.784,
+     "h": "5d8746c27f6ee778"
+    },
+    "ord_13": {
+     "d": 0.914,
+     "h": "a44758a0f91ce063"
+    },
+    "ord_14": {
+     "d": 0.993,
+     "h": "cf6ad74d44ecf293"
+    },
+    "ord_15": {
+     "d": 0.914,
+     "h": "3c5e3e340ba106a0"
+    },
+    "ord_16": {
+     "d": 0.993,
+     "h": "21a239f0e4a2a837"
+    },
+    "ord_17": {
+     "d": 1.097,
+     "h": "febb9e11910965c3"
+    },
+    "ord_18": {
+     "d": 0.967,
+     "h": "c021d027293ff4fe"
+    },
+    "ord_19": {
+     "d": 0.993,
+     "h": "549187518376409b"
+    },
+    "ord_2": {
+     "d": 0.862,
+     "h": "6d771b4a349b43d4"
+    },
+    "ord_20": {
+     "d": 0.967,
+     "h": "fc943594718e2d5a"
+    },
+    "ord_21": {
+     "d": 1.149,
+     "h": "09a44b0051133085"
+    },
+    "ord_22": {
+     "d": 1.28,
+     "h": "dc875c3488e65fd7"
+    },
+    "ord_23": {
+     "d": 1.097,
+     "h": "05a4c3a81b6501a4"
+    },
+    "ord_24": {
+     "d": 1.123,
+     "h": "5c8429631824ba9c"
+    },
+    "ord_3": {
+     "d": 0.575,
+     "h": "98d3d61f3d2be403"
+    },
+    "ord_4": {
+     "d": 0.653,
+     "h": "0064b5dc31093691"
+    },
+    "ord_5": {
+     "d": 0.653,
+     "h": "5d8f545024de1eb3"
+    },
+    "ord_6": {
+     "d": 0.705,
+     "h": "c19d3bbb23779f72"
+    },
+    "ord_7": {
+     "d": 0.862,
+     "h": "d7476002ccade3d3"
+    },
+    "ord_8": {
+     "d": 0.627,
+     "h": "9dd30d9f237bc2d1"
+    },
+    "ord_9": {
+     "d": 0.758,
+     "h": "a30ec2d1d74475a2"
+    },
+    "quickens": {
+     "d": 0.914,
+     "h": "9c395622bf35665e"
+    },
+    "second": {
+     "d": 0.862,
+     "h": "bbf13d834181a6e5"
+    },
+    "slowly_away": {
+     "d": 1.202,
+     "h": "e1b4ff13d58f0639"
+    },
+    "still_in_front": {
+     "d": 1.254,
+     "h": "bcbb8deb79dd14e1"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.646,
+     "h": "5bf94270df4dd330"
+    },
+    "takes_it_up_from": {
+     "d": 1.228,
+     "h": "1d9c81d6cfe63575"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.351,
+     "h": "0498e1efd0596f92"
+    },
+    "then": {
+     "d": 0.784,
+     "h": "043b28f691635e4e"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.769,
+     "h": "d0db88c634a450dc"
+    },
+    "they_turn_for_home": {
+     "d": 1.254,
+     "h": "358963edb5d0b632"
+    },
+    "theyre_away_but": {
+     "d": 1.358,
+     "h": "32b477bb3ee3475b"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.463,
+     "h": "1b7e06b8178a96bf"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.776,
+     "h": "0db103523cb5cf8e"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.776,
+     "h": "c6ff96cc7baf628e"
+    },
+    "third": {
+     "d": 0.758,
+     "h": "8238089c18b94268"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.724,
+     "h": "53b756966c5920a7"
+    },
+    "to_take_on": {
+     "d": 1.123,
+     "h": "45013f5b3f98d88f"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.351,
+     "h": "b5d51b94d53e53e5"
+    },
+    "tracking": {
+     "d": 0.888,
+     "h": "a167ed69af33ea1f"
+    },
+    "two_furlongs_out": {
+     "d": 1.489,
+     "h": "3e99f8f96c2653aa"
+    },
+    "two_to_run": {
+     "d": 1.149,
+     "h": "97a4e7073b7b8b48"
+    },
+    "up_into": {
+     "d": 1.123,
+     "h": "603f2c6609364021"
+    },
+    "up_on": {
+     "d": 0.94,
+     "h": "e7343d580f523a60"
+    },
+    "up_the_hill_now": {
+     "d": 1.28,
+     "h": "23c33a5ab5a6d2a4"
+    },
+    "up_to": {
+     "d": 0.914,
+     "h": "eb7a6cec98f76025"
+    },
+    "was_slowly_away": {
+     "d": 1.384,
+     "h": "308acc0fd7932d7d"
+    },
+    "wins_easily": {
+     "d": 1.306,
+     "h": "27f217a4156bea74"
+    },
+    "wins_it": {
+     "d": 0.862,
+     "h": "b8bf060598c05335"
+    },
+    "with": {
+     "d": 0.758,
+     "h": "fe6156c7f30d2307"
+    },
+    "your": {
+     "d": 0.653,
+     "h": "6a3476f605060997"
+    }
+   },
+   "climax": {
+    "a_fine_run": {
+     "d": 1.097,
+     "h": "ca09f6b044ac1cea"
+    },
+    "a_furlong_to_run": {
+     "d": 1.254,
+     "h": "466eafd14d3fc333"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.593,
+     "h": "2f7dd56c2cebcf2d"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.62,
+     "h": "8eeed8b169757e1b"
+    },
+    "a_hundred_to_go": {
+     "d": 1.202,
+     "h": "7261ad1fcb9734ed"
+    },
+    "a_slow_start_from": {
+     "d": 1.306,
+     "h": "526357f416cc2ea5"
+    },
+    "and": {
+     "d": 0.549,
+     "h": "158fe7eb918ff4f0"
+    },
+    "and_away_they_go_on": {
+     "d": 1.411,
+     "h": "6ecf84266ec12905"
+    },
+    "and_here_comes": {
+     "d": 1.019,
+     "h": "769abe11c9b656b1"
+    },
+    "and_theyre_off": {
+     "d": 0.94,
+     "h": "014a13eae9bf6c27"
+    },
+    "and_your": {
+     "d": 0.731,
+     "h": "b1d8667b72a970b5"
+    },
+    "at_the_rear": {
+     "d": 0.888,
+     "h": "e4899ba06b74100a"
+    },
+    "beaten": {
+     "d": 0.705,
+     "h": "5aaff9857e31a927"
+    },
+    "but_look_at_this": {
+     "d": 0.914,
+     "h": "adb4cbbcc707f915"
+    },
+    "by": {
+     "d": 0.627,
+     "h": "bbb597b70acf619f"
+    },
+    "by_a_whisker_from": {
+     "d": 1.228,
+     "h": "a8c405f99a2a4e63"
+    },
+    "came_home": {
+     "d": 0.888,
+     "h": "c37ef793ff60dfd0"
+    },
+    "closing": {
+     "d": 0.758,
+     "h": "6abba85d1e25c0ee"
+    },
+    "coming_from_nowhere": {
+     "d": 1.149,
+     "h": "fd8fcd6388d21647"
+    },
+    "course_ashcombe": {
+     "d": 0.81,
+     "h": "ef0ccc27d97f9bb2"
+    },
+    "course_bellmont": {
+     "d": 0.731,
+     "h": "0dbf631d274401ff"
+    },
+    "course_harrowgate": {
+     "d": 0.836,
+     "h": "9d4f086ea0acddb4"
+    },
+    "course_kestrel_downs": {
+     "d": 1.071,
+     "h": "12b17ea0b2cf684d"
+    },
+    "course_larkspur": {
+     "d": 0.836,
+     "h": "5ad779a9cd74be56"
+    },
+    "course_saltmarsh": {
+     "d": 0.81,
+     "h": "cfcb15148c198141"
+    },
+    "downhill_to_the_line": {
+     "d": 1.332,
+     "h": "7160b9274ee47382"
+    },
+    "finishes": {
+     "d": 0.836,
+     "h": "07fa30b75550dccf"
+    },
+    "first": {
+     "d": 0.653,
+     "h": "e6ca86d8159f5872"
+    },
+    "from": {
+     "d": 0.627,
+     "h": "8e15b69da81c21de"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.358,
+     "h": "aa05c8060785f9ac"
+    },
+    "further_back": {
+     "d": 0.836,
+     "h": "a303a06434a80a34"
+    },
+    "goes_past": {
+     "d": 0.967,
+     "h": "125617e5bb69a9ee"
+    },
+    "goes_to_the_front": {
+     "d": 1.176,
+     "h": "39800f14b84bd2a9"
+    },
+    "going_away": {
+     "d": 0.967,
+     "h": "48cc710e4a4c8f10"
+    },
+    "going_fast_ground": {
+     "d": 1.019,
+     "h": "4018f9403ec87942"
+    },
+    "going_good_ground": {
+     "d": 0.914,
+     "h": "ea7843aa9829d012"
+    },
+    "going_heavy_ground": {
+     "d": 0.967,
+     "h": "cc93c9476dcc4495"
+    },
+    "going_soft_ground": {
+     "d": 0.993,
+     "h": "070296c29e17dee0"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.28,
+     "h": "030934925c4be4f3"
+    },
+    "hacks_up": {
+     "d": 0.81,
+     "h": "49daa58c3193eab3"
+    },
+    "halfway_and": {
+     "d": 1.097,
+     "h": "f8af284bf6d3318c"
+    },
+    "has_had_enough": {
+     "d": 0.888,
+     "h": "97b278bd72e25fa0"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.384,
+     "h": "65822009ad102123"
+    },
+    "has_settled": {
+     "d": 0.862,
+     "h": "ff3899a159266627"
+    },
+    "has_won_it": {
+     "d": 0.836,
+     "h": "97ec1f0d9911cf75"
+    },
+    "head_to_head": {
+     "d": 0.993,
+     "h": "b9126b426a5116e4"
+    },
+    "here_comes": {
+     "d": 0.836,
+     "h": "42a4b765ecaae328"
+    },
+    "here_comes_your": {
+     "d": 1.045,
+     "h": "afe5838b7eb4b836"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.534,
+     "h": "8dd0967fe87fed16"
+    },
+    "hits_the_front": {
+     "d": 0.993,
+     "h": "75bd044b6b246e4e"
+    },
+    "holds_on_in_front": {
+     "d": 1.358,
+     "h": "6785725eefe2c16c"
+    },
+    "in_front": {
+     "d": 0.836,
+     "h": "4cbcefa523088e4c"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.541,
+     "h": "708e378bc2ae3446"
+    },
+    "into_the_final_furlong": {
+     "d": 1.411,
+     "h": "35716ba0c0986f5d"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.332,
+     "h": "343ddbecda8e74f2"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.306,
+     "h": "c14d2c88d7580931"
+    },
+    "into_the_straight_and": {
+     "d": 1.384,
+     "h": "f9ef61097e797480"
+    },
+    "into_the_straight_at": {
+     "d": 1.071,
+     "h": "19668e783498a95c"
+    },
+    "is": {
+     "d": 0.522,
+     "h": "277f98e4a367689e"
+    },
+    "is_clear": {
+     "d": 0.862,
+     "h": "7d8be864add00c5f"
+    },
+    "is_feeling_the": {
+     "d": 1.045,
+     "h": "5d125e69d35e250d"
+    },
+    "is_flying_up_to": {
+     "d": 1.384,
+     "h": "a8af2c67fb9ce7fc"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.829,
+     "h": "04449c8ca60a71cf"
+    },
+    "is_in_front": {
+     "d": 0.967,
+     "h": "16d201d61f992669"
+    },
+    "is_picking_them_off": {
+     "d": 1.097,
+     "h": "2aa6892893389dfb"
+    },
+    "is_the_leader": {
+     "d": 0.888,
+     "h": "1f8990f4e545ea90"
+    },
+    "is_weakening": {
+     "d": 0.914,
+     "h": "0ba3ee55da1ae229"
+    },
+    "its": {
+     "d": 0.47,
+     "h": "fb3a37b74e855920"
+    },
+    "its_a_dead_heat": {
+     "d": 1.097,
+     "h": "2a2a037f5766a8ca"
+    },
+    "just_holds": {
+     "d": 0.888,
+     "h": "2903aec536d51fc5"
+    },
+    "kicks_for_home": {
+     "d": 0.993,
+     "h": "9e62214b1330b7fa"
+    },
+    "lane_on_the_rail": {
+     "d": 0.888,
+     "h": "f7de07e4d2a7cffc"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.097,
+     "h": "ba3c1de8a07a6a63"
+    },
+    "lane_out_wide": {
+     "d": 0.862,
+     "h": "7ffaf095caf87fa6"
+    },
+    "lane_three_wide": {
+     "d": 0.862,
+     "h": "8e85f8f500077dcd"
+    },
+    "leading": {
+     "d": 0.679,
+     "h": "53f1a1d5021cd816"
+    },
+    "leads": {
+     "d": 0.705,
+     "h": "7d2c5fc460aaf891"
+    },
+    "leads_by": {
+     "d": 0.914,
+     "h": "8d9db32800260448"
+    },
+    "leads_from": {
+     "d": 0.914,
+     "h": "bee745d639459ca0"
+    },
+    "look_at": {
+     "d": 0.705,
+     "h": "c04250726953e93e"
+    },
+    "m_a_head": {
+     "d": 0.705,
+     "h": "4474f93cb80ee3bb"
+    },
+    "m_a_length": {
+     "d": 0.731,
+     "h": "7f289fc159e8960d"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.228,
+     "h": "149b92885c4dda14"
+    },
+    "m_a_neck": {
+     "d": 0.705,
+     "h": "5a70f836bc218030"
+    },
+    "m_a_nose": {
+     "d": 0.81,
+     "h": "1787572ed7d61356"
+    },
+    "m_a_short_head": {
+     "d": 0.967,
+     "h": "711fae1bfff353e2"
+    },
+    "m_eight_lengths": {
+     "d": 0.94,
+     "h": "c3dd80708dc6a8fb"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.071,
+     "h": "f9598cacc1e276f3"
+    },
+    "m_eleven_lengths": {
+     "d": 1.045,
+     "h": "0ee2153df45293c7"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.071,
+     "h": "234fb780f1def78b"
+    },
+    "m_five_lengths": {
+     "d": 0.94,
+     "h": "8e5fc3cf304defbe"
+    },
+    "m_four_lengths": {
+     "d": 0.836,
+     "h": "b1fb9930ecf937d1"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.097,
+     "h": "ef748c67358c6d49"
+    },
+    "m_half_a_length": {
+     "d": 0.993,
+     "h": "ad802d4dfce6788e"
+    },
+    "m_nine_lengths": {
+     "d": 0.993,
+     "h": "e89202b4d787fd1b"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.097,
+     "h": "26e87e1f50a9031d"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.202,
+     "h": "1fddb85224d2e068"
+    },
+    "m_seven_lengths": {
+     "d": 0.94,
+     "h": "45c8ca2eec5e254a"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.228,
+     "h": "e540f38cbacd9ec3"
+    },
+    "m_six_lengths": {
+     "d": 0.888,
+     "h": "6d089d0059bac36d"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.097,
+     "h": "6b4c2e137f40e542"
+    },
+    "m_ten_lengths": {
+     "d": 0.967,
+     "h": "a70ffb0187418a7c"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.097,
+     "h": "697364c64824f10b"
+    },
+    "m_three_lengths": {
+     "d": 0.888,
+     "h": "64c9ce30b9b0c9b0"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.62,
+     "h": "e3bb1c4bebe3870f"
+    },
+    "m_twelve_lengths": {
+     "d": 0.94,
+     "h": "b83144a6d54c1fbd"
+    },
+    "m_twenty_lengths": {
+     "d": 0.862,
+     "h": "7bb5c0d367d06d07"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.358,
+     "h": "c83db288235e2e18"
+    },
+    "m_two_lengths": {
+     "d": 0.81,
+     "h": "2627f20706251395"
+    },
+    "missed_the_break": {
+     "d": 0.94,
+     "h": "b33d71cf8e3b9ef6"
+    },
+    "needs_a_gap": {
+     "d": 0.967,
+     "h": "098e127a7e923299"
+    },
+    "num_1": {
+     "d": 0.888,
+     "h": "95a46bde592b3b29"
+    },
+    "num_10": {
+     "d": 0.993,
+     "h": "660765f06ec75d85"
+    },
+    "num_11": {
+     "d": 1.071,
+     "h": "acbfa1535b8de6a9"
+    },
+    "num_12": {
+     "d": 0.993,
+     "h": "66548242bd6381d3"
+    },
+    "num_13": {
+     "d": 1.149,
+     "h": "a3662bc221363546"
+    },
+    "num_14": {
+     "d": 1.149,
+     "h": "0a3a37081aea0e09"
+    },
+    "num_15": {
+     "d": 1.149,
+     "h": "a20dbe8a86146c87"
+    },
+    "num_16": {
+     "d": 1.149,
+     "h": "98ed5ff88da498f6"
+    },
+    "num_17": {
+     "d": 1.202,
+     "h": "4f6b8b5e19b6ad84"
+    },
+    "num_18": {
+     "d": 1.123,
+     "h": "1574de9dbefd2a39"
+    },
+    "num_19": {
+     "d": 1.149,
+     "h": "a564eb5c409e6068"
+    },
+    "num_2": {
+     "d": 0.94,
+     "h": "a2e5c29348c5fff2"
+    },
+    "num_20": {
+     "d": 1.097,
+     "h": "7146c06b8c466503"
+    },
+    "num_21": {
+     "d": 1.071,
+     "h": "afdf85961b92b32f"
+    },
+    "num_22": {
+     "d": 1.254,
+     "h": "0fa613ca07f6d61f"
+    },
+    "num_23": {
+     "d": 1.28,
+     "h": "f4b35e4793d1a53f"
+    },
+    "num_24": {
+     "d": 1.28,
+     "h": "90570a67db909180"
+    },
+    "num_3": {
+     "d": 0.94,
+     "h": "f3939343ce2bd00e"
+    },
+    "num_4": {
+     "d": 0.914,
+     "h": "b59231eee6dca70a"
+    },
+    "num_5": {
+     "d": 0.993,
+     "h": "2de9d39e5b717dcb"
+    },
+    "num_6": {
+     "d": 0.94,
+     "h": "d8b1c81844c71dbb"
+    },
+    "num_7": {
+     "d": 0.993,
+     "h": "cb22ce8aad67efda"
+    },
+    "num_8": {
+     "d": 0.914,
+     "h": "b29313a834ac0fd4"
+    },
+    "num_9": {
+     "d": 0.94,
+     "h": "35c5c50bdaff473b"
+    },
+    "on_the_outside": {
+     "d": 1.123,
+     "h": "e3f680fc9a04c5d4"
+    },
+    "ord_1": {
+     "d": 0.627,
+     "h": "e573f9860017e8c2"
+    },
+    "ord_10": {
+     "d": 0.549,
+     "h": "2f2af065a0af6f2d"
+    },
+    "ord_11": {
+     "d": 0.784,
+     "h": "cca2a727a3b884ed"
+    },
+    "ord_12": {
+     "d": 0.705,
+     "h": "02108fc6fe874d89"
+    },
+    "ord_13": {
+     "d": 0.836,
+     "h": "74df686a145e7d99"
+    },
+    "ord_14": {
+     "d": 0.836,
+     "h": "5f50560c41500dd6"
+    },
+    "ord_15": {
+     "d": 0.758,
+     "h": "f6b65984ce5e0a62"
+    },
+    "ord_16": {
+     "d": 0.836,
+     "h": "437a7f2bb629a41b"
+    },
+    "ord_17": {
+     "d": 0.914,
+     "h": "3d3f7ac5ee71b0c1"
+    },
+    "ord_18": {
+     "d": 0.81,
+     "h": "69fe88ac8439dcc0"
+    },
+    "ord_19": {
+     "d": 0.862,
+     "h": "271dfc895b81ae89"
+    },
+    "ord_2": {
+     "d": 0.731,
+     "h": "d75d0b125f2205b1"
+    },
+    "ord_20": {
+     "d": 0.758,
+     "h": "be40a59cb1c9052d"
+    },
+    "ord_21": {
+     "d": 0.914,
+     "h": "b0d11bc2fdf62a54"
+    },
+    "ord_22": {
+     "d": 0.967,
+     "h": "b93498d7141b1b32"
+    },
+    "ord_23": {
+     "d": 0.888,
+     "h": "f10dffedda3e4e42"
+    },
+    "ord_24": {
+     "d": 0.888,
+     "h": "bf7975fded645d35"
+    },
+    "ord_3": {
+     "d": 0.575,
+     "h": "0001f76709a1897c"
+    },
+    "ord_4": {
+     "d": 0.627,
+     "h": "a1701dd68d5436a9"
+    },
+    "ord_5": {
+     "d": 0.601,
+     "h": "349239e46e15d971"
+    },
+    "ord_6": {
+     "d": 0.575,
+     "h": "0bfc93e65e42f76e"
+    },
+    "ord_7": {
+     "d": 0.758,
+     "h": "a9cfc2473a9ac5c8"
+    },
+    "ord_8": {
+     "d": 0.549,
+     "h": "a74c10718045c587"
+    },
+    "ord_9": {
+     "d": 0.653,
+     "h": "09623b9899490ca0"
+    },
+    "quickens": {
+     "d": 0.784,
+     "h": "3feb5ee1638fb606"
+    },
+    "second": {
+     "d": 0.731,
+     "h": "1978e9adf1b330e0"
+    },
+    "slowly_away": {
+     "d": 1.019,
+     "h": "a33537dbf2ade89d"
+    },
+    "still_in_front": {
+     "d": 0.993,
+     "h": "87a4f7ed0322b4a3"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.332,
+     "h": "2fc13c12ea2de8ff"
+    },
+    "takes_it_up_from": {
+     "d": 1.019,
+     "h": "97f341b076211c97"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.038,
+     "h": "22195d209be485c0"
+    },
+    "then": {
+     "d": 0.679,
+     "h": "7594fbf515f6d8b9"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.429,
+     "h": "c949b783ecc07db3"
+    },
+    "they_turn_for_home": {
+     "d": 1.149,
+     "h": "cf485f133eddf402"
+    },
+    "theyre_away_but": {
+     "d": 1.176,
+     "h": "7cf401b6e28928e1"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.254,
+     "h": "df2b818f74a5e00c"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.463,
+     "h": "297aa96fb49e2b29"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.567,
+     "h": "0c0921659c0a78de"
+    },
+    "third": {
+     "d": 0.679,
+     "h": "3c65223858443bbc"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.437,
+     "h": "5c922ced65fe6dc7"
+    },
+    "to_take_on": {
+     "d": 0.94,
+     "h": "6f5bdd3e520079c9"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.011,
+     "h": "9a3b8bd671ead00c"
+    },
+    "tracking": {
+     "d": 0.784,
+     "h": "63086d84fff6a6fb"
+    },
+    "two_furlongs_out": {
+     "d": 1.28,
+     "h": "63c80cf4da264c4f"
+    },
+    "two_to_run": {
+     "d": 0.94,
+     "h": "c532807526e3e15b"
+    },
+    "up_into": {
+     "d": 0.94,
+     "h": "5a5d6d81b098e921"
+    },
+    "up_on": {
+     "d": 0.731,
+     "h": "31fe29639a218430"
+    },
+    "up_the_hill_now": {
+     "d": 1.045,
+     "h": "3c0e36870c2734a2"
+    },
+    "up_to": {
+     "d": 0.758,
+     "h": "a53c5d0480c7819e"
+    },
+    "was_slowly_away": {
+     "d": 1.149,
+     "h": "e13683e0b5e1b517"
+    },
+    "wins_easily": {
+     "d": 1.123,
+     "h": "a8c9f96833bdf80d"
+    },
+    "wins_it": {
+     "d": 0.731,
+     "h": "baa2ad764edd3738"
+    },
+    "with": {
+     "d": 0.653,
+     "h": "68318e89b8bdf5ef"
+    },
+    "your": {
+     "d": 0.549,
+     "h": "033fe6b2ee6e380c"
+    }
+   }
+  },
+  "bm_lewis": {
+   "building": {
+    "a_fine_run": {
+     "d": 0.914,
+     "h": "0c707d5a14773e27"
+    },
+    "a_furlong_to_run": {
+     "d": 1.149,
+     "h": "74e13ef8197e2cb8"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.593,
+     "h": "dba57c21ae284d17"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.62,
+     "h": "a46c42ab4c1c5534"
+    },
+    "a_hundred_to_go": {
+     "d": 1.254,
+     "h": "1f5f76ad1d99a63a"
+    },
+    "a_slow_start_from": {
+     "d": 1.28,
+     "h": "93c00505f0c7e17c"
+    },
+    "and": {
+     "d": 0.47,
+     "h": "f72279bd03a8da7e"
+    },
+    "and_away_they_go_on": {
+     "d": 1.411,
+     "h": "6cfc0c33c78a2b3d"
+    },
+    "and_here_comes": {
+     "d": 0.993,
+     "h": "16892da2ffa47944"
+    },
+    "and_theyre_off": {
+     "d": 0.914,
+     "h": "0397e065893ee10c"
+    },
+    "and_your": {
+     "d": 0.679,
+     "h": "af7265f69e7b91e5"
+    },
+    "at_the_rear": {
+     "d": 0.784,
+     "h": "9bc76181b9d61d24"
+    },
+    "beaten": {
+     "d": 0.653,
+     "h": "ab85e153c81305c1"
+    },
+    "but_look_at_this": {
+     "d": 1.019,
+     "h": "bfa6eaa2c36f58ca"
+    },
+    "by": {
+     "d": 0.549,
+     "h": "b295ac3bccd8391b"
+    },
+    "by_a_whisker_from": {
+     "d": 1.123,
+     "h": "0504acaaeecf5215"
+    },
+    "came_home": {
+     "d": 0.836,
+     "h": "d9e88a69dba40c69"
+    },
+    "closing": {
+     "d": 0.705,
+     "h": "4ea8a003446281b5"
+    },
+    "coming_from_nowhere": {
+     "d": 1.097,
+     "h": "9c3319b8203199ad"
+    },
+    "course_ashcombe": {
+     "d": 0.731,
+     "h": "3982c69a1a6178ad"
+    },
+    "course_bellmont": {
+     "d": 0.653,
+     "h": "9b7b34560f7cdd8c"
+    },
+    "course_harrowgate": {
+     "d": 0.81,
+     "h": "717274e3d5996dbd"
+    },
+    "course_kestrel_downs": {
+     "d": 1.045,
+     "h": "635261d7a52b0523"
+    },
+    "course_larkspur": {
+     "d": 0.758,
+     "h": "0dcb4cd259a18585"
+    },
+    "course_saltmarsh": {
+     "d": 0.784,
+     "h": "64531e55ae958611"
+    },
+    "downhill_to_the_line": {
+     "d": 1.176,
+     "h": "d5c6f9126d2814a0"
+    },
+    "finishes": {
+     "d": 0.758,
+     "h": "98e74a227b580d8d"
+    },
+    "first": {
+     "d": 0.627,
+     "h": "337266f6468c1c3a"
+    },
+    "from": {
+     "d": 0.549,
+     "h": "fd522eb91c677a48"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.411,
+     "h": "4ef41f29c5d95aad"
+    },
+    "further_back": {
+     "d": 0.81,
+     "h": "f9925463da1ff094"
+    },
+    "goes_past": {
+     "d": 0.862,
+     "h": "de1ea2b5282948f1"
+    },
+    "goes_to_the_front": {
+     "d": 1.202,
+     "h": "8da517a43b00b49c"
+    },
+    "going_away": {
+     "d": 0.836,
+     "h": "ae8444fb3fbaaac2"
+    },
+    "going_fast_ground": {
+     "d": 0.94,
+     "h": "377915f2b199e34d"
+    },
+    "going_good_ground": {
+     "d": 0.862,
+     "h": "d88453f48db8197f"
+    },
+    "going_heavy_ground": {
+     "d": 0.94,
+     "h": "a5861f16dc2ca55b"
+    },
+    "going_soft_ground": {
+     "d": 0.914,
+     "h": "b9acd297853ee7b6"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.254,
+     "h": "b0fcc7f433632c6d"
+    },
+    "hacks_up": {
+     "d": 0.758,
+     "h": "7c20ebfc596981dc"
+    },
+    "halfway_and": {
+     "d": 1.019,
+     "h": "740917e601c1ecf5"
+    },
+    "has_had_enough": {
+     "d": 0.914,
+     "h": "acd2b65d58d248fa"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.254,
+     "h": "b509de007704ac11"
+    },
+    "has_settled": {
+     "d": 0.836,
+     "h": "a0f7419f349cf4e7"
+    },
+    "has_won_it": {
+     "d": 0.888,
+     "h": "f18ff78c0bd4ebe1"
+    },
+    "head_to_head": {
+     "d": 0.993,
+     "h": "393d236f164c4bf7"
+    },
+    "here_comes": {
+     "d": 0.81,
+     "h": "e7d4fe9b9b73221e"
+    },
+    "here_comes_your": {
+     "d": 1.019,
+     "h": "780ef505aef2c0bf"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.56,
+     "h": "08e28f3b3735604b"
+    },
+    "hits_the_front": {
+     "d": 0.993,
+     "h": "639ae5477de3cb30"
+    },
+    "holds_on_in_front": {
+     "d": 1.28,
+     "h": "62c607600226637c"
+    },
+    "in_front": {
+     "d": 0.784,
+     "h": "e982b7995246d6dc"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.463,
+     "h": "e4e71be5da3617db"
+    },
+    "into_the_final_furlong": {
+     "d": 1.384,
+     "h": "8c9224d2d9070b8d"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.411,
+     "h": "34fabca6726b602f"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.28,
+     "h": "b4c0314954f34c3c"
+    },
+    "into_the_straight_and": {
+     "d": 1.358,
+     "h": "5ced3a5403f35d79"
+    },
+    "into_the_straight_at": {
+     "d": 1.071,
+     "h": "62439514f497ad8e"
+    },
+    "is": {
+     "d": 0.444,
+     "h": "11816ed0c19e5efd"
+    },
+    "is_clear": {
+     "d": 0.731,
+     "h": "ec839476a7af437f"
+    },
+    "is_feeling_the": {
+     "d": 0.967,
+     "h": "5da0d78d5f7e10e1"
+    },
+    "is_flying_up_to": {
+     "d": 1.28,
+     "h": "e10b32f30aa5293f"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.75,
+     "h": "dbc9800826ac70bf"
+    },
+    "is_in_front": {
+     "d": 0.967,
+     "h": "0155d8764afb0515"
+    },
+    "is_picking_them_off": {
+     "d": 1.097,
+     "h": "2c98a43e424b5486"
+    },
+    "is_the_leader": {
+     "d": 0.914,
+     "h": "fdfb727bbdbade34"
+    },
+    "is_weakening": {
+     "d": 0.888,
+     "h": "856e340b7db1be94"
+    },
+    "its": {
+     "d": 0.444,
+     "h": "3809d6c69c2bd8c9"
+    },
+    "its_a_dead_heat": {
+     "d": 1.071,
+     "h": "78b9305473ffd68e"
+    },
+    "just_holds": {
+     "d": 0.914,
+     "h": "a1d71f62b9140d67"
+    },
+    "kicks_for_home": {
+     "d": 0.888,
+     "h": "472a8df833aa14f9"
+    },
+    "lane_on_the_rail": {
+     "d": 0.758,
+     "h": "e8058971b3a78192"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.097,
+     "h": "d62247f0d3ef3b7b"
+    },
+    "lane_out_wide": {
+     "d": 0.81,
+     "h": "21786917fe535af5"
+    },
+    "lane_three_wide": {
+     "d": 0.836,
+     "h": "1bf59ab17ac81169"
+    },
+    "leading": {
+     "d": 0.653,
+     "h": "0e3e498685561d50"
+    },
+    "leads": {
+     "d": 0.679,
+     "h": "2b362ba27b91d944"
+    },
+    "leads_by": {
+     "d": 0.862,
+     "h": "c684b88e6421a37a"
+    },
+    "leads_from": {
+     "d": 0.836,
+     "h": "e7876700a382e4ec"
+    },
+    "look_at": {
+     "d": 0.679,
+     "h": "cd15833cc1e0d1a0"
+    },
+    "m_a_head": {
+     "d": 0.653,
+     "h": "7a48751da1832bfb"
+    },
+    "m_a_length": {
+     "d": 0.705,
+     "h": "76d261c8111b1156"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.254,
+     "h": "97c6d408b3543961"
+    },
+    "m_a_neck": {
+     "d": 0.653,
+     "h": "045c141e8b156366"
+    },
+    "m_a_nose": {
+     "d": 0.784,
+     "h": "6ad26ac9c6908a83"
+    },
+    "m_a_short_head": {
+     "d": 0.888,
+     "h": "e8a626aa726b8fd9"
+    },
+    "m_eight_lengths": {
+     "d": 0.888,
+     "h": "86961a5ef4f1d075"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.019,
+     "h": "07deaed4b68daf61"
+    },
+    "m_eleven_lengths": {
+     "d": 1.045,
+     "h": "e3484a76b4b36c1b"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.097,
+     "h": "413aa72a1ced6607"
+    },
+    "m_five_lengths": {
+     "d": 0.94,
+     "h": "5a9381fea127ccce"
+    },
+    "m_four_lengths": {
+     "d": 0.81,
+     "h": "bda30c5b79fd0756"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.097,
+     "h": "bd5a8df59097c842"
+    },
+    "m_half_a_length": {
+     "d": 0.914,
+     "h": "5185e664ea5b381d"
+    },
+    "m_nine_lengths": {
+     "d": 0.888,
+     "h": "f3e91b601192cef3"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.097,
+     "h": "c0afbb6b6454752e"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.202,
+     "h": "e99f0358ca7daf16"
+    },
+    "m_seven_lengths": {
+     "d": 0.914,
+     "h": "f82bc3cdacc9c6ae"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.176,
+     "h": "baada563d935fd5e"
+    },
+    "m_six_lengths": {
+     "d": 0.862,
+     "h": "42a8725882cc6d61"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.019,
+     "h": "ddb54b969e3ad49f"
+    },
+    "m_ten_lengths": {
+     "d": 0.888,
+     "h": "8cdaad466b11e8a2"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.097,
+     "h": "e08f080e0c62d95e"
+    },
+    "m_three_lengths": {
+     "d": 0.862,
+     "h": "399e44ba746068a1"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.541,
+     "h": "573b67af6939c727"
+    },
+    "m_twelve_lengths": {
+     "d": 1.019,
+     "h": "b16f3273fd8a2993"
+    },
+    "m_twenty_lengths": {
+     "d": 0.94,
+     "h": "004a9badd8dce421"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.332,
+     "h": "ac7ebf19ae4df3fd"
+    },
+    "m_two_lengths": {
+     "d": 0.81,
+     "h": "3317964ceb05e43d"
+    },
+    "missed_the_break": {
+     "d": 0.967,
+     "h": "806853d9c09dd818"
+    },
+    "needs_a_gap": {
+     "d": 0.888,
+     "h": "2e42a51b048b1a0a"
+    },
+    "num_1": {
+     "d": 0.81,
+     "h": "fb9c188db8da548f"
+    },
+    "num_10": {
+     "d": 0.888,
+     "h": "7f393a672c6be39f"
+    },
+    "num_11": {
+     "d": 0.993,
+     "h": "64a8c897fda5d7b2"
+    },
+    "num_12": {
+     "d": 0.993,
+     "h": "1a4883082c49a286"
+    },
+    "num_13": {
+     "d": 1.097,
+     "h": "014015df65efe495"
+    },
+    "num_14": {
+     "d": 1.097,
+     "h": "44f2a731c52fdcb5"
+    },
+    "num_15": {
+     "d": 1.097,
+     "h": "d46d113a8bd7be5d"
+    },
+    "num_16": {
+     "d": 1.149,
+     "h": "f4537fb8c9ae71dc"
+    },
+    "num_17": {
+     "d": 1.228,
+     "h": "53a4866ea69beec9"
+    },
+    "num_18": {
+     "d": 1.019,
+     "h": "39221238c21772ce"
+    },
+    "num_19": {
+     "d": 0.967,
+     "h": "3ec4c6bc7ec9abb2"
+    },
+    "num_2": {
+     "d": 0.862,
+     "h": "08d8b92d5c7815d0"
+    },
+    "num_20": {
+     "d": 1.097,
+     "h": "7766dfb97c1a1a0a"
+    },
+    "num_21": {
+     "d": 1.071,
+     "h": "74ea84ade4d892f1"
+    },
+    "num_22": {
+     "d": 1.254,
+     "h": "38c8ec44e585ac89"
+    },
+    "num_23": {
+     "d": 1.28,
+     "h": "e7663f6f07efad9d"
+    },
+    "num_24": {
+     "d": 1.332,
+     "h": "cde57f19416ed3d5"
+    },
+    "num_3": {
+     "d": 0.914,
+     "h": "db2240a6f69bb5bf"
+    },
+    "num_4": {
+     "d": 0.862,
+     "h": "c7715ae836028f54"
+    },
+    "num_5": {
+     "d": 0.94,
+     "h": "ffe36e2b9dcbfef2"
+    },
+    "num_6": {
+     "d": 0.914,
+     "h": "5d707dde0efe76b5"
+    },
+    "num_7": {
+     "d": 0.967,
+     "h": "5e286822414cf7b2"
+    },
+    "num_8": {
+     "d": 0.888,
+     "h": "c29730aaf9a59d7d"
+    },
+    "num_9": {
+     "d": 0.862,
+     "h": "9d66ddb825b1836f"
+    },
+    "on_the_outside": {
+     "d": 0.993,
+     "h": "b461c2dc6fe9319e"
+    },
+    "ord_1": {
+     "d": 0.627,
+     "h": "5d99a06ff5490ac8"
+    },
+    "ord_10": {
+     "d": 0.549,
+     "h": "e7cf09b526c10303"
+    },
+    "ord_11": {
+     "d": 0.731,
+     "h": "c86d3a07a1fe87b0"
+    },
+    "ord_12": {
+     "d": 0.679,
+     "h": "32e1fda2bb99b8f1"
+    },
+    "ord_13": {
+     "d": 0.758,
+     "h": "93daeb68ef5ff2c0"
+    },
+    "ord_14": {
+     "d": 0.758,
+     "h": "c532a2cc033852e7"
+    },
+    "ord_15": {
+     "d": 0.758,
+     "h": "5a2788a68d8259b5"
+    },
+    "ord_16": {
+     "d": 0.81,
+     "h": "5a93c5d216498755"
+    },
+    "ord_17": {
+     "d": 0.862,
+     "h": "b94e5a4de6d51f3b"
+    },
+    "ord_18": {
+     "d": 0.731,
+     "h": "de063040ed0b9446"
+    },
+    "ord_19": {
+     "d": 0.784,
+     "h": "5da02edc7f28ae80"
+    },
+    "ord_2": {
+     "d": 0.679,
+     "h": "fa05b85c394cd5ab"
+    },
+    "ord_20": {
+     "d": 0.758,
+     "h": "b6db0865710c7f7f"
+    },
+    "ord_21": {
+     "d": 0.888,
+     "h": "a128ebed523b9d79"
+    },
+    "ord_22": {
+     "d": 1.019,
+     "h": "ba1f7a12a439f1f0"
+    },
+    "ord_23": {
+     "d": 0.888,
+     "h": "85cabfeb0d99c0d0"
+    },
+    "ord_24": {
+     "d": 0.914,
+     "h": "6e6205738a22e81b"
+    },
+    "ord_3": {
+     "d": 0.522,
+     "h": "525c7a57a3fbbc4a"
+    },
+    "ord_4": {
+     "d": 0.601,
+     "h": "315afeb2d87775fa"
+    },
+    "ord_5": {
+     "d": 0.601,
+     "h": "3fe52ca543d27199"
+    },
+    "ord_6": {
+     "d": 0.627,
+     "h": "2e45bf2039e80807"
+    },
+    "ord_7": {
+     "d": 0.679,
+     "h": "7e833ce220a33b30"
+    },
+    "ord_8": {
+     "d": 0.601,
+     "h": "c094a4c3b1afdfdd"
+    },
+    "ord_9": {
+     "d": 0.601,
+     "h": "c24735b51d0b8fc2"
+    },
+    "quickens": {
+     "d": 0.679,
+     "h": "9a1c8aea321ee1c8"
+    },
+    "second": {
+     "d": 0.653,
+     "h": "20e779636f78d926"
+    },
+    "slowly_away": {
+     "d": 0.94,
+     "h": "6c925bf51f732a2f"
+    },
+    "still_in_front": {
+     "d": 1.019,
+     "h": "3db7351dfa96242d"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.411,
+     "h": "727ad27464589951"
+    },
+    "takes_it_up_from": {
+     "d": 0.993,
+     "h": "43fb86eae3a61d70"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.038,
+     "h": "6fab80f34a8e3e8a"
+    },
+    "then": {
+     "d": 0.575,
+     "h": "30708e01e3eddccf"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.482,
+     "h": "843d5a403f031110"
+    },
+    "they_turn_for_home": {
+     "d": 1.071,
+     "h": "d3dd4fd7ef6ec531"
+    },
+    "theyre_away_but": {
+     "d": 1.097,
+     "h": "e5aab2cc1ffbdc1c"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.149,
+     "h": "0b3e55cb4cb245bd"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.384,
+     "h": "91b1d8f4af4f1b80"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.515,
+     "h": "f5034b7762be4687"
+    },
+    "third": {
+     "d": 0.601,
+     "h": "f7bee949e558b61f"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.411,
+     "h": "867ca23815439322"
+    },
+    "to_take_on": {
+     "d": 0.914,
+     "h": "dcfb41f78732971b"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.011,
+     "h": "1503947e651edbe9"
+    },
+    "tracking": {
+     "d": 0.679,
+     "h": "4a8c4935409213a7"
+    },
+    "two_furlongs_out": {
+     "d": 1.176,
+     "h": "03cfea7ad303a3cb"
+    },
+    "two_to_run": {
+     "d": 0.862,
+     "h": "9ecdb6d08127e8cd"
+    },
+    "up_into": {
+     "d": 0.81,
+     "h": "0215f7355f670d33"
+    },
+    "up_on": {
+     "d": 0.705,
+     "h": "91d4f09878d00589"
+    },
+    "up_the_hill_now": {
+     "d": 1.097,
+     "h": "4dbda8ade86b6fe9"
+    },
+    "up_to": {
+     "d": 0.731,
+     "h": "59dee90b7987251e"
+    },
+    "was_slowly_away": {
+     "d": 1.123,
+     "h": "69fe2b7dab860717"
+    },
+    "wins_easily": {
+     "d": 1.097,
+     "h": "2fe94456dab64480"
+    },
+    "wins_it": {
+     "d": 0.705,
+     "h": "2a8abecb387242c5"
+    },
+    "with": {
+     "d": 0.549,
+     "h": "df5911edeb35c225"
+    },
+    "your": {
+     "d": 0.47,
+     "h": "db0d1321e5ec9a84"
+    }
+   },
+   "calm": {
+    "a_fine_run": {
+     "d": 1.045,
+     "h": "4e27e866fdbb3289"
+    },
+    "a_furlong_to_run": {
+     "d": 1.28,
+     "h": "142b181f6d4c5c83"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.724,
+     "h": "b4b413b000f88bc4"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.776,
+     "h": "6178137059202272"
+    },
+    "a_hundred_to_go": {
+     "d": 1.358,
+     "h": "228c1dfb7b5bb315"
+    },
+    "a_slow_start_from": {
+     "d": 1.332,
+     "h": "ba13d6c00549656c"
+    },
+    "and": {
+     "d": 0.522,
+     "h": "52f50c6e867ca7f5"
+    },
+    "and_away_they_go_on": {
+     "d": 1.567,
+     "h": "970d6c5570857070"
+    },
+    "and_here_comes": {
+     "d": 1.123,
+     "h": "36db98e72b13aab7"
+    },
+    "and_theyre_off": {
+     "d": 0.94,
+     "h": "8643b20595744e88"
+    },
+    "and_your": {
+     "d": 0.758,
+     "h": "e322e03748cb9e4a"
+    },
+    "at_the_rear": {
+     "d": 0.862,
+     "h": "98a3d2cba3668a49"
+    },
+    "beaten": {
+     "d": 0.731,
+     "h": "ae2e3dfdfb9b9242"
+    },
+    "but_look_at_this": {
+     "d": 1.045,
+     "h": "764570e99ac67fd4"
+    },
+    "by": {
+     "d": 0.601,
+     "h": "bc23d7b0196cf43f"
+    },
+    "by_a_whisker_from": {
+     "d": 1.228,
+     "h": "b3fb3ea5015d4e12"
+    },
+    "came_home": {
+     "d": 0.94,
+     "h": "cd32b42f3f3969a9"
+    },
+    "closing": {
+     "d": 0.758,
+     "h": "63d1743b2e3a10e3"
+    },
+    "coming_from_nowhere": {
+     "d": 1.176,
+     "h": "c247c8e05ebba797"
+    },
+    "course_ashcombe": {
+     "d": 0.81,
+     "h": "72c26de8fb4e4400"
+    },
+    "course_bellmont": {
+     "d": 0.731,
+     "h": "b7bd1f8d1e124c52"
+    },
+    "course_harrowgate": {
+     "d": 0.888,
+     "h": "ad453e69299856c7"
+    },
+    "course_kestrel_downs": {
+     "d": 1.123,
+     "h": "e9c0fe45b7168858"
+    },
+    "course_larkspur": {
+     "d": 0.836,
+     "h": "b35f6a3c77c8fb31"
+    },
+    "course_saltmarsh": {
+     "d": 0.81,
+     "h": "939df01f074d6c93"
+    },
+    "downhill_to_the_line": {
+     "d": 1.28,
+     "h": "fcb136a1c96e4223"
+    },
+    "finishes": {
+     "d": 0.836,
+     "h": "5360d9f32ad05c2a"
+    },
+    "first": {
+     "d": 0.731,
+     "h": "12eb04c2c07a4f5d"
+    },
+    "from": {
+     "d": 0.601,
+     "h": "41fe02acfe9da69d"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.489,
+     "h": "3494b1d14568bb8a"
+    },
+    "further_back": {
+     "d": 0.888,
+     "h": "cbbb69c9ddb60fd9"
+    },
+    "goes_past": {
+     "d": 0.993,
+     "h": "c4352e4afc3215b7"
+    },
+    "goes_to_the_front": {
+     "d": 1.332,
+     "h": "eac74a1b916c52d0"
+    },
+    "going_away": {
+     "d": 0.862,
+     "h": "a8013b8956bfaa31"
+    },
+    "going_fast_ground": {
+     "d": 1.045,
+     "h": "f349f6300413a206"
+    },
+    "going_good_ground": {
+     "d": 0.888,
+     "h": "dcfaafb4765bd0de"
+    },
+    "going_heavy_ground": {
+     "d": 0.993,
+     "h": "38c3667350312979"
+    },
+    "going_soft_ground": {
+     "d": 0.993,
+     "h": "b0fbe736d9a115a2"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.28,
+     "h": "1639efacbbfab21f"
+    },
+    "hacks_up": {
+     "d": 0.81,
+     "h": "28292b5061d49ea2"
+    },
+    "halfway_and": {
+     "d": 1.149,
+     "h": "fbbaf02810d7d320"
+    },
+    "has_had_enough": {
+     "d": 0.993,
+     "h": "bc06708784b1d447"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.411,
+     "h": "15c6c53b9a4b4ca9"
+    },
+    "has_settled": {
+     "d": 0.888,
+     "h": "b9faa96d9d0d55c6"
+    },
+    "has_won_it": {
+     "d": 0.888,
+     "h": "cbe538eb54da3fd0"
+    },
+    "head_to_head": {
+     "d": 1.097,
+     "h": "48d9a594d835b845"
+    },
+    "here_comes": {
+     "d": 0.888,
+     "h": "33807abf926dacf2"
+    },
+    "here_comes_your": {
+     "d": 1.097,
+     "h": "fce43b8d0248e108"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.664,
+     "h": "f7428c391f720b93"
+    },
+    "hits_the_front": {
+     "d": 1.071,
+     "h": "79036025f4f0b708"
+    },
+    "holds_on_in_front": {
+     "d": 1.332,
+     "h": "4f1fa0be09cc4091"
+    },
+    "in_front": {
+     "d": 0.836,
+     "h": "bf0ebf90de9fe4fd"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.593,
+     "h": "1f961ea6be9168a3"
+    },
+    "into_the_final_furlong": {
+     "d": 1.463,
+     "h": "41d198d4ad295aee"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.515,
+     "h": "95bbaeb603d88bd4"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.411,
+     "h": "c3ec326217b417cd"
+    },
+    "into_the_straight_and": {
+     "d": 1.437,
+     "h": "af8013d1f0112c73"
+    },
+    "into_the_straight_at": {
+     "d": 1.123,
+     "h": "66df972d74abb58f"
+    },
+    "is": {
+     "d": 0.47,
+     "h": "f1dc1df94dedd809"
+    },
+    "is_clear": {
+     "d": 0.836,
+     "h": "a5a9f0e9ff231079"
+    },
+    "is_feeling_the": {
+     "d": 1.045,
+     "h": "d892f7ef7e15971d"
+    },
+    "is_flying_up_to": {
+     "d": 1.437,
+     "h": "5be21c9314554d05"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.855,
+     "h": "b7d5e88c0b0f199f"
+    },
+    "is_in_front": {
+     "d": 0.993,
+     "h": "6c2ac8bc0ece628e"
+    },
+    "is_picking_them_off": {
+     "d": 1.176,
+     "h": "9f7cd40d662c54c6"
+    },
+    "is_the_leader": {
+     "d": 0.967,
+     "h": "2a91b5eb955c7dbb"
+    },
+    "is_weakening": {
+     "d": 0.967,
+     "h": "a9d555ecd251dc86"
+    },
+    "its": {
+     "d": 0.47,
+     "h": "54401b4c580de547"
+    },
+    "its_a_dead_heat": {
+     "d": 1.176,
+     "h": "92386f7707e48e65"
+    },
+    "just_holds": {
+     "d": 0.993,
+     "h": "2267fe8b4fd5b81c"
+    },
+    "kicks_for_home": {
+     "d": 0.94,
+     "h": "c9c3033912e6502b"
+    },
+    "lane_on_the_rail": {
+     "d": 0.81,
+     "h": "1408594dc5c24eb2"
+    },
+    "lane_one_off_the_rail": {
+     "d": 1.123,
+     "h": "5703e33dd5e68f91"
+    },
+    "lane_out_wide": {
+     "d": 0.888,
+     "h": "cd7c9a66605c185e"
+    },
+    "lane_three_wide": {
+     "d": 0.862,
+     "h": "22249abb3867e521"
+    },
+    "leading": {
+     "d": 0.705,
+     "h": "3c1a2baaacf4e06a"
+    },
+    "leads": {
+     "d": 0.731,
+     "h": "6807d3f657fa225e"
+    },
+    "leads_by": {
+     "d": 0.914,
+     "h": "959d89c9df5794c8"
+    },
+    "leads_from": {
+     "d": 0.888,
+     "h": "92f3e82950dac701"
+    },
+    "look_at": {
+     "d": 0.705,
+     "h": "6ba771d49380a784"
+    },
+    "m_a_head": {
+     "d": 0.705,
+     "h": "9ed32bd81147c528"
+    },
+    "m_a_length": {
+     "d": 0.758,
+     "h": "4d2e2d9385982ea4"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.332,
+     "h": "205015974fbaf377"
+    },
+    "m_a_neck": {
+     "d": 0.731,
+     "h": "04438b6dd3cd488d"
+    },
+    "m_a_nose": {
+     "d": 0.862,
+     "h": "cfa14f2bfb7def36"
+    },
+    "m_a_short_head": {
+     "d": 0.993,
+     "h": "dd31c637286fcb61"
+    },
+    "m_eight_lengths": {
+     "d": 0.967,
+     "h": "93e4b73fa46574ee"
+    },
+    "m_eighteen_lengths": {
+     "d": 1.176,
+     "h": "fdf9c141df676e85"
+    },
+    "m_eleven_lengths": {
+     "d": 1.071,
+     "h": "32d5a20a7fe609b0"
+    },
+    "m_fifteen_lengths": {
+     "d": 1.149,
+     "h": "c04fbafdafadd4cc"
+    },
+    "m_five_lengths": {
+     "d": 1.019,
+     "h": "5a028c4c5fa8c41a"
+    },
+    "m_four_lengths": {
+     "d": 0.862,
+     "h": "08e2d76913c60ca6"
+    },
+    "m_fourteen_lengths": {
+     "d": 1.228,
+     "h": "4c73b6948e358921"
+    },
+    "m_half_a_length": {
+     "d": 0.993,
+     "h": "8834e8a3b34a0295"
+    },
+    "m_nine_lengths": {
+     "d": 0.967,
+     "h": "545c17cfc9dd65f9"
+    },
+    "m_nineteen_lengths": {
+     "d": 1.202,
+     "h": "d30ced2b35ed6515"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.306,
+     "h": "16991b2643161812"
+    },
+    "m_seven_lengths": {
+     "d": 0.94,
+     "h": "2f2b5da66035191e"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.254,
+     "h": "4747334a8f35dce1"
+    },
+    "m_six_lengths": {
+     "d": 0.94,
+     "h": "e86192afcccb012f"
+    },
+    "m_sixteen_lengths": {
+     "d": 1.123,
+     "h": "97cf3d70218d1028"
+    },
+    "m_ten_lengths": {
+     "d": 0.967,
+     "h": "8a0d9c3c5080195b"
+    },
+    "m_thirteen_lengths": {
+     "d": 1.228,
+     "h": "30ee9904f99f245c"
+    },
+    "m_three_lengths": {
+     "d": 0.914,
+     "h": "8422d394a95c2a7e"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.75,
+     "h": "ebacf591bd95a104"
+    },
+    "m_twelve_lengths": {
+     "d": 1.071,
+     "h": "0ff6346045ba0156"
+    },
+    "m_twenty_lengths": {
+     "d": 1.045,
+     "h": "7baeff21279178e4"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.463,
+     "h": "1c0f054fef7c5856"
+    },
+    "m_two_lengths": {
+     "d": 0.888,
+     "h": "5405ab1a90dd00a8"
+    },
+    "missed_the_break": {
+     "d": 1.071,
+     "h": "f284ee0e7f5a2462"
+    },
+    "needs_a_gap": {
+     "d": 1.019,
+     "h": "2706acb6552d1274"
+    },
+    "num_1": {
+     "d": 0.914,
+     "h": "3e4a36759bece2a1"
+    },
+    "num_10": {
+     "d": 0.993,
+     "h": "16627f127dbf4278"
+    },
+    "num_11": {
+     "d": 1.071,
+     "h": "095d4d20bbbeb21f"
+    },
+    "num_12": {
+     "d": 1.071,
+     "h": "79fc322cfe6a7773"
+    },
+    "num_13": {
+     "d": 1.254,
+     "h": "ea8a04bd5c0cbb48"
+    },
+    "num_14": {
+     "d": 1.202,
+     "h": "1e48b76427a493f5"
+    },
+    "num_15": {
+     "d": 1.202,
+     "h": "20a7fd5bdc2d8f98"
+    },
+    "num_16": {
+     "d": 1.202,
+     "h": "af164dd1f8e6ed22"
+    },
+    "num_17": {
+     "d": 1.332,
+     "h": "7f935bce67c0bf11"
+    },
+    "num_18": {
+     "d": 1.149,
+     "h": "f21bc0cf5064e16a"
+    },
+    "num_19": {
+     "d": 1.071,
+     "h": "ff2752685ad52dc3"
+    },
+    "num_2": {
+     "d": 0.94,
+     "h": "6a6a7f7c8734262f"
+    },
+    "num_20": {
+     "d": 1.202,
+     "h": "87f7e2f5b0b3403f"
+    },
+    "num_21": {
+     "d": 1.202,
+     "h": "e55e495ab826d90a"
+    },
+    "num_22": {
+     "d": 1.384,
+     "h": "8103d22c6087240c"
+    },
+    "num_23": {
+     "d": 1.411,
+     "h": "0b0f27443cc92129"
+    },
+    "num_24": {
+     "d": 1.437,
+     "h": "5675e406b21178d5"
+    },
+    "num_3": {
+     "d": 0.967,
+     "h": "b025071e4055a3f8"
+    },
+    "num_4": {
+     "d": 0.967,
+     "h": "0862ad5d93159c5a"
+    },
+    "num_5": {
+     "d": 1.019,
+     "h": "313854e358ece64b"
+    },
+    "num_6": {
+     "d": 1.019,
+     "h": "971cac3c2335cdb7"
+    },
+    "num_7": {
+     "d": 1.123,
+     "h": "61f2e5d760b9ab9a"
+    },
+    "num_8": {
+     "d": 0.94,
+     "h": "517ec9e56bcfca13"
+    },
+    "num_9": {
+     "d": 0.914,
+     "h": "531877632ccc614e"
+    },
+    "on_the_outside": {
+     "d": 1.149,
+     "h": "7410893899ef0c46"
+    },
+    "ord_1": {
+     "d": 0.679,
+     "h": "d094d3bb8c766220"
+    },
+    "ord_10": {
+     "d": 0.627,
+     "h": "a73589617627345e"
+    },
+    "ord_11": {
+     "d": 0.758,
+     "h": "3fd2180a735c2ba4"
+    },
+    "ord_12": {
+     "d": 0.758,
+     "h": "bf6364a7d5919ca1"
+    },
+    "ord_13": {
+     "d": 0.81,
+     "h": "4544d1679d6a0bea"
+    },
+    "ord_14": {
+     "d": 0.836,
+     "h": "8ad38365bb750891"
+    },
+    "ord_15": {
+     "d": 0.784,
+     "h": "db4772c0b9f22527"
+    },
+    "ord_16": {
+     "d": 0.862,
+     "h": "7d7c2d3f34790cda"
+    },
+    "ord_17": {
+     "d": 0.914,
+     "h": "547f84cde58d3407"
+    },
+    "ord_18": {
+     "d": 0.784,
+     "h": "b809a13b3b5c5750"
+    },
+    "ord_19": {
+     "d": 0.836,
+     "h": "d61e20c2dae24cf1"
+    },
+    "ord_2": {
+     "d": 0.731,
+     "h": "9d57acbac2bd95fa"
+    },
+    "ord_20": {
+     "d": 0.81,
+     "h": "51f379fc8d6e9c4b"
+    },
+    "ord_21": {
+     "d": 1.019,
+     "h": "87a95f4495e7f308"
+    },
+    "ord_22": {
+     "d": 1.071,
+     "h": "ea4e5334a9fce3aa"
+    },
+    "ord_23": {
+     "d": 0.967,
+     "h": "2e466dd641d0e83f"
+    },
+    "ord_24": {
+     "d": 0.94,
+     "h": "3c49661269039c81"
+    },
+    "ord_3": {
+     "d": 0.549,
+     "h": "57ba5d1dfe17834a"
+    },
+    "ord_4": {
+     "d": 0.653,
+     "h": "dcc6fdc10b5699ea"
+    },
+    "ord_5": {
+     "d": 0.653,
+     "h": "f30cf57f0d70c443"
+    },
+    "ord_6": {
+     "d": 0.679,
+     "h": "6bb0373825d2f75e"
+    },
+    "ord_7": {
+     "d": 0.731,
+     "h": "d207901815dc19d4"
+    },
+    "ord_8": {
+     "d": 0.653,
+     "h": "9784f52dc5417289"
+    },
+    "ord_9": {
+     "d": 0.705,
+     "h": "2f0685e5696b9092"
+    },
+    "quickens": {
+     "d": 0.758,
+     "h": "15340c51b34d0133"
+    },
+    "second": {
+     "d": 0.705,
+     "h": "258a5d4ed0e55a34"
+    },
+    "slowly_away": {
+     "d": 0.967,
+     "h": "430a2bb6af4716fd"
+    },
+    "still_in_front": {
+     "d": 1.071,
+     "h": "1d005180f296ff0f"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.463,
+     "h": "f8941524013a923b"
+    },
+    "takes_it_up_from": {
+     "d": 1.071,
+     "h": "6ad730cd9a65f28e"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 2.194,
+     "h": "24fabfb9a2b534d2"
+    },
+    "then": {
+     "d": 0.627,
+     "h": "b4c0ff24b099a759"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.664,
+     "h": "cb594ec97f33f159"
+    },
+    "they_turn_for_home": {
+     "d": 1.097,
+     "h": "eadb0c474b696e65"
+    },
+    "theyre_away_but": {
+     "d": 1.176,
+     "h": "14a55d144762f746"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.28,
+     "h": "5b9e5e594d7629ce"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.515,
+     "h": "1948dee4daa2d4a2"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.593,
+     "h": "20483abfbbdd8c27"
+    },
+    "third": {
+     "d": 0.679,
+     "h": "01bbc8e54752947a"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.515,
+     "h": "fd9e2f68fc322ee8"
+    },
+    "to_take_on": {
+     "d": 0.967,
+     "h": "876125a22f22b2bf"
+    },
+    "together_on_the_line_photograph": {
+     "d": 2.038,
+     "h": "f609b2aac17e5a3a"
+    },
+    "tracking": {
+     "d": 0.705,
+     "h": "cdef668407bdd7d5"
+    },
+    "two_furlongs_out": {
+     "d": 1.28,
+     "h": "1375a4ae61321575"
+    },
+    "two_to_run": {
+     "d": 0.967,
+     "h": "ea040b65282f285f"
+    },
+    "up_into": {
+     "d": 0.914,
+     "h": "fcd1baa65a3ef977"
+    },
+    "up_on": {
+     "d": 0.784,
+     "h": "3b17829f4164b3dc"
+    },
+    "up_the_hill_now": {
+     "d": 1.202,
+     "h": "360bc33e1d11c4a6"
+    },
+    "up_to": {
+     "d": 0.758,
+     "h": "c41a3e3232a9e546"
+    },
+    "was_slowly_away": {
+     "d": 1.176,
+     "h": "76f85b9905a454c4"
+    },
+    "wins_easily": {
+     "d": 1.176,
+     "h": "e368b24c09fed45a"
+    },
+    "wins_it": {
+     "d": 0.784,
+     "h": "f40225036d1ca829"
+    },
+    "with": {
+     "d": 0.575,
+     "h": "ccffb07f29eb6d24"
+    },
+    "your": {
+     "d": 0.496,
+     "h": "12f27372504e2597"
+    }
+   },
+   "climax": {
+    "a_fine_run": {
+     "d": 0.888,
+     "h": "0860670edee85af1"
+    },
+    "a_furlong_to_run": {
+     "d": 1.097,
+     "h": "4d6c3c5bd56a278f"
+    },
+    "a_furlong_to_run_and": {
+     "d": 1.437,
+     "h": "42e3ce55cdc94918"
+    },
+    "a_hundred_metres_to_go": {
+     "d": 1.515,
+     "h": "6c49c6cefe3481bd"
+    },
+    "a_hundred_to_go": {
+     "d": 1.149,
+     "h": "635f06b99c6cd867"
+    },
+    "a_slow_start_from": {
+     "d": 1.176,
+     "h": "99366556af470d86"
+    },
+    "and": {
+     "d": 0.444,
+     "h": "5b23f366bbfc3ebf"
+    },
+    "and_away_they_go_on": {
+     "d": 1.254,
+     "h": "ebc7e96853117ee8"
+    },
+    "and_here_comes": {
+     "d": 0.914,
+     "h": "6f4df40ffc3cfaf1"
+    },
+    "and_theyre_off": {
+     "d": 0.836,
+     "h": "c3803de394b73b00"
+    },
+    "and_your": {
+     "d": 0.601,
+     "h": "4cedf3d50f706b02"
+    },
+    "at_the_rear": {
+     "d": 0.758,
+     "h": "b08998542c6e4d66"
+    },
+    "beaten": {
+     "d": 0.601,
+     "h": "1067fd00882e0441"
+    },
+    "but_look_at_this": {
+     "d": 0.836,
+     "h": "f1748ecf65d20b44"
+    },
+    "by": {
+     "d": 0.496,
+     "h": "0f458e53f1e7481b"
+    },
+    "by_a_whisker_from": {
+     "d": 1.019,
+     "h": "48d1f045855d153f"
+    },
+    "came_home": {
+     "d": 0.731,
+     "h": "3aa62d893b45a44c"
+    },
+    "closing": {
+     "d": 0.653,
+     "h": "daf8cc4852ee195e"
+    },
+    "coming_from_nowhere": {
+     "d": 0.993,
+     "h": "d110cb0d1a7fd132"
+    },
+    "course_ashcombe": {
+     "d": 0.679,
+     "h": "b804a2db309738dc"
+    },
+    "course_bellmont": {
+     "d": 0.601,
+     "h": "81c73baed2983abd"
+    },
+    "course_harrowgate": {
+     "d": 0.731,
+     "h": "c67318ec24e989b6"
+    },
+    "course_kestrel_downs": {
+     "d": 0.967,
+     "h": "3cb0ec4d8544ec04"
+    },
+    "course_larkspur": {
+     "d": 0.679,
+     "h": "c606cf37d47e45f8"
+    },
+    "course_saltmarsh": {
+     "d": 0.758,
+     "h": "d8dd783978babb4b"
+    },
+    "downhill_to_the_line": {
+     "d": 1.045,
+     "h": "f245bc94cc52d8aa"
+    },
+    "finishes": {
+     "d": 0.679,
+     "h": "c2ea293750743ca6"
+    },
+    "first": {
+     "d": 0.601,
+     "h": "224a31dfcc0ee0a0"
+    },
+    "from": {
+     "d": 0.522,
+     "h": "73e3d5a7fa056063"
+    },
+    "from_the_back_of_the_field": {
+     "d": 1.28,
+     "h": "d03d5577edb8ed59"
+    },
+    "further_back": {
+     "d": 0.758,
+     "h": "cc74d27bfe6cdd0c"
+    },
+    "goes_past": {
+     "d": 0.81,
+     "h": "ce4a8e6b36363928"
+    },
+    "goes_to_the_front": {
+     "d": 1.071,
+     "h": "9ee8625ce88e4f72"
+    },
+    "going_away": {
+     "d": 0.758,
+     "h": "402e39cb0179938d"
+    },
+    "going_fast_ground": {
+     "d": 0.862,
+     "h": "127aa8c740cb8367"
+    },
+    "going_good_ground": {
+     "d": 0.784,
+     "h": "5ef302e7412908da"
+    },
+    "going_heavy_ground": {
+     "d": 0.81,
+     "h": "e814f6c8b464347b"
+    },
+    "going_soft_ground": {
+     "d": 0.836,
+     "h": "fb6491c333aefd8f"
+    },
+    "grabs_the_lead_from": {
+     "d": 1.097,
+     "h": "56d5f0498d79509a"
+    },
+    "hacks_up": {
+     "d": 0.679,
+     "h": "24807ce34e6ca3cd"
+    },
+    "halfway_and": {
+     "d": 0.94,
+     "h": "23a6033cc1db8416"
+    },
+    "has_had_enough": {
+     "d": 0.81,
+     "h": "7325dfebb3ba52e5"
+    },
+    "has_nowhere_to_go": {
+     "d": 1.149,
+     "h": "2f8ba95c4fe0e47f"
+    },
+    "has_settled": {
+     "d": 0.758,
+     "h": "5d7716b701d11810"
+    },
+    "has_won_it": {
+     "d": 0.784,
+     "h": "33210e012e93ef40"
+    },
+    "head_to_head": {
+     "d": 0.914,
+     "h": "75ee5f74316242c0"
+    },
+    "here_comes": {
+     "d": 0.758,
+     "h": "96477b5b75407ffb"
+    },
+    "here_comes_your": {
+     "d": 0.888,
+     "h": "fac1619958351112"
+    },
+    "heres_the_result_of_the_photograph_first": {
+     "d": 2.351,
+     "h": "a9849a1fda6c036a"
+    },
+    "hits_the_front": {
+     "d": 0.914,
+     "h": "d81959e75f8e36d1"
+    },
+    "holds_on_in_front": {
+     "d": 1.202,
+     "h": "a29596f17ec748ad"
+    },
+    "in_front": {
+     "d": 0.705,
+     "h": "ef07c65323e3c6f5"
+    },
+    "inside_the_last_furlong": {
+     "d": 1.306,
+     "h": "1e9a8001e4598ca4"
+    },
+    "into_the_final_furlong": {
+     "d": 1.254,
+     "h": "bac1c7cda572024d"
+    },
+    "into_the_long_straight_at": {
+     "d": 1.306,
+     "h": "d76ab8d281ea3f59"
+    },
+    "into_the_short_straight_at": {
+     "d": 1.228,
+     "h": "8f59161236f718cd"
+    },
+    "into_the_straight_and": {
+     "d": 1.202,
+     "h": "9e7d52bc702c3414"
+    },
+    "into_the_straight_at": {
+     "d": 0.967,
+     "h": "e9a05d7d24c96b3a"
+    },
+    "is": {
+     "d": 0.392,
+     "h": "5ba98f1e44813bcc"
+    },
+    "is_clear": {
+     "d": 0.679,
+     "h": "9f3255f2fb227861"
+    },
+    "is_feeling_the": {
+     "d": 0.888,
+     "h": "4dff844db9480daa"
+    },
+    "is_flying_up_to": {
+     "d": 1.176,
+     "h": "e94aa81eb1fb0fe6"
+    },
+    "is_improving_along_the_rail": {
+     "d": 1.515,
+     "h": "9aef22733d70f7de"
+    },
+    "is_in_front": {
+     "d": 0.862,
+     "h": "80aac40247c9240a"
+    },
+    "is_picking_them_off": {
+     "d": 0.993,
+     "h": "9e2b81c5923b3f15"
+    },
+    "is_the_leader": {
+     "d": 0.862,
+     "h": "f5f14a68743ce908"
+    },
+    "is_weakening": {
+     "d": 0.81,
+     "h": "0df309929c98b71f"
+    },
+    "its": {
+     "d": 0.418,
+     "h": "c5722fdaa8c69043"
+    },
+    "its_a_dead_heat": {
+     "d": 0.967,
+     "h": "8ac5570c49059beb"
+    },
+    "just_holds": {
+     "d": 0.836,
+     "h": "e6081c5d0bce0f39"
+    },
+    "kicks_for_home": {
+     "d": 0.862,
+     "h": "2b44b37488c0600e"
+    },
+    "lane_on_the_rail": {
+     "d": 0.679,
+     "h": "52154035c296ceeb"
+    },
+    "lane_one_off_the_rail": {
+     "d": 0.993,
+     "h": "46c5582359ec4669"
+    },
+    "lane_out_wide": {
+     "d": 0.758,
+     "h": "83353f771546115e"
+    },
+    "lane_three_wide": {
+     "d": 0.784,
+     "h": "c85809ab47551c8e"
+    },
+    "leading": {
+     "d": 0.601,
+     "h": "7d93de61aa1fe831"
+    },
+    "leads": {
+     "d": 0.601,
+     "h": "a34f635b779a6af7"
+    },
+    "leads_by": {
+     "d": 0.81,
+     "h": "6d58e571f8b55863"
+    },
+    "leads_from": {
+     "d": 0.81,
+     "h": "bf9f921cfa56b2a5"
+    },
+    "look_at": {
+     "d": 0.601,
+     "h": "cbe4f8db9e209214"
+    },
+    "m_a_head": {
+     "d": 0.627,
+     "h": "64b71a613570b3f7"
+    },
+    "m_a_length": {
+     "d": 0.653,
+     "h": "a375386b30c3dd5b"
+    },
+    "m_a_length_and_a_half": {
+     "d": 1.097,
+     "h": "2b96e8046b66abcd"
+    },
+    "m_a_neck": {
+     "d": 0.601,
+     "h": "eadc61e362e2467f"
+    },
+    "m_a_nose": {
+     "d": 0.705,
+     "h": "afb0d25e89a455ff"
+    },
+    "m_a_short_head": {
+     "d": 0.836,
+     "h": "f0887e6e11c84129"
+    },
+    "m_eight_lengths": {
+     "d": 0.784,
+     "h": "1306489e5495cab7"
+    },
+    "m_eighteen_lengths": {
+     "d": 0.94,
+     "h": "468067c914ebb752"
+    },
+    "m_eleven_lengths": {
+     "d": 0.914,
+     "h": "c1f02d38d73995ed"
+    },
+    "m_fifteen_lengths": {
+     "d": 0.967,
+     "h": "17f10cce5b6b3442"
+    },
+    "m_five_lengths": {
+     "d": 0.836,
+     "h": "05819a8c653b67c3"
+    },
+    "m_four_lengths": {
+     "d": 0.758,
+     "h": "71f8e912925ff532"
+    },
+    "m_fourteen_lengths": {
+     "d": 0.94,
+     "h": "395b0c032bfbdf09"
+    },
+    "m_half_a_length": {
+     "d": 0.862,
+     "h": "e8b3c4a2c9cc8d5c"
+    },
+    "m_nine_lengths": {
+     "d": 0.81,
+     "h": "6cdacc578ba601fd"
+    },
+    "m_nineteen_lengths": {
+     "d": 0.967,
+     "h": "87395e26c81c60a9"
+    },
+    "m_over_twenty_lengths": {
+     "d": 1.071,
+     "h": "704cf231226fbf5a"
+    },
+    "m_seven_lengths": {
+     "d": 0.836,
+     "h": "fe1c689edf0949f7"
+    },
+    "m_seventeen_lengths": {
+     "d": 1.097,
+     "h": "65d1f86f7017b236"
+    },
+    "m_six_lengths": {
+     "d": 0.758,
+     "h": "426de5046ae681a6"
+    },
+    "m_sixteen_lengths": {
+     "d": 0.914,
+     "h": "3bf553048ddc777e"
+    },
+    "m_ten_lengths": {
+     "d": 0.81,
+     "h": "651db034e8d13193"
+    },
+    "m_thirteen_lengths": {
+     "d": 0.967,
+     "h": "f213b4709bfd9202"
+    },
+    "m_three_lengths": {
+     "d": 0.784,
+     "h": "ef41ba2905c6d2f1"
+    },
+    "m_three_quarters_of_a_length": {
+     "d": 1.411,
+     "h": "ecdab549737e1994"
+    },
+    "m_twelve_lengths": {
+     "d": 0.914,
+     "h": "7cb13ef5d7142792"
+    },
+    "m_twenty_lengths": {
+     "d": 0.836,
+     "h": "380e57f3fea58944"
+    },
+    "m_two_and_a_half_lengths": {
+     "d": 1.28,
+     "h": "4bd0b95f444d0ddb"
+    },
+    "m_two_lengths": {
+     "d": 0.731,
+     "h": "50866c52448f2f74"
+    },
+    "missed_the_break": {
+     "d": 0.914,
+     "h": "b67bba0455bbe69e"
+    },
+    "needs_a_gap": {
+     "d": 0.836,
+     "h": "c5cc48027025ee35"
+    },
+    "num_1": {
+     "d": 0.731,
+     "h": "c8030a2153997d9c"
+    },
+    "num_10": {
+     "d": 0.81,
+     "h": "19d684bc2a67eb2b"
+    },
+    "num_11": {
+     "d": 0.914,
+     "h": "8a9ba9603f720889"
+    },
+    "num_12": {
+     "d": 0.914,
+     "h": "25994fa67cd4651e"
+    },
+    "num_13": {
+     "d": 1.045,
+     "h": "d91f787edb3ee9c6"
+    },
+    "num_14": {
+     "d": 1.045,
+     "h": "72c02e8208017f78"
+    },
+    "num_15": {
+     "d": 1.045,
+     "h": "a143477fc5ac379b"
+    },
+    "num_16": {
+     "d": 1.019,
+     "h": "2a255f9d4aeca06e"
+    },
+    "num_17": {
+     "d": 1.149,
+     "h": "74b2f10c76c7418f"
+    },
+    "num_18": {
+     "d": 0.967,
+     "h": "4d591b02c84bc5d4"
+    },
+    "num_19": {
+     "d": 0.94,
+     "h": "29d298fd8389e7b3"
+    },
+    "num_2": {
+     "d": 0.81,
+     "h": "65d151dddeab3c8e"
+    },
+    "num_20": {
+     "d": 0.967,
+     "h": "e85cc8934fc8c8e4"
+    },
+    "num_21": {
+     "d": 1.019,
+     "h": "9cb3abd20e463d01"
+    },
+    "num_22": {
+     "d": 1.071,
+     "h": "a520a533bbdc31fc"
+    },
+    "num_23": {
+     "d": 1.176,
+     "h": "8be019d00b015c8e"
+    },
+    "num_24": {
+     "d": 1.123,
+     "h": "7e2971205499c807"
+    },
+    "num_3": {
+     "d": 0.81,
+     "h": "2d10ff5a60b0f93d"
+    },
+    "num_4": {
+     "d": 0.836,
+     "h": "034ee1f4b700d911"
+    },
+    "num_5": {
+     "d": 0.888,
+     "h": "c49e95a4417e9ce4"
+    },
+    "num_6": {
+     "d": 0.836,
+     "h": "6aa735f41d0fdd17"
+    },
+    "num_7": {
+     "d": 0.914,
+     "h": "d9f3c6841f7541ae"
+    },
+    "num_8": {
+     "d": 0.81,
+     "h": "111a96da5613e0bb"
+    },
+    "num_9": {
+     "d": 0.758,
+     "h": "b9dbc46bbd2f8fa8"
+    },
+    "on_the_outside": {
+     "d": 0.888,
+     "h": "8c07d8cbc39eb7c8"
+    },
+    "ord_1": {
+     "d": 0.601,
+     "h": "6f2297a0949f6f10"
+    },
+    "ord_10": {
+     "d": 0.496,
+     "h": "c88736a565ea318e"
+    },
+    "ord_11": {
+     "d": 0.653,
+     "h": "384139ccf0124394"
+    },
+    "ord_12": {
+     "d": 0.627,
+     "h": "8ae3292fda2888fa"
+    },
+    "ord_13": {
+     "d": 0.679,
+     "h": "c47e2609d5bca37b"
+    },
+    "ord_14": {
+     "d": 0.679,
+     "h": "d8df9db4ad5fd563"
+    },
+    "ord_15": {
+     "d": 0.705,
+     "h": "5e60391fd506caf0"
+    },
+    "ord_16": {
+     "d": 0.758,
+     "h": "03170497aec0873f"
+    },
+    "ord_17": {
+     "d": 0.784,
+     "h": "6e4648d3de3d784a"
+    },
+    "ord_18": {
+     "d": 0.653,
+     "h": "40fbbdaa71b50bdc"
+    },
+    "ord_19": {
+     "d": 0.758,
+     "h": "6f160a5f7014f746"
+    },
+    "ord_2": {
+     "d": 0.627,
+     "h": "8407d3c3410d429e"
+    },
+    "ord_20": {
+     "d": 0.653,
+     "h": "316f13f6813dfa77"
+    },
+    "ord_21": {
+     "d": 0.758,
+     "h": "37eb77454b2f5481"
+    },
+    "ord_22": {
+     "d": 0.862,
+     "h": "0a4ab86e7240461c"
+    },
+    "ord_23": {
+     "d": 0.758,
+     "h": "0747bf3a66c743be"
+    },
+    "ord_24": {
+     "d": 0.836,
+     "h": "f192bfb1e131e512"
+    },
+    "ord_3": {
+     "d": 0.522,
+     "h": "041970dc624a78a0"
+    },
+    "ord_4": {
+     "d": 0.549,
+     "h": "267b8bf37bb05b04"
+    },
+    "ord_5": {
+     "d": 0.549,
+     "h": "da2be75a27379763"
+    },
+    "ord_6": {
+     "d": 0.601,
+     "h": "2f790a8f3a534d2e"
+    },
+    "ord_7": {
+     "d": 0.601,
+     "h": "c1e078e7c4b51f84"
+    },
+    "ord_8": {
+     "d": 0.549,
+     "h": "62cd724ecbfa37b6"
+    },
+    "ord_9": {
+     "d": 0.549,
+     "h": "2401f45101c71fe5"
+    },
+    "quickens": {
+     "d": 0.627,
+     "h": "06f59617d39abd01"
+    },
+    "second": {
+     "d": 0.601,
+     "h": "1c0db3c145313393"
+    },
+    "slowly_away": {
+     "d": 0.862,
+     "h": "81657abf832e38de"
+    },
+    "still_in_front": {
+     "d": 0.94,
+     "h": "4a2798265a69429b"
+    },
+    "sweeps_around_the_field": {
+     "d": 1.254,
+     "h": "3d64e18d52299828"
+    },
+    "takes_it_up_from": {
+     "d": 0.94,
+     "h": "bf205299078caf08"
+    },
+    "the_stalls_open_and_theyre_away": {
+     "d": 1.829,
+     "h": "c05c4fefe1d81435"
+    },
+    "then": {
+     "d": 0.496,
+     "h": "f0b572c15e214aad"
+    },
+    "they_hit_the_line_together_its_a_photograph": {
+     "d": 2.325,
+     "h": "4a250f3c824ba74a"
+    },
+    "they_turn_for_home": {
+     "d": 0.967,
+     "h": "e056ae120d2ae276"
+    },
+    "theyre_away_but": {
+     "d": 1.019,
+     "h": "aced4d51df13096c"
+    },
+    "theyre_closely_bunched": {
+     "d": 1.123,
+     "h": "b0bf808d2dc447f2"
+    },
+    "theyre_off_and_racing": {
+     "d": 1.228,
+     "h": "0a54775ef3fd75ec"
+    },
+    "theyre_well_strung_out_now": {
+     "d": 1.411,
+     "h": "2c540458c4190ce3"
+    },
+    "third": {
+     "d": 0.575,
+     "h": "6e4382675085498c"
+    },
+    "throws_down_the_challenge": {
+     "d": 1.306,
+     "h": "3cf3267005d68e78"
+    },
+    "to_take_on": {
+     "d": 0.81,
+     "h": "a5377596ddd486ec"
+    },
+    "together_on_the_line_photograph": {
+     "d": 1.855,
+     "h": "21beef59b486c30b"
+    },
+    "tracking": {
+     "d": 0.627,
+     "h": "ecf23310a1780c67"
+    },
+    "two_furlongs_out": {
+     "d": 1.071,
+     "h": "959a83464c74ac95"
+    },
+    "two_to_run": {
+     "d": 0.836,
+     "h": "786ec6eeebf6e5e6"
+    },
+    "up_into": {
+     "d": 0.705,
+     "h": "89f820a6108b8e8b"
+    },
+    "up_on": {
+     "d": 0.627,
+     "h": "206a1623ed2f002a"
+    },
+    "up_the_hill_now": {
+     "d": 1.019,
+     "h": "7fbdd01b9b3ddeb1"
+    },
+    "up_to": {
+     "d": 0.627,
+     "h": "479ba8d28a9978bb"
+    },
+    "was_slowly_away": {
+     "d": 0.993,
+     "h": "4df17c27ea3a0f54"
+    },
+    "wins_easily": {
+     "d": 0.967,
+     "h": "e13cc62e895b8659"
+    },
+    "wins_it": {
+     "d": 0.679,
+     "h": "c47e5ff1713adf5e"
+    },
+    "with": {
+     "d": 0.496,
+     "h": "1f6021cbb0ad6194"
+    },
+    "your": {
+     "d": 0.444,
+     "h": "f3eeb7a4b97983ce"
+    }
+   }
+  }
+ },
+ "intensities": [
+  "calm",
+  "building",
+  "climax"
+ ],
+ "recipe": 1,
+ "sampleRate": 22050
+}

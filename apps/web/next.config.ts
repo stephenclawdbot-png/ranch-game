@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
   // bundle, Neon's WebSocket client); keep them out of the server bundle and require them
   // from node_modules instead.
   serverExternalPackages: ["@electric-sql/pglite", "@neondatabase/serverless"],
+  // The radio commentary phrase library (docs/commentary.md): static clips, kept a day by the
+  // browser and the CDN (a re-rendered library reaches everyone within a day).
+  async headers() {
+    return [{ source: "/audio/commentary/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] }];
+  },
 };
 
 export default nextConfig;

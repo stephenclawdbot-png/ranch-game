@@ -27,6 +27,6 @@ export function whatIfFlags(whatIf: boolean, wanted: { finale: boolean; resultsC
 }
 
 /** The race call without the photograph and the result readout (what-if mode). */
-export function whatIfCall(lines: readonly CallLine[]): CallLine[] {
+export function whatIfCall<T extends CallLine>(lines: readonly T[]): T[] {
   return lines.filter((l) => !OFFICIAL_CALLS.has(l.kind));
 }

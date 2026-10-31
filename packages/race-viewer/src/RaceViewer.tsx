@@ -25,6 +25,8 @@ import { battleAt, distanceMarker, type Battle, type DistanceMarker } from "./hu
 import { RaceCallFeed, callLineAt } from "./call/ticker";
 import { whatIfBadge, whatIfCall, whatIfFlags } from "./whatIf";
 import type { CallLine } from "./call/buildRaceCall";
+import { RadioPlayer } from "./call/voice/player";
+import { pickCaster } from "./call/voice/casters";
 import { finalePlan, REPLAY_FROM_M, type FinalePlan, type FinaleStepKind } from "./finale/plan";
 import { FinaleRunner, type FinaleState } from "./finale/runner";
 import { officialHandoff } from "./finale/live";
@@ -42,6 +44,8 @@ import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideSce
 type AnyScene = HD2DSceneT | TracksideSceneT;
 const VIEW_KEY = "rv:view";
 const FOLLOW_KEY = "rv:follow";
+/** "1": the radio commentary is on (remembered per browser; off by default). */
+const RADIO_KEY = "rv:radio";
 /** "skip": this viewer skips the build-up before the off (remembered per browser). */
 const PREOFF_KEY = "rv:preoff";
 
@@ -507,6 +511,55 @@ export function RaceViewer(props: RaceViewerProps) {
   );
   const markers = useMemo(() => [...raceStage.landmarks.poles, ...raceStage.landmarks.boards], [raceStage]);
 
+  // ---- Radio commentary (call/voice): off by default, remembered per browser. One caster per
+  // race, picked from the race id, so every viewer of the race hears the same voice. Built from
+  // the same call lines as the ticker (whole call for a replay; up to the data edge while live).
+  const caster = useMemo(() => pickCaster(stageData.race.id), [stageData]);
+  const namesKey = stageData.horses.map((h) => h.name).join("|");
+  const [radio, setRadioState] = useState(false);
+  const radioRef = useRef<RadioPlayer | null>(null);
+  const radioLines = useCallback(() => (whatIf ? whatIfCall(callFeed.lines) : callFeed.lines), [whatIf, callFeed]);
+  const ensureRadio = useCallback(() => {
+    if (typeof window === "undefined" || !("AudioContext" in window || "webkitAudioContext" in window)) return;
+    if (!radioRef.current) {
+      try {
+        radioRef.current = new RadioPlayer({ caster: caster.id, names: namesKey.split("|") });
+      } catch {
+        return;
+      }
+    }
+    radioRef.current.resume();
+    radioRef.current.setLines(radioLines());
+  }, [caster, namesKey, radioLines]);
+  useEffect(() => {
+    try {
+      setRadioState(window.localStorage.getItem(RADIO_KEY) === "1");
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+  useEffect(() => {
+    if (!radio) return;
+    ensureRadio();
+    return () => {
+      radioRef.current?.dispose();
+      radioRef.current = null;
+    };
+  }, [radio, ensureRadio]);
+  const setRadio = useCallback(
+    (on: boolean) => {
+      // Created inside the click: browsers only start audio from a user gesture.
+      if (on) ensureRadio();
+      setRadioState(on);
+      try {
+        window.localStorage.setItem(RADIO_KEY, on ? "1" : "0");
+      } catch {
+        /* storage blocked: the choice lasts for this page only */
+      }
+    },
+    [ensureRadio],
+  );
+
   // Playback clock: rebuilt when the race source or its timing inputs change.
   useEffect(() => {
     finalRef.current = initialFinal;
@@ -556,6 +609,7 @@ export function RaceViewer(props: RaceViewerProps) {
     const fin = finalRef.current;
     if (fin) callFeed.update(fin, true, Number.POSITIVE_INFINITY);
     else if (feed) callFeed.update(live!, false, clock instanceof LiveClock ? clock.dataEdge() : t);
+    radioRef.current?.setLines(whatIf ? whatIfCall(callFeed.lines) : callFeed.lines);
     const rate = clock.rate || 1;
     const call = t >= 0 ? callLineAt(whatIf ? whatIfCall(callFeed.lines) : callFeed.lines, t, { minShowSec: (narrowRef.current ? 3 : 2.5) * rate, holdSec: 6 * Math.max(1, rate) }) : null;
     let leadM = 0;
@@ -752,6 +806,8 @@ export function RaceViewer(props: RaceViewerProps) {
         }
         const prevT = clock.time;
         const fr = clock.tick(dt);
+        // The radio commentary follows the race clock (pause, seek, speed, live edge).
+        radioRef.current?.update(fr.time, clock.rate, clock.playing || clock.live, clock instanceof PlaybackClock && !clock.playing && !clock.live && clock.time >= clock.runoutEnd - 1e-3);
         // The finale runs in real seconds over the scene; during its replay the scene shows the
         // replay window (both views: the director holds a side-on replay shot on the winner).
         const fin = finaleRef.current;
@@ -996,7 +1052,11 @@ export function RaceViewer(props: RaceViewerProps) {
       className={`rv-root${narrow ? " rv-narrow" : ""}${course ? " rv-has-cmap" : ""}${h?.ff ? " rv-ff" : ""}${className ? ` ${className}` : ""}`}
       style={{ ["--rv-cmap-top" as string]: `${hudTitle ? (narrow ? 88 : 104) : narrow ? 80 : 96}px` }}
       tabIndex={0}
-      onKeyDown={onKey}
+      onKeyDown={(e) => {
+        radioRef.current?.resume();
+        onKey(e);
+      }}
+      onPointerDownCapture={() => radioRef.current?.resume()}
       data-race-viewer=""
     >
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
@@ -1105,6 +1165,9 @@ export function RaceViewer(props: RaceViewerProps) {
             onView={setView}
             follow={follow}
             onFollow={setFollow}
+            radio={radio}
+            onRadio={setRadio}
+            caster={caster.name}
           />
         )}
       </div>

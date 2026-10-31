@@ -85,6 +85,9 @@ async function watchToResult(page, raceId, label) {
   await page.waitForTimeout(6000);
   await shot(page, `${label}-live`);
   assert(broadcast.lastEdge > 0, `live frames are streaming (edge ${broadcast.lastEdge})`);
+  // The radio commentary toggle is on every race viewer, off by default.
+  const radio = page.getByTestId("radio-commentary").first();
+  assert((await radio.count()) === 1 && (await radio.getAttribute("aria-pressed")) === "false", "the Radio commentary toggle is shown, off by default");
   assert((await page.getByTestId("results-table").count()) === 0, "no results table while live");
   assert((await page.getByTestId("seed-revealed").count()) === 0, "seed not revealed while live");
   // Mid-race the full replay, verification, my result and the card stay closed.

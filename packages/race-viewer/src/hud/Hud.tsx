@@ -287,6 +287,10 @@ export interface ControlsProps {
   /** Trackside "Follow mine" camera (whole field when false). Only shown with a highlight. */
   follow?: boolean;
   onFollow?(f: boolean): void;
+  /** The radio commentary toggle (off by default, remembered per browser) and today's caster. */
+  radio?: boolean;
+  onRadio?(on: boolean): void;
+  caster?: string;
 }
 
 const CAMERAS: { id: CameraMode; label: string; short: string; title: string }[] = [
@@ -405,6 +409,7 @@ export function Controls(p: ControlsProps) {
           ))}
         </div>
       )}
+      {p.onRadio && <RadioToggle on={!!p.radio} narrow={p.narrow} caster={p.caster} onRadio={p.onRadio} />}
       {p.showLive && (
         <button type="button" className="rv-btn rv-live" aria-pressed={p.live} disabled={!p.live && !p.canGoLive} onClick={p.onLive} title="Jump to live">
           <span className="rv-live-dot" />
@@ -412,6 +417,29 @@ export function Controls(p: ControlsProps) {
         </button>
       )}
     </div>
+  );
+}
+
+/** "Radio commentary": a 1960s radio call of the race (off by default). */
+export function RadioToggle(p: { on: boolean; narrow: boolean; caster?: string; onRadio(on: boolean): void }) {
+  const label = p.on ? `Radio commentary on${p.caster ? ` (${p.caster} calling)` : ""}` : "Radio commentary off";
+  return (
+    <button type="button" className="rv-btn rv-radio" aria-pressed={p.on} aria-label="Radio commentary" title={label} data-testid="radio-commentary" onClick={() => p.onRadio(!p.on)}>
+      <RadioIcon on={p.on} />
+      {p.narrow ? null : "Radio"}
+    </button>
+  );
+}
+
+function RadioIcon({ on }: { on: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <rect x="1.5" y="5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4 5 11 1.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="5.5" cy="9.5" r="2" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.3" />
+      <path d="M10 8h3M10 10.5h3" stroke="currentColor" strokeWidth="1.3" />
+      {on ? null : <path d="M2 15 14 3" stroke="currentColor" strokeWidth="1.3" />}
+    </svg>
   );
 }
 

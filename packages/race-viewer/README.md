@@ -162,6 +162,11 @@ turns it off.
   to read), shown only up to the playhead; at 2× / 4× lower-priority lines that would overlap
   are dropped (`callLineAt`). "Your X" = `mineHorseIds`; the course profile feeds the
   course-aware lines.
+- **Radio commentary** (`call/voice/`, [docs/commentary.md](../../docs/commentary.md)): the
+  same call spoken from pre-rendered clips (`buildVoicedRaceCall` adds tokens + intensity to
+  each line, the text unchanged), one caster per race (`pickCaster(race.id)`), Web Audio synced
+  to the clock in both views. Off by default; the "Radio" button in the controls
+  (localStorage `rv:radio`).
 - A large distance-to-go readout with the next pole's colour-coded plate (`hud/battle.ts
   distanceMarker`, the stage's poles and boards); in the final furlong the HUD clears down
   (title, minimap and course map go; standings show the first three and your horse).
