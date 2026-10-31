@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { InjuryCard, RaceCard } from "@/lib/types";
 import * as gc from "@thoroughbred/game-core";
 import { analyseRace } from "@/lib/raceAnalysis";
 import { tryNext } from "@/lib/tryNext";
-import { usePlayerState } from "@/lib/player";
+import { raceStory } from "@/lib/raceStory";
+import { readyHorses, usePlayerState } from "@/lib/player";
 import { prefersCalm } from "@/lib/settings";
 import { enterStoryRace } from "../entry/EntryForm";
 import { ErrorNote } from "../ui/ErrorNote";
@@ -18,6 +19,7 @@ import { ActionBar } from "../ui/ActionBar";
 import { FullResults } from "./FullResults";
 import { ResultBoard } from "./ResultBoard";
 import { RewardCounter } from "./RewardCounter";
+import { Verdict } from "./Verdict";
 import { WhyCard } from "./WhyCard";
 import { WhyRead } from "../onboarding/WhyRead";
 
@@ -109,6 +111,20 @@ export function ResultsSequence({
         : [],
     [mine, analysis, replay, card, settlement?.atOff],
   );
+  // The verdict: one reason from the engine's record of the run, and (your own runner) one change.
+  const state = usePlayerState();
+  const myStable = mine ? (state?.horses.find((h) => h.id === mine.horse.id) ?? null) : null;
+  const fresh = useMemo(() => {
+    if (!mine) return null;
+    const others = readyHorses(state).filter((h) => h.id !== mine.horse.id && h.ranToday === 0 && h.condition !== "tired");
+    return others.sort((a, b) => b.horse.stats.speed + b.horse.stats.stamina - (a.horse.stats.speed + a.horse.stats.stamina))[0] ?? null;
+  }, [state, mine]);
+  const story = useMemo(
+    () => (analysis && subject ? raceStory({ horseId: subject.horse.id, analysis, horse: subject.horse, replay, tips, yours: Boolean(mine), freshAlternative: fresh?.horse.name ?? null }) : null),
+    [analysis, subject, replay, tips, mine, fresh],
+  );
+  const changeRunner = story?.change ? (story.change.kind === "fresh_horse" ? fresh : myStable) : null;
+  const verdictLeads = Boolean(changeRunner && !changeRunner.block);
   // A replay opened later (already settled) has nothing to stage: show it all at once.
   const staged = Boolean(mine && settlement?.fresh);
 
@@ -148,10 +164,8 @@ export function ResultsSequence({
           </button>
         </div>
       )}
-      <div className="relative">
-        {won && !calm && staged && <Confetti />}
-        <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
-      </div>
+      {/* Your own runner: your result and the verdict come first, the full board after them. */}
+      {!mine && <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />}
       {mine && settlement && at("reward") && (
         <div className="fade-up grid gap-1">
           <RewardCounter
@@ -165,7 +179,7 @@ export function ResultsSequence({
             {card.kind === "story"
               ? settlement.firstWin
                 ? `Story reward: first win in this race, +${settlement.storyReward}.`
-                : `Story reward +${settlement.storyReward ?? 0} (full rewards are for a first win; replays pay a little).`
+                : `Story reward +${settlement.storyReward ?? 0} for running (the first win in each Story race pays much more).`
               : "Purse paid by the Club, settled on the server."}
             {settlement.ratingAfter != null && settlement.ratingBefore != null && settlement.ratingAfter !== settlement.ratingBefore
               ? ` Rating ${settlement.ratingBefore} → ${settlement.ratingAfter}.`
@@ -184,10 +198,23 @@ export function ResultsSequence({
           </p>
         </div>
       )}
+      {mine && story && at("why") && (
+        <div className="fade-up">
+          <WhyRead raceId={card.id} enabled>
+            <Verdict story={story} horse={myStable} tactic={mine.tactic} fresh={fresh} live={card.kind === "live"} />
+          </WhyRead>
+        </div>
+      )}
+      {mine && (
+        <div className="relative">
+          {won && !calm && staged && <Confetti />}
+          <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
+        </div>
+      )}
       {analysis && subject && at("why") && (
         <div className="fade-up">
           <WhyRead raceId={card.id} enabled={Boolean(mine)}>
-            <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} />
+            <WhyCard analysis={analysis} horseName={subject.horse.name} isYours={Boolean(mine)} tips={tips} lead={mine ? null : (story?.reason ?? null)} />
           </WhyRead>
         </div>
       )}
@@ -204,6 +231,7 @@ export function ResultsSequence({
                   }
                 : null
             }
+            secondary={verdictLeads}
           />
         </div>
       )}
@@ -216,8 +244,11 @@ export function ResultsSequence({
 export function NextActions({
   card,
   mine,
+  secondary = false,
 }: {
   card: RaceCard;
+  /** The verdict above offers the primary action: these are plain buttons. */
+  secondary?: boolean;
   mine: {
     id: string;
     name: string;
@@ -265,20 +296,23 @@ export function NextActions({
     }
   }
 
+  // The verdict's "try again with the change" is the screen's one primary action when it is on offer.
+  const Primary = secondary ? Fragment : ActionBar;
+  const cls = secondary ? "btn" : "btn btn-brass btn-lg";
   return (
     <section className="grid gap-2" aria-label="What next">
       <div className="flex flex-wrap items-center gap-3">
-        <ActionBar>
+        <Primary>
           {card.kind === "story" ? (
-            <button type="button" className="btn btn-brass btn-lg" onClick={again} disabled={!horse || !!horse.block || busy} data-testid="race-again">
-              <PixelIcon name="flag" size={32} className="-my-2" /> {busy ? "Entering…" : horse?.block ? horse.block : `Race ${mine.name} again`}
+            <button type="button" className={cls} onClick={again} disabled={!horse || !!horse.block || busy} data-testid="race-again">
+              {!secondary && <PixelIcon name="flag" size={32} className="-my-2" />} {busy ? "Entering…" : horse?.block ? horse.block : `Race ${mine.name} again${secondary ? ", same plan" : ""}`}
             </button>
           ) : (
-            <button type="button" className="btn btn-brass btn-lg" onClick={entry.quickPickLive} data-testid="live-quick-pick">
-              <PixelIcon name="flag" size={32} className="-my-2" /> Enter next Live race
+            <button type="button" className={cls} onClick={entry.quickPickLive} data-testid="live-quick-pick">
+              {!secondary && <PixelIcon name="flag" size={32} className="-my-2" />} Enter next Live race
             </button>
           )}
-        </ActionBar>
+        </Primary>
         {card.kind === "story" && (
           <button type="button" className="btn" onClick={() => entry.open(mine.id)}>
             Try a different plan

@@ -78,6 +78,8 @@ export function tryNext(i: TryNextInput): TryNextTip[] {
   const { analysis: a, horse, race, course } = i;
   if (a.position === 1) return []; // a win: nothing to try instead
   const p = gc.pronounsOf(horse.sex);
+  /** Object pronoun ("cost him", "giving her"): game-core's `her` is the possessive ("his"). */
+  const him = p.she === "she" ? "her" : "him";
   const tips: TryNextTip[] = [];
   const ideal = { distanceM: horse.preferredDistanceM, surface: horse.preferredSurface, going: "good" as Going };
   const base = conditionRating(horse, horse.style, ideal);
@@ -94,7 +96,7 @@ export function tryNext(i: TryNextInput): TryNextTip[] {
       text:
         race.distanceM > horse.preferredDistanceM
           ? `${formatDistance(race.distanceM)} looked beyond ${p.her} best (${formatDistance(horse.preferredDistanceM)}): a shorter trip may suit.`
-          : `${formatDistance(race.distanceM)} was sharp for ${p.her} (best ${formatDistance(horse.preferredDistanceM)}): worth trying further.`,
+          : `${formatDistance(race.distanceM)} was sharp for ${him} (best ${formatDistance(horse.preferredDistanceM)}): worth trying further.`,
     });
   }
   const surfLoss = base - conditionRating(horse, horse.style, { ...ideal, surface: race.surface });
@@ -108,8 +110,8 @@ export function tryNext(i: TryNextInput): TryNextTip[] {
       id: "going",
       weight: goingLoss,
       text: shoes.goings?.includes(race.going)
-        ? `The ${race.going} ground cost ${p.her}: good going may suit, or ${shoes.label.toLowerCase()} are worth trying on a wet day.`
-        : `The ${race.going} ground cost ${p.her}: good going may suit.`,
+        ? `The ${race.going} ground cost ${him}: good going may suit, or ${shoes.label.toLowerCase()} are worth trying on a wet day.`
+        : `The ${race.going} ground cost ${him}: good going may suit.`,
     });
   }
 
@@ -152,7 +154,7 @@ export function tryNext(i: TryNextInput): TryNextTip[] {
     if (a.pace === "fast" && handy && a.tactic === "front" && finish - q3 >= 2) {
       tips.push({ id: "pace", weight: 8 + Math.min(12, (finish - q3) * 2), text: `They went fast and ${p.she} was up with it, then faded: sitting just off a hot pace (stalker) may help.` });
     } else if (a.pace === "slow" && back && a.tactic === "closer" && finish > 2) {
-      tips.push({ id: "pace", weight: 8 + Math.min(12, finish - 1), text: `A slow pace with ${p.her} at the back left too much to do: a handier position (stalker) may help when the field looks short of front-runners.` });
+      tips.push({ id: "pace", weight: 8 + Math.min(12, finish - 1), text: `A slow pace with ${him} at the back left too much to do: a handier position (stalker) may help when the field looks short of front-runners.` });
     }
   }
 
@@ -177,7 +179,7 @@ export function tryNext(i: TryNextInput): TryNextTip[] {
           weight: missed * PERMILLE_POINTS,
           text:
             h < peak.from * 24
-              ? `Ran ${days(h)} hard work: ${p.her} peak is ${peak.from}-${peak.to} days after, worth giving ${p.her} that long.`
+              ? `Ran ${days(h)} hard work: ${p.her} peak is ${peak.from}-${peak.to} days after, worth giving ${him} that long.`
               : `Ran ${days(h)} ${p.her} last hard work, past the ${peak.from}-${peak.to} day peak: worth timing a gallop for that window next time.`,
         });
       }

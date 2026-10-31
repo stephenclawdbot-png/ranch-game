@@ -16,7 +16,7 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { prepareRealToteSeed } from "./chain/toteChain";
-import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Going, type Horse, type RaceClass, type Surface, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, mixSeedEntropy, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
@@ -31,6 +31,7 @@ import {
   getRaceResult,
   isDomainError,
   bandRatingOf,
+  trueMarkOf,
   courseForRace,
   facilityLevels,
   goalsForToday,
@@ -1097,6 +1098,8 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
 /** Instant Story races are back-dated past the longest possible broadcast. */
 export const STORY_INSTANT_BACKDATE_MS = 10 * 60_000;
 export const STORY_POST_DELAY_MS = 10_000;
+/** The first Story race's Club window starts this far below the horse's real ability mark (and runs gc.CLUB_ABOVE_MEDIAN_SPAN up from there). */
+export const FIRST_STORY_BELOW = 8;
 const STORY_TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 /** Open Story races cover every trip a horse can prefer (1,000-3,200 m) on all three surfaces. */
 const STORY_DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
@@ -1113,6 +1116,29 @@ export interface StoryRequest {
   horseId?: string;
   plan?: RacePlan;
   instant?: boolean;
+  /**
+   * "Try again at its best" from the result's one suggested change: the race secretary finds a
+   * race at the horse's own trip, on its own surface, on good ground (the field is drawn as usual).
+   */
+  suited?: boolean;
+}
+
+/**
+ * The trip, surface and going a Story race is run at. A suited race (the stable's very first Story
+ * race, and "try again at its best") is at the nearest Story trip to the horse's best, on its
+ * surface, on good ground (§10: the first race suits the horse; the race itself is honest and can be
+ * lost). Otherwise the secretary finds a race near its trip (3 in 4) and on its surface (3 in 4).
+ */
+export function storyConditions(horse: Pick<Horse, "preferredDistanceM" | "preferredSurface">, suited: boolean, roll: (n: number) => number = rand): { distanceM: number; surface: Surface; going: Going } {
+  if (suited) {
+    const distanceM = STORY_DISTANCES.reduce((best, d) => (Math.abs(d - horse.preferredDistanceM) < Math.abs(best - horse.preferredDistanceM) ? d : best), STORY_DISTANCES[0]!);
+    return { distanceM, surface: horse.preferredSurface, going: "good" };
+  }
+  const near = STORY_DISTANCES.filter((d) => d <= horse.preferredDistanceM + 100 && d >= horse.preferredDistanceM - 300);
+  const distanceM = near.length && roll(4) < 3 ? near[roll(near.length)]! : STORY_DISTANCES[roll(STORY_DISTANCES.length)]!;
+  const surface = roll(4) < 3 ? horse.preferredSurface : STORY_SURFACES[roll(3)]!;
+  const going = surface === "turf" ? (["firm", "good", "good", "soft"] as const)[roll(4)]! : surface === "dirt" ? (["good", "good", "heavy"] as const)[roll(3)]! : "good";
+  return { distanceM, surface, going };
 }
 
 export interface StoryCreated {
@@ -1209,16 +1235,21 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
   const horse = horseFromRow(row, silks, nowMs);
   const plan = req.plan ?? { tactic: horse.style, intensity: "normal" as const };
 
-  const near = STORY_DISTANCES.filter((d) => d <= horse.preferredDistanceM + 100 && d >= horse.preferredDistanceM - 300);
-  const distanceM = near.length && rand(4) < 3 ? near[rand(near.length)]! : STORY_DISTANCES[rand(STORY_DISTANCES.length)]!;
-  const surface = rand(4) < 3 ? horse.preferredSurface : STORY_SURFACES[rand(3)]!;
-  const going = surface === "turf" ? (["firm", "good", "good", "soft"] as const)[rand(4)]! : surface === "dirt" ? (["good", "good", "heavy"] as const)[rand(3)]! : "good";
+  // A brand-new stable's first race (no settled run yet, Story or Live) is at the horse's best, like "try again at a race that suits".
+  const firstRace = (await listStableRuns(db, session.stable.id, 1)).length === 0;
+  const { distanceM, surface, going } = storyConditions(horse, firstRace || !!req.suited);
   const weather = (["clear", "clear", "overcast", "rain", "dusk"] as const)[rand(5)]!;
   const raceClass = row.wins === 0 ? "maiden" : row.wins <= 2 ? "novice" : "handicap";
   const track = STORY_TRACKS[rand(STORY_TRACKS.length)]!;
   // Story difficulty follows the anti-throwing band rating, not the raw OR (a thrown OR
   // must not buy easier Story fields).
   const or = bandRatingOf(row).rating;
+  // The first race (§10 "first maiden"): the Club field is drawn from just below the horse's real
+  // ability up to level with it, so a new horse is competitive. The race itself is honest and can be lost.
+  const mark = trueMarkOf(row);
+  // Only a floor: with no ceiling a Story window runs CLUB_ABOVE_MEDIAN_SPAN above it (game-core
+  // clubWindow), and a ceiling under the horse's band rating would bar the horse itself.
+  const band = firstRace ? { minRating: Math.max(0, mark - FIRST_STORY_BELOW) } : { minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12) };
   const st = await storyState(db, session.accountId);
   const chapter = gc.currentChapter(st.licenceLevel, new Set(st.wonKeys));
   const chapterName = gc.chapterDef(chapter).title.replace(/^The /, "");
@@ -1230,7 +1261,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
     {
       name: `${track} ${chapterName} ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
       raceClass,
-      conditions: { distanceM, surface, going, weather, track, minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12), story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id) } },
+      conditions: { distanceM, surface, going, weather, track, ...band, story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id) } },
       targetRunners: 8 + rand(3),
     },
     !!req.instant,

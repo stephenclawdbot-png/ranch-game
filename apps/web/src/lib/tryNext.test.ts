@@ -103,4 +103,13 @@ describe("try next: ranking and honesty", () => {
     expect(seen).not.toContain("fatigue");
     expect(seen).not.toContain("freshness");
   });
+
+  it("a colt is 'him' and 'his', never 'cost his' (first-hour playtest)", () => {
+    const colt = { ...input().horse, sex: "colt" as const };
+    expect(text(input({ horse: colt, race: { distanceM: 1200, surface: "turf", going: "heavy" } }), "going")).toMatch(/^The heavy ground cost him: /);
+    expect(text(input({ horse: { ...colt, preferredDistanceM: 2400 }, race: { distanceM: 1000, surface: "turf", going: "good" } }), "trip")).toMatch(/was sharp for him \(best 2,400 m\)/);
+    const peak = freshnessPeakDays();
+    expect(text(input({ horse: colt, atOff: { fatigue: 0, hoursSinceHardWork: 0 } }), "freshness")).toBe(`Ran the same day as hard work: his peak is ${peak.from}-${peak.to} days after, worth giving him that long.`);
+    for (const t of tryNext({ ...messy, horse: { ...messy.horse, sex: "colt" } })) expect(t.text).not.toMatch(/(cost|for|giving|with) his\b/);
+  });
 });

@@ -281,6 +281,44 @@ export const UNLOCK_MOMENT: Readonly<Record<UnlockFeature, { title: string; body
   },
 };
 
+// ---------------------------------------------------------------------------
+// The day-3 bloodline nudge (2026-11-01, owner-approved)
+// ---------------------------------------------------------------------------
+
+/** From the stable's third day (founding day + 2, like the market) the head lad suggests a bloodline. */
+export const BLOODLINE_NUDGE_DAYS = 2;
+
+/** A mare the stable could breed from: a filly or mare it owns and has at home, not in foal. */
+export interface BloodlineMare {
+  id: string;
+  name: string;
+  /** Still racing (retiring her first is the suggestion) or already retired (she can breed now). */
+  racing: boolean;
+  rating: number;
+}
+
+export interface BloodlineFacts {
+  guided: boolean;
+  daysSinceFounding: number;
+  /** "Not now" was tapped (the coach mark id `bloodline`), or a starter was retired from the nudge. */
+  dismissed: boolean;
+  /** The stable has requested a covering (any breeding event). */
+  hasBred: boolean;
+  mares: readonly BloodlineMare[];
+}
+
+/**
+ * Wilf's day-3 suggestion: start a bloodline. Shown once to a guided stable from its third day,
+ * until dismissed, and never to a stable that has already bred. A retired mare comes first (she
+ * can breed straight away); otherwise the starter to retire is the lowest-rated racing filly, so
+ * the best racers keep racing. Null when there is no mare to suggest.
+ */
+export function bloodlineNudge(f: BloodlineFacts): { horseId: string; name: string; retired: boolean } | null {
+  if (!f.guided || f.dismissed || f.hasBred || f.daysSinceFounding < BLOODLINE_NUDGE_DAYS) return null;
+  const pick = [...f.mares].sort((a, b) => Number(a.racing) - Number(b.racing) || a.rating - b.rating || a.id.localeCompare(b.id))[0];
+  return pick ? { horseId: pick.id, name: pick.name, retired: !pick.racing } : null;
+}
+
 /** The mentor who welcomes a new stable and runs the first-week guide. */
 export const MENTOR = { name: "Wilf Ashby", role: "Head lad" } as const;
 

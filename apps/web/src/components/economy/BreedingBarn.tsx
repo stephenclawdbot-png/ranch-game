@@ -612,7 +612,10 @@ function StallionFinder({ v }: { v: BreedingView }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!mareId && v.mares.length) setMareId(v.mares[0]!.id);
+    if (mareId || !v.mares.length) return;
+    // ?mare=<id> (Wilf's bloodline nudge) opens the finder on that mare.
+    const asked = new URLSearchParams(window.location.search).get("mare");
+    setMareId(v.mares.find((m) => m.id === asked)?.id ?? v.mares[0]!.id);
   }, [v.mares, mareId]);
   useEffect(() => {
     if (!mareId) return;

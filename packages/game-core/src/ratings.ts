@@ -82,7 +82,7 @@ function expectedPlace(expected: number, n: number): number {
  * One honest line for the result screen, from the update rule's own numbers: what the
  * handicapper expected on these marks (the field's expected scores) against where the horse
  * actually finished. Empty for a one-runner field or a runner not in it, so the caller falls
- * back to the bare "OR a → b". Playtest fix 14: the result showed the change with no why.
+ * back to the bare "a → b". Playtest fix 14: the result showed the change with no why.
  */
 export function ratingChangeReason(field: readonly RatedRunner[], horseId: string): string {
   const me = field.find((r) => r.horseId === horseId);
@@ -99,12 +99,12 @@ export function ratingChangeReason(field: readonly RatedRunner[], horseId: strin
   const raw = Math.round((k * (actual - expected) * 4) / (n - 1)) / 4;
   const delta = clampInt(raw, -MAX_LOSS_PER_RACE, MAX_GAIN_PER_RACE);
   const place = expectedPlace(expected, n);
-  const expectation =
-    place === 1 ? "expected it to win on these marks" : place <= 3 ? "expected it to finish close in" : place <= Math.ceil(n / 2) ? "expected it to finish mid-field" : "expected it to finish back in the field";
-  const where = `finished ${ordinal(me.position)} of ${n} in a race the handicapper ${expectation}`;
-  if (delta === 0) return `OR unchanged: ${where}.`;
-  const capped = Math.abs(raw) > Math.abs(delta) ? " — held by the per-race cap" : "";
-  return `OR ${delta > 0 ? "+" : ""}${delta}: ${where}${capped}.`;
+  // Plain words (first-hour playtest): no "OR", no "per-race cap"; the number is the rule's own delta.
+  const expectation = place === 1 ? "to win" : place <= 3 ? "to finish close up" : place <= Math.ceil(n / 2) ? "to finish mid-field" : "to finish towards the back";
+  const where = `finished ${ordinal(me.position)} of ${n} when, on the ratings, it was expected ${expectation}`;
+  if (delta === 0) return `Unchanged: ${where}.`;
+  const capped = Math.abs(raw) > Math.abs(delta) ? ` (${delta > 0 ? MAX_GAIN_PER_RACE : MAX_LOSS_PER_RACE} is the most one race can ${delta > 0 ? "add" : "take off"})` : "";
+  return `${delta > 0 ? "Up" : "Down"} ${Math.abs(delta)}: ${where}${capped}.`;
 }
 
 // ---------------------------------------------------------------------------

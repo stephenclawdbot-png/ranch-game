@@ -24,8 +24,8 @@ import { grantCreditsTx } from "./ledger";
 import { MOMENT_KIND, type MomentData } from "./moments";
 import { rowsOf, runTx } from "./tx";
 
-/** Screens with one-time coach marks (web: CoachMark ids). */
-export const COACH_MARK_IDS = ["racecard", "entry", "training", "breeding", "tote", "market"] as const;
+/** Screens with one-time coach marks (web: CoachMark ids); `bloodline` is the day-3 breeding nudge's "Not now". */
+export const COACH_MARK_IDS = ["racecard", "entry", "training", "breeding", "tote", "market", "bloodline"] as const;
 export type CoachMarkId = (typeof COACH_MARK_IDS)[number];
 
 export function isCoachMarkId(x: unknown): x is CoachMarkId {
@@ -280,6 +280,42 @@ export async function isFeatureUnlocked(ex: Executor, accountId: string, feature
   if (!row?.guided) return true;
   const [u] = await ex.select({ f: featureUnlocks.feature }).from(featureUnlocks).where(and(eq(featureUnlocks.accountId, accountId), eq(featureUnlocks.feature, feature)));
   return !!u;
+}
+
+// ---------------------------------------------------------------------------
+// The day-3 bloodline nudge
+// ---------------------------------------------------------------------------
+
+/**
+ * Wilf's day-3 suggestion (game-core `bloodlineNudge`): the mare to start a bloodline with, or
+ * null. Mares are the stable's own fillies and mares of racing age, at home (not leased out or
+ * in), not on the Legacy Farm, not entered or listed, not in foal. Dismissed with the coach mark
+ * `bloodline`; never shown once the account has requested a covering.
+ */
+export async function bloodlineNudgeFor(ex: Executor, accountId: string, now: Date): Promise<{ horseId: string; name: string; retired: boolean } | null> {
+  const row = await onboardingRow(ex, accountId);
+  if (!row?.guided) return null;
+  const dismissed = ((row.coachSeen as string[] | null) ?? []).includes("bloodline");
+  const [acc] = await ex.select({ createdAt: accounts.createdAt }).from(accounts).where(eq(accounts.id, accountId));
+  const [stable] = await ex.select({ id: stables.id }).from(stables).where(eq(stables.accountId, accountId));
+  if (!acc || !stable) return null;
+  const daysSinceFounding = gc.dayIndex(now.getTime()) - gc.dayIndex(acc.createdAt.getTime());
+  if (dismissed || daysSinceFounding < gc.BLOODLINE_NUDGE_DAYS) return null;
+  const [bred] = rowsOf<{ bred: boolean }>(await ex.execute(sql`select exists (select 1 from breeding_events where requested_by = ${accountId}) as bred`));
+  const mares = rowsOf<{ id: string; name: string; career_status: string; rating: number }>(
+    await ex.execute(sql`
+      select h.id, h.name, h.career_status, h.rating from horses h
+       where h.owner_stable_id = ${stable.id} and h.lessee_stable_id is null and h.sex = 'female' and not h.gelded
+         and h.career_status in ('racing', 'retired') and h.lock_kind is null and h.care_sessions >= ${gc.CARE_TO_RACING}
+         and not exists (select 1 from pregnancies p where p.dam_id = h.id and p.status = 'carrying')`),
+  );
+  return gc.bloodlineNudge({
+    guided: true,
+    daysSinceFounding,
+    dismissed,
+    hasBred: !!bred?.bred,
+    mares: mares.map((m) => ({ id: m.id, name: m.name, racing: m.career_status === "racing", rating: Number(m.rating) })),
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -64,7 +64,7 @@ describe("official ratings", () => {
     expect(change.delta).toBeLessThan(0);
     // The reason's number is the rule's own delta (cap included), so it never contradicts the
     // card's before/after; a big enough upset says the per-race cap held it.
-    expect(down).toBe(`OR ${change.delta}: finished 4th of 4 in a race the handicapper expected it to finish close in — held by the per-race cap.`);
+    expect(down).toBe(`Down ${-change.delta}: finished 4th of 4 when, on the ratings, it was expected to finish close up (${MAX_LOSS_PER_RACE} is the most one race can take off).`);
 
     // A 55 beating three 90s: expected back in the field, so the rise says so.
     const boost = [
@@ -75,12 +75,12 @@ describe("official ratings", () => {
     ];
     const up = ratingChangeReason(boost, "mine");
     expect(updateRatings(boost).find((r) => r.horseId === "mine")!.delta).toBeGreaterThan(0);
-    expect(up).toMatch(/^OR \+\d+(\.\d+)?: finished 1st of 4 in a race the handicapper expected it to finish back in the field\.$/);
+    expect(up).toMatch(/^Up \d+: finished 1st of 4 when, on the ratings, it was expected to finish towards the back\.$/);
 
     // Equal marks and a mid-field finish: the delta is 0 and the line says the mark holds.
     const level = [1, 2, 3, 4, 5].map((i) => ({ horseId: `h${i}`, or: 60, ratedRuns: 10, position: i }));
     expect(updateRatings(level).find((r) => r.horseId === "h3")!.delta).toBe(0);
-    expect(ratingChangeReason(level, "h3")).toBe("OR unchanged: finished 3rd of 5 in a race the handicapper expected it to finish close in.");
+    expect(ratingChangeReason(level, "h3")).toBe("Unchanged: finished 3rd of 5 when, on the ratings, it was expected to finish close up.");
 
     // A huge upset is held by the per-race cap, and the line admits it.
     const capped = ratingChangeReason(
@@ -90,7 +90,9 @@ describe("official ratings", () => {
       ],
       "mine",
     );
-    expect(capped).toMatch(/— held by the per-race cap\.$/);
+    expect(capped).toBe(`Up ${MAX_GAIN_PER_RACE}: finished 1st of 2 when, on the ratings, it was expected to finish close up (${MAX_GAIN_PER_RACE} is the most one race can add).`);
+    // Plain words: no jargon on the result screen.
+    for (const line of [down, up, capped]) expect(line).not.toMatch(/\bOR\b|handicapper|per-race cap/);
 
     // Nothing to explain: a one-runner field or a horse that wasn't in it.
     expect(ratingChangeReason([{ horseId: "solo", or: 50, ratedRuns: 1, position: 1 }], "solo")).toBe("");

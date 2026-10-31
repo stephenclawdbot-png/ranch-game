@@ -169,10 +169,10 @@ export function MentorWelcome({ onDone, doneLabel = "Meet your horses" }: { onDo
 }
 
 /** A line from the mentor: portrait, name, one or two sentences, optional action. */
-export function MentorLine({ children, action, testId }: { children: React.ReactNode; action?: React.ReactNode; testId?: string }) {
+export function MentorLine({ children, action, testId, compact = false }: { children: React.ReactNode; action?: React.ReactNode; testId?: string; /** Head-and-shoulders portrait (64 px), so the words get the width on a phone. */ compact?: boolean }) {
   return (
     <div className="flex items-start gap-3" data-testid={testId}>
-      <MentorPortrait />
+      <MentorPortrait variant={compact ? "face" : "bust"} />
       <div className="min-w-0 flex-1">
         <p className="eyebrow">{MENTOR_FIRST} says</p>
         <div className="mt-1 text-[0.9375rem] leading-6">{children}</div>

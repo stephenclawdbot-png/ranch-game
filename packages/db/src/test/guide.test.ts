@@ -7,10 +7,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { accounts, achievements, inboxItems, stables } from "../schema";
+import { accounts, achievements, breedingEvents, inboxItems, stables } from "../schema";
+import { retireHorse } from "../services/horses";
 import { createAccount } from "../services/accounts";
 import { runCupEntry } from "../services/dailyCup";
 import {
+  bloodlineNudgeFor,
   completeStableStep,
   dismissWelcomeBack,
   finishMentor,
@@ -229,5 +231,42 @@ describe("mentor, coach marks and welcome back", () => {
     expect(await recordVisit(h.db, p.accountId, again)).not.toBeNull();
     await dismissWelcomeBack(h.db, p.accountId);
     expect(await recordVisit(h.db, p.accountId, new Date(again.getTime() + MIN))).toBeNull();
+  });
+});
+
+describe("the day-3 bloodline nudge", () => {
+  it("from the third day suggests a filly to retire, a retired mare first; once dismissed or bred, never again", async () => {
+    const p = await player();
+    const colt = await makeHorse(h.db, p.stableId, { name: "Brave Heart" });
+    const filly = await makeHorse(h.db, p.stableId, { name: "Lucky Penny", sex: "female", rating: 44 });
+    // Days one and two: nothing.
+    expect(await bloodlineNudgeFor(h.db, p.accountId, T0)).toBeNull();
+    expect(await bloodlineNudgeFor(h.db, p.accountId, at(DAY))).toBeNull();
+    // The third day: Wilf suggests retiring the filly (the colt is no mare).
+    const day3 = at(2 * DAY);
+    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: false });
+    // Already retired: she can breed straight away.
+    await retireHorse(h.db, { accountId: p.accountId, horseId: filly.id, now: day3 });
+    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: true });
+    // "Not now" is final.
+    await markCoachSeen(h.db, { accountId: p.accountId, id: "bloodline", now: day3 });
+    expect(await bloodlineNudgeFor(h.db, p.accountId, at(5 * DAY))).toBeNull();
+
+    // A stable that has already bred never sees it.
+    const q = await player();
+    const mare = await makeHorse(h.db, q.stableId, { name: "Paper Moon", sex: "female" });
+    expect(await bloodlineNudgeFor(h.db, q.accountId, day3)).not.toBeNull();
+    await h.db.insert(breedingEvents).values({ sireId: colt.id, damId: mare.id, requestedBy: q.accountId, seasonNumber: 1, idempotencyKey: `test-cover-${q.accountId}` });
+    expect(await bloodlineNudgeFor(h.db, q.accountId, day3)).toBeNull();
+  });
+
+  it("is never shown to existing (unguided) stables or without a mare of racing age", async () => {
+    const old = await player({ guided: false });
+    await makeHorse(h.db, old.stableId, { sex: "female" });
+    expect(await bloodlineNudgeFor(h.db, old.accountId, at(3 * DAY))).toBeNull();
+    const young = await player();
+    await makeHorse(h.db, young.stableId, { sex: "female", careSessions: 3 });
+    await makeHorse(h.db, young.stableId);
+    expect(await bloodlineNudgeFor(h.db, young.accountId, at(3 * DAY))).toBeNull();
   });
 });
