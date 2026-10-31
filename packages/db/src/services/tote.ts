@@ -117,7 +117,7 @@ export function isToteRace(race: Pick<RaceRow, "kind">): boolean {
   return (gc.TOTE_RACE_KINDS as readonly string[]).includes(race.kind);
 }
 
-interface ToteRunner {
+export interface ToteRunner {
   horseId: string;
   name: string;
   gate: number | null;
@@ -398,6 +398,52 @@ async function stakedSum(ex: Executor, where: ReturnType<typeof and>): Promise<n
   return Number(r?.s ?? 0);
 }
 
+export interface ToteBettorChecked {
+  settings: ToteSettingsRow;
+  runners: ToteRunner[];
+  fieldSize: number;
+  stableId: string | null;
+}
+
+/**
+ * The bettor checks every tote bet runs, in this order: 18+ confirmed, not self-excluded, the
+ * horse is running, a place pool exists for the field, and no conflict of interest (own runner,
+ * a lease partner's, or a linked account's: the last also records a fraud event and comes back
+ * as a DomainError for the caller to return so the event commits). Shared by the in-game tote and
+ * the dormant real-USDG permits (realTote.ts). Caller holds the race row lock.
+ */
+export async function toteBettorChecksTx(
+  tx: Tx,
+  input: { accountId: string; race: RaceRow; horseId: string; pool: TotePoolKind; now: Date; fraudData: Record<string, unknown> },
+): Promise<ToteBettorChecked | DomainError> {
+  const { race } = input;
+  const settings = await lockSettings(tx, input.accountId, input.now);
+  if (!settings.adultConfirmedAt) throw new DomainError("TOTE_AGE_CONFIRM", "confirm you are 18 or over before your first bet");
+  if (toteExcluded(settings, input.now)) throw new DomainError("TOTE_EXCLUDED", "you have taken a break from betting");
+
+  const runners = await runnersOf(tx, race.id);
+  if (!runners.some((r) => r.horseId === input.horseId)) throw new DomainError("NOT_FOUND", "that horse isn't running in this race");
+  const fieldSize = fieldSizeOf(race, runners.length);
+  if (input.pool === "place" && gc.totePlaces(fieldSize) === 0) throw new DomainError("TOTE_UNAVAILABLE", `no place pool with fewer than ${gc.TOTE_PLACE_MIN_FIELD} runners`);
+
+  const stableId = await stableIdOf(tx, input.accountId);
+  const conflict = await conflictOf(tx, { accountId: input.accountId, stableId }, runners);
+  if (conflict) {
+    if (conflict.kind === "linked") {
+      await tx.insert(fraudEvents).values({
+        accountId: input.accountId,
+        relatedAccountId: conflict.relatedAccountId,
+        kind: "tote_linked_bet_blocked",
+        severity: 2,
+        data: { raceId: race.id, horseId: conflict.horseId, betOn: input.horseId, ...input.fraudData },
+      });
+      return new DomainError("LINKED_ACCOUNTS", CONFLICT_MESSAGE.linked);
+    }
+    throw new DomainError("TOTE_CONFLICT", CONFLICT_MESSAGE[conflict.kind]);
+  }
+  return { settings, runners, fieldSize, stableId };
+}
+
 /**
  * Places one bet. Takes the race row lock, refuses at or after the off (database clock), checks
  * the bettor (18+, not self-excluded, no conflict of interest, limits, balance) and moves the
@@ -421,30 +467,9 @@ export async function placeToteBet(db: Db, input: PlaceToteBetInput, opts: ToteO
     const clock = opts.dbClock === false ? input.now : new Date(Math.max(input.now.getTime(), (await dbClockNow(tx)).getTime()));
     if (race.status === "settled" || clock >= race.postTime) throw new DomainError("RACE_CLOSED", "betting closed at the off");
 
-    const settings = await lockSettings(tx, input.accountId, input.now);
-    if (!settings.adultConfirmedAt) throw new DomainError("TOTE_AGE_CONFIRM", "confirm you are 18 or over before your first bet");
-    if (toteExcluded(settings, input.now)) throw new DomainError("TOTE_EXCLUDED", "you have taken a break from betting");
-
-    const runners = await runnersOf(tx, race.id);
-    if (!runners.some((r) => r.horseId === input.horseId)) throw new DomainError("NOT_FOUND", "that horse isn't running in this race");
-    const fieldSize = fieldSizeOf(race, runners.length);
-    if (input.pool === "place" && gc.totePlaces(fieldSize) === 0) throw new DomainError("TOTE_UNAVAILABLE", `no place pool with fewer than ${gc.TOTE_PLACE_MIN_FIELD} runners`);
-
-    const stableId = await stableIdOf(tx, input.accountId);
-    const conflict = await conflictOf(tx, { accountId: input.accountId, stableId }, runners);
-    if (conflict) {
-      if (conflict.kind === "linked") {
-        await tx.insert(fraudEvents).values({
-          accountId: input.accountId,
-          relatedAccountId: conflict.relatedAccountId,
-          kind: "tote_linked_bet_blocked",
-          severity: 2,
-          data: { raceId: race.id, horseId: conflict.horseId, betOn: input.horseId, stake: input.stake, currency: input.currency },
-        });
-        return new DomainError("LINKED_ACCOUNTS", CONFLICT_MESSAGE.linked);
-      }
-      throw new DomainError("TOTE_CONFLICT", CONFLICT_MESSAGE[conflict.kind]);
-    }
+    const checked = await toteBettorChecksTx(tx, { accountId: input.accountId, race, horseId: input.horseId, pool: input.pool, now: input.now, fraudData: { stake: input.stake, currency: input.currency } });
+    if (checked instanceof DomainError) return checked;
+    const { settings, stableId } = checked;
 
     const ledger = toteLedger(input.currency);
     const balance = await ledger.balance(tx, input.accountId);

@@ -2372,6 +2372,110 @@ export const toteSettings = pgTable("tote_settings", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+// ---------------------------------------------------------------------------
+// Real-USDG tote: DORMANT scaffold (docs/usdg-tote.md). Off unless REAL_TOTE_ENABLED,
+// WEB3_ENABLED and TOTE_POOLS_ADDRESS are all set (legal approval first). Stakes live only in
+// the TotePools contract: these tables mirror chain events for display and record the permits
+// the server signed. They never hold or move player funds.
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per race flagged for a real-money pool: the row IS the race-level flag (no row = the
+ * race runs exactly as before). Created only through `enableRealToteForRace`, which also moves
+ * the field lock to REAL_TOTE_FIELD_LOCK_MS before the off.
+ */
+export const realToteRaces = pgTable(
+  "real_tote_races",
+  {
+    raceId: uuid("race_id")
+      .primaryKey()
+      .references(() => races.id),
+    /** The on-chain market id: keccak256("posttime:race:<uuid>"), 0x hex. */
+    marketKey: text("market_key").notNull(),
+    /** pending (flagged) | open (market created) | entropy_locked | sealed | abandoned | result_posted | finalized | void */
+    status: text("status").notNull().default("pending"),
+    fieldLockAt: ts("field_lock_at").notNull(),
+    /** TotePools closeTime: the entropy can be locked from here. */
+    marketCloseAt: ts("market_close_at").notNull(),
+    /** The contract refuses bets from here (closeTime - CLOSE_MARGIN). */
+    betsCloseAt: ts("bets_close_at").notNull(),
+    entropyBlock: credits("entropy_block"),
+    /** The sealed block hash, 64 lowercase hex, mirrored from EntropySealed. */
+    entropy: text("entropy"),
+    /**
+     * Which seed the race ran on, fixed once at its first simulation: "final" =
+     * sha256(serverSeed ‖ entropy); "server" = the entropy wasn't sealed in time, so the race ran
+     * on its server seed and the market must be cancelled (refunds).
+     */
+    seedMode: text("seed_mode"),
+    /** Mirrored pool totals: {win: {"<runner index>": stake}, place: {...}}, USDG base units. */
+    pools: jsonb("pools").notNull().default({}),
+    voidReason: text("void_reason"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("real_tote_races_status_idx").on(t.status, t.marketCloseAt),
+    check(
+      "real_tote_races_status",
+      sql`${t.status} in ('pending', 'open', 'entropy_locked', 'sealed', 'abandoned', 'result_posted', 'finalized', 'void')`,
+    ),
+    check("real_tote_races_seed_mode", sql`${t.seedMode} is null or ${t.seedMode} in ('final', 'server')`),
+    check("real_tote_races_entropy", sql`${t.entropy} is null or ${t.entropy} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+/**
+ * A BetPermit the server signed after the off-chain checks (conflicts, linked accounts, limits,
+ * self-exclusion, 18+, location). Counts toward the account's limits until it expires unused;
+ * `used_amount` is mirrored from the BetPlaced event that spent it.
+ */
+export const realTotePermits = pgTable(
+  "real_tote_permits",
+  {
+    /** The permit's uint256 nonce, decimal. Single-use on chain. */
+    nonce: text("nonce").primaryKey(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    wallet: text("wallet").notNull(),
+    maxAmount: credits("max_amount").notNull(),
+    issuedAt: ts("issued_at").notNull(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAmount: credits("used_amount"),
+    betTx: text("bet_tx"),
+  },
+  (t) => [
+    index("real_tote_permits_account_idx").on(t.accountId, t.issuedAt),
+    index("real_tote_permits_race_idx").on(t.raceId, t.accountId),
+    check("real_tote_permits_amount", sql`${t.maxAmount} > 0 and (${t.usedAmount} is null or (${t.usedAmount} > 0 and ${t.usedAmount} <= ${t.maxAmount}))`),
+  ],
+);
+
+/** TotePools events mirrored for display (and the audit trail). Idempotent per (tx, log index). */
+export const realToteEvents = pgTable(
+  "real_tote_events",
+  {
+    id: id(),
+    raceId: uuid("race_id")
+      .notNull()
+      .references(() => races.id),
+    kind: text("kind").notNull(),
+    txHash: text("tx_hash").notNull(),
+    logIndex: integer("log_index").notNull(),
+    blockNumber: credits("block_number").notNull(),
+    data: jsonb("data").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("real_tote_events_log_uq").on(t.txHash, t.logIndex), index("real_tote_events_race_idx").on(t.raceId, t.blockNumber)],
+);
+
 export type ToteBetRow = typeof toteBets.$inferSelect;
 export type TotePoolRow = typeof totePools.$inferSelect;
 export type ToteSettingsRow = typeof toteSettings.$inferSelect;
+export type RealToteRaceRow = typeof realToteRaces.$inferSelect;
+export type RealTotePermitRow = typeof realTotePermits.$inferSelect;
+export type RealToteEventRow = typeof realToteEvents.$inferSelect;

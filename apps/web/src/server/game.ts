@@ -15,8 +15,9 @@
  * outcome or the ledger. Instant races are back-dated so the result shows at once.
  */
 import * as gc from "@thoroughbred/game-core";
+import { prepareRealToteSeed } from "./chain/toteChain";
 import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Horse, type RaceClass, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
-import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
+import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, mixSeedEntropy, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
   cancelRace,
@@ -280,6 +281,9 @@ async function simulateLocked(db: Db, race: PublicRace, simNow: Date): Promise<R
   // A locked field never changes, so the replay is cached by race id.
   const hit = replayCache.get(race.id);
   if (hit) return hit;
+  // A race with a real-money pool (dormant: a no-op while REAL_TOTE_ENABLED is off) gets its
+  // entropy sealed first if it can; its seed is then decided once, in getRaceForSimulation.
+  await prepareRealToteSeed(db, race.id, simNow);
   const sim = await getRaceForSimulation(db, race.id, simNow, raceHooks);
   const replay = simulateRace(inputFrom(race, sim.field, sim.race.seed));
   replayCache.set(race.id, replay);
@@ -745,7 +749,12 @@ export async function verifyRace(db: Db, id: string, now: Date, claimed: { commi
   const input = inputFrom(race, sim.field, sim.race.seed);
   const fresh = simulateRace(input);
   const commitment = commitSeed(input.seed);
-  const commitmentOk = commitment === race.seedCommitment && commitment === served.seedCommitment && (claimed.commitment ? claimed.commitment === commitment : true);
+  // A real-money race: the published commitment is the server seed's and the race ran on
+  // sha256(serverSeed ‖ entropy) (docs/usdg-tote.md). Every other race: published = commitment.
+  const rt = sim.realTote;
+  const published = rt ? commitSeed(rt.serverSeed) : commitment;
+  const mixOk = !rt || rt.mode === "server" || (rt.entropy !== null && mixSeedEntropy(rt.serverSeed, rt.entropy) === input.seed);
+  const commitmentOk = published === race.seedCommitment && mixOk && commitment === served.seedCommitment && (claimed.commitment ? claimed.commitment === published : true);
   const resultHashOk =
     verifyReplay(input, served) && fresh.result.resultHash === served.result.resultHash && (claimed.resultHash ? claimed.resultHash === fresh.result.resultHash : true);
   return { commitmentOk, resultHashOk, seed: input.seed, seedCommitment: commitment, resultHash: fresh.result.resultHash, engineVersion: fresh.engineVersion };

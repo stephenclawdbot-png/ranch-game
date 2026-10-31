@@ -16,6 +16,7 @@ import type { MyToteBet, MyToteRace, ToteAuditRow, ToteBoard } from "@thoroughbr
 import { refreshPlayer } from "@/lib/player";
 import { Saddlecloth } from "../race/Saddlecloth";
 import { PixelIcon } from "../icons";
+import { RealToteSlip } from "./RealToteSlip";
 
 type Currency = gc.ToteCurrency;
 type Pool = gc.TotePoolKind;
@@ -475,6 +476,8 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
       {mine && <YourBets bets={mine.bets} closed={!open} reveal={reveal} />}
       {board.status === "settled" && reveal && <ToteAudit audit={board.audit} />}
       {board.status === "abandoned" && <ToteAudit audit={board.audit} />}
+      {/* Dormant real-money pool: renders nothing unless REAL_TOTE_ENABLED is on for this race. */}
+      <RealToteSlip raceId={raceId} runners={board.runners} />
     </section>
   );
 }

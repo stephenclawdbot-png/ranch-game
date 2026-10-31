@@ -712,6 +712,11 @@ export const RESET_TABLES = [
   "tote_bets",
   "tote_pools",
   "tote_settings",
+  // The dormant real-money tote's flags, permits and chain mirror follow the races (no funds:
+  // stakes live only in the TotePools contract).
+  "real_tote_events",
+  "real_tote_permits",
+  "real_tote_races",
   // What-if re-runs follow the races they re-ran.
   "what_if_runs",
   "race_results",

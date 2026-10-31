@@ -51,3 +51,4 @@ export * from "./news";
 export * from "./planning";
 export * from "./picks";
 export * from "./tote";
+export * from "./realTote";

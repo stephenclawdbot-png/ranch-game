@@ -29,7 +29,7 @@
     mode; 15 % take to the `tote_house` account; bets close at the off; no bets on races where your
     stable, a lease partner or a linked account runs; limits, 18+ and self-exclusion; a public
     tote audit per pool. The real-money version is the dormant non-custodial `TotePools` scaffold
-    (see docs/usdg-tote.md when merged).
+    (see docs/usdg-tote.md).
   - Stable Credits are never cashed out. Club fill stays at [P-2, P+10] (option A). Breeding
     preview shows possible looks and words only (no genes, no odds); stallions rest 12 h after a
     cover; capped horses are delisted.

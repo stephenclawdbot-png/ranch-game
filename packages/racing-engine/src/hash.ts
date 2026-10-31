@@ -16,6 +16,21 @@ export function commitSeed(seedHex: string): string {
   return bytesToHex(sha256(hexToBytes(seedHex)));
 }
 
+/**
+ * The seed of a race with a real-money pool (docs/usdg-tote.md): sha256(serverSeed bytes ‖
+ * entropy bytes) as lowercase hex, where the entropy is a block hash fixed on chain after betting
+ * closed. Same as TotePools.finalSeedOf. Only real-money races use it; every other race runs on
+ * its server seed exactly as before.
+ */
+export function mixSeedEntropy(seedHex: string, entropyHex: string): string {
+  assertSeedHex(seedHex);
+  assertSeedHex(entropyHex);
+  const buf = new Uint8Array(64);
+  buf.set(hexToBytes(seedHex), 0);
+  buf.set(hexToBytes(entropyHex), 32);
+  return bytesToHex(sha256(buf));
+}
+
 /** HMAC-SHA256(secret, label) as lowercase hex. Used to derive per-race seeds statelessly. */
 export function deriveSeed(secret: string, label: string): string {
   if (typeof secret !== "string" || secret.length === 0) throw new Error("deriveSeed: secret must be a non-empty string");
