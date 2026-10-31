@@ -75,6 +75,20 @@ export const USDG_REVIEW_MIN_COMPARABLES = 3;
 export const USDG_STUD_FEE_MIN = 1 * USDG_UNIT;
 export const USDG_STUD_FEE_MAX = 500 * USDG_UNIT;
 
+/**
+ * Practice mode (owner decision 2026-10-31, `USDG_MODE=practice`): during the beta testers sign in
+ * with their wallet but trade with test money, shown to players as "T-USDG". Each account gets this
+ * many micro-T-USDG once, the first time it is wallet-signed-in (or wallet-linked) while practice
+ * mode is on (idempotent: one ledger transaction per account). It lives in the game ledger as a
+ * separate currency ("usdg_practice", 6 decimals like USDG), is never convertible to or from Stable
+ * Credits, never withdrawable and never for sale. Owner set 100 T-USDG (2026-10-31).
+ */
+export const PRACTICE_USDG_GRANT = 100 * USDG_UNIT;
+/** The biggest single admin top-up of practice T-USDG (a typo guard, not an economy rule). */
+export const PRACTICE_USDG_TOPUP_MAX = 10_000 * USDG_UNIT;
+/** What players see instead of "USDG" while practice mode is on. */
+export const PRACTICE_USDG_LABEL = "T-USDG";
+
 export interface UsdgPolicy {
   minLiveStarts: number;
   registrationFee: number;
@@ -189,6 +203,20 @@ export function formatUsdgToken(micro: number): string {
   const whole = Math.floor(micro / USDG_UNIT);
   const frac = String(micro % USDG_UNIT).padStart(6, "0").replace(/0+$/, "");
   return `${whole}${frac ? `.${frac}` : ""} USDG`;
+}
+
+/** "12.5 T-USDG": a practice-mode amount (test money, never shown with a dollar sign). */
+export function formatPracticeUsdg(micro: number): string {
+  return `${formatUsdgToken(micro).slice(0, -" USDG".length)} ${PRACTICE_USDG_LABEL}`;
+}
+
+/**
+ * Rewrites a player-facing sentence for practice mode (idempotent): every "USDG" becomes "T-USDG"
+ * and a dollar amount ("$12.50", from formatUsdgDollars) becomes "12.50 T-USDG", since test money
+ * has no dollar value.
+ */
+export function practiceUsdgText(text: string): string {
+  return text.replace(/(?<![A-Za-z-])USDG\b/g, PRACTICE_USDG_LABEL).replace(/\$(\d[\d,]*(?:\.\d+)?)(?: T-USDG)?/g, `$1 ${PRACTICE_USDG_LABEL}`);
 }
 
 // ---------------------------------------------------------------------------

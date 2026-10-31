@@ -278,7 +278,7 @@ export async function stableFinances(db: Db, input: { stableId: string; period: 
   const { from, to } = financePeriodBounds(input.period, input.now);
 
   // The player's ledger account, as a sub-select: every query below filters the same way.
-  const player = sql`(select a.id from ledger_accounts a where a.kind = 'player' and a.owner_account_id = ${accountId})`;
+  const player = sql`(select a.id from ledger_accounts a where a.kind = 'player' and a.currency = 'CR' and a.owner_account_id = ${accountId})`;
 
   // 1. Categories: postings grouped by transaction kind.
   const kindRows = rowsOf<KindRow>(

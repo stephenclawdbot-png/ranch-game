@@ -95,16 +95,19 @@ export async function post(ex: Executor, input: PostInput): Promise<PostResult> 
 
   const ids = [...new Set(postings.map((p) => p.ledgerAccountId))].sort();
   const accounts = await ex
-    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative })
+    .select({ id: ledgerAccounts.id, balance: ledgerAccounts.balance, allowNegative: ledgerAccounts.allowNegative, currency: ledgerAccounts.currency })
     .from(ledgerAccounts)
     .where(inArray(ledgerAccounts.id, ids))
     .orderBy(asc(ledgerAccounts.id))
     .for("update");
   if (accounts.length !== ids.length) throw new DomainError("NOT_FOUND", "ledger account not found");
+  // One currency per transaction: credits never convert to or from anything else (e.g. the
+  // practice T-USDG currency, services/usdgPractice.ts).
+  if (new Set(accounts.map((a) => a.currency)).size > 1) throw new DomainError("INVALID_INPUT", "a ledger transaction can't mix currencies");
   for (const a of accounts) {
     const delta = postings.filter((p) => p.ledgerAccountId === a.id).reduce((s, p) => s + p.amount, 0);
     if (!a.allowNegative && a.balance + delta < 0) {
-      throw new DomainError("INSUFFICIENT_FUNDS", "not enough credits", { balance: a.balance, required: -delta });
+      throw new DomainError("INSUFFICIENT_FUNDS", a.currency === "CR" ? "not enough credits" : "not enough funds", { balance: a.balance, required: -delta });
     }
   }
   const ordered = [...postings].sort((a, b) => (a.ledgerAccountId < b.ledgerAccountId ? -1 : a.ledgerAccountId > b.ledgerAccountId ? 1 : 0));
@@ -164,11 +167,12 @@ export async function spendCreditsTx(ex: Executor, input: CreditInput & { sink?:
   });
 }
 
+/** The player's Stable Credits balance (currency CR; other ledger currencies are separate). */
 export async function getBalance(ex: Executor, accountId: string): Promise<number> {
   const [row] = await ex
     .select({ balance: ledgerAccounts.balance })
     .from(ledgerAccounts)
-    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player")));
+    .where(and(eq(ledgerAccounts.ownerAccountId, accountId), eq(ledgerAccounts.kind, "player"), eq(ledgerAccounts.currency, "CR")));
   return row?.balance ?? 0;
 }
 

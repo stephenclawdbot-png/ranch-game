@@ -19,11 +19,16 @@
  *   CHAIN_MIN_CONFIRMATIONS    default 1 (soft confirmation is fine for packs).
  *   PREMIUM_BLOCKED_COUNTRIES  ISO codes where paid packs are not sold (default "BE,NL").
  *   CHAIN_LOG_LOOKBACK_BLOCKS  how far back the backstop scans for a paid order (default 200000).
+ *   USDG_MODE                  "practice": beta test money only (see usdgConfig.ts). Forces the
+ *                              beta money OFF whatever WEB3_ENABLED says (`enabled` false, mock
+ *                              chain, no RPC): no real purchase, no payout, no commission.
  */
 import { getAddress, isAddress, type Address, type Hex } from "viem";
 
 export interface BetaChainConfig {
   enabled: boolean;
+  /** USDG_MODE=practice: no real money anywhere (checkout, Prize Pool, commissions refused). */
+  practice: boolean;
   chainId: number;
   rpcUrl: string | null;
   store: Address | null;
@@ -49,7 +54,16 @@ function addr(env: Env, k: string): Address | null {
   return getAddress(v);
 }
 
+/** USDG_MODE=practice (explicit). Unset/empty: false. Any other value: a configuration error, never a silent fallback. */
+export function isPracticeEnv(env: Env = process.env): boolean {
+  const v = (env.USDG_MODE ?? "").trim().toLowerCase();
+  if (!v) return false;
+  if (v === "practice") return true;
+  throw new BetaConfigError(`USDG_MODE must be "practice" or unset (got "${v.slice(0, 20)}")`);
+}
+
 export function readBetaConfig(env: Env = process.env): BetaChainConfig {
+  const practice = isPracticeEnv(env);
   const chainId = Number(env.CHAIN_ID?.trim() || env.ROBINHOOD_CHAIN_ID?.trim() || 46630);
   if (!Number.isInteger(chainId) || chainId <= 0) throw new BetaConfigError("CHAIN_ID must be a positive integer");
   const key = env.QUOTE_SIGNER_PRIVATE_KEY?.trim() || null;
@@ -58,7 +72,8 @@ export function readBetaConfig(env: Env = process.env): BetaChainConfig {
   const cents = Number(env.PREMIUM_PACK_USD_CENTS?.trim() || 499);
   if (!Number.isInteger(cents) || cents < 50 || cents > 100_000) throw new BetaConfigError("PREMIUM_PACK_USD_CENTS must be 50..100000");
   return {
-    enabled: env.WEB3_ENABLED?.trim().toLowerCase() === "true",
+    enabled: !practice && env.WEB3_ENABLED?.trim().toLowerCase() === "true",
+    practice,
     chainId,
     rpcUrl: env.ROBINHOOD_RPC_URL?.trim() || null,
     store: addr(env, "PREMIUM_STORE_ADDRESS"),
