@@ -34,7 +34,7 @@ export default function FacilitiesPage() {
   return (
     <>
       <Lead>
-        Facilities are one-off upgrades to your stable, paid in credits: more stalls, a trainer, a vet, a bigger entry office and a stable hand. There are no running costs, ever. Once bought, an
+        Facilities are one-off upgrades to your stable, paid in credits: more stalls, a trainer, a vet, a bigger entry office and a stable hand. Facilities have no running costs (horses have a small weekly <WikiLink slug="credits-and-entries">upkeep</WikiLink> only in weeks you use them). Once bought, an
         upgrade is yours for good.
       </Lead>
       <Figure src="/art/diorama/poster-yard.png" alt="The stable yard" caption="Upgrades are bought on the Facilities screen under Stable, one level at a time." focus={0.55} />

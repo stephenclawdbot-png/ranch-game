@@ -419,7 +419,8 @@ Details, numbers and the Monte Carlo results are in `packages/game-core/README.m
   engine and balance work are calibrated for: about 450–550 current at racing age.
 - **Career clock.** Elapsed time alone only heals injuries, recovers fatigue (worked out when
   the value is read, never written) and completes pregnancies. Training sessions run only
-  when the player triggers them. There is no upkeep.
+  when the player triggers them. Weekly upkeep is charged only for horses used that week
+  (`UPKEEP_*` in economy.ts), so a week away costs nothing.
 - **Pensioner schedule:** superseded by §4a. There is no forced end of life. Owners pension a
   horse to the Legacy Farm, and spent studs move there automatically.
 - **Daily Cup:** a time trial that isn't a career start and isn't rated. It leaves the horse

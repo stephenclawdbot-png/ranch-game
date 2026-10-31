@@ -41,7 +41,7 @@ export default function CreditsAndEntriesPage() {
       <H2 id="credits">Stable Credits</H2>
       <P>
         You start with <b>{formatCredits(gc.STARTER_GRANT)}</b> credits. Your balance is the <Icon name="coin" size={16} /> number in the top bar. A cost you can&rsquo;t afford is simply
-        refused, so you can never go into debt, and there are no running costs: no stall rent, no feed bills, nothing that ticks while you are away.
+        refused, so you can never go into debt. The only running cost is the weekly <a href="#upkeep" className="link">upkeep</a> on horses you used that week; a week away costs nothing.
       </P>
       <Callout tone="rule" title="Credits stay in the game">
         <p>

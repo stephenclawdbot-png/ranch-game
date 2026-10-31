@@ -121,8 +121,8 @@ export default function QuickStartPage() {
       />
       <Callout tone="rule" title="Being away never hurts">
         <p>
-          Nothing in the game punishes a missed day. Fatigue recovers and injuries heal while you are away, care only pauses growth, and unused entries roll over into your bank. There are no
-          stable running costs.
+          Nothing in the game punishes a missed day. Fatigue recovers and injuries heal while you are away, care only pauses growth, and unused entries roll over into your bank. Upkeep is charged only for horses you used that
+          week, so a week away is free.
         </p>
       </Callout>
 
