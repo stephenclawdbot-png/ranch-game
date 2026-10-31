@@ -811,6 +811,72 @@ export const whatIfRuns = pgTable(
 export type WhatIfRunRow = typeof whatIfRuns.$inferSelect;
 
 /**
+ * Quick races (services/quickRaces.ts): instant, unofficial races of the "fast layer". One row per
+ * run: a match race, a ghost race (against the first three of a settled Live race) or a daily
+ * challenge attempt. `input` is the engine input exactly as it ran (seed included), so the replay
+ * re-simulates; the daily challenge's seed is withheld from players until its day is over.
+ * Nothing official reads this table: no rating, form, ledger, league or record.
+ */
+export const quickRaces = pgTable(
+  "quick_races",
+  {
+    id: id(),
+    /** "match" | "ghost" | "daily". */
+    mode: text("mode").notNull(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    stableId: uuid("stable_id")
+      .notNull()
+      .references(() => stables.id),
+    /** The stable's horse (match and ghost; null for the daily challenge's Club horse). */
+    horseId: uuid("horse_id").references(() => horses.id),
+    /** Ghost races: the settled Live race whose first three ran again. */
+    sourceRaceId: uuid("source_race_id").references(() => races.id),
+    /** Daily challenge: the UTC day (YYYY-MM-DD); one attempt per stable per day. */
+    challengeDay: date("challenge_day", { mode: "string" }),
+    engineVersion: text("engine_version").notNull(),
+    input: jsonb("input").notNull(),
+    summary: jsonb("summary").notNull(),
+    /** The stable's runner: finishing position and time. */
+    position: integer("position").notNull(),
+    finishTimeUs: bigint("finish_time_us", { mode: "number" }).notNull(),
+    /** Daily challenge points (0 for the others). */
+    points: integer("points").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("quick_races_stable_idx").on(t.stableId, t.createdAt),
+    uniqueIndex("quick_races_daily_uq").on(t.stableId, t.challengeDay),
+    index("quick_races_daily_board_idx").on(t.challengeDay, t.position, t.finishTimeUs),
+  ],
+);
+
+export type QuickRaceRow = typeof quickRaces.$inferSelect;
+
+/** The runners of a match race (the head-to-head record and the beaten owner's inbox note read these). */
+export const matchRaceRunners = pgTable(
+  "match_race_runners",
+  {
+    quickRaceId: uuid("quick_race_id")
+      .notNull()
+      .references(() => quickRaces.id),
+    horseId: uuid("horse_id")
+      .notNull()
+      .references(() => horses.id),
+    /** Its stable at the time (null for a Club horse). */
+    stableId: uuid("stable_id").references(() => stables.id),
+    /** The challenger's runner. */
+    challenger: boolean("challenger").notNull().default(false),
+    position: integer("position").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.quickRaceId, t.horseId] }), index("match_race_runners_horse_idx").on(t.horseId, t.createdAt)],
+);
+
+export type MatchRaceRunnerRow = typeof matchRaceRunners.$inferSelect;
+
+/**
  * Race sponsorships (services/sponsorship.ts): a stable pays credits (burned) to have a future
  * Live card slot carry its name. One sponsor per slot (unique slot index, first come first
  * served); one row per (account, idempotency key). `raceId` is set when the sponsor is applied

@@ -708,6 +708,9 @@ export const RESET_TABLES = [
   "race_sponsorships",
   // What-if re-runs follow the races they re-ran.
   "what_if_runs",
+  // Quick races (match, ghost, daily challenge) follow the stables and horses.
+  "match_race_runners",
+  "quick_races",
   "race_results",
   "race_entries",
   "races",
