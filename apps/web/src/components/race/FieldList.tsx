@@ -8,6 +8,21 @@ import { GradeBadge } from "../StatBars";
 import { ClaimButton } from "./ClaimButton";
 import { Saddlecloth } from "./Saddlecloth";
 
+/** A column header's gloss: a small "?" that opens the wiki page explaining it (a tap target on phones). */
+function ColHelp({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className="relative ml-1 inline-flex h-[0.95rem] w-[0.95rem] items-center justify-center rounded-full border border-current align-[0.05em] text-[0.625rem] leading-none no-underline opacity-70 after:absolute after:-inset-2.5 after:content-[''] hover:opacity-100"
+      data-testid="col-help"
+    >
+      ?
+    </Link>
+  );
+}
+
 const stables = (n: number) => `${n} ${n === 1 ? "stable" : "stables"}`;
 const claimsLabel = (n: number) => (n === 0 ? "no claims" : `${n} ${n === 1 ? "claim" : "claims"}`);
 const CLAIM_STATUS: Record<string, string> = {
@@ -85,9 +100,11 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
             <th scope="col">Horse</th>
             <th scope="col" className="text-right" title="Last three finishes, oldest first (0 = outside the first nine)">
               Form
+              <ColHelp href="/wiki/ratings-and-form#form" label="What the form figures mean" />
             </th>
             <th scope="col" className="text-right" title="Official rating">
               OR
+              <ColHelp href="/wiki/ratings-and-form#or" label="What the official rating (OR) means" />
             </th>
             {weighted && (
               <th scope="col" className="text-right" title="Handicap weight: the top-rated horse carries the most, 1 lb less for every point of rating below it">
@@ -103,6 +120,7 @@ export function FieldList({ card, highlightHorseId, open = true }: { card: RaceC
             <th scope="col" className="pr-3 text-right" title="Speed · Stamina · Burst grades">
               <span className="hidden sm:inline">Spd · Sta · Brs</span>
               <span className="sm:hidden">Grades</span>
+              <ColHelp href="/wiki/stats-and-aptitudes#six-stats" label="What the speed, stamina and burst grades mean" />
             </th>
           </tr>
         </thead>
