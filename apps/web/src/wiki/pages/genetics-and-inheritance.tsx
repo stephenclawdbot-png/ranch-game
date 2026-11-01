@@ -307,7 +307,9 @@ export default function GeneticsAndInheritancePage() {
             <b>Size and the speed gene</b>: they move points between stats and shift the best trip, never the total.
           </>,
           <>
-            <b>Coat and markings</b>: real horse colour genetics, see <WikiLink slug="coats-and-markings" />.
+            <b>Coat and markings</b>: real horse colour genetics, see <WikiLink slug="coats-and-markings" />. Colour never changes how a horse races or breeds. The{" "}
+            {gc.RARE_COLOURS.length} rare colours enter the game only through the Club&rsquo;s house stallions at stud and, very rarely, pack foals; never through Club sale lots or
+            Club leases. After that, they spread only by breeding.
           </>,
           <>
             <b>Quirks</b> such as mudlark (loves soft ground) or gate-shy, some dominant, some recessive; they only show themselves in races (see <a href="#quirks">Quirks</a> below).

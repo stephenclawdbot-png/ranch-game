@@ -1,5 +1,7 @@
 import * as gc from "@thoroughbred/game-core";
-import { formatCredits, formatDistance, STYLE_LABEL, SURFACE_LABEL } from "@/lib/format";
+import { LINK_CODE_TTL_MS, MISS_IT_AFTER_DAYS } from "@thoroughbred/db";
+import { formatCredits, formatDistance, ordinal, STYLE_LABEL, SURFACE_LABEL } from "@/lib/format";
+import { STABLE_NAME_MAX, STABLE_NAME_MAX_WORDS, STABLE_NAME_MIN } from "@/lib/stableName";
 import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Steps, Table, WikiLink, appearanceOfGenome, count } from "../kit";
 
 const SILKS = { primary: "#1f4e9c", secondary: "#f3e7c9", pattern: "hoops", cap: "#1f4e9c" } as const;
@@ -14,19 +16,24 @@ function exampleStarters() {
   });
 }
 
-/** Stable steps: how each one ticks (game-core STABLE_STEPS holds the order and credits). */
-const STEP_ROWS: [key: string, title: string, how: string][] = [
-  ["care", "Care for a horse", "Your first care session"],
-  ["train_plan", "Set a training plan", "Saving a week's plan on the gallops board"],
-  ["enter_live", "Enter a Live race", "Your first Live entry"],
-  ["watch_live", "Watch your Live race", "Watching its result"],
-  ["read_why", "Read \u201cWhy it went that way\u201d", "The card under your own watched result, on screen for a moment"],
-  ["daily_cup", "Run the Daily Cup", "Your first Cup run"],
-  ["pick", "Pick a winner", "Your first pick in a Live race"],
-  ["quick_race", "Try a quick race", "Your first quick race"],
-  ["pin_target", "Pin a target race", "Pinning a race on This week's planner"],
-  ["breeding_preview", "Preview a breeding", "A breeding preview or the stallion finder"],
-];
+/** The first-week list: each job as Home words it, and how it ticks (game-core FIRST_WEEK_ORDER holds the order, STABLE_STEPS the credits). */
+const WEEK_ROWS: Record<gc.FirstWeekKey, [title: string, how: string]> = {
+  first_race: ["Run your first race", "Any race of yours with a result, Story or Live"],
+  read_why: ["Read \u201cWhy it went that way\u201d", "The card under your own watched result, on screen for a moment"],
+  care: ["Care for a horse", "Your first care session"],
+  train_plan: ["Set a training plan", "Saving a week's plan on the gallops board"],
+  enter_live: ["Enter a Live race", "Your first Live entry"],
+  watch_live: ["Watch your Live race", "Watching its result"],
+  rename: ["Name a horse your way", "Renaming a horse (listed only while one of yours hasn't started yet)"],
+  daily_cup: ["Run the Daily Cup", "Your first Cup run"],
+  qualifier: ["Enter a Feature Qualifier", "Your first Qualifier entry"],
+  pick: ["Pick a winner", "Your first pick in a Live race"],
+  quick_race: ["Try a quick race", "Your first quick race"],
+  pin_target: ["Pin a target race", "Pinning a race on This week's planner"],
+  breeding_preview: ["Look at the stallion finder", "A breeding preview or the stallion finder"],
+  career_story: ["Read a career story", "Reading the career story of one of your horses"],
+};
+const WILF = gc.MENTOR.name.split(" ")[0]!;
 
 export default function QuickStartPage() {
   const starters = exampleStarters();
@@ -43,11 +50,12 @@ export default function QuickStartPage() {
       <Steps
         items={[
           <>
-            Go to <GameLink href="/play">Found a stable</GameLink>. The game suggests a stable name and racing colours; keep them, roll new colours, or customise them.
+            Go to <GameLink href="/play">Found a stable</GameLink> and <b>name your stable</b>. The name is yours to choose: one to {STABLE_NAME_MAX_WORDS} words, {STABLE_NAME_MIN} to{" "}
+            {STABLE_NAME_MAX} characters. Stuck? Tap the dice for a suggestion. Your racing colours are rolled for you; keep them, roll new ones, or customise them.
           </>,
           <>
             Tap <b>Register &amp; get my horses</b>. It is free and your stable is linked to this browser. You start with <b>{formatCredits(gc.STARTER_GRANT)}</b> Stable Credits and
-            your first day&rsquo;s Live entries.
+            your first day&rsquo;s Live entries. Got a wallet? You can found the stable with it instead, and the wallet becomes your login.
           </>,
           <>
             {gc.MENTOR.name}, the {gc.MENTOR.role.toLowerCase()}, says hello: three short screens on what the game is, how a day works and what to do first, then one question,
@@ -55,6 +63,33 @@ export default function QuickStartPage() {
             <GameLink href="/welcome">Welcome</GameLink> any time.
           </>,
           <>Three stall doors open. You can rename any of your horses before its first race.</>,
+        ]}
+      />
+
+      <Callout tone="rule" title="Stable names">
+        <p>
+          Letters, numbers, spaces and &rsquo; &amp; . - only, with at least one letter. No two stables share a name, whatever the capitals: if another stable already has it, pick
+          another. Names that pass for the game itself, the Club or its staff are kept back. You can rename your stable later on your <GameLink href="/me">profile</GameLink>, under the
+          same rules.
+        </p>
+      </Callout>
+
+      <H2 id="signing-in">Signing in on another device</H2>
+      <P>Your stable lives on the game&rsquo;s server, not in your browser. To reach it from another phone or browser:</P>
+      <List
+        items={[
+          <>
+            <b>A wallet.</b> Tap <b>Connect wallet</b> in the top bar and choose your wallet. One free signature signs you in: no transaction, no fee. A wallet with no stable yet goes
+            straight on to founding one. To use a wallet with the stable you already have, link it on your profile first.
+          </>,
+          <>
+            <b>A link code.</b> On your <GameLink href="/me">profile</GameLink>, get a code and type it in at <GameLink href="/link">Sign in</GameLink> on the other device. It works
+            for {Math.round(LINK_CODE_TTL_MS / 60_000)} minutes, once.
+          </>,
+          <>
+            <b>Your login code (testing phase only).</b> Every tester has one permanent login code. It shows under your first race result and is always on your profile. Enter it at{" "}
+            <GameLink href="/link">Sign in</GameLink> on any browser, as often as you like, no wallet needed. It never changes, so keep it to yourself.
+          </>,
         ]}
       />
 
@@ -96,6 +131,17 @@ export default function QuickStartPage() {
           </>,
         ]}
       />
+      <H2 id="verdict">Why it went that way</H2>
+      <P>
+        Under your result, {WILF} gives his verdict in one sentence: why the race went the way it did, from the pace, your horse&rsquo;s energy, its position and how well the race
+        suited it. Then he names <b>one change</b> to try, with a button that does it: <b>Try again as a stalker</b> (or another riding plan), <b>Try again at a race that suits</b>,{" "}
+        <b>Race [another horse] instead</b> when yours needs a rest, or simply <b>Race [your horse] again</b>. The button runs a free Story race against the Club straight away, so you
+        can see the change work before your next Live race.
+      </P>
+      <P>
+        Below it, <b>The race in numbers</b> shows the detail. Its <b>energy line</b> draws your horse&rsquo;s energy from the off to the finish beside a typical rival&rsquo;s, with a
+        dotted line where a horse starts running on empty and a mark where yours ran low. Tap <b>In words</b> for the same thing as a sentence.
+      </P>
       <Callout tone="tip">
         <p>
           Match the race to the horse. A sprinter in a long race, or a dirt horse on turf, gives away ground before the gates open. The entry sheet puts your best-suited fresh horse first,
@@ -103,24 +149,40 @@ export default function QuickStartPage() {
         </p>
       </Callout>
 
-      <H2 id="stable-steps">Stable steps: your first week</H2>
+      <H2 id="first-week">Your first week</H2>
       <P>
-        After your first race, <b>Stable steps</b> on the Estate walk you through the game one job at a time. Each step ticks itself off when you actually do it (the game checks,
-        so there&rsquo;s nothing to claim), pays its credits once, and the last one pays a bonus of <b>{formatCredits(gc.STABLE_STEPS_BONUS)}</b> and the{" "}
-        <b>Learned the Ropes</b> plaque in your Trophy Room. Do them in any order; the guide shows the next one.
+        For your first {gc.FIRST_WEEK_DAYS} days (founding day included), Home shows one list: <b>Your first week</b>. It holds every job worth trying once, in the order most new
+        trainers meet them, with {WILF} saying what the next one is for. The next {count(gc.FIRST_WEEK_SHOWN, "job")} show, each one tap away; the rest wait under <b>All</b>.
+        Today&rsquo;s goals sit at the bottom of the same list. Each job ticks itself off when you actually do it (the game checks, so there&rsquo;s nothing to claim), and the list goes
+        away once everything is done or the week is over.
       </P>
       <Table
-        head={["Step", "How it ticks", "Credits"]}
-        rows={STEP_ROWS.filter(([key]) => gc.stableStepsFor({ quickRaces: true }).some((x) => x.key === key)).map(([key, title, how]) => [
-          title,
-          how,
-          gc.STABLE_STEPS.find((x) => x.key === key)!.credits,
+        head={["Job", "How it ticks", "Credits"]}
+        rows={gc.FIRST_WEEK_ORDER.filter((key) => !gc.isStableStepKey(key) || gc.stableStepsFor({ quickRaces: true }).some((x) => x.key === key)).map((key) => [
+          WEEK_ROWS[key][0],
+          WEEK_ROWS[key][1],
+          gc.isStableStepKey(key) ? gc.STABLE_STEPS.find((x) => x.key === key)!.credits : "–",
         ])}
       />
       <P>
-        That&rsquo;s {formatCredits(gc.stableStepsTotal({}))} credits in all with the bonus. The quick race step only appears once quick races are in the game. Stables
-        founded before the guide arrived don&rsquo;t get it, and keep everything they had.
+        The jobs with credits are the <b>Stable steps</b>. Each pays once, and finishing them all pays a bonus of <b>{formatCredits(gc.STABLE_STEPS_BONUS)}</b> and the{" "}
+        <b>Learned the Ropes</b> plaque in your Trophy Room: {formatCredits(gc.stableStepsTotal({ quickRaces: true }))} credits in all with the bonus. The other jobs just point the
+        way. The quick race job only appears once quick races are in the game. Stables founded before the list arrived don&rsquo;t get it, and keep everything they had.
       </P>
+
+      <H2 id="bloodline">Starting a bloodline</H2>
+      <P>
+        From your stable&rsquo;s {ordinal(gc.BLOODLINE_NUDGE_DAYS + 1)} day, {WILF} suggests a bloodline on Home. He picks one of your fillies: a mare already retired comes first,
+        otherwise your lowest-rated racing filly, so your best racers keep racing. Retire her to the broodmares and she can be covered the same day; the button takes you straight to the
+        stallion finder. Retiring is for good, so the game asks first. <b>Not now</b> puts the suggestion away for good, and it never shows once you have bred. See{" "}
+        <WikiLink slug="breeding-basics" />.
+      </P>
+      <Callout tone="tip" title="Testers: one question after a week">
+        <p>
+          After your first {MISS_IT_AFTER_DAYS} days, Home asks testers once: &ldquo;If Post Time disappeared tomorrow, would you miss it?&rdquo; Pick <b>Very much</b>,{" "}
+          <b>Somewhat</b> or <b>Not really</b>, and add why if you like. It helps decide what to work on next.
+        </p>
+      </Callout>
 
       <H2 id="unlocks">What opens later</H2>
       <P>A new stable meets a few features a little later, so the first day isn&rsquo;t everything at once. Nothing you have already used is ever taken away.</P>
@@ -128,7 +190,7 @@ export default function QuickStartPage() {
         head={["Feature", "Opens"]}
         rows={[
           ["The tote (betting with credits on Live races)", "After you watch one of your own Live races"],
-          ["The market and leasing", `On your stable's ${gc.UNLOCK_MARKET_DAYS + 1}rd day, or when you finish Story chapter 1`],
+          ["The market, leasing and buying Premium Packs", `On your stable's ${ordinal(gc.UNLOCK_MARKET_DAYS + 1)} day, or when you finish Story chapter 1`],
           ["Claiming races and jockey contracts (and the transfer window)", "When you finish Story chapter 1"],
           ["Show numbers (the detailed stats)", "Always open"],
         ]}

@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { RULES } from "@thoroughbred/db";
+import { NOTIFICATION_CATEGORIES, RULES } from "@thoroughbred/db";
 import { Callout, Figure, GameLink, H2, Icon, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 export default function TheEstatePage() {
@@ -60,10 +60,16 @@ export default function TheEstatePage() {
       <List
         items={[
           <>
-            <b>Road to Saturday</b>: a tile that opens <GameLink href="/week">This week</GameLink>, with this week&rsquo;s Feature, your Qualifiers and your League line.
+            <b>Your first week</b>: for a new stable, one list of jobs to try, today&rsquo;s goals included, each one tap away. It goes once everything is done or the week is over.
+            See <WikiLink slug="quick-start" />.
           </>,
           <>
-            <b>Today</b>: things ready for you, such as horses to groom, a free Paddock Pack, a mare ready to foal or the Daily Cup.
+            <b>Road to Saturday</b>: a tile that opens <GameLink href="/week">This week</GameLink>, with this week&rsquo;s Feature, your Qualifiers and your League line. It appears
+            after your first Live entry, and so do your rivals.
+          </>,
+          <>
+            <b>Today</b>: things ready for you, such as horses to groom, a free Paddock Pack, a mare ready to foal or the Daily Cup. During your first week it is called{" "}
+            <b>Also today</b> and only shows what isn&rsquo;t on your list.
           </>,
           <>
             <b>Today&rsquo;s goals</b>: run a race, care for a horse and run the Daily Cup, each worth {gc.DAILY_GOAL_CREDITS} credits. See <WikiLink slug="credits-and-entries" />.
@@ -162,7 +168,8 @@ export default function TheEstatePage() {
             <Icon name="bell" size={16} /> <b>Notifications</b>: the bell, with a count of what&rsquo;s new. See <a href="#notifications" className="link">Notifications</a> below.
           </>,
           <>
-            <b>Your silks</b>: your profile and settings.
+            <b>Your silks</b>: your profile and settings. Not signed in? The top bar shows <b>Connect wallet</b> instead: pick your wallet and one free signature signs you in (see{" "}
+            <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>).
           </>,
           <>
             <Icon name="papers" size={16} /> <b>Wiki</b>: this guide, from any screen.
@@ -178,8 +185,8 @@ export default function TheEstatePage() {
         name, and news from that race waits until you&rsquo;ve seen it. <b>Mark all read</b> clears the count without marking any result as watched.
       </P>
       <P>
-        In your <GameLink href="/me">profile</GameLink>, <b>Notifications</b> has a switch for each kind (races and results, horse health and care, training, market and sales,
-        breeding and stud, jockeys, betting, Club and news), all on to begin with. A kind switched off leaves the bell and its count, but the full list under{" "}
+        In your <GameLink href="/me">profile</GameLink>, <b>Notifications</b> has a switch for each kind (
+        {NOTIFICATION_CATEGORIES.map((c) => c.label.replace(/&/g, "and").toLowerCase()).join(", ")}), all on to begin with. Notifications live inside the game: the bell and the inbox. A kind switched off leaves the bell and its count, but the full list under{" "}
         <GameLink href="/me/notifications">All notifications</GameLink> still keeps everything, so nothing is ever lost.
       </P>
 
@@ -188,6 +195,10 @@ export default function TheEstatePage() {
         Your <GameLink href="/me">profile</GameLink> is where your stable&rsquo;s name and colours live, and where you set a <b>stable photo</b>: upload a PNG, JPEG or WebP up
         to {Math.floor(gc.STABLE_PHOTO_MAX_UPLOAD_BYTES / (1024 * 1024))} MB and it shows next to your stable name wherever your silks show. It&rsquo;s cropped to a square, and you can
         change it {count(gc.STABLE_PHOTO_UPLOADS_PER_DAY, "time")} a day; remove it and the silks come back.
+      </P>
+      <P>
+        Your profile is also where you take your stable to another device: a link code for a new browser, a wallet to link for sign-in and, during the testing phase, your permanent{" "}
+        <b>login code</b>. See <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>.
       </P>
 
       <Callout tone="tip">

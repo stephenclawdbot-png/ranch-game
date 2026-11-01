@@ -6,6 +6,9 @@ import React from "react";
 (globalThis as unknown as { React: typeof React }).React = React;
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import * as gc from "@thoroughbred/game-core";
+import { CASTERS } from "@thoroughbred/race-viewer";
+import { STABLE_NAME_MAX, STABLE_NAME_MIN } from "@/lib/stableName";
 import { WIKI_CONTENT } from "./content";
 import { WIKI_PAGES, WIKI_SECTIONS, pagesIn } from "./registry";
 import { searchWiki } from "./WikiNav";
@@ -37,7 +40,29 @@ describe("wiki", () => {
     }
   });
 
+  it("recent features are written up, in words that match the rules", () => {
+    const text = (slug: string) => html.get(slug)!.replace(/<[^>]+>/g, "").replace(/&#x27;|&rsquo;|’/g, "'");
+    // Radio commentary: the page says three casters, and there are three.
+    expect(CASTERS.length).toBe(3);
+    expect(text("how-races-are-run")).toContain("Three casters.");
+    // The first-week list: every job in the game's order, and the stable name rules.
+    const qs = text("quick-start");
+    expect(qs).toContain("Your first week");
+    expect(qs).toContain("Read a career story");
+    expect(qs).toContain(`${STABLE_NAME_MIN} to ${STABLE_NAME_MAX} characters`);
+    expect(qs).not.toMatch(/suggests a stable name/);
+    // Jockeys start at E; career tables never run past the last start.
+    expect(text("jockeys")).toContain("Every jockey starts at E");
+    const career = html.get("racing-career")!;
+    for (const m of career.matchAll(/<th scope="row">(\d+)<\/th>/g)) expect(Number(m[1])).toBeLessThanOrEqual(gc.CAREER_MAX_STARTS);
+    // Prize money: the winner gets what rounding and empty places leave.
+    expect(text("credits-and-entries")).toContain("How a purse is split");
+  });
+
   it("search finds pages by title and keyword", () => {
+    expect(searchWiki("radio").map((p) => p.slug)).toContain("how-races-are-run");
+    expect(searchWiki("login code").map((p) => p.slug)).toContain("quick-start");
+    expect(searchWiki("notifications").map((p) => p.slug)).toContain("the-estate");
     expect(searchWiki("foal").map((p) => p.slug)).toContain("breeding-basics");
     expect(searchWiki("fragile")[0]?.slug).toBe("fragile-legs");
     expect(searchWiki("lease").map((p) => p.slug)).toContain("leasing");

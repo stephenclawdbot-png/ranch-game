@@ -32,14 +32,22 @@ export default function UsdgMarketPage() {
       )}
       <Callout tone="tip" title="During the beta: T-USDG, test money">
         <p data-testid="wiki-tusdg-explainer" data-practice-raw>
-          During the beta, USDG is test money (T-USDG): you sign in with your wallet, nothing is charged and nothing can be withdrawn. Balances may be reset when the beta ends.
+          During the beta, USDG is test money (T-USDG): no wallet needed (you trade as your stable; a linked wallet is used if you have one), nothing is charged and nothing can be
+          withdrawn. Balances may be reset when the beta ends.
         </p>
         <p>
-          While the game runs in practice mode, every account gets <b>{gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)}</b> once, the first time its wallet signs in. Everything below works the same,
+          While the game runs in practice mode, every player gets <b>{gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)}</b> once, when the stable is founded (an older stable gets it the
+          first time it uses a T-USDG feature). It is one balance per player: a second stable on the same device, wallet or email gets no second one. Everything below works the same,
           with T-USDG instead of USDG: registration, buying, auctions, USDG stud fees, Premium Packs (1 T-USDG per dollar of the price) and the tote&rsquo;s T-USDG pools all use that one
-          balance. T-USDG can&rsquo;t be bought, sold, withdrawn or swapped for Stable Credits, and no network, faucet or transaction is needed: bids are still free wallet signatures.
-          Horses and trophies are owned in the game only (no NFTs).
+          balance. T-USDG can&rsquo;t be bought, sold, withdrawn or swapped for Stable Credits, and no network, faucet or transaction is needed. Horses and trophies are owned in the game
+          only (no NFTs).
         </p>
+        {practice && (
+          <p>
+            <b>No wallet? You trade as your stable.</b> Listings, bids and sales show your stable&rsquo;s name, never an address, and a bid is one tap: the game signs it for you. If
+            you link a wallet later, your T-USDG balance, horses, listings and bids stay yours, new trades use the wallet, and the starting balance isn&rsquo;t given twice.
+          </p>
+        )}
       </Callout>
       {!practice && (
         <Callout tone="warn" title="Testnet first">
@@ -63,7 +71,7 @@ export default function UsdgMarketPage() {
         ]}
       />
       <P>
-        You need a <b>linked wallet</b> (one free signature, one wallet per stable) and you confirm you are 18 or over. Registration costs <b>{usd(p.registrationFee)}</b> once per horse, paid in USDG to
+        You need a <b>linked wallet</b> (one free signature, one wallet per stable{practice ? "; during the beta your stable is enough" : ""}) and you confirm you are 18 or over. Registration costs <b>{usd(p.registrationFee)}</b> once per horse, paid in USDG to
         the Club. The fee makes it pointless to farm free horses for cash.
       </P>
 
@@ -87,7 +95,7 @@ export default function UsdgMarketPage() {
       <H2 id="buying">Buying at a fixed price</H2>
       <Steps
         items={[
-          <>On <GameLink href="/market#usdg">Sales → USDG</GameLink>, pick a lot. You need a linked wallet and a free stall.</>,
+          <>On <GameLink href="/market#usdg">Sales → USDG</GameLink>, pick a lot. You need {practice ? "a free stall (no wallet needed during the beta)" : "a linked wallet and a free stall"}.</>,
           <>Press Buy. The lot is held for you for {Math.round(p.quoteTtlMs / 60_000)} minutes while you pay; nobody else can buy it meanwhile.</>,
           <>Your wallet approves exactly the price, then pays. The horse moves to your stable as soon as the payment is confirmed.</>,
         ]}
@@ -101,7 +109,7 @@ export default function UsdgMarketPage() {
 
       <H2 id="auctions">Auctions</H2>
       <P>
-        A bid is a <b>free signature</b> from your linked wallet, not a payment, so nobody&rsquo;s money is locked up while an auction runs. The first bid must meet the reserve; each next bid must beat the
+        A bid is a <b>free signature</b> from your linked wallet{practice ? " (without one, the game signs for your stable)" : ""}, not a payment, so nobody&rsquo;s money is locked up while an auction runs. The first bid must meet the reserve; each next bid must beat the
         best by {p.bidIncrementBps / 100}% (at least {usd(p.bidIncrementMin)}). On a {usd(reserve)} reserve, the second bid starts at {usd(second)}.
       </P>
       <Table

@@ -1,8 +1,10 @@
 import * as gc from "@thoroughbred/game-core";
-import { PRIZE_SPLIT_PCT } from "@thoroughbred/racing-engine";
+import { PURSE_SPLIT_PCT, purseShares } from "@thoroughbred/shared";
 import { formatCredits } from "@/lib/format";
 import { Callout, Facts, GameLink, H2, H3, Icon, Lead, List, P, Table, WikiLink, count, pct } from "../kit";
 
+/** An example purse for the split table (an odd amount, so the rounding shows). */
+const SPLIT_EXAMPLE_PURSE = 2_555;
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
 /** A real entry bank over a few days, run through game-core's grant and spend rules. */
@@ -59,7 +61,7 @@ export default function CreditsAndEntriesPage() {
       <Table
         head={["Source", "What it pays"]}
         rows={[
-          ["Live races", `A share of the purse for the first ${PRIZE_SPLIT_PCT.length} home: ${PRIZE_SPLIT_PCT.map((p, i) => `${ordinal(i + 1)} ${p}%`).join(", ")}`],
+          ["Live races", `A share of the purse for the first ${PURSE_SPLIT_PCT.length} home: ${PURSE_SPLIT_PCT.map((p, i) => `${ordinal(i + 1)} ${p}%`).join(", ")}`],
           ["Story races", `A first win of each Story race pays the chapter's reward; any other finish pays ${gc.STORY_REPLAY_REWARD}`],
           ["Today's goals", `${gc.DAILY_GOAL_CREDITS} each for running a race, caring for a horse and running the Daily Cup (${gc.DAILY_GOAL_CREDITS * gc.DAILY_GOALS_PER_DAY} a day)`],
           ["Daily Cup", `${gc.CUP_PARTICIPATION_CREDITS} for your run each day`],
@@ -68,6 +70,20 @@ export default function CreditsAndEntriesPage() {
           ["Insurance", `${pct(gc.INSURANCE_PAYOUT_PERMILLE)} of the horse's appraisal if an injury ends its racing career`],
           ["Releasing a horse to the Club", `${gc.RELEASE_TO_CLUB_CREDITS} credits`],
         ]}
+      />
+      <H3>How a purse is split</H3>
+      <P>
+        Each placed horse gets its share of the purse, rounded down to a whole credit. Whatever the rounding leaves over goes to the <b>winner</b>, and so do the shares of any places
+        nobody filled: in a field of fewer than {PURSE_SPLIT_PCT.length}, the winner collects the missing places&rsquo; shares too. The whole purse is always paid out, exactly as the
+        replay shows it.
+      </P>
+      <Table
+        head={["Runners", ...PURSE_SPLIT_PCT.map((_, i) => ordinal(i + 1))]}
+        rows={[PURSE_SPLIT_PCT.length + 4, PURSE_SPLIT_PCT.length - 2].map((n) => {
+          const shares = purseShares(SPLIT_EXAMPLE_PURSE, n);
+          return [n, ...PURSE_SPLIT_PCT.map((_, i) => (shares[i] === undefined ? "–" : formatCredits(shares[i]!)))];
+        })}
+        caption={`A ${formatCredits(SPLIT_EXAMPLE_PURSE)}-credit purse, in credits, for a full field and a small one.`}
       />
       <H3>Story rewards by chapter</H3>
       <P>Story rewards are capped per chapter, so they get you started but can&rsquo;t be farmed forever.</P>
