@@ -156,7 +156,9 @@ export async function recordRaceClip(opts: RecordClipOptions): Promise<RecordedC
   const leadCrop = layout.vertical && built.trackside;
   const sw = Math.max(1, leadCrop ? W : cropW);
   scene.resize(sw, Math.max(1, Math.round(band.h / zoom)));
-  scene.warmup();
+  await scene.warmup();
+  // the whole race is drawn offline: every sheet, no gallop stand-ins
+  await scene.allSheets();
 
   const lines = buildRaceCall({
     replay,

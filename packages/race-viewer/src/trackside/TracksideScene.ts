@@ -29,7 +29,8 @@ import type { ArtSet } from "../three/art";
 import type { SceneFrame, SceneRaceData } from "../three/HD2DScene";
 import type { Director, DirectorInput } from "../director";
 import { hexToRgb } from "../three/color";
-import { loadFxPalette, loadStageArt, loadTracksideArt, type FxPalette, type StripSet, type TracksideArt } from "./art";
+import { loadFxPalette, loadStageArt, loadTracksideArt, type FxPalette, type SheetFrame, type StripSet, type TracksideArt } from "./art";
+import type { SheetId } from "./sheets";
 import * as bake from "./bake";
 import { StallGate } from "./gate";
 import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldGap, type FieldLayout, type SpriteMetrics } from "./layout";
@@ -60,6 +61,8 @@ export interface TracksideOptions {
   injured?: ReadonlySet<string>;
   /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
   preOff?: PreOffPlan | null;
+  /** Horse sheets to have before the first picture (the gallop always; the rest follow). */
+  firstSheets?: readonly SheetId[];
   /** Saddle cloths in each runner's gate colour and number (V-03); false = the strips' white cloths. Default true. */
   clothColours?: boolean;
 }
@@ -164,17 +167,67 @@ function rgb01(hex: string): [number, number, number] {
   return [r / 255, g / 255, b / 255];
 }
 
-/** Metric box of a strip at its own density (m). */
-function stripMetrics(st: StripSet): SpriteMetrics {
-  const l = st.lods[0]!;
-  const pad = 4 / st.pxPerM;
-  return { lenM: l.fw / st.pxPerM + pad * 2, heightM: l.anchor.y / st.pxPerM + pad, noseM: (l.fw - l.anchor.x) / st.pxPerM + pad, tailM: l.anchor.x / st.pxPerM + pad };
+/** Metric box of a strip at its own density (m), from its first level's frame (known before its pixels arrive). */
+export function stripMetrics(l: SheetFrame): SpriteMetrics {
+  const pad = 4 / l.pxPerM;
+  return { lenM: l.fw / l.pxPerM + pad * 2, heightM: l.anchor.y / l.pxPerM + pad, noseM: (l.fw - l.anchor.x) / l.pxPerM + pad, tailM: l.anchor.x / l.pxPerM + pad };
 }
 function unionMetrics(a: SpriteMetrics, b: SpriteMetrics | null): SpriteMetrics {
   if (!b) return a;
   const noseM = Math.max(a.noseM, b.noseM);
   const tailM = Math.max(a.tailM, b.tailM);
   return { lenM: noseM + tailM, heightM: Math.max(a.heightM, b.heightM), noseM, tailM };
+}
+
+function newRenderer(T: typeof THREE): THREE.WebGLRenderer {
+  return new T.WebGLRenderer({ antialias: false, alpha: false, stencil: false, depth: false, powerPreference: "high-performance" });
+}
+
+/**
+ * Starts compiling the view's programs (the horse's is the big one) before the art is in: the
+ * same sources and flags as the scene's own materials, so they hit three's program cache. Returns
+ * the release of the probe materials (call it once the scene's materials hold the programs).
+ */
+function prewarmPrograms(T: typeof THREE, renderer: THREE.WebGLRenderer): { draw: () => void; release: () => void } {
+  const none = { draw: () => {}, release: () => {} };
+  try {
+    const scene = new T.Scene();
+    const geo = new T.PlaneGeometry(1, 1);
+    const mats = [S.horseFrag(S.HORSE_FRAG, gpuBodyShape()), S.BAND_FRAG, S.GROUND_FRAG, S.GRAD_FRAG].map(
+      (frag) =>
+        new T.ShaderMaterial({ vertexShader: S.QUAD_VERT, fragmentShader: frag, transparent: true, premultipliedAlpha: true, depthTest: false, depthWrite: false, side: T.DoubleSide, blending: T.NormalBlending }),
+    );
+    for (const m of mats) scene.add(new T.Mesh(geo, m));
+    const cam = new T.OrthographicCamera(0, 1, 0, 1, -10, 10);
+    renderer.compile(scene, cam);
+    // hand the compile to the GPU now (it only blocks the page when a program is first used)
+    renderer.getContext().flush();
+    let drawn = false;
+    return {
+      draw: () => {
+        if (drawn) return;
+        drawn = true;
+        try {
+          // one pixel of the (not yet shown) canvas: the same programs and states as the scene's draws
+          renderer.setRenderTarget(null);
+          renderer.setScissorTest(true);
+          renderer.setScissor(0, 0, 1, 1);
+          renderer.setViewport(0, 0, 1, 1);
+          renderer.render(scene, cam);
+          renderer.setScissorTest(false);
+          renderer.getContext().flush();
+        } catch {
+          /* the first frame builds them instead */
+        }
+      },
+      release: () => {
+        for (const m of mats) m.dispose();
+        geo.dispose();
+      },
+    };
+  } catch {
+    return none;
+  }
 }
 
 export class TracksideScene {
@@ -199,6 +252,11 @@ export class TracksideScene {
   private runners: Runner[] = [];
   private byLane: Runner[] = [];
   private lodTex = new Map<StripSet, LodTex[]>();
+  /** Sheets whose textures are all on the GPU (drawable), and late ones still uploading. */
+  private sheetsUp = new Set<StripSet>();
+  private uploads: { st: StripSet; tex: THREE.Texture[] }[] = [];
+  private artVersion = -1;
+  private lastRealDt = 0;
   private mskTex = new Map<StripSet, THREE.DataTexture>();
   private coatTex = new Map<StripSet, { uv: THREE.DataTexture; pq: THREE.DataTexture }>();
   private keyInfo!: THREE.DataTexture;
@@ -267,12 +325,30 @@ export class TracksideScene {
   /** Loads the Trackside art; rejects when the keyed horse strip is unavailable. */
   static async create(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions): Promise<TracksideScene> {
     const stage = opts.stage ?? buildRaceStage(opts.course, data);
-    const [art, images, fx] = await Promise.all([loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery)), loadStageArt(opts.art, stage), loadFxPalette(opts.art)]);
-    if (!art) throw new Error("Trackside art unavailable");
-    return new TracksideScene(T, data, { ...opts, stage }, art, { images, fx });
+    // The renderer and its programs first: the GPU compiles them while the art downloads and
+    // decodes (compiling only blocks when a program is first used, by then it is done).
+    const renderer = newRenderer(T);
+    const probes = prewarmPrograms(T, renderer);
+    try {
+      const [art, images, fx] = await Promise.all([loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery), opts.firstSheets), loadStageArt(opts.art, stage), loadFxPalette(opts.art)]);
+      if (!art) throw new Error("Trackside art unavailable");
+      // one tiny draw with every program: the GPU builds its pipelines while the scene is put together
+      probes.draw();
+      const sc = new TracksideScene(T, data, { ...opts, stage }, art, { images, fx }, renderer);
+      sc.probes = probes.release;
+      return sc;
+    } catch (err) {
+      probes.release();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      throw err;
+    }
   }
 
-  private constructor(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions, art: TracksideArt, stageArt: StageArtSet) {
+  /** Releases the prewarm probes (their programs stay cached while the scene's own materials use them). */
+  private probes: () => void = () => {};
+
+  private constructor(T: typeof THREE, data: SceneRaceData, opts: TracksideOptions, art: TracksideArt, stageArt: StageArtSet, renderer: THREE.WebGLRenderer) {
     this.T = T;
     this.data = data;
     this.art = art;
@@ -288,12 +364,12 @@ export class TracksideScene {
     this.look = this.stage.look.trackside;
     this.uSat = { value: this.look.saturation };
     this.uBright = { value: this.look.brightness };
-    let sprite = unionMetrics(stripMetrics(art.gallop), art.idle ? stripMetrics(art.idle) : null);
-    for (const st of Object.values(art.strips)) sprite = unionMetrics(sprite, stripMetrics(st));
+    // every sheet's extents, the ones still on their way included: the sprite box never changes
+    let sprite = stripMetrics({ ...art.gallop.lods[0]!, pxPerM: art.gallop.pxPerM });
+    for (const f of art.frames) sprite = unionMetrics(sprite, stripMetrics(f));
     this.sprite = sprite;
     this.applyResult();
 
-    const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, stencil: false, depth: false, powerPreference: "high-performance" });
     renderer.autoClear = true;
     renderer.setClearColor(new T.Color(this.look.skyTop), 1);
     this.renderer = renderer;
@@ -313,15 +389,7 @@ export class TracksideScene {
     this.scene.add(this.trackLayer);
 
     this.lut = this.dataTex(buildLut(art.palette, art.keys, data.horses.map((h) => h.appearance), runnerCloths(data.horses, opts.clothColours)), LUT_W, Math.max(1, data.horses.length), T.RGBAFormat);
-    for (const st of [art.gallop, art.idle, ...Object.values(art.strips)]) {
-      if (!st) continue;
-      this.lodTex.set(
-        st,
-        st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
-      );
-      this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
-      this.coatTex.set(st, { uv: this.dataTex(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: this.dataTex(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
-    }
+    this.adoptSheets(false);
     this.keyInfo = this.dataTex(buildKeyInfo(art.palette, art.keys), 64, 2, T.RGBAFormat);
     this.atlasTex = art.atlas ? this.dataTex(art.atlas.data, art.atlas.width, art.atlas.height, T.RedFormat) : this.dataTex(new Uint8Array(1), 1, 1, T.RedFormat);
     this.buildBackdrop();
@@ -350,6 +418,76 @@ export class TracksideScene {
   private own<G extends { dispose(): void }>(g: G): G {
     this.disposables.push(g);
     return g;
+  }
+
+  /**
+   * Textures for the sheets that have arrived since the last look (the art keeps loading after
+   * the first picture). Late sheets upload a few textures per frame (`uploadSheets`) and are
+   * drawn only once complete; until then `stripFor` falls back to the gallop.
+   */
+  private adoptSheets(late: boolean): void {
+    const T = this.T;
+    const art = this.art;
+    this.artVersion = art.version;
+    for (const st of [art.gallop, art.idle, ...Object.values(art.strips)]) {
+      if (!st || this.lodTex.has(st)) continue;
+      const before = this.textures.length;
+      this.lodTex.set(
+        st,
+        st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
+      );
+      this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
+      this.coatTex.set(st, { uv: this.dataTex(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: this.dataTex(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
+      if (late) this.uploads.push({ st, tex: this.textures.slice(before) });
+      else this.sheetsUp.add(st);
+    }
+  }
+
+
+  /** Every horse sheet on the GPU now (offline recording: no gallop stand-ins). */
+  async allSheets(): Promise<void> {
+    await this.art.complete;
+    this.adoptSheets(false);
+  }
+
+
+  /**
+   * Dev (motion checks): record every drawn frame, per runner, what the eye sees: the drawn
+   * anchor's screen x and y (CSS px), the strip frame, the level of detail, the scale (buffer
+   * px per texel) and the race x (m). `recordMotion(true)` starts, `recordMotion(false)` returns
+   * the frames ([raceT, realDt, camX, then 6 numbers per runner]).
+   */
+  recordMotion(on: boolean): number[][] | null {
+    const out = this.motionRec;
+    this.motionRec = on ? [] : null;
+    return out;
+  }
+  private motionRec: number[][] | null = null;
+  private motionRow: number[] | null = null;
+
+  /** Upload a late sheet's textures, a couple per frame (no hitch); it is drawn once all are up. */
+  private uploadSheets(): void {
+    // textures that missed the first picture (already uploaded ones cost nothing here)
+    for (let i = 0; i < 3 && this.texQueue.length; i++) {
+      try {
+        this.renderer.initTexture(this.texQueue.shift()!);
+      } catch {
+        /* the draw uploads it */
+      }
+    }
+    const u = this.uploads[0];
+    if (!u) return;
+    for (let i = 0; i < 2 && u.tex.length; i++) {
+      try {
+        this.renderer.initTexture(u.tex.shift()!);
+      } catch {
+        /* the draw uploads it */
+      }
+    }
+    if (!u.tex.length) {
+      this.uploads.shift();
+      this.sheetsUp.add(u.st);
+    }
   }
 
   private dataTex(data: Uint8Array, w: number, h: number, format: THREE.PixelFormat): THREE.DataTexture {
@@ -823,6 +961,8 @@ export class TracksideScene {
   }
 
   render(f: SceneFrame): void {
+    if (this.art.version !== this.artVersion) this.adoptSheets(true);
+    this.uploadSheets();
     const raceT = f.time;
     const tS = Math.max(0, raceT);
     let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
@@ -843,6 +983,7 @@ export class TracksideScene {
     this.lastTime = raceT;
     this.animTime += simDt;
     const realDt = Math.min(0.1, Math.max(0, f.realDt));
+    this.lastRealDt = f.realDt;
     if (!f.frozen) this.realTime += realDt;
     const L = this.L;
 
@@ -1211,12 +1352,14 @@ export class TracksideScene {
   /** The strip for a runner's animation, falling back to the gallop/idle when art is missing. */
   private stripFor(anim: AnimId): { st: StripSet; idle: boolean } {
     const art = this.art;
-    if (anim === "idle") return art.idle ? { st: art.idle, idle: true } : { st: art.strips.break ?? art.gallop, idle: false };
+    const up = (st: StripSet | null | undefined) => (st && this.sheetsUp.has(st) ? st : undefined);
+    const idle = up(art.idle);
+    if (anim === "idle") return idle ? { st: idle, idle: true } : { st: up(art.strips.break) ?? art.gallop, idle: false };
     if (anim === "gallop") return { st: art.gallop, idle: false };
-    const s = art.strips[anim];
+    const s = up(art.strips[anim]);
     if (s) return { st: s, idle: false };
-    if (anim === "break" && art.idle) return { st: art.idle, idle: true };
-    return { st: anim === "drive" || anim === "lunge" ? art.strips.drive ?? art.gallop : art.gallop, idle: false };
+    if (anim === "break" && idle) return { st: idle, idle: true };
+    return { st: anim === "drive" || anim === "lunge" ? (up(art.strips.drive) ?? art.gallop) : art.gallop, idle: false };
   }
 
   private drawRunners(lay: FieldLayout, simDt: number, raceT: number, tS: number) {
@@ -1225,6 +1368,7 @@ export class TracksideScene {
     // depth order: far lanes first
     this.byLane.sort((a, b) => b.lane - a.lane || a.x - b.x);
     this.byLane.forEach((r, i) => (r.mesh.renderOrder = O.horse + i));
+    const rec = this.motionRec ? (this.motionRow = [raceT, this.lastRealDt, lay.cx]) : null;
     for (const r of this.runners) {
       const p = lay.placed[r.index]!;
       const s = r.st;
@@ -1270,7 +1414,9 @@ export class TracksideScene {
       // one ground-fx burst per stride, from the leading hind hoof (~1.9 m behind the nose)
       if (simDt > 0 && r.speed > 5 && !Number.isNaN(r.lastPhase) && Math.floor(s.phase) > Math.floor(r.lastPhase)) this.emitFx(r, r.x - 1.9);
       r.lastPhase = s.phase;
+      if (rec) rec.push((x + lod.anchor.x * k) / B, (y + lod.anchor.y * k) / B, frame, r.lod, k, r.x);
     }
+    if (rec) this.motionRec!.push(rec);
     void raceT;
     if (this.marker && this.highlight >= 0) {
       const r = this.runners[this.highlight]!;
@@ -1484,33 +1630,26 @@ export class TracksideScene {
    * Pre-warm the GPU so nothing compiles or uploads mid-race: upload every texture (all
    * sprite levels of detail), compile every program, draw one full frame.
    */
-  warmup(): void {
+  async warmup(): Promise<void> {
     const r = this.renderer;
-    for (const t of this.textures) {
-      try {
-        r.initTexture(t);
-      } catch {
-        /* not ready */
-      }
+    // Every program, compiled off the main thread where the GPU allows (KHR_parallel_shader_compile).
+    try {
+      await r.compileAsync(this.scene, this.camera);
+    } catch {
+      r.compile(this.scene, this.camera);
     }
-    // Every horse material once with each LOD bound, so the uniform paths are warm too.
-    for (const [st, lts] of this.lodTex) {
-      for (const lt of lts) {
-        for (const run of this.runners) {
-          run.mat.uniforms.uIdx!.value = lt.idx;
-          run.mat.uniforms.uMsk!.value = this.mskTex.get(st);
-          run.mat.uniforms.uMsk2!.value = this.coatTex.get(st)!.uv;
-          run.mat.uniforms.uMsk3!.value = this.coatTex.get(st)!.pq;
-        }
-        r.compile(this.scene, this.camera);
-      }
-    }
+    this.probes();
+    this.probes = () => {};
     for (const run of this.runners) run.mesh.visible = true;
     for (const p of this.fx) p.mesh.visible = true;
     this.render({ time: -1, realDt: 0, camera: "director", frozen: false, flash: 0.5 });
     this.lastTime = Number.NaN;
     this.firstFrame = true;
+    // The first picture uploaded what it drew; everything else (other levels of detail, fx,
+    // the gate) goes up a couple of textures per frame from here, before the race needs it.
+    this.texQueue = [...this.textures];
   }
+  private texQueue: THREE.Texture[] = [];
 
   destroy(): void {
     for (const d of this.disposables) {

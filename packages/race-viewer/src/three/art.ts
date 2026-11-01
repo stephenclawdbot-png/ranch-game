@@ -22,7 +22,8 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.decoding = "async";
-    img.onload = () => resolve(img);
+    // decoded off the main thread before anyone draws it (a canvas draw would decode it on the spot)
+    img.onload = () => (typeof img.decode === "function" ? img.decode().then(() => resolve(img), () => resolve(img)) : resolve(img));
     img.onerror = () => reject(new Error(`failed to load ${url}`));
     img.src = url;
   });

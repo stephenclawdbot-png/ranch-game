@@ -1,0 +1,190 @@
+{
+ "format": 1,
+ "key": "6c3008ca8e80e16ea557145a35d52211d992a7d21b8abbe7c6ac4c5636fc1665",
+ "palette": [
+  0,
+  131342,
+  8653167,
+  11408279,
+  15942861,
+  16478888,
+  4198677,
+  7735648,
+  155519,
+  953772,
+  15942860,
+  11211925,
+  1422029,
+  3596780,
+  12653223,
+  789529,
+  5262156,
+  10777172,
+  10765593,
+  16293711,
+  6824467,
+  1973286,
+  15000548,
+  10722986,
+  8663574,
+  15568697,
+  131340,
+  2368041,
+  4998983,
+  6965820,
+  65811,
+  8129126,
+  3025454,
+  131341,
+  2558737,
+  1513249,
+  65812,
+  3551796,
+  9439611,
+  1510160,
+  4799662,
+  12302527,
+  1117982,
+  5641489,
+  2188482,
+  16629074,
+  13289422,
+  2042694,
+  11071584,
+  7327535,
+  4165402,
+  16293712,
+  15000549,
+  3596781
+ ],
+ "sheets": [
+  {
+   "id": "gallop",
+   "stem": "horse-gallop",
+   "file": "horse-gallop.0f1fb529de1e.bin",
+   "bytes": 610703,
+   "entry": {
+    "frameWidth": 229,
+    "frameHeight": 146,
+    "frameCount": 12,
+    "anchor": {
+     "x": 0.974,
+     "y": 0.993
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "idle",
+   "stem": "horse-idle",
+   "file": "horse-idle.239dcc2eba55.bin",
+   "bytes": 896086,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 14,
+    "anchor": {
+     "x": 0.98,
+     "y": 1
+    }
+   },
+   "pxPerM": 104
+  },
+  {
+   "id": "break",
+   "stem": "horse-break",
+   "file": "horse-break.7fd4934c1480.bin",
+   "bytes": 416276,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 8,
+    "anchor": {
+     "x": 0.926,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "drive",
+   "stem": "horse-drive",
+   "file": "horse-drive.1af7218b607b.bin",
+   "bytes": 595431,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 12,
+    "anchor": {
+     "x": 0.926,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "lunge",
+   "stem": "horse-lunge",
+   "file": "horse-lunge.000c30d5ad2b.bin",
+   "bytes": 304450,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 6,
+    "anchor": {
+     "x": 0.879,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "easeup",
+   "stem": "horse-easeup",
+   "file": "horse-easeup.697b5dc10d68.bin",
+   "bytes": 681583,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 13,
+    "anchor": {
+     "x": 0.926,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "celebrate",
+   "stem": "horse-celebrate",
+   "file": "horse-celebrate.9f707a153f0c.bin",
+   "bytes": 598668,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 11,
+    "anchor": {
+     "x": 0.926,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  },
+  {
+   "id": "pullup",
+   "stem": "horse-pullup",
+   "file": "horse-pullup.43221b2992e1.bin",
+   "bytes": 525679,
+   "entry": {
+    "frameWidth": 256,
+    "frameHeight": 192,
+    "frameCount": 10,
+    "anchor": {
+     "x": 0.926,
+     "y": 1
+    }
+   },
+   "pxPerM": 96
+  }
+ ]
+}

@@ -18,8 +18,13 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "@neondatabase/serverless"],
   // The radio commentary phrase library (docs/commentary.md): static clips, kept a day by the
   // browser and the CDN (a re-rendered library reaches everyone within a day).
+  // The precomputed horse sheets (race/sheets/<stem>.<content hash>.bin) never change under a
+  // name: kept for a year, no revalidation round trip on the next race (the index is not).
   async headers() {
-    return [{ source: "/audio/commentary/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] }];
+    return [
+      { source: "/audio/commentary/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+      { source: "/art/race/sheets/:file([^/]+\\.[0-9a-f]{12}\\.bin)", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+    ];
   },
 };
 

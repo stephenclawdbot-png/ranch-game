@@ -2,15 +2,21 @@
  * Trackside art loading (browser only): the keyed gallop and idle strips (+ normal maps,
  * palette) as shared palette-index textures with exact downsampled levels of detail, and
  * the track-dusk layer art (sky, hills, trees, rails, turf, posts) from the art drop.
- * Read only: the same files the "track-dusk" diorama uses.
+ * Read only: the same files the "track-dusk" diorama uses. The horse sheets' derived data is
+ * precomputed with the art (sheets.ts); the browser decodes it, the gallop first.
  */
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
-import { atlasFromRgba, buildCoatGeometry, hairField, sheetSpeed, warpAnchors, type CoatAtlas, type WarpAnchors } from "@thoroughbred/art-pipeline";
-import { applyHairField, downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, stripSaddleCloth, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
+import { atlasFromRgba, type CoatAtlas } from "@thoroughbred/art-pipeline";
+import { newPalette, type Palette } from "./strips";
+import { buildStripSet, decodeSheet, finishSilk, gunzipResponse, paletteFrom, sheetFrame, SHEET_FORMAT, SHEET_ORDER, type SheetEntry, type SheetId, type SheetIndex, type SheetSource, type StripSet } from "./sheets";
+import type { SheetDone, SheetJob } from "./sheet.worker";
 import type { AnimId } from "../stage/motion";
 import type { RaceStage } from "../stage/buildRaceStage";
+
+export type { StripSet } from "./sheets";
+export { RACE_DAY_STRIPS } from "./sheets";
 
 export const BACKDROP_STEMS = [
   "sky-dusk",
@@ -32,31 +38,7 @@ export const BACKDROP_STEMS = [
 ] as const;
 export type BackdropStem = (typeof BACKDROP_STEMS)[number];
 
-export interface StripSet {
-  /** Levels of detail: lods[s - 1] is the s:1 copy (s = 1..4). */
-  lods: IndexedFrames[];
-  /** Per-frame silks box (source texels). */
-  silk: Float32Array;
-  /** Marking masks at lods[0] resolution (RGBA grid; R region, G param, B face edge). */
-  mask: Uint8Array;
-  /** Horse-space coordinates for the coat layers (strips.coatMasks): body u/v, and leg/face/tail params. */
-  maskUv: Uint8Array;
-  maskPq: Uint8Array;
-  /** Barrel depth of this strip (texels at lods[0]): the coat layers' unit. */
-  geoH: number;
-  /** Source texels per metre (the idle strip is authored a little larger). */
-  pxPerM: number;
-  /** Body build landmarks per frame (art-pipeline bodyBuild), the same the CPU painter warps with. */
-  warp: WarpAnchors;
-}
-
-export interface TracksideArt {
-  palette: Palette;
-  keys: KeyPalette;
-  gallop: StripSet;
-  idle: StripSet | null;
-  /** Race-day strips (break, drive, lunge, easeup, celebrate, pullup) that loaded and fit the palette. */
-  strips: Partial<Record<AnimId, StripSet>>;
+export interface TracksideArt extends HorseSheets {
   images: Map<BackdropStem, HTMLImageElement>;
   /** The race's course scenery art (only that course's files are fetched). */
   course: Map<CourseArtSrc, HTMLImageElement>;
@@ -71,7 +53,8 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   return new Promise((res) => {
     const i = new Image();
     i.decoding = "async";
-    i.onload = () => res(i);
+    // decoded off the main thread before anyone draws it (a canvas draw would decode it on the spot)
+    i.onload = () => (typeof i.decode === "function" ? i.decode().then(() => res(i), () => res(i)) : res(i));
     i.onerror = () => res(null);
     i.src = src;
   });
@@ -90,42 +73,6 @@ function approved(art: ArtSet, file: string) {
   return art.manifest?.assets.find((a) => a.status === "approved" && a.src && (a.src === file || a.src.endsWith(`/${file}`)));
 }
 
-async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: number, keys: KeyPalette): Promise<StripSet | null> {
-  const entry = approved(art, `${stem}.png`);
-  if (!entry?.src) return null;
-  const img = await loadImg(urlOf(art, entry.src));
-  if (!img) return null;
-  const nEntry = approved(art, `${stem}-normal.png`);
-  const nImg = nEntry?.src && nEntry.frameWidth === entry.frameWidth ? await loadImg(urlOf(art, nEntry.src)) : null;
-  const rgba = pixels(img);
-  const nrm = nImg && nImg.naturalWidth === img.naturalWidth && nImg.naturalHeight === img.naturalHeight ? pixels(nImg) : null;
-  const fw = entry.frameWidth;
-  const fh = entry.frameHeight;
-  const frames = Math.max(1, Math.min(entry.frameCount, Math.floor(img.naturalWidth / fw)));
-  const anchor = { x: Math.round(entry.anchor.x * fw), y: Math.round(entry.anchor.y * fh) };
-  const l1 = indexStrip(rgba, img.naturalWidth, fh, frames, palette, anchor, nrm);
-  if (!l1) return null;
-  const lods = [l1, downsampleFrames(l1, 2, palette), downsampleFrames(l1, 3, palette), downsampleFrames(l1, 4, palette)];
-  const geo = buildCoatGeometry(indexedRoleGrid(l1, palette, keys));
-  // the feathered horse's long hair, grown once per strip (it streams back by the strip's speed)
-  const hair = stripLongHair(l1, palette, keys, geo, sheetSpeed(`race/${stem}`));
-  // the saddle cloth (V-03), found once per strip; the scenes paint it per runner (LUT) or not at all
-  const cloth = stripSaddleCloth(l1, palette, keys, geo);
-  const mask = buildMarkMasks(l1, palette, keys, geo, hair, cloth);
-  const cm = coatMasks(l1, geo, hair, palette);
-  // women riders: the -f strip's differences go into the same mask (one strip for every runner)
-  const fEntry = approved(art, `${stem}-f.png`);
-  const fImg = fEntry?.src ? await loadImg(urlOf(art, fEntry.src)).catch(() => null) : null;
-  if (fImg && fImg.naturalWidth === img.naturalWidth && fImg.naturalHeight === img.naturalHeight) {
-    const lf = indexStrip(pixels(fImg), img.naturalWidth, fh, frames, palette, anchor, null);
-    if (lf) womanMasks(l1, lf, mask);
-  }
-  // per-horse mane and tail (V-05) and the build landmarks (V-04): the same as the CPU painter's
-  const grid = indexedRoleGrid(l1, palette, keys);
-  applyHairField(l1, geo, hairField(grid, geo, sheetSpeed(`race/${stem}`)), mask, cm.pq);
-  return { lods, silk: new Float32Array(0), mask, maskUv: cm.uv, maskPq: cm.pq, geoH: cm.H, pxPerM, warp: warpAnchors(geo, grid) };
-}
-
 /** A course's scenery art (manifest src paths), approved files only; missing ones are skipped. */
 export async function loadCourseArt(art: ArtSet, recipe: SceneryRecipe | null): Promise<Map<CourseArtSrc, HTMLImageElement>> {
   const out = new Map<CourseArtSrc, HTMLImageElement>();
@@ -140,9 +87,6 @@ export async function loadCourseArt(art: ArtSet, recipe: SceneryRecipe | null): 
   );
   return out;
 }
-
-/** Race-day strips: same palette keys and density as the gallop (art STATUS 1b). */
-export const RACE_DAY_STRIPS = ["break", "drive", "lunge", "easeup", "celebrate", "pullup"] as const;
 
 /**
  * Every stage art file (manifest src: far panorama, midground, stand, rail decor, crowd),
@@ -179,36 +123,261 @@ export interface FxPalette {
   emit: Record<string, string[]>;
 }
 
-/** Everything the Trackside view needs; null when the keyed gallop strip is unavailable. */
-export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null = null): Promise<TracksideArt | null> {
-  if (!art.manifest || typeof document === "undefined") return null;
+/** Sprite extents of a sheet (first level of detail), known before its pixels arrive. */
+export interface SheetFrame {
+  fw: number;
+  fh: number;
+  anchor: { x: number; y: number };
+  pxPerM: number;
+}
+
+/** The horse sheets of an art set: the gallop at once, the others as they arrive. */
+export interface HorseSheets {
+  palette: Palette;
+  keys: KeyPalette;
+  gallop: StripSet;
+  idle: StripSet | null;
+  strips: Partial<Record<AnimId, StripSet>>;
+  /** Extents of every sheet that is loaded or on its way (the layout's sprite box never changes as they arrive). */
+  frames: SheetFrame[];
+  /** Bumps whenever a sheet arrives: scenes adopt the new ones when it changes. */
+  version: number;
+  /** Resolves once every sheet has arrived (or failed). */
+  complete: Promise<void>;
+}
+
+/** Sheets the views need first; the rest follow in idle time (the views fall back to the gallop meanwhile). */
+export const FIRST_SHEETS: readonly SheetId[] = ["gallop"];
+
+const sheetCache = new Map<string, Promise<HorseSheets | null>>();
+
+/**
+ * The horse sheets: the precomputed files (race/sheets, built with the art: decode only) when
+ * they match the manifest, else built here from the sheet files (the same code, slower).
+ * `first`: sheets to have before resolving (the gallop always). Shared by every scene of the
+ * page (read only).
+ */
+export function loadHorseSheets(art: ArtSet, first: readonly SheetId[] = FIRST_SHEETS): Promise<HorseSheets | null> {
+  if (!art.manifest || typeof document === "undefined") return Promise.resolve(null);
+  const id = `${base(art)}|${art.manifest.version}`;
+  let p = sheetCache.get(id);
+  if (!p) {
+    p = loadSheetsNow(art, first).catch((err) => {
+      console.warn("[RaceViewer] horse sheets failed", err);
+      return null;
+    });
+    sheetCache.set(id, p);
+    void p.then((s) => {
+      if (!s) sheetCache.delete(id);
+    });
+  }
+  return p;
+}
+
+const yieldTask = () => new Promise<void>((r) => setTimeout(r, 0));
+
+async function fetchJson(url: string): Promise<unknown> {
+  return fetch(url)
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+}
+
+const sameEntry = (a: SheetEntry, b: { frameWidth: number; frameHeight: number; frameCount: number; anchor: { x: number; y: number } }) =>
+  a.frameWidth === b.frameWidth && a.frameHeight === b.frameHeight && a.frameCount === b.frameCount && a.anchor.x === b.anchor.x && a.anchor.y === b.anchor.y;
+
+// ------------------------------------------------------------------ the decoding workers
+
+/** Up to two decoders (gallop and the next sheet at once on a multi-core phone); null = decode here. */
+let decoders: Worker[] | null | undefined;
+let nextDecoder = 0;
+let nextJob = 1;
+const waiting = new Map<number, (st: StripSet | null | "failed") => void>();
+
+function sheetDecoders(): Worker[] | null {
+  if (decoders !== undefined) return decoders;
+  decoders = null;
+  if (typeof Worker !== "function") return null;
+  // `?sheets=main` decodes on the page (comparison and tests: the same arrays either way)
+  if (/[?&]sheets=main(&|$)/.test(globalThis.location?.search ?? "")) return null;
+  const n = Math.max(1, Math.min(2, (globalThis.navigator?.hardwareConcurrency ?? 2) - 1));
+  try {
+    const pool: Worker[] = [];
+    for (let i = 0; i < n; i++) {
+      const w = new Worker(new URL("./sheet.worker.ts", import.meta.url), { type: "module" });
+      w.onmessage = (e: MessageEvent<SheetDone>) => {
+        const r = waiting.get(e.data.id);
+        waiting.delete(e.data.id);
+        r?.(e.data.st);
+      };
+      w.onerror = () => {
+        // a worker could not start (or died): decode what it held here
+        decoders = null;
+        for (const x of pool) x.terminate();
+        for (const [id, r] of waiting) {
+          waiting.delete(id);
+          r("failed");
+        }
+      };
+      pool.push(w);
+    }
+    decoders = pool;
+  } catch {
+    decoders = null;
+  }
+  return decoders;
+}
+
+/** One precomputed sheet: fetched and decoded in a worker (here when workers are unavailable). */
+async function decodeAt(url: string, palette: Palette): Promise<StripSet | null> {
+  const pool = sheetDecoders();
+  if (pool?.length) {
+    const w = pool[nextDecoder++ % pool.length]!;
+    const abs = new URL(url, globalThis.location?.href).href;
+    const r = await new Promise<StripSet | null | "failed">((res) => {
+      const id = nextJob++;
+      waiting.set(id, res);
+      w.postMessage({ id, url: abs, palette: palette.colours } satisfies SheetJob);
+    });
+    if (r !== "failed") return r;
+  }
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const raw = await gunzipResponse(res);
+  await yieldTask();
+  return decodeSheet(raw, palette);
+}
+
+function attach(set: HorseSheets, id: SheetId, st: StripSet) {
+  if (id === "gallop") set.gallop = st;
+  else if (id === "idle") set.idle = st;
+  else set.strips[id] = st;
+  set.version++;
+}
+
+async function loadSheetsNow(art: ArtSet, firstIds: readonly SheetId[]): Promise<HorseSheets | null> {
   const gEntry = approved(art, "horse-gallop.png");
   if (!gEntry?.src) return null;
   const dir = gEntry.src.slice(0, gEntry.src.length - "horse-gallop.png".length);
-  const json = await fetch(urlOf(art, `${dir}palette.json`))
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  const canGunzip = typeof (globalThis as { DecompressionStream?: unknown }).DecompressionStream === "function";
+  const [json, rawIndex] = await Promise.all([fetchJson(urlOf(art, `${dir}palette.json`)), canGunzip ? fetchJson(urlOf(art, `${dir}sheets/index.json`)) : Promise.resolve(null)]);
   const keys = parseKeyPalette(json);
   if (!keys) return null;
-  const palette = newPalette();
-  const gallop = await stripSet(art, "horse-gallop", palette, 96, keys);
-  if (!gallop) return null;
-  // The idle strip shares the key palette; its horse is drawn ~8 % larger per texel.
-  const idle = await stripSet(art, "horse-idle", palette, 104, keys).catch(() => null);
-  const strips: Partial<Record<AnimId, StripSet>> = {};
-  // One at a time: they share (and may only grow) the palette.
-  for (const id of RACE_DAY_STRIPS) {
-    const st = await stripSet(art, `horse-${id}`, palette, 96, keys).catch(() => null);
-    if (st) strips[id] = st;
+  const index = rawIndex as SheetIndex | null;
+  // Precomputed: every listed sheet must match its approved manifest entry (else the art moved on: build here).
+  const wanted = SHEET_ORDER.filter((s) => approved(art, `${s.stem}.png`));
+  const usable =
+    index &&
+    index.format === SHEET_FORMAT &&
+    Array.isArray(index.sheets) &&
+    Array.isArray(index.palette) &&
+    wanted.every((s) => {
+      const e = approved(art, `${s.stem}.png`)!;
+      const x = index.sheets.find((q) => q.id === s.id);
+      return !!x && x.pxPerM === s.pxPerM && sameEntry(x.entry, e);
+    });
+  if (usable) {
+    const set = await precomputed(art, dir, index, keys, firstIds);
+    if (set) return set;
   }
-  const primary = primaryIndices(palette, keys);
-  gallop.silk = silkBoxes(gallop.lods[0]!, primary);
-  if (idle) idle.silk = silkBoxes(idle.lods[0]!, primary);
-  for (const st of Object.values(strips)) st.silk = silkBoxes(st.lods[0]!, primary);
+  return buildHere(art, keys);
+}
 
+/** Decode the precomputed sheets: `first` before resolving, the rest one per task afterwards. */
+async function precomputed(art: ArtSet, dir: string, index: SheetIndex, keys: KeyPalette, firstIds: readonly SheetId[]): Promise<HorseSheets | null> {
+  const palette = paletteFrom(index.palette);
+  const order = SHEET_ORDER.map((o) => index.sheets.find((s) => s.id === o.id)).filter((s): s is SheetIndex["sheets"][number] => !!s && !!approved(art, `${s.stem}.png`));
+  const first = new Set<SheetId>(["gallop", ...firstIds]);
+  const jobs = new Map<SheetId, Promise<StripSet | null>>();
+  const decode = (id: SheetId) => {
+    let j = jobs.get(id);
+    if (!j) {
+      const s = order.find((x) => x.id === id);
+      j = s ? decodeAt(urlOf(art, `${dir}sheets/${s.file}`), palette).catch(() => null) : Promise.resolve(null);
+      jobs.set(id, j);
+    }
+    return j;
+  };
+  // the opening picture's sheets at once (in workers, in parallel); the rest after them
+  for (const s of order) if (first.has(s.id)) void decode(s.id);
+  const gallop = await decode("gallop");
+  if (!gallop) return null;
+  let done!: () => void;
+  const set: HorseSheets = {
+    palette,
+    keys,
+    gallop,
+    idle: null,
+    strips: {},
+    frames: order.map((s) => ({ ...sheetFrame(s.entry, Infinity), pxPerM: s.pxPerM })),
+    version: 0,
+    complete: new Promise<void>((r) => (done = r)),
+  };
+  for (const s of order) {
+    if (s.id === "gallop" || !first.has(s.id)) continue;
+    const st = await decode(s.id);
+    if (st) attach(set, s.id, st);
+  }
+  void (async () => {
+    for (const s of order) {
+      if (first.has(s.id)) continue;
+      const st = await decode(s.id);
+      if (st) attach(set, s.id, st);
+    }
+  })().finally(done);
+  return set;
+}
+
+/** Build every sheet here from its files (no precomputed data): in palette order, a task per sheet. */
+async function buildHere(art: ArtSet, keys: KeyPalette): Promise<HorseSheets | null> {
+  const load = async (stem: string): Promise<SheetSource | null> => {
+    const entry = approved(art, `${stem}.png`);
+    if (!entry?.src) return null;
+    const nEntry = approved(art, `${stem}-normal.png`);
+    const fEntry = approved(art, `${stem}-f.png`);
+    const [img, nImg, fImg] = await Promise.all([
+      loadImg(urlOf(art, entry.src)),
+      nEntry?.src && nEntry.frameWidth === entry.frameWidth ? loadImg(urlOf(art, nEntry.src)) : null,
+      fEntry?.src ? loadImg(urlOf(art, fEntry.src)) : null,
+    ]);
+    if (!img) return null;
+    const same = (i: HTMLImageElement | null) => !!i && i.naturalWidth === img.naturalWidth && i.naturalHeight === img.naturalHeight;
+    return { entry, rgba: pixels(img), width: img.naturalWidth, height: img.naturalHeight, normal: same(nImg) ? pixels(nImg!) : null, woman: same(fImg) ? pixels(fImg!) : null };
+  };
+  // all the files at once; each sheet is built in palette order as its files arrive
+  const pending = SHEET_ORDER.map((s) => ({ s, src: load(s.stem).catch(() => null) }));
+  const palette = newPalette();
+  const built: Partial<Record<SheetId, StripSet>> = {};
+  const frames: SheetFrame[] = [];
+  for (const { s, src } of pending) {
+    const source = await src;
+    if (!source) {
+      if (s.id === "gallop") return null;
+      continue;
+    }
+    await yieldTask();
+    const st = buildStripSet(source, s.stem, palette, s.pxPerM, keys);
+    if (!st) {
+      if (s.id === "gallop") return null;
+      continue;
+    }
+    built[s.id] = st;
+    frames.push({ ...sheetFrame(source.entry, source.width), pxPerM: s.pxPerM });
+  }
+  finishSilk(Object.values(built), palette, keys);
+  const { gallop, idle, ...strips } = built;
+  return { palette, keys, gallop: gallop!, idle: idle ?? null, strips, frames, version: 0, complete: Promise.resolve() };
+}
+
+/**
+ * Everything the Trackside view needs; null when the keyed gallop strip is unavailable. The
+ * horse sheets past `first` keep arriving after it resolves (`TracksideArt.version`).
+ */
+export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null = null, first: readonly SheetId[] = FIRST_SHEETS): Promise<TracksideArt | null> {
+  if (!art.manifest || typeof document === "undefined") return null;
   const images = new Map<BackdropStem, HTMLImageElement>();
   const coursePending = loadCourseArt(art, recipe);
-  await Promise.all(
+  const atlasPending = loadCoatAtlas(art);
+  const imagesPending = Promise.all(
     BACKDROP_STEMS.map(async (stem) => {
       const have = art.images.get(stem);
       if (have) {
@@ -221,7 +390,41 @@ export async function loadTracksideArt(art: ArtSet, recipe: SceneryRecipe | null
       if (im) images.set(stem, im);
     }),
   );
-  return { palette, keys, gallop, idle, strips, images, course: await coursePending, atlas: await loadCoatAtlas(art) };
+  const sheets = await loadHorseSheets(art, first);
+  if (!sheets) return null;
+  await imagesPending;
+  const course = await coursePending;
+  const atlas = await atlasPending;
+  // the sheets are shared (and keep arriving): read through to them
+  return {
+    get palette() {
+      return sheets.palette;
+    },
+    get keys() {
+      return sheets.keys;
+    },
+    get gallop() {
+      return sheets.gallop;
+    },
+    get idle() {
+      return sheets.idle;
+    },
+    get strips() {
+      return sheets.strips;
+    },
+    get frames() {
+      return sheets.frames;
+    },
+    get version() {
+      return sheets.version;
+    },
+    get complete() {
+      return sheets.complete;
+    },
+    images,
+    course,
+    atlas,
+  };
 }
 
 /** The coat-layer atlas from the art drop (1x: race/coat-layers.png, or 2x for portraits). */

@@ -42,6 +42,7 @@ import { RestGate, shouldPauseForRest } from "./rest";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideScene";
 import { clothOffByUrl, saddleClothOf } from "./cloth";
+import { firstSheetsAt } from "./trackside/firstSheets";
 import { PHONE_PX, closeUpByUrl, phoneLayoutByUrl } from "./phone";
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
@@ -774,12 +775,15 @@ export function RaceViewer(props: RaceViewerProps) {
       const q: RenderQuality = quality === "auto" ? autoQuality(w0) : quality;
       qualityRef.current = q;
       const data = (initialFinal ?? live)!;
+      // The horse sheets the opening picture needs come first; the rest follow it.
+      const clock0 = clockRef.current;
+      const firstSheets = firstSheetsAt(clock0?.time ?? 0, clock0 instanceof PlaybackClock ? clock0.duration : Number.POSITIVE_INFINITY);
       let scene: AnyScene | null = null;
       let artNote = "";
       if (view === "trackside") {
         try {
           const { TracksideScene } = await import("./trackside/TracksideScene");
-          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured, preOff: preOffRef.current, clothColours: clothOn });
+          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured, preOff: preOffRef.current, clothColours: clothOn, firstSheets });
           artNote = "trackside";
         } catch (err) {
           console.warn("[RaceViewer] Trackside view unavailable, using the classic view", err);
@@ -800,7 +804,7 @@ export function RaceViewer(props: RaceViewerProps) {
           loadStageArt(art, raceStage),
           // The same palette-index strips as Trackside (same frames, same colours); the
           // pixel rig (?rig=1) keeps its own path.
-          rigOptIn() ? Promise.resolve(null) : loadTracksideArt(art).catch(() => null),
+          rigOptIn() ? Promise.resolve(null) : loadTracksideArt(art, null, firstSheets).catch(() => null),
           loadFxPalette(art),
         ]);
         if (disposed) {
@@ -816,11 +820,21 @@ export function RaceViewer(props: RaceViewerProps) {
         artNote = `${strips ? "strips" : rigs.kind}${art.manifest ? ` +${art.images.size} art` : " (code art)"}`;
       }
       const sc: AnyScene = scene;
-      host.appendChild(sc.canvas);
       sc.resize(w0, h0);
-      // Compile/upload everything now so the race itself never stalls.
-      sc.warmup();
+      // Compile (off the main thread where the GPU allows) and upload now so the race itself never
+      // stalls; the canvas goes in with its first picture drawn.
+      try {
+        await sc.warmup();
+      } catch (err) {
+        console.warn("[RaceViewer] warmup failed", err);
+      }
+      if (disposed) {
+        sc.destroy();
+        return;
+      }
+      host.appendChild(sc.canvas);
       sceneRef.current = sc;
+      if (typeof performance !== "undefined" && performance.mark) performance.mark("rv:first-picture");
       const hook = debug || (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("rvdebug"));
       if (hook && "debugRects" in sc) {
         // Dev hook: drawn horse rects (stage CSS px) for the all-runners-visible check.

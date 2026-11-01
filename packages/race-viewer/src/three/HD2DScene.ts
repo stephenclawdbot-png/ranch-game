@@ -314,6 +314,10 @@ export class HD2DScene {
   private focusDist = 15;
   private focusRange = 4;
   private lodTex = new Map<StripSet, { idx: THREE.DataTexture; nrm: THREE.DataTexture | null }[]>();
+  /** Sheets whose textures are all on the GPU (drawable), and late ones still uploading. */
+  private sheetsUp = new Set<StripSet>();
+  private uploads: { st: StripSet; tex: THREE.Texture[] }[] = [];
+  private artVersion = -1;
   private mskTex = new Map<StripSet, THREE.DataTexture>();
   /** The coat-layer masks (horse-space uv, leg / face / tail params and the hair bytes) per strip, as Trackside. */
   private coatTex = new Map<StripSet, { uv: THREE.DataTexture; pq: THREE.DataTexture }>();
@@ -440,6 +444,74 @@ export class HD2DScene {
     t.needsUpdate = true;
     this.disposables.push(t);
     return t;
+  }
+
+  /**
+   * Textures for the sheets that have arrived since the last look (the art keeps loading after
+   * the first picture). Late sheets upload a couple of textures per frame and are drawn only
+   * once complete; until then `stripFor` falls back to the gallop.
+   */
+  private adoptSheets(late: boolean): void {
+    const T = this.T;
+    const strips = this.strips;
+    if (!strips) return;
+    this.artVersion = strips.version;
+    for (const st of [strips.gallop, strips.idle, ...Object.values(strips.strips)]) {
+      if (!st || this.lodTex.has(st)) continue;
+      const tex: THREE.DataTexture[] = [];
+      const make = (data: Uint8Array, w: number, h: number, format: THREE.PixelFormat) => {
+        const t = this.dataTex(data, w, h, format);
+        tex.push(t);
+        return t;
+      };
+      this.lodTex.set(
+        st,
+        st.lods.map((l) => ({ idx: make(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? make(l.normal, l.width, l.height, T.RGBAFormat) : null })),
+      );
+      this.mskTex.set(st, make(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
+      this.coatTex.set(st, { uv: make(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: make(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
+      if (late) this.uploads.push({ st, tex });
+      else this.sheetsUp.add(st);
+    }
+  }
+
+
+  /** Every horse sheet on the GPU now (offline recording: no gallop stand-ins). */
+  async allSheets(): Promise<void> {
+    await this.strips?.complete;
+    this.adoptSheets(false);
+  }
+
+
+  /**
+   * Dev (motion checks): record every drawn frame, per runner, what the eye sees: the drawn
+   * anchor's screen x and y (CSS px), the strip frame, the level of detail, the scale (buffer
+   * px per texel) and the race x (m). `recordMotion(true)` starts, `recordMotion(false)` returns
+   * the frames ([raceT, realDt, camX, then 6 numbers per runner]).
+   */
+  recordMotion(on: boolean): number[][] | null {
+    const out = this.motionRec;
+    this.motionRec = on ? [] : null;
+    return out;
+  }
+  private motionRec: number[][] | null = null;
+  private motionRow: number[] | null = null;
+
+  /** Upload a late sheet's textures, a couple per frame (no hitch); it is drawn once all are up. */
+  private uploadSheets(): void {
+    const u = this.uploads[0];
+    if (!u) return;
+    for (let i = 0; i < 2 && u.tex.length; i++) {
+      try {
+        this.renderer.initTexture(u.tex.shift()!);
+      } catch {
+        /* the draw uploads it */
+      }
+    }
+    if (!u.tex.length) {
+      this.uploads.shift();
+      this.sheetsUp.add(u.st);
+    }
   }
 
   private dataTex(data: Uint8Array, w: number, h: number, format: THREE.PixelFormat): THREE.DataTexture {
@@ -874,15 +946,7 @@ export class HD2DScene {
     const strips = this.strips;
     if (strips) {
       this.lut = this.dataTex(buildLut(strips.palette, strips.keys, this.replay.horses.map((h) => h.appearance), runnerCloths(this.replay.horses, opts.clothColours)), LUT_W, Math.max(1, this.replay.horses.length), T.RGBAFormat);
-      for (const st of [strips.gallop, strips.idle, ...Object.values(strips.strips)]) {
-        if (!st) continue;
-        this.lodTex.set(
-          st,
-          st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
-        );
-        this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
-        this.coatTex.set(st, { uv: this.dataTex(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: this.dataTex(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
-      }
+      this.adoptSheets(false);
       // the coat layers (patterns, markings, shades, long hair) as Trackside draws them
       this.keyInfo = this.dataTex(buildKeyInfo(strips.palette, strips.keys), 64, 2, T.RGBAFormat);
       this.atlasTex = strips.atlas ? this.dataTex(strips.atlas.data, strips.atlas.width, strips.atlas.height, T.RedFormat) : this.dataTex(new Uint8Array(1), 1, 1, T.RedFormat);
@@ -1164,9 +1228,11 @@ export class HD2DScene {
   /** The strip for an animation (fallbacks when a strip is missing). */
   private stripFor(anim: AnimId): StripSet {
     const a = this.strips!;
-    if (anim === "idle") return a.idle ?? a.strips.break ?? a.gallop;
+    const up = (st: StripSet | null | undefined) => (st && this.sheetsUp.has(st) ? st : undefined);
+    const idle = up(a.idle);
+    if (anim === "idle") return idle ?? up(a.strips.break) ?? a.gallop;
     if (anim === "gallop") return a.gallop;
-    return a.strips[anim] ?? (anim === "lunge" ? a.strips.drive : undefined) ?? (anim === "break" ? a.idle ?? a.gallop : a.gallop);
+    return up(a.strips[anim]) ?? (anim === "lunge" ? up(a.strips.drive) : undefined) ?? (anim === "break" ? (idle ?? a.gallop) : a.gallop);
   }
 
   private chooseLod(q: number, cur: number): number {
@@ -1217,6 +1283,8 @@ export class HD2DScene {
   }
 
   render(f: SceneFrame): void {
+    if (this.strips && this.strips.version !== this.artVersion) this.adoptSheets(true);
+    this.uploadSheets();
     const raceT = f.time;
     const tS = Math.max(0, raceT);
     let simDt = Number.isNaN(this.lastTime) ? 0 : raceT - this.lastTime;
@@ -1438,6 +1506,7 @@ export class HD2DScene {
 
     // --- Horses ------------------------------------------------------------------
     cam.updateMatrixWorld();
+    const rec = this.motionRec ? (this.motionRow = [raceT, f.realDt, cam.position.x]) : null;
     for (const r of this.runners) {
       const s = r.st;
       if (r.rig) {
@@ -1478,7 +1547,13 @@ export class HD2DScene {
         u.uClothNum!.value = clothNumberShown((st.lods[0]!.fw * q) / Math.max(1, this.renderer.getPixelRatio()), r.lod) ? 1 : 0;
         const sb = st.silk;
         (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
-        this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true);
+        const k = this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true);
+        if (rec) {
+          // the drawn anchor: placeSprite puts it on the whole buffer pixel
+          const ndc = this.v5.set(r.x, r.y, r.z).project(cam);
+          const B = this.renderer.getPixelRatio();
+          rec.push(Math.round(((ndc.x + 1) / 2) * buf.x) / B, Math.round(((1 - ndc.y) / 2) * buf.y) / B, frame, r.lod, k, r.x);
+        }
       }
       r.bodyX = r.x - 1.25;
       r.bodyZ = r.z;
@@ -1489,6 +1564,7 @@ export class HD2DScene {
       if (simDt > 0 && r.speed > 5 && !Number.isNaN(r.lastPhase) && Math.floor(s.phase) > Math.floor(r.lastPhase)) this.emitFx(r, r.x - 1.9);
       r.lastPhase = s.phase;
     }
+    if (rec) this.motionRec!.push(rec);
 
     // --- Ground fx: world-anchored bursts, screen-square, whole pixels ---------------
     const sdt = f.frozen ? 0 : simDt;
@@ -1602,7 +1678,7 @@ export class HD2DScene {
    * camera moves): upload every texture, compile every program, and draw one frame of
    * the full pipeline (shadows, post passes, PiP) from a camera that sees the whole course.
    */
-  warmup(): void {
+  async warmup(): Promise<void> {
     const r = this.renderer;
     const tex: THREE.Texture[] = [];
     for (const d of this.disposables) if ((d as THREE.Texture).isTexture) tex.push(d as THREE.Texture);
@@ -1622,7 +1698,12 @@ export class HD2DScene {
     const cam = this.camera;
     const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), fov: cam.fov };
     for (const p of this.fx) p.mesh.visible = true;
-    r.compile(this.scene, cam);
+    // Every scene program, compiled off the main thread where the GPU allows (KHR_parallel_shader_compile).
+    try {
+      await r.compileAsync(this.scene, cam);
+    } catch {
+      r.compile(this.scene, cam);
+    }
     // One full frame from high over the middle of the course: every object in view once.
     cam.position.set(this.L / 2, 260, 520);
     cam.fov = 60;
