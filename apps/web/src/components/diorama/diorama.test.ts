@@ -85,3 +85,20 @@ describe("diorama recolour", () => {
     expect(lawn.map((a) => a.look?.coat)).toEqual(["roan"]);
   });
 });
+
+describe("saddle cloths in the paddock and going down to post (V-03)", () => {
+  it("each runner's sheet is keyed by its cloth, so two gates never share a painted sheet", async () => {
+    const { lookKey } = await import("./recolor");
+    const { saddleClothOf } = await import("@thoroughbred/art-pipeline");
+    const base = { coat: "bay" as const };
+    expect(lookKey({ ...base, cloth: saddleClothOf(3) })).not.toBe(lookKey({ ...base, cloth: saddleClothOf(4) }));
+    expect(lookKey({ ...base, cloth: null })).toBe(lookKey(base));
+  });
+
+  it("the parade runner's look carries its gate's cloth, none before the draw", async () => {
+    const { runnerLook } = await import("../race/PaddockParade");
+    const appearance = { coat: "bay", silks: { primary: "#1f4e9c", secondary: "#f3e7c9", cap: "#1f4e9c", pattern: "solid" } } as never;
+    expect(runnerLook({ gate: 5, appearance }).cloth).toEqual({ cloth: "#1f8a4c", number: "#ffffff", gate: 5 });
+    expect(runnerLook({ gate: 0, appearance }).cloth).toBeNull();
+  });
+});

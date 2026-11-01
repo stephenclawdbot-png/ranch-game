@@ -39,3 +39,26 @@ describe("perfReport", () => {
     expect(perfReport([0, 0, 0], "high", false, "trackside").fps).toBe(0);
   });
 });
+
+describe("perfReport: the real-device baseline fields (V-00)", () => {
+  it("adds the p99 fps, the viewer's own work per frame, frames over budget, the layout and when it downgraded", () => {
+    // 90 frames at 16 ms, 8 at 40 ms, 2 at 100 ms; work 1 ms with a 9 ms tail
+    const ft = Array.from({ length: 100 }, (_, i) => (i < 90 ? 16 : i < 98 ? 40 : 100));
+    const work = Array.from({ length: 100 }, (_, i) => (i < 98 ? 1 : 9));
+    const r = perfReport(ft, "low", true, "trackside", { work, downgradeSec: 12.4, layout: "phone-closeup" });
+    expect(r.fps).toBe(63);
+    expect(r.fpsLow).toBe(25);
+    expect(r.fps99).toBe(10);
+    expect(r.workMs).toBe(1);
+    expect(r.workP99).toBe(9);
+    expect(r.over33).toBe(10);
+    expect(r.over17).toBe(10);
+    expect(r.downgradeSec).toBe(12);
+    expect(r.layout).toBe("phone-closeup");
+  });
+
+  it("defaults: wide layout, no downgrade time, zero work when not measured", () => {
+    const r = perfReport([16.7, 16.7], "high", false, "classic");
+    expect(r).toMatchObject({ layout: "wide", downgradeSec: -1, workMs: 0, workP99: 0, over33: 0 });
+  });
+});

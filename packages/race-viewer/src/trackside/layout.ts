@@ -287,6 +287,13 @@ export interface FieldInput {
    * framing is unchanged. Ignored when out of range.
    */
   follow?: number | null;
+  /**
+   * Group framing (phones, "Close-up finish", V-02): the camera frames a group of runners, so
+   * like the follow-cam the linear mapping stands (no squeeze) and runners outside the group may
+   * leave the frame. Vertical framing is unchanged. A number in (0, 1) blends the whole-field
+   * placement towards the linear one (the scene eases it in and out, so nobody pops).
+   */
+  free?: boolean | number;
 }
 
 /** Lane-0 screen-y offset of lane l (positive = higher on screen). */
@@ -370,7 +377,9 @@ export function placeField(inp: FieldInput): FieldLayout {
   const out = lin.slice();
   let compressed = false;
   const followIdx = inp.follow != null && inp.follow >= 0 && inp.follow < n ? inp.follow : null;
-  if (followIdx !== null) {
+  const blend = followIdx !== null ? 1 : typeof inp.free === "number" ? Math.min(1, Math.max(0, inp.free)) : inp.free ? 1 : 0;
+  const linear = blend >= 1;
+  if (linear) {
     // Follow-cam: no fitting/compression — the linear mapping stands, so runners other than
     // the followed one may leave the frame by design (the whole-field guarantee above does
     // not apply in this mode). Gaps are reported unsqueezed.
@@ -403,6 +412,11 @@ export function placeField(inp: FieldInput): FieldLayout {
         drawn[j] = d[j]!;
       }
     }
+    if (blend > 0) {
+      // easing into / out of the close-up finish: part way to the plain linear placement
+      for (let i = 0; i < n; i++) out[i] = out[i]! + (lin[i]! - out[i]!) * blend;
+      for (let j = 0; j < n - 1; j++) drawn[j] = Math.max(0, out[order[j + 1]!]! - out[order[j]!]!);
+    }
   }
   const placed: Placed[] = runners.map((r, i) => {
     const l = Math.max(r.lane, lmin);
@@ -428,7 +442,7 @@ export function placeField(inp: FieldInput): FieldLayout {
     const squeeze = gpx[j]! > 1e-6 ? Math.min(1, Math.max(0, drawn[j]! / gpx[j]!)) : 1;
     const nose = placed[a]!.ax;
     const tail = placed[b]!.rect.x;
-    gaps.push({ behind: a, ahead: b, trueM, squeeze, strength: followIdx !== null ? 0 : gapMarkerStrength(trueM, squeeze), x: nose + Math.max(0, tail - nose) / 2 });
+    gaps.push({ behind: a, ahead: b, trueM, squeeze, strength: linear ? 0 : gapMarkerStrength(trueM, squeeze) * (1 - blend), x: nose + Math.max(0, tail - nose) / 2 });
   }
   return { W, H, insets, ppm, cx: inp.cx, camH: v.camH, k, y0, horizon, compressed, placed, gaps, knots };
 }
@@ -482,6 +496,12 @@ export interface CameraInput {
    * frame. Null/absent (or out of range) = whole field.
    */
   followIndex?: number | null;
+  /**
+   * Group framing (phones, "Close-up finish", V-02): the runners the shot frames, by index. The
+   * camera fits them like the whole field (same zoom ladder and springs); the others may leave.
+   * Null/empty = whole field.
+   */
+  groupIndices?: readonly number[] | null;
 }
 
 export interface CameraTarget {
@@ -526,14 +546,16 @@ export function cameraTarget(c: CameraInput): CameraTarget {
   const { W, H, sprite } = c;
   const insets = safeInsets(W, H);
   const la = c.lookahead ?? 1.2;
+  // the runners the shot fits: the whole field, or the close-up finish's group
+  const pool = c.groupIndices?.length ? c.groupIndices.map((i) => c.runners[i]).filter((r): r is CameraRunner => !!r) : c.runners;
   let xmin = Infinity;
   let xmax = -Infinity;
   let lmax = 0;
   let speed = 0;
-  for (const r of c.runners) speed += r.speed;
-  const mean = speed / Math.max(1, c.runners.length);
+  for (const r of pool) speed += r.speed;
+  const mean = speed / Math.max(1, pool.length);
   speed = 0;
-  for (const r of c.runners) {
+  for (const r of pool) {
     // Look ahead on the spread only (relative to the field): the centre spring already
     // feeds the field's speed forward.
     const ahead = r.x + (r.speed - mean) * la;
@@ -542,10 +564,10 @@ export function cameraTarget(c: CameraInput): CameraTarget {
     lmax = Math.max(lmax, r.lane);
     speed += r.speed;
   }
-  if (!c.runners.length) {
+  if (!pool.length) {
     xmin = xmax = 0;
   }
-  speed /= Math.max(1, c.runners.length);
+  speed /= Math.max(1, pool.length);
   const availW = Math.max(1, W - insets.l - insets.r);
   const { minLen, maxLen } = sizeLimits(W, c.runners.length);
   const cr = crowding(W, c.runners.length);
@@ -611,6 +633,8 @@ export class TracksideCamera {
   private q: number | null = null;
   /** Last follow-cam state; a mode switch re-seats the zoom rung (hysteresis re-arms). */
   private followOn = false;
+  /** Last group-framing state (close-up finish); its switch re-seats the rung too. */
+  private groupOn = false;
   ppm = 100;
   cx = 0;
   laneSpan = 0;
@@ -631,12 +655,14 @@ export class TracksideCamera {
     const t = cameraTarget(input);
     this.target = t;
     const fo = t.follow ?? null;
-    if ((fo !== null) !== this.followOn) {
+    const go = !fo && !!input.groupIndices?.length;
+    if ((fo !== null) !== this.followOn || go !== this.groupOn) {
       // Mode switch: the rung must jump to the new fit (whole-field zoom can sit far below
       // the close-up rungs, and the zoom-in hysteresis alone would never reach them). The
       // springs still ease between the old and new values, so there's no cut.
       this.q = null;
       this.followOn = fo !== null;
+      this.groupOn = go;
     }
     const toQ = input.dpr / SRC_PX_PER_M;
     const qMin = (sizeLimits(input.W, input.runners.length).minLen / input.sprite.lenM) * toQ;

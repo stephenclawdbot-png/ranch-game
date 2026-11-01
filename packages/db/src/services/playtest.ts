@@ -234,10 +234,10 @@ export const TELEMETRY_EVENTS = [
 export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number];
 
 /** Props are small scalars only (route paths, kinds, ids). Anything else is dropped. */
-export function cleanProps(props: Record<string, unknown> | undefined): Record<string, string | number | boolean> | null {
+export function cleanProps(props: Record<string, unknown> | undefined, max = 8): Record<string, string | number | boolean> | null {
   if (!props) return null;
   const out: Record<string, string | number | boolean> = {};
-  for (const [k, v] of Object.entries(props).slice(0, 8)) {
+  for (const [k, v] of Object.entries(props).slice(0, Math.max(1, Math.min(16, max)))) {
     if (!/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/.test(k)) continue;
     if (typeof v === "string") out[k] = v.slice(0, 120);
     else if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
@@ -246,13 +246,14 @@ export function cleanProps(props: Record<string, unknown> | undefined): Record<s
   return Object.keys(out).length ? out : null;
 }
 
-export async function track(db: Db, input: { accountId: string | null; name: TelemetryEvent; props?: Record<string, unknown>; now?: Date }): Promise<void> {
+/** `maxProps`: how many props an event keeps (default 8; at most 16, for the race_perf baseline). */
+export async function track(db: Db, input: { accountId: string | null; name: TelemetryEvent; props?: Record<string, unknown>; now?: Date; maxProps?: number }): Promise<void> {
   const tester = input.accountId ? await testerForAccount(db, input.accountId) : null;
   await db.insert(telemetryEvents).values({
     accountId: input.accountId,
     testerId: tester?.id ?? null,
     name: input.name,
-    props: cleanProps(input.props),
+    props: cleanProps(input.props, input.maxProps),
     createdAt: input.now ?? new Date(),
   });
   if (tester) await db.update(testers).set({ lastSeenAt: input.now ?? new Date() }).where(eq(testers.id, tester.id));
@@ -270,7 +271,7 @@ export interface PlaytestMetrics {
   /** % of race_entered (last 7 days) with props.kind = "live". */
   liveShare: number | null;
   /** Race-viewer perf reports (target: phone/tablet 30 fps, desktop 60). */
-  perf: { byDevice: PerfDeviceMetrics[]; slowGpus: PerfGpuMetrics[] };
+  perf: { byDevice: PerfDeviceMetrics[]; slowGpus: PerfGpuMetrics[]; baseline: PerfBaselineRow[] };
   totals: { testers: number; feedback: number; events: number };
   /** Testers who bred at least once (as the mare's owner), foals they bred, and how many of those raced. */
   breeding: { testers: number; bred: number; bredPct: number | null; foalsBorn: number; foalsRaced: number };
@@ -292,6 +293,30 @@ export interface PerfGpuMetrics {
   gpu: string;
   reports: number;
   medianFps: number;
+}
+
+/**
+ * The real-device performance baseline (visual research V-00; docs/perf-baseline.md): race_perf
+ * reports per device class, view and race layout, with the medians of each report's numbers.
+ * Reports from clients before the baseline fields read as null there.
+ */
+export interface PerfBaselineRow {
+  device: string;
+  view: string;
+  /** "wide", "phone" (the phone race layout) or "phone-closeup" (close-up finish on); "-" for older reports. */
+  layout: string;
+  reports: number;
+  medianFps: number;
+  lowFps: number;
+  p99Fps: number | null;
+  /** The viewer's JS work per frame (ms): median of the reports' medians and of their p99s. */
+  workMs: number | null;
+  workP99: number | null;
+  /** % of frames over the device's budget (33.4 ms phone/tablet, 16.8 ms desktop), median of reports. */
+  slowPct: number | null;
+  downgradedPct: number | null;
+  /** Median seconds of playback before an auto-downgrade, over the reports that downgraded. */
+  downgradeSec: number | null;
 }
 
 /** Day-1 / day-7 retention, actives, sessions, races per day, the signup funnel and perf reports. */
@@ -365,6 +390,20 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
                            from telemetry_events where name = 'race_perf' and created_at >= ${from}
                           group by 1 having count(*) >= 3 order by median_fps asc limit 5`),
   );
+  const baseRows = rowsOf<{ device: string; view: string; layout: string; reports: number; median_fps: number; low_fps: number; p99_fps: number | null; work_ms: number | null; work_p99: number | null; slow_pct: number | null; downgraded: number; downgrade_sec: number | null }>(
+    await ex.execute(sql`select coalesce(props->>'device', 'unknown') as device, coalesce(props->>'view', 'unknown') as view, coalesce(props->>'layout', '-') as layout,
+                                count(*)::int as reports,
+                                percentile_cont(0.5) within group (order by (props->>'fps')::float8)::float8 as median_fps,
+                                percentile_cont(0.5) within group (order by (props->>'fpsLow')::float8)::float8 as low_fps,
+                                percentile_cont(0.5) within group (order by (props->>'fps99')::float8)::float8 as p99_fps,
+                                percentile_cont(0.5) within group (order by (props->>'workMs')::float8)::float8 as work_ms,
+                                percentile_cont(0.5) within group (order by (props->>'workP99')::float8)::float8 as work_p99,
+                                percentile_cont(0.5) within group (order by (props->>'slowPct')::float8)::float8 as slow_pct,
+                                count(*) filter (where (props->>'downgraded')::boolean)::int as downgraded,
+                                percentile_cont(0.5) within group (order by (props->>'downgradeSec')::float8) filter (where (props->>'downgradeSec')::float8 >= 0)::float8 as downgrade_sec
+                           from telemetry_events where name = 'race_perf' and created_at >= ${from}
+                          group by 1, 2, 3 order by 1, 2, 3`),
+  );
   const [tot] = rowsOf<{ testers: number; feedback: number; events: number }>(
     await ex.execute(sql`select (select count(*) from testers)::int as testers, (select count(*) from feedback)::int as feedback, (select count(*) from telemetry_events)::int as events`),
   );
@@ -433,6 +472,23 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
         }))
         .sort((a, b) => (a.device === "phone" ? -1 : b.device === "phone" ? 1 : a.device === "tablet" ? -1 : b.device === "tablet" ? 1 : 0)),
       slowGpus: gpuRows.map((r) => ({ gpu: String(r.gpu), reports: Number(r.reports), medianFps: Number(r.median_fps ?? 0) })),
+      baseline: baseRows.map((r) => {
+        const num = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));
+        return {
+          device: String(r.device),
+          view: String(r.view),
+          layout: String(r.layout),
+          reports: Number(r.reports),
+          medianFps: Number(r.median_fps ?? 0),
+          lowFps: Number(r.low_fps ?? 0),
+          p99Fps: num(r.p99_fps),
+          workMs: num(r.work_ms),
+          workP99: num(r.work_p99),
+          slowPct: num(r.slow_pct),
+          downgradedPct: pct(Number(r.downgraded), Number(r.reports)),
+          downgradeSec: num(r.downgrade_sec),
+        };
+      }),
     },
     totals: { testers: Number(tot?.testers ?? 0), feedback: Number(tot?.feedback ?? 0), events: Number(tot?.events ?? 0) },
     breeding: {

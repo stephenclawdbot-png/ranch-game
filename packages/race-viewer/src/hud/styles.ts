@@ -267,6 +267,43 @@ export const VIEWER_CSS = `
 .rv-narrow .rv-pre-field li{font-size:11px;padding:3px 5px;gap:5px}
 @media (prefers-reduced-motion: reduce){.rv-pre-paddock,.rv-pre-lower,.rv-pre-led,.rv-fin-slide,.rv-fin-panel,.rv-fin-weighed,.rv-battle,.rv-call{animation:none!important}.rv-fin-badge-red,.rv-fin-win .rv-fin-eyebrow{animation:none!important}}
 .rv-fin-actions{display:flex;gap:6px;align-items:center;margin-left:auto}
+.rv-cloth{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 2px;box-sizing:border-box;font:15px/1 var(--rv-f-num);border:2px solid var(--rv-ink);box-shadow:inset 0 -2px 0 rgba(0,0,0,.25);flex:none}
+.rv-res-ids{display:inline-flex;align-items:center;gap:4px}
+.rv-narrow .rv-cloth{min-width:16px;height:16px;font-size:14px}
+.rv-hud-phone{padding:6px 6px 12px;gap:0;background:linear-gradient(rgba(8,21,14,.74),rgba(8,21,14,.38) 72%,rgba(8,21,14,0))}
+.rv-hud-phone .rv-row{align-items:flex-start;gap:6px}
+.rv-phone-strip{flex:1;min-width:0}
+.rv-hud-phone .rv-standings{flex-wrap:nowrap;gap:3px}
+.rv-hud-phone .rv-st{font-size:11px;padding:2px 5px 2px 3px;gap:4px;flex:0 1 auto;min-width:0}
+.rv-hud-phone .rv-st>*{flex:none}
+.rv-hud-phone .rv-st-name{flex:0 1 auto;min-width:0;max-width:84px;overflow:hidden;text-overflow:ellipsis}
+.rv-hud-phone .rv-st-pos{font-size:15px;width:auto;min-width:8px}
+.rv-hud-phone .rv-clock{display:flex;flex-direction:column;align-items:flex-end}
+.rv-hud-phone .rv-time{order:2;font-size:15px;margin-top:2px}
+.rv-hud-phone .rv-dist{margin-top:0}
+.rv-hud-phone .rv-dist-m{font-size:20px;padding:1px 5px 0}
+.rv-hud-phone .rv-dist-m small{font-size:12px}
+.rv-hud-phone .rv-dist-ff .rv-dist-m{font-size:23px;padding:1px 6px 0}
+.rv-hud-phone .rv-dist-plate{min-width:24px;font-size:10px;padding:0 3px}
+.rv-hud-phone .rv-togo{font-size:9px}
+.rv-cmap-phone{right:6px;width:122px}
+.rv-cmap-phone.rv-cmap-shut{width:auto}
+.rv-cmap-phone.rv-cmap-shut .rv-cmap-tab{min-height:26px;min-width:32px;justify-content:center;padding:3px 6px;gap:3px}
+.rv-phone .rv-minimap{display:none}
+.rv-below{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.rv-call-slot{min-height:44px;display:flex;align-items:stretch}
+.rv-call-slot .rv-call{max-width:none;width:100%;box-sizing:border-box;font-size:12px}
+.rv-call-slot-idle{border:2px dashed rgba(243,231,201,.12)}
+.rv-controls-below{position:static;flex-wrap:wrap;justify-content:flex-start;gap:4px;padding:0;background:none}
+.rv-controls-below .rv-btn{min-width:34px;height:36px;padding:0 6px;font-size:10px;gap:4px;letter-spacing:0}
+.rv-controls-below .rv-seg .rv-btn{padding:0 8px}
+.rv-controls-below [data-rv-follow] .rv-btn{font-size:0;gap:0}
+.rv-closeup[aria-pressed=false]{opacity:.92}
+.rv-phone .rv-battle{bottom:50px;border-width:2px;box-shadow:2px 2px 0 rgba(0,0,0,.45)}
+.rv-phone .rv-battle-k{font-size:8.5px;line-height:1;padding:0 5px}
+.rv-phone .rv-battle-k br{display:none}
+.rv-phone .rv-battle-h{font-size:11px;padding:2px 6px;gap:4px}
+.rv-phone .rv-battle-gap{font-size:14px}
 .rv-clip-back{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(8,12,9,.72);font-family:var(--rv-f-sans,ui-sans-serif,system-ui,sans-serif)}
 .rv-clip-dialog{width:min(92vw,380px);background:var(--rv-green,#0f2a1d);border:3px solid var(--rv-ink,#0b0f0c);box-shadow:inset 0 0 0 2px rgba(242,200,106,.45),0 10px 0 rgba(0,0,0,.4);padding:18px 16px 16px;color:var(--rv-cream,#f3e7c9);text-align:center}
 .rv-clip-h{margin:0;font:700 20px/1.2 var(--rv-f-display,"Pixelify Sans","Courier New",monospace);color:var(--rv-cream,#f3e7c9)}

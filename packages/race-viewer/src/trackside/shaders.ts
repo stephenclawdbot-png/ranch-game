@@ -5,7 +5,8 @@
  * end to end, like the 2D dioramas (textures are uploaded raw, premultiplied).
  */
 
-import { LUT_W } from "./strips";
+import { CLOTH_DIGITS, CLOTH_KEY_TOP } from "@thoroughbred/art-pipeline";
+import { LUT_CLOTH_NUM_X, LUT_CLOTH_X, LUT_W } from "./strips";
 
 export const QUAD_VERT = /* glsl */ `
 varying vec2 vUv;
@@ -18,6 +19,33 @@ void main() {
 /** Saturation / brightness grade shared by every pass. */
 /** LUT width as a GLSL float literal (strips.ts LUT_W). */
 const LUT_W_GLSL = `${LUT_W}.0`;
+
+/** The cloth number's 3x5 digits (art-pipeline CLOTH_DIGITS), each as five base-8 rows. */
+const DIGIT_CODES = CLOTH_DIGITS.map((rows) => rows.reduce((a, r) => a * 8 + r, 0));
+
+/**
+ * The saddle cloth's number (art-pipeline clothGlyphHit): a 5 x 5 cell box; one digit in cells
+ * 1..3, gates 10-19 a narrow "1" in cell 0 and the units digit in cells 2..4.
+ */
+const CLOTH_GLSL = /* glsl */ `
+float clothDigitCode(float d) {
+${DIGIT_CODES.map((c, i) => `  if (d < ${i}.5) return ${c}.0;`).join("\n")}
+  return ${DIGIT_CODES[9]}.0;
+}
+bool clothInk(float gate, float cx, float cy) {
+  if (cy > 4.5 || cx > 4.5) return false;
+  float digit = mod(gate, 10.0);
+  float col = cx - 1.0;
+  if (gate > 9.5 && gate < 19.5) {
+    if (cx < 0.5) return true;
+    if (cx < 1.5) return false;
+    col = cx - 2.0;
+  }
+  if (col < -0.5 || col > 2.5) return false;
+  float row = mod(floor(clothDigitCode(digit) / exp2(3.0 * (4.0 - cy)) + 0.001), 8.0);
+  return mod(floor(row / exp2(2.0 - col) + 0.001), 2.0) > 0.5;
+}
+`;
 
 const GRADE = /* glsl */ `
 uniform float uSat;
@@ -178,8 +206,10 @@ uniform vec3 uRimCol;
 uniform float uRimAmt;
 uniform vec4 uTint;
 uniform float uOpacity;
+uniform float uClothNum;
 varying vec2 vUv;
 ${GRADE}
+${CLOTH_GLSL}
 #define LUTW ${LUT_W_GLSL}
 bool silkHit(float pat, vec2 uv, vec2 p) {
   if (pat < 1.5) return mod(floor(p.x / 3.0), 2.0) > 0.5;
@@ -326,6 +356,17 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
   } else if (region > 6.5 && region < 7.5) {
     // the rider's face in the jockey's skin
     if (rider.r > 0.5) c = lutAt(131.0 + floor(mk.g * 255.0 / 64.0), rowV).rgb;
+  } else if (region > 13.5 && region < 14.5) {
+    // the saddle cloth (V-03): the gate's colour, shaded by the strip's white key; its number
+    // when the horse is drawn large enough to read it
+    vec4 cl = lutAt(${LUT_CLOTH_X}.0, rowV);
+    float l = dot(c, vec3(0.299, 0.587, 0.114));
+    if (cl.a > 0.002 && l > 0.5 && abs(c.r - c.b) < 0.1) {
+      float cell = byteOf(mk.g);
+      vec3 cc = cl.rgb;
+      if (uClothNum > 0.5 && cell < 254.5 && clothInk(byteOf(cl.a), mod(cell, 8.0), floor(cell / 8.0))) cc = lutAt(${LUT_CLOTH_NUM_X}.0, rowV).rgb;
+      c = cc * min(1.08, pow(l / ${CLOTH_KEY_TOP}, 1.25));
+    }
   } else if (uPattern > 0.5) {
     vec4 pc = lutAt(64.0 + idx, rowV);
     if (pc.a > 0.5) {

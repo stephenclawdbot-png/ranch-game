@@ -9,7 +9,7 @@ import type { HorseAppearance } from "@thoroughbred/shared";
 import type { ArtSet } from "./art";
 import { PH_ANCHOR, PH_FRAMES, PH_H, PH_W, placeholderStripFor } from "./placeholderHorse";
 import { appearanceKey, applyRecolor, buildRecolorPlan, parseKeyPalette, type KeyPalette } from "./recolor";
-import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, clothKeySet, paintCoatStrip, paintSaddleCloth, rgbaRoleGrid, rgbaSaddleCloth, saddleClothOf, sheetSpeed, type CoatAtlas, type CoatGeometry, type SaddleClothMask } from "@thoroughbred/art-pipeline";
 import { loadCoatAtlas } from "../trackside/art";
 
 export type { HorseRig, HorseRigFactory, HorseRigState };
@@ -171,8 +171,19 @@ function stripFactory(three: typeof THREE, strip: GallopStrip, atlas: CoatAtlas 
     }
     return g;
   };
-  const recoloured = (a: HorseAppearance) => {
-    const k = appearanceKey(a);
+  // the saddle cloth of each source strip (V-03), found once
+  const cloths = new Map<ImageData, SaddleClothMask>();
+  const clothOf = (src: ImageData) => {
+    let m = cloths.get(src);
+    if (!m) {
+      m = rgbaSaddleCloth(src.data, src.width, strip.frameWidth, clothKeySet(strip.keys.white), geoOf(src));
+      cloths.set(src, m);
+    }
+    return m;
+  };
+  const recoloured = (a: HorseAppearance, gate?: number) => {
+    const cloth = gate !== undefined ? saddleClothOf(gate) : null;
+    const k = `${appearanceKey(a)}|${cloth?.gate ?? ""}`;
     let c = cache.get(k);
     if (!c) {
       const src = a.rider?.gender === "f" && strip.dataF ? strip.dataF : strip.data;
@@ -181,6 +192,7 @@ function stripFactory(three: typeof THREE, strip: GallopStrip, atlas: CoatAtlas 
       // patterns, markings and long hair: the same pattern definition as every other view
       const data = atlas ? paintCoatStrip(src.data, src.width, strip.frameWidth, geoOf(src), a, atlas, strip.keys, recolour, sheetSpeed("race/horse-gallop")) : new Uint8ClampedArray(src.data);
       if (!atlas) recolour(data);
+      if (cloth && strip.keys.white?.length) paintSaddleCloth(data, src.width, strip.frameWidth, clothOf(src), cloth);
       c = document.createElement("canvas");
       c.width = strip.data.width;
       c.height = strip.data.height;
@@ -215,7 +227,7 @@ function placeholderFactory(three: typeof THREE): HorseRigFactory {
 /** A HorseRig over a horizontal strip of gallop frames; the frame follows the stride phase. */
 function frameStripFactory(
   three: typeof THREE,
-  stripFor: (a: HorseAppearance) => HTMLCanvasElement,
+  stripFor: (a: HorseAppearance, gate?: number) => HTMLCanvasElement,
   frames: number,
   fw: number,
   fh: number,
@@ -225,8 +237,8 @@ function frameStripFactory(
   const rigs = new Set<HorseRig>();
   return {
     ready: async () => {},
-    create(appearance: HorseAppearance): HorseRig {
-      const canvas = stripFor(appearance);
+    create(appearance: HorseAppearance, opts?: { gate?: number }): HorseRig {
+      const canvas = stripFor(appearance, opts?.gate);
       const tex = new three.CanvasTexture(canvas);
       tex.magFilter = three.NearestFilter;
       tex.minFilter = three.NearestFilter;

@@ -7,6 +7,7 @@ import type { CallLine } from "../call/buildRaceCall";
 import { battleGapLabel, type Battle, type DistanceMarker } from "./battle";
 import type { CameraMode, ViewMode } from "../types";
 import { PLAYBACK_RATES } from "../playback";
+import { saddleClothOf } from "../cloth";
 
 const SURFACE_LABEL = { turf: "Turf", dirt: "Dirt", synthetic: "Synthetic" } as const;
 const GOING_LABEL = { firm: "Firm", good: "Good", soft: "Soft", heavy: "Heavy" } as const;
@@ -27,6 +28,20 @@ export function Swatch({ primary, secondary }: { primary: string; secondary: str
   return <span className="rv-swatch" style={{ background: `linear-gradient(135deg, ${primary} 0 55%, ${secondary} 55% 100%)` }} />;
 }
 
+/**
+ * The runner's saddle cloth as the racecard draws it (V-03): the gate's colour and number, the
+ * same as the cloth on the track. Null for a gate not drawn yet.
+ */
+export function ClothTile({ gate }: { gate: number }) {
+  const c = saddleClothOf(gate);
+  if (!c) return null;
+  return (
+    <span className="rv-cloth" style={{ background: c.cloth, color: c.number }} aria-label={`Number ${c.gate}`} data-rv-cloth={c.cloth}>
+      {c.gate}
+    </span>
+  );
+}
+
 export interface TopHudProps {
   race: RaceConfig;
   /** Race name + chips (hidden when the page shows them itself). */
@@ -43,6 +58,14 @@ export interface TopHudProps {
   highlightHorseId?: string;
   /** The next pole / board and metres to go (large readout). */
   marker?: DistanceMarker | null;
+  /** Each chip carries the runner's saddle cloth (gate colour and number), as on the track (V-03). */
+  cloth?: boolean;
+  /**
+   * Phone layout (V-01, <= 480 px): one compact row (the standings, the metres to go), no race
+   * title, and the call line is drawn under the stage by the viewer. Chips show the place and the
+   * cloth; only your horse's chip names it.
+   */
+  phone?: boolean;
 }
 
 /** Measure chips pre-paint when we can (SSR renders the hidden fallback and never runs effects). */
@@ -93,7 +116,7 @@ export function visibleStandings(standings: StandingRow[], k: number, meIdx: num
   return me && meIdx >= k && k > 1 ? [...standings.slice(0, k - 1), me] : standings.slice(0, k);
 }
 
-export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId, marker }: TopHudProps) {
+export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM, standings, maxStandings, commentary, highlightHorseId, marker, cloth = false, phone = false }: TopHudProps) {
   const winnerHome = winningTimeUs !== null && raceTime >= winningTimeUs / 1e6;
   const clock = winnerHome ? formatRaceTime(winningTimeUs) : formatRaceTime(Math.max(0, raceTime) * 1e6);
   const show = raceTime >= 0;
@@ -150,14 +173,58 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
   const k = Math.min(fit ?? cap, cap);
   const vis = visibleStandings(standings, k, meIdx);
   const hidden = Math.max(0, total - k);
-  const chip = (s: StandingRow) => (
-    <span key={s.horseId} className={`rv-st${s.horseId === highlightHorseId ? " rv-st-me" : ""}`}>
-      <Swatch primary={s.primary} secondary={s.secondary} />
-      <span className="rv-st-pos">{s.position}</span>
-      <span className="rv-st-name">{s.name}</span>
-      {s.gapLabel && <span className="rv-st-gap">{s.gapLabel}</span>}
-    </span>
+  const chip = (s: StandingRow) => {
+    const me = s.horseId === highlightHorseId;
+    // Phones: the place and the cloth (the number the track shows); your horse's chip is named.
+    const named = !phone || me;
+    return (
+      <span key={s.horseId} className={`rv-st${me ? " rv-st-me" : ""}`} title={phone && !me ? s.name : undefined}>
+        {(!cloth || !phone) && <Swatch primary={s.primary} secondary={s.secondary} />}
+        <span className="rv-st-pos">{s.position}</span>
+        {cloth && <ClothTile gate={s.gate} />}
+        {named && <span className="rv-st-name">{s.name}</span>}
+        {s.gapLabel && named && <span className="rv-st-gap">{s.gapLabel}</span>}
+      </span>
+    );
+  };
+  // Phones: while they run, the metres to go stand alone (the clock comes back for the finish).
+  const running = raceTime >= 0 && toGoM > 0.5;
+  const clockBox = (
+    <div className="rv-clock" aria-live="off">
+      {!(phone && running) && <div className="rv-time">{clock}</div>}
+      {raceTime >= 0 && toGoM > 0.5 ? (
+        <DistanceReadout toGoM={toGoM} marker={marker ?? null} />
+      ) : (
+        <div className="rv-togo">{raceTime < 0 ? "At the start" : winnerHome ? "Winning time" : "Finish"}</div>
+      )}
+    </div>
   );
+  const strip = show && (
+    <>
+      <div className="rv-standings" ref={stripRef} aria-label="Live standings" style={fit == null ? { visibility: "hidden" } : undefined}>
+        {vis.map(chip)}
+        {fit != null && hidden > 0 && (
+          <span className="rv-st rv-st-more" aria-label={`${hidden} runners not shown`}>
+            +{hidden}
+          </span>
+        )}
+      </div>
+      {/* Off-screen twin of the strip: same chips, always measured, never seen. */}
+      <div className="rv-st-cand" ref={candRef} aria-hidden="true">
+        {cand.map(chip)}
+        <span className="rv-st" ref={plusRef} />
+      </div>
+    </>
+  );
+  if (phone)
+    return (
+      <div className="rv-hud rv-hud-phone" data-rv-hud="phone">
+        <div className="rv-row">
+          <div className="rv-phone-strip">{strip}</div>
+          {clockBox}
+        </div>
+      </div>
+    );
   return (
     <div className="rv-hud">
       <div className="rv-row">
@@ -171,37 +238,9 @@ export function TopHud({ race, showTitle = true, winningTimeUs, raceTime, toGoM,
             {race.weather !== "clear" && <span className="rv-chip">{WEATHER_LABEL[race.weather]}</span>}
           </div>
         </div>
-        <div className="rv-clock" aria-live="off">
-          <div className="rv-time">{clock}</div>
-          {raceTime >= 0 && toGoM > 0.5 ? (
-            <DistanceReadout toGoM={toGoM} marker={marker ?? null} />
-          ) : (
-            <div className="rv-togo">{raceTime < 0 ? "At the start" : winnerHome ? "Winning time" : "Finish"}</div>
-          )}
-        </div>
+        {clockBox}
       </div>
-      {show && (
-        <>
-          <div
-            className="rv-standings"
-            ref={stripRef}
-            aria-label="Live standings"
-            style={fit == null ? { visibility: "hidden" } : undefined}
-          >
-            {vis.map(chip)}
-            {fit != null && hidden > 0 && (
-              <span className="rv-st rv-st-more" aria-label={`${hidden} runners not shown`}>
-                +{hidden}
-              </span>
-            )}
-          </div>
-          {/* Off-screen twin of the strip: same chips, always measured, never seen. */}
-          <div className="rv-st-cand" ref={candRef} aria-hidden="true">
-            {cand.map(chip)}
-            <span className="rv-st" ref={plusRef} />
-          </div>
-        </>
-      )}
+      {strip}
       {commentary && <CallTicker line={commentary} mine={!!highlightHorseId && commentary.horseIds.includes(highlightHorseId)} />}
     </div>
   );
@@ -240,17 +279,17 @@ export function CallTicker({ line, mine }: { line: CallLine; mine: boolean }) {
 }
 
 /** "Battle" graphic: two or three horses within half a length in the final 200 m. */
-export function BattleGraphic({ battle, horses, highlightHorseId }: { battle: Battle; horses: RaceReplay["horses"]; highlightHorseId?: string }) {
+export function BattleGraphic({ battle, horses, highlightHorseId, cloth = false }: { battle: Battle; horses: RaceReplay["horses"]; highlightHorseId?: string; cloth?: boolean }) {
   const byId = new Map(horses.map((h) => [h.horseId, h]));
   return (
     <div className="rv-battle" data-rv-battle={battle.horseIds.length} aria-hidden>
-      <span className="rv-battle-k">{battle.horseIds.length > 2 ? "Three" : "Neck"}<br />{battle.horseIds.length > 2 ? "abreast" : "& neck"}</span>
+      <span className="rv-battle-k">{battle.horseIds.length > 2 ? "Three" : "Neck"} <br />{battle.horseIds.length > 2 ? "abreast" : "& neck"}</span>
       {battle.horseIds.map((id, i) => {
         const h = byId.get(id);
         if (!h) return null;
         return (
           <span key={id} className={`rv-battle-h${id === highlightHorseId ? " rv-me" : ""}`}>
-            <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />
+            {cloth ? <ClothTile gate={h.gate} /> : <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />}
             <span>{h.name}</span>
             {i > 0 && <span className="rv-battle-gap">{battleGapLabel(battle.behindMm[i]!)}</span>}
           </span>
@@ -291,6 +330,17 @@ export interface ControlsProps {
   radio?: boolean;
   onRadio?(on: boolean): void;
   caster?: string;
+  /**
+   * Phones (V-02): "Close-up finish" frames the leaders and your horse in the final 400 m (off by
+   * default). Shown only when `onCloseUp` is given.
+   */
+  closeUp?: boolean;
+  onCloseUp?(on: boolean): void;
+  /**
+   * Which controls this bar holds: all of them (default), or on phones (V-01) the transport over
+   * the stage (play, restart, scrub, speed) and the options under it (view, camera, close-up, radio).
+   */
+  part?: "all" | "transport" | "options";
 }
 
 const CAMERAS: { id: CameraMode; label: string; short: string; title: string }[] = [
@@ -328,8 +378,13 @@ export function Controls(p: ControlsProps) {
   const t = Math.max(0, Math.min(p.time, p.duration));
   // Live: speeds only to catch up after a rewind (never shown at the live edge).
   const rates = p.liveMode ? (p.live ? [] : PLAYBACK_RATES.filter((r) => r >= 1)) : [...PLAYBACK_RATES];
+  const part = p.part ?? "all";
+  const transport = part !== "options";
+  const options = part !== "transport";
   return (
-    <div className="rv-controls" onPointerDown={(e) => e.stopPropagation()}>
+    <div className={`rv-controls${part === "options" ? " rv-controls-below" : ""}`} onPointerDown={(e) => e.stopPropagation()} data-rv-controls={part}>
+      {transport && (
+        <>
       <button type="button" className="rv-btn" onClick={p.onToggle} aria-label={p.playing ? "Pause" : "Play"} title={p.playing ? "Pause (space)" : "Play (space)"}>
         <PlayIcon playing={p.playing} />
       </button>
@@ -366,6 +421,10 @@ export function Controls(p: ControlsProps) {
           ))}
         </div>
       )}
+        </>
+      )}
+      {options && (
+        <>
       {p.onView && (
         <button
           type="button"
@@ -409,14 +468,39 @@ export function Controls(p: ControlsProps) {
           ))}
         </div>
       )}
+      {p.onCloseUp && (
+        <button
+          type="button"
+          className="rv-btn rv-closeup"
+          aria-pressed={!!p.closeUp}
+          onClick={() => p.onCloseUp?.(!p.closeUp)}
+          title={p.closeUp ? "Close-up finish on: the final 400 m frame the leaders and your horse" : "Close-up finish off: the whole field to the line"}
+          data-testid="close-up-finish"
+        >
+          <ZoomIcon />
+          Close-up finish
+        </button>
+      )}
       {p.onRadio && <RadioToggle on={!!p.radio} narrow={p.narrow} caster={p.caster} onRadio={p.onRadio} />}
-      {p.showLive && (
+        </>
+      )}
+      {p.showLive && transport && (
         <button type="button" className="rv-btn rv-live" aria-pressed={p.live} disabled={!p.live && !p.canGoLive} onClick={p.onLive} title="Jump to live">
           <span className="rv-live-dot" />
           Live
         </button>
       )}
     </div>
+  );
+}
+
+function ZoomIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <circle cx="6.5" cy="6.5" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M10 10l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4.3 6.5h4.4M6.5 4.3v4.4" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }
 
@@ -495,11 +579,13 @@ export function PhotoStamp() {
 export interface ResultsCardProps {
   replay: RaceReplay;
   highlightHorseId?: string;
+  /** Show each runner's saddle cloth (V-03) beside its silks. */
+  cloth?: boolean;
   onClose(): void;
   onReplay(): void;
 }
 
-export function ResultsCard({ replay, highlightHorseId, onClose, onReplay }: ResultsCardProps) {
+export function ResultsCard({ replay, highlightHorseId, onClose, onReplay, cloth = false }: ResultsCardProps) {
   const byId = new Map(replay.horses.map((h) => [h.horseId, h]));
   const winner = byId.get(replay.result.finishOrder[0]?.horseId ?? "");
   return (
@@ -525,7 +611,14 @@ export function ResultsCard({ replay, highlightHorseId, onClose, onReplay }: Res
               return (
                 <tr key={f.horseId} className={cls || undefined}>
                   <td>{ordinal(f.position)}</td>
-                  <td style={{ width: 18 }}>{h && <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />}</td>
+                  <td style={{ width: cloth ? 40 : 18 }}>
+                    {h && (
+                      <span className="rv-res-ids">
+                        {cloth && <ClothTile gate={h.gate} />}
+                        <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />
+                      </span>
+                    )}
+                  </td>
                   <td className="rv-res-name">{h?.name ?? f.horseId}</td>
                   <td className="rv-res-time">{formatRaceTime(f.finishTimeUs)}</td>
                   <td>{f.position === 1 ? "" : f.marginLabel}</td>

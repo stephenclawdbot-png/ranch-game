@@ -25,15 +25,18 @@ import { blobShadow, cloudSprite, gatePanelTile, grassTile, hedgeTile, hillsStri
 import { PostFX } from "./post";
 import { PixelRain } from "./vfx";
 import { ORGANIC_MID, taperCutEdges } from "./edgeTaper";
-import { Director, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
+import { Director, GATE_HOLD_S, SHOT_REACH, type DirectorInput, type ShotType } from "../director";
 import { buildRaceStage, elevationAt, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
 import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from "../stage/motion";
 import { POST_CANTER, preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { TRACK_POST, TRACK_PRE, groundSpan, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
-import { LUT_W, PATTERN_ID, buildLut, frameOrigin } from "../trackside/strips";
+import { LUT_W, PATTERN_ID, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "../trackside/strips";
 import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
+import { clothOffByUrl } from "../cloth";
+import { CloseUpFinish, PHONE_PX } from "../phone";
+import { GATE_SHOT, JUDGE_SHOT } from "./shots";
 
 /**
  * Race data the scene renders. A finished `RaceReplay` satisfies it; a live broadcast
@@ -64,6 +67,12 @@ export interface SceneFrame {
   flash: number;
   /** The viewer's one director (shared by both views, so a switch keeps the shot's subject). */
   director?: Director;
+  /**
+   * Phones, "Close-up finish" on (V-02): in the final 400 m the camera frames the leaders and
+   * your horse (within six lengths) instead of the whole field, back to the whole field after the
+   * line. Camera only: the simulation decides everything on the track.
+   */
+  closeFinish?: boolean;
 }
 
 export interface HD2DSceneOptions {
@@ -85,6 +94,8 @@ export interface HD2DSceneOptions {
   injured?: ReadonlySet<string>;
   /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
   preOff?: PreOffPlan | null;
+  /** Saddle cloths in each runner's gate colour and number (V-03); false = the strips' white cloths. Default true. */
+  clothColours?: boolean;
 }
 
 /**
@@ -247,6 +258,8 @@ export class HD2DScene {
   private byX: Runner[] = [];
   private dirEvents: { type: string; horseId?: string }[] = [];
   private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null, winnerId: null };
+  /** Phones, "Close-up finish" (V-02): who the final-400 m framing holds. */
+  private closeUp = new CloseUpFinish();
   private dirEventScan = 0;
   private shotType: ShotType = "gate";
   private shotSubject: string | null = null;
@@ -839,7 +852,7 @@ export class HD2DScene {
     const shadowGeo = this.own(new T.PlaneGeometry(1, 1));
     const strips = this.strips;
     if (strips) {
-      this.lut = this.dataTex(buildLut(strips.palette, strips.keys, this.replay.horses.map((h) => h.appearance)), LUT_W, Math.max(1, this.replay.horses.length), T.RGBAFormat);
+      this.lut = this.dataTex(buildLut(strips.palette, strips.keys, this.replay.horses.map((h) => h.appearance), runnerCloths(this.replay.horses, opts.clothColours)), LUT_W, Math.max(1, this.replay.horses.length), T.RGBAFormat);
       for (const st of [strips.gallop, strips.idle, ...Object.values(strips.strips)]) {
         if (!st) continue;
         this.lodTex.set(
@@ -897,6 +910,7 @@ export class HD2DScene {
               uOpacity: { value: 1 },
               uSat: { value: 1 },
               uBright: { value: 1 },
+              uClothNum: { value: 0 },
             },
           }),
         );
@@ -904,7 +918,7 @@ export class HD2DScene {
         plane.frustumCulled = false;
         this.scene.add(plane);
       } else {
-        rig = opts.rigs.create(h.appearance, { gate: h.gate });
+        rig = opts.rigs.create(h.appearance, { gate: (opts.clothColours ?? !clothOffByUrl()) || opts.rigKind === "pixel-rig" ? h.gate : undefined });
         // HD strips (>= 200 px frames) sit at the focal density; low-res strips are scaled
         // so the horse is still life-size (nose-to-tail ~93% of the frame).
         const WUPP = rig.width >= 200 ? 1 / FOCAL_PX_PER_M : HORSE_LEN_M / (rig.width * 0.93);
@@ -1071,6 +1085,38 @@ export class HD2DScene {
     return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shotSubject ? `${this.shotType}:${this.shotSubject}` : this.shotType };
   }
 
+  /**
+   * Dev hook (captures, framing checks): each runner's drawn sprite box and nose point in stage
+   * CSS px, from the camera of the last frame. Null for a runner behind the camera.
+   */
+  debugScreen(): { id: string; rect: { x: number; y: number; w: number; h: number } | null; nose: { x: number; y: number } | null }[] {
+    const cam = this.camera;
+    cam.updateMatrixWorld();
+    const v = new this.T.Vector3();
+    const toScreen = (p: THREE.Vector3) => {
+      const q = v.copy(p).project(cam);
+      return q.z > 1 ? null : { x: ((q.x + 1) / 2) * this.W, y: ((1 - q.y) / 2) * this.H };
+    };
+    return this.runners.map((r) => {
+      const m = r.plane;
+      m.updateMatrixWorld();
+      const g = m.geometry as THREE.BufferGeometry;
+      if (!g.boundingBox) g.computeBoundingBox();
+      const bb = g.boundingBox!;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [cx, cy] of [[bb.min.x, bb.min.y], [bb.max.x, bb.min.y], [bb.min.x, bb.max.y], [bb.max.x, bb.max.y]] as const) {
+        const s = toScreen(new this.T.Vector3(cx, cy, 0).applyMatrix4(m.matrixWorld));
+        if (!s) continue;
+        x0 = Math.min(x0, s.x);
+        x1 = Math.max(x1, s.x);
+        y0 = Math.min(y0, s.y);
+        y1 = Math.max(y1, s.y);
+      }
+      const nose = toScreen(new this.T.Vector3(r.x, r.y + 1.35, r.z));
+      return { id: r.horseId, rect: x1 > x0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null, nose: nose ? { ...nose } : null };
+    });
+  }
+
   /** What this scene built from the stage (guard test: must equal Trackside's). */
   get inventory(): StageInventory {
     return hd2dInventory(this.stage, this.plan);
@@ -1217,25 +1263,40 @@ export class HD2DScene {
     } else {
       const photo = this.photoFinish && tS > this.winnerTime - 1.6 && tS < this.winnerTime + 0.9;
       const after = tS > this.winnerTime + 0.9;
-      shotType = preCut === 1 ? "topost" : raceT < 1 ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
+      shotType = preCut === 1 ? "topost" : raceT < GATE_HOLD_S ? "gate" : photo ? "judge" : mode === "wide" ? "establish" : after && mode !== "mine" ? "post" : "close";
       subjectId = mode === "mine" ? mine!.horseId : shotType === "post" ? (winner?.horseId ?? null) : null;
+    }
+    // Phones, "Close-up finish" (V-02): in the final 400 m the tracking shot holds the leaders and
+    // your horse (within six lengths) in one close framing; the line's judge shot and the run-out
+    // stay the director's. Camera only.
+    let must: readonly string[] = mode === "director" ? this.director.mustFrame : NO_IDS;
+    const group = f.closeFinish && mode === "director" && preCut === 0 && shotType !== "judge" && shotType !== "post" && shotType !== "replay"
+      ? this.closeUp.group({ t: raceT, trackLengthM: L, winnerTime: this.winnerTime, runners: dirInput.runners, highlightId: mine?.horseId ?? null })
+      : (this.closeUp.reset(), null);
+    if (group) {
+      shotType = "close";
+      subjectId = null;
+      must = group;
     }
     this.shotType = shotType;
     this.shotSubject = subjectId;
     const subject = (subjectId ? this.runners.find((r) => r.horseId === subjectId) : null) ?? lead;
     const pos = this.v1;
     const at = this.v2;
-    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, mode === "director" ? this.director.mustFrame : NO_IDS);
+    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, must);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
       this.fov.snap(sc.fov);
       this.firstFrame = false;
     } else {
-      const ff = f.frozen ? 0 : sc.vel * (simDt > 0 && realDt > 0 ? simDt / realDt : 0);
-      this.camPos.step(pos, realDt, ff);
-      this.camLook.step(at, realDt, ff);
-      this.fov.step(sc.fov, realDt);
+      // the close-up finish steps the real frame time on a slow phone (under 10 fps), so its
+      // tight framing never falls behind the group
+      const camDt = group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt;
+      const ff = f.frozen ? 0 : sc.vel * (simDt > 0 && camDt > 0 ? simDt / camDt : 0);
+      this.camPos.step(pos, camDt, ff);
+      this.camLook.step(at, camDt, ff);
+      this.fov.step(sc.fov, camDt);
     }
     const cam = this.camera;
     const px = cam.position.x;
@@ -1350,6 +1411,8 @@ export class HD2DScene {
         (u.uMskOrigin!.value as THREE.Vector2).set(...frameOrigin(st.lods[0]!, frame));
         (u.uFrame!.value as THREE.Vector4).set(ox, oy, lod.fw, lod.fh);
         u.uLodS!.value = r.lod;
+        // the cloth's number when the horse is drawn large enough to read it (frame width, CSS px)
+        u.uClothNum!.value = clothNumberShown((st.lods[0]!.fw * q) / Math.max(1, this.renderer.getPixelRatio()), r.lod) ? 1 : 0;
         const sb = st.silk;
         (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
         this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true);
@@ -1645,17 +1708,19 @@ export class HD2DScene {
     };
     switch (type) {
       case "gate": {
-        // Side-on at the stalls, a touch higher before the off, settling at the off.
+        // The stalls (V-09): low and a little ahead of the doors, looking back across the fronts,
+        // so every stall's runner shows through its open doors (lanes spread across the frame
+        // instead of stacking behind the near stall); a touch higher before the off.
         const k = Math.min(1, Math.max(0, (raceT + 1.6) / 2.6));
         group = byX;
-        elev = 14 - 4 * k;
-        yaw = -4;
-        fillX = 0.8;
-        fillY = 0.62;
-        fov = 30;
+        elev = GATE_SHOT.elev + GATE_SHOT.elevPre * (1 - k);
+        yaw = GATE_SHOT.yaw;
+        fillX = GATE_SHOT.fillX;
+        fillY = GATE_SHOT.fillY;
+        fov = GATE_SHOT.fov;
         vel = 0;
         maxSpan = 1e9;
-        composeShift = 0.16;
+        composeShift = GATE_SHOT.composeShift;
         break;
       }
       case "topost":
@@ -1708,17 +1773,19 @@ export class HD2DScene {
         vel = (byX[0]!.speed + byX[byX.length - 1]!.speed) / 2;
         break;
       case "judge":
-        group = byX.filter((r) => Math.abs(r.x - L) < 5);
+        // The line (V-10): square to it, high enough that the leaders' lanes separate on screen.
+        // (phones: just the battle at the line, so the two noses are not a few pixels each)
+        group = byX.filter((r) => Math.abs(r.x - L) < (this.W <= PHONE_PX ? JUDGE_SHOT.reachPhone : JUDGE_SHOT.reach));
         if (group.length < 2) group = byX.slice(0, 2);
-        elev = 12;
-        yaw = 0;
-        fillX = 0.8;
-        fillY = 0.62;
-        fov = 28;
+        elev = JUDGE_SHOT.elev;
+        yaw = JUDGE_SHOT.yaw;
+        fillX = JUDGE_SHOT.fillX;
+        fillY = JUDGE_SHOT.fillY;
+        fov = JUDGE_SHOT.fov;
         vel = 0;
         leadPad = 0;
         maxSpan = 1e9;
-        composeShift = 0.06;
+        composeShift = JUDGE_SHOT.composeShift;
         break;
       case "post":
         // Pull-up follow: tracks the horse being celebrated as it eases down, framed left of
@@ -1786,6 +1853,12 @@ export class HD2DScene {
     const narrowK = Math.min(1, Math.max(0.5, this.camera.aspect / (16 / 9)));
     maxSpan *= Math.pow(narrowK, type === "close" ? 1.2 : 1.5);
     if (type !== "judge" && type !== "gate") elev += (1 - narrowK) * (type === "close" ? 5 : 8);
+    // The stalls on a narrow frame: less swing (the lanes spread less across) and a little higher
+    // (they stack a little more), so the field still fills the frame's height (V-09).
+    if (type === "gate") {
+      yaw *= narrowK;
+      elev += (1 - narrowK) * GATE_SHOT.elevNarrow;
+    }
     // Portrait phones: a width-limited lens leaves a tall frame; the tracking shots sit the
     // runners lower (above the controls) so the frame is not a band of empty grass under them,
     // with the course's scenery behind the HUD above.

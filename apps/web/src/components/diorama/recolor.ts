@@ -5,7 +5,7 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
+import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, clothKeySet, jerseyPatternAt, paintCoatStrip, paintRiderLook, paintSaddleCloth, prepareRider, resolveHorseColors, rgbaRoleGrid, rgbaSaddleCloth, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette, type SaddleClothLook, type SaddleClothMask } from "@thoroughbred/art-pipeline";
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
@@ -17,6 +17,8 @@ export interface DioramaHorseLook {
   silks?: [primary: string, secondary: string, cap: string];
   /** Full appearance (coat v2 layered colours); drives the palette when present. */
   appearance?: HorseAppearance;
+  /** The runner's saddle cloth (gate colour and number, V-03); absent = the strip's white cloth. */
+  cloth?: SaddleClothLook | null;
 }
 
 type RGB = [number, number, number];
@@ -95,7 +97,7 @@ export function applyRecolor(data: Uint8ClampedArray, map: Map<number, number>):
 }
 
 export const lookKey = (l: DioramaHorseLook) =>
-  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) : ""}`;
+  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) : ""}|${l.cloth?.gate ?? ""}`;
 
 const packHex = (h: string) => {
   const [r, g, b] = hexToRgb(h);
@@ -170,6 +172,9 @@ export function applyRiderLook(data: Uint8ClampedArray, width: number, height: n
 export const COAT_ATLAS_SRC = "race/coat-layers.png";
 const FULL_KEYS = { ...KEYS, cap: KEYS.cap } as const;
 const geoCache = new Map<string, CoatGeometry>();
+/** The fixed white keys the strips draw the saddle cloth (and breeches) in. */
+const CLOTH_KEYS = clothKeySet((PALETTE as unknown as { fixed?: { white?: string[] } }).fixed?.white);
+const clothCache = new Map<string, SaddleClothMask>();
 
 /** Decode the atlas once from its loaded image. */
 let atlasMemo: { im: CanvasImageSource; atlas: CoatAtlas } | null = null;
@@ -190,19 +195,28 @@ export function coatAtlasOf(im: HTMLImageElement | null | undefined): CoatAtlas 
  * Paint one keyed horse sheet (unflipped, frames side by side) for a look: long hair, recolour and
  * rider look (applyRiderLook), then the coat layers. `key` names the sheet (its geometry is cached).
  */
-export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: number, frameWidth: number, look: DioramaHorseLook, atlas: CoatAtlas | null, key: string): void {
+export function paintHorseSheet(data: Uint8ClampedArray, width: number, height: number, frameWidth: number, look: DioramaHorseLook, atlas: CoatAtlas | null, key: string, clothNumber = true): void {
   const a = look.appearance;
-  if (!a || !atlas) {
-    applyRiderLook(data, width, height, frameWidth, look, false);
-    return;
+  const geoOf = () => {
+    let geo = geoCache.get(key);
+    if (!geo) {
+      geo = buildCoatGeometry(rgbaRoleGrid(data, width, height, frameWidth, FULL_KEYS));
+      geoCache.set(key, geo);
+    }
+    return geo;
+  };
+  // the saddle cloth (V-03) is found on the keyed sheet, before anything is painted over it
+  let cloth: SaddleClothMask | null = null;
+  if (look.cloth && CLOTH_KEYS.size) {
+    cloth = clothCache.get(key) ?? null;
+    if (!cloth) {
+      cloth = rgbaSaddleCloth(data, width, frameWidth, CLOTH_KEYS, geoOf());
+      clothCache.set(key, cloth);
+    }
   }
-  let geo = geoCache.get(key);
-  if (!geo) {
-    geo = buildCoatGeometry(rgbaRoleGrid(data, width, height, frameWidth, FULL_KEYS));
-    geoCache.set(key, geo);
-  }
-  const out = paintCoatStrip(data, width, frameWidth, geo, a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false), sheetSpeed(key));
-  data.set(out);
+  if (!a || !atlas) applyRiderLook(data, width, height, frameWidth, look, false);
+  else data.set(paintCoatStrip(data, width, frameWidth, geoOf(), a, atlas, FULL_KEYS, (d) => applyRiderLook(d, width, height, frameWidth, look, false), sheetSpeed(key)));
+  if (cloth && look.cloth) paintSaddleCloth(data, width, frameWidth, cloth, look.cloth, clothNumber);
 }
 
 /**

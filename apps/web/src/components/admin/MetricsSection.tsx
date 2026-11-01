@@ -9,7 +9,12 @@ interface Metrics {
   firstRace: { medianSec: number | null; under60Pct: number | null; n: number };
   racesPerActive: number | null;
   liveShare: number | null;
-  perf: { byDevice: { device: string; reports: number; medianFps: number; lowFps: number; onTargetPct: number | null; downgradedPct: number | null }[]; slowGpus: { gpu: string; reports: number; medianFps: number }[] };
+  perf: {
+    byDevice: { device: string; reports: number; medianFps: number; lowFps: number; onTargetPct: number | null; downgradedPct: number | null }[];
+    slowGpus: { gpu: string; reports: number; medianFps: number }[];
+    /** The real-device baseline (V-00, docs/perf-baseline.md): per device, view and race layout. */
+    baseline?: { device: string; view: string; layout: string; reports: number; medianFps: number; lowFps: number; p99Fps: number | null; workMs: number | null; workP99: number | null; slowPct: number | null; downgradedPct: number | null; downgradeSec: number | null }[];
+  };
   totals: { testers: number; feedback: number; events: number };
   breeding?: { testers: number; bred: number; bredPct: number | null; foalsBorn: number; foalsRaced: number };
   missIt?: { responses: number; very: number; somewhat: number; notReally: number; veryPct: number | null; recent: { rating: number; message: string; atMs: number }[] };
@@ -356,6 +361,56 @@ export function MetricsSection() {
                 </tbody>
               </table>
             </div>
+            {(m.perf.baseline?.length ?? 0) > 0 && (
+              <div className="grid gap-1">
+                <p className="text-xs text-cream-dim">
+                  Baseline by view and layout (medians of the reports; ms = the viewer&apos;s own work per frame; slow = frames over the device&apos;s budget, 33 ms phone / 17 ms desktop)
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[44rem] text-left text-sm" data-testid="perf-baseline">
+                    <thead className="text-cream-dim">
+                      <tr>
+                        <th className="p-1">Device</th>
+                        <th className="p-1">View</th>
+                        <th className="p-1">Layout</th>
+                        <th className="p-1">Reports</th>
+                        <th className="p-1">fps</th>
+                        <th className="p-1">p95</th>
+                        <th className="p-1">p99</th>
+                        <th className="p-1">JS ms</th>
+                        <th className="p-1">JS p99</th>
+                        <th className="p-1">Slow</th>
+                        <th className="p-1">Downgraded</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {m.perf.baseline!.map((b) => {
+                        const target = FPS_TARGET[b.device] ?? 30;
+                        const n = (v: number | null, d = 0) => (v === null ? "–" : v.toFixed(d));
+                        return (
+                          <tr key={`${b.device}-${b.view}-${b.layout}`} className="border-t-2 border-line">
+                            <td className="p-1 font-bold">{b.device}</td>
+                            <td className="p-1">{b.view === "classic" ? "3D" : b.view}</td>
+                            <td className="p-1">{b.layout}</td>
+                            <td className="p-1">{b.reports}</td>
+                            <td className={`p-1 num ${b.medianFps < target ? "text-negative" : ""}`}>{Math.round(b.medianFps)}</td>
+                            <td className="p-1">{Math.round(b.lowFps)}</td>
+                            <td className="p-1">{n(b.p99Fps)}</td>
+                            <td className="p-1">{n(b.workMs, 1)}</td>
+                            <td className="p-1">{n(b.workP99, 1)}</td>
+                            <td className="p-1">{b.slowPct === null ? "–" : `${b.slowPct.toFixed(1)}%`}</td>
+                            <td className="p-1">
+                              {pct(b.downgradedPct)}
+                              {b.downgradeSec !== null ? ` · ${Math.round(b.downgradeSec)} s in` : ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
             {m.perf.slowGpus.length > 0 && (
               <div className="grid gap-1 text-sm">
                 <p className="text-xs text-cream-dim">Slowest GPUs (≥ 3 reports)</p>

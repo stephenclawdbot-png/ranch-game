@@ -8,7 +8,7 @@ import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
 import { atlasFromRgba, buildCoatGeometry, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
-import { downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
+import { downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, stripSaddleCloth, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
 import type { AnimId } from "../stage/motion";
 import type { RaceStage } from "../stage/buildRaceStage";
 
@@ -107,7 +107,9 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
   const geo = buildCoatGeometry(indexedRoleGrid(l1, palette, keys));
   // the feathered horse's long hair, grown once per strip (it streams back by the strip's speed)
   const hair = stripLongHair(l1, palette, keys, geo, sheetSpeed(`race/${stem}`));
-  const mask = buildMarkMasks(l1, palette, keys, geo, hair);
+  // the saddle cloth (V-03), found once per strip; the scenes paint it per runner (LUT) or not at all
+  const cloth = stripSaddleCloth(l1, palette, keys, geo);
+  const mask = buildMarkMasks(l1, palette, keys, geo, hair, cloth);
   const cm = coatMasks(l1, geo, hair, palette);
   // women riders: the -f strip's differences go into the same mask (one strip for every runner)
   const fEntry = approved(art, `${stem}-f.png`);

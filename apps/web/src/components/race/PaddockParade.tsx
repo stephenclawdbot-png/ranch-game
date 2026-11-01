@@ -6,6 +6,9 @@ import { Diorama } from "../diorama/Diorama";
 import { paddockScene } from "../diorama/scenes";
 import { SilksIcon } from "../Silks";
 import { Saddlecloth } from "./Saddlecloth";
+import { saddleClothOf } from "@thoroughbred/art-pipeline";
+import { clothOffByUrl } from "@thoroughbred/race-viewer";
+import type { DioramaHorseLook } from "../diorama/recolor";
 
 export interface ParadeRunner {
   id: string;
@@ -18,6 +21,14 @@ export interface ParadeRunner {
 }
 
 /**
+ * A runner's look in the paddock and going down to post: coat, silks, jockey, and the saddle cloth
+ * in its gate colour and number once the stalls are drawn (V-03; `?cloth=0` shows the white cloths).
+ */
+export function runnerLook(r: Pick<ParadeRunner, "gate" | "appearance">): DioramaHorseLook {
+  return { coat: r.appearance.coat, appearance: r.appearance, cloth: r.gate > 0 && !clothOffByUrl() ? saddleClothOf(r.gate) : null };
+}
+
+/**
  * The race's own runners walking the paddock (coats + silks), with a rotating nameplate. Used
  * before the field locks on the race page and as the race viewer's paddock during the build-up
  * before the off.
@@ -25,7 +36,7 @@ export interface ParadeRunner {
 export function PaddockParade({ runners }: { runners: readonly ParadeRunner[] }) {
   const ids = runners.map((r) => r.id).join(",");
   const def = useMemo(
-    () => paddockScene(runners.slice(0, 6).map((r) => ({ coat: r.appearance.coat, appearance: r.appearance }))),
+    () => paddockScene(runners.slice(0, 6).map((r) => runnerLook(r))),
     [ids], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const [i, setI] = useState(0);

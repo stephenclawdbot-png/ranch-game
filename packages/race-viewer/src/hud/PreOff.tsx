@@ -9,6 +9,13 @@ import type { ReactNode } from "react";
 import type { ReplayHorse } from "@thoroughbred/shared";
 import type { PreOffKind } from "../stage/preoff";
 import { Swatch, clockLabel } from "./Hud";
+import { saddleClothOf } from "../cloth";
+
+/** The racecard's cloth tile colours for a gate (V-03: the same colours as the cloths on the track). */
+function clothStyle(gate: number) {
+  const c = saddleClothOf(gate);
+  return c ? { background: c.cloth, color: c.number } : undefined;
+}
 
 export interface PreOffHud {
   kind: PreOffKind;
@@ -56,7 +63,7 @@ export function PreOffOverlay({
                 .sort((a, b) => a.gate - b.gate)
                 .map((h) => (
                   <li key={h.horseId} className={h.horseId === highlightHorseId ? "rv-me" : undefined}>
-                    <span className="rv-pre-cloth">{h.gate}</span>
+                    <span className="rv-pre-cloth" style={clothStyle(h.gate)}>{h.gate}</span>
                     <Swatch primary={h.appearance.silks.primary} secondary={h.appearance.silks.secondary} />
                     <span className="rv-pre-name">{h.name}</span>
                   </li>
@@ -69,7 +76,7 @@ export function PreOffOverlay({
         <span className="rv-pre-k">{caption.k}</span>
         {w ? (
           <span className={`rv-pre-t rv-pre-led${w.horseId === highlightHorseId ? " rv-me" : ""}`} key={w.horseId}>
-            <span className="rv-pre-cloth">{w.gate}</span>
+            <span className="rv-pre-cloth" style={clothStyle(w.gate)}>{w.gate}</span>
             <Swatch primary={w.appearance.silks.primary} secondary={w.appearance.silks.secondary} />
             {w.name}
           </span>

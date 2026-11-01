@@ -11,9 +11,9 @@ import type { Db } from "./db";
 export { playtestConfig };
 
 /** Records a telemetry event; failures are logged and never break the request. */
-export async function trackEvent(db: Db, accountId: string | null, name: TelemetryEvent, props?: Record<string, unknown>): Promise<void> {
+export async function trackEvent(db: Db, accountId: string | null, name: TelemetryEvent, props?: Record<string, unknown>, maxProps?: number): Promise<void> {
   try {
-    await track(db, { accountId, name, props });
+    await track(db, { accountId, name, props, maxProps });
   } catch (err) {
     console.error("telemetry", name, err);
   }

@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { betaRewards, horses, inviteCodes, ledgerAccounts, testerRewards, testers } from "../schema";
+import { betaRewards, horses, inviteCodes, ledgerAccounts, telemetryEvents, testerRewards, testers } from "../schema";
 import { createAccount } from "../services/accounts";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import {
   approvedUnpaidCsv,
   awardBetaReward,
   budgetSummary,
+  cleanProps,
   checkInvite,
   generateInviteCodes,
   linkTester,
@@ -257,6 +258,32 @@ describe("beta metrics", () => {
     ]);
     // Only Adreno clears the >= 3 reports bar (Mali 1, Apple M2 2).
     expect(m.perf.slowGpus).toEqual([{ gpu: "Adreno 640", reports: 3, medianFps: 30 }]);
+  });
+
+  it("perf baseline (V-00): reports keep their 14 fields and group by device, view and race layout", async () => {
+    const now = at(10 * DAY);
+    const report = (view: "trackside" | "classic", layout: string, fps: number, workMs: number, slowPct: number, downgradeSec: number) =>
+      track(h2.db, {
+        accountId: null,
+        name: "race_perf",
+        maxProps: 16,
+        props: { fps, fpsLow: fps - 10, fps99: fps - 20, workMs, workP99: workMs * 4, slowPct, quality: "high", downgraded: downgradeSec >= 0, downgradeSec, view, layout, device: "phone", dpr: 3, gpu: "Adreno 750" },
+        now,
+      });
+    await report("trackside", "phone", 50, 1.2, 4, -1);
+    await report("trackside", "phone", 40, 1.6, 10, 31);
+    await report("classic", "phone-closeup", 30, 2.4, 30, 12);
+    // a 14-field report is stored whole (the default cap is 8)
+    const stored = await h2.db.select().from(telemetryEvents);
+    const row = stored.find((r) => r.name === "race_perf" && (r.props as Record<string, unknown> | null)?.layout === "phone-closeup");
+    expect(Object.keys(row!.props as object)).toHaveLength(14);
+    expect(cleanProps({ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9 })).not.toHaveProperty("i");
+
+    const m = await playtestMetrics(h2.db, { now, days: 1 });
+    expect(m.perf.baseline).toEqual([
+      { device: "phone", view: "classic", layout: "phone-closeup", reports: 1, medianFps: 30, lowFps: 20, p99Fps: 10, workMs: 2.4, workP99: 9.6, slowPct: 30, downgradedPct: 100, downgradeSec: 12 },
+      { device: "phone", view: "trackside", layout: "phone", reports: 2, medianFps: 45, lowFps: 35, p99Fps: 25, workMs: 1.4, workP99: 5.6, slowPct: 7, downgradedPct: 50, downgradeSec: 31 },
+    ]);
   });
 });
 

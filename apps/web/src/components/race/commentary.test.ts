@@ -79,7 +79,7 @@ describe("the Radio commentary toggle in every race mode", () => {
 
   it("the viewer always shows it (no prop turns it off), and every mode mounts that viewer", () => {
     const viewer = readFileSync(join(repo, "packages/race-viewer/src/RaceViewer.tsx"), "utf8");
-    expect(viewer).toMatch(/onRadio=\{setRadio\}/);
+    expect(viewer).toMatch(/onRadio(=\{|: )setRadio/);
     expect(viewer).toMatch(/pickCaster\(stageData\.race\.id\)/);
     const hud = readFileSync(join(repo, "packages/race-viewer/src/hud/Hud.tsx"), "utf8");
     expect(hud).toMatch(/\{p\.onRadio && <RadioToggle/);
