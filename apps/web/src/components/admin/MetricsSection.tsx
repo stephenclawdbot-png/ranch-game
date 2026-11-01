@@ -9,6 +9,8 @@ interface Metrics {
   firstRace: { medianSec: number | null; under60Pct: number | null; n: number };
   racesPerActive: number | null;
   liveShare: number | null;
+  /** Live card races, last 7 days (absent on older servers). */
+  livePlayers?: { racesRun: number; playersPerRace: number | null; folded: number; foldedPct: number | null };
   perf: { byDevice: { device: string; reports: number; medianFps: number; lowFps: number; onTargetPct: number | null; downgradedPct: number | null }[]; slowGpus: { gpu: string; reports: number; medianFps: number }[] };
   totals: { testers: number; feedback: number; events: number };
   breeding?: { testers: number; bred: number; bredPct: number | null; foalsBorn: number; foalsRaced: number };
@@ -275,6 +277,16 @@ export function MetricsSection() {
         <Tile label="Races / active / day" value={m.racesPerActive === null ? "–" : m.racesPerActive.toFixed(1)} sub="last 7 days" />
         <Tile label="Live share" value={pct(m.liveShare)} sub="of races, last 7 days" />
       </ul>
+      {m.livePlayers && (
+        <ul className="grid grid-cols-1 gap-2 md:grid-cols-4" data-testid="live-players-metrics">
+          <Tile
+            label="Real players per Live race (last 7 days)"
+            value={m.livePlayers.playersPerRace === null ? "–" : m.livePlayers.playersPerRace.toFixed(1)}
+            sub={`${n0(m.livePlayers.racesRun)} races run · ${pct(m.livePlayers.foldedPct)} folded (${n0(m.livePlayers.folded)} called off, no player entered) · Above 4: add races. Below 2: fewer races.`}
+            tone={m.livePlayers.playersPerRace === null ? undefined : m.livePlayers.playersPerRace > 4 || m.livePlayers.playersPerRace < 2 ? "negative" : "positive"}
+          />
+        </ul>
+      )}
       {m.breeding && (
         <ul className="grid grid-cols-1 gap-2 md:grid-cols-4" data-testid="breeding-metrics">
           <Tile label="Testers who bred" value={pct(m.breeding.bredPct)} sub={`${m.breeding.bred} of ${m.breeding.testers}`} />

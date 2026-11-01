@@ -1,4 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
+import { RULES, claimingSlotOfDay, slotPostTime } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { Callout, Facts, GameLink, H2, Lead, List, P, Steps, Table, WikiLink, pct } from "../kit";
 
@@ -11,7 +12,9 @@ function examples() {
   });
 }
 
-const MEETING_TIME = gc.MEETING_START_TIMES_UTC[gc.CLAIMING_MEETING_OF_DAY];
+/** The claiming race's post times (UTC) over three weekdays of season 1: one per band, from the card itself. */
+const CLAIMING_TIMES = [...new Set([0, 1, 2].map((d) => slotPostTime(claimingSlotOfDay(RULES.seasonEpochMs + d * gc.MS_PER_DAY)!).toISOString().slice(11, 16)))].sort();
+const TIMES_TEXT = `${CLAIMING_TIMES.slice(0, -1).join(", ")}${CLAIMING_TIMES.length > 1 ? " or " : ""}${CLAIMING_TIMES.at(-1)} UTC`;
 
 export default function ClaimingRacesPage() {
   const rows = examples();
@@ -24,10 +27,9 @@ export default function ClaimingRacesPage() {
 
       <H2 id="when">When they run</H2>
       <P>
-        There is {gc.CLAIMING_RACES_PER_DAY === 1 ? "one claiming race" : `${gc.CLAIMING_RACES_PER_DAY} claiming races`} a day, in the {MEETING_TIME} UTC meeting. It takes the place of one of
-        that meeting&rsquo;s three handicaps, and the band changes every day: 0-55, then 50-75, then 70-95. It runs to that handicap&rsquo;s conditions and purse and is called the
-        &ldquo;&lt;Course&gt; Claiming Stakes (band)&rdquo;. A calendar race always keeps its place: if one holds that day&rsquo;s band, the claiming race moves to the next band, and on the
-        Season Finals&rsquo; day there is none. The race list marks it <b>Claiming</b>.
+        There is {gc.CLAIMING_RACES_PER_DAY === 1 ? "one claiming race" : `${gc.CLAIMING_RACES_PER_DAY} claiming races`} a day, in an evening meeting ({TIMES_TEXT}). It takes the place of the
+        day&rsquo;s last handicap in one band, and the band changes every day: 0-55, then 50-75, then 70-95. It runs to that handicap&rsquo;s conditions and purse and is called the
+        &ldquo;&lt;Course&gt; Claiming Stakes (band)&rdquo;. A calendar race always keeps its place: if one holds that day&rsquo;s band, the claiming race moves to the next band. The race list marks it <b>Claiming</b>.
       </P>
 
       <H2 id="entering">Entering a horse</H2>
@@ -75,7 +77,7 @@ export default function ClaimingRacesPage() {
       <Facts
         rows={[
           ["Claiming races a day", String(gc.CLAIMING_RACES_PER_DAY)],
-          ["Meeting", `${MEETING_TIME} UTC`],
+          ["Post time", TIMES_TEXT],
           ["Claim price", `${pct(gc.CLAIM_PRICE_MIN_PERMILLE)}–${pct(gc.CLAIM_PRICE_MAX_PERMILLE)} of appraisal`],
           ["Fee (burned)", pct(gc.MARKET_FEE_PERMILLE)],
           ["Resale lock", `${gc.RESALE_LOCK_MS / 3_600_000} h`],

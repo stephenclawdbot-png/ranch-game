@@ -647,18 +647,22 @@ async function playerStableName(db: Db, race: PublicRace, horseId: string): Prom
   return stableNameOf(e, horseId, !e?.stableId, race);
 }
 
-/** The meeting a Live race belongs to (game-core meetings.ts), for grouping the card. */
+/**
+ * The meeting a Live race is listed under (game-core meetings.ts meetingOf), for grouping the
+ * card: the one running at its post time, else the last one that started before it (a race
+ * published under an older schedule stays with its meeting).
+ */
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
 export function meetingStartOf(postTimeMs: number): number {
-  return gc.meetingFor(SEASON_CLOCK, postTimeMs).startMs;
+  return gc.meetingOf(SEASON_CLOCK, postTimeMs).startMs;
 }
 
 const isCalendarRace = (r: Pick<PublicRace, "conditions">) => !!(r.conditions as { calendar?: unknown } | null)?.calendar;
 
 /**
  * The Live card: the next races (entries open or closed) and the latest ones (live first, then
- * results). The card is the whole published day: three race meetings (game-core meetings.ts)
- * with the calendar races inside the evening meeting. `upcoming` caps the list: the soonest
+ * results). The card is the whole published day of race meetings (game-core meetings.ts),
+ * with the calendar races inside the 19:00 UTC meeting. `upcoming` caps the list: the soonest
  * races, with every calendar race on the card kept in (a short list still shows the evening's
  * Qualifier). Races called off at the close (nobody entered) are left out.
  */

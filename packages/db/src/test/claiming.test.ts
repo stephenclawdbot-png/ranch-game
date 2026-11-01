@@ -5,7 +5,7 @@ import { gc } from "../gameCore";
 import { RULES } from "../rules";
 import { fraudEvents, horseLeaseListings, horses, inboxItems, raceClaims, stables } from "../schema";
 import { recordAccountSignal } from "../services/accounts";
-import { cardSlotAt, claimingSlotOfMeeting, ensureRaceCard, isCalendarSlot, isClaimingSlot, meetingRaceOf, slotIndexAt, slotIndexOf, slotKeyOf, slotPostTime } from "../services/card";
+import { cardSlotAt, claimingSlotOfDay, ensureRaceCard, isCalendarSlot, isClaimingSlot, meetingRaceOf, patternPlaceOf, plateSlotAt, slotIndexAt, slotIndexOf, slotKeyOf, slotPostTime } from "../services/card";
 import { claimingCard, claimingEligibleCount, claimPriceBand, isClaimingRace, lodgeClaim } from "../services/claiming";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import { listHorse } from "../services/market";
@@ -68,33 +68,37 @@ describe("claiming races: the card", () => {
     claimingByDay.set(day, [...(claimingByDay.get(day) ?? []), i]);
   }
 
-  it("one claiming race a day, in the 19:00 UTC meeting, on a handicap, never over a calendar race", () => {
-    // every day of two months except the Season Finals' day(s) has exactly one
-    const finals = [...Array(days).keys()].map((d) => Math.floor(slotPostTime(from).getTime() / DAY) + d).filter((d) => !claimingByDay.has(d));
-    expect(finals.length).toBeLessThanOrEqual(2);
-    for (const [, slots] of claimingByDay) {
+  /** The day's handicaps of one pattern place (2, 4, 6 = the 0-55, 50-75, 70-95 bands), not calendar races. */
+  const handicapsOn = (day: number, place: number) =>
+    Array.from({ length: 96 }, (_, k) => slotIndexAt(new Date(day * DAY)) + k).filter((i) => meetingRaceOf(i) && patternPlaceOf(meetingRaceOf(i)!) === place && !isCalendarSlot(i));
+
+  it("one claiming race a day, on the day's last handicap of its band, in the evening (UTC), never over a calendar race", () => {
+    // every day of two months has exactly one (the Season Finals have a meeting of their own now)
+    expect(claimingByDay.size).toBe(days);
+    for (const [day, slots] of claimingByDay) {
       expect(slots).toHaveLength(1);
       const i = slots[0]!;
       const m = meetingRaceOf(i)!;
-      expect(m.ofDay).toBe(2);
-      expect(slotPostTime(i).getUTCHours()).toBeGreaterThanOrEqual(19);
-      expect([2, 4, 6]).toContain(m.race);
+      const place = patternPlaceOf(m);
+      expect([2, 4, 6]).toContain(place);
+      expect(handicapsOn(day, place).at(-1)).toBe(i);
+      // the evening (UTC), except on a Season Finals day (its 19:00 meeting is the Finals)
+      if (!gc.isFinalsDay({ epochMs: RULES.seasonEpochMs }, day * DAY)) expect(slotPostTime(i).getUTCHours()).toBeGreaterThanOrEqual(16);
       expect(isCalendarSlot(i)).toBe(false);
+      expect(claimingSlotOfDay(day * DAY)).toBe(i);
       const race = cardSlotAt(i)!;
       expect(race.name).toMatch(/^.+ Claiming Stakes \((0-55|50-75|70-95)\)$/);
       expect(race.raceClass).toBe("handicap");
       expect(isClaimingRace(race)).toBe(true);
-      expect(race.conditions.maxRating).toBe({ 2: 55, 4: 75, 6: 95 }[m.race]);
-      expect(race.purse).toBe({ 2: 1_500, 4: 2_000, 6: 2_500 }[m.race]);
+      expect(race.conditions.maxRating).toBe({ 2: 55, 4: 75, 6: 95 }[place]);
+      expect(race.purse).toBe({ 2: 1_500, 4: 2_000, 6: 2_500 }[place]);
     }
   });
 
   it("rotates through the three bands day by day", () => {
-    const bands = [...claimingByDay.entries()].sort((a, b) => a[0] - b[0]).map(([day, [i]]) => ({ day, race: meetingRaceOf(i!)!.race }));
-    const plain = bands.filter(({ day }) => {
-      const m = meetingRaceOf(claimingByDay.get(day)![0]!)!;
-      return [2, 4, 6].every((pos) => !isCalendarSlot(slotIndexAt(new Date(m.startMs + pos * 15 * MIN))));
-    });
+    const bands = [...claimingByDay.entries()].sort((a, b) => a[0] - b[0]).map(([day, [i]]) => ({ day, race: patternPlaceOf(meetingRaceOf(i!)!) }));
+    // a day without the Saturday Plate (which can hold a band's last handicap) takes its own band
+    const plain = bands.filter(({ day }) => Array.from({ length: 96 }, (_, k) => slotIndexAt(new Date(day * DAY)) + k).every((i) => !plateSlotAt(i)));
     expect(plain.length).toBeGreaterThan(30);
     for (const { day, race } of plain) expect(race).toBe([2, 4, 6][gc.claimingBandOrder(day)[0]!]);
     expect(new Set(bands.map((b) => b.race)).size).toBe(3);
@@ -107,7 +111,7 @@ describe("claiming races: the card", () => {
       const race = cardSlotAt(i)!;
       expect(race.name).not.toMatch(/Claiming/);
       expect(isClaimingRace(race)).toBe(false);
-      if (m.ofDay !== 2) expect(claimingSlotOfMeeting(m)).toBeNull();
+      expect(claimingSlotOfDay(slotPostTime(i).getTime())).not.toBe(i);
     }
   });
 });
@@ -116,7 +120,7 @@ describe("the claiming gate (CLAIMING_MIN_ELIGIBLE)", () => {
   // Runs before the entering/claims describes below, on the still-empty world: this one owns the
   // horses it counts. The 0-55 band is the one fresh test horses fit (rating 0).
   function hcp55Candidate(from: number): number {
-    for (let i = from; ; i++) if (isClaimingSlot(i) && meetingRaceOf(i)!.race === 2) return i;
+    for (let i = from; ; i++) if (isClaimingSlot(i) && patternPlaceOf(meetingRaceOf(i)!) === 2) return i;
   }
   const c1 = hcp55Candidate(slotIndexAt(T0) + 1);
   const c2 = hcp55Candidate(c1 + 1);

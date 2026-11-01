@@ -1,23 +1,23 @@
 /**
  * Claiming races: the race is the market (race meetings plan, 2026-10-30, item 4).
  *
- * One race a day in the evening meeting is a claiming race: every runner carries a claim price set
+ * One race a day is a claiming race: every runner carries a claim price set
  * by its owner at entry, inside the market's appraisal band, and any other stable with a free stall
  * and the credits can lodge a claim on it until entries close. More than one claim on a horse is
  * decided by a draw from the race seed at the lock. After the race the horse moves to the winning
  * claimant whatever the result: the old owner keeps the purse and receives the price minus the
  * market's fee (burned). A fatal injury voids the claim.
  *
- * Which slot: the evening meeting's handicaps, rotating through the three bands day by day; a
- * calendar race on that day's band moves the claiming race to the next band, and a day whose three
- * handicaps are all calendar races (the Season Finals' day) has none. The slot only becomes a
+ * Which slot: one of the day's handicaps, the band rotating day by day (claimingBandOrder): the
+ * day's last handicap in that band (the three bands' last ones run in the 16:00, 19:00 and 22:00
+ * UTC meetings, packages/db card.ts claimingSlotOfDay); a calendar race on that slot moves the
+ * claiming race to the next band. The slot only becomes a
  * claiming race when at least `CLAIMING_MIN_ELIGIBLE` horses could enter one today; otherwise it
  * stays the ordinary handicap it would have been (the check runs when the card is published).
  *
  * Integer maths only, like the rest of game-core.
  */
 import { LISTING_CEILING_PERMILLE, LISTING_FLOOR_PERMILLE, marketFee } from "./economy";
-import { MEETINGS_PER_DAY } from "./meetings";
 import { MS_PER_DAY } from "./time";
 
 /** Lowest claim price, per mille of the horse's appraisal (the market's listing floor: 70%). */
@@ -28,19 +28,17 @@ export const CLAIM_PRICE_MAX_PERMILLE = LISTING_CEILING_PERMILLE;
 export const CLAIM_REENTRY_LOCK_DAYS = 3;
 /** CLAIM_REENTRY_LOCK_DAYS in ms. */
 export const CLAIM_REENTRY_LOCK_MS = CLAIM_REENTRY_LOCK_DAYS * MS_PER_DAY;
-/** Claiming races a day (in the evening meeting). */
+/** Claiming races a day. */
 export const CLAIMING_RACES_PER_DAY = 1;
 /**
  * Fewest horses that could enter a claiming race today (tradeable for credits, still racing,
- * inside the band) for the evening meeting's claiming slot to be published as one; below this
+ * inside the band) for the day's claiming slot to be published as one; below this
  * the slot stays the ordinary handicap. A fresh world has none for weeks (starter horses are
- * Club-bred and untradeable, foals are not of racing age), and an evening handicap was being
+ * Club-bred and untradeable, foals are not of racing age), and a handicap was being
  * called off every day for an empty claiming race. Checked once, when the card is published
  * (24 h ahead), and the published race keeps its kind for good.
  */
 export const CLAIMING_MIN_ELIGIBLE = 6;
-/** The meeting of the day that carries the claiming race (0-based: 2 = the 19:00 UTC meeting). */
-export const CLAIMING_MEETING_OF_DAY = MEETINGS_PER_DAY - 1;
 /** Claims one stable may lodge in one claiming race. */
 export const CLAIMS_PER_STABLE_PER_RACE = 1;
 

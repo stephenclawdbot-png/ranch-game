@@ -42,7 +42,7 @@ import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, s
 import { refundToteRaceTx, voidConflictedToteBetsTx, voidToteBetsOnHorseTx } from "./tote";
 import { resolveRealToteSeed, type RealToteSeed } from "./realTote";
 import { notify } from "./notifications";
-import { noteInjuryTx } from "./notificationEvents";
+import { noteInjuryTx, noteRaceOffTx } from "./notificationEvents";
 
 export type RaceKind = RaceRow["kind"];
 
@@ -840,6 +840,8 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
   // A claiming race: several claims on one horse are decided by the seeded draw now.
   await drawClaimsTx(tx, race, now);
+  // The bell for each player runner of a Live card race: it goes off in moments.
+  if (LIVE_SLOT_KEY_RE.test(race.slotKey ?? "")) await noteRaceOffTx(tx, race, runners.filter((r) => !r.isHouse), now);
   await audit(tx, { actor: null, action: "race.lock", entityType: "race", entityId: race.id, data: { runners: runners.length, house: house.length, fieldHash, ...(course ? { course: course.id } : {}) } });
   return field;
 }

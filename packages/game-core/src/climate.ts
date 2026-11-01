@@ -241,8 +241,8 @@ export function turfAbandoned(clock: SeasonClock, courseId: CourseId, postTimeMs
 
 /**
  * From this UTC hour a clear day's races look like dusk (lighting only; the ground is dry),
- * by time of year: the evening meeting (19:00 UTC) runs at dusk in autumn and winter, and
- * its last races in spring. Summer evenings stay light.
+ * by time of year: the evening meetings (UTC) run at dusk in autumn and winter, and the 19:00
+ * meeting's last races in spring. Summer evenings stay light.
  */
 export const DUSK_FROM_HOUR_UTC: Record<YearSeason, number | null> = { spring: 20, summer: null, autumn: 17, winter: 16 };
 
