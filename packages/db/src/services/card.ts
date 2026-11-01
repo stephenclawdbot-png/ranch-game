@@ -1,7 +1,14 @@
 /**
- * The Live race card (§4d): three race meetings a day of eight races 15 minutes apart
- * (game-core meetings.ts) on the 15-minute slot grid (RULES.slotMs), published a day ahead
- * from a deterministic calendar, plus the tick that drives the card forward.
+ * The Live race card (§4d): race meetings (game-core meetings.ts: MEETING_START_TIMES_UTC and
+ * RACES_PER_MEETING are the two knobs; since 2026-11-01 eight a day, every three hours, of four
+ * races 15 minutes apart) on the 15-minute slot grid (RULES.slotMs), published a day ahead from a
+ * deterministic calendar, plus the tick that drives the card forward.
+ *
+ * Changing the schedule on a live database is safe: a race already published runs as published
+ * (its slot key and post time are taken, so the new schedule never publishes over it or beside it
+ * at the same time), new slots publish under the new schedule as they enter the horizon, and a
+ * day that already has a claiming race published never gets a second one (live-races.test.ts,
+ * "schedule change").
  *
  * Publishing is idempotent across serverless instances: each slot has a unique
  * `slot_key`, inserts use ON CONFLICT DO NOTHING, and the seed commitment is fixed by the
@@ -15,7 +22,7 @@
  *   3. return the races due for simulation + settlement; the web app runs the engine
  *      (getRaceForSimulation → simulateRace) and calls settleRace for each.
  */
-import { and, asc, eq, gte, inArray, isNotNull, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { raceEntries, races, type RaceRow } from "../schema";
 import { RULES, seasonNumberAt } from "../rules";
@@ -101,27 +108,29 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?
 }
 
 /**
- * The class pattern of a race meeting (8 races, game-core RACES_PER_MEETING), stepped per
- * meeting race, never per wall-clock slot, so every meeting has the full mix:
+ * The card's class pattern: eight places (game-core CARD_PATTERN_RACES), taken in turn by the
+ * meeting races of all time (game-core cardPatternPlace: the k-th meeting race takes place
+ * k mod 8, whatever the meetings' size), so every day runs the whole mix a whole number of times
+ * (four times with 32 races) and the 19:00 meeting's first race is always place 1:
  *
- *   race 1   the meeting's top race: a Feature (Listed or Group 3, double purse) at even-numbered
- *            meetings, a Listed race at odd ones. A calendar race (Qualifier, Weekend Feature,
- *            Season Final) takes this place in the evening meeting.
+ *   place 1     the top race: a Feature (Listed or Group 3, double purse) in even-numbered runs
+ *               of the pattern, a Listed race in odd ones. A calendar race (Qualifier, Weekend
+ *               Feature) takes this place at 19:00.
  *   2, 4, 6, 8  juvenile races (maidens and novices: every new horse can run them), two of each;
- *            which are maidens alternates from one meeting to the next, so maidens run every trip.
- *   3, 5, 7  the three handicap bands (0-55, 50-75, 70-95). One evening handicap a day is the
- *            claiming-race candidate (claimingSlotOfMeeting); it is published as the claiming race
- *            only when enough horses could enter one today (CLAIMING_MIN_ELIGIBLE, decided once at
- *            publication: ensureRaceCard). The Saturday Plate takes race 3 and
- *            the Season Finals races 1, 3, 5 and 7 of their evening meetings: calendar races
- *            never land on a juvenile race (tested), so no trip or surface ever drops out.
+ *               which are maidens alternates from one run of the pattern to the next, so maidens
+ *               run every trip.
+ *   3, 5, 7     the three handicap bands (0-55, 50-75, 70-95). One handicap a day is the
+ *               claiming-race candidate (claimingSlotOfDay); it is published as the claiming race
+ *               only when enough horses could enter one today (CLAIMING_MIN_ELIGIBLE, decided once
+ *               at publication: ensureRaceCard). The Saturday Plate takes place 3 (19:30). The
+ *               Season Finals have slots of their own in the Finals meeting. Calendar races never
+ *               land on a juvenile race (tested), so no trip or surface ever drops out.
  */
 type MeetingPlace = "top" | "juvenile" | ClassDef;
 const MEETING_CLASSES: readonly MeetingPlace[] = ["top", "juvenile", HCP_55, "juvenile", HCP_75, "juvenile", HCP_95, "juvenile"];
-/** Juvenile races per meeting (4): the k-th juvenile race runs surface k mod 3, trip k mod 4. */
+/** Juvenile races per run of the pattern (4): the k-th juvenile race runs surface k mod 3, trip k mod 4. */
 const JUVENILE_PER_MEETING = MEETING_CLASSES.filter((x) => x === "juvenile").length;
-/** Races in one meeting of the class pattern above (game-core RACES_PER_MEETING). */
-export const CARD_MEETING_RACES = MEETING_CLASSES.length;
+if (MEETING_CLASSES.length !== gc.CARD_PATTERN_RACES) throw new Error("the card's class pattern must have game-core CARD_PATTERN_RACES places");
 
 /** The six courses (game-core courses.ts) in card order: sisters take the next one that races the surface. */
 const TRACKS = gc.COURSES.map((c) => c.name);
@@ -189,8 +198,8 @@ export const CALENDAR_HOME_COURSE: Record<"feature_qualifier" | "weekend_feature
   season_final: "Ashcombe",
 };
 
-/** The Saturday Plate runs this many slots after the Weekend Feature (30 minutes). */
-export const PLATE_AFTER_SLOTS = 2;
+/** The Saturday Plate runs this many slots after the Weekend Feature (30 minutes; game-core). */
+export const PLATE_AFTER_SLOTS = gc.PLATE_AFTER_SLOTS;
 
 /**
  * The Saturday Plate (beta loop, from the research: Umamusume's Final B, Hattrick's lucky
@@ -271,35 +280,64 @@ export function meetingRaceOf(index: number): gc.MeetingRace | null {
   return gc.meetingRaceAt(SEASON_CLOCK, slotPostTime(index).getTime());
 }
 
-/** Meeting places of the three handicap bands (0-55, 50-75, 70-95), in band order. */
+/** Pattern places of the three handicap bands (0-55, 50-75, 70-95), in band order. */
 const HANDICAP_PLACES: readonly number[] = MEETING_CLASSES.flatMap((p, i) => (typeof p === "object" && p.raceClass === "handicap" ? [i] : []));
 
-/**
- * The claiming race's candidate slot in this evening meeting (game-core claiming.ts): one of its
- * three handicaps, the band rotating day by day (claimingBandOrder from the UTC day); a calendar
- * race on that band's slot moves it to the next band, and a day whose handicaps are all calendar
- * races (the Season Finals) has none. Null for the other meetings. Whether the candidate is
- * actually published as the claiming race is a separate, once-at-publication decision
- * (enough eligible horses today, game-core CLAIMING_MIN_ELIGIBLE; see ensureRaceCard).
- */
-export function claimingSlotOfMeeting(m: gc.Meeting): number | null {
-  if (m.ofDay !== gc.CLAIMING_MEETING_OF_DAY) return null;
-  for (const band of gc.claimingBandOrder(Math.floor(m.startMs / 86_400_000))) {
-    const index = slotIndexAt(new Date(m.startMs + HANDICAP_PLACES[band]! * RULES.slotMs));
-    if (!isCalendarSlot(index)) return index;
-  }
-  return null;
+/** A meeting race's place in the class pattern (game-core cardPatternPlace). */
+export const patternPlaceOf = (m: gc.MeetingRace): number => gc.cardPatternPlace(m).place;
+
+/** The class definition of a handicap meeting race (null for any other place). */
+function handicapDefOf(m: gc.MeetingRace): ClassDef | null {
+  const place = MEETING_CLASSES[patternPlaceOf(m)];
+  return typeof place === "object" && place.raceClass === "handicap" ? place : null;
 }
 
-/** This slot is the day's claiming-race candidate (an evening handicap, see claimingSlotOfMeeting). */
+const claimingCache = new Map<number, number | null>();
+
+/**
+ * The claiming race's candidate slot on a UTC day (game-core claiming.ts): the day's last
+ * handicap place in the band of the day (claimingBandOrder from the UTC day, so the band
+ * rotates); when a calendar race holds that slot (the Saturday Plate) the next band takes over.
+ * With the card's pattern the bands' last handicaps run in the evening meetings (UTC). Null
+ * when every band's last handicap is a calendar race. Whether the candidate is actually published as the
+ * claiming race is a separate, once-at-publication decision (enough eligible horses today,
+ * game-core CLAIMING_MIN_ELIGIBLE; see ensureRaceCard).
+ */
+export function claimingSlotOfDay(dayMs: number): number | null {
+  const day = Math.floor(dayMs / 86_400_000);
+  if (claimingCache.has(day)) return claimingCache.get(day)!;
+  // the day's last handicap place of each band (a Season Final has no place)
+  const lastOfBand = new Map<number, number>();
+  for (const m of gc.meetingsOn(SEASON_CLOCK, day * 86_400_000)) {
+    for (let r = 0; r < m.races; r++) {
+      if (gc.isSeasonFinalRace({ ...m, race: r })) continue;
+      const index = slotIndexAt(new Date(m.startMs + r * m.spacingMs));
+      const band = HANDICAP_PLACES.indexOf(patternPlaceOf({ ...m, race: r }));
+      if (band >= 0) lastOfBand.set(band, index);
+    }
+  }
+  let out: number | null = null;
+  for (const band of gc.claimingBandOrder(day)) {
+    const latest = lastOfBand.get(band);
+    if (latest !== undefined && !isCalendarSlot(latest)) {
+      out = latest;
+      break;
+    }
+  }
+  claimingCache.set(day, out);
+  return out;
+}
+
+/** This slot is the day's claiming-race candidate (a handicap, see claimingSlotOfDay). */
 export function isClaimingSlot(index: number): boolean {
   const m = meetingRaceOf(index);
-  return !!m && HANDICAP_PLACES.includes(m.race) && claimingSlotOfMeeting(m) === index;
+  return !!m && handicapDefOf(m) !== null && claimingSlotOfDay(slotPostTime(index).getTime()) === index;
 }
 
 /**
  * A Live race runs in this slot: a meeting race, or a calendar race (which always sits inside
- * the evening meeting). Every other slot of the 15-minute grid stays empty.
+ * a meeting: the 19:00 one, or the Finals meeting). Every other slot of the 15-minute grid stays
+ * empty.
  */
 export const isCardSlot = (index: number): boolean => meetingRaceOf(index) !== null || isCalendarSlot(index);
 
@@ -307,9 +345,9 @@ export const isCardSlot = (index: number): boolean => meetingRaceOf(index) !== n
  * Deterministic conditions for a card slot (a meeting race or a calendar race; throws for a
  * slot between meetings: use `cardSlotAt` or check `isCardSlot` first).
  *
- * Juvenile races cycle through every (surface, trip zone) pair: the k-th juvenile race (four a
- * meeting, k counted over meetings) runs on surface k mod 3 at trip zone k mod 4, so any 12
- * consecutive juvenile races (three meetings) cover all 12 pairs, on good or firm ground. Every
+ * Juvenile races cycle through every (surface, trip zone) pair: the k-th juvenile race (four in
+ * each run of the class pattern, k counted over all time) runs on surface k mod 3 at trip zone
+ * k mod 4, so any 12 consecutive juvenile races cover all 12 pairs, on good or firm ground. Every
  * horse that can run maidens or novices therefore finds a race that suits its surface and trip
  * within a day's card, which is always published (RULES.cardHorizonMs; tested in the web app
  * with the form-guide rating). The other classes draw surface (all three, synthetic included)
@@ -334,8 +372,8 @@ export function defaultCardSlot(index: number, opts: { claiming?: boolean } = {}
   let byte = 0;
   const pick = <T>(xs: readonly T[]): T => xs[h[byte++]! % xs.length]!;
   const postTime = slotPostTime(index);
-  const m = meeting.number;
-  const pos = meeting.race;
+  // The class pattern runs over the meeting races of all time (block: whole runs of the pattern).
+  const { block: m, place: pos } = gc.cardPatternPlace(meeting);
   const place = MEETING_CLASSES[pos]!;
   const feature = place === "top" && m % 2 === 0;
   let def: ClassDef;
@@ -395,6 +433,17 @@ export interface CardHooks extends FieldHooks {
   cardSlot?(index: number): CreateRaceInput | null;
 }
 
+/** A claiming race is already published on the UTC day of `at` (any slot, any schedule). */
+async function claimingRaceOnDay(db: Db, at: Date): Promise<boolean> {
+  const day = Math.floor(at.getTime() / 86_400_000) * 86_400_000;
+  const [row] = await db
+    .select({ id: races.id })
+    .from(races)
+    .where(and(gte(races.postTime, new Date(day)), lt(races.postTime, new Date(day + 86_400_000)), like(races.slotKey, LIVE_SLOT_KEY_LIKE), sql`(${races.conditions}->>'claiming') = 'true'`))
+    .limit(1);
+  return !!row;
+}
+
 /**
  * Calendar races (Feature Qualifiers, the Weekend Feature, the Plate, Season Finals) publish on
  * the same day-ahead horizon as the meetings (they did before the meetings, when the rest of
@@ -422,14 +471,20 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
   // a post time that already has a card race (e.g. one published under an older slot length) is taken
   const taken = new Set(card.filter((r) => !/:\d+:\d+$/.test(r.slotKey ?? "")).map((r) => r.postTime.getTime()));
   // The claiming-race decision, once per candidate slot, at publication (not on re-reads): a
-  // candidate evening handicap only becomes the claiming race when enough horses could enter one
+  // candidate handicap only becomes the claiming race when enough horses could enter one
   // today (game-core CLAIMING_MIN_ELIGIBLE); otherwise it is published as the ordinary handicap.
   // The kind lives on the published race row from then on, so it never flips.
   const claimingAt = new Map<number, boolean>();
   if (!hooks.cardSlot) {
     for (let i = first; i <= last; i++) {
       if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime()) || !isClaimingSlot(i)) continue;
-      const band = MEETING_CLASSES[meetingRaceOf(i)!.race] as ClassDef;
+      const band = handicapDefOf(meetingRaceOf(i)!)!;
+      // one claiming race a day: a day that already has one published (e.g. under the schedule
+      // before a change) keeps it, and this slot stays the ordinary handicap
+      if (await claimingRaceOnDay(db, slotPostTime(i))) {
+        claimingAt.set(i, false);
+        continue;
+      }
       claimingAt.set(i, (await claimingEligibleCount(db, { minRating: band.conditions.minRating, maxRating: band.conditions.maxRating, now })) >= gc.CLAIMING_MIN_ELIGIBLE);
     }
   }
@@ -445,7 +500,7 @@ export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, h
   // their horses (one digest per meeting; this instance published it, so it runs once).
   for (const r of inserted) {
     const m = meetingRaceOf(slotIndexOf(r.slotKey) ?? -1);
-    if (!m || m.race !== gc.RACES_PER_MEETING - 1) continue;
+    if (!m || m.race !== m.races - 1) continue;
     try {
       await noteRacesThatSuit(db, { meeting: m.number, fromMs: m.startMs, toMs: m.lastPostMs, now });
     } catch (e) {

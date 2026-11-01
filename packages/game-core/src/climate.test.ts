@@ -20,6 +20,7 @@ import {
   type YearSeason,
 } from "./climate";
 import { COURSES, courseById, type Course } from "./courses";
+import { MEETING_START_TIMES_UTC } from "./meetings";
 import { MS_PER_DAY, MS_PER_HOUR } from "./time";
 
 const EPOCH = Date.UTC(2026, 0, 5); // packages/db RULES.seasonEpochMs (season 1 starts on a Monday)
@@ -261,10 +262,12 @@ describe("forecast", () => {
 
   it("only the days the card has published are exact", () => {
     const d = Date.UTC(2026, 9, 30) / MS_PER_DAY;
-    // 03:00: the card reaches 03:00 tomorrow, before tomorrow's first meeting
-    expect(lastPublishedDay(clock, d * MS_PER_DAY + 3 * MS_PER_HOUR)).toBe(d);
-    // 07:00 on the dot: tomorrow's 07:00 race is published
-    expect(lastPublishedDay(clock, d * MS_PER_DAY + 7 * MS_PER_HOUR)).toBe(d + 1);
-    expect(forecast(clock, d * MS_PER_DAY + 3 * MS_PER_HOUR)[0]!.days).toHaveLength(1);
+    const [hh, mm] = MEETING_START_TIMES_UTC[0]!.split(":").map(Number);
+    const firstMeeting = hh! * MS_PER_HOUR + mm! * 60_000;
+    // just before the day's first meeting: the card reaches just before tomorrow's first meeting
+    expect(lastPublishedDay(clock, d * MS_PER_DAY + firstMeeting - 30 * 60_000)).toBe(d);
+    // on the dot: tomorrow's first race is published
+    expect(lastPublishedDay(clock, d * MS_PER_DAY + firstMeeting)).toBe(d + 1);
+    expect(forecast(clock, d * MS_PER_DAY + firstMeeting - 30 * 60_000)[0]!.days).toHaveLength(1);
   });
 });

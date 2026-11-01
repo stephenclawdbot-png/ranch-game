@@ -1,18 +1,19 @@
-import { asc, eq, like } from "drizzle-orm";
+import { and, asc, eq, gte, like, lt } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { commitSeed } from "../crypto";
 import { isDomainError } from "../errors";
 import { RULES } from "../rules";
 import { gc } from "../gameCore";
-import { entryMovements, raceEntries, races, stables } from "../schema";
+import { entryMovements, inboxItems, raceEntries, races, stables } from "../schema";
 import { createAccount } from "../services/accounts";
-import { defaultCardSlot, ensureRaceCard, isCalendarSlot, isCardSlot, meetingRaceOf, slotIndexAt, slotPostTime, tickRaceCard } from "../services/card";
+import { claimingSlotOfDay, defaultCardSlot, ensureRaceCard, isCalendarSlot, isCardSlot, meetingRaceOf, slotIndexAt, slotKeyOf, slotPostTime, tickRaceCard } from "../services/card";
 import { listCardRaces } from "../services/player";
+import { claimingEligibleCount } from "../services/claiming";
 import { getEntryBank, localDate, refillEntries, setTimezone, upgradeEntryTier } from "../services/entries";
 import { getBalance } from "../services/ledger";
 import { cancelRace, createRace, enterRace, getRaceForSimulation, lockField, scratchEntry, settleRace, type CreateRaceInput } from "../services/races";
-import { at, count, DAY, getHorseRow, makeHorse, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
+import { at, count, DAY, getHorseRow, makeHorse, makeSeller, memoryDb, MIN, newPlayer, settledAll, T0 } from "./helpers";
 import { SLOT_KEY_PREFIX } from "../services/card";
 
 let h: DbHandle;
@@ -74,7 +75,7 @@ describe("race card", () => {
     const first = slotIndexAt(now) + 1;
     const window = Array.from({ length: RULES.cardHorizonMs / RULES.slotMs }, (_, i) => first + i);
     const expected = window.filter(isCardSlot);
-    // three meetings of eight a day: a day ahead holds 24 meeting races (a calendar race takes one of them)
+    // a day ahead holds a day of meeting races (calendar races take some of their places)
     expect(RULES.cardHorizonMs).toBe(gc.CARD_HORIZON_MS);
     expect(expected.length).toBe(gc.LIVE_RACES_PER_DAY);
     expect(cards[0]!.map((r) => r.slotKey)).toEqual(expected.map((i) => `${SLOT_KEY_PREFIX}${i}`));
@@ -98,21 +99,33 @@ describe("race card", () => {
     expect(later.length).toBe(gc.LIVE_RACES_PER_DAY);
   });
 
-  it("every meeting has the class mix: a top race, maidens, novices and all three handicap bands; calendar races only replace a top race or a handicap", () => {
+  it("every run of the class pattern has the mix: a top race, maidens, novices and all three handicap bands; calendar races only replace a top race or a handicap", () => {
     const base = slotIndexAt(at(0));
     const slots = Array.from({ length: gc.SLOTS_PER_DAY * 56 }, (_, i) => base + i).filter(isCardSlot);
-    const meetings = new Map<number, ReturnType<typeof defaultCardSlot>[]>();
+    const blocks = new Map<number, ReturnType<typeof defaultCardSlot>[]>();
+    const meetings = new Set<number>();
+    let finals = 0;
     for (const i of slots) {
       const m = meetingRaceOf(i)!;
       expect(m).not.toBeNull(); // calendar races sit inside a meeting
-      meetings.set(m.number, [...(meetings.get(m.number) ?? []), defaultCardSlot(i)]);
+      meetings.add(m.number);
+      if (gc.isSeasonFinalRace(m)) {
+        expect((defaultCardSlot(i).conditions as { calendar?: { kind: string } }).calendar?.kind).toBe("season_final");
+        finals++;
+        continue;
+      }
+      const { block } = gc.cardPatternPlace(m);
+      blocks.set(block, [...(blocks.get(block) ?? []), defaultCardSlot(i)]);
     }
-    expect(meetings.size).toBe(56 * 3);
+    expect(meetings.size).toBe(56 * gc.MEETINGS_PER_DAY);
+    expect(finals).toBe(2 * gc.FINALS_MEETING_RACES);
     const label = (r: ReturnType<typeof defaultCardSlot>) => ((r.conditions as { calendar?: unknown }).calendar ? "calendar" : r.kind === "feature" ? "feature" : r.raceClass === "handicap" ? `hcp ${r.conditions.minRating ?? 0}-${r.conditions.maxRating}` : r.raceClass);
     let listed = 0;
     let features = 0;
-    for (const [n, races] of meetings) {
-      expect(races).toHaveLength(gc.RACES_PER_MEETING);
+    // whole runs of the pattern, the Season Finals days included (their Finals have slots of their own)
+    const whole = [...blocks].filter(([, races]) => races.length === gc.CARD_PATTERN_RACES);
+    expect(whole.length).toBeGreaterThanOrEqual((56 * gc.LIVE_RACES_PER_DAY) / gc.CARD_PATTERN_RACES - 1);
+    for (const [n, races] of whole) {
       const kinds = races.map(label);
       // juvenile races are never displaced
       expect(kinds.filter((k) => k === "maiden")).toHaveLength(2);
@@ -131,8 +144,8 @@ describe("race card", () => {
     // juvenile races cover every surface and trip zone within a day
     const juvenile = slots.slice(0, gc.LIVE_RACES_PER_DAY).map((i) => defaultCardSlot(i)).filter((r) => r.raceClass === "maiden" || r.raceClass === "novice");
     expect(new Set(juvenile.map((r) => `${r.conditions.surface}:${r.conditions.distanceM}`)).size).toBe(12);
-    // maidens alone run every trip over two meetings
-    expect(new Set(slots.slice(0, 16).map((i) => defaultCardSlot(i)).filter((r) => r.raceClass === "maiden").map((r) => r.conditions.distanceM)).size).toBe(4);
+    // maidens alone run every trip over two runs of the pattern
+    expect(new Set(slots.slice(0, 2 * gc.CARD_PATTERN_RACES).map((i) => defaultCardSlot(i)).filter((r) => r.raceClass === "maiden").map((r) => r.conditions.distanceM)).size).toBe(4);
   });
 
   it("calls off an ordinary race that no player entered; a race with players gets Club horses up to its target; calendar races always run", async () => {
@@ -153,7 +166,15 @@ describe("race card", () => {
     await ensureRaceCard(h.db, new Date(slotPostTime(calendarIndex).getTime() - RULES.cardHorizonMs + MIN));
     const [calendar] = await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${calendarIndex}`));
 
-    const tick = await tickRaceCard(h.db, entered.entriesCloseAt.getTime() > empty.entriesCloseAt.getTime() ? entered.entriesCloseAt : empty.entriesCloseAt);
+    // (a tick locks at most 50 fields; earlier tests left other days' cards open, so tick until done)
+    const tickAt = entered.entriesCloseAt.getTime() > empty.entriesCloseAt.getTime() ? entered.entriesCloseAt : empty.entriesCloseAt;
+    const tick = { calledOff: [] as string[], locked: [] as string[] };
+    for (let k = 0; k < 10; k++) {
+      const t = await tickRaceCard(h.db, tickAt);
+      tick.calledOff.push(...t.calledOff);
+      tick.locked.push(...t.locked);
+      if (!t.calledOff.length && !t.locked.length) break;
+    }
     expect(tick.calledOff).toContain(empty.id);
     expect(tick.locked).toContain(entered.id);
     const [off] = await h.db.select().from(races).where(eq(races.id, empty.id));
@@ -172,6 +193,86 @@ describe("race card", () => {
     const fieldCal = await lockField(h.db, calendar!.id, calendar!.entriesCloseAt);
     expect(fieldCal).not.toBeNull();
     expect(fieldCal!.runners.every((r) => r.isHouse)).toBe(true);
+  });
+});
+
+describe("schedule change on a live database", () => {
+  it("races published under the old schedule run as published; new slots publish under the new one; no duplicates, clashes, second claiming race or orphaned entries", async () => {
+    // The schedule before 2026-11-01: three meetings of eight races from 07:00, 13:00 and 19:00 UTC.
+    const OLD = gc.meetingSchedule({ startTimesUtc: ["07:00", "13:00", "19:00"], racesPerMeeting: 8 });
+    const clock = { epochMs: RULES.seasonEpochMs };
+    // a day whose new claiming candidate falls after the old card's last race (22:00 or later)
+    let D = Math.floor(at(70 * DAY).getTime() / DAY) * DAY;
+    while (slotPostTime(claimingSlotOfDay(D)!).getTime() < D + 22 * 60 * MIN) D += DAY;
+    let tpl = slotIndexAt(new Date(D));
+    while (!isCardSlot(tpl) || defaultCardSlot(tpl).raceClass !== "maiden") tpl++;
+    const template = defaultCardSlot(tpl);
+    const isOldClaiming = (t: Date) => t.getUTCHours() === 20 && t.getUTCMinutes() === 15;
+    // the old publisher: a race in every old meeting slot (its own conditions; one claiming race at 20:15)
+    const oldSlot = (i: number) => {
+      if (isCalendarSlot(i)) return defaultCardSlot(i);
+      const t = slotPostTime(i);
+      if (!OLD.meetingRaceAt(clock, t.getTime())) return null;
+      const claiming = isOldClaiming(t);
+      return { ...template, name: claiming ? `Old Claiming Stakes ${i}` : `Old card ${i}`, conditions: { ...template.conditions, ...(claiming ? { claiming: true } : {}) }, postTime: t, entriesCloseAt: new Date(t.getTime() - 30_000), slotKey: slotKeyOf(i) };
+    };
+    const now0 = new Date(D + 6 * 60 * MIN);
+    const oldCard = await ensureRaceCard(h.db, now0, { cardSlot: oldSlot });
+    expect(oldCard.length).toBe(OLD.liveRacesPerDay);
+    // a player entered in a race only the old schedule has (20:30)
+    const oldOnly = oldCard.find((r) => r.postTime.getTime() === D + (20 * 60 + 30) * MIN)!;
+    expect(gc.meetingRaceAt(clock, oldOnly.postTime.getTime())).toBeNull();
+    const p = await newPlayer(h.db);
+    const horse = await makeHorse(h.db, p.stableId, { rating: 30, wins: 0, starts: 0 });
+    await enterRace(h.db, { accountId: p.accountId, raceId: oldOnly.id, horseId: horse.id, tactic: "front", now: now0 });
+    // enough horses for a claiming race in any band, so only the one-a-day rule can stop a second one
+    const s = await newPlayer(h.db);
+    await makeSeller(h.db, s.accountId, s.stableId);
+    for (let k = 0; k < gc.CLAIMING_MIN_ELIGIBLE; k++) {
+      await makeHorse(h.db, s.stableId, { rating: 52, starts: 10, tradeMinStarts: 0 });
+      await makeHorse(h.db, s.stableId, { rating: 72, starts: 10, tradeMinStarts: 0 });
+    }
+
+    // The new code goes live at 18:00 and its publisher runs over the old card's last 12 hours.
+    const now1 = new Date(D + 18 * 60 * MIN);
+    const card = await ensureRaceCard(h.db, now1);
+    expect(await ensureRaceCard(h.db, now1)).toEqual(card); // idempotent
+    const edge = D + DAY + 6 * 60 * MIN; // where the old card stopped
+    // every old race still in the window runs as published (same row, seed commitment, time, name)
+    const byId = new Map(card.map((r) => [r.id, r]));
+    for (const r of oldCard.filter((r) => r.postTime >= now1)) expect(byId.get(r.id)).toMatchObject({ seedCommitment: r.seedCommitment, postTime: r.postTime, name: r.name, slotKey: r.slotKey });
+    // no duplicate keys, no two races at one post time
+    expect(new Set(card.map((r) => r.slotKey)).size).toBe(card.length);
+    expect(new Set(card.map((r) => r.postTime.getTime())).size).toBe(card.length);
+    // new meeting slots the old card didn't have, and everything past its edge, follow the new schedule
+    const first = slotIndexAt(now1) + 1;
+    for (let i = first; i <= slotIndexAt(new Date(now1.getTime() + RULES.cardHorizonMs)); i++) {
+      const t = slotPostTime(i);
+      const row = card.find((r) => r.slotKey === slotKeyOf(i));
+      if (oldSlot(i) && t.getTime() <= edge) expect(row?.name).toBe(oldSlot(i)!.name);
+      else if (isCardSlot(i)) expect(row?.name).toBe(defaultCardSlot(i, { claiming: row?.name.includes("Claiming") }).name);
+      else expect(row).toBeUndefined();
+    }
+    expect(card.some((r) => r.postTime.getTime() === D + 22 * 60 * MIN)).toBe(true); // the new 22:00 meeting
+    // one claiming race on day D: the old one; the new schedule's candidate stays an ordinary handicap
+    const candidate = claimingSlotOfDay(D)!;
+    expect(slotPostTime(candidate).getTime()).toBeGreaterThan(now1.getTime());
+    const cand = card.find((r) => r.slotKey === slotKeyOf(candidate))!;
+    // (it would have been a claiming race: enough horses could enter)
+    const band = defaultCardSlot(candidate).conditions;
+    expect(await claimingEligibleCount(h.db, { minRating: band.minRating, maxRating: band.maxRating, now: now1 })).toBeGreaterThanOrEqual(gc.CLAIMING_MIN_ELIGIBLE);
+    expect(cand.name).toMatch(/Handicap/);
+    expect((cand.conditions as { claiming?: boolean }).claiming).toBeUndefined();
+    const dayD = await h.db.select().from(races).where(and(gte(races.postTime, new Date(D)), lt(races.postTime, new Date(D + DAY)), like(races.slotKey, "live%:%")));
+    expect(dayD.filter((r) => (r.conditions as { claiming?: boolean }).claiming)).toHaveLength(1);
+    // the old-only race keeps its entry and runs: it locks with the player in it, and the bell rings
+    for (let k = 0; k < 10; k++) if (!(await tickRaceCard(h.db, oldOnly.entriesCloseAt)).locked.length) break;
+    const [ran] = await h.db.select().from(races).where(eq(races.id, oldOnly.id));
+    expect(ran!.status).toBe("locked");
+    expect((ran!.field as { runners: { horseId: string }[] }).runners.map((r) => r.horseId)).toContain(horse.id);
+    const bell = await h.db.select().from(inboxItems).where(and(eq(inboxItems.accountId, p.accountId), eq(inboxItems.kind, "race_off")));
+    expect(bell).toHaveLength(1);
+    expect(bell[0]!.raceId).toBe(oldOnly.id);
   });
 });
 

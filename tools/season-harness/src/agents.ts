@@ -54,13 +54,21 @@ const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
 /**
- * How far ahead an entry sheet looks: to the end of the `n`-th race meeting from now (game-core
- * meetings.ts). With the card in race meetings, "the next few hours" can hold no race at all, so
- * players look at the next meeting(s) instead (one meeting = 8 races; the old 2 h / 3 h / 6 h
- * windows held 8 / 12 / 24 races of the 15-minute card).
+ * Races an agent's "next meeting" looked at when the harness was tuned (one meeting of eight
+ * races, 2026-10-30). Kept as a race count so a schedule change (game-core MEETING_START_TIMES_UTC,
+ * RACES_PER_MEETING) changes the card, not how far ahead the simulated players look.
+ */
+const LOOKAHEAD_RACES_PER_STEP = 8;
+
+/**
+ * How far ahead an entry sheet looks: to the end of the meeting that holds about `n` × 8 races
+ * from now (game-core meetings.ts). With the card in race meetings, "the next few hours" can hold
+ * no race at all, so players look at whole meetings instead (the old 2 h / 3 h / 6 h windows held
+ * 8 / 12 / 24 races of the 15-minute card).
  */
 function meetingsAheadMs(now: Date, n: number): number {
-  return gc.nthMeetingEndMs({ epochMs: RULES.seasonEpochMs }, now.getTime(), n) - now.getTime();
+  const meetings = Math.max(1, Math.ceil((n * LOOKAHEAD_RACES_PER_STEP) / gc.RACES_PER_MEETING));
+  return gc.nthMeetingEndMs({ epochMs: RULES.seasonEpochMs }, now.getTime(), meetings) - now.getTime();
 }
 
 /** UTC offsets (minutes, November, no DST) of the timezones agents are spread over. */

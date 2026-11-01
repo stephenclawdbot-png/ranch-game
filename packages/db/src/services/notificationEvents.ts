@@ -9,12 +9,15 @@
  *                   (the player trains them): one digest per stable per week.
  *   race_suits      the card published a meeting with races that suit one of the player's horses
  *                   (trip, surface, class and rating band): one digest per meeting (ensureRaceCard).
+ *   race_off        the field of a Live card race the player entered has locked: it goes off in
+ *                   moments ("we'll ring the bell when it's off"); one per entered horse, at the
+ *                   lock (lockField). Neutral: nothing about how it went.
  *   listing_expired a credits or T-USDG listing ran out, or an auction closed without a sale
  *                   (market.ts expireListings, usdgMarket.ts): in the expiry's transaction.
  *
  * Every event has a dedupe key, so whichever path runs first writes it and the rest are no-ops.
  */
-import { and, asc, eq, gt, gte, isNotNull, like, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, isNotNull, like, lte, sql } from "drizzle-orm";
 import { horses, races, stables, type HorseRow, type RaceRow } from "../schema";
 import { RULES } from "../rules";
 import { gc, genomeOf, isInjury } from "../gameCore";
@@ -247,6 +250,41 @@ export async function noteRacesThatSuit(db: Db, input: { meeting: number; fromMs
       data: { href: racesN === 1 ? `/race/${first.raceId}` : "/races", meeting: input.meeting, total: matches.length, matches: matches.slice(0, SUITS_LIST_MAX) },
       horseId: horsesN === 1 ? first.horseId : null,
       now: input.now,
+    });
+    if (id) sent++;
+  }
+  return sent;
+}
+
+// ---------------------------------------------------------------------------
+// "Your race is off"
+// ---------------------------------------------------------------------------
+
+/**
+ * The bell for a locked Live card race: one note per player runner to the account racing it
+ * (the entering stable), linking to the race. Written inside the lock's transaction, so a field
+ * that locks once rings once. Pre-race and outcome-free (no spoiler); the result note follows at
+ * settlement as before.
+ */
+export async function noteRaceOffTx(ex: Executor, race: Pick<RaceRow, "id" | "name" | "postTime">, runners: readonly { horseId: string; stableId: string | null }[], now: Date): Promise<number> {
+  const mine = runners.filter((r): r is { horseId: string; stableId: string } => !!r.stableId);
+  if (!mine.length) return 0;
+  const names = new Map((await ex.select({ id: horses.id, name: horses.name }).from(horses).where(inArray(horses.id, mine.map((r) => r.horseId)))).map((h) => [h.id, h.name]));
+  const accounts = new Map((await ex.select({ id: stables.id, accountId: stables.accountId }).from(stables).where(inArray(stables.id, [...new Set(mine.map((r) => r.stableId))]))).map((s) => [s.id, s.accountId]));
+  let sent = 0;
+  for (const r of mine) {
+    const accountId = accounts.get(r.stableId);
+    if (!accountId) continue;
+    const name = names.get(r.horseId) ?? "Your horse";
+    const id = await notify(ex, {
+      accountId,
+      kind: "race_off",
+      dedupeKey: `race-off:${race.id}:${r.horseId}`,
+      title: `${name} is going to post in the ${race.name}: watch it live`,
+      data: { href: `/race/${race.id}`, postTimeMs: race.postTime.getTime() },
+      raceId: race.id,
+      horseId: r.horseId,
+      now,
     });
     if (id) sent++;
   }

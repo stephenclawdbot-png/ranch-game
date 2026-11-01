@@ -101,7 +101,7 @@ export default function WeatherAndGoingPage() {
       <P>
         Each course has its own weather every day. Rain is more likely after a wet day than after a dry one, so wet and dry spells last: in autumn a course has a{" "}
         {pct(gc.SEASON_CLIMATE.autumn.rainAfterRain)} chance of more rain after a wet day but only {pct(gc.SEASON_CLIMATE.autumn.rainAfterDry)} after a dry one (before the course&rsquo;s own
-        rainfall). A dry day is clear or overcast. On clear evenings in autumn and winter the evening meeting runs at dusk under the lights; that is only the look of the broadcast, the ground
+        rainfall). A dry day is clear or overcast. On clear evenings in autumn and winter the evening meetings run at dusk under the lights; that is only the look of the broadcast, the ground
         is dry.
       </P>
 

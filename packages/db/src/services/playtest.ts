@@ -269,6 +269,12 @@ export interface PlaytestMetrics {
   racesPerActive: number | null;
   /** % of race_entered (last 7 days) with props.kind = "live". */
   liveShare: number | null;
+  /**
+   * Live card races of the last 7 days (the schedule's health: game-core MEETING_START_TIMES_UTC
+   * and RACES_PER_MEETING): races run, real player runners per race run (above 4: add races;
+   * below 2: fewer), and the ordinary races called off because no player entered ("folded").
+   */
+  livePlayers: { racesRun: number; playersPerRace: number | null; folded: number; foldedPct: number | null };
   /** Race-viewer perf reports (target: phone/tablet 30 fps, desktop 60). */
   perf: { byDevice: PerfDeviceMetrics[]; slowGpus: PerfGpuMetrics[] };
   totals: { testers: number; feedback: number; events: number };
@@ -385,6 +391,18 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
   const miRecent = rowsOf<{ rating: number; message: string; created_at: Date | string }>(
     await ex.execute(sql`select rating, message, created_at from feedback where category = 'miss_it' order by created_at desc limit 20`),
   );
+  // Live card races of the last 7 days: player runners per race run, and races called off empty
+  // (an ordinary race with no player entry is called off at the close: races.ts callOffTx).
+  const since7 = new Date(input.now.getTime() - 7 * DAY_MS);
+  const [lp] = rowsOf<{ run: number; players: number; folded: number }>(
+    await ex.execute(sql`select count(*) filter (where status in ('locked', 'settled') and field is not null)::int as run,
+                                coalesce(sum((select count(*) from jsonb_array_elements(field->'runners') r where not coalesce((r->>'isHouse')::boolean, false)))
+                                         filter (where status in ('locked', 'settled') and field is not null), 0)::int as players,
+                                count(*) filter (where status = 'cancelled' and field is null and not exists (select 1 from race_entries e where e.race_id = races.id))::int as folded
+                           from races where slot_key like 'live%:%' and post_time >= ${since7} and post_time < ${input.now}`),
+  );
+  const run7 = Number(lp?.run ?? 0);
+  const folded7 = Number(lp?.folded ?? 0);
   // Last 7 UTC days of the window: races per active tester and the Live share.
   const last7 = days.slice(-7);
   const races7 = last7.reduce((s, d) => s + d.races, 0);
@@ -421,6 +439,7 @@ export async function playtestMetrics(ex: Executor, input: { now: Date; days?: n
     },
     racesPerActive: actives7 > 0 ? Math.round((races7 / actives7) * 10) / 10 : null,
     liveShare: pct(live7, all7),
+    livePlayers: { racesRun: run7, playersPerRace: run7 > 0 ? Math.round((Number(lp?.players ?? 0) * 10) / run7) / 10 : null, folded: folded7, foldedPct: pct(folded7, run7 + folded7) },
     perf: {
       byDevice: perfRows
         .map((r) => ({

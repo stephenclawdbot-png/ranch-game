@@ -1,8 +1,8 @@
 /**
  * Content check for the Live card calendar (packages/db `defaultCardSlot`): every starter
  * horse finds a race it may enter (class, licence) that suits its surface and trip (form-guide
- * fit grade C or better, judged on good ground) somewhere in the published card (a day: three
- * race meetings, 24 races), wherever you start looking. The going itself comes from the climate
+ * fit grade C or better, judged on good ground) somewhere in the published card (a day of race
+ * meetings, gc.LIVE_RACES_PER_DAY races), wherever you start looking. The going itself comes from the climate
  * model since 2026-10-30, so it is checked separately, as a floor.
  * Before the fix the card ran turf and dirt only, at up to 2,400 m, and most synthetic or
  * staying starters never found a suitable race.

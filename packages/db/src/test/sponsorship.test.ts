@@ -7,6 +7,7 @@ import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
 import { RULES } from "../rules";
+import { gc } from "../gameCore";
 import { inboxItems, ledgerTransactions, raceSponsorships, races } from "../schema";
 import { CALENDAR_HORIZON_MS, defaultCardSlot, ensureRaceCard, isCalendarSlot, isCardSlot, slotIndexAt, slotPostTime } from "../services/card";
 import { getBalance, ledgerHealth, systemAccountId } from "../services/ledger";
@@ -90,10 +91,10 @@ describe("the sponsor list", () => {
     const window = Array.from({ length: w.last - w.first + 1 }, (_, i) => w.first + i);
     const calendar = window.filter(isCalendarSlot);
     expect(calendar.length).toBeGreaterThan(0); // a week always has Qualifiers
-    // only meeting races run: 24 a day, not one every 15 minutes
+    // only meeting races run (gc.LIVE_RACES_PER_DAY a day), not one every 15 minutes
     expect(slots).toHaveLength(window.filter(isCardSlot).length - calendar.length);
-    expect(slots.length).toBeLessThanOrEqual(7 * 24);
-    expect(slots.length).toBeGreaterThan(7 * 24 - 12);
+    expect(slots.length).toBeLessThanOrEqual(7 * gc.LIVE_RACES_PER_DAY);
+    expect(slots.length).toBeGreaterThan(7 * gc.LIVE_RACES_PER_DAY - 12);
     for (const s of slots) {
       expect(isCalendarSlot(s.index)).toBe(false);
       expect(s.price).toBe(sponsorshipPrice(defaultCardSlot(s.index).purse!));
@@ -202,17 +203,17 @@ describe("buying a sponsorship", () => {
 describe("race meetings", () => {
   it("a sponsorship bought for a slot the meetings left empty is refunded when its time comes round", async () => {
     const now = at(9 * DAY);
-    const p = await newPlayer(h.db, { credits: 20_000 });
+    const p = await newPlayer(h.db, { credits: 100_000 });
     const index = emptySlot(slotIndexAt(new Date(now.getTime() + 2 * DAY)));
     // bought under the old every-15-minutes card (a card that had a race in every slot)
     const oldCard = (i: number) => ({ ...defaultCardSlot(ordinarySlot(i)), postTime: slotPostTime(i), entriesCloseAt: new Date(slotPostTime(i).getTime() - 30_000), slotKey: `${SLOT_KEY_PREFIX}${i}` });
     const bought = await sponsorRace(h.db, { accountId: p.accountId, slotIndex: index, idempotencyKey: key(), now, cardSlot: oldCard });
     const paid = bought.sponsorship.price;
-    expect(await getBalance(h.db, p.accountId)).toBe(20_000 - paid);
+    expect(await getBalance(h.db, p.accountId)).toBe(100_000 - paid);
     await ensureRaceCard(h.db, new Date(slotPostTime(index).getTime() - RULES.cardHorizonMs + MIN));
     const [after] = await h.db.select().from(raceSponsorships).where(eq(raceSponsorships.id, bought.sponsorship.id));
     expect(after!.refundedAt).not.toBeNull();
-    expect(await getBalance(h.db, p.accountId)).toBe(20_000);
+    expect(await getBalance(h.db, p.accountId)).toBe(100_000);
     expect(await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${index}`))).toHaveLength(0);
   });
 });

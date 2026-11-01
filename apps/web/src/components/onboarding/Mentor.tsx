@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { PixelIcon } from "@/components/icons";
 import { MENTOR_FIRST, MENTOR_NAME, MENTOR_ROLE, sendOnboarding } from "./guide";
+import { MEETING_CADENCE } from "@/lib/meetings";
 
 /**
  * Wilf's portrait: his own PixelLab bust (art/portraits/mentor-wilf.png, 128 px). "bust" shows the
@@ -64,7 +65,7 @@ const SCREENS: { title: string; body: React.ReactNode }[] = [
           <b>Care</b> for each horse once a day. A minute&rsquo;s work.
         </li>
         <li>
-          <b>Race.</b> Story races against the Club are free, any time. Live races against other stables run in three race meetings a day and use your entries.
+          <b>Race.</b> Story races against the Club are free, any time. Live races against other stables run in a race meeting {MEETING_CADENCE} and use your entries.
         </li>
         <li>
           <b>Watch and learn.</b> Every result tells you why it went that way, and what to try next.

@@ -31,7 +31,7 @@ import type { Executor } from "../types";
 // ---------------------------------------------------------------------------
 
 export const NOTIFICATION_CATEGORIES = [
-  { key: "races", label: "Races & results", detail: "Results, entry reminders for your targets, new races that suit your horses, match races." },
+  { key: "races", label: "Races & results", detail: "Results, your Live race going off, entry reminders for your targets, new races that suit your horses, match races." },
   { key: "health", label: "Horse health & care", detail: "Injuries, a horse back in the race, retirements and memorials." },
   { key: "training", label: "Training", detail: "A new training week for the horses you train, and what training reveals." },
   { key: "market", label: "Market & sales", detail: "Sales, listings that expired, claims and leases." },
@@ -63,6 +63,7 @@ export const INBOX_KINDS = {
   match_note: { category: "races", href: "/quick" },
   plan_reminder: { category: "races" },
   race_suits: { category: "races", href: "/races" },
+  race_off: { category: "races" },
   // Horse health & care
   injury: { category: "health" },
   back_in_race: { category: "health" },
@@ -95,7 +96,7 @@ export const INBOX_KINDS = {
 export type InboxKind = keyof typeof INBOX_KINDS;
 
 /** Kinds that only the bell and the full inbox show (the Estate's race list, listInbox, leaves them out). */
-export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "listing_expired"] as const satisfies readonly InboxKind[];
+export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_off", "listing_expired"] as const satisfies readonly InboxKind[];
 
 /** Moments (moments.ts, guide.ts) by their game-core kind. A Record: a new moment kind must be placed. */
 export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {

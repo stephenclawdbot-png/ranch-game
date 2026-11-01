@@ -360,6 +360,7 @@ const NON_LEDGER_KINDS = new Set([
   "back_in_race",
   "training_ready",
   "race_suits",
+  "race_off",
   "listing_expired",
   // fraud events (tote.ts)
   "tote_linked_bet_blocked",

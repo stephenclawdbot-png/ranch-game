@@ -1,7 +1,7 @@
 /** The race list: the whole day of race meetings, the evening's Feature Qualifier in the morning, stables entered per race. */
 import { afterAll, beforeAll, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { createAccount, createDb, getRace, stableOf, type DbHandle } from "@thoroughbred/db";
+import { RULES, createAccount, createDb, getRace, stableOf, type DbHandle } from "@thoroughbred/db";
 import { enterLive, entryOptions, raceCard, raceList } from "./game";
 
 let h: DbHandle;
@@ -25,8 +25,11 @@ it("a morning visit sees and can enter the 19:00 Feature Qualifier", { timeout: 
   expect(sheet.options.some((o) => o.reason === null)).toBe(true);
 });
 
-it("a 10:00 visit sees the whole day of race meetings, with the stables entered in each race; an empty race is called off at the close", { timeout: 120_000 }, async () => {
-  const t = new Date(Date.UTC(2026, 10, 12, 10, 0, 0)); // a Thursday, between the morning and afternoon meetings
+it("a visit between meetings sees the whole day of race meetings, with the stables entered in each race; an empty race is called off at the close", { timeout: 120_000 }, async () => {
+  // a Thursday, 15 minutes after the morning's 07:00 meeting has finished
+  const clock = { epochMs: RULES.seasonEpochMs };
+  const morning = gc.meetingsOn(clock, Date.UTC(2026, 10, 12)).find((m) => m.startMs === Date.UTC(2026, 10, 12, 7))!;
+  const t = new Date(morning.lastPostMs + 15 * 60_000);
   const mk = async (name: string) => {
     const acc = await createAccount(h.db, { stableName: name, startingCredits: 20_000, silks: { pattern: "hoops", primary: "#1f4e9c", secondary: "#f3e7c9", cap: "#1f4e9c" }, timezone: "Europe/London", starterHorses: 3, now: t });
     return { accountId: acc.accountId, stable: await stableOf(h.db, acc.accountId) };
@@ -34,10 +37,12 @@ it("a 10:00 visit sees the whole day of race meetings, with the stables entered 
   const a = await mk("Evening Stable A");
   const b = await mk("Evening Stable B");
   const list = await raceList(h.db, t, a.stable.id, { upcoming: 120, recent: 0 });
-  // the published day: 24 meeting races (tomorrow's 07:00 meeting included), grouped by meeting
+  // the published day: a day of meeting races (tomorrow's 07:00 meeting included), grouped by meeting
   expect(list.upcoming.length).toBe(gc.LIVE_RACES_PER_DAY);
   const meetings = [...new Set(list.upcoming.map((r) => r.meetingStartMs))];
-  expect(meetings.map((ms) => new Date(ms).getUTCHours())).toEqual([13, 19, 7]);
+  expect(meetings).toEqual(gc.meetingsBetween(clock, t.getTime(), t.getTime() + RULES.cardHorizonMs + 1).map((m) => m.startMs));
+  expect(meetings).toHaveLength(gc.MEETINGS_PER_DAY);
+  expect(new Date(meetings.at(-1)!).getUTCHours()).toBe(7);
   for (const r of list.upcoming) expect(r.postTimeMs - r.meetingStartMs).toBeLessThan(gc.RACES_PER_MEETING * gc.MEETING_RACE_SPACING_MS);
   const evening = list.upcoming.filter((r) => new Date(r.meetingStartMs).getUTCHours() === 19);
   expect(evening).toHaveLength(gc.RACES_PER_MEETING);
@@ -60,7 +65,7 @@ it("a 10:00 visit sees the whole day of race meetings, with the stables entered 
   expect(entered.stables).toBe(2);
   expect(entered.mine).toBe(1);
 
-  // the afternoon meeting's first race closes with nobody in it: called off, gone from the card
+  // the next meeting's first race closes with nobody in it: called off, gone from the card
   const first = list.upcoming[0]!;
   expect(first.stables).toBe(0);
   const later = await raceList(h.db, new Date(first.entriesCloseAtMs + 1_000), null, { upcoming: 120, recent: 6 });

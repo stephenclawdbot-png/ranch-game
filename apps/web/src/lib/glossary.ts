@@ -3,6 +3,7 @@
  * (plain-language mode, components/onboarding/Term.tsx). Plain strings only, built from
  * game-core and shared constants, so it is safe in client components.
  */
+import { MEETING_CADENCE } from "./meetings";
 import * as gc from "@thoroughbred/game-core";
 import { FURLONG_MM, GoingSchema, HORSE_LENGTH_MM, SurfaceSchema } from "@thoroughbred/shared";
 
@@ -79,7 +80,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   ["Provisional", `A horse in its first ${gc.PROVISIONAL_RUNS} rated runs, whose rating moves faster.`, "ratings-and-form"],
   ["Purse", "A race's prize money, shared among the first few home.", "race-types"],
   ["Quick Pick", "Runs your best-suited fresh horse in a Story race straight away.", "race-types"],
-  ["Race meeting", `A block of ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / 60_000} minutes apart. There are ${gc.MEETINGS_PER_DAY} a day, from ${gc.MEETING_START_TIMES_UTC.join(", ")} UTC.`, "race-types"],
+  ["Race meeting", `A block of ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / 60_000} minutes apart. There are ${gc.MEETINGS_PER_DAY} a day, one ${MEETING_CADENCE}, from ${gc.MEETING_START_TIMES_UTC.join(", ")} UTC.`, "race-types"],
   ["Racecard", "The printed list of a race's runners, with form and ratings.", "entering-a-race"],
   ["Road to Saturday", "The Estate tile that opens This week: the week's Feature, your Qualifiers and your League line.", "the-estate"],
   ["Racing age", `Reached after ${gc.CARE_TO_RACING} care sessions as a youngster, one a day.`, "growing-up"],

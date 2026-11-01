@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { betaRewards, horses, inviteCodes, ledgerAccounts, testerRewards, testers } from "../schema";
+import { betaRewards, horses, inviteCodes, ledgerAccounts, races, testerRewards, testers } from "../schema";
+import { SLOT_KEY_PREFIX } from "../services/card";
+import { createRace } from "../services/races";
 import { createAccount } from "../services/accounts";
 import { getBalance, ledgerHealth } from "../services/ledger";
 import {
@@ -284,5 +286,34 @@ describe("beta metrics: breeding participation and the exit question", () => {
     const m2 = await playtestMetrics(h.db, { now: at(9 * DAY) });
     expect(m2.breeding.foalsBorn).toBeGreaterThanOrEqual(1);
     expect(m2.breeding.foalsRaced).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("beta metrics: real players per Live race", () => {
+  it("averages player runners over the Live races run in the last 7 days and counts the ones folded empty", async () => {
+    const h3 = await memoryDb();
+    try {
+      const now = at(20 * DAY);
+      const mk = (k: number, postTime: Date) =>
+        createRace(h3.db, { kind: "scheduled", name: `Live ${k}`, raceClass: "maiden", conditions: {}, postTime, entriesCloseAt: new Date(postTime.getTime() - 30_000), slotKey: `${SLOT_KEY_PREFIX}${900_000 + k}` });
+      const runners = (players: number, house: number) => [
+        ...Array.from({ length: players }, (_, i) => ({ gate: i + 1, horseId: randomUUID(), isHouse: false, stableId: randomUUID(), tactic: "front" })),
+        ...Array.from({ length: house }, (_, i) => ({ gate: players + i + 1, horseId: randomUUID(), isHouse: true, stableId: null, tactic: "front" })),
+      ];
+      const run = async (k: number, players: number, house: number, postTime = new Date(now.getTime() - DAY)) => {
+        const r = await mk(k, postTime);
+        await h3.db.update(races).set({ status: "settled", field: { raceId: r.id, runners: runners(players, house) } }).where(eq(races.id, r.id));
+      };
+      await run(1, 3, 5);
+      await run(2, 1, 7);
+      await run(3, 5, 0, new Date(now.getTime() - 9 * DAY)); // older than a week: not counted
+      const off = await mk(4, new Date(now.getTime() - 2 * DAY));
+      await h3.db.update(races).set({ status: "cancelled" }).where(eq(races.id, off.id));
+      await mk(5, new Date(now.getTime() + DAY)); // still to run
+      const m = await playtestMetrics(h3.db, { now });
+      expect(m.livePlayers).toEqual({ racesRun: 2, playersPerRace: 2, folded: 1, foldedPct: 33.3 });
+    } finally {
+      await h3.close();
+    }
   });
 });

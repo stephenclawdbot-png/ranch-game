@@ -8,6 +8,7 @@ import { MEETING_RACE_SPACING_MS, MEETING_START_TIMES_UTC, MEETINGS_PER_DAY, RAC
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
 import { getSession } from "@/server/session";
+import { MEETING_CADENCE } from "@/lib/meetings";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Race card · Kestrel Downs" };
@@ -31,7 +32,8 @@ export default async function RacesPage() {
         <LivePickBar />
         <HowItWorks className="mt-3">
           <p>
-            Live races run in race meetings: {MEETINGS_PER_DAY} a day, from {MEETING_START_TIMES_UTC.join(", ")} UTC, {RACES_PER_MEETING} races {MEETING_RACE_SPACING_MS / 60_000} minutes apart. Everyone watches
+            Live races run in race meetings: {MEETINGS_PER_DAY} a day, one {MEETING_CADENCE} ({MEETING_START_TIMES_UTC.join(", ")} UTC; the card shows your own time), {RACES_PER_MEETING} races{" "}
+            {MEETING_RACE_SPACING_MS / 60_000} minutes apart. Everyone watches
             the same race at the same time. The card is published a day ahead: enter now for any meeting before your next visit, and look for the races other stables have entered.
           </p>
           <p>
