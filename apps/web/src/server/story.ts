@@ -43,6 +43,34 @@ function candidates(rows: HorseRow[], silks: ReturnType<typeof parseSilks>, nowM
     .sort((a, b) => a.loss + a.ranToday * 15 + (a.tired ? 40 : 0) - (b.loss + b.ranToday * 15 + (b.tired ? 40 : 0)));
 }
 
+const score = (c: Candidate) => c.loss + c.ranToday * 15 + (c.tired ? 40 : 0);
+
+/**
+ * The chapter race to suggest next (Home, the Story screen, the result page): of the races not
+ * yet won, the one a horse that can race now suits best (its fit, rested first), the chapter's
+ * order breaking ties. Null when no horse can race.
+ */
+export function suggestedChapterRace<R extends gc.StoryRaceDef>(rows: HorseRow[], silks: ReturnType<typeof parseSilks>, nowMs: number, races: readonly R[]): R | null {
+  let best: { race: R; s: number } | null = null;
+  for (const race of races) {
+    const c = candidates(rows, silks, nowMs, race)[0];
+    if (c && (!best || score(c) < best.s)) best = { race, s: score(c) };
+  }
+  return best?.race ?? null;
+}
+
+/** "Try again at a race that suits" on a chapter race: the race not yet won that suits this horse best (the chapter's order breaks ties). */
+export function suitedChapterRace<R extends Pick<gc.StoryRaceDef, "distanceM" | "surface" | "going">>(horse: Parameters<typeof conditionRating>[0], races: readonly R[]): R {
+  const ideal = conditionRating(horse, horse.style, { distanceM: horse.preferredDistanceM, surface: horse.preferredSurface, going: "good" });
+  let best = races[0]!;
+  let bestLoss = Infinity;
+  for (const r of races) {
+    const loss = Math.max(0, ideal - conditionRating(horse, horse.style, r));
+    if (loss < bestLoss) [best, bestLoss] = [r, loss];
+  }
+  return best;
+}
+
 export async function storyView(db: Db, session: Session | null, now: Date): Promise<StoryView> {
   const nowMs = now.getTime();
   const st = session ? await storyState(db, session.accountId) : { licenceLevel: 1, wonKeys: [] };
@@ -155,6 +183,18 @@ export async function storyView(db: Db, session: Session | null, now: Date): Pro
     rivals,
     recent,
   };
+}
+
+/** The stable's settled chapter-race results in one chapter, newest first (true = won). */
+export async function chapterResults(db: Db, stableId: string, chapter: gc.StoryChapter): Promise<boolean[]> {
+  const out: boolean[] = [];
+  for (const run of await listStableRuns(db, stableId, 60)) {
+    if (run.kind !== "quick") continue;
+    const meta = storyMetaOf({ kind: "quick", conditions: run.conditions });
+    if (!meta?.raceKey || gc.storyRaceByKey(meta.raceKey)?.chapter !== chapter) continue;
+    out.push(run.position === 1);
+  }
+  return out;
 }
 
 export interface ChapterRaceRequest {
