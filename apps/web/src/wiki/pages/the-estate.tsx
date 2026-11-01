@@ -62,7 +62,8 @@ export default function TheEstatePage() {
           <>
             <b>While you were away</b>: back after {Math.round(gc.WELCOME_BACK_AFTER_MS / gc.MS_PER_HOUR)} hours or more, the Estate opens with up to {gc.AWAY_MAX_LINES} lines on
             what happened since your last visit, most important first, each one a tap away: results waiting (&ldquo;Your Live race has run: watch the finish&rdquo;, never the
-            placing), your Live races later today in your local time, foals born or ready to foal, horses over an injury or fresh again, rating changes after races you&rsquo;ve
+            placing), your Live races later today in your local time, the credits that came in or went out (&ldquo;+640 credits while you were away (prizes 2, refunds 1)&rdquo;,
+            a tap opens Finances; a prize from a race you haven&rsquo;t watched waits until you have), foals born or ready to foal, horses over an injury or fresh again, rating changes after races you&rsquo;ve
             watched, new training weeks and a rival&rsquo;s big win. Then one big button for the best next thing. Right after you sign in on a device it says{" "}
             <b>Welcome back</b> with your stable&rsquo;s name.
           </>,
@@ -91,6 +92,7 @@ export default function TheEstatePage() {
           </>,
           <>
             <b>This week</b>: the top ten stables by this week&rsquo;s League points (five on a phone) and your own place, with arrows for how far each moved since 00:00 UTC.
+            Only stables with a Live run this week are on it; your own row always shows, with a dash for the place until your first Live run is in.
             Equal points share a place (&ldquo;=2&rdquo;). A race you haven&rsquo;t watched yet is left out of the table you see, so it never gives a result away. The full table is at
             the foot of the <GameLink href="/league#this-week">League</GameLink> page. See <WikiLink slug="league" />.
           </>,
