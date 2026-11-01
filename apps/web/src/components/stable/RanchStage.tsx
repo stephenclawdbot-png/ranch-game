@@ -218,8 +218,9 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
   const rr = view ? Math.min(BASE.width, view.vx + view.viewW) : BASE.width;
   const ids = horses.map((h) => `${h.id}:${h.stage}:${JSON.stringify(h.horse.appearance.colour ?? h.horse.appearance.coat)}`).join("|");
   // a lite device keeps fewer horses roaming (fewer sprites to draw each frame)
-  const lite = useTier().tier === "lite";
-  const herd = useMemo(() => (view ? layoutHerd(horses, l, rr, lite ? LITE_ROAMING : Infinity) : { placed: [], inBarn: 0 }), [view ? `${l}-${rr}` : "", ids, lite]); // eslint-disable-line react-hooks/exhaustive-deps
+  // (only when the cap changes the herd: a new herd restarts the scene)
+  const cap = useTier().tier === "lite" && horses.length > LITE_ROAMING + 1 ? LITE_ROAMING : Infinity;
+  const herd = useMemo(() => (view ? layoutHerd(horses, l, rr, cap) : { placed: [], inBarn: 0 }), [view ? `${l}-${rr}` : "", ids, cap]); // eslint-disable-line react-hooks/exhaustive-deps
   const def = useMemo(
     () =>
       pastureScene({

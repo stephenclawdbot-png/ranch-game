@@ -50,7 +50,26 @@ let nextId = 1;
 const MAX_IDLE = 72;
 
 export const paintStats = { jobs: 0, quick: 0, final: 0, cached: 0, memHits: 0, paintMs: 0, maxMs: 0, warmMaxMs: 0, worker: false, errors: 0 };
-if (typeof window !== "undefined") (window as unknown as { __paintStats?: typeof paintStats }).__paintStats = paintStats;
+if (typeof window !== "undefined") {
+  (window as unknown as { __paintStats?: typeof paintStats }).__paintStats = paintStats;
+  /** Probes (perf and pixel checks): a hash of every finished strip's pixels, by key. */
+  (window as unknown as { __paintDigest?: () => Record<string, string> }).__paintDigest = () => {
+    const out: Record<string, string> = {};
+    for (const en of entries.values()) {
+      if (en.stage !== "final" || !en.img) continue;
+      const c = document.createElement("canvas");
+      c.width = en.job.w;
+      c.height = en.job.h;
+      const x = c.getContext("2d", { willReadFrequently: true })!;
+      x.drawImage(en.img, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height).data;
+      let h = 2166136261;
+      for (let i = 0; i < d.length; i++) h = Math.imul(h ^ d[i]!, 16777619);
+      out[en.key] = (h >>> 0).toString(16);
+    }
+    return out;
+  };
+}
 
 // ----------------------------------------------------------------------------- the worker
 
@@ -86,7 +105,7 @@ function onResult(m: PaintOut) {
   const en = byId.get(m.id);
   if (m.stage === "error") {
     paintStats.errors++;
-    if (en && en.stage !== "final") local(en, true); // try here (the plain recolour at least)
+    if (en && en.stage !== "final") local(en); // try here (the quick recolour at least)
     if (process.env.NODE_ENV !== "production") console.warn("horse paint failed:", m.error);
     return;
   }
@@ -178,9 +197,9 @@ function canvasOf(data: Uint8ClampedArray, w: number, h: number): HTMLCanvasElem
   return c;
 }
 
-function local(en: Entry, skipQuick = false) {
+function local(en: Entry) {
   byId.delete(en.id);
-  if (!skipQuick && en.stage === "none") localQueue.push({ en, quick: true });
+  if (en.stage === "none") localQueue.push({ en, quick: true });
   localQueue.push({ en, quick: false });
   pumpLocal();
 }

@@ -101,6 +101,19 @@ function canFilter(): boolean {
   return filterOk;
 }
 
+/**
+ * Run a baked canvas's drawing now. Canvas drawing is deferred until the canvas is first used,
+ * so without this every blur of the bake ran inside the scene's first frame (half a second on a
+ * slow phone); reading one pixel runs it inside the baking step that made it.
+ */
+function settle(c: Cnv): void {
+  try {
+    ctx2d(c).getImageData(0, 0, 1, 1);
+  } catch {
+    /* tainted or lost: it draws when first used */
+  }
+}
+
 /** Gaussian-ish blur of a canvas (ctx.filter where supported, otherwise a down/up-sample chain). */
 function blurred(src: Cnv, r: number): { canvas: Cnv; pad: number } {
   const pad = Math.ceil(r * 3);
@@ -303,7 +316,10 @@ export class DioramaEngine {
     }
     for (const l of s.layers) {
       if (!(await this.breathe())) return;
-      this.layers.push(this.bakeLayer(l));
+      const b = await this.bakeLayer(l);
+      if (!b) return;
+      settle(b.canvas);
+      this.layers.push(b);
     }
     // the sprites are built for the view at the first resize (an LOD copy may be drawn there):
     // painting the full-size strips first would be thrown away
@@ -320,12 +336,17 @@ export class DioramaEngine {
       x.drawImage(im, 0, 0);
       this.darken(c, 0.25);
       const b = blurred(c, o.blur);
+      settle(b.canvas);
       this.overlays.push({ def: o, canvas: b.canvas, pad: b.pad });
     }
     this.rays = [];
     for (const r of s.rays) {
       if (!(await this.breathe())) return;
-      this.rays.push({ ...this.bakeRays(r), def: r });
+      const ray = this.bakeRays(r);
+      settle(ray.a);
+      if (!(await this.breathe())) return;
+      settle(ray.b);
+      this.rays.push({ ...ray, def: r });
     }
     // sun glow + bokeh disc sprites
     this.sun = canvas(128, 128);
@@ -372,7 +393,7 @@ export class DioramaEngine {
     x.globalCompositeOperation = "source-over";
   }
 
-  private bakeLayer(l: Layer): Baked {
+  private async bakeLayer(l: Layer): Promise<Baked | null> {
     const s = this.scene;
     const period = l.period ?? 0;
     const w = period || s.width + MARGIN * 2;
@@ -445,11 +466,18 @@ export class DioramaEngine {
       x.globalAlpha = 1;
       x.globalCompositeOperation = "source-over";
     }
+    // (each heavy step in its own task: the layer's drawing, its bloom, its blur)
+    settle(c);
     let bloom: Baked["bloom"] = null;
     if (l.bloom && !period && this.quality === "high") {
+      if (!(await this.breathe())) return null;
       bloom = this.bakeBloom(c, l.bloom);
-      if (bloom) bloom.ox += ox; // world x of the bloom canvas origin
+      if (bloom) {
+        bloom.ox += ox; // world x of the bloom canvas origin
+        settle(bloom.canvas);
+      }
     }
+    if (l.blur && l.blur > 0 && !(await this.breathe())) return null;
     if (l.blur && l.blur > 0 && !period) {
       const b = blurred(c, l.blur);
       return { def: l, canvas: b.canvas, ox: ox - b.pad, oy: -b.pad, period, bloom, sway, sharp: false };
@@ -781,20 +809,33 @@ export class DioramaEngine {
         cb(sorted[sorted.length >> 1]!);
       }
     }
+    this.trackSlow(dt);
     if (dt > 100) return; // resumed after a pause: not a real frame time
     this.frameTimes.push(dt);
     if (this.frameTimes.length > 90) this.frameTimes.shift();
     // adaptive quality: sustained < 40 fps after warm-up -> drop to the light path once
     if (this.quality === "high" && this.frames > 120 && this.frameTimes.length >= 90) {
       const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-      if (avg > 25) {
-        this.quality = "low";
-        this.layers = this.layers.map((b) => ({ ...b, bloom: null }));
-        this.seedMotes();
-        this.resize(this.cssW, this.cssH, this.dpr);
-        this.frameTimes = [];
-      }
+      if (avg > 25) this.goLow();
     }
+  }
+
+  /** Frames slower than ~16 fps lately (they never reach frameTimes, which skips gaps over 100 ms). */
+  private slow = 0;
+  private trackSlow(dt: number) {
+    if (this.quality !== "high") return;
+    if (dt > 60 && dt < 1000) this.slow++;
+    else if (dt <= 40) this.slow = Math.max(0, this.slow - 1);
+    // a device this slow goes to the light path at once, not after 120 frames (half a minute here)
+    if (this.slow >= 8) this.goLow();
+  }
+
+  private goLow() {
+    this.quality = "low";
+    this.layers = this.layers.map((b) => ({ ...b, bloom: null }));
+    this.seedMotes();
+    this.resize(this.cssW, this.cssH, this.dpr);
+    this.frameTimes = [];
   }
 
   private step(dt: number) {

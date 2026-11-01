@@ -9,7 +9,8 @@
  *
  * Auto (the default) picks from cheap signals first (navigator.deviceMemory <= 4 GB,
  * hardwareConcurrency <= 4, Save-Data, no worker painting), then drops a "full" device to lite
- * for good when it proves slow: a horse paint job over 800 ms, or a median frame over 40 ms over
+ * for good when it proves slow: a horse paint job over 800 ms (a sheet's repeat paint: the first
+ * one also builds the sheet's own data), or a median frame over 40 ms over
  * the Ranch's first 3 s. Reduced motion is not a reason. The player can pin Full or Lite in
  * Profile (Horse detail), per device. Everything is in localStorage, wrapped in try/catch.
  *
