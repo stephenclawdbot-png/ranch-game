@@ -1,6 +1,7 @@
 /**
- * Packs (§8, §4b). Packs produce FOALS (12 care days before they can race), always under the
- * season's genetic ceiling, with published odds, pity and commit–reveal seeds.
+ * Packs (§8, §4b). Paddock Packs produce FOALS (12 care days before they can race); Premium Packs
+ * (beta, T-USDG test money) produce JUVENILES ready to race (PREMIUM_PACK_READY_TO_RACE). Both are
+ * always under the season's genetic ceiling, with published odds, pity and commit–reveal seeds.
  *
  *   Paddock Pack: 1 free every 3rd play day (play days need not be consecutive) + up to 3
  *                 bought with credits per week. Common/Uncommon. Pity: Uncommon+ within 5.
@@ -13,6 +14,13 @@
  * deriveSeed(serverSeed, "pack:<account>:<pack>:<pullIndex>"), so after reveal anyone can
  * recompute the roll, the pity adjustment and the genome.
  */
+/**
+ * Premium Pack horses arrive with their care days done (a juvenile, ready to race), like starters
+ * (owner, 2026-11-01, beta with T-USDG test money). Revisit before Premium Packs cost real money:
+ * a race-ready horse for money is a pay-to-skip shortcut.
+ */
+export const PREMIUM_PACK_READY_TO_RACE = true;
+
 import type { Binding, Genome, GenomeV1, PackPull, PackType, PityState, Rarity } from "./types";
 import { RARITY_ORDER } from "./types";
 import { generateFoundationGenome, mintForVersion, potentialCeiling } from "./genome";

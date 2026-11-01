@@ -89,7 +89,8 @@ export default function PacksPage() {
 
       <H2 id="the-foal">What you get</H2>
       <P>
-        Every pack is a <b>foal</b>. It needs {gc.CARE_TO_RACING} days of care before it can race (see <WikiLink slug="growing-up" />), and like every foundation horse it has no recorded parents:
+        A Paddock Pack is a <b>foal</b>: it needs {gc.CARE_TO_RACING} days of care before it can race (see <WikiLink slug="growing-up" />). A Premium Pack (T-USDG test money in the beta) is a
+        <b> juvenile ready to race</b> straight away, its care days done. Like every foundation horse, both have no recorded parents:
         fresh blood for your breeding, with no inbreeding at all. Its rarity comes from its genes, from its average potential:
       </P>
       <HorseRow>

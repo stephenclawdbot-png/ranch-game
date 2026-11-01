@@ -188,7 +188,9 @@ export async function pullPack(db: Db, input: PullInput, hooks: GameHooks = defa
     if (gcPull.seedCommitment !== p.nextSeedCommitment) throw new Error("pack seed does not match its commitment");
     const rarity = gcPull.rarity as Rarity;
     const pityApplied = gcPull.pityTriggered === "none" ? null : gcPull.pityTriggered;
-    const spec = hooks.packHorse({ seed: gcPull.pullSeed, rarity, packType: input.packType, season, genome: gcPull.genome, sex: gc.pullSex(gcPull) });
+    const bred = hooks.packHorse({ seed: gcPull.pullSeed, rarity, packType: input.packType, season, genome: gcPull.genome, sex: gc.pullSex(gcPull) });
+    // Premium: a juvenile ready to race (care days done, like a starter); Paddock: a foal.
+    const spec = packType === "premium" && gc.PREMIUM_PACK_READY_TO_RACE ? { ...bred, careSessions: RULES.careToRacing } : bred;
     const horseId = await insertHorse(tx, {
       stableId: stable.id,
       spec,

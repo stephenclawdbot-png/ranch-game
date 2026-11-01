@@ -232,7 +232,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
         <WalletLink onLinked={() => void reloadWallet()} />
       ) : phase === "done" ? (
         <p className="font-bold text-cream" data-testid="checkout-done">
-          ✓ Paid and delivered. Your foal{qty > 1 ? "s are" : " is"} in the nursery.{" "}
+          ✓ Paid and delivered. Your new horse{qty > 1 ? "s are" : " is"} in your stable, ready to race.{" "}
           <button type="button" className="underline" onClick={() => setPhase("idle")}>
             Buy another
           </button>
@@ -367,7 +367,7 @@ function PracticePackCheckout({
           </span>
           {done ? (
             <p className="font-bold text-cream" data-testid="checkout-done">
-              ✓ Paid with T-USDG. Your foal{qty > 1 ? "s are" : " is"} in the nursery.{" "}
+              ✓ Paid with T-USDG. Your new horse{qty > 1 ? "s are" : " is"} in your stable, ready to race.{" "}
               <button type="button" className="underline" onClick={() => setDone(false)}>
                 Buy another
               </button>

@@ -107,7 +107,11 @@ describe("packs", () => {
     expect(commitSeed(r.seedReveal)).toBe(r.seedCommitment);
     expect(r.nextSeedCommitment).not.toBe(r.seedCommitment);
     const horse = await getHorseRow(h.db, r.horseId);
-    expect(horse).toMatchObject({ origin: "pack", stage: "foal", careSessions: 0, bound: false });
+    // Premium: a juvenile ready to race (owner, 2026-11-01); Paddock: still a foal.
+    expect(horse).toMatchObject({ origin: "pack", careSessions: RULES.careToRacing, bound: false });
+    expect(horse!.stage).not.toBe("foal");
+    const paddock = await pullPack(h.db, { accountId: p.accountId, packType: "paddock", idempotencyKey: k(), now: T0 });
+    expect(await getHorseRow(h.db, paddock.horseId)).toMatchObject({ origin: "pack", stage: "foal", careSessions: 0 });
   });
 
   it("pity (game-core rules): never 10 Premium pulls without a Rare, never 20 without an Epic", async () => {

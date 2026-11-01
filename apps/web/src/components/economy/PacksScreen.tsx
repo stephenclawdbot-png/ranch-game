@@ -343,7 +343,11 @@ function PackCard({ o, busy, primary, onOpen, ceiling }: { o: PackOffer; busy: s
               </dd>
             </div>
           </dl>
-          <p className="caption">Each pack is a foal: {CARE_TO_RACING} care days in the nursery before it can race, and no stat above the season ceiling ({ceiling}).</p>
+          <p className="caption">
+            {o.type === "premium"
+              ? `A Premium Pack is a juvenile, ready to race today; no stat above the season ceiling (${ceiling}).`
+              : `A Paddock Pack is a foal: ${CARE_TO_RACING} care days in the nursery before it can race, and no stat above the season ceiling (${ceiling}).`}
+          </p>
         </div>
       </details>
       {button && (primary && o.enabled ? <ActionBar>{button}</ActionBar> : button)}
