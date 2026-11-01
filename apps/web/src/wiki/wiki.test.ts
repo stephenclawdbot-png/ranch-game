@@ -51,6 +51,12 @@ describe("wiki", () => {
     expect(qs).toContain("Read a career story");
     expect(qs).toContain(`${STABLE_NAME_MIN} to ${STABLE_NAME_MAX} characters`);
     expect(qs).not.toMatch(/suggests a stable name/);
+    // The ways back in, in order: your invite link, your login code, your wallet (testing round).
+    const signIn = qs.slice(qs.indexOf("Signing in on another device"));
+    expect(signIn.indexOf("Your invite link.")).toBeGreaterThan(-1);
+    expect(signIn.indexOf("Your invite link.")).toBeLessThan(signIn.indexOf("Your login code."));
+    expect(signIn.indexOf("Your login code.")).toBeLessThan(signIn.indexOf("Your wallet."));
+    expect(qs).toContain("Your key to come back");
     // Jockeys start at E; career tables never run past the last start.
     expect(text("jockeys")).toContain("Every jockey starts at grade E");
     const career = html.get("racing-career")!;
