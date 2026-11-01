@@ -28,6 +28,7 @@ import { MentorNudge } from "../onboarding/Mentor";
 import { BloodlineNudge } from "../onboarding/BloodlineNudge";
 import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
+import { SignedInBack, useJustSignedIn } from "./SignedInBack";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
@@ -194,6 +195,8 @@ function greeting(now: number | null): string {
 
 function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const now = useNow(1000);
+  /** Just signed in on this browser (?back=1): the "Welcome back, <Stable>" strip, one button. */
+  const [justSignedIn, closeSignedIn] = useJustSignedIn();
   // Your own race: about to start or running -> watch it; finished but unseen -> see the result (no spoilers).
   const upcomingMine = now === null ? undefined : [...state.active].sort((a, b) => a.postTimeMs - b.postTimeMs).find((a) => a.postTimeMs > now - WATCH_WINDOW_MS);
   const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId && i.kind !== SPONSOR_NOTE);
@@ -224,6 +227,11 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
   return (
     <div>
+      {justSignedIn && (
+        <div className="mx-auto mb-3 max-w-5xl">
+          <SignedInBack state={state} onClose={closeSignedIn} />
+        </div>
+      )}
       {state.tester && (
         <div className="mx-auto mb-3 max-w-5xl">
           <MissItCard />
@@ -246,7 +254,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} wait={!firstWeek} />}
       </EstateStage>
 
-      {ob?.welcomeBack && (
+      {/* The days-away card waits for the next visit when the sign-in strip already says welcome back. */}
+      {ob?.welcomeBack && !justSignedIn && (
         <div className="mt-4">
           <WelcomeBack w={ob.welcomeBack} />
         </div>
