@@ -233,7 +233,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
             </Link>
           </Hero>
         )}
-        {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} />}
+        {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} wait={!firstWeek} />}
       </EstateStage>
 
       {ob?.welcomeBack && (
@@ -359,7 +359,7 @@ function Hero({
 }
 
 /** The next race on the shared card: name, conditions, a broadcast countdown, Enter and Watch. */
-function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSummary | null; entries: number }) {
+function NextRaceCard({ next, live, entries, wait }: { next: RaceSummary; live: RaceSummary | null; entries: number; /** The wait line (the first-week list carries it while it shows). */ wait: boolean }) {
   const entry = useEntry();
   return (
     <section className="surface p-4" data-testid="next-race" aria-labelledby="next-race-h">
@@ -402,7 +402,7 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
           Watch
         </Link>
       </div>
-      <LiveWait postTimeMs={next.postTimeMs} entered={false} watch={false} className="mt-2" />
+      {wait && <LiveWait postTimeMs={next.postTimeMs} entered={false} watch={false} className="mt-2" />}
     </section>
   );
 }

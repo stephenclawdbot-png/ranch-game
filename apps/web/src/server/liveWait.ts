@@ -52,7 +52,8 @@ export async function liveWaitView(db: Db, session: Session, raceId: string | nu
   }
 
   // Another Live race to watch now: running, else the next to go off within WATCH_SOON_MS.
-  const others = near.filter((r) => r.id !== race?.id && r.status !== "cancelled" && Number(r.mine) === 0);
+  // (Never your own race, nor the one suggested to enter: that one is the card's first line.)
+  const others = near.filter((r) => r.id !== race?.id && r.id !== soonest?.raceId && r.status !== "cancelled" && Number(r.mine) === 0);
   const running = others.filter((r) => r.postTime.getTime() <= nowMs && r.postTime.getTime() + RUNNING_FOR_MS > nowMs && r.status !== "open").sort((a, b) => b.postTime.getTime() - a.postTime.getTime())[0];
   const soon = others.filter((r) => r.postTime.getTime() > nowMs && r.postTime.getTime() - nowMs <= WATCH_SOON_MS).sort((a, b) => a.postTime.getTime() - b.postTime.getTime())[0];
   const w = running ?? soon;
