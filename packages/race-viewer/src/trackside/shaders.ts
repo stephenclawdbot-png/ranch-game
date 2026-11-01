@@ -307,12 +307,14 @@ float wCls(vec2 q) {
   if (region < 0.5) {
     float ix = floor(texture2D(uIdx, (uFrame.xy + floor((q + 0.5) / uLodS) + 0.5) / uIdxSize).r * 255.0 + 0.5);
     if (ix < 0.5) return 0.0;
-    // ink below the belly line next to the tail is the tail's outline
-    if (q.y >= uWarpA.y) {
-      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(-0.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
-      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(1.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
-      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, -0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
-      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, 1.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+    // ink touching the tail (corners included) is the tail's outline: it hangs with the tail
+    if (q.x < uWarpB.x) {
+      for (int dy = -1; dy <= 1; dy++)
+        for (int dx = -1; dx <= 1; dx++) {
+          vec2 n = q + vec2(float(dx), float(dy));
+          if ((dx == 0 && dy == 0) || n.x < 0.0 || n.y < 0.0 || n.x >= uWarpC.x || n.y >= uWarpC.y) continue;
+          if (abs(byteOf(texture2D(uMsk, (uMskOrigin + n + 0.5) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+        }
     }
     return 5.0;
   }
@@ -366,6 +368,23 @@ float bodySrcY(float x, float y) {
   if (y < bot) return ym + floor(((y - ym + 0.5) * (seam - ym)) / (bot - ym));
   return y;
 }
+// where a squeeze maps two source rows to one output row, the other of the two (bodyBuild.ts
+// squeezedRow): a thin line on the skipped row is taken when the chosen row is empty there
+float squeezedRow(float y, float chosen, float top, float from, float to) {
+  if (from <= to) return chosen;
+  float s0 = floor(((y - top) * from) / to);
+  float s1 = ceil(((y - top + 1.0) * from) / to) - 1.0;
+  return abs(chosen - s0) < 0.5 ? s1 : s0;
+}
+float bodySrcAlt(float x, float y) {
+  float yy = bodySrcY(x, y);
+  if (x >= uWarpB.y) return yy;
+  float seam = uWarpA.y;
+  float ym = seam - jsRound(uWarpB.w / 2.0);
+  float bot = bodyBot(x);
+  if (y < ym || y >= bot) return yy;
+  return ym + squeezedRow(y, yy - ym, ym, seam - ym, bot - ym);
+}
 float legSrcY(float x, float y) {
   float seam = uWarpA.y;
   float hh = jsRound(uWarpB.w / 2.0);
@@ -374,13 +393,21 @@ float legSrcY(float x, float y) {
   if (y > uWarpA.z) return y;
   return seam + floor(((y - legTop + 0.5) * (uWarpA.z - seam + 1.0)) / max(1.0, uWarpA.z - legTop + 1.0));
 }
+float legSrcAlt(float x, float y) {
+  float yb = legSrcY(x, y);
+  if (yb < 0.0 || y > uWarpA.z) return yb;
+  float seam = uWarpA.y;
+  float hh = jsRound(uWarpB.w / 2.0);
+  float legTop = x >= uWarpB.y ? seam : min(seam - min(floor(hh * ${MAX_SQUEEZE.toFixed(3)}), uBuild.x), bodyBot(x));
+  return seam + squeezedRow(y, yb - seam, legTop, uWarpA.z - seam + 1.0, max(1.0, uWarpA.z - legTop + 1.0));
+}
 // the body's own rows (bodyBuild.ts warpSource, body): tack and ink below the seam belong to the
-// legs; under a raised belly the barrel's old bottom rows are gone
+// legs; under a raised belly the barrel's old bottom rows (and their outline) are gone
 float wBody(float x, float yd, float yy, float bot) {
   float c = wCls(vec2(x, yy));
-  if (c > 5.5) c = uBuild.x > 0.5 ? 0.0 : 4.0;
+  if (c > 5.5) c = 4.0;
   if (c > 3.5 && c < 5.5 && yy >= uWarpA.y) return 0.0;
-  if (c > 3.5 && c < 4.5 && yd >= bot && yd < uWarpA.y) return 0.0;
+  if (c > 3.5 && c < 5.5 && yd >= bot && yd < uWarpA.y) return 0.0;
   return c;
 }
 // output texel -> the source texel it shows (bodyBuild.ts warpSource); x < 0 = empty
@@ -388,18 +415,19 @@ vec2 warpSrc(vec2 p) {
   if (uWarpA.x < 0.5) return wCls(p) > 0.5 ? p : vec2(-1.0);
   float x = p.x;
   float y = p.y;
-  // longer legs squeeze the barrel's lower half: the tail then hangs from the croup as painted
-  if (uBuild.x > 0.5 && wCls(p) > 5.5) return p;
   float yb = legSrcY(x, y);
+  if (yb >= 0.0 && wCls(vec2(x, yb)) < 0.5) yb = legSrcAlt(x, y);
   float cb = yb < 0.0 ? 0.0 : wCls(vec2(x, yb));
   if (cb > 5.5) cb = 4.0;
   if ((cb > 0.5 && cb < 1.5) || (cb > 3.5 && cb < 5.5)) return vec2(x, yb);
   float bot = bodyBot(x);
   float lo = neckLift(x, uWarpB.z);
   float yn = bodySrcY(x, y + lo);
+  if (wBody(x, y + lo, yn, bot) < 0.5) yn = bodySrcAlt(x, y + lo);
   float cn = wBody(x, y + lo, yn, bot);
   if ((cn > 4.5 && cn < 5.5) || (cn > 2.5 && cn < 3.5)) return vec2(x, yn);
   float ya = bodySrcY(x, y);
+  if (wBody(x, y, ya, bot) < 0.5) ya = bodySrcAlt(x, y);
   float ci = wBody(x, y, ya, bot);
   if ((ci > 3.5 && ci < 4.5) || (ci > 4.5 && abs(lo) < 0.5)) return vec2(x, ya);
   if (ci > 2.5 && ci < 3.5 && cn > 3.5 && cn < 4.5) return vec2(x, yn);

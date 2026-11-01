@@ -12,3 +12,4 @@ export * from "./coatSheets";
 export * from "./longHair";
 export * from "./bodyBuild";
 export * from "./islands";
+export * from "./flatLegs";

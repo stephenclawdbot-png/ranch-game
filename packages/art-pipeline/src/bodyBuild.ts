@@ -222,6 +222,29 @@ export function bodySourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels,
   return y;
 }
 
+/**
+ * Where a squeeze maps two source rows to one output row, the other of the two (else the row
+ * itself): a thin line on the skipped row is taken when the chosen row is empty there, so a squeeze
+ * never cuts a strand or an outline into loose bits.
+ */
+export function squeezedRow(y: number, chosen: number, top: number, from: number, to: number): number {
+  // output rows [top, top + to) show source rows [top', top' + from) (the caller's origins)
+  if (from <= to) return chosen;
+  const s0 = Math.floor(((y - top) * from) / to);
+  const s1 = Math.ceil(((y - top + 1) * from) / to) - 1;
+  return chosen === s0 ? s1 : s0;
+}
+
+/** The other source row a squeezed body row covers (bodySourceY), or the chosen one. */
+export function bodySourceAlt(x: number, y: number, fr: WarpFrame, t: BuildTexels, H: number): number {
+  const yy = bodySourceY(x, y, fr, t, H);
+  if (x >= fr.face0) return yy;
+  const ym = fr.seam - Math.round(H / 2);
+  const bot = bodyBottom(x, fr, t, H);
+  if (y < ym || y >= bot) return yy;
+  return ym + squeezedRow(y, yy - ym, ym, fr.seam - ym, bot - ym);
+}
+
 /** The most of the barrel's lower half the legs and girth may squeeze away (the shader mirrors it). */
 export const MAX_SQUEEZE = 0.3;
 /** New loose fragments smaller than this (texels) that a warp leaves are dropped (CPU views). */
@@ -246,6 +269,14 @@ export function legSourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels, 
   return fr.seam + Math.floor(((y - legTop + 0.5) * span) / Math.max(1, spanD));
 }
 
+/** The other source row a squeezed leg row covers (legSourceY, shorter legs), or the chosen one. */
+export function legSourceAlt(x: number, y: number, fr: WarpFrame, t: BuildTexels, H: number): number | null {
+  const yb = legSourceY(x, y, fr, t, H);
+  if (yb === null || y > fr.ground) return yb;
+  const legTop = x >= fr.face0 ? fr.seam : Math.min(fr.seam - Math.min(Math.floor(Math.round(H / 2) * MAX_SQUEEZE), t.L), bodyBottom(x, fr, t, H));
+  return fr.seam + squeezedRow(y, yb - fr.seam, legTop, fr.ground - fr.seam + 1, Math.max(1, fr.ground - legTop + 1));
+}
+
 /**
  * The source texel an output texel shows ([x, y], frame-local), or null (empty). `cls(x, y)` is
  * the class (WARP_CLASS) of a source texel (empty outside the frame). Shared by the CPU warp and
@@ -253,10 +284,8 @@ export function legSourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels, 
  */
 export function warpSource(x: number, y: number, fr: WarpFrame, t: BuildTexels, H: number, cls: (x: number, y: number) => number): [number, number] | null {
   if (!fr.ok) return cls(x, y) ? [x, y] : null;
-  // longer legs squeeze the barrel's lower half, which would break the tail's thin strands: the
-  // tail then hangs from the croup as painted; otherwise it goes with the body and the legs
-  if (t.L > 0 && cls(x, y) === WARP_CLASS.tail) return [x, y];
-  const yb = legSourceY(x, y, fr, t, H);
+  let yb = legSourceY(x, y, fr, t, H);
+  if (yb !== null && !cls(x, yb)) yb = legSourceAlt(x, y, fr, t, H);
   const cb = yb === null ? 0 : (c => (c === WARP_CLASS.tail ? WARP_CLASS.trunk : c))(cls(x, yb));
   // a near leg, and the coat, tail, outlines and tack below the belly line, stretch with the legs
   if (cb === WARP_CLASS.nearLeg || cb === WARP_CLASS.other || cb === WARP_CLASS.trunk) return [x, yb!];
@@ -265,16 +294,18 @@ export function warpSource(x: number, y: number, fr: WarpFrame, t: BuildTexels, 
   const bot = bodyBottom(x, fr, t, H);
   const body = (yd: number, yy: number) => {
     let c = cls(x, yy);
-    if (c === WARP_CLASS.tail) c = t.L > 0 ? WARP_CLASS.empty : WARP_CLASS.trunk;
+    if (c === WARP_CLASS.tail) c = WARP_CLASS.trunk;
     if ((c === WARP_CLASS.other || c === WARP_CLASS.trunk) && yy >= fr.seam) return WARP_CLASS.empty;
-    if (c === WARP_CLASS.trunk && yd >= bot && yd < fr.seam) return WARP_CLASS.empty;
+    if ((c === WARP_CLASS.trunk || c === WARP_CLASS.other) && yd >= bot && yd < fr.seam) return WARP_CLASS.empty;
     return c;
   };
   const lo = neckLift(x, fr, t, fr.other0);
-  const yn = bodySourceY(x, y + lo, fr, t, H);
+  let yn = bodySourceY(x, y + lo, fr, t, H);
+  if (!body(y + lo, yn)) yn = bodySourceAlt(x, y + lo, fr, t, H);
   const cn = body(y + lo, yn);
   if (cn === WARP_CLASS.other || cn === WARP_CLASS.neck) return [x, yn];
-  const ya = bodySourceY(x, y, fr, t, H);
+  let ya = bodySourceY(x, y, fr, t, H);
+  if (!body(y, ya)) ya = bodySourceAlt(x, y, fr, t, H);
   const ci = body(y, ya);
   if (ci === WARP_CLASS.trunk || (ci === WARP_CLASS.other && !lo)) return [x, ya];
   // where the neck moved away from, the chest under it shows
@@ -306,10 +337,10 @@ export function cpuWarpClass(geo: CoatGeometry, fr: WarpFrame, f: number, x: num
   if (r === GEO_REGION.face) return x >= fr.crest ? WARP_CLASS.neck : WARP_CLASS.trunk;
   // mane keys below the belly line are leg shading drawn in the mane keys: they go with the legs
   if (r === GEO_REGION.mane || (r === 0 && hair === 2)) return x >= fr.crest && y < fr.seam ? WARP_CLASS.neck : WARP_CLASS.trunk;
-  if (r === 0 && hair !== 1 && y >= fr.seam) {
-    // ink below the belly line next to the tail is the tail's outline
+  if (r === 0 && hair !== 1 && x < fr.crest) {
+    // ink touching the tail (corners included) is the tail's outline: it hangs with the tail
     const tailAt = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < geo.fw && yy < geo.fh && geo.region[(f * geo.fh + yy) * geo.fw + xx] === GEO_REGION.tail && !geo.outside[(f * geo.fh + yy) * geo.fw + xx];
-    if (tailAt(x - 1, y) || tailAt(x + 1, y) || tailAt(x, y - 1) || tailAt(x, y + 1)) return WARP_CLASS.tail;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && tailAt(x + dx, y + dy)) return WARP_CLASS.tail;
   }
   if (r === GEO_REGION.body) {
     if (x < fr.crest || y >= fr.seam) return WARP_CLASS.trunk;
