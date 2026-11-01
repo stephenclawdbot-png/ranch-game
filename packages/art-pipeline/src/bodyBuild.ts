@@ -33,12 +33,18 @@ let switchOverride: boolean | null = null;
 export function setBuildSwitch(on: boolean | null): void {
   switchOverride = on;
 }
-/** Whether builds and per-horse hair are drawn (default on; `?build=0` in the page URL turns them off). */
+/**
+ * Whether builds and per-horse hair are drawn. In a browser they are OFF unless the page URL has
+ * `?build=1` (or `?build=gpu`): painting them on the main thread froze pages for seconds (the
+ * Stable ranch 5 s on a laptop, 26 s on a budget phone; 2026-11-01) until the painting moves off
+ * the main thread. Outside a browser (tests, tools) they stay on.
+ */
 export function buildsOn(): boolean {
   if (switchOverride !== null) return switchOverride;
   try {
     const loc = (globalThis as { location?: { search?: string } }).location;
-    return !/[?&]build=0(&|$)/.test(loc?.search ?? "");
+    if (!loc) return true;
+    return /[?&]build=(1|gpu)(&|$)/.test(loc.search ?? "");
   } catch {
     return true;
   }
