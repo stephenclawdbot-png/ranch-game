@@ -169,15 +169,15 @@ export function LinkClient({ testing }: { testing: boolean }) {
 
       {testing ? (
         <>
-          <Way n={1} title="Your invite link" testId="way-invite">
-            <p className="t-meta">
-              During the testing round, the invite link you joined with brings you straight back to your stable. Open it again on this device, or type its code (TB-XXXX-XXXX) in the box
-              below.
-            </p>
-          </Way>
-          <Way n={2} title="Your login code" testId="way-login-code">
+          <Way n={1} title="Your login code" testId="way-login-code">
             <p className="t-meta">The code you saved when you joined (PT-…). It&rsquo;s on your Profile too.</p>
             {codeBox}
+          </Way>
+          <Way n={2} title="Your invite link" testId="way-invite">
+            <p className="t-meta">
+              If your invite was made just for you, opening it again (or typing its code, TB-XXXX-XXXX, in the box above) brings you straight back to your stable. A shared invite
+              can&rsquo;t sign anyone in: use your login code.
+            </p>
           </Way>
           <Way n={3} title="Your wallet" testId="link-wallet">
             <p className="t-meta">If you linked a wallet: a free signature, no transaction.</p>

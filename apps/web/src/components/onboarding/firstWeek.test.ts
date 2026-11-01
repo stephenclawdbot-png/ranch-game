@@ -116,7 +116,7 @@ describe("the tester's login code", () => {
     const src = readFileSync(fileURLToPath(new URL("../chain/ComeBackKey.tsx", import.meta.url)), "utf8");
     expect(keyCardLine("Moss Lane", "PT-AAAAA-BBBBB-CCCCC-DDDDD")).toBe("Moss Lane · PT-AAAAA-BBBBB-CCCCC-DDDDD");
     expect(src).toContain("Your key to come back");
-    expect(src).toContain("Your invite link also brings you back on this testing round.");
+    expect(src).toContain("Save this code: it is how you get back in.");
     expect(src.match(/btn-brass/g)).toHaveLength(1);
     // Copy, image and share each record the mark; the brass button alone doesn't.
     expect(src.match(/markLoginCodeSaved\(\);/g)?.length).toBe(3);

@@ -145,7 +145,7 @@ export function ComeBackKey({ stableName, onDone }: { stableName: string; onDone
           </button>
         </div>
       </div>
-      <p className="t-meta">Your invite link also brings you back on this testing round.</p>
+      <p className="t-meta">Save this code: it is how you get back in. (A personal invite link made just for you also works; a shared one does not.)</p>
       <ActionBar>
         <button type="button" className="btn btn-brass btn-lg" onClick={onDone} data-testid="key-continue">
           <PixelIcon name="horseshoe" size={32} className="-my-2" /> I&rsquo;ve saved it, let&rsquo;s race
