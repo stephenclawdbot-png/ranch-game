@@ -120,7 +120,9 @@ describe("Story mode", () => {
     let stableWins = 0;
     let checked = 0;
     for (let i = 0; i < 14 && checked < 2; i++) {
-      const created = await createStoryRace(h.db, p, { instant: true }, at(i * 172_800_000));
+      // a horse can be hurt or tired out along the way: stop when none can race
+      const created = await createStoryRace(h.db, p, { instant: true }, at(i * 172_800_000)).catch(() => null);
+      if (!created) break;
       const r = (await myRaceResult(h.db, p, created.raceId, at(i * 172_800_000 + 1000))).runners[0]!;
       if (r.position !== 1) {
         expect(r.firstWinOf ?? null).toBeNull();
