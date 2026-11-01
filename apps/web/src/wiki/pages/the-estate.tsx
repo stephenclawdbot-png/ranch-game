@@ -1,5 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
-import { NOTIFICATION_CATEGORIES, RULES } from "@thoroughbred/db";
+import { NOTIFICATION_CATEGORIES, PUSH_DAILY_CAP, QUIET_FROM_HOUR, QUIET_UNTIL_HOUR, RULES } from "@thoroughbred/db";
 import { Callout, Figure, GameLink, H2, Icon, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 export default function TheEstatePage() {
@@ -186,9 +186,33 @@ export default function TheEstatePage() {
       </P>
       <P>
         In your <GameLink href="/me">profile</GameLink>, <b>Notifications</b> has a switch for each kind (
-        {NOTIFICATION_CATEGORIES.map((c) => c.label.replace(/&/g, "and").toLowerCase()).join(", ")}), all on to begin with. Notifications live inside the game: the bell and the inbox. A kind switched off leaves the bell and its count, but the full list under{" "}
+        {NOTIFICATION_CATEGORIES.map((c) => c.label.replace(/&/g, "and").toLowerCase()).join(", ")}), all on to begin with. A kind switched off leaves the bell and its count, but the full list under{" "}
         <GameLink href="/me/notifications">All notifications</GameLink> still keeps everything, so nothing is ever lost.
       </P>
+
+      <H2 id="phone-alerts">Phone alerts</H2>
+      <P>
+        If you like, your phone or computer can ping you for the few things worth coming back for: your <b>Live race goes to post</b> (and 10 minutes before), your{" "}
+        <b>result is ready to watch</b> (it never says how your horse did), a <b>mare is ready to foal</b>, a <b>horse is back from injury</b> and the Club&rsquo;s <b>gift foal</b>.
+        Everything else stays in the bell. Alerts stay quiet from {String(QUIET_FROM_HOUR).padStart(2, "0")}:00 to {String(QUIET_UNTIL_HOUR).padStart(2, "0")}:00 your time (unless a race
+        you entered runs then), there are {PUSH_DAILY_CAP} a day at most, and a newer alert about the same race replaces the older one.
+      </P>
+      <List
+        items={[
+          <>
+            <b>Turn them on</b>: after you enter your first Live race the game asks once (&ldquo;Want a ping on your phone when it&rsquo;s off?&rdquo;), or tap <b>Turn on phone
+            alerts</b> under Notifications in your <GameLink href="/me">profile</GameLink>. Your browser asks for permission.
+          </>,
+          <>
+            <b>Choose and turn off</b>: once they&rsquo;re on, each kind has a <b>Push to this device</b> switch in the same place, and <b>Turn off phone alerts on this device</b>{" "}
+            stops them. A kind switched off for the bell sends no alerts either.
+          </>,
+          <>
+            <b>iPhone and iPad</b>: alerts only reach Post Time added to your Home Screen. In Safari tap <b>Share</b>, then <b>Add to Home Screen</b>, open Post Time from there and
+            turn alerts on in your profile.
+          </>,
+        ]}
+      />
 
       <H2 id="profile">Profile and settings</H2>
       <P>
