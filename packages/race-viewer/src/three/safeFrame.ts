@@ -13,14 +13,37 @@ export interface SafeArea {
   mx: number;
   top: number;
   bottom: number;
+  /** A HUD panel over the stage (the course map, NDC box): kept runners stay left of it where they share its height. */
+  avoid?: { x0: number; x1: number; y0: number; y1: number } | null;
+}
+
+/** A rectangle over the stage, CSS px from the stage's top left. */
+export interface StageRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 /** The safe area of a W x H stage (CSS px). Phones: a 50 px HUD row and a 46 px bar; larger stages 8 % / 56 px. */
-export function safeArea(W: number, H: number): SafeArea {
+export function safeArea(W: number, H: number, avoid: StageRect | null = null): SafeArea {
   const phone = W <= 480;
   const topPx = phone ? 50 : Math.max(50, H * 0.08);
   const bottomPx = phone ? 46 : 56;
-  return { mx: 1 - 2 * GROUP_MARGIN, top: 1 - (2 * topPx) / Math.max(1, H), bottom: -1 + (2 * bottomPx) / Math.max(1, H) };
+  const w = Math.max(1, W);
+  const h = Math.max(1, H);
+  return {
+    mx: 1 - 2 * GROUP_MARGIN,
+    top: 1 - (2 * topPx) / h,
+    bottom: -1 + (2 * bottomPx) / h,
+    avoid: avoid && avoid.w > 0 && avoid.h > 0 ? { x0: (avoid.x / w) * 2 - 1, x1: ((avoid.x + avoid.w) / w) * 2 - 1, y0: 1 - ((avoid.y + avoid.h) / h) * 2, y1: 1 - (avoid.y / h) * 2 } : null,
+  };
+}
+
+/** The right bound for boxes spanning e.y0..e.y1: the margin, or the panel's left edge where they share its height. */
+function rightBound(e: Extents, a: SafeArea): number {
+  const p = a.avoid;
+  return p && e.y1 > p.y0 && e.y0 < p.y1 ? Math.min(a.mx, p.x0 - 0.02) : a.mx;
 }
 
 /** A runner's world box: its sprite from tail to nose, ground to cap, in its lane. */
@@ -67,7 +90,7 @@ export function extents(cam: THREE.PerspectiveCamera, boxes: readonly RunnerBox[
 }
 
 export function inside(e: Extents, a: SafeArea): boolean {
-  return e.x0 > e.x1 || (e.x0 >= -a.mx && e.x1 <= a.mx && e.y1 <= a.top && e.y0 >= a.bottom);
+  return e.x0 > e.x1 || (e.x0 >= -a.mx && e.x1 <= rightBound(e, a) && e.y1 <= a.top && e.y0 >= a.bottom);
 }
 
 /**
@@ -90,9 +113,10 @@ export function keepInSafeArea(cam: THREE.PerspectiveCamera, look: THREE.Vector3
     const halfH = dist * Math.tan((cam.fov * Math.PI) / 360);
     const halfW = halfH * cam.aspect;
     // only as far as needed on each axis: a group that fits is slid just inside the edge it crossed
-    const span = Math.min(1.5, Math.max((e.x1 - e.x0) / (2 * area.mx), (e.y1 - e.y0) / (area.top - area.bottom)) * 1.03);
+    const right = rightBound(e, area);
+    const span = Math.min(1.5, Math.max((e.x1 - e.x0) / (right + area.mx), (e.y1 - e.y0) / (area.top - area.bottom)) * 1.03);
     const fits = span <= 1;
-    const dxN = fits ? (e.x1 > area.mx ? e.x1 - area.mx : e.x0 < -area.mx ? e.x0 + area.mx : 0) : (e.x0 + e.x1) / 2;
+    const dxN = fits ? (e.x1 > right ? e.x1 - right : e.x0 < -area.mx ? e.x0 + area.mx : 0) : (e.x0 + e.x1) / 2 - (right - area.mx) / 2;
     const dyN = fits ? (e.y1 > area.top ? e.y1 - area.top : e.y0 < area.bottom ? e.y0 - area.bottom : 0) : (e.y0 + e.y1) / 2 - (area.top + area.bottom) / 2;
     const dx = dxN * 1.02 * halfW;
     const dy = dyN * 1.02 * halfH;

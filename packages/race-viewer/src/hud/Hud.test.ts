@@ -69,3 +69,25 @@ describe("fitCount", () => {
     expect(fitCount({ ...base, width: 466, prev: { w: 460, k: 3 } })).toBe(4);
   });
 });
+
+describe("course map at the finish (courseMapAway)", () => {
+  it("stands down from 200 m out and stays down through the line, the run-out and the finale", async () => {
+    const { courseMapAway, MAP_AWAY_M } = await import("./CourseMapPanel");
+    expect(MAP_AWAY_M).toBe(200);
+    let away = courseMapAway(false, 40, 600, true);
+    expect(away).toBe(false);
+    away = courseMapAway(away, 62, 199);
+    expect(away).toBe(true);
+    // past the line (no metres to go) and on into the run-out and the finale: still down
+    away = courseMapAway(away, 75, 0);
+    away = courseMapAway(away, 90, Infinity);
+    expect(away).toBe(true);
+  });
+
+  it("comes back only with a seek or a new race, and only while the leader is further out", async () => {
+    const { courseMapAway } = await import("./CourseMapPanel");
+    expect(courseMapAway(true, 30, 700, true)).toBe(false);
+    expect(courseMapAway(true, 70, 80, true)).toBe(true);
+    expect(courseMapAway(true, -5, 1200, true)).toBe(false);
+  });
+});

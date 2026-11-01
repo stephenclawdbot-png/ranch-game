@@ -122,6 +122,8 @@ export const VIEWER_CSS = `
 .rv-cmap-svg{width:100%;height:auto;max-height:124px;padding:4px}
 .rv-cmap-shut{width:auto}
 .rv-cmap-shut .rv-cmap-tab{border-bottom:0}
+.rv-cmap .rv-cmap-svg{transition:opacity .3s}
+.rv-cmap-fade .rv-cmap-svg{opacity:0}
 .rv-has-cmap .rv-debug{right:auto;left:8px}
 .rv-narrow .rv-cmap{right:6px;top:var(--rv-cmap-top,84px);width:118px}
 .rv-narrow .rv-cmap-tab{font-size:9px;min-height:22px;padding:2px 5px 1px;gap:4px}

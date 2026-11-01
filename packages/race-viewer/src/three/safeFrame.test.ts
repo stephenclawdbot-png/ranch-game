@@ -13,6 +13,39 @@ import { extents, inside, keepInSafeArea, safeArea, SOFT_STEP_M, type RunnerBox 
 
 const LANE_M = 1.25;
 
+describe("the safe area keeps runners clear of an open HUD panel (the course map, top right)", () => {
+  it("a runner under the panel is moved left of it; one clear of it is left alone", () => {
+    const W = 1098;
+    const H = 615;
+    const cam = new THREE.PerspectiveCamera(28, W / H, 0.5, 2000);
+    const look = new THREE.Vector3(0, 0.9, 0);
+    const s = { v: new THREE.Vector3(), right: new THREE.Vector3(), up: new THREE.Vector3() };
+    cam.position.set(0, 0.9, 30);
+    cam.lookAt(look);
+    // a horse towards the right of the frame, inside the 8 % margins
+    const horse: RunnerBox[] = [{ x: 5, y: 0, z: 0 }];
+    const e0 = extents(cam, horse, s.v);
+    expect(inside(e0, safeArea(W, H))).toBe(true);
+    const px = (nx: number) => ((nx + 1) / 2) * W;
+    const py = (ny: number) => ((1 - ny) / 2) * H;
+    // the course map open over the horse's right half, at its height
+    const over = { x: px(e0.x1 - 0.08), y: py(e0.y1) - 10, w: W - px(e0.x1 - 0.08) - 10, h: py(e0.y0) - py(e0.y1) + 20 };
+    const area = safeArea(W, H, over);
+    expect(inside(e0, area)).toBe(false);
+    expect(keepInSafeArea(cam, look, horse, area, s)).toBe(true);
+    const e1 = extents(cam, horse, s.v);
+    expect(inside(e1, area)).toBe(true);
+    expect(e1.x1).toBeLessThanOrEqual(area.avoid!.x0);
+    // the map well above the horse: nothing to do
+    cam.position.set(0, 0.9, 30);
+    look.set(0, 0.9, 0);
+    cam.lookAt(look);
+    const above = safeArea(W, H, { ...over, y: Math.max(0, py(e0.y1) - 90), h: 40 });
+    expect(inside(e0, above)).toBe(true);
+    expect(keepInSafeArea(cam, look, horse, above, s)).toBe(false);
+  });
+});
+
 describe("3D finish: the winner and its company stay whole on screen (line shot to following the winner)", () => {
   for (const [W, H, label] of [
     [358, 320, "phone"],

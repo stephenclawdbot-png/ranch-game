@@ -33,7 +33,7 @@ import { officialHandoff } from "./finale/live";
 import { FinaleOverlay, checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";
 import type { PhotoArt } from "./photo/raster";
 import type { CourseMapRunner } from "./hud/CourseMap";
-import { CourseMapPanel } from "./hud/CourseMapPanel";
+import { CourseMapPanel, courseMapAway } from "./hud/CourseMapPanel";
 import { injectViewerCss } from "./hud/styles";
 import { ClipShareButton } from "./clip/ClipShareButton";
 import { canShareClip } from "./clip/plan";
@@ -261,6 +261,8 @@ interface HudState {
   ff: boolean;
   /** The build-up before the off, while it plays. */
   pre: PreOffHud | null;
+  /** The finish: the course map fades to its tab (courseMapAway). */
+  mapAway: boolean;
 }
 
 const NARROW_PX = 560;
@@ -398,6 +400,14 @@ export function RaceViewer(props: RaceViewerProps) {
     }
   }, []);
   const closeFinishRef = useRef(false);
+  // The course map stands down for the finish (courseMapAway); a seek or a new race re-arms it.
+  const mapAwayRef = useRef(false);
+  const mapResetRef = useRef(true);
+  // Where the course map sits on the stage (CSS px), for the 3D camera's safe area.
+  const mapRectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const onMapRect = useCallback((r: { x: number; y: number; w: number; h: number } | null) => {
+    mapRectRef.current = r;
+  }, []);
   /** The layout the perf report is measured on (V-00 baseline: phone layout and close-up finish separate). */
   const perfLayoutRef = useRef<PerfLayout>("wide");
 
@@ -641,6 +651,7 @@ export function RaceViewer(props: RaceViewerProps) {
     finaleStateRef.current = finaleRef.current.state;
     setFinaleState(finaleRef.current.state);
     finishedFired.current = false;
+    mapResetRef.current = true;
     setDismissed(false);
   }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -717,8 +728,10 @@ export function RaceViewer(props: RaceViewerProps) {
       slowmo: frameFlags.current.slowmo,
       canGoLive: clock.canGoLive(),
       toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
+      mapAway: (mapAwayRef.current = courseMapAway(mapAwayRef.current, t, samples.length ? distanceToGoM(src, samples) : Infinity, mapResetRef.current)),
       standings: samples.length ? standingsAt(src, samples) : [],
     });
+    mapResetRef.current = false;
   }, [live, feed, highlightHorseId, callFeed, markers, whatIf]);
   // The render loop outlives a publish/plan rebuild (e.g. the viewer's horses change): it reads these refs.
   const publishRef = useRef(publish);
@@ -920,6 +933,7 @@ export function RaceViewer(props: RaceViewerProps) {
           director: directorRef.current,
           closeFinish: !fin.running && closeFinishRef.current,
           finale: fin.running,
+          hudPanel: mapRectRef.current,
         });
         const view = finaleViewRef.current;
         const nextKind = cur.step?.kind ?? null;
@@ -1052,6 +1066,7 @@ export function RaceViewer(props: RaceViewerProps) {
     const c = clockRef.current;
     if (!c) return;
     fn(c);
+    mapResetRef.current = true;
     publish();
   };
   /** A seek / restart re-arms the finale (it plays again when the playhead next crosses it). */
@@ -1241,13 +1256,15 @@ export function RaceViewer(props: RaceViewerProps) {
         {h?.frozen && <PhotoStamp />}
         {h && !quiet && !h.ff && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
         {h?.battle && !quiet && <BattleGraphic battle={h.battle} horses={info.horses} highlightHorseId={hasHighlight ? highlightHorseId : undefined} cloth={clothOn} />}
-        {course && h && !quiet && !h.ff && !h.frozen && (
+        {course && h && !quiet && !h.frozen && (
           <CourseMapPanel
             course={course}
             distanceM={info.trackLengthMm / 1000}
             runners={mapRunners(h.dots, info.trackLengthMm / 1000)}
             narrow={narrow}
             phone={phone}
+            away={h.mapAway}
+            onRect={onMapRect}
             onSlope={h.time > 0 && h.toGoM > 0 && h.toGoM <= course.homeStraightM}
           />
         )}

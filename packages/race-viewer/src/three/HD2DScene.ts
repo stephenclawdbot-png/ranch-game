@@ -38,7 +38,7 @@ import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
 import { GATE_SHOT, JUDGE_SHOT } from "./shots";
 import { GROUP_MARGIN } from "../trackside/layout";
-import { keepInSafeArea, safeArea, SOFT_STEP_M } from "./safeFrame";
+import { keepInSafeArea, safeArea, SOFT_STEP_M, type StageRect } from "./safeFrame";
 
 /** From this far out (the leader, m) until the finale the winner and its company stay whole on screen. */
 export const FINISH_KEEP_FROM_M = 25;
@@ -76,6 +76,8 @@ export interface SceneFrame {
   director?: Director;
   /** The finale runs over the scene (its replay, slides): the finish keep-whole guard stands down. */
   finale?: boolean;
+  /** A HUD panel open over the stage (the course map, stage CSS px): the kept runners stay clear of it. */
+  hudPanel?: StageRect | null;
   /**
    * Phones, "Close-up finish" on (V-02): in the final 400 m the camera frames the leaders and
    * your horse (within six lengths) instead of the whole field, back to the whole field after the
@@ -1336,7 +1338,7 @@ export class HD2DScene {
     const keep = mode === "director" && !f.finale ? this.keepWhole(group, raceT, lead) : null;
     if (keep && !f.frozen) {
       const look = this.v2;
-      const area = safeArea(this.W, this.H);
+      const area = safeArea(this.W, this.H, f.hudPanel ?? null);
       const scratch = { v: (this.vGroup ??= new this.T.Vector3()), right: this.v3, up: this.v4, from: (this.vFrom ??= new this.T.Vector3()), lookFrom: (this.vLookFrom ??= new this.T.Vector3()) };
       // runners about to need it are brought in gently first, then the kept ones in full
       const soft = keepInSafeArea(cam, look, this.runners.filter((r) => keep.soft.includes(r.horseId)), area, scratch, SOFT_STEP_M);
