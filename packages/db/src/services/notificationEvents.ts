@@ -9,6 +9,8 @@
  *                   (the player trains them): one digest per stable per week.
  *   race_suits      the card published a meeting with races that suit one of the player's horses
  *                   (trip, surface, class and rating band): one digest per meeting (ensureRaceCard).
+ *   race_soon       a Live card race the player entered goes off within RACE_SOON_MS (the lazy sweep,
+ *                   about once a minute): one per (race, stable); not written when "Races & results" is off.
  *   race_off        the field of a Live card race the player entered has locked: it goes off in
  *                   moments ("we'll ring the bell when it's off"); one per entered horse, at the
  *                   lock (lockField). Neutral: nothing about how it went.
@@ -18,11 +20,11 @@
  * Every event has a dedupe key, so whichever path runs first writes it and the rest are no-ops.
  */
 import { and, asc, eq, gt, gte, inArray, isNotNull, like, lte, sql } from "drizzle-orm";
-import { horses, races, stables, type HorseRow, type RaceRow } from "../schema";
+import { horses, raceEntries, races, stables, type HorseRow, type RaceRow } from "../schema";
 import { RULES } from "../rules";
 import { gc, genomeOf, isInjury } from "../gameCore";
 import type { Db, Executor } from "../types";
-import { notify } from "./notifications";
+import { categoryOf, notificationPrefsOf, notify } from "./notifications";
 import { facilityLevels } from "./horseLife";
 import { classEligibility, featureQualificationReason, type RaceConditions } from "./races";
 import { LIVE_SLOT_KEY_LIKE } from "./card";
@@ -298,6 +300,62 @@ export async function noteRaceOffTx(ex: Executor, race: Pick<RaceRow, "id" | "na
 }
 
 // ---------------------------------------------------------------------------
+// "Your Live race goes off in 10 minutes"
+// ---------------------------------------------------------------------------
+
+/** The reminder rings this long before a Live race the player entered goes off. */
+export const RACE_SOON_MS = 10 * 60_000;
+
+/**
+ * The bell shortly before the off (first-hour follow-up: the Live wait): one note per stable for
+ * each Live card race it has a runner in that goes off within RACE_SOON_MS (from the lazy sweep,
+ * about once a minute). Pre-race and outcome-free. Not written for an account that switched off
+ * "Races & results" (the bell would hide it anyway). Idempotent per (race, stable).
+ */
+export async function noteRacesSoon(db: Db, now: Date): Promise<number> {
+  const nowMs = now.getTime();
+  const rows = await db
+    .select({ raceId: races.id, raceName: races.name, postTime: races.postTime, horseId: raceEntries.horseId, stableId: raceEntries.stableId, accountId: stables.accountId, horseName: horses.name })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .innerJoin(stables, eq(stables.id, raceEntries.stableId))
+    .innerJoin(horses, eq(horses.id, raceEntries.horseId))
+    .where(
+      and(
+        eq(raceEntries.status, "entered"),
+        inArray(races.status, ["open", "locked"]),
+        gt(races.postTime, now),
+        lte(races.postTime, new Date(nowMs + RACE_SOON_MS)),
+        like(races.slotKey, LIVE_SLOT_KEY_LIKE),
+      ),
+    )
+    .orderBy(asc(races.postTime), asc(horses.name));
+  const byKey = new Map<string, typeof rows>();
+  for (const r of rows) byKey.set(`${r.raceId}:${r.stableId}`, [...(byKey.get(`${r.raceId}:${r.stableId}`) ?? []), r]);
+  const muted = new Map<string, boolean>();
+  let sent = 0;
+  for (const [key, rs] of byKey) {
+    const first = rs[0]!;
+    if (!muted.has(first.accountId)) muted.set(first.accountId, (await notificationPrefsOf(db, first.accountId)).includes(categoryOf("race_soon")));
+    if (muted.get(first.accountId)) continue;
+    const min = Math.max(1, Math.ceil((first.postTime.getTime() - nowMs) / 60_000));
+    const who = rs.length === 1 ? first.horseName : `${rs.length} of your horses`;
+    const id = await notify(db, {
+      accountId: first.accountId,
+      kind: "race_soon",
+      dedupeKey: `race-soon:${key}`,
+      title: `${who} ${rs.length === 1 ? "runs" : "run"} in the ${first.raceName} in ${min} ${min === 1 ? "minute" : "minutes"}: watch it live`,
+      data: { href: `/race/${first.raceId}`, postTimeMs: first.postTime.getTime() },
+      raceId: first.raceId,
+      horseId: rs.length === 1 ? first.horseId : null,
+      now,
+    });
+    if (id) sent++;
+  }
+  return sent;
+}
+
+// ---------------------------------------------------------------------------
 // "Your market listing expired"
 // ---------------------------------------------------------------------------
 
@@ -329,6 +387,7 @@ export async function noteListingExpiredTx(
 export interface NotificationSweep {
   backInRace: number;
   trainingReady: number;
+  racesSoon: number;
 }
 
 /** The lazy sweep looks back this far for healed injuries (it runs every minute or so; the daily heal catches the rest). */
@@ -337,7 +396,7 @@ export const SWEEP_LOOKBACK_MS = 6 * HOUR_MS;
 /** The training week each database was last swept for (the week's set of horses is fixed once it starts). */
 const trainingSwept = new WeakMap<object, number>();
 
-/** Time-driven notes: horses back from injury, and the new training week (once per week per process). Idempotent. */
+/** Time-driven notes: Live races going off soon, horses back from injury, and the new training week (once per week per process). Idempotent. */
 export async function sweepNotifications(db: Db, now: Date): Promise<NotificationSweep> {
   const backInRace = await noteRecoveriesTx(db, now, { since: new Date(now.getTime() - SWEEP_LOOKBACK_MS) });
   const week = gc.weekIndex(now.getTime());
@@ -346,6 +405,7 @@ export async function sweepNotifications(db: Db, now: Date): Promise<Notificatio
     trainingReady = await noteTrainingWeekTx(db, now);
     trainingSwept.set(db, week);
   }
-  return { backInRace, trainingReady };
+  const racesSoon = await noteRacesSoon(db, now);
+  return { backInRace, trainingReady, racesSoon };
 }
 

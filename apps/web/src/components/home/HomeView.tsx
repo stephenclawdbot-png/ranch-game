@@ -30,7 +30,7 @@ import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
-import { LiveWait, LocalPostTime, WhileYouWait } from "../race/LiveWait";
+import { LiveWait, LocalPostTime } from "../race/LiveWait";
 import { MEETINGS_LINE } from "@/lib/meetings";
 
 interface ClubProps {
@@ -402,7 +402,7 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
           Watch
         </Link>
       </div>
-      <WhileYouWait className="mt-2" />
+      <LiveWait postTimeMs={next.postTimeMs} entered={false} watch={false} className="mt-2" />
     </section>
   );
 }
@@ -472,7 +472,7 @@ function YourRace({ race, now, appearance }: { race: ActiveEntry; now: number; a
       title={`${race.horseName} is in the ${race.raceName}`}
       body={race.kind === "live" ? "A Live race at Kestrel Downs: everyone watches the same finish." : "A Story race against the Club."}
     >
-      {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered />}
+      {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered raceId={race.raceId} />}
       <ActionBar>
         <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg" data-testid="watch-mine">
           <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch {race.horseName}

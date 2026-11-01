@@ -1070,11 +1070,13 @@ export const LIVE_WAIT_STEP_MS = 15 * 60_000;
 /** A fit within this many points takes the soonest race at once (players in it count towards it). */
 export const LIVE_GOOD_FIT = 25;
 /**
- * Before its first Live race a stable takes the soonest race its horse is eligible for and fits
- * within this many points (first-hour follow-up: a meeting in progress often still has later races
- * open, and the first Live race shouldn't be hours away for a slightly better trip).
+ * Before its first Live race, waiting costs this many fit points per LIVE_WAIT_STEP_MS instead
+ * (first-hour follow-up, soonest race first): a meeting in progress often still has later races
+ * open, and a new player's first Live race shouldn't be hours away for a better trip. Fit losses
+ * run in the hundreds for a starter on the card's random trips (aptitude.ts lossGrade: E above 70),
+ * so an hour of waiting has to be worth more than a grade of fit.
  */
-export const LIVE_FIRST_FIT = 40;
+export const LIVE_FIRST_WAIT_POINTS = 30;
 
 export interface LiveChoice {
   race: PublicRace;
@@ -1089,9 +1091,10 @@ export interface LiveChoice {
 /**
  * The Live race Quick Pick would enter now, without entering it (null when nothing fits). Races
  * are tried soonest first; a horse must be eligible (game-core rules + band); fresh horses first.
- * A good fit (LIVE_GOOD_FIT, or LIVE_FIRST_FIT before the stable's first Live race) takes the
- * soonest such race; else the best score of fit + waiting (LIVE_WAIT_POINTS per LIVE_WAIT_STEP_MS)
- * - real players in it (6 points a stable, up to 4), so quick-join groups players.
+ * The best score of fit + waiting
+ * (LIVE_WAIT_POINTS per LIVE_WAIT_STEP_MS after the soonest race; LIVE_FIRST_WAIT_POINTS before the
+ * stable's first Live race) - real players in it (6 points a stable, up to 4), so quick-join groups
+ * players; the search stops at the first good fit (LIVE_GOOD_FIT), as later races only wait longer.
  */
 export async function chooseLiveRace(db: Db, session: Session, now: Date): Promise<LiveChoice | null> {
   const silks = parseSilks(session.stable.silks);
@@ -1102,7 +1105,7 @@ export async function chooseLiveRace(db: Db, session: Session, now: Date): Promi
   const pool = fresh.length ? fresh : candidates;
   if (!pool.length) throw new DomainError("NOT_ELIGIBLE", candidates.length ? "your horses are tired" : "none of your horses can race right now");
   const firstLive = !(await listStableRuns(db, session.stable.id, 40)).some((r) => r.kind !== "quick") && !(await listStableEntries(db, session.stable.id)).some(({ race }) => race.kind !== "quick");
-  const good = firstLive ? LIVE_FIRST_FIT : LIVE_GOOD_FIT;
+  const waitPoints = firstLive ? LIVE_FIRST_WAIT_POINTS : LIVE_WAIT_POINTS;
   const rivalsOf = async (raceId: string) => new Set((await listRaceEntries(db, raceId)).filter((e) => e.stableId && e.stableId !== session.stable.id).map((e) => e.stableId)).size;
   const card = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: session.stable.id }))
     .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.mine === 0 && !isClaimingRace(r)) // a claiming race needs a price the owner sets // full races stay (their sister takes the entry); one horse per stable per race
@@ -1118,10 +1121,11 @@ export async function chooseLiveRace(db: Db, session: Session, now: Date): Promi
     if (!top) continue;
     const rivals = await rivalsOf(race.id);
     const bonus = 6 * Math.min(rivals, 4);
-    const wait = LIVE_WAIT_POINTS * Math.floor((race.postTime.getTime() - firstPost) / LIVE_WAIT_STEP_MS);
+    const wait = waitPoints * Math.floor((race.postTime.getTime() - firstPost) / LIVE_WAIT_STEP_MS);
     const choice = { race, row: top.c.row, horse: top.c.horse, view: top.c.view, loss: top.loss, rivals, score: top.loss + wait - bonus };
-    if (top.loss - bonus <= good) return choice; // a good fit wins early, social bonus included
     if (!best || choice.score < best.score) best = choice;
+    // A good fit (social bonus included) ends the search: later races only wait longer.
+    if (top.loss - bonus <= LIVE_GOOD_FIT) break;
   }
   return best;
 }
@@ -1140,7 +1144,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
   // A full race's entry lands on its sister course: report the race actually entered.
   const run = entered.raceId === race.id ? race : await loadRace(db, entered.raceId);
   const conds = raceConds(race);
-  const fitWord = best.loss <= 10 ? "a great fit" : best.loss <= LIVE_GOOD_FIT ? "a good fit" : "the best fit on the card";
+  const fitWord = best.loss <= 10 ? "a great fit" : best.loss <= LIVE_GOOD_FIT ? "a good fit" : best.loss <= 70 ? "a fair fit" : "the best fit soonest";
   return {
     raceId: run.id,
     raceName: run.name,
