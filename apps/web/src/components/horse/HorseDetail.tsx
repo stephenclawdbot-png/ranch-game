@@ -246,7 +246,7 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
         </section>
       </div>
 
-      {view.genetics && <Genetics gen={view.genetics} />}
+      {view.genetics && <Genetics gen={view.genetics} familyLine={view.familyLine ?? null} />}
 
       {(isMine || form.lines.length > 0) && (
         <section aria-labelledby="history-h" className="grid gap-3">
@@ -318,7 +318,8 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
 }
 
 /** Coat genotype, markings, breed mix and build — the stud-book view of the horse. */
-function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
+function Genetics({ gen, familyLine }: { gen: NonNullable<HorseDetailView["genetics"]>; familyLine: string | null }) {
+  const cls = gen.coat.class;
   return (
     <section className="surface p-4" aria-labelledby="gen-h" data-testid="genetics">
       <h2 id="gen-h" className="t-h2">
@@ -326,8 +327,23 @@ function Genetics({ gen }: { gen: NonNullable<HorseDetailView["genetics"]> }) {
       </h2>
       <p className="mt-1 text-sm text-cream-dim">
         {gen.coat.fullName ?? gen.coat.name}
+        {cls && (
+          <span
+            className={`chip ml-2 align-middle text-xs ${cls.kind === "thoroughbred" ? "" : "chip-brass"}`}
+            title={cls.because ? `${cls.because}: ${cls.tag} (Jockey Club colour guide; see the wiki)` : "A colour the Jockey Club's colour guide recognises for Thoroughbreds"}
+            data-testid="coat-class"
+          >
+            {cls.tag.charAt(0).toUpperCase() + cls.tag.slice(1)}
+          </span>
+        )}
         {gen.coat.bornAs ? ` — born ${gen.coat.bornAs.toLowerCase()}, greying with career` : ""}. The genotype behind the coat.
       </p>
+      {familyLine && (
+        <p className="mt-1 text-sm" data-testid="family-line">
+          <span className="label mr-1">Family likeness</span>
+          {familyLine}.
+        </p>
+      )}
       <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
         <div>
           <table className="w-full text-sm" data-testid="genetics-loci">

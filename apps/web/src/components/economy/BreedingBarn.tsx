@@ -218,7 +218,7 @@ function PregnancyRow({ p, skewMs, onChanged }: { p: PregnancyCard; skewMs: numb
         <FoalReveal
           foal={reveal}
           eyebrow={`${p.damName} has foaled`}
-          note={<p className="t-meta">Sire {p.sireName} · Dam {p.damName}</p>}
+          parents={p.parents}
           onClose={() => {
             markSeen(reveal.id);
             setReveal(null);

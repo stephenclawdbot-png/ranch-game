@@ -69,7 +69,7 @@ export const WIKI_PAGES: WikiPageMeta[] = [
   { slug: "breeds", section: "breeding", title: "Breeds & body genes", summary: "The twelve breeds, breed %, named crosses, size, the speed gene, big heart and iron legs.", keywords: ["breed", "breeds", "purebred", "crossbred", "cross", "size", "height", "tall", "mstn", "speed gene", "big heart", "iron legs", "arabian", "quarter horse", "warmblood", "friesian"] },
   { slug: "family-limits", section: "breeding", title: "Family limits & lineage", summary: "How the family line sets the lowest and highest a foal can be.", keywords: ["limits", "lineage", "floor", "ceiling", "family", "deep", "rising", "foundation"] },
   { slug: "inbreeding", section: "breeding", title: "Inbreeding & kinship", summary: "Coefficient of inbreeding, blocked pairings and what it costs.", keywords: ["coi", "inbreeding", "kin", "related"] },
-  { slug: "coats-and-markings", section: "breeding", title: "Coats & markings", summary: "Every coat colour, the genes behind it and white markings.", keywords: ["coat", "colour", "color", "bay", "chestnut", "grey", "roan", "markings", "sabino", "dun"] },
+  { slug: "coats-and-markings", section: "breeding", title: "Coats & markings", summary: "Every coat colour, the genes behind it, white markings, Thoroughbred colours, build, mane and tail.", keywords: ["coat", "colour", "color", "bay", "chestnut", "grey", "roan", "markings", "sabino", "dun", "build", "mane", "tail", "greying", "jockey club"] },
   { slug: "fragile-legs", section: "breeding", title: "Fragile legs", summary: "The heritable weakness from career-ending injuries, and the gamble.", keywords: ["fragile", "injury", "inherit", "durability"] },
 
   // Careers & retirement

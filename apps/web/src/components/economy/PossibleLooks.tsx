@@ -7,6 +7,7 @@
  * render every recolour at once.
  */
 import { useEffect, useRef, useState } from "react";
+import { coatClassOf } from "@thoroughbred/game-core";
 import { HorsePortrait, type PortraitScale } from "@/components/HorsePortrait";
 import type { PossibleLookView } from "@/lib/economyTypes";
 
@@ -56,6 +57,9 @@ export function PossibleLooks({ looks, note }: { looks: PossibleLookView[]; note
           <li key={i} className="well grid content-start justify-items-center gap-1.5 p-2 text-center">
             <LazyPortrait look={l} scale={1} label={`Possible foal ${i + 1}: ${l.caption}`} />
             <span className="text-sm font-bold leading-tight text-cream">{l.caption}</span>
+            <span className="caption leading-tight" data-testid="look-class">
+              {coatClassOf(l.appearance).tag}
+            </span>
           </li>
         ))}
       </ul>

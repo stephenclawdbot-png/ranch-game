@@ -74,6 +74,14 @@ export interface PregnancyCard {
   status: "carrying" | "foaled";
   coiPermille: number;
   foal: EcoHorse | null;
+  /** The dam's and sire's looks (the foal reveal shows them beside the foal). */
+  parents?: FoalParents | null;
+}
+
+/** A foal's parents as the reveal shows them: name and look. */
+export interface FoalParents {
+  dam: { name: string; appearance: HorseAppearance } | null;
+  sire: { name: string; appearance: HorseAppearance } | null;
 }
 
 export interface BreedingView {
