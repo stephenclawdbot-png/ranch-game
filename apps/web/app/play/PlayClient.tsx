@@ -68,7 +68,8 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     if (state === undefined || decided.current) return;
     decided.current = true;
     // An existing stable edits its colours under Profile; this page is for founding one.
-    if (state) router.replace("/me");
+    // Opening your invite link on a browser that's already signed in: straight to Home.
+    if (state) router.replace(new URLSearchParams(window.location.search).get("invite") ? "/" : "/me");
     else {
       // One-time import: a stable from the old in-browser demo keeps its name and colours.
       const legacy = legacyProfile();
