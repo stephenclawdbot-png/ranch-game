@@ -21,6 +21,8 @@ import { PASTURE_ROWS, SCENES, looseHorse, pastureScene, type AnimItem } from ".
 import { DIORAMA_ATLAS } from "../diorama/atlas.generated";
 import type { DioramaEngine } from "../diorama/engine";
 import { HorsePortrait } from "../HorsePortrait";
+import { useTier } from "@/lib/deviceTier";
+import { LiteGraphicsNote } from "../LiteGraphicsNote";
 import { PixelIcon } from "../icons";
 
 const BASE = SCENES.pasture;
@@ -64,7 +66,10 @@ export function clampToView(item: AnimItem, l: number, r: number): AnimItem {
   return x === item.x ? item : { ...item, x };
 }
 
-export function layoutHerd(horses: StableHorse[], l: number, r: number): { placed: Placed[]; inBarn: number } {
+/** Roaming horses a "lite" device keeps out (lib/deviceTier.ts); the rest stay in the barn. */
+export const LITE_ROAMING = 4;
+
+export function layoutHerd(horses: StableHorse[], l: number, r: number, maxRoaming = Infinity): { placed: Placed[]; inBarn: number } {
   l += HERD_MARGIN;
   r -= HERD_MARGIN;
   const span = Math.max(0, r - l - 24);
@@ -87,7 +92,7 @@ export function layoutHerd(horses: StableHorse[], l: number, r: number): { place
   // alternate mid / far so neighbours stand at different depths
   // the full-HD lead is about two columns wide: it gets two, so it doesn't cover its neighbours
   const leadCols = lead ? (placed[0]!.item.fw > 200 ? 2 : 1) : 0;
-  const shown = rest.slice(0, Math.max(0, Math.floor(span / 90) - leadCols));
+  const shown = rest.slice(0, Math.min(maxRoaming, Math.max(0, Math.floor(span / 90) - leadCols)));
   const cols = shown.length + leadCols;
   const slot = span / Math.max(1, cols);
   const leadCol = lead ? Math.min(cols - leadCols, Math.max(0, Math.round((span >= 560 ? 0.62 : 0.5) * cols - leadCols / 2))) : -1;
@@ -212,7 +217,9 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
   const l = view ? Math.max(0, view.vx) : 0;
   const rr = view ? Math.min(BASE.width, view.vx + view.viewW) : BASE.width;
   const ids = horses.map((h) => `${h.id}:${h.stage}:${JSON.stringify(h.horse.appearance.colour ?? h.horse.appearance.coat)}`).join("|");
-  const herd = useMemo(() => (view ? layoutHerd(horses, l, rr) : { placed: [], inBarn: 0 }), [view ? `${l}-${rr}` : "", ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a lite device keeps fewer horses roaming (fewer sprites to draw each frame)
+  const lite = useTier().tier === "lite";
+  const herd = useMemo(() => (view ? layoutHerd(horses, l, rr, lite ? LITE_ROAMING : Infinity) : { placed: [], inBarn: 0 }), [view ? `${l}-${rr}` : "", ids, lite]); // eslint-disable-line react-hooks/exhaustive-deps
   const def = useMemo(
     () =>
       pastureScene({
@@ -315,6 +322,7 @@ export function RanchStage({ horses, eyebrow, title, onRace }: { horses: StableH
         {!sel && horses.length > 0 && <p className="ranch-hint">Tap a horse</p>}
         {sel && <RanchCard s={sel} onClose={() => setPicked(null)} onRace={() => onRace(sel.id)} />}
       </div>
+      <LiteGraphicsNote />
     </section>
   );
 }

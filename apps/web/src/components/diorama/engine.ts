@@ -11,7 +11,8 @@
  * shadow, a few dozen 1-px motes, 2 ray sprites, a vignette sprite. All blurs are baked once.
  */
 import { computeFrame, lodStrip, MARGIN } from "./frame";
-import { COAT_ATLAS_SRC, coatAtlasOf, downsampleSheet, fullSheetOf, lookKey, paintHorseSheet } from "./recolor";
+import { lookKey } from "./recolor";
+import { requestSheet, type SheetHandle } from "./sheetPainter";
 import type { AnimItem, Layer, Overlay, RaySet, SceneDef, StaticItem } from "./scenes";
 
 const ART = "/art/";
@@ -219,12 +220,18 @@ export class DioramaEngine {
   private destroyed = false;
   readonly reduced: boolean;
 
-  constructor(el: Cnv, scene: SceneDef, opts: { reducedMotion: boolean; quality?: "high" | "low" }) {
+  /** Called once with the median frame time (ms) of the first 3 s of motion (device tier). */
+  private onBudget: ((medianMs: number) => void) | null;
+  private budget: number[] = [];
+  private budgetMs = 0;
+
+  constructor(el: Cnv, scene: SceneDef, opts: { reducedMotion: boolean; quality?: "high" | "low"; onFrameBudget?: (medianMs: number) => void }) {
     this.el = el;
     this.scene = scene;
     this.ctx = ctx2d(el);
     this.reduced = opts.reducedMotion;
     this.quality = opts.quality ?? "high";
+    this.onBudget = opts.onFrameBudget ?? null;
     this.time = scene.posterT;
   }
 
@@ -233,13 +240,10 @@ export class DioramaEngine {
     const files = new Set<string>();
     const s = this.scene;
     if (s.sky.src) files.add(s.sky.src);
+    // (a player's horse is painted in the paint worker, which loads its full-size sheet and the
+    // coat-layer atlas itself: the page only needs the strip it draws)
     const addA = (a: AnimItem) => {
-      // a player's horse is painted on the full-size sheet and reduced (the coat layers need it)
-      const add = (src: string) => {
-        files.add(src);
-        const full = a.look?.appearance ? fullSheetOf(src) : null;
-        if (full) files.add(full.src);
-      };
+      const add = (src: string) => files.add(src);
       add(a.src);
       if (a.lod) for (let f = 2; f <= 4; f++) {
         const v = lodStrip(a, f);
@@ -254,15 +258,15 @@ export class DioramaEngine {
       l.anims?.forEach(addA);
     }
     s.overlays?.forEach((o) => files.add(o.src));
-    // a player's horse wears its coat layers (patterns, markings, long hair): load the atlas
-    let looks = false;
-    const hasLook = (a: AnimItem): boolean => !!a.look?.appearance || !!a.with?.some(hasLook);
-    for (const l of s.layers) if (l.anims?.some(hasLook)) looks = true;
-    if (looks) loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     await Promise.all([...files].map(async (f) => this.images.set(f, await loadImage(f))));
-    if (looks && !this.images.has(COAT_ATLAS_SRC)) await loadImage(COAT_ATLAS_SRC).then((im) => this.images.set(COAT_ATLAS_SRC, im), () => undefined);
     if (this.destroyed) return;
-    this.bake();
+    await this.bake();
+  }
+
+  /** Let the page breathe between baking steps (each blur is a few ms to tens of ms; on a slow phone, ~6x that). */
+  private async breathe(): Promise<boolean> {
+    await new Promise((r) => setTimeout(r, 0));
+    return !this.destroyed;
   }
 
   private img(src: string): HTMLImageElement {
@@ -271,7 +275,7 @@ export class DioramaEngine {
     return im;
   }
 
-  private bake() {
+  private async bake() {
     const s = this.scene;
     // sky: mirror-doubled so it can drift forever without a seam
     if (s.sky.src) {
@@ -297,9 +301,15 @@ export class DioramaEngine {
       }
       this.skyTop = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
     }
-    for (const l of s.layers) this.layers.push(this.bakeLayer(l));
-    this.buildSprites();
+    for (const l of s.layers) {
+      if (!(await this.breathe())) return;
+      this.layers.push(this.bakeLayer(l));
+    }
+    // the sprites are built for the view at the first resize (an LOD copy may be drawn there):
+    // painting the full-size strips first would be thrown away
+    if (this.cssW) this.buildSprites();
     for (const o of s.overlays ?? []) {
+      if (!(await this.breathe())) return;
       const im = this.img(o.src);
       const c = canvas(im.width, im.height);
       const x = ctx2d(c);
@@ -312,7 +322,11 @@ export class DioramaEngine {
       const b = blurred(c, o.blur);
       this.overlays.push({ def: o, canvas: b.canvas, pad: b.pad });
     }
-    this.rays = s.rays.map((r) => ({ ...this.bakeRays(r), def: r }));
+    this.rays = [];
+    for (const r of s.rays) {
+      if (!(await this.breathe())) return;
+      this.rays.push({ ...this.bakeRays(r), def: r });
+    }
     // sun glow + bokeh disc sprites
     this.sun = canvas(128, 128);
     {
@@ -512,6 +526,8 @@ export class DioramaEngine {
   }
 
   private recolored = new Map<string, Cnv | HTMLImageElement>();
+  /** Painted strips asked of the paint worker (sheetPainter.ts), by sprite key, with their canvases. */
+  private painted = new Map<string, { handle: SheetHandle; canvas: Cnv; off: () => void }>();
   private lodF = 1;
   private buildSprites() {
     for (const l of this.scene.layers) {
@@ -523,75 +539,97 @@ export class DioramaEngine {
       this.sprites.set(l, list);
     }
   }
-  private sprite(a: AnimItem): Sprite | null {
+  /** Whether a sprite is in the current view (paint it first) or not (later). */
+  private onScreen(a: AnimItem, fw: number): boolean {
+    if (!this.viewW) return true;
+    const range = a.roam?.range ?? 0;
+    return a.x + fw + range > this.vx - 32 && a.x - range < this.vx + this.viewW + 32;
+  }
+  private sprite(a: AnimItem, later = false): Sprite | null {
     const v = lodStrip(a, this.lodF, this.viewH);
     if (!v) return null;
     const key = `${v.src}|${a.look ? lookKey(a.look) : ""}|${a.flip ? 1 : 0}`;
+    const prio = (this.onScreen(a, v.fw) ? 0 : 2) + (later ? 1 : 0);
     let strip = this.recolored.get(key);
     if (!strip) {
       const im = this.img(v.src);
       if (!a.look && !a.flip && !this.scene.sprites) strip = im;
       else {
         const c = canvas(im.width, im.height);
-        const x = ctx2d(c);
-        // paint the look on the unflipped sheet (the coat geometry reads horses facing right),
-        // then mirror each frame in place (keeps frame order)
-        let src: CanvasImageSource = im;
         if (a.look) {
-          const atlas = coatAtlasOf(this.images.get(COAT_ATLAS_SRC));
-          const full = a.look.appearance && atlas ? fullSheetOf(v.src) : null;
-          const fim = full ? this.images.get(full.src) : undefined;
-          const pc = canvas(im.width, im.height);
-          const px = ctx2d(pc);
-          if (full && fim) {
-            // paint at full size, then the same whole-block reduction the N:1 copies were made with
-            const fc = canvas(fim.width, fim.height);
-            const fx = ctx2d(fc);
-            fx.drawImage(fim, 0, 0);
-            const fd = fx.getImageData(0, 0, fc.width, fc.height);
-            // the cloth's number survives a 2:1 reduction (2-texel cells), not a smaller copy
-            paintHorseSheet(fd.data, fc.width, fc.height, Math.floor(fc.width / v.frames), a.look, atlas, full.src, full.n <= 2);
-            const small = downsampleSheet(fd.data, fc.width, fc.height, v.frames, full.n);
-            const id = px.createImageData(pc.width, pc.height);
-            for (let y = 0; y < Math.min(small.height, pc.height); y++) id.data.set(small.data.subarray(y * small.width * 4, y * small.width * 4 + Math.min(small.width, pc.width) * 4), y * pc.width * 4);
-            px.putImageData(id, 0, 0);
-          } else {
-            px.drawImage(im, 0, 0);
-            const d = px.getImageData(0, 0, pc.width, pc.height);
-            paintHorseSheet(d.data, pc.width, pc.height, v.fw, a.look, atlas, v.src);
-            px.putImageData(d, 0, 0);
-          }
-          src = pc;
-        }
-        if (a.flip) {
-          for (let f = 0; f < v.frames; f++) {
-            x.save();
-            x.translate(f * v.fw + v.fw, 0);
-            x.scale(-1, 1);
-            x.drawImage(src, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
-            x.restore();
-          }
-        } else x.drawImage(src, 0, 0);
-        this.gradeSprite(c);
+          // painted in the worker (coat, build, long hair); the quick recolour shows until then,
+          // the frames on screen first. Both facings share one painted strip.
+          const handle = requestSheet(v.src, im.width, im.height, v.fw, v.frames, a.look, prio);
+          const paint = () => {
+            const img = handle.image();
+            if (img && !this.destroyed) this.drawStrip(c, img, v, !!a.flip);
+          };
+          const off = handle.listen(paint);
+          this.painted.set(key, { handle, canvas: c, off });
+          paint();
+        } else this.drawStrip(c, im, v, !!a.flip);
         strip = c;
       }
       this.recolored.set(key, strip);
-    }
+    } else this.painted.get(key)?.handle.prio(prio);
     const kids: Sprite[] = [];
     for (const w of a.with ?? []) {
-      const sp = this.sprite(w);
+      const sp = this.sprite(w, later);
       if (sp) kids.push(sp);
     }
     let roam: Sprite["roam"];
     if (a.roam) {
       const base = { ...a, roam: undefined, with: undefined, id: undefined };
       const rest = { ...base, ...a.roam.rest };
-      const walkBack = this.sprite({ ...base, flip: !a.flip });
-      const restS = this.sprite(rest);
-      const restBack = this.sprite({ ...rest, flip: !a.flip });
+      const walkBack = this.sprite({ ...base, flip: !a.flip }, later);
+      // the rest strip shows only after a walk: painted after the walks on screen
+      const restS = this.sprite(rest, true);
+      const restBack = this.sprite({ ...rest, flip: !a.flip }, true);
       if (walkBack && restS && restBack) roam = { walkBack, rest: restS, restBack };
     }
     return { def: a, strip, fw: v.fw, fh: v.fh, frames: v.frames, r: v.r, with: kids, roam };
+  }
+
+  /** Draw a (painted) strip into a sprite's canvas: mirrored per frame when flipped (frame order kept), then graded. */
+  private drawStrip(c: Cnv, src: CanvasImageSource, v: { fw: number; fh: number; frames: number }, flip: boolean) {
+    const x = ctx2d(c);
+    x.clearRect(0, 0, c.width, c.height);
+    if (flip) {
+      for (let f = 0; f < v.frames; f++) {
+        x.save();
+        x.translate(f * v.fw + v.fw, 0);
+        x.scale(-1, 1);
+        x.drawImage(src, f * v.fw, 0, v.fw, v.fh, 0, 0, v.fw, v.fh);
+        x.restore();
+      }
+    } else x.drawImage(src, 0, 0);
+    this.gradeSprite(c);
+  }
+
+  /** Resolves once every horse in the scene has at least its quick paint (or after `timeoutMs`). */
+  ready(timeoutMs = 4000): Promise<void> {
+    const waiting = new Set<SheetHandle>();
+    const visit = (sp: Sprite) => {
+      for (const p of this.painted.values()) if (p.canvas === sp.strip && p.handle.stage() === "none") waiting.add(p.handle);
+      sp.with.forEach(visit);
+      if (sp.roam) [sp.roam.walkBack, sp.roam.rest, sp.roam.restBack].forEach(visit);
+    };
+    for (const list of this.sprites.values()) list.forEach(visit);
+    if (!waiting.size) return Promise.resolve();
+    return new Promise((res) => {
+      const offs: (() => void)[] = [];
+      const check = () => {
+        for (const h of waiting) if (h.stage() === "none") return;
+        finish();
+      };
+      const finish = () => {
+        offs.forEach((o) => o());
+        clearTimeout(t);
+        res();
+      };
+      const t = setTimeout(finish, timeoutMs);
+      for (const h of waiting) offs.push(h.listen(check));
+    });
   }
 
   private gradeSprite(c: Cnv) {
@@ -685,6 +723,11 @@ export class DioramaEngine {
   destroy(): void {
     this.stop();
     this.destroyed = true;
+    for (const p of this.painted.values()) {
+      p.off();
+      p.handle.release();
+    }
+    this.painted.clear();
     this.images.clear();
     this.layers = [];
   }
@@ -726,6 +769,18 @@ export class DioramaEngine {
   private track(dt: number, drawMs: number) {
     this.frames++;
     this.lastDrawMs = drawMs;
+    if (this.onBudget && dt < 1000) {
+      // the first 3 s of motion (a long gap is a pause, not a frame)
+      this.budget.push(dt);
+      this.budgetMs += dt;
+      if (this.budgetMs >= 3000) {
+        const sorted = [...this.budget].sort((a, b) => a - b);
+        const cb = this.onBudget;
+        this.onBudget = null;
+        this.budget = [];
+        cb(sorted[sorted.length >> 1]!);
+      }
+    }
     if (dt > 100) return; // resumed after a pause: not a real frame time
     this.frameTimes.push(dt);
     if (this.frameTimes.length > 90) this.frameTimes.shift();

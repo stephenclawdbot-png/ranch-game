@@ -9,6 +9,7 @@ import { EntryProvider } from "@/components/entry/EntryProvider";
 import { ArtProvider } from "@/components/pixel/ArtProvider";
 import { listArt } from "@/lib/art.server";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settingsBoot";
+import { DeviceTierBoot } from "@/components/DeviceTierBoot";
 import "./globals.css";
 
 // Faces (design system v3.1 "Pixel arcade", owner pick 2026-10-29): Pixelify for titles and labels,
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />
       </head>
       <body>
+        <DeviceTierBoot />
         <ArtProvider files={art}>
           {/* USDG_MODE=practice: T-USDG test money everywhere USDG appears (server env, read here once). */}
           <UsdgModeProvider practice={isUsdgPracticeMode(process.env)}>
