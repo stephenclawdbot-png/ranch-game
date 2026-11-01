@@ -3,48 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { HorseAppearance } from "@thoroughbred/shared";
 import { lookShapeKey } from "@thoroughbred/art-pipeline";
-import { artUrl } from "@/lib/art";
-import { COAT_ATLAS_SRC, coatAtlasOf, paintHorseSheet } from "../diorama/recolor";
+import { requestSheet } from "../diorama/sheetPainter";
 import { useArt } from "./ArtProvider";
 
 const FRAMES = 12;
-
-/** The coat-layer atlas (patterns, markings, long hair), loaded once for every gallop sprite. */
-let atlasPromise: Promise<HTMLImageElement | null> | null = null;
-function loadAtlas(): Promise<HTMLImageElement | null> {
-  atlasPromise ??= new Promise((res) => {
-    const im = new Image();
-    im.onload = () => res(im);
-    im.onerror = () => res(null);
-    im.src = `/art/${COAT_ATLAS_SRC}`;
-  });
-  return atlasPromise;
-}
-
-/**
- * Recolours the PixelLab gallop strip for one horse with the same painter as the ranch, the
- * paddock and the race views (coat palette, silks, rider look, then the coat layers: patterns,
- * markings, shades and feathered long hair from the one pattern definition).
- */
-function recolour(img: HTMLImageElement, atlasImg: HTMLImageElement | null, appearance: HorseAppearance): HTMLCanvasElement {
-  const cv = document.createElement("canvas");
-  cv.width = img.naturalWidth;
-  cv.height = img.naturalHeight;
-  const ctx = cv.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0, 0, cv.width, cv.height);
-  paintHorseSheet(data.data, cv.width, cv.height, Math.round(cv.width / FRAMES), { coat: appearance.coat, appearance }, coatAtlasOf(atlasImg), "race/horse-gallop");
-  ctx.putImageData(data, 0, 0);
-  return cv;
-}
+const SRC = "race/horse-gallop.png";
 
 /**
  * The PixelLab gallop cycle, recoloured for a horse and played on a tiny canvas
- * (nearest-neighbour upscaled). Renders nothing until the art exists.
+ * (nearest-neighbour upscaled). Painted with the same painter as the ranch, the paddock and the
+ * race views (coat palette, silks, rider look, then the coat layers, build and long hair), in the
+ * paint worker (diorama/sheetPainter.ts): the quick recolour shows first, the finished strip
+ * when it is ready. Renders nothing until the art exists.
  * Pass `still` to freeze on that frame (gallery cells, reduced-motion posters).
  */
 export function GallopSprite({ appearance, scale = 2, fps = 14, className, still, fit }: { appearance: HorseAppearance; scale?: number; fps?: number; className?: string; still?: number; fit?: boolean }) {
-  const art = useArt(["race/horse-gallop.png"]);
+  const art = useArt([SRC]);
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const fw = art ? Math.round(art.w / FRAMES) : 0;
@@ -53,26 +27,30 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className, still
   useEffect(() => {
     if (!art) return;
     let raf = 0;
-    let alive = true;
-    const img = new Image();
-    img.src = artUrl(art);
-    Promise.all([loadAtlas(), img.decode().then(() => img)]).then(([atlasImg]) => {
-      if (!alive || !ref.current) return;
-      const strip = recolour(img, atlasImg, appearance);
-      const ctx = ref.current.getContext("2d")!;
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const start = performance.now();
-      const draw = (t: number) => {
+    const handle = requestSheet(SRC, art.w, art.h, fw, FRAMES, { coat: appearance.coat, appearance });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const start = performance.now();
+    const draw = (t: number) => {
+      const strip = handle.image();
+      const ctx = ref.current?.getContext("2d");
+      if (strip && ctx) {
         const f = still ?? (reduce ? 3 : Math.floor(((t - start) / 1000) * fps) % FRAMES);
         ctx.clearRect(0, 0, fw, art.h);
         ctx.drawImage(strip, f * fw, 0, fw, art.h, 0, 0, fw, art.h);
-        if (still === undefined && !reduce) raf = requestAnimationFrame(draw);
-      };
-      raf = requestAnimationFrame(draw);
+      }
+      if (still === undefined && !reduce) raf = requestAnimationFrame(draw);
+    };
+    const show = () => {
+      if (!handle.image()) return;
       setReady(true);
-    }).catch(() => {});
+      if (still !== undefined || reduce) draw(performance.now());
+    };
+    const off = handle.listen(show);
+    show();
+    if (still === undefined && !reduce) raf = requestAnimationFrame(draw);
     return () => {
-      alive = false;
+      off();
+      handle.release();
       cancelAnimationFrame(raf);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,4 +68,3 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className, still
     />
   );
 }
-
