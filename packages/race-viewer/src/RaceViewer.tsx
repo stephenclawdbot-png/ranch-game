@@ -322,6 +322,18 @@ function liveClockSource(feed: LiveRaceFeed) {
   };
 }
 
+/**
+ * Start the race view's code (three.js, the Trackside scene) and its GPU programs compiling
+ * before the viewer mounts: a race page calls it as it opens, so the compile runs while the
+ * broadcast loads. Safe to call more than once; does nothing on the server or for the 3D view.
+ */
+export function prewarmRaceView(): void {
+  if (typeof window === "undefined" || resolveView() !== "trackside") return;
+  void Promise.all([import("three"), import("./trackside/TracksideScene")])
+    .then(([T, m]) => m.TracksideScene.prewarm(T))
+    .catch(() => {});
+}
+
 export function RaceViewer(props: RaceViewerProps) {
   const {
     replay,
@@ -764,11 +776,16 @@ export function RaceViewer(props: RaceViewerProps) {
     let cleanup = () => {};
     if (!view) return;
     (async () => {
+      const tracksideMod = view === "trackside" ? import("./trackside/TracksideScene").catch(() => null) : null;
       const [T, { loadArt }] = await Promise.all([import("three"), import("./three/art")]);
       const stage = stageRef.current;
       const host = canvasHostRef.current;
       if (disposed || !stage || !host) return;
-      const art = await loadArt(artBaseUrl);
+      // The view's programs start compiling now, while the art manifest and the sheets load.
+      const artPending = loadArt(artBaseUrl);
+      const mod = tracksideMod ? await tracksideMod : null;
+      if (mod && !disposed) mod.TracksideScene.prewarm(T);
+      const art = await artPending;
       if (disposed) return;
       const w0 = Math.max(1, stage.clientWidth);
       const h0 = Math.max(1, stage.clientHeight);

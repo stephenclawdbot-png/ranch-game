@@ -4,7 +4,7 @@
  * Main entry is Three-free at import time (three.js loads lazily on the client).
  * Dev helpers (fakeReplay, SpriteSheet) live in "@thoroughbred/race-viewer/dev".
  */
-export { RaceViewer, type RaceViewerProps } from "./RaceViewer";
+export { RaceViewer, prewarmRaceView, type RaceViewerProps } from "./RaceViewer";
 export type { CameraMode, QualitySetting, RenderQuality, ViewMode } from "./types";
 export { perfReport, type PerfLayout, type PerfReport } from "./perfReport";
 export { sampleReplay, createReplaySampler, replayTiming, type HorseSample, type ReplaySampler, type ReplayTiming } from "./sampleReplay";

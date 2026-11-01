@@ -95,6 +95,13 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   );
   const paddock = useMemo(() => <PaddockParade runners={paradeRunners} />, [paradeRunners]);
 
+  // The field is locked, so the viewer is coming: its code and GPU programs start loading now,
+  // while the broadcast feed is fetched (the race picture appears sooner).
+  useEffect(() => {
+    if (!card.fieldLocked) return;
+    void import("@thoroughbred/race-viewer").then((m) => m.prewarmRaceView()).catch(() => {});
+  }, [card.fieldLocked]);
+
   // Entries open: refresh the server-rendered card when they close (the field locks then),
   // and keep checking every few seconds until the locked field arrives.
   useEffect(() => {

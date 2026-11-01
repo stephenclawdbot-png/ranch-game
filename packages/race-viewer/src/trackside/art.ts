@@ -191,7 +191,7 @@ const sameEntry = (a: SheetEntry, b: { frameWidth: number; frameHeight: number; 
 let decoders: Worker[] | null | undefined;
 let nextDecoder = 0;
 let nextJob = 1;
-const waiting = new Map<number, (st: StripSet | null | "failed") => void>();
+const waiting = new Map<number, (done: SheetDone | "failed") => void>();
 
 function sheetDecoders(): Worker[] | null {
   if (decoders !== undefined) return decoders;
@@ -207,7 +207,7 @@ function sheetDecoders(): Worker[] | null {
       w.onmessage = (e: MessageEvent<SheetDone>) => {
         const r = waiting.get(e.data.id);
         waiting.delete(e.data.id);
-        r?.(e.data.st);
+        r?.(e.data);
       };
       w.onerror = () => {
         // a worker could not start (or died): decode what it held here
@@ -227,18 +227,22 @@ function sheetDecoders(): Worker[] | null {
   return decoders;
 }
 
+function workerJob(w: Worker, job: (id: number) => SheetJob): Promise<SheetDone | "failed"> {
+  return new Promise((res) => {
+    const id = nextJob++;
+    waiting.set(id, res);
+    w.postMessage(job(id));
+  });
+}
+
 /** One precomputed sheet: fetched and decoded in a worker (here when workers are unavailable). */
 async function decodeAt(url: string, palette: Palette): Promise<StripSet | null> {
   const pool = sheetDecoders();
   if (pool?.length) {
     const w = pool[nextDecoder++ % pool.length]!;
     const abs = new URL(url, globalThis.location?.href).href;
-    const r = await new Promise<StripSet | null | "failed">((res) => {
-      const id = nextJob++;
-      waiting.set(id, res);
-      w.postMessage({ id, url: abs, palette: palette.colours } satisfies SheetJob);
-    });
-    if (r !== "failed") return r;
+    const r = await workerJob(w, (id) => ({ id, url: abs, palette: palette.colours }));
+    if (r !== "failed") return r.st ?? null;
   }
   const res = await fetch(url);
   if (!res.ok) return null;
@@ -432,6 +436,13 @@ export async function loadCoatAtlas(art: ArtSet, scale: 1 | 2 = 1): Promise<Coat
   if (!art.manifest || typeof document === "undefined") return null;
   const e = approved(art, scale === 2 ? "coat-layers-2x.png" : "coat-layers.png");
   if (!e?.src) return null;
+  // read in a decoding worker when there is one (the canvas readback is a long task on a phone)
+  const pool = sheetDecoders();
+  if (pool?.length) {
+    const url = new URL(urlOf(art, e.src), globalThis.location?.href).href;
+    const r = await workerJob(pool[nextDecoder++ % pool.length]!, (id) => ({ kind: "atlas", id, url }));
+    if (r !== "failed" && r.atlas) return { scale, width: r.atlas.width, height: r.atlas.height, data: r.atlas.data };
+  }
   const img = await loadImg(urlOf(art, e.src));
   if (!img) return null;
   return atlasFromRgba(pixels(img), img.naturalWidth, img.naturalHeight, scale);

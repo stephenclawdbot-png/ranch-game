@@ -112,6 +112,7 @@ consistent pixel density**, not bigger chunky pixels.
 | `race/horse-canter.png`, `race/horse-idle.png` | Optional extra states (post parade, gate) | PNG strip |
 | `race/jockey-gallop.png` | *Only if* the jockey is a separate layer: same frame size and count, aligned overlay | PNG strip |
 | `race/palette.json` | Recolour keys: `{ "coat": [hex dark→light], "mane": [...], "silksPrimary": [...], "silksSecondary": [...], "cap": [...] }`. These are the exact source colours in the sprite that the viewer swaps per horse. | JSON |
+| `race/sheets/index.json`, `race/sheets/<stem>.<hash>.bin` | Generated, never hand-edited: the horse sheets' derived data (palette-index strips, normals, marking and coat masks, hair, build landmarks) for the Trackside and 3D views, so the browser only decodes it. A test fails when a sheet, the palette keys or the strip code changes; rebuild with `cd packages/race-viewer && BAKE_SHEETS=1 npx vitest run src/trackside/sheets.bake.test.ts` | gzipped binary |
 | `race/sky-{clear,dusk,overcast}.png` | Sky gradient and clouds | PNG |
 | `race/far-hills.png`, `race/grandstand.png`, `race/crowd.png`, `race/rail-far.png`, `race/track-turf.png`, `race/track-dirt.png`, `race/rail-near.png`, `race/hedge-near.png` | Parallax layers, **horizontally tileable** | PNG |
 | `race/finish-post.png`, `race/furlong-pole.png`, `race/starting-gate.png` | Props | PNG |

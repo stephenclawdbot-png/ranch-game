@@ -191,8 +191,10 @@ function newRenderer(T: typeof THREE): THREE.WebGLRenderer {
  * same sources and flags as the scene's own materials, so they hit three's program cache. Returns
  * the release of the probe materials (call it once the scene's materials hold the programs).
  */
-function prewarmPrograms(T: typeof THREE, renderer: THREE.WebGLRenderer): { draw: () => void; release: () => void } {
-  const none = { draw: () => {}, release: () => {} };
+let prewarmed: { T: typeof THREE; renderer: THREE.WebGLRenderer; probes: { release: () => void } } | null = null;
+
+function prewarmPrograms(T: typeof THREE, renderer: THREE.WebGLRenderer): { release: () => void } {
+  const none = { release: () => {} };
   try {
     const scene = new T.Scene();
     const geo = new T.PlaneGeometry(1, 1);
@@ -205,24 +207,7 @@ function prewarmPrograms(T: typeof THREE, renderer: THREE.WebGLRenderer): { draw
     renderer.compile(scene, cam);
     // hand the compile to the GPU now (it only blocks the page when a program is first used)
     renderer.getContext().flush();
-    let drawn = false;
     return {
-      draw: () => {
-        if (drawn) return;
-        drawn = true;
-        try {
-          // one pixel of the (not yet shown) canvas: the same programs and states as the scene's draws
-          renderer.setRenderTarget(null);
-          renderer.setScissorTest(true);
-          renderer.setScissor(0, 0, 1, 1);
-          renderer.setViewport(0, 0, 1, 1);
-          renderer.render(scene, cam);
-          renderer.setScissorTest(false);
-          renderer.getContext().flush();
-        } catch {
-          /* the first frame builds them instead */
-        }
-      },
       release: () => {
         for (const m of mats) m.dispose();
         geo.dispose();
@@ -330,21 +315,36 @@ export class TracksideScene {
     const stage = opts.stage ?? buildRaceStage(opts.course, data);
     // The renderer and its programs first: the GPU compiles them while the art downloads and
     // decodes (compiling only blocks when a program is first used, by then it is done).
-    const renderer = newRenderer(T);
-    const probes = prewarmPrograms(T, renderer);
+    const warm = prewarmed?.T === T ? prewarmed : null;
+    prewarmed = null;
+    const renderer = warm?.renderer ?? newRenderer(T);
+    const probes = warm?.probes ?? prewarmPrograms(T, renderer);
     try {
       const [art, images, fx] = await Promise.all([loadTracksideArt(opts.art, sceneryFor(opts.course?.scenery), opts.firstSheets), loadStageArt(opts.art, stage), loadFxPalette(opts.art)]);
       if (!art) throw new Error("Trackside art unavailable");
-      // one tiny draw with every program: the GPU builds its pipelines while the scene is put together
-      probes.draw();
       const sc = new TracksideScene(T, data, { ...opts, stage }, art, { images, fx }, renderer);
       sc.probes = probes.release;
+      await sc.build();
       return sc;
     } catch (err) {
       probes.release();
       renderer.dispose();
       renderer.forceContextLoss();
       throw err;
+    }
+  }
+
+  /**
+   * Starts the next scene's renderer and program compiles ahead of `create` (call it as soon as
+   * three.js is in, before the art loads). The next `create` with the same three takes them.
+   */
+  static prewarm(T: typeof THREE): void {
+    if (prewarmed) return;
+    try {
+      const renderer = newRenderer(T);
+      prewarmed = { T, renderer, probes: prewarmPrograms(T, renderer) };
+    } catch {
+      prewarmed = null;
     }
   }
 
@@ -395,7 +395,13 @@ export class TracksideScene {
     this.adoptSheets(false);
     this.keyInfo = this.dataTex(buildKeyInfo(art.palette, art.keys), 64, 2, T.RGBAFormat);
     this.atlasTex = art.atlas ? this.dataTex(art.atlas.data, art.atlas.width, art.atlas.height, T.RedFormat) : this.dataTex(new Uint8Array(1), 1, 1, T.RedFormat);
+  }
+
+  /** The scene's objects, a few tasks long (the backdrop bakes alone are a long task on a phone). */
+  private async build(): Promise<void> {
+    const data = this.data;
     this.buildBackdrop();
+    await new Promise<void>((r) => setTimeout(r, 0));
     this.into = this.trackLayer;
     this.buildGround();
     this.buildProps();
@@ -409,6 +415,7 @@ export class TracksideScene {
       quad: (m, order) => this.quad(m, order),
       place: (m, x, y, w, h) => this.place(m, x, y, w, h),
     });
+    await new Promise<void>((r) => setTimeout(r, 0));
     this.buildRunners();
     this.buildGapMarks();
     this.buildGroundFx();
