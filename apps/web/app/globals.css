@@ -188,6 +188,9 @@ html {
   -webkit-text-size-adjust: 100%;
   font-size: 100%;
   overflow-x: clip;
+  /* The pixel faces draw their fi/fl ligatures as a broken glyph ("Your Arst week",
+     "Season Fnal"): keep letters apart everywhere, not only in the headings we caught. */
+  font-variant-ligatures: no-common-ligatures;
 }
 html[data-text="90"] {
   font-size: 90%;
