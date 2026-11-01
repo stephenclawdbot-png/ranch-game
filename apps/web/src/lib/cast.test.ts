@@ -9,6 +9,15 @@ const PUBLIC = join(__dirname, "../../public");
 const exists = (url: string) => existsSync(join(PUBLIC, url));
 
 describe("jockey cast", () => {
+  it("crops every list face around the head, not off to one side", () => {
+    // the head sits in the same place on every bust; a crop box pulled sideways by neck or
+    // shoulder skin cut the face in half on the jockey lists (8 busts, fixed 2026-11-01)
+    const xs = Object.values(BUST_INDEX.faces).map((f) => f.face[0]);
+    const off = Object.entries(BUST_INDEX.faces).filter(([, f]) => f.face[0] < 36 || f.face[0] > 50).map(([id]) => id);
+    expect(off).toEqual([]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThanOrEqual(14);
+  });
+
   it("knows every first name the jockey generator can draw", () => {
     const unknown = new Set<string>();
     for (let i = 0; i < 4000; i++) {

@@ -294,9 +294,12 @@ def process(stem):
 
 
 def face_box(face, cap, w, h):
-    xs = [x for x, _ in face] or [w // 2]
-    cx = (min(xs) + max(xs)) // 2
     top = min(y for _, y in cap) + 16 if cap else min((y for _, y in face), default=20)
+    # centre on the head only: neck and shoulder skin lower down pulled the crop sideways and cut
+    # eight list faces in half (2026-11-01; apps/web cast.test.ts guards the result)
+    head = [x for x, y in face if y < top + FACE * 3 // 4]
+    xs = head or [x for x, _ in face] or [w // 2]
+    cx = (min(xs) + max(xs)) // 2
     return [max(0, min(w - FACE, cx - FACE // 2)), max(0, min(h - FACE, top))]
 
 
