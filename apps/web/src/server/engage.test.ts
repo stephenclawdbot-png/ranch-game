@@ -102,8 +102,9 @@ describe("this week's table and the Saturday Feature", () => {
     expect(anon.tomorrow).toEqual([]);
     expect(anon.board.mine).toBeNull();
     const mine = await weekBoard(h.db, s, T0);
-    expect(mine.mine).toBeNull(); // no Live run this week yet
-    expect(mine.top.every((r) => !r.mine)).toBe(true);
+    // No Live run this week yet: off the table, but your own row still shows (unplaced).
+    expect(mine.mine).toMatchObject({ rank: 0, runs: 0, points: 0, mine: true, stableName: s.stable.name });
+    expect(mine.top.every((r) => !r.mine && r.runs > 0)).toBe(true);
     expect(JSON.stringify(mine)).not.toMatch(/accountId/);
   });
 

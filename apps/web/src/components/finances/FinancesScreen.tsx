@@ -153,7 +153,7 @@ export function FinancesScreen({ view, highlight = null }: { view: FinancesView;
                     <tr
                       key={c.category}
                       id={`cat-${c.category}`}
-                      className={`scroll-mt-24 border-t border-line ${highlight === c.category ? "bg-surface-2 outline outline-2 outline-brass-bright" : ""}`}
+                      className={`scroll-mt-24 border-t border-line ${highlight === c.category ? "yours bg-[rgba(242,200,106,0.16)]" : ""}`}
                       aria-current={highlight === c.category ? "true" : undefined}
                       data-testid={`finance-cat-${c.category}`}
                     >

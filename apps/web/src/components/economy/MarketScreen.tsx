@@ -5,6 +5,7 @@
  * missing; bound and locked horses explained, including the 72 h resale lock), and your
  * listings (cancel any time). 5% of every sale is burned.
  */
+import { LowCreditHint } from "../ui/LowCreditHint";
 import { CoachMark } from "../onboarding/CoachMark";
 import { FeatureGate } from "../onboarding/FeatureGate";
 import { useEffect, useState } from "react";
@@ -214,6 +215,7 @@ function BuyRow({ l, v, onView }: { l: ListingView; v: MarketView; onView: (v: M
             The horse moves to your stable at once.{" "}
             {l.club ? "The whole price is burned: the Club keeps nothing." : <>{formatCredits(l.fee)} of the price is burned; the seller gets {formatCredits(l.sellerReceives)}.</>}
           </p>
+          <LowCreditHint balance={v.credits} cost={l.price} />
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-brass" onClick={buyNow} disabled={busy} data-testid="buy-confirm">
               {busy ? "Buying…" : `Confirm · ${formatCredits(l.price)}`}

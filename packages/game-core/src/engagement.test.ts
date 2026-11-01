@@ -172,6 +172,17 @@ describe("this week's table", () => {
     expect(weekBoard([...rows, e("idle", 0, 0, 0)], null, "idle").mine).toBeNull();
   });
 
+  it("keeps stables without a Live run off the table, but always gives the viewer their own row", () => {
+    const b = weekBoard([e("a", 20), e("idle", 0, 0, 0), e("b", 5)], null, "me", 10, "My Yard");
+    expect(b.top.map((r) => r.accountId)).toEqual(["a", "b"]);
+    expect(b.stables).toBe(2);
+    expect(b.mine).toEqual({ accountId: "me", stableName: "My Yard", points: 0, wins: 0, runs: 0, rank: 0, tied: false, move: null, isNew: false });
+    // On the table: the ranked row, not the unplaced one.
+    expect(weekBoard([e("a", 20), e("me", 3)], null, "me", 10, "My Yard").mine).toMatchObject({ rank: 2, runs: 1 });
+    // Signed out: no row of yours.
+    expect(weekBoard([e("a", 20)], null, null, 10, null).mine).toBeNull();
+  });
+
   it("shows movement since the start of today, new arrivals, and none on the week's first day", () => {
     const before = [e("a", 10), e("b", 8), e("c", 6)];
     const now = [e("a", 10), e("b", 8), e("c", 12), e("n", 7)];

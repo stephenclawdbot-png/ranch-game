@@ -196,7 +196,11 @@ describe("this week's table", () => {
     expect(monday.sinceMs).toBeNull();
     expect(monday.top.every((r) => r.move === null)).toBe(true);
     const idle = await newPlayer(db, { now: ago(DAY) });
-    expect((await weekBoardOf(db, { now: NOW, accountId: idle.accountId })).mine).toBeNull();
+    const idleBoard = await weekBoardOf(db, { now: NOW, accountId: idle.accountId });
+    expect(idleBoard.top.some((r) => r.accountId === idle.accountId)).toBe(false);
+    expect(idleBoard.stables).toBe(3);
+    expect(idleBoard.mine).toMatchObject({ accountId: idle.accountId, rank: 0, runs: 0, points: 0 });
+    expect((await weekBoardOf(db, { now: NOW, accountId: null })).mine).toBeNull();
   });
 });
 

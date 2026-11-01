@@ -226,7 +226,8 @@ export interface WeekBoardView extends gc.WeekBoard {
 
 /**
  * The week's League points (leagues.weekScore: the best runs, capped) for every stable that ran
- * a Live race this week, on one table, with movement since the start of today. The viewer's own
+ * a Live race this week, on one table, with movement since the start of today, plus the viewer's
+ * own row (unplaced before their first Live run finishes). The viewer's own
  * unwatched races are left out of the table they see, so it never tells them how a race went.
  */
 export async function weekBoardOf(ex: Executor, input: { now: Date; accountId: string | null; limit?: number }): Promise<WeekBoardView> {
@@ -246,7 +247,12 @@ export async function weekBoardOf(ex: Executor, input: { now: Date; accountId: s
   };
   const todayStart = Math.floor(now.getTime() / DAY) * DAY;
   const before = todayStart > from.getTime() ? entries(runs.filter((r) => r.postTime.getTime() < todayStart)) : null;
-  const board = gc.weekBoard(entries(runs), before, input.accountId, input.limit ?? 10);
+  // Your own row always shows (unplaced until your first Live run this week finishes).
+  let viewerName: string | null = null;
+  if (input.accountId) {
+    viewerName = names.get(input.accountId) ?? (await ex.select({ name: stables.name }).from(stables).where(eq(stables.accountId, input.accountId)).limit(1))[0]?.name ?? null;
+  }
+  const board = gc.weekBoard(entries(runs), before, input.accountId, input.limit ?? 10, viewerName);
   return { ...board, weekStart: week, endsAtMs: to.getTime(), sinceMs: before ? todayStart : null };
 }
 

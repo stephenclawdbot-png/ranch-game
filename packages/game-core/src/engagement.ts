@@ -240,8 +240,12 @@ export interface BoardRow extends BoardEntry {
 }
 
 export interface WeekBoard {
+  /** Stables with at least one Live run this week, best first (owner: an idle stable stays off the table). */
   top: BoardRow[];
-  /** The viewer's row (also when it is in `top`), or null when they have no Live run this week. */
+  /**
+   * The viewer's row (also when it is in `top`). Without a Live run this week it is an unplaced row
+   * (rank 0, no points) when `viewerName` is given, so your own row always shows; else null.
+   */
   mine: BoardRow | null;
   /** Stables on the table. */
   stables: number;
@@ -263,14 +267,17 @@ function ranked(entries: readonly BoardEntry[]): (BoardEntry & { rank: number; t
  * then name), movement against the table as it stood at the start of today (`before`, null on
  * the week's first day), the top `limit` and the viewer's own row.
  */
-export function weekBoard(now: readonly BoardEntry[], before: readonly BoardEntry[] | null, viewerId: string | null, limit = 10): WeekBoard {
+export function weekBoard(now: readonly BoardEntry[], before: readonly BoardEntry[] | null, viewerId: string | null, limit = 10, viewerName: string | null = null): WeekBoard {
   const cur = ranked(now);
   const prev = before ? new Map(ranked(before).map((r) => [r.accountId, r.rank])) : null;
   const rows: BoardRow[] = cur.map((r) => {
     const p = prev?.get(r.accountId);
     return { ...r, move: prev === null ? null : p === undefined ? null : p - r.rank, isNew: prev !== null && p === undefined };
   });
-  return { top: rows.slice(0, limit), mine: viewerId ? (rows.find((r) => r.accountId === viewerId) ?? null) : null, stables: rows.length };
+  const placed = viewerId ? (rows.find((r) => r.accountId === viewerId) ?? null) : null;
+  const unplaced: BoardRow | null =
+    viewerId && !placed && viewerName !== null ? { accountId: viewerId, stableName: viewerName, points: 0, wins: 0, runs: 0, rank: 0, tied: false, move: null, isNew: false } : null;
+  return { top: rows.slice(0, limit), mine: placed ?? unplaced, stables: rows.length };
 }
 
 // ---------------------------------------------------------------------------

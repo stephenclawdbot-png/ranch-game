@@ -121,10 +121,16 @@ function Move({ r, since }: { r: WeekBoardRowView; since: boolean }) {
 
 function BoardRow({ r, since, phoneHidden }: { r: WeekBoardRowView; since: boolean; phoneHidden?: boolean }) {
   return (
-    <li className={`flex items-center gap-2 px-4 py-2 ${r.mine ? "bg-surface-2" : ""} ${phoneHidden ? "max-sm:hidden" : ""}`} data-testid="board-row" data-mine={r.mine ? "1" : "0"}>
+    <li className={`flex items-center gap-2 px-4 py-2 ${r.mine ? "yours bg-[rgba(242,200,106,0.16)]" : ""} ${phoneHidden ? "max-sm:hidden" : ""}`} data-testid="board-row" data-mine={r.mine ? "1" : "0"}>
       <span className="score w-9 shrink-0 text-center text-[1.25rem]">
-        {r.tied ? "=" : ""}
-        {r.rank}
+        {r.rank === 0 ? (
+          <span title="Not on the table yet">–</span>
+        ) : (
+          <>
+            {r.tied ? "=" : ""}
+            {r.rank}
+          </>
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className={`t-title block truncate ${r.mine ? "text-brass-hi" : ""}`}>
@@ -132,7 +138,7 @@ function BoardRow({ r, since, phoneHidden }: { r: WeekBoardRowView; since: boole
           {r.mine && <span className="sr-only"> (you)</span>}
         </span>
         <span className="t-meta block">
-          {r.runs} {r.runs === 1 ? "run" : "runs"}
+          {r.runs === 0 ? "No Live run yet this week" : `${r.runs} ${r.runs === 1 ? "run" : "runs"}`}
           {r.wins > 0 ? ` · ${r.wins} ${r.wins === 1 ? "win" : "wins"}` : ""}
         </span>
       </span>
@@ -161,7 +167,7 @@ export function WeekBoardCard({ board, full = false }: { board: WeekBoardView; f
       aside={full ? <span className="eyebrow">{board.stables} {board.stables === 1 ? "stable" : "stables"}</span> : undefined}
       testId={full ? "week-board-full" : "week-board"}
     >
-      {board.top.length === 0 ? (
+      {board.top.length === 0 && !board.mine ? (
         <p className="surface p-4 text-sm text-cream-dim" data-testid="week-board-empty">
           No Live races have finished this week yet. One Live race puts your stable on the table.
         </p>
@@ -173,15 +179,17 @@ export function WeekBoardCard({ board, full = false }: { board: WeekBoardView; f
             ))}
             {mineOutside && (
               <>
-                <li className="px-4 py-1 text-center text-cream-dim" aria-hidden>
-                  ⋯
-                </li>
+                {board.top.length > 0 && (
+                  <li className="px-4 py-1 text-center text-cream-dim" aria-hidden>
+                    ⋯
+                  </li>
+                )}
                 <BoardRow r={mineOutside} since={since} />
               </>
             )}
           </ul>
           <p className="caption border-t border-line px-4 py-2" data-testid="week-board-note">
-            {board.mine ? `You're ${board.mine.tied ? "joint " : ""}${board.mine.rank} of ${board.stables}. ` : "Your first Live race this week puts you on the table. "}
+            {board.mine && board.mine.rank > 0 ? `You're ${board.mine.tied ? "joint " : ""}${board.mine.rank} of ${board.stables}. ` : "Your first Live race this week puts you on the table. "}
             League points from this week&rsquo;s Live races{since ? "; arrows show the change since 00:00 UTC" : ""}.
           </p>
         </div>
