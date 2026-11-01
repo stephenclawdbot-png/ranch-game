@@ -16,6 +16,7 @@ import { ErrorNote } from "../ui/ErrorNote";
 import { PositionBadge } from "../ui/PositionBadge";
 import { TrackTile } from "../RaceList";
 import { HowItWorks, SceneBand, StillScene, type StillSceneName } from "../ui/Page";
+import { pushSure } from "@/lib/navigate";
 
 type Mode = "watch" | "instant";
 
@@ -43,7 +44,7 @@ function RaceAction({ race, chapter, signedIn }: { race: StoryRaceView; chapter:
     setError(null);
     try {
       const res = await api<{ raceId: string }>("/api/story/race", { body: { raceKey: race.key, horseId: horseId || undefined, pick: horseId ? undefined : "auto", instant: mode === "instant" } });
-      router.push(`/race/${res.raceId}`);
+      pushSure(router, `/race/${res.raceId}`);
     } catch (e) {
       setError(e);
       setBusy(null);

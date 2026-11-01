@@ -27,6 +27,7 @@ import type { StableHorse } from "@/lib/types";
 import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
 import { randomSilks } from "@/lib/silks";
 import { afterSignInHref, nextFromLocation, signInHref } from "@/lib/nextPath";
+import { pushSure } from "@/lib/navigate";
 
 /**
  * Onboarding in one tap: the name and silks are pre-rolled (dice to reroll, colours optional),
@@ -223,7 +224,7 @@ function Welcome() {
     setError(null);
     try {
       const { raceId } = await enterStoryRace(star.id, { tactic: star.horse.style, intensity: "normal" });
-      router.push(`/race/${raceId}`);
+      pushSure(router, `/race/${raceId}`);
     } catch (e) {
       setError(e);
       setBusy(false);

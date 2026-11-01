@@ -26,6 +26,7 @@ import { WhyCard } from "./WhyCard";
 import { WhyRead } from "../onboarding/WhyRead";
 import { FirstWinMoment } from "../moments/FirstWinMoment";
 import { claimFirstWinMoment, type FirstWinOf } from "@/lib/firstWin";
+import { pushSure } from "@/lib/navigate";
 
 export interface Settlement {
   /** Credits this result paid (purse + Story reward), settled on the server. */
@@ -335,7 +336,7 @@ export function NextActions({
       const plan = { tactic: mine!.tactic, intensity: "normal" as const };
       // A chapter race: race again in the chapter (the same race until it's won), not an open Story race.
       const { raceId } = card.story?.raceKey ? await followUpChapterRace(card.story.raceKey, horse.id, plan) : await enterStoryRace(horse.id, plan);
-      router.push(`/race/${raceId}`);
+      pushSure(router, `/race/${raceId}`);
     } catch (e) {
       setError(e);
       setBusy(false);

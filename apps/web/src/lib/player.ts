@@ -122,17 +122,28 @@ export class ApiFailure extends Error {
 }
 
 /** POST/PATCH/DELETE JSON; throws ApiFailure with the server's friendly message. Applies `player` from the response. */
+/** How long a call may take before the player gets a "try again" instead of a button that never finishes. */
+export const API_TIMEOUT_MS = 25_000;
+
 export async function api<T>(url: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   let res: Response;
+  const ctrl = typeof AbortController === "undefined" ? null : new AbortController();
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), API_TIMEOUT_MS) : null;
   try {
     res = await fetch(url, {
       method: init.method ?? "POST",
       headers: init.body !== undefined ? { "content-type": "application/json" } : undefined,
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       cache: "no-store",
+      ...(ctrl ? { signal: ctrl.signal } : {}),
     });
   } catch {
+    if (ctrl?.signal.aborted) {
+      throw new ApiFailure(0, "timeout", "The track is taking too long to answer. Try again; if it went through, you'll find it on Home under your races.");
+    }
     throw new ApiFailure(0, "network", "Couldn't reach the track. Check your connection and try again.");
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   const data = (await res.json().catch(() => ({}))) as Partial<ApiError> & { player?: PlayerView | null };
   if (!res.ok) throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? `Something went wrong (HTTP ${res.status}).`, data.details);

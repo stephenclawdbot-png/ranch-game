@@ -13,6 +13,7 @@ import { HorsePortrait } from "../HorsePortrait";
 import { GradeBadge } from "../StatBars";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
+import { pushSure } from "@/lib/navigate";
 
 const TACTICS: RunningStyle[] = ["front", "stalker", "closer"];
 /** Where the jockey sits in the pack (index in a 7-cell lane, 6 = leader). */
@@ -394,7 +395,7 @@ export function EntryForm({
     setError(null);
     try {
       const { raceId } = await enterStoryRace(horse.id, plan);
-      router.push(`/race/${raceId}`);
+      pushSure(router, `/race/${raceId}`);
     } catch (e) {
       setError(e);
       setBusy(false);

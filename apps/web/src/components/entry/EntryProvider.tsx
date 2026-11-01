@@ -18,6 +18,7 @@ import { ErrorNote } from "../ui/ErrorNote";
 import { EntryForm, ExtrasPicker, HorsePicker, PlanPicker, quickPickRace, raceDayCost, type QuickPickResult } from "./EntryForm";
 import { entryBlocker } from "@/lib/entryBlocker";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
+import { pushSure } from "@/lib/navigate";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -115,7 +116,7 @@ export function EntryProvider({ children }: { children: ReactNode }) {
         .then((result) => {
           if (mode !== "later") {
             dialog.current?.close();
-            router.push(`/race/${result.raceId}`);
+            pushSure(router, `/race/${result.raceId}`);
             return;
           }
           setTarget({ kind: "pick", status: "later", result });

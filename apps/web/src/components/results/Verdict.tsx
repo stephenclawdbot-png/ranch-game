@@ -10,6 +10,7 @@ import { PixelIcon } from "../icons";
 import { MentorLine } from "../onboarding/Mentor";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
+import { pushSure } from "@/lib/navigate";
 
 /**
  * The result in one breath (first-hour playtest): Wilf says why it went that way in one sentence,
@@ -50,7 +51,7 @@ export function Verdict({
       const plan = { tactic: c.kind === "tactic" && c.tactic ? c.tactic : c.kind === "fresh_horse" ? runner.horse.style : tactic, intensity: "normal" as const };
       const suited = c.kind === "suited";
       const { raceId } = chapterRaceKey ? await followUpChapterRace(chapterRaceKey, runner.id, plan, { suited }) : await enterStoryRace(runner.id, plan, suited ? { suited: true } : {});
-      router.push(`/race/${raceId}`);
+      pushSure(router, `/race/${raceId}`);
     } catch (e) {
       setError(e);
       setBusy(false);
