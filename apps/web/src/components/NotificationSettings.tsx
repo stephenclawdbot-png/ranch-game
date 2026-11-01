@@ -70,7 +70,8 @@ export function NotificationSettings() {
       ) : (
         <ul className="grid gap-1">
           {prefs.categories.map((c) => (
-            <li key={c.key} className="flex items-center gap-3 py-1.5">
+            // With phone alerts on, the bell switch sits by the title and the push switch by its own label.
+            <li key={c.key} className={`flex gap-3 py-1.5 ${push.device ? "items-start" : "items-center"}`}>
               <PixelIcon name={CATEGORY_ICON[c.key]} size={32} />
               <span className="min-w-0 flex-1">
                 <span className="block font-extrabold" id={`nc-${c.key}`}>
