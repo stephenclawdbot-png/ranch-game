@@ -168,8 +168,8 @@ export default function TheEstatePage() {
             <Icon name="bell" size={16} /> <b>Notifications</b>: the bell, with a count of what&rsquo;s new. See <a href="#notifications" className="link">Notifications</a> below.
           </>,
           <>
-            <b>Your silks</b>: your profile and settings. Not signed in? The top bar shows <b>Connect wallet</b> instead: pick your wallet and one free signature signs you in (see{" "}
-            <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>).
+            <b>Your silks</b>: your profile and settings. Not signed in? The top bar shows <b>Sign in</b> and <b>Connect wallet</b> instead. Sign in brings you back to the page you
+            were on (see <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>).
           </>,
           <>
             <Icon name="papers" size={16} /> <b>Wiki</b>: this guide, from any screen.
@@ -197,8 +197,8 @@ export default function TheEstatePage() {
         change it {count(gc.STABLE_PHOTO_UPLOADS_PER_DAY, "time")} a day; remove it and the silks come back.
       </P>
       <P>
-        Your profile is also where you take your stable to another device: a link code for a new browser, a wallet to link for sign-in and, during the testing phase, your permanent{" "}
-        <b>login code</b>. See <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>.
+        Your profile is also where you take your stable to another device: a device code for a new browser, a wallet to link for sign-in and, during the testing round, your
+        permanent <b>login code</b> (your invite link brings you back too). See <GameLink href="/wiki/quick-start#signing-in">Signing in on another device</GameLink>.
       </P>
 
       <Callout tone="tip">

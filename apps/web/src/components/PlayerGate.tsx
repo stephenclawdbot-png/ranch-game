@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { signInHref } from "@/lib/nextPath";
 import { usePlayerState, type PlayerState } from "@/lib/player";
 import { Crest, PixelIcon } from "./icons";
 import { ActionBar } from "./ui/ActionBar";
@@ -34,6 +36,7 @@ export function PlayerGate({
 
 /** Empty state: system status, a learning cue and a direct pathway. */
 export function JoinNudge({ compact = false }: { compact?: boolean }) {
+  const pathname = usePathname();
   return (
     <div className={`surface flex flex-col items-center text-center ${compact ? "gap-3 p-5" : "gap-4 px-6 py-10"}`}>
       <Crest size={64} />
@@ -52,6 +55,12 @@ export function JoinNudge({ compact = false }: { compact?: boolean }) {
           </Link>
         </ActionBar>
       )}
+      <p className="font-bold">
+        Already playing?{" "}
+        <Link href={signInHref(pathname)} className="link" data-testid="join-sign-in">
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 }

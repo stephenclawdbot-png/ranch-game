@@ -28,6 +28,7 @@ import { MentorNudge } from "../onboarding/Mentor";
 import { BloodlineNudge } from "../onboarding/BloodlineNudge";
 import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
+import { SignedInBack, useJustSignedIn } from "./SignedInBack";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
@@ -100,6 +101,9 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
             <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
               <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
             </Link>
+            <Link href="/link" className="btn btn-lg" data-testid="landing-sign-in">
+              Already playing? Sign in
+            </Link>
             {(live ?? next) && (
               <Link href={`/race/${(live ?? next)!.id}`} className="btn btn-lg" data-testid="watch-next">
                 {live ? (
@@ -115,7 +119,8 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
             )}
           </div>
           <p className="landing-sub" data-testid="landing-wallet">
-            Already have a stable? <ConnectWalletButton className="link" testId="landing-connect-wallet" />
+            {inviteOnly ? "Your stable uses a wallet? " : "Already have a stable? "}
+            <ConnectWalletButton className="link" testId="landing-connect-wallet" />
           </p>
         </div>
       </section>
@@ -150,6 +155,12 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
         <Link href="/play" className="btn btn-brass btn-lg">
           <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
         </Link>
+        <p className="font-bold">
+          Already playing?{" "}
+          <Link href="/link" className="link">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
@@ -184,6 +195,8 @@ function greeting(now: number | null): string {
 
 function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   const now = useNow(1000);
+  /** Just signed in on this browser (?back=1): the "Welcome back, <Stable>" strip, one button. */
+  const [justSignedIn, closeSignedIn] = useJustSignedIn();
   // Your own race: about to start or running -> watch it; finished but unseen -> see the result (no spoilers).
   const upcomingMine = now === null ? undefined : [...state.active].sort((a, b) => a.postTimeMs - b.postTimeMs).find((a) => a.postTimeMs > now - WATCH_WINDOW_MS);
   const unseen = state.inbox.filter((i) => !i.read && i.raceId && i.raceId !== upcomingMine?.raceId && i.kind !== SPONSOR_NOTE);
@@ -214,6 +227,12 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
   return (
     <div>
+      {justSignedIn && (
+        // The estate band below pulls up 16/32 px: clear it.
+        <div className="mx-auto mb-7 max-w-5xl md:mb-11">
+          <SignedInBack state={state} onClose={closeSignedIn} />
+        </div>
+      )}
       {state.tester && (
         <div className="mx-auto mb-3 max-w-5xl">
           <MissItCard />
@@ -236,7 +255,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} wait={!firstWeek} />}
       </EstateStage>
 
-      {ob?.welcomeBack && (
+      {/* The days-away card waits for the next visit when the sign-in strip already says welcome back. */}
+      {ob?.welcomeBack && !justSignedIn && (
         <div className="mt-4">
           <WelcomeBack w={ob.welcomeBack} />
         </div>

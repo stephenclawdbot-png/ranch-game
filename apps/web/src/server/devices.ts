@@ -9,9 +9,27 @@
  * never an identity signal, so testers on one Wi-Fi aren't linked. A browser that switches
  * stables (this device now belongs to another account) is written to the audit log as
  * `account.switch`.
+ *
+ * Testing phase: the same failure budget covers the tester login code (typed at /link) and the
+ * invite link as a way back in (`inviteSignInResponse`, which also has a per-code budget).
  */
 import { loginCodeHash, loginCodesEnabled, normalizeLoginCode } from "./loginCode";
-import { audit, clearRateLimits, createLinkCode, hashToken, listDevices, redeemLinkCode, revokeDevice, signInWithLoginCode, stableHasProgress, stableOf, type Db } from "@thoroughbred/db";
+import {
+  audit,
+  clearRateLimits,
+  createDeviceSession,
+  createLinkCode,
+  hashToken,
+  inviteRecoveryAccount,
+  listDevices,
+  normalizeInviteCode,
+  redeemLinkCode,
+  revokeDevice,
+  signInWithLoginCode,
+  stableHasProgress,
+  stableOf,
+  type Db,
+} from "@thoroughbred/db";
 import { playerView } from "./game";
 import { errorJson, json } from "./http";
 import { clientIp, sharedLimiter } from "./rateLimit";
@@ -73,6 +91,60 @@ export async function linkDeviceResponse(database: Db, input: LinkDeviceInput) {
   }
   const stable = await stableOf(database, linked.accountId);
   const res = json({ stableName: linked.stableName, player: await playerView(database, { accountId: linked.accountId, stable }, new Date()) });
+  setSessionCookie(res, linked.token);
+  return res;
+}
+
+/** Sign-ins tried per invite code per sliding hour (keyed by the code's hash, never the code). */
+export const INVITE_SIGN_IN_PER_CODE = 10;
+const inviteSignInsByCode = sharedLimiter({ name: "invite-sign-in", limit: INVITE_SIGN_IN_PER_CODE, windowMs: 3_600_000 });
+
+/** Test hook: forget the per-code invite sign-in counts. */
+export function resetInviteSignIns(database: Db): Promise<number> {
+  return clearRateLimits(database, { name: "invite-sign-in" });
+}
+
+/**
+ * POST /api/account/invite-sign-in (testing phase only, same gate as login codes): the invite
+ * link as a way back in. A used single-use admin invite whose tester has a live account signs
+ * this browser into that account (a new device token, like a login code). Everything else
+ * answers one generic 400 and counts as a failed sign-in for the IP, in the same budget as
+ * /link; each code also has its own hourly budget, so one code can't be hammered from many
+ * IPs. Multi-use and personal codes, and codes whose tester has no account, never sign in
+ * (they keep the join / rejoin path at /play).
+ */
+export async function inviteSignInResponse(database: Db, input: LinkDeviceInput) {
+  const now = Date.now();
+  if (!loginCodesEnabled()) return errorJson(404, "NOT_FOUND", { message: "Invite sign-in is only for the testing phase." });
+  const body = (input.body ?? {}) as Record<string, unknown>;
+  const code = typeof body.code === "string" ? normalizeInviteCode(body.code).slice(0, 40) : "";
+  const replace = body.replace === true;
+  const label = typeof body.label === "string" ? body.label : null;
+  const tooMany = () => {
+    const res = errorJson(429, "too_many_tries", { message: "Too many tries. Wait a few minutes, or sign in with your login code." });
+    res.headers.set("Retry-After", "3600");
+    return res;
+  };
+  if ((await linkFailures.count(database, input.ip, now)) >= LINK_FAIL_LIMIT) return tooMany();
+  if (code && (await inviteSignInsByCode.hit(database, hashToken(code), now))) return tooMany();
+  const found = code ? await inviteRecoveryAccount(database, code) : null;
+  if (!found) {
+    await linkFailures.fail(database, input.ip, now);
+    return errorJson(400, "invite_sign_in_invalid", { message: "That invite can't sign you in. Use your login code or wallet instead." });
+  }
+  if (input.session && input.session.accountId === found.accountId) {
+    // Already signed in here: nothing to change.
+    return json({ stableName: found.stableName, alreadySignedIn: true, player: await playerView(database, input.session, new Date(now)) });
+  }
+  if (input.session && !replace && (await stableHasProgress(database, input.session.accountId))) {
+    return errorJson(409, "replace_required", { message: "This browser already has a stable with races or horses. Signing in here leaves that stable behind." });
+  }
+  const linked = await createDeviceSession(database, { accountId: found.accountId, label, action: "account.invite_sign_in" });
+  if (input.session) {
+    await audit(database, { actor: linked.accountId, action: "account.switch", entityType: "account", entityId: linked.accountId, data: { from: input.session.accountId, to: linked.accountId } });
+  }
+  const stable = await stableOf(database, linked.accountId);
+  const res = json({ stableName: linked.stableName, player: await playerView(database, { accountId: linked.accountId, stable }, new Date(now)) });
   setSessionCookie(res, linked.token);
   return res;
 }

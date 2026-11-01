@@ -6,7 +6,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signInHref } from "@/lib/nextPath";
 import { WalletSignIn } from "./WalletSignIn";
 
 export function ConnectWalletButton({
@@ -21,6 +22,7 @@ export function ConnectWalletButton({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const router = useRouter();
+  const pathname = usePathname();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -88,7 +90,7 @@ export function ConnectWalletButton({
                   </Link>{" "}
                   ·{" "}
                   <Link
-                    href="/link"
+                    href={signInHref(pathname)}
                     className="link"
                     onClick={() => setOpen(false)}
                   >

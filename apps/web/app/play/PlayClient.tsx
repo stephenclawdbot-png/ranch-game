@@ -15,6 +15,7 @@ import { MentorWelcome } from "@/components/onboarding/Mentor";
 import { ActionBar } from "@/components/ui/ActionBar";
 import { StorageNote } from "@/components/ui/StorageNote";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
+import { ComeBackKey } from "@/components/chain/ComeBackKey";
 import { useWallet } from "@/components/chain/useWallet";
 import { ConnectWalletButton } from "@/components/chain/ConnectWallet";
 import { pronoun } from "@/lib/aptitude";
@@ -25,6 +26,7 @@ import { api, createStable, legacyProfile, recommendHorse, refreshPlayer, usePla
 import type { StableHorse } from "@/lib/types";
 import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInput";
 import { randomSilks } from "@/lib/silks";
+import { afterSignInHref, nextFromLocation, signInHref } from "@/lib/nextPath";
 
 /**
  * Onboarding in one tap: the name and silks are pre-rolled (dice to reroll, colours optional),
@@ -37,7 +39,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const wallet = useWallet();
   const [name, setName] = useState("");
   const [silks, setSilks] = useState<SilksT | null>(null);
-  const [stage, setStage] = useState<"form" | "mentor" | "welcome">("form");
+  const [stage, setStage] = useState<"form" | "key" | "mentor" | "welcome">("form");
   const [imported, setImported] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -66,7 +68,8 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     if (state === undefined || decided.current) return;
     decided.current = true;
     // An existing stable edits its colours under Profile; this page is for founding one.
-    if (state) router.replace("/me");
+    // Opening your invite link on a browser that's already signed in: straight to Home.
+    if (state) router.replace(new URLSearchParams(window.location.search).get("invite") ? "/" : "/me");
     else {
       // One-time import: a stable from the old in-browser demo keeps its name and colours.
       const legacy = legacyProfile();
@@ -78,6 +81,18 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     }
   }, [state, router]);
 
+  // Testing phase, first things first: the key to come back (the stable name and its login
+  // code), right after naming the stable. Skips itself when there is no login code.
+  if (stage === "key" && state)
+    return (
+      <ComeBackKey
+        stableName={state.stableName}
+        onDone={() => {
+          setStage("mentor");
+          window.scrollTo({ top: 0 });
+        }}
+      />
+    );
   // A new stable meets the head lad first (three short screens, skippable), then its horses.
   if (stage === "mentor" && state)
     return (
@@ -100,7 +115,7 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
     try {
       const code = invite ?? referral;
       await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}), ...(rival && referral ? { rival: true, deviceId: deviceId() } : {}) });
-      setStage("mentor");
+      setStage("key");
       window.scrollTo({ top: 0 });
     } catch (e) {
       setError(e);
@@ -171,10 +186,11 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
         <p className="caption">
           {!wallet.address && (
             <>
-              Already have a stable? <ConnectWalletButton className="link" testId="play-link-wallet" /> · or{" "}
+              Already have a stable?{" "}
               <Link href="/link" className="link" data-testid="play-link-device">
-                link this device with a code
-              </Link>
+                Sign in
+              </Link>{" "}
+              · or <ConnectWalletButton className="link" testId="play-link-wallet" />
             </>
           )}
         </p>
@@ -330,16 +346,45 @@ function StarterCard({ s, star, order }: { s: StableHorse; star: boolean; order:
 const INVITE_PROBLEM: Record<string, string> = {
   MISSING: "Enter the invite code from your invitation.",
   INVALID: "We don't recognise that code. Check it and try again (it looks like TB-XXXX-XXXX).",
-  USED: "That code has already been used. Each invite works for one tester; ask us for another.",
+  USED: "That invite has already been used. If it brought you here before, sign in to your stable instead.",
   FULL: "The playtest is full right now. Thanks for your interest: we'll open more places soon.",
 };
 
-/** Closed playtest: invite only. The code is checked here and used when the stable is founded. */
+/** A short, honest device label for the "Devices" list ("iPhone · Safari"), from the user agent. */
+function deviceLabel(): string {
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad/.test(ua) ? "iPhone" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Macintosh/.test(ua) ? "Mac" : "This device";
+  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : "Safari";
+  return `${os} · ${browser} (invite link)`;
+}
+
+/**
+ * Closed playtest: invite only. The code is checked here and used when the stable is founded.
+ * Testing phase: a tester's own invite (already used, account live) signs this browser back in
+ * instead, then goes on to the page they wanted (`?next=`) or Home with "Welcome back".
+ */
 function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problem, setProblem] = useState<{ text: string; signIn: boolean } | null>(null);
+  const [back, setBack] = useState<string | null>(null);
   const autoTried = useRef(false);
+
+  async function signIn(c: string) {
+    const res = await fetch("/api/account/invite-sign-in", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: c, label: deviceLabel() }),
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as { stableName?: string; message?: string };
+    if (!res.ok || !data.stableName) {
+      setProblem({ text: data.message ?? "That invite can't sign you in. Use your login code or wallet instead.", signIn: true });
+      return;
+    }
+    setBack(data.stableName);
+    window.location.assign(afterSignInHref(nextFromLocation()));
+  }
 
   async function check(raw: string) {
     const c = raw.trim().toUpperCase();
@@ -350,9 +395,10 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
       const res = await fetch(`/api/invite?code=${encodeURIComponent(c)}`, { cache: "no-store" });
       const data = (await res.json()) as { ok: boolean; problem?: string };
       if (data.ok) onAccepted(c);
-      else setProblem(INVITE_PROBLEM[data.problem ?? "INVALID"] ?? INVITE_PROBLEM.INVALID!);
+      else if (data.problem === "SIGN_IN") await signIn(c);
+      else setProblem({ text: INVITE_PROBLEM[data.problem ?? "INVALID"] ?? INVITE_PROBLEM.INVALID!, signIn: data.problem === "USED" });
     } catch {
-      setProblem("Couldn't reach the track. Check your connection and try again.");
+      setProblem({ text: "Couldn't reach the track. Check your connection and try again.", signIn: false });
     } finally {
       setBusy(false);
     }
@@ -368,6 +414,15 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (back)
+    return (
+      <div className="mx-auto grid max-w-xl gap-3 text-center" data-testid="invite-welcome-back" aria-live="polite">
+        <p className="eyebrow">Your invite brought you back</p>
+        <h1 className="t-display-xl">Welcome back, {back}</h1>
+        <p className="text-lg text-cream-dim">Opening your stable…</p>
+      </div>
+    );
 
   return (
     <form
@@ -403,7 +458,15 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
       </label>
       {problem && (
         <p id="invite-problem" role="alert" className="font-bold text-negative" data-testid="invite-problem">
-          {problem}
+          {problem.text}
+          {problem.signIn && (
+            <>
+              {" "}
+              <Link href={signInHref(nextFromLocation())} className="link" data-testid="invite-problem-sign-in">
+                Sign in
+              </Link>
+            </>
+          )}
         </p>
       )}
       <ActionBar>
@@ -411,6 +474,12 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
           {busy ? "Checking…" : "Continue"}
         </button>
       </ActionBar>
+      <p className="font-bold">
+        Already playing?{" "}
+        <Link href={signInHref(nextFromLocation())} className="link" data-testid="invite-sign-in">
+          Sign in
+        </Link>
+      </p>
       <p className="text-sm text-cream-dim">
         No invite yet? You can still{" "}
         <Link href="/races" className="font-bold underline decoration-2 underline-offset-4 hover:text-cream">

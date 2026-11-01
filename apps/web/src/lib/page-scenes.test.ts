@@ -23,7 +23,7 @@ function files(dir: string): string[] {
 
 /** Files that make up one page family (the rest: each file is its own family). */
 const FAMILIES: Record<string, string[]> = {
-  "profile and my pages": ["app/me/page.tsx", "app/me/bets/page.tsx", "app/me/betting/page.tsx", "app/me/races/page.tsx", "app/link/page.tsx"],
+  "profile and my pages": ["app/me/page.tsx", "app/me/bets/page.tsx", "app/me/betting/page.tsx", "app/me/races/page.tsx", "app/link/LinkClient.tsx"],
   jockeys: ["app/jockeys/page.tsx", "app/jockeys/[id]/page.tsx", "app/jockeys/window/page.tsx"],
   "prize pool and beta": ["src/components/chain/PoolScreen.tsx", "src/components/playtest/BetaScreen.tsx"],
   market: ["app/market/page.tsx", "src/components/economy/SalesRing.tsx", "src/components/economy/MarketScreen.tsx"],

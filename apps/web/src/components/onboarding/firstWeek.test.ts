@@ -15,6 +15,7 @@ import type { DailyGoalView, FirstWeekView } from "@/lib/types";
 
 // Mentor.tsx draws JSX at module level (classic runtime in these tests): load after React is global.
 const { LOGIN_CODE_MARK, showLoginCodeAfterResult } = await import("../chain/LoginCodeCard");
+const { keyCardLine, SIGN_IN_ADDRESS } = await import("../chain/ComeBackKey");
 const { StableSteps, stepHref } = await import("./StableSteps");
 const { STEP_COPY } = await import("./guide");
 
@@ -99,10 +100,26 @@ describe("the tester's login code", () => {
     expect(showLoginCodeAfterResult(true, ["*"])).toBe(true);
   });
 
-  it("is no longer on the welcome screen before the first race, and stays on Profile", () => {
+  it("comes first as the key screen right after naming the stable, then Profile and the after-result reminder", () => {
     const src = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
-    expect(src("../../../app/play/PlayClient.tsx")).not.toContain("LoginCodeCard");
+    const play = src("../../../app/play/PlayClient.tsx");
+    // Not the big card on the starters screen; the one-screen key instead, before the mentor.
+    expect(play).not.toContain("LoginCodeCard");
+    expect(play).toContain("<ComeBackKey");
+    expect(play.indexOf('setStage("key")')).toBeGreaterThan(play.indexOf("await createStable("));
+    expect(play).toMatch(/stage === "key"[\s\S]*setStage\("mentor"\)/);
     expect(src("../../../app/me/page.tsx")).toContain("<LoginCodeCard");
     expect(src("../race/RaceExperience.tsx")).toContain("<LoginCodeAfterResult");
+  });
+
+  it("the key screen: the stable name with the code, one brass button; copying or saving marks it kept", () => {
+    const src = readFileSync(fileURLToPath(new URL("../chain/ComeBackKey.tsx", import.meta.url)), "utf8");
+    expect(keyCardLine("Moss Lane", "PT-AAAAA-BBBBB-CCCCC-DDDDD")).toBe("Moss Lane · PT-AAAAA-BBBBB-CCCCC-DDDDD");
+    expect(src).toContain("Your key to come back");
+    expect(src).toContain("Your invite link also brings you back on this testing round.");
+    expect(src.match(/btn-brass/g)).toHaveLength(1);
+    // Copy, image and share each record the mark; the brass button alone doesn't.
+    expect(src.match(/markLoginCodeSaved\(\);/g)?.length).toBe(3);
+    expect(SIGN_IN_ADDRESS).toBe("posttime.family/link");
   });
 });

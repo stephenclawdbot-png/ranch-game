@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * The first hour, timed: a brand-new player at phone size (390x844) and at desktop size
- * (1440x900) goes landing -> "I have an invite" -> register (types a stable name) -> the
- * mentor's welcome -> the first Story race -> result + Why card -> the suggested next action
+ * (1440x900) goes landing -> "I have an invite" -> register (types a stable name) -> "Your key
+ * to come back" (testing phase) -> the mentor's welcome -> the first Story race -> result + Why card -> the suggested next action
  * -> a second race -> the stable page -> the wiki. Every step is timed (wall clock and clicks)
  * and screenshotted, for the first-hour playtest report.
  *
@@ -114,6 +114,15 @@ async function run(browser, kind, code) {
     await shot("register-form");
     const register = page.getByRole("button", { name: /Register|get my horses/i }).first();
     await click(register);
+    // Testing phase, first things first: "Your key to come back" (stable name + login code), then on.
+    await page.locator('[data-testid="key-screen"], [data-testid="mentor-welcome"]').first().waitFor({ timeout: 60_000 });
+    notes.keyScreen = await visible(page.getByTestId("key-screen"), 500);
+    if (notes.keyScreen) {
+      notes.keyScreenStable = (await page.getByTestId("key-stable").innerText()).trim();
+      notes.keyScreenCode = /^PT-/.test((await page.getByTestId("key-code").innerText()).trim());
+      await endStep("key-to-come-back", { stableName });
+      await click(page.getByTestId("key-continue"));
+    }
     await page.getByTestId("mentor-welcome").waitFor({ timeout: 60_000 });
     await endStep("registered-mentor-1", { stableName });
 

@@ -58,6 +58,10 @@ export default function QuickStartPage() {
             your first day&rsquo;s Live entries. Got a wallet? You can found the stable with it instead, and the wallet becomes your login.
           </>,
           <>
+            <b>Testing round only:</b> one short screen, <b>Your key to come back</b>. It shows your stable name and your permanent login code. Copy it or save it as an image, then
+            tap <b>I&rsquo;ve saved it, let&rsquo;s race</b>. See <a href="#signing-in" className="link">Signing in on another device</a>.
+          </>,
+          <>
             {gc.MENTOR.name}, the {gc.MENTOR.role.toLowerCase()}, says hello: three short screens on what the game is, how a day works and what to do first, then one question,
             &ldquo;New to horse racing?&rdquo; Say yes and racing words get a tap-for-meaning and key screens use plainer words. Skip him if you like; he&rsquo;s at{" "}
             <GameLink href="/welcome">Welcome</GameLink> any time.
@@ -75,23 +79,37 @@ export default function QuickStartPage() {
       </Callout>
 
       <H2 id="signing-in">Signing in on another device</H2>
-      <P>Your stable lives on the game&rsquo;s server, not in your browser. To reach it from another phone or browser:</P>
-      <List
+      <P>
+        Your stable lives on the game&rsquo;s server, not in your browser. The browser you play on keeps you signed in for a year. To come back on another phone or browser, or after
+        clearing this one, tap <GameLink href="/link">Sign in</GameLink>. During the testing round there are three ways back in:
+      </P>
+      <Steps
         items={[
           <>
-            <b>A wallet.</b> Tap <b>Connect wallet</b> in the top bar and choose your wallet. One free signature signs you in: no transaction, no fee. A wallet with no stable yet goes
-            straight on to founding one. To use a wallet with the stable you already have, link it on your profile first.
+            <b>Your invite link.</b> The link you were invited with (it ends in <b>?invite=TB-…</b>) takes you straight back into your stable. Open it again, or type its code in the
+            box at Sign in. This only works for an invite sent to you alone; a shared invite or a friend&rsquo;s personal code never signs anyone in.
           </>,
           <>
-            <b>A link code.</b> On your <GameLink href="/me">profile</GameLink>, get a code and type it in at <GameLink href="/link">Sign in</GameLink> on the other device. It works
-            for {Math.round(LINK_CODE_TTL_MS / 60_000)} minutes, once.
+            <b>Your login code.</b> Right after you name your stable, <b>Your key to come back</b> shows it with your stable name: PT- and twenty letters and numbers. Copy it or save
+            it as an image. It never changes and it&rsquo;s always on your <GameLink href="/me">profile</GameLink>. Type it at Sign in on any browser, as often as you like. Keep it to
+            yourself.
           </>,
           <>
-            <b>Your login code (testing phase only).</b> Every tester has one permanent login code. It shows under your first race result and is always on your profile. Enter it at{" "}
-            <GameLink href="/link">Sign in</GameLink> on any browser, as often as you like, no wallet needed. It never changes, so keep it to yourself.
+            <b>Your wallet.</b> If you founded or linked your stable with a wallet, tap <b>Connect wallet</b>. One free signature signs you in: no transaction, no fee.
           </>,
         ]}
       />
+      <P>
+        Signed in on another device already? Your <GameLink href="/me">profile</GameLink> there gives you a one-time device code for Sign in. It works for{" "}
+        {Math.round(LINK_CODE_TTL_MS / 60_000)} minutes, once.
+      </P>
+      <P>
+        After you sign in you land on the page you were trying to open. Otherwise Home says welcome back, with one button for the thing worth doing next: a result to watch, your next
+        Live race, your Story chapter or your next first-week job.
+      </P>
+      <Callout tone="rule" title="Testing round only">
+        <p>The invite link and the login code work while the testing round runs. After it, sign in with a wallet or a device code.</p>
+      </Callout>
 
       <H2 id="starters">Your three starters</H2>
       <P>
