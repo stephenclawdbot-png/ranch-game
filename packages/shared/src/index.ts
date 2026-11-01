@@ -457,7 +457,13 @@ export type RaceReplay = z.infer<typeof RaceReplaySchema>;
 // ---------------------------------------------------------------------------
 
 /** Seconds the broadcast trails the simulation clock (absorbs polling latency). */
-export const BROADCAST_DELAY_S = 2;
+/**
+ * Live broadcast delay (s): the race is shown this long after it runs, and the server reveals frames
+ * this far ahead of what viewers see. It is the viewers' buffer: it must cover a poll interval
+ * (1.2 s), a CDN copy's age (up to ~2 s) and the round trip from players far from the server. At 2 s
+ * live races stuttered for testers in Asia (2026-11-01); 6 s plays smoothly.
+ */
+export const BROADCAST_DELAY_S = 6;
 
 /** Everything a viewer needs before frames arrive. Contains no outcome information. */
 export const RaceBroadcastHeaderSchema = z.object({
