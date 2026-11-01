@@ -18,6 +18,11 @@ import { WalletSignIn } from "@/components/chain/WalletSignIn";
  */
 function maskCode(raw: string): string {
   let c = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  // A personal invite code (R-XXXX-XXXX): shown as typed, never turned into a PT- login code.
+  if ((/^\s*R-/i.test(raw) && c.length <= 9) || (c.length === 9 && c.startsWith("R"))) {
+    c = c.slice(1);
+    return `R-${(c.match(/.{1,4}/g) ?? []).join("-")}`;
+  }
   if (c.startsWith("TB") && c.length <= 10) {
     c = c.slice(2);
     return `TB-${(c.match(/.{1,4}/g) ?? []).join("-")}`;
@@ -27,6 +32,12 @@ function maskCode(raw: string): string {
     return `PT-${(c.match(/.{1,5}/g) ?? []).join("-")}`;
   }
   return c.length > 4 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
+}
+
+/** A personal invite code (R + 8 characters): it lets people join, never signs anyone in (one can be shared by several stables). */
+function isPersonalInviteCode(code: string): boolean {
+  const c = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return c.length === 9 && c.startsWith("R");
 }
 
 /** An invite code (TB + 8 characters) rather than a device or login code. */
@@ -79,6 +90,10 @@ export function LinkClient({ testing }: { testing: boolean }) {
 
   async function submit() {
     if (busy) return;
+    if (isPersonalInviteCode(code)) {
+      setError(new Error("That's the invite code you joined with (R-…), not a login code: several stables can share one, so it can't open yours. Your login code starts PT- and has 20 letters and numbers; it was on the \"Your key to come back\" screen and is on your Profile. Lost it? Ask the person running the beta to send it to you."));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -106,7 +121,7 @@ export function LinkClient({ testing }: { testing: boolean }) {
             setCode(maskCode(e.target.value));
             setNeedsConfirm(false);
           }}
-          placeholder={testing ? "PT-… or TB-…" : "XXXX-XXXX"}
+          placeholder={testing ? "PT-… (your login code)" : "XXXX-XXXX"}
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}

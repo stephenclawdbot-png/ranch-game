@@ -18,6 +18,7 @@ export * from "./services/accounts";
 export * from "./services/devices";
 export * from "./services/horses";
 export * from "./services/races";
+export * from "./services/startEarly";
 export * from "./services/entries";
 export * from "./services/card";
 export * from "./services/sponsorship";

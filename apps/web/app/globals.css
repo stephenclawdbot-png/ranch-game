@@ -3577,6 +3577,31 @@ dialog.sheet .inset {
     width: 340px;
   }
 }
+/* Lite graphics note (components/LiteGraphicsNote.tsx), under the Ranch stage */
+.lite-note {
+  max-width: 75rem;
+  margin: 10px auto 0;
+  padding-inline: var(--gutter);
+}
+.lite-note-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+.lite-note-card > span {
+  flex: 1;
+}
+.lite-note-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px 0 0;
+}
 .ranch-close {
   position: absolute;
   top: 8px;

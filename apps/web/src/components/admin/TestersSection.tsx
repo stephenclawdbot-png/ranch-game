@@ -1,6 +1,7 @@
 "use client";
 
-import { useAdminData, when } from "./adminApi";
+import { useState } from "react";
+import { adminFetch, useAdminData, when } from "./adminApi";
 
 interface Tester {
   id: string;
@@ -33,6 +34,7 @@ export function TestersSection() {
               <th className="p-2">Days</th>
               <th className="p-2">Wallet</th>
               <th className="p-2">Code</th>
+              <th className="p-2">Login code</th>
             </tr>
           </thead>
           <tbody>
@@ -48,11 +50,36 @@ export function TestersSection() {
                 <td className="p-2">{t.daysPlayed}</td>
                 <td className="p-2 font-mono text-xs">{t.walletAddress ?? "–"}</td>
                 <td className="p-2 font-mono text-xs">{t.inviteCode}</td>
+                <td className="p-2">{t.accountId ? <LoginCodeReveal testerId={t.id} /> : "–"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+/** Support: reveal a locked-out tester's login code to send them privately (testing phase). */
+function LoginCodeReveal({ testerId }: { testerId: string }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  if (code) return <code className="select-all font-mono text-xs" data-testid="tester-login-code">{code}</code>;
+  return (
+    <button
+      type="button"
+      className="btn btn-sm"
+      onClick={async () => {
+        try {
+          const r = await adminFetch<{ code: string | null; reason?: string }>(`/api/admin/testers/${testerId}/login-code`, { method: "GET" });
+          if (r.code) setCode(r.code);
+          else setNote(r.reason ?? "Not available.");
+        } catch (e) {
+          setNote(e instanceof Error ? e.message : "Failed.");
+        }
+      }}
+    >
+      {note ?? "Show login code"}
+    </button>
   );
 }

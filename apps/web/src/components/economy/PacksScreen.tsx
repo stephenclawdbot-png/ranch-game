@@ -18,7 +18,6 @@ import { api } from "@/lib/player";
 import { FoalReveal } from "./FoalReveal";
 import { PremiumCheckout } from "@/components/chain/PremiumCheckout";
 import { PracticeBadge } from "@/components/chain/UsdgMode";
-import { useLocked } from "@/components/onboarding/FeatureGate";
 import { Credits, RARITY_COLOR, RARITY_LABEL, RarityBadge, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
 export function PacksScreen() {
@@ -28,8 +27,8 @@ export function PacksScreen() {
   const [result, setResult] = useState<PullResultView | null>(null);
   // One key per intended pull: a retry after a network error reuses it (no double charge).
   const [keys, setKeys] = useState<Record<string, string>>({});
-  // Premium Packs (T-USDG in the beta) open with the market: a new stable's first days stay on credits.
-  const premiumLocked = useLocked("market");
+  // Premium Packs (T-USDG test money in the beta) are open from day one (owner, 2026-11-01).
+  const premiumLocked = false;
 
   if (error && !data) return <ErrorNote error={error} onRetry={reload} />;
   if (!data) return <Skeleton rows={3} />;

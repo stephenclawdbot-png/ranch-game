@@ -208,7 +208,7 @@ export default function QuickStartPage() {
         head={["Feature", "Opens"]}
         rows={[
           ["The tote (betting with credits on Live races)", "After you watch one of your own Live races"],
-          ["The market, leasing and buying Premium Packs", `On your stable's ${ordinal(gc.UNLOCK_MARKET_DAYS + 1)} day, or when you finish Story chapter 1`],
+          ["The market and leasing (Premium Packs are open from day one in the beta)", `On your stable's ${ordinal(gc.UNLOCK_MARKET_DAYS + 1)} day, or when you finish Story chapter 1`],
           ["Claiming races and jockey contracts (and the transfer window)", "When you finish Story chapter 1"],
           ["Show numbers (the detailed stats)", "Always open"],
         ]}

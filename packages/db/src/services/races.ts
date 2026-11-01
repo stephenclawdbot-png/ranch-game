@@ -42,6 +42,7 @@ import { assignFieldJockeysTx, bookRideTx, cancelJockeyRidesTx, recordRidesTx, s
 import { refundToteRaceTx, voidConflictedToteBetsTx, voidToteBetsOnHorseTx } from "./tote";
 import { resolveRealToteSeed, type RealToteSeed } from "./realTote";
 import { notify } from "./notifications";
+import { startRaceEarlyTx } from "./startEarly";
 import { noteInjuryTx, noteRaceOffTx } from "./notificationEvents";
 
 export type RaceKind = RaceRow["kind"];
@@ -447,6 +448,8 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     await recordPlayDay(tx, input.accountId, input.now);
     // One gate left in a Live card race: open a sister course in the same slot (§4d, card.ts).
     if (active.length + 1 >= race.maxRunners - 1) await ensureSisterRace(tx, race, input.now);
+    // A full Live card race starts early instead of waiting for its slot (startEarly.ts).
+    if (active.length + 1 >= race.maxRunners) await startRaceEarlyTx(tx, race, input.now, "full");
     // Today's "run a race" goal on the wall clock (a no-op once it has already paid today);
     // a cancelled race keeps the day's goal (owner-accepted edge).
     await completeGoal(tx, { accountId: input.accountId, goal: "race", now: input.goalNow ?? input.now });

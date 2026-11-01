@@ -16,7 +16,9 @@
  */
 import { useCallback, useSyncExternalStore } from "react";
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { portraitCacheKey } from "@thoroughbred/art-pipeline";
+import { buildsOn, portraitCacheKey } from "@thoroughbred/art-pipeline";
+import { deployedBuild } from "@/lib/paintCache";
+import "@/lib/deviceTier";
 import { renderGeneticPortrait, type GeneticPortraitBlobs, type PortraitAnim } from "./geneticPortraitRender";
 import type { PortraitJob } from "./portrait.worker";
 
@@ -74,12 +76,13 @@ function onMainThread(appearance: HorseAppearance, thumb: boolean, anim: Portrai
   return run;
 }
 
-function render(appearance: HorseAppearance, thumb: boolean, anim: PortraitAnim | null): Promise<GeneticPortraitBlobs> {
+function render(appearance: HorseAppearance, thumb: boolean, anim: PortraitAnim | null, key: string): Promise<GeneticPortraitBlobs> {
   const w = getWorker();
   if (!w) return onMainThread(appearance, thumb, anim);
   return new Promise((resolve, reject) => {
     const id = nextId++;
-    const job = { appearance, thumb, anim };
+    // the worker can't read the page's device tier; the key carries the build, so the cache is safe
+    const job = { appearance, thumb, anim, builds: buildsOn(), key, version: process.env.NODE_ENV === "production" ? deployedBuild() : undefined };
     inflight.set(id, { job, resolve, reject });
     w.postMessage({ id, ...job } satisfies PortraitJob);
   });
@@ -115,7 +118,7 @@ function request(key: string, appearance: HorseAppearance, thumb: boolean, anim:
     return;
   }
   pending.add(key);
-  render(appearance, thumb, anim)
+  render(appearance, thumb, anim, key)
     .then((b) => {
       const strip = URL.createObjectURL(b.strip);
       done.set(key, { strip, still: b.still ? URL.createObjectURL(b.still) : strip });

@@ -74,6 +74,7 @@ export const INBOX_KINDS = {
   race_suits: { category: "races", href: "/races" },
   race_soon: { category: "races" },
   race_off: { category: "races" },
+  race_moved: { category: "races" },
   // Horse health & care
   injury: { category: "health" },
   back_in_race: { category: "health" },
@@ -102,14 +103,14 @@ export const INBOX_KINDS = {
   // Credits (services/creditNotes.ts): one note per action that moved credits. A prize from a race
   // still to watch keeps its place out of the title until the result is watched (safeTitle).
   credits: { category: "credits", href: "/stable/finances" },
-    // Moments: the category comes from the moment's own kind (MOMENT_CATEGORY)
+  // Moments: the category comes from the moment's own kind (MOMENT_CATEGORY)
   moment: { category: "club" },
 } as const satisfies Record<string, KindMeta>;
 
 export type InboxKind = keyof typeof INBOX_KINDS;
 
 /** Kinds that only the bell and the full inbox show (the Estate's race list, listInbox, leaves them out). */
-export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "listing_expired", "credits"] as const satisfies readonly InboxKind[];
+export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "race_moved", "listing_expired", "credits"] as const satisfies readonly InboxKind[];
 
 /** Moments (moments.ts, guide.ts) by their game-core kind. A Record: a new moment kind must be placed. */
 export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {

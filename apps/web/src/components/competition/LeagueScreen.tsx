@@ -16,7 +16,7 @@ function zoneText(z: LeagueRowView["zone"]): string {
 
 function LeagueRow({ r }: { r: LeagueRowView }) {
   return (
-    <li className={`flex items-center gap-3 px-4 py-3 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="league-row" data-mine={r.mine || undefined} data-zone={r.zone ?? undefined}>
+    <li className={`flex items-center gap-3 px-4 py-3 ${r.mine ? "yours bg-[rgba(242,200,106,0.16)]" : ""}`} data-testid="league-row" data-mine={r.mine || undefined} data-zone={r.zone ?? undefined}>
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
       <StableBadge silks={r.silks} photoUrl={r.photoUrl} cap={false} className="h-[26px] w-8 shrink-0" />
       <div className="min-w-0 flex-1">
@@ -36,7 +36,7 @@ function LeagueRow({ r }: { r: LeagueRowView }) {
 
 function SeasonRow({ r }: { r: SeasonRowView }) {
   return (
-    <li className={`flex items-center gap-3 px-2 py-2 ${r.mine ? "yours bg-paper-2" : ""}`} data-testid="season-row">
+    <li className={`flex items-center gap-3 px-2 py-2 ${r.mine ? "yours bg-[rgba(242,200,106,0.16)]" : ""}`} data-testid="season-row">
       <span className="num w-8 shrink-0 text-right text-lg text-cream">{r.rank}</span>
       <StableBadge silks={r.silks} photoUrl={r.photoUrl} cap={false} className="h-[26px] w-8 shrink-0" />
       <p className="t-title min-w-0 flex-1 truncate text-cream">
@@ -209,9 +209,12 @@ export function LeagueScreen({ view, signedIn, board }: { view: LeagueView; sign
           </div>
           {view.joined ? (
             <ol className="surface rows" data-testid="league-table">
-              {rows.map((r) => (
-                <LeagueRow key={`${r.rank}-${r.stableName}`} r={r} />
-              ))}
+              {rows
+                // stables that haven't run a Live race this week (entered, not yet run) wait off the table
+                .filter((r) => r.runs > 0 || r.mine)
+                .map((r) => (
+                  <LeagueRow key={`${r.rank}-${r.stableName}`} r={r} />
+                ))}
             </ol>
           ) : (
             <LeagueProspect view={view} signedIn={signedIn} />
