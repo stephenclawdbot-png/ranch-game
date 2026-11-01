@@ -29,6 +29,7 @@ import { FieldList } from "./FieldList";
 import { ShareReplay } from "./ShareReplay";
 import { ShareClip } from "./ShareClip";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
+import { FeatureBanner, TomorrowAfterResult } from "../home/Engage";
 import { PickBlock } from "../picks/PickBlock";
 import { LiveWait } from "./LiveWait";
 import { CourseStrip } from "./CourseMap";
@@ -298,6 +299,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
         </div>
       </section>
 
+      {/* The Saturday Feature: the week's event (the same race and rules, dressed up). */}
+      {card.calendarKind === "weekend_feature" && <FeatureBanner postTimeMs={config.postTimeMs} />}
+
       {/* The tote's final odds, frozen at the off: shown while the race runs, never a bet button. */}
       {phase === "live" && card.kind === "live" && <FinalOddsStrip raceId={card.id} />}
 
@@ -351,6 +355,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
                   <WhatIfButton raceId={card.id} horseId={mine.horse.id} horseName={mine.horse.name} className="btn btn-brass" />
                 </section>
               )}
+              {/* The end of a session-ish moment: what will be new tomorrow (real state only). */}
+              {mine && settlement && <TomorrowAfterResult />}
               {/* The race explained and the course: under the result once it's in (they lead before the off). */}
               <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
               <CourseStrip track={card.track} distanceM={config.distanceM} />

@@ -112,6 +112,8 @@ export interface RaceCard {
   claiming?: { rules: string; myClaim: { horseId: string; price: number; status: ClaimStatus } | null };
   /** Story races: the chapter, the chapter race's key (null for an open Story race) and the line about an eased or stiffened field. */
   story?: { chapter: string; raceKey: string | null; note: string | null };
+  /** A feature-calendar race: "weekend_feature" (the Saturday Feature), "feature_qualifier", "weekend_plate", "season_final". */
+  calendarKind?: string;
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */
@@ -404,7 +406,15 @@ export interface FirstWeekView {
   endsAtMs: number;
 }
 
-/** Home after a day or more away. Never says how an unwatched race went. */
+/** One "While you were away" line (game-core AwayLine): tappable; `times` are post times shown in local time. */
+export interface AwayLineView {
+  kind: string;
+  text: string;
+  href: string;
+  times?: number[];
+}
+
+/** Home after hours away. Never says how an unwatched race went. */
 export interface WelcomeBackView {
   fromMs: number;
   awayMs: number;
@@ -416,6 +426,8 @@ export interface WelcomeBackView {
   places: number;
   due: { label: string; href: string }[];
   next: { label: string; href: string; why: string };
+  /** What happened since the last visit, most important first (at most five lines). */
+  lines?: AwayLineView[];
 }
 
 /** A tribute card's numbers (game-core Tribute). */

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { LeagueView, LeagueRowView, SeasonRowView } from "@/lib/competitionTypes";
+import type { WeekBoardView } from "@/lib/engageTypes";
+import { WeekBoardCard } from "../home/Engage";
 import { SURFACE_LABEL, formatDistance, ordinal } from "@/lib/format";
 import { LocalTime, TimeLeft } from "./LocalTime";
 import { StableBadge } from "../StableBadge";
@@ -147,7 +149,7 @@ function LeagueProspect({ view, signedIn }: { view: LeagueView; signedIn: boolea
   );
 }
 
-export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: boolean }) {
+export function LeagueScreen({ view, signedIn, board }: { view: LeagueView; signedIn: boolean; /** Every stable's League points this week, on one table (Home's "This week" links here). */ board?: WeekBoardView | null }) {
   const rows = view.rows;
   const mine = rows.find((r) => r.mine);
   const lastWeek = view.history[0];
@@ -273,6 +275,8 @@ export function LeagueScreen({ view, signedIn }: { view: LeagueView; signedIn: b
           )}
         </aside>
       </div>
+
+      {board && <WeekBoardCard board={board} full />}
     </div>
   );
 }

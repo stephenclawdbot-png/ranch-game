@@ -39,7 +39,7 @@ export const WIKI_SECTIONS: WikiSection[] = [
 export const WIKI_PAGES: WikiPageMeta[] = [
   // Getting started
   { slug: "quick-start", section: "start", title: "Quick start", summary: "Found and name a stable, win your first race, Wilf's verdict, your first week and signing in on another device.", keywords: ["new", "begin", "tutorial", "first", "mentor", "stable steps", "guide", "unlock", "welcome back", "plain language", "stable name", "name", "rename", "first week", "verdict", "try again", "why it went that way", "energy", "bloodline", "sign in", "login", "login code", "link code", "wallet", "connect wallet", "device"] },
-  { slug: "the-estate", section: "start", title: "The estate", summary: "Estate, Stable, Racing, Club and Sales: what each area is for.", keywords: ["navigation", "menu", "areas", "this week", "road to saturday", "notifications", "bell", "inbox", "unread", "alerts", "profile", "top bar", "connect wallet"] },
+  { slug: "the-estate", section: "start", title: "The estate", summary: "Estate, Stable, Racing, Club and Sales: what each area is for.", keywords: ["navigation", "menu", "areas", "this week", "road to saturday", "notifications", "bell", "inbox", "unread", "alerts", "profile", "top bar", "connect wallet", "while you were away", "welcome back", "tomorrow", "this week", "leaderboard", "saturday feature"] },
   { slug: "credits-and-entries", section: "start", title: "Credits & entries", summary: "How you earn and spend Stable Credits, and the daily entry bank.", keywords: ["money", "coins", "currency", "entries", "daily", "prize", "prize money", "purse", "split", "winnings"] },
 
   // Your horses

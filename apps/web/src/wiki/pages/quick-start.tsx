@@ -255,8 +255,8 @@ export default function QuickStartPage() {
       />
       <Callout tone="rule" title="Being away never hurts">
         <p>
-          After a day or more away, the Estate opens with a <b>Welcome back</b> card: how many races your horses ran (a result you haven&rsquo;t watched stays a surprise),
-          what&rsquo;s due, and one thing worth doing next.
+          After a few hours or more away, the Estate opens with a <b>While you were away</b> card: what happened since your last visit (a result you haven&rsquo;t watched
+          stays a surprise), what&rsquo;s due, and one thing worth doing next. At the foot of the Estate, <b>Tomorrow at your yard</b> says what will be new tomorrow.
         </p>
         <p>
           Nothing in the game punishes a missed day. Fatigue recovers and injuries heal while you are away, care only pauses growth, and unused entries roll over into your bank. Upkeep is charged only for horses you used that

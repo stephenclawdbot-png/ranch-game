@@ -586,7 +586,14 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     track: raceConds(race).track,
     ...(claiming ? { claiming } : {}),
     ...(storyMeta ? { story: { chapter: storyMeta.chapter, raceKey: storyMeta.raceKey ?? null, note: storyMeta.note ?? null } } : {}),
+    ...(calendarKindOf(race) ? { calendarKind: calendarKindOf(race)! } : {}),
   };
+}
+
+/** The feature calendar's kind of a card race (the Weekend Feature, a Qualifier, the Plate, a Final), else null. */
+function calendarKindOf(race: { conditions: unknown }): string | null {
+  const k = ((race.conditions ?? {}) as { calendar?: { kind?: unknown } }).calendar?.kind;
+  return typeof k === "string" ? k : null;
 }
 
 /** Lodges a claim on a runner of a claiming race (the price goes into escrow until the race). */

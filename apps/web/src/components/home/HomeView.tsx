@@ -29,6 +29,7 @@ import { BloodlineNudge } from "../onboarding/BloodlineNudge";
 import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
 import { SignedInBack, useJustSignedIn } from "./SignedInBack";
+import { SaturdayFeatureCard, TomorrowCard, WeekBoardCard, useEngage } from "./Engage";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
@@ -209,6 +210,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   // The first-week list (hidden once done or after the first week) is Home's one to-do while it shows.
   const firstWeek = ob?.firstWeek?.visible ? ob.firstWeek : null;
   const liveEntered = !ob?.steps || ob.steps.complete || ob.steps.steps.some((s) => s.key === "enter_live" && s.done);
+  /** Tomorrow at your yard, this week's table and the Saturday Feature (GET /api/engage). */
+  const engage = useEngage(`${state.runs.length}:${state.active.length}:${state.horses.length}`);
 
   const plaques: EstatePlaque[] = [
     {
@@ -227,10 +230,16 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
   return (
     <div>
-      {justSignedIn && (
+      {/* Back after hours away: what happened since, then one next action. Right after a sign-in it
+          says "Welcome back, <Stable>" (with nothing to report, the one-button strip). */}
+      {(ob?.welcomeBack || justSignedIn) && (
         // The estate band below pulls up 16/32 px: clear it.
         <div className="mx-auto mb-7 max-w-5xl md:mb-11">
-          <SignedInBack state={state} onClose={closeSignedIn} />
+          {ob?.welcomeBack ? (
+            <WelcomeBack w={ob.welcomeBack} title={justSignedIn ? `Welcome back, ${state.stableName}` : undefined} onClose={justSignedIn ? closeSignedIn : undefined} />
+          ) : (
+            <SignedInBack state={state} onClose={closeSignedIn} />
+          )}
         </div>
       )}
       {state.tester && (
@@ -255,12 +264,6 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} wait={!firstWeek} />}
       </EstateStage>
 
-      {/* The days-away card waits for the next visit when the sign-in strip already says welcome back. */}
-      {ob?.welcomeBack && !justSignedIn && (
-        <div className="mt-4">
-          <WelcomeBack w={ob.welcomeBack} />
-        </div>
-      )}
       {ob?.guided && !ob.mentorDone && (
         <div className="mt-4">
           <MentorNudge />
@@ -290,6 +293,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
           <span className="btn btn-sm">This week</span>
         </Link>
       )}
+      {/* From Thursday: the Saturday Feature as the week's event (everyone sees it). */}
+      {engage?.feature && <SaturdayFeatureCard f={engage.feature} />}
 
       {/* In the first week the list above is the one to-do: Today keeps only what isn't on it (a gift foal, a free pack, a foaling). */}
       <TodayTiles refreshKey={`${state.credits}:${state.horses.length}:${state.runs.length}`} hide={firstWeek ? FIRST_WEEK_COVERS : undefined} title={firstWeek ? "Also today" : undefined} />
@@ -304,6 +309,9 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
 
       {/* Rivals come from Live races: they wait for a new stable's first Live entry, like Road to Saturday. */}
       {liveEntered && <HomeSocial />}
+
+      {/* This week's table across every stable (League points), with your place. */}
+      {engage && <WeekBoardCard board={engage.board} />}
 
       <Section id="pulse-h" title="Your horses" href="/stable" linkLabel="Stable">
         <ul className="-mx-[var(--gutter)] flex gap-3 overflow-x-auto px-[var(--gutter)] pb-2 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] md:px-0" data-testid="stable-pulse">
@@ -329,6 +337,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
         </ul>
       </Section>
 
+      {/* The end of the visit: what will be new tomorrow, from real state only. */}
+      {engage && <TomorrowCard lines={engage.tomorrow} />}
     </div>
   );
 }
