@@ -253,6 +253,13 @@
       "when": 1793514900941,
       "tag": "0035_jockeys_reset_to_e",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793527094016,
+      "tag": "0036_push_subscriptions",
+      "breakpoints": true
     }
   ]
 }

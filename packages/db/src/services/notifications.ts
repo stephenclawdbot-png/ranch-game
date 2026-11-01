@@ -18,8 +18,10 @@
  *     horse back from that injury) is left out entirely while the owner still has that race's
  *     result unwatched, exactly like listMoments.
  *
- * Push (browser / phone) is not built. Its seam is `notify`: every new item passes through it, so a
- * delivery queue can be fed from there (after the transaction commits) without touching callers.
+ * Phone / desktop alerts (Web Push, services/push.ts) extend the bell for a few kinds (`push: true`
+ * below). `notify` only signals that such an item was written (onPushableNote); the sender runs
+ * after the request (the item is committed by then), reads the new items itself and decides, so a
+ * rolled-back transaction never pushes anything.
  */
 import { and, desc, eq, gt, inArray, isNull, lt, sql, type SQL } from "drizzle-orm";
 import { inboxItems, notificationPrefs, races } from "../schema";
@@ -50,6 +52,8 @@ interface KindMeta {
   spoiler?: boolean;
   /** Where the bell links when the item carries no href, race or horse. */
   href?: string;
+  /** Also sent as a phone / desktop alert to devices that turned them on (services/push.ts). */
+  push?: true;
 }
 
 /**
@@ -59,15 +63,15 @@ interface KindMeta {
  */
 export const INBOX_KINDS = {
   // Races & results
-  race_result: { category: "races", spoiler: true },
+  race_result: { category: "races", spoiler: true, push: true },
   match_note: { category: "races", href: "/quick" },
   plan_reminder: { category: "races" },
   race_suits: { category: "races", href: "/races" },
-  race_soon: { category: "races" },
-  race_off: { category: "races" },
+  race_soon: { category: "races", push: true },
+  race_off: { category: "races", push: true },
   // Horse health & care
   injury: { category: "health" },
-  back_in_race: { category: "health" },
+  back_in_race: { category: "health", push: true },
   // Training
   training_ready: { category: "training", href: "/stable" },
   // Market & sales
@@ -83,13 +87,14 @@ export const INBOX_KINDS = {
   // Breeding & stud
   usdg_stud: { category: "breeding", href: "/breeding" },
   retired: { category: "breeding" },
+  foal_due: { category: "breeding", href: "/breeding", push: true },
   // Jockeys
   jockey: { category: "jockeys", href: "/jockeys" },
   // Club & news
   week_recap: { category: "club", href: "/league" },
   race_sponsor: { category: "club", spoiler: true, href: "/races" },
   upkeep: { category: "club", href: "/stable/finances" },
-  gift_foal: { category: "club", href: "/nursery" },
+  gift_foal: { category: "club", href: "/nursery", push: true },
   // Moments: the category comes from the moment's own kind (MOMENT_CATEGORY)
   moment: { category: "club" },
 } as const satisfies Record<string, KindMeta>;
@@ -97,7 +102,7 @@ export const INBOX_KINDS = {
 export type InboxKind = keyof typeof INBOX_KINDS;
 
 /** Kinds that only the bell and the full inbox show (the Estate's race list, listInbox, leaves them out). */
-export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "listing_expired"] as const satisfies readonly InboxKind[];
+export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "listing_expired", "foal_due"] as const satisfies readonly InboxKind[];
 
 /** Moments (moments.ts, guide.ts) by their game-core kind. A Record: a new moment kind must be placed. */
 export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {
@@ -113,6 +118,9 @@ export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {
   unlock: "club",
   stable_steps: "club",
 };
+
+/** The kinds that can also go out as a phone / desktop alert. */
+export const PUSH_KINDS = (Object.keys(INBOX_KINDS) as InboxKind[]).filter((k) => (INBOX_KINDS[k] as KindMeta).push);
 
 export const isInboxKind = (k: string): k is InboxKind => Object.prototype.hasOwnProperty.call(INBOX_KINDS, k);
 
@@ -161,8 +169,8 @@ export interface NotifyInput {
  * Writes one notification (an inbox item), at most once per (account, dedupe key). Returns the new
  * item's id, or null when it already existed. Call it inside the transaction of the event.
  *
- * The push seam: browser/phone delivery, when it comes, starts here (enqueue the returned id for a
- * sender that runs after commit and checks the player's category switches).
+ * A new item of a push kind (not already seen) signals onPushableNote's listener: the web app
+ * schedules the sender for after the response (services/push.ts deliverPushes).
  */
 export async function notify(ex: Executor, n: NotifyInput): Promise<string | null> {
   const rows = await ex
@@ -180,7 +188,25 @@ export async function notify(ex: Executor, n: NotifyInput): Promise<string | nul
     })
     .onConflictDoNothing()
     .returning({ id: inboxItems.id });
-  return rows[0]?.id ?? null;
+  const id = rows[0]?.id ?? null;
+  if (id && !n.seen && pushableNoteListener && (INBOX_KINDS[n.kind] as KindMeta).push) {
+    try {
+      pushableNoteListener(n.kind);
+    } catch (err) {
+      console.error("[notifications] push signal failed", err);
+    }
+  }
+  return id;
+}
+
+let pushableNoteListener: ((kind: InboxKind) => void) | null = null;
+
+/**
+ * Registers the listener told about every new push-kind item (the web app: schedule the push
+ * sender after the response). It must not block or throw; null removes it.
+ */
+export function onPushableNote(fn: ((kind: InboxKind) => void) | null): void {
+  pushableNoteListener = fn;
 }
 
 // ---------------------------------------------------------------------------

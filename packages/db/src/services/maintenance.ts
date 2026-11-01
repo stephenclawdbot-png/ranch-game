@@ -32,7 +32,7 @@ import { runTx } from "./tx";
 import { runJockeyMaintenance, type JockeyMaintenance } from "./jockeys";
 import { seasonNewsSweep } from "./news";
 import { sweepTargets, type SweepReport } from "./planner";
-import { noteRecoveriesTx, noteTrainingWeekTx } from "./notificationEvents";
+import { noteFoalsDueTx, noteRecoveriesTx, noteTrainingWeekTx } from "./notificationEvents";
 
 /**
  * Rate-limit counters older than this are pruned: two windows of the longest limit (the quick
@@ -71,6 +71,8 @@ export async function healInjuries(db: Db, now: Date): Promise<number> {
 export async function runMaintenance(db: Db, now: Date, hooks: GameHooks = defaultHooks): Promise<MaintenanceReport> {
   const healed = await healInjuries(db, now);
   const foaled: string[] = [];
+  // "Ready to foal" first (idempotent: the lazy sweep usually wrote it already), so a mare foaled here still tells her owner.
+  await noteFoalsDueTx(db, now);
   for (const p of await listDuePregnancies(db, now)) {
     const r = await foal(db, { pregnancyId: p.id, now }, hooks);
     if (!r.alreadyFoaled) foaled.push(r.foalId);

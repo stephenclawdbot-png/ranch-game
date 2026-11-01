@@ -877,6 +877,9 @@ export const RESET_TABLES = [
   "stable_steps",
   "feature_unlocks",
   "onboarding_states",
+  // Phone alerts follow the accounts and their inbox items.
+  "push_deliveries",
+  "push_subscriptions",
   "inbox_items",
   "notification_prefs",
   "entry_movements",

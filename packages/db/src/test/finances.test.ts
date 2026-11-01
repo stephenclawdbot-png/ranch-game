@@ -363,6 +363,7 @@ const NON_LEDGER_KINDS = new Set([
   "race_soon",
   "race_off",
   "listing_expired",
+  "foal_due",
   // fraud events (tote.ts)
   "tote_linked_bet_blocked",
   // ledger account kinds

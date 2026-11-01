@@ -16,11 +16,13 @@
  *                   lock (lockField). Neutral: nothing about how it went.
  *   listing_expired a credits or T-USDG listing ran out, or an auction closed without a sale
  *                   (market.ts expireListings, usdgMarket.ts): in the expiry's transaction.
+ *   foal_due        a mare in foal is due: her foal is ready to meet and name (the lazy sweep, and
+ *                   the daily maintenance before it foals due mares itself): one per pregnancy.
  *
  * Every event has a dedupe key, so whichever path runs first writes it and the rest are no-ops.
  */
 import { and, asc, eq, gt, gte, inArray, isNotNull, like, lte, sql } from "drizzle-orm";
-import { horses, raceEntries, races, stables, type HorseRow, type RaceRow } from "../schema";
+import { horses, pregnancies, raceEntries, races, stables, type HorseRow, type RaceRow } from "../schema";
 import { RULES } from "../rules";
 import { gc, genomeOf, isInjury } from "../gameCore";
 import type { Db, Executor } from "../types";
@@ -381,6 +383,39 @@ export async function noteListingExpiredTx(
 }
 
 // ---------------------------------------------------------------------------
+// "Your mare is ready to foal"
+// ---------------------------------------------------------------------------
+
+/**
+ * Mares in foal that are due by `now`: one note per pregnancy to the mare's owner (the foal is
+ * theirs), linking to the barn where it is met and named. `since` narrows the lazy sweep to recent
+ * due times; the daily maintenance passes none (and writes it before foaling due mares itself).
+ */
+export async function noteFoalsDueTx(ex: Executor, now: Date, opts: { since?: Date } = {}): Promise<number> {
+  const rows = await ex
+    .select({ pregnancyId: pregnancies.id, damId: horses.id, damName: horses.name, accountId: stables.accountId })
+    .from(pregnancies)
+    .innerJoin(horses, eq(horses.id, pregnancies.damId))
+    .innerJoin(stables, eq(stables.id, horses.ownerStableId))
+    .where(and(eq(pregnancies.status, "carrying"), lte(pregnancies.dueAt, now), opts.since ? gt(pregnancies.dueAt, opts.since) : undefined))
+    .orderBy(asc(pregnancies.dueAt));
+  let sent = 0;
+  for (const r of rows) {
+    const id = await notify(ex, {
+      accountId: r.accountId,
+      kind: "foal_due",
+      dedupeKey: `foal-due:${r.pregnancyId}`,
+      title: `${r.damName} is ready to foal: come and meet the foal`,
+      data: { href: "/breeding", pregnancyId: r.pregnancyId },
+      horseId: r.damId,
+      now,
+    });
+    if (id) sent++;
+  }
+  return sent;
+}
+
+// ---------------------------------------------------------------------------
 // The sweep (lazily on reads, throttled by the caller; and in the daily maintenance)
 // ---------------------------------------------------------------------------
 
@@ -388,6 +423,7 @@ export interface NotificationSweep {
   backInRace: number;
   trainingReady: number;
   racesSoon: number;
+  foalsDue: number;
 }
 
 /** The lazy sweep looks back this far for healed injuries (it runs every minute or so; the daily heal catches the rest). */
@@ -396,7 +432,7 @@ export const SWEEP_LOOKBACK_MS = 6 * HOUR_MS;
 /** The training week each database was last swept for (the week's set of horses is fixed once it starts). */
 const trainingSwept = new WeakMap<object, number>();
 
-/** Time-driven notes: Live races going off soon, horses back from injury, and the new training week (once per week per process). Idempotent. */
+/** Time-driven notes: Live races going off soon, horses back from injury, mares ready to foal, and the new training week (once per week per process). Idempotent. */
 export async function sweepNotifications(db: Db, now: Date): Promise<NotificationSweep> {
   const backInRace = await noteRecoveriesTx(db, now, { since: new Date(now.getTime() - SWEEP_LOOKBACK_MS) });
   const week = gc.weekIndex(now.getTime());
@@ -406,6 +442,7 @@ export async function sweepNotifications(db: Db, now: Date): Promise<Notificatio
     trainingSwept.set(db, week);
   }
   const racesSoon = await noteRacesSoon(db, now);
-  return { backInRace, trainingReady, racesSoon };
+  const foalsDue = await noteFoalsDueTx(db, now, { since: new Date(now.getTime() - SWEEP_LOOKBACK_MS) });
+  return { backInRace, trainingReady, racesSoon, foalsDue };
 }
 
