@@ -65,6 +65,7 @@ import type {
   PackOffer,
   PackType,
   PacksView,
+  PregnancyCard,
   PreviewView,
   PullProofView,
   PullResultView,
@@ -312,7 +313,11 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
     mares,
     stallions,
     studs,
-    pregnancies: pregs.map((p) => ({
+    pregnancies: pregs.map((p) => {
+      const foal = p.foal ? ecoHorse(p.foal, silks, nowMs) : null;
+      const dam = horseFromRow(p.dam, silks, nowMs).appearance;
+      const sire = horseFromRow(p.sire, silks, nowMs).appearance;
+      return {
       id: p.pregnancy.id,
       damId: p.dam.id,
       damName: p.dam.name,
@@ -324,8 +329,10 @@ export async function breedingView(db: Db, session: Session, now: Date): Promise
       seed: p.pregnancy.seedRevealed ? p.pregnancy.seed : null,
       status: p.pregnancy.status === "foaled" ? "foaled" : "carrying",
       coiPermille: p.pregnancy.coi,
-      foal: p.foal ? ecoHorse(p.foal, silks, nowMs) : null,
-    })),
+      foal,
+      parents: { dam: { name: p.dam.name, appearance: dam }, sire: { name: p.sire.name, appearance: sire } },
+      } satisfies PregnancyCard;
+    }),
     credits: await getBalance(db, session.accountId),
     stalls: { used: occ.used, slots: occ.slots, overflow: occ.overflow },
     usdg: usdgStudSettings(),

@@ -32,7 +32,8 @@ import { POST_CANTER, preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { TRACK_POST, TRACK_PRE, groundSpan, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
-import { LUT_W, PATTERN_ID, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "../trackside/strips";
+import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "../trackside/strips";
+import { RunnerShape, shapeUniforms } from "../trackside/shape";
 import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
 import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
@@ -177,6 +178,8 @@ interface Runner {
   lastPhase: number;
   strip: StripSet | null;
   lod: number;
+  /** Body build and mane / tail on the shared strips (trackside/shape.ts). */
+  shape: RunnerShape;
 }
 
 class Spring3 {
@@ -312,6 +315,10 @@ export class HD2DScene {
   private focusRange = 4;
   private lodTex = new Map<StripSet, { idx: THREE.DataTexture; nrm: THREE.DataTexture | null }[]>();
   private mskTex = new Map<StripSet, THREE.DataTexture>();
+  /** The coat-layer masks (horse-space uv, leg / face / tail params and the hair bytes) per strip, as Trackside. */
+  private coatTex = new Map<StripSet, { uv: THREE.DataTexture; pq: THREE.DataTexture }>();
+  private keyInfo: THREE.DataTexture | null = null;
+  private atlasTex: THREE.DataTexture | null = null;
   private lut: THREE.DataTexture | null = null;
 
   constructor(T: typeof THREE, replay: SceneRaceData, opts: HD2DSceneOptions) {
@@ -874,7 +881,11 @@ export class HD2DScene {
           st.lods.map((l) => ({ idx: this.dataTex(l.index, l.width, l.height, T.RedFormat), nrm: l.normal ? this.dataTex(l.normal, l.width, l.height, T.RGBAFormat) : null })),
         );
         this.mskTex.set(st, this.dataTex(st.mask, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat));
+        this.coatTex.set(st, { uv: this.dataTex(st.maskUv, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat), pq: this.dataTex(st.maskPq, st.lods[0]!.width, st.lods[0]!.height, T.RGBAFormat) });
       }
+      // the coat layers (patterns, markings, shades, long hair) as Trackside draws them
+      this.keyInfo = this.dataTex(buildKeyInfo(strips.palette, strips.keys), 64, 2, T.RGBAFormat);
+      this.atlasTex = strips.atlas ? this.dataTex(strips.atlas.data, strips.atlas.width, strips.atlas.height, T.RedFormat) : this.dataTex(new Uint8Array(1), 1, 1, T.RedFormat);
     }
     // Unit quad, bottom-left at the origin, v flipped (row 0 = the frame's top, as in Trackside).
     const quad = this.own(new T.PlaneGeometry(1, 1));
@@ -907,6 +918,14 @@ export class HD2DScene {
               uNrm: { value: lt.nrm ?? lt.idx },
               uLut: { value: this.lut },
               uMsk: { value: this.mskTex.get(g) },
+              uMsk2: { value: this.coatTex.get(g)!.uv },
+              uMsk3: { value: this.coatTex.get(g)!.pq },
+              uAtlas: { value: this.atlasTex },
+              uAtlasSize: { value: new T.Vector2(strips.atlas?.width ?? 1, strips.atlas?.height ?? 1) },
+              uHasAtlas: { value: strips.atlas ? 1 : 0 },
+              uKeyInfo: { value: this.keyInfo },
+              uGeoH: { value: g.geoH },
+              ...shapeUniforms(T, h.appearance),
               uIdxSize: { value: new T.Vector2(l0.width, l0.height) },
               uMskSize: { value: new T.Vector2(l0.width, l0.height) },
               uMskOrigin: { value: new T.Vector2(0, 0) },
@@ -980,6 +999,7 @@ export class HD2DScene {
         lastPhase: Number.NaN,
         strip: null,
         lod: 0,
+        shape: new RunnerShape(h.appearance),
       });
     });
   }
@@ -1445,6 +1465,10 @@ export class HD2DScene {
         u.uNrm!.value = tex.nrm ?? tex.idx;
         u.uUseNrm!.value = tex.nrm ? 1 : 0;
         u.uMsk!.value = this.mskTex.get(st);
+        u.uMsk2!.value = this.coatTex.get(st)!.uv;
+        u.uMsk3!.value = this.coatTex.get(st)!.pq;
+        u.uGeoH!.value = st.geoH;
+        r.shape.apply(u, st, frame);
         (u.uIdxSize!.value as THREE.Vector2).set(lod.width, lod.height);
         (u.uMskSize!.value as THREE.Vector2).set(st.lods[0]!.width, st.lods[0]!.height);
         (u.uMskOrigin!.value as THREE.Vector2).set(...frameOrigin(st.lods[0]!, frame));
@@ -1668,6 +1692,8 @@ export class HD2DScene {
             u.uIdx!.value = lt.idx;
             u.uNrm!.value = lt.nrm ?? lt.idx;
             u.uMsk!.value = this.mskTex.get(st);
+            u.uMsk2!.value = this.coatTex.get(st)!.uv;
+            u.uMsk3!.value = this.coatTex.get(st)!.pq;
             r.render(sc, cam2);
           }
         }

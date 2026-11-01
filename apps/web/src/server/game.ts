@@ -17,7 +17,7 @@
 import * as gc from "@thoroughbred/game-core";
 import { prepareRealToteSeed } from "./chain/toteChain";
 import { horseCareerStory } from "./careerStory";
-import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Going, type Horse, type RaceClass, type Surface, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader } from "@thoroughbred/shared";
+import { HorseSchema, RaceCourseSchema, RaceKitSchema, RaceModelSchema, RunningStyleSchema, type Going, type Horse, type RaceClass, type Surface, type RaceConfig, type RaceInput, type RaceReplay, type RaceBroadcastChunk, type RaceBroadcastHeader, type HorseAppearance } from "@thoroughbred/shared";
 import { ENGINE_VERSION, SAMPLE_EVERY, TICK_HZ, commitSeed, engineVersionFor, mixSeedEntropy, simulateRace, verifyReplay } from "@thoroughbred/racing-engine";
 import {
   DomainError,
@@ -1478,6 +1478,17 @@ export async function myRaces(db: Db, session: Session, filter: MyRacesFilter, c
 }
 
 /**
+ * Whose first win a winning run was (V-08): the stable's (its only win so far), else the horse's
+ * (its only win so far), else null. Read from settled runs, so it is the same on every visit.
+ */
+async function firstWinOf(db: Db, stableId: string, horseId: string): Promise<"stable" | "horse" | null> {
+  const stable = await stableRunSummary(db, { stableId, winsOnly: true });
+  if (stable.wins === 1) return "stable";
+  const horse = await stableRunSummary(db, { stableId, horseId, winsOnly: true });
+  return horse.wins === 1 ? "horse" : null;
+}
+
+/**
  * The owner's horse at the off, from its entry snapshot: fatigue (recovered to post time, less a
  * race-day physio) and hours since its last hard work. The owner saw both before entering.
  */
@@ -1507,7 +1518,10 @@ export async function myRaceResult(db: Db, session: Session, raceId: string, now
     const pos = e.finishPosition ?? replay.result.finishOrder.find((f) => f.horseId === e.horseId)?.position ?? 0;
     // An injury picked up in this race (the stored injury names its race as its source).
     const hurt = row && (row.injury as { source?: unknown } | null)?.source === raceId ? injuryCard(row.injury, now.getTime()) : null;
+    // The owner's moment (V-08): this win was the horse's first (and the stable's first)
+    const firstOf = pos === 1 && fresh.status === "settled" ? await firstWinOf(db, session.stable.id, e.horseId) : null;
     runners.push({
+      firstWinOf: firstOf,
       horseId: e.horseId,
       horseName: row?.name ?? "Your horse",
       position: pos,
@@ -1599,13 +1613,18 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   const sireLine = await sireLineSplits(db, row, now);
   const story = await horseCareerStory(db, row, now);
   const parentRows = [row.sireId, row.damId].filter((x): x is string => !!x);
-  const parents = new Map<string, { name: string; regNo: string }>();
+  const parents = new Map<string, { name: string; regNo: string; appearance: HorseAppearance }>();
   for (const id of parentRows) {
     const p = await getHorse(db, id);
-    if (p) parents.set(id, { name: p.name, regNo: gc.registrationNumber(p.generation, p.regNo) });
+    if (p) parents.set(id, { name: p.name, regNo: gc.registrationNumber(p.generation, p.regNo), appearance: horseFromRow(p, DEFAULT_SILKS, nowMs).appearance });
   }
   const parent = (id: string | null) => (id ? { id, name: parents.get(id)?.name ?? "Unknown", regNo: parents.get(id)?.regNo ?? null } : null);
   const pedigree = { sire: parent(row.sireId), dam: parent(row.damId) };
+  // Family likeness (V-06, V-07): the look this horse most plainly shares with a parent
+  const sireLook = row.sireId ? (parents.get(row.sireId) ?? null) : null;
+  const damLook = row.damId ? (parents.get(row.damId) ?? null) : null;
+  const likeness = sireLook || damLook ? gc.familyLikeness(horseFromRow(row, DEFAULT_SILKS, nowMs).appearance, damLook?.appearance ?? null, sireLook?.appearance ?? null, 1)[0] : undefined;
+  const familyLine = likeness ? gc.likenessText(likeness, row.sex === "female" ? "her" : "his", { dam: damLook?.name, sire: sireLook?.name }) : null;
   const tree = await pedigreeTree(db, row, nowMs);
   const regNo = gc.registrationNumber(row.generation, row.regNo);
   // Coat genetics are public stud-book information: any viewer gets them.
@@ -1618,10 +1637,10 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
   if (!row.ownerStableId && !row.lesseeStableId) {
     // A Club house stallion standing at stud, or a house runner from the Live card.
     if (row.origin === "house" && atStud) {
-      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, story, sireLine, pedigree, tree, genetics, stud: { fee: row.studFee!, club: true, resting }, actions: null };
+      return { horse: horseFromRow(row, DEFAULT_SILKS, nowMs), regNo, kind: "house", stableName: CLUB_STUD_NAME, trainer: null, mine: false, status: null, runs, form, story, sireLine, pedigree, familyLine, tree, genetics, stud: { fee: row.studFee!, club: true, resting }, actions: null };
     }
     const house = houseStableFor(row.id);
-    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, story, sireLine, pedigree, tree, genetics, stud: null, actions: null };
+    return { horse: horseFromRow(row, house.silks, nowMs), regNo, kind: "house", stableName: house.name, trainer: house.trainer, mine: false, status: null, runs, form, story, sireLine, pedigree, familyLine, tree, genetics, stud: null, actions: null };
   }
   // A Club horse away on lease (owner null) shows under its lessee's colours like any leased horse.
   const stable = row.ownerStableId ? await getStable(db, row.ownerStableId) : null;
@@ -1672,6 +1691,7 @@ export async function horseDetail(db: Db, horseId: string, session: Session | nu
     story,
     sireLine,
     pedigree,
+    familyLine,
     tree,
     genetics,
     stud: atStud ? { fee: row.studFee ?? 0, club: false, feeUsdg: row.studFeeUsdg, resting } : null,

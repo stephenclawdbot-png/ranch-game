@@ -20,7 +20,9 @@
 import type { FaceMarking, HorseAppearance, LegMarking } from "@thoroughbred/shared";
 import { GEO_REGION, type CoatGeometry } from "./coatGeometry";
 import { coatPaletteOf, mixOklab, MARKING_WHITE, type CoatPalette } from "./palettes";
-import { longHair } from "./longHair";
+import { hairField, hairKey, hairLevels, hairShows, longHair, type HairField } from "./longHair";
+import { bodyBuildOf, buildTexels, hairStyleOf, isFlat, warpAnchors, warpStrip, type HairStyle, type WarpAnchors } from "./bodyBuild";
+import { rgbaRoleGrid } from "./coatGeometry";
 
 export type LayerMode = "white" | "tick" | "dark" | "light" | "skin" | "hair";
 
@@ -195,6 +197,8 @@ export interface CoatPattern {
   legMarks: [LegMarking, LegMarking, LegMarking, LegMarking];
   /** Feathered long hair (fe/fe): drawn in code on every sheet (longHair.ts), never a separate base sprite. */
   feather: boolean;
+  /** The horse's own mane and tail (V-05, longHair.ts hairField), or null: the painted hair (and a feathered horse's older long hair). */
+  hair: HairStyle | null;
   /** The pattern seed it was drawn from. */
   seed: number;
 }
@@ -287,8 +291,24 @@ export function coatPatternOf(a: HorseAppearance): CoatPattern {
     legs: legMarks.map(legCell) as CoatPattern["legs"],
     legMarks,
     feather: !!a.feather,
+    hair: hairStyleOf(a),
     seed,
   };
+}
+
+/**
+ * How high up the leg (g: 0 hoof .. 1 where the leg meets the belly) each leg marking may reach: a
+ * coronet the hoof's top, a sock the fetlock, a stocking just past the knee or hock. The leg's
+ * room runs up into the flank and forearm, where white would read as a block on the body.
+ */
+export const LEG_MARK_TOP: Record<LegMarking, number> = { none: 0, coronet: 0.14, sock: 0.32, stocking: 0.58 };
+
+/** The reach of a leg-marking atlas cell (its marking's LEG_MARK_TOP). */
+export function legMarkTopOfCell(cell: number): number {
+  if (cell < 0) return 0;
+  if (cell >= LAYER_CELL["leg-stocking"]) return LEG_MARK_TOP.stocking;
+  if (cell >= LAYER_CELL["leg-sock"]) return LEG_MARK_TOP.sock;
+  return LEG_MARK_TOP.coronet;
 }
 
 /** Leg tuple index (front-left, front-right, hind-left, hind-right) of a leg region (near = right side, facing right). */
@@ -396,7 +416,7 @@ export function paintCoatLayers(
         if (r === GEO_REGION.face && pattern.faceCell >= 0 && role !== 3 && layerAt(atlas, pattern.faceCell, geo, i) >= 128) white = true;
         if (r >= 1 && r <= 4) {
           const cell = legWhite[LEG_OF_REGION[r]!]!;
-          if (cell >= 0 && layerAt(atlas, cell, geo, i) >= 128) white = true;
+          if (cell >= 0 && geo.p1[i]! <= legMarkTopOfCell(cell) && layerAt(atlas, cell, geo, i) >= 128) white = true;
         }
         if (white) c = whiteAt(isHair ? 0.55 + k.shade * 0.45 : k.shade);
         out[o] = Math.round(c[0]);
@@ -410,7 +430,7 @@ export function paintCoatLayers(
  * sprite itself is unchanged, the hair is an extra layer traced along it. Returns per texel 0, 1
  * (feathering, a leg's own keys) or 2 (mane, forelock, tail: mane keys). `speed` from sheetSpeed.
  */
-export function drawLongHair(keyed: Uint8ClampedArray | Uint8Array, width: number, frameW: number, geo: CoatGeometry, keys: KeyRoles, speed: number): Uint8Array {
+export function drawLongHair(keyed: Uint8ClampedArray | Uint8Array, width: number, frameW: number, geo: CoatGeometry, keys: KeyRoles, speed: number, only = 0): Uint8Array {
   const keyAt = (f: number, x: number, y: number) => {
     const o = (y * width + f * frameW + x) * 4;
     return keyed[o + 3]! < 128 ? -1 : (keyed[o]! << 16) | (keyed[o + 1]! << 8) | keyed[o + 2]!;
@@ -432,6 +452,10 @@ export function drawLongHair(keyed: Uint8ClampedArray | Uint8Array, width: numbe
         const i = (f * geo.fh + y) * geo.fw + x;
         const k = h.key[i]!;
         if (k < 0) continue;
+        if (only && h.kind[i] !== only) {
+          h.kind[i] = 0;
+          continue;
+        }
         const o = (y * width + f * frameW + x) * 4;
         keyed[o] = (k >> 16) & 255;
         keyed[o + 1] = (k >> 8) & 255;
@@ -441,9 +465,68 @@ export function drawLongHair(keyed: Uint8ClampedArray | Uint8Array, width: numbe
   return h.kind;
 }
 
+/** Per sheet geometry: the build landmarks and the mane / tail field per speed (computed once). */
+const sheetCache = new WeakMap<CoatGeometry, { anchors?: WarpAnchors; fields: Map<number, HairField>; grown: boolean }>();
+const sheetOf = (geo: CoatGeometry) => {
+  let c = sheetCache.get(geo);
+  if (!c) sheetCache.set(geo, (c = { fields: new Map(), grown: false }));
+  return c;
+};
+
+/** The build landmarks of a keyed sheet (cached on its geometry). */
+export function sheetWarpAnchors(keyedSrc: ArrayLike<number>, width: number, frameW: number, geo: CoatGeometry, keys: KeyRoles & { cap?: readonly string[] }): WarpAnchors {
+  const c = sheetOf(geo);
+  if (!c.anchors) c.anchors = warpAnchors(geo, rgbaRoleGrid(keyedSrc, width, geo.fh, frameW, keys));
+  return c.anchors;
+}
+
 /**
- * Everything for one keyed strip: grow the long hair (feathered horses), recolour (the caller's
- * recolour, in place on the RGBA it is given), then paint the layers. Returns the painted RGBA.
+ * The mane and tail field of a keyed sheet (cached on its geometry). The feathered long hair is
+ * grown on the geometry first (it adds hair room beside the legs), as the Trackside strips do, so
+ * every view reads the same field.
+ */
+export function sheetHairField(keyedSrc: ArrayLike<number>, width: number, frameW: number, geo: CoatGeometry, keys: KeyRoles, speed: number): HairField {
+  const c = sheetOf(geo);
+  let f = c.fields.get(speed);
+  if (f) return f;
+  if (!c.grown) {
+    drawLongHair(new Uint8ClampedArray(keyedSrc), width, frameW, geo, keys, speed);
+    c.grown = true;
+  }
+  f = hairField(rgbaRoleGrid(keyedSrc, width, geo.fh, frameW, keys), geo, speed);
+  c.fields.set(speed, f);
+  return f;
+}
+
+/** Draw a horse's mane and tail (its field set and levels) into a keyed strip in the mane keys; returns per texel 2 where drawn. */
+export function drawHairStyle(keyed: Uint8ClampedArray | Uint8Array, width: number, frameW: number, geo: CoatGeometry, keys: KeyRoles, field: HairField, style: HairStyle): Uint8Array {
+  const kind = new Uint8Array(geo.frames * geo.fw * geo.fh);
+  const mane = (keys.mane ?? []).map((h) => Number.parseInt(h.slice(1), 16));
+  if (!mane.length) return kind;
+  const set = field.sets[style.wave ? 1 : 0];
+  const lv = hairLevels(style);
+  for (let f = 0; f < geo.frames; f++)
+    for (let y = 0; y < geo.fh; y++)
+      for (let x = 0; x < geo.fw; x++) {
+        const i = (f * geo.fh + y) * geo.fw + x;
+        const b = set[i]!;
+        if (!b || !hairShows(b, lv)) continue;
+        const k = hairKey(mane, (b >> 4) & 3);
+        const o = (y * width + f * frameW + x) * 4;
+        keyed[o] = (k >> 16) & 255;
+        keyed[o + 1] = (k >> 8) & 255;
+        keyed[o + 2] = k & 255;
+        keyed[o + 3] = 255;
+        kind[i] = 2;
+      }
+  return kind;
+}
+
+/**
+ * Everything for one keyed strip: grow the hair (the horse's mane and tail; a feathered horse's
+ * leg feathering, or its older long hair when the look has no hair style), recolour (the caller's
+ * recolour, in place on the RGBA it is given), paint the layers, then the body build (a warp of
+ * the painted strip, bodyBuild.ts). Returns the painted RGBA.
  */
 export function paintCoatStrip(
   keyedSrc: Uint8ClampedArray | Uint8Array,
@@ -458,10 +541,23 @@ export function paintCoatStrip(
 ): Uint8ClampedArray<ArrayBuffer> {
   const keyed = new Uint8ClampedArray(keyedSrc);
   const pattern = coatPatternOf(appearance);
-  const hair = pattern.feather ? drawLongHair(keyed, width, frameW, geo, keys, speed) : null;
-  const out = new Uint8ClampedArray(keyed);
+  let hair: Uint8Array | null = null;
+  if (pattern.hair) {
+    hair = drawHairStyle(keyed, width, frameW, geo, keys, sheetHairField(keyedSrc, width, frameW, geo, keys, speed), pattern.hair);
+    if (pattern.feather) {
+      const legs = drawLongHair(keyed, width, frameW, geo, keys, speed, 1);
+      for (let i = 0; i < legs.length; i++) if (legs[i]) hair[i] = legs[i]!;
+    }
+  }
+  let out = new Uint8ClampedArray(keyed);
   recolour(out);
   if (atlas) paintCoatLayers(out, keyed, width, frameW, geo, pattern, atlas, keys, hair);
+  const build = bodyBuildOf(appearance);
+  if (build) {
+    const anchors = sheetWarpAnchors(keyedSrc, width, frameW, geo, keys);
+    const t = buildTexels(build, anchors);
+    if (!isFlat(t)) out = warpStrip(out, width, frameW, geo, anchors, t, hair);
+  }
   return out;
 }
 

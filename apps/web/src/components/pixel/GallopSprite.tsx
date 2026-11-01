@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { HorseAppearance } from "@thoroughbred/shared";
+import { lookShapeKey } from "@thoroughbred/art-pipeline";
 import { artUrl } from "@/lib/art";
 import { COAT_ATLAS_SRC, coatAtlasOf, paintHorseSheet } from "../diorama/recolor";
 import { useArt } from "./ArtProvider";
@@ -47,7 +48,7 @@ export function GallopSprite({ appearance, scale = 2, fps = 14, className, still
   const ref = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const fw = art ? Math.round(art.w / FRAMES) : 0;
-  const key = `${appearance.coat}|${JSON.stringify(appearance.colour ?? null)}|${appearance.maneColor ?? ""}|${appearance.silks.primary}${appearance.silks.secondary}${appearance.silks.cap}|${appearance.face}|${appearance.legs.join(",")}|${appearance.feather ? 1 : 0}|${appearance.dun ? 1 : 0}`;
+  const key = `${appearance.coat}|${JSON.stringify(appearance.colour ?? null)}|${appearance.maneColor ?? ""}|${appearance.silks.primary}${appearance.silks.secondary}${appearance.silks.cap}|${appearance.face}|${appearance.legs.join(",")}|${appearance.feather ? 1 : 0}|${appearance.dun ? 1 : 0}${lookShapeKey(appearance)}`;
 
   useEffect(() => {
     if (!art) return;

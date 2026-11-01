@@ -7,6 +7,7 @@ import * as gc from "@thoroughbred/game-core";
 import { COURSES } from "@thoroughbred/game-core";
 import { renderFinalePortrait } from "@/components/RaceViewerClient";
 import { PaddockParade } from "@/components/race/PaddockParade";
+import { IDENTITY_HORSES, identityAppearance } from "@/dev/identityHorses";
 
 const STABLES = ["Hollow Oak Stud", "Brass Lantern Stables", "Fenwick Yard", "Marsh End Racing", "Kestrel House", "Copperbeech Farm", "Larkrise Stud", "Old Mill Stables"];
 
@@ -56,7 +57,7 @@ export interface HarnessParams {
   finale?: string;
   /** "1": the build-up before the off on a replay (starts 24 s before; use t=-24); "0": off for a live feed. */
   preoff?: string;
-  /** "showcase": the coat audit's showcase looks on the field. */
+  /** "showcase": the coat audit's showcase looks on the field; "identity": the identity set (builds and manes, src/dev/identityHorses). */
   coats?: string;
   /** "1": show the "Share clip" button under the viewer (settled replay; view=classic cuts the 3D view). */
   clip?: string;
@@ -117,6 +118,17 @@ function withShowcaseCoats(r: RaceReplay): RaceReplay {
   };
 }
 
+/** coats=identity: the field is the identity set (eight breeds, builds and manes from their own genes), in gate order. */
+function withIdentityHorses(r: RaceReplay): RaceReplay {
+  return {
+    ...r,
+    horses: r.horses.map((h, i) => {
+      const id = IDENTITY_HORSES[i % IDENTITY_HORSES.length]!;
+      return { ...h, name: id.name, appearance: { ...identityAppearance(id, i), rider: h.appearance.rider } };
+    }),
+  };
+}
+
 const num = (v: string | undefined, d: number) => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
 
 export function ViewerHarness({ params }: { params: HarnessParams }) {
@@ -136,7 +148,7 @@ export function ViewerHarness({ params }: { params: HarnessParams }) {
         sealed: true,
       });
       const rr = params.riders === "1" ? withHarnessRiders(r) : r;
-      return params.coats === "showcase" ? withShowcaseCoats(rr) : rr;
+      return params.coats === "showcase" ? withShowcaseCoats(rr) : params.coats === "identity" ? withIdentityHorses(rr) : rr;
     },
     [params.horses, params.seed, params.distance, params.weather, params.surface, course, params.hour, params.photo, params.spread, params.riders, params.coats],
   );

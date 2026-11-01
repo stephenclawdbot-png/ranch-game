@@ -1,4 +1,5 @@
 import * as gc from "@thoroughbred/game-core";
+import { BUILD_UNITS, HAIR_SHADES, MANE_LEVEL, MANE_UNIT, TAIL_LEVEL } from "@thoroughbred/art-pipeline";
 import { CoatSchema, FaceMarkingSchema, LegMarkingSchema, type Coat, type HorseAppearance, type Silks } from "@thoroughbred/shared";
 import { Callout, Facts, H2, H3, HorseCard, HorseRow, Lead, List, P, ShareBar, Table, WikiLink, appearanceOfGenome, sampleGenome, sampleOfCoat } from "../kit";
 
@@ -325,6 +326,37 @@ export default function CoatsAndMarkingsPage() {
         The horse page names the colour a grey was born as{greyBornAs ? <> (this one: &ldquo;Grey, born {greyBornAs.toLowerCase()}, greying with career&rdquo;)</> : null}. Under the grey it still carries
         those base genes and passes them on.
       </P>
+      <Callout tone="rule" title="In the game, greying follows the racing career; real horses grey with age">
+        <p>
+          A real grey Thoroughbred is born coloured and greys year by year, whatever it does: most look white somewhere between about six and ten years old, and some never fully whiten. In Post
+          Time a grey greys with its <b>racing career</b> instead: greying as a foal, dapple grey while racing, fully grey after <b>{gc.GREY_WHITE_AT_STARTS} starts</b> or when it retires, so you can
+          read a grey&rsquo;s career on its coat. That is a game rule, chosen on purpose; the genetics underneath (one copy of G is enough, the base colour stays hidden under it) are the real ones.
+        </p>
+      </Callout>
+
+      <H2 id="coat-class">Thoroughbred colours and the coat tag</H2>
+      <P>
+        The horse page and the breeding preview put a small tag beside each coat. It follows The Jockey Club&rsquo;s colour guide (<i>Principal Rules and Requirements of The American Stud Book</i>,
+        Section IV), which recognises exactly these Thoroughbred colours: bay, dark bay or brown, black, chestnut, gray or roan, palomino and white. White face and leg markings are normal; body
+        patterns such as pinto and spotted coats are not recognised by the mainstream Thoroughbred registries.
+      </P>
+      <Table
+        caption="The tag, from the coat the horse shows (never its hidden genes)"
+        head={["Tag", "Coats"]}
+        rows={[
+          ["Thoroughbred colour", "Bay, seal brown (dark bay or brown), black, chestnut, liver chestnut, grey at any stage; sooty or flaxen shading; any face and leg markings"],
+          ["Rare in Thoroughbreds", "Roan, palomino, sabino white, dominant white, rabicano, Bend Or and Birdcatcher spots, pangaré, brindle"],
+          [
+            "A breed's colour",
+            `Buckskin and the other cream coats, dun, champagne, silver, pearl, tobiano, leopard, splash and feathering: named after the horse's own breed when it carries the gene, else the breed that carries it most (for example tobiano: ${gc.coatClassOf({ coat: "bay", colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, tobiano: 1 } }).tag}; leopard: ${gc.coatClassOf({ coat: "bay", colour: { base: "bay", cream: 0, dun: false, roan: false, grey: "none", sabino: 0, leopard: "leopard" } }).tag})`,
+          ],
+          ["Not a Thoroughbred colour", "Mushroom (no breed in the game carries it as its own)"],
+        ]}
+      />
+      <P>
+        The tag is information, not a rule: a tobiano Thoroughbred cross races exactly like a bay one. Under it the horse page names the look the horse most plainly shares with a parent (&ldquo;Blaze
+        from her dam, Fair Wind&rdquo;), read from the three horses&rsquo; looks alone, as the foal reveal does.
+      </P>
 
       <H2 id="markings">White markings</H2>
       <P>
@@ -430,10 +462,56 @@ export default function CoatsAndMarkingsPage() {
         ))}
       </HorseRow>
       <P>
-        <b>Long hair.</b> A horse with two copies of the feathering gene (fe/fe) grows a long wavy mane and forelock, a thick tail to near the ground and feathered lower legs. It is
+        <b>Long hair.</b> A horse with two copies of the feathering gene (fe/fe) grows a long mane and forelock, a full tail to near the ground and feathered lower legs. It is
         drawn on top of its coat in every view and moves with it: streaming back at a gallop, hanging and swaying at a walk. The feathering takes the colour of the leg under it, so
-        it is white over a sock or stocking. Any breed can carry it; every Friesian has it.
+        it is white over a sock or stocking. Any breed can carry it; every Friesian has it. Feathered horses still differ from each other: thick or fine, straight or wavy (see the next section).
       </P>
+
+      <H2 id="build-and-mane">Build, mane and tail</H2>
+      <P>
+        Two horses of one colour are not twins. Every horse has a <b>build</b> and a <b>mane and tail</b> of its own, read from genes it already carries, drawn the same way in every view: race,
+        3D, paddock, yard, gallop sprite, photo finish, share cards and the portrait. They are looks only: no race, breeding or sale rule reads them, so a leggy horse runs exactly as it would
+        with the painted body.
+      </P>
+      <Table
+        caption="Build: five steps from -2 to +2 (0 is the painted horse)"
+        head={["Part", "From", "One step on the race sprite"]}
+        rows={[
+          ["Legs", "The leg-length genes and the breed (with half the height step)", `${Math.round(BUILD_UNITS.leg * 100)}% of the barrel depth: longer legs, a higher belly line`],
+          ["Girth", "The girth genes and the breed", `${Math.round(BUILD_UNITS.girth * 100)}% of the barrel depth between the legs: a deeper or lighter barrel`],
+          ["Neck", "The neck-length genes and the breed", `${Math.round(BUILD_UNITS.neck * 100)}% of the barrel depth: a longer neck carries the head higher (never off the grass when grazing)`],
+          ["Height", `Size: breed, the polygenic height genes and the Ht gene (${gc.BUILD_HEIGHT_STEP} permille of size per step around +${gc.BUILD_HEIGHT_ZERO})`, "Reads as leg length on the sprites; a little larger head on the portrait"],
+          ["Head", "The head-size genes and the breed", "Muzzle, jaw and ears on the 3/4 portrait"],
+        ]}
+      />
+      <P>
+        The steps come from each gene pair&rsquo;s average plus the breed&rsquo;s own offset, a quarter of the gene&rsquo;s range per step. So Akhal-Tekes run long-legged and long-necked, Quarter Horses short
+        and deep, Friesians and Warmbloods big, Arabians and Mustangs small, and two horses of one breed still differ. The sprites are reshaped inside their own frame, whole pixels only: the
+        hooves stay on the ground line, and every marking and pattern moves with the body.
+      </P>
+      <Table
+        caption="Mane and tail by breed (a cross takes the mix of its breeds)"
+        head={["Breed", "Mane", "Tail", "Thick", "Wavy"]}
+        rows={gc.BREEDS.map((b) => {
+          const h = gc.BREED_HAIR[b];
+          return [gc.BREED_LABEL[b], ["pulled", "short", "medium", "long"][h.mane]!, ["as painted", "full", "long"][h.tail]!, `${Math.round(h.thick / 10)}%`, `${Math.round(h.wave / 10)}%`];
+        })}
+      />
+      <List
+        items={[
+          <>
+            <b>Mane</b>: pulled (the racing mane as painted), short, medium or long, each the shorter one grown on ({MANE_LEVEL.slice(1).map((l) => `${Math.round(l * MANE_UNIT * 100)}%`).join(", ")} of the barrel depth); a forelock grows from the medium mane up.
+          </>,
+          <>
+            <b>Tail</b>: as painted, full (about {Math.round(TAIL_LEVEL[1] * 10)}% of the painted tail&rsquo;s length) or long ({Math.round(TAIL_LEVEL[2] * 10)}%, to near the ground at rest).
+          </>,
+          <>
+            <b>Thick or fine, straight or wavy</b>: from the breed and the horse&rsquo;s own marking seed. The mane and tail variant genes nudge the length up or down, and one horse in five of a breed grows its
+            mane a step longer or shorter than the breed. Feathered horses (fe/fe) always have the long mane and tail.
+          </>,
+          <>The hair is drawn in {HAIR_SHADES.length} shades of the horse&rsquo;s own mane colour, so a flaxen or silver mane stays flaxen or silver.</>,
+        ]}
+      />
 
       <H2 id="genetics-panel">Reading the Genetics panel</H2>
       <P>

@@ -11,3 +11,6 @@ export * from "./portraitCoat";
 export * from "./coatSheets";
 export * from "./longHair";
 export * from "./saddleCloth";
+export * from "./bodyBuild";
+export * from "./islands";
+export * from "./flatLegs";

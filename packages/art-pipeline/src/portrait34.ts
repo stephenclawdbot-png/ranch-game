@@ -17,6 +17,7 @@
  * so they ride with the head through the loop. Everything is integer-indexed and seeded
  * only by the genes: the same appearance always gives the same pixels.
  */
+import { lookShapeKey } from "./bodyBuild";
 import type { FaceMarking, HorseAppearance } from "@thoroughbred/shared";
 import { MARKING_WHITE, resolveHorseColors } from "./palettes";
 import { coatPatternOf, layerAt, tickAt, type CoatAtlas, type CoatPattern } from "./coatLayers";
@@ -158,6 +159,8 @@ export function portraitCacheKey(appearance: HorseAppearance, scale: string | nu
     face: appearance.face,
     maneColor: appearance.maneColor,
     colour: appearance.colour,
+    // body build and mane (bodyBuild.ts): absent for older looks, so their keys stay as they were
+    shape: lookShapeKey(appearance) || undefined,
     scale: String(scale),
   });
 }
@@ -423,6 +426,8 @@ function rampLut(stops: RampStops, scale = 1): Lut {
 }
 
 const WHITE_HAIR = "#f4f1e8";
+/** The portrait's mane reach (share of the neck depth H) per mane style (0 = the painted mane). */
+const PORTRAIT_MANE_REACH = [0, 0.22, 0.36, 0.5] as const;
 /** Summed |RGB| gap above which a loop-frame pixel is not what its fixed-role source shows. */
 const LOOP_MISMATCH = 90;
 const PINK_SKIN = { shade: "#a8776c", base: "#d9a99a", highlight: "#f0c9bc" };
@@ -743,16 +748,21 @@ function coatLayersAt(
   if (!reg) return { rgb: [r, g, b], white: false };
   const pat = look.pattern;
   let isHair = role === R.mane;
-  // the feathered horse's long hair (the strips' longHair rules): a long wavy mane hanging from the
-  // crest past halfway down the neck, and a longer forelock down the forehead
-  if (pat.feather && role !== R.eye && role !== R.innerEar) {
+  // the long hair (the strips' rules): a feathered horse's long wavy mane hanging from the crest
+  // past halfway down the neck and a longer forelock; with a hair style (V-05), the horse's own
+  // mane length, thickness and wave (none for a pulled mane: the painting's own)
+  const hs = pat.hair;
+  const maneReach = hs ? PORTRAIT_MANE_REACH[hs.mane] ?? 0 : pat.feather ? 0.5 : 0;
+  if (maneReach && role !== R.eye && role !== R.innerEar) {
     const u = geo.u[p]!;
     const v = geo.v[p]!;
     const t = geo.p1[p]!;
     const e = geo.p2[p]!;
-    const reach = geo.H * (0.5 + 0.06 * Math.sin(u / 4));
-    const maneHair = reg === GEO_REGION.body && v < reach - Math.abs(Math.sin(u / 2.2)) * 3;
-    const forelock = reg === GEO_REGION.face && t < 0.34 && e < 7 * (1 - t / 0.4) + 1;
+    const reach = geo.H * (maneReach + (hs?.thick ? 0.04 : 0) + 0.06 * Math.sin(u / 4));
+    const waveAmp = hs ? (hs.wave ? 4 : 1.5) : 3;
+    const maneHair = reg === GEO_REGION.body && v < reach - Math.abs(Math.sin(u / 2.2)) * waveAmp;
+    const fore = hs ? (hs.mane >= 2 ? (hs.mane === 3 ? 0.34 : 0.22) : 0) : 0.34;
+    const forelock = reg === GEO_REGION.face && t < fore && e < 7 * (1 - t / 0.4) + 1;
     if (maneHair || forelock) {
       // strands: a darker line every few pixels along the hair's fall
       const strand = (Math.floor((u + v * 0.35) / 2) % 3 === 0 ? 0.78 : 1) * (maneHair ? 1 - (v / reach) * 0.15 : 1);

@@ -38,6 +38,7 @@ import { lookFor, type TracksideLook } from "./looks";
 import { finishTilt, sceneryFor } from "./scenery";
 import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "./strips";
 import * as S from "./shaders";
+import { RunnerShape, shapeUniforms } from "./shape";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
 import { buildRaceStage, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
@@ -131,6 +132,8 @@ interface Runner {
   strip: StripSet | null;
   lod: number;
   rect: { x: number; y: number; w: number; h: number };
+  /** Body build and mane / tail (shape.ts). */
+  shape: RunnerShape;
 }
 
 interface GapMark {
@@ -655,10 +658,12 @@ export class TracksideScene {
         uTint: { value: new T.Vector4(tint[0], tint[1], tint[2], look.spriteTint[1]) },
         uOpacity: { value: 1 },
         uClothNum: { value: 0 },
+        ...shapeUniforms(T, h.appearance),
       });
       const r: Runner = {
         index: i,
         horseId: h.horseId,
+        shape: new RunnerShape(h.appearance),
         mat,
         mesh: this.quad(mat, O.horse + i),
         shadow: this.quad(shadowMat, O.shadow),
@@ -1253,6 +1258,7 @@ export class TracksideScene {
       u.uLodS!.value = r.lod;
       const sb = st.silk;
       (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
+      r.shape.apply(u, st, frame);
       this.place(r.mesh, x, y, w, h);
       r.rect = { x: x / B, y: y / B, w: w / B, h: h / B };
       u.uClothNum!.value = clothNumberShown(w / B, r.lod) ? 1 : 0;

@@ -10,8 +10,9 @@
  * The genetics-v2 genes (docs/genetics-v2.md) are stud-book DNA tests: public like the coat,
  * with one exception. Big heart stays unknown until the horse races or is scanned.
  */
+import { coatClassOf, type CoatClass } from "./coatClass";
 import type { FaceMarking, HorseAppearance, LegMarking } from "@thoroughbred/shared";
-import { adultCoatName, adultFullCoatName } from "./coat";
+import { adultCoatName, adultFullCoatName, appearanceOf } from "./coat";
 import { FLAXEN_SHOWS, PANGARE_SHOWS, SOOTY_HEAVY, SOOTY_LIGHT, cosmeticOf, rareShows, shadeSum } from "./cosmetic";
 import { BIG_HEART_STAMINA, IRON_LEGS_RISK, MSTN_STAT_SHIFT, MSTN_TRIP_M, SIZE_PER_HT_PERMILLE, isFragile, mstnType, sizePermille, sizeStatDelta } from "./genome";
 import { BREEDS, QUIRK_KEYS, STAT_KEYS, type Breed, type BreedShares, type Genome, type QuirkKey } from "./types";
@@ -27,7 +28,7 @@ export interface GeneLine {
 
 export interface GeneticsSummary {
   /** Phenotype, plus the colour a grey was born as (null for non-greys). */
-  coat: { name: string; bornAs: string | null; loci: GeneLine[]; fullName?: string };
+  coat: { name: string; bornAs: string | null; loci: GeneLine[]; fullName?: string; class?: CoatClass };
   /** Cosmetic shade modifiers and rare colours (stud-book DNA tests, public like the coat). */
   cosmetic?: GeneLine[];
   /** The 14 genetics-v2 loci (colour/pattern, body and performance genes). */
@@ -411,6 +412,8 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
       bornAs: grey ? adultCoatName({ ...genome.coat, grey: ["n", "n"] }) : null,
       loci: coatLoci(genome),
       fullName: adultFullCoatName(genome),
+      // Thoroughbred colour, rare in Thoroughbreds, or another breed's colour (coatClass.ts)
+      class: coatClassOf(appearanceOf(genome, { racingAge: true, starts: 0, retired: false }, { primary: "#000000", secondary: "#000000", pattern: "solid", cap: "#000000" })),
     },
     cosmetic: cosmeticLoci(genome),
     genes2: genes2Loci(genome, !!opts.heartKnown),
@@ -424,7 +427,7 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
     breed,
     breedLabel: label,
     breedLine: `${label} — ${breed.map((b) => `${b.share}% ${BREED_LABEL[b.key]}`).join(" · ")}`,
-    build: buildOf(genome),
+    build: buildWords(genome),
     inbreeding: { permille: genome.coi, text: genome.coi === 0 ? "None" : genome.coi % 10 === 0 ? `${Math.floor(genome.coi / 10)}%` : `${Math.floor(genome.coi / 10)}.${genome.coi % 10}%` },
     quirks: QUIRK_KEYS.filter((q) => revealed.has(q)).map((q) => ({ key: q, label: QUIRK_LABEL[q] })),
     fragile: isFragile(genome),
@@ -432,7 +435,7 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
 }
 
 /** The 2–3 strongest morph tendencies as words, always at least two. */
-function buildOf(genome: Genome): string {
+function buildWords(genome: Genome): string {
   const scored = Object.keys(BUILD_WORDS).map((k) => {
     const mean = (genome.morph[k as keyof Genome["morph"]][0] + genome.morph[k as keyof Genome["morph"]][1]) / 2000; // -1..1
     return { k, mag: Math.abs(mean), word: BUILD_WORDS[k]![mean >= 0 ? 0 : 1] };

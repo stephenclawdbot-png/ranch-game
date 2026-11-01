@@ -427,6 +427,59 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
     assign(grouped.filter((l) => l.centre < split));
     assign(grouped.filter((l) => l.centre >= split));
     const effTop = belly - 6;
+    const alongLeg = (cols: number[], reg: number) => {
+      const top = Math.max(0, Math.round(effTop));
+      const mine = (x: number, y: number) => x >= 0 && y >= 0 && x < fw && y < fh && region[at(x, y)] === reg && !outside[at(x, y)];
+      // where the leg leaves the body: its texels on the top rows, under the barrel
+      const dist = new Map<number, number>();
+      let queue: number[] = [];
+      for (const x of cols)
+        for (let y = top; y <= top + 2; y++)
+          if (mine(x, y)) {
+            dist.set(at(x, y), 0);
+            queue.push(at(x, y));
+          }
+      // a short "leg" that never reaches up to the belly is a scrap of the barrel's underside
+      // (a longer one keeps its height down the column)
+      if (!queue.length) {
+        let y0 = fh;
+        let y1 = -1;
+        for (const x of cols)
+          for (let y = top; y < fh; y++)
+            if (mine(x, y)) {
+              y0 = Math.min(y0, y);
+              y1 = Math.max(y1, y);
+            }
+        if (y1 - y0 < H * 0.6) for (const x of cols) for (let y = top; y < fh; y++) if (mine(x, y)) p1[at(x, y)] = 1;
+        return;
+      }
+      let d = 0;
+      while (queue.length) {
+        const next: number[] = [];
+        d++;
+        for (const i of queue) {
+          const x = (i - base) % fw;
+          const y = ((i - base) / fw) | 0;
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              if (!mine(x + dx, y + dy)) continue;
+              const q = at(x + dx, y + dy);
+              if (dist.has(q)) continue;
+              dist.set(q, d);
+              next.push(q);
+            }
+        }
+        queue = next;
+      }
+      const far = d - 1;
+      // a "leg" this short is the barrel sagging below the belly line (under the girth, in a
+      // bunched stride): all of it is the top of the leg, where no leg marking reaches
+      if (far < H * 0.6) {
+        for (const i of dist.keys()) p1[i] = 1;
+        return;
+      }
+      for (const [i, k] of dist) p1[i] = Math.max(p1[i]!, 1 - k / far);
+    };
     for (const l of grouped) {
       const reg = l.centre >= split ? (l.near ? GEO_REGION.frontNear : GEO_REGION.frontFar) : l.near ? GEO_REGION.hindNear : GEO_REGION.hindFar;
       // per row: the leg's extent (for s and for hair candidates)
@@ -450,6 +503,11 @@ export function buildCoatGeometry(grid: RoleGrid): CoatGeometry {
           rows.set(y, r ? [Math.min(r[0], x), Math.max(r[1], x)] : [x, x]);
         }
       }
+      // g down a column only holds for a leg that hangs upright: a leg reaching out flat or folded
+      // under the chest has short columns up to the elbow or stifle, which would read as lower leg
+      // (a stocking would whiten the forearm up to the belly). Along the leg from where it leaves
+      // the body to its far end (the hoof) gives the leg's true height; a texel keeps the higher.
+      alongLeg(l.cols, reg);
       for (const [y, [a, b]] of rows) {
         const c = (a + b) / 2;
         for (let x = a; x <= b; x++) {

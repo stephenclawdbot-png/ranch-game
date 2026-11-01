@@ -503,6 +503,8 @@ export interface HorseDetailView {
   /** A sire's offspring splits (stallions with runners only). */
   sireLine: { runners: number; splits: SplitsView } | null;
   pedigree: { sire: { id: string; name: string; regNo: string | null } | null; dam: { id: string; name: string; regNo: string | null } | null };
+  /** The look this horse most plainly shares with a parent, in words ("Blaze from her dam, Fair Wind"); null when none or no parents. */
+  familyLine?: string | null;
   /** Three generations of ancestors above this horse (null parent = foundation stock). */
   tree: PedigreeNode;
   /** Standing at public stud (a player's stallion or a Club house stallion). */
@@ -573,6 +575,8 @@ export interface MyRaceResult {
     atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
     /** An injury picked up in this race, named (game-core injuries.ts). */
     injury?: InjuryCard | null;
+    /** A win that was the stable's first, or the horse's first (the owner's moment, V-08); null otherwise. */
+    firstWinOf?: "stable" | "horse" | null;
   }[];
 }
 

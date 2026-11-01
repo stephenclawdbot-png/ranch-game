@@ -114,6 +114,31 @@ describe("Story mode", () => {
     expect(view.horses.find((x) => x.id === created.horseId)?.starts).toBe(0);
   });
 
+  it("a win says whose first it was: the stable's first winner, then each horse's first (the owner's moment, V-08)", { timeout: 240_000 }, async () => {
+    const p = await player("First Win Stable");
+    const winsByHorse = new Map<string, number>();
+    let stableWins = 0;
+    let checked = 0;
+    for (let i = 0; i < 14 && checked < 2; i++) {
+      // a horse can be hurt or tired out along the way: stop when none can race
+      const created = await createStoryRace(h.db, p, { instant: true }, at(i * 172_800_000)).catch(() => null);
+      if (!created) break;
+      const r = (await myRaceResult(h.db, p, created.raceId, at(i * 172_800_000 + 1000))).runners[0]!;
+      if (r.position !== 1) {
+        expect(r.firstWinOf ?? null).toBeNull();
+        continue;
+      }
+      stableWins++;
+      const n = (winsByHorse.get(r.horseId) ?? 0) + 1;
+      winsByHorse.set(r.horseId, n);
+      expect(r.firstWinOf).toBe(stableWins === 1 ? "stable" : n === 1 ? "horse" : null);
+      // the same result read again says the same (the browser shows the moment once)
+      expect((await myRaceResult(h.db, p, created.raceId, at(i * 172_800_000 + 2000))).runners[0]!.firstWinOf).toBe(r.firstWinOf);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it("a watched Story race withholds its replay until the broadcast is over", { timeout: 60_000 }, async () => {
     const p = await player("Watcher");
     const created = await createStoryRace(h.db, p, {}, T0);

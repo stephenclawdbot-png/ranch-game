@@ -12,6 +12,8 @@
   box-shadow: 0 0 0 4px #0b0f0c, inset 0 0 0 4px #4a2c18;
   image-rendering: pixelated;
 }
+/* The light from the open door: it flares as the foal pops in, then fades out (behind the foal),
+   so the end state is the foal in a clean stall (V-21). */
 .beam {
   position: absolute;
   left: 50%;
@@ -20,11 +22,13 @@
   width: 46%;
   transform: translateX(-50%);
   opacity: 0;
+  z-index: 0;
   background: repeating-linear-gradient(180deg, var(--beam) 0 4px, transparent 4px 8px);
-  animation: beam 420ms steps(4) 520ms forwards;
+  animation: beam 1400ms steps(8) 520ms forwards;
 }
 .foal {
   position: absolute;
+  z-index: 1;
   left: 50%;
   bottom: 18%;
   transform: translateX(-50%) scale(0.6);
@@ -61,7 +65,7 @@
 }
 .done .beam {
   animation: none;
-  opacity: 0.9;
+  opacity: 0;
 }
 .done .foal {
   animation: none;
@@ -83,8 +87,14 @@
   }
 }
 @keyframes beam {
-  to {
+  30% {
     opacity: 0.9;
+  }
+  60% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
   }
 }
 @keyframes foal {
@@ -110,4 +120,72 @@
 .banner.done {
   animation: none;
   opacity: 1;
+}
+
+/* Family likeness: the dam and sire beside the stall (under it on a narrow phone), and the lines
+   naming which looks came from whom. */
+.family {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) 6rem;
+  align-items: end;
+  gap: 0.5rem;
+}
+.family .stage {
+  width: 100%;
+}
+.parent {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  text-align: center;
+  opacity: 0.35;
+  transition: opacity 240ms steps(3);
+}
+.parent.done {
+  opacity: 0.8;
+}
+.parent.done.cited {
+  opacity: 1;
+  outline: 2px dotted var(--color-brass, #d9a441);
+  outline-offset: 3px;
+}
+.likeness {
+  border-top: 2px dotted var(--color-brass, #d9a441);
+  padding-top: 0.5rem;
+}
+.line {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: center;
+  text-align: center;
+}
+.line[data-from="dam"] {
+  justify-content: flex-start;
+  text-align: left;
+}
+.line[data-from="sire"] {
+  justify-content: flex-end;
+  text-align: right;
+  flex-direction: row-reverse;
+}
+.arrow {
+  color: var(--color-brass, #d9a441);
+  font-size: 0.7em;
+}
+@media (max-width: 420px) {
+  .family {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "stage stage" "dam sire";
+  }
+  .family .stage {
+    grid-area: stage;
+  }
+  .family .parent[data-testid="reveal-dam"] {
+    grid-area: dam;
+  }
+  .family .parent[data-testid="reveal-sire"] {
+    grid-area: sire;
+  }
 }

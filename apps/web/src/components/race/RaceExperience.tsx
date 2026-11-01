@@ -146,7 +146,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
       .then((res) => {
         const r = res?.runners.find((x) => x.horseId === mine.horse.id) ?? res?.runners[0];
         if (cancelled || !res || !r) return;
-        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter, ratingWhy: r.ratingWhy ?? null, atOff: r.atOff ?? null, injury: r.injury ?? null });
+        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter, ratingWhy: r.ratingWhy ?? null, atOff: r.atOff ?? null, injury: r.injury ?? null, firstWinOf: r.firstWinOf ?? null });
         void refreshPlayer().catch(() => undefined);
       })
       .catch(() => undefined);

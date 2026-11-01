@@ -24,6 +24,8 @@ import { RewardCounter } from "./RewardCounter";
 import { Verdict } from "./Verdict";
 import { WhyCard } from "./WhyCard";
 import { WhyRead } from "../onboarding/WhyRead";
+import { FirstWinMoment } from "../moments/FirstWinMoment";
+import { claimFirstWinMoment, type FirstWinOf } from "@/lib/firstWin";
 
 export interface Settlement {
   /** Credits this result paid (purse + Story reward), settled on the server. */
@@ -41,6 +43,8 @@ export interface Settlement {
   atOff?: { fatigue: number; hoursSinceHardWork: number | null } | null;
   /** An injury picked up in this race, named (shown under the result). */
   injury?: InjuryCard | null;
+  /** This win was the stable's first, or the horse's first (the owner's moment, V-08). */
+  firstWinOf?: FirstWinOf | null;
 }
 
 /** podium -> rewards -> why -> next (each stage stays; the sequence never loops). */
@@ -158,6 +162,19 @@ export function ResultsSequence({
   const at = (s: Stage) => STAGES.indexOf(stage) >= STAGES.indexOf(s);
   const won = settlement?.position === 1;
 
+  // The owner's moment for a first win (V-08): once per horse, on the fresh result only
+  const [moment, setMoment] = useState<FirstWinOf | null>(null);
+  useEffect(() => {
+    if (!mine || !settlement || settlement.position !== 1 || !settlement.firstWinOf) return;
+    let store: Storage | null = null;
+    try {
+      store = window.localStorage;
+    } catch {
+      store = null;
+    }
+    if (claimFirstWinMoment({ horseId: mine.horse.id, firstWinOf: settlement.firstWinOf, fresh: settlement.fresh }, store)) setMoment(settlement.firstWinOf);
+  }, [mine, settlement]);
+
   return (
     <div ref={rootRef} className="relative grid scroll-mt-28 gap-4" data-testid="results-sequence">
       {stage !== "next" && (
@@ -177,6 +194,18 @@ export function ResultsSequence({
           <PhotoFinishCard replay={replay} card={card} highlightHorseId={highlightHorseId} settlement={null} />
           <ResultBoard replay={replay} card={card} highlightHorseId={highlightHorseId} />
         </>
+      )}
+      {mine && moment && (
+        <FirstWinMoment
+          of={moment}
+          horseId={mine.horse.id}
+          horseName={mine.horse.name}
+          appearance={mine.horse.appearance}
+          stableName={mine.stableName ?? null}
+          raceName={card.config.name}
+          onShare={() => rootRef.current?.querySelector<HTMLButtonElement>('[data-testid="save-photo-card"]')?.click()}
+          onClose={() => setMoment(null)}
+        />
       )}
       {mine && settlement && at("reward") && (
         <div className="fade-up">
