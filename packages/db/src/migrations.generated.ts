@@ -211,5 +211,11 @@ export const MIGRATIONS: readonly BundledMigration[] = [
     "when": 1793477872375,
     "hash": "b61ad7fd5c72665041c1ce2fb990c921c1a811320d9f2c5e14a89ca01f617e18",
     "sql": "CREATE TABLE \"commentary_names\" (\n\t\"name_key\" text NOT NULL,\n\t\"caster\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"recipe\" integer NOT NULL,\n\t\"calm\" \"bytea\" NOT NULL,\n\t\"building\" \"bytea\" NOT NULL,\n\t\"climax\" \"bytea\" NOT NULL,\n\t\"bytes\" integer NOT NULL,\n\t\"created_at\" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT \"commentary_names_name_key_caster_pk\" PRIMARY KEY(\"name_key\",\"caster\"),\n\tCONSTRAINT \"commentary_names_bytes\" CHECK (\"commentary_names\".\"bytes\" > 0 and \"commentary_names\".\"bytes\" <= 98304)\n);\n"
+  },
+  {
+    "tag": "0035_jockeys_reset_to_e",
+    "when": 1793514900941,
+    "hash": "53885bff1d592be52f18adf5e830b77bb2482fc432faf487f7c8afdb79e7aec5",
+    "sql": "-- Every active jockey back to grade E (owner, 2026-11-01: \"everyone starts at E\" and jockeys grew too fast).\n-- Jockeys made before the grade-E start, or grown under the old growth speed, kept grades A-D. Each skill\n-- drops into the starting range (120..280, game-core JOCKEY_START_SKILL_MAX), to its own fixed value per\n-- jockey and skill; a skill already lower stays as it is. Potential, rides, wins, experience and history\n-- are untouched, so a talented jockey can climb again at the new pace. Retired jockeys keep their record.\nUPDATE \"jockeys\"\nSET \"skills\" = jsonb_build_object(\n  'gate', LEAST((\"skills\"->>'gate')::int, 120 + mod(abs(hashtext(\"id\"::text || ':gate')), 161)),\n  'pace', LEAST((\"skills\"->>'pace')::int, 120 + mod(abs(hashtext(\"id\"::text || ':pace')), 161)),\n  'finish', LEAST((\"skills\"->>'finish')::int, 120 + mod(abs(hashtext(\"id\"::text || ':finish')), 161)),\n  'handling', LEAST((\"skills\"->>'handling')::int, 120 + mod(abs(hashtext(\"id\"::text || ':handling')), 161))\n)\nWHERE \"retired_at\" IS NULL;\n"
   }
 ];

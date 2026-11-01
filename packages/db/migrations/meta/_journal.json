@@ -246,6 +246,13 @@
       "when": 1793477872375,
       "tag": "0034_commentary_names",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793514900941,
+      "tag": "0035_jockeys_reset_to_e",
+      "breakpoints": true
     }
   ]
 }
