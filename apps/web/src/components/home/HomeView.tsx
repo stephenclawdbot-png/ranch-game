@@ -77,7 +77,7 @@ const CHAPTERS: { scene: "barn" | "paddock" | "grandstand"; eyebrow: string; tit
   },
   {
     scene: "grandstand",
-    eyebrow: "Live at Kestrel Downs",
+    eyebrow: "Live racing",
     title: `${MEETINGS_LINE}. Everyone watches the same finish.`,
     text: "Enter Live races against real stables. Every result is sealed before the off and replayable to the last stride.",
   },
@@ -470,7 +470,7 @@ function YourRace({ race, now, appearance }: { race: ActiveEntry; now: number; a
         )
       }
       title={`${race.horseName} is in the ${race.raceName}`}
-      body={race.kind === "live" ? "A Live race at Kestrel Downs: everyone watches the same finish." : "A Story race against the Club."}
+      body={race.kind === "live" ? "A Live race against real stables: everyone watches the same finish." : "A Story race against the Club."}
     >
       {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered raceId={race.raceId} />}
       <ActionBar>
