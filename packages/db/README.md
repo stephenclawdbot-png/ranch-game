@@ -123,8 +123,9 @@ backfill, and drop the old shape in a later release.
   watched. Events: `injury`, `back_in_race`, `training_ready`, `race_suits` (one digest per
   meeting, from `ensureRaceCard`), `listing_expired`, `foal_due`; `sweepNotifications` runs the time-driven ones.
 - **Phone alerts** (`push.ts`, Web Push with VAPID): kinds marked `push: true` (race soon / going
-  to post / Live result ready, back in the race, mare ready to foal, gift foal) also go to the
-  player's devices (`push_subscriptions`, per-device categories). `notify()` signals
+  to post / moved earlier (`race_moved`) / Live result ready, back in the race, mare ready to foal,
+  gift foal) also go to the player's devices (`push_subscriptions`, per-device categories).
+  `notify()` signals
   `onPushableNote`; the web app runs `deliverPushes` after the response, which claims each item once
   (`push_deliveries`), respects the bell's and the device's category switches, quiet hours
   22:00-08:00 local (unless the entered race runs then), `PUSH_DAILY_CAP` a day and duplicate

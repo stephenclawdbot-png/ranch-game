@@ -4,9 +4,10 @@
  *
  *   race_soon     your Live race goes off in 10 minutes
  *   race_off      your Live race is going to post
+ *   race_moved    your Live race was brought forward (it filled up, or the admin started it early)
  *   race_result   your Live result is ready to watch (never the placing: the text is neutral)
  *   back_in_race  a horse has recovered from injury
- *   foal_due      a mare is ready to foal
+ *   foal_due      a mare is ready to foal (the foal is here to meet and name)
  *   gift_foal     the Club's gift foal arrived
  *
  * (INBOX_KINDS entries with `push: true`.) Everything else stays in the bell.
@@ -23,7 +24,8 @@
  *     player entered that itself runs in those hours;
  *   - the account already had PUSH_DAILY_CAP alerts today (its local day);
  *   - it repeats an alert just sent (same kind and tag), or another item of the batch (two horses
- *     in one race: one alert);
+ *     in one race: one alert); a "goes off in 10 minutes" right after "moved earlier" for the same
+ *     race says nothing new, so it is a duplicate too;
  *   - it is stale (the race already went off, the result was already watched) or held back by the
  *     no-spoiler rule (it came out of a race whose result is still unwatched).
  * Alerts carry a tag (one per race / horse event): a later alert with the same tag replaces the
@@ -64,7 +66,9 @@ const BATCH = 200;
 export const PUSH_CATEGORIES: readonly NotificationCategory[] = NOTIFICATION_CATEGORIES.map((c) => c.key).filter((k) => PUSH_KINDS.some((kind) => INBOX_KINDS[kind].category === k));
 
 /** The race-day kinds: allowed in quiet hours when the race itself runs then. */
-const RACE_KINDS: readonly InboxKind[] = ["race_soon", "race_off", "race_result"];
+const RACE_KINDS: readonly InboxKind[] = ["race_soon", "race_off", "race_moved", "race_result"];
+/** Pre-race kinds: pointless once the race has gone off. */
+const BEFORE_OFF_KINDS: readonly InboxKind[] = ["race_soon", "race_moved"];
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -251,10 +255,12 @@ export function pushMessageFor(item: PushItem): PushMessage {
       return { ...base, title: "Your Live race is coming up", body: neutral };
     case "race_off":
       return { ...base, title: "Going to post", body: neutral };
+    case "race_moved":
+      return { ...base, title: "Your Live race moved earlier", body: neutral };
     case "back_in_race":
       return { ...base, title: "Back in the race", body: neutral };
     case "foal_due":
-      return { ...base, title: "A foal is on the way", body: neutral };
+      return { ...base, title: "Your foal is here", body: neutral };
     case "gift_foal": {
       const name = neutral.split(": ").slice(1).join(": ").trim();
       return { ...base, title: "A gift foal from the Club", body: name ? `${name} is waiting for you in the nursery.` : "Your gift foal is waiting for you in the nursery." };
@@ -319,7 +325,7 @@ export const fetchTransport: PushTransport = async (req) => {
 
 /** How long the push service may hold an alert for an offline device. */
 function ttlSeconds(item: { kind: string }, postTime: Date | null, now: Date): number {
-  if (item.kind === "race_soon" && postTime) return Math.max(60, Math.floor((postTime.getTime() - now.getTime()) / 1000));
+  if ((item.kind === "race_soon" || item.kind === "race_moved") && postTime) return Math.max(60, Math.floor((postTime.getTime() - now.getTime()) / 1000));
   if (item.kind === "race_off") return Math.floor(RACE_OFF_STALE_MS / 1000);
   if (item.kind === "race_result") return 6 * 3600;
   return 24 * 3600;
@@ -449,6 +455,8 @@ async function deliverForAccount(
   const today = safeLocalDate(tz, now);
   let sentToday = recent.filter((r) => safeLocalDate(tz, r.createdAt) === today).length;
   const sentKeys = new Set(recent.filter((r) => r.createdAt.getTime() > now.getTime() - PUSH_DUPLICATE_MS).map((r) => `${r.kind}|${r.tag}`));
+  // "Moved earlier" already said when it goes off: a "goes off in 10 minutes" for that race adds nothing.
+  for (const k of [...sentKeys]) if (k.startsWith("race_moved|")) sentKeys.add(`race_soon|${k.slice("race_moved|".length)}`);
 
   // Items that came out of a race (data.raceId) while that result is unwatched stay quiet (the bell holds them too).
   const heldRaces = new Set<string>();
@@ -474,7 +482,7 @@ async function deliverForAccount(
     let status: PushStatus | null = null;
     if (latest.get(key) !== it) status = "duplicate";
     else if (RACE_KINDS.includes(kind) && it.raceId && !isLiveRace) status = "stale"; // Story / quick races: the player is there
-    else if (kind === "race_soon" && it.postTime && now >= it.postTime) status = "stale";
+    else if (BEFORE_OFF_KINDS.includes(kind) && it.postTime && now >= it.postTime) status = "stale";
     else if (kind === "race_off" && it.postTime && now.getTime() > it.postTime.getTime() + RACE_OFF_STALE_MS) status = "stale";
     else if (kind === "race_result" && it.readAt) status = "stale"; // already watched
     else if (disabled.includes(category)) status = "off";
@@ -497,7 +505,7 @@ async function deliverForAccount(
     const ttl = ttlSeconds(it, it.postTime, now);
     let ok = false;
     for (const d of targets) {
-      const outcome = await sendToDevice(db, config, transport, d, msg, { ttl, urgent: kind === "race_soon" || kind === "race_off" }, now);
+      const outcome = await sendToDevice(db, config, transport, d, msg, { ttl, urgent: kind === "race_soon" || kind === "race_off" || kind === "race_moved" }, now);
       if (outcome === "ok") ok = true;
       if (outcome === "removed") {
         report.devicesRemoved++;
@@ -508,6 +516,7 @@ async function deliverForAccount(
     if (ok) {
       sentToday++;
       sentKeys.add(key);
+      if (kind === "race_moved") sentKeys.add(`race_soon|${pushTag(it)}`);
     }
   }
 }

@@ -230,7 +230,7 @@ function PushFooter({ push }: { push: PushState }) {
           <button type="button" className="link justify-self-start" disabled={push.busy === "on"} onClick={() => void push.turnOn()} data-testid="push-on">
             {push.busy === "on" ? "Turning on…" : "Turn on phone alerts"}
           </button>
-          <p className="t-meta">A ping on this device when your race goes to post, your result is ready to watch, a foal arrives or a horse is back from injury. Never at night, a few a day at most.</p>
+          <p className="t-meta">A ping on this device when your Live race goes to post or is moved earlier, your result is ready to watch, a foal arrives or a horse is back from injury. Quiet at night, a few a day at most.</p>
           {push.note && (
             <p className="t-meta" role="status">
               {push.note}

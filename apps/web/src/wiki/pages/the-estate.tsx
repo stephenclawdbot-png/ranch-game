@@ -192,7 +192,7 @@ export default function TheEstatePage() {
 
       <H2 id="phone-alerts">Phone alerts</H2>
       <P>
-        If you like, your phone or computer can ping you for the few things worth coming back for: your <b>Live race goes to post</b> (and 10 minutes before), your{" "}
+        If you like, your phone or computer can ping you for the few things worth coming back for: your <b>Live race goes to post</b> (and 10 minutes before, or when it is <b>moved earlier</b> because the field filled up), your{" "}
         <b>result is ready to watch</b> (it never says how your horse did), a <b>mare is ready to foal</b>, a <b>horse is back from injury</b> and the Club&rsquo;s <b>gift foal</b>.
         Everything else stays in the bell. Alerts stay quiet from {String(QUIET_FROM_HOUR).padStart(2, "0")}:00 to {String(QUIET_UNTIL_HOUR).padStart(2, "0")}:00 your time (unless a race
         you entered runs then), there are {PUSH_DAILY_CAP} a day at most, and a newer alert about the same race replaces the older one.

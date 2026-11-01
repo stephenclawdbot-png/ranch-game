@@ -10,9 +10,10 @@ import { eq } from "drizzle-orm";
 import webpush from "web-push";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { DbHandle } from "../client";
-import { accounts, pushDeliveries, pushSubscriptions } from "../schema";
+import { accounts, pushDeliveries, pushSubscriptions, races } from "../schema";
 import { breed } from "../services/breeding";
-import { createRace } from "../services/races";
+import { createRace, enterRace } from "../services/races";
+import { startRaceEarly } from "../services/startEarly";
 import { SLOT_KEY_PREFIX } from "../services/card";
 import { notify, onPushableNote, setNotificationPrefs, type InboxKind } from "../services/notifications";
 import { noteFoalsDueTx, sweepNotifications } from "../services/notificationEvents";
@@ -177,7 +178,7 @@ describe("delivery", () => {
     expect(await statusOf(b!)).toBe("device_off");
     expect(await statusOf(c!)).toBe("sent");
     expect(r.sent).toBe(1);
-    expect(read(svc.sent[0]!, p.device)).toMatchObject({ title: "A foal is on the way", url: "/breeding" });
+    expect(read(svc.sent[0]!, p.device)).toMatchObject({ title: "Your foal is here", url: "/breeding" });
   });
 
   it("stays quiet from 22:00 to 08:00 local, unless the race the player entered runs then", async () => {
@@ -309,6 +310,46 @@ describe("delivery", () => {
   });
 });
 
+describe("a Live race moved earlier", () => {
+  it("rings the entrant (race_moved), and the 10-minute reminder that follows adds nothing", async () => {
+    const p = await playerWithDevice();
+    const horse = await makeHorse(h.db, p.stableId, { rating: 40 });
+    const race = await liveRace(at(180 * MIN), "Early Bird Stakes");
+    await h.db.update(races).set({ maxRunners: 8, conditions: { minRating: 0, maxRating: 140, distanceM: 1200, surface: "turf" } }).where(eq(races.id, race.id));
+    await enterRace(h.db, { accountId: p.accountId, raceId: race.id, horseId: horse.id, tactic: "stalker", now: T0 });
+    expect(await startRaceEarly(h.db, { raceId: race.id, now: at(MIN), minutes: 10 })).not.toBeNull();
+    const svc = pushService();
+    const r = await deliverPushes(h.db, at(MIN), { config, transport: svc.transport });
+    expect(r.sent).toBe(1);
+    const msg = read(svc.sent[0]!, p.device);
+    expect(msg).toMatchObject({ title: "Your Live race moved earlier", url: `/race/${race.id}`, tag: `race-${race.id}` });
+    expect(msg.body).toMatch(/Early Bird Stakes now goes off in 10 minutes/);
+    expect(svc.sent[0]!.headers.Urgency ?? svc.sent[0]!.headers.urgency).toBe("high");
+    // The sweep's "runs in 10 minutes" for the same race: a duplicate (the device already shows the new time).
+    await sweepNotifications(h.db, at(2 * MIN));
+    await deliverPushes(h.db, at(2 * MIN), { config, transport: svc.transport });
+    const soon = (await deliveries(p.accountId)).find((d) => d.kind === "race_soon");
+    expect(soon?.status).toBe("duplicate");
+    expect(svc.sent).toHaveLength(1);
+  });
+
+  it("is a race alert: sent in quiet hours when the race itself runs then, stale once it has gone off", async () => {
+    const p = await playerWithDevice({ tz: "Asia/Tokyo" });
+    const horse = await makeHorse(h.db, p.stableId);
+    const night = new Date("2026-11-02T14:00:00Z"); // 23:00 JST
+    const race = await liveRace(new Date(night.getTime() + 10 * MIN));
+    const moved = await note(p.accountId, "race_moved", night, { raceId: race.id, title: `The ${race.name} now goes off in 10 minutes (brought forward)` });
+    const svc = pushService();
+    await deliverPushes(h.db, night, { config, transport: svc.transport });
+    expect(await statusOf(moved!)).toBe("sent");
+    const p2 = await playerWithDevice();
+    const race2 = await liveRace(at(5 * MIN));
+    const late = await note(p2.accountId, "race_moved", at(6 * MIN), { raceId: race2.id });
+    await deliverPushes(h.db, at(6 * MIN), { config, transport: svc.transport });
+    expect(await statusOf(late!)).toBe("stale");
+  });
+});
+
 describe("devices", () => {
   it("a new device starts with every alert category on; settings stick and removal works", async () => {
     const p = await newPlayer(h.db);
@@ -356,6 +397,6 @@ describe("a mare ready to foal", () => {
     const svc = pushService();
     const run = await deliverPushes(h.db, new Date(dueAt.getTime() + 2 * MIN), { config, transport: svc.transport });
     expect(run.sent).toBe(1);
-    expect(read(svc.sent[0]!, d)).toMatchObject({ title: "A foal is on the way", body: "Mother Hen is ready to foal: come and meet the foal", url: "/breeding" });
+    expect(read(svc.sent[0]!, d)).toMatchObject({ title: "Your foal is here", body: "Mother Hen is ready to foal: come and meet the foal", url: "/breeding" });
   });
 });
