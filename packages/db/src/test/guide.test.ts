@@ -266,13 +266,14 @@ describe("mentor, coach marks and welcome back", () => {
     expect(await markCoachSeen(h.db, { accountId: p.accountId, id: "tote", now: T0 })).toEqual(["racecard", "tote"]);
   });
 
-  it("opens a welcome-back window after a day away, shows it for a few hours, and closes it on dismiss", async () => {
+  it("opens a welcome-back window after hours away, shows it for a few hours, and closes it on dismiss", async () => {
     const p = await player();
     expect(await recordVisit(h.db, p.accountId, at(MIN))).toBeNull();
-    expect(await recordVisit(h.db, p.accountId, at(12 * 60 * MIN))).toBeNull();
-    const back = at(12 * 60 * MIN + gc.WELCOME_BACK_AFTER_MS);
+    const short = gc.WELCOME_BACK_AFTER_MS - 10 * MIN;
+    expect(await recordVisit(h.db, p.accountId, at(short))).toBeNull();
+    const back = at(short + gc.WELCOME_BACK_AFTER_MS);
     const w = await recordVisit(h.db, p.accountId, back);
-    expect(w).toEqual({ fromMs: at(12 * 60 * MIN).getTime(), atMs: back.getTime() });
+    expect(w).toEqual({ fromMs: at(short).getTime(), atMs: back.getTime() });
     expect(await recordVisit(h.db, p.accountId, new Date(back.getTime() + 60 * MIN))).toEqual(w);
     expect(await recordVisit(h.db, p.accountId, new Date(back.getTime() + gc.WELCOME_BACK_SHOW_MS + MIN))).toBeNull();
     const again = new Date(back.getTime() + 3 * DAY);

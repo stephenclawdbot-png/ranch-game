@@ -41,10 +41,19 @@ export const NOTIFICATION_CATEGORIES = [
   { key: "jockeys", label: "Jockeys", detail: "Offers, signings and contract news." },
   { key: "betting", label: "Betting", detail: "Tote news, when there is any." },
   { key: "club", label: "Club & news", detail: "League recaps, sponsorships, weekly upkeep, unlocks and the first-week guide." },
+  { key: "credits", label: "Credits", detail: "Every credit in or out of your stable: the amount, why, and your balance after it. In the bell only." },
 ] as const;
 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number]["key"];
 export const CATEGORY_KEYS: readonly NotificationCategory[] = NOTIFICATION_CATEGORIES.map((c) => c.key);
+
+/**
+ * Categories that stay in the bell and are never sent as a browser or phone push (owner,
+ * 2026-11-01: the credit notes are for checking your books, not for buzzing a phone). A push
+ * sender fed from `notify` must skip these (`allowsPush`; push.ts has its own per-kind rule).
+ */
+export const BELL_ONLY_CATEGORIES: readonly NotificationCategory[] = ["credits"];
+export const allowsPush = (c: NotificationCategory): boolean => !BELL_ONLY_CATEGORIES.includes(c);
 
 interface KindMeta {
   category: NotificationCategory;
@@ -96,6 +105,9 @@ export const INBOX_KINDS = {
   race_sponsor: { category: "club", spoiler: true, href: "/races" },
   upkeep: { category: "club", href: "/stable/finances" },
   gift_foal: { category: "club", href: "/nursery", push: true },
+  // Credits (services/creditNotes.ts): one note per action that moved credits. A prize from a race
+  // still to watch keeps its place out of the title until the result is watched (safeTitle).
+  credits: { category: "credits", href: "/stable/finances" },
   // Moments: the category comes from the moment's own kind (MOMENT_CATEGORY)
   moment: { category: "club" },
 } as const satisfies Record<string, KindMeta>;
@@ -103,7 +115,7 @@ export const INBOX_KINDS = {
 export type InboxKind = keyof typeof INBOX_KINDS;
 
 /** Kinds that only the bell and the full inbox show (the Estate's race list, listInbox, leaves them out). */
-export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "race_moved", "listing_expired", "foal_due"] as const satisfies readonly InboxKind[];
+export const BELL_ONLY_KINDS = ["injury", "back_in_race", "training_ready", "race_suits", "race_soon", "race_off", "race_moved", "listing_expired", "foal_due", "credits"] as const satisfies readonly InboxKind[];
 
 /** Moments (moments.ts, guide.ts) by their game-core kind. A Record: a new moment kind must be placed. */
 export const MOMENT_CATEGORY: Record<gc.MomentKind, NotificationCategory> = {
@@ -297,8 +309,13 @@ export function notificationHref(row: Pick<ItemRow, "kind" | "data" | "raceId" |
 }
 
 /** The title the player may see now (no spoilers before the result is watched). */
-export function safeTitle(row: Pick<ItemRow, "kind" | "title" | "raceId" | "readAt" | "raceName">): string {
+export function safeTitle(row: Pick<ItemRow, "kind" | "title" | "raceId" | "readAt" | "raceName"> & { data?: unknown }): string {
   const meta: KindMeta | undefined = isInboxKind(row.kind) ? INBOX_KINDS[row.kind] : undefined;
+  // A credit note about a race still to watch: its own spoiler-free line (no place) until then.
+  if (row.kind === "credits" && row.raceId && !row.readAt) {
+    const unseen = row.data as { unwatchedTitle?: unknown } | null | undefined;
+    if (typeof unseen?.unwatchedTitle === "string") return unseen.unwatchedTitle;
+  }
   if (meta?.spoiler && row.raceId && !row.readAt) {
     const race = row.raceName ? `the ${row.raceName}` : "a race";
     return row.kind === "race_result" ? `Your result is in from ${race}: watch it` : `News from ${race}: watch the race first`;

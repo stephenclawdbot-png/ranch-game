@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import type { FinanceCategory } from "@thoroughbred/db";
 import { FinancesScreen } from "@/components/finances/FinancesScreen";
+
+/** Categories a credit note can highlight (?highlight=). */
+const FINANCE_CATEGORY_KEYS = ["prize", "sales", "stud_earned", "leasing", "goals_cup", "story", "training", "upkeep", "entry_fees", "race_day", "stud_paid", "purchases", "facilities", "fees", "tote", "other"] as const satisfies readonly FinanceCategory[];
 import { db } from "@/server/db";
 import { financesView, parseFinancePeriod } from "@/server/finances";
 import { getSession } from "@/server/session";
@@ -15,5 +19,6 @@ export default async function FinancesPage({ searchParams }: { searchParams: Pro
   const database = await db();
   const session = await getSession(database);
   if (!session) redirect("/play");
-  return <FinancesScreen view={await financesView(database, session, period, new Date())} />;
+  const highlight = typeof sp.highlight === "string" && (FINANCE_CATEGORY_KEYS as readonly string[]).includes(sp.highlight) ? (sp.highlight as FinanceCategory) : null;
+  return <FinancesScreen view={await financesView(database, session, period, new Date())} highlight={highlight} />;
 }

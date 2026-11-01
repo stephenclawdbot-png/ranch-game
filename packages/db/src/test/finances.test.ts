@@ -365,6 +365,8 @@ const NON_LEDGER_KINDS = new Set([
   "race_off",
   "listing_expired",
   "foal_due",
+  // the credit note in the bell (creditNotes.ts): a note about ledger movements, never one itself
+  "credits",
   // fraud events (tote.ts)
   "tote_linked_bet_blocked",
   // ledger account kinds

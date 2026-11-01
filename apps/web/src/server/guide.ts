@@ -10,6 +10,7 @@
 import * as gc from "@thoroughbred/game-core";
 import {
   DomainError,
+  awayFacts,
   bloodlineNudgeFor,
   careDayOf,
   completeStableStep,
@@ -65,8 +66,10 @@ export async function onboardingView(db: Db, session: Session, now: Date): Promi
 }
 
 /**
- * Welcome back after a day or more away: what the horses did (how many ran and, for results
- * already watched, how they went; never an unwatched result), what's due, and one next action.
+ * Welcome back after hours away: what happened since the last visit (game-core awaySummary, from
+ * records: results waiting, today's Live races, foals, horses healed or fresh again, rating moves
+ * after watched races, a rival's big win; never how an unwatched race went), what's due, and one
+ * next action.
  */
 export async function welcomeBackView(db: Db, session: Session, visit: { fromMs: number; atMs: number }, now: Date): Promise<WelcomeBackView> {
   const runs = (await listStableRuns(db, session.stable.id, 60)).filter((r) => r.postTime.getTime() >= visit.fromMs && r.postTime.getTime() <= now.getTime());
@@ -88,15 +91,26 @@ export async function welcomeBackView(db: Db, session: Session, visit: { fromMs:
   if (session.stable.entryBalance > 0) due.push({ label: `${session.stable.entryBalance} Live ${session.stable.entryBalance === 1 ? "entry" : "entries"} ready to use`, href: "/races" });
   if (contracts.length > 0) due.push({ label: `${contracts.length} jockey ${contracts.length === 1 ? "contract ends" : "contracts end"} this week`, href: "/jockeys" });
 
+  let facts: gc.AwayFacts | null = null;
+  try {
+    facts = await awayFacts(db, { accountId: session.accountId, stableId: session.stable.id, from: new Date(visit.fromMs), now });
+  } catch (err) {
+    console.error("away summary", err);
+  }
+  const lines = facts ? gc.awaySummary(facts) : [];
+  const liveNext = facts?.liveToday[0] ?? null;
+
   const firstUnseen = inbox.find((i) => !i.readAt && i.raceId && i.kind === "race_result");
   const next: WelcomeBackView["next"] = firstUnseen
     ? { label: "Watch the finish", href: `/race/${firstUnseen.raceId}`, why: "A result is waiting. We haven't said how it went." }
+    : liveNext
+      ? { label: `Watch ${liveNext.horseName} in the ${liveNext.raceName}`, href: `/race/${liveNext.raceId}`, why: "Your Live race goes off later today: everyone watches the same finish." }
     : young.length > 0
       ? { label: "Care for your youngsters", href: "/nursery", why: "Foals grow up one care session a day." }
       : session.stable.entryBalance > 0
         ? { label: "Enter today's Live races", href: "/races", why: "Your horses are rested and your entries are waiting." }
         : { label: "Run a Story race", href: "/story", why: "Free, against the Club, any time." };
-  return { fromMs: visit.fromMs, awayMs: visit.atMs - visit.fromMs, ran: runs.length, unseen: runs.filter((r) => unseenRaces.has(r.raceId)).length, wins, places, due, next };
+  return { fromMs: visit.fromMs, awayMs: visit.atMs - visit.fromMs, ran: runs.length, unseen: runs.filter((r) => unseenRaces.has(r.raceId)).length, wins, places, due, next, lines };
 }
 
 export type OnboardingAction =

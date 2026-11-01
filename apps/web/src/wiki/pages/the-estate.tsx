@@ -60,6 +60,14 @@ export default function TheEstatePage() {
       <List
         items={[
           <>
+            <b>While you were away</b>: back after {Math.round(gc.WELCOME_BACK_AFTER_MS / gc.MS_PER_HOUR)} hours or more, the Estate opens with up to {gc.AWAY_MAX_LINES} lines on
+            what happened since your last visit, most important first, each one a tap away: results waiting (&ldquo;Your Live race has run: watch the finish&rdquo;, never the
+            placing), your Live races later today in your local time, the credits that came in or went out (&ldquo;+640 credits while you were away (prizes 2, refunds 1)&rdquo;,
+            a tap opens Finances; a prize from a race you haven&rsquo;t watched waits until you have), foals born or ready to foal, horses over an injury or fresh again, rating changes after races you&rsquo;ve
+            watched, new training weeks and a rival&rsquo;s big win. Then one big button for the best next thing. Right after you sign in on a device it says{" "}
+            <b>Welcome back</b> with your stable&rsquo;s name.
+          </>,
+          <>
             <b>Your first week</b>: for a new stable, one list of jobs to try, today&rsquo;s goals included, each one tap away. It goes once everything is done or the week is over.
             See <WikiLink slug="quick-start" />.
           </>,
@@ -76,6 +84,22 @@ export default function TheEstatePage() {
           </>,
           <>
             <b>Your races</b> and <b>Your horses</b>: entered and finished runs, and each horse&rsquo;s condition at a glance.
+          </>,
+          <>
+            <b>Saturday Feature</b>: from Thursday, a card for the week&rsquo;s big race (the Weekend Feature, Saturday at 19:00 UTC, shown in your own
+            time too): who has qualified and entered so far, and how to get in: a top {gc.FEATURE_QUALIFY_TOP} in a weekday Feature Qualifier or a rating of {gc.FEATURE_RATING_BY_RIGHT}+.
+            The Feature&rsquo;s race page carries a banner; the race and its rules are the same as ever.
+          </>,
+          <>
+            <b>This week</b>: the top ten stables by this week&rsquo;s League points (five on a phone) and your own place, with arrows for how far each moved since 00:00 UTC.
+            Only stables with a Live run this week are on it; your own row always shows, with a dash for the place until your first Live run is in.
+            Equal points share a place (&ldquo;=2&rdquo;). A race you haven&rsquo;t watched yet is left out of the table you see, so it never gives a result away. The full table is at
+            the foot of the <GameLink href="/league#this-week">League</GameLink> page. See <WikiLink slug="league" />.
+          </>,
+          <>
+            <b>Tomorrow at your yard</b>: at the foot of the Estate, and under a result, what will be new tomorrow, taken only from your stable as it is: the Club&rsquo;s gift foal
+            (it arrives on your stable&rsquo;s second day, UTC), Live races that will have run, horses fresh again or over an injury, a Feature Qualifier or the Saturday Feature, the
+            next Daily Cup, your next Story race and new Live entries at midnight. Nothing in it is a countdown: it will all still be there whenever you come back.
           </>,
         ]}
       />

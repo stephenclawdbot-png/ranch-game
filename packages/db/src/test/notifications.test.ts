@@ -75,7 +75,7 @@ describe("categories", () => {
   it("every inbox kind and every moment kind has a known category", () => {
     for (const [kind, meta] of Object.entries(INBOX_KINDS)) expect(CATEGORY_KEYS, kind).toContain(meta.category);
     for (const [moment, cat] of Object.entries(MOMENT_CATEGORY)) expect(CATEGORY_KEYS, moment).toContain(cat);
-    expect(NOTIFICATION_CATEGORIES.map((c) => c.label)).toEqual(["Races & results", "Horse health & care", "Training", "Market & sales", "Breeding & stud", "Jockeys", "Betting", "Club & news"]);
+    expect(NOTIFICATION_CATEGORIES.map((c) => c.label)).toEqual(["Races & results", "Horse health & care", "Training", "Market & sales", "Breeding & stud", "Jockeys", "Betting", "Club & news", "Credits"]);
     expect(categoryOf("moment", { moment: "scan" })).toBe("breeding");
     expect(categoryOf("moment", { moment: "memorial" })).toBe("health");
     expect(categoryOf("listing_expired")).toBe("market");

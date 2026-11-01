@@ -77,11 +77,12 @@ export function HorseFinancesTable({ horses }: { horses: HorseFinances[] }) {
                 {!h.owned && <span className="caption ml-2 text-cream-dim">no longer yours</span>}
               </td>
               <td className="py-2 px-2 text-right tabular-nums text-cream-dim">{h.starts}</td>
-              <td className="py-2 pl-2 text-right tabular-nums font-bold text-cream">{formatCredits(h.earned)}</td>
-              <td className="py-2 pl-2 text-right tabular-nums font-bold text-cream">{formatCredits(h.cost)}</td>
+              {/* same order as the headers (SORTS): net, earned, cost */}
               <td className="py-2 pl-2 text-right tabular-nums font-extrabold">
                 <span className={tone(h.net)}>{signed(h.net)}</span>
               </td>
+              <td className="py-2 pl-2 text-right tabular-nums font-bold text-cream">{formatCredits(h.earned)}</td>
+              <td className="py-2 pl-2 text-right tabular-nums font-bold text-cream">{formatCredits(h.cost)}</td>
               <td className="py-2 pl-2 text-right tabular-nums text-cream-dim">{h.costPerStart === null ? "—" : formatCredits(h.costPerStart)}</td>
             </tr>
           ))}

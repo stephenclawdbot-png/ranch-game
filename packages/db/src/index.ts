@@ -74,3 +74,5 @@ export * from "./services/notifications";
 export * from "./services/notificationEvents";
 export * from "./services/push";
 export * from "./services/commentary";
+export * from "./services/engagement";
+export * from "./services/creditNotes";

@@ -52,7 +52,7 @@ function SummaryTile({ label, value, className, testId }: { label: string; value
   );
 }
 
-export function FinancesScreen({ view }: { view: FinancesView }) {
+export function FinancesScreen({ view, highlight = null }: { view: FinancesView; /** A category to highlight (a credit note in the bell links here). */ highlight?: FinanceCategory | null }) {
   const { fin, period, fromLabel, toLabel } = view;
   const quiet = fin.income === 0 && fin.spend === 0;
   const scope = fromLabel ? `${fromLabel} – ${toLabel} (UTC)` : `up to ${toLabel} (UTC)`;
@@ -150,7 +150,13 @@ export function FinancesScreen({ view }: { view: FinancesView }) {
                 </thead>
                 <tbody>
                   {fin.categories.map((c) => (
-                    <tr key={c.category} className="border-t border-line">
+                    <tr
+                      key={c.category}
+                      id={`cat-${c.category}`}
+                      className={`scroll-mt-40 border-t border-line ${highlight === c.category ? "yours bg-[rgba(242,200,106,0.16)]" : ""}`}
+                      aria-current={highlight === c.category ? "true" : undefined}
+                      data-testid={`finance-cat-${c.category}`}
+                    >
                       <th scope="row" className="py-2 pr-3 font-bold text-cream">
                         {CATEGORY_LABEL[c.category]}
                       </th>
