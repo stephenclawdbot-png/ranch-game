@@ -204,10 +204,16 @@ export function raceSuits(h: HorseRow, race: Pick<RaceRow, "raceClass" | "condit
 
 /** Matches listed in one digest (the title still counts them all). */
 const SUITS_LIST_MAX = 8;
+/**
+ * At most one "races that suit" digest per account in each window of this length (by the
+ * meeting's first post time): with a meeting every 3 hours, two a day instead of eight.
+ */
+export const SUITS_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 /**
  * One digest per account for a just-published meeting ([fromMs, toMs] post times): its open
- * races that suit one of the player's racing horses. Idempotent per meeting.
+ * races that suit one of the player's racing horses. Idempotent, and at most one per account in
+ * each SUITS_WINDOW_MS window (the first meeting of the window with a match sends it).
  */
 export async function noteRacesThatSuit(db: Db, input: { meeting: number; fromMs: number; toMs: number; now: Date }): Promise<number> {
   const card = await db
@@ -240,7 +246,7 @@ export async function noteRacesThatSuit(db: Db, input: { meeting: number; fromMs
     const id = await notify(db, {
       accountId,
       kind: "race_suits",
-      dedupeKey: `race-suits:${input.meeting}`,
+      dedupeKey: `race-suits:w${Math.floor(input.fromMs / SUITS_WINDOW_MS)}`,
       title:
         matches.length === 1
           ? `A new race suits ${first.horseName}: the ${first.raceName} (${at} UTC)`

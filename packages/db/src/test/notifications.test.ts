@@ -30,7 +30,7 @@ import {
   setNotificationPrefs,
   unreadNotificationCount,
 } from "../services/notifications";
-import { noteRacesThatSuit, noteRecoveriesTx, noteTrainingWeekTx, sweepNotifications } from "../services/notificationEvents";
+import { SUITS_WINDOW_MS, noteRacesThatSuit, noteRecoveriesTx, noteTrainingWeekTx, sweepNotifications } from "../services/notificationEvents";
 import { RULES } from "../rules";
 import { DAY, MIN, T0, at, floorPrice, getHorseRow, makeHorse, makeSeller, memoryDb, newPlayer } from "./helpers";
 
@@ -227,12 +227,19 @@ describe("a new race that suits your horse", () => {
     };
     await ensureRaceCard(h.db, now, { cardSlot });
     await ensureRaceCard(h.db, at(10 * DAY + MIN), { cardSlot });
+    // one digest per SUITS_WINDOW_MS window (two a day with a meeting every 3 hours), not one per meeting
     let meetings = 0;
+    const windows = new Set<number>();
     const last = slotIndexAt(new Date(now.getTime() + RULES.cardHorizonMs));
-    for (let i = first; i <= last; i++) if (meetingRaceOf(i)?.race === gc.RACES_PER_MEETING - 1) meetings++;
-    expect(meetings).toBeGreaterThan(0);
+    for (let i = first; i <= last; i++) {
+      const m = meetingRaceOf(i);
+      if (m?.race !== gc.RACES_PER_MEETING - 1) continue;
+      meetings++;
+      windows.add(Math.floor(m.startMs / SUITS_WINDOW_MS));
+    }
+    expect(meetings).toBeGreaterThan(windows.size);
     const notes = await notesOf(p.accountId, "race_suits");
-    expect(notes).toHaveLength(meetings);
+    expect(notes).toHaveLength(windows.size);
     for (const n of notes) {
       expect(n.title).toMatch(/new races suit Right Trip at the meeting from \d\d:\d\d UTC|A new race suits Right Trip/);
       expect((n.data as { total: number }).total).toBeLessThanOrEqual(gc.RACES_PER_MEETING);
