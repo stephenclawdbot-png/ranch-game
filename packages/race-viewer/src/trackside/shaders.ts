@@ -5,6 +5,7 @@
  * end to end, like the 2D dioramas (textures are uploaded raw, premultiplied).
  */
 
+import { HAIR_SHADES, LAYER_CELL, LEG_MARK_TOP, MAX_SQUEEZE } from "@thoroughbred/art-pipeline";
 import { LUT_W } from "./strips";
 
 export const QUAD_VERT = /* glsl */ `
@@ -282,12 +283,12 @@ bool hairShows(float b) {
 }
 float hairShade(float b) {
   float s = mod(floor(b / 16.0), 4.0);
-  return s < 0.5 ? 0.42 : s < 1.5 ? 0.58 : s < 2.5 ? 0.75 : 0.95;
+  return s < 0.5 ? ${HAIR_SHADES[0].toFixed(2)} : s < 1.5 ? ${HAIR_SHADES[1].toFixed(2)} : s < 2.5 ? ${HAIR_SHADES[2].toFixed(2)} : ${HAIR_SHADES[3].toFixed(2)};
 }
 float hairByte(vec4 mk, vec4 m3) {
   return byteOf(uHair.w > 0.5 ? m3.a : mk.a);
 }
-// warp class of a source texel (bodyBuild.ts WARP_CLASS): 0 empty, 1 near leg, 2 far leg, 3 neck, 4 trunk, 5 other, 6 tail
+// warp class of a source texel (bodyBuild.ts WARP_CLASS): 0 empty, 1 near leg, 2 far leg, 3 neck, 4 trunk (and tail), 5 other
 float wCls(vec2 q) {
   if (q.x < 0.0 || q.y < 0.0 || q.x >= uWarpC.x || q.y >= uWarpC.y) return 0.0;
   vec2 mp = (uMskOrigin + q + 0.5) / uMskSize;
@@ -301,12 +302,12 @@ float wCls(vec2 q) {
     if (h < 4.5) return legacy ? ((h < 1.5 || (h > 2.5 && h < 3.5)) ? 1.0 : 2.0) : 0.0;
     bool shown = uHairOn > 0.5 ? hairShows(hairByte(mk, m3)) : legacy;
     if (!shown) return 0.0;
-    return h > 12.5 ? 6.0 : (q.x >= uWarpB.x ? 3.0 : 6.0);
+    return h > 12.5 ? 6.0 : q.x >= uWarpB.x ? (q.y < uWarpA.y ? 3.0 : 4.0) : 6.0;
   }
   if (region < 0.5) {
     float ix = floor(texture2D(uIdx, (uFrame.xy + floor((q + 0.5) / uLodS) + 0.5) / uIdxSize).r * 255.0 + 0.5);
     if (ix < 0.5) return 0.0;
-    // ink below the belly line: the tail's outline goes with the tail
+    // ink below the belly line next to the tail is the tail's outline
     if (q.y >= uWarpA.y) {
       if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(-0.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
       if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(1.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
@@ -318,7 +319,8 @@ float wCls(vec2 q) {
   if (region < 4.5) return q.y < uWarpA.y ? 4.0 : (region < 1.5 || (region > 2.5 && region < 3.5)) ? 1.0 : 2.0;
   if (region > 6.5 && region < 11.5) return 5.0;
   if (region > 12.5) return 6.0;
-  if (region > 11.5 || region < 5.5) return q.x >= uWarpB.x ? 3.0 : 4.0;
+  if (region < 5.5) return q.x >= uWarpB.x ? 3.0 : 4.0;
+  if (region > 11.5) return q.x >= uWarpB.x && q.y < uWarpA.y ? 3.0 : 4.0;
   if (q.x < uWarpB.x || q.y >= uWarpA.y) return 4.0;
   vec4 m2 = texture2D(uMsk2, mp);
   float v = (byteOf(m2.b) + byteOf(m2.a) * 256.0 - 32768.0) / 4.0;
@@ -353,7 +355,7 @@ float bodyBot(float x) {
   if (x >= uWarpB.y) return seam;
   float g = jsRound(uBuild.y * girthW(x));
   float hh = jsRound(uWarpB.w / 2.0);
-  return max(seam - hh + ceil(hh * 0.5), seam - min(floor(hh * 0.5), uBuild.x) + g);
+  return max(seam - hh + ceil(hh * ${(1 - MAX_SQUEEZE).toFixed(3)}), seam - min(floor(hh * ${MAX_SQUEEZE.toFixed(3)}), uBuild.x) + g);
 }
 float bodySrcY(float x, float y) {
   if (x >= uWarpB.y) return y;
@@ -367,15 +369,16 @@ float bodySrcY(float x, float y) {
 float legSrcY(float x, float y) {
   float seam = uWarpA.y;
   float hh = jsRound(uWarpB.w / 2.0);
-  float legTop = x >= uWarpB.y ? seam : min(seam - min(floor(hh * 0.5), uBuild.x), bodyBot(x));
+  float legTop = x >= uWarpB.y ? seam : min(seam - min(floor(hh * ${MAX_SQUEEZE.toFixed(3)}), uBuild.x), bodyBot(x));
   if (y < legTop) return -1.0;
   if (y > uWarpA.z) return y;
   return seam + floor(((y - legTop + 0.5) * (uWarpA.z - seam + 1.0)) / max(1.0, uWarpA.z - legTop + 1.0));
 }
 // the body's own rows (bodyBuild.ts warpSource, body): tack and ink below the seam belong to the
-// legs; under a raised belly the barrel's old bottom rows are gone (the tail stays)
+// legs; under a raised belly the barrel's old bottom rows are gone
 float wBody(float x, float yd, float yy, float bot) {
   float c = wCls(vec2(x, yy));
+  if (c > 5.5) c = uBuild.x > 0.5 ? 0.0 : 4.0;
   if (c > 3.5 && c < 5.5 && yy >= uWarpA.y) return 0.0;
   if (c > 3.5 && c < 4.5 && yd >= bot && yd < uWarpA.y) return 0.0;
   return c;
@@ -385,10 +388,11 @@ vec2 warpSrc(vec2 p) {
   if (uWarpA.x < 0.5) return wCls(p) > 0.5 ? p : vec2(-1.0);
   float x = p.x;
   float y = p.y;
-  // the tail hangs from the croup, which never moves: it stays as painted
-  if (wCls(p) > 5.5) return p;
+  // longer legs squeeze the barrel's lower half: the tail then hangs from the croup as painted
+  if (uBuild.x > 0.5 && wCls(p) > 5.5) return p;
   float yb = legSrcY(x, y);
   float cb = yb < 0.0 ? 0.0 : wCls(vec2(x, yb));
+  if (cb > 5.5) cb = 4.0;
   if ((cb > 0.5 && cb < 1.5) || (cb > 3.5 && cb < 5.5)) return vec2(x, yb);
   float bot = bodyBot(x);
   float lo = neckLift(x, uWarpB.z);
@@ -397,7 +401,7 @@ vec2 warpSrc(vec2 p) {
   if ((cn > 4.5 && cn < 5.5) || (cn > 2.5 && cn < 3.5)) return vec2(x, yn);
   float ya = bodySrcY(x, y);
   float ci = wBody(x, y, ya, bot);
-  if ((ci > 3.5 && ci < 4.5) || ci > 5.5 || (ci > 4.5 && abs(lo) < 0.5)) return vec2(x, ya);
+  if ((ci > 3.5 && ci < 4.5) || (ci > 4.5 && abs(lo) < 0.5)) return vec2(x, ya);
   if (ci > 2.5 && ci < 3.5 && cn > 3.5 && cn < 4.5) return vec2(x, yn);
   // under a raised neck (not the head) the throat stretches down to where it was
   if (ci > 2.5 && ci < 3.5 && x < uWarpB.y && lo > 0.5) {
@@ -532,7 +536,9 @@ vec4 texelSrc(vec2 t, vec4 flags, vec3 markW) {
         // near legs are the off (right) side: front-near FR, front-far FL, hind-near HR, hind-far HL
         vec4 legs = lutAt(157.0, rowV);
         float lc = byteOf(greg < 1.5 ? legs.g : greg < 2.5 ? legs.r : greg < 3.5 ? legs.a : legs.b);
-        if (lc < 254.5 && atlasAt(lc, sp.xy) >= 127.5) white = true;
+        // a marking reaches only so far up the leg (coatLayers LEG_MARK_TOP)
+        float legTopG = lc >= ${LAYER_CELL["leg-stocking"]}.0 ? ${LEG_MARK_TOP.stocking} : lc >= ${LAYER_CELL["leg-sock"]}.0 ? ${LEG_MARK_TOP.sock} : ${LEG_MARK_TOP.coronet};
+        if (lc < 254.5 && m3.r <= legTopG + 0.002 && atlasAt(lc, sp.xy) >= 127.5) white = true;
       }
       if (white) c = whiteAt(markW, isHair ? 0.55 + shade * 0.45 : shade);
     }

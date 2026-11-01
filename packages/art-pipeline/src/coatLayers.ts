@@ -296,6 +296,21 @@ export function coatPatternOf(a: HorseAppearance): CoatPattern {
   };
 }
 
+/**
+ * How high up the leg (g: 0 hoof .. 1 where the leg meets the belly) each leg marking may reach: a
+ * coronet the hoof's top, a sock the fetlock, a stocking just past the knee or hock. The leg's
+ * room runs up into the flank and forearm, where white would read as a block on the body.
+ */
+export const LEG_MARK_TOP: Record<LegMarking, number> = { none: 0, coronet: 0.14, sock: 0.32, stocking: 0.58 };
+
+/** The reach of a leg-marking atlas cell (its marking's LEG_MARK_TOP). */
+export function legMarkTopOfCell(cell: number): number {
+  if (cell < 0) return 0;
+  if (cell >= LAYER_CELL["leg-stocking"]) return LEG_MARK_TOP.stocking;
+  if (cell >= LAYER_CELL["leg-sock"]) return LEG_MARK_TOP.sock;
+  return LEG_MARK_TOP.coronet;
+}
+
 /** Leg tuple index (front-left, front-right, hind-left, hind-right) of a leg region (near = right side, facing right). */
 export const LEG_OF_REGION: Record<number, number> = { [GEO_REGION.frontNear]: 1, [GEO_REGION.frontFar]: 0, [GEO_REGION.hindNear]: 3, [GEO_REGION.hindFar]: 2 };
 
@@ -401,7 +416,7 @@ export function paintCoatLayers(
         if (r === GEO_REGION.face && pattern.faceCell >= 0 && role !== 3 && layerAt(atlas, pattern.faceCell, geo, i) >= 128) white = true;
         if (r >= 1 && r <= 4) {
           const cell = legWhite[LEG_OF_REGION[r]!]!;
-          if (cell >= 0 && layerAt(atlas, cell, geo, i) >= 128) white = true;
+          if (cell >= 0 && geo.p1[i]! <= legMarkTopOfCell(cell) && layerAt(atlas, cell, geo, i) >= 128) white = true;
         }
         if (white) c = whiteAt(isHair ? 0.55 + k.shade * 0.45 : k.shade);
         out[o] = Math.round(c[0]);
@@ -533,7 +548,7 @@ export function paintCoatStrip(
       const legs = drawLongHair(keyed, width, frameW, geo, keys, speed, 1);
       for (let i = 0; i < legs.length; i++) if (legs[i]) hair[i] = legs[i]!;
     }
-  } else if (pattern.feather) hair = drawLongHair(keyed, width, frameW, geo, keys, speed);
+  }
   let out = new Uint8ClampedArray(keyed);
   recolour(out);
   if (atlas) paintCoatLayers(out, keyed, width, frameW, geo, pattern, atlas, keys, hair);

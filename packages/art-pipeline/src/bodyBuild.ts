@@ -51,13 +51,17 @@ export function bodyBuildOf(a: Pick<HorseAppearance, "build">): BodyBuild | null
   return b.height || b.leg || b.neck || b.girth || b.head ? b : null;
 }
 
-/** The hair a view draws: the appearance's, unless absent or switched off (null = the painted hair, or the older long hair of a feathered horse). */
-export function hairStyleOf(a: Pick<HorseAppearance, "hair">): HairStyle | null {
-  return a.hair && buildsOn() ? a.hair : null;
+/** A feathered horse's mane and tail when its look carries no hair style (older looks, `?build=0`). */
+export const FEATHER_HAIR: HairStyle = { mane: 3, tail: 2, thick: true, wave: true };
+
+/** The hair a view draws: the appearance's (unless switched off), a feathered horse's long hair, or null (the painted mane and tail). */
+export function hairStyleOf(a: Pick<HorseAppearance, "hair" | "feather">): HairStyle | null {
+  if (a.hair && buildsOn()) return a.hair;
+  return a.feather ? FEATHER_HAIR : null;
 }
 
 /** A short cache-key part for build and hair ("" when neither is drawn, so older keys stay as they were). */
-export function lookShapeKey(a: Pick<HorseAppearance, "build" | "hair">): string {
+export function lookShapeKey(a: Pick<HorseAppearance, "build" | "hair" | "feather">): string {
   const b = bodyBuildOf(a);
   const h = hairStyleOf(a);
   if (!b && !h) return "";
@@ -218,18 +222,23 @@ export function bodySourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels,
   return y;
 }
 
+/** The most of the barrel's lower half the legs and girth may squeeze away (the shader mirrors it). */
+export const MAX_SQUEEZE = 0.3;
+/** New loose fragments smaller than this (texels) that a warp leaves are dropped (CPU views). */
+export const WARP_FRAGMENT = 48;
+
 /** The output row the barrel ends at in a column (the seam, moved by the legs and the girth). */
 export function bodyBottom(x: number, fr: WarpFrame, t: BuildTexels, H: number): number {
   if (x >= fr.face0) return fr.seam;
   const g = Math.round(t.G * girthWeight(x, fr.rumpX, H));
   const half = Math.round(H / 2);
-  return Math.max(fr.seam - half + Math.ceil(half * 0.5), fr.seam - Math.min(Math.floor(half * 0.5), t.L) + g);
+  return Math.max(fr.seam - half + Math.ceil(half * (1 - MAX_SQUEEZE)), fr.seam - Math.min(Math.floor(half * MAX_SQUEEZE), t.L) + g);
 }
 
 /** Output row -> source row for the legs (seam -> ground stretched; null above the legs). */
 export function legSourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels, H: number): number | null {
   // the legs reach up to the belly (a deeper belly hangs over their tops)
-  const legTop = x >= fr.face0 ? fr.seam : Math.min(fr.seam - Math.min(Math.floor(Math.round(H / 2) * 0.5), t.L), bodyBottom(x, fr, t, H));
+  const legTop = x >= fr.face0 ? fr.seam : Math.min(fr.seam - Math.min(Math.floor(Math.round(H / 2) * MAX_SQUEEZE), t.L), bodyBottom(x, fr, t, H));
   if (y < legTop) return null;
   if (y > fr.ground) return y;
   const span = fr.ground - fr.seam + 1;
@@ -244,17 +253,19 @@ export function legSourceY(x: number, y: number, fr: WarpFrame, t: BuildTexels, 
  */
 export function warpSource(x: number, y: number, fr: WarpFrame, t: BuildTexels, H: number, cls: (x: number, y: number) => number): [number, number] | null {
   if (!fr.ok) return cls(x, y) ? [x, y] : null;
-  // the tail hangs from the croup, which never moves: it stays as painted
-  if (cls(x, y) === WARP_CLASS.tail) return [x, y];
+  // longer legs squeeze the barrel's lower half, which would break the tail's thin strands: the
+  // tail then hangs from the croup as painted; otherwise it goes with the body and the legs
+  if (t.L > 0 && cls(x, y) === WARP_CLASS.tail) return [x, y];
   const yb = legSourceY(x, y, fr, t, H);
-  const cb = yb === null ? 0 : cls(x, yb);
-  // a near leg, and the coat, outlines and tack below the belly line, stretch with the legs
+  const cb = yb === null ? 0 : (c => (c === WARP_CLASS.tail ? WARP_CLASS.trunk : c))(cls(x, yb));
+  // a near leg, and the coat, tail, outlines and tack below the belly line, stretch with the legs
   if (cb === WARP_CLASS.nearLeg || cb === WARP_CLASS.other || cb === WARP_CLASS.trunk) return [x, yb!];
-  // above the legs: the body's own rows (ink and tack below the seam belong to the legs; under
-  // a raised belly, the barrel's old bottom rows are gone, the tail hanging there stays)
+  // above the legs: the body's own rows (anything below the seam belongs to the legs' map; under
+  // a raised belly, the barrel's old bottom rows are gone)
   const bot = bodyBottom(x, fr, t, H);
   const body = (yd: number, yy: number) => {
-    const c = cls(x, yy);
+    let c = cls(x, yy);
+    if (c === WARP_CLASS.tail) c = t.L > 0 ? WARP_CLASS.empty : WARP_CLASS.trunk;
     if ((c === WARP_CLASS.other || c === WARP_CLASS.trunk) && yy >= fr.seam) return WARP_CLASS.empty;
     if (c === WARP_CLASS.trunk && yd >= bot && yd < fr.seam) return WARP_CLASS.empty;
     return c;
@@ -265,7 +276,7 @@ export function warpSource(x: number, y: number, fr: WarpFrame, t: BuildTexels, 
   if (cn === WARP_CLASS.other || cn === WARP_CLASS.neck) return [x, yn];
   const ya = bodySourceY(x, y, fr, t, H);
   const ci = body(y, ya);
-  if (ci === WARP_CLASS.trunk || ci === WARP_CLASS.tail || (ci === WARP_CLASS.other && !lo)) return [x, ya];
+  if (ci === WARP_CLASS.trunk || (ci === WARP_CLASS.other && !lo)) return [x, ya];
   // where the neck moved away from, the chest under it shows
   if (ci === WARP_CLASS.neck && cn === WARP_CLASS.trunk) return [x, yn];
   // under a raised neck (not the head) the throat stretches down to where it was, so the neck
@@ -291,11 +302,12 @@ export function cpuWarpClass(geo: CoatGeometry, fr: WarpFrame, f: number, x: num
   if (r >= 1 && r <= 4 && y < fr.seam && !geo.outside[i]) return WARP_CLASS.trunk;
   if (r === GEO_REGION.frontNear || r === GEO_REGION.hindNear) return WARP_CLASS.nearLeg;
   if (r === GEO_REGION.frontFar || r === GEO_REGION.hindFar) return WARP_CLASS.farLeg;
-  if (r === GEO_REGION.tail) return WARP_CLASS.tail;
-  if (r === 0 && hair === 2) return x >= fr.crest ? WARP_CLASS.neck : WARP_CLASS.tail;
-  if (r === GEO_REGION.face || r === GEO_REGION.mane) return x >= fr.crest ? WARP_CLASS.neck : WARP_CLASS.trunk;
+  if (r === GEO_REGION.tail || (r === 0 && hair === 2 && x < fr.crest)) return WARP_CLASS.tail;
+  if (r === GEO_REGION.face) return x >= fr.crest ? WARP_CLASS.neck : WARP_CLASS.trunk;
+  // mane keys below the belly line are leg shading drawn in the mane keys: they go with the legs
+  if (r === GEO_REGION.mane || (r === 0 && hair === 2)) return x >= fr.crest && y < fr.seam ? WARP_CLASS.neck : WARP_CLASS.trunk;
   if (r === 0 && hair !== 1 && y >= fr.seam) {
-    // ink below the belly line: the tail's outline goes with the tail
+    // ink below the belly line next to the tail is the tail's outline
     const tailAt = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < geo.fw && yy < geo.fh && geo.region[(f * geo.fh + yy) * geo.fw + xx] === GEO_REGION.tail && !geo.outside[(f * geo.fh + yy) * geo.fw + xx];
     if (tailAt(x - 1, y) || tailAt(x + 1, y) || tailAt(x, y - 1) || tailAt(x, y + 1)) return WARP_CLASS.tail;
   }
@@ -327,6 +339,7 @@ export function warpStrip(rgba: Uint8ClampedArray, width: number, frameW: number
       const o = (y * width + f * frameW + x) * 4;
       return cpuWarpClass(geo, fr, f, x, y, rgba[o + 3]! >= 128, hair?.[(f * fh + y) * fw + x] ?? 0);
     };
+    const from = new Int32Array(fw * fh).fill(-1);
     for (let y = 0; y < fh; y++)
       for (let x = 0; x < fw; x++) {
         const s = warpSource(x, y, fr, t, H, cls);
@@ -337,7 +350,66 @@ export function warpStrip(rgba: Uint8ClampedArray, width: number, frameW: number
         out[oi + 1] = rgba[si + 1]!;
         out[oi + 2] = rgba[si + 2]!;
         out[oi + 3] = rgba[si + 3]!;
+        from[y * fw + x] = s[1] * fw + s[0];
       }
+    dropNewFragments(rgba, out, width, frameW, f, fw, fh, from);
   }
   return out;
+}
+
+/** Per texel of one frame: the label of its 8-connected opaque component (0 = empty) and the main (largest) label. */
+function components(rgba: ArrayLike<number>, width: number, frameW: number, f: number, fw: number, fh: number): { label: Int32Array; main: number; size: number[] } {
+  const label = new Int32Array(fw * fh);
+  const size: number[] = [0];
+  const stack: number[] = [];
+  const opaque = (i: number) => rgba[(((i / fw) | 0) * width + f * frameW + (i % fw)) * 4 + 3]! >= 128;
+  let n = 0;
+  for (let i = 0; i < fw * fh; i++) {
+    if (label[i] || !opaque(i)) continue;
+    label[i] = ++n;
+    let s = 0;
+    stack.push(i);
+    while (stack.length) {
+      const p = stack.pop()!;
+      s++;
+      const px = p % fw;
+      const py = (p / fw) | 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const qx = px + dx;
+          const qy = py + dy;
+          if (qx < 0 || qy < 0 || qx >= fw || qy >= fh) continue;
+          const q = qy * fw + qx;
+          if (label[q] || !opaque(q)) continue;
+          label[q] = n;
+          stack.push(q);
+        }
+    }
+    size.push(s);
+  }
+  let main = 0;
+  for (let k = 1; k <= n; k++) if (size[k]! > (size[main] ?? 0)) main = k;
+  return { label, main, size };
+}
+
+/**
+ * A warp can cut a thin line (an outline crossing the squeezed rows, a strand at a joint) into a
+ * loose fragment: any fragment smaller than WARP_FRAGMENT whose every texel came from the
+ * painting's main mass is dropped, so no pixel floats free of the horse (fragments the painting
+ * itself has, like a grass tuft, stay).
+ */
+function dropNewFragments(src: ArrayLike<number>, out: Uint8ClampedArray, width: number, frameW: number, f: number, fw: number, fh: number, from: Int32Array): void {
+  const a = components(src, width, frameW, f, fw, fh);
+  const b = components(out, width, frameW, f, fw, fh);
+  const fromMain = new Uint8Array(b.size.length).fill(1);
+  for (let i = 0; i < fw * fh; i++) {
+    const k = b.label[i]!;
+    if (!k || k === b.main) continue;
+    if (from[i]! < 0 || a.label[from[i]!] !== a.main) fromMain[k] = 0;
+  }
+  for (let i = 0; i < fw * fh; i++) {
+    const k = b.label[i]!;
+    if (!k || k === b.main || !fromMain[k] || b.size[k]! >= WARP_FRAGMENT) continue;
+    out[(((i / fw) | 0) * width + f * frameW + (i % fw)) * 4 + 3] = 0;
+  }
 }

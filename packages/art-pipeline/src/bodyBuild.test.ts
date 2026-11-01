@@ -120,6 +120,8 @@ describe.skipIf(!has)("body build on the painted strips", () => {
                 continue;
               }
               const i = (src[1] * s.img.w + f * fw + src[0]) * 4;
+              // (or nothing: a loose scrap the warp cut off is dropped, WARP_FRAGMENT)
+              if (out[o + 3] === 0 && base[i + 3]! > 0) continue;
               expect([out[o], out[o + 1], out[o + 2], out[o + 3]]).toEqual([base[i], base[i + 1], base[i + 2], base[i + 3]]);
             }
         }
