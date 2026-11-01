@@ -7,7 +7,8 @@
  * column as the line-scan would see it (nearest column, never resampled smoothly), so it
  * stays crisp pixel art while a slower horse is drawn wider.
  */
-import { buildCoatGeometry, paintCoatStrip, rgbaRoleGrid, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, clothKeySet, paintCoatStrip, paintSaddleCloth, rgbaRoleGrid, rgbaSaddleCloth, saddleClothOf, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
+import { clothOffByUrl } from "../cloth";
 import { applyRecolor, appearanceKey, buildRecolorPlan, type KeyPalette } from "../three/recolor";
 import type { PhotoFinishModel } from "./model";
 import { photoLayout, type LayoutOptions, type PhotoLayout, type SpriteMetrics } from "./layout";
@@ -32,6 +33,8 @@ export interface PhotoArt {
 export interface RasterOptions extends LayoutOptions {
   /** Share of the original colour kept by the sepia toning (0 = pure sepia, 1 = full colour). */
   colour?: number;
+  /** Saddle cloths in the gate colours and numbers (V-03). Default: on, unless the page has `?cloth=0`. */
+  cloth?: boolean;
 }
 
 export interface PhotoRaster {
@@ -193,10 +196,14 @@ export function rasterPhotoFinish(model: PhotoFinishModel, art: PhotoArt, opts: 
 
   const recoloured = new Map<string, Uint8ClampedArray>();
   // the same coat geometry and pattern definition as every other view (art-pipeline coatLayers)
-  const geo = art.atlas ? buildCoatGeometry(rgbaRoleGrid(frame, m.frameW, m.frameH, m.frameW, art.keys)) : null;
+  const clothOn = (opts.cloth ?? !clothOffByUrl()) && !!art.keys.white?.length;
+  const geo = art.atlas || clothOn ? buildCoatGeometry(rgbaRoleGrid(frame, m.frameW, m.frameH, m.frameW, art.keys)) : null;
+  // the saddle cloth (V-03): found once on the photograph's frame, painted in each runner's gate colour
+  const clothMask = clothOn && geo ? rgbaSaddleCloth(frame, m.frameW, m.frameW, clothKeySet(art.keys.white), geo) : null;
   const spriteFor = (i: number) => {
     const a = model.runners[i]!.appearance;
-    const key = appearanceKey(a);
+    const cloth = clothMask ? saddleClothOf(model.runners[i]!.gate) : null;
+    const key = `${appearanceKey(a)}|${cloth?.gate ?? ""}`;
     let s = recoloured.get(key);
     if (!s) {
       const plan = buildRecolorPlan(art.keys, a);
@@ -205,6 +212,7 @@ export function rasterPhotoFinish(model: PhotoFinishModel, art: PhotoArt, opts: 
         s = frame.slice();
         applyRecolor(s, m.frameW, m.frameH, m.frameW, plan);
       }
+      if (cloth && clothMask) paintSaddleCloth(s, m.frameW, m.frameW, clothMask, cloth);
       recoloured.set(key, s);
     }
     return s;

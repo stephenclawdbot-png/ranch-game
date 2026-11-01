@@ -549,7 +549,8 @@ export class DioramaEngine {
             const fx = ctx2d(fc);
             fx.drawImage(fim, 0, 0);
             const fd = fx.getImageData(0, 0, fc.width, fc.height);
-            paintHorseSheet(fd.data, fc.width, fc.height, Math.floor(fc.width / v.frames), a.look, atlas, full.src);
+            // the cloth's number survives a 2:1 reduction (2-texel cells), not a smaller copy
+            paintHorseSheet(fd.data, fc.width, fc.height, Math.floor(fc.width / v.frames), a.look, atlas, full.src, full.n <= 2);
             const small = downsampleSheet(fd.data, fc.width, fc.height, v.frames, full.n);
             const id = px.createImageData(pc.width, pc.height);
             for (let y = 0; y < Math.min(small.height, pc.height); y++) id.data.set(small.data.subarray(y * small.width * 4, y * small.width * 4 + Math.min(small.width, pc.width) * 4), y * pc.width * 4);

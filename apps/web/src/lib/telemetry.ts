@@ -6,14 +6,27 @@
  */
 import type { PerfReport } from "@thoroughbred/race-viewer";
 
-/** The device context sent with a perf report (no new identifiers). */
+/**
+ * The device context sent with a perf report (no new identifiers): the real-device performance
+ * baseline (visual research V-00; docs/perf-baseline.md reads it on the admin page).
+ */
 interface RacePerfEvent {
   name: "race_perf";
   fps: number;
   fpsLow: number;
+  /** 1000 / p99 frame ms. */
+  fps99: number;
+  /** The viewer's JS work per frame, median and p99 (ms). */
+  workMs: number;
+  workP99: number;
+  /** % of frames over this device class's frame budget (33.4 ms phone/tablet, 16.8 ms desktop). */
+  slowPct: number;
   quality: PerfReport["quality"];
   downgraded: boolean;
+  /** Seconds of playback when the auto-downgrade fired (-1: never). */
+  downgradeSec: number;
   view: PerfReport["view"];
+  layout: PerfReport["layout"];
   device: "phone" | "tablet" | "desktop";
   dpr: number;
   gpu: string;
@@ -54,14 +67,21 @@ function perfGpu(): string {
 
 /** One real-device perf report per mounted race viewer. */
 export function trackRacePerf(r: PerfReport): void {
+  const device = perfDevice();
   trackClient({
     name: "race_perf",
     fps: r.fps,
     fpsLow: r.fpsLow,
+    fps99: r.fps99,
+    workMs: r.workMs,
+    workP99: r.workP99,
+    slowPct: device === "desktop" ? r.over17 : r.over33,
     quality: r.quality,
     downgraded: r.downgraded,
+    downgradeSec: r.downgradeSec,
     view: r.view,
-    device: perfDevice(),
+    layout: r.layout,
+    device,
     dpr: Math.round((window.devicePixelRatio || 1) * 10) / 10,
     gpu: perfGpu(),
   });

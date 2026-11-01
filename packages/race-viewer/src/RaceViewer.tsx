@@ -15,7 +15,7 @@ import { PreOffOverlay, type PreOffHud } from "./hud/PreOff";
 import { Director } from "./director";
 import { buildRaceStage } from "./stage/buildRaceStage";
 import { injuredFromEvents } from "./stage/motion";
-import { perfReport, type PerfReport } from "./perfReport";
+import { perfReport, type PerfLayout, type PerfReport } from "./perfReport";
 import { replayTiming } from "./sampleReplay";
 import { distanceToGoM, standingsAt, type StandingRow, type TimelineSource } from "./timeline";
 import { pipRect, type CameraMode, type QualitySetting, type RenderQuality, type ViewMode } from "./types";
@@ -33,7 +33,7 @@ import { officialHandoff } from "./finale/live";
 import { FinaleOverlay, checkSeal, type PortraitRenderer, type RunnerConnections, type SealState } from "./finale/FinaleOverlay";
 import type { PhotoArt } from "./photo/raster";
 import type { CourseMapRunner } from "./hud/CourseMap";
-import { CourseMapPanel } from "./hud/CourseMapPanel";
+import { CourseMapPanel, courseMapAway } from "./hud/CourseMapPanel";
 import { injectViewerCss } from "./hud/styles";
 import { ClipShareButton } from "./clip/ClipShareButton";
 import { canShareClip } from "./clip/plan";
@@ -41,6 +41,8 @@ import type { CourseInfo } from "./course/geometry";
 import { RestGate, shouldPauseForRest } from "./rest";
 import type { HD2DScene as HD2DSceneT, SceneRaceData } from "./three/HD2DScene";
 import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideScene";
+import { clothOffByUrl, saddleClothOf } from "./cloth";
+import { PHONE_PX, closeUpByUrl, phoneLayoutByUrl } from "./phone";
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
 const VIEW_KEY = "rv:view";
@@ -49,6 +51,8 @@ const FOLLOW_KEY = "rv:follow";
 const RADIO_KEY = "rv:radio";
 /** "skip": this viewer skips the build-up before the off (remembered per browser). */
 const PREOFF_KEY = "rv:preoff";
+/** "1": phones frame the leaders and your horse in the final 400 m ("Close-up finish", V-02; off by default). */
+const CLOSEUP_KEY = "rv:closeup";
 
 /** Does this viewer skip the build-up (their remembered choice, or reduced motion)? */
 function preOffSkipped(): boolean {
@@ -89,8 +93,9 @@ export interface RaceViewerProps {
   /** Called once when playback first reaches the end of the race. */
   onFinished?: () => void;
   /**
-   * Real-device frame timings, at most once per mounted viewer: after 20 s of playback
-   * with ≥ 300 frames, or on unmount if ≥ 150 frames were drawn. Never depends on `debug`.
+   * Real-device frame timings (the V-00 baseline, docs/perf-baseline.md), at most once per
+   * mounted viewer: at the winner's line once ≥ 20 s of playback and ≥ 300 frames are in (after
+   * 90 s of playback at the latest), or on unmount if ≥ 150 frames were drawn. Never depends on `debug`.
    */
   onPerfReport?: (r: PerfReport) => void;
   className?: string;
@@ -175,6 +180,17 @@ export interface RaceViewerProps {
    * camera change or a resize draws again. Default false.
    */
   rest?: boolean;
+  /**
+   * Saddle cloths in the gate colours and numbers on the track, the HUD chips and the results
+   * (V-03; the racecard's colours). Default on; `?cloth=0` on the page URL shows the old white cloths.
+   */
+  clothColours?: boolean;
+  /**
+   * The phone race layout (V-01) on stages of 480 px and narrower: the course map folded to a
+   * button, the call line under the stage, standings = the top 3 and your horse, the view and
+   * camera options under the stage. Default on; `?phonehud=0` shows the previous layout.
+   */
+  phoneLayout?: boolean;
 }
 
 /** The finale's step as the overlay renders it. */
@@ -245,6 +261,8 @@ interface HudState {
   ff: boolean;
   /** The build-up before the off, while it plays. */
   pre: PreOffHud | null;
+  /** The finish: the course map fades to its tab (courseMapAway). */
+  mapAway: boolean;
 }
 
 const NARROW_PX = 560;
@@ -350,6 +368,49 @@ export function RaceViewer(props: RaceViewerProps) {
     }
   }, []);
 
+  // Saddle cloths (V-03) and the phone layout (V-01): on unless the page URL turns them off.
+  // Resolved on the client only (URL), so SSR and hydration agree.
+  const [clothOn, setClothOn] = useState(props.clothColours ?? true);
+  const [phoneOk, setPhoneOk] = useState(props.phoneLayout ?? true);
+  useEffect(() => {
+    setClothOn(props.clothColours ?? !clothOffByUrl());
+    setPhoneOk(props.phoneLayout ?? phoneLayoutByUrl());
+  }, [props.clothColours, props.phoneLayout]);
+  const clothRef = useRef(clothOn);
+  clothRef.current = clothOn;
+  // "Close-up finish" (V-02, phones only): off by default (the owner's test), remembered per
+  // browser; `?phonehud=2` forces it on.
+  const [closeUp, setCloseUpState] = useState(false);
+  const [closeUpForced, setCloseUpForced] = useState(false);
+  useEffect(() => {
+    const forced = closeUpByUrl();
+    setCloseUpForced(forced);
+    try {
+      setCloseUpState(forced || window.localStorage.getItem(CLOSEUP_KEY) === "1");
+    } catch {
+      setCloseUpState(forced);
+    }
+  }, []);
+  const setCloseUp = useCallback((on: boolean) => {
+    setCloseUpState(on);
+    try {
+      window.localStorage.setItem(CLOSEUP_KEY, on ? "1" : "0");
+    } catch {
+      /* storage blocked: the choice lasts for this page only */
+    }
+  }, []);
+  const closeFinishRef = useRef(false);
+  // The course map stands down for the finish (courseMapAway); a seek or a new race re-arms it.
+  const mapAwayRef = useRef(false);
+  const mapResetRef = useRef(true);
+  // Where the course map sits on the stage (CSS px), for the 3D camera's safe area.
+  const mapRectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const onMapRect = useCallback((r: { x: number; y: number; w: number; h: number } | null) => {
+    mapRectRef.current = r;
+  }, []);
+  /** The layout the perf report is measured on (V-00 baseline: phone layout and close-up finish separate). */
+  const perfLayoutRef = useRef<PerfLayout>("wide");
+
   // Trackside "Follow mine" camera. Default whole field; the remembered choice is applied
   // on the client only so SSR and hydration agree.
   const [follow, setFollowState] = useState(false);
@@ -407,7 +468,8 @@ export function RaceViewer(props: RaceViewerProps) {
   onPerfReportRef.current = onPerfReport;
   // Perf samples live across scene rebuilds (view switch, art change): one report per mount.
   const downgradedRef = useRef(false);
-  const perfRef = useRef({ ft: new Float32Array(240), n: 0, playedMs: 0, reported: false });
+  // ~20 s of frames at 60 fps: frame intervals and the viewer's JS work per frame, same slots.
+  const perfRef = useRef({ ft: new Float32Array(1200), wk: new Float32Array(1200), n: 0, playedMs: 0, reported: false, downgradeSec: -1 });
   const duration = useMemo(() => (final ? replayTiming(final).duration : 0), [final]);
   // ONE stage (course, light, landmarks) and ONE director for both views: switching views
   // keeps the same picture and the same shot subject.
@@ -589,6 +651,7 @@ export function RaceViewer(props: RaceViewerProps) {
     finaleStateRef.current = finaleRef.current.state;
     setFinaleState(finaleRef.current.state);
     finishedFired.current = false;
+    mapResetRef.current = true;
     setDismissed(false);
   }, [initialFinal, feed, startAtMs, autoplay, initialTimeSec, planFor]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -615,12 +678,14 @@ export function RaceViewer(props: RaceViewerProps) {
     for (const s of samples) if (leadIdx < 0 || s.x > samples[leadIdx]!.x) leadIdx = samples.indexOf(s);
     const dots: MinimapDot[] = samples.map((s, i) => {
       const hz = src.horses[s.index]!;
+      // the progress strip and the course map dot each runner in its cloth colour (V-03), as on the track
+      const cl = clothRef.current ? saddleClothOf(hz.gate) : null;
       return {
         id: s.horseId,
         p: s.x / src.trackLengthMm,
         lane: Math.min(1, Math.max(0, s.lane / laneMax)),
-        primary: hz.appearance.silks.primary,
-        secondary: hz.appearance.silks.secondary,
+        primary: cl?.cloth ?? hz.appearance.silks.primary,
+        secondary: cl?.cloth ?? hz.appearance.silks.secondary,
         me: s.horseId === highlightHorseId,
         leader: i === leadIdx && t > 0,
       };
@@ -663,8 +728,10 @@ export function RaceViewer(props: RaceViewerProps) {
       slowmo: frameFlags.current.slowmo,
       canGoLive: clock.canGoLive(),
       toGoM: samples.length ? distanceToGoM(src, samples) : src.trackLengthMm / 1000,
+      mapAway: (mapAwayRef.current = courseMapAway(mapAwayRef.current, t, samples.length ? distanceToGoM(src, samples) : Infinity, mapResetRef.current)),
       standings: samples.length ? standingsAt(src, samples) : [],
     });
+    mapResetRef.current = false;
   }, [live, feed, highlightHorseId, callFeed, markers, whatIf]);
   // The render loop outlives a publish/plan rebuild (e.g. the viewer's horses change): it reads these refs.
   const publishRef = useRef(publish);
@@ -680,7 +747,14 @@ export function RaceViewer(props: RaceViewerProps) {
     const cb = onPerfReportRef.current;
     if (perf.reported || !cb || perf.n === 0) return;
     perf.reported = true;
-    cb(perfReport(perf.ft.subarray(0, Math.min(perf.n, perf.ft.length)), qualityRef.current, downgradedRef.current, viewRef.current ?? "trackside"));
+    const k = Math.min(perf.n, perf.ft.length);
+    cb(
+      perfReport(perf.ft.subarray(0, k), qualityRef.current, downgradedRef.current, viewRef.current ?? "trackside", {
+        work: perf.wk.subarray(0, k),
+        downgradeSec: perf.downgradeSec,
+        layout: perfLayoutRef.current,
+      }),
+    );
   }, []);
 
   // Three.js HD-2D scene. StrictMode-safe: the async init checks `disposed` after every await.
@@ -705,7 +779,7 @@ export function RaceViewer(props: RaceViewerProps) {
       if (view === "trackside") {
         try {
           const { TracksideScene } = await import("./trackside/TracksideScene");
-          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured, preOff: preOffRef.current });
+          scene = await TracksideScene.create(T, data, { quality: q, highlightHorseId, art, course, stage: raceStage, injured, preOff: preOffRef.current, clothColours: clothOn });
           artNote = "trackside";
         } catch (err) {
           console.warn("[RaceViewer] Trackside view unavailable, using the classic view", err);
@@ -734,7 +808,7 @@ export function RaceViewer(props: RaceViewerProps) {
           return;
         }
         try {
-          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, stage: raceStage, stageArt, strips, fxPalette: fx, injured, preOff: preOffRef.current });
+          scene = new HD2DScene(T, data, { quality: q, highlightHorseId, pixelated, art, rigs: rigs.factory, rigKind: rigs.kind, stage: raceStage, stageArt, strips, fxPalette: fx, injured, preOff: preOffRef.current, clothColours: clothOn });
         } catch (err) {
           rigs.factory.dispose();
           throw err;
@@ -761,6 +835,8 @@ export function RaceViewer(props: RaceViewerProps) {
         };
       }
       if (hook) (window as unknown as { __rvScene?: unknown }).__rvScene = sc;
+      // Dev hook (3D): runners' drawn boxes and nose points on screen (gate / judge framing checks).
+      if (hook && "debugScreen" in sc) (window as unknown as { __rv3d?: unknown }).__rv3d = { screen: () => sc.debugScreen(), stage: () => ({ w: stage.clientWidth, h: stage.clientHeight }) };
       if (hook) {
         // Dev hook: put the playhead anywhere, the build-up before the off included (contact sheets).
         (window as unknown as { __rvClock?: unknown }).__rvClock = {
@@ -841,7 +917,7 @@ export function RaceViewer(props: RaceViewerProps) {
         directorRef.current.force(replaying ? { type: "replay", subject: winnerId } : null);
         const sceneT = fin.sceneTime() ?? fr.time;
         const resting = restRef.current && !clock.playing && !clock.live && !fin.running;
-        const drawNow = restGate.draw(resting, `${sceneT.toFixed(3)}|${cameraRef.current}|${followRef.current}|${sizeTick}|${qualityRef.current}`);
+        const drawNow = restGate.draw(resting, `${sceneT.toFixed(3)}|${cameraRef.current}|${followRef.current}|${closeFinishRef.current}|${sizeTick}|${qualityRef.current}`);
         if (restGate.idle !== restMarked) {
           restMarked = restGate.idle;
           stage.dataset.rvRest = restMarked ? "1" : "0";
@@ -855,6 +931,9 @@ export function RaceViewer(props: RaceViewerProps) {
           frozen: fr.frozen,
           flash: fr.flash,
           director: directorRef.current,
+          closeFinish: !fin.running && closeFinishRef.current,
+          finale: fin.running,
+          hudPanel: mapRectRef.current,
         });
         const view = finaleViewRef.current;
         const nextKind = cur.step?.kind ?? null;
@@ -889,6 +968,7 @@ export function RaceViewer(props: RaceViewerProps) {
         frames++;
         workMs += work;
         dtSum += deltaMS;
+        perf.wk[perf.n % perf.wk.length] = work;
         perf.ft[perf.n++ % perf.ft.length] = deltaMS;
         wk[wkN++ % wk.length] = work;
         if (debug && work > 8 && spikes.length < 30) spikes.push(`${fr.time.toFixed(1)}s:${work.toFixed(0)}ms`);
@@ -899,12 +979,16 @@ export function RaceViewer(props: RaceViewerProps) {
           if (slowFrames > 90) {
             qualityRef.current = "low";
             downgradedRef.current = true;
+            perf.downgradeSec = perf.playedMs / 1000;
             sc.setQuality("low");
           }
         }
-        // Real-device perf report: once, after 20 s of playback with enough frames.
+        // Real-device perf report (the V-00 baseline): once, with at least 20 s of playback and
+        // 300 frames, at the winner's line so the frame window covers the run-in (the closing
+        // camera, the battle, the close-up finish); after 90 s of playback in any case.
         if (clock.playing || clock.live) perf.playedMs += deltaMS;
-        if (!perf.reported && perf.playedMs >= 20_000 && perf.n >= 300) sendPerfReport();
+        const lineT = finalRef.current ? finalRef.current.result.winningTimeUs / 1e6 : Infinity;
+        if (!perf.reported && perf.playedMs >= 20_000 && perf.n >= 300 && (fr.time >= lineT || perf.playedMs >= 90_000)) sendPerfReport();
         dbgAcc += dt;
         if (debug && dbgAcc >= 0.5) {
           const cam = sc.cameraInfo;
@@ -949,6 +1033,7 @@ export function RaceViewer(props: RaceViewerProps) {
         if (hook) delete (window as unknown as { __rvTrackside?: unknown }).__rvTrackside;
         if (hook) delete (window as unknown as { __rvFinale?: unknown }).__rvFinale;
         if (hook) delete (window as unknown as { __rvScene?: unknown }).__rvScene;
+        if (hook) delete (window as unknown as { __rv3d?: unknown }).__rv3d;
         if (hook) delete (window as unknown as { __rvClock?: unknown }).__rvClock;
       };
     })().catch((err) => {
@@ -962,7 +1047,7 @@ export function RaceViewer(props: RaceViewerProps) {
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course, raceStage, injured]);
+  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course, raceStage, injured, clothOn]);
 
   // Unmount: send a report for viewers that left before the 20 s mark (>= 150 frames drawn).
   useEffect(() => () => sendPerfReport(), [sendPerfReport]);
@@ -981,6 +1066,7 @@ export function RaceViewer(props: RaceViewerProps) {
     const c = clockRef.current;
     if (!c) return;
     fn(c);
+    mapResetRef.current = true;
     publish();
   };
   /** A seek / restart re-arms the finale (it plays again when the playhead next crosses it). */
@@ -1050,6 +1136,10 @@ export function RaceViewer(props: RaceViewerProps) {
 
   const narrow = width > 0 && width < NARROW_PX;
   narrowRef.current = narrow;
+  // The phone race layout (V-01) and, with it, the "Close-up finish" option (V-02).
+  const phone = phoneOk && width > 0 && width <= PHONE_PX;
+  closeFinishRef.current = phone && closeUp;
+  perfLayoutRef.current = phone ? (closeUp ? "phone-closeup" : "phone") : "wide";
   // "Share clip" (in the finale's strip panel): only from the official result — a live
   // broadcast has `final` set only once the broadcast is over (officialHandoff).
   const clipButton = useMemo(
@@ -1076,12 +1166,51 @@ export function RaceViewer(props: RaceViewerProps) {
     return out;
   }, [info.trackLengthMm]);
   // Final furlong: the HUD clears down to the leaders (and your horse) and the readout.
-  const maxStandings = narrow || h?.ff ? 3 : width < 900 ? 6 : 16;
+  // Phones (V-01): the top three, and your horse when it is further back.
+  const meAt = hasHighlight && h ? h.standings.findIndex((s) => s.horseId === highlightHorseId) : -1;
+  const maxStandings = phone ? (meAt >= 3 ? 4 : 3) : narrow || h?.ff ? 3 : width < 900 ? 6 : 16;
+  const callMine = !!h?.call && hasHighlight && h.call.horseIds.includes(highlightHorseId!);
+  const controlProps = h
+    ? {
+        narrow,
+        playing: h.playing,
+        rate: h.rate,
+        time: h.time,
+        duration: h.scrubMax,
+        liveMode: isLive,
+        camera,
+        hasHighlight,
+        showLive: startAtMs !== undefined || isLive,
+        live: h.live,
+        canGoLive: h.canGoLive,
+        onToggle,
+        onRestart,
+        onRate,
+        onSeek,
+        onScrubStart,
+        onScrubEnd,
+        onCamera: setCamera,
+        onLive,
+        view: view ?? "trackside",
+        onView: setView,
+        follow,
+        onFollow: setFollow,
+        radio,
+        onRadio: setRadio,
+        caster: caster.name,
+        closeUp: closeUp || closeUpForced,
+        onCloseUp: phone ? (on: boolean) => {
+          setCloseUpForced(false);
+          setCloseUp(on);
+        } : undefined,
+      }
+    : null;
 
   return (
     <div
-      className={`rv-root${narrow ? " rv-narrow" : ""}${course ? " rv-has-cmap" : ""}${h?.ff ? " rv-ff" : ""}${className ? ` ${className}` : ""}`}
-      style={{ ["--rv-cmap-top" as string]: `${hudTitle ? (narrow ? 88 : 104) : narrow ? 80 : 96}px` }}
+      className={`rv-root${narrow ? " rv-narrow" : ""}${phone ? " rv-phone" : ""}${course ? " rv-has-cmap" : ""}${h?.ff ? " rv-ff" : ""}${className ? ` ${className}` : ""}`}
+      style={{ ["--rv-cmap-top" as string]: `${phone ? 50 : hudTitle ? (narrow ? 88 : 104) : narrow ? 80 : 96}px` }}
+      data-rv-phone={phone ? (closeUp ? "close-up" : "1") : undefined}
       tabIndex={0}
       onKeyDown={(e) => {
         radioRef.current?.resume();
@@ -1106,9 +1235,11 @@ export function RaceViewer(props: RaceViewerProps) {
             commentary={h.frozen || quiet || narrow ? null : h.call}
             highlightHorseId={hasHighlight ? highlightHorseId : undefined}
             marker={h.marker}
+            cloth={clothOn}
+            phone={phone}
           />
         )}
-        {h && narrow && h.call && !h.frozen && !quiet && (
+        {h && narrow && !phone && h.call && !h.frozen && !quiet && (
           <div className="rv-ticker-low" style={h.battle ? { bottom: 96 } : h.ff ? { bottom: 52 } : undefined}>
             <CallTicker key={`${h.call.atSec}-${h.call.kind}`} line={h.call} mine={hasHighlight && h.call.horseIds.includes(highlightHorseId!)} />
           </div>
@@ -1124,13 +1255,16 @@ export function RaceViewer(props: RaceViewerProps) {
         )}
         {h?.frozen && <PhotoStamp />}
         {h && !quiet && !h.ff && h.dots.length > 0 && <Minimap dots={h.dots} furlongs={furlongs} trackLengthM={info.trackLengthMm / 1000} />}
-        {h?.battle && !quiet && <BattleGraphic battle={h.battle} horses={info.horses} highlightHorseId={hasHighlight ? highlightHorseId : undefined} />}
-        {course && h && !quiet && !h.ff && !h.frozen && (
+        {h?.battle && !quiet && <BattleGraphic battle={h.battle} horses={info.horses} highlightHorseId={hasHighlight ? highlightHorseId : undefined} cloth={clothOn} />}
+        {course && h && !quiet && !h.frozen && (
           <CourseMapPanel
             course={course}
             distanceM={info.trackLengthMm / 1000}
             runners={mapRunners(h.dots, info.trackLengthMm / 1000)}
             narrow={narrow}
+            phone={phone}
+            away={h.mapAway}
+            onRect={onMapRect}
             onSlope={h.time > 0 && h.toGoM > 0 && h.toGoM <= course.homeStraightM}
           />
         )}
@@ -1170,38 +1304,19 @@ export function RaceViewer(props: RaceViewerProps) {
             clipButton={clipButton ?? undefined}
           />
         )}
-        {showResults && final && <ResultsCard replay={final} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} />}
-        {h && (
-          <Controls
-            narrow={narrow}
-            playing={h.playing}
-            rate={h.rate}
-            time={h.time}
-            duration={h.scrubMax}
-            liveMode={isLive}
-            camera={camera}
-            hasHighlight={hasHighlight}
-            showLive={startAtMs !== undefined || isLive}
-            live={h.live}
-            canGoLive={h.canGoLive}
-            onToggle={onToggle}
-            onRestart={onRestart}
-            onRate={onRate}
-            onSeek={onSeek}
-            onScrubStart={onScrubStart}
-            onScrubEnd={onScrubEnd}
-            onCamera={setCamera}
-            onLive={onLive}
-            view={view ?? "trackside"}
-            onView={setView}
-            follow={follow}
-            onFollow={setFollow}
-            radio={radio}
-            onRadio={setRadio}
-            caster={caster.name}
-          />
-        )}
+        {showResults && final && <ResultsCard replay={final} highlightHorseId={highlightHorseId} onClose={() => setDismissed(true)} onReplay={onRestart} cloth={clothOn} />}
+        {controlProps && <Controls {...controlProps} part={phone ? "transport" : "all"} />}
       </div>
+      {phone && controlProps && (
+        // Phones (V-01): the call line under the stage, so it never covers the runners, then the
+        // view / camera / close-up / radio options. The slot keeps its height, so nothing jumps.
+        <div className="rv-below" data-rv-below="">
+          <div className={`rv-call-slot${h?.call && !h.frozen && !quiet ? "" : " rv-call-slot-idle"}`} data-rv-call-slot="">
+            {h?.call && !h.frozen && !quiet && <CallTicker key={`${h.call.atSec}-${h.call.kind}`} line={h.call} mine={callMine} />}
+          </div>
+          <Controls {...controlProps} part="options" />
+        </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { trackEvent } from "@/server/playtest";
 import { getSession } from "@/server/session";
 
 export const runtime = "nodejs";
+
+/** A race_perf report stores its 14 fields (other events keep the default 8). */
+const PERF_PROPS = 16;
 export const dynamic = "force-dynamic";
 
 /** Client-side events only; everything else is recorded by the server where it happens. */
@@ -15,14 +18,21 @@ const Event = z.union([
     route: z.string().max(200).optional(),
     raceId: z.string().uuid().optional(),
   }),
-  // One real-device perf report per mounted race viewer (8 props; cleanProps caps the rest).
+  // One real-device perf report per mounted race viewer: the performance baseline (V-00,
+  // docs/perf-baseline.md). The fields added for the baseline are optional (older clients).
   z.object({
     name: z.literal("race_perf"),
     fps: z.number().int().min(0).max(1000),
     fpsLow: z.number().int().min(0).max(1000),
+    fps99: z.number().int().min(0).max(1000).optional(),
+    workMs: z.number().min(0).max(10_000).optional(),
+    workP99: z.number().min(0).max(10_000).optional(),
+    slowPct: z.number().min(0).max(100).optional(),
     quality: z.enum(["high", "low"]),
     downgraded: z.boolean(),
+    downgradeSec: z.number().int().min(-1).max(100_000).optional(),
     view: z.enum(["trackside", "classic"]),
+    layout: z.enum(["wide", "phone", "phone-closeup"]).optional(),
     device: z.enum(["phone", "tablet", "desktop"]),
     dpr: z.number().min(0).max(64),
     gpu: z.string().max(120),
@@ -40,7 +50,7 @@ export async function POST(req: Request) {
     for (const e of parsed.data.events) {
       if (e.name === "race_perf") {
         const { name: _n, ...perf } = e;
-        await trackEvent(database, session?.accountId ?? null, "race_perf", { ...perf, gpu: e.gpu.slice(0, 60) });
+        await trackEvent(database, session?.accountId ?? null, "race_perf", { ...perf, gpu: e.gpu.slice(0, 60) }, PERF_PROPS);
         continue;
       }
       const route = e.route?.split("?")[0]?.split("#")[0];

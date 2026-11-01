@@ -24,6 +24,8 @@ export interface KeyPalette {
   skin?: string[];
   /** Women riders' hair (the -f strips' lime keys): the jockey's hair colour. */
   hair?: string[];
+  /** The fixed white keys (palette fixed.white): the saddle cloth (and the breeches) are drawn in them. */
+  white?: string[];
 }
 
 export function parseKeyPalette(v: unknown): KeyPalette | null {
@@ -36,8 +38,11 @@ export function parseKeyPalette(v: unknown): KeyPalette | null {
   const coat = ramp("coat");
   if (!coat || coat.length === 0) return null;
   const fixed = o.fixed && typeof o.fixed === "object" ? (o.fixed as Record<string, unknown>) : null;
-  const skin = Array.isArray(fixed?.skin) && (fixed!.skin as unknown[]).every((c) => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) ? (fixed!.skin as string[]) : undefined;
-  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof"), skin, hair: ramp("hair") };
+  const fixedRamp = (k: string) => {
+    const a = fixed?.[k];
+    return Array.isArray(a) && a.every((c) => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) ? (a as string[]) : undefined;
+  };
+  return { coat, mane: ramp("mane"), silksPrimary: ramp("silksPrimary"), silksSecondary: ramp("silksSecondary"), cap: ramp("cap"), points: ramp("points"), hoof: ramp("hoof"), skin: fixedRamp("skin"), hair: ramp("hair"), white: fixedRamp("white") };
 }
 
 type Role = "coat" | "mane" | "silksPrimary" | "silksSecondary" | "cap" | "points" | "hoof" | "hair";

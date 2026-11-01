@@ -10,3 +10,4 @@ export * from "./coatLayers";
 export * from "./portraitCoat";
 export * from "./coatSheets";
 export * from "./longHair";
+export * from "./saddleCloth";

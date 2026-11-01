@@ -36,7 +36,7 @@ import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeF
 import { CHIP_H, chipLabel, pickChips, type ChipCandidate } from "./gapMarks";
 import { lookFor, type TracksideLook } from "./looks";
 import { finishTilt, sceneryFor } from "./scenery";
-import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, frameOrigin } from "./strips";
+import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "./strips";
 import * as S from "./shaders";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
@@ -45,6 +45,7 @@ import { FieldMotion, injuredFromEvents, type AnimId, type RunnerState } from ".
 import { preOffStep, type PreOffPlan } from "../stage/preoff";
 import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, stripFrames } from "../stage/paint";
 import { tracksideInventory, tracksidePlan, type TracksidePlan } from "./stagePlan";
+import { CloseUpFinish, closeUpBlend } from "../phone";
 
 export interface TracksideOptions {
   quality: RenderQuality;
@@ -58,6 +59,8 @@ export interface TracksideOptions {
   injured?: ReadonlySet<string>;
   /** The build-up before the off (stage/preoff.ts); null/omitted = standing in the stalls. */
   preOff?: PreOffPlan | null;
+  /** Saddle cloths in each runner's gate colour and number (V-03); false = the strips' white cloths. Default true. */
+  clothColours?: boolean;
 }
 
 /** Art the stage needs beyond the strips (loaded once in `create`). */
@@ -306,7 +309,7 @@ export class TracksideScene {
     this.trackLayer.matrixAutoUpdate = false;
     this.scene.add(this.trackLayer);
 
-    this.lut = this.dataTex(buildLut(art.palette, art.keys, data.horses.map((h) => h.appearance)), LUT_W, Math.max(1, data.horses.length), T.RGBAFormat);
+    this.lut = this.dataTex(buildLut(art.palette, art.keys, data.horses.map((h) => h.appearance), runnerCloths(data.horses, opts.clothColours)), LUT_W, Math.max(1, data.horses.length), T.RGBAFormat);
     for (const st of [art.gallop, art.idle, ...Object.values(art.strips)]) {
       if (!st) continue;
       this.lodTex.set(
@@ -651,6 +654,7 @@ export class TracksideScene {
         uRimAmt: { value: look.rim.amount },
         uTint: { value: new T.Vector4(tint[0], tint[1], tint[2], look.spriteTint[1]) },
         uOpacity: { value: 1 },
+        uClothNum: { value: 0 },
       });
       const r: Runner = {
         index: i,
@@ -866,6 +870,12 @@ export class TracksideScene {
     const replayIdx = intent?.kind === "replay" ? this.data.horses.findIndex((h) => h.horseId === intent.subject) : -1;
     const followIdx = pre ? -1 : replayIdx >= 0 ? replayIdx : f.follow === true && this.highlight >= 0 ? this.highlight : followWinner ? winner : -1;
     const followOn = followIdx >= 0;
+    // Phones, "Close-up finish" (V-02): the final 400 m frame the leaders and your horse; the
+    // whole field again for the run-out. Camera only (the same springs and zoom ladder).
+    const group = f.closeFinish && !pre && !followOn && replayIdx < 0 ? this.closeUpGroup(raceT) : (this.closeUp.reset(), null);
+    // The layout eases between the whole-field placement and the plain linear one with the lens
+    // (in and out), so nobody pops in or out squeezed.
+    this.freeBlend = closeUpBlend(this.freeBlend, !!group, snap ? -1 : realDt);
     // Camera feed-forward must describe the target's ACTUAL motion: while paused or frozen
     // (sim time not advancing) the sampled speeds are non-zero but nothing moves, and the
     // follow lock's spring would settle 2*v/omega ahead of the runner — enough to push it
@@ -882,8 +892,12 @@ export class TracksideScene {
         finishX: L,
         runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed * camV })),
         followIndex: followOn ? followIdx : null,
+        groupIndices: group,
+        previewIndices: group ? this.closeUpPreview() : null,
       },
-      snap ? 0 : realDt,
+      // the close-up finish has no whole-field squeeze to fall back on: on a slow phone (under
+      // 10 fps) its camera steps the real frame time, so the group never drifts out of frame
+      snap ? 0 : group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt,
       snap,
     );
     const lay = placeField({
@@ -897,6 +911,8 @@ export class TracksideScene {
       laneSpan: this.cam.laneSpan,
       headroomM: this.highlight >= 0 ? 0.5 : 0.25,
       follow: followOn ? followIdx : null,
+      free: this.freeBlend,
+      framed: group,
     });
     this.layout = lay;
     const dcx = snap || Number.isNaN(this.prevCx) ? 0 : lay.cx - this.prevCx;
@@ -904,8 +920,9 @@ export class TracksideScene {
       // Continuity metric: net of the tracked point's own travel (follow mode tracks the
       // highlighted runner, whole-field tracks the field mean).
       let fieldV = 0;
-      for (const r of this.runners) fieldV += r.speed;
-      fieldV /= Math.max(1, this.runners.length);
+      const pool = group ? group.map((i) => this.runners[i]!) : this.runners;
+      for (const r of pool) fieldV += r.speed;
+      fieldV /= Math.max(1, pool.length);
       const refV = followOn ? this.runners[followIdx]!.speed : fieldV;
       if (raceT > 1) this.maxCamStep = Math.max(this.maxCamStep, Math.abs(dcx - refV * simDt));
     }
@@ -924,6 +941,34 @@ export class TracksideScene {
     this.drawFx(lay, realDt, f.frozen, f.flash);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private closeUp = new CloseUpFinish();
+  /** 0 = the whole-field placement, 1 = plain linear (the close-up finish); eased between. */
+  private freeBlend = 0;
+
+  /** The close-up finish's group (runner indices), or null outside the final 400 m. */
+  private closeUpGroup(raceT: number): number[] | null {
+    const ids = this.closeUp.group({
+      t: raceT,
+      trackLengthM: this.L,
+      winnerTime: this.winnerTime,
+      runners: this.runners.map((r) => ({ id: r.horseId, x: r.x })),
+      highlightId: this.highlight >= 0 ? this.data.horses[this.highlight]!.horseId : null,
+    });
+    if (!ids) return null;
+    return this.runners.filter((r) => ids.includes(r.horseId)).map((r) => r.index);
+  }
+
+  /** Runners about to join the close-up's group (the camera already takes them in). */
+  private closeUpPreview(): number[] {
+    const ids = this.closeUp.preview;
+    return ids.length ? this.runners.filter((r) => ids.includes(r.horseId)).map((r) => r.index) : [];
+  }
+
+  /** The runners the close-up finish frames right now (dev hook, framing checks). */
+  get closeUpFramed(): string[] {
+    return this.closeUp.framed;
   }
 
   private dirScan = 0;
@@ -1210,6 +1255,7 @@ export class TracksideScene {
       (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
       this.place(r.mesh, x, y, w, h);
       r.rect = { x: x / B, y: y / B, w: w / B, h: h / B };
+      u.uClothNum!.value = clothNumberShown(w / B, r.lod) ? 1 : 0;
       // contact shadow under the barrel
       const bodyLen = 2.2 * p.pxPerM * B;
       const sw = bodyLen * 0.95;

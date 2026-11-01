@@ -9,12 +9,13 @@
  * zoomed-out horse is still hard-edged palette art, never a resampled blur.
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { buildCoatGeometry, coatPatternOf, GEO_REGION, longHair, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, coatPatternOf, findSaddleCloth, saddleClothOf, GEO_REGION, longHair, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid, type SaddleClothLook, type SaddleClothMask } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
+import { clothOffByUrl } from "../cloth";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
  * 128 marking flags, 129 marking white, 130 dun stripe colour, 131..134 the rider's skin
- * (dark -> light), 135..137 the rider's hair, 138 rider flags, 139 spare, then the coat
+ * (dark -> light), 135..137 the rider's hair, 138 rider flags, 139 the saddle cloth, then the coat
  * pattern (art-pipeline coatPatternOf): 140..155 eight layer slots (params, colour), 156 face
  * and feather cells and the slot count, 157 the four leg-marking cells. */
 export const LUT_W = 158;
@@ -37,6 +38,10 @@ export const LUT_FLAG_X = 128;
 export const LUT_WHITE_X = 129;
 /** LUT column of the dun stripe colour (dorsal stripe / leg barring; alpha 0 = legacy darkening). */
 export const LUT_STRIPE_X = 130;
+/** LUT column of the saddle cloth (V-03): RGB the gate colour, A the gate number (0 = the strip's white cloth). */
+export const LUT_CLOTH_X = 139;
+/** LUT column of the cloth's number colour: palette index 0 (transparent) never reads its own column. */
+export const LUT_CLOTH_NUM_X = 0;
 export const MARKING_WHITE = 0xf3f0e8;
 export const MAX_COLOURS = 63;
 /** Silks pattern ids (shader). */
@@ -50,7 +55,7 @@ export const FACE_ID: Record<string, number> = { none: 0, star: 1, snip: 2, stri
 export const COAT_PATTERN_ID: Record<string, number> = { none: 0, roan: 1, dapple: 2 };
 
 /** Marking mask regions (mask R channel). */
-export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9, womanTrim: 10, womanTexel: 11, mane: 12, tail: 13, hair: 16 } as const;
+export const MARK_REGION = { none: 0, frontNear: 1, frontFar: 2, hindNear: 3, hindFar: 4, face: 5, body: 6, riderFace: 7, riderHair: 8, cap: 9, womanTrim: 10, womanTexel: 11, mane: 12, tail: 13, cloth: 14, hair: 16 } as const;
 
 export interface Palette {
   /** packed rgb per index; index 0 = transparent. */
@@ -287,7 +292,7 @@ export function indexedRoleGrid(src: IndexedFrames, palette: Palette, keys: KeyP
  *       under the top line * 32), B = face only: texels from the profile edge * 32.
  * `coatMasks` (below) carries the horse-space coordinates the coat layers are sampled at.
  */
-export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry = buildCoatGeometry(indexedRoleGrid(src, palette, keys)), hair: LongHair | null = null): Uint8Array {
+export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry = buildCoatGeometry(indexedRoleGrid(src, palette, keys)), hair: LongHair | null = null, cloth: SaddleClothMask | null = null): Uint8Array {
   const out = new Uint8Array(src.width * src.height * 4);
   const { fw, fh } = src;
   for (let f = 0; f < src.frames; f++) {
@@ -313,9 +318,56 @@ export function buildMarkMasks(src: IndexedFrames, palette: Palette, keys: KeyPa
         if (r === GEO_REGION.face) out[o + 2] = Math.min(255, Math.max(0, Math.round(geo.p2[i]! * 32)));
         out[o + 3] = 255;
       }
+    // the saddle cloth (V-03): R = 14, G = the number box cell (cx + cy * 8; 255 outside it)
+    if (cloth)
+      for (let y = 0; y < fh; y++)
+        for (let x = 0; x < fw; x++) {
+          const i = (f * fh + y) * fw + x;
+          if (!cloth.mask[i]) continue;
+          const o = ((oy + y) * src.width + ox + x) * 4;
+          out[o] = MARK_REGION.cloth;
+          out[o + 1] = cloth.glyph[i]!;
+          out[o + 2] = 0;
+          out[o + 3] = 255;
+        }
   }
   riderMasks(src, palette, keys, out);
   return out;
+}
+
+/**
+ * Each runner's saddle cloth (V-03): the gate's colour and number from the racecard's single
+ * definition (art-pipeline SADDLE_CLOTHS). `on` false = none (the strips' own white cloths);
+ * omitted = on unless the page asks for the old white cloths (`?cloth=0`).
+ */
+export function runnerCloths(horses: readonly { gate: number }[], on?: boolean): (SaddleClothLook | null)[] {
+  const show = on ?? !clothOffByUrl();
+  return horses.map((h) => (show ? saddleClothOf(h.gate) : null));
+}
+
+/** Smallest drawn frame width (CSS px) that prints the cloth's number: a horse of ~120 px and more. */
+export const CLOTH_NUMBER_MIN_CSS = 130;
+
+/**
+ * Is the cloth's number printed? The horse is drawn large enough to read it (frame >= ~130 CSS px,
+ * the horse itself ~120) and from the full or half-size strip (the number's 2-texel cells stay whole).
+ */
+export function clothNumberShown(frameCssW: number, lod: number): boolean {
+  return frameCssW >= CLOTH_NUMBER_MIN_CSS && lod <= 2;
+}
+
+/** The saddle cloth of an indexed strip (art-pipeline saddleCloth): its cloth is drawn in the fixed white keys. */
+export function stripSaddleCloth(src: IndexedFrames, palette: Palette, keys: KeyPalette, geo: CoatGeometry): SaddleClothMask | null {
+  const white = new Set<number>();
+  for (const h of keys.white ?? []) {
+    const i = palette.lookup.get(Number.parseInt(h.slice(1), 16));
+    if (i !== undefined) white.add(i);
+  }
+  if (!white.size) return null;
+  return findSaddleCloth((f, x, y) => {
+    const [ox, oy] = frameOrigin(src, f);
+    return white.has(src.index[(oy + y) * src.width + ox + x]!);
+  }, geo);
 }
 
 /**
@@ -501,7 +553,7 @@ function riderMasks(src: IndexedFrames, palette: Palette, keys: KeyPalette, out:
  * column LUT_STRIPE_X the dun stripe colour (alpha 0 when the palette has none — the shader
  * falls back to the legacy fixed darkening).
  */
-export function buildLut(palette: Palette, keys: KeyPalette, appearances: readonly HorseAppearance[]): Uint8Array {
+export function buildLut(palette: Palette, keys: KeyPalette, appearances: readonly HorseAppearance[], cloths: readonly (SaddleClothLook | null | undefined)[] = []): Uint8Array {
   const rows = Math.max(1, appearances.length);
   const lut = new Uint8Array(LUT_W * rows * 4);
   appearances.forEach((a, row) => {
@@ -593,6 +645,22 @@ export function buildLut(palette: Palette, keys: KeyPalette, appearances: readon
     lut[co + 3] = 255;
     const lo = (row * LUT_W + LUT_LEGS_X) * 4;
     pat.legs.forEach((c, k) => (lut[lo + k] = c >= 0 ? c : 255));
+    // the saddle cloth in the gate's colour, its number colour in the (unused) index-0 column
+    const cl = cloths[row];
+    if (cl) {
+      const bg = Number.parseInt(cl.cloth.slice(1), 16);
+      const fg = Number.parseInt(cl.number.slice(1), 16);
+      const bo = (row * LUT_W + LUT_CLOTH_X) * 4;
+      lut[bo] = (bg >> 16) & 255;
+      lut[bo + 1] = (bg >> 8) & 255;
+      lut[bo + 2] = bg & 255;
+      lut[bo + 3] = Math.max(1, Math.min(255, cl.gate));
+      const no = (row * LUT_W + LUT_CLOTH_NUM_X) * 4;
+      lut[no] = (fg >> 16) & 255;
+      lut[no + 1] = (fg >> 8) & 255;
+      lut[no + 2] = fg & 255;
+      lut[no + 3] = 255;
+    }
   });
   return lut;
 }

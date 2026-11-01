@@ -79,6 +79,12 @@ export interface DirectorInput {
   preOff?: "post" | "loading" | null;
 }
 
+/**
+ * The gate shot holds this long after the off (s): the field breaking out of the stalls (V-09).
+ * Earlier (1 s) the shot moved on while the runners were still level at the stalls, so the next
+ * framing showed them as one column beside the gate.
+ */
+export const GATE_HOLD_S = 2;
 /** Minimum time a framing is held before the director changes it (s). */
 export const MIN_SHOT_S = 4;
 /** The player's horse is never out of frame for longer than this (s). */
@@ -183,7 +189,7 @@ export class Director {
     // Race phases (these change framing on time). Before the off: the whole field going down
     // to post, then the stalls.
     if (inp.preOff === "post" && t < 0) return { type: "topost", subject: null };
-    if (t < 1.0) return { type: "gate", subject: null };
+    if (t < GATE_HOLD_S) return { type: "gate", subject: null };
     if (inp.photoFinish && t > inp.winnerTime - 1.6 && t < inp.winnerTime + 0.9) return { type: "judge", subject: null };
     if (t > inp.winnerTime + 0.9) {
       const w = inp.winnerId ?? null;

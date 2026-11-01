@@ -18,7 +18,7 @@ import { Digits } from "../Countdown";
 import { Diorama } from "../diorama/Diorama";
 import { postParadeScene } from "../diorama/scenes";
 import { SilksIcon } from "../Silks";
-import { PaddockParade, type ParadeRunner } from "./PaddockParade";
+import { PaddockParade, runnerLook, type ParadeRunner } from "./PaddockParade";
 import { ResultsSequence, type Settlement } from "../results/ResultsSequence";
 import { RivalLines } from "../social/RivalLines";
 import { LoginCodeAfterResult } from "../chain/LoginCodeCard";
@@ -417,7 +417,7 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
 /** The runners cantering down to post at dusk, each in its own coat, silks and jockey's look. */
 function PostParade({ runners }: { runners: readonly ParadeRunner[] }) {
   const ids = runners.map((r) => r.id).join(",");
-  const def = useMemo(() => postParadeScene(runners.slice(0, 4).map((r) => ({ coat: r.appearance.coat, appearance: r.appearance }))), [ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  const def = useMemo(() => postParadeScene(runners.slice(0, 4).map((r) => runnerLook(r))), [ids]); // eslint-disable-line react-hooks/exhaustive-deps
   return <Diorama scene="track-dusk" sceneDef={def} aspect={null} label="The runners cantering down to post at dusk" style={{ position: "absolute", inset: 0 }} />;
 }
 
