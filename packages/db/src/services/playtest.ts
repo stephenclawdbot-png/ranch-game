@@ -12,7 +12,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { sha256Hex, utcDay } from "../crypto";
-import { betaRewardRules, betaRewards, feedback, inviteCodes, testerRewards, testers, telemetryEvents, type BetaRewardRow, type FeedbackRow, type TesterRow } from "../schema";
+import { accounts, betaRewardRules, betaRewards, feedback, inviteCodes, stables, testerRewards, testers, telemetryEvents, type BetaRewardRow, type FeedbackRow, type TesterRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { rowsOf, runTx } from "./tx";
 
@@ -75,10 +75,20 @@ export async function listInviteCodes(ex: Executor) {
   return ex.select().from(inviteCodes).orderBy(desc(inviteCodes.createdAt)).limit(1000);
 }
 
-export type InviteProblem = "INVALID" | "USED" | "FULL";
+/** "SIGN_IN": the code is a tester's own way back in (see `inviteRecoveryAccount`); only with `recovery` on. */
+export type InviteProblem = "INVALID" | "USED" | "FULL" | "SIGN_IN";
 
-/** Read-only check for the /play screen. */
-export async function checkInvite(ex: Executor, rawCode: string, cap: number): Promise<{ ok: true; rejoin: boolean } | { ok: false; problem: InviteProblem }> {
+/**
+ * Read-only check for the /play screen. `recovery` (testing phase, same gate as login codes):
+ * a used single-use admin code whose tester has a live account answers SIGN_IN instead of
+ * USED, and the screen signs the browser in through the rate-limited sign-in route.
+ */
+export async function checkInvite(
+  ex: Executor,
+  rawCode: string,
+  cap: number,
+  opts: { recovery?: boolean } = {},
+): Promise<{ ok: true; rejoin: boolean } | { ok: false; problem: InviteProblem }> {
   const code = normalizeInviteCode(rawCode);
   if (!code) return { ok: false, problem: "INVALID" };
   const [row] = await ex.select().from(inviteCodes).where(eq(inviteCodes.code, code));
@@ -87,7 +97,7 @@ export async function checkInvite(ex: Executor, rawCode: string, cap: number): P
   // tester: that would hand someone else's tester record (and wallet) to a new signup.
   const orphan = row.kind === "admin" ? await ex.select({ id: testers.id }).from(testers).where(and(eq(testers.inviteCode, code), rejoinable(new Date()))).limit(1) : [];
   if (orphan.length) return { ok: true, rejoin: true };
-  if (row.uses >= row.maxUses) return { ok: false, problem: "USED" };
+  if (row.uses >= row.maxUses) return { ok: false, problem: opts.recovery && (await inviteRecoveryAccount(ex, code)) ? "SIGN_IN" : "USED" };
   const [n] = await ex.select({ n: sql<number>`count(*)::int` }).from(testers);
   if (Number(n?.n ?? 0) >= cap) return { ok: false, problem: "FULL" };
   return { ok: true, rejoin: false };
@@ -122,6 +132,31 @@ export async function redeemInvite(db: Db, input: { code: string; cap: number; n
 }
 
 const TESTER_CAP_LOCK = 7_310_331;
+
+/**
+ * Testing phase: the invite link as a way back in. A single-use root (admin) invite code that
+ * has been used, by exactly one tester whose account (and stable) is live, names that account.
+ * Null for everything else, so those keep their behaviour: multi-use and personal (referral)
+ * codes, revoked or unknown codes, unused codes, and codes whose tester has no account (the
+ * normal join / rejoin path). Read-only: the caller rate-limits, signs in and audits.
+ */
+export async function inviteRecoveryAccount(ex: Executor, rawCode: string): Promise<{ accountId: string; testerId: string; stableName: string } | null> {
+  const code = normalizeInviteCode(rawCode);
+  if (!code || code.length > 40) return null;
+  const [row] = await ex.select().from(inviteCodes).where(eq(inviteCodes.code, code));
+  if (!row || row.revokedAt || row.kind !== "admin" || row.maxUses !== 1 || row.uses < 1) return null;
+  const linked = await ex
+    .select({ testerId: testers.id, accountId: accounts.id, stableName: stables.name, isSystem: accounts.isSystem })
+    .from(testers)
+    .innerJoin(accounts, eq(accounts.id, testers.accountId))
+    .innerJoin(stables, eq(stables.accountId, accounts.id))
+    .where(eq(testers.inviteCode, code))
+    .limit(2);
+  // Exactly one live tester account; anything else is ambiguous and never signs in.
+  if (linked.length !== 1 || linked[0]!.isSystem) return null;
+  const { testerId, accountId, stableName } = linked[0]!;
+  return { testerId, accountId, stableName };
+}
 
 /**
  * A tester without an account who may be re-linked: unlinked by a reset (had a stable), or a
