@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { formatCredits } from "@/lib/format";
+import { signInHref } from "@/lib/nextPath";
 import { usePlayerState } from "@/lib/player";
 import { PixelIcon, type IconName } from "./icons";
 import { StableBadge } from "./StableBadge";
@@ -167,6 +168,12 @@ export function SiteNav() {
         {!(pathname.startsWith("/play") || pathname === "/") && (
           <Link href="/play" className="btn btn-sm max-sm:hidden">
             Found a stable
+          </Link>
+        )}
+        {/* Sign in comes back to this page afterwards (?next=, same-origin game paths only). */}
+        {!pathname.startsWith("/link") && pathname !== "/" && (
+          <Link href={signInHref(pathname)} className="btn btn-sm" data-testid="nav-sign-in">
+            Sign in
           </Link>
         )}
         {!pathname.startsWith("/link") && !pathname.startsWith("/play") && <ConnectWalletButton />}

@@ -100,6 +100,9 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
             <Link href="/play" className="btn btn-brass btn-lg" data-testid="found-stable">
               <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
             </Link>
+            <Link href="/link" className="btn btn-lg" data-testid="landing-sign-in">
+              Already playing? Sign in
+            </Link>
             {(live ?? next) && (
               <Link href={`/race/${(live ?? next)!.id}`} className="btn btn-lg" data-testid="watch-next">
                 {live ? (
@@ -115,7 +118,8 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
             )}
           </div>
           <p className="landing-sub" data-testid="landing-wallet">
-            Already have a stable? <ConnectWalletButton className="link" testId="landing-connect-wallet" />
+            {inviteOnly ? "Your stable uses a wallet? " : "Already have a stable? "}
+            <ConnectWalletButton className="link" testId="landing-connect-wallet" />
           </p>
         </div>
       </section>
@@ -150,6 +154,12 @@ function Welcome({ next, live, recent, inviteOnly }: ClubProps) {
         <Link href="/play" className="btn btn-brass btn-lg">
           <PixelIcon name="horseshoe" size={32} className="-my-2" /> {inviteOnly ? "I have an invite" : "Found your stable"}
         </Link>
+        <p className="font-bold">
+          Already playing?{" "}
+          <Link href="/link" className="link">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

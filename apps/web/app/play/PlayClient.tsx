@@ -172,10 +172,11 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
         <p className="caption">
           {!wallet.address && (
             <>
-              Already have a stable? <ConnectWalletButton className="link" testId="play-link-wallet" /> · or{" "}
+              Already have a stable?{" "}
               <Link href="/link" className="link" data-testid="play-link-device">
-                link this device with a code
-              </Link>
+                Sign in
+              </Link>{" "}
+              · or <ConnectWalletButton className="link" testId="play-link-wallet" />
             </>
           )}
         </p>

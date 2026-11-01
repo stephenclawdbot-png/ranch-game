@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Hex } from "viem";
 import { shortAddress } from "@/lib/chain/format";
+import { afterSignInHref, nextFromLocation, safeNextPath } from "@/lib/nextPath";
 import { walletErrorText } from "@/lib/chain/wallet";
 import { WalletPicker } from "./WalletPicker";
 import { useWallet } from "./useWallet";
@@ -20,6 +21,8 @@ import { useWallet } from "./useWallet";
 interface VerifyResult {
   /** Set when the wallet signed this browser in (or founded a stable): off to the stable. */
   stableName?: string;
+  /** A stable was founded with this wallet (not a sign-in). */
+  created?: boolean;
   linked?: boolean;
   address?: string;
   /** The wallet already signs this browser in: nothing to do, no cookie change. */
@@ -108,7 +111,9 @@ export function WalletSignIn({ label = "Sign in with wallet", intent = "signin",
         ...(attempt.create && create ? { create: true, stableName: create.stableName, silks: create.silks, ...(create.inviteCode ? { inviteCode: create.inviteCode } : {}), timezone: deviceTimezone() } : {}),
       });
       if (res.stableName !== undefined) {
-        window.location.assign("/stable");
+        // A new stable: off to the stable. A sign-in: back to the page they wanted (?next=, or
+        // the page this dialog was opened on), else Home with "Welcome back".
+        window.location.assign(res.created ? "/stable" : afterSignInHref(nextFromLocation() ?? safeNextPath(window.location.pathname)));
         return;
       }
       if (res.linked && res.address) {
