@@ -18,6 +18,7 @@ import {
 } from "@thoroughbred/db";
 import type { NotificationPrefsView, NotificationView, NotificationsView } from "@/lib/types";
 import type { Session } from "./session";
+import { schedulePush } from "./push";
 
 /** Items in the bell's panel. */
 export const BELL_LIMIT = 30;
@@ -87,4 +88,6 @@ export async function maybeSweepNotifications(db: Db, now: Date): Promise<void> 
   } catch (err) {
     console.error("[notifications] sweep failed", err);
   }
+  // Phone alerts: a catch-up for anything a request-time send missed (after the response).
+  schedulePush();
 }

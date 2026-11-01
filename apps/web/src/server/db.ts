@@ -16,6 +16,10 @@
 import { getDb, getDbHandle, type Db, type DbHandle } from "@thoroughbred/db";
 // Registers the practice identity derivation (USDG_MODE=practice only) with @thoroughbred/db.
 import "./chain/practiceIdentity";
+import { initPush } from "./push";
+
+// Phone / desktop alerts: new push-kind notes are sent after the response (server/push.ts).
+initPush(getDb);
 
 export type { Db };
 

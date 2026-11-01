@@ -17,14 +17,16 @@
     "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
-    "@thoroughbred/shared": "workspace:*",
-    "@thoroughbred/game-core": "workspace:*",
-    "drizzle-orm": "0.44.7",
     "@electric-sql/pglite": "0.3.16",
     "@neondatabase/serverless": "1.2.0",
+    "@thoroughbred/game-core": "workspace:*",
+    "@thoroughbred/shared": "workspace:*",
+    "drizzle-orm": "0.44.7",
+    "web-push": "3.6.7",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@types/web-push": "3.6.4",
     "drizzle-kit": "0.31.11"
   }
 }

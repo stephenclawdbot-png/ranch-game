@@ -72,4 +72,5 @@ export * from "./services/realTote";
 export * from "./services/quickRaces";
 export * from "./services/notifications";
 export * from "./services/notificationEvents";
+export * from "./services/push";
 export * from "./services/commentary";

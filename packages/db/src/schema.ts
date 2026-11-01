@@ -1008,6 +1008,57 @@ export const notificationPrefs = pgTable("notification_prefs", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * Phone / desktop alerts (Web Push, services/push.ts): one row per browser or installed app that
+ * said yes. The endpoint is the push service's URL for that device (unique); p256dh and auth are
+ * the device's keys for encrypting the message. `categories` are the notification categories this
+ * device gets alerts for ("Push to this device"). A device the push service reports gone (404/410)
+ * is deleted.
+ */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    categories: jsonb("categories").$type<string[]>().notNull().default([]),
+    userAgent: text("user_agent"),
+    /** Consecutive failed sends (not 404/410); the device is dropped after a few. */
+    failures: integer("failures").notNull().default(0),
+    lastSentAt: ts("last_sent_at"),
+    createdAt: createdAt(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("push_subscriptions_endpoint_uq").on(t.endpoint), index("push_subscriptions_account_idx").on(t.accountId)],
+);
+
+/**
+ * One row per inbox item considered for a push (services/push.ts): the claim that makes delivery
+ * happen at most once, and the record behind the daily cap and the duplicate check. `status` is
+ * sent, or why it wasn't (quiet hours, daily cap, switched off, duplicate, ...).
+ */
+export const pushDeliveries = pgTable(
+  "push_deliveries",
+  {
+    inboxItemId: uuid("inbox_item_id")
+      .primaryKey()
+      .references(() => inboxItems.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id").notNull(),
+    kind: text("kind").notNull(),
+    /** The tag the device shows it under (later alerts with the same tag replace it). */
+    tag: text("tag").notNull(),
+    status: text("status").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_deliveries_account_idx").on(t.accountId, t.createdAt)],
+);
+
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+
 /** One Daily Cup run per player per UTC day. */
 export const dailyCupEntries = pgTable(
   "daily_cup_entries",

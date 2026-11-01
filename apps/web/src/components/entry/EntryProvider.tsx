@@ -19,6 +19,7 @@ import { EntryForm, ExtrasPicker, HorsePicker, PlanPicker, quickPickRace, raceDa
 import { entryBlocker } from "@/lib/entryBlocker";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
 import { pushSure } from "@/lib/navigate";
+import { PushAsk } from "../PushAsk";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -357,6 +358,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
         <SheetHeader eyebrow="Entered · Live" title={race.name} onClose={onClose} />
         <p className="text-cream">{entered} is in.</p>
         <LiveWait postTimeMs={race.postTimeMs} entered raceId={raceId} />
+        <PushAsk />
         <div className="grid gap-2 sm:grid-cols-2">
           <Link href={`/race/${raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
             <PixelIcon name="play" className="h-4 w-4" /> Go to the race
@@ -504,6 +506,7 @@ function LivePickCard({
         </div>
       </div>
       <LiveWait postTimeMs={r.postTimeMs} entered raceId={r.raceId} />
+      <PushAsk />
       <div className="grid gap-2 sm:grid-cols-2">
         <Link href={`/race/${r.raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
           <PixelIcon name="play" className="h-4 w-4" /> Go to the race
