@@ -31,6 +31,7 @@ import type { Director, DirectorInput } from "../director";
 import { hexToRgb } from "../three/color";
 import { loadFxPalette, loadStageArt, loadTracksideArt, type FxPalette, type SheetFrame, type StripSet, type TracksideArt } from "./art";
 import type { SheetId } from "./sheets";
+import { snappedOrigin, steadyScale } from "./spriteSnap";
 import * as bake from "./bake";
 import { StallGate } from "./gate";
 import { LANE_K, LANE_W, SRC_PX_PER_M, TracksideCamera, laneScale, laneY, placeField, squeezeX, type FieldGap, type FieldLayout, type SpriteMetrics } from "./layout";
@@ -134,6 +135,8 @@ interface Runner {
   lastPhase: number;
   strip: StripSet | null;
   lod: number;
+  /** Scale drawn last frame (buffer px per LOD texel; spriteSnap.steadyScale), 0 = none yet. */
+  k: number;
   rect: { x: number; y: number; w: number; h: number };
   /** Body build and mane / tail (shape.ts). */
   shape: RunnerShape;
@@ -812,6 +815,7 @@ export class TracksideScene {
         lastPhase: Number.NaN,
         strip: null,
         lod: 0,
+        k: 0,
         rect: { x: 0, y: 0, w: 0, h: 0 },
       };
       this.runners.push(r);
@@ -1041,9 +1045,10 @@ export class TracksideScene {
         groupIndices: group,
         previewIndices: group ? this.closeUpPreview() : null,
       },
-      // the close-up finish has no whole-field squeeze to fall back on: on a slow phone (under
-      // 10 fps) its camera steps the real frame time, so the group never drifts out of frame
-      snap ? 0 : group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt,
+      // The springs step the race time the runners moved this frame (the frame time while paused):
+      // stepping the clamped real frame time instead let a long frame or a live clock correction
+      // move the field further than the camera, a one-frame lurch of every horse on screen.
+      snap ? 0 : simDt > 0 ? Math.min(0.25, simDt) : group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt,
       snap,
     );
     const lay = placeField({
@@ -1376,17 +1381,18 @@ export class TracksideScene {
       const q = (p.pxPerM * B) / st.pxPerM;
       if (st !== r.strip) r.lod = 0;
       r.strip = st;
+      const lod0 = r.lod;
       r.lod = this.chooseLod(q, r.lod);
       const lod = st.lods[r.lod - 1]!;
       const tex = this.lodTex.get(st)![r.lod - 1]!;
       const frames = lod.frames;
       const frame = Math.max(0, Math.min(frames - 1, s.anim === "gallop" || s.anim === "drive" ? Math.floor((s.phase - Math.floor(s.phase)) * frames) % frames : s.frame % frames));
       const [ox, oy] = frameOrigin(lod, frame);
-      const k = q * r.lod; // buffer px per LOD texel
+      // buffer px per LOD texel: held steady (no per-frame resampling crawl), anchor on whole pixels
+      const k = (r.k = steadyScale(q * r.lod, r.lod === lod0 ? r.k : 0));
       const w = lod.fw * k;
       const h = lod.fh * k;
-      const x = Math.round(p.ax * B - lod.anchor.x * k);
-      const y = Math.round(p.feetY * B - lod.anchor.y * k);
+      const [x, y] = snappedOrigin(p.ax * B, p.feetY * B, lod.anchor.x, lod.anchor.y, k);
       const u = r.mat.uniforms;
       u.uIdx!.value = tex.idx;
       u.uNrm!.value = tex.nrm ?? tex.idx;

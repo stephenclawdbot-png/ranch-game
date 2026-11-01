@@ -39,6 +39,7 @@ import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
 import { GATE_SHOT, JUDGE_SHOT } from "./shots";
 import { GROUP_MARGIN } from "../trackside/layout";
+import { steadyScale } from "../trackside/spriteSnap";
 import { keepInSafeArea, safeArea, SOFT_STEP_M, type StageRect } from "./safeFrame";
 
 /** From this far out (the leader, m) until the finale the winner and its company stay whole on screen. */
@@ -178,6 +179,8 @@ interface Runner {
   lastPhase: number;
   strip: StripSet | null;
   lod: number;
+  /** Sprite scale drawn last frame (spriteSnap.steadyScale), 0 = none yet. */
+  k: number;
   /** Body build and mane / tail on the shared strips (trackside/shape.ts). */
   shape: RunnerShape;
 }
@@ -1063,6 +1066,7 @@ export class HD2DScene {
         lastPhase: Number.NaN,
         strip: null,
         lod: 0,
+        k: 0,
         shape: new RunnerShape(h.appearance),
       });
     });
@@ -1254,7 +1258,7 @@ export class HD2DScene {
    * exact LOD, scale pulled towards whole screen pixels per texel, anchor snapped to the
    * pixel grid. Returns the scale used (buffer px per LOD texel).
    */
-  private placeSprite(mesh: THREE.Object3D, wx: number, wy: number, wz: number, fw: number, fh: number, ax: number, ay: number, texelM: number, snapScale: boolean): number {
+  private placeSprite(mesh: THREE.Object3D, wx: number, wy: number, wz: number, fw: number, fh: number, ax: number, ay: number, texelM: number, snapScale: boolean, held = -1): number {
     const cam = this.camera;
     const buf = this.renderer.getDrawingBufferSize(this.buf);
     const right = this.v3.setFromMatrixColumn(cam.matrixWorld, 0);
@@ -1263,7 +1267,10 @@ export class HD2DScene {
     const depth = -this.v5.copy(p).applyMatrix4(cam.matrixWorldInverse).z;
     const wpp = (2 * Math.max(0.1, depth) * Math.tan((cam.fov * Math.PI) / 360)) / buf.y; // metres per buffer px
     let k = texelM / wpp; // buffer px per texel
-    if (snapScale) {
+    if (held >= 0) {
+      // a runner: its scale held steady while the camera eases (no per-frame resampling crawl)
+      k = steadyScale(k, held);
+    } else if (snapScale) {
       const n = Math.max(1, Math.round(k));
       const w = Math.max(0, 1 - Math.abs(k - n) / (0.15 * n));
       k = k + (n - k) * w;
@@ -1398,10 +1405,12 @@ export class HD2DScene {
       this.fov.snap(sc.fov);
       this.firstFrame = false;
     } else {
-      // the close-up finish steps the real frame time on a slow phone (under 10 fps), so its
-      // tight framing never falls behind the group
-      const camDt = group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt;
-      const ff = f.frozen ? 0 : sc.vel * (simDt > 0 && camDt > 0 ? simDt / camDt : 0);
+      // The springs step the race time the runners moved (the frame time while paused), with the
+      // shot's own speed fed forward. Stepping the real frame time and scaling the feed-forward by
+      // simDt / realDt instead turned every frame-time wobble (a live clock read a few ms early or
+      // late, a long frame) into a jump of the camera's goal: the field shook on screen.
+      const camDt = simDt > 0 ? Math.min(0.25, simDt) : group ? Math.min(0.25, Math.max(0, f.realDt)) : realDt;
+      const ff = f.frozen || simDt <= 0 ? 0 : sc.vel;
       this.camPos.step(pos, camDt, ff);
       this.camLook.step(at, camDt, ff);
       this.fov.step(sc.fov, camDt);
@@ -1523,6 +1532,7 @@ export class HD2DScene {
         const q = texelM / ((2 * Math.max(0.1, depth) * Math.tan((cam.fov * Math.PI) / 360)) / buf.y);
         if (st !== r.strip) r.lod = 0;
         r.strip = st;
+        const lod0 = r.lod;
         r.lod = this.chooseLod(q, r.lod);
         const lod = st.lods[r.lod - 1]!;
         const tex = this.lodTex.get(st)![r.lod - 1]!;
@@ -1547,7 +1557,7 @@ export class HD2DScene {
         u.uClothNum!.value = clothNumberShown((st.lods[0]!.fw * q) / Math.max(1, this.renderer.getPixelRatio()), r.lod) ? 1 : 0;
         const sb = st.silk;
         (u.uSilk!.value as THREE.Vector4).set(sb[frame * 4]!, sb[frame * 4 + 1]!, Math.max(1, sb[frame * 4 + 2]!), Math.max(1, sb[frame * 4 + 3]!));
-        const k = this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true);
+        const k = (r.k = this.placeSprite(r.plane, r.x, r.y, r.z, lod.fw, lod.fh, lod.anchor.x / lod.fw, lod.anchor.y / lod.fh, texelM * r.lod, true, r.lod === lod0 ? r.k : 0));
         if (rec) {
           // the drawn anchor: placeSprite puts it on the whole buffer pixel
           const ndc = this.v5.set(r.x, r.y, r.z).project(cam);

@@ -26,6 +26,28 @@ export const LIVE_RUNOUT_SEC = POST_RACE_SEC + 8;
 /** Pre-roll (s) before the off when playing a replay without a start time. */
 export const PRE_ROLL_SEC = 1.6;
 
+/**
+ * Following a wall clock (a live broadcast, or a replay pinned to its start time): the playhead
+ * advances by each frame's own dt, so the race moves exactly as far as the cameras do, and is
+ * steered towards the wall clock by at most `WALL_SLEW` of speed. Reading the wall clock every
+ * frame instead made the race step by the callback's jitter (a few ms early or late is half a
+ * pixel or more at a gallop) while the cameras stepped by the frame's dt: the horses twitched
+ * against the camera. A clock-offset correction or the end of a hold is absorbed the same way;
+ * only a gap over `WALL_SNAP_SEC` (a seek, a long stall) is jumped.
+ */
+export const WALL_SLEW = 0.08;
+/** Share of the remaining error (per second) taken out by the steering. */
+const WALL_GAIN = 2;
+export const WALL_SNAP_SEC = 0.75;
+
+/** Next playhead when following `target` (s, the wall clock now), never past `limit` and never backwards. */
+export function followWall(time: number, target: number, dt: number, limit = Number.POSITIVE_INFINITY): number {
+  if (!Number.isFinite(time) || Math.abs(target - time) > WALL_SNAP_SEC) return Math.min(target, limit);
+  const next = time + dt;
+  const steer = Math.min(WALL_SLEW * dt, Math.max(-WALL_SLEW * dt, (target - next) * Math.min(1, WALL_GAIN * dt)));
+  return Math.max(time, Math.min(limit, next + steer));
+}
+
 export interface PlaybackOptions {
   startAtMs?: number;
   autoplay?: boolean;
@@ -111,7 +133,7 @@ export class PlaybackClock {
     dt = Math.max(0, Math.min(dt, 0.25));
     const end = this.runoutEnd;
     if (this.live && this.startAtMs !== undefined) {
-      this.time = Math.min(end, (nowMs - this.startAtMs) / 1000);
+      this.time = followWall(this.time, (nowMs - this.startAtMs) / 1000, dt, end);
       if (this.time >= end) this.live = false;
     } else if (this.playing) {
       this.time = Math.min(end, this.time + dt * this.rate);
@@ -242,7 +264,8 @@ export class LiveClock {
     const edge = this.edge(nowMs);
     const wall = this.wallTime(nowMs);
     if (this.live) {
-      this.time = edge;
+      // the frame's own dt, steered to the broadcast clock (followWall); never past the edge
+      this.time = followWall(this.time, edge, dt, edge);
       this.rate = 1;
     } else if (this.playing) {
       this.time = Math.min(edge, this.time + dt * this.rate);
