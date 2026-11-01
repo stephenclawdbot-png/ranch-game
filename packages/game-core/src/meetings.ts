@@ -17,8 +17,11 @@
  * Calendar races keep their times and sit inside the 19:00 UTC meeting (the calendar meeting):
  * the Feature Qualifiers (Mon-Fri 19:00) and the Weekend Feature (Sat 19:00) are its first race,
  * the Saturday Plate (30 minutes later) its third. On the season's last day that meeting is the
- * Finals meeting: it opens at FINALS_MEETING_START_UTC (18:00) and runs the four Season Finals
- * 30 minutes apart (18:00, 18:30, 19:00, 19:30), clear of the meetings before and after it.
+ * Finals meeting: it opens an hour early, at FINALS_MEETING_START_UTC (18:00), and runs the four
+ * Season Finals 30 minutes apart (18:00, 18:30, 19:00, 19:30) with the meeting's own races in
+ * between and after them (18:15, 18:45, 19:15, 19:45 with four races a meeting), so the card
+ * keeps every race of its class pattern (no Maiden or Novice trip drops out that day), 15 minutes
+ * apart as always, clear of the meetings before and after it.
  *
  * Pure and deterministic: times are passed in (ms since the Unix epoch, UTC), nothing reads a
  * clock.
@@ -44,12 +47,12 @@ export const MEETING_RACE_SPACING_MS = SLOT_INTERVAL_MS;
 export const CALENDAR_MEETING_START_UTC = "19:00";
 /**
  * The season's last day: the calendar meeting becomes the Finals meeting, opening at 18:00 with
- * the four Season Finals (18:00, 18:30, 19:00, 19:30 UTC) and nothing else.
+ * the four Season Finals (18:00, 18:30, 19:00, 19:30 UTC), its own races in between and after.
  */
 export const FINALS_MEETING_START_UTC = "18:00";
-/** Races in the Finals meeting (one Season Final per division). */
+/** Season Finals in the Finals meeting (one per division). */
 export const FINALS_MEETING_RACES = 4;
-/** Time between two Season Finals: two card slots (30 minutes). */
+/** Time between two Season Finals: two card slots (30 minutes); the meeting's own races go in between. */
 export const FINALS_MEETING_SPACING_MS = 2 * SLOT_INTERVAL_MS;
 /** The Saturday Plate runs this many slots after the Weekend Feature (30 minutes): the calendar meeting's third race. */
 export const PLATE_AFTER_SLOTS = 2;
@@ -76,9 +79,9 @@ export interface Meeting {
   startMs: number;
   /** Post time of the last race (ms). */
   lastPostMs: number;
-  /** Races in the meeting (RACES_PER_MEETING; FINALS_MEETING_RACES for the Finals meeting). */
+  /** Races in the meeting (RACES_PER_MEETING; plus the FINALS_MEETING_RACES Season Finals in the Finals meeting). */
   races: number;
-  /** Time between its races. */
+  /** Time between its races (one card slot). */
   spacingMs: number;
   /** The season's Finals meeting. */
   finals: boolean;
@@ -123,7 +126,7 @@ export function meetingSchedule(schedule: MeetingSchedule) {
   const calendarOfDay = startTimes.indexOf(CALENDAR_MEETING_START_UTC);
   const finalsStartMs = minutesOf(FINALS_MEETING_START_UTC) * MS_PER_MINUTE;
   const spanMs = (racesPerMeeting - 1) * MEETING_RACE_SPACING_MS;
-  const finalsEndMs = finalsStartMs + (FINALS_MEETING_RACES - 1) * FINALS_MEETING_SPACING_MS;
+  const finalsEndMs = finalsStartMs + (racesPerMeeting + FINALS_MEETING_RACES - 1) * MEETING_RACE_SPACING_MS;
   const racesPerDay = perDay * racesPerMeeting;
 
   const problem = (() => {
@@ -137,6 +140,7 @@ export function meetingSchedule(schedule: MeetingSchedule) {
     const prevEnd = startMs[calendarOfDay - 1] ?? startMs[perDay - 1]! - MS_PER_DAY;
     const nextStart = startMs[calendarOfDay + 1] ?? startMs[0]! + MS_PER_DAY;
     if (prevEnd + spanMs >= finalsStartMs || finalsEndMs >= nextStart) return "the Finals meeting would clash with its neighbours";
+    if (FINALS_MEETING_SPACING_MS !== 2 * MEETING_RACE_SPACING_MS) return "the Finals interleave needs them two slots apart";
     if (racesPerDay % CARD_PATTERN_RACES !== 0) return `a day must run the class pattern a whole number of times (${racesPerDay} races)`;
     return null;
   })();
@@ -147,8 +151,8 @@ export function meetingSchedule(schedule: MeetingSchedule) {
 
   function meetingAt(clock: SeasonClock, dayStartMs: number, ofDay: number): Meeting {
     const finals = ofDay === calendarOfDay && isFinalsDay(clock, dayStartMs);
-    const races = finals ? FINALS_MEETING_RACES : racesPerMeeting;
-    const spacingMs = finals ? FINALS_MEETING_SPACING_MS : MEETING_RACE_SPACING_MS;
+    const races = finals ? racesPerMeeting + FINALS_MEETING_RACES : racesPerMeeting;
+    const spacingMs = MEETING_RACE_SPACING_MS;
     const start = dayStartMs + (finals ? finalsStartMs : startMs[ofDay]!);
     return { number: floorDiv(dayStartMs, MS_PER_DAY) * perDay + ofDay, ofDay, startMs: start, lastPostMs: start + (races - 1) * spacingMs, races, spacingMs, finals };
   }
@@ -221,12 +225,19 @@ export function meetingSchedule(schedule: MeetingSchedule) {
   /**
    * A meeting race's place in the card's class pattern (CARD_PATTERN_RACES places): `place` is
    * 0..7, `block` counts whole runs of the pattern since the epoch (the old "meeting number" the
-   * pattern alternates Features and maidens by). Meaningless for the Finals meeting (all four
-   * are calendar races).
+   * pattern alternates Features and maidens by). In the Finals meeting the meeting's own races
+   * keep their places; a Season Final's (isSeasonFinalRace) is meaningless.
    */
-  function cardPatternPlace(m: Pick<MeetingRace, "number" | "race">): { block: number; place: number } {
-    const k = m.number * racesPerMeeting + m.race + patternOffset;
+  function cardPatternPlace(m: Pick<MeetingRace, "number" | "race"> & { finals?: boolean }): { block: number; place: number } {
+    // in the Finals meeting the meeting's own races sit between and after the Finals
+    const own = m.finals ? (m.race < 2 * FINALS_MEETING_RACES ? (m.race - 1) / 2 : m.race - FINALS_MEETING_RACES) : m.race;
+    const k = m.number * racesPerMeeting + Math.floor(own) + patternOffset;
     return { block: floorDiv(k, CARD_PATTERN_RACES), place: mod(k, CARD_PATTERN_RACES) };
+  }
+
+  /** In the Finals meeting, the races that are Season Finals (18:00, 18:30, 19:00, 19:30). */
+  function isSeasonFinalRace(m: Pick<MeetingRace, "finals" | "race">): boolean {
+    return m.finals && m.race < 2 * FINALS_MEETING_RACES && m.race % 2 === 0;
   }
 
   return {
@@ -248,6 +259,7 @@ export function meetingSchedule(schedule: MeetingSchedule) {
     meetingOf,
     nthMeetingEndMs,
     cardPatternPlace,
+    isSeasonFinalRace,
   };
 }
 
@@ -276,3 +288,4 @@ export const meetingFor = LIVE.meetingFor;
 export const meetingOf = LIVE.meetingOf;
 export const nthMeetingEndMs = LIVE.nthMeetingEndMs;
 export const cardPatternPlace = LIVE.cardPatternPlace;
+export const isSeasonFinalRace = LIVE.isSeasonFinalRace;

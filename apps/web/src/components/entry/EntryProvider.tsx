@@ -17,6 +17,7 @@ import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
 import { EntryForm, ExtrasPicker, HorsePicker, PlanPicker, quickPickRace, raceDayCost, type QuickPickResult } from "./EntryForm";
 import { entryBlocker } from "@/lib/entryBlocker";
+import { LiveWait, LocalPostTime } from "../race/LiveWait";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -353,10 +354,8 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
     return (
       <div className="grid gap-3" data-testid="live-entered">
         <SheetHeader eyebrow="Entered · Live" title={race.name} onClose={onClose} />
-        <p className="text-cream-dim">
-          {entered} is in. The field locks at {formatClock(race.entriesCloseAtMs)} and goes off at {formatClock(race.postTimeMs)}, live for everyone. If you&rsquo;re
-          away, the result waits in Your races.
-        </p>
+        <p className="text-cream">{entered} is in.</p>
+        <LiveWait postTimeMs={race.postTimeMs} entered />
         <div className="grid gap-2 sm:grid-cols-2">
           <Link href={`/race/${raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
             <PixelIcon name="play" className="h-4 w-4" /> Go to the race
@@ -374,7 +373,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       <SheetHeader eyebrow="Live race" title={race?.name ?? "Enter a Live race"} onClose={onClose} />
       {race && (
         <p className="-mt-3 text-sm text-cream-dim">
-          {raceMetaLine(race)} · off {formatClock(race.postTimeMs)} · entries close in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" className="text-cream" /> ·{" "}
+          {raceMetaLine(race)} · off <LocalPostTime postTimeMs={race.postTimeMs} /> · entries close in <Countdown targetMs={race.entriesCloseAtMs} doneLabel="now" className="text-cream" /> ·{" "}
           {race.entryCost} {race.entryCost === 1 ? "entry" : "entries"} ({state.entries.balance} left)
           {race.entryFee > 0 && (
             <>
@@ -499,11 +498,11 @@ function LivePickCard({
             {r.rivals > 0 ? `Racing against ${r.rivals} other ${r.rivals === 1 ? "stable" : "stables"}` : "Club field"}
           </p>
           <p className="mt-1 text-sm text-cream-dim">
-            Off at {formatClock(r.postTimeMs)} (in <Countdown targetMs={r.postTimeMs} doneLabel="now" className="text-cream" />). {state.entries.balance} stable{" "}
-            {state.entries.balance === 1 ? "entry" : "entries"} left today.
+            {state.entries.balance} stable {state.entries.balance === 1 ? "entry" : "entries"} left today.
           </p>
         </div>
       </div>
+      <LiveWait postTimeMs={r.postTimeMs} entered />
       <div className="grid gap-2 sm:grid-cols-2">
         <Link href={`/race/${r.raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
           <PixelIcon name="play" className="h-4 w-4" /> Go to the race

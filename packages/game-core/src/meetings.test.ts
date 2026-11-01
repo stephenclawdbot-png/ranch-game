@@ -119,6 +119,7 @@ describe.each(SCHEDULES)("race meetings: %s", (_, schedule) => {
         expect(m, `${r.name} at ${slotOf(r.postTimeMs)}`).not.toBeNull();
         expect(m!.ofDay).toBe(s.calendarMeetingOfDay);
         expect(m!.finals).toBe(r.kind === "season_final");
+        expect(s.isSeasonFinalRace(m!)).toBe(r.kind === "season_final");
         // Qualifiers and the Weekend Feature open the meeting, on the pattern's top race
         if (r.kind !== "season_final") {
           expect(m!.race).toBe(0);
@@ -136,25 +137,38 @@ describe.each(SCHEDULES)("race meetings: %s", (_, schedule) => {
       const finals = cal.filter((r) => r.kind === "season_final").map((r) => slotOf(r.postTimeMs) - finalsDay);
       expect(finals).toEqual([18, 18.5, 19, 19.5].map((h) => h * MS_PER_HOUR));
       expect(FINALS_MEETING_START_UTC).toBe("18:00");
-      for (const [k, at] of finals.entries()) expect(s.meetingRaceAt(clock, finalsDay + at)?.race).toBe(k);
-      expect(s.meetingRaceAt(clock, finalsDay + 18 * MS_PER_HOUR + 15 * MS_PER_MINUTE)).toBeNull();
-      expect(s.meetingRaceAt(clock, finalsDay + 19 * MS_PER_HOUR + 45 * MS_PER_MINUTE)).toBeNull();
+      // the Finals at races 0, 2, 4, 6 of the Finals meeting, its own races in between and after, 15 minutes apart
+      for (const [k, at] of finals.entries()) expect(s.meetingRaceAt(clock, finalsDay + at)?.race).toBe(2 * k);
+      const fm = s.meetingsOn(clock, finalsDay).find((m) => m.finals)!;
+      expect(fm.startMs - finalsDay).toBe(hhmm(FINALS_MEETING_START_UTC));
+      expect(fm.races).toBe(R + FINALS_MEETING_RACES);
+      const own = Array.from({ length: fm.races }, (_, r) => ({ ...fm, race: r })).filter((m) => !s.isSeasonFinalRace(m));
+      expect(own).toHaveLength(R);
+      // the meeting's own races keep the places a 19:00 meeting has on any other day
+      const normal = s.meetingsOn(clock, finalsDay - MS_PER_DAY)[s.calendarMeetingOfDay]!;
+      expect(own.map((m) => s.cardPatternPlace(m).place)).toEqual(Array.from({ length: R }, (_, r) => s.cardPatternPlace({ ...normal, race: r }).place));
+      expect(s.meetingRaceAt(clock, finalsDay + 18 * MS_PER_HOUR + 15 * MS_PER_MINUTE)?.race).toBe(1);
+      expect(s.meetingRaceAt(clock, fm.lastPostMs + MEETING_RACE_SPACING_MS)).toBeNull();
       // no clash with the meetings before and after
       const day = s.meetingsOn(clock, finalsDay);
       for (let i = 1; i < day.length; i++) expect(day[i]!.startMs).toBeGreaterThan(day[i - 1]!.lastPostMs);
       expect(day.filter((m) => m.finals)).toHaveLength(1);
-      expect(Array.from({ length: SLOTS_PER_DAY }, (_, i) => s.meetingRaceAt(clock, finalsDay + i * SLOT_INTERVAL_MS)).filter(Boolean)).toHaveLength(s.liveRacesPerDay - R + FINALS_MEETING_RACES);
+      expect(Array.from({ length: SLOTS_PER_DAY }, (_, i) => s.meetingRaceAt(clock, finalsDay + i * SLOT_INTERVAL_MS)).filter(Boolean)).toHaveLength(s.liveRacesPerDay + FINALS_MEETING_RACES);
     }
   });
 
-  it("a day runs the class pattern a whole number of times", () => {
-    const places = new Map<number, number>();
-    for (const m of s.meetingsOn(clock, DAY0)) for (let r = 0; r < m.races; r++) {
-      const p = s.cardPatternPlace({ number: m.number, race: r }).place;
-      places.set(p, (places.get(p) ?? 0) + 1);
+  it("a day runs the class pattern a whole number of times (the Season Finals day too)", () => {
+    const finalsDay = seasonStartMs(clock, 2) + 27 * MS_PER_DAY;
+    for (const day of [DAY0, finalsDay]) {
+      const places = new Map<number, number>();
+      for (const m of s.meetingsOn(clock, day)) for (let r = 0; r < m.races; r++) {
+        if (s.isSeasonFinalRace({ ...m, race: r })) continue;
+        const p = s.cardPatternPlace({ ...m, race: r }).place;
+        places.set(p, (places.get(p) ?? 0) + 1);
+      }
+      expect([...places.keys()].sort()).toEqual(Array.from({ length: CARD_PATTERN_RACES }, (_, i) => i));
+      expect(new Set(places.values())).toEqual(new Set([s.liveRacesPerDay / CARD_PATTERN_RACES]));
     }
-    expect([...places.keys()].sort()).toEqual(Array.from({ length: CARD_PATTERN_RACES }, (_, i) => i));
-    expect(new Set(places.values())).toEqual(new Set([s.liveRacesPerDay / CARD_PATTERN_RACES]));
   });
 
   it("the card horizon (a day) always holds a day's meetings", () => {
@@ -165,7 +179,8 @@ describe.each(SCHEDULES)("race meetings: %s", (_, schedule) => {
         let n = 0;
         for (let t = now + SLOT_INTERVAL_MS; t <= now + CARD_HORIZON_MS; t += SLOT_INTERVAL_MS) if (s.meetingRaceAt(clock, t)) n++;
         // a day's worth (the Season Finals day's meeting is a little different)
-        expect(Math.abs(n - s.liveRacesPerDay)).toBeLessThanOrEqual(Math.max(R, FINALS_MEETING_RACES));
+        expect(n - s.liveRacesPerDay).toBeGreaterThanOrEqual(0);
+        expect(n - s.liveRacesPerDay).toBeLessThanOrEqual(FINALS_MEETING_RACES);
         if (dt < 15 * MS_PER_DAY) expect(n).toBe(s.liveRacesPerDay);
       }),
       { numRuns: 40 },

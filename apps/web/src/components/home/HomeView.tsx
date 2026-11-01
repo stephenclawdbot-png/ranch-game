@@ -30,6 +30,8 @@ import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
+import { LiveWait, LocalPostTime, WhileYouWait } from "../race/LiveWait";
+import { MEETINGS_LINE } from "@/lib/meetings";
 
 interface ClubProps {
   next: RaceSummary | null;
@@ -76,7 +78,7 @@ const CHAPTERS: { scene: "barn" | "paddock" | "grandstand"; eyebrow: string; tit
   {
     scene: "grandstand",
     eyebrow: "Live at Kestrel Downs",
-    title: "Three race meetings a day. Everyone watches the same finish.",
+    title: `${MEETINGS_LINE}. Everyone watches the same finish.`,
     text: "Enter Live races against real stables. Every result is sealed before the off and replayable to the last stride.",
   },
 ];
@@ -251,7 +253,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
       )}
       {firstWeek && (
         <div className="mt-4">
-          <StableSteps week={firstWeek} steps={ob?.steps ?? null} state={state} plain={!!ob?.plainLanguage} goals={state.goals ?? []} />
+          <StableSteps week={firstWeek} steps={ob?.steps ?? null} state={state} plain={!!ob?.plainLanguage} goals={state.goals ?? []} nextLivePostMs={next?.postTimeMs ?? null} />
         </div>
       )}
 
@@ -381,6 +383,9 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
           <p className="t-meta">
             {formatDistance(next.distanceM)} · {SURFACE_LABEL[next.surface]} · {entries} {entries === 1 ? "entry" : "entries"} left today
           </p>
+          <p className="mt-1 text-sm text-cream-dim" data-testid="next-race-local">
+            Off at <LocalPostTime postTimeMs={next.postTimeMs} relative={false} /> your time
+          </p>
         </div>
         <div className="shrink-0 text-right">
           <span className="score block text-[2.25rem] leading-none text-brass-hi">
@@ -397,6 +402,7 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
           Watch
         </Link>
       </div>
+      <WhileYouWait className="mt-2" />
     </section>
   );
 }
@@ -466,6 +472,7 @@ function YourRace({ race, now, appearance }: { race: ActiveEntry; now: number; a
       title={`${race.horseName} is in the ${race.raceName}`}
       body={race.kind === "live" ? "A Live race at Kestrel Downs: everyone watches the same finish." : "A Story race against the Club."}
     >
+      {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered />}
       <ActionBar>
         <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg" data-testid="watch-mine">
           <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch {race.horseName}

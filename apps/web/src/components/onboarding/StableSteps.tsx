@@ -9,6 +9,7 @@ import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
 import { Section } from "../ui/Page";
 import { MentorPortrait } from "./Mentor";
+import { LiveWait } from "../race/LiveWait";
 import { MENTOR_FIRST, STEP_COPY, sendOnboarding } from "./guide";
 
 /** Where each job is done, from the player's own stable (a horse to care for, a race to watch). */
@@ -59,7 +60,7 @@ export function stepHref(key: string, state: PlayerState): string {
 }
 
 /** One job to do: a row that is the tap to do it (a Live entry opens the quick-pick sheet). */
-function TodoRow({ itemKey, credits, first, state }: { itemKey: string; credits: number; first: boolean; state: PlayerState }) {
+function TodoRow({ itemKey, credits, first, state, nextLivePostMs }: { itemKey: string; credits: number; first: boolean; state: PlayerState; nextLivePostMs: number | null }) {
   const entry = useEntry();
   const copy = STEP_COPY[itemKey] ?? { title: itemKey, text: "" };
   const body = (
@@ -80,9 +81,13 @@ function TodoRow({ itemKey, credits, first, state }: { itemKey: string; credits:
   return (
     <li data-testid={`step-${itemKey}`} data-done="0">
       {itemKey === "enter_live" ? (
-        <button type="button" className={cls} onClick={entry.quickPickLive} data-testid={testId}>
-          {body}
-        </button>
+        <>
+          <button type="button" className={cls} onClick={entry.quickPickLive} data-testid={testId}>
+            {body}
+          </button>
+          {/* When the next one runs, in the player's clock, and what to do meanwhile. */}
+          {nextLivePostMs !== null && <LiveWait postTimeMs={nextLivePostMs} entered={false} className="px-4 pb-3 pl-11" />}
+        </>
       ) : (
         <Link href={stepHref(itemKey, state)} className={cls} data-testid={testId}>
           {body}
@@ -135,12 +140,15 @@ export function StableSteps({
   state,
   plain,
   goals = [],
+  nextLivePostMs = null,
 }: {
   week: FirstWeekView;
   steps: StableStepsView | null;
   state: PlayerState;
   plain: boolean;
   goals?: DailyGoalView[];
+  /** Post time of the next Live race on the card (the "Enter a Live race" job says when it runs). */
+  nextLivePostMs?: number | null;
 }) {
   const pct = Math.round((week.done / Math.max(1, week.total)) * 100);
   const first = week.next[0] ?? null;
@@ -176,7 +184,7 @@ export function StableSteps({
         {week.next.length > 0 && (
           <ol className="rows border-t border-line" data-testid="steps-todo" aria-label="Next to do">
             {week.next.map((k, i) => (
-              <TodoRow key={k} itemKey={k} credits={credits.get(k) ?? 0} first={i === 0} state={state} />
+              <TodoRow key={k} itemKey={k} credits={credits.get(k) ?? 0} first={i === 0} state={state} nextLivePostMs={nextLivePostMs} />
             ))}
           </ol>
         )}
@@ -220,6 +228,9 @@ export function StableSteps({
                     <Link href={stepHref(s.key, state)} className="row-link gap-3 px-4 py-2.5">
                       {body}
                     </Link>
+                  )}
+                  {s.key === "enter_live" && !s.done && nextLivePostMs !== null && !week.next.includes("enter_live") && (
+                    <LiveWait postTimeMs={nextLivePostMs} entered={false} className="px-4 pb-3 pl-12" />
                   )}
                 </li>
               );

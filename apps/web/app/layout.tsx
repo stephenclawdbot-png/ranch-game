@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Jersey_10, Nunito, Pixelify_Sans } from "next/font/google";
 import { MEETINGS_PER_DAY, isUsdgPracticeMode } from "@thoroughbred/game-core";
+import { MEETING_CADENCE } from "@/lib/meetings";
 import { UsdgModeProvider } from "@/components/chain/UsdgMode";
 import { SiteNav } from "@/components/SiteNav";
 import { Telemetry } from "@/components/playtest/Telemetry";
@@ -19,7 +20,7 @@ const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"]
 /** The deployed commit (Vercel system env), for deploy checks: <meta name="build" content="<sha>">. */
 const BUILD_SHA = (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.BUILD_SHA ?? "dev").slice(0, 40);
 
-const DESCRIPTION = `Post Time: a pixel-art racing stable game. Breed, raise and race your horses at Kestrel Downs, with ${MEETINGS_PER_DAY} live race meetings a day and every result sealed and replayable.`;
+const DESCRIPTION = `Post Time: a pixel-art racing stable game. Breed, raise and race your horses at Kestrel Downs, with ${MEETINGS_PER_DAY} live race meetings a day (one ${MEETING_CADENCE}) and every result sealed and replayable.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")),

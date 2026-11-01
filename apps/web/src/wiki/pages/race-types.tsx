@@ -208,7 +208,7 @@ export default function RaceTypesPage() {
       <P>
         A season lasts {gc.SEASON_DAYS} days. Its calendar of special races is fixed in advance, and each one runs in the {gc.CALENDAR_MEETING_START_UTC} UTC meeting, taking the
         place of one of its races. On the season&rsquo;s last day that meeting is the Finals meeting: it opens at {gc.FINALS_MEETING_START_UTC} UTC and runs the{" "}
-        {gc.DIVISIONS.length} Season Finals {gc.FINALS_MEETING_SPACING_MS / MIN} minutes apart. Find them under &ldquo;Big days&rdquo; on
+        {gc.DIVISIONS.length} Season Finals {gc.FINALS_MEETING_SPACING_MS / MIN} minutes apart, with the meeting&rsquo;s own races in between. Find them under &ldquo;Big days&rdquo; on
         the <GameLink href="/league">League</GameLink> page.
       </P>
       <Table

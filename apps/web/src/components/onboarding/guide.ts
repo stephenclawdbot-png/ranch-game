@@ -6,6 +6,7 @@
  */
 import * as gc from "@thoroughbred/game-core";
 import { api, getPlayerState, refreshPlayer, setPlayer, usePlayerState } from "@/lib/player";
+import { MEETING_CADENCE } from "@/lib/meetings";
 import type { OnboardingView, PlayerView, UnlockFeature } from "@/lib/types";
 
 export const MENTOR_NAME = gc.MENTOR.name;
@@ -84,7 +85,7 @@ export const LOCKED_COPY: Record<UnlockFeature, { name: string; what: string; wh
 export const STEP_COPY: Record<string, { title: string; text: string }> = {
   care: { title: "Care for a horse", text: "Feed, groom and turn out one horse. About a minute, once a day." },
   train_plan: { title: "Set a training plan", text: "Choose this week's sessions on the gallops board. Saving a plan is free." },
-  enter_live: { title: "Enter a Live race", text: "Spend one of today's entries on a race against real stables." },
+  enter_live: { title: "Enter a Live race", text: `Spend one of today's entries on a race against real stables. Live races run in a meeting ${MEETING_CADENCE}.` },
   watch_live: { title: "Watch your Live race", text: "Everyone sees the same finish. We never tell you the result before you watch." },
   read_why: { title: "Read “Why it went that way”", text: "Under every result: the pace, your positions and what to try next time." },
   daily_cup: { title: "Run the Daily Cup", text: "One free time trial a day. Same field and same luck for everyone." },

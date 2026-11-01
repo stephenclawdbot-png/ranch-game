@@ -5,7 +5,7 @@
  * gap to promotion. Honest near-misses: real places and points, nothing manufactured.
  */
 import Link from "next/link";
-import { CARD_HORIZON_MS, MS_PER_HOUR } from "@thoroughbred/game-core";
+import { CALENDAR_MEETING_START_UTC, CARD_HORIZON_MS, MS_PER_HOUR } from "@thoroughbred/game-core";
 import type { WeekView } from "@/lib/competitionTypes";
 import { formatCredits, formatDistance } from "@/lib/format";
 import { PixelIcon } from "../icons";
@@ -96,7 +96,7 @@ export function RoadToSaturday({ view }: { view: WeekView }) {
             ))}
           </ol>
           <p className="caption">
-            Enter from the <Link href="/races" className="link">race card</Link>: Qualifiers are published {CARD_HORIZON_MS / MS_PER_HOUR} hours ahead, with the rest of the evening meeting.
+            Enter from the <Link href="/races" className="link">race card</Link>: Qualifiers are published {CARD_HORIZON_MS / MS_PER_HOUR} hours ahead and open the {CALENDAR_MEETING_START_UTC} UTC meeting.
           </p>
         </section>
       )}

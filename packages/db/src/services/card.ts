@@ -123,8 +123,8 @@ export function cardEntryFee(raceClass: string, opts: { group1?: boolean; purse?
  *               claiming-race candidate (claimingSlotOfDay); it is published as the claiming race
  *               only when enough horses could enter one today (CLAIMING_MIN_ELIGIBLE, decided once
  *               at publication: ensureRaceCard). The Saturday Plate takes place 3 (19:30). The
- *               Season Finals have a meeting of their own. Calendar races never land on a
- *               juvenile race (tested), so no trip or surface ever drops out.
+ *               Season Finals have slots of their own in the Finals meeting. Calendar races never
+ *               land on a juvenile race (tested), so no trip or surface ever drops out.
  */
 type MeetingPlace = "top" | "juvenile" | ClassDef;
 const MEETING_CLASSES: readonly MeetingPlace[] = ["top", "juvenile", HCP_55, "juvenile", HCP_75, "juvenile", HCP_95, "juvenile"];
@@ -298,20 +298,19 @@ const claimingCache = new Map<number, number | null>();
  * The claiming race's candidate slot on a UTC day (game-core claiming.ts): the day's last
  * handicap place in the band of the day (claimingBandOrder from the UTC day, so the band
  * rotates); when a calendar race holds that slot (the Saturday Plate) the next band takes over.
- * With the card's pattern the bands' last handicaps run in the evening meetings (UTC; on the
- * Finals day, whose 19:00 meeting is the Finals, a band's last one can be earlier). Null when
- * every band's last handicap is a calendar race. Whether the candidate is actually published as the
+ * With the card's pattern the bands' last handicaps run in the evening meetings (UTC). Null
+ * when every band's last handicap is a calendar race. Whether the candidate is actually published as the
  * claiming race is a separate, once-at-publication decision (enough eligible horses today,
  * game-core CLAIMING_MIN_ELIGIBLE; see ensureRaceCard).
  */
 export function claimingSlotOfDay(dayMs: number): number | null {
   const day = Math.floor(dayMs / 86_400_000);
   if (claimingCache.has(day)) return claimingCache.get(day)!;
-  // the day's last handicap place of each band (the Finals meeting is all calendar races)
+  // the day's last handicap place of each band (a Season Final has no place)
   const lastOfBand = new Map<number, number>();
   for (const m of gc.meetingsOn(SEASON_CLOCK, day * 86_400_000)) {
-    if (m.finals) continue;
     for (let r = 0; r < m.races; r++) {
+      if (gc.isSeasonFinalRace({ ...m, race: r })) continue;
       const index = slotIndexAt(new Date(m.startMs + r * m.spacingMs));
       const band = HANDICAP_PLACES.indexOf(patternPlaceOf({ ...m, race: r }));
       if (band >= 0) lastOfBand.set(band, index);

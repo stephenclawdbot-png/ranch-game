@@ -109,7 +109,7 @@ describe("race card", () => {
       const m = meetingRaceOf(i)!;
       expect(m).not.toBeNull(); // calendar races sit inside a meeting
       meetings.add(m.number);
-      if (m.finals) {
+      if (gc.isSeasonFinalRace(m)) {
         expect((defaultCardSlot(i).conditions as { calendar?: { kind: string } }).calendar?.kind).toBe("season_final");
         finals++;
         continue;
@@ -122,9 +122,9 @@ describe("race card", () => {
     const label = (r: ReturnType<typeof defaultCardSlot>) => ((r.conditions as { calendar?: unknown }).calendar ? "calendar" : r.kind === "feature" ? "feature" : r.raceClass === "handicap" ? `hcp ${r.conditions.minRating ?? 0}-${r.conditions.maxRating}` : r.raceClass);
     let listed = 0;
     let features = 0;
-    // whole runs of the pattern (the Finals meeting leaves a few short ones on its days)
+    // whole runs of the pattern, the Season Finals days included (their Finals have slots of their own)
     const whole = [...blocks].filter(([, races]) => races.length === gc.CARD_PATTERN_RACES);
-    expect(whole.length).toBeGreaterThanOrEqual((56 * gc.LIVE_RACES_PER_DAY) / gc.CARD_PATTERN_RACES - 4);
+    expect(whole.length).toBeGreaterThanOrEqual((56 * gc.LIVE_RACES_PER_DAY) / gc.CARD_PATTERN_RACES - 1);
     for (const [n, races] of whole) {
       const kinds = races.map(label);
       // juvenile races are never displaced
