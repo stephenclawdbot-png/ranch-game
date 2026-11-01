@@ -10,6 +10,7 @@
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
 import { PORTRAIT_ART_SIZE, PORTRAIT_ROLES, portraitNoise } from "./portrait34";
+import { bodyBuildOf } from "./bodyBuild";
 
 /** Bump when shapes change (it is part of the portrait cache key). */
 export const PORTRAIT_SHAPE_VERSION = 1;
@@ -55,7 +56,7 @@ export const BREED_HEADS: Record<string, Partial<HeadShape>> = {
 };
 
 /** The head to draw for an appearance: its breed's, made young while it is, nudged per horse. */
-export function headShapeOf(a: Pick<HorseAppearance, "head" | "age" | "colour" | "face" | "coat">): HeadShape {
+export function headShapeOf(a: Pick<HorseAppearance, "head" | "age" | "colour" | "face" | "coat" | "build">): HeadShape {
   const s: HeadShape = { ...BASE, ...(BREED_HEADS[a.head ?? "thoroughbred"] ?? {}) };
   // a little per-horse variety (from the genes, so stable): two of the same breed differ too
   const key = JSON.stringify([a.colour ?? a.coat, a.face]);
@@ -65,6 +66,16 @@ export function headShapeOf(a: Pick<HorseAppearance, "head" | "age" | "colour" |
   s.muzzle *= 1 + 0.04 * r(1);
   s.ears *= 1 + 0.06 * r(2);
   s.jaw *= 1 + 0.03 * r(3);
+  // the body build (bodyBuild.ts, V-04): head size, a heavier jaw and neck on a deep-girthed
+  // horse, a finer neck on a long-necked one
+  const b = bodyBuildOf(a);
+  if (b) {
+    s.muzzle *= 1 + 0.035 * b.head;
+    s.jaw *= 1 + 0.025 * b.head + 0.02 * b.girth;
+    s.ears *= 1 + 0.02 * b.head;
+    s.neck *= 1 + 0.045 * b.girth - 0.025 * b.neck;
+    s.scale *= 1 + 0.012 * b.height;
+  }
   if (a.age === "foal") Object.assign(s, { scale: s.scale * 0.9, muzzle: s.muzzle * 0.76, jaw: s.jaw * 0.92, eye: s.eye * 1.3, ears: s.ears * 1.05, neck: s.neck * 0.82, dish: s.dish * 0.5, foal: true });
   else if (a.age === "yearling") Object.assign(s, { scale: s.scale * 0.9, muzzle: s.muzzle * 0.88, eye: s.eye * 1.12, neck: s.neck * 0.92, yearling: true });
   return s;

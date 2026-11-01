@@ -7,7 +7,7 @@
  * swapped for the horse's own ramp, preserving the shade index, and the silks
  * pattern is painted over the primary-key pixels.
  */
-import { capPatternAt, paintRiderLook, prepareRider, resolveHorseColors } from "@thoroughbred/art-pipeline";
+import { capPatternAt, lookShapeKey, paintRiderLook, prepareRider, resolveHorseColors } from "@thoroughbred/art-pipeline";
 import type { HorseAppearance, SilkPattern } from "@thoroughbred/shared";
 import { hexToRgb, luminance, mixHex, packRgb, rampAround, resampleRamp } from "./color";
 
@@ -235,5 +235,5 @@ function capBox(data: Uint8ClampedArray, width: number, height: number, x0: numb
 /** Stable cache key for an appearance's recolour result. */
 export function appearanceKey(a: HorseAppearance): string {
   const s = a.silks;
-  return [a.coat, a.colour ? JSON.stringify(a.colour) : "", a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern, a.rider ? JSON.stringify(a.rider) : "", a.face ?? "", (a.legs ?? []).join(","), a.dun ? "d" : "", a.feather ? "fe" : ""].join("|");
+  return [a.coat, a.colour ? JSON.stringify(a.colour) : "", a.maneColor ?? "", s.primary, s.secondary, s.cap, s.pattern, a.rider ? JSON.stringify(a.rider) : "", a.face ?? "", (a.legs ?? []).join(","), a.dun ? "d" : "", a.feather ? "fe" : ""].join("|") + lookShapeKey(a);
 }

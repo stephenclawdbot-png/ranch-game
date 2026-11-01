@@ -178,6 +178,16 @@ uniform vec3 uRimCol;
 uniform float uRimAmt;
 uniform vec4 uTint;
 uniform float uOpacity;
+// body build (art-pipeline bodyBuild.ts, mirrored line for line): the frame's landmarks
+// (ok, seam, ground, rump x), (crest, face, tack start, H), (frame w, h in source texels, breast, lift) and the
+// runner's build texels (legs, girth, neck, on); mane and tail (longHair.ts hairField): levels
+// (mane, tail), thick, wave, and whether the runner has a hair style
+uniform vec4 uWarpA;
+uniform vec4 uWarpB;
+uniform vec4 uWarpC;
+uniform vec4 uBuild;
+uniform vec4 uHair;
+uniform float uHairOn;
 varying vec2 vUv;
 ${GRADE}
 #define LUTW ${LUT_W_GLSL}
@@ -263,7 +273,155 @@ vec3 whiteAt(vec3 w, float s) {
   vec3 dark = mix(w, vec3(120.0, 116.0, 128.0) / 255.0, 0.55);
   return s < 0.6 ? mix(dark, w, s / 0.6) : mix(w, vec3(1.0), (s - 0.6) / 0.4);
 }
+// a hair field byte (longHair.ts hairShows / HAIR_SHADES)
+bool hairShows(float b) {
+  float lvl = mod(b, 16.0);
+  if (lvl < 0.5) return false;
+  if (mod(floor(b / 64.0), 2.0) > 0.5 && uHair.z < 0.5) return false;
+  return lvl <= (b > 127.5 ? uHair.y : uHair.x);
+}
+float hairShade(float b) {
+  float s = mod(floor(b / 16.0), 4.0);
+  return s < 0.5 ? 0.42 : s < 1.5 ? 0.58 : s < 2.5 ? 0.75 : 0.95;
+}
+float hairByte(vec4 mk, vec4 m3) {
+  return byteOf(uHair.w > 0.5 ? m3.a : mk.a);
+}
+// warp class of a source texel (bodyBuild.ts WARP_CLASS): 0 empty, 1 near leg, 2 far leg, 3 neck, 4 trunk, 5 other, 6 tail
+float wCls(vec2 q) {
+  if (q.x < 0.0 || q.y < 0.0 || q.x >= uWarpC.x || q.y >= uWarpC.y) return 0.0;
+  vec2 mp = (uMskOrigin + q + 0.5) / uMskSize;
+  vec4 mk = texture2D(uMsk, mp);
+  float region = byteOf(mk.r);
+  if (region > 15.5) {
+    float h = region - 16.0;
+    vec4 m3 = texture2D(uMsk3, mp);
+    bool feather = byteOf(lutAt(156.0, (uRow + 0.5) / uLutRows).g) < 254.5;
+    bool legacy = feather && byteOf(m3.b) > 0.5;
+    if (h < 4.5) return legacy ? ((h < 1.5 || (h > 2.5 && h < 3.5)) ? 1.0 : 2.0) : 0.0;
+    bool shown = uHairOn > 0.5 ? hairShows(hairByte(mk, m3)) : legacy;
+    if (!shown) return 0.0;
+    return h > 12.5 ? 6.0 : (q.x >= uWarpB.x ? 3.0 : 6.0);
+  }
+  if (region < 0.5) {
+    float ix = floor(texture2D(uIdx, (uFrame.xy + floor((q + 0.5) / uLodS) + 0.5) / uIdxSize).r * 255.0 + 0.5);
+    if (ix < 0.5) return 0.0;
+    // ink below the belly line: the tail's outline goes with the tail
+    if (q.y >= uWarpA.y) {
+      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(-0.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(1.5, 0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, -0.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+      if (abs(byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, 1.5)) / uMskSize).r) - 13.0) < 0.5) return 6.0;
+    }
+    return 5.0;
+  }
+  if (region < 4.5) return q.y < uWarpA.y ? 4.0 : (region < 1.5 || (region > 2.5 && region < 3.5)) ? 1.0 : 2.0;
+  if (region > 6.5 && region < 11.5) return 5.0;
+  if (region > 12.5) return 6.0;
+  if (region > 11.5 || region < 5.5) return q.x >= uWarpB.x ? 3.0 : 4.0;
+  if (q.x < uWarpB.x || q.y >= uWarpA.y) return 4.0;
+  vec4 m2 = texture2D(uMsk2, mp);
+  float v = (byteOf(m2.b) + byteOf(m2.a) * 256.0 - 32768.0) / 4.0;
+  if (v < uWarpB.w * 0.8 || q.x > uWarpC.z) return 3.0;
+  float up = q.y < 0.5 ? 0.0 : byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, -0.5)) / uMskSize).r);
+  float dn = q.y > uWarpC.y - 1.5 ? 0.0 : byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, 1.5)) / uMskSize).r);
+  return (abs(up - 6.0) > 0.5 && abs(dn - 6.0) > 0.5) ? 5.0 : 4.0;
+}
+float jsRound(float v) {
+  return floor(v + 0.5);
+}
+float girthW(float x) {
+  float H = uWarpB.w;
+  float r = uWarpA.w;
+  float a = r + H * 0.5;
+  float b = r + H * 0.9;
+  float c = r + H * 1.7;
+  float d = r + H * 2.1;
+  if (x <= a || x >= d) return 0.0;
+  if (x < b) return (x - a) / (b - a);
+  if (x > c) return (d - x) / (d - c);
+  return 1.0;
+}
+float neckLift(float x, float start) {
+  float nk = jsRound(uBuild.z * uWarpC.w);
+  if (abs(nk) < 0.5 || x <= start) return 0.0;
+  if (x >= uWarpB.y) return nk;
+  return jsRound((nk * (x - start)) / max(1.0, uWarpB.y - start));
+}
+float bodyBot(float x) {
+  float seam = uWarpA.y;
+  if (x >= uWarpB.y) return seam;
+  float g = jsRound(uBuild.y * girthW(x));
+  float hh = jsRound(uWarpB.w / 2.0);
+  return max(seam - hh + ceil(hh * 0.5), seam - min(floor(hh * 0.5), uBuild.x) + g);
+}
+float bodySrcY(float x, float y) {
+  if (x >= uWarpB.y) return y;
+  float seam = uWarpA.y;
+  float ym = seam - jsRound(uWarpB.w / 2.0);
+  if (y < ym) return y;
+  float bot = bodyBot(x);
+  if (y < bot) return ym + floor(((y - ym + 0.5) * (seam - ym)) / (bot - ym));
+  return y;
+}
+float legSrcY(float x, float y) {
+  float seam = uWarpA.y;
+  float hh = jsRound(uWarpB.w / 2.0);
+  float legTop = x >= uWarpB.y ? seam : min(seam - min(floor(hh * 0.5), uBuild.x), bodyBot(x));
+  if (y < legTop) return -1.0;
+  if (y > uWarpA.z) return y;
+  return seam + floor(((y - legTop + 0.5) * (uWarpA.z - seam + 1.0)) / max(1.0, uWarpA.z - legTop + 1.0));
+}
+// the body's own rows (bodyBuild.ts warpSource, body): tack and ink below the seam belong to the
+// legs; under a raised belly the barrel's old bottom rows are gone (the tail stays)
+float wBody(float x, float yd, float yy, float bot) {
+  float c = wCls(vec2(x, yy));
+  if (c > 3.5 && c < 5.5 && yy >= uWarpA.y) return 0.0;
+  if (c > 3.5 && c < 4.5 && yd >= bot && yd < uWarpA.y) return 0.0;
+  return c;
+}
+// output texel -> the source texel it shows (bodyBuild.ts warpSource); x < 0 = empty
+vec2 warpSrc(vec2 p) {
+  if (uWarpA.x < 0.5) return wCls(p) > 0.5 ? p : vec2(-1.0);
+  float x = p.x;
+  float y = p.y;
+  // the tail hangs from the croup, which never moves: it stays as painted
+  if (wCls(p) > 5.5) return p;
+  float yb = legSrcY(x, y);
+  float cb = yb < 0.0 ? 0.0 : wCls(vec2(x, yb));
+  if ((cb > 0.5 && cb < 1.5) || (cb > 3.5 && cb < 5.5)) return vec2(x, yb);
+  float bot = bodyBot(x);
+  float lo = neckLift(x, uWarpB.z);
+  float yn = bodySrcY(x, y + lo);
+  float cn = wBody(x, y + lo, yn, bot);
+  if ((cn > 4.5 && cn < 5.5) || (cn > 2.5 && cn < 3.5)) return vec2(x, yn);
+  float ya = bodySrcY(x, y);
+  float ci = wBody(x, y, ya, bot);
+  if ((ci > 3.5 && ci < 4.5) || ci > 5.5 || (ci > 4.5 && abs(lo) < 0.5)) return vec2(x, ya);
+  if (ci > 2.5 && ci < 3.5 && cn > 3.5 && cn < 4.5) return vec2(x, yn);
+  // under a raised neck (not the head) the throat stretches down to where it was
+  if (ci > 2.5 && ci < 3.5 && x < uWarpB.y && lo > 0.5) {
+    for (int k = 15; k >= 0; k--) {
+      float kf = float(k);
+      if (kf > lo - 1.0) continue;
+      float yk = bodySrcY(x, y + kf);
+      if (abs(wBody(x, y + kf, yk, bot) - 3.0) < 0.5) return vec2(x, yk);
+    }
+  }
+  if (cb > 1.5 && cb < 2.5) return vec2(x, yb);
+  return vec2(-1.0);
+}
+vec4 texelSrc(vec2 t, vec4 flags, vec3 markW);
 vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
+  if (uBuild.w > 0.5) {
+    if (t.x < 0.0 || t.y < 0.0 || t.x >= uFrame.z || t.y >= uFrame.w) return vec4(0.0);
+    vec2 s = warpSrc(floor((t + 0.5) * uLodS));
+    if (s.x < 0.0) return vec4(0.0);
+    t = floor((s + 0.5) / uLodS);
+  }
+  return texelSrc(t, flags, markW);
+}
+vec4 texelSrc(vec2 t, vec4 flags, vec3 markW) {
   if (t.x < 0.0 || t.y < 0.0 || t.x >= uFrame.z || t.y >= uFrame.w) return vec4(0.0);
   vec2 at = (uFrame.xy + t + 0.5) / uIdxSize;
   float idx = floor(texture2D(uIdx, at).r * 255.0 + 0.5);
@@ -306,11 +464,17 @@ vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
     p2 = (byteOf(m3.g) - 128.0) / 4.0;
     sp = spaceXY(greg, m3.r, p2, uv);
     pp = patternXY(greg, m3.r, p2, uv);
-  } else if (hairCand) {
+  } else if (hairCand || uHairOn > 0.5) {
     m3 = texture2D(uMsk3, srcP / uMskSize);
   }
   // the feathered horse's long hair (art-pipeline longHair): its key in the mask's B channel
   float hairIdx = feather ? byteOf(m3.b) : 0.0;
+  if (uHairOn > 0.5) {
+    // the runner's own mane and tail (hairField); a feathered runner keeps its leg feathering
+    if (!(hreg > 0.5 && hreg < 4.5)) hairIdx = 0.0;
+    float hb = hairByte(mk, m3);
+    if (hairShows(hb)) hairIdx = maneKey(hairShade(hb));
+  }
   if (hairCand) {
     if (hairIdx < 0.5) return vec4(0.0);
     idx = hairIdx;

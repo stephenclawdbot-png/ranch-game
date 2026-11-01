@@ -278,3 +278,202 @@ export function longHair(grid: RoleGrid, keyAt: (f: number, x: number, y: number
   }
   return { key, kind };
 }
+
+// ---------------------------------------------------------------------------
+// Per-horse mane and tail (visual research V-05)
+// ---------------------------------------------------------------------------
+
+/**
+ * Mane and tail styles, grown once per sheet as a field every horse reads with its own style
+ * (game-core hairOf, `appearance.hair`): per texel and per strand set (0 straight, 1 wavy) one
+ * byte, 0 = no hair, else bits 0-3 the shortest length level (1..15) that reaches the texel, bits
+ * 4-5 its shade (HAIR_SHADES), bit 6 drawn only for thick hair, bit 7 tail (else mane or forelock).
+ * A horse shows the texel when its mane (or tail) level reaches it, so a longer mane is the shorter
+ * one grown on, in every frame and every view (the Trackside shader reads the same bytes).
+ */
+export interface HairField {
+  sets: [Uint8Array, Uint8Array];
+}
+
+/** Mane level per style (0 pulled / as painted, 1 short, 2 medium, 3 long) and tail level per style (0 as painted, 1 full, 2 long). */
+export const MANE_LEVEL = [0, 4, 8, 12] as const;
+export const TAIL_LEVEL = [0, 11, 14] as const;
+/** The four shades of the code-drawn hair (mane ramp position). */
+export const HAIR_SHADES = [0.42, 0.58, 0.75, 0.95] as const;
+/** Mane strand length per level, as a share of the barrel depth H. */
+export const MANE_UNIT = 0.06;
+
+export interface HairLevels {
+  mane: number;
+  tail: number;
+  thick: boolean;
+}
+
+/** The levels a style reaches. */
+export function hairLevels(h: { mane: number; tail: number; thick: boolean }): HairLevels {
+  return { mane: MANE_LEVEL[Math.max(0, Math.min(3, h.mane))]!, tail: TAIL_LEVEL[Math.max(0, Math.min(2, h.tail))]!, thick: h.thick };
+}
+
+/** Whether a field byte shows for a horse's levels. */
+export function hairShows(byte: number, lv: HairLevels): boolean {
+  const lvl = byte & 15;
+  if (!lvl) return false;
+  if (byte & 64 && !lv.thick) return false;
+  return lvl <= (byte & 128 ? lv.tail : lv.mane);
+}
+
+/** Grow the mane and tail field of one sheet (see HairField). Pure; deterministic per sheet. */
+export function hairField(grid: RoleGrid, geo: CoatGeometry, speed: number): HairField {
+  const { frames, fw, fh, H } = geo;
+  const n = frames * fw * fh;
+  const sets: [Uint8Array, Uint8Array] = [new Uint8Array(n), new Uint8Array(n)];
+  const lvlOf = (v: number) => Math.max(1, Math.min(15, Math.ceil(v)));
+  for (let f = 0; f < frames; f++) {
+    const base = f * fw * fh;
+    const at = (x: number, y: number) => base + y * fw + x;
+    const { rumpX } = geo.anchors[f]!;
+    if (!rumpX && !geo.anchors[f]!.belly) continue;
+    let ground = 0;
+    let faceX0 = fw;
+    let faceTop = fh;
+    let faceTopX = -1;
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const r = geo.region[at(x, y)]!;
+        if (!r || geo.outside[at(x, y)]) continue;
+        if (y > ground) ground = y;
+        if (r === GEO_REGION.face) {
+          faceX0 = Math.min(faceX0, x);
+          if (y < faceTop) {
+            faceTop = y;
+            faceTopX = x;
+          }
+        }
+      }
+    const phase = (f / Math.max(1, frames)) * Math.PI * 2;
+    const sway = (k: number) => Math.sin(phase + k * 0.9) * (1 - speed);
+    const flutter = (k: number) => Math.sin(phase * 2 + k * 1.7) * speed;
+
+    for (let set = 0; set < 2; set++) {
+      const out = sets[set]!;
+      const amp = set ? 1.25 : 0.3;
+      const freq = set ? 3.4 : 5;
+      /** Plot one hair texel (over the horse's coat / mane or empty air; never the rider, tack, a leg or below the ground). */
+      const plot = (x: number, y: number, lvl: number, shade: number, thickOnly: boolean, tail: boolean) => {
+        const xi = Math.round(x);
+        const yi = Math.round(y);
+        if (xi < 0 || yi < 0 || xi >= fw || yi >= fh || yi > ground) return;
+        const i = at(xi, yi);
+        const role = grid.role(f, xi, yi);
+        if (role >= 4) return;
+        if (role >= 1 && !geo.region[i]) return;
+        if (geo.region[i] && geo.region[i]! <= 4) return;
+        const b = lvl | (shade << 4) | (thickOnly ? 64 : 0) | (tail ? 128 : 0);
+        const old = out[i]!;
+        if (old && (old & 15) < lvl) return;
+        if (old && (old & 15) === lvl && !(old & 64) && thickOnly) return;
+        out[i] = b;
+      };
+
+      // ---- mane: strands from the crest down the neck (levels grow with the strand) ----
+      const crestX0 = Math.round(rumpX + H * 1.95);
+      const crestX1 = faceX0 < fw ? faceX0 + 2 : Math.round(rumpX + H * 3.0);
+      const unit = H * MANE_UNIT;
+      for (let x0 = crestX0, k = 0; x0 <= crestX1; x0 += 2, k++) {
+        let cy = -1;
+        for (let y = 0; y < fh; y++) {
+          const r = geo.region[at(x0, y)]!;
+          if (r && !geo.outside[at(x0, y)] && grid.role(f, x0, y) >= 1 && grid.role(f, x0, y) <= 3) {
+            cy = y;
+            break;
+          }
+        }
+        if (cy < 0) continue;
+        const along = (x0 - crestX0) / Math.max(1, crestX1 - crestX0);
+        const taper = 0.35 + 0.65 * Math.min(1, along / 0.18);
+        const fac = (0.85 + 0.3 * hash(k, 7 + set)) * taper;
+        const maxLen = 15 * unit * fac;
+        const dx = -1.25 * speed;
+        const dy = 1 - 0.55 * speed;
+        const norm = Math.hypot(dx, dy);
+        const dark = k % 3 === 0;
+        for (let s = 0; s <= maxLen; s++) {
+          const t = s / Math.max(1, 12 * unit);
+          const wave = Math.sin(s / freq + k) * amp * Math.min(1, s / 3) + sway(k) * 1.5 * t + flutter(k) * 1.2 * t;
+          const x = x0 + (dx / norm) * s + wave;
+          const y = cy + (dy / norm) * s;
+          const lvl = lvlOf((s + 1) / (unit * fac));
+          plot(x, y, lvl, dark ? 0 : 1, false, false);
+          plot(x + 1, y, lvl, dark ? 2 : 3, false, false);
+          plot(x + 2, y, lvl, 2, true, false);
+        }
+      }
+
+      // ---- forelock: from the poll down the forehead (from the medium mane up) ----
+      if (faceTopX >= 0)
+        for (let k = 0; k < 3; k++) {
+          const x0 = faceTopX + k - 1;
+          for (let s = 0; s <= H * 0.45; s++) {
+            const t = s / Math.max(1, H * 0.4);
+            const x = x0 + s * (0.35 - 0.9 * speed) + Math.sin(s / 2.5 + k) * (set ? 0.8 : 0.4) + sway(k + 5) * t;
+            const y = faceTop + 1 + s * (1 - 0.3 * speed);
+            plot(x, y, lvlOf(6 + (s + 1) / (H * 0.05)), k === 1 ? 3 : 1, k === 2, false);
+          }
+        }
+
+      // ---- tail: strands traced from the dock along the sprite's own tail ----
+      let rootX = -1;
+      let rootY = -1;
+      let tipX = 0;
+      let tipY = 0;
+      let bestA = Infinity;
+      let worstA = -1;
+      for (let y = 0; y < fh; y++)
+        for (let x = 0; x < fw; x++) {
+          const i = at(x, y);
+          if (geo.region[i] !== GEO_REGION.tail || geo.outside[i]) continue;
+          const a = geo.p1[i]!;
+          if (a < bestA) {
+            bestA = a;
+            rootX = x;
+            rootY = y;
+          }
+          if (a > worstA) {
+            worstA = a;
+            tipX = x;
+            tipY = y;
+          }
+        }
+      if (rootX >= 0) {
+        let ax = tipX - rootX;
+        let ay = tipY - rootY;
+        const l0 = Math.max(4, Math.hypot(ax, ay));
+        ax /= l0;
+        ay /= l0;
+        for (let k = 0; k < 8; k++) {
+          const thickOnly = k >= 6;
+          const spread = (thickOnly ? (k === 6 ? -3.6 : 3.6) : k - 2.5) * (H * 0.04);
+          const fac = 0.85 + 0.2 * hash(k, 13 + set);
+          const maxLen = l0 * 1.5 * fac;
+          for (let s = 0; s <= maxLen; s++) {
+            const t = s / Math.max(1, l0 * 1.3);
+            const off = spread * (0.35 + 0.65 * Math.min(1, t));
+            const wave = Math.sin(s / (freq + 1) + k * 1.3) * (set ? 1.4 : 0.5) * Math.min(1, s / 4) + sway(k + 9) * 2 * t + flutter(k + 9) * 2 * t;
+            const x = rootX + ax * s - ay * off + wave;
+            const y = rootY + ay * s + ax * off;
+            const lvl = lvlOf((s + 1) / (l0 * 0.1 * fac));
+            plot(x, y, lvl, k % 2 ? 1 : 2, thickOnly, true);
+            plot(x + (ay > 0.7 ? 1 : 0), y + (ay > 0.7 ? 0 : 1), lvl, 0, thickOnly, true);
+          }
+        }
+      }
+    }
+  }
+  return { sets };
+}
+
+/** The mane key (packed rgb) of a hair shade (2 bits), as the long hair picks it. */
+export function hairKey(mane: readonly number[], shade: number): number {
+  const t = HAIR_SHADES[shade & 3]!;
+  return mane[Math.min(mane.length - 1, Math.max(Math.min(1, mane.length - 1), Math.round(t * (mane.length - 1))))]!;
+}

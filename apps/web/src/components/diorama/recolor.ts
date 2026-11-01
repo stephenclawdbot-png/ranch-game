@@ -5,7 +5,7 @@
  * their 2:1 copies) all use the exact key colours listed in race/palette.json. Each key ramp is
  * swapped for the horse's ramp at the same shade index, so pixels stay hard-edged palette art.
  */
-import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
+import { COAT_PALETTES, atlasFromRgba, buildCoatGeometry, capPatternAt, jerseyPatternAt, lookShapeKey, paintCoatStrip, paintRiderLook, prepareRider, resolveHorseColors, rgbaRoleGrid, sheetSpeed, type CoatAtlas, type CoatGeometry, type CoatPalette } from "@thoroughbred/art-pipeline";
 import type { Coat, HorseAppearance } from "@thoroughbred/shared";
 import PALETTE from "../../../public/art/race/palette.json";
 
@@ -95,7 +95,7 @@ export function applyRecolor(data: Uint8ClampedArray, map: Map<number, number>):
 }
 
 export const lookKey = (l: DioramaHorseLook) =>
-  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) : ""}`;
+  `${l.coat}|${l.silks?.join(",") ?? ""}|${l.appearance ? JSON.stringify([l.appearance.colour, l.appearance.maneColor, l.appearance.dun, l.appearance.silks.pattern, l.appearance.rider ?? null, l.appearance.face, l.appearance.legs, l.appearance.feather ?? false]) + lookShapeKey(l.appearance) : ""}`;
 
 const packHex = (h: string) => {
   const [r, g, b] = hexToRgb(h);

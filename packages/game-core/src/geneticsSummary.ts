@@ -424,7 +424,7 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
     breed,
     breedLabel: label,
     breedLine: `${label} — ${breed.map((b) => `${b.share}% ${BREED_LABEL[b.key]}`).join(" · ")}`,
-    build: buildOf(genome),
+    build: buildWords(genome),
     inbreeding: { permille: genome.coi, text: genome.coi === 0 ? "None" : genome.coi % 10 === 0 ? `${Math.floor(genome.coi / 10)}%` : `${Math.floor(genome.coi / 10)}.${genome.coi % 10}%` },
     quirks: QUIRK_KEYS.filter((q) => revealed.has(q)).map((q) => ({ key: q, label: QUIRK_LABEL[q] })),
     fragile: isFragile(genome),
@@ -432,7 +432,7 @@ export function geneticsSummary(genome: Genome, appearance: Pick<HorseAppearance
 }
 
 /** The 2–3 strongest morph tendencies as words, always at least two. */
-function buildOf(genome: Genome): string {
+function buildWords(genome: Genome): string {
   const scored = Object.keys(BUILD_WORDS).map((k) => {
     const mean = (genome.morph[k as keyof Genome["morph"]][0] + genome.morph[k as keyof Genome["morph"]][1]) / 2000; // -1..1
     return { k, mag: Math.abs(mean), word: BUILD_WORDS[k]![mean >= 0 ? 0 : 1] };

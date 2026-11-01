@@ -147,6 +147,8 @@ export const SilksSchema = z.object({
 });
 export type Silks = z.infer<typeof SilksSchema>;
 
+const BuildStep = z.number().int().min(-2).max(2);
+
 export const HorseAppearanceSchema = z.object({
   coat: CoatSchema,
   face: FaceMarkingSchema,
@@ -168,6 +170,33 @@ export const HorseAppearanceSchema = z.object({
   age: z.enum(["foal", "yearling"]).optional(),
   /** Feathering (fe/fe): long mane and tail and feathered lower legs, drawn in every view. */
   feather: z.literal(true).optional(),
+  /**
+   * Body build (visual research V-04): small signed steps (-2..+2, 0 = the painted horse) read
+   * from the horse's existing morph genes and breed (game-core buildOf). Looks only: no rule
+   * reads it. Optional: old replays and snapshots draw the painted body exactly as before.
+   */
+  build: z
+    .object({
+      height: BuildStep,
+      leg: BuildStep,
+      neck: BuildStep,
+      girth: BuildStep,
+      head: BuildStep,
+    })
+    .optional(),
+  /**
+   * Mane and tail (V-05), from the genome (game-core hairOf): mane 0 pulled (as painted) .. 3
+   * long, tail 0 as painted .. 2 long, thick or fine, straight or wavy. Looks only. Optional:
+   * absent = the painted mane and tail (a feathered horse keeps its older long hair).
+   */
+  hair: z
+    .object({
+      mane: z.number().int().min(0).max(3),
+      tail: z.number().int().min(0).max(2),
+      thick: z.boolean(),
+      wave: z.boolean(),
+    })
+    .optional(),
   /**
    * How the rider is drawn (named jockeys, fields locked since jockey looks): skin and hair
    * ramps (shade, base, highlight) and whether long hair shows under the cap. Optional: old

@@ -7,8 +7,8 @@
 import type { ArtSet } from "../three/art";
 import { parseKeyPalette, type KeyPalette } from "../three/recolor";
 import { sceneryArt, type CourseArtSrc, type SceneryRecipe } from "./scenery";
-import { atlasFromRgba, buildCoatGeometry, sheetSpeed, type CoatAtlas } from "@thoroughbred/art-pipeline";
-import { downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
+import { atlasFromRgba, buildCoatGeometry, hairField, sheetSpeed, warpAnchors, type CoatAtlas, type WarpAnchors } from "@thoroughbred/art-pipeline";
+import { applyHairField, downsampleFrames, buildMarkMasks, coatMasks, indexedRoleGrid, stripLongHair, indexStrip, newPalette, primaryIndices, silkBoxes, womanMasks, type IndexedFrames, type Palette } from "./strips";
 import type { AnimId } from "../stage/motion";
 import type { RaceStage } from "../stage/buildRaceStage";
 
@@ -46,6 +46,8 @@ export interface StripSet {
   geoH: number;
   /** Source texels per metre (the idle strip is authored a little larger). */
   pxPerM: number;
+  /** Body build landmarks per frame (art-pipeline bodyBuild), the same the CPU painter warps with. */
+  warp: WarpAnchors;
 }
 
 export interface TracksideArt {
@@ -116,7 +118,10 @@ async function stripSet(art: ArtSet, stem: string, palette: Palette, pxPerM: num
     const lf = indexStrip(pixels(fImg), img.naturalWidth, fh, frames, palette, anchor, null);
     if (lf) womanMasks(l1, lf, mask);
   }
-  return { lods, silk: new Float32Array(0), mask, maskUv: cm.uv, maskPq: cm.pq, geoH: cm.H, pxPerM };
+  // per-horse mane and tail (V-05) and the build landmarks (V-04): the same as the CPU painter's
+  const grid = indexedRoleGrid(l1, palette, keys);
+  applyHairField(l1, geo, hairField(grid, geo, sheetSpeed(`race/${stem}`)), mask, cm.pq);
+  return { lods, silk: new Float32Array(0), mask, maskUv: cm.uv, maskPq: cm.pq, geoH: cm.H, pxPerM, warp: warpAnchors(geo, grid) };
 }
 
 /** A course's scenery art (manifest src paths), approved files only; missing ones are skipped. */

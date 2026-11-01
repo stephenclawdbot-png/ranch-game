@@ -19,6 +19,7 @@ import type { Coat, FaceMarking, HorseAppearance, HorseColour, LegMarking, Silks
 import { BREEDS, MORPH_KEYS, type CoatGenes, type Genome, type MorphKey, type RigLook } from "./types";
 import { BREED_PROFILES } from "./genome";
 import { Rng, clamp } from "./rng";
+import { buildOf, hairOf } from "./look";
 import { FLAXEN_SHOWS, PANGARE_SHOWS, SOOTY_HEAVY, SOOTY_LIGHT, rareShows, shadeSum } from "./cosmetic";
 
 export type BaseColour = "chestnut" | "liver_chestnut" | "bay" | "dark_bay" | "black";
@@ -374,6 +375,9 @@ export function appearanceOf(genome: Genome, progress: { racingAge: boolean; sta
   if (count(genome.coat.dun, "D") > 0 && !greyShown) out.dun = true;
   // feathering (fe/fe): long mane and tail, feathered lower legs, in every view
   if (count(genome.genes2.feather, "fe") === 2) out.feather = true;
+  // body build and mane / tail (look.ts): read from the existing genes, looks only
+  out.build = buildOf(genome);
+  out.hair = hairOf(genome);
   return out;
 }
 

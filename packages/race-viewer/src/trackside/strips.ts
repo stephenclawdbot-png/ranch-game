@@ -9,7 +9,7 @@
  * zoomed-out horse is still hard-edged palette art, never a resampled blur.
  */
 import type { HorseAppearance } from "@thoroughbred/shared";
-import { buildCoatGeometry, coatPatternOf, GEO_REGION, longHair, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
+import { buildCoatGeometry, coatPatternOf, GEO_REGION, longHair, type HairField, type LongHair, rampRgb, resolveHorseColors, riderSkinLevel, skinKeyLevel, type CoatGeometry, type RoleGrid } from "@thoroughbred/art-pipeline";
 import { buildRecolorPlan, type KeyPalette } from "../three/recolor";
 
 /** LUT width: [0, 64) base colour per index, [64, 128) silks-pattern colour per index,
@@ -374,6 +374,30 @@ export function stripLongHair(src: IndexedFrames, palette: Palette, keys: KeyPal
     return k ? palette.colours[k]! : -1;
   };
   return longHair(grid, keyAt, geo, keys, speed);
+}
+
+/**
+ * The mane and tail field (art-pipeline hairField, V-05) into the masks' alpha bytes: the marking
+ * mask's A holds the straight strand set, the coat mask pq's A the wavy set (the shader reads the
+ * runner's set and levels). An empty texel the field reaches becomes a hair candidate (R = 16 +
+ * mane or tail), like the feathered long hair's. Call after every other mask writer.
+ */
+export function applyHairField(src: IndexedFrames, geo: CoatGeometry, field: HairField, mask: Uint8Array, pq: Uint8Array): void {
+  const { fw, fh } = src;
+  const [s0, s1] = field.sets;
+  for (let f = 0; f < src.frames; f++) {
+    const [ox, oy] = frameOrigin(src, f);
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const i = (f * fh + y) * fw + x;
+        const o = ((oy + y) * src.width + ox + x) * 4;
+        const a = s0[i]!;
+        const b = s1[i]!;
+        mask[o + 3] = a;
+        pq[o + 3] = b;
+        if ((a || b) && !geo.region[i] && !src.index[(oy + y) * src.width + ox + x] && !mask[o]) mask[o] = MARK_REGION.hair + ((a | b) & 128 ? MARK_REGION.tail : MARK_REGION.mane);
+      }
+  }
 }
 
 /**
