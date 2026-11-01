@@ -1,18 +1,22 @@
 "use client";
 /**
  * Testing phase: the tester's permanent login code (the same code every time), to sign back in
- * from any browser without a wallet. Shown on Profile, and once after the first race result
- * (`LoginCodeAfterResult`: one less thing before the first race, first-hour playtest). Hidden
- * outside the playtest (the API answers 404).
+ * from any browser without a wallet. Shown first on the key screen right after the stable is
+ * named (ComeBackKey), always on Profile, and as a one-line reminder after the first race result
+ * for testers who never copied or saved it (`LoginCodeAfterResult`). Hidden outside the playtest
+ * (the API answers 404).
  */
 import { useEffect, useState } from "react";
 import { usePlayerState } from "@/lib/player";
 import { sendOnboarding, useOnboarding } from "../onboarding/guide";
 
-/** The one-time mark that the after-result card was dismissed (packages/db COACH_MARK_IDS). */
+/**
+ * The one-time mark that the code was kept (copied, saved or shared on the key screen) or the
+ * after-result reminder was dismissed (packages/db COACH_MARK_IDS).
+ */
 export const LOGIN_CODE_MARK = "login_code";
 
-function useLoginCode(): string | null | undefined {
+export function useLoginCode(): string | null | undefined {
   const [code, setCode] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     let live = true;
@@ -77,9 +81,9 @@ export function showLoginCodeAfterResult(tester: boolean | undefined, coachSeen:
 }
 
 /**
- * After a result of your own (the first one, in practice), testers only: save the code to come
- * back on another device. Below the result, never in the way; "Saved it" hides it for good (it
- * stays on Profile).
+ * After a result of your own (the first one, in practice), testers only, and only if they never
+ * copied or saved the code on the key screen after naming their stable (both set the same mark):
+ * a one-line reminder below the result. Copy or close hides it for good (it stays on Profile).
  */
 export function LoginCodeAfterResult() {
   const state = usePlayerState();
@@ -92,19 +96,28 @@ export function LoginCodeAfterResult() {
   }} />;
 }
 
+/** One calm line: the code, Copy (which counts as saved) and a close. */
 function AfterResultCard({ onDismiss }: { onDismiss: () => void }) {
   const code = useLoginCode();
   if (!code) return null;
   return (
-    <section className="surface grid gap-2 p-3 sm:p-4" aria-labelledby="login-code-after-h" data-testid="login-code">
-      <h2 id="login-code-after-h" className="font-extrabold">
-        Save this to come back on another device
-      </h2>
-      <p className="t-meta">Testers: your login code signs you back into this stable from any browser, no wallet needed. It never changes; keep it to yourself. It&rsquo;s on your Profile too.</p>
-      <CodeBox code={code} />
-      <button type="button" className="btn-ghost btn btn-sm justify-self-start" onClick={onDismiss} data-testid="login-code-dismiss">
-        Saved it, hide this
+    <p className="surface flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm" data-testid="login-code">
+      <span className="min-w-0 flex-1">
+        Your key to come back: <code className="select-all break-all font-mono font-bold tracking-wider" data-testid="login-code-value">{code}</code>
+      </span>
+      <button
+        type="button"
+        className="btn btn-sm"
+        onClick={() => {
+          void navigator.clipboard?.writeText(code).then(onDismiss, () => undefined);
+        }}
+        data-testid="login-code-copy"
+      >
+        Copy
       </button>
-    </section>
+      <button type="button" className="btn-ghost btn btn-sm" onClick={onDismiss} aria-label="Hide (it stays on your Profile)" data-testid="login-code-dismiss">
+        ✕
+      </button>
+    </p>
   );
 }
