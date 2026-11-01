@@ -20,6 +20,8 @@ import {
   playtestMetrics,
   redeemInvite,
   resetPlaytest,
+  RESET_KEEP_TABLES,
+  RESET_TABLES,
   setBetaRewardStatus,
   setTesterWallet,
   submitFeedback,
@@ -158,6 +160,15 @@ describe("playtest", () => {
     expect(today?.racesByKind.story).toBeGreaterThanOrEqual(1);
     const list = await listTesters(h.db);
     expect(list.find((x) => x.stableName === "QA Tester M")?.daysPlayed).toBe(2);
+  });
+
+  it("every table is either wiped by the reset or kept on purpose", async () => {
+    const rows = (await h.db.execute(sql`select tablename from pg_tables where schemaname = 'public'`)) as unknown as { rows?: { tablename: string }[] } | { tablename: string }[];
+    const list = (Array.isArray(rows) ? rows : (rows.rows ?? [])).map((r) => r.tablename).filter((t) => !t.startsWith("__drizzle"));
+    expect(list.length).toBeGreaterThan(50);
+    const known = new Set<string>([...RESET_TABLES, ...RESET_KEEP_TABLES]);
+    expect(list.filter((t) => !known.has(t)).sort()).toEqual([]);
+    expect(RESET_TABLES.filter((t) => (RESET_KEEP_TABLES as readonly string[]).includes(t))).toEqual([]);
   });
 
   it("reset wipes game progress, keeps testers, wallets, codes and rewards, and is idempotent", async () => {

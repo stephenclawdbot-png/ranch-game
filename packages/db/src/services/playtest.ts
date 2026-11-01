@@ -832,6 +832,8 @@ export const RESET_TABLES = [
   "jockeys",
   "trades",
   "market_listings",
+  // The Club's daily listing log: kept, it would stop the Club listing horses on reset day.
+  "club_market_days",
   "league_members",
   "leagues",
   "daily_cup_entries",
@@ -883,6 +885,30 @@ export const RESET_TABLES = [
   "login_codes",
   "account_devices",
   "accounts",
+] as const;
+
+/**
+ * Tables the reset keeps on purpose: playtest records, beta money and wallet data, economy
+ * settings, the season record, cached commentary names and migration book-keeping. Every other
+ * table must be in RESET_TABLES (a test checks the schema against both lists).
+ */
+export const RESET_KEEP_TABLES = [
+  "beta_reward_rules",
+  "beta_rewards",
+  "chain_orders",
+  "commentary_names",
+  "economy_config",
+  "feedback",
+  "invite_codes",
+  "pool_allocations",
+  "pool_epochs",
+  "referral_earnings",
+  "seasons",
+  "telemetry_events",
+  "tester_rewards",
+  "testers",
+  "usdg_orders",
+  "wallet_challenges",
 ] as const;
 
 export const RESET_CONFIRMATION = "RESET PLAYTEST";
