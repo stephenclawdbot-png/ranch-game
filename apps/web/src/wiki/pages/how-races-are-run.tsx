@@ -230,7 +230,9 @@ export default function HowRacesAreRunPage() {
         items={[
           <>A Live race&rsquo;s result, seed and full replay are only released once the broadcast has shown the finish, so nobody can see a result early.</>,
           <>
-            A purse is split {PRIZE_SPLIT_PCT.map((p) => `${p}%`).join(" / ")} among the first {PRIZE_SPLIT_PCT.length}. See <WikiLink slug="race-types" />.
+            A purse is split {PRIZE_SPLIT_PCT.map((p) => `${p}%`).join(" / ")} among the first {PRIZE_SPLIT_PCT.length}, each share rounded down. The winner also takes the
+            rounding and the shares of any empty places, so what the replay shows is exactly what is paid. See <WikiLink slug="credits-and-entries" /> and{" "}
+            <WikiLink slug="race-types" />.
           </>,
           <>
             The Daily Cup uses the same engine and the same sealing, with one seed for the whole day: <WikiLink slug="daily-cup" />.
@@ -243,6 +245,31 @@ export default function HowRacesAreRunPage() {
           plan, or a trip and ground that suit the horse better (<WikiLink slug="entering-a-race" />), or ask the race itself with a what-if (below).
         </p>
       </Callout>
+
+      <H2 id="radio">Radio commentary</H2>
+      <P>
+        Every race can be called aloud, like a 1960s radio broadcast: a British race caller over a crowd that swells with the race, through a narrow, slightly crackly radio sound. It
+        is <b>off to begin with</b>. Tap <b>Radio</b> on the race screen to turn it on, and this browser remembers your choice.
+      </P>
+      <List
+        items={[
+          <>
+            <b>Three casters.</b> One of them calls each race from start to finish, picked at random for that race, and everyone watching it hears the same voice.
+          </>,
+          <>
+            <b>Every kind of race.</b> Live races, Story and career races, the Daily Cup, quick races (match, ghost and the daily challenge), what-if re-runs and every replay, in
+            either view.
+          </>,
+          <>
+            <b>It follows the race.</b> Calm early on, building from the turn, and properly excited for a duel, a late comeback or a photo finish. An easy winner is called calmly.
+          </>,
+          <>
+            At faster or slower playback only the big calls are spoken: the finish, the photograph and the result. A horse whose name hasn&rsquo;t been voiced yet is called by its
+            number.
+          </>,
+          <>Like the written call, it is built only from what you have already seen, so it never gives a Live result away early.</>,
+        ]}
+      />
 
       <H2 id="what-if">What if? re-runs</H2>
       <P>

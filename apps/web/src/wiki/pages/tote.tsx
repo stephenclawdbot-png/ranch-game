@@ -166,8 +166,8 @@ export default function TotePage() {
         the game runs in practice mode with test dollars, have their own (lower) limits, and never touch real money.
       </P>
       <P>
-        T-USDG bets come from the same T-USDG balance you use on the <WikiLink slug="usdg-market">T-USDG market</WikiLink>: the {gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)} every account
-        gets once when its wallet first signs in. There is no other way to get T-USDG, so you need your wallet signed in to bet it.
+        T-USDG bets come from the same T-USDG balance you use on the <WikiLink slug="usdg-market">T-USDG market</WikiLink>: the {gc.formatPracticeUsdg(gc.PRACTICE_USDG_GRANT)} every player
+        gets once, when the stable is founded. There is no other way to get T-USDG. No wallet is needed: without one you bet as your stable.
       </P>
 
       <H2 id="limits">Limits, breaks and 18+</H2>

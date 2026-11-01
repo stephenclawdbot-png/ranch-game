@@ -48,7 +48,8 @@ export default function RacingCareerPage() {
   const ages = ageBands();
   const horses = maturityHorses();
   const risk = veteranRisk();
-  const checkpoints = [0, 5, 10, 15, 20, 25, 30, 35, gc.CAREER_MAX_STARTS];
+  // Every fifth start, then the last one (read from the rule, so the table never runs past the career).
+  const checkpoints = [...Array.from({ length: Math.ceil(gc.CAREER_MAX_STARTS / 5) }, (_, i) => i * 5), gc.CAREER_MAX_STARTS];
   return (
     <>
       <Lead>
