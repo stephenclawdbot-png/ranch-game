@@ -30,7 +30,7 @@ let queue: Promise<void> = Promise.resolve();
 ctx.onmessage = (e) => {
   const { id, appearance, thumb, anim, builds, key, version } = e.data;
   // a cache hit answers at once, ahead of the queue
-  const cache = key && version ? paintCache(`portrait|${version}`) : null;
+  const cache = key && version ? paintCache("portraits", version) : null;
   const hit = cache ? cache.then((c) => c.get<GeneticPortraitBlobs>(key!)).catch(() => null) : Promise.resolve(null);
   void hit.then((b) => {
     if (b?.strip) {

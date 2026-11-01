@@ -9,6 +9,7 @@
  * no cache, never an error.
  */
 
+/** One database per kind of art (each clears itself on its own version). */
 const DB = "post-time-paint";
 const STORE = "art";
 const META = "meta";
@@ -38,20 +39,21 @@ function done(tx: IDBTransaction): Promise<void> {
 
 const opened = new Map<string, Promise<PaintCache>>();
 
-/** The cache for this version (one connection per version per thread). */
-export function paintCache(version: string): Promise<PaintCache> {
-  let p = opened.get(version);
+/** The cache of one kind of art ("strips", "portraits") at this version (one connection per thread). */
+export function paintCache(kind: string, version: string): Promise<PaintCache> {
+  const id = `${kind}\n${version}`;
+  let p = opened.get(id);
   if (!p) {
-    p = open(version).catch(() => NONE);
-    opened.set(version, p);
+    p = open(`${DB}-${kind}`, version).catch(() => NONE);
+    opened.set(id, p);
   }
   return p;
 }
 
-async function open(version: string): Promise<PaintCache> {
+async function open(name: string, version: string): Promise<PaintCache> {
   const idb = (globalThis as { indexedDB?: IDBFactory }).indexedDB;
   if (!idb) return NONE;
-  const r = idb.open(DB, 1);
+  const r = idb.open(name, 1);
   r.onupgradeneeded = () => {
     const db = r.result;
     if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE).createIndex("t", "t");

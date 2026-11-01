@@ -90,7 +90,7 @@ ctx.onmessage = (e) => {
       queue = makeQueue();
       for (const x of early.splice(0)) handle(x);
     };
-    if (m.cache) paintCache(m.version).then(start, () => start(null));
+    if (m.cache) paintCache("strips", m.version).then(start, () => start(null));
     else start(null);
     return;
   }
